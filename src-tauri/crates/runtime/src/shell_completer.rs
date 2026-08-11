@@ -181,7 +181,7 @@ impl ShellCompleter {
         let candidates = self.provide_completions(ctx).await;
 
         let mut sorted = candidates;
-        sorted.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+        sorted.sort_by(|a, b| b.score.partial_cmp(&a.score).expect("Shell 补全：f64 比较不应失败"));
 
         sorted.into_iter().take(self.config.max_candidates).collect()
     }
@@ -203,7 +203,8 @@ impl ShellCompleter {
             candidates.extend(provider.provide(ctx));
         }
 
-        candidates.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+        candidates
+            .sort_by(|a, b| b.score.partial_cmp(&a.score).expect("Shell 补全：f64 比较不应失败"));
         candidates
     }
 

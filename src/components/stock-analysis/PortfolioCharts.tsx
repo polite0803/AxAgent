@@ -8,23 +8,9 @@
  * - PortfolioPerformanceLine: 组合净值 vs 基准对比曲线
  */
 
-import { useMemo } from "react";
+import * as echarts from "echarts";
+import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  Line,
-  LineChart,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 
 /** 颜色方案（固定色盘，避免随机） */
 const COLORS = [
@@ -57,12 +43,73 @@ interface SectorAllocationDonutProps {
   height?: number;
 }
 
+/** 通用 echarts hook */
+function useECharts(
+  optionBuilder: () => echarts.EChartsOption,
+  deps: unknown[],
+): React.RefObject<HTMLDivElement | null> {
+  const ref = useRef<HTMLDivElement>(null);
+  const instance = useRef<echarts.ECharts | null>(null);
+
+  useEffect(() => {
+    if (!ref.current) { return; }
+    if (!instance.current) {
+      instance.current = echarts.init(ref.current, "dark");
+    }
+    instance.current.setOption(optionBuilder());
+    const handleResize = () => instance.current?.resize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+
+  useEffect(() => {
+    return () => {
+      instance.current?.dispose();
+      instance.current = null;
+    };
+  }, []);
+
+  return ref;
+}
+
 /**
  * 行业配置圆环图
  */
 export function SectorAllocationDonut({ data, height = 250 }: SectorAllocationDonutProps) {
   const { t } = useTranslation();
   const sorted = useMemo(() => [...data].sort((a, b) => b.pct - a.pct), [data]);
+
+  const ref = useECharts(
+    () => ({
+      tooltip: {
+        trigger: "item",
+        backgroundColor: "#1F2937",
+        borderColor: "#374151",
+        textStyle: { color: "#F3F4F6", fontSize: 12 },
+        formatter: (params: unknown) => {
+          const p = params as { value: number; name: string };
+          return `${p.name}: ${p.value.toFixed(1)}%`;
+        },
+      },
+      series: [
+        {
+          type: "pie",
+          radius: ["45%", "75%"],
+          center: ["50%", "50%"],
+          padAngle: 2,
+          itemStyle: { borderRadius: 4, borderColor: "#111827", borderWidth: 2 },
+          label: { show: false },
+          data: sorted.map((d, i) => ({
+            value: d.pct,
+            name: d.sector,
+            itemStyle: { color: COLORS[i % COLORS.length] },
+          })),
+        },
+      ],
+    }),
+    [sorted],
+  );
 
   if (sorted.length === 0) {
     return (
@@ -77,33 +124,7 @@ export function SectorAllocationDonut({ data, height = 250 }: SectorAllocationDo
       <h4 className="text-sm font-medium text-gray-300 mb-2">
         {t("stockAnalysis.charts.sectorAllocation", "行业配置")}
       </h4>
-      <ResponsiveContainer width="100%" height={height}>
-        <PieChart>
-          <Pie
-            data={sorted}
-            dataKey="pct"
-            nameKey="sector"
-            cx="50%"
-            cy="50%"
-            innerRadius={55}
-            outerRadius={85}
-            paddingAngle={2}
-          >
-            {sorted.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="none" />)}
-          </Pie>
-          <Tooltip
-            contentStyle={{
-              backgroundColor: "#1F2937",
-              border: "1px solid #374151",
-              borderRadius: "8px",
-              color: "#F3F4F6",
-              fontSize: 12,
-            }}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            formatter={(value: any, name: any) => [`${value.toFixed(1)}%`, name]}
-          />
-        </PieChart>
-      </ResponsiveContainer>
+      <div ref={ref} style={{ width: "100%", height }} />
       {/* 图例 */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 mt-2">
         {sorted.slice(0, 9).map((item, i) => (
@@ -226,6 +247,44 @@ interface PnLHistogramProps {
 export function PnLHistogram({ data, height = 200 }: PnLHistogramProps) {
   const { t } = useTranslation();
 
+  const ref = useECharts(
+    () => ({
+      tooltip: {
+        trigger: "axis",
+        backgroundColor: "#1F2937",
+        borderColor: "#374151",
+        textStyle: { color: "#F3F4F6", fontSize: 12 },
+      },
+      grid: { top: 12, right: 12, bottom: 24, left: 48 },
+      xAxis: {
+        type: "category",
+        data: data.map((d) => d.range),
+        axisLine: { lineStyle: { color: "#4B5563" } },
+        axisLabel: { color: "#9CA3AF", fontSize: 10 },
+        axisTick: { show: false },
+      },
+      yAxis: {
+        type: "value",
+        axisLine: { lineStyle: { color: "#4B5563" } },
+        axisLabel: { color: "#9CA3AF", fontSize: 10 },
+        splitLine: { lineStyle: { color: "#374151", type: "dashed" } },
+        axisTick: { show: false },
+      },
+      series: [
+        {
+          type: "bar",
+          data: data.map((d) => ({
+            value: d.count,
+            itemStyle: { color: d.total >= 0 ? "#22C55E" : "#EF4444", opacity: 0.7 },
+          })),
+          barMaxWidth: 32,
+          itemStyle: { borderRadius: [3, 3, 0, 0] },
+        },
+      ],
+    }),
+    [data],
+  );
+
   if (data.length === 0) {
     return (
       <div className="text-gray-400 text-xs text-center py-8">
@@ -239,40 +298,7 @@ export function PnLHistogram({ data, height = 200 }: PnLHistogramProps) {
       <h4 className="text-sm font-medium text-gray-300 mb-2">
         {t("stockAnalysis.charts.pnlDistribution", "盈亏分布")}
       </h4>
-      <ResponsiveContainer width="100%" height={height}>
-        <BarChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-          <XAxis
-            dataKey="range"
-            tick={{ fill: "#9CA3AF", fontSize: 10 }}
-            tickLine={false}
-            axisLine={{ stroke: "#4B5563" }}
-          />
-          <YAxis
-            tick={{ fill: "#9CA3AF", fontSize: 10 }}
-            tickLine={false}
-            axisLine={{ stroke: "#4B5563" }}
-          />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: "#1F2937",
-              border: "1px solid #374151",
-              borderRadius: "8px",
-              color: "#F3F4F6",
-              fontSize: 12,
-            }}
-          />
-          <Bar dataKey="count" radius={[3, 3, 0, 0]}>
-            {data.map((entry, i) => (
-              <Cell
-                key={i}
-                fill={entry.total >= 0 ? "#22C55E" : "#EF4444"}
-                fillOpacity={0.7}
-              />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+      <div ref={ref} style={{ width: "100%", height }} />
     </div>
   );
 }
@@ -296,6 +322,78 @@ interface PortfolioPerformanceLineProps {
 export function PortfolioPerformanceLine({ data, height = 250 }: PortfolioPerformanceLineProps) {
   const { t } = useTranslation();
 
+  const ref = useECharts(
+    () => {
+      const hasBenchmark = data.length > 0 && data[0]?.benchmark !== undefined;
+      return {
+        tooltip: {
+          trigger: "axis",
+          backgroundColor: "#1F2937",
+          borderColor: "#374151",
+          textStyle: { color: "#F3F4F6", fontSize: 12 },
+          formatter: (params: unknown) => {
+            const ps = params as { seriesName: string; value: number; axisValue: string }[];
+            const labels: Record<string, string> = {
+              portfolio: t("stockAnalysis.charts.portfolio", "组合"),
+              benchmark: t("stockAnalysis.charts.benchmark", "基准"),
+            };
+            let result = ps[0]?.axisValue ?? "";
+            for (const p of ps) {
+              result += `<br/>${labels[p.seriesName] ?? p.seriesName}: ${p.value.toFixed(2)}%`;
+            }
+            return result;
+          },
+        },
+        legend: { textStyle: { color: "#D1D5DB", fontSize: 12 } },
+        grid: { top: 32, right: 16, bottom: 24, left: 48 },
+        xAxis: {
+          type: "category",
+          data: data.map((d) => d.date),
+          axisLine: { lineStyle: { color: "#4B5563" } },
+          axisLabel: { color: "#9CA3AF", fontSize: 10 },
+          axisTick: { show: false },
+          boundaryGap: false,
+        },
+        yAxis: {
+          type: "value",
+          axisLine: { lineStyle: { color: "#4B5563" } },
+          axisLabel: {
+            color: "#9CA3AF",
+            fontSize: 10,
+            formatter: (v: number) => `${v.toFixed(0)}%`,
+          },
+          splitLine: { lineStyle: { color: "#374151", type: "dashed" } },
+          axisTick: { show: false },
+        },
+        series: [
+          {
+            name: "portfolio",
+            type: "line",
+            data: data.map((d) => d.portfolio),
+            smooth: true,
+            lineStyle: { color: "#22C55E", width: 2 },
+            itemStyle: { color: "#22C55E" },
+            showSymbol: false,
+          },
+          ...(hasBenchmark
+            ? [
+              {
+                name: "benchmark",
+                type: "line" as const,
+                data: data.map((d) => d.benchmark),
+                smooth: true,
+                lineStyle: { color: "#6B7280", width: 1, type: "dashed" as const },
+                itemStyle: { color: "#6B7280" },
+                showSymbol: false,
+              },
+            ]
+            : []),
+        ],
+      };
+    },
+    [data, t],
+  );
+
   if (data.length < 2) {
     return (
       <div className="text-gray-400 text-xs text-center py-8">
@@ -309,62 +407,7 @@ export function PortfolioPerformanceLine({ data, height = 250 }: PortfolioPerfor
       <h4 className="text-sm font-medium text-gray-300 mb-2">
         {t("stockAnalysis.charts.portfolioVsBenchmark", "组合 vs 基准")}
       </h4>
-      <ResponsiveContainer width="100%" height={height}>
-        <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-          <XAxis
-            dataKey="date"
-            tick={{ fill: "#9CA3AF", fontSize: 10 }}
-            tickLine={false}
-            axisLine={{ stroke: "#4B5563" }}
-            interval="preserveStartEnd"
-          />
-          <YAxis
-            domain={["auto", "auto"]}
-            tick={{ fill: "#9CA3AF", fontSize: 10 }}
-            tickLine={false}
-            axisLine={{ stroke: "#4B5563" }}
-            tickFormatter={(v: number) => `${v.toFixed(0)}%`}
-          />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: "#1F2937",
-              border: "1px solid #374151",
-              borderRadius: "8px",
-              color: "#F3F4F6",
-              fontSize: 12,
-            }}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            formatter={(value: any, name: any) => {
-              const labels: Record<string, string> = {
-                portfolio: t("stockAnalysis.charts.portfolio", "组合"),
-                benchmark: t("stockAnalysis.charts.benchmark", "基准"),
-              };
-              return [`${value.toFixed(2)}%`, labels[name] ?? name];
-            }}
-          />
-          <Legend wrapperStyle={{ color: "#D1D5DB", fontSize: 12 }} />
-          <Line
-            type="monotone"
-            dataKey="portfolio"
-            stroke="#22C55E"
-            strokeWidth={2}
-            dot={false}
-            name="portfolio"
-          />
-          {data[0]?.benchmark !== undefined && (
-            <Line
-              type="monotone"
-              dataKey="benchmark"
-              stroke="#6B7280"
-              strokeWidth={1}
-              strokeDasharray="4 4"
-              dot={false}
-              name="benchmark"
-            />
-          )}
-        </LineChart>
-      </ResponsiveContainer>
+      <div ref={ref} style={{ width: "100%", height }} />
     </div>
   );
 }

@@ -208,8 +208,9 @@ mod tests {
             reason: Some("test".to_string()),
             timestamp: chrono::Utc::now(),
         };
-        let json = serde_json::to_string(&req).unwrap();
-        let deserialized: InterruptRequest = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&req).expect("测试：JSON序列化应成功");
+        let deserialized: InterruptRequest =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.level, InterruptLevel::Soft);
         assert_eq!(deserialized.reason, Some("test".to_string()));
     }
@@ -226,7 +227,7 @@ mod tests {
         let manager = InterruptManager::new(false);
         manager.request(InterruptLevel::Soft, Some("test".to_string())).await;
         assert_eq!(manager.state().await, InterruptState::Pending(InterruptLevel::Soft));
-        let req = manager.check().await.unwrap();
+        let req = manager.check().await.expect("测试：异步操作应成功");
         assert_eq!(req.level, InterruptLevel::Soft);
         assert_eq!(req.reason, Some("test".to_string()));
     }
@@ -309,7 +310,7 @@ mod tests {
     async fn test_interrupt_manager_soft_stop() {
         let manager = InterruptManager::new(false);
         manager.soft_stop().await;
-        let req = manager.check().await.unwrap();
+        let req = manager.check().await.expect("测试：异步操作应成功");
         assert_eq!(req.level, InterruptLevel::Soft);
         assert!(req.reason.is_some());
     }
@@ -323,7 +324,7 @@ mod tests {
         manager.hard_stop().await;
         manager.soft_stop().await;
         assert_eq!(manager.state().await, InterruptState::Pending(InterruptLevel::Hard));
-        let req = manager.check().await.unwrap();
+        let req = manager.check().await.expect("测试：异步操作应成功");
         assert_eq!(req.level, InterruptLevel::Hard);
         // Hard 不保留会话语义在防降级后仍生效
         assert!(!manager.should_preserve_session().await);

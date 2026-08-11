@@ -497,7 +497,10 @@ mod tests {
         let override_dir = PathBuf::from("/Volumes/external/axagent-backups");
 
         assert_eq!(
-            resolve_backup_dir(Some(override_dir.to_str().unwrap()), &axagent_home),
+            resolve_backup_dir(
+                Some(override_dir.to_str().expect("测试：路径转字符串应成功")),
+                &axagent_home
+            ),
             override_dir
         );
     }

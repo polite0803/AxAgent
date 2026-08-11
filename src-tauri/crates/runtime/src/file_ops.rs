@@ -808,14 +808,17 @@ mod tests {
         // workspace=/workspace，path=/workspace_evil/x → 必须拒绝。
         let workspace = std::env::temp_dir().join("clawd-test-prefix-lookalike");
         let _ = std::fs::create_dir_all(&workspace);
-        let lookalike = workspace.parent().unwrap().join("clawd-test-prefix-lookalike_evil");
+        let lookalike = workspace
+            .parent()
+            .expect("测试：路径应有父目录")
+            .join("clawd-test-prefix-lookalike_evil");
         let _ = std::fs::create_dir_all(&lookalike);
         let f = lookalike.join("file.txt");
         let _ = std::fs::write(&f, "x");
 
         // canonicalize 之后前缀相似的目录应被拒绝
-        let canonical_root = workspace.canonicalize().unwrap();
-        let canonical_f = f.canonicalize().unwrap();
+        let canonical_root = workspace.canonicalize().expect("测试：canonicalize 应成功");
+        let canonical_f = f.canonicalize().expect("测试：canonicalize 应成功");
         assert!(
             validate_workspace_boundary(&canonical_f, &canonical_root).is_err(),
             "path under a directory whose name is a prefix of workspace must be rejected"
@@ -827,13 +830,14 @@ mod tests {
     #[test]
     fn glob_search_with_braces_finds_files() {
         let dir = temp_path("glob-braces");
-        std::fs::create_dir_all(&dir).unwrap();
-        std::fs::write(dir.join("a.rs"), "fn main() {}").unwrap();
-        std::fs::write(dir.join("b.toml"), "[package]").unwrap();
-        std::fs::write(dir.join("c.txt"), "hello").unwrap();
+        std::fs::create_dir_all(&dir).expect("测试：创建目录应成功");
+        std::fs::write(dir.join("a.rs"), "fn main() {}").expect("测试：写入 a.rs 应成功");
+        std::fs::write(dir.join("b.toml"), "[package]").expect("测试：写入 b.toml 应成功");
+        std::fs::write(dir.join("c.txt"), "hello").expect("测试：写入 c.txt 应成功");
 
         let result =
-            glob_search("*.{rs,toml}", Some(dir.to_str().unwrap())).expect("glob should succeed");
+            glob_search("*.{rs,toml}", Some(dir.to_str().expect("测试：路径转 str 应成功")))
+                .expect("glob should succeed");
         assert_eq!(result.num_files, 2, "should match .rs and .toml but not .txt");
         let _ = std::fs::remove_dir_all(&dir);
     }

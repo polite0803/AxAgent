@@ -226,15 +226,15 @@ mod tests {
         let selector = ModeSelector::new(registry.clone());
 
         // Start in General mode - all enabled
-        let result = selector.enter_general_mode().await.unwrap();
+        let result = selector.enter_general_mode().await.expect("测试：异步操作应成功");
         assert_eq!(result.to, ActiveMode::General);
 
         // Switch to Speed mode
-        let result = selector.enter_speed_mode().await.unwrap();
+        let result = selector.enter_speed_mode().await.expect("测试：异步操作应成功");
         assert_eq!(result.to, ActiveMode::Speed);
 
         // Toggle back
-        let result = selector.toggle_mode().await.unwrap();
+        let result = selector.toggle_mode().await.expect("测试：异步操作应成功");
         assert_eq!(result.to, ActiveMode::General);
 
         assert_eq!(selector.current_mode().await, ActiveMode::General);

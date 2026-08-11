@@ -305,10 +305,13 @@ mod tests {
     fn save_and_load_roundtrip() {
         let ts = temp_store();
         let cred = api_key_credential();
-        ts.store.save_credential(&cred).unwrap();
-        let loaded = ts.store.load_credential("cred-1").unwrap();
+        ts.store.save_credential(&cred).expect("测试应成功");
+        let loaded = ts.store.load_credential("cred-1").expect("测试应成功");
         // Credential 未派生 PartialEq，改用 JSON 序列化比较（含时间戳）确保完全一致。
-        assert_eq!(serde_json::to_string(&loaded).unwrap(), serde_json::to_string(&cred).unwrap());
+        assert_eq!(
+            serde_json::to_string(&loaded).expect("测试：JSON序列化应成功"),
+            serde_json::to_string(&cred).unwrap()
+        );
     }
 
     #[test]
@@ -355,11 +358,11 @@ mod tests {
             ),
         ];
         for c in &cases {
-            ts.store.save_credential(c).unwrap();
-            let loaded = ts.store.load_credential(&c.id).unwrap();
+            ts.store.save_credential(c).expect("测试应成功");
+            let loaded = ts.store.load_credential(&c.id).expect("测试应成功");
             assert_eq!(
-                serde_json::to_string(&loaded.credential_type).unwrap(),
-                serde_json::to_string(&c.credential_type).unwrap(),
+                serde_json::to_string(&loaded.credential_type).expect("测试：JSON序列化应成功"),
+                serde_json::to_string(&c.credential_type).expect("测试：JSON序列化应成功"),
                 "类型 {} 往返不一致",
                 c.id
             );
@@ -373,7 +376,7 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("axagent_cred_wk_{}", hex::encode(suffix)));
         std::fs::create_dir_all(&dir).ok();
         let store_a = CredentialStore::new(dir.clone(), [0x11u8; 32]);
-        store_a.save_credential(&api_key_credential()).unwrap();
+        store_a.save_credential(&api_key_credential()).expect("测试应成功");
         // 用不同主密钥读取应解密失败（密钥绑定是安全边界）。
         let store_b = CredentialStore::new(dir.clone(), [0x22u8; 32]);
         assert!(store_b.load_credential("cred-1").is_err());
@@ -384,8 +387,8 @@ mod tests {
     fn delete_then_load_fails() {
         let ts = temp_store();
         let cred = api_key_credential();
-        ts.store.save_credential(&cred).unwrap();
-        ts.store.delete_credential("cred-1").unwrap();
+        ts.store.save_credential(&cred).expect("测试应成功");
+        ts.store.delete_credential("cred-1").expect("测试应成功");
         assert!(ts.store.load_credential("cred-1").is_err());
     }
 
@@ -402,9 +405,9 @@ mod tests {
             "Beta".into(),
             CredentialType::BearerToken { token: "t".into() },
         );
-        ts.store.save_credential(&c1).unwrap();
-        ts.store.save_credential(&c2).unwrap();
-        let metas = ts.store.list_credentials().unwrap();
+        ts.store.save_credential(&c1).expect("测试应成功");
+        ts.store.save_credential(&c2).expect("测试应成功");
+        let metas = ts.store.list_credentials().expect("测试：list_credentials 应成功");
         assert_eq!(metas.len(), 2);
         let names: Vec<&str> = metas.iter().map(|m| m.name.as_str()).collect();
         assert!(names.contains(&"Alpha"));
@@ -418,10 +421,10 @@ mod tests {
     #[test]
     fn corrupt_file_fails_to_load() {
         let ts = temp_store();
-        ts.store.save_credential(&api_key_credential()).unwrap();
+        ts.store.save_credential(&api_key_credential()).expect("测试应成功");
         // 直接覆写密文为垃圾，模拟磁盘损坏。
         let path = ts.dir.join("cred-1.enc");
-        std::fs::write(&path, "not-valid-base64-@@@@").unwrap();
+        std::fs::write(&path, "not-valid-base64-@@@@").expect("测试：写入文件应成功");
         assert!(ts.store.load_credential("cred-1").is_err());
     }
 

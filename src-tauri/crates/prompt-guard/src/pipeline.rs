@@ -113,7 +113,7 @@ mod tests {
         let pipeline = PromptGuardPipeline::new(GuardConfig::default());
         let result = pipeline.process_user_input("How do I write a function in Rust?");
         assert!(result.is_ok());
-        let wrapped = result.unwrap();
+        let wrapped = result.expect("测试应成功");
         assert!(wrapped.starts_with("<user_query"));
         assert!(wrapped.ends_with("</user_query>"));
     }

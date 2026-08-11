@@ -82,21 +82,21 @@ mod tests {
 
     #[tokio::test]
     async fn v106_adds_doc_ids_json_column() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
         // 先跑 v100 建 context_sources 表
-        super::super::v100_consolidated::up(db.clone()).await.unwrap();
+        super::super::v100_consolidated::up(db.clone()).await.expect("测试：异步操作应成功");
         // 再跑 v106
-        up(db.clone()).await.unwrap();
+        up(db.clone()).await.expect("测试：异步操作应成功");
 
-        let cols = existing_columns(&db, "context_sources").await.unwrap();
+        let cols = existing_columns(&db, "context_sources").await.expect("测试：异步操作应成功");
         assert!(cols.iter().any(|c| c == "doc_ids_json"), "doc_ids_json column should exist");
     }
 
     #[tokio::test]
     async fn v106_is_self_idempotent() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        super::super::v100_consolidated::up(db.clone()).await.unwrap();
-        up(db.clone()).await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        super::super::v100_consolidated::up(db.clone()).await.expect("测试：异步操作应成功");
+        up(db.clone()).await.expect("测试：异步操作应成功");
         // 第二次跑：列已存在，应跳过 ALTER，不报错
         up(db).await.expect("v106 must be re-runnable in isolation");
     }

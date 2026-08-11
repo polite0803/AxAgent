@@ -1335,7 +1335,7 @@ where
             },
         }
     }
-    Err(last_err.unwrap())
+    Err(last_err.expect("云存储：重试循环结束后 last_err 应已设置"))
 }
 
 fn parse_upload_id_from_xml(xml: &str) -> Result<String> {

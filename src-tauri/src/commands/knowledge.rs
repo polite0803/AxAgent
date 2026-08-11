@@ -2144,6 +2144,52 @@ pub async fn sync_project_knowledge_sources(
     Ok(result)
 }
 
+/// 修复 Wiki 中所有笔记的 wikilink 关联。
+///
+/// 遍历 Wiki 下所有笔记，重新解析内容中的 `[[wikilink]]` 并同步到
+/// `note_links` / `note_backlinks` 表。用于修复历史导入过程中可能
+/// 遗漏的双向链接记录，确保图谱节点正确关联。
+///
+/// 返回值：成功修复的笔记数量。
+async fn repair_wiki_note_links(db: &sea_orm::DatabaseConnection, wiki_id: &str) -> usize {
+    let notes = match axagent_dao::repo::note::list_notes(db, wiki_id).await {
+        Ok(n) => n,
+        Err(e) => {
+            tracing::warn!("[repair_links] 获取 Wiki 笔记列表失败: {e}");
+            return 0;
+        },
+    };
+
+    let mut repaired = 0usize;
+    for note in &notes {
+        match axagent_dao::repo::note::sync_note_links_from_content(
+            db,
+            wiki_id,
+            &note.id,
+            &note.content,
+        )
+        .await
+        {
+            Ok(()) => {
+                repaired += 1;
+            },
+            Err(e) => {
+                tracing::warn!("[repair_links] 笔记 {} 链接同步失败: {e}", note.title);
+            },
+        }
+    }
+
+    if repaired > 0 {
+        tracing::info!(
+            "[repair_links] Wiki {} 链接修复完成: {} / {} 篇笔记已处理",
+            wiki_id,
+            repaired,
+            notes.len()
+        );
+    }
+    repaired
+}
+
 /// 将知识图谱的实体/关系桥接到 Wiki vault 中：为每个实体创建一篇笔记，
 /// 在内容中嵌入 `[[关联实体]]` wikilinks，使 Wiki 图谱视图展示关联关系。
 async fn bridge_graph_to_wiki(
@@ -2235,8 +2281,23 @@ async fn bridge_graph_to_wiki(
             source_refs: None,
         };
 
-        match axagent_dao::repo::note::create_note(db, input).await {
-            Ok(_) => created += 1,
+        let created_note = axagent_dao::repo::note::create_note(db, input).await;
+        match created_note {
+            Ok(note) => {
+                // 关键修复：在创建笔记后，立即解析并同步 [[wikilink]]，
+                // 确保 note_links 和 note_backlinks 表中有正确的关联记录。
+                if let Err(e) = axagent_dao::repo::note::sync_note_links_from_content(
+                    db,
+                    &wiki_id,
+                    &note.id,
+                    &note.content,
+                )
+                .await
+                {
+                    tracing::warn!("[graph_to_wiki] 笔记 {} 链接同步失败: {}", entity.name, e);
+                }
+                created += 1;
+            },
             Err(e) => {
                 tracing::warn!("[graph_to_wiki] 创建笔记失败 {}: {e}", entity.name);
                 skipped += 1;
@@ -2393,6 +2454,7 @@ pub async fn import_project_knowledge_sources(
                             None,
                             None,
                             embedding_provider.clone(),
+                            None,
                         )
                         .await
                         .map_err(|e| {
@@ -2415,6 +2477,7 @@ pub async fn import_project_knowledge_sources(
                         description: Some(format!("从 {} 自动导入的项目知识源", source_path)),
                         root_path: source_path.clone(),
                         embedding_provider: embedding_provider.clone(),
+                        knowledge_base_id: None,
                     },
                 )
                 .await
@@ -2541,6 +2604,23 @@ pub async fn import_project_knowledge_sources(
             }
         };
 
+        // 3.5) 将 KB ID 关联到 Wiki，建立 Wiki 与 KB 的 1:1 关联
+        // 这是修复 Wiki 图谱关联断裂的关键步骤
+        if let Err(e) = axagent_dao::repo::wiki::update_wiki(
+            db,
+            &wiki_id,
+            None,
+            None,
+            None,
+            Some(Some(kb_id.clone())),
+        )
+        .await
+        {
+            tracing::warn!("[import_project] 关联 Wiki {} 与 KB {} 失败: {}", wiki_id, kb_id, e);
+        } else {
+            tracing::info!("[import_project] 成功关联 Wiki {} 与 KB {}", wiki_id, kb_id);
+        }
+
         // 4) 导入 lemonhu 图谱（update 模式下强制重新导入 wiki_pages；实体/关系按 id 幂等）
         let lemonhu_dir = dir.join("lemonhu");
         let graph_result = if lemonhu_dir.exists() {
@@ -2557,6 +2637,22 @@ pub async fn import_project_knowledge_sources(
     // 5) 桥接图谱→Wiki：为图谱中的实体创建 Wiki 笔记，内含 [[wikilinks]] 关联
     let (bridged_notes, bridged_skipped) =
         bridge_graph_to_wiki(state.harness.db(), &kb_id, &wiki_id).await;
+
+    // 5.5) 修复步骤：遍历所有笔记，重新解析 [[wikilink]]（update 模式下尤其重要）
+    // 由于历史原因，部分笔记可能包含 [[wikilink]] 但 note_links 表中没有对应记录。
+    // 此步骤确保所有笔记的双向链接关系正确建立。
+    let repaired_links = repair_wiki_note_links(state.harness.db(), &wiki_id).await;
+    if repaired_links > 0 {
+        tracing::info!(
+            "[import_project] 修复了 Wiki {} 中 {} 条笔记的 wikilink 关联",
+            wiki_id,
+            repaired_links
+        );
+    }
+
+    // 5.6) 失效 Wiki 图谱缓存，确保下次加载时获取最新的图谱数据
+    let _ =
+        axagent_dao::repo::wiki_graph_cache::invalidate_cache(state.harness.db(), &wiki_id).await;
 
     // 6) 入队 KB 文档索引任务
     // import_lemonhu_graph 创建文档时仅写入 DB（indexing_status="pending"），未入队 index_queue。

@@ -580,7 +580,7 @@ pub trait ModelCascadeExecutor: Send + Sync {
         }
 
         // 所有模型都尝试完毕
-        let final_model = ordered.last().unwrap(); // 非空，前面已检查
+        let final_model = ordered.last().expect("集合为空"); // 非空，前面已检查
         Ok(CascadeOutcome::failure(
             &final_model.model_id,
             &final_model.provider_id,
@@ -661,7 +661,7 @@ mod tests {
     fn test_strategy_single() {
         let m = CascadeModel::new("gpt-4o", "openai", 0);
         let s = ModelCascadeStrategy::single(m);
-        assert_eq!(s.first_model().unwrap().model_id, "gpt-4o");
+        assert_eq!(s.first_model().expect("测试应成功").model_id, "gpt-4o");
         assert_eq!(s.ordered_models().len(), 1);
         assert_eq!(s.max_escalations(), 0);
     }
@@ -671,7 +671,7 @@ mod tests {
         let m1 = CascadeModel::new("gpt-4o-mini", "openai", 0);
         let m2 = CascadeModel::new("gpt-4o", "openai", 1);
         let s = ModelCascadeStrategy::cascade(vec![m1, m2]);
-        assert_eq!(s.first_model().unwrap().model_id, "gpt-4o-mini");
+        assert_eq!(s.first_model().expect("测试应成功").model_id, "gpt-4o-mini");
         assert_eq!(s.ordered_models().len(), 2);
         assert_eq!(s.max_escalations(), 3);
     }
@@ -895,7 +895,7 @@ mod tests {
             _request_payload: &serde_json::Value,
         ) -> Result<ModelCallSummary, String> {
             let count = self.call_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-            let results = self.results.lock().unwrap();
+            let results = self.results.lock().unwrap_or_else(|e| e.into_inner());
             if (count as usize) < results.len() {
                 let mut summary = results[count as usize].clone();
                 // 覆盖 model_id/provider_id 以匹配实际调用的模型

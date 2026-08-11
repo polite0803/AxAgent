@@ -410,7 +410,7 @@ mod tests {
         let data = b"checkpoint data";
         let cp = manager
             .create_checkpoint("test_cp", CheckpointType::Full, data, metadata)
-            .unwrap();
+            .expect("测试应成功");
 
         assert_eq!(cp.name, "test_cp");
         assert_eq!(cp.size_bytes, 15);
@@ -432,8 +432,8 @@ mod tests {
 
         let cp = manager
             .create_checkpoint("test", CheckpointType::Full, b"data", metadata)
-            .unwrap();
-        let loaded = manager.get_checkpoint(&cp.id).unwrap();
+            .expect("测试应成功");
+        let loaded = manager.get_checkpoint(&cp.id).expect("测试：get_checkpoint 应成功");
 
         assert_eq!(loaded.id, cp.id);
     }
@@ -463,7 +463,7 @@ mod tests {
                 manager.create_checkpoint(&format!("cp_{}", i), CheckpointType::Full, b"data", m);
         }
 
-        let checkpoints = manager.list_checkpoints().unwrap();
+        let checkpoints = manager.list_checkpoints().expect("测试：list_checkpoints 应成功");
         assert!(checkpoints.len() <= 3);
     }
 }

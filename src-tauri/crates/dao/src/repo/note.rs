@@ -162,7 +162,16 @@ pub async fn create_note(db: &DatabaseConnection, input: CreateNoteInput) -> Res
 
     am.insert(db).await?;
 
-    get_note(db, &id).await
+    let note = get_note(db, &id).await?;
+
+    // 自动解析 [[wikilink]] 并同步 note_links + note_backlinks
+    // 确保所有路径（包括批量导入、脚本桥接）都能正确建立双向链接
+    if let Err(e) = sync_note_links_from_content(db, &note.vault_id, &note.id, &note.content).await
+    {
+        tracing::warn!("[dao::note] 笔记 {} 创建后链接同步失败: {}", note.id, e);
+    }
+
+    Ok(note)
 }
 
 pub async fn update_note(
@@ -200,7 +209,16 @@ pub async fn update_note(
 
     am.update(db).await?;
 
-    get_note(db, id).await
+    let note = get_note(db, id).await?;
+
+    // 自动解析 [[wikilink]] 并同步 note_links + note_backlinks
+    // 内容变更时必须重新解析链接，确保双向链接数据一致性
+    if let Err(e) = sync_note_links_from_content(db, &note.vault_id, &note.id, &note.content).await
+    {
+        tracing::warn!("[dao::note] 笔记 {} 更新后链接同步失败: {}", note.id, e);
+    }
+
+    Ok(note)
 }
 
 /// 抓取管道专用的笔记内容更新：仅更新标题/正文/指纹/时间戳，
@@ -227,7 +245,15 @@ pub async fn update_note_from_pipeline(
 
     am.update(db).await?;
 
-    get_note(db, id).await
+    let note = get_note(db, id).await?;
+
+    // 抓取管道更新内容后也需同步链接
+    if let Err(e) = sync_note_links_from_content(db, &note.vault_id, &note.id, &note.content).await
+    {
+        tracing::warn!("[dao::note] 笔记 {} 管道更新后链接同步失败: {}", note.id, e);
+    }
+
+    Ok(note)
 }
 
 pub async fn delete_note(db: &DatabaseConnection, id: &str) -> Result<()> {
@@ -464,4 +490,81 @@ pub async fn list_notes_for_graph(
         .all(db)
         .await?;
     Ok(rows)
+}
+
+/// 从 markdown 内容中提取 `[[Note]]` / `[[Note|alias]]` / `[[Note#anchor]]` 链接。
+/// 返回去重后的目标笔记名称列表（保留原始大小写，匹配时再做归一化）。
+fn extract_wikilink_targets(content: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    let bytes = content.as_bytes();
+    let mut i = 0;
+    while i + 1 < bytes.len() {
+        if bytes[i] == b'['
+            && bytes[i + 1] == b'['
+            && let Some(end) = content[i + 2..].find("]]")
+        {
+            let raw = &content[i + 2..i + 2 + end];
+            // 取 | 之前、# 之前的部分作为 note 名
+            let name = raw.split('|').next().unwrap_or("").split('#').next().unwrap_or("").trim();
+            if !name.is_empty() && seen.insert(name.to_lowercase()) {
+                names.push(name.to_string());
+            }
+            i += 2 + end + 2;
+            continue;
+        }
+        i += 1;
+    }
+    names
+}
+
+/// 解析笔记内容中的 `[[wikilink]]` 并同步 note_links + note_backlinks 表。
+/// 这是一个公共方法，允许其他模块（如 knowledge.rs 中的桥接逻辑）在创建笔记后
+/// 立即解析链接，避免双向链接机制断裂。
+///
+/// 匹配规则：优先按 title 完全匹配（大小写不敏感），其次按 file_path 去扩展名匹配。
+/// 未找到目标的链接静默跳过，避免污染链接表。
+pub async fn sync_note_links_from_content(
+    db: &DatabaseConnection,
+    vault_id: &str,
+    source_note_id: &str,
+    content: &str,
+) -> Result<()> {
+    let target_names = extract_wikilink_targets(content);
+
+    // 无链接时也要清空旧链接（用户可能删除了所有 wikilink）
+    if target_names.is_empty() {
+        return sync_note_links(db, vault_id, source_note_id, Vec::new()).await;
+    }
+
+    // 批量加载 vault 内所有笔记，构建 title/file_path → note_id 映射（大小写不敏感）
+    let notes_in_vault = list_notes(db, vault_id).await?;
+    let mut name_to_id: std::collections::HashMap<String, String> =
+        std::collections::HashMap::with_capacity(notes_in_vault.len() * 2);
+    for n in &notes_in_vault {
+        // 跳过自身（避免自环）
+        if n.id == source_note_id {
+            continue;
+        }
+        // 优先用 title 作为 key
+        if !n.title.is_empty() {
+            name_to_id.entry(n.title.to_lowercase()).or_insert_with(|| n.id.clone());
+        }
+        // file_path 去扩展名也作为 key（兼容 Obsidian 习惯）
+        if let Some(stem) = std::path::Path::new(&n.file_path).file_stem().and_then(|s| s.to_str())
+            && !stem.is_empty()
+        {
+            name_to_id.entry(stem.to_lowercase()).or_insert_with(|| n.id.clone());
+        }
+    }
+
+    // 根据目标名称解析目标 ID，构建链接列表
+    let mut links: Vec<(String, String, String)> = Vec::new();
+    for target_name in &target_names {
+        if let Some(target_id) = name_to_id.get(&target_name.to_lowercase()) {
+            links.push((target_id.clone(), target_name.clone(), "wikilink".to_string()));
+        }
+    }
+
+    sync_note_links(db, vault_id, source_note_id, links).await
 }

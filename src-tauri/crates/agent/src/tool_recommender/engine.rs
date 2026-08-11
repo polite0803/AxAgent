@@ -428,8 +428,8 @@ mod tests {
             score: 0.85,
             reasons: vec!["High relevance".to_string()],
         };
-        let json = serde_json::to_string(&score).unwrap();
-        let de: ToolScore = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&score).expect("测试：JSON序列化应成功");
+        let de: ToolScore = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(de.tool_id, "web_search");
         assert!((de.score - 0.85).abs() < 0.001);
     }
@@ -442,8 +442,8 @@ mod tests {
             confidence: 0.9,
             alternatives: vec![],
         };
-        let json = serde_json::to_string(&rec).unwrap();
-        let de: ToolRecommendation = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&rec).expect("测试：JSON序列化应成功");
+        let de: ToolRecommendation = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert!((de.confidence - 0.9).abs() < 0.001);
     }
 
@@ -454,8 +454,8 @@ mod tests {
             tools: vec!["tool_b".to_string()],
             tradeoffs: vec!["lower score".to_string()],
         };
-        let json = serde_json::to_string(&alt).unwrap();
-        let de: AlternativeSet = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&alt).expect("测试：JSON序列化应成功");
+        let de: AlternativeSet = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(de.description, "alt approach");
     }
 

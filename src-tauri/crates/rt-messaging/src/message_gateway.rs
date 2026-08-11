@@ -418,8 +418,8 @@ mod tests {
             last_seen: now_ms(),
         };
 
-        gateway.register_endpoint(endpoint).await.unwrap();
-        let retrieved = gateway.get_endpoint("test_agent").await.unwrap();
+        gateway.register_endpoint(endpoint).await.expect("测试：异步操作应成功");
+        let retrieved = gateway.get_endpoint("test_agent").await.expect("测试：异步操作应成功");
         assert_eq!(retrieved.agent_id, "test_agent");
     }
 
@@ -428,8 +428,8 @@ mod tests {
         let gateway = MessageGateway::new();
         let msg = AgentMessage::new("a", "b", MessagePayload::Text { content: "test".to_string() });
 
-        gateway.queue_message(msg).await.unwrap();
-        let pending = gateway.flush_queue("b").await.unwrap();
+        gateway.queue_message(msg).await.expect("测试：异步操作应成功");
+        let pending = gateway.flush_queue("b").await.expect("测试：异步操作应成功");
         assert_eq!(pending.len(), 1);
     }
 }

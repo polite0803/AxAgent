@@ -213,8 +213,9 @@ mod tests {
 
     async fn setup_db_with_list() -> (sea_orm::DatabaseConnection, String) {
         use crate::migrations::v107_paper_reading_list as v107;
-        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
-        v107::up(db.clone()).await.unwrap();
+        let db =
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        v107::up(db.clone()).await.expect("测试：异步操作应成功");
         let list = crate::repo::reading_lists::create(
             &db,
             CreateReadingListInput {
@@ -224,7 +225,7 @@ mod tests {
             },
         )
         .await
-        .unwrap();
+        .expect("测试应成功");
         (db, list.id)
     }
 
@@ -246,18 +247,19 @@ mod tests {
         let (db, list_id) = setup_db_with_list().await;
 
         // create
-        let created = create(&db, sample_input(&list_id, "论文一")).await.unwrap();
+        let created =
+            create(&db, sample_input(&list_id, "论文一")).await.expect("测试：异步操作应成功");
         assert_eq!(created.title, "论文一");
         assert_eq!(created.status, "unread");
         assert_eq!(created.priority, 60);
         assert_eq!(created.metadata["authors"][0], "作者A");
 
         // get
-        let fetched = get(&db, &created.id).await.unwrap();
+        let fetched = get(&db, &created.id).await.expect("测试：异步操作应成功");
         assert_eq!(fetched.id, created.id);
 
         // list_by_reading_list
-        let list = list_by_reading_list(&db, &list_id).await.unwrap();
+        let list = list_by_reading_list(&db, &list_id).await.expect("测试：异步操作应成功");
         assert_eq!(list.len(), 1);
 
         // update
@@ -272,23 +274,24 @@ mod tests {
             },
         )
         .await
-        .unwrap();
+        .expect("测试应成功");
         assert_eq!(updated.title, "论文一（修订）");
         assert_eq!(updated.status, "reading");
         assert_eq!(updated.priority, 80);
 
         // delete
-        delete(&db, &created.id).await.unwrap();
+        delete(&db, &created.id).await.expect("测试：异步操作应成功");
         assert!(get(&db, &created.id).await.is_err());
     }
 
     #[tokio::test]
     async fn set_status_validates_input() {
         let (db, list_id) = setup_db_with_list().await;
-        let item = create(&db, sample_input(&list_id, "论文二")).await.unwrap();
+        let item =
+            create(&db, sample_input(&list_id, "论文二")).await.expect("测试：异步操作应成功");
 
         // 合法状态
-        let updated = set_status(&db, &item.id, "read").await.unwrap();
+        let updated = set_status(&db, &item.id, "read").await.expect("测试：异步操作应成功");
         assert_eq!(updated.status, "read");
 
         // 非法状态
@@ -304,7 +307,7 @@ mod tests {
         let (db, list_id) = setup_db_with_list().await;
         let mut input = sample_input(&list_id, "论文三");
         input.priority = Some(200);
-        let created = create(&db, input).await.unwrap();
+        let created = create(&db, input).await.expect("测试：异步操作应成功");
         assert_eq!(created.priority, 100, "priority > 100 应被夹紧到 100");
 
         let updated = update(
@@ -313,21 +316,23 @@ mod tests {
             UpdateReadingListItemInput { priority: Some(-50), ..Default::default() },
         )
         .await
-        .unwrap();
+        .expect("测试应成功");
         assert_eq!(updated.priority, 0, "priority < 0 应被夹紧到 0");
     }
 
     #[tokio::test]
     async fn reorder_changes_position() {
         let (db, list_id) = setup_db_with_list().await;
-        let a = create(&db, sample_input(&list_id, "A")).await.unwrap();
-        let b = create(&db, sample_input(&list_id, "B")).await.unwrap();
-        let c = create(&db, sample_input(&list_id, "C")).await.unwrap();
+        let a = create(&db, sample_input(&list_id, "A")).await.expect("测试：异步操作应成功");
+        let b = create(&db, sample_input(&list_id, "B")).await.expect("测试：异步操作应成功");
+        let c = create(&db, sample_input(&list_id, "C")).await.expect("测试：异步操作应成功");
 
         // 反序排列
-        reorder(&db, &list_id, &[c.id.clone(), b.id.clone(), a.id.clone()]).await.unwrap();
+        reorder(&db, &list_id, &[c.id.clone(), b.id.clone(), a.id.clone()])
+            .await
+            .expect("测试：异步操作应成功");
 
-        let list = list_by_reading_list(&db, &list_id).await.unwrap();
+        let list = list_by_reading_list(&db, &list_id).await.expect("测试：异步操作应成功");
         assert_eq!(list[0].title, "C");
         assert_eq!(list[1].title, "B");
         assert_eq!(list[2].title, "A");
@@ -336,11 +341,14 @@ mod tests {
     #[tokio::test]
     async fn delete_list_cascades_to_items() {
         let (db, list_id) = setup_db_with_list().await;
-        create(&db, sample_input(&list_id, "条目")).await.unwrap();
-        assert_eq!(list_by_reading_list(&db, &list_id).await.unwrap().len(), 1);
+        create(&db, sample_input(&list_id, "条目")).await.expect("测试：异步操作应成功");
+        assert_eq!(
+            list_by_reading_list(&db, &list_id).await.expect("测试：异步操作应成功").len(),
+            1
+        );
 
         // 删除列表 → 条目应被级联删除
-        crate::repo::reading_lists::delete(&db, &list_id).await.unwrap();
+        crate::repo::reading_lists::delete(&db, &list_id).await.expect("测试：异步操作应成功");
 
         // 注意：SQLite 内存库默认开启 PRAGMA foreign_keys=ON 才会触发级联。
         // 这里走 sea-orm 默认配置，如果未开启则条目仍存在——所以只做"列表已删除"的断言。

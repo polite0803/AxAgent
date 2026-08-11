@@ -25,8 +25,8 @@
 use async_trait::async_trait;
 use std::sync::Arc;
 
-use axagent_orchestrator::{
-    industry_adapters::types::{
+use axagent_harness::{
+    industry_orchestration::types::{
         AcceptanceCriterion, DependencyType, EvolutionConstraints, ForbiddenOptimization,
         ProtectedStep, QualityThresholds, QualityWeights, ReflectionCheckpoint, ReflectionTemplate,
         StepDependency,
@@ -440,7 +440,7 @@ pub fn create_stock_industry_adapter() -> Arc<dyn IndustryAdapter> {
 }
 
 /// 注册股票适配器到注册表
-pub fn register_stock_adapter(registry: &mut axagent_orchestrator::IndustryAdapterRegistry) {
+pub fn register_stock_adapter(registry: &mut axagent_harness::IndustryAdapterRegistry) {
     registry.register(create_stock_industry_adapter());
 }
 

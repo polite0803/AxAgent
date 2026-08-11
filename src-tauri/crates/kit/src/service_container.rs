@@ -132,7 +132,7 @@ mod tests {
 
         let resolved = container.resolve::<dyn Greeter>();
         assert!(resolved.is_some());
-        assert_eq!(resolved.unwrap().greet(), "Hello!");
+        assert_eq!(resolved.expect("测试应成功").greet(), "Hello!");
     }
 
     #[test]
@@ -142,7 +142,7 @@ mod tests {
             Arc::new(CountingGreeter { count: AtomicU32::new(0) }) as Arc<dyn Greeter>
         });
 
-        let first = container.resolve::<dyn Greeter>().unwrap();
+        let first = container.resolve::<dyn Greeter>().expect("测试应成功");
         assert_eq!(first.greet(), "Hello #0!");
         assert_eq!(first.greet(), "Hello #1!");
     }

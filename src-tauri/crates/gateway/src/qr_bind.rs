@@ -87,8 +87,12 @@ impl QrBindStore {
 
     /// 清理过期令牌。
     pub fn sweep(&self) -> usize {
+        Self::sweep_inner(&self.inner)
+    }
+
+    fn sweep_inner(inner: &Arc<Mutex<HashMap<String, QrBindTicket>>>) -> usize {
         let now = Instant::now();
-        let mut map = self.inner.lock();
+        let mut map = inner.lock();
         let before = map.len();
         map.retain(|_, t| t.expires_at >= now);
         before - map.len()
@@ -107,7 +111,9 @@ impl QrBindStore {
                     _ = tick.tick() => {
                         let now = Instant::now();
                         let mut map = inner.lock();
+                        let before = map.len();
                         map.retain(|_, t| t.expires_at >= now);
+                        tracing::debug!(removed = before - map.len(), "qr-bind sweeper expired tickets");
                     }
                     _ = shutdown_rx.changed() => {
                         tracing::debug!("qr-bind sweeper shutting down");
@@ -115,6 +121,7 @@ impl QrBindStore {
                     }
                 }
             }
+            tracing::debug!("qr-bind sweeper exited");
         });
     }
 }

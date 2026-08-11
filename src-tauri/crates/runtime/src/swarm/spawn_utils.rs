@@ -132,7 +132,7 @@ mod tests {
             from: "test@team".into(),
             status: TeammateStatus::Idle,
         };
-        let json = serde_json::to_string(&msg).unwrap();
+        let json = serde_json::to_string(&msg).expect("测试：JSON序列化应成功");
         assert!(json.contains("heartbeat"));
         assert!(json.contains("test@team"));
     }
@@ -140,7 +140,7 @@ mod tests {
     #[test]
     fn test_read_message_deserialization() {
         let json = r#"{"type":"heartbeat","from":"Alice@T","status":"Idle"}"#;
-        let msg: TeammateMessage = serde_json::from_str(json).unwrap();
+        let msg: TeammateMessage = serde_json::from_str(json).expect("测试：JSON反序列化应成功");
         match msg {
             TeammateMessage::Heartbeat { from, status } => {
                 assert_eq!(from, "Alice@T");
@@ -153,7 +153,7 @@ mod tests {
     #[test]
     fn test_task_result_deserialization() {
         let json = r#"{"type":"task_result","task_id":"t1","success":true,"content":"完成","from":"Bob@T"}"#;
-        let msg: TeammateMessage = serde_json::from_str(json).unwrap();
+        let msg: TeammateMessage = serde_json::from_str(json).expect("测试：JSON反序列化应成功");
         match msg {
             TeammateMessage::TaskResult {
                 task_id,

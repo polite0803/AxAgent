@@ -596,7 +596,8 @@ mod tests {
             make_step(0, "Use read_file with args", Some("read_file")),
             make_step(1, "Use search with query", Some("search")),
         ]);
-        let result = executor.execute_skill(&genome, "test input").await.unwrap();
+        let result =
+            executor.execute_skill(&genome, "test input").await.expect("测试：异步操作应成功");
         assert!(result.passed);
         assert!((result.success_rate - 1.0).abs() < f64::EPSILON);
         assert!(result.execution_errors.is_empty());
@@ -610,7 +611,8 @@ mod tests {
             make_step(1, "Use hack_tool", Some("hack_tool")),
             make_step(2, "Use exploit_tool", Some("exploit_tool")),
         ]);
-        let result = executor.execute_skill(&genome, "test input").await.unwrap();
+        let result =
+            executor.execute_skill(&genome, "test input").await.expect("测试：异步操作应成功");
         assert!(!result.passed);
         assert!(result.success_rate < 1.0);
         assert!(!result.execution_errors.is_empty());
@@ -620,7 +622,8 @@ mod tests {
     async fn test_dry_run_executor_empty_genome() {
         let executor = DryRunSandboxExecutor::with_default_policy();
         let genome = make_genome(vec![]);
-        let result = executor.execute_skill(&genome, "test input").await.unwrap();
+        let result =
+            executor.execute_skill(&genome, "test input").await.expect("测试：异步操作应成功");
         assert!(!result.passed);
         assert_eq!(result.success_rate, 0.0);
     }
@@ -633,7 +636,8 @@ mod tests {
             "Use execute_bash with args: echo hello",
             Some("execute_bash"),
         )]);
-        let result = executor.execute_skill(&genome, "test input").await.unwrap();
+        let result =
+            executor.execute_skill(&genome, "test input").await.expect("测试：异步操作应成功");
         assert!(result.passed);
         assert!(result.avg_execution_time_ms > 0 || result.success_rate > 0.0);
     }
@@ -643,7 +647,8 @@ mod tests {
         let executor = SkillSandboxExecutor::with_default_policy();
         let genome =
             make_genome(vec![make_step(0, "Use execute_bash with rm -rf /", Some("execute_bash"))]);
-        let result = executor.execute_skill(&genome, "test input").await.unwrap();
+        let result =
+            executor.execute_skill(&genome, "test input").await.expect("测试：异步操作应成功");
         assert!(!result.passed);
         assert!(!result.execution_errors.is_empty());
     }
@@ -656,7 +661,8 @@ mod tests {
             "Use read_file with args: /tmp/test.txt",
             Some("read_file"),
         )]);
-        let result = executor.execute_skill(&genome, "test input").await.unwrap();
+        let result =
+            executor.execute_skill(&genome, "test input").await.expect("测试：异步操作应成功");
         assert!(result.passed);
     }
 
@@ -668,7 +674,8 @@ mod tests {
             make_step(1, "Use hack_tool", Some("hack_tool")),
             make_step(2, "Use search with query", Some("search")),
         ]);
-        let result = executor.execute_skill(&genome, "test input").await.unwrap();
+        let result =
+            executor.execute_skill(&genome, "test input").await.expect("测试：异步操作应成功");
         assert!(!result.execution_errors.is_empty());
         assert!(result.success_rate > 0.0 && result.success_rate < 1.0);
     }
@@ -686,9 +693,10 @@ mod tests {
             stderr: String::new(),
             violations: vec![],
         };
-        let json = serde_json::to_string(&result).unwrap();
+        let json = serde_json::to_string(&result).expect("测试：JSON序列化应成功");
         assert!(json.contains("read_file"));
-        let deserialized: StepValidationResult = serde_json::from_str(&json).unwrap();
+        let deserialized: StepValidationResult =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.step_order, 0);
         assert!(deserialized.allowed);
     }

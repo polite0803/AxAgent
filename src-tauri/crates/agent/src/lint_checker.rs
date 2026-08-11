@@ -708,8 +708,9 @@ mod tests {
             }],
             score: 0.9,
         };
-        let json = serde_json::to_string(&result).unwrap();
-        let deserialized: LintResult = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&result).expect("测试：JSON序列化应成功");
+        let deserialized: LintResult =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.note_id, "n1");
         assert_eq!(deserialized.issues.len(), 1);
         assert!((deserialized.score - 0.9).abs() < f64::EPSILON);
@@ -723,8 +724,9 @@ mod tests {
             message: "Missing title".to_string(),
             line: Some(1),
         };
-        let json = serde_json::to_string(&issue).unwrap();
-        let deserialized: LintIssue = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&issue).expect("测试：JSON序列化应成功");
+        let deserialized: LintIssue =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.severity, IssueSeverity::Error);
         assert_eq!(deserialized.line, Some(1));
     }
@@ -929,14 +931,18 @@ mod tests {
 
     #[test]
     fn test_issue_severity_serialization() {
-        let error_json = serde_json::to_string(&IssueSeverity::Error).unwrap();
+        let error_json =
+            serde_json::to_string(&IssueSeverity::Error).expect("测试：JSON序列化应成功");
         assert!(error_json.contains("Error"));
-        let warning_json = serde_json::to_string(&IssueSeverity::Warning).unwrap();
+        let warning_json =
+            serde_json::to_string(&IssueSeverity::Warning).expect("测试：JSON序列化应成功");
         assert!(warning_json.contains("Warning"));
-        let info_json = serde_json::to_string(&IssueSeverity::Info).unwrap();
+        let info_json =
+            serde_json::to_string(&IssueSeverity::Info).expect("测试：JSON序列化应成功");
         assert!(info_json.contains("Info"));
 
-        let deserialized: IssueSeverity = serde_json::from_str(&error_json).unwrap();
+        let deserialized: IssueSeverity =
+            serde_json::from_str(&error_json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized, IssueSeverity::Error);
     }
 
@@ -1097,8 +1103,8 @@ mod tests {
             ],
             score: 0.6,
         };
-        let json = serde_json::to_string(&result).unwrap();
-        let back: LintResult = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&result).expect("测试：JSON序列化应成功");
+        let back: LintResult = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(back.note_id, result.note_id);
         assert_eq!(back.issues.len(), result.issues.len());
         assert!((back.score - result.score).abs() < f64::EPSILON);

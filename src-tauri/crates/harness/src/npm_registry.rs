@@ -60,7 +60,10 @@ mod tests {
 
     #[test]
     fn noop_always_errors() {
-        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("测试：build 应成功");
         let service = NoopNpmRegistryService;
         let result =
             rt.block_on(service.download_package("test", None, std::path::Path::new("/tmp")));

@@ -414,7 +414,8 @@ mod tests {
         let result = make_benchmark_result();
         let report = generator.generate(&result);
         let json = generator.to_json(&report);
-        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let parsed: serde_json::Value =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(parsed["benchmark_id"], "test");
     }
 
@@ -436,7 +437,7 @@ mod tests {
         assert!(!history.is_empty());
         let latest = history.latest();
         assert!(latest.is_some());
-        assert_eq!(latest.unwrap().benchmark_id, "test");
+        assert_eq!(latest.expect("测试应成功").benchmark_id, "test");
     }
 
     #[test]

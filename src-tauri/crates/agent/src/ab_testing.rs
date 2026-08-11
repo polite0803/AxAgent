@@ -525,7 +525,7 @@ mod tests {
         assert!(runner.create_experiment(config).await.is_ok());
         let exp = runner.get_experiment("exp-1").await;
         assert!(exp.is_some());
-        assert_eq!(exp.unwrap().name, "Test exp-1");
+        assert_eq!(exp.expect("测试应成功").name, "Test exp-1");
     }
 
     #[tokio::test]
@@ -541,28 +541,28 @@ mod tests {
     #[tokio::test]
     async fn test_start_experiment_from_draft() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-start")).await.unwrap();
+        runner.create_experiment(test_config("exp-start")).await.expect("测试：异步操作应成功");
         assert!(runner.start_experiment("exp-start").await.is_ok());
-        let exp = runner.get_experiment("exp-start").await.unwrap();
+        let exp = runner.get_experiment("exp-start").await.expect("测试：异步操作应成功");
         assert_eq!(exp.status, ExperimentStatus::Running);
     }
 
     #[tokio::test]
     async fn test_start_experiment_from_paused() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-resume")).await.unwrap();
-        runner.start_experiment("exp-resume").await.unwrap();
-        runner.pause_experiment("exp-resume").await.unwrap();
+        runner.create_experiment(test_config("exp-resume")).await.expect("测试：异步操作应成功");
+        runner.start_experiment("exp-resume").await.expect("测试：异步操作应成功");
+        runner.pause_experiment("exp-resume").await.expect("测试：异步操作应成功");
         assert!(runner.start_experiment("exp-resume").await.is_ok());
-        let exp = runner.get_experiment("exp-resume").await.unwrap();
+        let exp = runner.get_experiment("exp-resume").await.expect("测试：异步操作应成功");
         assert_eq!(exp.status, ExperimentStatus::Running);
     }
 
     #[tokio::test]
     async fn test_start_experiment_invalid_state() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-bad-start")).await.unwrap();
-        runner.start_experiment("exp-bad-start").await.unwrap();
+        runner.create_experiment(test_config("exp-bad-start")).await.expect("测试：异步操作应成功");
+        runner.start_experiment("exp-bad-start").await.expect("测试：异步操作应成功");
         let result = runner.start_experiment("exp-bad-start").await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Cannot start"));
@@ -571,17 +571,17 @@ mod tests {
     #[tokio::test]
     async fn test_pause_experiment() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-pause")).await.unwrap();
-        runner.start_experiment("exp-pause").await.unwrap();
+        runner.create_experiment(test_config("exp-pause")).await.expect("测试：异步操作应成功");
+        runner.start_experiment("exp-pause").await.expect("测试：异步操作应成功");
         assert!(runner.pause_experiment("exp-pause").await.is_ok());
-        let exp = runner.get_experiment("exp-pause").await.unwrap();
+        let exp = runner.get_experiment("exp-pause").await.expect("测试：异步操作应成功");
         assert_eq!(exp.status, ExperimentStatus::Paused);
     }
 
     #[tokio::test]
     async fn test_pause_non_running_experiment() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-pause-bad")).await.unwrap();
+        runner.create_experiment(test_config("exp-pause-bad")).await.expect("测试：异步操作应成功");
         let result = runner.pause_experiment("exp-pause-bad").await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Cannot pause"));
@@ -590,19 +590,22 @@ mod tests {
     #[tokio::test]
     async fn test_cancel_experiment() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-cancel")).await.unwrap();
-        runner.start_experiment("exp-cancel").await.unwrap();
+        runner.create_experiment(test_config("exp-cancel")).await.expect("测试：异步操作应成功");
+        runner.start_experiment("exp-cancel").await.expect("测试：异步操作应成功");
         assert!(runner.cancel_experiment("exp-cancel").await.is_ok());
-        let exp = runner.get_experiment("exp-cancel").await.unwrap();
+        let exp = runner.get_experiment("exp-cancel").await.expect("测试：异步操作应成功");
         assert_eq!(exp.status, ExperimentStatus::Cancelled);
     }
 
     #[tokio::test]
     async fn test_cancel_completed_experiment() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-cancel-done")).await.unwrap();
-        runner.start_experiment("exp-cancel-done").await.unwrap();
-        let mut exp = runner.get_experiment("exp-cancel-done").await.unwrap();
+        runner
+            .create_experiment(test_config("exp-cancel-done"))
+            .await
+            .expect("测试：异步操作应成功");
+        runner.start_experiment("exp-cancel-done").await.expect("测试：异步操作应成功");
+        let mut exp = runner.get_experiment("exp-cancel-done").await.expect("测试：异步操作应成功");
         exp.status = ExperimentStatus::Completed;
         {
             let mut experiments = runner.experiments.write().await;
@@ -616,8 +619,8 @@ mod tests {
     #[tokio::test]
     async fn test_record_trial_running_experiment() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-trial")).await.unwrap();
-        runner.start_experiment("exp-trial").await.unwrap();
+        runner.create_experiment(test_config("exp-trial")).await.expect("测试：异步操作应成功");
+        runner.start_experiment("exp-trial").await.expect("测试：异步操作应成功");
         let trial = trial_result("exp-trial", ExperimentGroup::Control, true, 5, 1000, 0.9, false);
         assert!(runner.record_trial(trial).await.is_ok());
     }
@@ -625,7 +628,7 @@ mod tests {
     #[tokio::test]
     async fn test_record_trial_non_running_experiment() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-trial-bad")).await.unwrap();
+        runner.create_experiment(test_config("exp-trial-bad")).await.expect("测试：异步操作应成功");
         let trial =
             trial_result("exp-trial-bad", ExperimentGroup::Control, true, 5, 1000, 0.9, false);
         let result = runner.record_trial(trial).await;
@@ -646,10 +649,10 @@ mod tests {
     #[tokio::test]
     async fn test_get_results_no_trials() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-empty")).await.unwrap();
+        runner.create_experiment(test_config("exp-empty")).await.expect("测试：异步操作应成功");
         let result = runner.get_results("exp-empty").await;
         assert!(result.is_ok());
-        let res = result.unwrap().unwrap();
+        let res = result.unwrap().expect("测试：unwrap 应成功");
         assert_eq!(res.control_stats.sample_count, 0);
         assert_eq!(res.treatment_stats.sample_count, 0);
         assert!(res.winner.is_none());
@@ -658,8 +661,8 @@ mod tests {
     #[tokio::test]
     async fn test_get_results_with_trials() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-results")).await.unwrap();
-        runner.start_experiment("exp-results").await.unwrap();
+        runner.create_experiment(test_config("exp-results")).await.expect("测试：异步操作应成功");
+        runner.start_experiment("exp-results").await.expect("测试：异步操作应成功");
         for _ in 0..15 {
             runner
                 .record_trial(trial_result(
@@ -672,7 +675,7 @@ mod tests {
                     false,
                 ))
                 .await
-                .unwrap();
+                .expect("测试应成功");
         }
         for _ in 0..15 {
             runner
@@ -686,9 +689,10 @@ mod tests {
                     false,
                 ))
                 .await
-                .unwrap();
+                .expect("测试应成功");
         }
-        let result = runner.get_results("exp-results").await.unwrap().unwrap();
+        let result =
+            runner.get_results("exp-results").await.expect("测试：异步操作应成功").unwrap();
         assert_eq!(result.control_stats.sample_count, 15);
         assert_eq!(result.treatment_stats.sample_count, 15);
         assert!(!result.metric_comparisons.is_empty());
@@ -704,8 +708,8 @@ mod tests {
     #[tokio::test]
     async fn test_list_experiments() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-a")).await.unwrap();
-        runner.create_experiment(test_config("exp-b")).await.unwrap();
+        runner.create_experiment(test_config("exp-a")).await.expect("测试：异步操作应成功");
+        runner.create_experiment(test_config("exp-b")).await.expect("测试：异步操作应成功");
         let list = runner.list_experiments().await;
         assert_eq!(list.len(), 2);
     }
@@ -815,29 +819,29 @@ mod tests {
     #[tokio::test]
     async fn test_experiment_status_transitions() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-flow")).await.unwrap();
+        runner.create_experiment(test_config("exp-flow")).await.expect("测试：异步操作应成功");
         assert_eq!(
-            runner.get_experiment("exp-flow").await.unwrap().status,
+            runner.get_experiment("exp-flow").await.expect("测试：异步操作应成功").status,
             ExperimentStatus::Draft
         );
-        runner.start_experiment("exp-flow").await.unwrap();
+        runner.start_experiment("exp-flow").await.expect("测试：异步操作应成功");
         assert_eq!(
-            runner.get_experiment("exp-flow").await.unwrap().status,
+            runner.get_experiment("exp-flow").await.expect("测试：异步操作应成功").status,
             ExperimentStatus::Running
         );
-        runner.pause_experiment("exp-flow").await.unwrap();
+        runner.pause_experiment("exp-flow").await.expect("测试：异步操作应成功");
         assert_eq!(
-            runner.get_experiment("exp-flow").await.unwrap().status,
+            runner.get_experiment("exp-flow").await.expect("测试：异步操作应成功").status,
             ExperimentStatus::Paused
         );
-        runner.start_experiment("exp-flow").await.unwrap();
+        runner.start_experiment("exp-flow").await.expect("测试：异步操作应成功");
         assert_eq!(
-            runner.get_experiment("exp-flow").await.unwrap().status,
+            runner.get_experiment("exp-flow").await.expect("测试：异步操作应成功").status,
             ExperimentStatus::Running
         );
-        runner.cancel_experiment("exp-flow").await.unwrap();
+        runner.cancel_experiment("exp-flow").await.expect("测试：异步操作应成功");
         assert_eq!(
-            runner.get_experiment("exp-flow").await.unwrap().status,
+            runner.get_experiment("exp-flow").await.expect("测试：异步操作应成功").status,
             ExperimentStatus::Cancelled
         );
     }
@@ -845,8 +849,8 @@ mod tests {
     #[tokio::test]
     async fn test_custom_metrics_in_trial() {
         let runner = ExperimentRunner::new();
-        runner.create_experiment(test_config("exp-custom")).await.unwrap();
-        runner.start_experiment("exp-custom").await.unwrap();
+        runner.create_experiment(test_config("exp-custom")).await.expect("测试：异步操作应成功");
+        runner.start_experiment("exp-custom").await.expect("测试：异步操作应成功");
         let mut custom = HashMap::new();
         custom.insert("latency_p99".to_string(), 250.0_f32);
         let trial = TrialResult {

@@ -406,16 +406,16 @@ mod tests {
     #[test]
     fn test_fleet_status_serde() {
         let status = FleetStatus::Active;
-        let json = serde_json::to_string(&status).unwrap();
+        let json = serde_json::to_string(&status).expect("测试：JSON序列化应成功");
         assert_eq!(json, "\"active\"");
-        let de: FleetStatus = serde_json::from_str(&json).unwrap();
+        let de: FleetStatus = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(de, FleetStatus::Active);
     }
 
     #[test]
     fn test_member_status_serde() {
         let status = FleetMemberStatus::Busy;
-        let json = serde_json::to_string(&status).unwrap();
+        let json = serde_json::to_string(&status).expect("测试：JSON序列化应成功");
         assert_eq!(json, "\"busy\"");
     }
 
@@ -427,7 +427,7 @@ mod tests {
             room_id: "showroom".to_string(),
             task_summary: "写产品文案".to_string(),
         };
-        let json = serde_json::to_string(&event).unwrap();
+        let json = serde_json::to_string(&event).expect("测试：JSON序列化应成功");
         assert!(json.contains("\"type\":\"routing\""));
         assert!(json.contains("\"agentSlug\":\"copywriter\""));
     }
@@ -435,7 +435,7 @@ mod tests {
     #[test]
     fn test_noop_repository() {
         let noop = NoopFleetRepository;
-        let result = futures::executor::block_on(noop.list_fleets(None)).unwrap();
+        let result = futures::executor::block_on(noop.list_fleets(None)).expect("测试应成功");
         assert!(result.is_empty());
     }
 

@@ -420,7 +420,7 @@ async fn process_rpc_message(msg: &str) -> Value {
 
     if parsed.is_array() {
         let mut batch = Vec::new();
-        for item in parsed.as_array().unwrap() {
+        for item in parsed.as_array().expect("RPC：is_array 检查后应为 array") {
             batch.push(process_single_request(item).await);
         }
         Value::Array(batch)

@@ -286,7 +286,7 @@ mod tests {
         let report = generator.generate(&state).await;
 
         assert!(report.is_ok());
-        let report = report.unwrap();
+        let report = report.expect("测试应成功");
         assert!(!report.outline.title.is_empty());
     }
 
@@ -299,7 +299,7 @@ mod tests {
         let md = generator.build_outline_markdown(&state).await;
 
         assert!(md.is_ok());
-        let md = md.unwrap();
+        let md = md.expect("测试应成功");
         assert!(
             md.contains("Test Topic") || md.starts_with("# "),
             "expected outline markdown to contain 'Test Topic' or start with heading, got: {}",
@@ -313,7 +313,7 @@ mod tests {
         let generator = ReportGenerator::new(tracker);
 
         let state = ResearchState::new("Test Topic".to_string());
-        let report = generator.generate(&state).await.unwrap();
+        let report = generator.generate(&state).await.expect("测试：异步操作应成功");
 
         let result = generator.validate_report(&report).await;
         assert!(result.is_ok());

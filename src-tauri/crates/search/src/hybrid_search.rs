@@ -730,16 +730,19 @@ mod tests {
             sparse_score: None,
             combined_score: 0.65,
         };
-        let json = serde_json::to_value(&result).unwrap();
+        let json = serde_json::to_value(&result).expect("测试：to_value 应成功");
         assert_eq!(json["id"], "test-id");
         assert_eq!(json["chunk_index"], 3);
-        assert!((json["combined_score"].as_f64().unwrap() - 0.65).abs() < 0.001);
+        assert!((json["combined_score"].as_f64().expect("测试应成功") - 0.65).abs() < 0.001);
     }
 
     #[test]
     fn test_fusion_algorithm_serde() {
-        assert_eq!(serde_json::to_value(FusionAlgorithm::Rrf).unwrap(), "Rrf");
-        assert_eq!(serde_json::to_value(FusionAlgorithm::Weighted).unwrap(), "Weighted");
+        assert_eq!(serde_json::to_value(FusionAlgorithm::Rrf).expect("测试应成功"), "Rrf");
+        assert_eq!(
+            serde_json::to_value(FusionAlgorithm::Weighted).expect("测试应成功"),
+            "Weighted"
+        );
     }
 
     #[test]

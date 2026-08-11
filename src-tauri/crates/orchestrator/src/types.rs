@@ -1,238 +1,56 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! Core types for the Orchestrator system.
+//! Core types for the Orchestrator system — 从 harness 重导出共享类型
 //!
-//! Defines task decomposition, worker assignment, structured handover,
-//! and orchestration strategy types used across the orchestrator module.
+//! 共享类型（SubTask、DecompositionPlan、OrchestrationError 等）的权威定义
+//! 已迁移至 `axagent-harness::industry_orchestration::plan`。
+//! 仅保留 orchestrator 特有的事件和交接类型。
 
-use chrono::{DateTime, Utc};
+// ── 从 harness 重导出共享类型 ──
+pub use axagent_harness::industry_orchestration::plan::{
+    DecompositionPlan, OrchestrationError, OrchestrationStrategy, SubTask, SubTaskStatus,
+};
+
+// ── Orchestrator 特有类型 ──
+
 use serde::{Deserialize, Serialize};
-
-use axagent_harness::workflow_types::ToolDef;
-
-// ── Orchestration Strategy ──────────────────────────────────────────
-
-/// Strategy for how the orchestrator decomposes and schedules tasks.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "snake_case")]
-pub enum OrchestrationStrategy {
-    /// Serial execution, one after another. For tasks with strict ordering.
-    #[default]
-    Ordered,
-    /// Parallel fan-out. All independent subtasks run concurrently.
-    FanOut,
-    /// Intra-stage parallel, inter-stage serial. E.g., dev pipeline.
-    Pipeline,
-    /// Race — take the first completed result. For solution exploration.
-    Race,
-    /// Debate — multiple agents argue then adjudicate. For architectural decisions.
-    Debate,
-    /// Dynamic — LLM determines topology at runtime. For unstructured tasks.
-    Dynamic,
-}
-
-impl OrchestrationStrategy {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::Ordered => "ordered",
-            Self::FanOut => "fan_out",
-            Self::Pipeline => "pipeline",
-            Self::Race => "race",
-            Self::Debate => "debate",
-            Self::Dynamic => "dynamic",
-        }
-    }
-
-    pub fn try_from_str(s: &str) -> Option<Self> {
-        match s {
-            "ordered" => Some(Self::Ordered),
-            "fan_out" => Some(Self::FanOut),
-            "pipeline" => Some(Self::Pipeline),
-            "race" => Some(Self::Race),
-            "debate" => Some(Self::Debate),
-            "dynamic" => Some(Self::Dynamic),
-            _ => None,
-        }
-    }
-}
-
-// ── SubTask ───────────────────────────────────────────────────────────
-
-/// Status of a single sub-task within an orchestration plan.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum SubTaskStatus {
-    /// Waiting for dependencies to complete.
-    Pending,
-    /// Ready to be dispatched.
-    Ready,
-    /// Currently executing (assigned to a Worker).
-    Running,
-    /// Completed successfully.
-    Completed,
-    /// Failed — may trigger replanning.
-    Failed,
-    /// Skipped due to upstream failure or conditional exclusion.
-    Skipped,
-}
-
-impl std::fmt::Display for SubTaskStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Pending => write!(f, "Pending"),
-            Self::Ready => write!(f, "Ready"),
-            Self::Running => write!(f, "Running"),
-            Self::Completed => write!(f, "Completed"),
-            Self::Failed => write!(f, "Failed"),
-            Self::Skipped => write!(f, "Skipped"),
-        }
-    }
-}
-
-/// 将 orchestrator 本地 `SubTaskStatus` 转为 harness 层权威 `TaskStatus`。
-///
-/// 变体一一对应，转换无信息损失。
-impl From<SubTaskStatus> for axagent_harness::types::TaskStatus {
-    fn from(status: SubTaskStatus) -> Self {
-        match status {
-            SubTaskStatus::Pending => Self::Pending,
-            SubTaskStatus::Ready => Self::Ready,
-            SubTaskStatus::Running => Self::Running,
-            SubTaskStatus::Completed => Self::Completed,
-            SubTaskStatus::Failed => Self::Failed,
-            SubTaskStatus::Skipped => Self::Skipped,
-        }
-    }
-}
-
-/// A single sub-task decomposed from the high-level mission.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SubTask {
-    /// Unique identifier within this orchestration run.
-    pub id: String,
-    /// Human-readable task name.
-    pub name: String,
-    /// Detailed task description for the worker Agent.
-    pub description: String,
-    /// The Agent role best suited for this task.
-    /// Uses a String identifier that maps to an AgentRoleDef in the database.
-    pub role: String,
-    /// IDs of sub-tasks that must complete before this one starts.
-    pub dependencies: Vec<String>,
-    /// Current execution status.
-    pub status: SubTaskStatus,
-    /// System prompt override for the worker Agent.
-    pub system_prompt: Option<String>,
-    /// Expected output variable name in the execution context.
-    pub output_var: String,
-    /// Error message if status is Failed.
-    pub error: Option<String>,
-    /// Number of retry attempts.
-    pub attempts: u32,
-    /// Maximum allowed retries before marking as Failed.
-    pub max_retries: u32,
-    /// Tools available to this sub-task's Agent node.
-    /// Populated by the decomposer or caller. Empty = no tool access.
-    #[serde(default)]
-    pub tools: Vec<ToolDef>,
-    /// 是否使用多智能体协作
-    #[serde(default)]
-    pub multi_agent: bool,
-    /// 多智能体协作模式（swarm/debate/blackboard）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub coordination_mode: Option<String>,
-    /// 多智能体最大协作轮数
-    #[serde(default)]
-    pub max_rounds: u32,
-    /// 是否支持并行执行
-    #[serde(default)]
-    pub parallel_supported: bool,
-}
-
-impl SubTask {
-    pub fn new(id: String, name: String, description: String, role: String) -> Self {
-        Self {
-            id,
-            name,
-            description,
-            role,
-            dependencies: Vec::new(),
-            status: SubTaskStatus::Pending,
-            system_prompt: None,
-            output_var: format!(
-                "subtask_output_{}",
-                uuid::Uuid::new_v4().to_string().replace('-', "_")
-            ),
-            error: None,
-            attempts: 0,
-            max_retries: 3,
-            tools: Vec::new(),
-            multi_agent: false,
-            coordination_mode: None,
-            max_rounds: 3,
-            parallel_supported: false,
-        }
-    }
-
-    pub fn with_dependencies(mut self, deps: Vec<String>) -> Self {
-        self.dependencies = deps;
-        self
-    }
-
-    /// 设置为多智能体模式
-    pub fn with_multi_agent(mut self, mode: &str, max_rounds: u32) -> Self {
-        self.multi_agent = true;
-        self.coordination_mode = Some(mode.to_string());
-        self.max_rounds = max_rounds;
-        self
-    }
-
-    /// 支持并行执行
-    pub fn with_parallel(mut self) -> Self {
-        self.parallel_supported = true;
-        self
-    }
-}
 
 // ── WorkerAssignment ───────────────────────────────────────────────────
 
-/// Assignment of a sub-task to a specific worker Agent.
+/// 将子任务分配给特定 worker Agent
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkerAssignment {
-    /// The sub-task being assigned.
+    /// 被分配的子任务
     pub sub_task_id: String,
-    /// The worker node ID in the generated subgraph.
+    /// 生成的 worker 节点 ID
     pub worker_node_id: String,
-    /// The Agent role assigned (String identifier for AgentRoleDef lookup).
+    /// 分配的 Agent 角色
     pub role: String,
-    /// The generated system prompt for this worker.
+    /// 为 worker 生成的系统提示词
     pub system_prompt: String,
 }
 
 // ── StructuredHandover ─────────────────────────────────────────────────
 
-/// Structured handover protocol between orchestrated Agents.
-///
-/// Six required fields as defined in the multi-agent design. A
-/// Scorecard check verifies all fields are present after execution.
+/// Agent 之间的结构化交接协议
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StructuredHandover {
-    /// Summary of what the Agent completed.
+    /// Agent 完成的工作总结
     pub completed_work: String,
-    /// List of files changed with summary per file.
+    /// 变更文件列表及摘要
     pub changes: Vec<ChangeRecord>,
-    /// What the next Agent should do with this output.
+    /// 下一个 Agent 应如何处理此输出
     pub next_steps: String,
-    /// Known issues or concerns that remain unresolved.
+    /// 仍未解决的已知问题
     pub remaining_issues: String,
-    /// Upstream dependencies the next Agent needs.
+    /// 下游 Agent 需要的依赖
     pub dependencies: String,
-    /// Evidence that work was validated (test results, etc.).
+    /// 工作已验证的证据（如测试结果）
     pub validation_evidence: String,
 }
 
 impl StructuredHandover {
-    /// Returns true if all six required fields are non-empty.
+    /// 是否所有必需字段都非空
     pub fn is_complete(&self) -> bool {
         !self.completed_work.is_empty()
             && !self.changes.is_empty()
@@ -242,7 +60,7 @@ impl StructuredHandover {
             && !self.validation_evidence.is_empty()
     }
 
-    /// Returns the list of missing field names.
+    /// 返回缺失的字段名列表
     pub fn missing_fields(&self) -> Vec<&'static str> {
         let mut missing = Vec::new();
         if self.completed_work.is_empty() {
@@ -267,18 +85,18 @@ impl StructuredHandover {
     }
 }
 
-/// Record of a file change within a handover.
+/// 交接中的文件变更记录
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChangeRecord {
-    /// Absolute or workspace-relative file path.
+    /// 文件路径
     pub file_path: String,
-    /// Nature of the change.
+    /// 变更类型
     pub change_type: ChangeType,
-    /// Brief summary of what was changed.
+    /// 变更摘要
     pub summary: String,
-    /// Lines added (if known).
+    /// 添加行数
     pub lines_added: Option<u32>,
-    /// Lines removed (if known).
+    /// 删除行数
     pub lines_removed: Option<u32>,
 }
 
@@ -293,128 +111,26 @@ pub enum ChangeType {
     Config,
 }
 
-// ── DecompositionPlan ────────────────────────────────────────────────────
-
-/// Full decomposition result: mission → SubTask[].
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DecompositionPlan {
-    /// Original mission description.
-    pub mission: String,
-    /// The strategy used for decomposition.
-    pub strategy: OrchestrationStrategy,
-    /// Ordered list of sub-tasks.
-    pub sub_tasks: Vec<SubTask>,
-    /// Maximum parallel workers allowed.
-    pub max_parallel: u32,
-    /// Maximum replanning rounds.
-    pub max_replans: u32,
-    /// Current replan round counter (lives inside the plan lock for consistency).
-    pub replan_count: u32,
-    /// Plan creation timestamp.
-    pub created_at: DateTime<Utc>,
-}
-
-impl DecompositionPlan {
-    pub fn new(mission: String, strategy: OrchestrationStrategy) -> Self {
-        Self {
-            mission,
-            strategy,
-            sub_tasks: Vec::new(),
-            max_parallel: 4,
-            max_replans: 3,
-            replan_count: 0,
-            created_at: Utc::now(),
-        }
-    }
-
-    /// Returns sub-tasks that have all dependencies met and are pending.
-    pub fn ready_sub_tasks(&self) -> Vec<&SubTask> {
-        self.sub_tasks
-            .iter()
-            .filter(|st| {
-                st.status == SubTaskStatus::Pending
-                    && st.dependencies.iter().all(|dep_id| {
-                        self.sub_tasks
-                            .iter()
-                            .any(|s| s.id == *dep_id && s.status == SubTaskStatus::Completed)
-                    })
-            })
-            .collect()
-    }
-
-    /// Returns true if all sub-tasks are in a terminal state (Completed / Failed / Skipped).
-    pub fn is_terminal(&self) -> bool {
-        self.sub_tasks.iter().all(|st| {
-            matches!(
-                st.status,
-                SubTaskStatus::Completed | SubTaskStatus::Failed | SubTaskStatus::Skipped
-            )
-        })
-    }
-
-    /// Count of completed sub-tasks.
-    pub fn completed_count(&self) -> usize {
-        self.sub_tasks.iter().filter(|st| st.status == SubTaskStatus::Completed).count()
-    }
-
-    /// Count of failed sub-tasks.
-    pub fn failed_count(&self) -> usize {
-        self.sub_tasks.iter().filter(|st| st.status == SubTaskStatus::Failed).count()
-    }
-}
-
 // ── OrchestrationEvent ───────────────────────────────────────────────────
 
-/// Events emitted during orchestration for monitoring and logging.
+/// 编排期间发出的事件
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "payload", rename_all = "snake_case")]
 pub enum OrchestrationEvent {
-    /// Mission received and decomposition started.
+    /// 任务接收，分解开始
     DecompositionStarted { mission: String, strategy: String },
-    /// Decomposition completed with N sub-tasks.
+    /// 分解完成，生成 N 个子任务
     DecompositionCompleted { sub_task_count: usize, plan: DecompositionPlan },
-    /// A sub-task has been dispatched to a worker.
+    /// 子任务已派发至 worker
     SubTaskDispatched { sub_task_id: String, worker_node_id: String },
-    /// A sub-task completed successfully.
+    /// 子任务成功完成
     SubTaskCompleted { sub_task_id: String, handover: Option<StructuredHandover> },
-    /// A sub-task failed.
+    /// 子任务失败
     SubTaskFailed { sub_task_id: String, error: String },
-    /// Replanning triggered due to failures.
+    /// 因失败触发重规划
     ReplanTriggered { failed_sub_tasks: Vec<String>, replan_round: u32 },
-    /// Orchestration fully complete (all sub-tasks terminal).
+    /// 编排全部完成
     OrchestrationCompleted { total_sub_tasks: usize, completed: usize, failed: usize },
-    /// Orchestration aborted (max replans exceeded).
+    /// 编排中止（超过最大重规划次数）
     OrchestrationAborted { reason: String },
-}
-
-// ── OrchestrationError ────────────────────────────────────────────────────
-
-#[derive(Debug, thiserror::Error)]
-pub enum OrchestrationError {
-    #[error("Decomposition failed: {0}")]
-    DecompositionFailed(String),
-
-    #[error("Subgraph generation failed: {0}")]
-    SubgraphGenerationFailed(String),
-
-    #[error("Execution failed: {0}")]
-    ExecutionFailed(String),
-
-    #[error("Replan failed: {0}")]
-    ReplanFailed(String),
-
-    #[error("Max replan rounds ({0}) exceeded")]
-    MaxReplansExceeded(u32),
-
-    #[error("Subtask not found: {0}")]
-    SubTaskNotFound(String),
-
-    #[error("No ready sub-tasks to dispatch")]
-    NoReadyTasks,
-
-    #[error("Invalid configuration: {0}")]
-    InvalidConfig(String),
-
-    #[error("Dispatch failed: {0}")]
-    DispatchFailed(String),
 }

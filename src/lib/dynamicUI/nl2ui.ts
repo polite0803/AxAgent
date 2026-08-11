@@ -104,7 +104,7 @@ function detectFields(prompt: string, genId: (p: string) => string): UISchema[] 
 
   for (const pattern of FIELD_PATTERNS) {
     const matched = pattern.keywords.some((kw) => {
-      if (/^[\0-\x7f]+$/.test(kw)) {
+      if (/^[\x20-\x7f]+$/.test(kw)) {
         return lowerPrompt.includes(kw.toLowerCase());
       }
       return prompt.includes(kw);

@@ -457,7 +457,7 @@ mod tests {
         let scheduler = setup_scheduler().await;
 
         let task = SyncTask::new("device-1".to_string(), SyncType::Incremental);
-        scheduler.add_task(task).await.unwrap();
+        scheduler.add_task(task).await.expect("测试：异步操作应成功");
 
         assert_eq!(scheduler.queue_size().await, 1);
     }
@@ -466,7 +466,10 @@ mod tests {
     async fn test_add_urgent_task() {
         let scheduler = setup_scheduler().await;
 
-        scheduler.add_urgent_task("device-1".to_string(), SyncType::Incremental).await.unwrap();
+        scheduler
+            .add_urgent_task("device-1".to_string(), SyncType::Incremental)
+            .await
+            .expect("测试：异步操作应成功");
 
         let status = scheduler.get_status().await;
         assert_eq!(status.urgent_tasks, 1);
@@ -479,9 +482,9 @@ mod tests {
         scheduler
             .add_task(SyncTask::new("device-1".to_string(), SyncType::Incremental))
             .await
-            .unwrap();
+            .expect("测试应成功");
 
-        let results = scheduler.trigger_execute().await.unwrap();
+        let results = scheduler.trigger_execute().await.expect("测试：异步操作应成功");
         assert!(!results.is_empty());
     }
 
@@ -496,15 +499,18 @@ mod tests {
                     .with_priority(SyncPriority::Low),
             )
             .await
-            .unwrap();
-        scheduler.add_urgent_task("device-1".to_string(), SyncType::Full).await.unwrap();
+            .expect("测试应成功");
+        scheduler
+            .add_urgent_task("device-1".to_string(), SyncType::Full)
+            .await
+            .expect("测试：异步操作应成功");
         scheduler
             .add_task(
                 SyncTask::new("device-1".to_string(), SyncType::Incremental)
                     .with_priority(SyncPriority::Normal),
             )
             .await
-            .unwrap();
+            .expect("测试应成功");
 
         let pending = scheduler.get_pending_tasks().await;
         assert_eq!(pending.len(), 3);
@@ -520,7 +526,7 @@ mod tests {
         scheduler
             .add_task(SyncTask::new("device-1".to_string(), SyncType::Incremental))
             .await
-            .unwrap();
+            .expect("测试应成功");
         scheduler.clear_queue().await;
         assert_eq!(scheduler.queue_size().await, 0);
     }

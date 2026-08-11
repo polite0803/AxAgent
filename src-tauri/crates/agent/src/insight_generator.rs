@@ -342,7 +342,7 @@ mod tests {
         let id = insight.id.clone();
         generator.record_insight_usage(&id).await;
 
-        let updated = generator.get_insight_by_id(&id).await.unwrap();
+        let updated = generator.get_insight_by_id(&id).await.expect("测试：异步操作应成功");
         assert_eq!(updated.usage_count, 1);
     }
 
@@ -500,7 +500,7 @@ mod tests {
             .with_patterns(vec!["Timeout error".to_string()], vec![]);
         let result = generator.generate_from_reflection(&reflection);
         assert!(result.is_some());
-        let insight = result.unwrap();
+        let insight = result.expect("测试应成功");
         assert_eq!(insight.category, InsightCategory::ErrorPattern);
         assert!(insight.title.contains("Error Pattern"));
         assert!(insight.content.contains("Timeout error"));
@@ -514,7 +514,7 @@ mod tests {
             .with_patterns(vec![], vec!["Efficient caching".to_string()]);
         let result = generator.generate_from_reflection(&reflection);
         assert!(result.is_some());
-        let insight = result.unwrap();
+        let insight = result.expect("测试应成功");
         assert_eq!(insight.category, InsightCategory::SuccessPattern);
         assert!(insight.title.contains("Success Pattern"));
         assert!(insight.content.contains("Efficient caching"));
@@ -528,7 +528,7 @@ mod tests {
             .with_quality(9, "Excellent".to_string())
             .with_patterns(vec![], vec!["Pattern".to_string()]);
         let result = generator.generate_from_reflection(&reflection);
-        let insight = result.unwrap();
+        let insight = result.expect("测试应成功");
         assert!((insight.confidence - 0.9).abs() < f32::EPSILON);
     }
 
@@ -539,7 +539,7 @@ mod tests {
             .with_quality(6, "Good".to_string())
             .with_patterns(vec![], vec!["Pattern".to_string()]);
         let result = generator.generate_from_reflection(&reflection);
-        let insight = result.unwrap();
+        let insight = result.expect("测试应成功");
         assert!((insight.confidence - 0.7).abs() < f32::EPSILON);
     }
 
@@ -550,7 +550,7 @@ mod tests {
             .with_quality(3, "Poor".to_string())
             .with_patterns(vec!["Error".to_string()], vec![]);
         let result = generator.generate_from_reflection(&reflection);
-        let insight = result.unwrap();
+        let insight = result.expect("测试应成功");
         assert!((insight.confidence - 0.4).abs() < f32::EPSILON);
     }
 
@@ -560,7 +560,7 @@ mod tests {
         let reflection = Reflection::new("task-6".to_string())
             .with_patterns(vec!["Error pattern".to_string()], vec!["Reusable pattern".to_string()]);
         let result = generator.generate_from_reflection(&reflection);
-        let insight = result.unwrap();
+        let insight = result.expect("测试应成功");
         assert_eq!(insight.category, InsightCategory::ErrorPattern);
         assert!(insight.tags.contains(&"error_handling".to_string()));
         assert!(insight.tags.contains(&"reusable".to_string()));
@@ -615,7 +615,7 @@ mod tests {
 
         let found = generator.get_insight_by_id(&id).await;
         assert!(found.is_some());
-        assert_eq!(found.unwrap().title, "Title");
+        assert_eq!(found.expect("测试应成功").title, "Title");
 
         let not_found = generator.get_insight_by_id("nonexistent").await;
         assert!(not_found.is_none());
@@ -644,7 +644,7 @@ mod tests {
         let result = generator.record_insight_usage(&id).await;
         assert!(result);
 
-        let updated = generator.get_insight_by_id(&id).await.unwrap();
+        let updated = generator.get_insight_by_id(&id).await.expect("测试：异步操作应成功");
         assert_eq!(updated.usage_count, 1);
         assert!(updated.last_used.is_some());
     }
@@ -720,7 +720,7 @@ mod tests {
 
         let stats = generator.get_stats().await;
         assert!(stats.most_used.is_some());
-        assert_eq!(stats.most_used.unwrap().id, id1);
+        assert_eq!(stats.most_used.expect("测试应成功").id, id1);
     }
 
     #[tokio::test]
@@ -1015,8 +1015,8 @@ mod tests {
         .with_confidence(0.8)
         .with_tags(vec!["tag1".to_string()]);
 
-        let json = serde_json::to_string(&insight).unwrap();
-        let deserialized: Insight = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&insight).expect("测试：JSON序列化应成功");
+        let deserialized: Insight = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.id, insight.id);
         assert_eq!(deserialized.title, "Test");
         assert!((deserialized.confidence - 0.8).abs() < f32::EPSILON);
@@ -1031,8 +1031,9 @@ mod tests {
             avg_confidence: 0.75,
             most_used: None,
         };
-        let json = serde_json::to_string(&stats).unwrap();
-        let deserialized: InsightStats = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&stats).expect("测试：JSON序列化应成功");
+        let deserialized: InsightStats =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.total_insights, 5);
         assert!((deserialized.avg_confidence - 0.75).abs() < f32::EPSILON);
     }
@@ -1040,8 +1041,9 @@ mod tests {
     #[test]
     fn test_insight_category_serialization() {
         let cat = InsightCategory::Optimization;
-        let json = serde_json::to_string(&cat).unwrap();
-        let deserialized: InsightCategory = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&cat).expect("测试：JSON序列化应成功");
+        let deserialized: InsightCategory =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized, InsightCategory::Optimization);
     }
 }

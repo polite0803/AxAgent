@@ -508,7 +508,7 @@ mod tests {
         let exported = manager.export_config().await;
         assert!(!exported.is_empty());
 
-        manager.import_config(&exported).await.unwrap();
+        manager.import_config(&exported).await.expect("测试：异步操作应成功");
 
         let re_exported = manager.export_config().await;
         assert_eq!(exported, re_exported);

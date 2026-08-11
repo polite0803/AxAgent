@@ -152,13 +152,13 @@ mod tests {
             // 创建足够大的消息（~2500 tokens per message）以确保超过压缩阈值
             let text = format!("message {} {}", i, "x".repeat(10_000));
             if i % 2 == 0 {
-                session.push_message(ConversationMessageExt::user_text(&text)).unwrap();
+                session.push_message(ConversationMessageExt::user_text(&text)).expect("测试应成功");
             } else {
                 session
                     .push_message(ConversationMessageExt::assistant(vec![ContentBlock::Text {
                         text,
                     }]))
-                    .unwrap();
+                    .expect("测试应成功");
             }
         }
         session

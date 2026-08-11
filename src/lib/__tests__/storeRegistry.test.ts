@@ -8,7 +8,7 @@ describe("storeRegistry", () => {
   beforeEach(() => {
     // 清空注册表（通过 unregister 逐个移除）
     const registry = getStoreRegistry();
-    for (const key of [...registry.keys()]) {
+    for (const key of registry.keys()) {
       unregisterStore(key);
     }
   });

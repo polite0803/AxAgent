@@ -323,15 +323,18 @@ mod tests {
             "n".into(),
             CredentialType::ApiKey { key: "k".into(), header_name: "h".into() },
         );
-        tm.mgr.save_credential(&cred).await.unwrap();
-        let got = tm.mgr.get_credential("c1").await.unwrap();
-        assert_eq!(serde_json::to_string(&got).unwrap(), serde_json::to_string(&cred).unwrap());
+        tm.mgr.save_credential(&cred).await.expect("测试：异步操作应成功");
+        let got = tm.mgr.get_credential("c1").await.expect("测试：异步操作应成功");
+        assert_eq!(
+            serde_json::to_string(&got).expect("测试：JSON序列化应成功"),
+            serde_json::to_string(&cred).unwrap()
+        );
         // 第二次命中内存缓存，仍成功。
-        let got2 = tm.mgr.get_credential("c1").await.unwrap();
+        let got2 = tm.mgr.get_credential("c1").await.expect("测试：异步操作应成功");
         assert_eq!(got2.id, "c1");
         // 失效后仍能从磁盘重载。
         tm.mgr.invalidate("c1").await;
-        let got3 = tm.mgr.get_credential("c1").await.unwrap();
+        let got3 = tm.mgr.get_credential("c1").await.expect("测试：异步操作应成功");
         assert_eq!(got3.id, "c1");
     }
 
@@ -343,7 +346,7 @@ mod tests {
             "a".into(),
             CredentialType::ApiKey { key: "k1".into(), header_name: "X-Key".into() },
         );
-        let hdrs = tm.mgr.get_auth_headers(&api).unwrap();
+        let hdrs = tm.mgr.get_auth_headers(&api).expect("测试应成功");
         assert_eq!(hdrs, vec![("X-Key".to_string(), "k1".to_string())]);
 
         let bearer = Credential::new(
@@ -351,7 +354,7 @@ mod tests {
             "b".into(),
             CredentialType::BearerToken { token: "tok".into() },
         );
-        let hdrs = tm.mgr.get_auth_headers(&bearer).unwrap();
+        let hdrs = tm.mgr.get_auth_headers(&bearer).expect("测试应成功");
         assert_eq!(hdrs, vec![("Authorization".to_string(), "Bearer tok".to_string())]);
 
         let basic = Credential::new(
@@ -359,7 +362,7 @@ mod tests {
             "c".into(),
             CredentialType::BasicAuth { username: "u".into(), password: "p".into() },
         );
-        let hdrs = tm.mgr.get_auth_headers(&basic).unwrap();
+        let hdrs = tm.mgr.get_auth_headers(&basic).expect("测试应成功");
         let expected = format!("Basic {}", BASE64.encode("u:p"));
         assert_eq!(hdrs, vec![("Authorization".to_string(), expected)]);
 
@@ -376,7 +379,7 @@ mod tests {
                 expires_at: Some(chrono::Utc::now().timestamp_millis() + 3_600_000),
             },
         );
-        let hdrs = tm.mgr.get_auth_headers(&oauth_ok).unwrap();
+        let hdrs = tm.mgr.get_auth_headers(&oauth_ok).expect("测试应成功");
         assert_eq!(hdrs, vec![("Authorization".to_string(), "Bearer access-tok".to_string())]);
 
         // OAuth2：access_token 为 None → 返回 Validation 错误
@@ -418,15 +421,18 @@ mod tests {
             "d".into(),
             CredentialType::DatabaseConnection { connection_string: "postgres://x".into() },
         );
-        tm.mgr.save_credential(&db).await.unwrap();
-        assert_eq!(tm.mgr.get_database_connection_string("d").await.unwrap(), "postgres://x");
+        tm.mgr.save_credential(&db).await.expect("测试：异步操作应成功");
+        assert_eq!(
+            tm.mgr.get_database_connection_string("d").await.expect("测试：异步操作应成功"),
+            "postgres://x"
+        );
         // 错误类型应返回 Validation 错误。
         let api = Credential::new(
             "e".into(),
             "e".into(),
             CredentialType::ApiKey { key: "k".into(), header_name: "h".into() },
         );
-        tm.mgr.save_credential(&api).await.unwrap();
+        tm.mgr.save_credential(&api).await.expect("测试：异步操作应成功");
         assert!(tm.mgr.get_database_connection_string("e").await.is_err());
     }
 
@@ -444,8 +450,8 @@ mod tests {
                 tls: true,
             },
         );
-        tm.mgr.save_credential(&smtp).await.unwrap();
-        let cfg = tm.mgr.get_smtp_config("s").await.unwrap();
+        tm.mgr.save_credential(&smtp).await.expect("测试：异步操作应成功");
+        let cfg = tm.mgr.get_smtp_config("s").await.expect("测试：异步操作应成功");
         assert_eq!(cfg.host, "mx");
         assert_eq!(cfg.port, 587);
         assert!(cfg.tls);
@@ -455,7 +461,7 @@ mod tests {
             "e".into(),
             CredentialType::ApiKey { key: "k".into(), header_name: "h".into() },
         );
-        tm.mgr.save_credential(&api).await.unwrap();
+        tm.mgr.save_credential(&api).await.expect("测试：异步操作应成功");
         assert!(tm.mgr.get_smtp_config("e").await.is_err());
     }
 }

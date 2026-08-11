@@ -205,9 +205,11 @@ mod tests {
         // 所有连接共享同一块内存库，彻底消除跨连接不可见问题。
         let mut opts = ConnectOptions::new("sqlite::memory:?cache=shared".to_string());
         opts.max_connections(1).min_connections(1);
-        let db = Database::connect(opts).await.unwrap();
+        let db = Database::connect(opts).await.expect("测试：连接数据库应成功");
         for ddl in [CREATE_STORED_FILES, CREATE_MESSAGES] {
-            db.execute_raw(Statement::from_string(DbBackend::Sqlite, ddl)).await.unwrap();
+            db.execute_raw(Statement::from_string(DbBackend::Sqlite, ddl))
+                .await
+                .expect("测试：异步操作应成功");
         }
         // Wire up DAO repositories so run_migration works
         let stored_repo =
@@ -225,11 +227,11 @@ mod tests {
     }
 
     fn test_dirs() -> TestDirs {
-        let root = tempfile::tempdir().unwrap();
+        let root = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let legacy = root.path().join("legacy");
         let target = root.path().join("target");
-        fs::create_dir_all(&legacy).unwrap();
-        fs::create_dir_all(&target).unwrap();
+        fs::create_dir_all(&legacy).expect("测试：创建目录应成功");
+        fs::create_dir_all(&target).expect("测试：创建目录应成功");
         TestDirs { _root: root, legacy, target }
     }
 
@@ -252,7 +254,7 @@ mod tests {
             conversation_id: Set(conv.map(String::from)),
             created_at: Set("2024-01-01".into()),
         };
-        am.insert(db).await.unwrap();
+        am.insert(db).await.expect("测试：异步操作应成功");
     }
 
     async fn insert_message(db: &DatabaseConnection, id: &str, conv: &str, attachments: &str) {
@@ -283,7 +285,7 @@ mod tests {
             parts: Set(None),
             quoted_message_id: Set(None),
         };
-        am.insert(db).await.unwrap();
+        am.insert(db).await.expect("测试：异步操作应成功");
     }
 
     #[serial]
@@ -291,7 +293,7 @@ mod tests {
     async fn empty_db_is_noop() {
         let _db = test_db().await;
         let dirs = test_dirs();
-        let r = run_migration(&dirs.legacy, &dirs.target).await.unwrap();
+        let r = run_migration(&dirs.legacy, &dirs.target).await.expect("测试：异步操作应成功");
         assert_eq!(r, MigrationReport::default());
     }
 
@@ -313,7 +315,7 @@ mod tests {
         )
         .await;
 
-        let r = run_migration(&dirs.legacy, &dirs.target).await.unwrap();
+        let r = run_migration(&dirs.legacy, &dirs.target).await.expect("测试：异步操作应成功");
         assert_eq!(r.files_skipped, 2);
         assert_eq!(r.files_moved, 0);
         assert_eq!(r.db_records_updated, 0);
@@ -326,8 +328,8 @@ mod tests {
         let dirs = test_dirs();
 
         let old_dir = dirs.legacy.join("conv1");
-        fs::create_dir_all(&old_dir).unwrap();
-        fs::write(old_dir.join("abcdef123456789.png"), b"PNG_DATA").unwrap();
+        fs::create_dir_all(&old_dir).expect("测试：创建目录应成功");
+        fs::write(old_dir.join("abcdef123456789.png"), b"PNG_DATA").expect("测试应成功");
 
         insert_stored_file(
             &db,
@@ -340,20 +342,24 @@ mod tests {
         )
         .await;
 
-        let r = run_migration(&dirs.legacy, &dirs.target).await.unwrap();
+        let r = run_migration(&dirs.legacy, &dirs.target).await.expect("测试：异步操作应成功");
         assert_eq!(r.files_moved, 1);
         assert_eq!(r.db_records_updated, 1);
 
         // File copied to new location
         let expected = dirs.target.join("images/abcdef123456_photo.png");
         assert!(expected.exists(), "target file should exist");
-        assert_eq!(fs::read(&expected).unwrap(), b"PNG_DATA");
+        assert_eq!(fs::read(&expected).expect("测试：读取文件应成功"), b"PNG_DATA");
 
         // Legacy file still exists (non-destructive)
         assert!(old_dir.join("abcdef123456789.png").exists());
 
         // DB updated
-        let f = stored_files::Entity::find_by_id("f1").one(&db).await.unwrap().unwrap();
+        let f = stored_files::Entity::find_by_id("f1")
+            .one(&db)
+            .await
+            .expect("测试：异步操作应成功")
+            .unwrap();
         assert_eq!(f.storage_path, "images/abcdef123456_photo.png");
     }
 
@@ -364,8 +370,8 @@ mod tests {
         let dirs = test_dirs();
 
         let old_dir = dirs.legacy.join("conv1");
-        fs::create_dir_all(&old_dir).unwrap();
-        fs::write(old_dir.join("fedcba654321abc.pdf"), b"PDF").unwrap();
+        fs::create_dir_all(&old_dir).expect("测试：创建目录应成功");
+        fs::write(old_dir.join("fedcba654321abc.pdf"), b"PDF").expect("测试应成功");
 
         insert_stored_file(
             &db,
@@ -378,13 +384,17 @@ mod tests {
         )
         .await;
 
-        let r = run_migration(&dirs.legacy, &dirs.target).await.unwrap();
+        let r = run_migration(&dirs.legacy, &dirs.target).await.expect("测试：异步操作应成功");
         assert_eq!(r.files_moved, 1);
 
         let expected = dirs.target.join("files/fedcba654321_report.pdf");
         assert!(expected.exists());
 
-        let f = stored_files::Entity::find_by_id("f1").one(&db).await.unwrap().unwrap();
+        let f = stored_files::Entity::find_by_id("f1")
+            .one(&db)
+            .await
+            .expect("测试：异步操作应成功")
+            .unwrap();
         assert_eq!(f.storage_path, "files/fedcba654321_report.pdf");
     }
 
@@ -406,12 +416,16 @@ mod tests {
         )
         .await;
 
-        let r = run_migration(&dirs.legacy, &dirs.target).await.unwrap();
+        let r = run_migration(&dirs.legacy, &dirs.target).await.expect("测试：异步操作应成功");
         assert_eq!(r.files_missing, 1);
         assert_eq!(r.files_moved, 0);
         assert_eq!(r.db_records_updated, 1);
 
-        let f = stored_files::Entity::find_by_id("f1").one(&db).await.unwrap().unwrap();
+        let f = stored_files::Entity::find_by_id("f1")
+            .one(&db)
+            .await
+            .expect("测试：异步操作应成功")
+            .unwrap();
         assert_eq!(f.storage_path, "images/abcdef123456_photo.png");
     }
 
@@ -422,8 +436,8 @@ mod tests {
         let dirs = test_dirs();
 
         let old_dir = dirs.legacy.join("conv1");
-        fs::create_dir_all(&old_dir).unwrap();
-        fs::write(old_dir.join("abcdef123456789.png"), b"IMG").unwrap();
+        fs::create_dir_all(&old_dir).expect("测试：创建目录应成功");
+        fs::write(old_dir.join("abcdef123456789.png"), b"IMG").expect("测试应成功");
 
         insert_stored_file(
             &db,
@@ -436,11 +450,11 @@ mod tests {
         )
         .await;
 
-        let r1 = run_migration(&dirs.legacy, &dirs.target).await.unwrap();
+        let r1 = run_migration(&dirs.legacy, &dirs.target).await.expect("测试：异步操作应成功");
         assert_eq!(r1.files_moved, 1);
         assert_eq!(r1.db_records_updated, 1);
 
-        let r2 = run_migration(&dirs.legacy, &dirs.target).await.unwrap();
+        let r2 = run_migration(&dirs.legacy, &dirs.target).await.expect("测试：异步操作应成功");
         assert_eq!(r2.files_skipped, 1);
         assert_eq!(r2.files_moved, 0);
         assert_eq!(r2.db_records_updated, 0);
@@ -453,8 +467,8 @@ mod tests {
         let dirs = test_dirs();
 
         let old_dir = dirs.legacy.join("conv1");
-        fs::create_dir_all(&old_dir).unwrap();
-        fs::write(old_dir.join("abcdef123456789.png"), b"IMG").unwrap();
+        fs::create_dir_all(&old_dir).expect("测试：创建目录应成功");
+        fs::write(old_dir.join("abcdef123456789.png"), b"IMG").expect("测试应成功");
 
         insert_stored_file(
             &db,
@@ -470,11 +484,19 @@ mod tests {
         let att_json = r#"[{"id":"a1","file_type":"image/png","file_name":"photo.png","file_path":"conv1/abcdef123456789.png","file_size":100}]"#;
         insert_message(&db, "m1", "conv1", att_json).await;
 
-        let r = run_migration(&dirs.legacy, &dirs.target).await.unwrap();
+        let r = run_migration(&dirs.legacy, &dirs.target).await.expect("测试：异步操作应成功");
         assert_eq!(r.messages_updated, 1);
 
-        let m = messages::Entity::find_by_id("m1").one(&db).await.unwrap().unwrap();
-        let atts: Vec<serde_json::Value> = serde_json::from_str(&m.attachments).unwrap();
-        assert_eq!(atts[0]["file_path"].as_str().unwrap(), "images/abcdef123456_photo.png");
+        let m = messages::Entity::find_by_id("m1")
+            .one(&db)
+            .await
+            .expect("测试：异步操作应成功")
+            .unwrap();
+        let atts: Vec<serde_json::Value> =
+            serde_json::from_str(&m.attachments).expect("测试：JSON反序列化应成功");
+        assert_eq!(
+            atts[0]["file_path"].as_str().expect("测试：字符串转换应成功"),
+            "images/abcdef123456_photo.png"
+        );
     }
 }

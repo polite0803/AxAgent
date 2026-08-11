@@ -126,6 +126,7 @@ pub async fn llm_wiki_create(
         description: input.description,
         root_path: input.root_path,
         embedding_provider: input.embedding_provider,
+        knowledge_base_id: None,
     };
 
     let model = wiki::create_wiki(state.harness.db(), wiki_input).await.map_err(|e| {

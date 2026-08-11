@@ -29,11 +29,11 @@ mod tests {
 
     #[tokio::test]
     async fn v108_adds_applicability_and_confirmed_columns() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
         // 先跑 v100（含 PHASE 3.9 合规检查）建 memory_items 表并补全所有列
-        super::super::v100_consolidated::up(db.clone()).await.unwrap();
+        super::super::v100_consolidated::up(db.clone()).await.expect("测试：异步操作应成功");
         // 再跑 v108（现在为 no-op，但应不报错）
-        up(db.clone()).await.unwrap();
+        up(db.clone()).await.expect("测试：异步操作应成功");
 
         // 验证列存在：SELECT 0 行不会报错说明列存在
         let result = db
@@ -55,9 +55,9 @@ mod tests {
 
     #[tokio::test]
     async fn v108_is_self_idempotent() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        super::super::v100_consolidated::up(db.clone()).await.unwrap();
-        up(db.clone()).await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        super::super::v100_consolidated::up(db.clone()).await.expect("测试：异步操作应成功");
+        up(db.clone()).await.expect("测试：异步操作应成功");
         // 第二次跑：v108 现在为 no-op，重复跑不报错
         up(db).await.expect("v108 must be re-runnable in isolation");
     }

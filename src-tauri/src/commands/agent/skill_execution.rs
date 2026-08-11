@@ -316,7 +316,9 @@ impl SkillOutputTracker {
             let mut oldest_key: Option<String> = None;
             let mut oldest_time: Option<Instant> = None;
             for (k, v) in entries.iter() {
-                if oldest_time.is_none() || v.last_access < oldest_time.unwrap() {
+                if oldest_time.is_none()
+                    || v.last_access < oldest_time.expect("技能执行：is_none 检查后应有值")
+                {
                     oldest_time = Some(v.last_access);
                     oldest_key = Some(k.clone());
                 }

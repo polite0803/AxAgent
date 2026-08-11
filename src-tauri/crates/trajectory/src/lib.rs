@@ -65,6 +65,7 @@ mod skill;
 mod skill_decomposition;
 #[allow(dead_code)]
 pub mod skill_evolution;
+mod skill_learning;
 #[allow(dead_code)]
 mod skill_proposal;
 mod skills_hub_adapter;
@@ -177,6 +178,12 @@ pub use rl::{RLConfig, RLEngine, RewardNormalizer, RewardWeights};
 pub use sandbox_executor::SkillSandboxExecutor;
 
 pub use skill::{HermesMetadata, Skill, SkillMetadata, SkillProposal};
+
+pub use skill_learning::{
+    ApprovalStatus, BackgroundReviewResult, DangerousPattern, DetectedPattern, ErrorCorrection,
+    PendingOperationType, PendingSkillOperation, ReviewMessage, RiskLevel, SafetyCheckResult,
+    SkillLearnEvent, SkillLearningConfig, SkillLearningManager, SkillSafetyGuard,
+};
 
 pub use skill_decomposition::{
     CompositeSkillData, DecompositionResult, SkillDecomposer, ToolResolver,

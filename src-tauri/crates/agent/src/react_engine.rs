@@ -1249,9 +1249,7 @@ impl ReActEngine {
                     if verification.is_valid {
                         // 目标达成判定
                         if let Some(ref evaluator) = self.goal_evaluator {
-                            let mut guard = evaluator
-                                .lock()
-                                .expect("goal evaluator mutex should not be poisoned");
+                            let mut guard = evaluator.lock().unwrap_or_else(|e| e.into_inner());
                             let evaluation = guard.evaluate(chain, context);
                             if !evaluation.achieved {
                                 let reasoning = format!(

@@ -670,7 +670,7 @@ mod tests {
         assert_eq!(graph.nodes.len(), 4);
         assert_eq!(graph.edges.len(), 3);
         // B 应为菱形
-        let b = graph.nodes.iter().find(|n| n.id == "B").unwrap();
+        let b = graph.nodes.iter().find(|n| n.id == "B").expect("测试：查找应成功");
         assert_eq!(b.shape, NodeShape::Diamond);
     }
 
@@ -714,7 +714,7 @@ mod tests {
         let mermaid = "graph TD\n    A --> B\n";
         let graph = parse_mermaid(mermaid);
         assert_eq!(graph.nodes.len(), 2);
-        let a = graph.nodes.iter().find(|n| n.id == "A").unwrap();
+        let a = graph.nodes.iter().find(|n| n.id == "A").expect("测试：查找应成功");
         assert_eq!(a.shape, NodeShape::Plain);
         assert_eq!(a.text, "A");
     }

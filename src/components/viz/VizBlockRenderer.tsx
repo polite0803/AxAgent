@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /**
- * G15 VizBlockRenderer — viz_blocks 协议的渲染入口
+ * VizBlockRenderer — viz_blocks 协议的渲染入口
  *
- * 通过 recharts 渲染简单图表（line / bar / area / pie / scatter / table），
- * 通过 ECharts（ChartPreview iframe）渲染复杂图表（candlestick / sankey / heatmap / treemap / gauge）。
+ * 通过 ECharts 渲染所有图表类型（line / bar / area / pie / scatter / heatmap / candlestick / sankey / treemap / gauge），
+ * 通过 Ant Design Table 渲染表格。
  *
  * 使用：
  *   import "src/components/viz/VizBlockRenderer"; // 触发副作用注册
@@ -18,26 +18,6 @@ import { Empty, Spin, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  Line,
-  LineChart,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Scatter,
-  ScatterChart,
-  Tooltip,
-  XAxis,
-  YAxis,
-  ZAxis,
-} from "recharts";
 
 import {
   getVizBlockKindRenderer,
@@ -161,261 +141,347 @@ function asNumber(v: unknown, fallback = 0): number {
   return fallback;
 }
 
+// ── ECharts 包装组件 ──────────────────────────────────────────────────────
+
+interface EChartsBlockProps {
+  block: VizBlock;
+  buildOption: (block: VizBlock) => Record<string, unknown>;
+  compact?: boolean;
+}
+
+const EChartsBlock: React.FC<EChartsBlockProps> = ({ block, buildOption, compact }) => {
+  const option = useMemo(() => buildOption(block), [block, buildOption]);
+  const height = compact ? 220 : 360;
+  return (
+    <div style={{ width: "100%", height }}>
+      <ChartPreview option={option} height={height} />
+    </div>
+  );
+};
+
 // ── 1. line_chart 渲染器 ──────────────────────────────────────────────────
 
 const lineChartRenderer: VizBlockKindRenderer = {
   kind: "line_chart",
-  render: (block) => <LineChartFull block={block} />,
-  renderCompact: (block) => <LineChartFull block={block} compact />,
+  render: (block) => <EChartsBlock block={block} buildOption={buildLineChartOption} />,
+  renderCompact: (block) => <EChartsBlock block={block} buildOption={buildLineChartOption} compact />,
 };
 
-const LineChartFull: React.FC<{ block: VizBlock; compact?: boolean }> = ({ block, compact }) => {
+function buildLineChartOption(block: VizBlock): Record<string, unknown> {
   const data = asArray<VizPoint>(block.data);
   const opts = (block.options ?? {}) as Record<string, unknown>;
   const series = Array.isArray(opts.series) ? (opts.series as string[]) : undefined;
   const smooth = opts.smooth !== false;
   const showLegend = opts.showLegend === true;
-  const height = compact ? 200 : 300;
 
-  if (data.length === 0) {
-    return <Empty description="无数据" />;
-  }
+  if (data.length === 0) { return {}; }
 
-  return (
-    <ResponsiveContainerWrapper height={height}>
-      <LineChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="name" />
-        <YAxis />
-        <Tooltip />
-        {showLegend && <Legend />}
-        {series
-          ? series.map((s, i) => (
-            <Line
-              key={s}
-              type={smooth ? "monotone" : "linear"}
-              dataKey={s}
-              stroke={COLORS[i % COLORS.length]}
-              strokeWidth={2}
-              dot={false}
-            />
-          ))
-          : (
-            <Line
-              type={smooth ? "monotone" : "linear"}
-              dataKey="value"
-              stroke={COLORS[0]}
-              strokeWidth={2}
-              dot={false}
-            />
-          )}
-      </LineChart>
-    </ResponsiveContainerWrapper>
+  const first = data[0];
+  const seriesKeys = series ?? Object.keys(first).filter(
+    (k) => k !== "name" && typeof (first as Record<string, unknown>)[k] === "number",
   );
-};
+
+  return {
+    tooltip: { trigger: "axis" },
+    legend: showLegend ? { textStyle: { color: "#D1D5DB", fontSize: 12 } } : undefined,
+    grid: { top: showLegend ? 32 : 12, right: 16, bottom: 24, left: 56 },
+    xAxis: {
+      type: "category",
+      data: data.map((d) => d.name),
+      axisLine: { lineStyle: { color: "#4B5563" } },
+      axisLabel: { color: "#9CA3AF", fontSize: 10 },
+      axisTick: { show: false },
+      boundaryGap: false,
+    },
+    yAxis: {
+      type: "value",
+      axisLine: { lineStyle: { color: "#4B5563" } },
+      axisLabel: { color: "#9CA3AF", fontSize: 10 },
+      splitLine: { lineStyle: { color: "#374151", type: "dashed" } },
+      axisTick: { show: false },
+    },
+    series: seriesKeys.map((key, i) => ({
+      name: key,
+      type: "line",
+      data: data.map((d) => (d as Record<string, unknown>)[key] as number),
+      smooth,
+      showSymbol: false,
+      lineStyle: { color: COLORS[i % COLORS.length], width: 2 },
+      itemStyle: { color: COLORS[i % COLORS.length] },
+    })),
+  };
+}
 
 // ── 2. bar_chart 渲染器 ───────────────────────────────────────────────────
 
 const barChartRenderer: VizBlockKindRenderer = {
   kind: "bar_chart",
-  render: (block) => <BarChartFull block={block} />,
-  renderCompact: (block) => <BarChartFull block={block} compact />,
+  render: (block) => <EChartsBlock block={block} buildOption={buildBarChartOption} />,
+  renderCompact: (block) => <EChartsBlock block={block} buildOption={buildBarChartOption} compact />,
 };
 
-const BarChartFull: React.FC<{ block: VizBlock; compact?: boolean }> = ({ block, compact }) => {
+function buildBarChartOption(block: VizBlock): Record<string, unknown> {
   const data = asArray<VizPoint>(block.data);
   const opts = (block.options ?? {}) as Record<string, unknown>;
   const horizontal = opts.orientation === "horizontal";
   const stack = opts.stack === true;
   const showLegend = opts.showLegend === true;
   const colors = Array.isArray(opts.colors) ? (opts.colors as string[]) : COLORS;
-  const height = compact ? 200 : 300;
 
-  if (data.length === 0) {
-    return <Empty description="无数据" />;
+  if (data.length === 0) { return {}; }
+
+  const first = data[0];
+  const seriesKeys = Object.keys(first).filter(
+    (k) => k !== "name" && typeof (first as Record<string, unknown>)[k] === "number",
+  );
+
+  if (seriesKeys.length === 0) {
+    return {
+      tooltip: { trigger: "axis" },
+      grid: horizontal
+        ? { top: 12, right: 16, bottom: 24, left: 80 }
+        : { top: 12, right: 16, bottom: 24, left: 56 },
+      xAxis: horizontal
+        ? { type: "value", axisLine: { lineStyle: { color: "#4B5563" } } }
+        : {
+          type: "category",
+          data: data.map((d) => d.name),
+          axisLine: { lineStyle: { color: "#4B5563" } },
+          axisLabel: { color: "#9CA3AF", fontSize: 10 },
+        },
+      yAxis: horizontal
+        ? {
+          type: "category",
+          data: data.map((d) => d.name),
+          axisLine: { lineStyle: { color: "#4B5563" } },
+          axisLabel: { color: "#9CA3AF", fontSize: 10 },
+        }
+        : {
+          type: "value",
+          axisLine: { lineStyle: { color: "#4B5563" } },
+          axisLabel: { color: "#9CA3AF", fontSize: 10 },
+          splitLine: { lineStyle: { color: "#374151", type: "dashed" } },
+        },
+      series: [
+        {
+          type: "bar",
+          data: data.map((d) => ({
+            value: d.value ?? 0,
+            itemStyle: { color: colors[0] },
+          })),
+          barMaxWidth: 40,
+          itemStyle: { borderRadius: horizontal ? [0, 3, 3, 0] : [3, 3, 0, 0] },
+        },
+      ],
+    };
   }
 
-  const seriesKeys = useMemo(() => {
-    if (data.length === 0) { return []; }
-    const first = data[0];
-    return Object.keys(first).filter((k) => k !== "name" && typeof (first as Record<string, unknown>)[k] === "number");
-  }, [data]);
-
-  return (
-    <ResponsiveContainerWrapper height={height}>
-      <BarChart data={data} layout={horizontal ? "vertical" : "horizontal"}>
-        <CartesianGrid strokeDasharray="3 3" />
-        {horizontal
-          ? (
-            <>
-              <XAxis type="number" />
-              <YAxis type="category" dataKey="name" width={80} />
-            </>
-          )
-          : (
-            <>
-              <XAxis dataKey="name" />
-              <YAxis />
-            </>
-          )}
-        <Tooltip />
-        {showLegend && <Legend />}
-        {seriesKeys.length === 0
-          ? <Bar dataKey="value" fill={colors[0]} />
-          : seriesKeys.map((s, i) => (
-            <Bar
-              key={s}
-              dataKey={s}
-              stackId={stack ? "a" : undefined}
-              fill={colors[i % colors.length]}
-            >
-              {data.map((_, idx) => <Cell key={`cell-${idx}`} fill={colors[(i + idx) % colors.length]} />)}
-            </Bar>
-          ))}
-      </BarChart>
-    </ResponsiveContainerWrapper>
-  );
-};
+  return {
+    tooltip: { trigger: "axis" },
+    legend: showLegend ? { textStyle: { color: "#D1D5DB", fontSize: 12 } } : undefined,
+    grid: horizontal
+      ? { top: showLegend ? 32 : 12, right: 16, bottom: 24, left: 80 }
+      : { top: showLegend ? 32 : 12, right: 16, bottom: 24, left: 56 },
+    xAxis: horizontal
+      ? { type: "value", axisLine: { lineStyle: { color: "#4B5563" } } }
+      : {
+        type: "category",
+        data: data.map((d) => d.name),
+        axisLine: { lineStyle: { color: "#4B5563" } },
+        axisLabel: { color: "#9CA3AF", fontSize: 10 },
+        axisTick: { show: false },
+      },
+    yAxis: horizontal
+      ? {
+        type: "category",
+        data: data.map((d) => d.name),
+        axisLine: { lineStyle: { color: "#4B5563" } },
+        axisLabel: { color: "#9CA3AF", fontSize: 10 },
+        axisTick: { show: false },
+      }
+      : {
+        type: "value",
+        axisLine: { lineStyle: { color: "#4B5563" } },
+        axisLabel: { color: "#9CA3AF", fontSize: 10 },
+        splitLine: { lineStyle: { color: "#374151", type: "dashed" } },
+        axisTick: { show: false },
+      },
+    series: seriesKeys.map((key, i) => ({
+      name: key,
+      type: "bar",
+      stack: stack ? "a" : undefined,
+      data: data.map((d) => {
+        const val = (d as Record<string, unknown>)[key] as number;
+        return {
+          value: val ?? 0,
+          itemStyle: { color: colors[(i + Math.floor(Math.random() * colors.length)) % colors.length] },
+        };
+      }),
+      barMaxWidth: 40,
+      itemStyle: {
+        borderRadius: horizontal ? [0, 3, 3, 0] : [3, 3, 0, 0],
+        color: colors[i % colors.length],
+      },
+    })),
+  };
+}
 
 // ── 3. area_chart 渲染器 ──────────────────────────────────────────────────
 
 const areaChartRenderer: VizBlockKindRenderer = {
   kind: "area_chart",
-  render: (block) => <AreaChartFull block={block} />,
-  renderCompact: (block) => <AreaChartFull block={block} compact />,
+  render: (block) => <EChartsBlock block={block} buildOption={buildAreaChartOption} />,
+  renderCompact: (block) => <EChartsBlock block={block} buildOption={buildAreaChartOption} compact />,
 };
 
-const AreaChartFull: React.FC<{ block: VizBlock; compact?: boolean }> = ({ block, compact }) => {
+function buildAreaChartOption(block: VizBlock): Record<string, unknown> {
   const data = asArray<VizPoint>(block.data);
   const opts = (block.options ?? {}) as Record<string, unknown>;
   const series = Array.isArray(opts.series) ? (opts.series as string[]) : undefined;
   const stack = opts.stack === true;
   const showLegend = opts.showLegend === true;
-  const height = compact ? 200 : 300;
 
-  if (data.length === 0) {
-    return <Empty description="无数据" />;
-  }
+  if (data.length === 0) { return {}; }
 
-  return (
-    <ResponsiveContainerWrapper height={height}>
-      <AreaChart data={data}>
-        <defs>
-          {COLORS.map((c, i) => (
-            <linearGradient key={i} id={`area-grad-${i}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={c} stopOpacity={0.8} />
-              <stop offset="95%" stopColor={c} stopOpacity={0.1} />
-            </linearGradient>
-          ))}
-        </defs>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="name" />
-        <YAxis />
-        <Tooltip />
-        {showLegend && <Legend />}
-        {series
-          ? series.map((s, i) => (
-            <Area
-              key={s}
-              type="monotone"
-              dataKey={s}
-              stackId={stack ? "a" : undefined}
-              stroke={COLORS[i % COLORS.length]}
-              fill={`url(#area-grad-${i})`}
-              strokeWidth={2}
-            />
-          ))
-          : <Area type="monotone" dataKey="value" stroke={COLORS[0]} fill={`url(#area-grad-0)`} strokeWidth={2} />}
-      </AreaChart>
-    </ResponsiveContainerWrapper>
+  const first = data[0];
+  const seriesKeys = series ?? Object.keys(first).filter(
+    (k) => k !== "name" && typeof (first as Record<string, unknown>)[k] === "number",
   );
-};
+
+  const buildGradient = (color: string) => ({
+    type: "linear" as const,
+    x: 0,
+    y: 0,
+    x2: 0,
+    y2: 1,
+    colorStops: [
+      { offset: 0, color: color + "CC" },
+      { offset: 1, color: color + "05" },
+    ],
+    global: false,
+  });
+
+  return {
+    tooltip: { trigger: "axis" },
+    legend: showLegend ? { textStyle: { color: "#D1D5DB", fontSize: 12 } } : undefined,
+    grid: { top: showLegend ? 32 : 12, right: 16, bottom: 24, left: 56 },
+    xAxis: {
+      type: "category",
+      data: data.map((d) => d.name),
+      axisLine: { lineStyle: { color: "#4B5563" } },
+      axisLabel: { color: "#9CA3AF", fontSize: 10 },
+      axisTick: { show: false },
+      boundaryGap: false,
+    },
+    yAxis: {
+      type: "value",
+      axisLine: { lineStyle: { color: "#4B5563" } },
+      axisLabel: { color: "#9CA3AF", fontSize: 10 },
+      splitLine: { lineStyle: { color: "#374151", type: "dashed" } },
+      axisTick: { show: false },
+    },
+    series: seriesKeys.map((key, i) => ({
+      name: key,
+      type: "line",
+      data: data.map((d) => (d as Record<string, unknown>)[key] as number),
+      smooth: true,
+      showSymbol: false,
+      stack: stack ? "a" : undefined,
+      lineStyle: { color: COLORS[i % COLORS.length], width: 2 },
+      itemStyle: { color: COLORS[i % COLORS.length] },
+      areaStyle: buildGradient(COLORS[i % COLORS.length]),
+    })),
+  };
+}
 
 // ── 4. pie_chart 渲染器 ───────────────────────────────────────────────────
 
 const pieChartRenderer: VizBlockKindRenderer = {
   kind: "pie_chart",
-  render: (block) => <PieChartFull block={block} />,
-  renderCompact: (block) => <PieChartFull block={block} compact />,
+  render: (block) => <EChartsBlock block={block} buildOption={buildPieChartOption} />,
+  renderCompact: (block) => <EChartsBlock block={block} buildOption={buildPieChartOption} compact />,
 };
 
-const PieChartFull: React.FC<{ block: VizBlock; compact?: boolean }> = ({ block, compact }) => {
+function buildPieChartOption(block: VizBlock): Record<string, unknown> {
   const data = asArray<VizPieSlice>(block.data);
   const opts = (block.options ?? {}) as Record<string, unknown>;
   const innerRadius = typeof opts.innerRadius === "number" ? opts.innerRadius : 0;
   const showLegend = opts.showLegend !== false;
   const showLabel = opts.showLabel === true;
-  const height = compact ? 200 : 300;
 
-  if (data.length === 0) {
-    return <Empty description="无数据" />;
-  }
+  if (data.length === 0) { return {}; }
 
-  return (
-    <ResponsiveContainerWrapper height={height}>
-      <PieChart>
-        <Pie
-          data={data}
-          dataKey="value"
-          nameKey="name"
-          cx="50%"
-          cy="50%"
-          innerRadius={innerRadius * 100}
-          outerRadius={100}
-          label={showLabel}
-        >
-          {data.map((slice, i) => <Cell key={`cell-${i}`} fill={slice.color || COLORS[i % COLORS.length]} />)}
-        </Pie>
-        <Tooltip />
-        {showLegend && <Legend />}
-      </PieChart>
-    </ResponsiveContainerWrapper>
-  );
-};
+  return {
+    tooltip: { trigger: "item" },
+    legend: showLegend ? { bottom: 0, textStyle: { color: "#D1D5DB", fontSize: 12 } } : undefined,
+    series: [
+      {
+        type: "pie",
+        radius: [`${innerRadius * 100}%`, "70%"],
+        center: ["50%", "45%"],
+        avoidLabelOverlap: false,
+        padAngle: 2,
+        itemStyle: { borderRadius: 4, borderColor: "#111827", borderWidth: 2 },
+        label: { show: showLabel, color: "#D1D5DB" },
+        data: data.map((slice, i) => ({
+          value: slice.value,
+          name: slice.name,
+          itemStyle: { color: slice.color || COLORS[i % COLORS.length] },
+        })),
+      },
+    ],
+  };
+}
 
 // ── 5. scatter_chart 渲染器 ───────────────────────────────────────────────
 
 const scatterChartRenderer: VizBlockKindRenderer = {
   kind: "scatter_chart",
-  render: (block) => <ScatterChartFull block={block} />,
-  renderCompact: (block) => <ScatterChartFull block={block} compact />,
+  render: (block) => <EChartsBlock block={block} buildOption={buildScatterChartOption} />,
+  renderCompact: (block) => <EChartsBlock block={block} buildOption={buildScatterChartOption} compact />,
 };
 
-const ScatterChartFull: React.FC<{ block: VizBlock; compact?: boolean }> = ({ block, compact }) => {
+function buildScatterChartOption(block: VizBlock): Record<string, unknown> {
   const data = asArray<VizScatterPoint>(block.data);
   const opts = (block.options ?? {}) as Record<string, unknown>;
   const showLegend = opts.showLegend === true;
-  const height = compact ? 200 : 300;
 
-  if (data.length === 0) {
-    return <Empty description="无数据" />;
+  if (data.length === 0) { return {}; }
+
+  const groups = new Map<string, VizScatterPoint[]>();
+  for (const p of data) {
+    const g = p.group ?? "default";
+    if (!groups.has(g)) { groups.set(g, []); }
+    groups.get(g)!.push(p);
   }
 
-  // 按 group 分组
-  const groups = useMemo(() => {
-    const m = new Map<string, VizScatterPoint[]>();
-    for (const p of data) {
-      const g = p.group ?? "default";
-      if (!m.has(g)) { m.set(g, []); }
-      m.get(g)!.push(p);
-    }
-    return Array.from(m.entries());
-  }, [data]);
-
-  return (
-    <ResponsiveContainerWrapper height={height}>
-      <ScatterChart>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="x" name="x" />
-        <YAxis dataKey="y" name="y" />
-        <ZAxis dataKey="z" range={[60, 400]} name="z" />
-        <Tooltip cursor={{ strokeDasharray: "3 3" }} />
-        {showLegend && <Legend />}
-        {groups.map(([g, points], i) => <Scatter key={g} name={g} data={points} fill={COLORS[i % COLORS.length]} />)}
-      </ScatterChart>
-    </ResponsiveContainerWrapper>
-  );
-};
+  return {
+    tooltip: { trigger: "item" },
+    legend: showLegend ? { textStyle: { color: "#D1D5DB", fontSize: 12 } } : undefined,
+    grid: { top: showLegend ? 32 : 12, right: 16, bottom: 24, left: 56 },
+    xAxis: {
+      type: "value",
+      name: "x",
+      axisLine: { lineStyle: { color: "#4B5563" } },
+      axisLabel: { color: "#9CA3AF", fontSize: 10 },
+      splitLine: { lineStyle: { color: "#374151", type: "dashed" } },
+    },
+    yAxis: {
+      type: "value",
+      name: "y",
+      axisLine: { lineStyle: { color: "#4B5563" } },
+      axisLabel: { color: "#9CA3AF", fontSize: 10 },
+      splitLine: { lineStyle: { color: "#374151", type: "dashed" } },
+    },
+    series: Array.from(groups.entries()).map(([groupName, points], i) => ({
+      name: groupName,
+      type: "scatter",
+      data: points.map((p) => [p.x, p.y, p.z ?? 10]),
+      symbolSize: (val: number[]) => Math.max(6, Math.min(40, val[2] ?? 10)),
+      itemStyle: { color: COLORS[i % COLORS.length] },
+    })),
+  };
+}
 
 // ── 6. heatmap 渲染器（ECharts） ──────────────────────────────────────────
 
@@ -697,7 +763,6 @@ const TableFull: React.FC<{ block: VizBlock; compact?: boolean }> = ({ block, co
         },
       }));
     }
-    // 自动从首行推断列
     if (data.length === 0) { return []; }
     return Object.keys(data[0]).map((k) => ({ title: k, dataIndex: k, key: k }));
   }, [opts.columns, data]);
@@ -716,38 +781,6 @@ const TableFull: React.FC<{ block: VizBlock; compact?: boolean }> = ({ block, co
       scroll={compact ? undefined : { x: "max-content" }}
       rowClassName={opts.striped ? (_, i) => (i % 2 === 0 ? "" : "ant-table-row-striped") : undefined}
     />
-  );
-};
-
-// ── ECharts 包装组件 ──────────────────────────────────────────────────────
-
-interface EChartsBlockProps {
-  block: VizBlock;
-  buildOption: (block: VizBlock) => Record<string, unknown>;
-  compact?: boolean;
-}
-
-const EChartsBlock: React.FC<EChartsBlockProps> = ({ block, buildOption, compact }) => {
-  const option = useMemo(() => buildOption(block), [block, buildOption]);
-  const height = compact ? 220 : 360;
-  return (
-    <div style={{ width: "100%", height }}>
-      <ChartPreview option={option} height={height} />
-    </div>
-  );
-};
-
-// ── ResponsiveContainer 包装 ──────────────────────────────────────────────
-
-const ResponsiveContainerWrapper: React.FC<{ height: number; children: React.ReactElement }> = (
-  { height, children },
-) => {
-  return (
-    <div style={{ width: "100%", height }}>
-      <ResponsiveContainer width="100%" height="100%">
-        {children}
-      </ResponsiveContainer>
-    </div>
   );
 };
 

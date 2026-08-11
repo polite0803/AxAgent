@@ -409,7 +409,7 @@ mod tests {
     #[test]
     fn test_error_serialization() {
         let err = SyncError::new(SyncErrorCode::SyncFailed);
-        let json = serde_json::to_string(&err).unwrap();
+        let json = serde_json::to_string(&err).expect("测试：JSON序列化应成功");
         assert!(json.contains("SYNC_FAILED"));
     }
 }

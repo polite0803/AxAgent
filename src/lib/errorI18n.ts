@@ -152,7 +152,7 @@ export function translateBackendError(e: unknown): string {
     // 避免用户只看到通用的“操作失败，请稍后重试”而丢失真实报错。
     if (parsed.code !== "COMMON_INTERNAL") {
       const key = `error.${parsed.code}`;
-      const translated = i18n.t(key, { ...(parsed.params ?? {}), defaultValue: "" });
+      const translated = i18n.t(key, { ...parsed.params, defaultValue: "" });
       if (translated && translated !== key) {
         return applySingleBraceParams(translated, parsed.params);
       }

@@ -313,8 +313,8 @@ mod tests {
     use rusqlite::Connection;
 
     fn test_cache() -> DiskCache {
-        let conn = Connection::open_in_memory().unwrap();
-        DiskCache::new(conn, DiskCacheConfig::default()).unwrap()
+        let conn = Connection::open_in_memory().expect("测试：打开内存 SQLite 失败");
+        DiskCache::new(conn, DiskCacheConfig::default()).expect("测试：创建 DiskCache 失败")
     }
 
     #[test]
@@ -322,11 +322,14 @@ mod tests {
         let cache = test_cache();
         let hash = DiskCache::query_hash("find user auth");
 
-        assert!(cache.get_search_results(&hash).unwrap().is_none());
+        assert!(cache.get_search_results(&hash).expect("测试：get 应成功").is_none());
 
-        cache.store_search_results(&hash, "find user auth", r#"[{"file":"auth.rs"}]"#, 1).unwrap();
+        cache
+            .store_search_results(&hash, "find user auth", r#"[{"file":"auth.rs"}]"#, 1)
+            .expect("测试：存储搜索结果失败");
 
-        let cached = cache.get_search_results(&hash).unwrap().unwrap();
+        let cached =
+            cache.get_search_results(&hash).expect("测试：get 应成功").expect("测试：应有缓存命中");
         assert_eq!(cached.query_text, "find user auth");
         assert!(cached.results_json.contains("auth.rs"));
         assert_eq!(cached.hit_count, 2); // get + implicit increment
@@ -340,7 +343,7 @@ mod tests {
         std::thread::sleep(std::time::Duration::from_secs(1));
         assert!(cache.store_summary("conv1", "Added unit tests", 3).is_ok());
 
-        let summaries = cache.get_summaries("conv1").unwrap();
+        let summaries = cache.get_summaries("conv1").expect("测试：获取摘要应成功");
         assert_eq!(summaries.len(), 2);
         // Either order is acceptable for this test; both entries exist
         let all_text: String =
@@ -356,7 +359,7 @@ mod tests {
         std::thread::sleep(std::time::Duration::from_secs(1));
         assert!(cache.record_snapshot("snap2", 200, 800, "/cache/snap2.json").is_ok());
 
-        let snapshots = cache.list_snapshots().unwrap();
+        let snapshots = cache.list_snapshots().expect("测试：获取快照列表应成功");
         assert_eq!(snapshots.len(), 2);
         // Both snapshots exist
         let ids: Vec<&str> = snapshots.iter().map(|s| s.snapshot_id.as_str()).collect();

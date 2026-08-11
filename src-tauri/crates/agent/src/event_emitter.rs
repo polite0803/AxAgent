@@ -56,8 +56,9 @@ mod tests {
             request_id: "req-3".to_string(),
             tool_use_id: Some("tool-3".to_string()),
         };
-        let json = serde_json::to_string(&payload).unwrap();
-        let deserialized: AgentPermissionPayload = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&payload).expect("测试：JSON序列化应成功");
+        let deserialized: AgentPermissionPayload =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.conversation_id, "conv-3");
         assert_eq!(deserialized.tool_name, "Grep");
     }
@@ -73,7 +74,7 @@ mod tests {
             request_id: "req-4".to_string(),
             tool_use_id: Some("tu-123".to_string()),
         };
-        let json = serde_json::to_string(&payload).unwrap();
+        let json = serde_json::to_string(&payload).expect("测试：JSON序列化应成功");
         assert!(json.contains("toolUseId"));
     }
 
@@ -129,7 +130,7 @@ mod tests {
         let event =
             UnifiedAgentEvent::new("source", AgentEventType::ToolResult, serde_json::json!({}))
                 .with_correlation_id("corr-123");
-        assert_eq!(event.correlation_id.unwrap(), "corr-123");
+        assert_eq!(event.correlation_id.expect("测试应成功"), "corr-123");
     }
 
     #[tokio::test]
@@ -149,9 +150,9 @@ mod tests {
             AgentEventType::ToolUse,
             serde_json::json!({"tool": "bash"}),
         );
-        bus.emit(event).unwrap();
+        bus.emit(event).expect("测试：emit 应成功");
 
-        let received = receiver.recv().await.unwrap();
+        let received = receiver.recv().await.expect("测试：异步操作应成功");
         assert_eq!(received.event_type, AgentEventType::ToolUse);
         assert_eq!(received.source, "source");
     }
@@ -164,10 +165,10 @@ mod tests {
 
         let event =
             UnifiedAgentEvent::new("src", AgentEventType::TurnStarted, serde_json::json!({}));
-        bus.emit(event).unwrap();
+        bus.emit(event).expect("测试：emit 应成功");
 
-        let r1 = receiver1.recv().await.unwrap();
-        let r2 = receiver2.recv().await.unwrap();
+        let r1 = receiver1.recv().await.expect("测试：异步操作应成功");
+        let r2 = receiver2.recv().await.expect("测试：异步操作应成功");
         assert_eq!(r1.event_type, AgentEventType::TurnStarted);
         assert_eq!(r2.event_type, AgentEventType::TurnStarted);
     }
@@ -216,14 +217,14 @@ mod tests {
         let event = UnifiedAgentEvent::new(
             "agent",
             AgentEventType::PermissionRequest,
-            serde_json::to_value(&payload).unwrap(),
+            serde_json::to_value(&payload).expect("测试应成功"),
         );
-        bus.emit(event).unwrap();
+        bus.emit(event).expect("测试：emit 应成功");
 
-        let received = receiver.recv().await.unwrap();
+        let received = receiver.recv().await.expect("测试：异步操作应成功");
         assert_eq!(received.event_type, AgentEventType::PermissionRequest);
         let received_payload: AgentPermissionPayload =
-            serde_json::from_value(received.payload).unwrap();
+            serde_json::from_value(received.payload).expect("测试应成功");
         assert_eq!(received_payload.tool_name, "FileWrite");
         assert_eq!(received_payload.risk_level, "high");
     }

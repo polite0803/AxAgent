@@ -147,11 +147,11 @@ mod tests {
 
     #[tokio::test]
     async fn v111_adds_feedback_columns_on_fresh_db() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
         // 先跑 v100 建 retrieval_hits 表
-        super::super::v100_consolidated::up(db.clone()).await.unwrap();
+        super::super::v100_consolidated::up(db.clone()).await.expect("测试：异步操作应成功");
         // 再跑 v111
-        up(db.clone()).await.unwrap();
+        up(db.clone()).await.expect("测试：异步操作应成功");
 
         // 验证新列存在
         for col in
@@ -165,25 +165,25 @@ mod tests {
 
     #[tokio::test]
     async fn v111_is_idempotent() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        super::super::v100_consolidated::up(db.clone()).await.unwrap();
-        up(db.clone()).await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        super::super::v100_consolidated::up(db.clone()).await.expect("测试：异步操作应成功");
+        up(db.clone()).await.expect("测试：异步操作应成功");
         // 第二次跑：所有列已存在，应跳过不报错
         up(db.clone()).await.expect("v111 must be re-runnable without error");
     }
 
     #[tokio::test]
     async fn v111_skips_when_table_missing() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
         // 不跑 v100，直接跑 v111，应跳过不报错
         up(db.clone()).await.expect("v111 should skip gracefully when table is missing");
     }
 
     #[tokio::test]
     async fn v111_can_insert_and_query_feedback() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        super::super::v100_consolidated::up(db.clone()).await.unwrap();
-        up(db.clone()).await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        super::super::v100_consolidated::up(db.clone()).await.expect("测试：异步操作应成功");
+        up(db.clone()).await.expect("测试：异步操作应成功");
 
         // 先插入外键父记录（retrieval_hits 引用 conversations / knowledge_bases）
         db.execute_unprepared(
@@ -191,10 +191,10 @@ mod tests {
              VALUES ('conv1', 'Test', 'm1', 'p1', 1700000000, 1700000000)",
         )
         .await
-        .unwrap();
+        .expect("测试应成功");
         db.execute_unprepared("INSERT INTO knowledge_bases (id, name) VALUES ('kb1', 'Test KB')")
             .await
-            .unwrap();
+            .expect("测试应成功");
 
         // 插入一条带反馈的记录
         db.execute_unprepared(
@@ -202,7 +202,7 @@ mod tests {
              document_id, chunk_ref, score, preview, feedback, feedback_at, used_in_response, created_at) \
              VALUES ('test1', 'conv1', 'msg1', 'kb1', 'doc1', 'chunk1', 0.85, 'preview', \
              'positive', 1700000000, 1, 1700000000)"
-        ).await.unwrap();
+        ).await.expect("测试：异步操作应成功");
 
         // 查询验证
         let row = db
@@ -212,11 +212,11 @@ mod tests {
                     .to_string(),
             ))
             .await
-            .unwrap()
+            .expect("测试应成功")
             .expect("row should exist");
-        let feedback: String = row.try_get_by("feedback").unwrap();
-        let used: i32 = row.try_get_by("used_in_response").unwrap();
-        let created_at: i64 = row.try_get_by("created_at").unwrap();
+        let feedback: String = row.try_get_by("feedback").expect("测试应成功");
+        let used: i32 = row.try_get_by("used_in_response").expect("测试应成功");
+        let created_at: i64 = row.try_get_by("created_at").expect("测试应成功");
         assert_eq!(feedback, "positive");
         assert_eq!(used, 1);
         assert_eq!(created_at, 1700000000);

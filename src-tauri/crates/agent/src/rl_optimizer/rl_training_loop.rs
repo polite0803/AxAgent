@@ -291,7 +291,7 @@ mod tests {
 
         let result = train(&mut opt);
         assert!(result.is_ok());
-        let stats = result.unwrap();
+        let stats = result.expect("测试应成功");
         assert!(stats.episodes_completed > 0);
         assert!(stats.avg_reward > -1.0 && stats.avg_reward < 1.01);
     }
@@ -333,7 +333,7 @@ mod tests {
         }
         let result = sched.check_and_train(&mut opt);
         assert!(result.is_some());
-        assert!(result.unwrap().is_ok());
+        assert!(result.expect("测试应成功").is_ok());
         assert_eq!(sched.train_count(), 1);
     }
 
@@ -348,7 +348,7 @@ mod tests {
         }
         let result = sched.check_and_train(&mut opt);
         assert!(result.is_some());
-        assert!(result.unwrap().is_ok());
+        assert!(result.expect("测试应成功").is_ok());
         assert_eq!(sched.train_count(), 1);
     }
 

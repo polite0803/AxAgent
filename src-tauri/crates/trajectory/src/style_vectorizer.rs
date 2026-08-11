@@ -241,8 +241,8 @@ impl StyleVectorizer {
         let mut total_lines = 0;
         let mut comment_lines = 0;
 
-        let multi_line_start = Regex::new(r"/\*").unwrap();
-        let multi_line_end = Regex::new(r"\*/").unwrap();
+        let multi_line_start = Regex::new(r"/\*").expect("正则表达式：多行注释开始");
+        let multi_line_end = Regex::new(r"\*/").expect("正则表达式：多行注释结束");
 
         for sample in samples {
             let mut in_multiline = false;

@@ -262,13 +262,16 @@ impl axagent_harness::WhatsAppWebhookHandler for WhatsAppAdapter {
                                 });
 
                                 let client = reqwest::Client::new();
-                                let _ = client
+                                let send_result = client
                                     .post(&url)
                                     .header("Authorization", format!("Bearer {}", access_token))
                                     .header("Content-Type", "application/json")
                                     .json(&body)
                                     .send()
                                     .await;
+                                if let Err(ref e) = send_result {
+                                    tracing::warn!(error = %e, "WhatsApp message send failed");
+                                }
                             }
                         });
                     }

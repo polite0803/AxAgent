@@ -520,7 +520,7 @@ mod test_react_engine_lifecycle {
         );
         assert!(!failure_result.success);
         assert!(failure_result.error.is_some());
-        assert_eq!(failure_result.error.unwrap(), "Test error");
+        assert_eq!(failure_result.error.expect("测试应成功"), "Test error");
     }
 }
 
@@ -593,30 +593,34 @@ mod test_hierarchical_planner_dynamic_replanning {
             )
             .build(&mut planner);
 
-        planner.start_execution().unwrap();
+        planner.start_execution().expect("测试：start_execution 应成功");
 
         let executable = planner.get_next_executable_tasks();
         let task1_id = executable[0].id.clone();
-        planner.mark_task_started(&task1_id).unwrap();
-        planner.mark_task_completed(&task1_id, serde_json::json!({"status": "ok"})).unwrap();
+        planner.mark_task_started(&task1_id).expect("测试：mark_task_started 应成功");
+        planner
+            .mark_task_completed(&task1_id, serde_json::json!({"status": "ok"}))
+            .expect("测试：集成测试操作应成功");
 
         let executable = planner.get_next_executable_tasks();
         let task2_id = executable[0].id.clone();
-        planner.mark_task_started(&task2_id).unwrap();
-        planner.mark_task_completed(&task2_id, serde_json::json!({"status": "ok"})).unwrap();
+        planner.mark_task_started(&task2_id).expect("测试：mark_task_started 应成功");
+        planner
+            .mark_task_completed(&task2_id, serde_json::json!({"status": "ok"}))
+            .expect("测试：集成测试操作应成功");
 
         let progress = planner.get_progress();
         assert_eq!(progress.completed_tasks, 2);
 
         let executable = planner.get_next_executable_tasks();
         let task3_id = executable[0].id.clone();
-        planner.mark_task_started(&task3_id).unwrap();
+        planner.mark_task_started(&task3_id).expect("测试：mark_task_started 应成功");
         let mark_result = planner.mark_task_failed(&task3_id, "Simulated failure on task 3");
         assert!(mark_result.is_ok(), "mark_task_failed failed: {:?}", mark_result);
 
         let all_tasks: Vec<_> = planner
             .get_plan()
-            .unwrap()
+            .expect("测试应成功")
             .phases
             .iter()
             .flat_map(|p| p.tasks.iter())
@@ -650,19 +654,27 @@ mod test_hierarchical_planner_dynamic_replanning {
             )
             .build(&mut planner);
 
-        planner.start_execution().unwrap();
+        planner.start_execution().expect("测试：start_execution 应成功");
 
         let task1_id = planner.get_next_executable_tasks()[0].id.clone();
-        planner.mark_task_completed(&task1_id, serde_json::json!({"result": "success"})).unwrap();
+        planner
+            .mark_task_completed(&task1_id, serde_json::json!({"result": "success"}))
+            .expect("测试：集成测试操作应成功");
 
         let task2_id = planner.get_next_executable_tasks()[0].id.clone();
-        planner.mark_task_completed(&task2_id, serde_json::json!({"result": "success"})).unwrap();
+        planner
+            .mark_task_completed(&task2_id, serde_json::json!({"result": "success"}))
+            .expect("测试：集成测试操作应成功");
 
         let task3_id = planner.get_next_executable_tasks()[0].id.clone();
-        planner.mark_task_started(&task3_id).unwrap();
-        planner.mark_task_failed(&task3_id, "Connection timeout").unwrap();
-        planner.mark_task_started(&task3_id).unwrap();
-        planner.mark_task_failed(&task3_id, "Connection timeout again").unwrap();
+        planner.mark_task_started(&task3_id).expect("测试：mark_task_started 应成功");
+        planner
+            .mark_task_failed(&task3_id, "Connection timeout")
+            .expect("测试：mark_task_failed 应成功");
+        planner.mark_task_started(&task3_id).expect("测试：mark_task_started 应成功");
+        planner
+            .mark_task_failed(&task3_id, "Connection timeout again")
+            .expect("测试：mark_task_failed 应成功");
 
         let completed_before = planner.get_completed_steps();
         assert_eq!(completed_before.len(), 2);
@@ -682,14 +694,18 @@ mod test_hierarchical_planner_dynamic_replanning {
             })),
         }];
 
-        let record = planner.replan(reason, actions).unwrap();
+        let record = planner.replan(reason, actions).expect("测试：replan 应成功");
 
         assert_eq!(record.version, 1);
         assert!(matches!(record.reason, ReplanReason::StepFailed { .. }));
 
-        let plan = planner.get_plan().unwrap();
-        let task3 =
-            plan.phases.iter().flat_map(|p| p.tasks.iter()).find(|t| t.id == task3_id).unwrap();
+        let plan = planner.get_plan().expect("测试：get_plan 应成功");
+        let task3 = plan
+            .phases
+            .iter()
+            .flat_map(|p| p.tasks.iter())
+            .find(|t| t.id == task3_id)
+            .expect("测试：查找应成功");
         assert_eq!(task3.status, TaskStatus::Pending);
         assert_eq!(task3.retry_count, 0);
         assert_eq!(task3.error, None);
@@ -712,19 +728,27 @@ mod test_hierarchical_planner_dynamic_replanning {
             )
             .build(&mut planner);
 
-        planner.start_execution().unwrap();
+        planner.start_execution().expect("测试：start_execution 应成功");
 
         let task_a_id = planner.get_next_executable_tasks()[0].id.clone();
-        planner.mark_task_completed(&task_a_id, serde_json::json!({"data": "a"})).unwrap();
+        planner
+            .mark_task_completed(&task_a_id, serde_json::json!({"data": "a"}))
+            .expect("测试：集成测试操作应成功");
 
         let task_b_id = planner.get_next_executable_tasks()[0].id.clone();
-        planner.mark_task_completed(&task_b_id, serde_json::json!({"data": "b"})).unwrap();
+        planner
+            .mark_task_completed(&task_b_id, serde_json::json!({"data": "b"}))
+            .expect("测试：集成测试操作应成功");
 
         let task_c_id = planner.get_next_executable_tasks()[0].id.clone();
-        planner.mark_task_started(&task_c_id).unwrap();
-        planner.mark_task_failed(&task_c_id, "Task C failed").unwrap();
-        planner.mark_task_started(&task_c_id).unwrap();
-        planner.mark_task_failed(&task_c_id, "Task C failed again").unwrap();
+        planner.mark_task_started(&task_c_id).expect("测试：mark_task_started 应成功");
+        planner
+            .mark_task_failed(&task_c_id, "Task C failed")
+            .expect("测试：mark_task_failed 应成功");
+        planner.mark_task_started(&task_c_id).expect("测试：mark_task_started 应成功");
+        planner
+            .mark_task_failed(&task_c_id, "Task C failed again")
+            .expect("测试：mark_task_failed 应成功");
 
         let reason = ReplanReason::StepFailed {
             task_id: task_c_id.clone(),
@@ -732,13 +756,21 @@ mod test_hierarchical_planner_dynamic_replanning {
         };
         let actions =
             vec![ReplanAction::Retry { task_id: task_c_id.clone(), modified_parameters: None }];
-        planner.replan(reason, actions).unwrap();
+        planner.replan(reason, actions).expect("测试：replan 应成功");
 
-        let plan = planner.get_plan().unwrap();
-        let task_a =
-            plan.phases.iter().flat_map(|p| p.tasks.iter()).find(|t| t.id == task_a_id).unwrap();
-        let task_b =
-            plan.phases.iter().flat_map(|p| p.tasks.iter()).find(|t| t.id == task_b_id).unwrap();
+        let plan = planner.get_plan().expect("测试：get_plan 应成功");
+        let task_a = plan
+            .phases
+            .iter()
+            .flat_map(|p| p.tasks.iter())
+            .find(|t| t.id == task_a_id)
+            .expect("测试：查找应成功");
+        let task_b = plan
+            .phases
+            .iter()
+            .flat_map(|p| p.tasks.iter())
+            .find(|t| t.id == task_b_id)
+            .expect("测试：查找应成功");
 
         assert_eq!(task_a.status, TaskStatus::Completed);
         assert_eq!(task_a.result, Some(serde_json::json!({"data": "a"})));
@@ -765,19 +797,19 @@ mod test_hierarchical_planner_dynamic_replanning {
             task_id: task1_id.clone(),
             reason: "Testing rollback".to_string(),
         }];
-        planner.replan(reason, actions).unwrap();
+        planner.replan(reason, actions).expect("测试：replan 应成功");
 
         assert_eq!(planner.get_plan_versions().len(), 2);
 
-        let plan_after_replan = planner.get_plan().unwrap();
+        let plan_after_replan = planner.get_plan().expect("测试：get_plan 应成功");
         assert!(
             plan_after_replan.phases.iter().flat_map(|p| p.tasks.iter()).all(|t| t.id != task1_id)
         );
 
-        planner.rollback(0).unwrap();
+        planner.rollback(0).expect("测试：rollback 应成功");
 
         assert_eq!(planner.get_plan_versions().len(), 2);
-        let restored_plan = planner.get_plan().unwrap();
+        let restored_plan = planner.get_plan().expect("测试：get_plan 应成功");
         let restored_task =
             restored_plan.phases.iter().flat_map(|p| p.tasks.iter()).find(|t| t.id == task1_id);
         assert!(restored_task.is_some());
@@ -796,8 +828,9 @@ mod test_hierarchical_planner_dynamic_replanning {
             )
             .build(&mut planner);
 
-        let task1_id = planner.get_plan().unwrap().phases[0].tasks[0].id.clone();
-        let phase_id = planner.get_plan().unwrap().phases[0].id.clone();
+        let task1_id =
+            planner.get_plan().expect("测试：get_plan 应成功").phases[0].tasks[0].id.clone();
+        let phase_id = planner.get_plan().expect("测试：get_plan 应成功").phases[0].id.clone();
 
         let reason =
             ReplanReason::ResourceConstraint { constraint: "API rate limited".to_string() };
@@ -809,11 +842,15 @@ mod test_hierarchical_planner_dynamic_replanning {
             ReplanAction::Insert { phase_id: phase_id.clone(), task: new_task, position: 1 },
         ];
 
-        planner.replan(reason, actions).unwrap();
+        planner.replan(reason, actions).expect("测试：replan 应成功");
 
-        let plan = planner.get_plan().unwrap();
-        let skipped =
-            plan.phases.iter().flat_map(|p| p.tasks.iter()).find(|t| t.id == task1_id).unwrap();
+        let plan = planner.get_plan().expect("测试：get_plan 应成功");
+        let skipped = plan
+            .phases
+            .iter()
+            .flat_map(|p| p.tasks.iter())
+            .find(|t| t.id == task1_id)
+            .expect("测试：查找应成功");
         assert_eq!(skipped.status, TaskStatus::Skipped);
         assert_eq!(plan.phases[0].tasks.len(), 3);
         assert_eq!(plan.phases[0].tasks[1].description, "Replacement Task");
@@ -832,7 +869,8 @@ mod test_hierarchical_planner_dynamic_replanning {
             .add_phase("Phase", "Modify phase", vec![], vec![task])
             .build(&mut planner);
 
-        let task_id = planner.get_plan().unwrap().phases[0].tasks[0].id.clone();
+        let task_id =
+            planner.get_plan().expect("测试：get_plan 应成功").phases[0].tasks[0].id.clone();
 
         let reason =
             ReplanReason::ManualIntervention { reason: "Upgrade task parameters".to_string() };
@@ -846,11 +884,15 @@ mod test_hierarchical_planner_dynamic_replanning {
 
         let actions = vec![ReplanAction::ModifyTask { task_id: task_id.clone(), modifications }];
 
-        planner.replan(reason, actions).unwrap();
+        planner.replan(reason, actions).expect("测试：replan 应成功");
 
-        let plan = planner.get_plan().unwrap();
-        let modified_task =
-            plan.phases.iter().flat_map(|p| p.tasks.iter()).find(|t| t.id == task_id).unwrap();
+        let plan = planner.get_plan().expect("测试：get_plan 应成功");
+        let modified_task = plan
+            .phases
+            .iter()
+            .flat_map(|p| p.tasks.iter())
+            .find(|t| t.id == task_id)
+            .expect("测试：查找应成功");
 
         assert_eq!(modified_task.description, "Modified task");
         assert_eq!(modified_task.max_retries, 10);
@@ -886,12 +928,12 @@ mod test_tree_of_thoughts_reasoning {
         let children = engine
             .generate_branching_options(root_id.clone(), "Test reasoning context", &provider)
             .await
-            .unwrap();
+            .expect("测试：集成测试操作应成功");
 
         assert_eq!(children.len(), 3);
 
         for child_id in &children {
-            let node = engine.get_node(child_id).unwrap();
+            let node = engine.get_node(child_id).expect("测试：get_node 应成功");
             assert_eq!(node.parent, Some(root_id.clone()));
             assert_eq!(node.status, ThoughtStatus::Generated);
         }
@@ -903,16 +945,20 @@ mod test_tree_of_thoughts_reasoning {
         let root_id = engine.root_id.clone();
 
         let provider: Arc<dyn ToTLlmReasoningProvider> = Arc::new(MockToTProvider::new());
-        let children =
-            engine.generate_branching_options(root_id, "Test context", &provider).await.unwrap();
+        let children = engine
+            .generate_branching_options(root_id, "Test context", &provider)
+            .await
+            .expect("测试：异步操作应成功");
 
         let mut scores = Vec::new();
         for child_id in &children {
-            let score =
-                engine.evaluate_and_score_node(child_id, "Test context", &provider).await.unwrap();
+            let score = engine
+                .evaluate_and_score_node(child_id, "Test context", &provider)
+                .await
+                .expect("测试：异步操作应成功");
             scores.push((child_id.clone(), score));
 
-            let node = engine.get_node(child_id).unwrap();
+            let node = engine.get_node(child_id).expect("测试：get_node 应成功");
             assert_eq!(node.status, ThoughtStatus::Explored);
         }
 
@@ -928,8 +974,10 @@ mod test_tree_of_thoughts_reasoning {
         let root_id = engine.root_id.clone();
 
         let provider: Arc<dyn ToTLlmReasoningProvider> = Arc::new(MockToTProvider::new());
-        let children =
-            engine.generate_branching_options(root_id, "Test context", &provider).await.unwrap();
+        let children = engine
+            .generate_branching_options(root_id, "Test context", &provider)
+            .await
+            .expect("测试：异步操作应成功");
 
         for child_id in &children {
             let _ = engine.evaluate_and_score_node(child_id, "Test context", &provider).await;
@@ -938,7 +986,7 @@ mod test_tree_of_thoughts_reasoning {
         let pruned = engine.prune_below_threshold(0.3);
 
         for pruned_id in &pruned {
-            let node = engine.get_node(pruned_id).unwrap();
+            let node = engine.get_node(pruned_id).expect("测试：get_node 应成功");
             assert_eq!(node.status, ThoughtStatus::Pruned);
         }
     }
@@ -952,7 +1000,7 @@ mod test_tree_of_thoughts_reasoning {
         let children = engine
             .generate_branching_options(root_id.clone(), "Test context", &provider)
             .await
-            .unwrap();
+            .expect("测试：集成测试操作应成功");
 
         for child_id in &children {
             let _ = engine.evaluate_and_score_node(child_id, "Test context", &provider).await;
@@ -967,7 +1015,7 @@ mod test_tree_of_thoughts_reasoning {
         for i in 1..best_path.len() {
             let parent_id = &best_path[i - 1];
             let child_id = &best_path[i];
-            let parent_node = engine.get_node(parent_id).unwrap();
+            let parent_node = engine.get_node(parent_id).expect("测试：get_node 应成功");
             assert!(parent_node.children.contains(child_id));
         }
     }
@@ -981,7 +1029,7 @@ mod test_tree_of_thoughts_reasoning {
         let level1_children = engine
             .generate_branching_options(root_id.clone(), "Level 1 context", &provider)
             .await
-            .unwrap();
+            .expect("测试：集成测试操作应成功");
 
         assert_eq!(level1_children.len(), 3);
 
@@ -995,24 +1043,24 @@ mod test_tree_of_thoughts_reasoning {
         let _level2_children = engine
             .generate_branching_options(first_child_clone, "Level 2 context", &provider)
             .await
-            .unwrap();
+            .expect("测试：集成测试操作应成功");
 
         let total_nodes_before_backtrack = engine.total_nodes();
         assert!(total_nodes_before_backtrack > 4);
 
-        engine.backtrack_to(&level1_children[0]).unwrap();
+        engine.backtrack_to(&level1_children[0]).expect("测试：backtrack_to 应成功");
 
         let total_nodes_after_backtrack = engine.total_nodes();
         assert!(total_nodes_after_backtrack < total_nodes_before_backtrack);
 
-        let backtracked_node = engine.get_node(&level1_children[0]).unwrap();
+        let backtracked_node = engine.get_node(&level1_children[0]).expect("测试：get_node 应成功");
         assert!(backtracked_node.children.is_empty());
         assert_eq!(backtracked_node.status, ThoughtStatus::Explored);
 
         let re_explored = engine
             .generate_branching_options(level1_children[0].clone(), "Re-explore context", &provider)
             .await
-            .unwrap();
+            .expect("测试：集成测试操作应成功");
 
         assert_eq!(re_explored.len(), 3);
     }
@@ -1024,8 +1072,10 @@ mod test_tree_of_thoughts_reasoning {
 
         let provider: Arc<dyn ToTLlmReasoningProvider> =
             Arc::new(MockToTProvider::new().with_eval_scores(vec![0.2, 0.8, 0.5]));
-        let children =
-            engine.generate_branching_options(root_id, "Scored context", &provider).await.unwrap();
+        let children = engine
+            .generate_branching_options(root_id, "Scored context", &provider)
+            .await
+            .expect("测试：异步操作应成功");
 
         for child_id in &children {
             let _ = engine.evaluate_and_score_node(child_id, "Scored context", &provider).await;
@@ -1046,20 +1096,22 @@ mod test_tree_of_thoughts_reasoning {
 
         let provider: Arc<dyn ToTLlmReasoningProvider> = Arc::new(MockToTProvider::new());
 
-        let level1 =
-            engine.generate_branching_options(root_id.clone(), "Level 1", &provider).await.unwrap();
+        let level1 = engine
+            .generate_branching_options(root_id.clone(), "Level 1", &provider)
+            .await
+            .expect("测试：异步操作应成功");
         assert_eq!(level1.len(), 2);
 
         let level2 = engine
             .generate_branching_options(level1[0].clone(), "Level 2", &provider)
             .await
-            .unwrap();
+            .expect("测试：集成测试操作应成功");
         assert_eq!(level2.len(), 2);
 
         let level3 = engine
             .generate_branching_options(level2[0].clone(), "Level 3", &provider)
             .await
-            .unwrap();
+            .expect("测试：集成测试操作应成功");
         assert!(level3.is_empty(), "Should not generate children beyond max_depth");
     }
 
@@ -1069,8 +1121,10 @@ mod test_tree_of_thoughts_reasoning {
         let root_id = engine.root_id.clone();
 
         let provider: Arc<dyn ToTLlmReasoningProvider> = Arc::new(MockToTProvider::new());
-        let children =
-            engine.generate_branching_options(root_id, "State test", &provider).await.unwrap();
+        let children = engine
+            .generate_branching_options(root_id, "State test", &provider)
+            .await
+            .expect("测试：异步操作应成功");
 
         for child_id in &children {
             let _ = engine.evaluate_and_score_node(child_id, "State test", &provider).await;
@@ -1091,7 +1145,7 @@ mod test_tree_of_thoughts_reasoning {
 
         engine.mark_node_selected(&root_id);
 
-        let node = engine.get_node(&root_id).unwrap();
+        let node = engine.get_node(&root_id).expect("测试：get_node 应成功");
         assert_eq!(node.status, ThoughtStatus::Selected);
     }
 
@@ -1106,16 +1160,19 @@ mod test_tree_of_thoughts_reasoning {
         let children = engine
             .generate_branching_options(root_id.clone(), "Failing context", &provider)
             .await
-            .unwrap();
+            .expect("测试：集成测试操作应成功");
 
         assert_eq!(children.len(), 3);
 
         for child_id in &children {
-            let node = engine.get_node(child_id).unwrap();
+            let node = engine.get_node(child_id).expect("测试：get_node 应成功");
             assert!(node.content.contains("Alternative reasoning path"));
         }
 
-        let eval = engine.evaluate_thought(&root_id, "Failing context", &provider).await.unwrap();
+        let eval = engine
+            .evaluate_thought(&root_id, "Failing context", &provider)
+            .await
+            .expect("测试：异步操作应成功");
         assert!((0.0..=1.0).contains(&eval));
     }
 }
@@ -1155,7 +1212,7 @@ mod test_error_recovery_with_context {
 
         for (error_msg, expected_code) in cases {
             let classified = classifier.classify_with_context(error_msg, None);
-            assert_eq!(classified.error_code, expected_code, "Failed for: {}", error_msg);
+            assert_eq!(classified.provider_error_code, expected_code, "Failed for: {}", error_msg);
         }
     }
 
@@ -1165,8 +1222,9 @@ mod test_error_recovery_with_context {
         let classified = classifier
             .classify_with_context("HTTP 500 internal error", Some("During API call".to_string()));
 
-        assert_eq!(classified.error_type, ErrorType::Unrecoverable);
-        assert_eq!(classified.error_code, Some("500".to_string()));
+        // 500 服务端错误归为 Transient（可重试/切换 provider）
+        assert_eq!(classified.error_type, ErrorType::Transient);
+        assert_eq!(classified.provider_error_code, Some("500".to_string()));
         assert!(!classified.original_error.is_empty());
     }
 
@@ -1212,16 +1270,19 @@ mod test_error_recovery_with_context {
         let classified = ClassifiedError {
             error_type: ErrorType::Transient,
             original_error: "timeout".to_string(),
-            error_code: Some("504".to_string()),
+            http_status: Some(504),
+            provider_error_code: Some("504".to_string()),
             context: Some("During request".to_string()),
+            failover_reason: None,
         };
 
-        let json = serde_json::to_string(&classified).unwrap();
-        let deserialized: ClassifiedError = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&classified).expect("测试：JSON序列化应成功");
+        let deserialized: ClassifiedError =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
 
         assert_eq!(deserialized.error_type, ErrorType::Transient);
         assert_eq!(deserialized.original_error, "timeout");
-        assert_eq!(deserialized.error_code, Some("504".to_string()));
+        assert_eq!(deserialized.provider_error_code, Some("504".to_string()));
     }
 
     #[test]
@@ -1419,7 +1480,7 @@ mod test_agent_coordinator_lifecycle {
         let exec_result = coordinator.execute(input).await;
         assert!(exec_result.is_ok());
 
-        let output = exec_result.unwrap();
+        let output = exec_result.expect("测试：集成测试操作应成功");
         assert_eq!(output.status, AgentStatus::Completed);
         assert_eq!(output.content, "Hello, coordinator!");
     }
@@ -1518,8 +1579,9 @@ mod test_agent_coordinator_lifecycle {
 
     #[tokio::test]
     async fn test_checkpoint_save_and_restore() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        let manager = CheckpointManager::new(temp_dir.path().to_str().unwrap());
+        let temp_dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
+        let manager =
+            CheckpointManager::new(temp_dir.path().to_str().expect("测试：路径转字符串应成功"));
 
         let checkpoint = CheckpointBuilder::new("plan-test-1", 0)
             .with_completed_tasks(vec!["task-1".to_string(), "task-2".to_string()])
@@ -1533,7 +1595,7 @@ mod test_agent_coordinator_lifecycle {
         let save_result = manager.save(&checkpoint).await;
         assert!(save_result.is_ok());
 
-        let loaded = manager.load(&checkpoint.id).await.unwrap();
+        let loaded = manager.load(&checkpoint.id).await.expect("测试：异步操作应成功");
         assert_eq!(loaded.plan_id, checkpoint.plan_id);
         assert_eq!(loaded.phase_index, checkpoint.phase_index);
         assert_eq!(loaded.completed_task_ids.len(), 2);
@@ -1544,8 +1606,9 @@ mod test_agent_coordinator_lifecycle {
 
     #[tokio::test]
     async fn test_checkpoint_list_and_delete() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        let manager = CheckpointManager::new(temp_dir.path().to_str().unwrap());
+        let temp_dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
+        let manager =
+            CheckpointManager::new(temp_dir.path().to_str().expect("测试：路径转字符串应成功"));
 
         let cp1 =
             CheckpointBuilder::new("plan-list", 0).with_state(serde_json::json!({"v": 1})).build();
@@ -1557,15 +1620,15 @@ mod test_agent_coordinator_lifecycle {
 
         tokio::time::sleep(Duration::from_millis(10)).await;
 
-        manager.save(&cp1).await.unwrap();
-        manager.save(&cp2).await.unwrap();
+        manager.save(&cp1).await.expect("测试：异步操作应成功");
+        manager.save(&cp2).await.expect("测试：异步操作应成功");
 
-        let all = manager.list().await.unwrap();
+        let all = manager.list().await.expect("测试：异步操作应成功");
         assert!(all.len() >= 2);
 
-        manager.delete(&cp1.id).await.unwrap();
+        manager.delete(&cp1.id).await.expect("测试：异步操作应成功");
 
-        let after_delete = manager.list().await.unwrap();
+        let after_delete = manager.list().await.expect("测试：异步操作应成功");
         let deleted_exists = after_delete.iter().any(|cp| cp.id == cp1.id);
         assert!(!deleted_exists);
 
@@ -1575,8 +1638,9 @@ mod test_agent_coordinator_lifecycle {
 
     #[tokio::test]
     async fn test_checkpoint_latest_for_plan() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        let manager = CheckpointManager::new(temp_dir.path().to_str().unwrap());
+        let temp_dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
+        let manager =
+            CheckpointManager::new(temp_dir.path().to_str().expect("测试：路径转字符串应成功"));
 
         let cp1 = CheckpointBuilder::new("plan-latest", 0)
             .with_state(serde_json::json!({"v": 1}))
@@ -1588,12 +1652,16 @@ mod test_agent_coordinator_lifecycle {
             .with_state(serde_json::json!({"v": 2}))
             .build();
 
-        manager.save(&cp1).await.unwrap();
+        manager.save(&cp1).await.expect("测试：异步操作应成功");
         tokio::time::sleep(Duration::from_millis(20)).await;
-        manager.save(&cp2).await.unwrap();
+        manager.save(&cp2).await.expect("测试：异步操作应成功");
         tokio::time::sleep(Duration::from_millis(20)).await;
 
-        let latest = manager.get_latest_for_plan("plan-latest").await.unwrap().unwrap();
+        let latest = manager
+            .get_latest_for_plan("plan-latest")
+            .await
+            .expect("测试：异步操作应成功")
+            .expect("测试：集成测试操作应成功");
 
         assert!(
             latest.state["v"] == serde_json::json!(1) || latest.state["v"] == serde_json::json!(2),
@@ -1604,21 +1672,22 @@ mod test_agent_coordinator_lifecycle {
 
     #[tokio::test]
     async fn test_checkpoint_cleanup_old() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        let manager = CheckpointManager::new(temp_dir.path().to_str().unwrap());
+        let temp_dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
+        let manager =
+            CheckpointManager::new(temp_dir.path().to_str().expect("测试：路径转字符串应成功"));
 
         for i in 0..5 {
             let cp = CheckpointBuilder::new("plan-cleanup", i as usize)
                 .with_state(serde_json::json!({"index": i}))
                 .build();
-            manager.save(&cp).await.unwrap();
+            manager.save(&cp).await.expect("测试：异步操作应成功");
             tokio::time::sleep(Duration::from_millis(5)).await;
         }
 
-        let deleted = manager.cleanup_old(2).await.unwrap();
+        let deleted = manager.cleanup_old(2).await.expect("测试：异步操作应成功");
         assert_eq!(deleted, 3);
 
-        let remaining = manager.list().await.unwrap();
+        let remaining = manager.list().await.expect("测试：异步操作应成功");
         assert_eq!(remaining.len(), 2);
     }
 
@@ -1640,8 +1709,9 @@ mod test_agent_coordinator_lifecycle {
             .with_label("label")
             .build();
 
-        let json = serde_json::to_string(&cp).unwrap();
-        let deserialized: Checkpoint = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&cp).expect("测试：JSON序列化应成功");
+        let deserialized: Checkpoint =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
 
         assert_eq!(deserialized.plan_id, "plan-serial");
         assert_eq!(deserialized.phase_index, 1);
@@ -1690,7 +1760,8 @@ mod test_tool_call_flow {
         let executor = ActionExecutor::new();
 
         let llm_action = Action::llm_call("Test prompt");
-        let llm_result = executor.execute(llm_action, "conv-1").await.unwrap();
+        let llm_result =
+            executor.execute(llm_action, "conv-1").await.expect("测试：异步操作应成功");
 
         assert!(llm_result.is_success());
         match &llm_result {
@@ -1737,7 +1808,8 @@ mod test_tool_call_flow {
             llm_prompt: Some("Analyze this".to_string()),
             requires_confirmation: false,
         };
-        let analyze_result = executor.execute(analyze_action, "conv-1").await.unwrap();
+        let analyze_result =
+            executor.execute(analyze_action, "conv-1").await.expect("测试：异步操作应成功");
         assert!(analyze_result.is_success());
 
         let plan_action = Action {
@@ -1747,7 +1819,8 @@ mod test_tool_call_flow {
             llm_prompt: Some("Plan this".to_string()),
             requires_confirmation: false,
         };
-        let plan_result = executor.execute(plan_action, "conv-1").await.unwrap();
+        let plan_result =
+            executor.execute(plan_action, "conv-1").await.expect("测试：异步操作应成功");
         assert!(plan_result.is_success());
 
         let reflect_action = Action {
@@ -1757,7 +1830,8 @@ mod test_tool_call_flow {
             llm_prompt: Some("Reflect on this".to_string()),
             requires_confirmation: false,
         };
-        let reflect_result = executor.execute(reflect_action, "conv-1").await.unwrap();
+        let reflect_result =
+            executor.execute(reflect_action, "conv-1").await.expect("测试：异步操作应成功");
         assert!(reflect_result.is_success());
 
         let synthesize_action = Action {
@@ -1767,7 +1841,8 @@ mod test_tool_call_flow {
             llm_prompt: Some("Synthesize this".to_string()),
             requires_confirmation: false,
         };
-        let synthesize_result = executor.execute(synthesize_action, "conv-1").await.unwrap();
+        let synthesize_result =
+            executor.execute(synthesize_action, "conv-1").await.expect("测试：异步操作应成功");
         assert!(synthesize_result.is_success());
     }
 
@@ -1776,7 +1851,8 @@ mod test_tool_call_flow {
         let executor = ActionExecutor::new();
 
         let confirm_action = Action::user_confirm("Are you sure?");
-        let result = executor.execute(confirm_action, "conv-1").await.unwrap();
+        let result =
+            executor.execute(confirm_action, "conv-1").await.expect("测试：异步操作应成功");
 
         assert!(!result.is_success());
         match result {
@@ -1795,7 +1871,8 @@ mod test_tool_call_flow {
         let executor = ActionExecutor::new();
 
         let validate_action = Action::validate("Check output format");
-        let result = executor.execute(validate_action, "conv-1").await.unwrap();
+        let result =
+            executor.execute(validate_action, "conv-1").await.expect("测试：异步操作应成功");
 
         match result {
             ActionResult::Validation(ref desc) => {

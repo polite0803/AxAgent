@@ -54,6 +54,7 @@ pub mod v114_wiki_sources_schedule;
 pub mod v115_fleet_member_agent_profile;
 pub mod v116_create_sync_tables;
 pub mod v117_workflow_execution_resume;
+pub mod v118_wiki_kb_link;
 pub mod v200_axinvest_stock_tables;
 pub mod v201_lesson_application_tracking;
 pub mod v202_stock_analyses_parent_version;
@@ -199,6 +200,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 117,
         description: "v117_workflow_execution_resume: 为 workflow_executions 添加 execution_state_json 和 paused_at 列，支持工作流崩溃后恢复",
         up: |db| Box::pin(v117_workflow_execution_resume::up(db)),
+    },
+    Migration {
+        version: 118,
+        description: "v118_wiki_kb_link: 为 wikis 表添加 knowledge_base_id 字段，建立 Wiki 与 KB 的显式关联，修复图谱融合硬编码 wiki_id==kb_id 的架构缺陷",
+        up: |db| Box::pin(v118_wiki_kb_link::up(db)),
     },
     Migration {
         version: 200,
@@ -551,7 +557,7 @@ mod tests {
                     [(*table).into()],
                 ))
                 .await
-                .unwrap();
+                .expect("测试应成功");
             assert!(row.is_some(), "table {} should exist", table);
         }
 
@@ -564,7 +570,7 @@ mod tests {
                     [(*dead).into()],
                 ))
                 .await
-                .unwrap();
+                .expect("测试应成功");
             assert!(row.is_none(), "dead table {} should have been dropped", dead);
         }
     }
@@ -572,11 +578,11 @@ mod tests {
     #[tokio::test]
     async fn migrations_are_idempotent() {
         let db = Database::connect("sqlite::memory:").await.expect("in-memory db");
-        run_migrations(&db).await.unwrap();
+        run_migrations(&db).await.expect("测试：异步操作应成功");
         // 第二次跑：所有 migration 都在 `applied_max >= m.version` 路径被 skip
         run_migrations(&db).await.expect("second run should be a no-op, not an error");
 
-        let max: i32 = read_max_version(&db).await.unwrap();
+        let max: i32 = read_max_version(&db).await.expect("测试：异步操作应成功");
         assert_eq!(max, CURRENT_VERSION, "version should be {}", CURRENT_VERSION);
 
         // schema_version 表行数应与 MIGRATIONS 列表一一对应
@@ -586,9 +592,9 @@ mod tests {
                 format!("SELECT COUNT(*) AS cnt FROM {SCHEMA_VERSION_TABLE}"),
             ))
             .await
-            .unwrap()
+            .expect("测试应成功")
             .expect("count row");
-        let cnt: i32 = count_row.try_get_by("cnt").unwrap();
+        let cnt: i32 = count_row.try_get_by("cnt").expect("测试应成功");
         assert_eq!(
             cnt as usize,
             MIGRATIONS.len(),
@@ -612,24 +618,24 @@ mod tests {
              description TEXT)"
         ))
         .await
-        .unwrap();
+        .expect("测试应成功");
         db.execute_unprepared(&format!(
             "INSERT INTO {SCHEMA_VERSION_TABLE} (version, applied_at, description) VALUES (100, 0, 'v100')"
         ))
         .await
-        .unwrap();
+        .expect("测试应成功");
 
         // 验证此时 pending_count > 0
-        let status = get_schema_status(&db).await.unwrap();
+        let status = get_schema_status(&db).await.expect("测试：异步操作应成功");
         assert!(status.pending_count > 0, "should have pending before repair");
 
         // 执行 repair_schema
-        let (fixed, total) = repair_schema(&db).await.unwrap();
+        let (fixed, total) = repair_schema(&db).await.expect("测试：异步操作应成功");
         assert!(fixed >= 1, "should fix at least 1 migration");
         assert_eq!(total, MIGRATIONS.len());
 
         // 验证 pending_count == 0
-        let status = get_schema_status(&db).await.unwrap();
+        let status = get_schema_status(&db).await.expect("测试：异步操作应成功");
         assert_eq!(
             status.pending_count, 0,
             "pending should be 0 after repair, got {}",
@@ -640,8 +646,8 @@ mod tests {
     /// 注：v002 已被合并到 v100_consolidated，索引由 PHASE 4 创建。
     #[tokio::test]
     async fn v002_critical_indices_exist() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        run_migrations(&db).await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        run_migrations(&db).await.expect("测试：异步操作应成功");
 
         for idx in &[
             "idx_messages_conv_created",
@@ -657,7 +663,7 @@ mod tests {
                     [(*idx).into()],
                 ))
                 .await
-                .unwrap();
+                .expect("测试应成功");
             assert!(row.is_some(), "index {} should exist", idx);
         }
     }
@@ -666,9 +672,9 @@ mod tests {
     /// 一次，重复跑不报错（所有 CREATE 都用 IF NOT EXISTS）。
     #[tokio::test]
     async fn v100_is_self_idempotent() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
         // 不走 run_migrations，直接跑 v100
-        v100_consolidated::up(db.clone()).await.unwrap();
+        v100_consolidated::up(db.clone()).await.expect("测试：异步操作应成功");
         v100_consolidated::up(db).await.expect("v100 must be re-runnable in isolation");
     }
 
@@ -679,8 +685,8 @@ mod tests {
     /// CI 集成测试环境会覆盖 PG 路径。
     #[tokio::test]
     async fn v102_fleets_tables_and_indices_exist() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        run_migrations(&db).await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        run_migrations(&db).await.expect("测试：异步操作应成功");
 
         // 表存在
         for table in &["fleets", "fleet_members"] {
@@ -691,7 +697,7 @@ mod tests {
                     [(*table).into()],
                 ))
                 .await
-                .unwrap();
+                .expect("测试应成功");
             assert!(row.is_some(), "table {} should exist after v102", table);
         }
 
@@ -709,7 +715,7 @@ mod tests {
                     [(*idx).into()],
                 ))
                 .await
-                .unwrap();
+                .expect("测试应成功");
             assert!(row.is_some(), "index {} should exist after v102", idx);
         }
     }
@@ -717,16 +723,16 @@ mod tests {
     /// v102 单独 idempotent：重复跑不报错（所有 CREATE 都用 IF NOT EXISTS）。
     #[tokio::test]
     async fn v102_is_self_idempotent() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        v102_create_fleets::up(db.clone()).await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        v102_create_fleets::up(db.clone()).await.expect("测试：异步操作应成功");
         v102_create_fleets::up(db).await.expect("v102 must be re-runnable in isolation");
     }
 
     /// 防回归：v103 创建的索引和 wiki_graph_cache 表必须真实存在。
     #[tokio::test]
     async fn v103_wiki_graph_perf_indices_and_cache_exist() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        run_migrations(&db).await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        run_migrations(&db).await.expect("测试：异步操作应成功");
 
         // 索引存在
         for idx in &[
@@ -743,7 +749,7 @@ mod tests {
                     [(*idx).into()],
                 ))
                 .await
-                .unwrap();
+                .expect("测试应成功");
             assert!(row.is_some(), "index {} should exist after v103", idx);
         }
 
@@ -755,7 +761,7 @@ mod tests {
                 ["wiki_graph_cache".into()],
             ))
             .await
-            .unwrap();
+            .expect("测试应成功");
         assert!(row.is_some(), "table wiki_graph_cache should exist after v103");
     }
 
@@ -763,18 +769,18 @@ mod tests {
     /// v103 依赖 notes/note_links/note_backlinks 表存在，必须先跑 v100。
     #[tokio::test]
     async fn v103_is_self_idempotent() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
         // 先跑 v100 建 notes/note_links/note_backlinks
-        v100_consolidated::up(db.clone()).await.unwrap();
-        v103_wiki_graph_perf::up(db.clone()).await.unwrap();
+        v100_consolidated::up(db.clone()).await.expect("测试：异步操作应成功");
+        v103_wiki_graph_perf::up(db.clone()).await.expect("测试：异步操作应成功");
         v103_wiki_graph_perf::up(db).await.expect("v103 must be re-runnable in isolation");
     }
 
     /// 防回归：v104 创建的 FTS5 虚拟表/触发器必须真实存在（SQLite 路径）。
     #[tokio::test]
     async fn v104_notes_fts_objects_exist() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        run_migrations(&db).await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        run_migrations(&db).await.expect("测试：异步操作应成功");
 
         // notes_fts 虚拟表存在
         let row = db
@@ -784,7 +790,7 @@ mod tests {
                 ["notes_fts".into()],
             ))
             .await
-            .unwrap();
+            .expect("测试应成功");
         assert!(row.is_some(), "virtual table notes_fts should exist after v104");
 
         // 触发器存在
@@ -796,7 +802,7 @@ mod tests {
                     [(*trig).into()],
                 ))
                 .await
-                .unwrap();
+                .expect("测试应成功");
             assert!(row.is_some(), "trigger {} should exist after v104", trig);
         }
     }
@@ -805,9 +811,9 @@ mod tests {
     /// v104 的 FTS5 触发器依赖 notes 表存在。
     #[tokio::test]
     async fn v104_is_self_idempotent() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        v100_consolidated::up(db.clone()).await.unwrap();
-        v104_notes_fts::up(db.clone()).await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        v100_consolidated::up(db.clone()).await.expect("测试：异步操作应成功");
+        v104_notes_fts::up(db.clone()).await.expect("测试：异步操作应成功");
         v104_notes_fts::up(db).await.expect("v104 must be re-runnable in isolation");
     }
 }

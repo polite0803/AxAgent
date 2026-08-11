@@ -3353,7 +3353,7 @@ mod cjk_pdf_integration {
 
     fn tmp_out(name: &str) -> PathBuf {
         let dir = std::env::temp_dir().join("axagent-cjk-pdf-test");
-        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::create_dir_all(&dir).expect("测试：创建目录应成功");
         dir.join(name)
     }
 
@@ -3389,7 +3389,7 @@ mod cjk_pdf_integration {
             "output_path": out.to_string_lossy(),
             "title": "CJK 测试"
         });
-        let result = tool.call(input, &ctx).await.unwrap();
+        let result = tool.call(input, &ctx).await.expect("测试：异步操作应成功");
         assert!(!result.is_error, "ExportPdf 失败: {}", result.content);
 
         let bytes = std::fs::read(&out).expect("PDF 文件应存在");
@@ -3418,7 +3418,7 @@ mod cjk_pdf_integration {
             "Latin Test",
             "",
             "",
-            out.to_str().unwrap(),
+            out.to_str().expect("测试：路径转字符串应成功"),
             540.0,
             "center",
             "",
@@ -3448,7 +3448,7 @@ mod pdf_math_test {
 
     fn tmp_out(name: &str) -> PathBuf {
         let dir = std::env::temp_dir().join("axagent-pdf-math-test");
-        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::create_dir_all(&dir).expect("测试：创建目录应成功");
         dir.join(name)
     }
 
@@ -3468,7 +3468,7 @@ mod pdf_math_test {
             "Math Test",
             "",
             "",
-            out.to_str().unwrap(),
+            out.to_str().expect("测试：路径转字符串应成功"),
             540.0,
             "center",
             "",
@@ -3506,7 +3506,7 @@ mod pdf_math_test {
             "Display Math",
             "",
             "",
-            out.to_str().unwrap(),
+            out.to_str().expect("测试：路径转字符串应成功"),
             540.0,
             "center",
             "",
@@ -3546,7 +3546,7 @@ mod pdf_math_test {
             "Inequality",
             "",
             "",
-            out.to_str().unwrap(),
+            out.to_str().expect("测试：路径转字符串应成功"),
             540.0,
             "center",
             "",
@@ -3580,7 +3580,7 @@ mod pptx_compat {
 
     fn tmp_out(name: &str) -> PathBuf {
         let dir = std::env::temp_dir().join("axagent-pptx-compat-test");
-        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::create_dir_all(&dir).expect("测试：创建目录应成功");
         dir.join(name)
     }
 
@@ -3610,7 +3610,7 @@ mod pptx_compat {
             "output_path": out.to_string_lossy(),
             "title": "兼容性测试"
         });
-        let result = tool.call(input, &ctx).await.unwrap();
+        let result = tool.call(input, &ctx).await.expect("测试：异步操作应成功");
         assert!(!result.is_error, "ExportPptx 失败: {}", result.content);
 
         // 用 zip crate 解压并列出所有部件
@@ -3620,7 +3620,7 @@ mod pptx_compat {
 
         let mut parts: HashSet<String> = HashSet::new();
         for i in 0..archive.len() {
-            let f = archive.by_index(i).unwrap();
+            let f = archive.by_index(i).expect("测试：by_index 应成功");
             parts.insert(f.name().to_string());
         }
 
@@ -3648,14 +3648,22 @@ mod pptx_compat {
 
         // 验证 Content_Types 包含 theme/master/layout override
         let mut ct_xml = String::new();
-        archive.by_name("[Content_Types].xml").unwrap().read_to_string(&mut ct_xml).unwrap();
+        archive
+            .by_name("[Content_Types].xml")
+            .expect("测试：by_name 应成功")
+            .read_to_string(&mut ct_xml)
+            .unwrap();
         assert!(ct_xml.contains("theme+xml"), "Content_Types 缺 theme override");
         assert!(ct_xml.contains("slideMaster+xml"), "Content_Types 缺 slideMaster override");
         assert!(ct_xml.contains("slideLayout+xml"), "Content_Types 缺 slideLayout override");
 
         // 验证 theme1.xml 引用合法的颜色方案
         let mut theme_xml = String::new();
-        archive.by_name("ppt/theme/theme1.xml").unwrap().read_to_string(&mut theme_xml).unwrap();
+        archive
+            .by_name("ppt/theme/theme1.xml")
+            .expect("测试：by_name 应成功")
+            .read_to_string(&mut theme_xml)
+            .unwrap();
         assert!(theme_xml.contains("clrScheme"), "theme 缺 clrScheme");
         assert!(theme_xml.contains("fontScheme"), "theme 缺 fontScheme");
         assert!(theme_xml.contains("fmtScheme"), "theme 缺 fmtScheme");
@@ -3664,9 +3672,9 @@ mod pptx_compat {
         let mut master_xml = String::new();
         archive
             .by_name("ppt/slideMasters/slideMaster1.xml")
-            .unwrap()
+            .expect("测试应成功")
             .read_to_string(&mut master_xml)
-            .unwrap();
+            .expect("测试应成功");
         assert!(master_xml.contains("sldLayoutIdLst"), "master 缺 sldLayoutIdLst");
         assert!(master_xml.contains("txStyles"), "master 缺 txStyles");
 
@@ -3674,13 +3682,21 @@ mod pptx_compat {
         for i in 1..=3 {
             let rels_path = format!("ppt/slides/_rels/slide{}.xml.rels", i);
             let mut rels = String::new();
-            archive.by_name(&rels_path).unwrap().read_to_string(&mut rels).unwrap();
+            archive
+                .by_name(&rels_path)
+                .expect("测试：by_name 应成功")
+                .read_to_string(&mut rels)
+                .unwrap();
             assert!(rels.contains("slideLayout1.xml"), "slide{}.xml.rels 未引用 slideLayout1", i);
         }
 
         // 验证 presentation.xml 引用 slideMaster
         let mut pres_xml = String::new();
-        archive.by_name("ppt/presentation.xml").unwrap().read_to_string(&mut pres_xml).unwrap();
+        archive
+            .by_name("ppt/presentation.xml")
+            .expect("测试：by_name 应成功")
+            .read_to_string(&mut pres_xml)
+            .unwrap();
         assert!(pres_xml.contains("sldMasterIdLst"), "presentation 缺 sldMasterIdLst");
         assert!(pres_xml.contains("rId2"), "presentation 未引用 slideMaster (rId2)");
 
@@ -3718,7 +3734,7 @@ mod pptx_compat {
             "title": "图表测试",
             "enable_chart": true
         });
-        let result = tool.call(input, &ctx).await.unwrap();
+        let result = tool.call(input, &ctx).await.expect("测试：异步操作应成功");
         assert!(!result.is_error, "ExportPptx 失败: {}", result.content);
 
         let bytes = std::fs::read(&out).expect("PPTX 文件应存在");
@@ -3731,7 +3747,7 @@ mod pptx_compat {
             .by_name("ppt/charts/chart1.xml")
             .expect("应有 chart1.xml")
             .read_to_string(&mut chart_xml)
-            .unwrap();
+            .expect("测试应成功");
         assert!(chart_xml.contains("c:barChart"), "chart XML 缺 c:barChart");
         assert!(chart_xml.contains("<c:ser>"), "chart XML 缺 c:ser");
         assert!(chart_xml.contains("<c:cat>"), "chart XML 缺 c:cat");
@@ -3742,7 +3758,11 @@ mod pptx_compat {
 
         // 2. 验证 Content_Types 含 chart override
         let mut ct_xml = String::new();
-        archive.by_name("[Content_Types].xml").unwrap().read_to_string(&mut ct_xml).unwrap();
+        archive
+            .by_name("[Content_Types].xml")
+            .expect("测试：by_name 应成功")
+            .read_to_string(&mut ct_xml)
+            .unwrap();
         assert!(ct_xml.contains("drawingml.chart+xml"), "Content_Types 缺 chart override");
 
         // 3. 遍历所有 slide rels，找到含 chart 关系的那张
@@ -3765,7 +3785,11 @@ mod pptx_compat {
         // 4. 验证该图表幻灯片 XML 含 graphicFrame 引用
         let mut slide_xml = String::new();
         let slide_path = format!("ppt/slides/slide{}.xml", chart_slide_num);
-        archive.by_name(&slide_path).unwrap().read_to_string(&mut slide_xml).unwrap();
+        archive
+            .by_name(&slide_path)
+            .expect("测试：by_name 应成功")
+            .read_to_string(&mut slide_xml)
+            .unwrap();
         assert!(slide_xml.contains("p:graphicFrame"), "图表幻灯片应含 graphicFrame");
         assert!(slide_xml.contains("r:id=\"rIdChart1\""), "图表幻灯片应引用 rIdChart1");
 
@@ -3798,7 +3822,7 @@ mod pptx_compat {
             "title": "无图表",
             "enable_chart": false
         });
-        let result = tool.call(input, &ctx).await.unwrap();
+        let result = tool.call(input, &ctx).await.expect("测试：异步操作应成功");
         assert!(!result.is_error, "ExportPptx 失败: {}", result.content);
 
         let bytes = std::fs::read(&out).expect("PPTX 文件应存在");
@@ -3812,7 +3836,11 @@ mod pptx_compat {
 
         // Content_Types 不应含 chart override
         let mut ct_xml = String::new();
-        archive.by_name("[Content_Types].xml").unwrap().read_to_string(&mut ct_xml).unwrap();
+        archive
+            .by_name("[Content_Types].xml")
+            .expect("测试：by_name 应成功")
+            .read_to_string(&mut ct_xml)
+            .unwrap();
         assert!(
             !ct_xml.contains("drawingml.chart+xml"),
             "enable_chart=false 时 Content_Types 不应含 chart override"
@@ -3839,7 +3867,7 @@ mod word_image_test {
             *pixel = image::Rgb([0x1F, 0x38, 0x64]);
         }
         let dir = std::env::temp_dir().join("axagent-word-img-test");
-        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::create_dir_all(&dir).expect("测试：创建目录应成功");
         let img_path = dir.join("test.png");
         img.save(&img_path).expect("保存测试图片");
         let img_path_str = img_path.to_string_lossy().to_string();
@@ -3855,8 +3883,9 @@ mod word_image_test {
         doc.build().pack(file).expect("打包 docx");
 
         // 验证尺寸换算：2000px = 1500pt（@96dpi），300pt 是 400px
-        let dims = compute_image_size_pt(&std::fs::read(&img_path).unwrap(), 300.0)
-            .expect("compute_image_size_pt");
+        let dims =
+            compute_image_size_pt(&std::fs::read(&img_path).expect("测试：读取文件应成功"), 300.0)
+                .expect("compute_image_size_pt");
         assert!((dims.0 - 300.0).abs() < 0.1, "宽度应缩放到 300pt, 实际 {}", dims.0);
         assert!((dims.1 - 225.0).abs() < 0.1, "高度应等比缩到 225pt, 实际 {}", dims.1);
 
@@ -3866,17 +3895,17 @@ mod word_image_test {
         let mut archive = zip::ZipArchive::new(cursor).expect("zip 解析");
         let mut ct = String::new();
         std::io::Read::read_to_string(
-            &mut archive.by_name("[Content_Types].xml").unwrap(),
+            &mut archive.by_name("[Content_Types].xml").expect("测试应成功"),
             &mut ct,
         )
-        .unwrap();
+        .expect("测试应成功");
         assert!(ct.contains("image/png"), "Content_Types 应含 image/png override");
         assert!(ct.contains("wordprocessingml.document.main+xml"));
 
         // 验证 .docx 内 word/media/ 目录含 png
         let mut has_png = false;
         for i in 0..archive.len() {
-            let f = archive.by_index(i).unwrap();
+            let f = archive.by_index(i).expect("测试：by_index 应成功");
             if f.name().starts_with("word/media/") && f.name().ends_with(".png") {
                 has_png = true;
                 break;
@@ -3903,7 +3932,7 @@ mod word_chart_test {
     #[test]
     fn export_word_appends_chart_for_numeric_table() {
         let dir = std::env::temp_dir().join("axagent-word-chart-test");
-        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::create_dir_all(&dir).expect("测试：创建目录应成功");
         let out = dir.join("chart.docx");
 
         let md = "# 销售报告\n\n| 季度 | 销售额 |\n| --- | --- |\n| Q1 | 100 |\n| Q2 | 250 |\n| Q3 | 180 |\n";
@@ -3917,7 +3946,11 @@ mod word_chart_test {
         let mut archive = zip::ZipArchive::new(cursor).expect("zip 解析");
         let mut doc_xml = String::new();
         use std::io::Read;
-        archive.by_name("word/document.xml").unwrap().read_to_string(&mut doc_xml).unwrap();
+        archive
+            .by_name("word/document.xml")
+            .expect("测试：by_name 应成功")
+            .read_to_string(&mut doc_xml)
+            .unwrap();
 
         // 1. 应含图表标题 "图: 销售额"
         assert!(doc_xml.contains("图: 销售额"), "docx 应含图表标题段落 '图: 销售额'");
@@ -3946,7 +3979,7 @@ mod word_chart_test {
     #[test]
     fn export_word_no_chart_for_text_only_table() {
         let dir = std::env::temp_dir().join("axagent-word-chart-test");
-        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::create_dir_all(&dir).expect("测试：创建目录应成功");
         let out = dir.join("no_chart.docx");
 
         let md = "# 名单\n\n| 姓名 | 部门 |\n| --- | --- |\n| 张三 | 销售 |\n| 李四 | 研发 |\n";
@@ -3959,7 +3992,11 @@ mod word_chart_test {
         let mut archive = zip::ZipArchive::new(cursor).expect("zip 解析");
         let mut doc_xml = String::new();
         use std::io::Read;
-        archive.by_name("word/document.xml").unwrap().read_to_string(&mut doc_xml).unwrap();
+        archive
+            .by_name("word/document.xml")
+            .expect("测试：by_name 应成功")
+            .read_to_string(&mut doc_xml)
+            .unwrap();
 
         // 不应含图表标题前缀 "图: "
         assert!(!doc_xml.contains("图: "), "纯文本表格不应追加图表段落");
@@ -3979,13 +4016,13 @@ mod pdf_image_test {
 
     fn tmp_out(name: &str) -> PathBuf {
         let dir = std::env::temp_dir().join("axagent-pdf-image-test");
-        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::create_dir_all(&dir).expect("测试：创建目录应成功");
         dir.join(name)
     }
 
     fn make_test_png(w: u32, h: u32, color: [u8; 3]) -> PathBuf {
         let dir = std::env::temp_dir().join("axagent-pdf-image-test");
-        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::create_dir_all(&dir).expect("测试：创建目录应成功");
         let path = dir.join(format!("test_{}x{}.png", w, h));
         let mut img = image::RgbImage::new(w, h);
         for px in img.pixels_mut() {
@@ -4010,7 +4047,7 @@ mod pdf_image_test {
             "Image Test",
             "",
             "",
-            out.to_str().unwrap(),
+            out.to_str().expect("测试：路径转字符串应成功"),
             540.0,
             "center",
             "",
@@ -4053,7 +4090,7 @@ mod pdf_image_test {
             "Missing Image Test",
             "",
             "",
-            out.to_str().unwrap(),
+            out.to_str().expect("测试：路径转字符串应成功"),
             540.0,
             "center",
             "",
@@ -4086,7 +4123,7 @@ mod pdf_image_test {
                 &format!("Align {}", align),
                 "",
                 "",
-                out.to_str().unwrap(),
+                out.to_str().expect("测试：路径转字符串应成功"),
                 540.0,
                 align,
                 "",
@@ -4120,7 +4157,7 @@ mod xlsx_chart_test {
 
     fn tmp_out(name: &str) -> PathBuf {
         let dir = std::env::temp_dir().join("axagent-xlsx-chart-test");
-        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::create_dir_all(&dir).expect("测试：创建目录应成功");
         dir.join(name)
     }
 
@@ -4129,7 +4166,8 @@ mod xlsx_chart_test {
     fn export_xlsx_embeds_column_chart() {
         let out = tmp_out("column_test.xlsx");
         let md = "| 月份 | 销量 | 收入 |\n| ---- | ---- | ---- |\n| 1月 | 100 | 2000 |\n| 2月 | 150 | 3000 |\n| 3月 | 180 | 3600 |\n| 4月 | 200 | 4000 |\n";
-        let result = build_xlsx(md, "销售", out.to_str().unwrap(), true, "column");
+        let result =
+            build_xlsx(md, "销售", out.to_str().expect("测试：路径转字符串应成功"), true, "column");
         assert!(result.is_ok(), "ExportXlsx 失败: {:?}", result.err());
 
         let bytes = std::fs::read(&out).expect("XLSX 文件应存在");
@@ -4140,7 +4178,7 @@ mod xlsx_chart_test {
         let mut has_drawing_xml = false;
         let mut has_chart_rels = false;
         for i in 0..archive.len() {
-            let f = archive.by_index(i).unwrap();
+            let f = archive.by_index(i).expect("测试：by_index 应成功");
             let name = f.name();
             if name.starts_with("xl/charts/chart") && name.ends_with(".xml") {
                 has_chart_xml = true;
@@ -4163,7 +4201,7 @@ mod xlsx_chart_test {
             .by_name("xl/charts/chart1.xml")
             .expect("chart1.xml 应存在")
             .read_to_string(&mut chart_xml)
-            .unwrap();
+            .expect("测试应成功");
         assert!(
             chart_xml.contains("<c:barChart")
                 || chart_xml.contains("<c:lineChart")
@@ -4201,7 +4239,7 @@ mod xlsx_chart_test {
             ("pie", "<c:pieChart"),
         ] {
             let out = tmp_out(&format!("chart_{}.xlsx", ct));
-            let result = build_xlsx(md, "Data", out.to_str().unwrap(), true, ct);
+            let result = build_xlsx(md, "Data", out.to_str().expect("路径编码无效"), true, ct);
             assert!(result.is_ok(), "chart_type={} 失败: {:?}", ct, result.err());
 
             let bytes = std::fs::read(&out).expect("XLSX 文件应存在");
@@ -4210,9 +4248,9 @@ mod xlsx_chart_test {
             let mut chart_xml = String::new();
             archive
                 .by_name("xl/charts/chart1.xml")
-                .unwrap()
+                .expect("测试应成功")
                 .read_to_string(&mut chart_xml)
-                .unwrap();
+                .expect("测试应成功");
             assert!(
                 chart_xml.contains(expected_tag),
                 "chart_type={} 应在 chart1.xml 中包含 {}，实际内容片段: {}",
@@ -4235,7 +4273,8 @@ mod xlsx_chart_test {
 | 2月 | 150 |
 ";
         let out = tmp_out("no_chart.xlsx");
-        let result = build_xlsx(md, "NoChart", out.to_str().unwrap(), false, "column");
+        let result =
+            build_xlsx(md, "NoChart", out.to_str().expect("路径编码无效"), false, "column");
         assert!(result.is_ok());
 
         let bytes = std::fs::read(&out).expect("XLSX 文件应存在");
@@ -4243,7 +4282,7 @@ mod xlsx_chart_test {
         let mut archive = zip::ZipArchive::new(cursor).expect("zip 解析");
         let mut has_chart = false;
         for i in 0..archive.len() {
-            let f = archive.by_index(i).unwrap();
+            let f = archive.by_index(i).expect("测试应成功");
             if f.name().starts_with("xl/charts/") && f.name().ends_with(".xml") {
                 has_chart = true;
                 break;
@@ -4265,7 +4304,8 @@ mod xlsx_chart_test {
 | 王五 | 广州 |
 ";
         let out = tmp_out("no_numeric.xlsx");
-        let result = build_xlsx(md, "NoNumeric", out.to_str().unwrap(), true, "column");
+        let result =
+            build_xlsx(md, "NoNumeric", out.to_str().expect("路径编码无效"), true, "column");
         assert!(result.is_ok(), "无数字列时应优雅降级: {:?}", result.err());
 
         let bytes = std::fs::read(&out).expect("XLSX 文件应存在");
@@ -4273,7 +4313,7 @@ mod xlsx_chart_test {
         let mut archive = zip::ZipArchive::new(cursor).expect("zip 解析");
         let mut has_chart = false;
         for i in 0..archive.len() {
-            let f = archive.by_index(i).unwrap();
+            let f = archive.by_index(i).expect("测试应成功");
             if f.name().starts_with("xl/charts/") && f.name().ends_with(".xml") {
                 has_chart = true;
                 break;
@@ -4294,7 +4334,7 @@ mod pdf_template_test {
 
     fn tmp_out(name: &str) -> PathBuf {
         let dir = std::env::temp_dir().join("axagent-pdf-template-test");
-        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::create_dir_all(&dir).expect("测试：创建目录应成功");
         dir.join(name)
     }
 
@@ -4315,7 +4355,7 @@ mod pdf_template_test {
             "我的报告",
             "2025 年度",
             "张三",
-            out.to_str().unwrap(),
+            out.to_str().expect("测试：路径转字符串应成功"),
             540.0,
             "center",
             "",
@@ -4348,7 +4388,7 @@ mod pdf_template_test {
             "Doc",
             "",
             "",
-            out.to_str().unwrap(),
+            out.to_str().expect("测试：路径转字符串应成功"),
             540.0,
             "center",
             "",
@@ -4383,7 +4423,7 @@ mod pdf_template_test {
             "目录测试",
             "",
             "",
-            out.to_str().unwrap(),
+            out.to_str().expect("测试：路径转字符串应成功"),
             540.0,
             "center",
             "",
@@ -4422,7 +4462,7 @@ mod mermaid_integration_test {
 
     fn tmp_out(name: &str) -> PathBuf {
         let dir = std::env::temp_dir().join("axagent-mermaid-test");
-        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::create_dir_all(&dir).expect("测试：创建目录应成功");
         dir.join(name)
     }
 
@@ -4444,7 +4484,11 @@ mod mermaid_integration_test {
         let mut archive = zip::ZipArchive::new(cursor).expect("zip 解析");
         let mut doc_xml = String::new();
         use std::io::Read;
-        archive.by_name("word/document.xml").unwrap().read_to_string(&mut doc_xml).unwrap();
+        archive
+            .by_name("word/document.xml")
+            .expect("测试：by_name 应成功")
+            .read_to_string(&mut doc_xml)
+            .unwrap();
 
         // 1. 应含"流程图"标签
         assert!(doc_xml.contains("流程图"), "docx 应含 '流程图' 标签");
@@ -4477,7 +4521,7 @@ mod mermaid_integration_test {
             "Mermaid Test",
             "",
             "",
-            out.to_str().unwrap(),
+            out.to_str().expect("测试：路径转字符串应成功"),
             540.0,
             "center",
             "",
@@ -4524,7 +4568,7 @@ mod mermaid_integration_test {
             "title": "Mermaid 测试",
             "enable_chart": false
         });
-        let result = tool.call(input, &ctx).await.unwrap();
+        let result = tool.call(input, &ctx).await.expect("测试：异步操作应成功");
         assert!(!result.is_error, "ExportPptx 失败: {}", result.content);
 
         let bytes = std::fs::read(&out).expect("PPTX 文件应存在");
@@ -4538,7 +4582,7 @@ mod mermaid_integration_test {
             let path = format!("ppt/slides/slide{}.xml", i);
             if let Ok(mut f) = archive.by_name(&path) {
                 let mut s = String::new();
-                f.read_to_string(&mut s).unwrap();
+                f.read_to_string(&mut s).expect("测试：read_to_string 应成功");
                 all_slide_xml.push_str(&s);
             }
         }

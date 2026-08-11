@@ -549,8 +549,9 @@ mod tests {
             note_count: 42,
             description: Some("test version".to_string()),
         };
-        let json = serde_json::to_string(&sv).unwrap();
-        let deserialized: SchemaVersion = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&sv).expect("测试：JSON序列化应成功");
+        let deserialized: SchemaVersion =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.version, "1.0.0");
         assert_eq!(deserialized.created_at, 1234567890);
         assert_eq!(deserialized.content_hash, "abc123");
@@ -567,8 +568,9 @@ mod tests {
             note_count: 0,
             description: None,
         };
-        let json = serde_json::to_string(&sv).unwrap();
-        let deserialized: SchemaVersion = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&sv).expect("测试：JSON序列化应成功");
+        let deserialized: SchemaVersion =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert!(deserialized.description.is_none());
     }
 
@@ -585,8 +587,9 @@ mod tests {
                 new_type: "number".to_string(),
             }],
         };
-        let json = serde_json::to_string(&diff).unwrap();
-        let deserialized: SchemaDiff = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&diff).expect("测试：JSON序列化应成功");
+        let deserialized: SchemaDiff =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.from_version, "1.0.0");
         assert_eq!(deserialized.to_version, "2.0.0");
         assert_eq!(deserialized.added_fields.len(), 1);
@@ -601,8 +604,9 @@ mod tests {
             old_type: "string".to_string(),
             new_type: "number".to_string(),
         };
-        let json = serde_json::to_string(&fc).unwrap();
-        let deserialized: FieldChange = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&fc).expect("测试：JSON序列化应成功");
+        let deserialized: FieldChange =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.field, "test");
         assert_eq!(deserialized.old_type, "string");
         assert_eq!(deserialized.new_type, "number");
@@ -622,8 +626,9 @@ mod tests {
                 description: None,
             }],
         };
-        let json = serde_json::to_string(&template).unwrap();
-        let deserialized: FrontmatterTemplate = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&template).expect("测试：JSON序列化应成功");
+        let deserialized: FrontmatterTemplate =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.required.len(), 1);
         assert_eq!(deserialized.optional.len(), 1);
         assert_eq!(deserialized.required[0].name, "title");
@@ -637,8 +642,8 @@ mod tests {
             field_type: "number".to_string(),
             description: Some("Priority level".to_string()),
         };
-        let json = serde_json::to_string(&fd).unwrap();
-        let deserialized: FieldDef = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&fd).expect("测试：JSON序列化应成功");
+        let deserialized: FieldDef = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.name, "priority");
         assert_eq!(deserialized.field_type, "number");
         assert_eq!(deserialized.description, Some("Priority level".to_string()));
@@ -647,8 +652,9 @@ mod tests {
     #[test]
     fn test_compatibility_compatible() {
         let compat = Compatibility::Compatible;
-        let json = serde_json::to_string(&compat).unwrap();
-        let deserialized: Compatibility = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&compat).expect("测试：JSON序列化应成功");
+        let deserialized: Compatibility =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert!(matches!(deserialized, Compatibility::Compatible));
     }
 
@@ -658,8 +664,9 @@ mod tests {
             message: "version mismatch".to_string(),
             migration_steps: vec!["step 1".to_string(), "step 2".to_string()],
         };
-        let json = serde_json::to_string(&compat).unwrap();
-        let deserialized: Compatibility = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&compat).expect("测试：JSON序列化应成功");
+        let deserialized: Compatibility =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         match deserialized {
             Compatibility::Incompatible { message, migration_steps } => {
                 assert_eq!(message, "version mismatch");
@@ -671,7 +678,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_template_from_schema_basic() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         let schema = "---\ntitle: string\ndate: date\n?tags: tags\n---\nContent here";
         let template = manager.parse_template_from_schema(schema);
@@ -687,7 +696,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_template_from_schema_empty() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         let template = manager.parse_template_from_schema("");
         assert!(template.required.is_empty());
@@ -696,7 +707,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_template_from_schema_no_frontmatter() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         let schema = "Just some content without frontmatter";
         let template = manager.parse_template_from_schema(schema);
@@ -706,14 +719,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_field_type_string() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         assert!(manager.validate_field_type("string", &serde_json::json!("hello")));
     }
 
     #[tokio::test]
     async fn test_validate_field_type_number() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         assert!(manager.validate_field_type("number", &serde_json::json!(42)));
         assert!(manager.validate_field_type("number", &serde_json::json!(3.15)));
@@ -721,7 +738,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_field_type_boolean() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         assert!(manager.validate_field_type("boolean", &serde_json::json!(true)));
         assert!(manager.validate_field_type("boolean", &serde_json::json!(false)));
@@ -729,21 +748,27 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_field_type_array() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         assert!(manager.validate_field_type("array", &serde_json::json!([1, 2, 3])));
     }
 
     #[tokio::test]
     async fn test_validate_field_type_object() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         assert!(manager.validate_field_type("object", &serde_json::json!({"key": "value"})));
     }
 
     #[tokio::test]
     async fn test_validate_field_type_date() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         assert!(manager.validate_field_type("date", &serde_json::json!("2024-01-15")));
         assert!(!manager.validate_field_type("date", &serde_json::json!("not-a-date")));
@@ -751,7 +776,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_field_type_tags() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         assert!(manager.validate_field_type("tags", &serde_json::json!(["tag1", "tag2"])));
         assert!(!manager.validate_field_type("tags", &serde_json::json!([1, 2])));
@@ -759,70 +786,90 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_field_type_unknown() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         assert!(manager.validate_field_type("custom", &serde_json::json!("anything")));
     }
 
     #[tokio::test]
     async fn test_validate_field_type_date_rfc3339() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         assert!(manager.validate_field_type("date", &serde_json::json!("2024-01-15T10:30:00Z")));
     }
 
     #[tokio::test]
     async fn test_validate_field_type_date_invalid_type() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         assert!(manager.validate_field_type("string", &serde_json::json!(42)));
     }
 
     #[tokio::test]
     async fn test_validate_field_type_number_invalid() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         assert!(manager.validate_field_type("number", &serde_json::json!("not a number")));
     }
 
     #[tokio::test]
     async fn test_validate_field_type_boolean_invalid() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         assert!(manager.validate_field_type("boolean", &serde_json::json!("not bool")));
     }
 
     #[tokio::test]
     async fn test_validate_field_type_array_invalid() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         assert!(manager.validate_field_type("array", &serde_json::json!("not array")));
     }
 
     #[tokio::test]
     async fn test_validate_field_type_object_invalid() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         assert!(manager.validate_field_type("object", &serde_json::json!("not object")));
     }
 
     #[tokio::test]
     async fn test_validate_field_type_tags_with_non_string_items() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         assert!(!manager.validate_field_type("tags", &serde_json::json!(["tag1", 2, true])));
     }
 
     #[tokio::test]
     async fn test_validate_field_type_tags_empty_array() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         assert!(manager.validate_field_type("tags", &serde_json::json!([])));
     }
 
     #[tokio::test]
     async fn test_parse_template_from_schema_only_optional() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         let schema = "---\n?priority: number\n?tags: tags\n---\nContent";
         let template = manager.parse_template_from_schema(schema);
@@ -834,7 +881,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_template_from_schema_mixed_fields() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         let schema = "---\ntitle: string\n?priority: number\ndate: date\n?tags: tags\n---\nContent";
         let template = manager.parse_template_from_schema(schema);
@@ -844,7 +893,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_template_from_schema_no_closing_delimiter() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         let schema = "---\ntitle: string\n";
         let template = manager.parse_template_from_schema(schema);
@@ -854,7 +905,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_template_from_schema_line_without_colon() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         let schema = "---\ntitle: string\nno colon line\n?tags: tags\n---\n";
         let template = manager.parse_template_from_schema(schema);
@@ -864,7 +917,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_generate_migration_steps() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         let steps = manager.generate_migration_steps("1.0.0", "2.0.0", "schema content");
         assert_eq!(steps.len(), 4);
@@ -916,8 +971,9 @@ mod tests {
             note_count: 0,
             description: None,
         };
-        let json = serde_json::to_string(&sv).unwrap();
-        let deserialized: SchemaVersion = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&sv).expect("测试：JSON序列化应成功");
+        let deserialized: SchemaVersion =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert!(deserialized.description.is_none());
         assert_eq!(deserialized.version, "1.0.0");
     }
@@ -931,8 +987,9 @@ mod tests {
             removed_fields: vec![],
             changed_fields: vec![],
         };
-        let json = serde_json::to_string(&diff).unwrap();
-        let deserialized: SchemaDiff = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&diff).expect("测试：JSON序列化应成功");
+        let deserialized: SchemaDiff =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert!(deserialized.added_fields.is_empty());
         assert!(deserialized.removed_fields.is_empty());
         assert!(deserialized.changed_fields.is_empty());
@@ -945,8 +1002,8 @@ mod tests {
             field_type: "string".to_string(),
             description: None,
         };
-        let json = serde_json::to_string(&fd).unwrap();
-        let deserialized: FieldDef = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&fd).expect("测试：JSON序列化应成功");
+        let deserialized: FieldDef = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert!(deserialized.description.is_none());
         assert_eq!(deserialized.name, "title");
     }
@@ -957,8 +1014,9 @@ mod tests {
             message: "test message".to_string(),
             migration_steps: vec!["step1".to_string()],
         };
-        let json = serde_json::to_string(&compat).unwrap();
-        let deserialized: Compatibility = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&compat).expect("测试：JSON序列化应成功");
+        let deserialized: Compatibility =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         match deserialized {
             Compatibility::Incompatible { message, migration_steps } => {
                 assert_eq!(message, "test message");
@@ -970,7 +1028,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_schema_manager_new() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         let cache = manager.cache.read().await;
         assert!(cache.is_none());
@@ -978,35 +1038,45 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_field_type_string_with_number() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         assert!(manager.validate_field_type("string", &serde_json::json!(42)));
     }
 
     #[tokio::test]
     async fn test_validate_field_type_string_with_bool() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         assert!(manager.validate_field_type("string", &serde_json::json!(true)));
     }
 
     #[tokio::test]
     async fn test_validate_field_type_string_with_array() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         assert!(manager.validate_field_type("string", &serde_json::json!([1, 2])));
     }
 
     #[tokio::test]
     async fn test_validate_field_type_string_with_object() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         assert!(manager.validate_field_type("string", &serde_json::json!({"key": "value"})));
     }
 
     #[tokio::test]
     async fn test_parse_template_from_schema_whitespace_handling() {
-        let _db = Arc::new(sea_orm::Database::connect("sqlite::memory:").await.unwrap());
+        let _db = Arc::new(
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功"),
+        );
         let manager = SchemaManager::new_for_test();
         let schema = "---\n  title  :   string  \n  ?date  :   date  \n---\n";
         let template = manager.parse_template_from_schema(schema);

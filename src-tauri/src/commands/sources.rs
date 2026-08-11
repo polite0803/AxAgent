@@ -176,6 +176,7 @@ pub async fn create_source(
                         .clone()
                         .ok_or_else(|| "wiki requires root_path".to_string())?,
                     embedding_provider,
+                    knowledge_base_id: None,
                 },
             )
             .await

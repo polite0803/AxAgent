@@ -290,26 +290,27 @@ mod tests {
     #[tokio::test]
     async fn crud_round_trip() {
         use crate::migrations::v107_paper_reading_list as v107;
-        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
-        v107::up(db.clone()).await.unwrap();
+        let db =
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        v107::up(db.clone()).await.expect("测试：异步操作应成功");
 
         // create
-        let created = create(&db, sample_input("doc1", "kb1")).await.unwrap();
+        let created = create(&db, sample_input("doc1", "kb1")).await.expect("测试：异步操作应成功");
         assert_eq!(created.document_id, "doc1");
         assert_eq!(created.key_concepts.len(), 2);
         assert_eq!(created.sections.len(), 1);
         assert_eq!(created.metadata["authors"][0], "张三");
 
         // get
-        let fetched = get(&db, &created.id).await.unwrap();
+        let fetched = get(&db, &created.id).await.expect("测试：异步操作应成功");
         assert_eq!(fetched.id, created.id);
 
         // get_by_document
-        let by_doc = get_by_document(&db, "doc1").await.unwrap().unwrap();
+        let by_doc = get_by_document(&db, "doc1").await.expect("测试：异步操作应成功").unwrap();
         assert_eq!(by_doc.id, created.id);
 
         // list_by_kb
-        let list = list_by_kb(&db, "kb1").await.unwrap();
+        let list = list_by_kb(&db, "kb1").await.expect("测试：异步操作应成功");
         assert_eq!(list.len(), 1);
 
         // update
@@ -323,46 +324,50 @@ mod tests {
             },
         )
         .await
-        .unwrap();
+        .expect("测试应成功");
         assert_eq!(updated.abstract_text.as_deref(), Some("更新后的摘要"));
         assert_eq!(updated.key_concepts, vec!["新概念".to_string()]);
         // 未更新字段保持
         assert_eq!(updated.sections.len(), 1);
 
         // delete
-        delete(&db, &created.id).await.unwrap();
+        delete(&db, &created.id).await.expect("测试：异步操作应成功");
         assert!(get(&db, &created.id).await.is_err());
     }
 
     #[tokio::test]
     async fn upsert_by_document_creates_then_updates() {
         use crate::migrations::v107_paper_reading_list as v107;
-        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
-        v107::up(db.clone()).await.unwrap();
+        let db =
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        v107::up(db.clone()).await.expect("测试：异步操作应成功");
 
         // 首次 upsert → 创建
-        let v1 = upsert_by_document(&db, sample_input("doc2", "kb2")).await.unwrap();
+        let v1 = upsert_by_document(&db, sample_input("doc2", "kb2"))
+            .await
+            .expect("测试：异步操作应成功");
         assert_eq!(v1.document_id, "doc2");
 
         // 第二次 upsert 同 document → 更新
         let mut input2 = sample_input("doc2", "kb2");
         input2.abstract_text = Some("更新后的摘要".to_string());
         input2.overview_type = Some("long_document".to_string());
-        let v2 = upsert_by_document(&db, input2).await.unwrap();
+        let v2 = upsert_by_document(&db, input2).await.expect("测试：异步操作应成功");
         assert_eq!(v2.id, v1.id, "upsert 应保持同一 ID");
         assert_eq!(v2.abstract_text.as_deref(), Some("更新后的摘要"));
         assert_eq!(v2.overview_type, "long_document");
 
         // 仍只有一条记录
-        let list = list_by_kb(&db, "kb2").await.unwrap();
+        let list = list_by_kb(&db, "kb2").await.expect("测试：异步操作应成功");
         assert_eq!(list.len(), 1);
     }
 
     #[tokio::test]
     async fn delete_nonexistent_returns_not_found() {
         use crate::migrations::v107_paper_reading_list as v107;
-        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
-        v107::up(db.clone()).await.unwrap();
+        let db =
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        v107::up(db.clone()).await.expect("测试：异步操作应成功");
 
         let err = delete(&db, "nonexistent").await.unwrap_err();
         match err {

@@ -39,6 +39,7 @@ async fn ensure_opc_wiki(db: &DatabaseConnection) -> Option<String> {
         ),
         root_path: "opc".to_string(),
         embedding_provider: None,
+        knowledge_base_id: None,
     };
     match wiki::create_wiki(db, input).await {
         Ok(w) => {

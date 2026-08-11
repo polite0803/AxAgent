@@ -207,7 +207,9 @@ impl WebSocketTransportHandler {
                                 content: "ping".to_string(),
                             },
                         );
-                        let _ = tx.try_send(ping_msg);
+                        if let Err(e) = tx.try_send(ping_msg) {
+                            tracing::warn!(agent_id = %agent_id, error = %e, "Failed to send heartbeat ping");
+                        }
                     }
                 } else {
                     break;
@@ -386,7 +388,9 @@ impl TransportHandler for HTTPTransportHandler {
 
         tokio::spawn(async move {
             let mut conns = connections.write().await;
-            conns.insert(endpoint.agent_id.clone(), endpoint);
+            let agent_id = endpoint.agent_id.clone();
+            conns.insert(agent_id.clone(), endpoint);
+            tracing::debug!(agent_id = %agent_id, "[transport] connection registered");
         });
 
         Ok(())
@@ -512,7 +516,9 @@ impl TransportHandler for SSETransportHandler {
 
         tokio::spawn(async move {
             let mut conns = connections.write().await;
-            conns.insert(endpoint.agent_id.clone(), endpoint);
+            let agent_id = endpoint.agent_id.clone();
+            conns.insert(agent_id.clone(), endpoint);
+            tracing::debug!(agent_id = %agent_id, "[transport] connection registered");
         });
 
         Ok(())
@@ -590,7 +596,9 @@ impl TransportHandler for StdioTransportHandler {
 
         tokio::spawn(async move {
             let mut conns = connections.write().await;
-            conns.insert(endpoint.agent_id.clone(), endpoint);
+            let agent_id = endpoint.agent_id.clone();
+            conns.insert(agent_id.clone(), endpoint);
+            tracing::debug!(agent_id = %agent_id, "[transport] connection registered");
         });
 
         Ok(())

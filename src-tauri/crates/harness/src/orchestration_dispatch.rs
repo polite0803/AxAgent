@@ -136,8 +136,9 @@ mod tests {
             tools: vec![],
             output_var: "analysis_output".to_string(),
         };
-        let json = serde_json::to_string(&req).unwrap();
-        let parsed: DispatchRequest = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&req).expect("测试：JSON序列化应成功");
+        let parsed: DispatchRequest =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(parsed.sub_task_id, "st-001");
         assert_eq!(parsed.mission, "Analyze the codebase");
     }

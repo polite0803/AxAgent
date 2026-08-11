@@ -116,7 +116,7 @@ impl SessionShareManager {
             is_active: true,
         };
         self.sessions.insert(session_id.to_string(), session);
-        self.sessions.get(session_id).unwrap()
+        self.sessions.get(session_id).expect("键不存在")
     }
 
     pub fn join_session(
@@ -237,7 +237,7 @@ impl SessionShareManager {
                 0..=9 => (b'0' + c) as char,
                 _ => (b'A' + (c - 10)) as char,
             };
-            write!(code, "{}", ch).unwrap();
+            write!(code, "{}", ch).expect("会话分享：写入 String 不应失败");
         }
         code
     }

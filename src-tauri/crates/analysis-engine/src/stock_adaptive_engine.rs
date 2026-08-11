@@ -36,7 +36,7 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 
-use axagent_orchestrator::IndustryAdapter;
+use axagent_harness::IndustryAdapter;
 
 use crate::stock_orchestration::StockIndustryAdapter;
 use crate::stock_reflection::{
@@ -415,7 +415,7 @@ impl StockAdaptiveEngine {
         mission: &str,
     ) -> Result<AdaptiveResult, String> {
         // Step 1: 通过行业适配器进行编排
-        let context = axagent_orchestrator::IndustryContext::new()
+        let context = axagent_harness::IndustryContext::new()
             .with_inputs(serde_json::json!({"stock_code": stock_code}));
 
         let subgraph = self
@@ -506,7 +506,7 @@ impl StockAdaptiveEngine {
     fn simulate_orchestration_execution(
         &self,
         stock_code: &str,
-        subgraph: &axagent_orchestrator::GeneratedSubGraph,
+        subgraph: &axagent_harness::GeneratedSubGraph,
     ) -> Result<StockAnalysisOutcome, String> {
         let step_results: Vec<_> = subgraph
             .nodes

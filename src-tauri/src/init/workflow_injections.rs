@@ -868,14 +868,14 @@ mod tests {
     #[test]
     fn test_extract_first_json_object_simple() {
         let text = r#"{"a": 1, "b": 2}"#;
-        let s = extract_first_json_object(text).unwrap();
+        let s = extract_first_json_object(text).expect("测试：text 应包含有效 JSON");
         assert_eq!(s, r#"{"a": 1, "b": 2}"#);
     }
 
     #[test]
     fn test_extract_first_json_object_with_prefix() {
         let text = "Here is the JSON:\n```json\n{\"nodes\": [], \"edges\": []}\n```";
-        let s = extract_first_json_object(text).unwrap();
+        let s = extract_first_json_object(text).expect("测试：text 应包含有效 JSON");
         assert_eq!(s, r#"{"nodes": [], "edges": []}"#);
     }
 
@@ -883,7 +883,7 @@ mod tests {
     fn test_extract_first_json_object_with_nested_braces_in_string() {
         // 字符串中的 `{` 不应影响配对
         let text = r#"{"desc": "a {b} c", "x": 1}"#;
-        let s = extract_first_json_object(text).unwrap();
+        let s = extract_first_json_object(text).expect("测试：text 应包含有效 JSON");
         assert_eq!(s, r#"{"desc": "a {b} c", "x": 1}"#);
     }
 
@@ -925,8 +925,8 @@ mod tests {
         }"#;
         let genome: WorkflowGenome = serde_json::from_str(json).expect("deserialize genome");
         let sandbox = StructuralWorkflowSandbox::new();
-        let result =
-            futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
+        let result = futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({})))
+            .expect("测试：沙箱执行应成功");
         assert!(result.passed, "expected pass, got errors: {:?}", result.execution_errors);
         assert_eq!(result.success_rate, 1.0);
     }
@@ -954,8 +954,8 @@ mod tests {
         }"#;
         let genome: WorkflowGenome = serde_json::from_str(json).expect("deserialize genome");
         let sandbox = StructuralWorkflowSandbox::new();
-        let result =
-            futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
+        let result = futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({})))
+            .expect("测试：沙箱执行应成功");
         assert!(!result.passed);
         assert!(result.execution_errors.iter().any(|e| e.contains("missing")));
     }
@@ -973,8 +973,8 @@ mod tests {
             changed_node_ids: Vec::new(),
         };
         let sandbox = StructuralWorkflowSandbox::new();
-        let result =
-            futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
+        let result = futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({})))
+            .expect("测试：沙箱执行应成功");
         assert!(!result.passed);
         assert!(result.execution_errors.iter().any(|e| e.contains("no nodes")));
     }
@@ -1041,8 +1041,8 @@ mod tests {
         }"#;
         let genome: WorkflowGenome = serde_json::from_str(json).expect("deserialize genome");
         let sandbox = ReachabilityWorkflowSandbox::new();
-        let result =
-            futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
+        let result = futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({})))
+            .expect("测试：沙箱执行应成功");
         assert!(result.passed, "expected pass, got: {:?}", result.execution_errors);
     }
 
@@ -1080,8 +1080,8 @@ mod tests {
         }"#;
         let genome: WorkflowGenome = serde_json::from_str(json).expect("deserialize genome");
         let sandbox = ReachabilityWorkflowSandbox::new();
-        let result =
-            futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
+        let result = futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({})))
+            .expect("测试：沙箱执行应成功");
         assert!(!result.passed, "expected fail (isolated node), got pass");
         assert!(
             result.execution_errors.iter().any(|e| e.contains("unreachable")),
@@ -1111,8 +1111,8 @@ mod tests {
         }"#;
         let genome: WorkflowGenome = serde_json::from_str(json).expect("deserialize genome");
         let sandbox = ReachabilityWorkflowSandbox::new();
-        let result =
-            futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
+        let result = futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({})))
+            .expect("测试：沙箱执行应成功");
         assert!(!result.passed, "expected fail (undefined var), got pass");
         assert!(
             result.execution_errors.iter().any(|e| e.contains("undefined variable")),
@@ -1141,8 +1141,8 @@ mod tests {
         }"#;
         let genome: WorkflowGenome = serde_json::from_str(json).expect("deserialize genome");
         let sandbox = ReachabilityWorkflowSandbox::new();
-        let result =
-            futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({}))).unwrap();
+        let result = futures::executor::block_on(sandbox.execute(&genome, &serde_json::json!({})))
+            .expect("测试：沙箱执行应成功");
         // 单节点 + 无边 → 可达(自身);变量引用已定义 → 不应失败
         assert!(result.passed, "expected pass, got: {:?}", result.execution_errors);
     }
@@ -1175,7 +1175,8 @@ mod tests {
         // timeout=10s ≤ 300s,无错误 → passed
         let genome = make_genome_with_timeout(10);
         let sandbox = DryRunWorkflowSandbox::new();
-        let result = sandbox.execute(&genome, &serde_json::json!({})).await.unwrap();
+        let result =
+            sandbox.execute(&genome, &serde_json::json!({})).await.expect("测试：异步操作应成功");
         assert!(result.passed, "expected pass, got: {:?}", result.execution_errors);
         assert_eq!(result.success_rate, 1.0);
         // 模拟耗时 = 10s = 10000ms
@@ -1187,7 +1188,8 @@ mod tests {
         // timeout=400s > 300s 上限 → 失败,错误信息应包含 "exceeds 300s"
         let genome = make_genome_with_timeout(400);
         let sandbox = DryRunWorkflowSandbox::new();
-        let result = sandbox.execute(&genome, &serde_json::json!({})).await.unwrap();
+        let result =
+            sandbox.execute(&genome, &serde_json::json!({})).await.expect("测试：异步操作应成功");
         assert!(!result.passed, "expected fail");
         assert!(
             result.execution_errors.iter().any(|e| e.contains("exceeds 300s")),
@@ -1218,7 +1220,8 @@ mod tests {
         }"#;
         let genome: WorkflowGenome = serde_json::from_str(json).expect("deserialize genome");
         let sandbox = DryRunWorkflowSandbox::new();
-        let result = sandbox.execute(&genome, &serde_json::json!({})).await.unwrap();
+        let result =
+            sandbox.execute(&genome, &serde_json::json!({})).await.expect("测试：异步操作应成功");
         assert!(!result.passed, "expected fail");
         assert!(
             result.execution_errors.iter().any(|e| e.contains("retry.max_retries 20 exceeds 10")),
@@ -1255,7 +1258,8 @@ mod tests {
         }"#;
         let genome: WorkflowGenome = serde_json::from_str(json).expect("deserialize genome");
         let sandbox = DryRunWorkflowSandbox::new();
-        let result = sandbox.execute(&genome, &serde_json::json!({})).await.unwrap();
+        let result =
+            sandbox.execute(&genome, &serde_json::json!({})).await.expect("测试：异步操作应成功");
         assert!(!result.passed, "expected fail due to cycle");
         assert!(
             result.execution_errors.iter().any(|e| e.contains("cycle")),
@@ -1292,7 +1296,8 @@ mod tests {
         }"#;
         let genome: WorkflowGenome = serde_json::from_str(json).expect("deserialize genome");
         let sandbox = DryRunWorkflowSandbox::new();
-        let result = sandbox.execute(&genome, &serde_json::json!({})).await.unwrap();
+        let result =
+            sandbox.execute(&genome, &serde_json::json!({})).await.expect("测试：异步操作应成功");
         // 不应有 cycle 错误(Loop 节点允许环)
         assert!(
             !result.execution_errors.iter().any(|e| e.contains("cycle")),

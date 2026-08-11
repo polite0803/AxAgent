@@ -237,16 +237,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_save_and_load() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let config = PersistenceConfig::new(dir.path().to_path_buf());
         let store = PersistentStore::new(config);
 
-        store.ensure_dir().await.unwrap();
+        store.ensure_dir().await.expect("测试：异步操作应成功");
 
         // 测试空列表保存和加载
         let devices: Vec<DeviceInfo> = Vec::new();
-        store.save_devices(&devices).await.unwrap();
-        let loaded = store.load_devices().await.unwrap();
+        store.save_devices(&devices).await.expect("测试：异步操作应成功");
+        let loaded = store.load_devices().await.expect("测试：异步操作应成功");
         assert!(loaded.is_empty());
     }
 }

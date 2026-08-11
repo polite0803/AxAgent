@@ -10,13 +10,19 @@ use std::path::Path;
 
 fn main() {
     // Resolve output paths relative to the project root (2 levels up from src-tauri/schema-gen)
-    let out_dir =
-        Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap().join("docs");
-    fs::create_dir_all(&out_dir).unwrap();
+    let out_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("路径无父目录")
+        .parent()
+        .expect("路径无祖父目录")
+        .join("docs");
+    fs::create_dir_all(&out_dir).expect("Schema 生成：创建输出目录失败");
 
     let schema = schema_for!(workflow_types::WorkflowTemplateInput);
-    let schema_str = serde_json::to_string_pretty(&schema).unwrap();
-    fs::write(out_dir.join("workflow-schema.json"), &schema_str).unwrap();
+    let schema_str =
+        serde_json::to_string_pretty(&schema).expect("Schema 生成：序列化 schema 失败");
+    fs::write(out_dir.join("workflow-schema.json"), &schema_str)
+        .expect("Schema 生成：写入 JSON 失败");
     eprintln!("Generated docs/workflow-schema.json");
 
     // Generate a Markdown summary
@@ -76,8 +82,9 @@ fn main() {
     md.push_str("\n## 关键字段说明\n\n");
 
     // Read the raw schema JSON and generate field docs
-    let schema_val: serde_json::Value = serde_json::from_str(&schema_str).unwrap();
-    let defs = schema_val["definitions"].as_object().unwrap();
+    let schema_val: serde_json::Value =
+        serde_json::from_str(&schema_str).expect("Schema 生成：反序列化 schema JSON 失败");
+    let defs = schema_val["definitions"].as_object().expect("Schema 生成：definitions 应为 object");
     for (name, def) in defs {
         let title = def["title"].as_str().unwrap_or(name);
         let desc = def["description"].as_str().unwrap_or("");
@@ -135,6 +142,6 @@ fn main() {
     md.push_str("---\n");
     md.push_str("*文档自动生成，更新类型后请重新运行 `cargo run -p schema-gen`*\n");
 
-    fs::write(out_dir.join("workflow-schema.md"), &md).unwrap();
+    fs::write(out_dir.join("workflow-schema.md"), &md).expect("Schema 生成：写入 Markdown 失败");
     eprintln!("Generated docs/workflow-schema.md");
 }

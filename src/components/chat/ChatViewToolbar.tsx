@@ -1,26 +1,27 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { SyncOutlined } from "@ant-design/icons";
+import { Button, Input, Popover, Spin, Typography } from "antd";
+import type { GlobalToken, InputRef } from "antd";
 import {
   ArrowDownRight,
-  ArrowsInSimple,
   ArrowUpRight,
+  BarChart3,
+  Bot,
   Brain,
   ChartBar,
-  ChatText,
   Clock,
-  Coin,
-  Lightning,
+  Coins,
   ListChecks,
-  NotePencil,
-  Robot,
-  ShareNetwork,
+  MessageSquare,
+  Minimize2,
+  Pencil,
+  Share2,
   Sparkle,
   Timer,
   User,
-} from "@phosphor-icons/react";
-import { Button, Input, Popover, Spin, Typography } from "antd";
-import type { GlobalToken, InputRef } from "antd";
+  Zap,
+} from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -66,7 +67,7 @@ function StatsPopoverContent({
     sub?: Array<{ icon: React.ReactNode; label: string; value: string }>;
   }> = [
     {
-      icon: <ChatText size={14} />,
+      icon: <MessageSquare size={14} />,
       label: t("chat.stats.totalMessages"),
       value: stats.total_messages.toLocaleString(),
       sub: [
@@ -76,14 +77,14 @@ function StatsPopoverContent({
           value: stats.total_user_messages.toLocaleString(),
         },
         {
-          icon: <Robot size={12} />,
+          icon: <Bot size={12} />,
           label: t("chat.stats.assistantMessages"),
           value: stats.total_assistant_messages.toLocaleString(),
         },
       ],
     },
     {
-      icon: <Coin size={14} />,
+      icon: <Coins size={14} />,
       label: t("chat.stats.totalTokens"),
       value: formatTokenCount(stats.total_tokens),
       sub: [
@@ -102,7 +103,7 @@ function StatsPopoverContent({
     ...(stats.avg_first_token_latency_ms != null
       ? [
         {
-          icon: <Lightning size={14} />,
+          icon: <Zap size={14} />,
           label: t("chat.stats.avgFirstToken"),
           value: formatDuration(stats.avg_first_token_latency_ms),
         },
@@ -140,7 +141,7 @@ function StatsPopoverContent({
           gap: 6,
         }}
       >
-        <ChartBar size={14} />
+        <BarChart3 size={14} />
         {t("chat.stats.title")}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -356,7 +357,7 @@ export function ChatViewToolbar({
                       {activeConversation.title}
                       {isTitleGenerating
                         ? <SyncOutlined spin className="ml-1 text-xs opacity-50" />
-                        : <NotePencil size={12} className="ml-1 text-xs opacity-50" />}
+                        : <Pencil size={12} className="ml-1 text-xs opacity-50" />}
                     </Typography.Text>
                   </div>
                 )}
@@ -517,7 +518,7 @@ export function ChatViewToolbar({
                 <Button
                   type="text"
                   size="small"
-                  icon={compressing ? <SyncOutlined spin /> : <ArrowsInSimple size={14} />}
+                  icon={compressing ? <SyncOutlined spin /> : <Minimize2 size={14} />}
                   onClick={async () => {
                     try {
                       await compressContext();
@@ -529,7 +530,7 @@ export function ChatViewToolbar({
                 />
               </Tooltip>
               <DropdownMenu items={(exportMenuItems ?? []) as DropdownItem[]} trigger={["click"]}>
-                <Button type="text" icon={<ShareNetwork size={14} />} size="small" />
+                <Button type="text" icon={<Share2 size={14} />} size="small" />
               </DropdownMenu>
               <Tooltip title={t("chat.extractMemories")}>
                 <Button

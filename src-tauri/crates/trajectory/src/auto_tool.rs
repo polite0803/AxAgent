@@ -502,7 +502,7 @@ mod tests {
 
         let result = creator.create_tool_from_pattern("common_pattern", "ctx", vec![]).await;
         assert!(result.is_ok());
-        let tool = result.unwrap();
+        let tool = result.expect("测试应成功");
         assert_eq!(tool.name, "common_pattern");
         assert_eq!(tool.test_coverage, 1.0);
         assert_eq!(creator.tool_count(), 1);
@@ -526,7 +526,7 @@ mod tests {
 
         let result = creator.validate_and_register(tool).await;
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().test_coverage, 1.0);
+        assert_eq!(result.expect("测试应成功").test_coverage, 1.0);
         assert_eq!(creator.tool_count(), 1);
     }
 
@@ -546,7 +546,10 @@ mod tests {
         creator.observe_pattern("lookup_pattern");
         creator.observe_pattern("lookup_pattern");
 
-        creator.create_tool_from_pattern("lookup_pattern", "ctx", vec![]).await.unwrap();
+        creator
+            .create_tool_from_pattern("lookup_pattern", "ctx", vec![])
+            .await
+            .expect("测试：异步操作应成功");
 
         assert!(creator.get_tool("lookup_pattern").is_some());
         assert!(creator.get_tool("nonexistent").is_none());
@@ -562,8 +565,14 @@ mod tests {
         creator.observe_pattern("list_b");
         creator.observe_pattern("list_b");
 
-        creator.create_tool_from_pattern("list_a", "ctx", vec![]).await.unwrap();
-        creator.create_tool_from_pattern("list_b", "ctx", vec![]).await.unwrap();
+        creator
+            .create_tool_from_pattern("list_a", "ctx", vec![])
+            .await
+            .expect("测试：异步操作应成功");
+        creator
+            .create_tool_from_pattern("list_b", "ctx", vec![])
+            .await
+            .expect("测试：异步操作应成功");
 
         assert_eq!(creator.list_tools().len(), 2);
     }
@@ -574,11 +583,14 @@ mod tests {
         creator.observe_pattern("improve_me");
         creator.observe_pattern("improve_me");
 
-        creator.create_tool_from_pattern("improve_me", "ctx", vec![]).await.unwrap();
+        creator
+            .create_tool_from_pattern("improve_me", "ctx", vec![])
+            .await
+            .expect("测试：异步操作应成功");
 
         let result = creator.improve_tool("improve_me", "some error").await;
         assert!(result.is_ok());
-        let improved = result.unwrap();
+        let improved = result.expect("测试应成功");
         assert!(improved.code.contains("_v2"));
     }
 
@@ -635,7 +647,7 @@ mod tests {
 
         let result = creator.create_tool_from_pattern("no_test_pattern", "ctx", vec![]).await;
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().test_coverage, 0.0);
+        assert_eq!(result.expect("测试应成功").test_coverage, 0.0);
         assert_eq!(creator.tool_count(), 1);
     }
 
@@ -688,7 +700,7 @@ mod tests {
 
         let result = provider.generate_tool_code(&request).await;
         assert!(result.is_ok());
-        let tool = result.unwrap();
+        let tool = result.expect("测试应成功");
         assert_eq!(tool.name, "search_files");
         assert!(tool.code.contains("search files"));
         assert!(tool.code.contains("bash"));
@@ -701,7 +713,7 @@ mod tests {
 
         let result = provider.improve_tool_code(&tool, "crashed").await;
         assert!(result.is_ok());
-        let improved = result.unwrap();
+        let improved = result.expect("测试应成功");
         assert!(improved.code.contains("crashed"));
         assert!(improved.code.contains("try"));
     }
@@ -718,8 +730,9 @@ mod tests {
     #[test]
     fn test_generated_tool_serialization() {
         let tool = GeneratedTool::new("ser_tool", "code", "desc");
-        let json = serde_json::to_string(&tool).unwrap();
-        let deserialized: GeneratedTool = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&tool).expect("测试：JSON序列化应成功");
+        let deserialized: GeneratedTool =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.name, "ser_tool");
         assert_eq!(deserialized.code, "code");
         assert_eq!(deserialized.description, "desc");
@@ -728,13 +741,15 @@ mod tests {
     #[test]
     fn test_tool_test_result_serialization() {
         let passed = ToolTestResult::passed("ok", 100);
-        let json = serde_json::to_string(&passed).unwrap();
-        let deserialized: ToolTestResult = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&passed).expect("测试：JSON序列化应成功");
+        let deserialized: ToolTestResult =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert!(deserialized.passed);
 
         let failed = ToolTestResult::failed("err", 50);
-        let json = serde_json::to_string(&failed).unwrap();
-        let deserialized: ToolTestResult = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&failed).expect("测试：JSON序列化应成功");
+        let deserialized: ToolTestResult =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert!(!deserialized.passed);
     }
 }

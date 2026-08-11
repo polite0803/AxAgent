@@ -227,40 +227,40 @@ mod tests {
     #[test]
     fn coordinator_returns_planning_constraints() {
         let c = DomainConstraints::by_role("coordinator");
-        assert!(c.head.as_ref().unwrap().contains("全域规则"));
-        assert!(c.tail.as_ref().unwrap().contains("自验清单"));
-        assert!(c.head.as_ref().unwrap().contains("结构化计划"));
+        assert!(c.head.as_ref().expect("测试：引用应存在").contains("全域规则"));
+        assert!(c.tail.as_ref().expect("测试：引用应存在").contains("自验清单"));
+        assert!(c.head.as_ref().expect("测试：引用应存在").contains("结构化计划"));
     }
 
     #[test]
     fn developer_returns_code_constraints() {
         let c = DomainConstraints::by_role("developer");
-        assert!(c.head.as_ref().unwrap().contains("完整可执行"));
-        assert!(c.tail.as_ref().unwrap().contains("完整可运行"));
+        assert!(c.head.as_ref().expect("测试：引用应存在").contains("完整可执行"));
+        assert!(c.tail.as_ref().expect("测试：引用应存在").contains("完整可运行"));
     }
 
     #[test]
     fn researcher_returns_research_constraints() {
         let c = DomainConstraints::by_role("researcher");
-        assert!(c.head.as_ref().unwrap().contains("标注来源"));
-        assert!(c.tail.as_ref().unwrap().contains("来源标注"));
+        assert!(c.head.as_ref().expect("测试：引用应存在").contains("标注来源"));
+        assert!(c.tail.as_ref().expect("测试：引用应存在").contains("来源标注"));
     }
 
     #[test]
     fn unknown_role_falls_back_to_general() {
         let c = DomainConstraints::by_role("unknown_role");
-        assert!(c.head.as_ref().unwrap().contains("无结构漫谈"));
+        assert!(c.head.as_ref().expect("测试：引用应存在").contains("无结构漫谈"));
     }
 
     #[test]
     fn high_risk_adds_extra_tail_check() {
         let c = DomainConstraints::for_domain(TaskDomain::Code, RiskLevel::High);
-        assert!(c.tail.as_ref().unwrap().contains("高风险操作"));
+        assert!(c.tail.as_ref().expect("测试：引用应存在").contains("高风险操作"));
     }
 
     #[test]
     fn low_risk_has_no_extra_checks() {
         let c = DomainConstraints::for_domain(TaskDomain::Code, RiskLevel::Low);
-        assert!(!c.tail.as_ref().unwrap().contains("高风险操作"));
+        assert!(!c.tail.as_ref().expect("测试：引用应存在").contains("高风险操作"));
     }
 }

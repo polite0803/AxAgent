@@ -126,7 +126,7 @@ impl CrdtEngine {
             return Err("Document not found".to_string());
         }
 
-        let doc = self.documents.get_mut(doc_id).unwrap();
+        let doc = self.documents.get_mut(doc_id).expect("CRDT：文档应在 contains_key 检查后存在");
 
         // 去重：跳过已应用的操作
         if doc.operations.iter().any(|o| o.id == remote_op.id) {
@@ -289,7 +289,10 @@ mod tests {
         let mut engine = CrdtEngine::new();
         engine.create_document("doc-1", "Hello World");
         assert!(engine.has_document("doc-1"));
-        assert_eq!(engine.get_document_content("doc-1").unwrap(), "Hello World");
+        assert_eq!(
+            engine.get_document_content("doc-1").expect("测试：get_document_content 应成功"),
+            "Hello World"
+        );
     }
 
     #[test]
@@ -304,10 +307,13 @@ mod tests {
                 OperationType::Insert { text: "Beautiful ".to_string() },
                 6,
             )
-            .unwrap();
+            .expect("测试应成功");
 
         assert_eq!(op.id, 0);
-        assert_eq!(engine.get_document_content("doc-1").unwrap(), "Hello Beautiful World");
+        assert_eq!(
+            engine.get_document_content("doc-1").expect("测试：get_document_content 应成功"),
+            "Hello Beautiful World"
+        );
     }
 
     #[test]
@@ -317,9 +323,12 @@ mod tests {
 
         engine
             .apply_local_operation("doc-1", "client-1", OperationType::Delete { length: 10 }, 6)
-            .unwrap();
+            .expect("测试应成功");
 
-        assert_eq!(engine.get_document_content("doc-1").unwrap(), "Hello World");
+        assert_eq!(
+            engine.get_document_content("doc-1").expect("测试：get_document_content 应成功"),
+            "Hello World"
+        );
     }
 
     #[test]
@@ -335,7 +344,7 @@ mod tests {
                 OperationType::Insert { text: "Beautiful ".to_string() },
                 6,
             )
-            .unwrap();
+            .expect("测试应成功");
 
         // 客户端2也在位置6插入（模拟并发），使用不同的 ID 避免去重
         let remote_op = CrdtOperation {
@@ -347,11 +356,14 @@ mod tests {
         };
 
         // 应用远程操作，应该被转换
-        let result = engine.apply_remote_operation("doc-1", remote_op).unwrap();
+        let result = engine
+            .apply_remote_operation("doc-1", remote_op)
+            .expect("测试：apply_remote_operation 应成功");
         assert!(result);
 
         // 远程操作的插入位置应该被调整到本地操作之后
-        let content = engine.get_document_content("doc-1").unwrap();
+        let content =
+            engine.get_document_content("doc-1").expect("测试：get_document_content 应成功");
         assert_eq!(content, "Hello Beautiful Nice World");
     }
 
@@ -367,10 +379,12 @@ mod tests {
                 OperationType::Insert { text: "Test".to_string() },
                 0,
             )
-            .unwrap();
+            .expect("测试应成功");
 
         // 尝试再次应用相同的操作
-        let result = engine.apply_remote_operation("doc-1", op).unwrap();
+        let result = engine
+            .apply_remote_operation("doc-1", op)
+            .expect("测试：apply_remote_operation 应成功");
         assert!(!result); // 应该返回 false 表示已存在
     }
 }

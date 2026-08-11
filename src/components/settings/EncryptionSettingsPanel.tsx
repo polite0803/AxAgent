@@ -61,7 +61,7 @@ export function EncryptionSettingsPanel() {
       } else {
         message.error(t("deviceSync.encryption.testFailed"));
       }
-    } catch (e) {
+    } catch {
       message.error(t("deviceSync.encryption.testFailed"));
     } finally {
       setTesting(false);

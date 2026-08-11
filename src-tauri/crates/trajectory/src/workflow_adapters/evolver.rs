@@ -617,7 +617,7 @@ mod tests {
     #[tokio::test]
     async fn test_initialize() {
         let e = WorkflowEvolverImpl::with_defaults();
-        let pop = e.initialize("wf-1").await.unwrap();
+        let pop = e.initialize("wf-1").await.expect("测试：异步操作应成功");
         assert_eq!(pop.individuals.len(), 1);
         assert_eq!(pop.individuals[0].fitness, 0.5);
     }
@@ -625,10 +625,10 @@ mod tests {
     #[tokio::test]
     async fn test_evolve_generation_updates_fitness() {
         let e = WorkflowEvolverImpl::with_defaults();
-        let mut pop = e.initialize("wf-1").await.unwrap();
+        let mut pop = e.initialize("wf-1").await.expect("测试：异步操作应成功");
         let reflections =
             vec![Reflection::new("exec-1".to_string()).with_quality(8, "good".to_string())];
-        let best = e.evolve_generation(&mut pop, &reflections).await.unwrap();
+        let best = e.evolve_generation(&mut pop, &reflections).await.expect("测试：异步操作应成功");
         assert!((best.fitness - 0.8).abs() < 0.01, "expected fitness ~0.8, got {}", best.fitness);
     }
 
@@ -637,7 +637,7 @@ mod tests {
         let e = WorkflowEvolverImpl::with_defaults();
         let reflections =
             vec![Reflection::new("exec-1".to_string()).with_quality(5, "mid".to_string())];
-        let result = e.run("wf-1", &reflections).await.unwrap();
+        let result = e.run("wf-1", &reflections).await.expect("测试：异步操作应成功");
         assert_eq!(result.template_id, "wf-1");
         assert!(result.validation.passed);
     }
@@ -646,7 +646,7 @@ mod tests {
     async fn test_should_auto_evolve_below_threshold() {
         let e = WorkflowEvolverImpl::with_defaults();
         // 不调用 record_reflection,默认返回 false
-        let should = e.should_auto_evolve("wf-1").await.unwrap();
+        let should = e.should_auto_evolve("wf-1").await.expect("测试：异步操作应成功");
         assert!(!should);
     }
 
@@ -656,14 +656,14 @@ mod tests {
         for _ in 0..5 {
             e.record_reflection("wf-1", 3, WorkflowRunStatus::Failed).await;
         }
-        let should = e.should_auto_evolve("wf-1").await.unwrap();
+        let should = e.should_auto_evolve("wf-1").await.expect("测试：异步操作应成功");
         assert!(should, "expected auto-evolve trigger due to failures");
     }
 
     #[tokio::test]
     async fn test_get_stats_initial() {
         let e = WorkflowEvolverImpl::with_defaults();
-        let stats = e.get_stats().await.unwrap();
+        let stats = e.get_stats().await.expect("测试：异步操作应成功");
         assert_eq!(stats.generation, 0);
         assert!(!stats.converged);
     }
@@ -671,7 +671,7 @@ mod tests {
     #[tokio::test]
     async fn test_is_running_default_false() {
         let e = WorkflowEvolverImpl::with_defaults();
-        assert!(!e.is_running().await.unwrap());
+        assert!(!e.is_running().await.expect("测试：异步操作应成功"));
     }
 
     // ── 方案 4B 启发式调整测试 ──
@@ -718,7 +718,7 @@ mod tests {
             proposed_changes: vec![],
         };
         let mut reflection = Reflection::new("exec-1".to_string()).with_quality(3, "bad".into());
-        reflection.metadata = Some(serde_json::to_value(&meta).unwrap());
+        reflection.metadata = Some(serde_json::to_value(&meta).expect("测试应成功"));
 
         let changes = apply_heuristic_adjustments(&mut genome, &[reflection]);
         assert!(!changes.is_empty(), "expected heuristic changes");

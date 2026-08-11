@@ -441,8 +441,9 @@ mod tests {
     #[test]
     fn test_reasoning_state_serialization() {
         let state = ReasoningState::Acting;
-        let json = serde_json::to_string(&state).unwrap();
-        let deserialized: ReasoningState = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&state).expect("测试：JSON序列化应成功");
+        let deserialized: ReasoningState =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized, ReasoningState::Acting);
     }
 
@@ -467,8 +468,9 @@ mod tests {
     #[test]
     fn test_action_type_serialization() {
         let action_type = ActionType::Reflect;
-        let json = serde_json::to_string(&action_type).unwrap();
-        let deserialized: ActionType = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&action_type).expect("测试：JSON序列化应成功");
+        let deserialized: ActionType =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized, ActionType::Reflect);
     }
 
@@ -520,8 +522,9 @@ mod tests {
     #[test]
     fn test_react_config_serialization() {
         let config = ReActConfig::default();
-        let json = serde_json::to_string(&config).unwrap();
-        let deserialized: ReActConfig = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&config).expect("测试：JSON序列化应成功");
+        let deserialized: ReActConfig =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.max_iterations, 50);
         assert_eq!(deserialized.max_depth, 10);
     }
@@ -553,7 +556,7 @@ mod tests {
         let mut ctx = ReasoningContext::new("input");
         assert!(ctx.current_goal.is_none());
         ctx.set_goal("solve problem".to_string());
-        assert_eq!(ctx.current_goal.unwrap(), "solve problem");
+        assert_eq!(ctx.current_goal.expect("测试应成功"), "solve problem");
     }
 
     #[test]
@@ -596,10 +599,11 @@ mod tests {
         ctx.increment_iteration();
         ctx.increment_depth();
 
-        let json = serde_json::to_string(&ctx).unwrap();
-        let deserialized: ReasoningContext = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&ctx).expect("测试：JSON序列化应成功");
+        let deserialized: ReasoningContext =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.original_input, "test input");
-        assert_eq!(deserialized.current_goal.unwrap(), "goal");
+        assert_eq!(deserialized.current_goal.expect("测试应成功"), "goal");
         assert_eq!(deserialized.sub_goals.len(), 1);
         assert_eq!(deserialized.iteration, 1);
         assert_eq!(deserialized.depth, 1);

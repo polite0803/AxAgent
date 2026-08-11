@@ -128,7 +128,7 @@ impl EntityExtractor {
     fn extract(&self, text: &str) -> Vec<Entity> {
         let mut entities = Vec::new();
 
-        let url_regex = regex_lite::Regex::new(r"https?://[^\s]+").unwrap();
+        let url_regex = regex_lite::Regex::new(r"https?://[^\s]+").expect("正则表达式：URL 模式");
         for cap in url_regex.find_iter(text) {
             entities.push(Entity {
                 entity_type: EntityType::Url,
@@ -137,7 +137,8 @@ impl EntityExtractor {
             });
         }
 
-        let file_path_regex = regex_lite::Regex::new(r"[a-zA-Z]:\\[^\s]+|/[^\s]+").unwrap();
+        let file_path_regex =
+            regex_lite::Regex::new(r"[a-zA-Z]:\\[^\s]+|/[^\s]+").expect("正则表达式：文件路径模式");
         for cap in file_path_regex.find_iter(text) {
             entities.push(Entity {
                 entity_type: EntityType::FilePath,
@@ -333,8 +334,8 @@ mod tests {
             TaskType::ProblemSolving,
         ];
         for t in types {
-            let json = serde_json::to_string(&t).unwrap();
-            let de: TaskType = serde_json::from_str(&json).unwrap();
+            let json = serde_json::to_string(&t).expect("测试：JSON序列化应成功");
+            let de: TaskType = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
             assert_eq!(de, t);
         }
     }
@@ -350,8 +351,8 @@ mod tests {
             EntityType::Framework,
         ];
         for t in types {
-            let json = serde_json::to_string(&t).unwrap();
-            let de: EntityType = serde_json::from_str(&json).unwrap();
+            let json = serde_json::to_string(&t).expect("测试：JSON序列化应成功");
+            let de: EntityType = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
             assert_eq!(de, t);
         }
     }
@@ -363,8 +364,8 @@ mod tests {
             value: "https://example.com".to_string(),
             confidence: 0.95,
         };
-        let json = serde_json::to_string(&entity).unwrap();
-        let de: Entity = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&entity).expect("测试：JSON序列化应成功");
+        let de: Entity = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(de.value, "https://example.com");
     }
 
@@ -372,8 +373,8 @@ mod tests {
     fn test_constraint_serialization() {
         let constraint =
             Constraint { constraint_type: "speed".to_string(), value: "fast".to_string() };
-        let json = serde_json::to_string(&constraint).unwrap();
-        let de: Constraint = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&constraint).expect("测试：JSON序列化应成功");
+        let de: Constraint = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(de.constraint_type, "speed");
     }
 }

@@ -6,26 +6,13 @@
  * - 交易标记（买入/卖出）
  * - 回撤曲线
  * - 绩效指标摘要
- * - 图表拖动缩放
  *
  * 接收数据来自 BacktestRunResponse 或 BacktestPage 的回测结果
  */
 
-import { useMemo } from "react";
+import * as echarts from "echarts";
+import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ComposedChart,
-  Legend,
-  Line,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 
 /** 权益曲线数据点（对齐后端 EquityPoint 的 camelCase） */
 export interface EquityPointData {
@@ -70,6 +57,36 @@ export interface BacktestChartProps {
   width?: string | number;
 }
 
+/** 通用 echarts hook（回测专用，dark 主题） */
+function useBacktestECharts(
+  optionBuilder: () => echarts.EChartsOption,
+  deps: unknown[],
+): React.RefObject<HTMLDivElement | null> {
+  const ref = useRef<HTMLDivElement>(null);
+  const instance = useRef<echarts.ECharts | null>(null);
+
+  useEffect(() => {
+    if (!ref.current) { return; }
+    if (!instance.current) {
+      instance.current = echarts.init(ref.current, "dark");
+    }
+    instance.current.setOption(optionBuilder());
+    const handleResize = () => instance.current?.resize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+
+  useEffect(() => {
+    return () => {
+      instance.current?.dispose();
+      instance.current = null;
+    };
+  }, []);
+
+  return ref;
+}
+
 /**
  * 回测权益曲线 + 交易标记组合图
  */
@@ -86,22 +103,213 @@ export function BacktestChart({
   // 回撤数据（独立图表）
   const drawdownData = useMemo(() => {
     if (equityCurve.length < 2) { return []; }
-    const peakValues: number[] = [];
     let peak = equityCurve[0].equity;
     return equityCurve.map((ep) => {
       if (ep.equity > peak) { peak = ep.equity; }
       const dd = peak > 0 ? ((peak - ep.equity) / peak) * 100 : 0;
-      peakValues.push(peak);
       return { date: ep.date, drawdown: -Math.abs(dd) };
     });
   }, [equityCurve]);
 
   // 格式化金额
-  const fmtMoney = (v: any) => {
+  const fmtMoney = (v: number) => {
     if (Math.abs(v) >= 1_0000_0000) { return `¥${(v / 1_0000_0000).toFixed(2)}亿`; }
     if (Math.abs(v) >= 1_0000) { return `¥${(v / 1_0000).toFixed(2)}万`; }
     return `¥${v.toFixed(2)}`;
   };
+
+  // 权益曲线 echarts option
+  const equityRef = useBacktestECharts(
+    () => {
+      const dates = equityCurve.map((d) => d.date);
+      const hasBenchmark = benchmarkLine && benchmarkLine.length > 0;
+
+      const series: echarts.SeriesOption[] = [
+        {
+          name: "equity",
+          type: "line",
+          data: equityCurve.map((d) => d.equity),
+          smooth: true,
+          showSymbol: false,
+          lineStyle: { color: "#22c55e", width: 2 },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: "rgba(34, 197, 94, 0.25)" },
+              { offset: 1, color: "rgba(34, 197, 94, 0.02)" },
+            ]),
+          },
+        },
+        {
+          name: "cash",
+          type: "line",
+          data: equityCurve.map((d) => d.cash),
+          smooth: true,
+          showSymbol: false,
+          lineStyle: { color: "#6B7280", width: 1, type: "dashed" },
+        },
+        {
+          name: "positionValue",
+          type: "line",
+          data: equityCurve.map((d) => d.positionValue),
+          smooth: true,
+          showSymbol: false,
+          lineStyle: { color: "#F59E0B", width: 1, type: "dashed" },
+        },
+      ];
+
+      if (hasBenchmark) {
+        series.push({
+          name: "benchmark",
+          type: "line",
+          data: benchmarkLine!.map((d) => d.value),
+          smooth: true,
+          showSymbol: false,
+          lineStyle: { color: "#3B82F6", width: 1 },
+        });
+      }
+
+      // 交易标记
+      const buyTrades: number[][] = [];
+      const sellTrades: number[][] = [];
+      for (const tr of trades ?? []) {
+        const idx = dates.indexOf(tr.date);
+        if (idx < 0) { continue; }
+        const point: number[] = [idx, equityCurve[idx].equity];
+        if (tr.type === "buy") { buyTrades.push(point); }
+        else { sellTrades.push(point); }
+      }
+
+      if (buyTrades.length > 0) {
+        series.push({
+          name: "buy_marker",
+          type: "scatter",
+          data: buyTrades,
+          symbol: "triangle",
+          symbolSize: 10,
+          itemStyle: { color: "#ef4444" },
+          tooltip: { show: true, formatter: () => "买入" },
+        });
+      }
+      if (sellTrades.length > 0) {
+        series.push({
+          name: "sell_marker",
+          type: "scatter",
+          data: sellTrades,
+          symbol: "triangle",
+          symbolRotate: 180,
+          symbolSize: 10,
+          itemStyle: { color: "#22c55e" },
+          tooltip: { show: true, formatter: () => "卖出" },
+        });
+      }
+
+      const labels: Record<string, string> = {
+        equity: t("stockAnalysis.backtest.chart.equity", "净资产"),
+        cash: t("stockAnalysis.backtest.chart.cash", "现金"),
+        positionValue: t("stockAnalysis.backtest.chart.positionValue", "持仓市值"),
+        benchmark: t("stockAnalysis.backtest.chart.benchmark", "基准"),
+      };
+
+      return {
+        tooltip: {
+          trigger: "axis",
+          backgroundColor: "#1F2937",
+          borderColor: "#374151",
+          textStyle: { color: "#F3F4F6", fontSize: 12 },
+          formatter: (params: unknown) => {
+            const ps = params as { seriesName: string; value: number; axisValue: string }[];
+            let result = ps[0]?.axisValue ?? "";
+            for (const p of ps) {
+              const label = labels[p.seriesName] ?? p.seriesName;
+              if (label === "buy_marker" || label === "sell_marker") { continue; }
+              result += `<br/>${label}: ${fmtMoney(p.value)}`;
+            }
+            return result;
+          },
+        },
+        legend: {
+          textStyle: { color: "#D1D5DB", fontSize: 12 },
+          data: ["equity", "cash", "positionValue", ...(hasBenchmark ? ["benchmark"] : [])],
+        },
+        grid: { top: 36, right: 16, bottom: 24, left: 72 },
+        xAxis: {
+          type: "category",
+          data: dates,
+          axisLine: { lineStyle: { color: "#4B5563" } },
+          axisLabel: { color: "#9CA3AF", fontSize: 10 },
+          axisTick: { show: false },
+          boundaryGap: false,
+        },
+        yAxis: {
+          type: "value",
+          axisLine: { lineStyle: { color: "#4B5563" } },
+          axisLabel: {
+            color: "#9CA3AF",
+            fontSize: 10,
+            formatter: (v: number) => fmtMoney(v),
+          },
+          splitLine: { lineStyle: { color: "#374151", type: "dashed" } },
+          axisTick: { show: false },
+        },
+        series,
+      };
+    },
+    [equityCurve, benchmarkLine, trades, t],
+  );
+
+  // 回撤曲线 echarts option
+  const drawdownRef = useBacktestECharts(
+    () => ({
+      tooltip: {
+        trigger: "axis",
+        backgroundColor: "#1F2937",
+        borderColor: "#374151",
+        textStyle: { color: "#F3F4F6", fontSize: 12 },
+        formatter: (params: unknown) => {
+          const ps = params as { value: number }[];
+          return `${ps[0]?.value.toFixed(2)}%`;
+        },
+      },
+      grid: { top: 16, right: 16, bottom: 24, left: 56 },
+      xAxis: {
+        type: "category",
+        data: drawdownData.map((d) => d.date),
+        axisLine: { lineStyle: { color: "#4B5563" } },
+        axisLabel: { color: "#9CA3AF", fontSize: 10 },
+        axisTick: { show: false },
+        boundaryGap: false,
+      },
+      yAxis: {
+        type: "value",
+        min: -100,
+        max: 5,
+        axisLine: { lineStyle: { color: "#4B5563" } },
+        axisLabel: {
+          color: "#9CA3AF",
+          fontSize: 10,
+          formatter: (v: number) => `${v.toFixed(1)}%`,
+        },
+        splitLine: { lineStyle: { color: "#374151", type: "dashed" } },
+        axisTick: { show: false },
+      },
+      series: [
+        {
+          type: "line",
+          data: drawdownData.map((d) => d.drawdown),
+          smooth: true,
+          showSymbol: false,
+          lineStyle: { color: "#EF4444", width: 1 },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: "rgba(239, 68, 68, 0.25)" },
+              { offset: 1, color: "rgba(239, 68, 68, 0.02)" },
+            ]),
+          },
+        },
+      ],
+    }),
+    [drawdownData],
+  );
 
   return (
     <div className="space-y-4">
@@ -141,88 +349,7 @@ export function BacktestChart({
             </span>
           )}
         </h4>
-        <ResponsiveContainer width={width as any} height={height * 0.65}>
-          <ComposedChart data={equityCurve}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis
-              dataKey="date"
-              tick={{ fill: "#9CA3AF", fontSize: 10 }}
-              tickLine={false}
-              axisLine={{ stroke: "#4B5563" }}
-              interval="preserveStartEnd"
-            />
-            <YAxis
-              domain={["auto", "auto"]}
-              tick={{ fill: "#9CA3AF", fontSize: 10 }}
-              tickLine={false}
-              axisLine={{ stroke: "#4B5563" }}
-              tickFormatter={(v: any) => fmtMoney(v)}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "#1F2937",
-                border: "1px solid #374151",
-                borderRadius: "8px",
-                color: "#F3F4F6",
-              }}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              formatter={(value: any, name: any) => {
-                const labels: Record<string, string> = {
-                  equity: t("stockAnalysis.backtest.chart.equity", "净资产"),
-                  cash: t("stockAnalysis.backtest.chart.cash", "现金"),
-                  positionValue: t("stockAnalysis.backtest.chart.positionValue", "持仓市值"),
-                  benchmark: t("stockAnalysis.backtest.chart.benchmark", "基准"),
-                };
-                return [fmtMoney(value), labels[name] ?? name];
-              }}
-            />
-            <Legend
-              wrapperStyle={{ color: "#D1D5DB", fontSize: 12 }}
-            />
-            {/* 权益曲线面积 */}
-            <Area
-              type="monotone"
-              dataKey="equity"
-              stroke="#22c55e"
-              fill="#22c55e"
-              fillOpacity={0.1}
-              strokeWidth={2}
-              dot={false}
-              name="equity"
-            />
-            {/* 现金线 */}
-            <Line
-              type="monotone"
-              dataKey="cash"
-              stroke="#6B7280"
-              strokeWidth={1}
-              strokeDasharray="4 4"
-              dot={false}
-              name="cash"
-            />
-            {/* 持仓市值线 */}
-            <Line
-              type="monotone"
-              dataKey="positionValue"
-              stroke="#F59E0B"
-              strokeWidth={1}
-              strokeDasharray="2 2"
-              dot={false}
-              name="positionValue"
-            />
-            {/* 基准线 */}
-            {benchmarkLine && (
-              <Line
-                type="monotone"
-                dataKey="value"
-                stroke="#3B82F6"
-                strokeWidth={1}
-                dot={false}
-                name="benchmark"
-              />
-            )}
-          </ComposedChart>
-        </ResponsiveContainer>
+        <div ref={equityRef} style={{ width, height: height * 0.65 }} />
       </div>
 
       {/* 回撤曲线 */}
@@ -230,44 +357,7 @@ export function BacktestChart({
         <h4 className="text-sm font-medium text-gray-300 mb-2">
           {t("stockAnalysis.backtest.chart.drawdown", "回撤曲线")}
         </h4>
-        <ResponsiveContainer width={width as any} height={height * 0.35}>
-          <AreaChart data={drawdownData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis
-              dataKey="date"
-              tick={{ fill: "#9CA3AF", fontSize: 10 }}
-              tickLine={false}
-              axisLine={{ stroke: "#4B5563" }}
-              interval="preserveStartEnd"
-            />
-            <YAxis
-              domain={[-100, 5]}
-              tick={{ fill: "#9CA3AF", fontSize: 10 }}
-              tickLine={false}
-              axisLine={{ stroke: "#4B5563" }}
-              tickFormatter={(v: any) => `${v.toFixed(1)}%`}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "#1F2937",
-                border: "1px solid #374151",
-                borderRadius: "8px",
-                color: "#F3F4F6",
-              }}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              formatter={(value: any) => [`${value.toFixed(2)}%`, t("stockAnalysis.backtest.chart.drawdown", "回撤")]}
-            />
-            <Area
-              type="monotone"
-              dataKey="drawdown"
-              stroke="#EF4444"
-              fill="#EF4444"
-              fillOpacity={0.2}
-              strokeWidth={1}
-              dot={false}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+        <div ref={drawdownRef} style={{ width, height: height * 0.35 }} />
       </div>
 
       {/* 交易标记表（如有） */}
@@ -296,25 +386,25 @@ export function BacktestChart({
                 </tr>
               </thead>
               <tbody>
-                {trades.map((t, i) => (
+                {trades.map((trade, i) => (
                   <tr key={i} className="border-b border-gray-800 hover:bg-gray-800/40">
-                    <td className="py-1 px-2 text-gray-300">{t.date}</td>
+                    <td className="py-1 px-2 text-gray-300">{trade.date}</td>
                     <td className="py-1 px-2">
                       <span
                         className={`px-1.5 py-0.5 rounded text-xs font-medium ${
-                          t.type === "buy"
+                          trade.type === "buy"
                             ? "bg-red-900/40 text-red-400"
                             : "bg-green-900/40 text-green-400"
                         }`}
                       >
-                        {t.type === "buy" ? "买入" : "卖出"}
+                        {trade.type === "buy" ? "买入" : "卖出"}
                       </span>
                     </td>
                     <td className="py-1 px-2 text-right text-gray-300">
-                      {fmtMoney(t.price)}
+                      {fmtMoney(trade.price)}
                     </td>
                     <td className="py-1 px-2 text-gray-400 truncate max-w-[200px]">
-                      {t.reason ?? "-"}
+                      {trade.reason ?? "-"}
                     </td>
                   </tr>
                 ))}

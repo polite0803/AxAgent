@@ -932,7 +932,7 @@ mod tests {
 
         let received = bus.receive("child").await;
         assert!(received.is_some());
-        let received = received.unwrap();
+        let received = received.expect("测试应成功");
         assert_eq!(received.kind, AgentMessageKind::TaskAssign);
         assert_eq!(received.payload, "Do X");
     }
@@ -950,7 +950,7 @@ mod tests {
         let mut registry =
             SubAgentRegistry::new_with_path(&std::path::PathBuf::from("test_dispatch_agents.json"))
                 .await
-                .unwrap();
+                .expect("测试应成功");
 
         // 创建 parent 和 children
         let parent =
@@ -966,25 +966,31 @@ mod tests {
         registry
             .dispatch_task(&parent.id, &child1.id, "Analyze the codebase structure".to_string())
             .await
-            .unwrap();
+            .expect("测试应成功");
         registry
             .dispatch_task(&parent.id, &child2.id, "Write unit tests for module".to_string())
             .await
-            .unwrap();
+            .expect("测试应成功");
 
         // 验证任务已分配
         assert_eq!(
-            registry.get(&child1.id).unwrap().task.as_deref(),
+            registry.get(&child1.id).expect("测试：键应存在").task.as_deref(),
             Some("Analyze the codebase structure")
         );
         assert_eq!(
-            registry.get(&child2.id).unwrap().task.as_deref(),
+            registry.get(&child2.id).expect("测试：键应存在").task.as_deref(),
             Some("Write unit tests for module")
         );
 
         // 模拟 child1 完成
-        registry.report_completion(&child1.id, "Result A".to_string()).await.unwrap();
-        assert_eq!(registry.get(&child1.id).unwrap().status, SubAgentStatus::Completed);
+        registry
+            .report_completion(&child1.id, "Result A".to_string())
+            .await
+            .expect("测试：异步操作应成功");
+        assert_eq!(
+            registry.get(&child1.id).expect("测试：键应存在").status,
+            SubAgentStatus::Completed
+        );
 
         // 收集结果 — child1 完成，child2 待处理
         let (results, pending) = registry.collect_results(&parent.id);
@@ -993,7 +999,10 @@ mod tests {
         assert_eq!(pending[0], child2.id);
 
         // 模拟 child2 完成
-        registry.report_completion(&child2.id, "Result B".to_string()).await.unwrap();
+        registry
+            .report_completion(&child2.id, "Result B".to_string())
+            .await
+            .expect("测试：异步操作应成功");
 
         // 现在所有 child 都完成
         assert!(registry.all_children_finished(&parent.id));
@@ -1010,7 +1019,7 @@ mod tests {
         let mut registry =
             SubAgentRegistry::new_with_path(&std::path::PathBuf::from("test_progress_agents.json"))
                 .await
-                .unwrap();
+                .expect("测试应成功");
 
         let parent = registry.create("coordinator".to_string(), "Parent".to_string(), None).await;
         let child = registry
@@ -1018,8 +1027,8 @@ mod tests {
             .await;
 
         // 上报进度
-        registry.report_progress(&child.id, 0.5).await.unwrap();
-        assert!((registry.get(&child.id).unwrap().progress - 0.5).abs() < 1.0);
+        registry.report_progress(&child.id, 0.5).await.expect("测试：异步操作应成功");
+        assert!((registry.get(&child.id).expect("测试：键应存在").progress - 0.5).abs() < 1.0);
 
         // parent 应收到 ProgressReport 消息
         let msgs = registry
@@ -1027,7 +1036,8 @@ mod tests {
             .receive_by_kind(&parent.id, AgentMessageKind::ProgressReport)
             .await;
         assert_eq!(msgs.len(), 1);
-        let progress: f32 = serde_json::from_str(&msgs[0].payload).unwrap();
+        let progress: f32 =
+            serde_json::from_str(&msgs[0].payload).expect("测试：JSON反序列化应成功");
         assert!((progress - 0.5).abs() < 1.0);
 
         // 清理
@@ -1039,15 +1049,18 @@ mod tests {
         let mut registry =
             SubAgentRegistry::new_with_path(&std::path::PathBuf::from("test_error_agents.json"))
                 .await
-                .unwrap();
+                .expect("测试应成功");
 
         let parent = registry.create("coordinator".to_string(), "Parent".to_string(), None).await;
         let child = registry
             .create("worker".to_string(), "Worker".to_string(), Some(parent.id.clone()))
             .await;
 
-        registry.report_error(&child.id, "Something went wrong".to_string()).await.unwrap();
-        assert_eq!(registry.get(&child.id).unwrap().status, SubAgentStatus::Failed);
+        registry
+            .report_error(&child.id, "Something went wrong".to_string())
+            .await
+            .expect("测试：异步操作应成功");
+        assert_eq!(registry.get(&child.id).expect("测试：键应存在").status, SubAgentStatus::Failed);
 
         let msgs =
             registry.message_bus().receive_by_kind(&parent.id, AgentMessageKind::TaskError).await;
@@ -1068,7 +1081,7 @@ mod tests {
         // 相同任务应被识别为重复
         let dup = dedup.check_duplicate("Analyze the codebase structure and find bugs");
         assert!(dup.is_some());
-        assert!(dup.unwrap() >= 0.6);
+        assert!(dup.expect("测试应成功") >= 0.6);
 
         // 相似任务也应被识别
         let similar = dedup.check_duplicate("Analyze the codebase structure and find issues");

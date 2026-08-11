@@ -133,7 +133,7 @@ pub async fn resolve_references(
 }
 
 fn resolve_file_references(content: &str, base_dir: &Path) -> String {
-    let re = regex::Regex::new(r"@file:([^\s]+)").unwrap();
+    let re = regex::Regex::new(r"@file:([^\s]+)").expect("正则表达式：@file 模式");
     re.replace_all(content, |caps: &regex::Captures| {
         let ref_path = &caps[1];
         let full_path = base_dir.join(ref_path);
@@ -156,7 +156,7 @@ fn resolve_file_references(content: &str, base_dir: &Path) -> String {
 }
 
 async fn resolve_url_references(content: &str) -> String {
-    let re = regex::Regex::new(r"@url:(https?://[^\s]+)").unwrap();
+    let re = regex::Regex::new(r"@url:(https?://[^\s]+)").expect("正则表达式：@url 模式");
     let mut result = content.to_string();
 
     let caps: Vec<_> = re.captures_iter(content).collect();
@@ -195,7 +195,7 @@ async fn fetch_url_content(url: &str) -> Result<String, String> {
 }
 
 fn resolve_skill_references(content: &str, skill_dirs: &dyn KitSkillDirs) -> String {
-    let re = regex::Regex::new(r"@skill:([a-zA-Z0-9_-]+)").unwrap();
+    let re = regex::Regex::new(r"@skill:([a-zA-Z0-9_-]+)").expect("正则表达式：@skill 模式");
     let dirs = skill_dirs.skill_dirs();
 
     re.replace_all(content, |caps: &regex::Captures| {
@@ -215,7 +215,8 @@ fn resolve_skill_references(content: &str, skill_dirs: &dyn KitSkillDirs) -> Str
 }
 
 fn strip_conditional_sections(content: &str) -> String {
-    let re = regex::Regex::new(r"<!--\s*if:(\w+):(\w+)\s*-->([\s\S]*?)<!--\s*endif\s*-->").unwrap();
+    let re = regex::Regex::new(r"<!--\s*if:(\w+):(\w+)\s*-->([\s\S]*?)<!--\s*endif\s*-->")
+        .expect("正则表达式：条件块模式");
 
     re.replace_all(content, |caps: &regex::Captures| {
         let condition_type = &caps[1];
@@ -236,7 +237,7 @@ fn evaluate_condition(condition_type: &str, condition_value: &str) -> bool {
         "platform" => std::env::consts::OS == condition_value,
         "toolset" => is_toolset_available(condition_value),
         "personality" => {
-            std::env::var("AXAGENT_PERSONALITY").unwrap_or_default().eq(condition_value)
+            crate::personality::get_active_personality().unwrap_or_default().eq(condition_value)
         },
         _ => false,
     }
@@ -263,18 +264,21 @@ mod tests {
     #[test]
     fn test_context_file_format_serialization() {
         let format = ContextFileFormat::AgentsMd;
-        let json = serde_json::to_string(&format).unwrap();
-        let deserialized: ContextFileFormat = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&format).expect("测试：JSON序列化应成功");
+        let deserialized: ContextFileFormat =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized, ContextFileFormat::AgentsMd);
 
         let format = ContextFileFormat::ClaudeMd;
-        let json = serde_json::to_string(&format).unwrap();
-        let deserialized: ContextFileFormat = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&format).expect("测试：JSON序列化应成功");
+        let deserialized: ContextFileFormat =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized, ContextFileFormat::ClaudeMd);
 
         let format = ContextFileFormat::AxAgentMemory;
-        let json = serde_json::to_string(&format).unwrap();
-        let deserialized: ContextFileFormat = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&format).expect("测试：JSON序列化应成功");
+        let deserialized: ContextFileFormat =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized, ContextFileFormat::AxAgentMemory);
     }
 
@@ -286,8 +290,9 @@ mod tests {
             content: "test content".to_string(),
             format: ContextFileFormat::AgentsMd,
         };
-        let json = serde_json::to_string(&cf).unwrap();
-        let deserialized: ContextFile = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&cf).expect("测试：JSON序列化应成功");
+        let deserialized: ContextFile =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.path, PathBuf::from("/project/AGENTS.md"));
         assert_eq!(deserialized.name, "AGENTS.md");
         assert_eq!(deserialized.content, "test content");
@@ -305,8 +310,9 @@ mod tests {
             }],
             combined_content: "combined".to_string(),
         };
-        let json = serde_json::to_string(&result).unwrap();
-        let deserialized: ContextFileResult = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&result).expect("测试：JSON序列化应成功");
+        let deserialized: ContextFileResult =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.files.len(), 1);
         assert_eq!(deserialized.combined_content, "combined");
     }
@@ -325,7 +331,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_context_file_resolver_discover_empty_dir() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let resolver = ContextFileResolver::new();
         let result = resolver.discover(dir.path()).await;
         assert!(result.files.is_empty());
@@ -334,8 +340,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_context_file_resolver_discover_with_agents_md() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("AGENTS.md"), "agents content").unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
+        std::fs::write(dir.path().join("AGENTS.md"), "agents content").expect("测试应成功");
         let resolver = ContextFileResolver::new();
         let result = resolver.discover(dir.path()).await;
         assert_eq!(result.files.len(), 1);
@@ -346,8 +352,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_context_file_resolver_discover_with_claude_md() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("CLAUDE.md"), "claude content").unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
+        std::fs::write(dir.path().join("CLAUDE.md"), "claude content").expect("测试应成功");
         let resolver = ContextFileResolver::new();
         let result = resolver.discover(dir.path()).await;
         assert_eq!(result.files.len(), 1);
@@ -357,10 +363,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_context_file_resolver_discover_with_axagent_memory() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let axagent_dir = dir.path().join(".axagent");
-        std::fs::create_dir_all(&axagent_dir).unwrap();
-        std::fs::write(axagent_dir.join("MEMORY.md"), "memory content").unwrap();
+        std::fs::create_dir_all(&axagent_dir).expect("测试：创建目录应成功");
+        std::fs::write(axagent_dir.join("MEMORY.md"), "memory content").expect("测试应成功");
         let resolver = ContextFileResolver::new();
         let result = resolver.discover(dir.path()).await;
         assert_eq!(result.files.len(), 1);
@@ -370,9 +376,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_context_file_resolver_discover_multiple_files() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("AGENTS.md"), "agents").unwrap();
-        std::fs::write(dir.path().join("CLAUDE.md"), "claude").unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
+        std::fs::write(dir.path().join("AGENTS.md"), "agents").expect("测试应成功");
+        std::fs::write(dir.path().join("CLAUDE.md"), "claude").expect("测试应成功");
         let resolver = ContextFileResolver::new();
         let result = resolver.discover(dir.path()).await;
         assert_eq!(result.files.len(), 2);
@@ -380,8 +386,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_context_file_resolver_combined_content() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("AGENTS.md"), "agents content").unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
+        std::fs::write(dir.path().join("AGENTS.md"), "agents content").expect("测试应成功");
         let resolver = ContextFileResolver::new();
         let result = resolver.discover(dir.path()).await;
         assert!(result.combined_content.contains("agents content"));
@@ -390,33 +396,33 @@ mod tests {
 
     #[tokio::test]
     async fn test_context_file_resolver_caching() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("AGENTS.md"), "cached content").unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
+        std::fs::write(dir.path().join("AGENTS.md"), "cached content").expect("测试应成功");
         let resolver = ContextFileResolver::new();
         let result = resolver.discover(dir.path()).await;
         let cached = resolver.cached().await;
         assert!(cached.is_some());
-        assert_eq!(cached.unwrap().files.len(), result.files.len());
+        assert_eq!(cached.expect("测试应成功").files.len(), result.files.len());
     }
 
     #[tokio::test]
     async fn test_context_file_resolver_reload() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("AGENTS.md"), "original").unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
+        std::fs::write(dir.path().join("AGENTS.md"), "original").expect("测试应成功");
         let resolver = ContextFileResolver::new();
         let result1 = resolver.discover(dir.path()).await;
         assert_eq!(result1.files[0].content, "original");
-        std::fs::write(dir.path().join("AGENTS.md"), "updated").unwrap();
+        std::fs::write(dir.path().join("AGENTS.md"), "updated").expect("测试应成功");
         let result2 = resolver.reload(dir.path()).await;
         assert_eq!(result2.files[0].content, "updated");
     }
 
     #[tokio::test]
     async fn test_context_file_resolver_skips_hidden_dirs() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let hidden_dir = dir.path().join(".hidden");
-        std::fs::create_dir_all(&hidden_dir).unwrap();
-        std::fs::write(hidden_dir.join("AGENTS.md"), "hidden").unwrap();
+        std::fs::create_dir_all(&hidden_dir).expect("测试：创建目录应成功");
+        std::fs::write(hidden_dir.join("AGENTS.md"), "hidden").expect("测试应成功");
         let resolver = ContextFileResolver::new();
         let result = resolver.discover(dir.path()).await;
         assert!(result.files.is_empty());
@@ -424,10 +430,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_context_file_resolver_skips_node_modules() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let nm_dir = dir.path().join("node_modules");
-        std::fs::create_dir_all(&nm_dir).unwrap();
-        std::fs::write(nm_dir.join("AGENTS.md"), "nm").unwrap();
+        std::fs::create_dir_all(&nm_dir).expect("测试：创建目录应成功");
+        std::fs::write(nm_dir.join("AGENTS.md"), "nm").expect("测试应成功");
         let resolver = ContextFileResolver::new();
         let result = resolver.discover(dir.path()).await;
         assert!(result.files.is_empty());
@@ -435,10 +441,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_context_file_resolver_skips_target_dir() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let target_dir = dir.path().join("target");
-        std::fs::create_dir_all(&target_dir).unwrap();
-        std::fs::write(target_dir.join("AGENTS.md"), "target").unwrap();
+        std::fs::create_dir_all(&target_dir).expect("测试：创建目录应成功");
+        std::fs::write(target_dir.join("AGENTS.md"), "target").expect("测试应成功");
         let resolver = ContextFileResolver::new();
         let result = resolver.discover(dir.path()).await;
         assert!(result.files.is_empty());
@@ -446,10 +452,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_context_file_resolver_discovers_subdir() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let sub_dir = dir.path().join("src");
-        std::fs::create_dir_all(&sub_dir).unwrap();
-        std::fs::write(sub_dir.join("AGENTS.md"), "subdir agents").unwrap();
+        std::fs::create_dir_all(&sub_dir).expect("测试：创建目录应成功");
+        std::fs::write(sub_dir.join("AGENTS.md"), "subdir agents").expect("测试应成功");
         let resolver = ContextFileResolver::new();
         let result = resolver.discover(dir.path()).await;
         assert_eq!(result.files.len(), 1);
@@ -458,8 +464,8 @@ mod tests {
 
     #[test]
     fn test_resolve_file_references_basic() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("hello.txt"), "hello world").unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
+        std::fs::write(dir.path().join("hello.txt"), "hello world").expect("测试应成功");
         let content = "prefix @file:hello.txt suffix";
         let result = resolve_file_references(content, dir.path());
         assert_eq!(result, "prefix hello world suffix");
@@ -467,7 +473,7 @@ mod tests {
 
     #[test]
     fn test_resolve_file_references_not_found() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let content = "prefix @file:missing.txt suffix";
         let result = resolve_file_references(content, dir.path());
         assert!(result.contains("[Error reading file 'missing.txt'"));
@@ -477,10 +483,10 @@ mod tests {
 
     #[test]
     fn test_resolve_file_references_nested_path() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let sub = dir.path().join("sub");
-        std::fs::create_dir_all(&sub).unwrap();
-        std::fs::write(sub.join("data.txt"), "nested data").unwrap();
+        std::fs::create_dir_all(&sub).expect("测试：创建目录应成功");
+        std::fs::write(sub.join("data.txt"), "nested data").expect("测试应成功");
         let content = "@file:sub/data.txt";
         let result = resolve_file_references(content, dir.path());
         assert_eq!(result, "nested data");
@@ -488,9 +494,9 @@ mod tests {
 
     #[test]
     fn test_resolve_file_references_size_limit() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let big_content = "x".repeat(FILE_REF_SIZE_LIMIT + 1);
-        std::fs::write(dir.path().join("big.txt"), &big_content).unwrap();
+        std::fs::write(dir.path().join("big.txt"), &big_content).expect("测试应成功");
         let content = "@file:big.txt";
         let result = resolve_file_references(content, dir.path());
         assert!(result.contains("exceeds 100KB size limit"));
@@ -498,9 +504,9 @@ mod tests {
 
     #[test]
     fn test_resolve_file_references_multiple() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("a.txt"), "AAA").unwrap();
-        std::fs::write(dir.path().join("b.txt"), "BBB").unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
+        std::fs::write(dir.path().join("a.txt"), "AAA").expect("测试应成功");
+        std::fs::write(dir.path().join("b.txt"), "BBB").expect("测试应成功");
         let content = "@file:a.txt and @file:b.txt";
         let result = resolve_file_references(content, dir.path());
         assert_eq!(result, "AAA and BBB");
@@ -593,8 +599,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_resolve_references_file_only() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("ref.txt"), "resolved content").unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
+        std::fs::write(dir.path().join("ref.txt"), "resolved content").expect("测试应成功");
         let content = "Hello @file:ref.txt world";
         let result = resolve_references(content, dir.path(), &crate::noop_kit::NoopSkillDirs).await;
         assert_eq!(result, "Hello resolved content world");
@@ -602,8 +608,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_resolve_references_mixed_with_conditionals() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("data.md"), "data payload").unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
+        std::fs::write(dir.path().join("data.md"), "data payload").expect("测试应成功");
         let content = format!(
             "@file:data.md <!-- if:platform:{} -->platform-specific<!-- endif -->",
             std::env::consts::OS

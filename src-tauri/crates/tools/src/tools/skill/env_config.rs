@@ -355,7 +355,10 @@ impl Tool for SkillConfigTool {
 
                 let (skill_name, setting_key) = if key.contains('.') {
                     let mut parts = key.splitn(2, '.');
-                    (parts.next().unwrap().to_string(), parts.next().unwrap().to_string())
+                    (
+                        parts.next().expect("迭代器为空").to_string(),
+                        parts.next().expect("key 格式无效：缺少设置名称").to_string(),
+                    )
                 } else {
                     return Err(ToolError::invalid_input(
                         "key 格式应为 'skill.key'，例如 'my-skill.api_endpoint'",

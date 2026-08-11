@@ -474,12 +474,12 @@ mod tests {
     #[tokio::test]
     async fn test_agent_impl_adapter_execute_no_tool() {
         let mut adapter = AgentImplAdapter::new(None);
-        adapter.initialize(AgentConfig::default()).await.unwrap();
+        adapter.initialize(AgentConfig::default()).await.expect("测试：异步操作应成功");
 
         let input = AgentInput { content: "hello world".to_string(), context: None };
         let result = adapter.execute(input).await;
         assert!(result.is_ok());
-        let output = result.unwrap();
+        let output = result.expect("测试应成功");
         assert_eq!(output.content, "hello world");
         assert_eq!(output.status, AgentStatus::Completed);
         assert_eq!(output.iterations, 1);
@@ -488,7 +488,7 @@ mod tests {
     #[tokio::test]
     async fn test_agent_impl_adapter_execute_with_context_no_tool_name() {
         let mut adapter = AgentImplAdapter::new(None);
-        adapter.initialize(AgentConfig::default()).await.unwrap();
+        adapter.initialize(AgentConfig::default()).await.expect("测试：异步操作应成功");
 
         let input = AgentInput {
             content: "test content".to_string(),
@@ -496,14 +496,14 @@ mod tests {
         };
         let result = adapter.execute(input).await;
         assert!(result.is_ok());
-        let output = result.unwrap();
+        let output = result.expect("测试应成功");
         assert_eq!(output.content, "test content");
     }
 
     #[tokio::test]
     async fn test_agent_impl_adapter_pause_not_running() {
         let mut adapter = AgentImplAdapter::new(None);
-        adapter.initialize(AgentConfig::default()).await.unwrap();
+        adapter.initialize(AgentConfig::default()).await.expect("测试：异步操作应成功");
 
         let result = adapter.pause().await;
         assert!(result.is_err());
@@ -513,7 +513,7 @@ mod tests {
     #[tokio::test]
     async fn test_agent_impl_adapter_resume_not_paused() {
         let mut adapter = AgentImplAdapter::new(None);
-        adapter.initialize(AgentConfig::default()).await.unwrap();
+        adapter.initialize(AgentConfig::default()).await.expect("测试：异步操作应成功");
 
         let result = adapter.resume().await;
         assert!(result.is_err());
@@ -523,7 +523,7 @@ mod tests {
     #[tokio::test]
     async fn test_agent_impl_adapter_cancel() {
         let mut adapter = AgentImplAdapter::new(None);
-        adapter.initialize(AgentConfig::default()).await.unwrap();
+        adapter.initialize(AgentConfig::default()).await.expect("测试：异步操作应成功");
 
         let result = adapter.cancel().await;
         assert!(result.is_ok());
@@ -624,7 +624,7 @@ mod tests {
         };
         assert_eq!(input.content, "hello");
         assert!(input.context.is_some());
-        let ctx = input.context.unwrap();
+        let ctx = input.context.expect("测试应成功");
         assert_eq!(ctx["key"], "value");
     }
 
@@ -642,7 +642,7 @@ mod tests {
     #[tokio::test]
     async fn test_agent_impl_adapter_pause_from_running() {
         let mut adapter = AgentImplAdapter::new(None);
-        adapter.initialize(AgentConfig::default()).await.unwrap();
+        adapter.initialize(AgentConfig::default()).await.expect("测试：异步操作应成功");
         adapter.set_status(AgentStatus::Running).await;
 
         let result = adapter.pause().await;
@@ -653,7 +653,7 @@ mod tests {
     #[tokio::test]
     async fn test_agent_impl_adapter_resume_from_paused() {
         let mut adapter = AgentImplAdapter::new(None);
-        adapter.initialize(AgentConfig::default()).await.unwrap();
+        adapter.initialize(AgentConfig::default()).await.expect("测试：异步操作应成功");
         adapter.set_status(AgentStatus::Paused).await;
 
         let result = adapter.resume().await;
@@ -664,7 +664,7 @@ mod tests {
     #[tokio::test]
     async fn test_agent_impl_adapter_cancel_from_running() {
         let mut adapter = AgentImplAdapter::new(None);
-        adapter.initialize(AgentConfig::default()).await.unwrap();
+        adapter.initialize(AgentConfig::default()).await.expect("测试：异步操作应成功");
         adapter.set_status(AgentStatus::Running).await;
 
         let result = adapter.cancel().await;

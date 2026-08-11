@@ -119,8 +119,8 @@ mod tests {
 
     #[tokio::test]
     async fn v112_creates_all_feedback_tables() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        up(db.clone()).await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        up(db.clone()).await.expect("测试：异步操作应成功");
 
         // 验证 tool_call_logs 表存在
         let row = db
@@ -130,9 +130,9 @@ mod tests {
                     .to_string(),
             ))
             .await
-            .unwrap()
+            .expect("测试应成功")
             .expect("row should exist");
-        let cnt: i64 = row.try_get_by("cnt").unwrap();
+        let cnt: i64 = row.try_get_by("cnt").expect("测试应成功");
         assert_eq!(cnt, 1, "tool_call_logs table should exist");
 
         // 验证 memory_access_logs 表存在
@@ -143,9 +143,9 @@ mod tests {
                     .to_string(),
             ))
             .await
-            .unwrap()
+            .expect("测试应成功")
             .expect("row should exist");
-        let cnt: i64 = row.try_get_by("cnt").unwrap();
+        let cnt: i64 = row.try_get_by("cnt").expect("测试应成功");
         assert_eq!(cnt, 1, "memory_access_logs table should exist");
 
         // 验证 wiki_edit_logs 表存在
@@ -156,24 +156,24 @@ mod tests {
                     .to_string(),
             ))
             .await
-            .unwrap()
+            .expect("测试应成功")
             .expect("row should exist");
-        let cnt: i64 = row.try_get_by("cnt").unwrap();
+        let cnt: i64 = row.try_get_by("cnt").expect("测试应成功");
         assert_eq!(cnt, 1, "wiki_edit_logs table should exist");
     }
 
     #[tokio::test]
     async fn v112_is_idempotent() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        up(db.clone()).await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        up(db.clone()).await.expect("测试：异步操作应成功");
         // 第二次跑：CREATE TABLE IF NOT EXISTS 应跳过
         up(db.clone()).await.expect("v112 must be re-runnable without error");
     }
 
     #[tokio::test]
     async fn v112_can_insert_and_query_feedback_records() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        up(db.clone()).await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        up(db.clone()).await.expect("测试：异步操作应成功");
 
         // 插入 tool_call_logs 记录
         db.execute_unprepared(
@@ -183,7 +183,7 @@ mod tests {
              '{\"query\": \"test\"}', '{\"results\": []}', 1, 150, 'kb1', 1700000000)"
         )
         .await
-        .unwrap();
+        .expect("测试应成功");
 
         // 验证 tool_call_logs 数据
         let row = db
@@ -193,11 +193,11 @@ mod tests {
                     .to_string(),
             ))
             .await
-            .unwrap()
+            .expect("测试应成功")
             .expect("row should exist");
-        let tool_name: String = row.try_get_by("tool_name").unwrap();
-        let success: i32 = row.try_get_by("success").unwrap();
-        let duration_ms: i64 = row.try_get_by("duration_ms").unwrap();
+        let tool_name: String = row.try_get_by("tool_name").expect("测试应成功");
+        let success: i32 = row.try_get_by("success").expect("测试应成功");
+        let duration_ms: i64 = row.try_get_by("duration_ms").expect("测试应成功");
         assert_eq!(tool_name, "web_search");
         assert_eq!(success, 1);
         assert_eq!(duration_ms, 150);
@@ -209,7 +209,7 @@ mod tests {
              VALUES ('ma1', 'conv1', 'ns1', 'mem1', 'read', 'test query', 1, 1700000000)",
         )
         .await
-        .unwrap();
+        .expect("测试应成功");
 
         // 验证 memory_access_logs 数据
         let row = db
@@ -219,11 +219,11 @@ mod tests {
                     .to_string(),
             ))
             .await
-            .unwrap()
+            .expect("测试应成功")
             .expect("row should exist");
-        let ns_id: String = row.try_get_by("namespace_id").unwrap();
-        let access_type: String = row.try_get_by("access_type").unwrap();
-        let hit: i32 = row.try_get_by("hit").unwrap();
+        let ns_id: String = row.try_get_by("namespace_id").expect("测试应成功");
+        let access_type: String = row.try_get_by("access_type").expect("测试应成功");
+        let hit: i32 = row.try_get_by("hit").expect("测试应成功");
         assert_eq!(ns_id, "ns1");
         assert_eq!(access_type, "read");
         assert_eq!(hit, 1);
@@ -235,7 +235,7 @@ mod tests {
              VALUES ('we1', 'conv1', 'wiki1', 'note1', 'update', 'ai_generated', 0.85, 1700000000)",
         )
         .await
-        .unwrap();
+        .expect("测试应成功");
 
         // 验证 wiki_edit_logs 数据
         let row = db
@@ -245,11 +245,11 @@ mod tests {
                     .to_string(),
             ))
             .await
-            .unwrap()
+            .expect("测试应成功")
             .expect("row should exist");
-        let wiki_id: String = row.try_get_by("wiki_id").unwrap();
-        let operation: String = row.try_get_by("operation").unwrap();
-        let quality_score: f64 = row.try_get_by("quality_score").unwrap();
+        let wiki_id: String = row.try_get_by("wiki_id").expect("测试应成功");
+        let operation: String = row.try_get_by("operation").expect("测试应成功");
+        let quality_score: f64 = row.try_get_by("quality_score").expect("测试应成功");
         assert_eq!(wiki_id, "wiki1");
         assert_eq!(operation, "update");
         assert!((quality_score - 0.85).abs() < 0.001);

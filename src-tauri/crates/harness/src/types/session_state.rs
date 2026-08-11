@@ -319,7 +319,7 @@ mod tests {
             SessionStatus::Cancelled,
         ] {
             let s = status.as_str();
-            assert_eq!(SessionStatus::from_str(s).unwrap(), status);
+            assert_eq!(SessionStatus::from_str(s).expect("测试应成功"), status);
         }
     }
 
@@ -327,15 +327,18 @@ mod tests {
     fn session_status_backward_compat() {
         // 历史遗留值必须能正确解析
         assert_eq!(
-            SessionStatus::from_str("waiting_for_confirmation").unwrap(),
+            SessionStatus::from_str("waiting_for_confirmation").expect("测试应成功"),
             SessionStatus::WaitingApproval
         );
         assert_eq!(
-            SessionStatus::from_str("waiting_permission").unwrap(),
+            SessionStatus::from_str("waiting_permission").expect("测试应成功"),
             SessionStatus::WaitingApproval
         );
-        assert_eq!(SessionStatus::from_str("error").unwrap(), SessionStatus::Failed);
-        assert_eq!(SessionStatus::from_str("processing").unwrap(), SessionStatus::Running);
+        assert_eq!(SessionStatus::from_str("error").expect("测试应成功"), SessionStatus::Failed);
+        assert_eq!(
+            SessionStatus::from_str("processing").expect("测试应成功"),
+            SessionStatus::Running
+        );
     }
 
     #[test]
@@ -349,7 +352,7 @@ mod tests {
             TaskStatus::Skipped,
         ] {
             let s = status.as_str();
-            assert_eq!(TaskStatus::from_str(s).unwrap(), status);
+            assert_eq!(TaskStatus::from_str(s).expect("测试应成功"), status);
         }
     }
 
@@ -364,13 +367,13 @@ mod tests {
             StepStatus::Skipped,
         ] {
             let s = status.as_str();
-            assert_eq!(StepStatus::from_str(s).unwrap(), status);
+            assert_eq!(StepStatus::from_str(s).expect("测试应成功"), status);
         }
     }
 
     #[test]
     fn step_status_queued_alias() {
-        assert_eq!(StepStatus::from_str("queued").unwrap(), StepStatus::Pending);
+        assert_eq!(StepStatus::from_str("queued").expect("测试应成功"), StepStatus::Pending);
     }
 
     #[test]
@@ -393,10 +396,12 @@ mod tests {
 
     #[test]
     fn serde_snake_case() {
-        let json = serde_json::to_string(&SessionStatus::WaitingApproval).unwrap();
+        let json =
+            serde_json::to_string(&SessionStatus::WaitingApproval).expect("测试：JSON序列化应成功");
         assert_eq!(json, "\"waiting_approval\"");
 
-        let parsed: SessionStatus = serde_json::from_str("\"waiting_approval\"").unwrap();
+        let parsed: SessionStatus =
+            serde_json::from_str("\"waiting_approval\"").expect("测试：JSON反序列化应成功");
         assert_eq!(parsed, SessionStatus::WaitingApproval);
     }
 

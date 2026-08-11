@@ -592,7 +592,7 @@ mod tests {
                 &[],
             )
             .await
-            .unwrap();
+            .expect("测试应成功");
         assert!(result.reward > 0.0);
         assert_eq!(result.categories.len(), 5);
         assert!(result.reasoning.contains("correctness="));
@@ -688,9 +688,10 @@ mod tests {
             reasoning: "high quality step".into(),
             categories: vec![(RewardCategory::Correctness, 0.9), (RewardCategory::Coherence, 0.8)],
         };
-        let json = serde_json::to_string(&sr).unwrap();
+        let json = serde_json::to_string(&sr).expect("测试：JSON序列化应成功");
         assert!(json.contains("Correctness"));
-        let deserialized: StepReward = serde_json::from_str(&json).unwrap();
+        let deserialized: StepReward =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.step_index, 2);
         assert!((deserialized.reward - 0.85).abs() < f64::EPSILON);
     }
@@ -708,8 +709,9 @@ mod tests {
             outcome_reward: 1.0,
             weighted_reward: 0.82,
         };
-        let json = serde_json::to_string(&result).unwrap();
-        let deserialized: ProcessRewardResult = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&result).expect("测试：JSON序列化应成功");
+        let deserialized: ProcessRewardResult =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert!((deserialized.aggregate_reward - 0.7).abs() < f64::EPSILON);
         assert!((deserialized.outcome_reward - 1.0).abs() < f64::EPSILON);
     }

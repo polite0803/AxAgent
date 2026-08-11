@@ -63,5 +63,5 @@ fn test_registry_get_returns_valid_adapter() {
     let adapter = registry.get("anthropic");
     assert!(adapter.is_some());
     // The adapter trait object should be usable — at minimum it's not null
-    let _ = adapter.unwrap();
+    let _ = adapter.expect("测试应成功");
 }

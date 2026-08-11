@@ -455,10 +455,10 @@ mod tests {
         let step = &traj.steps[0];
         assert!(step.tool_calls.is_some());
         assert!(step.tool_results.is_some());
-        assert_eq!(step.tool_calls.as_ref().unwrap().len(), 1);
-        assert_eq!(step.tool_calls.as_ref().unwrap()[0].name, "read_file");
-        assert_eq!(step.tool_results.as_ref().unwrap().len(), 1);
-        assert_eq!(step.tool_results.as_ref().unwrap()[0].tool_name, "read_file");
+        assert_eq!(step.tool_calls.as_ref().expect("测试：引用应存在").len(), 1);
+        assert_eq!(step.tool_calls.as_ref().expect("测试：引用应存在")[0].name, "read_file");
+        assert_eq!(step.tool_results.as_ref().expect("测试：引用应存在").len(), 1);
+        assert_eq!(step.tool_results.as_ref().expect("测试：引用应存在")[0].tool_name, "read_file");
     }
 
     #[tokio::test]
@@ -631,8 +631,14 @@ mod tests {
 
         let traj = recorder.stop_recording().await;
         assert_eq!(traj.steps.len(), 2);
-        assert_eq!(traj.steps[0].tool_calls.as_ref().unwrap()[0].name, "read_file");
-        assert_eq!(traj.steps[1].tool_calls.as_ref().unwrap()[0].name, "write_file");
+        assert_eq!(
+            traj.steps[0].tool_calls.as_ref().expect("测试：引用应存在")[0].name,
+            "read_file"
+        );
+        assert_eq!(
+            traj.steps[1].tool_calls.as_ref().expect("测试：引用应存在")[0].name,
+            "write_file"
+        );
     }
 
     #[tokio::test]

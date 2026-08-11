@@ -206,7 +206,7 @@ impl VectorStore {
     /// All upsert threads for the same `collection_id` will share one mutex,
     /// ensuring `MAX(rowid)+1` is safe. Different collections remain fully concurrent.
     fn collection_upsert_mutex(&self, collection_id: &str) -> Arc<tokio::sync::Mutex<()>> {
-        let mut map = self.upsert_locks.lock().unwrap();
+        let mut map = self.upsert_locks.lock().unwrap_or_else(|e| e.into_inner());
         map.entry(collection_id.to_string())
             .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
             .clone()
@@ -779,6 +779,7 @@ impl VectorStore {
                 self.registry_update_vector_count(collection_id).await;
                 let cid = collection_id.to_string();
                 let db = self.clone();
+                // Fire-and-forget: FTS 索引重建失败不应阻塞主写入路径，但需记录错误。
                 tokio::spawn(async move {
                     db.rebuild_fts_index(&cid).await;
                 });
@@ -1023,6 +1024,7 @@ impl VectorStore {
         self.registry_update_vector_count(knowledge_base_id).await;
         let cid = knowledge_base_id.to_string();
         let db = self.clone();
+        // Fire-and-forget: FTS 索引重建失败不应阻塞主删除路径
         tokio::spawn(async move {
             db.rebuild_fts_index(&cid).await;
         });

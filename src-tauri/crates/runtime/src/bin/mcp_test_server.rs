@@ -120,7 +120,7 @@ fn main() {
         response: &serde_json::Value,
         use_lowercase: bool,
     ) {
-        let body = serde_json::to_vec(response).unwrap();
+        let body = serde_json::to_vec(response).expect("MCP 测试服务：序列化响应应成功");
         let header_name = if use_lowercase {
             "content-length"
         } else {

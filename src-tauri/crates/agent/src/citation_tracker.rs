@@ -346,7 +346,7 @@ mod tests {
         let retrieved = tracker.get_citation(&id).await;
 
         assert!(retrieved.is_some());
-        assert_eq!(retrieved.unwrap().source_url, "https://example.com");
+        assert_eq!(retrieved.expect("测试应成功").source_url, "https://example.com");
     }
 
     #[tokio::test]

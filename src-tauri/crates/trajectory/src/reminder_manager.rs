@@ -146,22 +146,23 @@ impl ReminderManager {
         let _ = reminder;
 
         if should_reschedule {
-            let recurrence = recurrence.unwrap();
+            let recurrence =
+                recurrence.expect("提醒管理：should_reschedule 为 true 时应有 recurrence");
             let new_scheduled_at = self.calculate_next_occurrence(
                 current_scheduled_at,
                 recurrence.frequency,
                 recurrence.interval,
             );
 
-            let reminder = self.reminders.get_mut(id).unwrap();
+            let reminder = self.reminders.get_mut(id).expect("提醒管理：reminder 应存在");
             reminder.scheduled_at = new_scheduled_at;
 
-            let schedule = self.schedules.get_mut(id).unwrap();
+            let schedule = self.schedules.get_mut(id).expect("提醒管理：schedule 应存在");
             schedule.next_trigger = new_scheduled_at;
         }
 
         self.completed_history.push(completed_reminder);
-        Ok(self.reminders.get(id).unwrap().clone())
+        Ok(self.reminders.get(id).expect("键不存在").clone())
     }
 
     fn calculate_next_occurrence(

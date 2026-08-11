@@ -384,8 +384,8 @@ mod tests {
         let formats =
             vec![DataFormat::Jsonl, DataFormat::Alpaca, DataFormat::ChatML, DataFormat::OpenAI];
         for fmt in formats {
-            let json = serde_json::to_string(&fmt).unwrap();
-            let de: DataFormat = serde_json::from_str(&json).unwrap();
+            let json = serde_json::to_string(&fmt).expect("测试：JSON序列化应成功");
+            let de: DataFormat = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
             assert_eq!(de, fmt);
         }
     }
@@ -400,8 +400,9 @@ mod tests {
             PreprocessingStep::Truncate { max_length: 512 },
         ];
         for step in steps {
-            let json = serde_json::to_string(&step).unwrap();
-            let _: PreprocessingStep = serde_json::from_str(&json).unwrap();
+            let json = serde_json::to_string(&step).expect("测试：JSON序列化应成功");
+            let _: PreprocessingStep =
+                serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         }
     }
 
@@ -413,16 +414,16 @@ mod tests {
             DatasetSource::Synthetic,
         ];
         for source in sources {
-            let json = serde_json::to_string(&source).unwrap();
-            let _: DatasetSource = serde_json::from_str(&json).unwrap();
+            let json = serde_json::to_string(&source).expect("测试：JSON序列化应成功");
+            let _: DatasetSource = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         }
     }
 
     #[test]
     fn test_fine_tune_sample_serialization() {
         let sample = make_sample("s1", "input text", "output text");
-        let json = serde_json::to_string(&sample).unwrap();
-        let de: FineTuneSample = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&sample).expect("测试：JSON序列化应成功");
+        let de: FineTuneSample = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(de.id, "s1");
         assert_eq!(de.input, "input text");
     }
@@ -440,8 +441,9 @@ mod tests {
                 format_compliant: true,
             },
         };
-        let json = serde_json::to_string(&result).unwrap();
-        let de: DatasetValidationResult = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&result).expect("测试：JSON序列化应成功");
+        let de: DatasetValidationResult =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert!(de.valid);
         assert_eq!(de.stats.total_samples, 5);
     }

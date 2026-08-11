@@ -281,7 +281,9 @@ mod tests {
     fn stops_running_task() {
         let registry = TaskRegistry::new();
         let task = registry.create("Stoppable", None);
-        registry.set_status(&task.task_id, RegistryTaskStatus::Running).unwrap();
+        registry
+            .set_status(&task.task_id, RegistryTaskStatus::Running)
+            .expect("测试：set_status 应成功");
 
         let stopped = registry.stop(&task.task_id).expect("stop should succeed");
         assert_eq!(stopped.status, RegistryTaskStatus::Stopped);
@@ -319,7 +321,7 @@ mod tests {
         let task = registry.create("Team task", None);
         registry.assign_team(&task.task_id, "team_abc").expect("assign should succeed");
 
-        let fetched = registry.get(&task.task_id).unwrap();
+        let fetched = registry.get(&task.task_id).expect("测试：get 应成功");
         assert_eq!(fetched.team_id.as_deref(), Some("team_abc"));
 
         let removed = registry.remove(&task.task_id);

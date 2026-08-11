@@ -333,7 +333,8 @@ pub(crate) async fn handle_non_stream_with_failover(
             },
             Err(e) => {
                 let should_retry = attempt < KEY_FAILOVER_MAX_RETRIES
-                    && matches!(&e, axagent_harness::core_error::AxAgentError::Provider(msg) if is_retriable_key_error(msg));
+                    && (matches!(&e, axagent_harness::core_error::AxAgentError::Provider(msg) if is_retriable_key_error(msg))
+                        || matches!(&e, axagent_harness::core_error::AxAgentError::Execution { context, .. } if is_retriable_key_error(context)));
 
                 if should_retry {
                     let _ = state

@@ -1181,11 +1181,11 @@ mod workspace_sessions_dir_tests {
             result.is_ok(),
             "workspace_sessions_dir should succeed for a valid CWD, got: {result:?}"
         );
-        let dir = result.unwrap();
+        let dir = result.expect("测试应成功");
         // The returned path should be non-empty and end with a hash component
         assert!(!dir.as_os_str().is_empty());
         // Two calls with the same CWD should produce identical paths (deterministic)
-        let result2 = workspace_sessions_dir(&tmp).unwrap();
+        let result2 = workspace_sessions_dir(&tmp).expect("测试应成功");
         assert_eq!(dir, result2, "workspace_sessions_dir must be deterministic");
 
         fs::remove_dir_all(&tmp).ok();

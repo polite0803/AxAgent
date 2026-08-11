@@ -260,6 +260,8 @@ pub struct AppState {
     pub batch_processor: Arc<axagent_trajectory::BatchProcessor>,
     pub skill_evolution_engine: Arc<tokio::sync::Mutex<axagent_trajectory::SkillEvolutionEngine>>,
     pub skill_proposal_service: Arc<TokioRwLock<axagent_trajectory::SkillProposalService>>,
+    /// 技能学习管理器 — 编排技能创建/改进/审查/审批全流程
+    pub skill_learning_manager: Arc<TokioRwLock<axagent_trajectory::SkillLearningManager>>,
     pub auto_memory_extractor: Arc<TokioRwLock<axagent_trajectory::AutoMemoryExtractor>>,
     pub parallel_execution_service:
         Arc<tokio::sync::RwLock<axagent_trajectory::ParallelExecutionService>>,
@@ -427,6 +429,13 @@ pub struct AppState {
     pub skill: SkillState,
     pub learning: LearningEngineState,
     pub tool: ToolState,
+    /// 记忆写审批门配置 (P0-4)
+    pub memory_write_approval_config:
+        Arc<tokio::sync::RwLock<axagent_harness::memory::MemoryWriteApprovalConfig>>,
+    /// 待审批的记忆写入列表 (P0-4)
+    pub pending_memory_writes: Arc<
+        tokio::sync::RwLock<Vec<(String, axagent_harness::memory::MemoryWriteApprovalRequest)>>,
+    >,
 }
 
 impl Drop for AppState {

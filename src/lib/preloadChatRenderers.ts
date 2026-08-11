@@ -11,7 +11,7 @@ export function preloadChatRenderers(): Promise<void> {
 
   preloadPromise = (async () => {
     try {
-      const [streamMonacoModule] = await Promise.all([import("stream-monaco")]);
+      const streamMonacoModule = await import("stream-monaco");
 
       preloadExtendedLanguageIcons();
 

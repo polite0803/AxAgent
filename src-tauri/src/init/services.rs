@@ -93,12 +93,16 @@ fn start_obsidian_vaults_registration(state: &AppState) {
         let db = harness_state.db();
         match axagent_dao::repo::knowledge::list_knowledge_bases(db).await {
             Ok(all_kbs) => {
+                // 用 filter_map 同时过滤 + 提取 vault_path，避免后续 unwrap() panic
                 let vault_kbs: Vec<_> = all_kbs
                     .iter()
-                    .filter(|kb| {
-                        kb.enabled
-                            && matches!(kb.kind, axagent_harness::KbKind::ConnectedVault)
-                            && kb.vault_path.is_some()
+                    .filter_map(|kb| {
+                        if kb.enabled && matches!(kb.kind, axagent_harness::KbKind::ConnectedVault)
+                        {
+                            kb.vault_path.as_ref().map(|path| (kb, path.clone()))
+                        } else {
+                            None
+                        }
                     })
                     .collect();
 
@@ -109,15 +113,15 @@ fn start_obsidian_vaults_registration(state: &AppState) {
 
                 let mut registered = 0usize;
                 let mut failed = 0usize;
-                for kb in &vault_kbs {
-                    let root = std::path::PathBuf::from(kb.vault_path.as_ref().unwrap());
+                for (kb, vault_path) in &vault_kbs {
+                    let root = std::path::PathBuf::from(vault_path);
                     match axagent_tools::tools::obsidian::register_vault(&kb.id, root) {
                         Ok(()) => {
                             tracing::info!(
                                 "[obsidian] 启动注册 ConnectedVault KB: id={} name={} vault={}",
                                 kb.id,
                                 kb.name,
-                                kb.vault_path.as_ref().unwrap()
+                                vault_path
                             );
                             registered += 1;
                         },

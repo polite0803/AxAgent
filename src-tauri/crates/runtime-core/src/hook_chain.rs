@@ -253,7 +253,7 @@ mod tests {
 
         let decision = chain.execute_pre_tool_call(&ctx).await;
         assert!(decision.is_some());
-        match decision.unwrap() {
+        match decision.expect("测试应成功") {
             HookDecision::Veto { reason } => assert_eq!(reason, "test veto"),
             _ => panic!("Expected veto"),
         }

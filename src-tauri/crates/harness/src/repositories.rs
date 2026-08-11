@@ -26,53 +26,62 @@ pub use crate::wiki_dtos::{
 use std::collections::HashMap;
 
 pub fn set_note_repository(repo: Arc<dyn NoteRepository>) {
-    get_service_registry().read().unwrap().set_note_repository(repo);
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).set_note_repository(repo);
 }
 
 pub fn note_repository() -> Arc<dyn NoteRepository> {
-    get_service_registry().read().unwrap().note_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).note_repository()
 }
 
 pub fn set_wiki_repository(repo: Arc<dyn WikiRepository>) {
-    get_service_registry().read().unwrap().set_wiki_repository(repo);
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).set_wiki_repository(repo);
 }
 
 pub fn wiki_repository() -> Arc<dyn WikiRepository> {
-    get_service_registry().read().unwrap().wiki_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).wiki_repository()
 }
 
 pub fn set_wiki_page_repository(repo: Arc<dyn WikiPageRepository>) {
-    get_service_registry().read().unwrap().set_wiki_page_repository(repo);
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).set_wiki_page_repository(repo);
 }
 
 pub fn wiki_page_repository() -> Arc<dyn WikiPageRepository> {
-    get_service_registry().read().unwrap().wiki_page_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).wiki_page_repository()
 }
 
 pub fn set_wiki_source_repository(repo: Arc<dyn WikiSourceRepository>) {
-    get_service_registry().read().unwrap().set_wiki_source_repository(repo);
+    get_service_registry()
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .set_wiki_source_repository(repo);
 }
 
 pub fn wiki_source_repository() -> Arc<dyn WikiSourceRepository> {
-    get_service_registry().read().unwrap().wiki_source_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).wiki_source_repository()
 }
 
 pub fn set_note_backlink_repository(repo: Arc<dyn NoteBacklinkRepository>) {
-    get_service_registry().read().unwrap().set_note_backlink_repository(repo);
+    get_service_registry()
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .set_note_backlink_repository(repo);
 }
 
 pub fn note_backlink_repository() -> Arc<dyn NoteBacklinkRepository> {
-    get_service_registry().read().unwrap().note_backlink_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).note_backlink_repository()
 }
 
 // ── WikiOperationRepository ───────────────────
 
 pub fn set_wiki_operation_repository(repo: Arc<dyn WikiOperationRepository>) {
-    get_service_registry().read().unwrap().set_wiki_operation_repository(repo);
+    get_service_registry()
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .set_wiki_operation_repository(repo);
 }
 
 pub fn wiki_operation_repository() -> Arc<dyn WikiOperationRepository> {
-    get_service_registry().read().unwrap().wiki_operation_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).wiki_operation_repository()
 }
 
 // ── ProviderRepository ────────────────────────
@@ -92,11 +101,11 @@ pub trait ProviderRepository: Send + Sync {
 }
 
 pub fn set_provider_repository(repo: Arc<dyn ProviderRepository>) {
-    get_service_registry().read().unwrap().set_provider_repository(repo);
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).set_provider_repository(repo);
 }
 
 pub fn provider_repository() -> Arc<dyn ProviderRepository> {
-    get_service_registry().read().unwrap().provider_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).provider_repository()
 }
 
 // ── PlatformConfigRepository ───────────────────
@@ -109,11 +118,14 @@ pub trait PlatformConfigRepository: Send + Sync {
 }
 
 pub fn set_platform_config_repository(repo: Arc<dyn PlatformConfigRepository>) {
-    get_service_registry().read().unwrap().set_platform_config_repository(repo);
+    get_service_registry()
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .set_platform_config_repository(repo);
 }
 
 pub fn platform_config_repository() -> Arc<dyn PlatformConfigRepository> {
-    get_service_registry().read().unwrap().platform_config_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).platform_config_repository()
 }
 
 // ── ConversationRepository ─────────────────────
@@ -137,11 +149,14 @@ pub trait ConversationRepository: Send + Sync {
 }
 
 pub fn set_conversation_repository(repo: Arc<dyn ConversationRepository>) {
-    get_service_registry().read().unwrap().set_conversation_repository(repo);
+    get_service_registry()
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .set_conversation_repository(repo);
 }
 
 pub fn conversation_repository() -> Arc<dyn ConversationRepository> {
-    get_service_registry().read().unwrap().conversation_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).conversation_repository()
 }
 
 // ── MessageRepository ──────────────────────────
@@ -168,11 +183,11 @@ pub trait MessageRepository: Send + Sync {
 }
 
 pub fn set_message_repository(repo: Arc<dyn MessageRepository>) {
-    get_service_registry().read().unwrap().set_message_repository(repo);
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).set_message_repository(repo);
 }
 
 pub fn message_repository() -> Arc<dyn MessageRepository> {
-    get_service_registry().read().unwrap().message_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).message_repository()
 }
 
 // ── GeneratedToolRepository ────────────────────
@@ -195,11 +210,14 @@ pub trait GeneratedToolRepository: Send + Sync {
 }
 
 pub fn set_generated_tool_repository(repo: Arc<dyn GeneratedToolRepository>) {
-    get_service_registry().read().unwrap().set_generated_tool_repository(repo);
+    get_service_registry()
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .set_generated_tool_repository(repo);
 }
 
 pub fn generated_tool_repository() -> Arc<dyn GeneratedToolRepository> {
-    get_service_registry().read().unwrap().generated_tool_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).generated_tool_repository()
 }
 
 // ── SettingsRepository ─────────────────────────
@@ -212,11 +230,11 @@ pub trait SettingsRepository: Send + Sync {
 }
 
 pub fn set_settings_repository(repo: Arc<dyn SettingsRepository>) {
-    get_service_registry().read().unwrap().set_settings_repository(repo);
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).set_settings_repository(repo);
 }
 
 pub fn settings_repository() -> Arc<dyn SettingsRepository> {
-    get_service_registry().read().unwrap().settings_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).settings_repository()
 }
 
 /// 安全获取 SettingsRepository（未注册时返回 None，不 panic）。
@@ -239,11 +257,11 @@ pub trait SessionRepository: Send + Sync {
 }
 
 pub fn set_session_repository(repo: Arc<dyn SessionRepository>) {
-    get_service_registry().read().unwrap().set_session_repository(repo);
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).set_session_repository(repo);
 }
 
 pub fn session_repository() -> Arc<dyn SessionRepository> {
-    get_service_registry().read().unwrap().session_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).session_repository()
 }
 
 // ── ToolExecutionRepository ────────────────────
@@ -268,11 +286,14 @@ pub trait ToolExecutionRepository: Send + Sync {
 }
 
 pub fn set_tool_execution_repository(repo: Arc<dyn ToolExecutionRepository>) {
-    get_service_registry().read().unwrap().set_tool_execution_repository(repo);
+    get_service_registry()
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .set_tool_execution_repository(repo);
 }
 
 pub fn tool_execution_repository() -> Arc<dyn ToolExecutionRepository> {
-    get_service_registry().read().unwrap().tool_execution_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).tool_execution_repository()
 }
 
 // ── MemoryRepository ───────────────────────────
@@ -287,15 +308,15 @@ pub trait MemoryRepository: Send + Sync {
 }
 
 pub fn set_memory_repository(repo: Arc<dyn MemoryRepository>) {
-    get_service_registry().read().unwrap().set_memory_repository(repo);
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).set_memory_repository(repo);
 }
 
 pub fn memory_repository() -> Arc<dyn MemoryRepository> {
-    get_service_registry().read().unwrap().memory_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).memory_repository()
 }
 
 pub fn try_memory_repository() -> Option<Arc<dyn MemoryRepository>> {
-    get_service_registry().read().unwrap().memory_repository_opt()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).memory_repository_opt()
 }
 
 #[async_trait]
@@ -304,11 +325,11 @@ pub trait DatabaseInitializer: Send + Sync {
 }
 
 pub fn set_database_initializer(init: Arc<dyn DatabaseInitializer>) {
-    get_service_registry().read().unwrap().set_database_initializer(init);
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).set_database_initializer(init);
 }
 
 pub fn database_initializer() -> Arc<dyn DatabaseInitializer> {
-    get_service_registry().read().unwrap().database_initializer()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).database_initializer()
 }
 
 // ── SkillDirsProvider ──────────────────────────
@@ -318,11 +339,14 @@ pub trait SkillDirsProvider: Send + Sync {
 }
 
 pub fn set_skill_dirs_provider(provider: Arc<dyn SkillDirsProvider>) {
-    get_service_registry().read().unwrap().set_skill_dirs_provider(provider);
+    get_service_registry()
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .set_skill_dirs_provider(provider);
 }
 
 pub fn skill_dirs_provider() -> Arc<dyn SkillDirsProvider> {
-    get_service_registry().read().unwrap().skill_dirs_provider()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).skill_dirs_provider()
 }
 
 // ── WorkflowExecutionRepository ────────────────
@@ -361,11 +385,14 @@ pub trait WorkflowExecutionRepository: Send + Sync {
 }
 
 pub fn set_workflow_execution_repository(repo: Arc<dyn WorkflowExecutionRepository>) {
-    get_service_registry().read().unwrap().set_workflow_execution_repository(repo);
+    get_service_registry()
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .set_workflow_execution_repository(repo);
 }
 
 pub fn workflow_execution_repository() -> Arc<dyn WorkflowExecutionRepository> {
-    get_service_registry().read().unwrap().workflow_execution_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).workflow_execution_repository()
 }
 
 // ── LoopCheckpointRepository ────────────────────
@@ -388,11 +415,14 @@ pub trait LoopCheckpointRepository: Send + Sync {
 }
 
 pub fn set_loop_checkpoint_repository(repo: Arc<dyn LoopCheckpointRepository>) {
-    get_service_registry().read().unwrap().set_loop_checkpoint_repository(repo);
+    get_service_registry()
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .set_loop_checkpoint_repository(repo);
 }
 
 pub fn loop_checkpoint_repository() -> Arc<dyn LoopCheckpointRepository> {
-    get_service_registry().read().unwrap().loop_checkpoint_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).loop_checkpoint_repository()
 }
 
 // ── WorkflowTemplateRepository ──────────────────
@@ -404,11 +434,14 @@ pub trait WorkflowTemplateRepository: Send + Sync {
 }
 
 pub fn set_workflow_template_repository(repo: Arc<dyn WorkflowTemplateRepository>) {
-    get_service_registry().read().unwrap().set_workflow_template_repository(repo);
+    get_service_registry()
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .set_workflow_template_repository(repo);
 }
 
 pub fn workflow_template_repository() -> Arc<dyn WorkflowTemplateRepository> {
-    get_service_registry().read().unwrap().workflow_template_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).workflow_template_repository()
 }
 
 // ── AgentProfileRepository ─────────────────────
@@ -422,11 +455,14 @@ pub trait AgentProfileRepository: Send + Sync {
 }
 
 pub fn set_agent_profile_repository(repo: Arc<dyn AgentProfileRepository>) {
-    get_service_registry().read().unwrap().set_agent_profile_repository(repo);
+    get_service_registry()
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .set_agent_profile_repository(repo);
 }
 
 pub fn agent_profile_repository() -> Arc<dyn AgentProfileRepository> {
-    get_service_registry().read().unwrap().agent_profile_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).agent_profile_repository()
 }
 
 // ── AgencyExpertRepository ─────────────────────
@@ -440,11 +476,14 @@ pub trait AgencyExpertRepository: Send + Sync {
 }
 
 pub fn set_agency_expert_repository(repo: Arc<dyn AgencyExpertRepository>) {
-    get_service_registry().read().unwrap().set_agency_expert_repository(repo);
+    get_service_registry()
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .set_agency_expert_repository(repo);
 }
 
 pub fn agency_expert_repository() -> Arc<dyn AgencyExpertRepository> {
-    get_service_registry().read().unwrap().agency_expert_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).agency_expert_repository()
 }
 
 // ── AgentRoleRepository ────────────────────────
@@ -457,11 +496,14 @@ pub trait AgentRoleRepository: Send + Sync {
 }
 
 pub fn set_agent_role_repository(repo: Arc<dyn AgentRoleRepository>) {
-    get_service_registry().read().unwrap().set_agent_role_repository(repo);
+    get_service_registry()
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .set_agent_role_repository(repo);
 }
 
 pub fn agent_role_repository() -> Arc<dyn AgentRoleRepository> {
-    get_service_registry().read().unwrap().agent_role_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).agent_role_repository()
 }
 
 // ── BackgroundTaskRepository ──────────────────
@@ -477,11 +519,14 @@ pub trait BackgroundTaskRepository: Send + Sync {
 }
 
 pub fn set_background_task_repository(repo: Arc<dyn BackgroundTaskRepository>) {
-    get_service_registry().read().unwrap().set_background_task_repository(repo);
+    get_service_registry()
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .set_background_task_repository(repo);
 }
 
 pub fn background_task_repository() -> Arc<dyn BackgroundTaskRepository> {
-    get_service_registry().read().unwrap().background_task_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).background_task_repository()
 }
 
 // ── StoredFileRepository ──────────────────────
@@ -495,11 +540,14 @@ pub trait StoredFileRepository: Send + Sync {
 }
 
 pub fn set_stored_file_repository(repo: Arc<dyn StoredFileRepository>) {
-    get_service_registry().read().unwrap().set_stored_file_repository(repo);
+    get_service_registry()
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .set_stored_file_repository(repo);
 }
 
 pub fn stored_file_repository() -> Arc<dyn StoredFileRepository> {
-    get_service_registry().read().unwrap().stored_file_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).stored_file_repository()
 }
 
 // ── KnowledgeEntityRepository ─────────────────
@@ -513,11 +561,14 @@ pub trait KnowledgeEntityRepository: Send + Sync {
 }
 
 pub fn set_knowledge_entity_repository(repo: Arc<dyn KnowledgeEntityRepository>) {
-    get_service_registry().read().unwrap().set_knowledge_entity_repository(repo);
+    get_service_registry()
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .set_knowledge_entity_repository(repo);
 }
 
 pub fn knowledge_entity_repository() -> Arc<dyn KnowledgeEntityRepository> {
-    get_service_registry().read().unwrap().knowledge_entity_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).knowledge_entity_repository()
 }
 
 // ── KnowledgeFlowRepository ───────────────────
@@ -531,11 +582,14 @@ pub trait KnowledgeFlowRepository: Send + Sync {
 }
 
 pub fn set_knowledge_flow_repository(repo: Arc<dyn KnowledgeFlowRepository>) {
-    get_service_registry().read().unwrap().set_knowledge_flow_repository(repo);
+    get_service_registry()
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .set_knowledge_flow_repository(repo);
 }
 
 pub fn knowledge_flow_repository() -> Arc<dyn KnowledgeFlowRepository> {
-    get_service_registry().read().unwrap().knowledge_flow_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).knowledge_flow_repository()
 }
 
 // ── KnowledgeInterfaceRepository ──────────────
@@ -549,11 +603,17 @@ pub trait KnowledgeInterfaceRepository: Send + Sync {
 }
 
 pub fn set_knowledge_interface_repository(repo: Arc<dyn KnowledgeInterfaceRepository>) {
-    get_service_registry().read().unwrap().set_knowledge_interface_repository(repo);
+    get_service_registry()
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .set_knowledge_interface_repository(repo);
 }
 
 pub fn knowledge_interface_repository() -> Arc<dyn KnowledgeInterfaceRepository> {
-    get_service_registry().read().unwrap().knowledge_interface_repository()
+    get_service_registry()
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .knowledge_interface_repository()
 }
 
 // ── KnowledgeDocumentRepository ───────────────
@@ -567,11 +627,14 @@ pub trait KnowledgeDocumentRepository: Send + Sync {
 }
 
 pub fn set_knowledge_document_repository(repo: Arc<dyn KnowledgeDocumentRepository>) {
-    get_service_registry().read().unwrap().set_knowledge_document_repository(repo);
+    get_service_registry()
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .set_knowledge_document_repository(repo);
 }
 
 pub fn knowledge_document_repository() -> Arc<dyn KnowledgeDocumentRepository> {
-    get_service_registry().read().unwrap().knowledge_document_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).knowledge_document_repository()
 }
 
 // ── TrajectoryRepository ──────────────────────
@@ -586,9 +649,12 @@ pub trait TrajectoryRepository: Send + Sync {
 }
 
 pub fn set_trajectory_repository(repo: Arc<dyn TrajectoryRepository>) {
-    get_service_registry().read().unwrap().set_trajectory_repository(repo);
+    get_service_registry()
+        .read()
+        .unwrap_or_else(|e| e.into_inner())
+        .set_trajectory_repository(repo);
 }
 
 pub fn trajectory_repository() -> Arc<dyn TrajectoryRepository> {
-    get_service_registry().read().unwrap().trajectory_repository()
+    get_service_registry().read().unwrap_or_else(|e| e.into_inner()).trajectory_repository()
 }

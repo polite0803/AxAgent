@@ -771,7 +771,7 @@ mod tests {
     #[tokio::test]
     async fn test_research_agent_start_sets_topic() {
         let agent = ResearchAgent::new();
-        let id = agent.start("AI safety".to_string()).await.unwrap();
+        let id = agent.start("AI safety".to_string()).await.expect("测试：异步操作应成功");
         assert!(!id.is_empty());
         let state = agent.get_state().await;
         assert_eq!(state.topic, "AI safety");
@@ -782,7 +782,7 @@ mod tests {
     #[tokio::test]
     async fn test_research_agent_start_twice_errors() {
         let agent = ResearchAgent::new();
-        agent.start("topic1".to_string()).await.unwrap();
+        agent.start("topic1".to_string()).await.expect("测试：异步操作应成功");
         let result = agent.start("topic2".to_string()).await;
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), ResearchError::AlreadyCompleted));
@@ -800,8 +800,8 @@ mod tests {
     async fn test_research_agent_subscribe() {
         let agent = ResearchAgent::new();
         let mut receiver = agent.subscribe();
-        agent.start("test topic".to_string()).await.unwrap();
-        let event = receiver.try_recv().unwrap();
+        agent.start("test topic".to_string()).await.expect("测试：异步操作应成功");
+        let event = receiver.try_recv().expect("测试：try_recv 应成功");
         match event {
             ResearchEvent::Started { topic } => {
                 assert_eq!(topic, "test topic");
@@ -821,10 +821,10 @@ mod tests {
     async fn test_research_agent_update_phase_emits_event() {
         let agent = ResearchAgent::new();
         let mut receiver = agent.subscribe();
-        agent.start("test".to_string()).await.unwrap();
+        agent.start("test".to_string()).await.expect("测试：异步操作应成功");
         let _ = receiver.try_recv();
         agent.update_phase(ResearchPhase::Searching).await;
-        let event = receiver.try_recv().unwrap();
+        let event = receiver.try_recv().expect("测试：try_recv 应成功");
         match event {
             ResearchEvent::PhaseChanged { from, to } => {
                 assert_eq!(from, ResearchPhase::Planning);
@@ -838,7 +838,7 @@ mod tests {
     async fn test_research_agent_update_phase_same_no_event() {
         let agent = ResearchAgent::new();
         let mut receiver = agent.subscribe();
-        agent.start("test".to_string()).await.unwrap();
+        agent.start("test".to_string()).await.expect("测试：异步操作应成功");
         let _ = receiver.try_recv();
         agent.update_phase(ResearchPhase::Planning).await;
         assert!(receiver.try_recv().is_err());
@@ -847,8 +847,8 @@ mod tests {
     #[tokio::test]
     async fn test_research_agent_planning_phase() {
         let agent = ResearchAgent::new();
-        agent.start("Rust programming".to_string()).await.unwrap();
-        let plan = agent.planning_phase().await.unwrap();
+        agent.start("Rust programming".to_string()).await.expect("测试：异步操作应成功");
+        let plan = agent.planning_phase().await.expect("测试：异步操作应成功");
         assert!(!plan.queries.is_empty());
     }
 
@@ -923,7 +923,7 @@ mod tests {
             "Example".to_string(),
             SourceType::Web,
         ));
-        let content = agent.generate_content(&state).await.unwrap();
+        let content = agent.generate_content(&state).await.expect("测试：异步操作应成功");
         assert!(content.contains("Test Topic"));
         assert!(content.contains("Example"));
     }
@@ -943,7 +943,7 @@ mod tests {
             "Example".to_string(),
             SourceType::Web,
         ));
-        let summary = agent.generate_summary(&state).await.unwrap();
+        let summary = agent.generate_summary(&state).await.expect("测试：异步操作应成功");
         assert!(summary.contains("Summary Topic"));
         assert!(summary.contains("1"));
     }
@@ -952,7 +952,7 @@ mod tests {
     async fn test_research_agent_generate_outline_no_generator() {
         let agent = ResearchAgent::new();
         let state = ResearchState::new("Outline Topic".to_string());
-        let outline = agent.generate_outline(&state).await.unwrap();
+        let outline = agent.generate_outline(&state).await.expect("测试：异步操作应成功");
         assert!(!outline.title.is_empty());
         assert!(!outline.sections.is_empty());
         assert!(outline.sections.len() >= 6);
@@ -994,42 +994,42 @@ mod tests {
     #[tokio::test]
     async fn test_research_event_serialization() {
         let event = ResearchEvent::Started { topic: "test".to_string() };
-        let json = serde_json::to_string(&event).unwrap();
+        let json = serde_json::to_string(&event).expect("测试：JSON序列化应成功");
         assert!(json.contains("test"));
 
         let event = ResearchEvent::PhaseChanged {
             from: ResearchPhase::Planning,
             to: ResearchPhase::Searching,
         };
-        let json = serde_json::to_string(&event).unwrap();
+        let json = serde_json::to_string(&event).expect("测试：JSON序列化应成功");
         assert!(json.contains("PhaseChanged"));
 
         let event = ResearchEvent::SourcesFound { count: 5 };
-        let json = serde_json::to_string(&event).unwrap();
+        let json = serde_json::to_string(&event).expect("测试：JSON序列化应成功");
         assert!(json.contains("5"));
 
         let event = ResearchEvent::CitationAdded { citation_id: "cit-1".to_string() };
-        let json = serde_json::to_string(&event).unwrap();
+        let json = serde_json::to_string(&event).expect("测试：JSON序列化应成功");
         assert!(json.contains("cit-1"));
 
         let event = ResearchEvent::ReportGenerated { report_id: "rep-1".to_string() };
-        let json = serde_json::to_string(&event).unwrap();
+        let json = serde_json::to_string(&event).expect("测试：JSON序列化应成功");
         assert!(json.contains("rep-1"));
 
         let event = ResearchEvent::Completed;
-        let json = serde_json::to_string(&event).unwrap();
+        let json = serde_json::to_string(&event).expect("测试：JSON序列化应成功");
         assert!(json.contains("Completed"));
 
         let event = ResearchEvent::Failed { error: "something went wrong".to_string() };
-        let json = serde_json::to_string(&event).unwrap();
+        let json = serde_json::to_string(&event).expect("测试：JSON序列化应成功");
         assert!(json.contains("something went wrong"));
 
         let event = ResearchEvent::Paused;
-        let json = serde_json::to_string(&event).unwrap();
+        let json = serde_json::to_string(&event).expect("测试：JSON序列化应成功");
         assert!(json.contains("Paused"));
 
         let event = ResearchEvent::Resumed;
-        let json = serde_json::to_string(&event).unwrap();
+        let json = serde_json::to_string(&event).expect("测试：JSON序列化应成功");
         assert!(json.contains("Resumed"));
     }
 
@@ -1052,7 +1052,7 @@ mod tests {
     #[tokio::test]
     async fn test_research_agent_extraction_phase_dedup() {
         let agent = ResearchAgent::new();
-        agent.start("test".to_string()).await.unwrap();
+        agent.start("test".to_string()).await.expect("测试：异步操作应成功");
         {
             let mut state = agent.state.write().await;
             state.add_search_result(
@@ -1076,7 +1076,7 @@ mod tests {
                 .with_credibility(0.7),
             );
         }
-        agent.extraction_phase().await.unwrap();
+        agent.extraction_phase().await.expect("测试：异步操作应成功");
         let state = agent.get_state().await;
         assert_eq!(state.citations.len(), 1);
     }
@@ -1084,7 +1084,7 @@ mod tests {
     #[tokio::test]
     async fn test_research_agent_analysis_phase() {
         let agent = ResearchAgent::new();
-        agent.start("test".to_string()).await.unwrap();
+        agent.start("test".to_string()).await.expect("测试：异步操作应成功");
         {
             let mut state = agent.state.write().await;
             state.add_citation(Citation::new(
@@ -1098,7 +1098,7 @@ mod tests {
                 SourceType::Academic,
             ));
         }
-        agent.analysis_phase().await.unwrap();
+        agent.analysis_phase().await.expect("测试：异步操作应成功");
         let state = agent.get_state().await;
         assert_eq!(state.progress.sources_processed, 2);
     }
@@ -1106,8 +1106,8 @@ mod tests {
     #[tokio::test]
     async fn test_research_agent_synthesis_phase() {
         let agent = ResearchAgent::new();
-        agent.start("test".to_string()).await.unwrap();
-        agent.synthesis_phase().await.unwrap();
+        agent.start("test".to_string()).await.expect("测试：异步操作应成功");
+        agent.synthesis_phase().await.expect("测试：异步操作应成功");
     }
 
     #[tokio::test]
@@ -1119,7 +1119,7 @@ mod tests {
             "Example".to_string(),
             SourceType::Web,
         ));
-        let report = agent.generate_report(&state).await.unwrap();
+        let report = agent.generate_report(&state).await.expect("测试：异步操作应成功");
         assert_eq!(report.topic, "Report Topic");
         assert!(!report.content.is_empty());
         assert!(!report.summary.is_empty());

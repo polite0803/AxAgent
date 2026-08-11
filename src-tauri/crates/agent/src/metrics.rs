@@ -417,14 +417,15 @@ mod tests {
         labels.insert("key2".to_string(), serde_json::json!(42));
         let mv = MetricValue::new("test", 1.0, MetricType::Gauge).with_labels(labels);
         assert_eq!(mv.labels.len(), 2);
-        assert_eq!(mv.labels.get("key1").unwrap(), "value1");
+        assert_eq!(mv.labels.get("key1").expect("测试：键应存在"), "value1");
     }
 
     #[test]
     fn test_metric_value_serialization() {
         let mv = MetricValue::new("test_metric", 99.5, MetricType::Timing);
-        let json = serde_json::to_string(&mv).unwrap();
-        let deserialized: MetricValue = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&mv).expect("测试：JSON序列化应成功");
+        let deserialized: MetricValue =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.name, "test_metric");
         assert_eq!(deserialized.value, 99.5);
         assert_eq!(deserialized.metric_type, MetricType::Timing);
@@ -461,8 +462,8 @@ mod tests {
             .with_field("key1", "value1")
             .with_field("key2", 42);
         assert_eq!(entry.fields.len(), 2);
-        assert_eq!(entry.fields.get("key1").unwrap(), "value1");
-        assert_eq!(entry.fields.get("key2").unwrap(), 42);
+        assert_eq!(entry.fields.get("key1").expect("测试：键应存在"), "value1");
+        assert_eq!(entry.fields.get("key2").expect("测试：键应存在"), 42);
     }
 
     #[test]
@@ -488,8 +489,9 @@ mod tests {
         let entry = StructuredLogEntry::new(LogLevel::Info, "msg", "src")
             .with_field("k", "v")
             .with_correlation_id("id-1");
-        let json = serde_json::to_string(&entry).unwrap();
-        let deserialized: StructuredLogEntry = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&entry).expect("测试：JSON序列化应成功");
+        let deserialized: StructuredLogEntry =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.level, LogLevel::Info);
         assert_eq!(deserialized.message, "msg");
         assert_eq!(deserialized.correlation_id, Some("id-1".to_string()));
@@ -562,7 +564,7 @@ mod tests {
         collector.record_timing("api_call", 300.0).await;
         let stats = collector.get_timing_stats("api_call").await;
         assert!(stats.is_some());
-        let stats = stats.unwrap();
+        let stats = stats.expect("测试应成功");
         assert_eq!(stats.count, 3.0);
         assert_eq!(stats.min, 100.0);
         assert_eq!(stats.max, 300.0);
@@ -581,7 +583,7 @@ mod tests {
         collector.record_timing("test", 100.0).await;
         collector.record_timing("test", 200.0).await;
         collector.record_timing("test", 300.0).await;
-        let stats = collector.get_timing_stats("test").await.unwrap();
+        let stats = collector.get_timing_stats("test").await.expect("测试：异步操作应成功");
         assert_eq!(stats.median, 200.0);
     }
 
@@ -590,7 +592,7 @@ mod tests {
         let collector = MetricsCollector::new();
         collector.record_timing("test", 100.0).await;
         collector.record_timing("test", 200.0).await;
-        let stats = collector.get_timing_stats("test").await.unwrap();
+        let stats = collector.get_timing_stats("test").await.expect("测试：异步操作应成功");
         assert_eq!(stats.median, 150.0);
     }
 
@@ -600,7 +602,7 @@ mod tests {
         collector.record_timing("test", 100.0).await;
         collector.record_timing("test", 200.0).await;
         collector.record_timing("test", 300.0).await;
-        let stats = collector.get_timing_stats("test").await.unwrap();
+        let stats = collector.get_timing_stats("test").await.expect("测试：异步操作应成功");
         assert!(stats.std_dev > 0.0);
     }
 
@@ -608,7 +610,7 @@ mod tests {
     async fn test_timing_stats_single_sample() {
         let collector = MetricsCollector::new();
         collector.record_timing("single", 42.0).await;
-        let stats = collector.get_timing_stats("single").await.unwrap();
+        let stats = collector.get_timing_stats("single").await.expect("测试：异步操作应成功");
         assert_eq!(stats.count, 1.0);
         assert_eq!(stats.min, 42.0);
         assert_eq!(stats.max, 42.0);
@@ -623,7 +625,7 @@ mod tests {
         for i in 0..10 {
             collector.record_timing("limited", i as f64).await;
         }
-        let stats = collector.get_timing_stats("limited").await.unwrap();
+        let stats = collector.get_timing_stats("limited").await.expect("测试：异步操作应成功");
         assert_eq!(stats.count, 5.0);
         assert_eq!(stats.min, 5.0);
         assert_eq!(stats.max, 9.0);
@@ -648,9 +650,9 @@ mod tests {
         assert!(metrics.contains_key("gauge"));
         assert!(metrics.contains_key("timing"));
 
-        assert_eq!(metrics.get("cnt").unwrap().metric_type, MetricType::Counter);
-        assert_eq!(metrics.get("gauge").unwrap().metric_type, MetricType::Gauge);
-        assert_eq!(metrics.get("timing").unwrap().metric_type, MetricType::Timing);
+        assert_eq!(metrics.get("cnt").expect("测试：键应存在").metric_type, MetricType::Counter);
+        assert_eq!(metrics.get("gauge").expect("测试：键应存在").metric_type, MetricType::Gauge);
+        assert_eq!(metrics.get("timing").expect("测试：键应存在").metric_type, MetricType::Timing);
     }
 
     #[tokio::test]
@@ -660,7 +662,7 @@ mod tests {
         collector.record_timing("api", 200.0).await;
 
         let metrics = collector.get_all_metrics().await;
-        let timing_metric = metrics.get("api").unwrap();
+        let timing_metric = metrics.get("api").expect("测试：get 应成功");
         assert!(timing_metric.labels.contains_key("count"));
         assert!(timing_metric.labels.contains_key("min"));
         assert!(timing_metric.labels.contains_key("max"));
@@ -744,7 +746,7 @@ mod tests {
         record_timing_async(&collector, "async_timing", 123.0).await;
         let stats = collector.get_timing_stats("async_timing").await;
         assert!(stats.is_some());
-        assert_eq!(stats.unwrap().mean, 123.0);
+        assert_eq!(stats.expect("测试应成功").mean, 123.0);
     }
 
     #[test]
@@ -790,8 +792,9 @@ mod tests {
             median: 45.0,
             std_dev: 15.0,
         };
-        let json = serde_json::to_string(&stats).unwrap();
-        let deserialized: TimingStats = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&stats).expect("测试：JSON序列化应成功");
+        let deserialized: TimingStats =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.count, 5.0);
         assert_eq!(deserialized.min, 10.0);
         assert_eq!(deserialized.max, 100.0);
@@ -813,7 +816,7 @@ mod tests {
         }
 
         for handle in handles {
-            handle.await.unwrap();
+            handle.await.expect("测试：异步操作应成功");
         }
 
         assert_eq!(collector.get_counter("concurrent").await, 10.0);

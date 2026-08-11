@@ -122,7 +122,7 @@ fn test_resolve_chat_url_path_without_slash() {
 fn test_parse_valid_base64_data_url() {
     let result = parse_base64_data_url("data:image/png;base64,iVBORw0KGgo=");
     assert!(result.is_some());
-    let (mime, data) = result.unwrap();
+    let (mime, data) = result.expect("测试应成功");
     assert_eq!(mime, "image/png");
     assert_eq!(data, "iVBORw0KGgo=");
 }

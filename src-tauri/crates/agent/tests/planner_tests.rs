@@ -47,7 +47,7 @@ fn test_get_plan() {
     planner.create_plan("Goal", vec![phase]);
     let plan = planner.get_plan();
     assert!(plan.is_some());
-    assert_eq!(plan.unwrap().goal, "Goal");
+    assert_eq!(plan.expect("测试应成功").goal, "Goal");
 }
 
 #[test]
@@ -57,7 +57,7 @@ fn test_start_execution() {
     planner.create_plan("Execute Test", vec![phase]);
     let result = planner.start_execution();
     assert!(result.is_ok());
-    assert_eq!(planner.get_plan().unwrap().status, PlanStatus::Executing);
+    assert_eq!(planner.get_plan().expect("测试应成功").status, PlanStatus::Executing);
 }
 
 #[test]
@@ -65,13 +65,13 @@ fn test_pause_and_resume() {
     let mut planner = HierarchicalPlanner::new();
     let phase = make_phase("p1", "Phase 1", vec![], vec![make_task("task", "action")]);
     planner.create_plan("Pause Test", vec![phase]);
-    planner.start_execution().unwrap();
+    planner.start_execution().expect("测试应成功");
 
-    planner.pause_execution().unwrap();
-    assert_eq!(planner.get_plan().unwrap().status, PlanStatus::Paused);
+    planner.pause_execution().expect("测试应成功");
+    assert_eq!(planner.get_plan().expect("测试应成功").status, PlanStatus::Paused);
 
-    planner.resume_execution().unwrap();
-    assert_eq!(planner.get_plan().unwrap().status, PlanStatus::Executing);
+    planner.resume_execution().expect("测试应成功");
+    assert_eq!(planner.get_plan().expect("测试应成功").status, PlanStatus::Executing);
 }
 
 #[test]
@@ -79,10 +79,10 @@ fn test_cancel_execution() {
     let mut planner = HierarchicalPlanner::new();
     let phase = make_phase("p1", "Phase 1", vec![], vec![make_task("task", "action")]);
     planner.create_plan("Cancel Test", vec![phase]);
-    planner.start_execution().unwrap();
+    planner.start_execution().expect("测试应成功");
 
-    planner.cancel_execution().unwrap();
-    assert_eq!(planner.get_plan().unwrap().status, PlanStatus::Cancelled);
+    planner.cancel_execution().expect("测试应成功");
+    assert_eq!(planner.get_plan().expect("测试应成功").status, PlanStatus::Cancelled);
 }
 
 #[test]
@@ -95,7 +95,7 @@ fn test_get_next_executable_tasks() {
         vec![make_task("Search for information", "web_search")],
     );
     planner.create_plan("Tasks Test", vec![phase]);
-    planner.start_execution().unwrap();
+    planner.start_execution().expect("测试应成功");
 
     let tasks = planner.get_next_executable_tasks();
     assert!(!tasks.is_empty());
@@ -107,7 +107,7 @@ fn test_mark_task_lifecycle() {
     let mut planner = HierarchicalPlanner::new();
     let phase = make_phase("p1", "Phase 1", vec![], vec![make_task("test task", "action_type")]);
     planner.create_plan("Lifecycle Test", vec![phase]);
-    planner.start_execution().unwrap();
+    planner.start_execution().expect("测试应成功");
 
     let task_id = {
         let tasks = planner.get_next_executable_tasks();
@@ -124,14 +124,14 @@ fn test_mark_task_failed() {
     let task = TaskBuilder::new("failable task", "action").with_max_retries(1).build();
     let phase = make_phase("p1", "Phase 1", vec![], vec![task]);
     planner.create_plan("Fail Test", vec![phase]);
-    planner.start_execution().unwrap();
+    planner.start_execution().expect("测试应成功");
 
     let task_id = {
         let tasks = planner.get_next_executable_tasks();
         tasks[0].id.clone()
     };
 
-    planner.mark_task_started(&task_id).unwrap();
+    planner.mark_task_started(&task_id).expect("测试应成功");
     assert!(planner.mark_task_failed(&task_id, "simulated error").is_ok());
 }
 
@@ -187,7 +187,7 @@ fn test_planner_with_max_retries() {
     let mut planner = planner;
     let phase = make_phase("p1", "Phase 1", vec![], vec![make_task("task", "action")]);
     planner.create_plan("Retry Test", vec![phase]);
-    let plan = planner.get_plan().unwrap();
+    let plan = planner.get_plan().expect("测试应成功");
     assert!(plan.phases[0].tasks[0].max_retries > 0);
 }
 
@@ -220,15 +220,15 @@ fn test_plan_status_transitions() {
     let phase = make_phase("p1", "Phase 1", vec![], vec![make_task("task", "action")]);
     planner.create_plan("Status Test", vec![phase]);
 
-    assert_eq!(planner.get_plan().unwrap().status, PlanStatus::Draft);
-    planner.start_execution().unwrap();
-    assert_eq!(planner.get_plan().unwrap().status, PlanStatus::Executing);
-    planner.pause_execution().unwrap();
-    assert_eq!(planner.get_plan().unwrap().status, PlanStatus::Paused);
-    planner.resume_execution().unwrap();
-    assert_eq!(planner.get_plan().unwrap().status, PlanStatus::Executing);
-    planner.cancel_execution().unwrap();
-    assert_eq!(planner.get_plan().unwrap().status, PlanStatus::Cancelled);
+    assert_eq!(planner.get_plan().expect("测试应成功").status, PlanStatus::Draft);
+    planner.start_execution().expect("测试应成功");
+    assert_eq!(planner.get_plan().expect("测试应成功").status, PlanStatus::Executing);
+    planner.pause_execution().expect("测试应成功");
+    assert_eq!(planner.get_plan().expect("测试应成功").status, PlanStatus::Paused);
+    planner.resume_execution().expect("测试应成功");
+    assert_eq!(planner.get_plan().expect("测试应成功").status, PlanStatus::Executing);
+    planner.cancel_execution().expect("测试应成功");
+    assert_eq!(planner.get_plan().expect("测试应成功").status, PlanStatus::Cancelled);
 }
 
 #[test]

@@ -266,16 +266,16 @@ mod tests {
             trust_level: axagent_harness::device_sync::TrustLevel::Standard,
         };
 
-        storage.save_device(&device).await.unwrap();
-        let fetched = storage.get_device_by_id("test-001").await.unwrap();
+        storage.save_device(&device).await.expect("测试：异步操作应成功");
+        let fetched = storage.get_device_by_id("test-001").await.expect("测试：异步操作应成功");
         assert!(fetched.is_some());
-        assert_eq!(fetched.unwrap().name, "Test Device");
+        assert_eq!(fetched.expect("测试应成功").name, "Test Device");
 
-        let all = storage.get_all_devices().await.unwrap();
+        let all = storage.get_all_devices().await.expect("测试：异步操作应成功");
         assert_eq!(all.len(), 1);
 
-        storage.delete_device("test-001").await.unwrap();
-        let fetched = storage.get_device_by_id("test-001").await.unwrap();
+        storage.delete_device("test-001").await.expect("测试：异步操作应成功");
+        let fetched = storage.get_device_by_id("test-001").await.expect("测试：异步操作应成功");
         assert!(fetched.is_none());
     }
 
@@ -297,16 +297,16 @@ mod tests {
             updated_at: String::new(),
         };
 
-        storage.save_policy(&policy).await.unwrap();
-        let fetched = storage.get_policy_by_id("pol-001").await.unwrap();
+        storage.save_policy(&policy).await.expect("测试：异步操作应成功");
+        let fetched = storage.get_policy_by_id("pol-001").await.expect("测试：异步操作应成功");
         assert!(fetched.is_some());
-        assert_eq!(fetched.unwrap().name, "Test Policy");
+        assert_eq!(fetched.expect("测试应成功").name, "Test Policy");
 
-        let all = storage.get_all_policies().await.unwrap();
+        let all = storage.get_all_policies().await.expect("测试：异步操作应成功");
         assert_eq!(all.len(), 1);
 
-        storage.delete_policy("pol-001").await.unwrap();
-        let fetched = storage.get_policy_by_id("pol-001").await.unwrap();
+        storage.delete_policy("pol-001").await.expect("测试：异步操作应成功");
+        let fetched = storage.get_policy_by_id("pol-001").await.expect("测试：异步操作应成功");
         assert!(fetched.is_none());
     }
 
@@ -325,16 +325,18 @@ mod tests {
             updated_at: String::new(),
         };
 
-        storage.save_permissions(&perms).await.unwrap();
-        let fetched = storage.get_permissions_by_device("device-001").await.unwrap();
+        storage.save_permissions(&perms).await.expect("测试：异步操作应成功");
+        let fetched =
+            storage.get_permissions_by_device("device-001").await.expect("测试：异步操作应成功");
         assert!(fetched.is_some());
-        assert!(fetched.unwrap().allow_push);
+        assert!(fetched.expect("测试应成功").allow_push);
 
-        let all = storage.get_all_permissions().await.unwrap();
+        let all = storage.get_all_permissions().await.expect("测试：异步操作应成功");
         assert_eq!(all.len(), 1);
 
-        storage.delete_permissions("device-001").await.unwrap();
-        let fetched = storage.get_permissions_by_device("device-001").await.unwrap();
+        storage.delete_permissions("device-001").await.expect("测试：异步操作应成功");
+        let fetched =
+            storage.get_permissions_by_device("device-001").await.expect("测试：异步操作应成功");
         assert!(fetched.is_none());
     }
 }

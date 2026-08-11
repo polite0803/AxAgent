@@ -1849,7 +1849,7 @@ pub async fn get_prompt_http(
         .map_err(|e| AxAgentError::Gateway(format!("MCP HTTP get_prompt connect failed: {}", e)))?;
 
     let args_map = if args.is_object() {
-        let map = args.as_object().unwrap();
+        let map = args.as_object().expect("MCP 客户端：is_object 检查后应为 object");
         Some(map.iter().map(|(k, v)| (k.clone(), v.clone())).collect::<serde_json::Map<_, _>>())
     } else {
         None
@@ -2461,7 +2461,7 @@ mod tests {
 
         assert!(result.is_ok(), "call_tool_stdio hung after non-JSON initialize output");
 
-        let err = result.unwrap().unwrap_err().to_string();
+        let err = result.expect("测试应成功").unwrap_err().to_string();
         assert!(
             err.contains("MCP")
                 || err.contains("handshake")

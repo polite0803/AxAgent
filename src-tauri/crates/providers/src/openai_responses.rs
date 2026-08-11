@@ -626,16 +626,17 @@ impl ProviderAdapter for OpenAIResponsesAdapter {
                 Ok(r) => {
                     let s = r.status();
                     let t = r.text().await.unwrap_or_default();
-                    let _ = tx.try_send(Err(AxAgentError::Provider(super::diagnose_http_status(
-                        "OpenAI Responses",
-                        s,
-                        &t,
-                    ))));
+                    let _ = tx.try_send(Err(AxAgentError::execution_with_source(
+                        super::diagnose_http_status("OpenAI Responses", s, &t),
+                        anyhow::anyhow!("HTTP {s}: {t}"),
+                    )));
                     return;
                 },
                 Err(e) => {
-                    let _ =
-                        tx.try_send(Err(AxAgentError::Provider(super::diagnose_reqwest_error(&e))));
+                    let _ = tx.try_send(Err(AxAgentError::execution_with_source(
+                        super::diagnose_reqwest_error(&e),
+                        e,
+                    )));
                     return;
                 },
             };
@@ -1156,7 +1157,7 @@ mod tests {
 
         let (input, instructions) = build_responses_input(&messages, None);
         assert_eq!(instructions.as_deref(), Some("You are helpful."));
-        let arr = input.as_array().unwrap();
+        let arr = input.as_array().expect("测试：as_array 应成功");
         assert_eq!(arr.len(), 1);
         assert_eq!(arr[0]["role"], "user");
         assert_eq!(arr[0]["content"], "Hello");
@@ -1189,7 +1190,7 @@ mod tests {
         ];
 
         let (input, _) = build_responses_input(&messages, None);
-        let arr = input.as_array().unwrap();
+        let arr = input.as_array().expect("测试：as_array 应成功");
         assert_eq!(arr.len(), 2);
         assert_eq!(arr[0]["type"], "function_call");
         assert_eq!(arr[0]["name"], "get_weather");
@@ -1216,7 +1217,7 @@ mod tests {
 
         let (text, tool_calls) = parse_response_output(&output);
         assert_eq!(text, "Hello!");
-        let tcs = tool_calls.unwrap();
+        let tcs = tool_calls.expect("测试应成功");
         assert_eq!(tcs.len(), 1);
         assert_eq!(tcs[0].function.name, "search");
     }

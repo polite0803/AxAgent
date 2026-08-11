@@ -110,8 +110,8 @@ impl SubTaskDispatcher for RuntimeSubTaskDispatcher {
         request: DispatchRequest,
     ) -> axagent_harness::Result<SubTaskDispatchResult> {
         self.handler.handle(request).await.map_err(|e| {
-            // 把 anyhow::Error 转为 AxAgentError::Execution,保留消息作为 context
-            axagent_harness::AxAgentError::execution(format!("{e:#}"))
+            // 把 anyhow::Error 转为 AxAgentError::Execution，保留完整错误链作为 source
+            axagent_harness::AxAgentError::execution_with_source("SubTask dispatch failed", e)
         })
     }
 }
@@ -121,6 +121,7 @@ impl SubTaskDispatcher for RuntimeSubTaskDispatcher {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::error::Error;
 
     fn make_request(id: &str) -> DispatchRequest {
         DispatchRequest {
@@ -136,7 +137,7 @@ mod tests {
     #[tokio::test]
     async fn noop_handler_returns_success() {
         let dispatcher = RuntimeSubTaskDispatcher::noop();
-        let result = dispatcher.dispatch(make_request("t1")).await.unwrap();
+        let result = dispatcher.dispatch(make_request("t1")).await.expect("测试：异步操作应成功");
         assert!(result.success);
         assert_eq!(result.sub_task_id, "t1");
         assert!(result.handover_json.is_some());
@@ -160,7 +161,7 @@ mod tests {
     #[tokio::test]
     async fn custom_handler_injection() {
         let dispatcher = RuntimeSubTaskDispatcher::new(Arc::new(EchoHandler));
-        let result = dispatcher.dispatch(make_request("t2")).await.unwrap();
+        let result = dispatcher.dispatch(make_request("t2")).await.expect("测试：异步操作应成功");
         assert!(result.success);
         assert_eq!(result.handover_json.as_deref(), Some(r#"{"echo":"mission-t2"}"#));
     }
@@ -179,6 +180,11 @@ mod tests {
         let dispatcher = RuntimeSubTaskDispatcher::new(Arc::new(FailHandler));
         let result = dispatcher.dispatch(make_request("t3")).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("handler failure"));
+        let err = result.unwrap_err();
+        // 错误应包含上下文信息
+        assert!(err.to_string().contains("SubTask dispatch failed"));
+        // 通过 source 链可以找到原始错误
+        let source = err.source().expect("应有 source error");
+        assert!(source.to_string().contains("handler failure"));
     }
 }

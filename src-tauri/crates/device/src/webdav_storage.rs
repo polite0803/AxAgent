@@ -73,10 +73,14 @@ impl WebdavStorage {
             "GET" => self.client.get(&url),
             "PUT" => self.client.put(&url),
             "DELETE" => self.client.delete(&url),
-            "PROPFIND" => {
-                self.client.request(reqwest::Method::from_bytes(b"PROPFIND").unwrap(), &url)
-            },
-            "MKCOL" => self.client.request(reqwest::Method::from_bytes(b"MKCOL").unwrap(), &url),
+            "PROPFIND" => self.client.request(
+                reqwest::Method::from_bytes(b"PROPFIND").expect("WebDAV：PROPFIND 方法无效"),
+                &url,
+            ),
+            "MKCOL" => self.client.request(
+                reqwest::Method::from_bytes(b"MKCOL").expect("WebDAV：MKCOL 方法无效"),
+                &url,
+            ),
             _ => return Err(format!("Unsupported method: {}", method)),
         };
 

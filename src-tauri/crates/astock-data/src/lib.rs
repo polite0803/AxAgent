@@ -538,10 +538,24 @@ impl AStockClient {
                 );
                 // 降级：用 reqwest 默认配置（无自定义 TLS），至少不 panic。
                 // 仍注册全部 vendor，保证降级后数据源可用。
+                // P1-NEW-4 修复：降级路径的 reqwest::Client::new() 无超时配置。
+                // 原正常路径通过 try_new() 设置了 30s 超时 / 15s 连接超时 / 32 连接池 / 30s 空闲超时，
+                // 降级后需保持同等配置，避免降级路径产生无超时的长连接泄漏。
                 let http = reqwest::Client::builder()
                     .dns_resolver(Arc::new(Ipv4OnlyResolver))
+                    .timeout(std::time::Duration::from_secs(30))
+                    .connect_timeout(std::time::Duration::from_secs(15))
+                    .pool_max_idle_per_host(32)
+                    .pool_idle_timeout(std::time::Duration::from_secs(30))
                     .build()
-                    .unwrap_or_else(|_| reqwest::Client::new());
+                    .unwrap_or_else(|_| {
+                        // 连降级 builder 也失败时（极罕见），用 reqwest 默认配置兜底并记录。
+                        // 默认配置无超时，上层需通过 tracing::error! 告警。
+                        tracing::error!(
+                            "[astock-data] 降级 HTTP client builder 也失败，使用 reqwest 裸默认配置（无超时）"
+                        );
+                        reqwest::Client::new()
+                    });
                 let mut client = Self {
                     vendors: Vec::new(),
                     routing: VendorRouting::default_routing(),

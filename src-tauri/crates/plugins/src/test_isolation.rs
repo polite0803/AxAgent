@@ -62,9 +62,9 @@ mod tests {
     #[test]
     fn test_env_lock_creates_isolated_home_and_directories() {
         let lock = EnvLock::lock();
-        let home = env::var("HOME").unwrap();
+        let home = env::var("HOME").expect("测试：var 应成功");
         assert!(home.contains("plugin-test-"));
-        assert_eq!(home, lock.temp_home().to_str().unwrap());
+        assert_eq!(home, lock.temp_home().to_str().expect("测试：路径转字符串应成功"));
 
         let plugins_dir = lock.temp_home().join(".claude/plugins/installed");
         assert!(plugins_dir.exists(), "plugins dir should exist at {:?}", plugins_dir,);

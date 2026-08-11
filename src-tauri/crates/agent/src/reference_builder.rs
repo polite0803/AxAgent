@@ -789,8 +789,9 @@ mod tests {
     #[test]
     fn test_reference_format_serialization() {
         let format = ReferenceFormat::BibTeX;
-        let json = serde_json::to_string(&format).unwrap();
-        let deserialized: ReferenceFormat = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&format).expect("测试：JSON序列化应成功");
+        let deserialized: ReferenceFormat =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized, ReferenceFormat::BibTeX);
     }
 
@@ -920,7 +921,8 @@ mod tests {
 
         let builder = ReferenceBuilder::new(tracker);
         let json = builder.build(ReferenceFormat::Json).await;
-        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let parsed: serde_json::Value =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(parsed[0]["title"], "JSON Title");
         assert_eq!(parsed[0]["type"], "github");
         assert!(parsed[0]["id"].is_string());

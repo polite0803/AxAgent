@@ -135,6 +135,7 @@ impl TicketStore {
                     }
                 }
             }
+            tracing::debug!("realtime ticket sweeper exited");
         });
     }
 }
@@ -169,7 +170,7 @@ mod tests {
         let t2 = store.issue("key-2").await;
 
         // Consuming t1 must NOT take t2 with it.
-        let consumed1 = store.consume(&t1.ticket_id).await.unwrap();
+        let consumed1 = store.consume(&t1.ticket_id).await.expect("测试：异步操作应成功");
         assert_eq!(consumed1.key_id, "key-1");
         assert!(store.consume(&t1.ticket_id).await.is_none(), "t1 must be single-use");
         assert!(

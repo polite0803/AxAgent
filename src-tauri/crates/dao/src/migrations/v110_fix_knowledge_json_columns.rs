@@ -281,11 +281,11 @@ mod tests {
 
     #[tokio::test]
     async fn v110_can_run_on_fresh_sqlite_db() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
         // 先跑 v100 建表
-        super::super::v100_consolidated::up(db.clone()).await.unwrap();
+        super::super::v100_consolidated::up(db.clone()).await.expect("测试：异步操作应成功");
         // v110 在 SQLite 下应该无操作成功
-        up(db.clone()).await.unwrap();
+        up(db.clone()).await.expect("测试：异步操作应成功");
 
         // 验证列存在且可读取
         let result = db
@@ -299,18 +299,18 @@ mod tests {
 
     #[tokio::test]
     async fn v110_is_idempotent() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        super::super::v100_consolidated::up(db.clone()).await.unwrap();
-        up(db.clone()).await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        super::super::v100_consolidated::up(db.clone()).await.expect("测试：异步操作应成功");
+        up(db.clone()).await.expect("测试：异步操作应成功");
         // 再跑一次也应该成功
-        up(db.clone()).await.unwrap();
+        up(db.clone()).await.expect("测试：异步操作应成功");
     }
 
     #[tokio::test]
     async fn v110_can_create_tables_when_missing() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
         // 不跑 v100，直接跑 v110，应该能补建表
-        up(db.clone()).await.unwrap();
+        up(db.clone()).await.expect("测试：异步操作应成功");
 
         // 验证表和列存在
         let result = db

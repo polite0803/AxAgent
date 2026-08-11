@@ -522,14 +522,14 @@ mod tests {
     #[tokio::test]
     async fn test_build_sequential_template_with_timeout() {
         let (nodes, _edges) = build_sequential_template(3, &["node_1".to_string()], &[]);
-        let node_1 = nodes.iter().find(|n| n.base_id() == "node_1").unwrap();
+        let node_1 = nodes.iter().find(|n| n.base_id() == "node_1").expect("测试应成功");
         assert_eq!(node_1.base_timeout(), Some(1)); // timeout 模拟节点超时
     }
 
     #[tokio::test]
     async fn test_build_sequential_template_with_failures() {
         let (nodes, _edges) = build_sequential_template(3, &[], &["node_1".to_string()]);
-        let node_1 = nodes.iter().find(|n| n.base_id() == "node_1").unwrap();
+        let node_1 = nodes.iter().find(|n| n.base_id() == "node_1").expect("测试应成功");
         assert!(node_1.base_retry().enabled);
         assert_eq!(node_1.base_retry().max_retries, 1);
     }
@@ -587,7 +587,7 @@ mod tests {
             path_trace: vec!["a->b".to_string(), "b->c".to_string()],
             throughput_nodes_per_sec: 50.0,
         };
-        let output = serde_json::to_string(&result).unwrap();
+        let output = serde_json::to_string(&result).expect("测试：JSON序列化应成功");
         let score = eval.evaluate(&output, None, None);
         assert!(score.passed);
         assert!(score.score >= 0.8);
@@ -607,7 +607,7 @@ mod tests {
             path_trace: vec!["a->b".to_string()],
             throughput_nodes_per_sec: 15.0,
         };
-        let output = serde_json::to_string(&result).unwrap();
+        let output = serde_json::to_string(&result).expect("测试：JSON序列化应成功");
         let score = eval.evaluate(&output, None, None);
         assert!(!score.passed);
     }

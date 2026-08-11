@@ -30,6 +30,7 @@ impl DaoWikiRepository {
             embedding_dimensions: m.embedding_dimensions,
             retrieval_threshold: m.retrieval_threshold,
             retrieval_top_k: m.retrieval_top_k,
+            knowledge_base_id: m.knowledge_base_id,
             created_at: m.created_at,
             updated_at: m.updated_at,
         }

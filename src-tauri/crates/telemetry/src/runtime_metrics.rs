@@ -211,7 +211,7 @@ mod tests {
 
         // Check that our recorded values appear
         let calls = &obj["llm_calls_total"];
-        let calls_str = serde_json::to_string(calls).unwrap();
+        let calls_str = serde_json::to_string(calls).expect("测试：JSON序列化应成功");
         assert!(calls_str.contains("gpt-4o"));
         assert!(calls_str.contains("claude-sonnet"));
     }

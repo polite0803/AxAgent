@@ -14,7 +14,7 @@ export function setSemanticAction(
   skillId: string,
   action: SkillReplacementAction,
 ): SemanticActionMap {
-  const nodeActions = { ...(prev[nodeId] ?? {}) };
+  const nodeActions = { ...prev[nodeId] };
   nodeActions[skillId] = action;
   return { ...prev, [nodeId]: nodeActions };
 }
@@ -24,7 +24,7 @@ export function clearSemanticAction(
   nodeId: string,
   skillId: string,
 ): SemanticActionMap {
-  const nodeActions = { ...(prev[nodeId] ?? {}) };
+  const nodeActions = { ...prev[nodeId] };
   delete nodeActions[skillId];
   if (Object.keys(nodeActions).length === 0) {
     const { [nodeId]: _removed, ...rest } = prev;

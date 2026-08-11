@@ -387,24 +387,25 @@ mod tests {
     use super::*;
 
     fn test_index() -> FileIndex {
-        let conn = Connection::open_in_memory().unwrap();
-        FileIndex::new(conn).unwrap()
+        let conn = Connection::open_in_memory().expect("测试：打开内存数据库应成功");
+        FileIndex::new(conn).expect("测试应成功")
     }
 
     #[test]
     fn test_upsert_and_filter() {
         let idx = test_index();
-        idx.upsert("/src/main.rs", "rs", 1024, 1000).unwrap();
-        idx.upsert("/src/lib.rs", "rs", 2048, 2000).unwrap();
-        idx.upsert("/app.ts", "ts", 512, 500).unwrap();
+        idx.upsert("/src/main.rs", "rs", 1024, 1000).expect("测试：upsert 应成功");
+        idx.upsert("/src/lib.rs", "rs", 2048, 2000).expect("测试：upsert 应成功");
+        idx.upsert("/app.ts", "ts", 512, 500).expect("测试：upsert 应成功");
 
-        let rs = idx.filter_by_extension(&["rs"]).unwrap();
+        let rs = idx.filter_by_extension(&["rs"]).expect("测试：filter_by_extension 应成功");
         assert_eq!(rs.len(), 2);
 
-        let ts = idx.filter_by_extension(&["ts"]).unwrap();
+        let ts = idx.filter_by_extension(&["ts"]).expect("测试：filter_by_extension 应成功");
         assert_eq!(ts.len(), 1);
 
-        let since = idx.filter_by_modified_since(1500).unwrap();
+        let since =
+            idx.filter_by_modified_since(1500).expect("测试：filter_by_modified_since 应成功");
         assert_eq!(since.len(), 1);
         assert_eq!(since[0].path, "/src/lib.rs");
     }
@@ -412,14 +413,14 @@ mod tests {
     #[test]
     fn test_count_and_remove() {
         let idx = test_index();
-        idx.upsert("/a.rs", "rs", 100, 1).unwrap();
-        idx.upsert("/b.rs", "rs", 200, 2).unwrap();
-        assert_eq!(idx.count().unwrap(), 2);
+        idx.upsert("/a.rs", "rs", 100, 1).expect("测试：upsert 应成功");
+        idx.upsert("/b.rs", "rs", 200, 2).expect("测试：upsert 应成功");
+        assert_eq!(idx.count().expect("测试：count 应成功"), 2);
 
-        idx.remove("/a.rs").unwrap();
-        assert_eq!(idx.count().unwrap(), 1);
+        idx.remove("/a.rs").expect("测试：移除操作应成功");
+        assert_eq!(idx.count().expect("测试：count 应成功"), 1);
 
-        idx.remove_by_prefix("/").unwrap();
-        assert_eq!(idx.count().unwrap(), 0);
+        idx.remove_by_prefix("/").expect("测试：remove_by_prefix 应成功");
+        assert_eq!(idx.count().expect("测试：count 应成功"), 0);
     }
 }

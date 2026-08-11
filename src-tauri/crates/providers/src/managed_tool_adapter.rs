@@ -678,11 +678,12 @@ mod tests {
             pm.block_open, pm.block_close
         );
         let allowed: HashSet<String> = ["read_file"].iter().map(|s| s.to_string()).collect();
-        let calls = parse_tool_calls_block(&block, &allowed, &pm).unwrap();
+        let calls = parse_tool_calls_block(&block, &allowed, &pm).expect("测试应成功");
         assert_eq!(calls.len(), 1);
         assert_eq!(calls[0].function.name, "read_file");
         assert_eq!(calls[0].id, "call_0");
-        let args: serde_json::Value = serde_json::from_str(&calls[0].function.arguments).unwrap();
+        let args: serde_json::Value =
+            serde_json::from_str(&calls[0].function.arguments).expect("测试：JSON反序列化应成功");
         assert_eq!(args["path"], "/tmp/test.txt");
     }
 
@@ -696,7 +697,7 @@ mod tests {
             pm.block_open, pm.block_close
         );
         let allowed: HashSet<String> = ["good_tool"].iter().map(|s| s.to_string()).collect();
-        let calls = parse_tool_calls_block(&block, &allowed, &pm).unwrap();
+        let calls = parse_tool_calls_block(&block, &allowed, &pm).expect("测试应成功");
         assert!(calls.is_empty());
     }
 
@@ -716,10 +717,11 @@ mod tests {
         assert!(xml.contains("CDATA"));
 
         let allowed: HashSet<String> = ["search"].iter().map(|s| s.to_string()).collect();
-        let parsed = parse_tool_calls_block(&xml, &allowed, &pm).unwrap();
+        let parsed = parse_tool_calls_block(&xml, &allowed, &pm).expect("测试应成功");
         assert_eq!(parsed.len(), 1);
         assert_eq!(parsed[0].function.name, "search");
-        let args: serde_json::Value = serde_json::from_str(&parsed[0].function.arguments).unwrap();
+        let args: serde_json::Value =
+            serde_json::from_str(&parsed[0].function.arguments).expect("测试：JSON反序列化应成功");
         assert_eq!(args["q"], "hello");
     }
 
@@ -859,7 +861,7 @@ mod tests {
              <|MYGATE|parameter name=\"x\"><![CDATA[42]]></|MYGATE|parameter>\
              </|MYGATE|invoke></|MYGATE|tool_calls>";
         let allowed: HashSet<String> = ["my_tool"].iter().map(|s| s.to_string()).collect();
-        let calls = parse_tool_calls_block(block, &allowed, &pm).unwrap();
+        let calls = parse_tool_calls_block(block, &allowed, &pm).expect("测试应成功");
         assert_eq!(calls.len(), 1);
         assert_eq!(calls[0].function.name, "my_tool");
     }
@@ -890,7 +892,7 @@ mod tests {
         assert!(!xml.contains("CHAT2API"));
 
         let allowed: HashSet<String> = ["my_tool"].iter().map(|s| s.to_string()).collect();
-        let parsed = parse_tool_calls_block(&xml, &allowed, &pm_custom).unwrap();
+        let parsed = parse_tool_calls_block(&xml, &allowed, &pm_custom).expect("测试应成功");
         assert_eq!(parsed.len(), 1);
         assert_eq!(parsed[0].function.name, "my_tool");
     }

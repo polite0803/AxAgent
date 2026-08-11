@@ -210,7 +210,11 @@ async fn handle_request(
                 .to_string(),
             )
             .with_status_code(202)
-            .with_header("Content-Type: application/json".parse::<tiny_http::Header>().unwrap());
+            .with_header(
+                "Content-Type: application/json"
+                    .parse::<tiny_http::Header>()
+                    .expect("格式解析失败"),
+            );
             let _ = request.respond(response);
 
             // 后台触发工作流

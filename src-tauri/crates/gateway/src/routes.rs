@@ -379,12 +379,15 @@ mod tests {
     }
 
     async fn assert_protected_route_exists(method: Method, uri: &str) {
-        let db = Database::connect("sqlite::memory:?mode=rwc").await.unwrap();
+        let db =
+            Database::connect("sqlite::memory:?mode=rwc").await.expect("测试：连接数据库应成功");
         let app = create_router(test_state(db));
         let response = app
-            .oneshot(Request::builder().method(method).uri(uri).body(Body::empty()).unwrap())
+            .oneshot(
+                Request::builder().method(method).uri(uri).body(Body::empty()).expect("测试应成功"),
+            )
             .await
-            .unwrap();
+            .expect("测试应成功");
 
         assert_eq!(
             response.status(),

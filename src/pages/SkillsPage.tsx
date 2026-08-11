@@ -8,6 +8,7 @@ import { DecompositionPreview } from "@/components/decomposition/DecompositionPr
 import { AgentGeneratorModal } from "@/components/settings/AgentGeneratorModal";
 import { FrontendEditorModal } from "@/components/skill/FrontendEditorModal";
 import { SkillDependencyCheck } from "@/components/skill/SkillDependencyCheck";
+import { SkillLearningPanel } from "@/components/skill/SkillLearningPanel";
 import { SkillStatsPanel } from "@/components/skill/SkillStatsPanel";
 import { CHAT_ICON_COLORS } from "@/lib/iconColors";
 import { invoke } from "@/lib/invoke";
@@ -19,6 +20,7 @@ import {
   Button,
   Card,
   Collapse,
+  Drawer,
   Dropdown,
   Empty,
   Input,
@@ -37,6 +39,7 @@ import {
 import type { TFunction } from "i18next";
 import {
   BarChart3,
+  Brain,
   ChevronRight,
   Code,
   Cpu,
@@ -482,6 +485,7 @@ export function SkillsPage() {
   >(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [proposalPanelOpen, setProposalPanelOpen] = useState(false);
+  const [learningPanelOpen, setLearningPanelOpen] = useState(false);
   const [editingFrontendSkill, setEditingFrontendSkill] = useState<Skill | null>(null);
   const [agentGeneratorOpen, setAgentGeneratorOpen] = useState(false);
 
@@ -800,6 +804,11 @@ export function SkillsPage() {
             icon={<Lightbulb size={14} color={CHAT_ICON_COLORS.Lightbulb} />}
             onClick={() => setProposalPanelOpen(true)}
             title={t("skill.proposal.title")}
+          />
+          <Button
+            icon={<Brain size={14} />}
+            onClick={() => setLearningPanelOpen(true)}
+            title={t("skillLearning.title")}
           />
         </div>
         <SkillDependencyCheck />
@@ -1456,6 +1465,16 @@ export function SkillsPage() {
         open={proposalPanelOpen}
         onClose={() => setProposalPanelOpen(false)}
       />
+
+      <Drawer
+        title={t("skillLearning.title")}
+        width={480}
+        open={learningPanelOpen}
+        onClose={() => setLearningPanelOpen(false)}
+        styles={{ body: { padding: 16, height: "calc(100% - 55px)" } }}
+      >
+        <SkillLearningPanel />
+      </Drawer>
 
       <AgentGeneratorModal
         open={agentGeneratorOpen}

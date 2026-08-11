@@ -67,18 +67,25 @@ reqwest = { version = "0.13", default-features = false, features = ["json", "nat
 # P1-3: rhai 下沉 harness 后需在 workspace 层声明统一版本+特性
 # features：sync（Send+ Sync）+ serde（Dynamic ↔ Value 转换）
 rhai = { version = "1", features = ["sync", "serde"] }
-sea-orm = { version = "2.0.0-rc.40", features = ["sqlx-sqlite", "sqlx-postgres", "runtime-tokio-native-tls", "macros"] }
+sea-orm = { version = "2.0.1", features = ["sqlx-sqlite", "sqlx-postgres", "runtime-tokio-native-tls", "macros"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
 sha2 = "0.11"
+# WARNING [P1-NEW-2]: sqlite-vec 仍在 Alpha 阶段（0.1.8-alpha.1），API 不稳定。
+# 生产环境使用 Alpha 依赖存在以下风险：
+#   1. 上游 API 随时可能 Breaking Change，升级后需全面回归测试。
+#   2. Alpha 版本无安全审计保证，禁止在合规要求严格的场景部署。
+#   3. CI 中 cargo-audit 已配置（`.github/workflows/ci.yml` 的 cargo-audit job），
+#      但 RUSTSEC 不会为 Alpha 版本发布安全公告。
+# 缓解措施：密切关注 sqlite-vec 正式版发布，计划在 v0.2.0+ 稳定后迁移。
 sqlite-vec = "0.1.8-alpha.1"
 thiserror = "2"
 tokio = { version = "1", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4"] }
-xcap = "0.9.6"
+xcap = "0.9.8"
 
 [package]
 name = "axagent"

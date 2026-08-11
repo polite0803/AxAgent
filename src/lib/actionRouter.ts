@@ -232,7 +232,7 @@ export class ActionRouter {
         ...context,
         pageParams: {
           ...context.pageParams,
-          ...((lastResult.data as Record<string, string>) || {}),
+          ...(lastResult.data as Record<string, string>),
         },
       });
       if (!lastResult.success) {

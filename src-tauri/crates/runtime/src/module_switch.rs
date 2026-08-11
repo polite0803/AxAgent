@@ -321,11 +321,14 @@ mod tests {
 
         assert_eq!(registry.module_state("test_mod").await, Some(ModuleState::Disabled));
 
-        registry.enable_module("test_mod").await.unwrap();
-        assert_eq!(registry.module_state("test_mod").await.unwrap(), ModuleState::Active);
+        registry.enable_module("test_mod").await.expect("测试：异步操作应成功");
+        assert_eq!(
+            registry.module_state("test_mod").await.expect("测试：异步操作应成功"),
+            ModuleState::Active
+        );
 
-        registry.disable_module("test_mod").await.unwrap();
-        let state = registry.module_state("test_mod").await.unwrap();
+        registry.disable_module("test_mod").await.expect("测试：异步操作应成功");
+        let state = registry.module_state("test_mod").await.expect("测试：异步操作应成功");
         assert_eq!(state, ModuleState::Disabled);
     }
 
@@ -341,11 +344,12 @@ mod tests {
         registry.register(vision.clone()).await;
         registry.register(research.clone()).await;
 
-        code.enable().await.unwrap();
-        vision.enable().await.unwrap();
-        research.enable().await.unwrap();
+        code.enable().await.expect("测试：异步操作应成功");
+        vision.enable().await.expect("测试：异步操作应成功");
+        research.enable().await.expect("测试：异步操作应成功");
 
-        let disabled = registry.enter_speed_mode(&["code_engine"]).await.unwrap();
+        let disabled =
+            registry.enter_speed_mode(&["code_engine"]).await.expect("测试：异步操作应成功");
         assert_eq!(disabled, 2);
 
         assert_eq!(registry.module_state("code_engine").await, Some(ModuleState::Active));
@@ -368,8 +372,8 @@ mod tests {
         registry.register(a.clone()).await;
         registry.register(b.clone()).await;
 
-        a.enable().await.unwrap();
-        b.enable().await.unwrap();
+        a.enable().await.expect("测试：异步操作应成功");
+        b.enable().await.expect("测试：异步操作应成功");
 
         let total = registry.total_resource_cost().await;
         assert_eq!(total.cpu_percent, 30);

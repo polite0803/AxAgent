@@ -118,7 +118,7 @@ impl TokenBudgetPredictor {
             return 0.0;
         }
         let first = &self.history[0];
-        let last = &self.history.last().unwrap();
+        let last = &self.history.last().expect("集合为空");
         let dt = (last.timestamp_ms - first.timestamp_ms).max(1) as f64 / 1000.0;
         let dtokens = (last.total_tokens as f64 - first.total_tokens as f64).max(0.0);
         dtokens / dt.max(1.0)

@@ -175,7 +175,7 @@ mod tests {
         manager.push("do something".to_string()).await;
         let result = manager.format_steer_block().await;
         assert!(result.is_some());
-        let block = result.unwrap();
+        let block = result.expect("测试应成功");
         assert!(block.contains("<steer-instructions"));
         assert!(block.contains("do something"));
         assert!(block.contains("</steer-instructions>"));
@@ -223,8 +223,9 @@ mod tests {
             injected_at: chrono::Utc::now(),
             consumed: false,
         };
-        let json = serde_json::to_string(&msg).unwrap();
-        let deserialized: SteerMessage = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&msg).expect("测试：JSON序列化应成功");
+        let deserialized: SteerMessage =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.id, "test-id");
         assert_eq!(deserialized.instruction, "test instruction");
         assert!(!deserialized.consumed);
@@ -233,18 +234,21 @@ mod tests {
     #[test]
     fn test_steer_injection_point_serialization() {
         let point = SteerInjectionPoint::AfterToolCall;
-        let json = serde_json::to_string(&point).unwrap();
-        let deserialized: SteerInjectionPoint = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&point).expect("测试：JSON序列化应成功");
+        let deserialized: SteerInjectionPoint =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert!(matches!(deserialized, SteerInjectionPoint::AfterToolCall));
 
         let point = SteerInjectionPoint::BeforeNextLlmCall;
-        let json = serde_json::to_string(&point).unwrap();
-        let deserialized: SteerInjectionPoint = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&point).expect("测试：JSON序列化应成功");
+        let deserialized: SteerInjectionPoint =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert!(matches!(deserialized, SteerInjectionPoint::BeforeNextLlmCall));
 
         let point = SteerInjectionPoint::Immediate;
-        let json = serde_json::to_string(&point).unwrap();
-        let deserialized: SteerInjectionPoint = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&point).expect("测试：JSON序列化应成功");
+        let deserialized: SteerInjectionPoint =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert!(matches!(deserialized, SteerInjectionPoint::Immediate));
     }
 

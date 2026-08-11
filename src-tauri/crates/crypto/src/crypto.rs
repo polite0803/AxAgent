@@ -151,7 +151,7 @@ static TEST_MACHINE_ID: std::sync::Mutex<Option<String>> = std::sync::Mutex::new
 fn get_machine_fingerprint() -> String {
     #[cfg(test)]
     {
-        if let Some(id) = TEST_MACHINE_ID.lock().unwrap().as_ref() {
+        if let Some(id) = TEST_MACHINE_ID.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
             return id.clone();
         }
     }
@@ -460,8 +460,8 @@ mod tests {
     #[test]
     fn encrypt_is_nondeterministic_per_call() {
         let key = generate_master_key();
-        let a = encrypt_key("same", &key).unwrap();
-        let b = encrypt_key("same", &key).unwrap();
+        let a = encrypt_key("same", &key).expect("测试应成功");
+        let b = encrypt_key("same", &key).expect("测试应成功");
         // 由于随机 nonce，两次密文不应相同（抗重放/模式分析）。
         assert_ne!(a, b);
     }
@@ -490,8 +490,8 @@ mod tests {
     #[test]
     fn decrypt_tampered_ciphertext_fails() {
         let key = generate_master_key();
-        let enc = encrypt_key("tamper-me", &key).unwrap();
-        let mut bytes = BASE64.decode(&enc).unwrap();
+        let enc = encrypt_key("tamper-me", &key).expect("测试应成功");
+        let mut bytes = BASE64.decode(&enc).expect("测试：decode 应成功");
         // 翻转密文最后一个字节（保留前 12 字节 nonce 不动，避免长度/nonce 错误掩盖篡改）。
         let last = bytes.len() - 1;
         bytes[last] ^= 0xFF;
@@ -576,7 +576,7 @@ mod tests {
     #[serial(crypto_machine_id)]
     fn backup_key_encrypt_decrypt_roundtrip() {
         // 固定 machine-id，使 Argon2 派生密钥确定性，规避全局文件跨进程竞争。
-        *super::TEST_MACHINE_ID.lock().unwrap() = Some("0".repeat(64));
+        *super::TEST_MACHINE_ID.lock().unwrap_or_else(|e| e.into_inner()) = Some("0".repeat(64));
         let data = b"super-secret-backup-material-1234567890";
         let enc = encrypt_backup_key(data).expect("备份加密应成功");
         assert_eq!(enc[0], BACKUP_VERSION_BYTE, "应为 v2 版本字节 0x02");
@@ -592,9 +592,9 @@ mod tests {
     #[test]
     #[serial(crypto_machine_id)]
     fn auto_upgrade_passthrough_for_v2() {
-        *super::TEST_MACHINE_ID.lock().unwrap() = Some("0".repeat(64));
+        *super::TEST_MACHINE_ID.lock().unwrap_or_else(|e| e.into_inner()) = Some("0".repeat(64));
         let data = b"already-v2-material";
-        let enc = encrypt_backup_key(data).unwrap();
+        let enc = encrypt_backup_key(data).expect("测试应成功");
         let upgraded = auto_upgrade_backup_to_v2(&enc).expect("升级应成功");
         assert_eq!(upgraded, enc, "v2 数据应原样返回（无操作）");
     }
@@ -613,7 +613,7 @@ mod tests {
     #[test]
     #[serial(crypto_machine_id)]
     fn storage_master_key_is_usable_aes_key() {
-        *super::TEST_MACHINE_ID.lock().unwrap() = Some("0".repeat(64));
+        *super::TEST_MACHINE_ID.lock().unwrap_or_else(|e| e.into_inner()) = Some("0".repeat(64));
         let master = derive_storage_master_key();
         // 派生的密钥必须是 32 字节且非全零
         assert_eq!(master.len(), 32);

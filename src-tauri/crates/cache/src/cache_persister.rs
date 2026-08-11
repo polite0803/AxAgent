@@ -153,13 +153,16 @@ mod tests {
         snapshot.embedding_cache.insert("hash1".to_string(), vec![0.1, 0.2, 0.3]);
         snapshot.text_hash_cache.insert("doc1".to_string(), "abc123".to_string());
 
-        persister.save(&snapshot).unwrap();
+        persister.save(&snapshot).expect("测试：保存快照应成功");
         assert!(persister.snapshot_exists());
 
-        let loaded = persister.load().unwrap();
+        let loaded = persister.load().expect("测试：加载快照应成功");
         assert_eq!(loaded.embedding_cache.len(), 1);
         assert_eq!(loaded.text_hash_cache.len(), 1);
-        assert_eq!(loaded.embedding_cache.get("hash1").unwrap(), &vec![0.1, 0.2, 0.3]);
+        assert_eq!(
+            loaded.embedding_cache.get("hash1").expect("测试：应存在 hash1"),
+            &vec![0.1, 0.2, 0.3]
+        );
 
         // Cleanup
         persister.clear();

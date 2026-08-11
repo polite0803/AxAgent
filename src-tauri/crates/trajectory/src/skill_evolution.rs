@@ -885,7 +885,7 @@ mod tests {
             failure_evidence: vec!["timeout".to_string()],
             success_evidence: vec![],
         };
-        let json = serde_json::to_string(&request).unwrap();
+        let json = serde_json::to_string(&request).expect("测试：JSON序列化应成功");
         assert!(json.contains("test"));
     }
 
@@ -904,7 +904,7 @@ mod tests {
             failure_evidence: vec!["error occurred".to_string()],
             success_evidence: vec![],
         };
-        let response = provider.generate_mutation(&request).await.unwrap();
+        let response = provider.generate_mutation(&request).await.expect("测试：异步操作应成功");
         assert!(response.revised_steps[0].error_handling.is_some());
     }
 

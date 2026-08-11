@@ -1349,6 +1349,7 @@ const SCHEMA: &[(&str, &[(&str, &str)])] = &[
             ("embedding_dimensions", "INTEGER"),
             ("retrieval_threshold", "REAL"),
             ("retrieval_top_k", "INTEGER"),
+            ("knowledge_base_id", "TEXT"),
             ("created_at", "BIGINT"),
             ("updated_at", "BIGINT"),
         ],
@@ -1503,7 +1504,7 @@ const SCHEMA: &[(&str, &[(&str, &str)])] = &[
 
 #[tokio::test]
 async fn verify_all_entity_columns_exist_in_db() {
-    let db = Database::connect("sqlite::memory:").await.unwrap();
+    let db = Database::connect("sqlite::memory:").await.expect("测试应成功");
 
     // 跑全部迁移
     axagent_dao::migrations::run_migrations(&db)

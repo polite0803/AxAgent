@@ -231,10 +231,10 @@ mod tests {
         let storage = InMemoryTraceStorage::new();
         let trace = TraceExport::new("test-trace".to_string(), vec![], TraceMetadata::default());
 
-        storage.store(trace.clone()).unwrap();
-        let retrieved = storage.get("test-trace").unwrap();
+        storage.store(trace.clone()).expect("测试应成功");
+        let retrieved = storage.get("test-trace").expect("测试：get 应成功");
         assert!(retrieved.is_some());
-        assert_eq!(retrieved.unwrap().trace_id, "test-trace");
+        assert_eq!(retrieved.expect("测试应成功").trace_id, "test-trace");
     }
 
     #[test]

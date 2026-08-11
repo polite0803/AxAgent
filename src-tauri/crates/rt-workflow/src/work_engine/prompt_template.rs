@@ -536,7 +536,7 @@ mod tests {
     fn render_simple_substitution() {
         let c = compile_prompt("Hello {{name}}!");
         let v = vars(&[("name", "World")]);
-        assert_eq!(render_prompt(&c, &v).unwrap(), "Hello World!");
+        assert_eq!(render_prompt(&c, &v).expect("测试应成功"), "Hello World!");
     }
 
     #[test]
@@ -552,7 +552,7 @@ mod tests {
         let c = compile_prompt("{{n.output.text}}");
         let mut v = HashMap::new();
         v.insert("n".to_string(), serde_json::json!({"output": {"text": "hello"}}));
-        assert_eq!(render_prompt(&c, &v).unwrap(), "hello");
+        assert_eq!(render_prompt(&c, &v).expect("测试应成功"), "hello");
     }
 
     #[test]
@@ -579,7 +579,7 @@ mod tests {
         let mut v = HashMap::new();
         v.insert("num".to_string(), serde_json::json!(42));
         v.insert("flag".to_string(), Value::Bool(true));
-        assert_eq!(render_prompt(&c, &v).unwrap(), "n=42, b=true");
+        assert_eq!(render_prompt(&c, &v).expect("测试应成功"), "n=42, b=true");
     }
 
     #[test]
@@ -587,7 +587,7 @@ mod tests {
         let c = compile_prompt("{{x}}");
         let mut v = HashMap::new();
         v.insert("x".to_string(), Value::Null);
-        assert_eq!(render_prompt(&c, &v).unwrap(), "");
+        assert_eq!(render_prompt(&c, &v).expect("测试应成功"), "");
     }
 
     #[test]
@@ -595,7 +595,7 @@ mod tests {
         let input = "你是研究员。\n请分析数据并给出结论。";
         let c = compile_prompt(input);
         let v = HashMap::new();
-        assert_eq!(render_prompt(&c, &v).unwrap(), input);
+        assert_eq!(render_prompt(&c, &v).expect("测试应成功"), input);
     }
 
     #[test]
@@ -610,7 +610,7 @@ mod tests {
             serde_json::json!({"content": "市场调研结果：Q2增长15%"}),
         );
         v.insert("focus".to_string(), Value::String("成本控制".to_string()));
-        let result = render_prompt(&c, &v).unwrap();
+        let result = render_prompt(&c, &v).expect("测试应成功");
         assert_eq!(
             result,
             "你是 分析师。\n请根据 市场调研结果：Q2增长15% 撰写报告。\n重点关注：成本控制"
@@ -622,7 +622,7 @@ mod tests {
         let c = compile_prompt("{{arr}}");
         let mut v = HashMap::new();
         v.insert("arr".to_string(), serde_json::json!([1, 2, 3]));
-        assert_eq!(render_prompt(&c, &v).unwrap(), "[1,2,3]");
+        assert_eq!(render_prompt(&c, &v).expect("测试应成功"), "[1,2,3]");
     }
 
     #[test]
@@ -688,7 +688,7 @@ mod tests {
         assert!(compiled.segments[1].to_string().contains("soft override"));
         assert!(compiled.segments[2].to_string().contains("具体指令"));
         // 渲染后应能看到 marker 紧跟 inline 内容
-        let rendered = render_prompt(&compiled, &HashMap::new()).unwrap();
+        let rendered = render_prompt(&compiled, &HashMap::new()).expect("测试应成功");
         let marker_pos = rendered.find("soft override").expect("marker 存在");
         let inline_pos = rendered.find("具体指令").expect("inline 存在");
         assert!(marker_pos < inline_pos, "marker 必须在 inline 内容之前");
@@ -706,7 +706,7 @@ mod tests {
             rag_parts: &["rag".to_string()],
         };
         let compiled = assemble_template(req);
-        let last = compiled.segments.last().unwrap().to_string();
+        let last = compiled.segments.last().expect("测试：列表应非空").to_string();
         assert!(last.contains("协作"));
     }
 

@@ -2111,3 +2111,17 @@ export interface LlamaCppInstallStatus {
   downloadProgress: number | null;
   downloadError: string | null;
 }
+
+// === 技能学习闭环（Hermes 借鉴） ===
+
+export type {
+  ApprovalStatus,
+  LearnSkillInput,
+  LearnSkillResult,
+  MemoryWriteApprovalConfig,
+  PendingMemoryWrite,
+  PendingOperationType,
+  PendingSkillOperation,
+  RiskLevel,
+  SkillLearningConfig,
+} from "./skillLearning";

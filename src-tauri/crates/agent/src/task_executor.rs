@@ -822,9 +822,14 @@ mod tests {
             inputs: HashMap::new(),
             outputs: HashMap::new(),
         };
-        let result = executor.execute_task(&context).await.unwrap();
+        let result = executor.execute_task(&context).await.expect("测试：异步操作应成功");
         assert_eq!(result["task_id"], "r1");
-        assert!(result["output"].as_str().unwrap().contains("Reasoning completed"));
+        assert!(
+            result["output"]
+                .as_str()
+                .expect("测试：字符串转换应成功")
+                .contains("Reasoning completed")
+        );
     }
 
     #[tokio::test]
@@ -839,7 +844,7 @@ mod tests {
             inputs,
             outputs: HashMap::new(),
         };
-        let result = executor.execute_task(&context).await.unwrap();
+        let result = executor.execute_task(&context).await.expect("测试：异步操作应成功");
         assert_eq!(result["prompt_used"], "custom prompt");
     }
 
@@ -853,9 +858,11 @@ mod tests {
             inputs: HashMap::new(),
             outputs: HashMap::new(),
         };
-        let result = executor.execute_task(&context).await.unwrap();
+        let result = executor.execute_task(&context).await.expect("测试：异步操作应成功");
         assert_eq!(result["task_id"], "q1");
-        assert!(result["output"].as_str().unwrap().contains("Query executed"));
+        assert!(
+            result["output"].as_str().expect("测试：字符串转换应成功").contains("Query executed")
+        );
     }
 
     #[tokio::test]
@@ -870,7 +877,7 @@ mod tests {
             inputs,
             outputs: HashMap::new(),
         };
-        let result = executor.execute_task(&context).await.unwrap();
+        let result = executor.execute_task(&context).await.expect("测试：异步操作应成功");
         assert_eq!(result["query"], "custom query");
     }
 
@@ -887,7 +894,7 @@ mod tests {
             inputs,
             outputs: HashMap::new(),
         };
-        let result = executor.execute_task(&context).await.unwrap();
+        let result = executor.execute_task(&context).await.expect("测试：异步操作应成功");
         assert_eq!(result["passed"], true);
     }
 
@@ -904,7 +911,7 @@ mod tests {
             inputs,
             outputs: HashMap::new(),
         };
-        let result = executor.execute_task(&context).await.unwrap();
+        let result = executor.execute_task(&context).await.expect("测试：异步操作应成功");
         assert_eq!(result["passed"], false);
     }
 
@@ -920,7 +927,7 @@ mod tests {
             inputs,
             outputs: HashMap::new(),
         };
-        let result = executor.execute_task(&context).await.unwrap();
+        let result = executor.execute_task(&context).await.expect("测试：异步操作应成功");
         assert_eq!(result["passed"], true);
     }
 
@@ -936,7 +943,7 @@ mod tests {
             inputs,
             outputs: HashMap::new(),
         };
-        let result = executor.execute_task(&context).await.unwrap();
+        let result = executor.execute_task(&context).await.expect("测试：异步操作应成功");
         assert_eq!(result["passed"], false);
     }
 

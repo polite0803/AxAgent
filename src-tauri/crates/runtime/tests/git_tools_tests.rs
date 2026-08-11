@@ -47,7 +47,7 @@ fn test_git_context_detects_repo() {
     init_temp_git_repo(dir.path());
     let ctx = GitContext::detect(dir.path());
     assert!(ctx.is_some());
-    assert!(!ctx.unwrap().render().is_empty());
+    assert!(!ctx.expect("测试应成功").render().is_empty());
 }
 
 #[test]

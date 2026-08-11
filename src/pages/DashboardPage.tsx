@@ -11,21 +11,10 @@ import {
 } from "@/stores";
 import { CostByProvider, DailyUsage, DashboardStats } from "@/types";
 import { Card, Col, Flex, Row, Spin, Statistic, Tabs, theme } from "antd";
+import * as echarts from "echarts";
 import { Bot, Building2, Cpu, Database, Globe, MessageSquare, TrendingUp, Zap } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 
 // ── Types ──
 
@@ -154,13 +143,161 @@ function SectionHeader({ title, icon }: { title: string; icon?: React.ReactNode 
   );
 }
 
+/* ── CostByProvider echarts 组件 ── */
+
+const PIE_COLORS = [
+  "#1677ff",
+  "#52c41a",
+  "#faad14",
+  "#ff4d4f",
+  "#722ed1",
+  "#13c2c2",
+  "#eb2f96",
+  "#fa8c16",
+];
+
+function CostByProviderChart({ data }: { data: CostByProvider[] }) {
+  const { token } = theme.useToken();
+  const { t } = useTranslation();
+  const chartRef = useRef<HTMLDivElement>(null);
+  const chartInstance = useRef<echarts.ECharts | null>(null);
+
+  useEffect(() => {
+    if (!chartRef.current) { return; }
+    if (!chartInstance.current) {
+      chartInstance.current = echarts.init(chartRef.current);
+    }
+    const option: echarts.EChartsOption = {
+      tooltip: {
+        trigger: "item",
+        backgroundColor: token.colorBgElevated,
+        borderColor: token.colorBorder,
+        textStyle: { color: token.colorText, fontSize: 12 },
+        formatter: (params: unknown) => {
+          const p = params as { value: number; name: string };
+          return `${p.name}: ${formatNumber(Number(p.value ?? 0))}`;
+        },
+      },
+      legend: { bottom: 0, left: "center", textStyle: { color: token.colorTextSecondary, fontSize: 12 } },
+      series: [
+        {
+          type: "pie",
+          radius: "65%",
+          center: ["50%", "45%"],
+          data: data.map((d, i) => ({
+            value: d.token_count,
+            name: d.provider_id,
+            itemStyle: { color: PIE_COLORS[i % PIE_COLORS.length] },
+          })),
+          label: {
+            formatter: (params: unknown) => {
+              const p = params as { name: string; value: number };
+              return `${p.name}: ${formatNumber(p.value)}`;
+            },
+            fontSize: 11,
+            color: token.colorTextSecondary,
+          },
+          labelLine: { lineStyle: { color: token.colorBorderSecondary } },
+        },
+      ],
+    };
+    chartInstance.current.setOption(option);
+    const handleResize = () => chartInstance.current?.resize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [data, token, t]);
+
+  useEffect(() => {
+    return () => {
+      chartInstance.current?.dispose();
+      chartInstance.current = null;
+    };
+  }, []);
+
+  return <div ref={chartRef} style={{ width: "100%", height: 220 }} />;
+}
+
 // ── Main Component ──
 
 function DailyUsageChart({ data = [], loading }: { data: DailyUsage[]; loading: boolean }) {
   const { token } = theme.useToken();
   const { t } = useTranslation();
-  // 防御：mock 默认对 get_* 命令返回 {}，导致 recharts 收到非数组
+  const chartRef = useRef<HTMLDivElement>(null);
+  const chartInstance = useRef<echarts.ECharts | null>(null);
   const safeData = Array.isArray(data) ? data : [];
+
+  useEffect(() => {
+    if (!chartRef.current) { return; }
+    if (!chartInstance.current) {
+      chartInstance.current = echarts.init(chartRef.current);
+    }
+    const option: echarts.EChartsOption = {
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        backgroundColor: token.colorBgElevated,
+        borderColor: token.colorBorder,
+        textStyle: { color: token.colorText, fontSize: 12 },
+        formatter: (params: unknown) => {
+          const p = (params as { seriesName: string; value: number; axisValue: string }[])[0];
+          if (!p) { return ""; }
+          const labels: Record<string, string> = {
+            total_prompt_tokens: t("dashboard.inputTokens"),
+            total_completion_tokens: t("dashboard.outputTokens"),
+          };
+          return `${p.axisValue}<br/>${labels[p.seriesName] ?? p.seriesName}: ${Number(p.value ?? 0).toLocaleString()}`;
+        },
+      },
+      grid: { top: 8, right: 8, bottom: 24, left: 48 },
+      xAxis: {
+        type: "category",
+        data: safeData.map((d) => d.date),
+        axisLine: { lineStyle: { color: token.colorBorderSecondary } },
+        axisLabel: { fontSize: 11, color: token.colorTextSecondary },
+        axisTick: { show: false },
+      },
+      yAxis: {
+        type: "value",
+        axisLine: { show: false },
+        axisTick: { show: false },
+        splitLine: { lineStyle: { color: token.colorBorderSecondary, type: "dashed" } },
+        axisLabel: {
+          fontSize: 11,
+          color: token.colorTextSecondary,
+          formatter: (v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : `${v}`,
+        },
+      },
+      series: [
+        {
+          name: "total_prompt_tokens",
+          type: "bar",
+          stack: "a",
+          data: safeData.map((d) => d.total_prompt_tokens ?? 0),
+          itemStyle: { color: "#1677ff", borderRadius: [2, 2, 0, 0] },
+          barMaxWidth: 32,
+        },
+        {
+          name: "total_completion_tokens",
+          type: "bar",
+          stack: "a",
+          data: safeData.map((d) => d.total_completion_tokens ?? 0),
+          itemStyle: { color: "#52c41a", borderRadius: [2, 2, 0, 0] },
+          barMaxWidth: 32,
+        },
+      ],
+    };
+    chartInstance.current.setOption(option);
+    const handleResize = () => chartInstance.current?.resize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [safeData, token, t]);
+
+  useEffect(() => {
+    return () => {
+      chartInstance.current?.dispose();
+      chartInstance.current = null;
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -178,44 +315,7 @@ function DailyUsageChart({ data = [], loading }: { data: DailyUsage[]; loading: 
     );
   }
 
-  return (
-    <ResponsiveContainer width="100%" height={240}>
-      <BarChart data={safeData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={token.colorBorderSecondary} />
-        <XAxis
-          dataKey="date"
-          tick={{ fontSize: 11, fill: token.colorTextSecondary }}
-          tickLine={false}
-          axisLine={{ stroke: token.colorBorderSecondary }}
-        />
-        <YAxis
-          tick={{ fontSize: 11, fill: token.colorTextSecondary }}
-          tickLine={false}
-          axisLine={false}
-          tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : `${v}`}
-        />
-        <Tooltip
-          contentStyle={{
-            background: token.colorBgElevated,
-            border: `1px solid ${token.colorBorder}`,
-            borderRadius: 8,
-            fontSize: 12,
-          }}
-          formatter={(value, name) => (
-            <span>
-              {Number(value ?? 0).toLocaleString()} {name === "total_prompt_tokens"
-                ? t("dashboard.inputTokens")
-                : name === "total_completion_tokens"
-                ? t("dashboard.outputTokens")
-                : t("dashboard.totalTokens")}
-            </span>
-          )}
-        />
-        <Bar dataKey="total_prompt_tokens" stackId="a" fill="#1677ff" radius={[2, 2, 0, 0]} />
-        <Bar dataKey="total_completion_tokens" stackId="a" fill="#52c41a" radius={[2, 2, 0, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
-  );
+  return <div ref={chartRef} style={{ width: "100%", height: 240 }} />;
 }
 
 export function DashboardPage() {
@@ -742,49 +842,7 @@ function OverviewTab() {
                 background: token.colorBgContainer,
               }}
             >
-              <ResponsiveContainer width="100%" height={220}>
-                <PieChart>
-                  <Pie
-                    data={Array.isArray(costByProvider) ? costByProvider : []}
-                    dataKey="token_count"
-                    nameKey="provider_id"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    label={(props) => `${props.payload.provider_id}: ${formatNumber(props.payload.token_count)}`}
-                    labelLine
-                  >
-                    {(Array.isArray(costByProvider) ? costByProvider : []).map((_, i) => (
-                      <Cell
-                        key={i}
-                        fill={[
-                          "#1677ff",
-                          "#52c41a",
-                          "#faad14",
-                          "#ff4d4f",
-                          "#722ed1",
-                          "#13c2c2",
-                          "#eb2f96",
-                          "#fa8c16",
-                        ][i % 8]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value, name) => (
-                      <span>
-                        {formatNumber(Number(value ?? 0))} {name}
-                      </span>
-                    )}
-                    contentStyle={{
-                      background: token.colorBgElevated,
-                      border: `1px solid ${token.colorBorder}`,
-                      borderRadius: 8,
-                      fontSize: 12,
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              <CostByProviderChart data={Array.isArray(costByProvider) ? costByProvider : []} />
             </Card>
           </div>
         )

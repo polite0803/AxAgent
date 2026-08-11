@@ -1174,12 +1174,12 @@ pub async fn agent_query(
 
                 if let Some(kb) = target {
                     tool_registry = tool_registry.with_tool_extra("vault_kb_id", kb.id.as_str());
-                    info!(
-                        "[agent] Obsidian vault bound: kb_id={} name={} vault={}",
-                        kb.id,
-                        kb.name,
-                        kb.vault_path.as_ref().unwrap()
-                    );
+                    if let Some(vault_path) = kb.vault_path.as_ref() {
+                        info!(
+                            "[agent] Obsidian vault bound: kb_id={} name={} vault={}",
+                            kb.id, kb.name, vault_path
+                        );
+                    }
                 } else if vault_kbs.len() > 1 {
                     info!(
                         "[agent] 发现 {} 个 ConnectedVault KB 但未在 enabled_knowledge_base_ids 中指定，obsidian_* 工具暂不绑定",

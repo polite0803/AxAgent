@@ -94,26 +94,39 @@ impl ServiceRegistry {
     // ── NoteRepository ──
 
     pub fn set_note_repository(&self, repo: Arc<dyn NoteRepository>) {
-        self.note_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+        self.note_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(repo);
     }
 
     pub fn note_repository(&self) -> Arc<dyn NoteRepository> {
-        self.note_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone().expect(
-            "NoteRepository not initialized. Call set_note_repository() during app startup.",
-        )
+        self.note_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
+            .expect(
+                "NoteRepository not initialized. Call set_note_repository() during app startup.",
+            )
     }
 
     // ── WikiRepository ──
 
     pub fn set_wiki_repository(&self, repo: Arc<dyn WikiRepository>) {
-        self.wiki_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+        self.wiki_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(repo);
     }
 
     pub fn wiki_repository(&self) -> Arc<dyn WikiRepository> {
         self.wiki_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("WikiRepository not initialized.")
     }
@@ -121,14 +134,18 @@ impl ServiceRegistry {
     // ── WikiPageRepository ──
 
     pub fn set_wiki_page_repository(&self, repo: Arc<dyn WikiPageRepository>) {
-        self.wiki_page_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+        self.wiki_page_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(repo);
     }
 
     pub fn wiki_page_repository(&self) -> Arc<dyn WikiPageRepository> {
         self.wiki_page_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("WikiPageRepository not initialized.")
     }
@@ -136,14 +153,18 @@ impl ServiceRegistry {
     // ── WikiSourceRepository ──
 
     pub fn set_wiki_source_repository(&self, repo: Arc<dyn WikiSourceRepository>) {
-        self.wiki_source_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+        self.wiki_source_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(repo);
     }
 
     pub fn wiki_source_repository(&self) -> Arc<dyn WikiSourceRepository> {
         self.wiki_source_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("WikiSourceRepository not initialized.")
     }
@@ -151,14 +172,18 @@ impl ServiceRegistry {
     // ── WikiOperationRepository ──
 
     pub fn set_wiki_operation_repository(&self, repo: Arc<dyn WikiOperationRepository>) {
-        self.wiki_operation_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+        self.wiki_operation_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(repo);
     }
 
     pub fn wiki_operation_repository(&self) -> Arc<dyn WikiOperationRepository> {
         self.wiki_operation_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("WikiOperationRepository not initialized.")
     }
@@ -166,14 +191,18 @@ impl ServiceRegistry {
     // ── NoteBacklinkRepository ──
 
     pub fn set_note_backlink_repository(&self, repo: Arc<dyn NoteBacklinkRepository>) {
-        self.backlink_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+        self.backlink_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(repo);
     }
 
     pub fn note_backlink_repository(&self) -> Arc<dyn NoteBacklinkRepository> {
         self.backlink_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("NoteBacklinkRepository not initialized.")
     }
@@ -181,14 +210,18 @@ impl ServiceRegistry {
     // ── SettingsRepository ──
 
     pub fn set_settings_repository(&self, repo: Arc<dyn SettingsRepository>) {
-        self.settings_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+        self.settings_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(repo);
     }
 
     pub fn settings_repository(&self) -> Arc<dyn SettingsRepository> {
         self.settings_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("SettingsRepository not initialized.")
     }
@@ -196,14 +229,18 @@ impl ServiceRegistry {
     // ── ProviderRepository ──
 
     pub fn set_provider_repository(&self, repo: Arc<dyn ProviderRepository>) {
-        self.provider_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+        self.provider_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(repo);
     }
 
     pub fn provider_repository(&self) -> Arc<dyn ProviderRepository> {
         self.provider_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("ProviderRepository not initialized.")
     }
@@ -211,14 +248,18 @@ impl ServiceRegistry {
     // ── GeneratedToolRepository ──
 
     pub fn set_generated_tool_repository(&self, repo: Arc<dyn GeneratedToolRepository>) {
-        self.generated_tool_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+        self.generated_tool_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(repo);
     }
 
     pub fn generated_tool_repository(&self) -> Arc<dyn GeneratedToolRepository> {
         self.generated_tool_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("GeneratedToolRepository not initialized.")
     }
@@ -226,14 +267,18 @@ impl ServiceRegistry {
     // ── PlatformConfigRepository ──
 
     pub fn set_platform_config_repository(&self, repo: Arc<dyn PlatformConfigRepository>) {
-        self.platform_config_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+        self.platform_config_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(repo);
     }
 
     pub fn platform_config_repository(&self) -> Arc<dyn PlatformConfigRepository> {
         self.platform_config_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("PlatformConfigRepository not initialized.")
     }
@@ -241,14 +286,18 @@ impl ServiceRegistry {
     // ── ConversationRepository ──
 
     pub fn set_conversation_repository(&self, repo: Arc<dyn ConversationRepository>) {
-        self.conversation_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+        self.conversation_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(repo);
     }
 
     pub fn conversation_repository(&self) -> Arc<dyn ConversationRepository> {
         self.conversation_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("ConversationRepository not initialized.")
     }
@@ -256,14 +305,18 @@ impl ServiceRegistry {
     // ── MessageRepository ──
 
     pub fn set_message_repository(&self, repo: Arc<dyn MessageRepository>) {
-        self.message_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+        self.message_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(repo);
     }
 
     pub fn message_repository(&self) -> Arc<dyn MessageRepository> {
         self.message_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("MessageRepository not initialized.")
     }
@@ -271,14 +324,18 @@ impl ServiceRegistry {
     // ── SessionRepository ──
 
     pub fn set_session_repository(&self, repo: Arc<dyn SessionRepository>) {
-        self.session_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+        self.session_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(repo);
     }
 
     pub fn session_repository(&self) -> Arc<dyn SessionRepository> {
         self.session_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("SessionRepository not initialized.")
     }
@@ -286,14 +343,18 @@ impl ServiceRegistry {
     // ── DatabaseInitializer ──
 
     pub fn set_database_initializer(&self, init: Arc<dyn DatabaseInitializer>) {
-        self.db_init.get_or_init(|| RwLock::new(None)).write().unwrap().replace(init);
+        self.db_init
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(init);
     }
 
     pub fn database_initializer(&self) -> Arc<dyn DatabaseInitializer> {
         self.db_init
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("DatabaseInitializer not initialized.")
     }
@@ -301,14 +362,18 @@ impl ServiceRegistry {
     // ── SkillDirsProvider ──
 
     pub fn set_skill_dirs_provider(&self, provider: Arc<dyn SkillDirsProvider>) {
-        self.skill_dirs.get_or_init(|| RwLock::new(None)).write().unwrap().replace(provider);
+        self.skill_dirs
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(provider);
     }
 
     pub fn skill_dirs_provider(&self) -> Arc<dyn SkillDirsProvider> {
         self.skill_dirs
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("SkillDirsProvider not initialized.")
     }
@@ -316,14 +381,18 @@ impl ServiceRegistry {
     // ── ToolExecutionRepository ──
 
     pub fn set_tool_execution_repository(&self, repo: Arc<dyn ToolExecutionRepository>) {
-        self.tool_execution_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+        self.tool_execution_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(repo);
     }
 
     pub fn tool_execution_repository(&self) -> Arc<dyn ToolExecutionRepository> {
         self.tool_execution_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("ToolExecutionRepository not initialized.")
     }
@@ -334,7 +403,7 @@ impl ServiceRegistry {
         self.workflow_execution_repo
             .get_or_init(|| RwLock::new(None))
             .write()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .replace(repo);
     }
 
@@ -342,7 +411,7 @@ impl ServiceRegistry {
         self.workflow_execution_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("WorkflowExecutionRepository not initialized.")
     }
@@ -350,14 +419,18 @@ impl ServiceRegistry {
     // ── LoopCheckpointRepository ──
 
     pub fn set_loop_checkpoint_repository(&self, repo: Arc<dyn LoopCheckpointRepository>) {
-        self.loop_checkpoint_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+        self.loop_checkpoint_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(repo);
     }
 
     pub fn loop_checkpoint_repository(&self) -> Arc<dyn LoopCheckpointRepository> {
         self.loop_checkpoint_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("LoopCheckpointRepository not initialized.")
     }
@@ -368,7 +441,7 @@ impl ServiceRegistry {
         self.workflow_template_repo
             .get_or_init(|| RwLock::new(None))
             .write()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .replace(repo);
     }
 
@@ -376,7 +449,7 @@ impl ServiceRegistry {
         self.workflow_template_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("WorkflowTemplateRepository not initialized.")
     }
@@ -384,33 +457,45 @@ impl ServiceRegistry {
     // ── MemoryRepository ──
 
     pub fn set_memory_repository(&self, repo: Arc<dyn MemoryRepository>) {
-        self.memory_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+        self.memory_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(repo);
     }
 
     pub fn memory_repository(&self) -> Arc<dyn MemoryRepository> {
         self.memory_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("MemoryRepository not initialized.")
     }
 
     pub fn memory_repository_opt(&self) -> Option<Arc<dyn MemoryRepository>> {
-        self.memory_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.memory_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     // ── BackgroundTaskRepository ──
 
     pub fn set_background_task_repository(&self, repo: Arc<dyn BackgroundTaskRepository>) {
-        self.background_task_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+        self.background_task_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(repo);
     }
 
     pub fn background_task_repository(&self) -> Arc<dyn BackgroundTaskRepository> {
         self.background_task_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("BackgroundTaskRepository not initialized.")
     }
@@ -418,14 +503,18 @@ impl ServiceRegistry {
     // ── StoredFileRepository ──
 
     pub fn set_stored_file_repository(&self, repo: Arc<dyn StoredFileRepository>) {
-        self.stored_file_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+        self.stored_file_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(repo);
     }
 
     pub fn stored_file_repository(&self) -> Arc<dyn StoredFileRepository> {
         self.stored_file_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("StoredFileRepository not initialized.")
     }
@@ -433,14 +522,18 @@ impl ServiceRegistry {
     // ── KnowledgeEntityRepository ──
 
     pub fn set_knowledge_entity_repository(&self, repo: Arc<dyn KnowledgeEntityRepository>) {
-        self.knowledge_entity_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+        self.knowledge_entity_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(repo);
     }
 
     pub fn knowledge_entity_repository(&self) -> Arc<dyn KnowledgeEntityRepository> {
         self.knowledge_entity_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("KnowledgeEntityRepository not initialized.")
     }
@@ -448,14 +541,18 @@ impl ServiceRegistry {
     // ── KnowledgeFlowRepository ──
 
     pub fn set_knowledge_flow_repository(&self, repo: Arc<dyn KnowledgeFlowRepository>) {
-        self.knowledge_flow_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+        self.knowledge_flow_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(repo);
     }
 
     pub fn knowledge_flow_repository(&self) -> Arc<dyn KnowledgeFlowRepository> {
         self.knowledge_flow_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("KnowledgeFlowRepository not initialized.")
     }
@@ -466,7 +563,7 @@ impl ServiceRegistry {
         self.knowledge_interface_repo
             .get_or_init(|| RwLock::new(None))
             .write()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .replace(repo);
     }
 
@@ -474,7 +571,7 @@ impl ServiceRegistry {
         self.knowledge_interface_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("KnowledgeInterfaceRepository not initialized.")
     }
@@ -485,7 +582,7 @@ impl ServiceRegistry {
         self.knowledge_document_repo
             .get_or_init(|| RwLock::new(None))
             .write()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .replace(repo);
     }
 
@@ -493,7 +590,7 @@ impl ServiceRegistry {
         self.knowledge_document_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("KnowledgeDocumentRepository not initialized.")
     }
@@ -501,14 +598,18 @@ impl ServiceRegistry {
     // ── TrajectoryRepository ──
 
     pub fn set_trajectory_repository(&self, repo: Arc<dyn TrajectoryRepository>) {
-        self.trajectory_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+        self.trajectory_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(repo);
     }
 
     pub fn trajectory_repository(&self) -> Arc<dyn TrajectoryRepository> {
         self.trajectory_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("TrajectoryRepository not initialized.")
     }
@@ -516,14 +617,18 @@ impl ServiceRegistry {
     // ── AgentProfileRepository ──
 
     pub fn set_agent_profile_repository(&self, repo: Arc<dyn AgentProfileRepository>) {
-        self.agent_profile_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+        self.agent_profile_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(repo);
     }
 
     pub fn agent_profile_repository(&self) -> Arc<dyn AgentProfileRepository> {
         self.agent_profile_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("AgentProfileRepository not initialized.")
     }
@@ -531,14 +636,18 @@ impl ServiceRegistry {
     // ── AgencyExpertRepository ──
 
     pub fn set_agency_expert_repository(&self, repo: Arc<dyn AgencyExpertRepository>) {
-        self.agency_expert_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+        self.agency_expert_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(repo);
     }
 
     pub fn agency_expert_repository(&self) -> Arc<dyn AgencyExpertRepository> {
         self.agency_expert_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("AgencyExpertRepository not initialized.")
     }
@@ -546,14 +655,18 @@ impl ServiceRegistry {
     // ── AgentRoleRepository ──
 
     pub fn set_agent_role_repository(&self, repo: Arc<dyn AgentRoleRepository>) {
-        self.agent_role_repo.get_or_init(|| RwLock::new(None)).write().unwrap().replace(repo);
+        self.agent_role_repo
+            .get_or_init(|| RwLock::new(None))
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .replace(repo);
     }
 
     pub fn agent_role_repository(&self) -> Arc<dyn AgentRoleRepository> {
         self.agent_role_repo
             .get_or_init(|| RwLock::new(None))
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .clone()
             .expect("AgentRoleRepository not initialized.")
     }
@@ -611,123 +724,243 @@ pub trait ServiceRegistryProvider: Send + Sync {
 
 impl ServiceRegistryProvider for ServiceRegistry {
     fn note_repository(&self) -> Option<Arc<dyn NoteRepository>> {
-        self.note_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.note_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn wiki_repository(&self) -> Option<Arc<dyn WikiRepository>> {
-        self.wiki_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.wiki_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn wiki_page_repository(&self) -> Option<Arc<dyn WikiPageRepository>> {
-        self.wiki_page_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.wiki_page_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn wiki_source_repository(&self) -> Option<Arc<dyn WikiSourceRepository>> {
-        self.wiki_source_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.wiki_source_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn wiki_operation_repository(&self) -> Option<Arc<dyn WikiOperationRepository>> {
-        self.wiki_operation_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.wiki_operation_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn note_backlink_repository(&self) -> Option<Arc<dyn NoteBacklinkRepository>> {
-        self.backlink_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.backlink_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn settings_repository(&self) -> Option<Arc<dyn SettingsRepository>> {
-        self.settings_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.settings_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn session_repository(&self) -> Option<Arc<dyn SessionRepository>> {
-        self.session_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.session_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn provider_repository(&self) -> Option<Arc<dyn ProviderRepository>> {
-        self.provider_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.provider_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn generated_tool_repository(&self) -> Option<Arc<dyn GeneratedToolRepository>> {
-        self.generated_tool_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.generated_tool_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn platform_config_repository(&self) -> Option<Arc<dyn PlatformConfigRepository>> {
-        self.platform_config_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.platform_config_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn conversation_repository(&self) -> Option<Arc<dyn ConversationRepository>> {
-        self.conversation_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.conversation_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn message_repository(&self) -> Option<Arc<dyn MessageRepository>> {
-        self.message_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.message_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn tool_execution_repository(&self) -> Option<Arc<dyn ToolExecutionRepository>> {
-        self.tool_execution_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.tool_execution_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn memory_repository(&self) -> Option<Arc<dyn MemoryRepository>> {
-        self.memory_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.memory_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn workflow_execution_repository(&self) -> Option<Arc<dyn WorkflowExecutionRepository>> {
-        self.workflow_execution_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.workflow_execution_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn loop_checkpoint_repository(&self) -> Option<Arc<dyn LoopCheckpointRepository>> {
-        self.loop_checkpoint_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.loop_checkpoint_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn workflow_template_repository(&self) -> Option<Arc<dyn WorkflowTemplateRepository>> {
-        self.workflow_template_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.workflow_template_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn background_task_repository(&self) -> Option<Arc<dyn BackgroundTaskRepository>> {
-        self.background_task_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.background_task_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn stored_file_repository(&self) -> Option<Arc<dyn StoredFileRepository>> {
-        self.stored_file_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.stored_file_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn knowledge_entity_repository(&self) -> Option<Arc<dyn KnowledgeEntityRepository>> {
-        self.knowledge_entity_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.knowledge_entity_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn knowledge_flow_repository(&self) -> Option<Arc<dyn KnowledgeFlowRepository>> {
-        self.knowledge_flow_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.knowledge_flow_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn knowledge_interface_repository(&self) -> Option<Arc<dyn KnowledgeInterfaceRepository>> {
-        self.knowledge_interface_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.knowledge_interface_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn knowledge_document_repository(&self) -> Option<Arc<dyn KnowledgeDocumentRepository>> {
-        self.knowledge_document_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.knowledge_document_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn trajectory_repository(&self) -> Option<Arc<dyn TrajectoryRepository>> {
-        self.trajectory_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.trajectory_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn agent_profile_repository(&self) -> Option<Arc<dyn AgentProfileRepository>> {
-        self.agent_profile_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.agent_profile_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn agency_expert_repository(&self) -> Option<Arc<dyn AgencyExpertRepository>> {
-        self.agency_expert_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.agency_expert_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn agent_role_repository(&self) -> Option<Arc<dyn AgentRoleRepository>> {
-        self.agent_role_repo.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.agent_role_repo
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn database_initializer(&self) -> Option<Arc<dyn DatabaseInitializer>> {
-        self.db_init.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.db_init
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn skill_dirs_provider(&self) -> Option<Arc<dyn SkillDirsProvider>> {
-        self.skill_dirs.get_or_init(|| RwLock::new(None)).read().unwrap().clone()
+        self.skill_dirs
+            .get_or_init(|| RwLock::new(None))
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 }
 

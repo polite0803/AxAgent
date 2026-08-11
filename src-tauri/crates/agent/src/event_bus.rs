@@ -250,9 +250,9 @@ mod tests {
             serde_json::json!({"iteration": 1}),
         );
 
-        bus.emit(event).unwrap();
+        bus.emit(event).expect("测试：emit 应成功");
 
-        let received = receiver.recv().await.unwrap();
+        let received = receiver.recv().await.expect("测试：异步操作应成功");
         assert_eq!(received.event_type, AgentEventType::TurnStarted);
         assert_eq!(received.source, "test_source");
     }
@@ -266,7 +266,7 @@ mod tests {
 
         let event =
             UnifiedAgentEvent::new("source", AgentEventType::TurnStarted, serde_json::json!({}));
-        bus.emit(event).unwrap();
+        bus.emit(event).expect("测试：emit 应成功");
 
         let subscriptions = bus.get_subscriptions().await;
         assert_eq!(subscriptions.len(), 2);

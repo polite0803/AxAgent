@@ -82,6 +82,9 @@ where
                         let _ = std::fs::write(&log_dir, &msg);
                     }
                 }
+                // P1-NEW-3: tokio runtime 创建失败属于启动期致命错误，无法恢复。
+                // 上方已写入 crash 日志 + report_fatal_error，此处 panic 触发 unwinding
+                // 确保 join handle 不会静默丢弃错误。
                 panic!("{msg}");
             },
         };
@@ -227,6 +230,8 @@ pub fn run() {
                         "Failed to create AxAgent home dir: {}",
                         e
                     ));
+                    // P1-NEW-3: 主目录创建失败后应用无存储能力，无法恢复。
+                    // tracing::error! + report_fatal_error 已在上方记录，此处 panic 阻止继续启动。
                     panic!("Fatal: AxAgent home dir creation failed: {}", e);
                 }
                 tracing::info!("axagent_home ready: {}", dir.display());
@@ -646,6 +651,8 @@ pub fn run() {
             }
             // SECURITY (C11): 替换 process::exit 为 panic!，让构建框架的回调
             // 负责清理（WAL 刷写 / 资源释放），而非直接硬杀进程。
+            // P1-NEW-3: 应用构建失败属于启动期致命错误。tauri::Builder::build()
+            // 不返回 Result，此处 panic 是唯一阻止进程继续的方式。
             panic!("Fatal: application build failed: {}", error_msg);
         },
     };

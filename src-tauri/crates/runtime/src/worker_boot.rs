@@ -210,7 +210,7 @@ impl WorkerRegistry {
 
     #[must_use]
     pub fn get(&self, worker_id: &str) -> Option<Worker> {
-        let inner = self.inner.lock().expect("worker registry lock poisoned");
+        let inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         inner.workers.get(worker_id).cloned()
     }
 

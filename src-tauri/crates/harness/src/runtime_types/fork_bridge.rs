@@ -29,17 +29,20 @@ static FORK_SESSIONS: LazyLock<RwLock<HashMap<String, ForkSessionData>>> =
 
 /// 存储 fork session 数据
 pub fn store_fork_session(data: ForkSessionData) {
-    FORK_SESSIONS.write().unwrap().insert(data.parent_conversation_id.clone(), data);
+    FORK_SESSIONS
+        .write()
+        .unwrap_or_else(|e| e.into_inner())
+        .insert(data.parent_conversation_id.clone(), data);
 }
 
 /// 获取并移除 fork session 数据
 pub fn take_fork_session(parent_id: &str) -> Option<ForkSessionData> {
-    FORK_SESSIONS.write().unwrap().remove(parent_id)
+    FORK_SESSIONS.write().unwrap_or_else(|e| e.into_inner()).remove(parent_id)
 }
 
 /// 检查是否存在 fork session 数据
 pub fn has_fork_session(parent_id: &str) -> bool {
-    FORK_SESSIONS.read().unwrap().contains_key(parent_id)
+    FORK_SESSIONS.read().unwrap_or_else(|e| e.into_inner()).contains_key(parent_id)
 }
 
 /// 生成 fork 子 agent 的 system prompt

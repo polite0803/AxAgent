@@ -25,11 +25,11 @@ mod tests {
 
     #[tokio::test]
     async fn v109_does_not_break_on_bare_v100_table() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
         // v100 PHASE 3.9 已保证所有列存在
-        super::super::v100_consolidated::up(db.clone()).await.unwrap();
+        super::super::v100_consolidated::up(db.clone()).await.expect("测试：异步操作应成功");
         // v109 现在为 no-op，不报错即可
-        up(db.clone()).await.unwrap();
+        up(db.clone()).await.expect("测试：异步操作应成功");
 
         // 验证关键列存在：SELECT 0 行不报错说明列存在
         for col in &[
@@ -54,8 +54,8 @@ mod tests {
 
     #[tokio::test]
     async fn v109_is_idempotent_on_fully_migrated_db() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        super::super::run_migrations(&db).await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        super::super::run_migrations(&db).await.expect("测试：异步操作应成功");
         up(db.clone()).await.expect("v109 must be re-runnable without error");
     }
 }

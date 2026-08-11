@@ -379,7 +379,7 @@ impl WikiCompiler {
             conversation: None,
             previous_response_id: None,
             store: None,
-            response_format: None,
+            response_format: None,
         }
     }
 
@@ -1211,7 +1211,7 @@ impl WikiCompiler {
             conversation: None,
             previous_response_id: None,
             store: None,
-            response_format: None,
+            response_format: None,
         };
 
         let content = if let (Some(config), Some(svc)) = (&self.llm_call_config, &self.llm_service)
@@ -1441,8 +1441,9 @@ mod tests {
             page_type: "concept".to_string(),
             source_ids: vec!["src1".to_string()],
         };
-        let json = serde_json::to_string(&page).unwrap();
-        let deserialized: CompiledPage = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&page).expect("测试：JSON序列化应成功");
+        let deserialized: CompiledPage =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.title, "Test Page");
         assert_eq!(deserialized.page_type, "concept");
         assert_eq!(deserialized.source_ids.len(), 1);
@@ -1455,8 +1456,9 @@ mod tests {
             updated_pages: vec![],
             errors: vec!["error1".to_string()],
         };
-        let json = serde_json::to_string(&result).unwrap();
-        let deserialized: CompileResult = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&result).expect("测试：JSON序列化应成功");
+        let deserialized: CompileResult =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert!(deserialized.new_pages.is_empty());
         assert!(deserialized.updated_pages.is_empty());
         assert_eq!(deserialized.errors.len(), 1);
@@ -1473,8 +1475,9 @@ mod tests {
             },
             score: 0.85,
         };
-        let json = serde_json::to_string(&result).unwrap();
-        let deserialized: PageCompileResult = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&result).expect("测试：JSON序列化应成功");
+        let deserialized: PageCompileResult =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert!((deserialized.score - 0.85).abs() < f64::EPSILON);
     }
 
@@ -1483,7 +1486,7 @@ mod tests {
         let raw = r#"```json
 {"title": "ML", "content": "some content here", "page_type": "concept", "source_ids": ["s1"]}
 ```"#;
-        let result = WikiCompiler::parse_llm_response(raw).unwrap();
+        let result = WikiCompiler::parse_llm_response(raw).expect("测试：Wiki编译应成功");
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].title, "ML");
     }
@@ -1494,7 +1497,7 @@ mod tests {
 {"title": "Empty", "content": "", "page_type": "concept", "source_ids": []}
 ```"#;
         let result = WikiCompiler::parse_llm_response(raw);
-        assert!(result.is_err() || result.unwrap().is_empty());
+        assert!(result.is_err() || result.expect("测试应成功").is_empty());
     }
 
     #[test]
@@ -1503,7 +1506,7 @@ mod tests {
 {"title": "", "content": "some content", "page_type": "concept", "source_ids": []}
 ```"#;
         let result = WikiCompiler::parse_llm_response(raw);
-        assert!(result.is_err() || result.unwrap().is_empty());
+        assert!(result.is_err() || result.expect("测试应成功").is_empty());
     }
 
     #[test]
@@ -1512,7 +1515,7 @@ mod tests {
 {"title": "Test", "content": "content", "page_type": "invalid_type", "source_ids": []}
 ```"#;
         let result = WikiCompiler::parse_llm_response(raw);
-        assert!(result.is_err() || result.unwrap().is_empty());
+        assert!(result.is_err() || result.expect("测试应成功").is_empty());
     }
 
     #[test]
@@ -1520,7 +1523,7 @@ mod tests {
         let raw = r#"```json
 [{"title": "A", "content": "content a", "page_type": "concept", "source_ids": []}, {"title": "B", "content": "content b", "page_type": "entity", "source_ids": []}]
 ```"#;
-        let result = WikiCompiler::parse_llm_response(raw).unwrap();
+        let result = WikiCompiler::parse_llm_response(raw).expect("测试：Wiki编译应成功");
         assert_eq!(result.len(), 2);
     }
 
@@ -1763,7 +1766,7 @@ mod tests {
             updated_at: 0,
             is_deleted: false,
         };
-        let result = compiler.should_overwrite(&note).await.unwrap();
+        let result = compiler.should_overwrite(&note).await.expect("测试：Wiki编译应成功");
         assert!(!result);
     }
 
@@ -1791,7 +1794,7 @@ mod tests {
             updated_at: 0,
             is_deleted: false,
         };
-        let result = compiler.should_overwrite(&note).await.unwrap();
+        let result = compiler.should_overwrite(&note).await.expect("测试：Wiki编译应成功");
         assert!(!result);
     }
 
@@ -1819,7 +1822,7 @@ mod tests {
             updated_at: 0,
             is_deleted: false,
         };
-        let result = compiler.should_overwrite(&note).await.unwrap();
+        let result = compiler.should_overwrite(&note).await.expect("测试：Wiki编译应成功");
         assert!(result);
     }
 
@@ -1848,7 +1851,7 @@ Some text between blocks
 ```json
 {"title": "Page B", "content": "content b with info", "page_type": "entity", "source_ids": ["s2"]}
 ```"#;
-        let result = WikiCompiler::parse_llm_response(raw).unwrap();
+        let result = WikiCompiler::parse_llm_response(raw).expect("测试：Wiki编译应成功");
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].title, "Page A");
         assert_eq!(result[1].title, "Page B");
@@ -1867,7 +1870,7 @@ Some text between blocks
 ```json
 {"title": "Also Valid", "content": "another valid page", "page_type": "entity", "source_ids": []}
 ```"#;
-        let result = WikiCompiler::parse_llm_response(raw).unwrap();
+        let result = WikiCompiler::parse_llm_response(raw).expect("测试：Wiki编译应成功");
         assert_eq!(result.len(), 2);
     }
 
@@ -1879,7 +1882,7 @@ Some text between blocks
 ```json
 {"title": "Only Valid", "content": "the only valid one", "page_type": "concept", "source_ids": []}
 ```"#;
-        let result = WikiCompiler::parse_llm_response(raw).unwrap();
+        let result = WikiCompiler::parse_llm_response(raw).expect("测试：Wiki编译应成功");
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].title, "Only Valid");
     }
@@ -1887,7 +1890,7 @@ Some text between blocks
     #[test]
     fn test_parse_llm_response_fallback_to_markdown() {
         let raw = "## Fallback Topic\n\nThis is content parsed via markdown fallback. It has enough detail.\n\n## Another Topic\n\nMore content here.";
-        let result = WikiCompiler::parse_llm_response(raw).unwrap();
+        let result = WikiCompiler::parse_llm_response(raw).expect("测试：Wiki编译应成功");
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].title, "Fallback Topic");
         assert_eq!(result[1].title, "Another Topic");
@@ -1898,7 +1901,7 @@ Some text between blocks
         let raw = r#"```json
 {"title": "Index", "content": "index content here with links", "page_type": "index", "source_ids": []}
 ```"#;
-        let result = WikiCompiler::parse_llm_response(raw).unwrap();
+        let result = WikiCompiler::parse_llm_response(raw).expect("测试：Wiki编译应成功");
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].page_type, "index");
     }
@@ -1908,7 +1911,7 @@ Some text between blocks
         let raw = r#"```json
 {"title": "Overview", "content": "overview content here", "page_type": "overview", "source_ids": []}
 ```"#;
-        let result = WikiCompiler::parse_llm_response(raw).unwrap();
+        let result = WikiCompiler::parse_llm_response(raw).expect("测试：Wiki编译应成功");
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].page_type, "overview");
     }
@@ -1952,7 +1955,7 @@ Some text between blocks
             "page_type": "comparison",
             "source_ids": ["s1", "s2"]
         });
-        let page: CompiledPage = serde_json::from_value(json).unwrap();
+        let page: CompiledPage = serde_json::from_value(json).expect("测试：Wiki编译应成功");
         assert_eq!(page.title, "JSON Page");
         assert_eq!(page.page_type, "comparison");
         assert_eq!(page.source_ids.len(), 2);
@@ -1985,7 +1988,7 @@ Some text between blocks
         let raw = r#"```json
 {"title": "Operation Log", "content": "log content here with entries", "page_type": "log", "source_ids": []}
 ```"#;
-        let result = WikiCompiler::parse_llm_response(raw).unwrap();
+        let result = WikiCompiler::parse_llm_response(raw).expect("测试：Wiki编译应成功");
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].page_type, "log");
     }
@@ -2084,7 +2087,7 @@ Some text between blocks
                 source_ids: vec!["s2".to_string()],
             },
         ];
-        let merged = WikiCompiler::merge_compiled_sections(pages).unwrap();
+        let merged = WikiCompiler::merge_compiled_sections(pages).expect("测试：Wiki编译应成功");
         assert_eq!(merged.len(), 2);
     }
 
@@ -2104,7 +2107,7 @@ Some text between blocks
                 source_ids: vec!["s2".to_string()],
             },
         ];
-        let merged = WikiCompiler::merge_compiled_sections(pages).unwrap();
+        let merged = WikiCompiler::merge_compiled_sections(pages).expect("测试：Wiki编译应成功");
         assert_eq!(merged.len(), 1);
         let page = &merged[0];
         assert!(page.content.contains("Much longer"));
@@ -2128,7 +2131,7 @@ Some text between blocks
                 source_ids: vec!["s2".to_string(), "s3".to_string()],
             },
         ];
-        let merged = WikiCompiler::merge_compiled_sections(pages).unwrap();
+        let merged = WikiCompiler::merge_compiled_sections(pages).expect("测试：Wiki编译应成功");
         assert_eq!(merged.len(), 1);
         let page = &merged[0];
         assert!(page.source_ids.contains(&"s1".to_string()));

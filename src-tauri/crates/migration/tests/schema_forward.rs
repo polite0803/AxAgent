@@ -15,20 +15,20 @@ use axagent_migration::list_backups;
 #[tokio::test]
 async fn forward_bootstrap_produces_usable_schema() {
     // create_test_pool 内部已执行 run_initialization（前向迁移/bootstrap）。
-    let h = create_test_pool().await.unwrap();
+    let h = create_test_pool().await.expect("测试应成功");
     let db = &h.conn;
 
     // 若下列任一表不存在，对应查询会直接报错；能返回空 vec 即证明 schema 已就绪。
-    let conversations = list_conversations(db).await.unwrap();
+    let conversations = list_conversations(db).await.expect("测试应成功");
     assert!(conversations.is_empty(), "conversations 表应存在且为空");
 
-    let credentials = list_credentials(db).await.unwrap();
+    let credentials = list_credentials(db).await.expect("测试应成功");
     assert!(credentials.is_empty(), "credentials 表应存在且为空");
 
-    let namespaces = list_namespaces(db).await.unwrap();
+    let namespaces = list_namespaces(db).await.expect("测试应成功");
     assert!(namespaces.is_empty(), "memory_namespaces 表应存在且为空");
 
-    let keys = list_keys_for_provider(db, "any-provider").await.unwrap();
+    let keys = list_keys_for_provider(db, "any-provider").await.expect("测试应成功");
     assert!(keys.is_empty(), "provider_keys 表应存在且为空");
 }
 

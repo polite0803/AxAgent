@@ -347,7 +347,7 @@ mod tests {
     #[tokio::test]
     async fn harness_trait_record_and_get_state() {
         let bb = BlackboardHandle::new("task-1", "test");
-        bb.set_state("status", "running").await.unwrap();
+        bb.set_state("status", "running").await.expect("测试：异步操作应成功");
         let val = bb.get_state("status").await;
         assert_eq!(val, Some("running".to_string()));
     }
@@ -355,9 +355,9 @@ mod tests {
     #[tokio::test]
     async fn harness_trait_record_decision_and_consensus() {
         let bb = BlackboardHandle::new("task-1", "test");
-        bb.record_decision("a", "task-1", "result", "A").await.unwrap();
-        bb.record_decision("b", "task-1", "result", "A").await.unwrap();
-        bb.record_decision("c", "task-1", "result", "B").await.unwrap();
+        bb.record_decision("a", "task-1", "result", "A").await.expect("测试：异步操作应成功");
+        bb.record_decision("b", "task-1", "result", "A").await.expect("测试：异步操作应成功");
+        bb.record_decision("c", "task-1", "result", "B").await.expect("测试：异步操作应成功");
         let consensus = bb.get_consensus("result").await;
         assert_eq!(consensus, Some("A".to_string()));
     }
@@ -365,7 +365,7 @@ mod tests {
     #[tokio::test]
     async fn harness_trait_broadcast_and_get_messages() {
         let bb = BlackboardHandle::new("task-1", "test");
-        bb.broadcast("agent-a", "hello all").await.unwrap();
+        bb.broadcast("agent-a", "hello all").await.expect("测试：异步操作应成功");
         let msgs = bb.get_messages_for("agent-b").await;
         assert_eq!(msgs.len(), 1);
         assert_eq!(msgs[0].content, "hello all");
@@ -374,10 +374,12 @@ mod tests {
     #[tokio::test]
     async fn harness_trait_resolve_conflicts() {
         let bb = BlackboardHandle::new("task-1", "test");
-        bb.record_decision("a", "task-1", "action", "deploy").await.unwrap();
-        bb.record_decision("b", "task-1", "action", "deploy").await.unwrap();
-        bb.record_decision("c", "task-1", "action", "rollback").await.unwrap();
-        let records = bb.resolve_conflicts().await.unwrap();
+        bb.record_decision("a", "task-1", "action", "deploy").await.expect("测试：异步操作应成功");
+        bb.record_decision("b", "task-1", "action", "deploy").await.expect("测试：异步操作应成功");
+        bb.record_decision("c", "task-1", "action", "rollback")
+            .await
+            .expect("测试：异步操作应成功");
+        let records = bb.resolve_conflicts().await.expect("测试：异步操作应成功");
         assert_eq!(records.len(), 1);
     }
 
@@ -390,14 +392,14 @@ mod tests {
     async fn harness_trait_object_compatibility() {
         // 直接通过 BlackboardHandle 调用 trait 方法(验证 trait impl 正确)
         let bb = BlackboardHandle::new("task-1", "test");
-        bb.set_state("k", "v").await.unwrap();
+        bb.set_state("k", "v").await.expect("测试：异步操作应成功");
         let val = bb.get_state("k").await;
         assert_eq!(val, Some("v".to_string()));
 
         // 验证可作为 trait 对象使用:用 Arc<BlackboardHandle> coerce 到 Arc<dyn Trait>
         let bb_arc: Arc<BlackboardHandle> = Arc::new(BlackboardHandle::new("task-2", "test2"));
         let trait_obj: Arc<dyn axagent_harness::SharedBlackboard> = bb_arc;
-        trait_obj.set_state("x", "y").await.unwrap();
+        trait_obj.set_state("x", "y").await.expect("测试：异步操作应成功");
         let val = trait_obj.get_state("x").await;
         assert_eq!(val, Some("y".to_string()));
     }

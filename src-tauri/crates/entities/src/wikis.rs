@@ -18,6 +18,9 @@ pub struct Model {
     pub embedding_dimensions: Option<i32>,
     pub retrieval_threshold: Option<f32>,
     pub retrieval_top_k: Option<i32>,
+    /// v118: 关联的知识库 ID，建立 Wiki 与 KB 的 1:1 关联
+    #[sea_orm(column_name = "knowledge_base_id")]
+    pub knowledge_base_id: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }

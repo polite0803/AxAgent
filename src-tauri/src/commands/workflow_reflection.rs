@@ -161,8 +161,9 @@ mod tests {
                 Reflection::new("exec-2".to_string()),
             ],
         };
-        let json = serde_json::to_string(&req).unwrap();
-        let back: WorkflowEvolveRequest = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&req).expect("测试：JSON序列化应成功");
+        let back: WorkflowEvolveRequest =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(back.template_id, "wf-1");
         assert_eq!(back.reflections.len(), 2);
     }
@@ -194,8 +195,9 @@ mod tests {
             updated_at: 0,
         };
         let req = WorkflowOptimizeApplyRequest { template, suggestions: Vec::new() };
-        let json = serde_json::to_string(&req).unwrap();
-        let back: WorkflowOptimizeApplyRequest = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&req).expect("测试：JSON序列化应成功");
+        let back: WorkflowOptimizeApplyRequest =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(back.template.id, "wf-empty");
         assert!(back.suggestions.is_empty());
     }

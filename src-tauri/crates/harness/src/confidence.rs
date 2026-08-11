@@ -70,7 +70,7 @@ mod tests {
     #[test]
     fn test_parse_full_json() {
         let response = r#"{"result": "positive", "confidence": 0.95, "reasoning": "匹配规则A"}"#;
-        let output = ConfidenceOutput::try_parse(response).unwrap();
+        let output = ConfidenceOutput::try_parse(response).expect("测试：try_parse 应成功");
         assert_eq!(output.result, serde_json::json!("positive"));
         assert!((output.confidence - 0.95).abs() < 1e-6);
         assert_eq!(output.reasoning, Some("匹配规则A".to_string()));
@@ -79,7 +79,7 @@ mod tests {
     #[test]
     fn test_parse_json_without_reasoning() {
         let response = r#"{"result": "negative", "confidence": 0.8}"#;
-        let output = ConfidenceOutput::try_parse(response).unwrap();
+        let output = ConfidenceOutput::try_parse(response).expect("测试：try_parse 应成功");
         assert_eq!(output.result, serde_json::json!("negative"));
         assert!((output.confidence - 0.8).abs() < 1e-6);
         assert!(output.reasoning.is_none());
@@ -88,7 +88,7 @@ mod tests {
     #[test]
     fn test_parse_embedded_in_text() {
         let response = "分类结果：{\"result\": \"category_b\", \"confidence\": 0.6}";
-        let output = ConfidenceOutput::try_parse(response).unwrap();
+        let output = ConfidenceOutput::try_parse(response).expect("测试：try_parse 应成功");
         assert_eq!(output.result, serde_json::json!("category_b"));
         assert!((output.confidence - 0.6).abs() < 1e-6);
     }

@@ -42,7 +42,7 @@ mod tests {
     fn test_empty_chain() {
         let chain = InterceptorChain::new();
         let mut ctx = InterceptorContext::before_llm(None);
-        let rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().expect("测试：创建Tokio Runtime应成功");
         let result =
             rt.block_on(execute_interceptor_chain(&chain, InterceptPoint::BeforeLlmCall, &mut ctx));
         assert!(matches!(result, InterceptorResult::Continue));

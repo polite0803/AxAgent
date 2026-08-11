@@ -63,7 +63,7 @@ impl CrdtEngine {
             operations: Vec::new(),
         };
         self.documents.insert(id.to_string(), doc);
-        self.documents.get(id).unwrap()
+        self.documents.get(id).expect("键不存在")
     }
 
     pub fn apply_local_operation(

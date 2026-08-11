@@ -4,7 +4,8 @@ import { resolveDynamicArray } from "@/lib/dynamicUI/utils";
 import type { DynamicUIProps } from "@/types";
 import { List } from "@/components/common/AntdList";
 import { Empty } from "antd";
-import { lazy, Suspense } from "react";
+import React from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useTranslation } from "react-i18next";
 
 /**
@@ -56,20 +57,7 @@ export const ListView: React.FC<DynamicUIProps> = ({
   if (data.length > 50) {
     return (
       <div style={schema.style as React.CSSProperties}>
-        <Suspense
-          fallback={
-            <List
-              itemLayout={itemLayout}
-              size={size}
-              bordered={bordered}
-              split={split}
-              dataSource={data}
-              renderItem={renderItem}
-            />
-          }
-        >
-          <VirtuosoListView data={data} renderItem={renderItem} />
-        </Suspense>
+        <VirtualListView data={data} renderItem={renderItem} />
       </div>
     );
   }
@@ -87,25 +75,39 @@ export const ListView: React.FC<DynamicUIProps> = ({
   );
 };
 
-/** 延迟加载 react-virtuoso */
-const VirtuosoListView = lazy(
-  () =>
-    import("react-virtuoso").then((m) => {
-      const { Virtuoso } = m;
-      return {
-        default: ({
-          data,
-          renderItem,
-        }: {
-          data: Record<string, unknown>[];
-          renderItem: (item: Record<string, unknown>) => React.ReactNode;
-        }) => (
-          <Virtuoso
-            style={{ height: "400px" }}
-            totalCount={data.length}
-            itemContent={(index: number) => renderItem(data[index])}
-          />
-        ),
-      };
-    }),
-);
+/** 虚拟滚动列表，基于 @tanstack/react-virtual */
+function VirtualListView({
+  data,
+  renderItem,
+}: {
+  data: Record<string, unknown>[];
+  renderItem: (item: Record<string, unknown>) => React.ReactNode;
+}) {
+  const parentRef = React.useRef<HTMLDivElement>(null);
+
+  const virtualizer = useVirtualizer({
+    count: data.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 48,
+  });
+
+  return (
+    <div ref={parentRef} style={{ height: 400, overflow: "auto" }}>
+      <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
+        {virtualizer.getVirtualItems().map((item) => (
+          <div
+            key={item.key}
+            style={{
+              position: "absolute",
+              transform: `translateY(${item.start}px)`,
+              left: 0,
+              right: 0,
+            }}
+          >
+            {renderItem(data[item.index])}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

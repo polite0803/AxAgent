@@ -305,7 +305,7 @@ async fn resolve_references_impl(content: &str, base_dir: &Path) -> String {
 }
 
 fn resolve_file_refs(content: &str, base_dir: &Path) -> String {
-    let re = regex::Regex::new(r"@file:([^\s]+)").unwrap();
+    let re = regex::Regex::new(r"@file:([^\s]+)").expect("解析 @file 引用正则失败");
     re.replace_all(content, |caps: &regex::Captures| {
         let ref_path = &caps[1];
         let full_path = base_dir.join(ref_path);
@@ -328,7 +328,7 @@ fn resolve_file_refs(content: &str, base_dir: &Path) -> String {
 }
 
 async fn resolve_url_refs(content: &str) -> String {
-    let re = regex::Regex::new(r"@url:(https?://[^\s]+)").unwrap();
+    let re = regex::Regex::new(r"@url:(https?://[^\s]+)").expect("正则表达式：@url 模式");
     let mut result = content.to_string();
 
     let caps: Vec<_> = re.captures_iter(content).collect();
@@ -367,7 +367,7 @@ async fn fetch_url_for_ref(url: &str) -> Result<String, String> {
 }
 
 fn resolve_skill_refs(content: &str) -> String {
-    let re = regex::Regex::new(r"@skill:([a-zA-Z0-9_-]+)").unwrap();
+    let re = regex::Regex::new(r"@skill:([a-zA-Z0-9_-]+)").expect("正则表达式：@skill 模式");
     let dirs = axagent_kit::skill_dirs::skill_dirs();
 
     re.replace_all(content, |caps: &regex::Captures| {
@@ -387,7 +387,8 @@ fn resolve_skill_refs(content: &str) -> String {
 }
 
 fn strip_conditional_blocks(content: &str) -> String {
-    let re = regex::Regex::new(r"<!--\s*if:(\w+):(\w+)\s*-->([\s\S]*?)<!--\s*endif\s*-->").unwrap();
+    let re = regex::Regex::new(r"<!--\s*if:(\w+):(\w+)\s*-->([\s\S]*?)<!--\s*endif\s*-->")
+        .expect("正则表达式：条件块模式");
 
     re.replace_all(content, |caps: &regex::Captures| {
         let condition_type = &caps[1];
@@ -408,6 +409,8 @@ fn eval_condition(condition_type: &str, condition_value: &str) -> bool {
         "platform" => std::env::consts::OS == condition_value,
         "toolset" => is_toolset_available(condition_value),
         "personality" => {
+            // SAFETY: env var 由 agent crate 的 personality 模块通过 RwLock
+            // 同步后写入，仅作为跨 crate 兼容性读取通道。
             std::env::var("AXAGENT_PERSONALITY").unwrap_or_default().eq(condition_value)
         },
         _ => false,

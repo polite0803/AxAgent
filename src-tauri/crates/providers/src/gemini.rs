@@ -500,7 +500,7 @@ mod tests {
         }]);
 
         assert_eq!(
-            serde_json::to_value(&contents[0]).unwrap(),
+            serde_json::to_value(&contents[0]).expect("测试应成功"),
             json!({
                 "role": "user",
                 "parts": [
@@ -650,17 +650,17 @@ impl ProviderAdapter for GeminiAdapter {
                 Ok(r) => {
                     let s = r.status();
                     let t = r.text().await.unwrap_or_default();
-                    let _ = tx.try_send(Err(AxAgentError::Provider(super::diagnose_http_status(
-                        "Gemini", s, &t,
-                    ))));
+                    let _ = tx.try_send(Err(AxAgentError::execution_with_source(
+                        super::diagnose_http_status("Gemini", s, &t),
+                        anyhow::anyhow!("HTTP {s}: {t}"),
+                    )));
                     return;
                 },
                 Err(e) => {
-                    let _ = tx.try_send(Err(AxAgentError::Provider(format!(
-                        "Request to {} failed: {}",
-                        url,
-                        super::diagnose_reqwest_error(&e)
-                    ))));
+                    let _ = tx.try_send(Err(AxAgentError::execution_with_source(
+                        format!("Request to {url} failed: {}", super::diagnose_reqwest_error(&e)),
+                        e,
+                    )));
                     return;
                 },
             };

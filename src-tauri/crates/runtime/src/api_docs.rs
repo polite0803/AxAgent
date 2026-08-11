@@ -259,7 +259,7 @@ mod tests {
         let _spec = ApiDocGenerator::generate_default_spec();
         let json = ApiDocGenerator::new("Test", "1.0.0").to_json();
         assert!(json.is_ok());
-        assert!(json.unwrap().contains("\"openapi\""));
+        assert!(json.expect("测试应成功").contains("\"openapi\""));
     }
 
     #[test]
@@ -287,7 +287,7 @@ mod tests {
 
         let spec = r#gen.build();
         assert!(spec.paths.contains_key("/v1/custom"));
-        let get_op = spec.paths.get("/v1/custom").unwrap().get("get").unwrap();
+        let get_op = spec.paths.get("/v1/custom").expect("测试：键应存在").get("get").unwrap();
         assert_eq!(get_op.parameters.len(), 1);
     }
 }

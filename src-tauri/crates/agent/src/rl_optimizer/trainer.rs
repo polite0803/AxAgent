@@ -346,7 +346,7 @@ mod tests {
         let mut trainer = RLTrainer::new(optimizer);
         let result = trainer.train();
         assert!(result.is_ok());
-        let stats = result.unwrap();
+        let stats = result.expect("测试应成功");
         assert!(stats.total_experiences >= 5);
     }
 
@@ -445,7 +445,7 @@ mod tests {
         let mut collector = ExperienceCollector::new();
         collector.start_episode(make_task_state());
         collector.record_action(make_tool_selection());
-        let exp = collector.current_experience.as_ref().unwrap();
+        let exp = collector.current_experience.as_ref().expect("测试：引用应存在");
         assert_eq!(exp.action.tool_id, "tool_a");
     }
 
@@ -455,7 +455,7 @@ mod tests {
         collector.start_episode(make_task_state());
         collector.record_reward(0.5);
         collector.record_reward(0.3);
-        let exp = collector.current_experience.as_ref().unwrap();
+        let exp = collector.current_experience.as_ref().expect("测试：引用应存在");
         assert!((exp.reward - 0.8).abs() < 0.001);
     }
 

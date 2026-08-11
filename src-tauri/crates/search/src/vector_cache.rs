@@ -190,7 +190,7 @@ mod tests {
 
         let cached = cache.get("kb1", hash).await;
         assert!(cached.is_some());
-        assert_eq!(cached.unwrap().len(), 1);
+        assert_eq!(cached.expect("测试应成功").len(), 1);
     }
 
     #[tokio::test]

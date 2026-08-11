@@ -2656,18 +2656,20 @@ mod tests {
     #[test]
     fn session_serialization_snapshot() {
         let mut session = Session::new();
-        session.push_user_text("Hello, assistant!").unwrap();
+        session.push_user_text("Hello, assistant!").expect("测试：push_user_text 应成功");
         session
             .push_message(ConversationMessageExt::assistant(vec![ContentBlock::Text {
                 text: "Hi there! How can I help you?".to_string(),
             }]))
-            .unwrap();
-        session.push_message(ConversationMessageExt::user_text("What is 2+2?")).unwrap();
+            .expect("测试应成功");
+        session
+            .push_message(ConversationMessageExt::user_text("What is 2+2?"))
+            .expect("测试应成功");
         session
             .push_message(ConversationMessageExt::assistant(vec![ContentBlock::Text {
                 text: "2+2 = 4".to_string(),
             }]))
-            .unwrap();
+            .expect("测试应成功");
 
         // JSON 序列化用于持久化，格式变更需审慎。
         // session_id / 时间戳每次运行不同，剥离后再做快照比较。
@@ -2803,7 +2805,7 @@ mod tests {
                 ContentBlock::Text { text } => Some(text.clone()),
                 _ => None,
             })
-            .unwrap();
+            .expect("测试应成功");
         assert!(text.contains("partial"), "should contain original text");
         assert!(text.contains("Stream was interrupted"), "should contain recovery marker");
     }
@@ -2855,7 +2857,7 @@ mod tests {
                 ContentBlock::Text { text } => Some(text.clone()),
                 _ => None,
             })
-            .unwrap();
+            .expect("测试应成功");
         assert!(text.contains("<think data-axagent=\"1\">"), "开启时应注入 <think> 可视化块");
         assert!(text.contains("weighing options"), "<think> 块应包含推理内容");
         assert!(text.contains("final answer"), "正文应保留");
@@ -2883,7 +2885,7 @@ mod tests {
                 ContentBlock::Text { text } => Some(text.clone()),
                 _ => None,
             })
-            .unwrap();
+            .expect("测试应成功");
         assert!(!text.contains("<think"), "关闭时不应注入 <think> 可视化块");
         assert!(text.contains("final answer"), "正文应保留");
         assert_eq!(thinking, "weighing options", "关闭可视化不影响推理内容捕获");

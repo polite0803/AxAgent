@@ -826,7 +826,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_project_memory_load_index_nonexistent() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let pm = ProjectMemory::new(dir.path());
         let idx = pm.load_index().await;
         assert!(idx.entries.is_empty());
@@ -834,7 +834,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_project_memory_save_and_load_index() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let pm = ProjectMemory::new(dir.path());
         let mut idx = MemoryIndex::default();
         idx.entries.push(MemoryFileEntry {
@@ -843,7 +843,7 @@ mod tests {
             summary: "用户偏好".to_string(),
             tags: vec!["rust".to_string()],
         });
-        pm.save_index(&idx).await.unwrap();
+        pm.save_index(&idx).await.expect("测试：保存索引应成功");
         let loaded = pm.load_index().await;
         assert_eq!(loaded.entries.len(), 1);
         assert_eq!(loaded.entries[0].relative_path, "user/prefs.md");
@@ -854,27 +854,29 @@ mod tests {
 
     #[tokio::test]
     async fn test_project_memory_load_category_nonexistent() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let pm = ProjectMemory::new(dir.path());
-        let result = pm.load_category(MemoryCategory::User).await.unwrap();
+        let result = pm.load_category(MemoryCategory::User).await.expect("测试：加载分类应成功");
         assert!(result.is_empty());
     }
 
     #[tokio::test]
     async fn test_project_memory_save_and_load_topic_file() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let pm = ProjectMemory::new(dir.path());
-        let path =
-            pm.save_topic_file(MemoryCategory::Project, "arch.md", "项目架构内容").await.unwrap();
+        let path = pm
+            .save_topic_file(MemoryCategory::Project, "arch.md", "项目架构内容")
+            .await
+            .expect("测试：加载分类应成功");
         assert!(path.exists());
-        let files = pm.load_category(MemoryCategory::Project).await.unwrap();
+        let files = pm.load_category(MemoryCategory::Project).await.expect("测试：加载分类应成功");
         assert_eq!(files.len(), 1);
         assert_eq!(files[0].1, "项目架构内容");
     }
 
     #[tokio::test]
     async fn test_project_memory_save_topic_file_invalid_name_with_slash() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let pm = ProjectMemory::new(dir.path());
         let result = pm.save_topic_file(MemoryCategory::Project, "sub/arch.md", "content").await;
         assert!(result.is_err());
@@ -882,7 +884,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_project_memory_save_topic_file_invalid_name_dotdot() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let pm = ProjectMemory::new(dir.path());
         let result = pm.save_topic_file(MemoryCategory::Project, "../escape.md", "content").await;
         assert!(result.is_err());
@@ -890,7 +892,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_project_memory_save_topic_file_invalid_name_leading_dot() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let pm = ProjectMemory::new(dir.path());
         let result = pm.save_topic_file(MemoryCategory::Project, ".hidden.md", "content").await;
         assert!(result.is_err());
@@ -898,7 +900,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_project_memory_save_topic_file_invalid_name_not_md() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let pm = ProjectMemory::new(dir.path());
         let result = pm.save_topic_file(MemoryCategory::Project, "arch.txt", "content").await;
         assert!(result.is_err());
@@ -906,7 +908,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_project_memory_save_topic_file_too_large() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let pm = ProjectMemory::new(dir.path());
         // 创建超过 256KB 的内容
         let huge_content = "a".repeat(mem_const::MEMORY_FILE_SIZE_LIMIT + 1);
@@ -916,39 +918,54 @@ mod tests {
 
     #[tokio::test]
     async fn test_project_memory_delete_topic_file() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let pm = ProjectMemory::new(dir.path());
-        pm.save_topic_file(MemoryCategory::User, "prefs.md", "content").await.unwrap();
-        let deleted = pm.delete_topic_file(MemoryCategory::User, "prefs.md").await.unwrap();
+        pm.save_topic_file(MemoryCategory::User, "prefs.md", "content")
+            .await
+            .expect("测试：加载分类应成功");
+        let deleted = pm
+            .delete_topic_file(MemoryCategory::User, "prefs.md")
+            .await
+            .expect("测试：加载分类应成功");
         assert!(deleted);
         // 再次删除应返回 false
-        let deleted_again = pm.delete_topic_file(MemoryCategory::User, "prefs.md").await.unwrap();
+        let deleted_again = pm
+            .delete_topic_file(MemoryCategory::User, "prefs.md")
+            .await
+            .expect("测试：加载分类应成功");
         assert!(!deleted_again);
     }
 
     #[tokio::test]
     async fn test_project_memory_delete_topic_file_nonexistent() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let pm = ProjectMemory::new(dir.path());
-        let deleted = pm.delete_topic_file(MemoryCategory::User, "nonexistent.md").await.unwrap();
+        let deleted = pm
+            .delete_topic_file(MemoryCategory::User, "nonexistent.md")
+            .await
+            .expect("测试：加载分类应成功");
         assert!(!deleted);
     }
 
     #[tokio::test]
     async fn test_project_memory_scan_relevant_files_empty_dir() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let pm = ProjectMemory::new(dir.path());
-        let results = pm.scan_relevant_files("rust", 5).await.unwrap();
+        let results = pm.scan_relevant_files("rust", 5).await.expect("测试：加载分类应成功");
         assert!(results.is_empty());
     }
 
     #[tokio::test]
     async fn test_project_memory_scan_relevant_files_with_matches() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let pm = ProjectMemory::new(dir.path());
-        pm.save_topic_file(MemoryCategory::User, "prefs.md", "rust and tauri").await.unwrap();
-        pm.save_topic_file(MemoryCategory::Project, "arch.md", "python and django").await.unwrap();
-        let results = pm.scan_relevant_files("rust", 5).await.unwrap();
+        pm.save_topic_file(MemoryCategory::User, "prefs.md", "rust and tauri")
+            .await
+            .expect("测试：加载分类应成功");
+        pm.save_topic_file(MemoryCategory::Project, "arch.md", "python and django")
+            .await
+            .expect("测试：加载分类应成功");
+        let results = pm.scan_relevant_files("rust", 5).await.expect("测试：加载分类应成功");
         assert!(!results.is_empty());
         // rust 匹配 user/prefs.md
         assert_eq!(results[0].category, MemoryCategory::User);
@@ -957,50 +974,50 @@ mod tests {
 
     #[tokio::test]
     async fn test_project_memory_scan_relevant_files_respects_limit() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let pm = ProjectMemory::new(dir.path());
         // 创建 3 个文件
         for i in 0..3 {
             pm.save_topic_file(MemoryCategory::Project, &format!("file_{}.md", i), "rust content")
                 .await
-                .unwrap();
+                .expect("测试应成功");
         }
-        let results = pm.scan_relevant_files("rust", 2).await.unwrap();
+        let results = pm.scan_relevant_files("rust", 2).await.expect("测试：加载分类应成功");
         assert_eq!(results.len(), 2);
     }
 
     #[tokio::test]
     async fn test_project_memory_scan_relevant_files_default_limit() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let pm = ProjectMemory::new(dir.path());
         // 创建 7 个文件(超过默认限制 5)
         for i in 0..7 {
             pm.save_topic_file(MemoryCategory::Project, &format!("file_{}.md", i), "rust content")
                 .await
-                .unwrap();
+                .expect("测试应成功");
         }
-        let results = pm.scan_relevant_files("rust", 0).await.unwrap();
+        let results = pm.scan_relevant_files("rust", 0).await.expect("测试：加载分类应成功");
         assert_eq!(results.len(), mem_const::MEMORY_RELEVANT_FILES_LIMIT);
     }
 
     #[tokio::test]
     async fn test_project_memory_migrate_from_legacy_no_legacy() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let pm = ProjectMemory::new(dir.path());
-        let migrated = pm.migrate_from_legacy().await.unwrap();
+        let migrated = pm.migrate_from_legacy().await.expect("测试：加载分类应成功");
         assert!(!migrated);
     }
 
     #[tokio::test]
     async fn test_project_memory_migrate_from_legacy_with_legacy() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         // 创建旧文件
         let axagent_dir = dir.path().join(".axagent");
-        std::fs::create_dir_all(&axagent_dir).unwrap();
+        std::fs::create_dir_all(&axagent_dir).expect("测试应成功");
         std::fs::write(axagent_dir.join("memory.md"), "# Legacy Memory\n\n- old content\n")
-            .unwrap();
+            .expect("测试应成功");
         let pm = ProjectMemory::new(dir.path());
-        let migrated = pm.migrate_from_legacy().await.unwrap();
+        let migrated = pm.migrate_from_legacy().await.expect("测试：加载分类应成功");
         assert!(migrated);
         // 旧文件应已删除——Windows 大小写不敏感下 memory.md 与索引 MEMORY.md 同一文件，
         // 迁移会保留（内容已被索引覆盖），仅 Linux/macOS 真正删除。
@@ -1016,15 +1033,17 @@ mod tests {
 
     #[tokio::test]
     async fn test_project_memory_migrate_from_legacy_already_migrated() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let pm = ProjectMemory::new(dir.path());
         // 先创建新结构（save_topic_file 会建 `.axagent/memory/` 目录）
-        pm.save_topic_file(MemoryCategory::Project, "existing.md", "already there").await.unwrap();
+        pm.save_topic_file(MemoryCategory::Project, "existing.md", "already there")
+            .await
+            .expect("测试：加载分类应成功");
         // 创建旧文件
         let axagent_dir = dir.path().join(".axagent");
-        std::fs::create_dir_all(&axagent_dir).unwrap();
-        std::fs::write(axagent_dir.join("memory.md"), "legacy").unwrap();
-        let migrated = pm.migrate_from_legacy().await.unwrap();
+        std::fs::create_dir_all(&axagent_dir).expect("测试应成功");
+        std::fs::write(axagent_dir.join("memory.md"), "legacy").expect("测试应成功");
+        let migrated = pm.migrate_from_legacy().await.expect("测试：加载分类应成功");
         assert!(!migrated);
         // 旧文件应保留(未迁移)
         assert!(axagent_dir.join("memory.md").exists());
@@ -1074,15 +1093,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_export_memory_items_empty() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let pm = ProjectMemory::new(dir.path());
-        let exported = pm.export_memory_items(&[]).await.unwrap();
+        let exported = pm.export_memory_items(&[]).await.expect("测试：加载分类应成功");
         assert_eq!(exported, 0);
     }
 
     #[tokio::test]
     async fn test_export_memory_items_core_tier() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let pm = ProjectMemory::new(dir.path());
         let item = axagent_harness::types::MemoryItem {
             id: "test123".to_string(),
@@ -1106,12 +1125,12 @@ mod tests {
             applicability_tags: vec!["rust".to_string()],
             confirmed: 1,
         };
-        let exported = pm.export_memory_items(&[item]).await.unwrap();
+        let exported = pm.export_memory_items(&[item]).await.expect("测试：加载分类应成功");
         assert_eq!(exported, 1);
         // 文件应写入 user/ 目录（core → User）
         let user_dir = dir.path().join(".axagent/memory/user");
         assert!(user_dir.exists());
-        let files: Vec<_> = std::fs::read_dir(&user_dir).unwrap().collect();
+        let files: Vec<_> = std::fs::read_dir(&user_dir).expect("测试应成功").collect();
         assert_eq!(files.len(), 1);
         // 索引应更新
         let index = pm.load_index().await;
@@ -1121,7 +1140,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_export_memory_items_long_term_tier() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let pm = ProjectMemory::new(dir.path());
         let item = axagent_harness::types::MemoryItem {
             id: "lt456".to_string(),
@@ -1145,7 +1164,7 @@ mod tests {
             applicability_tags: vec![],
             confirmed: 0,
         };
-        let exported = pm.export_memory_items(&[item]).await.unwrap();
+        let exported = pm.export_memory_items(&[item]).await.expect("测试：加载分类应成功");
         assert_eq!(exported, 1);
         // 文件应写入 project/ 目录（long_term → Project）
         let project_dir = dir.path().join(".axagent/memory/project");
@@ -1154,7 +1173,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_export_memory_items_skip_short_term() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let pm = ProjectMemory::new(dir.path());
         let item = axagent_harness::types::MemoryItem {
             id: "st789".to_string(),
@@ -1178,7 +1197,7 @@ mod tests {
             applicability_tags: vec![],
             confirmed: 0,
         };
-        let exported = pm.export_memory_items(&[item]).await.unwrap();
+        let exported = pm.export_memory_items(&[item]).await.expect("测试：加载分类应成功");
         assert_eq!(exported, 0);
         // 不应创建任何目录
         assert!(!dir.path().join(".axagent/memory/user").exists());
@@ -1187,7 +1206,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_export_memory_items_idempotent() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let pm = ProjectMemory::new(dir.path());
         let item = axagent_harness::types::MemoryItem {
             id: "idem001".to_string(),
@@ -1212,10 +1231,16 @@ mod tests {
             confirmed: 1,
         };
         // 第一次导出
-        let exported1 = pm.export_memory_items(std::slice::from_ref(&item)).await.unwrap();
+        let exported1 = pm
+            .export_memory_items(std::slice::from_ref(&item))
+            .await
+            .expect("测试：加载分类应成功");
         assert_eq!(exported1, 1);
         // 第二次导出（覆盖）
-        let exported2 = pm.export_memory_items(std::slice::from_ref(&item)).await.unwrap();
+        let exported2 = pm
+            .export_memory_items(std::slice::from_ref(&item))
+            .await
+            .expect("测试：加载分类应成功");
         assert_eq!(exported2, 1);
         // 索引应只有 1 个条目（upsert 覆盖）
         let index = pm.load_index().await;

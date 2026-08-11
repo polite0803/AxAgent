@@ -625,7 +625,7 @@ mod tests {
         let result = AxAgentApiClient::convert_messages(&messages, &[]);
         assert_eq!(result.len(), 1);
         assert!(result[0].tool_calls.is_some());
-        let tool_calls = result[0].tool_calls.as_ref().unwrap();
+        let tool_calls = result[0].tool_calls.as_ref().expect("测试：引用应存在");
         assert_eq!(tool_calls.len(), 1);
         assert_eq!(tool_calls[0].function.name, "search");
     }
@@ -797,7 +797,7 @@ mod tests {
             ChatContent::Text(t) => assert_eq!(t, "Let me search"),
             _ => panic!("Expected text content"),
         }
-        let tool_calls = result[0].tool_calls.as_ref().unwrap();
+        let tool_calls = result[0].tool_calls.as_ref().expect("测试：引用应存在");
         assert_eq!(tool_calls.len(), 1);
         assert_eq!(tool_calls[0].id, "call_1");
         assert_eq!(tool_calls[0].call_type, "function");
@@ -824,7 +824,7 @@ mod tests {
             usage: None,
         }];
         let result = AxAgentApiClient::convert_messages(&messages, &[]);
-        let tool_calls = result[0].tool_calls.as_ref().unwrap();
+        let tool_calls = result[0].tool_calls.as_ref().expect("测试：引用应存在");
         assert_eq!(tool_calls.len(), 2);
     }
 

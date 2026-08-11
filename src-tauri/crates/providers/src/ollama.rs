@@ -117,10 +117,10 @@ impl ProviderAdapter for OllamaAdapter {
         let url = format!("{}/api/tags", base.trim_end_matches('/'));
 
         let client = self.get_client(ctx)?;
-        let resp = crate::apply_request_headers(client.get(&url), ctx)
-            .send()
-            .await
-            .map_err(|e| AxAgentError::Provider(super::diagnose_reqwest_error(&e)))?;
+        let resp =
+            crate::apply_request_headers(client.get(&url), ctx).send().await.map_err(|e| {
+                AxAgentError::execution_with_source(super::diagnose_reqwest_error(&e), e)
+            })?;
 
         if !resp.status().is_success() {
             let s = resp.status();
@@ -129,7 +129,10 @@ impl ProviderAdapter for OllamaAdapter {
             if s.as_u16() == 404 {
                 return self.inner.list_models(ctx).await;
             }
-            return Err(AxAgentError::Provider(super::diagnose_http_status("Ollama", s, &t)));
+            return Err(AxAgentError::execution_with_source(
+                super::diagnose_http_status("Ollama", s, &t),
+                anyhow::anyhow!("HTTP {s}: {t}"),
+            ));
         }
 
         let body =

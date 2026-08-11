@@ -7,6 +7,7 @@ use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::skill as skill_err;
 use agent_macro::agent_command;
 use axagent_harness::types::*;
+use chrono::Utc;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tauri::State;
@@ -925,4 +926,620 @@ pub async fn skill_set_manifest(
     })?;
 
     Ok(format!("清单已保存: '{}'", name))
+}
+
+// ── 技能学习闭环:审批门命令 ──────────────────────────────────────
+
+/// 获取所有待审批的技能操作
+#[agent_command(domain = skills, safety = Safe, call_mode = StateOnly, description = "获取待审批技能操作列表")]
+#[tauri::command]
+pub async fn get_pending_skill_operations(
+    state: State<'_, AppState>,
+) -> Result<Vec<axagent_trajectory::PendingSkillOperation>, String> {
+    let manager = state.skill.skill_learning_manager.read().await;
+    Ok(manager.get_pending_operations().await)
+}
+
+/// 获取所有技能操作记录（包括已批准/已拒绝）
+#[agent_command(domain = skills, safety = Safe, call_mode = StateOnly, description = "获取所有技能操作记录")]
+#[tauri::command]
+pub async fn get_all_skill_operations(
+    state: State<'_, AppState>,
+) -> Result<Vec<axagent_trajectory::PendingSkillOperation>, String> {
+    let manager = state.skill.skill_learning_manager.read().await;
+    Ok(manager.get_all_operations().await)
+}
+
+/// 批准技能操作
+#[agent_command(domain = skills, safety = Caution, call_mode = StateInput, description = "批准技能操作")]
+#[tauri::command]
+pub async fn approve_skill_operation(
+    state: State<'_, AppState>,
+    operation_id: String,
+) -> Result<String, String> {
+    let manager = state.skill.skill_learning_manager.read().await;
+    manager.approve_operation(&operation_id).await?;
+    Ok(format!("Operation '{}' approved", operation_id))
+}
+
+/// 拒绝技能操作
+#[agent_command(domain = skills, safety = Caution, call_mode = StateInput, description = "拒绝技能操作")]
+#[tauri::command]
+pub async fn reject_skill_operation(
+    state: State<'_, AppState>,
+    operation_id: String,
+    reason: String,
+) -> Result<String, String> {
+    let manager = state.skill.skill_learning_manager.read().await;
+    manager.reject_operation(&operation_id, &reason).await?;
+    Ok(format!("Operation '{}' rejected: {}", operation_id, reason))
+}
+
+/// 提交技能操作审批（供 AI 调用）
+#[agent_command(domain = skills, safety = Caution, call_mode = StateInput, description = "提交技能操作审批")]
+#[tauri::command]
+pub async fn submit_skill_operation(
+    state: State<'_, AppState>,
+    operation_type: String,
+    skill_id: Option<String>,
+    skill_name: Option<String>,
+    content: String,
+    reason: String,
+    file_path: Option<String>,
+) -> Result<axagent_trajectory::PendingSkillOperation, String> {
+    let manager = state.skill.skill_learning_manager.read().await;
+    let op_type = match operation_type.as_str() {
+        "create_skill" => axagent_trajectory::PendingOperationType::CreateSkill,
+        "patch_skill" => axagent_trajectory::PendingOperationType::PatchSkill,
+        "edit_skill" => axagent_trajectory::PendingOperationType::EditSkill,
+        "delete_skill" => axagent_trajectory::PendingOperationType::DeleteSkill,
+        "write_file" => axagent_trajectory::PendingOperationType::WriteFile,
+        "remove_file" => axagent_trajectory::PendingOperationType::RemoveFile,
+        _ => return Err(format!("Unknown operation type: {}", operation_type)),
+    };
+
+    manager
+        .submit_for_approval(op_type, skill_id, skill_name, None, content, reason, file_path)
+        .await
+}
+
+/// 获取技能学习配置
+#[agent_command(domain = skills, safety = Safe, call_mode = StateOnly, description = "获取技能学习配置")]
+#[tauri::command]
+pub async fn get_skill_learning_config(
+    state: State<'_, AppState>,
+) -> Result<axagent_trajectory::SkillLearningConfig, String> {
+    let manager = state.skill.skill_learning_manager.read().await;
+    Ok(manager.get_config().await)
+}
+
+/// 更新技能学习配置
+#[agent_command(domain = skills, safety = Caution, call_mode = StateInput, description = "更新技能学习配置")]
+#[tauri::command]
+pub async fn update_skill_learning_config(
+    state: State<'_, AppState>,
+    config: axagent_trajectory::SkillLearningConfig,
+) -> Result<String, String> {
+    let manager = state.skill.skill_learning_manager.read().await;
+    manager.update_config(config).await;
+    Ok("Skill learning config updated".to_string())
+}
+
+// ── /learn 技能生成命令 ──────────────────────────────────────────
+
+/// /learn 命令的输入参数
+#[derive(Debug, serde::Deserialize)]
+pub struct LearnSkillInput {
+    /// 技能名称（可选，自动生成如果未提供）
+    pub name: Option<String>,
+    /// 技能描述（可选）
+    pub description: Option<String>,
+    /// 学习来源类型
+    pub source_type: String,
+    /// 学习内容（文档文本、对话历史或代码片段）
+    pub content: String,
+    /// 额外的上下文信息
+    pub context: Option<String>,
+    /// 是否自动提交审批（默认 true）
+    pub auto_approve: Option<bool>,
+}
+
+/// /learn 命令的输出结果
+#[derive(Debug, serde::Serialize)]
+pub struct LearnSkillResult {
+    /// 生成的技能名称
+    pub skill_name: String,
+    /// 技能文件路径
+    pub skill_path: String,
+    /// 生成的 SKILL.md 内容
+    pub skill_content: String,
+    /// 提取的参考资料
+    pub references: Vec<String>,
+    /// 置信度 (0.0-1.0)
+    pub confidence: f64,
+    /// 生成的步骤/过程
+    pub steps_taken: Vec<String>,
+    /// 是否需要审批
+    pub requires_approval: bool,
+    /// 操作ID（如果提交审批）
+    pub operation_id: Option<String>,
+}
+
+/// 从内容中提取关键信息并生成 SKILL.md
+fn generate_skill_from_content(
+    name: &str,
+    description: Option<&str>,
+    content: &str,
+    source_type: &str,
+    context: Option<&str>,
+) -> (String, Vec<String>, f64) {
+    let mut skill_content = String::new();
+    let mut references = Vec::new();
+    let mut confidence: f64 = 0.5;
+
+    // 提取标题作为技能名或使用提供的名称
+    let skill_name = if name.is_empty() {
+        extract_title(content).unwrap_or_else(|| "auto-generated-skill".to_string())
+    } else {
+        name.to_string()
+    };
+
+    // 生成 YAML frontmatter
+    let escaped_name = escape_yaml_value(&skill_name);
+    let escaped_desc = escape_yaml_value(description.unwrap_or("Auto-generated skill from /learn"));
+
+    skill_content.push_str("---\n");
+    skill_content.push_str(&format!("name: {}\n", escaped_name));
+    skill_content.push_str(&format!("description: {}\n", escaped_desc));
+    skill_content.push_str("version: 1.0.0\n");
+    skill_content.push_str(&format!("source_type: {}\n", escape_yaml_value(source_type)));
+    skill_content.push_str("metadata:\n");
+    skill_content.push_str("  hermes:\n");
+    skill_content.push_str("    tags: [auto-learned]\n");
+    skill_content.push_str("    related_skills: []\n");
+    skill_content.push_str("    auto_generated: true\n");
+    skill_content.push_str("    learn_source: true\n");
+    skill_content.push_str("---\n\n");
+
+    // 生成技能正文
+    skill_content.push_str(&format!("# {}\n\n", skill_name));
+
+    if let Some(desc) = description {
+        skill_content.push_str(&format!("{}\n\n", desc));
+    }
+
+    // 根据来源类型生成不同的结构
+    match source_type {
+        "document" => {
+            // 文档来源：提取章节结构
+            skill_content.push_str("## Overview\n\n");
+            skill_content.push_str("This skill was auto-generated from document content.\n\n");
+
+            // 提取关键段落
+            let key_sections = extract_key_sections(content);
+            if !key_sections.is_empty() {
+                skill_content.push_str("## Key Concepts\n\n");
+                for section in &key_sections {
+                    skill_content.push_str(&format!("- {}\n", section));
+                }
+                skill_content.push('\n');
+                confidence = 0.7;
+            }
+
+            // 提取步骤或过程
+            let steps = extract_numbered_steps(content);
+            if !steps.is_empty() {
+                skill_content.push_str("## Procedure\n\n");
+                for step in &steps {
+                    skill_content.push_str(&format!("{}\n", step));
+                }
+                skill_content.push('\n');
+                confidence = (confidence + 0.2).min(1.0);
+            }
+        },
+        "conversation" => {
+            // 对话来源：提取交互模式
+            skill_content.push_str("## Overview\n\n");
+            skill_content.push_str("This skill was auto-generated from conversation history.\n\n");
+
+            // 提取对话模式
+            let patterns = extract_conversation_patterns(content);
+            if !patterns.is_empty() {
+                skill_content.push_str("## Detected Patterns\n\n");
+                for pattern in &patterns {
+                    skill_content.push_str(&format!("- {}\n", pattern));
+                }
+                skill_content.push('\n');
+                confidence = 0.6;
+            }
+
+            // 提取工具调用序列
+            let tool_sequence = extract_tool_sequence(content);
+            if !tool_sequence.is_empty() {
+                skill_content.push_str("## Tool Sequence\n\n");
+                for (i, tool) in tool_sequence.iter().enumerate() {
+                    skill_content.push_str(&format!("{}. {}\n", i + 1, tool));
+                }
+                skill_content.push('\n');
+                confidence = (confidence + 0.2).min(1.0);
+            }
+        },
+        "codebase" => {
+            // 代码库来源：提取代码模式
+            skill_content.push_str("## Overview\n\n");
+            skill_content.push_str("This skill was auto-generated from codebase analysis.\n\n");
+
+            // 提取函数/方法模式
+            let patterns = extract_code_patterns(content);
+            if !patterns.is_empty() {
+                skill_content.push_str("## Code Patterns\n\n");
+                for pattern in &patterns {
+                    skill_content.push_str(&format!("```\n{}\n```\n\n", pattern));
+                }
+                confidence = 0.65;
+            }
+
+            // 提取使用说明
+            let usage = extract_usage_patterns(content);
+            if !usage.is_empty() {
+                skill_content.push_str("## Usage\n\n");
+                for line in &usage {
+                    skill_content.push_str(&format!("{}\n", line));
+                }
+                skill_content.push('\n');
+                confidence = (confidence + 0.15).min(1.0);
+            }
+        },
+        _ => {
+            // 混合或未知来源
+            skill_content.push_str("## Overview\n\n");
+            skill_content.push_str("This skill was auto-generated using the /learn command.\n\n");
+
+            // 提取通用结构
+            let structure = extract_generic_structure(content);
+            if !structure.is_empty() {
+                skill_content.push_str("## Content Summary\n\n");
+                for line in &structure {
+                    skill_content.push_str(&format!("{}\n", line));
+                }
+                skill_content.push('\n');
+                confidence = 0.55;
+            }
+        },
+    }
+
+    // 添加上下文信息
+    if let Some(ctx) = context {
+        if !ctx.is_empty() {
+            skill_content.push_str("## Context\n\n");
+            skill_content.push_str(&format!("{}\n\n", ctx));
+        }
+    }
+
+    // 添加参考资料
+    skill_content.push_str("## References\n\n");
+    skill_content.push_str("- Auto-generated by /learn command\n");
+    skill_content.push_str(&format!("- Source type: {}\n", source_type));
+    if let Some(ctx) = context {
+        if !ctx.is_empty() {
+            references.push(ctx.to_string());
+        }
+    }
+
+    // 添加常见陷阱
+    skill_content.push_str("\n## Pitfalls\n");
+    skill_content.push_str("- This skill is auto-generated and may need manual review\n");
+    skill_content.push_str("- Verify the content before using in production\n");
+
+    (skill_content, references, confidence)
+}
+
+/// 从内容中提取标题
+fn extract_title(content: &str) -> Option<String> {
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if let Some(title) = trimmed.strip_prefix("# ") {
+            return Some(title.trim().to_string());
+        }
+    }
+    None
+}
+
+/// 提取关键章节
+fn extract_key_sections(content: &str) -> Vec<String> {
+    let mut sections = Vec::new();
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("## ") || trimmed.starts_with("### ") {
+            sections.push(trimmed.replace('#', "").trim().to_string());
+        }
+    }
+    sections
+}
+
+/// 提取编号步骤
+fn extract_numbered_steps(content: &str) -> Vec<String> {
+    let mut steps = Vec::new();
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if (trimmed.starts_with("1.")
+            || trimmed.starts_with("2.")
+            || trimmed.starts_with("3.")
+            || trimmed.starts_with("4.")
+            || trimmed.starts_with("5."))
+            && trimmed.len() > 3
+            || trimmed.starts_with("- ") && trimmed.len() > 2
+        {
+            steps.push(trimmed.to_string());
+        }
+    }
+    steps
+}
+
+/// 提取对话模式
+fn extract_conversation_patterns(content: &str) -> Vec<String> {
+    let mut patterns = Vec::new();
+    let lines: Vec<&str> = content.lines().collect();
+
+    // 查找工具调用模式
+    for window in lines.windows(3) {
+        let combined = format!("{} {} {}", window[0], window[1], window[2]);
+        if combined.contains("tool") || combined.contains("function") {
+            patterns.push(format!("Sequence: {} → {} → {}", window[0], window[1], window[2]));
+        }
+    }
+
+    // 如果没有找到工具模式，提取通用交互
+    if patterns.is_empty() {
+        for line in lines.iter().take(5) {
+            let trimmed = line.trim();
+            if !trimmed.is_empty() && trimmed.len() > 10 {
+                patterns.push(trimmed.chars().take(100).collect());
+            }
+        }
+    }
+
+    patterns
+}
+
+/// 提取工具调用序列
+fn extract_tool_sequence(content: &str) -> Vec<String> {
+    let mut tools = Vec::new();
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.contains("tool_call")
+            || trimmed.contains("tool(")
+            || trimmed.contains("use_tool")
+        {
+            tools.push(trimmed.to_string());
+        }
+    }
+    tools
+}
+
+/// 提取代码模式
+fn extract_code_patterns(content: &str) -> Vec<String> {
+    let mut patterns = Vec::new();
+    let mut in_code_block = false;
+    let mut current_block = String::new();
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("```") {
+            if in_code_block && !current_block.is_empty() {
+                patterns.push(current_block.clone());
+                current_block.clear();
+            }
+            in_code_block = !in_code_block;
+        } else if in_code_block {
+            current_block.push_str(line);
+            current_block.push('\n');
+        }
+    }
+
+    // 如果没有代码块，提取函数定义
+    if patterns.is_empty() {
+        for line in content.lines() {
+            let trimmed = line.trim();
+            if trimmed.contains("fn ")
+                || trimmed.contains("function ")
+                || trimmed.contains("class ")
+            {
+                patterns.push(trimmed.to_string());
+            }
+        }
+    }
+
+    patterns
+}
+
+/// 提取使用模式
+fn extract_usage_patterns(content: &str) -> Vec<String> {
+    let mut patterns = Vec::new();
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.contains("usage")
+            || trimmed.contains("Usage")
+            || trimmed.contains("example")
+            || trimmed.contains("Example")
+            || trimmed.contains("参数")
+            || trimmed.contains("使用")
+        {
+            patterns.push(trimmed.to_string());
+        }
+    }
+    patterns
+}
+
+/// 提取通用结构
+fn extract_generic_structure(content: &str) -> Vec<String> {
+    let mut structure = Vec::new();
+
+    // 提取前几个有意义的段落
+    let paragraphs: Vec<&str> = content.split("\n\n").collect();
+    for para in paragraphs.iter().take(5) {
+        let trimmed = para.trim();
+        if !trimmed.is_empty() && trimmed.len() > 20 {
+            let summary: String = trimmed.chars().take(200).collect();
+            structure.push(summary);
+        }
+    }
+
+    structure
+}
+
+/// /learn 命令 — 从各种来源学习并生成技能
+#[agent_command(domain = skills, safety = Caution, call_mode = StateInput, description = "从文档/对话/代码库学习并生成技能")]
+#[tauri::command]
+pub async fn learn_skill(
+    state: State<'_, AppState>,
+    input: LearnSkillInput,
+) -> Result<LearnSkillResult, String> {
+    let mut steps_taken = Vec::new();
+
+    steps_taken.push("Analyzing input source".to_string());
+
+    // 验证来源类型
+    let source_type = match input.source_type.as_str() {
+        "document" | "conversation" | "codebase" | "mixed" => input.source_type.clone(),
+        _ => {
+            return Err(format!(
+                "Unknown source type: {}. Expected: document, conversation, codebase, mixed",
+                input.source_type
+            ));
+        },
+    };
+
+    // 验证内容不为空
+    if input.content.trim().is_empty() {
+        return Err("Content cannot be empty".to_string());
+    }
+
+    steps_taken.push("Content validated".to_string());
+
+    // 生成技能名称
+    let skill_name = if let Some(ref name) = input.name {
+        name.clone()
+    } else {
+        // 从内容中自动生成名称
+        extract_title(&input.content).map(|t| slugify(&t)).unwrap_or_else(|| {
+            format!("learned-{}-{}", source_type, Utc::now().format("%Y%m%d%H%M%S"))
+        })
+    };
+
+    validate_skill_name(&skill_name)?;
+
+    steps_taken.push(format!("Generated skill name: {}", skill_name));
+
+    // 检查是否已存在
+    let dir = skills_dir().join(&skill_name);
+    if dir.exists() {
+        return Err(format!("Skill '{}' already exists at {}", skill_name, dir.display()));
+    }
+
+    // 生成技能内容
+    steps_taken.push("Extracting knowledge from content".to_string());
+
+    let (skill_content, references, confidence) = generate_skill_from_content(
+        &skill_name,
+        input.description.as_deref(),
+        &input.content,
+        &source_type,
+        input.context.as_deref(),
+    );
+
+    steps_taken.push(format!("Generated skill content (confidence: {:.2})", confidence));
+
+    // 审批语义：auto_approve=true 直接落盘；否则经审批门
+    // （gate 关闭时 submit_for_approval 内部直接落盘并标记 Approved）
+    let auto_approve = input.auto_approve.unwrap_or(false);
+    let mut requires_approval = false;
+
+    let mut operation_id = None;
+
+    if auto_approve {
+        // 显式绕过审批门，直接创建
+        steps_taken.push("Creating skill directly (auto_approve)".to_string());
+
+        std::fs::create_dir_all(&dir).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+
+        std::fs::write(dir.join("SKILL.md"), &skill_content).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+    } else {
+        // 走审批门（gate 关闭时 submit 内部直接落盘并 Approved）
+        steps_taken.push("Submitting for approval".to_string());
+
+        let manager = state.skill.skill_learning_manager.read().await;
+        let op_type = axagent_trajectory::PendingOperationType::CreateSkill;
+
+        match manager
+            .submit_for_approval(
+                op_type,
+                None,
+                Some(skill_name.clone()),
+                None,
+                skill_content.clone(),
+                format!("Auto-generated skill from /learn ({})", source_type),
+                None,
+            )
+            .await
+        {
+            Ok(operation) => {
+                operation_id = Some(operation.id.clone());
+                if operation.status == axagent_trajectory::ApprovalStatus::Pending {
+                    requires_approval = true;
+                    steps_taken.push(format!("Approval submitted: {}", operation.id));
+                } else {
+                    // 审批门未启用：submit 已直接落盘
+                    steps_taken.push("Approval gate disabled, skill created directly".to_string());
+                }
+            },
+            Err(e) => {
+                // 安全守卫拦截等硬错误，直接返回
+                return Err(e);
+            },
+        }
+    }
+
+    let skill_path = dir.to_string_lossy().to_string();
+    steps_taken.push(format!("Skill saved to: {}", skill_path));
+
+    Ok(LearnSkillResult {
+        skill_name,
+        skill_path,
+        skill_content,
+        references,
+        confidence,
+        steps_taken,
+        requires_approval,
+        operation_id,
+    })
+}
+
+/// 简单的字符串转 slug 函数
+fn slugify(input: &str) -> String {
+    input
+        .to_lowercase()
+        .chars()
+        .map(|c| {
+            if c.is_alphanumeric() || c == '-' {
+                c
+            } else {
+                '-'
+            }
+        })
+        .collect::<String>()
+        .split('-')
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join("-")
 }

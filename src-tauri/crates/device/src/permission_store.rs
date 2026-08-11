@@ -225,7 +225,7 @@ mod tests {
                 PermissionUpdate { allow_full_sync: Some(true), ..Default::default() },
             )
             .await
-            .unwrap();
+            .expect("测试应成功");
 
         assert!(updated.allow_full_sync);
     }
@@ -249,7 +249,7 @@ mod tests {
         store.init_device_permissions("device-1", TrustLevel::Full).await;
 
         // 验证数据库存储
-        let perms = store.get_permissions("device-1").await.unwrap();
+        let perms = store.get_permissions("device-1").await.expect("测试：异步操作应成功");
         assert!(perms.allow_full_sync);
 
         // 验证列表

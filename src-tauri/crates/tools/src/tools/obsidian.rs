@@ -780,13 +780,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_fs_vault_source_safe_join() {
-        let tmp = tempfile::tempdir().unwrap();
-        let vault = FsVaultSource::new(tmp.path()).unwrap();
+        let tmp = tempfile::tempdir().expect("测试：创建临时目录应成功");
+        let vault = FsVaultSource::new(tmp.path()).expect("测试应成功");
         // 正常路径
-        let p = vault.safe_join("note").unwrap();
+        let p = vault.safe_join("note").expect("测试：safe_join 应成功");
         // safe_join 基于 canonicalize 后的 root 拼接，须用 vault_root() 断言（Windows 上 tmp.path() 与 canonical 路径可能大小写/短路径不一致）
         assert!(p.starts_with(vault.vault_root()));
-        assert_eq!(p.extension().unwrap(), "md");
+        assert_eq!(p.extension().expect("测试：extension 应成功"), "md");
 
         // 路径穿越
         assert!(matches!(vault.safe_join("../../etc/passwd"), Err(VaultError::PathEscapes(_))));
@@ -798,12 +798,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_fs_vault_source_create_read_append() {
-        let tmp = tempfile::tempdir().unwrap();
-        let vault = FsVaultSource::new(tmp.path()).unwrap();
+        let tmp = tempfile::tempdir().expect("测试：创建临时目录应成功");
+        let vault = FsVaultSource::new(tmp.path()).expect("测试应成功");
         let fm = serde_json::json!({"title": "Test Note", "tags": ["demo"]});
 
         // 创建
-        let path = vault.create_note("work/Plan", "Initial content", Some(fm)).await.unwrap();
+        let path = vault
+            .create_note("work/Plan", "Initial content", Some(fm))
+            .await
+            .expect("测试：异步操作应成功");
         assert!(path.contains("work/Plan.md"));
 
         // 重复创建应失败
@@ -811,18 +814,21 @@ mod tests {
         assert!(matches!(err, VaultError::NoteAlreadyExists(_)));
 
         // 读取
-        let note = vault.read_note("work/Plan").await.unwrap();
+        let note = vault.read_note("work/Plan").await.expect("测试：异步操作应成功");
         assert_eq!(note.frontmatter["title"], "Test Note");
         assert!(note.body.contains("Initial content"));
 
         // 追加
-        vault.append_note("work/Plan", "\nAppended line").await.unwrap();
-        let note2 = vault.read_note("work/Plan").await.unwrap();
+        vault.append_note("work/Plan", "\nAppended line").await.expect("测试：异步操作应成功");
+        let note2 = vault.read_note("work/Plan").await.expect("测试：异步操作应成功");
         assert!(note2.body.contains("Appended line"));
 
         // set_property
-        vault.set_property("work/Plan", "status", serde_json::json!("done")).await.unwrap();
-        let note3 = vault.read_note("work/Plan").await.unwrap();
+        vault
+            .set_property("work/Plan", "status", serde_json::json!("done"))
+            .await
+            .expect("测试：异步操作应成功");
+        let note3 = vault.read_note("work/Plan").await.expect("测试：异步操作应成功");
         assert_eq!(note3.frontmatter["status"], "done");
     }
 }

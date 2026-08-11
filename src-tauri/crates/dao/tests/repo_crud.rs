@@ -28,12 +28,13 @@ use axagent_harness::types::{
 
 #[tokio::test]
 async fn conversation_crud_cycle() {
-    let h = create_test_pool().await.unwrap();
+    let h = create_test_pool().await.expect("测试：创建数据库连接池应成功");
     let db = &h.conn;
 
     // 创建
-    let conv =
-        create_conversation(db, "测试会话", "model-1", "prov-1", Some("系统提示")).await.unwrap();
+    let conv = create_conversation(db, "测试会话", "model-1", "prov-1", Some("系统提示"))
+        .await
+        .expect("测试：数据库操作应成功");
     assert!(!conv.id.is_empty());
     assert_eq!(conv.title, "测试会话");
     assert_eq!(conv.model_id, "model-1");
@@ -41,50 +42,58 @@ async fn conversation_crud_cycle() {
     assert_eq!(conv.system_prompt.as_deref(), Some("系统提示"));
 
     // 读取
-    let fetched = axagent_dao::repo::conversation::get_conversation(db, &conv.id).await.unwrap();
+    let fetched = axagent_dao::repo::conversation::get_conversation(db, &conv.id)
+        .await
+        .expect("测试：数据库操作应成功");
     assert_eq!(fetched.id, conv.id);
 
     // 列表非空
-    let all = axagent_dao::repo::conversation::list_conversations(db).await.unwrap();
+    let all = axagent_dao::repo::conversation::list_conversations(db)
+        .await
+        .expect("测试：数据库操作应成功");
     assert!(all.iter().any(|c| c.id == conv.id));
 
     // 删除后读取应失败
-    axagent_dao::repo::conversation::delete_conversation(db, &conv.id).await.unwrap();
+    axagent_dao::repo::conversation::delete_conversation(db, &conv.id)
+        .await
+        .expect("测试：数据库操作应成功");
     let res = axagent_dao::repo::conversation::get_conversation(db, &conv.id).await;
     assert!(res.is_err(), "删除后读取应返回错误");
 }
 
 #[tokio::test]
 async fn credential_repo_roundtrip_and_soft_delete() {
-    let h = create_test_pool().await.unwrap();
+    let h = create_test_pool().await.expect("测试：创建数据库连接池应成功");
     let db = &h.conn;
 
-    let row = insert_credential(db, "openai-key", "api_key", "enc:abcd1234").await.unwrap();
+    let row = insert_credential(db, "openai-key", "api_key", "enc:abcd1234")
+        .await
+        .expect("测试：数据库操作应成功");
     assert!(!row.id.is_empty());
     assert_eq!(row.name, "openai-key");
     assert_eq!(row.credential_type, "api_key");
     assert_eq!(row.data_encrypted, "enc:abcd1234");
 
     // 读取
-    let got = get_credential(db, &row.id).await.unwrap();
+    let got = get_credential(db, &row.id).await.expect("测试：数据库操作应成功");
     assert_eq!(got.data_encrypted, "enc:abcd1234");
 
     // 存在性
-    assert!(credential_exists(db, &row.id).await.unwrap());
-    assert!(!credential_exists(db, "nope").await.unwrap());
+    assert!(credential_exists(db, &row.id).await.expect("测试：数据库操作应成功"));
+    assert!(!credential_exists(db, "nope").await.expect("测试：数据库操作应成功"));
 
     // 列表包含该条
-    let list = list_credentials(db).await.unwrap();
+    let list = list_credentials(db).await.expect("测试：数据库操作应成功");
     assert!(list.iter().any(|c| c.id == row.id));
 
     // 删除后不存在
-    delete_credential(db, &row.id).await.unwrap();
-    assert!(!credential_exists(db, &row.id).await.unwrap());
+    delete_credential(db, &row.id).await.expect("测试：数据库操作应成功");
+    assert!(!credential_exists(db, &row.id).await.expect("测试：数据库操作应成功"));
 }
 
 #[tokio::test]
 async fn provider_key_rotation_and_delete() {
-    let h = create_test_pool().await.unwrap();
+    let h = create_test_pool().await.expect("测试：创建数据库连接池应成功");
     let db = &h.conn;
 
     // provider_keys 有外键 REFERENCES providers(id)，需先建 provider
@@ -100,10 +109,12 @@ async fn provider_key_rotation_and_delete() {
         },
     )
     .await
-    .unwrap();
+    .expect("测试应成功");
 
-    let k1 = add_provider_key(db, &prov.id, "enc:key1", "sk-1").await.unwrap();
-    let k2 = add_provider_key(db, &prov.id, "enc:key2", "sk-2").await.unwrap();
+    let k1 =
+        add_provider_key(db, &prov.id, "enc:key1", "sk-1").await.expect("测试：数据库操作应成功");
+    let k2 =
+        add_provider_key(db, &prov.id, "enc:key2", "sk-2").await.expect("测试：数据库操作应成功");
 
     // 轮换索引自增：第一条 0，第二条 1
     assert_eq!(k1.rotation_index, 0);
@@ -112,19 +123,19 @@ async fn provider_key_rotation_and_delete() {
     assert!(k1.enabled);
 
     // 按 provider 列出两条
-    let keys = list_keys_for_provider(db, &prov.id).await.unwrap();
+    let keys = list_keys_for_provider(db, &prov.id).await.expect("测试：数据库操作应成功");
     assert_eq!(keys.len(), 2);
 
     // 删除一条后剩一条
-    delete_provider_key(db, &k1.id).await.unwrap();
-    let keys = list_keys_for_provider(db, &prov.id).await.unwrap();
+    delete_provider_key(db, &k1.id).await.expect("测试：数据库操作应成功");
+    let keys = list_keys_for_provider(db, &prov.id).await.expect("测试：数据库操作应成功");
     assert_eq!(keys.len(), 1);
     assert_eq!(keys[0].id, k2.id);
 }
 
 #[tokio::test]
 async fn memory_namespace_and_item_lifecycle() {
-    let h = create_test_pool().await.unwrap();
+    let h = create_test_pool().await.expect("测试：创建数据库连接池应成功");
     let db = &h.conn;
 
     let ns = create_namespace(
@@ -141,15 +152,15 @@ async fn memory_namespace_and_item_lifecycle() {
         },
     )
     .await
-    .unwrap();
+    .expect("测试应成功");
     assert!(!ns.id.is_empty());
     assert_eq!(ns.name, "项目知识");
     assert_eq!(ns.scope, "project");
 
     // 命名空间可读 + 入列
-    let fetched = get_namespace(db, &ns.id).await.unwrap();
+    let fetched = get_namespace(db, &ns.id).await.expect("测试：数据库操作应成功");
     assert_eq!(fetched.id, ns.id);
-    let list = list_namespaces(db).await.unwrap();
+    let list = list_namespaces(db).await.expect("测试：数据库操作应成功");
     assert!(list.iter().any(|n| n.id == ns.id));
 
     // 条目写入、读取、列表、删除
@@ -173,37 +184,39 @@ async fn memory_namespace_and_item_lifecycle() {
         },
     )
     .await
-    .unwrap();
+    .expect("测试应成功");
     assert_eq!(item.namespace_id, ns.id);
     assert_eq!(item.title, "架构决策");
     assert_eq!(item.content, "采用 harness 解耦");
 
-    let items = list_items(db, &ns.id).await.unwrap();
+    let items = list_items(db, &ns.id).await.expect("测试：数据库操作应成功");
     assert!(items.iter().any(|i| i.id == item.id));
-    let got = get_item(db, &item.id).await.unwrap();
+    let got = get_item(db, &item.id).await.expect("测试：数据库操作应成功");
     assert_eq!(got.title, "架构决策");
 
-    delete_item(db, &item.id).await.unwrap();
-    let items = list_items(db, &ns.id).await.unwrap();
+    delete_item(db, &item.id).await.expect("测试：数据库操作应成功");
+    let items = list_items(db, &ns.id).await.expect("测试：数据库操作应成功");
     assert!(!items.iter().any(|i| i.id == item.id));
 
     // 删除命名空间后列表不再包含
-    delete_namespace(db, &ns.id).await.unwrap();
-    let list = list_namespaces(db).await.unwrap();
+    delete_namespace(db, &ns.id).await.expect("测试：数据库操作应成功");
+    let list = list_namespaces(db).await.expect("测试：数据库操作应成功");
     assert!(!list.iter().any(|n| n.id == ns.id));
 }
 
 #[tokio::test]
 async fn workflow_execution_status_transition() {
-    let h = create_test_pool().await.unwrap();
+    let h = create_test_pool().await.expect("测试：创建数据库连接池应成功");
     let db = &h.conn;
 
-    create_workflow_execution(db, "exec-1", "wf-1", Some(r#"{"x":1}"#)).await.unwrap();
+    create_workflow_execution(db, "exec-1", "wf-1", Some(r#"{"x":1}"#))
+        .await
+        .expect("测试：数据库操作应成功");
 
     // 初始为 running
-    let exec = get_workflow_execution(db, "exec-1").await.unwrap();
+    let exec = get_workflow_execution(db, "exec-1").await.expect("测试：数据库操作应成功");
     assert!(exec.is_some());
-    assert_eq!(exec.unwrap().status, "running");
+    assert_eq!(exec.expect("测试应成功").status, "running");
 
     // 更新为 success
     let updated = update_workflow_execution_status(
@@ -215,20 +228,21 @@ async fn workflow_execution_status_transition() {
         Some(42),
     )
     .await
-    .unwrap();
+    .expect("测试应成功");
     assert!(updated);
 
-    let exec = get_workflow_execution(db, "exec-1").await.unwrap().unwrap();
+    let exec = get_workflow_execution(db, "exec-1").await.expect("测试：数据库操作应成功").unwrap();
     assert_eq!(exec.status, "success");
     assert_eq!(exec.total_time_ms, Some(42));
 
     // 按 workflow 列出
-    let list = list_workflow_executions(db, "wf-1").await.unwrap();
+    let list = list_workflow_executions(db, "wf-1").await.expect("测试：数据库操作应成功");
     assert_eq!(list.len(), 1);
     assert_eq!(list[0].id, "exec-1");
 
     // 更新不存在的执行返回 false
-    let none =
-        update_workflow_execution_status(db, "exec-x", "failed", None, None, None).await.unwrap();
+    let none = update_workflow_execution_status(db, "exec-x", "failed", None, None, None)
+        .await
+        .expect("测试：数据库操作应成功");
     assert!(!none);
 }

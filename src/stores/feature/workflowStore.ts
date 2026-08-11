@@ -708,7 +708,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
                   { executionId },
                 );
                 resolve(executionStatusToWorkflowExecution(status, inputs));
-              } catch (e) {
+              } catch {
                 // 状态获取失败时用事件数据兜底
                 resolve({
                   id: executionId,
@@ -752,7 +752,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
               cleanup();
               resolve(executionStatusToWorkflowExecution(status, inputs));
             }
-          } catch (e) {
+          } catch {
             // 轮询错误不中断，继续等待事件
           }
         }, 1500);

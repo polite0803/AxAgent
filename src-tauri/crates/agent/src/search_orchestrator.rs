@@ -470,8 +470,8 @@ mod tests {
             make_result("https://c.com", "C", SourceType::Academic, 0.9),
         ];
         let dist = SearchOrchestrator::calculate_source_distribution(&results);
-        assert_eq!(*dist.get(&SourceType::Web).unwrap(), 2);
-        assert_eq!(*dist.get(&SourceType::Academic).unwrap(), 1);
+        assert_eq!(*dist.get(&SourceType::Web).expect("测试：键应存在"), 2);
+        assert_eq!(*dist.get(&SourceType::Academic).expect("测试：键应存在"), 1);
         assert!(!dist.contains_key(&SourceType::GitHub));
     }
 
@@ -541,7 +541,7 @@ mod tests {
             .with_max_results(10);
         let plan = SearchPlan::new(vec![query]);
 
-        let result = orch.execute(&plan).await.unwrap();
+        let result = orch.execute(&plan).await.expect("测试：异步操作应成功");
         assert_eq!(result.len(), 2);
         assert!(result[0].relevance_score >= result[1].relevance_score);
     }
@@ -554,7 +554,7 @@ mod tests {
             .with_max_results(10);
         let plan = SearchPlan::new(vec![query]);
 
-        let result = orch.execute(&plan).await.unwrap();
+        let result = orch.execute(&plan).await.expect("测试：异步操作应成功");
         assert!(result.is_empty());
     }
 
@@ -572,7 +572,7 @@ mod tests {
             .with_max_results(10);
         let plan = SearchPlan::new(vec![query]);
 
-        let result = orch.execute(&plan).await.unwrap();
+        let result = orch.execute(&plan).await.expect("测试：异步操作应成功");
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].title, "First");
     }
@@ -591,7 +591,7 @@ mod tests {
             .with_max_results(10);
         let plan = SearchPlan::new(vec![query]);
 
-        let result = orch.execute(&plan).await.unwrap();
+        let result = orch.execute(&plan).await.expect("测试：异步操作应成功");
         assert_eq!(result.len(), 2);
     }
 
@@ -610,7 +610,7 @@ mod tests {
             .with_max_results(10);
         let plan = SearchPlan::new(vec![query]);
 
-        let result = orch.execute(&plan).await.unwrap();
+        let result = orch.execute(&plan).await.expect("测试：异步操作应成功");
         assert_eq!(result[0].title, "High");
         assert_eq!(result[1].title, "Mid");
         assert_eq!(result[2].title, "Low");
@@ -632,7 +632,7 @@ mod tests {
             .with_max_results(10);
         let plan = SearchPlan::new(vec![query]);
 
-        let result = orch.execute(&plan).await.unwrap();
+        let result = orch.execute(&plan).await.expect("测试：异步操作应成功");
         assert_eq!(result.len(), 2);
     }
 
@@ -651,7 +651,7 @@ mod tests {
             .with_max_results(2);
         let plan = SearchPlan::new(vec![query]);
 
-        let result = orch.execute(&plan).await.unwrap();
+        let result = orch.execute(&plan).await.expect("测试：异步操作应成功");
         assert_eq!(result.len(), 2);
     }
 
@@ -659,7 +659,7 @@ mod tests {
     async fn test_execute_empty_plan() {
         let orch = SearchOrchestrator::new();
         let plan = SearchPlan::new(vec![]);
-        let result = orch.execute(&plan).await.unwrap();
+        let result = orch.execute(&plan).await.expect("测试：异步操作应成功");
         assert!(result.is_empty());
     }
 
@@ -692,6 +692,6 @@ mod tests {
         let plan = SearchPlan::new(vec![query]);
 
         let result = orch.execute(&plan).await;
-        assert!(result.is_err() || result.unwrap().is_empty());
+        assert!(result.is_err() || result.expect("测试应成功").is_empty());
     }
 }
