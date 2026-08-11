@@ -604,6 +604,15 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # ── Build for iOS (暂时禁用：需要 Mac 环境和 Apple 签名证书) ──
+  # TODO: 获取 Apple Developer ID 证书 + 在 Mac 上初始化 tauri ios 项目后恢复
+  # build-ios:
+  #   name: Build iOS
+  #   needs: [resolve-tag, draft-release-notes]
+  #   runs-on: macos-latest
+  #   steps:
+  #     ... (详见历史版本)
+
   # ── Publish draft release as latest ────────────────────
   publish-release:
     name: Publish Release

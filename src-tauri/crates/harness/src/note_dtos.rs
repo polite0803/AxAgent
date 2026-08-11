@@ -15,6 +15,7 @@ pub struct Note {
     pub content_hash: String,
     pub author: String,
     pub page_type: Option<String>,
+    pub tags: Vec<String>,
     pub source_refs: Option<Vec<String>>,
     pub related_pages: Option<Vec<String>>,
     pub quality_score: Option<f64>,

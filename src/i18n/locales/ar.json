@@ -8848,6 +8848,12 @@
       "createSubmit": "إنشاء"
     },
     "enterFailed": "找不到对应的知识库记录，请尝试刷新页面"
+      "createSubmit": "إنشاء",
+      "targetLabel": "المصدر المستهدف",
+      "selectTargetPlaceholder": "اختر مصدرًا",
+      "createFirstHint": "أنشئ مصدرًا أولاً",
+      "selectKnowledgeFirst": "يرجى اختيار مصدر مستهدف أولاً"
+    }
   },
   "sshConfig": {
     "connect": "اتصال",
@@ -9546,7 +9552,6 @@
     "focusLocal": "التركيز المحلي",
     "graph": {
       "communities": "المجتمعات",
-      "components": "المكونات",
       "edgeType": {
         "backlink": "رابط عكسي",
         "contradicts": "يتعارض مع",
@@ -9557,15 +9562,10 @@
       "edges": "حواف",
       "empty": "لا توجد بيانات رسم بياني",
       "exportPNG": "تصدير PNG",
-      "filterByTags": "تصفية حسب الوسوم",
-      "filters": "الفلاتر",
+      "exportHD": "تصدير PNG عالي الدقة",
+      "exportSVG": "تصدير SVG",
       "fitView": "ملاءمة العرض",
-      "focusSelected": "التركيز على المحدد",
       "fullscreen": "ملء الشاشة",
-      "layoutForce": "قوة",
-      "layoutRadial": "شعاعي",
-      "layoutHierarchy": "شبكة",
-      "layoutRunning": "جارٍ حساب التخطيط…",
       "loadError": "فشل التحميل",
       "loading": "جارٍ التحميل...",
       "noConnectedNodes": "لا عقد متصلة",
@@ -9575,13 +9575,21 @@
       "title": "رسم بياني للمعرفة",
       "zoomIn": "تكبير",
       "zoomOut": "تصغير",
-      "largestComponent": "Largest Component",
-      "avgDegree": "Avg Degree",
-      "highlighted": "Highlighted",
       "legend": "دليل",
+      "edgeTypes": "مرشح نوع الحافة",
       "repairGraph": "إصلاح روابط الرسم البياني",
       "repairSuccess": "اكتمل الإصلاح: تم ربط KB، وتم إصلاح {{count}} روابط الملاحظات",
-      "repairPartial": "اكتمل الإصلاح: تم إصلاح {{count}} روابط الملاحظات (لم يتم العثور على KB مطابق)"
+      "repairPartial": "اكتمل الإصلاح: تم إصلاح {{count}} روابط الملاحظات (لم يتم العثور على KB مطابق)",
+      "fisheyeOn": "عدسة عين السمكة: تشغيل",
+      "fisheyeOff": "عدسة عين السمكة: إيقاف",
+      "clusterOn": "وضع المجموعة: تشغيل",
+      "clusterOff": "وضع المجموعة: إيقاف",
+      "nodeType": {
+        "note": "ملاحظة",
+        "concept": "مفهوم",
+        "entity": "كيان",
+        "source": "مصدر"
+      }
     },
     "hidePanel": "إخفاء اللوحة",
     "history": "السجل",
@@ -9858,6 +9866,9 @@
     "wikiMeta": {
       "rootPath": "根路径"
     }
+    "collapseAll": "طي الكل",
+    "expandAll": "توسيع الكل",
+    "noteLoadFailed": "فشل تحميل الملاحظة"
   },
   "workflow": {
     "autoSave": {
@@ -15483,5 +15494,45 @@
     "maxReviewMsgs": "Review messages",
     "memApprovalTitle": "Memory write approval",
     "memApprovalGate": "Approval gate"
+  },
+  "memory": {
+    "graph": {
+      "title": "رسم بياني للذاكرة",
+      "searchPlaceholder": "بحث عن كيان أو علامة...",
+      "filterByType": "تصفية حسب النوع",
+      "nodeCount": "{count} كيانات",
+      "edgeCount": "{count} علاقات",
+      "refresh": "تحديث",
+      "entityTypes": "أنواع الكيانات",
+      "noData": "لا توجد بيانات",
+      "emptyDescription": "لا توجد بيانات رسم بياني للذاكرة بعد. ابدأ محادثة لبنائها.",
+      "nodeDetails": "تفاصيل العقدة",
+      "mentionCount": "مذكور {count} مرة",
+      "backlinkCount": "مشار إليه {count} مرة",
+      "tags": "علامات",
+      "relationships": "علاقات",
+      "show": "إظهار الرسم البياني",
+      "hide": "إخفاء الرسم البياني",
+      "entityLabels": {
+        "project": "مشروع",
+        "user": "مستخدم",
+        "concept": "مفهوم",
+        "file": "ملف",
+        "task": "مهمة"
+      },
+      "relationshipLabels": {
+        "partOf": "جزء من",
+        "relatedTo": "ذو صلة",
+        "dependsOn": "يعتمد على",
+        "owns": "يمتلك",
+        "defines": "يحدد",
+        "implements": "ينفذ",
+        "contains": "يحتوي",
+        "calls": "يستدعي",
+        "methodOf": "طريقة",
+        "performs": "يقوم بتنفيذ",
+        "associatedWith": "مرتبط بـ"
+      }
+    }
   }
 }

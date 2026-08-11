@@ -569,6 +569,7 @@ mod tests {
             content_hash: "hash".to_string(),
             author: author.to_string(),
             page_type: None,
+            tags: vec![],
             source_refs: None,
             related_pages: None,
             quality_score: None,

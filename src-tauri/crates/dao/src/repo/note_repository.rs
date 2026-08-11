@@ -20,6 +20,10 @@ impl DaoNoteRepository {
     }
 
     fn model_to_note(m: notes::Model) -> Note {
+        // 解析 tags JSON 数组
+        let tags: Vec<String> =
+            m.tags.and_then(|json| serde_json::from_value(json).ok()).unwrap_or_default();
+
         Note {
             id: m.id,
             vault_id: m.vault_id,
@@ -29,6 +33,7 @@ impl DaoNoteRepository {
             content_hash: m.content_hash,
             author: m.author,
             page_type: m.page_type,
+            tags,
             source_refs: m.source_refs.map(|j| serde_json::from_value(j).unwrap_or_default()),
             related_pages: m.related_pages.map(|j| serde_json::from_value(j).unwrap_or_default()),
             quality_score: m.quality_score,
@@ -124,6 +129,10 @@ impl NoteRepository for DaoNoteRepository {
         let id = axagent_harness::util_fns::gen_id();
         let content_hash = axagent_harness::note_dtos::calculate_content_hash(&input.content);
 
+        // 从内容中提取 tags
+        let tags = super::note::extract_tags_from_content(&input.content);
+        let tags_json = serde_json::to_value(tags).unwrap_or_default();
+
         let am = notes::ActiveModel {
             id: Set(id.clone()),
             vault_id: Set(input.vault_id),
@@ -133,6 +142,7 @@ impl NoteRepository for DaoNoteRepository {
             content_hash: Set(content_hash),
             author: Set(input.author),
             page_type: Set(input.page_type),
+            tags: Set(Some(tags_json)),
             source_refs: Set(input
                 .source_refs
                 .map(|v| serde_json::to_value(v).unwrap_or_default())),

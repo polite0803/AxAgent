@@ -8785,6 +8785,10 @@
       "save": "保存",
       "urlInvalid": "URL 格式无效",
       "urlPlaceholder": "输入网页 URL 抓取为 Wiki 页面",
+      "targetLabel": "目标知识源",
+      "selectTargetPlaceholder": "请选择知识源",
+      "createFirstHint": "请先创建知识源",
+      "selectKnowledgeFirst": "请先选择目标知识源",
       "urlRequired": "请输入 URL"
     },
     "type": {
@@ -9519,6 +9523,8 @@
     "cancel": "取消",
     "chunks": "分块",
     "close": "关闭",
+    "collapseAll": "全部折叠",
+    "expandAll": "全部展开",
     "common": {
       "actions": "操作",
       "close": "关闭",
@@ -9551,37 +9557,41 @@
         "contradicts": "矛盾",
         "derived": "派生",
         "link": "链接",
-        "reference": "引用"
+        "reference": "引用",
+        "mapping": "映射"
       },
       "edges": "边",
       "empty": "暂无图谱数据",
       "exportPNG": "导出 PNG",
-      "filterByTags": "按标签筛选",
-      "filters": "筛选器",
+      "exportHD": "导出高清 PNG",
+      "exportSVG": "导出 SVG",
       "fitView": "适应画布",
-      "focusSelected": "聚焦选中",
       "fullscreen": "全屏",
-      "layoutForce": "力导向",
-      "layoutRadial": "放射",
-      "layoutHierarchy": "网格",
-      "layoutRunning": "正在计算布局…",
       "loadError": "加载失败",
       "loading": "加载中...",
       "noConnectedNodes": "无连接节点",
       "nodes": "节点",
-      "components": "连通分量",
       "relayout": "重新布局",
       "stats": "统计",
       "title": "知识图谱",
       "zoomIn": "放大",
       "zoomOut": "缩小",
-      "largestComponent": "最大分量",
-      "avgDegree": "平均度",
-      "highlighted": "高亮",
       "legend": "图例",
+      "edgeTypes": "边类型筛选",
       "repairGraph": "修复图谱关联",
       "repairSuccess": "修复完成：已关联知识库，修复 {{count}} 篇笔记的链接",
-      "repairPartial": "修复完成：修复 {{count}} 篇笔记的链接（未找到匹配的知识库）"
+      "repairPartial": "修复完成：修复 {{count}} 篇笔记的链接（未找到匹配的知识库）",
+      "fisheyeOn": "鱼眼放大镜：开",
+      "fisheyeOff": "鱼眼放大镜：关",
+      "clusterOn": "聚类模式：开",
+      "clusterOff": "聚类模式：关",
+      "clusterLabel": "聚类 {{id}}",
+      "nodeType": {
+        "note": "笔记",
+        "concept": "概念",
+        "entity": "实体",
+        "source": "来源"
+      }
     },
     "hidePanel": "隐藏面板",
     "history": "历史记录",
@@ -9858,6 +9868,7 @@
     "wikiMeta": {
       "rootPath": "根路径"
     }
+    "noteLoadFailed": "笔记加载失败"
   },
   "workflow": {
     "editor": {
@@ -15485,5 +15496,45 @@
     "maxReviewMsgs": "后台审查消息数",
     "memApprovalTitle": "记忆写审批",
     "memApprovalGate": "审批门"
+  },
+  "memory": {
+    "graph": {
+      "title": "记忆图谱",
+      "searchPlaceholder": "搜索实体或标签...",
+      "filterByType": "按类型筛选",
+      "nodeCount": "{count} 个实体",
+      "edgeCount": "{count} 条关系",
+      "refresh": "刷新",
+      "entityTypes": "实体类型",
+      "noData": "暂无数据",
+      "emptyDescription": "还没有记忆图谱数据，开始对话后会自动构建。",
+      "nodeDetails": "节点详情",
+      "mentionCount": "提及 {count} 次",
+      "backlinkCount": "被引用 {count} 次",
+      "tags": "标签",
+      "relationships": "关联关系",
+      "show": "显示图谱",
+      "hide": "隐藏图谱",
+      "entityLabels": {
+        "project": "项目",
+        "user": "用户",
+        "concept": "概念",
+        "file": "文件",
+        "task": "任务"
+      },
+      "relationshipLabels": {
+        "partOf": "组成部分",
+        "relatedTo": "相关",
+        "dependsOn": "依赖",
+        "owns": "拥有",
+        "defines": "定义",
+        "implements": "实现",
+        "contains": "包含",
+        "calls": "调用",
+        "methodOf": "方法",
+        "performs": "执行",
+        "associatedWith": "关联"
+      }
+    }
   }
 }

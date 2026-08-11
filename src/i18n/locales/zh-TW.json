@@ -8848,6 +8848,12 @@
       "createSubmit": "建立"
     },
     "enterFailed": "找不到对应的知识库记录，请尝试刷新页面"
+      "createSubmit": "建立",
+      "targetLabel": "目標知識源",
+      "selectTargetPlaceholder": "請選擇知識源",
+      "createFirstHint": "請先建立知識源",
+      "selectKnowledgeFirst": "請先選擇目標知識源"
+    }
   },
   "sshConfig": {
     "connect": "連接",
@@ -9556,32 +9562,34 @@
       "edges": "邊",
       "empty": "暫無圖譜數據",
       "exportPNG": "導出 PNG",
-      "filterByTags": "按標籤篩選",
-      "filters": "篩選器",
+      "exportHD": "導出高清 PNG",
+      "exportSVG": "導出 SVG",
       "fitView": "適應畫布",
-      "focusSelected": "聚焦選中",
       "fullscreen": "全螢幕",
-      "layoutForce": "力導向",
-      "layoutRadial": "放射",
-      "layoutHierarchy": "網格",
-      "layoutRunning": "正在計算佈局…",
       "loadError": "加載失敗",
       "loading": "加載中...",
       "noConnectedNodes": "無連接節點",
       "nodes": "節點",
-      "components": "連通分量",
       "relayout": "重新佈局",
       "stats": "統計",
       "title": "知識圖譜",
       "zoomIn": "放大",
       "zoomOut": "縮小",
-      "largestComponent": "Largest Component",
-      "avgDegree": "Avg Degree",
-      "highlighted": "Highlighted",
       "legend": "圖例",
+      "edgeTypes": "邊類型篩選",
       "repairGraph": "修復圖譜關聯",
       "repairSuccess": "修復完成：已關聯知識庫，修復 {{count}} 篇筆記的連結",
-      "repairPartial": "修復完成：修復 {{count}} 篇筆記的連結（未找到匹配的知識庫）"
+      "repairPartial": "修復完成：修復 {{count}} 篇筆記的連結（未找到匹配的知識庫）",
+      "fisheyeOn": "魚眼放大鏡：開",
+      "fisheyeOff": "魚眼放大鏡：關",
+      "clusterOn": "聚類模式：開",
+      "clusterOff": "聚類模式：關",
+      "nodeType": {
+        "note": "筆記",
+        "concept": "概念",
+        "entity": "實體",
+        "source": "來源"
+      }
     },
     "hidePanel": "隱藏面板",
     "history": "歷史記錄",
@@ -9858,6 +9866,9 @@
     "wikiMeta": {
       "rootPath": "根路徑"
     }
+    "collapseAll": "全部摺疊",
+    "expandAll": "全部展開",
+    "noteLoadFailed": "筆記載入失敗"
   },
   "workflow": {
     "autoSave": {
@@ -15483,5 +15494,45 @@
     "maxReviewMsgs": "背景審查訊息數",
     "memApprovalTitle": "記憶寫入審批",
     "memApprovalGate": "審批門"
+  },
+  "memory": {
+    "graph": {
+      "title": "記憶圖譜",
+      "searchPlaceholder": "搜尋實體或標籤...",
+      "filterByType": "按類型篩選",
+      "nodeCount": "{count} 個實體",
+      "edgeCount": "{count} 條關係",
+      "refresh": "重新整理",
+      "entityTypes": "實體類型",
+      "noData": "暫無資料",
+      "emptyDescription": "還沒有記憶圖譜資料，開始對話後會自動建構。",
+      "nodeDetails": "節點詳情",
+      "mentionCount": "提及 {count} 次",
+      "backlinkCount": "被引用 {count} 次",
+      "tags": "標籤",
+      "relationships": "關聯關係",
+      "show": "顯示圖譜",
+      "hide": "隱藏圖譜",
+      "entityLabels": {
+        "project": "專案",
+        "user": "使用者",
+        "concept": "概念",
+        "file": "檔案",
+        "task": "任務"
+      },
+      "relationshipLabels": {
+        "partOf": "組成部分",
+        "relatedTo": "相關",
+        "dependsOn": "依賴",
+        "owns": "擁有",
+        "defines": "定義",
+        "implements": "實作",
+        "contains": "包含",
+        "calls": "呼叫",
+        "methodOf": "方法",
+        "performs": "執行",
+        "associatedWith": "關聯"
+      }
+    }
   }
 }

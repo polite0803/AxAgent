@@ -8848,6 +8848,12 @@
       "createSubmit": "बनाएँ"
     },
     "enterFailed": "找不到对应的知识库记录，请尝试刷新页面"
+      "createSubmit": "बनाएँ",
+      "targetLabel": "लक्ष्य स्रोत",
+      "selectTargetPlaceholder": "स्रोत चुनें",
+      "createFirstHint": "पहले स्रोत बनाएं",
+      "selectKnowledgeFirst": "कृपया पहले लक्ष्य स्रोत चुनें"
+    }
   },
   "sshConfig": {
     "connect": "कनेक्ट",
@@ -9546,7 +9552,6 @@
     "focusLocal": "स्थानीय पर ध्यान केंद्रित करें",
     "graph": {
       "communities": "समुदाय",
-      "components": "घटक",
       "edgeType": {
         "backlink": "बैकलिंक",
         "contradicts": "विरोधाभास",
@@ -9557,15 +9562,10 @@
       "edges": "किनारे",
       "empty": "ग्राफ़ डेटा नहीं",
       "exportPNG": "PNG निर्यात करें",
-      "filterByTags": "टैग से फ़िल्टर करें",
-      "filters": "फ़िल्टर",
+      "exportHD": "HD PNG निर्यात करें",
+      "exportSVG": "SVG निर्यात करें",
       "fitView": "फिट व्यू",
-      "focusSelected": "चयनित पर फ़ोकस करें",
       "fullscreen": "पूर्ण स्क्रीन",
-      "layoutForce": "बल",
-      "layoutRadial": "रेडियल",
-      "layoutHierarchy": "ग्रिड",
-      "layoutRunning": "लेआउट की गणना हो रही है…",
       "loadError": "लोड करना विफल",
       "loading": "लोड हो रहा है...",
       "noConnectedNodes": "कोई कनेक्टेड नोड नहीं",
@@ -9575,13 +9575,21 @@
       "title": "ज्ञान ग्राफ",
       "zoomIn": "ज़ूम इन",
       "zoomOut": "ज़ूम आउट",
-      "largestComponent": "Largest Component",
-      "avgDegree": "Avg Degree",
-      "highlighted": "Highlighted",
       "legend": "कुंजी",
+      "edgeTypes": "एज प्रकार फ़िल्टर",
       "repairGraph": "ग्राफ लिंक मरम्मत करें",
       "repairSuccess": "मरम्मत पूरी: KB लिंक किया गया, {{count}} नोट्स के लिंक मरम्मत किए गए",
-      "repairPartial": "मरम्मत पूरी: {{count}} नोट्स के लिंक मरम्मत किए गए (कोई मेल खाता KB नहीं मिला)"
+      "repairPartial": "मरम्मत पूरी: {{count}} नोट्स के लिंक मरम्मत किए गए (कोई मेल खाता KB नहीं मिला)",
+      "fisheyeOn": "फिशआई लेंस: चालू",
+      "fisheyeOff": "फिशआई लेंस: बंद",
+      "clusterOn": "क्लस्टर मोड: चालू",
+      "clusterOff": "क्लस्टर मोड: बंद",
+      "nodeType": {
+        "note": "नोट",
+        "concept": "अवधारणा",
+        "entity": "इकाई",
+        "source": "स्रोत"
+      }
     },
     "hidePanel": "पैनल छिपाएं",
     "history": "इतिहास",
@@ -9858,6 +9866,9 @@
     "wikiMeta": {
       "rootPath": "根路径"
     }
+    "collapseAll": "सभी सिकोड़ें",
+    "expandAll": "सभी विस्तारित करें",
+    "noteLoadFailed": "नोट लोड करने में विफल"
   },
   "workflow": {
     "autoSave": {
@@ -15483,5 +15494,45 @@
     "maxReviewMsgs": "Review messages",
     "memApprovalTitle": "Memory write approval",
     "memApprovalGate": "Approval gate"
+  },
+  "memory": {
+    "graph": {
+      "title": "मेमोरी ग्राफ",
+      "searchPlaceholder": "संस्था या टैग खोजें...",
+      "filterByType": "प्रकार से फ़िल्टर करें",
+      "nodeCount": "{count} संस्थाएँ",
+      "edgeCount": "{count} संबंध",
+      "refresh": "ताज़ा करें",
+      "entityTypes": "संस्था प्रकार",
+      "noData": "कोई डेटा नहीं",
+      "emptyDescription": "अभी कोई मेमोरी ग्राफ़ डेटा नहीं है। इसे बनाने के लिए बातचीत शुरू करें।",
+      "nodeDetails": "नोड विवरण",
+      "mentionCount": "{count} बार उल्लेख किया गया",
+      "backlinkCount": "{count} बार संदर्भित किया गया",
+      "tags": "टैग",
+      "relationships": "संबंध",
+      "show": "ग्राफ़ दिखाएँ",
+      "hide": "ग्राफ़ छुपाएँ",
+      "entityLabels": {
+        "project": "परियोजना",
+        "user": "उपयोगकर्ता",
+        "concept": "अवधारणा",
+        "file": "फ़ाइल",
+        "task": "कार्य"
+      },
+      "relationshipLabels": {
+        "partOf": "का भाग",
+        "relatedTo": "संबंधित",
+        "dependsOn": "पर निर्भर",
+        "owns": "का मालिक",
+        "defines": "परिभाषित करता",
+        "implements": "कार्यान्वित करता",
+        "contains": "शामिल है",
+        "calls": "कॉल करता",
+        "methodOf": "की विधि",
+        "performs": "करता",
+        "associatedWith": "से जुड़ा"
+      }
+    }
   }
 }

@@ -43,6 +43,7 @@ export function WikiDetailPanel({
   const [content, setContent] = useState("");
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [links, setLinks] = useState<NoteLink[]>([]);
@@ -50,6 +51,7 @@ export function WikiDetailPanel({
   const [linksLoading, setLinksLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<DetailTab>("edit");
   const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isSavingRef = useRef(false);
   const [syncModalOpen, setSyncModalOpen] = useState(false);
   const [selectedKbId, setSelectedKbId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -59,14 +61,19 @@ export function WikiDetailPanel({
       return;
     }
     setLoading(true);
+    setLoadFailed(false);
     const n = await getNote(noteId);
     if (n) {
       setNote(n);
       setContent(n.content);
       setTitle(n.title);
+    } else {
+      // 笔记不存在或加载失败：明确提示，避免渲染空白编辑区
+      setLoadFailed(true);
+      message.error(t("wiki.noteLoadFailed"));
     }
     setLoading(false);
-  }, [noteId, getNote]);
+  }, [noteId, getNote, t]);
 
   const loadLinks = useCallback(async () => {
     if (!noteId) {
@@ -83,9 +90,13 @@ export function WikiDetailPanel({
   }, [noteId, getNoteLinks, getNoteBacklinks]);
 
   const handleSave = useCallback(async () => {
+    if (isSavingRef.current) {
+      return;
+    }
     if (!note || !hasChanges) {
       return;
     }
+    isSavingRef.current = true;
     setSaving(true);
     try {
       const updated = await updateNote(note.id, { title, content });
@@ -96,8 +107,10 @@ export function WikiDetailPanel({
       }
     } catch (e) {
       showBackendError(message, e);
+    } finally {
+      setSaving(false);
+      isSavingRef.current = false;
     }
-    setSaving(false);
   }, [note, hasChanges, updateNote, onNoteUpdated, content, title]);
 
   useEffect(() => {
@@ -108,6 +121,7 @@ export function WikiDetailPanel({
         setTitle("");
         setLinks([]);
         setBacklinks([]);
+        setLoadFailed(false);
       }, 0);
       return;
     }
@@ -135,7 +149,7 @@ export function WikiDetailPanel({
 
   // 自动保存（3 秒空闲）
   useEffect(() => {
-    if (!hasChanges || saving) {
+    if (!hasChanges || saving || isSavingRef.current) {
       return;
     }
     if (autoSaveRef.current) {
@@ -227,6 +241,18 @@ export function WikiDetailPanel({
         style={{ backgroundColor: token.colorBgElevated }}
       >
         <Spin />
+      </div>
+    );
+  }
+
+  // 笔记加载失败/不存在：显示错误态而非空白编辑区
+  if (loadFailed && !note) {
+    return (
+      <div
+        className="h-full flex items-center justify-center"
+        style={{ backgroundColor: token.colorBgElevated }}
+      >
+        <Empty description={t("wiki.noteLoadFailed")} />
       </div>
     );
   }

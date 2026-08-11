@@ -8848,6 +8848,12 @@
       "createSubmit": "Создать"
     },
     "enterFailed": "找不到对应的知识库记录，请尝试刷新页面"
+      "createSubmit": "Создать",
+      "targetLabel": "Целевой источник",
+      "selectTargetPlaceholder": "Выберите источник",
+      "createFirstHint": "Сначала создайте источник",
+      "selectKnowledgeFirst": "Сначала выберите целевой источник"
+    }
   },
   "sshConfig": {
     "connect": "Подключить",
@@ -9546,7 +9552,6 @@
     "focusLocal": "Фокус на локальном",
     "graph": {
       "communities": "Сообщества",
-      "components": "Компоненты",
       "edgeType": {
         "backlink": "Обратная ссылка",
         "contradicts": "Противоречит",
@@ -9557,15 +9562,10 @@
       "edges": "Рёбра",
       "empty": "Нет данных графа",
       "exportPNG": "Экспорт PNG",
-      "filterByTags": "Фильтр по тегам",
-      "filters": "Фильтры",
+      "exportHD": "Экспорт HD PNG",
+      "exportSVG": "Экспорт SVG",
       "fitView": "По размеру",
-      "focusSelected": "Фокус на выбранном",
       "fullscreen": "Полный экран",
-      "layoutForce": "Сила",
-      "layoutRadial": "Радиальный",
-      "layoutHierarchy": "Сетка",
-      "layoutRunning": "Расчёт компоновки…",
       "loadError": "Не удалось загрузить",
       "loading": "Загрузка...",
       "noConnectedNodes": "Нет подключённых узлов",
@@ -9575,13 +9575,21 @@
       "title": "Граф знаний",
       "zoomIn": "Увеличить",
       "zoomOut": "Уменьшить",
-      "largestComponent": "Largest Component",
-      "avgDegree": "Avg Degree",
-      "highlighted": "Highlighted",
       "legend": "Легенда",
+      "edgeTypes": "Фильтр типов ребер",
       "repairGraph": "Исправить ссылки графа",
       "repairSuccess": "Исправление завершено: KB связан, исправлено {{count}} ссылок заметок",
-      "repairPartial": "Исправление завершено: исправлено {{count}} ссылок заметок (подходящий KB не найден)"
+      "repairPartial": "Исправление завершено: исправлено {{count}} ссылок заметок (подходящий KB не найден)",
+      "fisheyeOn": "Рыбий глаз: вкл",
+      "fisheyeOff": "Рыбий глаз: выкл",
+      "clusterOn": "Режим кластеризации: вкл",
+      "clusterOff": "Режим кластеризации: выкл",
+      "nodeType": {
+        "note": "Заметка",
+        "concept": "Концепция",
+        "entity": "Сущность",
+        "source": "Источник"
+      }
     },
     "hidePanel": "Скрыть панель",
     "history": "История",
@@ -9858,6 +9866,9 @@
     "wikiMeta": {
       "rootPath": "根路径"
     }
+    "collapseAll": "Свернуть все",
+    "expandAll": "Развернуть все",
+    "noteLoadFailed": "Не удалось загрузить заметку"
   },
   "workflow": {
     "autoSave": {
@@ -15483,5 +15494,45 @@
     "maxReviewMsgs": "Review messages",
     "memApprovalTitle": "Memory write approval",
     "memApprovalGate": "Approval gate"
+  },
+  "memory": {
+    "graph": {
+      "title": "Граф памяти",
+      "searchPlaceholder": "Поиск сущности или тега...",
+      "filterByType": "Фильтр по типу",
+      "nodeCount": "{count} сущностей",
+      "edgeCount": "{count} связей",
+      "refresh": "Обновить",
+      "entityTypes": "Типы сущностей",
+      "noData": "Нет данных",
+      "emptyDescription": "Пока нет данных графа памяти. Начните разговор, чтобы создать их.",
+      "nodeDetails": "Детали узла",
+      "mentionCount": "Упомянут {count} раз",
+      "backlinkCount": "Ссылался {count} раз",
+      "tags": "Теги",
+      "relationships": "Связи",
+      "show": "Показать граф",
+      "hide": "Скрыть граф",
+      "entityLabels": {
+        "project": "Проект",
+        "user": "Пользователь",
+        "concept": "Концепция",
+        "file": "Файл",
+        "task": "Задача"
+      },
+      "relationshipLabels": {
+        "partOf": "Часть",
+        "relatedTo": "Связано",
+        "dependsOn": "Зависит от",
+        "owns": "Владеет",
+        "defines": "Определяет",
+        "implements": "Реализует",
+        "contains": "Содержит",
+        "calls": "Вызывает",
+        "methodOf": "Метод",
+        "performs": "Выполняет",
+        "associatedWith": "Связано с"
+      }
+    }
   }
 }

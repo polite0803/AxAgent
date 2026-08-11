@@ -15,6 +15,7 @@ pub struct Model {
     pub content_hash: String,
     pub author: String,
     pub page_type: Option<String>,
+    pub tags: Option<Json>,
     pub source_refs: Option<Json>,
     pub related_pages: Option<Json>,
     pub quality_score: Option<f64>,

@@ -3,10 +3,10 @@
 import type { GraphData } from "@/components/wiki/GraphView";
 import type { Note } from "@/types";
 import { SearchOutlined } from "@ant-design/icons";
-import { Empty, Input, Space, Spin, theme, Tree, Typography } from "antd";
+import { Empty, Input, Space, Spin, theme, Tooltip, Tree, Typography } from "antd";
 import type { DataNode } from "antd/es/tree";
-import { FileText, FolderTree, Hash } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ChevronDown, ChevronRight, FileText, FolderTree, Hash } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
@@ -43,6 +43,25 @@ export function WikiFilePanel({
   const { token } = theme.useToken();
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
+  const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
+  const [manualExpand, setManualExpand] = useState(false);
+
+  // 收集所有目录 key
+  const getAllDirKeys = useCallback((nodes: DataNode[]): React.Key[] => {
+    const keys: React.Key[] = [];
+    const traverse = (nodeList: DataNode[]) => {
+      for (const node of nodeList) {
+        if (String(node.key).startsWith("dir:")) {
+          keys.push(node.key);
+        }
+        if (node.children && node.children.length > 0) {
+          traverse(node.children);
+        }
+      }
+    };
+    traverse(nodes);
+    return keys;
+  }, []);
 
   // 按路径构建树形结构
   const treeData = useMemo(() => {
@@ -97,13 +116,7 @@ export function WikiFilePanel({
           ...val.notes.map((note) => ({
             key: note.id,
             title: (
-              <div
-                className="flex items-center gap-1"
-                style={{
-                  color: selectedNodeId === note.id ? token.colorPrimary : undefined,
-                  fontWeight: selectedNodeId === note.id ? 600 : undefined,
-                }}
-              >
+              <div className="flex items-center gap-1">
                 <FileText size={11} />
                 <span className="truncate text-sm">{note.title}</span>
                 {note.author === "llm" && (
@@ -151,15 +164,7 @@ export function WikiFilePanel({
             children: rootNotes.map((note) => ({
               key: note.id,
               title: (
-                <div
-                  className="flex items-center gap-1"
-                  style={{
-                    color: selectedNodeId === note.id
-                      ? token.colorPrimary
-                      : undefined,
-                    fontWeight: selectedNodeId === note.id ? 600 : undefined,
-                  }}
-                >
+                <div className="flex items-center gap-1">
                   <FileText size={11} />
                   <span className="truncate text-sm">{note.title}</span>
                 </div>
@@ -197,7 +202,26 @@ export function WikiFilePanel({
         0,
       ),
     ];
-  }, [notes, selectedNodeId, token]);
+  }, [notes, token]);
+
+  // 展开全部
+  const handleExpandAll = useCallback(() => {
+    setManualExpand(true);
+    setExpandedKeys(getAllDirKeys(treeData));
+  }, [getAllDirKeys, treeData]);
+
+  // 折叠全部
+  const handleCollapseAll = useCallback(() => {
+    setManualExpand(true);
+    setExpandedKeys([]);
+  }, []);
+
+  // 同步：首次加载或数据变化时自动展开（笔记数少于 50）
+  useEffect(() => {
+    if (!manualExpand && notes.length < 50 && treeData.length > 0) {
+      setExpandedKeys(getAllDirKeys(treeData));
+    }
+  }, [treeData, notes.length, manualExpand, getAllDirKeys]);
 
   // 标签提取
   const allTags = useMemo(() => {
@@ -281,6 +305,53 @@ export function WikiFilePanel({
         />
       </div>
 
+      {/* 文件树控制栏 */}
+      {!loading && notes.length > 0 && (
+        <div className="flex items-center justify-between px-2 py-1 shrink-0">
+          <span className="text-xs" style={{ color: token.colorTextTertiary }}>
+            {notes.length} {t("wiki.graph.nodes")}
+          </span>
+          <div className="flex items-center gap-1">
+            <Tooltip title={t("wiki.expandAll")}>
+              <button
+                type="button"
+                onClick={handleExpandAll}
+                className="flex items-center justify-center rounded hover:opacity-70"
+                style={{
+                  width: 22,
+                  height: 22,
+                  padding: 0,
+                  border: `1px solid ${token.colorBorderSecondary}40`,
+                  background: "transparent",
+                  cursor: "pointer",
+                  color: token.colorTextSecondary,
+                }}
+              >
+                <ChevronDown size={12} />
+              </button>
+            </Tooltip>
+            <Tooltip title={t("wiki.collapseAll")}>
+              <button
+                type="button"
+                onClick={handleCollapseAll}
+                className="flex items-center justify-center rounded hover:opacity-70"
+                style={{
+                  width: 22,
+                  height: 22,
+                  padding: 0,
+                  border: `1px solid ${token.colorBorderSecondary}40`,
+                  background: "transparent",
+                  cursor: "pointer",
+                  color: token.colorTextSecondary,
+                }}
+              >
+                <ChevronRight size={12} />
+              </button>
+            </Tooltip>
+          </div>
+        </div>
+      )}
+
       {/* 文件树 */}
       <div className="flex-1 overflow-y-auto px-1 py-0">
         {loading
@@ -301,7 +372,11 @@ export function WikiFilePanel({
               treeData={treeData}
               onSelect={handleTreeSelect}
               selectedKeys={selectedNodeId ? [selectedNodeId] : []}
-              defaultExpandAll={notes.length < 50}
+              expandedKeys={expandedKeys}
+              onExpand={(keys) => {
+                setManualExpand(true);
+                setExpandedKeys(keys);
+              }}
               showIcon={false}
               blockNode
               className="wiki-file-tree"

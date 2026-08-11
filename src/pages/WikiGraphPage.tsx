@@ -3,7 +3,7 @@
 import { Tooltip } from "@/components/layout/Tooltip";
 import { QualityScore } from "@/components/llm-wiki/QualityScore";
 import { SyncStatus } from "@/components/llm-wiki/SyncStatus";
-import { GraphData, GraphView } from "@/components/wiki/GraphView";
+import { GraphData, GraphView, type GraphViewHandle } from "@/components/wiki/GraphView";
 import { WikiDetailPanel } from "@/components/wiki/WikiDetailPanel";
 import { WikiFilePanel } from "@/components/wiki/WikiFilePanel";
 import { WikiNodeContextMenu } from "@/components/wiki/WikiNodeContextMenu";
@@ -80,6 +80,8 @@ export function WikiGraphPage() {
     null,
   );
   const resizingRef = useRef<"left" | "right" | null>(null);
+  const lastGraphRequestRef = useRef(0);
+  const graphViewRef = useRef<GraphViewHandle>(null);
   const [resizingSide, setResizingSide] = useState<"left" | "right" | null>(null);
   useEffect(() => {
     resizingRef.current = resizingSide;
@@ -115,12 +117,14 @@ export function WikiGraphPage() {
     }
   }, [wikisLoaded, wikis, urlWikiId, navigate]);
 
-  const loadGraphData = useCallback(async () => {
+  const loadGraphData = useCallback(async (): Promise<GraphData | null> => {
     if (!wikiIdFromUrl) {
       setGraphData(null);
       setGraphLoading(false);
-      return;
+      return null;
     }
+    const requestId = Date.now();
+    lastGraphRequestRef.current = requestId;
     setGraphLoading(true);
     try {
       const [data, communityResult] = await Promise.all([
@@ -130,16 +134,27 @@ export function WikiGraphPage() {
           { wikiId: wikiIdFromUrl },
         ).catch(() => null),
       ]);
-      setGraphData(data);
-      if (communityResult?.communities) {
-        setCommunities(new Map(Object.entries(communityResult.communities)));
-      } else {
-        setCommunities(null);
+      // 仅在仍是最新请求时才更新，防止竞态覆盖
+      if (lastGraphRequestRef.current === requestId) {
+        setGraphData(data);
+        if (communityResult?.communities) {
+          setCommunities(new Map(Object.entries(communityResult.communities)));
+        } else {
+          setCommunities(null);
+        }
+        return data;
       }
+      return null;
     } catch (e) {
-      message.error(t("wiki.graph.loadError", { error: String(e) }));
+      if (lastGraphRequestRef.current === requestId) {
+        showBackendError(message, e, { context: "wiki.graph.loadError" });
+      }
+      return null;
+    } finally {
+      if (lastGraphRequestRef.current === requestId) {
+        setGraphLoading(false);
+      }
     }
-    setGraphLoading(false);
   }, [wikiIdFromUrl, t]);
 
   useEffect(() => {
@@ -191,8 +206,9 @@ export function WikiGraphPage() {
       loadGraphData();
     } catch (e) {
       showBackendError(message, e);
+    } finally {
+      setRepairing(false);
     }
-    setRepairing(false);
   }, [wikiIdFromUrl, loadGraphData, t]);
 
   // 面板拖曳
@@ -251,18 +267,27 @@ export function WikiGraphPage() {
   // 节点操作
   const handleNodeClick = useCallback((nodeId: string) => {
     setSelectedNodeId(nodeId);
+    // 实体节点不打开详情面板（无对应笔记）
+    if (!nodeId.startsWith("entity:")) {
+      setDetailPanelOpen(true);
+    }
   }, []);
 
   const handleNodeDoubleClick = useCallback((nodeId: string) => {
     setSelectedNodeId(nodeId);
-    setDetailPanelOpen(true);
+    if (!nodeId.startsWith("entity:")) {
+      setDetailPanelOpen(true);
+    }
   }, []);
 
   const handleContextMenu = useCallback(
     (nodeId: string, position: { x: number; y: number }) => {
       setSelectedNodeId(nodeId);
       setContextMenu({ visible: true, nodeId, position });
-      setDetailPanelOpen(true);
+      // 实体节点不打开笔记详情面板
+      if (!nodeId.startsWith("entity:")) {
+        setDetailPanelOpen(true);
+      }
     },
     [],
   );
@@ -371,7 +396,18 @@ export function WikiGraphPage() {
           setDetailPanelOpen(false);
         }
         loadNotes(wikiIdFromUrl);
-        loadGraphData();
+        loadGraphData().then((fresh) => {
+          // 图数据重建后，检查选中节点是否仍存在，防止悬空引用
+          if (
+            fresh
+            && selectedNodeId
+            && selectedNodeId !== nodeId
+            && !fresh.nodes.some((n) => n.id === selectedNodeId)
+          ) {
+            setSelectedNodeId(null);
+            setDetailPanelOpen(false);
+          }
+        });
       } catch (e) {
         showBackendError(message, e);
       }
@@ -396,6 +432,7 @@ export function WikiGraphPage() {
       }
       const q = value.toLowerCase();
       const ids = new Set<string>();
+      let firstMatch: string | null = null;
       graphData.nodes.forEach((n) => {
         if (
           n.title.toLowerCase().includes(q)
@@ -403,9 +440,14 @@ export function WikiGraphPage() {
           || n.path.toLowerCase().includes(q)
         ) {
           ids.add(n.id);
+          if (!firstMatch) { firstMatch = n.id; }
         }
       });
       setHighlightedNodeIds(ids);
+      // 聚焦首个匹配节点
+      if (firstMatch) {
+        setSelectedNodeId(firstMatch);
+      }
     },
     [graphData],
   );
@@ -639,7 +681,9 @@ export function WikiGraphPage() {
             )
             : (
               <GraphView
+                ref={graphViewRef}
                 data={graphData}
+                wikiId={wikiIdFromUrl ?? undefined}
                 onNodeClick={handleNodeClick}
                 onNodeDoubleClick={handleNodeDoubleClick}
                 onContextMenu={handleContextMenu}
@@ -648,7 +692,6 @@ export function WikiGraphPage() {
                 selectedNodeId={selectedNodeId}
                 highlightedNodeIds={highlightedNodeIds}
                 communities={communities ?? undefined}
-                showMinimap
               />
             )}
         </div>
@@ -718,6 +761,7 @@ export function WikiGraphPage() {
         }}
         onFocusLocal={() => {
           if (contextMenu.nodeId && graphData) {
+            graphViewRef.current?.focusOnNode(contextMenu.nodeId);
             const neighborIds = new Set<string>();
             graphData.edges.forEach((e) => {
               if (e.source === contextMenu.nodeId) {

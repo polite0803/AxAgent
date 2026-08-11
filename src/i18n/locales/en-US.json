@@ -8846,7 +8846,11 @@
       "createTitle": "New Knowledge Source",
       "sourceType": "Type",
       "pathRequired": "Enter URL or path",
-      "createSubmit": "Create"
+      "createSubmit": "Create",
+      "targetLabel": "Target Source",
+      "selectTargetPlaceholder": "Select a source",
+      "createFirstHint": "Create a source first",
+      "selectKnowledgeFirst": "Please select a target source first"
     }
   },
   "sshConfig": {
@@ -9519,6 +9523,8 @@
     "cancel": "Cancel",
     "chunks": "Chunks",
     "close": "Close",
+    "collapseAll": "Collapse All",
+    "expandAll": "Expand All",
     "common": {
       "actions": "Actions",
       "close": "Close",
@@ -9546,26 +9552,21 @@
     "focusLocal": "Focus Local",
     "graph": {
       "communities": "Communities",
-      "components": "Components",
       "edgeType": {
         "backlink": "Backlink",
         "contradicts": "Contradicts",
         "derived": "Derived",
         "link": "Link",
-        "reference": "Reference"
+        "reference": "Reference",
+        "mapping": "Mapping"
       },
       "edges": "Edges",
       "empty": "No graph data",
       "exportPNG": "Export PNG",
-      "filterByTags": "Filter by tags",
-      "filters": "Filters",
+      "exportHD": "Export HD PNG",
+      "exportSVG": "Export SVG",
       "fitView": "Fit View",
-      "focusSelected": "Focus Selected",
       "fullscreen": "Fullscreen",
-      "layoutForce": "Force",
-      "layoutRadial": "Radial",
-      "layoutHierarchy": "Hierarchy",
-      "layoutRunning": "Calculating layout…",
       "loadError": "Load failed",
       "loading": "Loading...",
       "noConnectedNodes": "No connected nodes",
@@ -9575,13 +9576,22 @@
       "title": "Knowledge Graph",
       "zoomIn": "Zoom In",
       "zoomOut": "Zoom Out",
-      "largestComponent": "Largest Component",
-      "avgDegree": "Avg Degree",
-      "highlighted": "Highlighted",
       "legend": "Legend",
+      "edgeTypes": "Edge Type Filter",
       "repairGraph": "Repair Graph Links",
       "repairSuccess": "Repair complete: KB linked, {{count}} notes' links repaired",
-      "repairPartial": "Repair complete: {{count}} notes' links repaired (no matching KB found)"
+      "repairPartial": "Repair complete: {{count}} notes' links repaired (no matching KB found)",
+      "fisheyeOn": "Fisheye lens: On",
+      "fisheyeOff": "Fisheye lens: Off",
+      "clusterOn": "Cluster mode: On",
+      "clusterOff": "Cluster mode: Off",
+      "clusterLabel": "Cluster {{id}}",
+      "nodeType": {
+        "note": "Note",
+        "concept": "Concept",
+        "entity": "Entity",
+        "source": "Source"
+      }
     },
     "hidePanel": "Hide Panel",
     "history": "History",
@@ -9858,6 +9868,7 @@
     "wikiMeta": {
       "rootPath": "Root Path"
     }
+    "noteLoadFailed": "Failed to load note"
   },
   "workflow": {
     "editor": {
@@ -15483,5 +15494,45 @@
     "maxReviewMsgs": "Review messages",
     "memApprovalTitle": "Memory write approval",
     "memApprovalGate": "Approval gate"
+  },
+  "memory": {
+    "graph": {
+      "title": "Memory Graph",
+      "searchPlaceholder": "Search entities or tags...",
+      "filterByType": "Filter by Type",
+      "nodeCount": "{count} entities",
+      "edgeCount": "{count} relationships",
+      "refresh": "Refresh",
+      "entityTypes": "Entity Types",
+      "noData": "No data",
+      "emptyDescription": "No memory graph data yet. Start a conversation to build it.",
+      "nodeDetails": "Node Details",
+      "mentionCount": "Mentioned {count} times",
+      "backlinkCount": "Referenced {count} times",
+      "tags": "Tags",
+      "relationships": "Relationships",
+      "show": "Show Graph",
+      "hide": "Hide Graph",
+      "entityLabels": {
+        "project": "Project",
+        "user": "User",
+        "concept": "Concept",
+        "file": "File",
+        "task": "Task"
+      },
+      "relationshipLabels": {
+        "partOf": "Part of",
+        "relatedTo": "Related to",
+        "dependsOn": "Depends on",
+        "owns": "Owns",
+        "defines": "Defines",
+        "implements": "Implements",
+        "contains": "Contains",
+        "calls": "Calls",
+        "methodOf": "Method of",
+        "performs": "Performs",
+        "associatedWith": "Associated with"
+      }
+    }
   }
 }
