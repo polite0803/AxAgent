@@ -26,9 +26,14 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  buildNeighborMap,
+  buildNodeMap,
   buildPhysicsEdges,
   computeCommunityCentroids,
   initializePositions,
+  isSystemStable,
+  type NeighborMap,
+  type NodeMap,
   type PhysicsConfig,
   type PhysicsEdge,
   type PhysicsNode,
@@ -267,8 +272,25 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   const nodeSizeRef = useRef<Map<string, number>>(new Map());
   const nodeSpriteCacheRef = useRef<Map<string, HTMLCanvasElement>>(new Map());
   const edgeMetaRef = useRef<
-    { source: string; target: string; type: GraphEdgeType; animated: boolean; color: string; width: number }[]
+    {
+      source: string;
+      target: string;
+      type: GraphEdgeType;
+      animated: boolean;
+      color: string;
+      width: number;
+      sourceIdx: number;
+      targetIdx: number;
+    }[]
   >([]);
+
+  // 预构建的邻居表和节点索引（缓存复用，避免每帧重建）
+  const neighborMapCacheRef = useRef<NeighborMap>(new Map());
+  const nodeMapCacheRef = useRef<NodeMap>(new Map());
+
+  // 预渲染的背景画布（避免每帧重建渐变）
+  const bgCacheRef = useRef<HTMLCanvasElement | null>(null);
+  const bgCacheSizeRef = useRef({ w: 0, h: 0 });
 
   // 相机变换
   const cameraRef = useRef({ x: 0, y: 0, zoom: 1 });
@@ -283,6 +305,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   // 脉动相位
   const phaseRef = useRef(0);
   const frameCounterRef = useRef(0);
+  const stableFrameCounterRef = useRef(0);
+  const idleCounterRef = useRef(0);
 
   // 鱼眼 / 聚类 状态
   const fisheyeEnabledRef = useRef(true);
@@ -364,6 +388,10 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   const visibleCommunitiesRef = useRef(visibleCommunities);
   visibleCommunitiesRef.current = visibleCommunities;
 
+  // 社区筛选预计算：缓存全量社区集合和筛选状态，避免每帧在绘制函数内重建
+  const visibleCommunitiesAllSetRef = useRef<Set<number>>(new Set());
+  const hasCommunityFilterRef = useRef(false);
+
   const toggleCommunity = useCallback((cid: number) => {
     setVisibleCommunities((prev) => {
       const next = new Set(prev);
@@ -385,6 +413,21 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     }
     setVisibleCommunities(uniqueCommunities);
   }, [communities]);
+
+  // 预计算社区筛选状态：全量社区集合 + 是否启用筛选
+  useEffect(() => {
+    if (!communities) {
+      visibleCommunitiesAllSetRef.current = new Set();
+      hasCommunityFilterRef.current = false;
+      return;
+    }
+    const allCids = new Set<number>();
+    for (const cid of communities.values()) {
+      allCids.add(cid);
+    }
+    visibleCommunitiesAllSetRef.current = allCids;
+    hasCommunityFilterRef.current = visibleCommunities.size < allCids.size;
+  }, [communities, visibleCommunities]);
 
   // 选中节点时自动聚焦（搜索定位 / 点击导航）
   const prevSelectedRef = useRef<string | null>(null);
@@ -440,7 +483,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     buildNodeSpriteCache();
 
     // 构建物理节点
-    const pNodes: PhysicsNode[] = data.nodes.map((n) => ({
+    const pNodes: PhysicsNode[] = data.nodes.map((n, i) => ({
       id: n.id,
       x: n.x ?? 0,
       y: n.y ?? 0,
@@ -451,6 +494,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       mass: 1 + (n.linkCount + n.backlinkCount) * 0.2,
       fixed: false,
       kind: n.type,
+      idx: i,
     }));
 
     // 首次布局：优先从 localStorage 加载已保存的布局
@@ -475,7 +519,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       adjacency.get(e.target)?.add(e.source);
     }
     const avgDegree = data.edges.length > 0 ? (data.edges.length * 2) / data.nodes.length : 1;
-    const pEdges = buildPhysicsEdges(adjacency, avgDegree);
+    const pEdges = buildPhysicsEdges(adjacency, pNodes, avgDegree);
 
     physNodesRef.current = pNodes;
     physEdgesRef.current = pEdges;
@@ -485,6 +529,13 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     for (const n of pNodes) { posMap.set(n.id, n); }
     posMapRef.current = posMap;
     neighborsRef.current = adjacency; // 已在上方构建
+
+    // 构建物理引擎缓存：邻居表 + 节点索引（供 stepPhysics 复用，避免每帧重建）
+    neighborMapCacheRef.current = buildNeighborMap(pEdges);
+    nodeMapCacheRef.current = buildNodeMap(pNodes);
+
+    // 重置稳定计数器，强制物理引擎重新运行
+    stableFrameCounterRef.current = 0;
 
     // 构建网格空间索引
     const gridIndex = new Map<string, string[]>();
@@ -511,8 +562,12 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     nodeMetaRef.current = metaMap;
     nodeSizeRef.current = sizeMap;
 
-    // 边元数据（用于渲染）
+    // 边元数据（用于渲染），直接存储 sourceIdx/targetIdx 避免渲染循环中的 Map 查找
     const edgeStyles = getEdgeTypeStylesMap(token);
+    const idToIdx = new Map<string, number>();
+    for (let i = 0; i < pNodes.length; i++) {
+      idToIdx.set(pNodes[i].id, i);
+    }
     edgeMetaRef.current = data.edges.map((e) => {
       const style = edgeStyles[e.type] || edgeStyles.link;
       return {
@@ -522,6 +577,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         animated: style.animated,
         color: style.color,
         width: style.width,
+        sourceIdx: idToIdx.get(e.source) ?? -1,
+        targetIdx: idToIdx.get(e.target) ?? -1,
       };
     });
 
@@ -584,6 +641,39 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
     let running = true;
 
+    // 预渲染背景到离屏画布
+    const ensureBackground = (w: number, h: number) => {
+      const cache = bgCacheRef.current;
+      if (cache && bgCacheSizeRef.current.w === w && bgCacheSizeRef.current.h === h) {
+        return cache;
+      }
+      const offscreen = document.createElement("canvas");
+      offscreen.width = w;
+      offscreen.height = h;
+      const offCtx = offscreen.getContext("2d")!;
+
+      // 绘制背景
+      const grad = offCtx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h) * 0.7);
+      grad.addColorStop(0, token.colorBgContainer);
+      grad.addColorStop(1, token.colorBgElevated);
+      offCtx.fillStyle = grad;
+      offCtx.fillRect(0, 0, w, h);
+
+      offCtx.fillStyle = hexToRgba(token.colorText, 0.03);
+      const gridSize = 40;
+      for (let x = gridSize; x < w; x += gridSize) {
+        for (let y = gridSize; y < h; y += gridSize) {
+          offCtx.beginPath();
+          offCtx.arc(x, y, 1, 0, Math.PI * 2);
+          offCtx.fill();
+        }
+      }
+
+      bgCacheRef.current = offscreen;
+      bgCacheSizeRef.current = { w, h };
+      return offscreen;
+    };
+
     const render = () => {
       if (!running) { return; }
 
@@ -596,12 +686,15 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         canvas.height = h * dpr;
         canvas.style.width = `${w}px`;
         canvas.style.height = `${h}px`;
+        // 尺寸变化时重置背景缓存
+        bgCacheRef.current = null;
       }
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      // 清屏 + 背景
-      drawBackground(ctx, w, h);
+      // 绘制缓存背景（一次性拷贝，避免每帧重建渐变）
+      const bg = ensureBackground(w, h);
+      ctx.drawImage(bg, 0, 0);
 
       // 相机变换
       const cam = cameraRef.current;
@@ -609,36 +702,71 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       ctx.translate(w / 2 + cam.x, h / 2 + cam.y);
       ctx.scale(cam.zoom, cam.zoom);
 
-      // 物理步进（低速持续模拟）
       const nodes = physNodesRef.current;
       const edges = physEdgesRef.current;
       frameCounterRef.current++;
-      if (nodes.length > 0 && !dragRef.current) {
-        const enableClusters = clusterModeRef.current && communities;
-        let centroids = communityCentroidsRef.current;
-        if (enableClusters && frameCounterRef.current % 3 === 0) {
-          centroids = computeCommunityCentroids(nodes, communities!);
-          communityCentroidsRef.current = centroids;
+
+      // ── 物理步进优化：稳定检测 + 缓存复用 + 降频 ──
+      const hasDrag = !!dragRef.current;
+      const hasInteraction = mouseScreenRef.current.active || !!panRef.current;
+
+      if (nodes.length > 0 && !hasDrag) {
+        const stable = isSystemStable(nodes, 0.15);
+
+        if (stable && !hasInteraction) {
+          idleCounterRef.current++;
+        } else {
+          idleCounterRef.current = 0;
         }
-        const config: PhysicsConfig = {
-          theta: 0.5,
-          repulsion: 6000,
-          gravity: 0.01,
-          damping: 0.92,
-          dt: 0.25,
-          springForce: 0.04,
-          springDamping: 0.85,
-          maxVelocity: 4,
-          clusterForce: enableClusters ? 0.15 : undefined,
-        };
-        stepPhysics(
-          nodes,
-          edges,
-          config,
-          undefined,
-          enableClusters ? communities : undefined,
-          enableClusters ? centroids : undefined,
-        );
+
+        // 稳定无交互时每 12 帧执行一次物理，拖拽/交互时全速
+        const shouldRunPhysics = hasInteraction || !stable || idleCounterRef.current % 12 === 0;
+
+        if (shouldRunPhysics) {
+          const enableClusters = clusterModeRef.current && communities;
+          let centroids = communityCentroidsRef.current;
+          if (enableClusters && frameCounterRef.current % 3 === 0) {
+            centroids = computeCommunityCentroids(nodes, communities!);
+            communityCentroidsRef.current = centroids;
+          }
+          const config: PhysicsConfig = {
+            theta: 0.5,
+            repulsion: 6000,
+            gravity: 0.01,
+            damping: 0.92,
+            dt: 0.25,
+            springForce: 0.04,
+            springDamping: 0.85,
+            maxVelocity: 4,
+            clusterForce: enableClusters ? 0.15 : undefined,
+          };
+          stepPhysics(
+            nodes,
+            edges,
+            config,
+            undefined,
+            enableClusters ? communities : undefined,
+            enableClusters ? centroids : undefined,
+            neighborMapCacheRef.current,
+          );
+
+          // 更新网格空间索引（物理改变位置后）
+          if (frameCounterRef.current % 3 === 0) {
+            const gridIndex = new Map<string, string[]>();
+            for (const n of nodes) {
+              const gx = Math.floor(n.x / GRID_CELL_SIZE);
+              const gy = Math.floor(n.y / GRID_CELL_SIZE);
+              const key = `${gx},${gy}`;
+              const bucket = gridIndex.get(key);
+              if (bucket) {
+                bucket.push(n.id);
+              } else {
+                gridIndex.set(key, [n.id]);
+              }
+            }
+            gridIndexRef.current = gridIndex;
+          }
+        }
       }
 
       phaseRef.current += 0.02;
@@ -646,15 +774,23 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       // 计算鱼眼参数（世界坐标下的鼠标位置 + 放大因子）
       const fisheye = computeFisheye();
 
+      // 计算当前视口的世界坐标范围（用于视口裁剪）
+      const viewWorld = {
+        x0: (-w / 2 - cam.x) / cam.zoom - 50,
+        y0: (-h / 2 - cam.y) / cam.zoom - 50,
+        x1: (w / 2 - cam.x) / cam.zoom + 50,
+        y1: (h / 2 - cam.y) / cam.zoom + 50,
+      };
+
       // 绘制社区聚类区域（在边之前绘制，作为背景层）
       if (clusterModeRef.current && communities) {
         drawClusterRegions(ctx, nodes);
       }
 
-      // 绘制
-      drawEdges(ctx, nodes, fisheye);
-      drawParticles(ctx, nodes, fisheye);
-      drawNodes(ctx, nodes, fisheye);
+      // 绘制（传入视口范围用于裁剪）
+      drawEdgesOptimized(ctx, nodes, fisheye, viewWorld);
+      drawParticlesOptimized(ctx, nodes, fisheye, viewWorld);
+      drawNodesOptimized(ctx, nodes, fisheye, viewWorld);
 
       ctx.restore();
 
@@ -669,7 +805,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         }
       }
 
-      if (showMinimap && minimapOpen && minimapRef.current) {
+      if (showMinimap && minimapOpen && minimapRef.current && frameCounterRef.current % 3 === 0) {
         const mmCanvas = minimapRef.current;
         const mmCtx = mmCanvas.getContext("2d");
         if (mmCtx) {
@@ -796,52 +932,45 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     }
   }
 
-  // ── 渲染函数 ──
+  // ── 优化绘制函数：带视口裁剪，跳过屏幕外元素 ──
 
-  function drawBackground(ctx: CanvasRenderingContext2D, w: number, h: number) {
-    const grad = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h) * 0.7);
-    grad.addColorStop(0, token.colorBgContainer);
-    grad.addColorStop(1, token.colorBgElevated);
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, w, h);
-
-    ctx.fillStyle = hexToRgba(token.colorText, 0.03);
-    const gridSize = 40;
-    for (let x = gridSize; x < w; x += gridSize) {
-      for (let y = gridSize; y < h; y += gridSize) {
-        ctx.beginPath();
-        ctx.arc(x, y, 1, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
+  function isInView(
+    x: number,
+    y: number,
+    view: { x0: number; y0: number; x1: number; y1: number },
+    margin = 80,
+  ): boolean {
+    return x >= view.x0 - margin && x <= view.x1 + margin && y >= view.y0 - margin && y <= view.y1 + margin;
   }
 
-  function drawEdges(ctx: CanvasRenderingContext2D, _nodes: PhysicsNode[], fisheye: FisheyeState) {
+  function drawEdgesOptimized(
+    ctx: CanvasRenderingContext2D,
+    nodes: PhysicsNode[],
+    fisheye: FisheyeState,
+    viewWorld: { x0: number; y0: number; x1: number; y1: number },
+  ) {
     const edgeMeta = edgeMetaRef.current;
     const hovered = hoverNodeRef.current;
     const selected = selectedNodeIdRef.current;
-    const posMap = posMapRef.current;
     const visibleTypes = visibleEdgeTypesRef.current;
     const visibleCommunitiesSet = visibleCommunitiesRef.current;
+    const zoom = cameraRef.current.zoom;
 
-    // 社区筛选
-    const hasCommunityFilter = communities && (() => {
-      const cids = new Set<number>();
-      for (const cid of communities!.values()) { cids.add(cid); }
-      return visibleCommunitiesSet.size < cids.size;
-    })();
+    const hasCommunityFilter = hasCommunityFilterRef.current;
 
     for (let i = 0; i < edgeMeta.length; i++) {
       const em = edgeMeta[i];
 
-      // 边类型筛选：检查是否可见
       if (!visibleTypes.has(em.type)) { continue; }
 
-      const s = posMap.get(em.source);
-      const t = posMap.get(em.target);
+      // 直接数组访问，避免 Map 查找
+      const s = nodes[em.sourceIdx];
+      const t = nodes[em.targetIdx];
       if (!s || !t) { continue; }
 
-      // 社区筛选：检查边两端的节点是否在可见社区中
+      // 视口裁剪：两端节点都不在视口内时跳过
+      if (!isInView(s.x, s.y, viewWorld) && !isInView(t.x, t.y, viewWorld)) { continue; }
+
       if (hasCommunityFilter) {
         const sCid = communities?.get(em.source);
         const tCid = communities?.get(em.target);
@@ -853,7 +982,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       const isRelevant = hovered && (em.source === hovered || em.target === hovered)
         || selected && (em.source === selected || em.target === selected);
 
-      // 鱼眼：计算边两端的缩放
+      // 低缩放下简化渲染
+      if (zoom < 0.3 && !isRelevant) { continue; }
+
       const sScale = fisheyeScale(s.x, s.y, fisheye);
       const tScale = fisheyeScale(t.x, t.y, fisheye);
       const avgScale = (sScale + tScale) / 2;
@@ -876,45 +1007,53 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     }
   }
 
-  function drawParticles(ctx: CanvasRenderingContext2D, _nodes: PhysicsNode[], fisheye: FisheyeState) {
-    // LOD: 低缩放时隐藏粒子
+  function drawParticlesOptimized(
+    ctx: CanvasRenderingContext2D,
+    nodes: PhysicsNode[],
+    fisheye: FisheyeState,
+    viewWorld: { x0: number; y0: number; x1: number; y1: number },
+  ) {
     const zoom = cameraRef.current.zoom;
     if (zoom < 0.5) { return; }
 
     const particles = particlesRef.current;
     const edgeMeta = edgeMetaRef.current;
-    const posMap = posMapRef.current;
     const visibleTypes = visibleEdgeTypesRef.current;
 
-    // 更新粒子位置
-    for (const p of particles) {
-      p.progress += p.speed;
-      if (p.progress > 1) { p.progress -= 1; }
+    const isStable = idleCounterRef.current > 0;
+
+    // 稳定时粒子每 3 帧才更新一次位置
+    if (!isStable || idleCounterRef.current % 3 === 0) {
+      for (const p of particles) {
+        p.progress += p.speed;
+        if (p.progress > 1) { p.progress -= 1; }
+      }
     }
 
-    // 绘制
     for (const p of particles) {
       const em = edgeMeta[p.edgeIndex];
       if (!em) { continue; }
-
-      // 边类型筛选：检查是否可见
       if (!visibleTypes.has(em.type)) { continue; }
 
-      const s = posMap.get(em.source);
-      const t = posMap.get(em.target);
+      // 直接数组访问，避免 Map 查找
+      const s = nodes[em.sourceIdx];
+      const t = nodes[em.targetIdx];
       if (!s || !t) { continue; }
 
       const x = s.x + (t.x - s.x) * p.progress;
       const y = s.y + (t.y - s.y) * p.progress;
 
-      // 鱼眼：粒子大小随位置缩放
-      const scale = fisheyeScale(x, y, fisheye);
+      // 视口裁剪：粒子不在视口内时跳过
+      if (!isInView(x, y, viewWorld, 30)) { continue; }
 
-      // 发光粒子
+      const scale = fisheyeScale(x, y, fisheye);
       const alpha = 0.6 + 0.4 * Math.sin(p.progress * Math.PI * 2);
       ctx.save();
-      ctx.shadowColor = p.color;
-      ctx.shadowBlur = 6 * scale;
+      // 稳定时跳过 shadowBlur（开销大）
+      if (!isStable) {
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 6 * scale;
+      }
       ctx.fillStyle = p.color;
       ctx.globalAlpha = alpha;
       ctx.beginPath();
@@ -925,39 +1064,40 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     ctx.globalAlpha = 1;
   }
 
-  function drawNodes(ctx: CanvasRenderingContext2D, nodes: PhysicsNode[], fisheye: FisheyeState) {
+  function drawNodesOptimized(
+    ctx: CanvasRenderingContext2D,
+    nodes: PhysicsNode[],
+    fisheye: FisheyeState,
+    viewWorld: { x0: number; y0: number; x1: number; y1: number },
+  ) {
     const phase = phaseRef.current;
     const hovered = hoverNodeRef.current;
     const selected = selectedNodeIdRef.current;
     const highlight = highlightSetRef.current;
     const hasHighlight = highlight && highlight.size > 0;
 
-    // 从预计算的邻接表获取邻居（O(1) 查表）
     const neighbors = neighborsRef.current;
     const neighborsOfHovered = hovered ? (neighbors.get(hovered) || EMPTY_SET) : EMPTY_SET;
     const neighborsOfSelected = selected ? (neighbors.get(selected) || EMPTY_SET) : EMPTY_SET;
 
-    // 社区筛选
     const visibleCommunitiesSet = visibleCommunitiesRef.current;
-    const hasCommunityFilter = communities && visibleCommunitiesSet.size < (() => {
-          const cids = new Set<number>();
-          for (const cid of communities!.values()) { cids.add(cid); }
-          return cids.size;
-        })();
+    const hasCommunityFilter = hasCommunityFilterRef.current;
+
+    const zoom = cameraRef.current.zoom;
+    const showAllLabels = zoom >= 0.6 && !hasHighlight && !hovered && !selected && nodes.length < 300;
 
     for (const node of nodes) {
-      // 社区筛选：如果节点所属社区不可见，则跳过
+      // 视口裁剪：节点不在视口内时跳过（大幅减少绘制开销）
+      if (!isInView(node.x, node.y, viewWorld)) { continue; }
+
       if (hasCommunityFilter) {
         const cid = communities?.get(node.id);
-        if (cid !== undefined && !visibleCommunitiesSet.has(cid)) {
-          continue;
-        }
+        if (cid !== undefined && !visibleCommunitiesSet.has(cid)) { continue; }
       }
 
       const color = nodeColorRef.current.get(node.id) || token.colorPrimary;
       const baseSize = nodeSizeRef.current.get(node.id) || 6;
 
-      // 鱼眼缩放
       const feScale = fisheyeScale(node.x, node.y, fisheye);
 
       let size = baseSize * feScale;
@@ -992,19 +1132,22 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         size = baseSize * 0.8 * feScale;
       } else if (hovered || selected) {
         alpha = 0.3;
-        glowAlpha = 0.1;
+        glowAlpha = 0;
         size = baseSize * 0.85 * feScale;
       }
 
-      // 脉动效果
       const pulse = 1 + Math.sin(phase + node.x * 0.01) * 0.08;
       const finalSize = size * pulse;
 
-      // 发光光晕
-      if (glowAlpha > 0) {
+      // 仅对 hovered/selected/邻居节点绘制 glow，跳过远处节点
+      // 视口裁剪增强：0.6x 缩放以下完全跳过 glow
+      if (glowAlpha > 0 && zoom >= 0.6) {
         ctx.save();
-        ctx.shadowColor = color;
-        ctx.shadowBlur = glowRadius;
+        // 稳定时跳过 shadowBlur（开销大）
+        if (idleCounterRef.current === 0) {
+          ctx.shadowColor = color;
+          ctx.shadowBlur = glowRadius;
+        }
         ctx.globalAlpha = glowAlpha * alpha;
         ctx.beginPath();
         ctx.arc(node.x, node.y, finalSize, 0, Math.PI * 2);
@@ -1039,10 +1182,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       }
       ctx.restore();
 
-      // 标签（LOD: 根据缩放级别控制显示）
-      const zoom = cameraRef.current.zoom;
-      const showLabelByZoom = zoom >= 0.6;
-      if (showLabel || (showLabelByZoom && !hasHighlight && !hovered && !selected && data.nodes.length < 300)) {
+      // 标签：仅在需要时绘制
+      if (showLabel || showAllLabels) {
         const meta = nodeMetaRef.current.get(node.id);
         if (meta) {
           ctx.save();
@@ -1790,12 +1931,11 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     svgParts.push(`<rect width="100%" height="100%" fill="${token.colorBgContainer}"/>`);
 
     // 绘制边
-    const posMap = posMapRef.current;
     for (let i = 0; i < edges.length; i++) {
       const em = edgeMetaRef.current[i];
       if (!em || !visibleTypes.has(em.type)) { continue; }
-      const s = posMap.get(em.source);
-      const t = posMap.get(em.target);
+      const s = nodes[em.sourceIdx];
+      const t = nodes[em.targetIdx];
       if (!s || !t) { continue; }
       const x1 = s.x + offsetX;
       const y1 = s.y + offsetY;

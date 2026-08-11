@@ -9555,7 +9555,8 @@
         "contradicts": "모순",
         "derived": "파생",
         "link": "링크",
-        "reference": "참조"
+        "reference": "참조",
+        "mapping": "매핑"
       },
       "edges": "엣지",
       "empty": "그래프 데이터가 없습니다",
@@ -9582,6 +9583,7 @@
       "fisheyeOff": "어안 렌즈: 끄기",
       "clusterOn": "클러스터 모드: 켜기",
       "clusterOff": "클러스터 모드: 끄기",
+      "clusterLabel": "클러스터 {{id}}",
       "nodeType": {
         "note": "노트",
         "concept": "개념",

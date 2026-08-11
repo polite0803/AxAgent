@@ -9555,7 +9555,8 @@
         "contradicts": "Contredit",
         "derived": "Dérivé",
         "link": "Lien",
-        "reference": "Référence"
+        "reference": "Référence",
+        "mapping": "Correspondance"
       },
       "edges": "Arêtes",
       "empty": "Aucune donnée de graphe",
@@ -9582,6 +9583,7 @@
       "fisheyeOff": "Objectif fisheye : désactivé",
       "clusterOn": "Mode cluster : activé",
       "clusterOff": "Mode cluster : désactivé",
+      "clusterLabel": "Cluster {{id}}",
       "nodeType": {
         "note": "Note",
         "concept": "Concept",

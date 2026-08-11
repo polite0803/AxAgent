@@ -9557,7 +9557,8 @@
         "contradicts": "Widerspricht",
         "derived": "Abgeleitet",
         "link": "Link",
-        "reference": "Referenz"
+        "reference": "Referenz",
+        "mapping": "Zuordnung"
       },
       "edges": "Kanten",
       "empty": "Keine Graphdaten",
@@ -9584,6 +9585,7 @@
       "fisheyeOff": "Fischaugenobjektiv: aus",
       "clusterOn": "Cluster-Modus: ein",
       "clusterOff": "Cluster-Modus: aus",
+      "clusterLabel": "Cluster {{id}}",
       "nodeType": {
         "note": "Notiz",
         "concept": "Konzept",

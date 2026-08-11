@@ -9555,7 +9555,8 @@
         "contradicts": "矛盾",
         "derived": "衍生",
         "link": "連結",
-        "reference": "參考"
+        "reference": "參考",
+        "mapping": "映射"
       },
       "edges": "邊",
       "empty": "暫無圖譜數據",
@@ -9582,6 +9583,7 @@
       "fisheyeOff": "魚眼放大鏡：關",
       "clusterOn": "聚類模式：開",
       "clusterOff": "聚類模式：關",
+      "clusterLabel": "聚類 {{id}}",
       "nodeType": {
         "note": "筆記",
         "concept": "概念",

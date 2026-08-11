@@ -9555,7 +9555,8 @@
         "contradicts": "विरोधाभास",
         "derived": "व्युत्पन्न",
         "link": "लिंक",
-        "reference": "संदर्भ"
+        "reference": "संदर्भ",
+        "mapping": "मानचित्रण"
       },
       "edges": "किनारे",
       "empty": "ग्राफ़ डेटा नहीं",
@@ -9582,6 +9583,7 @@
       "fisheyeOff": "फिशआई लेंस: बंद",
       "clusterOn": "क्लस्टर मोड: चालू",
       "clusterOff": "क्लस्टर मोड: बंद",
+      "clusterLabel": "क्लस्टर {{id}}",
       "nodeType": {
         "note": "नोट",
         "concept": "अवधारणा",
