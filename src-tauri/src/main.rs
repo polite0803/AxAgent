@@ -24,9 +24,7 @@ fn main() {
             .unwrap_or_else(|| "unknown location".to_string());
 
         let backtrace = std::backtrace::Backtrace::force_capture();
-        let msg = format!(
-            "PANIC at {location}: {payload}\nBacktrace:\n{backtrace}"
-        );
+        let msg = format!("PANIC at {location}: {payload}\nBacktrace:\n{backtrace}");
 
         // 写入 tracing（如果 subscriber 已初始化则可见于日志）
         tracing::error!("{msg}");

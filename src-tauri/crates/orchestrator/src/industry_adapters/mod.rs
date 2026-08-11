@@ -9,9 +9,7 @@
 pub mod base_adapter;
 pub mod types;
 
-pub use axagent_harness::industry_orchestration::{
-    IndustryAdapter, IndustryAdapterRegistry,
-};
+pub use axagent_harness::industry_orchestration::{IndustryAdapter, IndustryAdapterRegistry};
 
 // 导出基础适配器
 pub use base_adapter::BaseIndustryAdapter;

@@ -7,11 +7,11 @@
 
 pub use axagent_harness::industry_orchestration::types::{
     AcceptanceCriterion, AcceptanceResult, AutoReflectTrigger, AutoTriggerConfig, CriterionResult,
-    DependencyType, EvolutionConfig, EvolutionConstraints, ForbiddenOptimization,
-    IndustryContext, IndustryLearningConfig, MissionType, PresetWorkflowStep, ProtectedStep,
-    QualityThresholds, QualityWeights, ReflectionCheckpoint, ReflectionConfig,
-    ReflectionTemplate, ReinforcementLearningConfig, RewardWeightConfig,
-    SelfImprovementConfig, SkillEvolverConfig, StepDependency, WorkflowEvolverConfig,
+    DependencyType, EvolutionConfig, EvolutionConstraints, ForbiddenOptimization, IndustryContext,
+    IndustryLearningConfig, MissionType, PresetWorkflowStep, ProtectedStep, QualityThresholds,
+    QualityWeights, ReflectionCheckpoint, ReflectionConfig, ReflectionTemplate,
+    ReinforcementLearningConfig, RewardWeightConfig, SelfImprovementConfig, SkillEvolverConfig,
+    StepDependency, WorkflowEvolverConfig,
 };
 
 // 兼容旧名称（ReinforcementLearningConfig 的别名）

@@ -12,7 +12,9 @@ use async_trait::async_trait;
 use std::sync::Arc;
 
 // ── 重导出所有类型以便外部访问 ──
-pub use plan::{DecompositionPlan, OrchestrationError, OrchestrationStrategy, SubTask, SubTaskStatus};
+pub use plan::{
+    DecompositionPlan, OrchestrationError, OrchestrationStrategy, SubTask, SubTaskStatus,
+};
 pub use subgraph::{DynamicSubGraph, GeneratedSubGraph};
 pub use types::{
     AcceptanceCriterion, AcceptanceResult, AutoReflectTrigger, AutoTriggerConfig, CriterionResult,

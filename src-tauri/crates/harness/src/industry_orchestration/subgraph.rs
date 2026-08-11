@@ -62,10 +62,8 @@ impl DynamicSubGraph {
         let edges = self.build_edges(plan, &nodes)?;
         self.validate(&nodes, &edges)?;
 
-        let id = format!(
-            "orchestrator_subgraph_{}",
-            uuid::Uuid::new_v4().to_string().replace('-', "_")
-        );
+        let id =
+            format!("orchestrator_subgraph_{}", uuid::Uuid::new_v4().to_string().replace('-', "_"));
 
         Ok(GeneratedSubGraph { id, nodes, edges, plan: plan.clone() })
     }

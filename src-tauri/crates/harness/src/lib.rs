@@ -712,8 +712,8 @@ pub use device_sync::{
 // ── 行业编排契约（让 analysis-engine 等 consumer 不依赖 orchestrator） ──
 pub mod industry_orchestration;
 pub use industry_orchestration::{
-    AcceptanceCriterion, AcceptanceResult, AutoReflectTrigger, AutoTriggerConfig,
-    CriterionResult, DecompositionPlan, DependencyType, DynamicSubGraph, EvolutionConstraints,
+    AcceptanceCriterion, AcceptanceResult, AutoReflectTrigger, AutoTriggerConfig, CriterionResult,
+    DecompositionPlan, DependencyType, DynamicSubGraph, EvolutionConstraints,
     ForbiddenOptimization, GeneratedSubGraph, IndustryAdapter, IndustryAdapterRegistry,
     IndustryContext, IndustryLearningConfig, MissionType, OrchestrationError,
     OrchestrationStrategy, PresetWorkflowStep, ProtectedStep, QualityThresholds, QualityWeights,
