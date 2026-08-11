@@ -121,6 +121,7 @@ impl SubTaskDispatcher for RuntimeSubTaskDispatcher {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::error::Error;
 
     fn make_request(id: &str) -> DispatchRequest {
         DispatchRequest {
@@ -179,6 +180,11 @@ mod tests {
         let dispatcher = RuntimeSubTaskDispatcher::new(Arc::new(FailHandler));
         let result = dispatcher.dispatch(make_request("t3")).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("handler failure"));
+        let err = result.unwrap_err();
+        // 错误应包含上下文信息
+        assert!(err.to_string().contains("SubTask dispatch failed"));
+        // 通过 source 链可以找到原始错误
+        let source = err.source().expect("应有 source error");
+        assert!(source.to_string().contains("handler failure"));
     }
 }

@@ -15,6 +15,8 @@ export type Wiki = {
   embeddingDimensions?: number;
   retrievalThreshold?: number;
   retrievalTopK?: number;
+  // v118: 关联的知识库 ID，与后端 Wiki DTO 的 knowledge_base_id 对齐
+  knowledgeBaseId?: string;
 };
 
 export type WikiSource = {

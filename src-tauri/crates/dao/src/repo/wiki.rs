@@ -21,6 +21,8 @@ pub struct CreateWikiInput {
     pub description: Option<String>,
     pub root_path: String,
     pub embedding_provider: Option<String>,
+    /// v118: 可选关联知识库 ID，建立 Wiki 与 KB 的 1:1 关联
+    pub knowledge_base_id: Option<String>,
 }
 
 fn model_to_wiki(m: wikis::Model) -> Wiki {
@@ -36,6 +38,7 @@ fn model_to_wiki(m: wikis::Model) -> Wiki {
         embedding_dimensions: m.embedding_dimensions,
         retrieval_threshold: m.retrieval_threshold,
         retrieval_top_k: m.retrieval_top_k,
+        knowledge_base_id: m.knowledge_base_id,
         created_at: m.created_at,
         updated_at: m.updated_at,
     }
@@ -57,6 +60,7 @@ pub async fn create_wiki(db: &DatabaseConnection, input: CreateWikiInput) -> Res
         embedding_dimensions: Set(None),
         retrieval_threshold: Set(None),
         retrieval_top_k: Set(None),
+        knowledge_base_id: Set(input.knowledge_base_id),
         created_at: Set(now),
         updated_at: Set(now),
     })
@@ -92,6 +96,7 @@ pub async fn update_wiki(
     name: Option<String>,
     description: Option<String>,
     embedding_provider: Option<String>,
+    knowledge_base_id: Option<Option<String>>,
 ) -> Result<Wiki> {
     let model = wikis::Entity::find_by_id(id)
         .one(db)
@@ -107,6 +112,9 @@ pub async fn update_wiki(
     }
     if let Some(ep) = embedding_provider {
         am.embedding_provider = Set(Some(ep));
+    }
+    if let Some(kb_id) = knowledge_base_id {
+        am.knowledge_base_id = Set(kb_id);
     }
     am.updated_at = Set(chrono::Utc::now().timestamp());
 

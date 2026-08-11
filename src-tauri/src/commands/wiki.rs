@@ -5,11 +5,9 @@ use crate::commands::spawn_guard::catch_unwind_logged;
 use agent_macro::agent_command;
 use axagent_dao::repo::index_jobs as jobs;
 use axagent_dao::repo::louvain;
-use axagent_dao::repo::note::{
-    CreateNoteInput, GraphData, Note, NoteLink, UpdateNoteInput, list_notes, sync_note_links,
-};
+use axagent_dao::repo::note::{CreateNoteInput, GraphData, Note, NoteLink, UpdateNoteInput};
 use axagent_dao::repo::wiki::{self, CreateWikiTemplateInput, NoteVersion, WikiTemplate};
-use axagent_harness::graph_dtos::LinkGraph;
+use axagent_harness::graph_dtos::{GraphEdge, LinkGraph};
 use axagent_harness::louvain_dtos::LouvainResult;
 use axagent_harness::types::NoteSearchResult;
 use axagent_search::hybrid_search::{FusionAlgorithm, HybridSearchOptions, HybridSearcher};
@@ -54,83 +52,6 @@ async fn create_dir_all_blocking(path: PathBuf) -> std::io::Result<()> {
     tokio::task::spawn_blocking(move || std::fs::create_dir_all(&path))
         .await
         .map_err(std::io::Error::other)?
-}
-
-/// 从 markdown 内容中提取 `[[Note]]` / `[[Note|alias]]` / `[[Note#anchor]]` 链接。
-/// 返回去重后的目标笔记名称列表（保留原始大小写，匹配时再做归一化）。
-/// 与 obsidian.rs 中的 `extract_wikilinks` 保持一致语法支持。
-fn extract_wikilink_targets(content: &str) -> Vec<String> {
-    let mut names = Vec::new();
-    let mut seen = std::collections::HashSet::new();
-    let bytes = content.as_bytes();
-    let mut i = 0;
-    while i + 1 < bytes.len() {
-        if bytes[i] == b'['
-            && bytes[i + 1] == b'['
-            && let Some(end) = content[i + 2..].find("]]")
-        {
-            let raw = &content[i + 2..i + 2 + end];
-            // 取 | 之前、# 之前的部分作为 note 名
-            let name = raw.split('|').next().unwrap_or("").split('#').next().unwrap_or("").trim();
-            if !name.is_empty() && seen.insert(name.to_lowercase()) {
-                names.push(name.to_string());
-            }
-            i += 2 + end + 2;
-            continue;
-        }
-        i += 1;
-    }
-    names
-}
-
-/// 解析笔记内容中的 `[[wikilink]]` 并同步 note_links + note_backlinks 表。
-/// 在笔记创建/更新时自动调用，修复"双向链接自动建立机制断裂"问题。
-///
-/// 匹配规则：优先按 title 完全匹配（大小写不敏感），其次按 file_path 去扩展名匹配。
-/// 未找到目标的链接静默跳过，避免污染链接表（用户可能引用了尚未创建的笔记）。
-async fn sync_note_links_from_content(
-    db: &sea_orm::DatabaseConnection,
-    vault_id: &str,
-    source_note_id: &str,
-    content: &str,
-) -> axagent_harness::core_error::Result<()> {
-    let target_names = extract_wikilink_targets(content);
-
-    // 无链接时也要清空旧链接（用户可能删除了所有 wikilink）
-    if target_names.is_empty() {
-        return sync_note_links(db, vault_id, source_note_id, Vec::new()).await;
-    }
-
-    // 批量加载 vault 内所有笔记，构建 title/file_path → note_id 映射（大小写不敏感）
-    let notes_in_vault = list_notes(db, vault_id).await?;
-    let mut name_to_id: std::collections::HashMap<String, String> =
-        std::collections::HashMap::with_capacity(notes_in_vault.len() * 2);
-    for n in &notes_in_vault {
-        // 跳过自身（避免自环）
-        if n.id == source_note_id {
-            continue;
-        }
-        // 优先用 title 作为 key
-        if !n.title.is_empty() {
-            name_to_id.entry(n.title.to_lowercase()).or_insert_with(|| n.id.clone());
-        }
-        // file_path 去扩展名也作为 key（兼容 Obsidian 习惯）
-        if let Some(stem) = std::path::Path::new(&n.file_path).file_stem().and_then(|s| s.to_str())
-        {
-            if !stem.is_empty() {
-                name_to_id.entry(stem.to_lowercase()).or_insert_with(|| n.id.clone());
-            }
-        }
-    }
-
-    let mut links: Vec<(String, String, String)> = Vec::with_capacity(target_names.len());
-    for name in target_names {
-        if let Some(target_id) = name_to_id.get(&name.to_lowercase()) {
-            links.push((target_id.clone(), name, "wikilink".to_string()));
-        }
-    }
-
-    sync_note_links(db, vault_id, source_note_id, links).await
 }
 
 fn enqueue_wiki_note_indexing(
@@ -182,6 +103,7 @@ pub async fn update_wiki(
     name: Option<String>,
     description: Option<String>,
     embedding_provider: Option<String>,
+    knowledge_base_id: Option<String>,
 ) -> Result<WikiUpdateResult, String> {
     let db = state.harness.db();
 
@@ -193,9 +115,16 @@ pub async fn update_wiki(
         ))
     })?;
 
-    let updated = wiki::update_wiki(db, &id, name, description, embedding_provider.clone())
-        .await
-        .map_err(|e| {
+    let updated = wiki::update_wiki(
+        db,
+        &id,
+        name,
+        description,
+        embedding_provider.clone(),
+        knowledge_base_id.map(|v| Some(v)),
+    )
+    .await
+    .map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
             e,
             crate::commands::error::ErrorCategory::Unrecoverable,
@@ -207,6 +136,7 @@ pub async fn update_wiki(
         name: updated.name.clone(),
         description: updated.description.clone(),
         embedding_provider: updated.embedding_provider.clone(),
+        knowledge_base_id: updated.knowledge_base_id.clone(),
         embedding_changed: before.embedding_provider != updated.embedding_provider,
     })
 }
@@ -218,6 +148,8 @@ pub struct WikiUpdateResult {
     pub name: String,
     pub description: Option<String>,
     pub embedding_provider: Option<String>,
+    /// v118: 关联的知识库 ID
+    pub knowledge_base_id: Option<String>,
     /// 旧 provider 与新 provider 是否不同；前端据此决定是否触发重建索引
     pub embedding_changed: bool,
 }
@@ -285,15 +217,6 @@ pub async fn wiki_notes_create(
                 crate::commands::error::ErrorCategory::Unrecoverable,
             ))
         })?;
-
-    // 自动解析 [[wikilink]] 并同步 note_links + note_backlinks（修复双向链接自动建立机制断裂）
-    // 失败时仅记录警告，不阻止笔记创建（链接同步是辅助功能）
-    if let Err(e) =
-        sync_note_links_from_content(state.harness.db(), &note.vault_id, &note.id, &note.content)
-            .await
-    {
-        tracing::warn!("[wiki] 笔记 {} 创建后链接同步失败: {}", note.id, e);
-    }
 
     // 失效图谱缓存（notes 表有写入）
     let _ =
@@ -374,19 +297,6 @@ pub async fn wiki_notes_update(
         })?;
 
     let _ = wiki::delete_old_versions(state.harness.db(), &id, 20).await;
-
-    // 自动解析 [[wikilink]] 并同步 note_links + note_backlinks（修复双向链接自动建立机制断裂）
-    // 失败时仅记录警告，不阻止笔记更新
-    if let Err(e) = sync_note_links_from_content(
-        state.harness.db(),
-        &updated.vault_id,
-        &updated.id,
-        &updated.content,
-    )
-    .await
-    {
-        tracing::warn!("[wiki] 笔记 {} 更新后链接同步失败: {}", updated.id, e);
-    }
 
     // 失效图谱缓存（notes 表有更新）
     let _ = axagent_dao::repo::wiki_graph_cache::invalidate_cache(
@@ -1110,13 +1020,20 @@ pub async fn get_wiki_graph_cached(
         graph_data
     };
 
-    // 2. 融合知识图谱实体关系（实时获取，实体数量通常 < 10000）
+    // 2. 查询 Wiki 关联的知识库 ID（v118：不再硬编码假设 wiki_id == kb_id）
+    let kb_id = axagent_dao::repo::wiki::get_wiki(db, &wiki_id)
+        .await
+        .ok()
+        .and_then(|w| w.knowledge_base_id)
+        .unwrap_or_else(|| wiki_id.clone());
+
+    // 3. 融合知识图谱实体关系（实时获取，实体数量通常 < 10000）
     let mut entity_nodes = Vec::new();
     let mut reference_edges = Vec::new();
 
     // 获取实体节点（ID 加 "entity:" 前缀避免与笔记 ID 冲突）
     let raw_nodes =
-        axagent_dao::repo::knowledge_graph::get_knowledge_graph_nodes_for_wiki(db, &wiki_id)
+        axagent_dao::repo::knowledge_graph::get_knowledge_graph_nodes_for_wiki(db, &kb_id)
             .await
             .unwrap_or_default();
 
@@ -1127,7 +1044,7 @@ pub async fn get_wiki_graph_cached(
 
     // 获取实体关系边
     let raw_edges =
-        axagent_dao::repo::knowledge_graph::get_knowledge_graph_edges_for_wiki(db, &wiki_id)
+        axagent_dao::repo::knowledge_graph::get_knowledge_graph_edges_for_wiki(db, &kb_id)
             .await
             .unwrap_or_default();
 
@@ -1137,9 +1054,30 @@ pub async fn get_wiki_graph_cached(
         reference_edges.push(edge);
     }
 
-    // 3. 合并到统一的 GraphData
+    // 4. 建立实体节点与 Wiki 笔记节点的映射边（v118：消除孤岛）
+    let mut mapping_edges = Vec::new();
+    let note_title_map: std::collections::HashMap<String, String> = base_graph
+        .nodes
+        .iter()
+        .filter(|n| !n.id.starts_with("entity:"))
+        .map(|n| (n.title.to_lowercase(), n.id.clone()))
+        .collect();
+
+    for entity_node in &entity_nodes {
+        let entity_name_lower = entity_node.title.to_lowercase();
+        if let Some(note_id) = note_title_map.get(&entity_name_lower) {
+            mapping_edges.push(GraphEdge {
+                source: entity_node.id.clone(),
+                target: note_id.clone(),
+                edge_type: "mapping".to_string(),
+            });
+        }
+    }
+
+    // 5. 合并到统一的 GraphData
     base_graph.nodes.extend(entity_nodes);
     base_graph.edges.extend(reference_edges);
+    base_graph.edges.extend(mapping_edges);
 
     Ok(base_graph)
 }

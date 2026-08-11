@@ -41,9 +41,10 @@ pub mod v114_wiki_sources_schedule;
 pub mod v115_fleet_member_agent_profile;
 pub mod v116_create_sync_tables;
 pub mod v117_workflow_execution_resume;
+pub mod v118_wiki_kb_link;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 117;
+pub const CURRENT_VERSION: i32 = 118;
 
 /// P2-10: Schema 版本追踪表名。
 ///
@@ -165,6 +166,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 117,
         description: "v117_workflow_execution_resume: 为 workflow_executions 添加 execution_state_json 和 paused_at 列，支持工作流崩溃后恢复",
         up: |db| Box::pin(v117_workflow_execution_resume::up(db)),
+    },
+    Migration {
+        version: 118,
+        description: "v118_wiki_kb_link: 为 wikis 表添加 knowledge_base_id 字段，建立 Wiki 与 KB 的显式关联，修复图谱融合硬编码 wiki_id==kb_id 的架构缺陷",
+        up: |db| Box::pin(v118_wiki_kb_link::up(db)),
     },
 ];
 

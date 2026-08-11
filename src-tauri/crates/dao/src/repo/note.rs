@@ -15,6 +15,73 @@ pub use axagent_harness::types::NoteLink;
 
 pub use axagent_harness::rag_config::NoteSearchResult;
 
+/// 从 markdown 内容中提取 `[[Note]]` / `[[Note|alias]]` / `[[Note#anchor]]` 链接。
+/// 返回去重后的目标笔记名称列表（保留原始大小写，匹配时再做归一化）。
+fn extract_wikilink_targets(content: &str) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    let bytes = content.as_bytes();
+    let mut i = 0;
+    while i + 1 < bytes.len() {
+        if bytes[i] == b'['
+            && bytes[i + 1] == b'['
+            && let Some(end) = content[i + 2..].find("]]")
+        {
+            let raw = &content[i + 2..i + 2 + end];
+            let name = raw.split('|').next().unwrap_or("").split('#').next().unwrap_or("").trim();
+            if !name.is_empty() && seen.insert(name.to_lowercase()) {
+                names.push(name.to_string());
+            }
+            i += 2 + end + 2;
+            continue;
+        }
+        i += 1;
+    }
+    names
+}
+
+/// 解析笔记内容中的 `[[wikilink]]` 并同步 note_links + note_backlinks 表。
+/// 在笔记创建/更新时自动调用，确保所有路径（包括批量导入、脚本桥接）都能正确解析链接。
+async fn sync_note_links_from_content(
+    db: &DatabaseConnection,
+    vault_id: &str,
+    source_note_id: &str,
+    content: &str,
+) -> Result<()> {
+    let target_names = extract_wikilink_targets(content);
+
+    if target_names.is_empty() {
+        return sync_note_links(db, vault_id, source_note_id, Vec::new()).await;
+    }
+
+    let notes_in_vault = list_notes(db, vault_id).await?;
+    let mut name_to_id: std::collections::HashMap<String, String> =
+        std::collections::HashMap::with_capacity(notes_in_vault.len() * 2);
+    for n in &notes_in_vault {
+        if n.id == source_note_id {
+            continue;
+        }
+        if !n.title.is_empty() {
+            name_to_id.entry(n.title.to_lowercase()).or_insert_with(|| n.id.clone());
+        }
+        if let Some(stem) = std::path::Path::new(&n.file_path).file_stem().and_then(|s| s.to_str())
+        {
+            if !stem.is_empty() {
+                name_to_id.entry(stem.to_lowercase()).or_insert_with(|| n.id.clone());
+            }
+        }
+    }
+
+    let mut links: Vec<(String, String, String)> = Vec::with_capacity(target_names.len());
+    for name in target_names {
+        if let Some(target_id) = name_to_id.get(&name.to_lowercase()) {
+            links.push((target_id.clone(), name, "wikilink".to_string()));
+        }
+    }
+
+    sync_note_links(db, vault_id, source_note_id, links).await
+}
+
 pub fn model_to_note(m: notes::Model) -> Note {
     Note {
         id: m.id,
@@ -162,7 +229,16 @@ pub async fn create_note(db: &DatabaseConnection, input: CreateNoteInput) -> Res
 
     am.insert(db).await?;
 
-    get_note(db, &id).await
+    let note = get_note(db, &id).await?;
+
+    // 自动解析 [[wikilink]] 并同步 note_links + note_backlinks
+    // 确保所有路径（包括批量导入、脚本桥接）都能正确建立双向链接
+    if let Err(e) = sync_note_links_from_content(db, &note.vault_id, &note.id, &note.content).await
+    {
+        tracing::warn!("[dao::note] 笔记 {} 创建后链接同步失败: {}", note.id, e);
+    }
+
+    Ok(note)
 }
 
 pub async fn update_note(
@@ -200,7 +276,16 @@ pub async fn update_note(
 
     am.update(db).await?;
 
-    get_note(db, id).await
+    let note = get_note(db, id).await?;
+
+    // 自动解析 [[wikilink]] 并同步 note_links + note_backlinks
+    // 内容变更时必须重新解析链接，确保双向链接数据一致性
+    if let Err(e) = sync_note_links_from_content(db, &note.vault_id, &note.id, &note.content).await
+    {
+        tracing::warn!("[dao::note] 笔记 {} 更新后链接同步失败: {}", note.id, e);
+    }
+
+    Ok(note)
 }
 
 /// 抓取管道专用的笔记内容更新：仅更新标题/正文/指纹/时间戳，
@@ -227,7 +312,15 @@ pub async fn update_note_from_pipeline(
 
     am.update(db).await?;
 
-    get_note(db, id).await
+    let note = get_note(db, id).await?;
+
+    // 抓取管道更新内容后也需同步链接
+    if let Err(e) = sync_note_links_from_content(db, &note.vault_id, &note.id, &note.content).await
+    {
+        tracing::warn!("[dao::note] 笔记 {} 管道更新后链接同步失败: {}", note.id, e);
+    }
+
+    Ok(note)
 }
 
 pub async fn delete_note(db: &DatabaseConnection, id: &str) -> Result<()> {
