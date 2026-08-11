@@ -5494,7 +5494,11 @@
       "createTitle": "مصدر معرفة جديد",
       "sourceType": "النوع",
       "pathRequired": "أدخل URL أو مسارًا",
-      "createSubmit": "إنشاء"
+      "createSubmit": "إنشاء",
+      "targetLabel": "المصدر المستهدف",
+      "selectTargetPlaceholder": "اختر مصدرًا",
+      "createFirstHint": "أنشئ مصدرًا أولاً",
+      "selectKnowledgeFirst": "يرجى اختيار مصدر مستهدف أولاً"
     }
   },
   "sshConfig": {

@@ -5494,7 +5494,11 @@
       "createTitle": "知識ソースを作成",
       "sourceType": "タイプ",
       "pathRequired": "URL またはパスを入力",
-      "createSubmit": "作成"
+      "createSubmit": "作成",
+      "targetLabel": "ターゲットソース",
+      "selectTargetPlaceholder": "ソースを選択",
+      "createFirstHint": "先にソースを作成してください",
+      "selectKnowledgeFirst": "先にターゲットソースを選択してください"
     }
   },
   "sshConfig": {

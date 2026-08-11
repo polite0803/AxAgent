@@ -5494,7 +5494,11 @@
       "createTitle": "Neue Wissensquelle",
       "sourceType": "Typ",
       "pathRequired": "URL oder Pfad eingeben",
-      "createSubmit": "Erstellen"
+      "createSubmit": "Erstellen",
+      "targetLabel": "Zielquelle",
+      "selectTargetPlaceholder": "Quelle auswählen",
+      "createFirstHint": "Erstellen Sie zuerst eine Quelle",
+      "selectKnowledgeFirst": "Bitte wählen Sie zuerst eine Zielquelle aus"
     }
   },
   "sshConfig": {

@@ -5494,7 +5494,11 @@
       "createTitle": "New Knowledge Source",
       "sourceType": "Type",
       "pathRequired": "Enter URL or path",
-      "createSubmit": "Create"
+      "createSubmit": "Create",
+      "targetLabel": "Target Source",
+      "selectTargetPlaceholder": "Select a source",
+      "createFirstHint": "Create a source first",
+      "selectKnowledgeFirst": "Please select a target source first"
     }
   },
   "sshConfig": {

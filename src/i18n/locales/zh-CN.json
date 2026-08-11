@@ -5470,6 +5470,10 @@
       "save": "保存",
       "urlInvalid": "URL 格式无效",
       "urlPlaceholder": "输入网页 URL 抓取为 Wiki 页面",
+      "targetLabel": "目标知识源",
+      "selectTargetPlaceholder": "请选择知识源",
+      "createFirstHint": "请先创建知识源",
+      "selectKnowledgeFirst": "请先选择目标知识源",
       "urlRequired": "请输入 URL"
     },
     "type": {

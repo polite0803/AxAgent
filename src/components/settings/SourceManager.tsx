@@ -1180,6 +1180,7 @@ function AllSourcesTab({
 
   // KnowledgeSourceTab 相关状态
   const [fetchingAll, setFetchingAll] = useState(false);
+  const [selectedKnowledgeId, setSelectedKnowledgeId] = useState<string | undefined>();
   const [githubOpen, setGithubOpen] = useState(false);
   const [importingGithub, setImportingGithub] = useState(false);
   const [sitemapOpen, setSitemapOpen] = useState(false);
@@ -1187,6 +1188,12 @@ function AllSourcesTab({
   const [quickForm] = Form.useForm<{ url: string; title?: string }>();
   const [githubForm] = Form.useForm<{ repo: string; pathFilter?: string }>();
   const [sitemapForm] = Form.useForm<{ baseUrl: string }>();
+
+  // 可选的知识源列表（type 为 knowledge 的 UnifiedSource）
+  const knowledgeOptions = useMemo(
+    () => sources.filter((s) => s.containerType === "knowledge"),
+    [sources],
+  );
 
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim()) {
@@ -1205,9 +1212,13 @@ function AllSourcesTab({
     }
   }, [searchQuery, searchAllSources, sources]);
 
-  // URL 快速抓取
+  // URL 快速抓取（需选择目标知识源）
   const handleQuickFetch = useCallback(async (values: { url: string; title?: string }) => {
-    const result = await fetchUrlToWiki(values.url, values.title || undefined);
+    if (!selectedKnowledgeId) {
+      message.warning(t("sourceManager.knowledgeSource.selectKnowledgeFirst"));
+      return;
+    }
+    const result = await fetchUrlToWiki(values.url, values.title, selectedKnowledgeId);
     if (!result) {
       message.error(t("sourceManager.knowledgeSource.fetchFailed"));
       return;
@@ -1220,10 +1231,14 @@ function AllSourcesTab({
     message.success(`${result.title} — ${actionLabel}`);
     quickForm.resetFields();
     void loadSources();
-  }, [fetchUrlToWiki, loadSources, message, quickForm, t]);
+  }, [fetchUrlToWiki, loadSources, message, quickForm, selectedKnowledgeId, t]);
 
-  // 批量抓取
+  // 批量抓取选中知识源
   const handleFetchAll = useCallback(async () => {
+    if (!selectedKnowledgeId) {
+      message.warning(t("sourceManager.knowledgeSource.selectKnowledgeFirst"));
+      return;
+    }
     setFetchingAll(true);
     try {
       const results = await fetchAll();
@@ -1243,13 +1258,17 @@ function AllSourcesTab({
     } finally {
       setFetchingAll(false);
     }
-  }, [fetchAll, message, t]);
+  }, [fetchAll, message, selectedKnowledgeId, t]);
 
-  // GitHub 导入
+  // GitHub 导入（需选择目标知识源）
   const handleGithubImport = useCallback(async (values: { repo: string; pathFilter?: string }) => {
+    if (!selectedKnowledgeId) {
+      message.warning(t("sourceManager.knowledgeSource.selectKnowledgeFirst"));
+      return;
+    }
     setImportingGithub(true);
     try {
-      const result = await githubRepoImport(values.repo, values.pathFilter || undefined);
+      const result = await githubRepoImport(values.repo, values.pathFilter, selectedKnowledgeId);
       if (!result) {
         message.error(t("sourceManager.knowledgeSource.importFailed"));
       } else if (result.action === "error") {
@@ -1263,13 +1282,17 @@ function AllSourcesTab({
     } finally {
       setImportingGithub(false);
     }
-  }, [githubRepoImport, githubForm, loadSources, message, t]);
+  }, [githubRepoImport, githubForm, loadSources, message, selectedKnowledgeId, t]);
 
-  // sitemap 导入
+  // sitemap 导入（需选择目标知识源）
   const handleSitemap = useCallback(async (values: { baseUrl: string }) => {
+    if (!selectedKnowledgeId) {
+      message.warning(t("sourceManager.knowledgeSource.selectKnowledgeFirst"));
+      return;
+    }
     setImportingSitemap(true);
     try {
-      const results = await sitemapCrawl(values.baseUrl);
+      const results = await sitemapCrawl(values.baseUrl, selectedKnowledgeId);
       if (!results) {
         message.error(t("sourceManager.knowledgeSource.sitemapFailed"));
       } else {
@@ -1283,7 +1306,7 @@ function AllSourcesTab({
     } finally {
       setImportingSitemap(false);
     }
-  }, [sitemapCrawl, sitemapForm, loadSources, message, t]);
+  }, [sitemapCrawl, sitemapForm, loadSources, message, selectedKnowledgeId, t]);
 
   const displaySources = searchResults ?? sources;
 
@@ -1409,59 +1432,87 @@ function AllSourcesTab({
         </div>
       </div>
 
-      {/* 知识源快速工具栏 */}
+      {/* 知识源快速工具栏（需选择目标知识源） */}
       <div
-        className="flex items-center gap-2 flex-wrap"
+        className="flex items-center gap-3 flex-wrap"
         style={{
           padding: `${token.paddingSM}px ${token.padding}px`,
           background: token.colorFillTertiary,
           borderRadius: token.borderRadiusLG,
         }}
       >
-        <Form
-          form={quickForm}
-          layout="inline"
-          onFinish={handleQuickFetch}
-          className="flex-wrap gap-2"
-        >
-          <Form.Item
-            name="url"
-            rules={[
-              { required: true, message: t("sourceManager.knowledgeSource.urlRequired") },
-              { type: "url", message: t("sourceManager.knowledgeSource.urlInvalid") },
-            ]}
-            style={{ minWidth: 280, flex: 1 }}
+        {/* 知识源选择器 */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm opacity-70 whitespace-nowrap">
+            {t("sourceManager.knowledgeSource.targetLabel")}:
+          </span>
+          <Select
+            value={selectedKnowledgeId}
+            onChange={setSelectedKnowledgeId}
+            placeholder={t("sourceManager.knowledgeSource.selectTargetPlaceholder")}
+            style={{ minWidth: 200 }}
+            allowClear
           >
-            <Input
-              prefix={<Globe size={14} className="opacity-50" />}
-              placeholder={t("sourceManager.knowledgeSource.urlPlaceholder")}
-              allowClear
-            />
-          </Form.Item>
-          <Form.Item name="title" style={{ minWidth: 140 }}>
-            <Input placeholder={t("sourceManager.knowledgeSource.titlePlaceholder")} allowClear />
-          </Form.Item>
-          <Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit" icon={<Zap size={14} />}>
-                {t("sourceManager.knowledgeSource.fetchToWiki")}
-              </Button>
-              <Button
-                icon={<RefreshCw size={14} />}
-                loading={fetchingAll}
-                onClick={() => void handleFetchAll()}
-              >
-                {t("sourceManager.knowledgeSource.fetchAll")}
-              </Button>
-              <Button icon={<GitFork size={14} />} onClick={() => setGithubOpen(true)}>
-                {t("sourceManager.knowledgeSource.githubImport")}
-              </Button>
-              <Button icon={<Import size={14} />} onClick={() => setSitemapOpen(true)}>
-                {t("sourceManager.knowledgeSource.sitemapImport")}
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
+            {knowledgeOptions.map((ks) => (
+              <Select.Option key={ks.id} value={ks.id}>
+                {ks.name}
+              </Select.Option>
+            ))}
+          </Select>
+        </div>
+
+        {knowledgeOptions.length === 0 && (
+          <span className="text-xs opacity-50">
+            {t("sourceManager.knowledgeSource.createFirstHint")}
+          </span>
+        )}
+
+        {selectedKnowledgeId && (
+          <Form
+            form={quickForm}
+            layout="inline"
+            onFinish={handleQuickFetch}
+            className="flex-wrap gap-2 flex-1"
+          >
+            <Form.Item
+              name="url"
+              rules={[
+                { required: true, message: t("sourceManager.knowledgeSource.urlRequired") },
+                { type: "url", message: t("sourceManager.knowledgeSource.urlInvalid") },
+              ]}
+              style={{ minWidth: 280, flex: 1 }}
+            >
+              <Input
+                prefix={<Globe size={14} className="opacity-50" />}
+                placeholder={t("sourceManager.knowledgeSource.urlPlaceholder")}
+                allowClear
+              />
+            </Form.Item>
+            <Form.Item name="title" style={{ minWidth: 140 }}>
+              <Input placeholder={t("sourceManager.knowledgeSource.titlePlaceholder")} allowClear />
+            </Form.Item>
+            <Form.Item>
+              <Space>
+                <Button type="primary" htmlType="submit" icon={<Zap size={14} />}>
+                  {t("sourceManager.knowledgeSource.fetchToWiki")}
+                </Button>
+                <Button
+                  icon={<RefreshCw size={14} />}
+                  loading={fetchingAll}
+                  onClick={() => void handleFetchAll()}
+                >
+                  {t("sourceManager.knowledgeSource.fetchAll")}
+                </Button>
+                <Button icon={<GitFork size={14} />} onClick={() => setGithubOpen(true)}>
+                  {t("sourceManager.knowledgeSource.githubImport")}
+                </Button>
+                <Button icon={<Import size={14} />} onClick={() => setSitemapOpen(true)}>
+                  {t("sourceManager.knowledgeSource.sitemapImport")}
+                </Button>
+              </Space>
+            </Form.Item>
+          </Form>
+        )}
       </div>
 
       <Spin spinning={loading}>

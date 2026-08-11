@@ -5494,7 +5494,11 @@
       "createTitle": "Новый источник знаний",
       "sourceType": "Тип",
       "pathRequired": "Введите URL или путь",
-      "createSubmit": "Создать"
+      "createSubmit": "Создать",
+      "targetLabel": "Целевой источник",
+      "selectTargetPlaceholder": "Выберите источник",
+      "createFirstHint": "Сначала создайте источник",
+      "selectKnowledgeFirst": "Сначала выберите целевой источник"
     }
   },
   "sshConfig": {

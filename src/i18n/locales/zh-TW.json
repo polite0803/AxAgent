@@ -5494,7 +5494,11 @@
       "createTitle": "新增知識源",
       "sourceType": "類型",
       "pathRequired": "請輸入 URL 或路徑",
-      "createSubmit": "建立"
+      "createSubmit": "建立",
+      "targetLabel": "目標知識源",
+      "selectTargetPlaceholder": "請選擇知識源",
+      "createFirstHint": "請先建立知識源",
+      "selectKnowledgeFirst": "請先選擇目標知識源"
     }
   },
   "sshConfig": {

@@ -5494,7 +5494,11 @@
       "createTitle": "नया ज्ञान स्रोत",
       "sourceType": "प्रकार",
       "pathRequired": "URL या पथ दर्ज करें",
-      "createSubmit": "बनाएँ"
+      "createSubmit": "बनाएँ",
+      "targetLabel": "लक्ष्य स्रोत",
+      "selectTargetPlaceholder": "स्रोत चुनें",
+      "createFirstHint": "पहले स्रोत बनाएं",
+      "selectKnowledgeFirst": "कृपया पहले लक्ष्य स्रोत चुनें"
     }
   },
   "sshConfig": {

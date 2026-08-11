@@ -5494,7 +5494,11 @@
       "createTitle": "새 지식 소스",
       "sourceType": "유형",
       "pathRequired": "URL 또는 경로 입력",
-      "createSubmit": "만들기"
+      "createSubmit": "만들기",
+      "targetLabel": "대상 소스",
+      "selectTargetPlaceholder": "소스 선택",
+      "createFirstHint": "먼저 소스를 생성하세요",
+      "selectKnowledgeFirst": "먼저 대상 소스를 선택하세요"
     }
   },
   "sshConfig": {
