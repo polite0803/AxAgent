@@ -139,7 +139,7 @@
     "react-dom": "^19.2.5",
     "react-i18next": "^17.0.3",
     "react-router-dom": "^7.14.2",
-    "recharts": "^3.9.2",
+    "recharts": "^3.10.1",
     "sigma": "^3.0.3",
     "stream-markdown": "^0.0.16",
     "stream-markdown-parser": "^1.1.0",
