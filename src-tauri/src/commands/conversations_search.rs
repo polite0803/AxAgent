@@ -633,8 +633,18 @@ async fn get_conversation_lineage(
 
         match result {
             Ok(Some(row)) => {
-                let id: String = row.try_get("", "id").map_err(|e| e.to_string())?;
-                let title: String = row.try_get("", "title").map_err(|e| e.to_string())?;
+                let id: String = row.try_get("", "id").map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?;
+                let title: String = row.try_get("", "title").map_err(|e| {
+                    String::from(crate::commands::error::ErrorResponse::from_error(
+                        e,
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    ))
+                })?;
                 let parent: Option<String> =
                     row.try_get("", "parent_conversation_id").ok().flatten();
 

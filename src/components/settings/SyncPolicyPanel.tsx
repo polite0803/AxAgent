@@ -71,7 +71,7 @@ export function SyncPolicyPanel() {
 
       await deviceSyncStore.updateSyncPolicy(update);
       message.success(t("deviceSync.policySaved"));
-    } catch (e) {
+    } catch {
       message.error(t("deviceSync.policySaveFailed"));
     } finally {
       setSaving(false);

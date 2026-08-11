@@ -137,3 +137,6 @@ data/
 
 # 微调模型运行时数据（按 UUID 目录生成，不入库）
 /src-tauri/crates/agent/fine_tuned_models/
+
+# Trae IDE 权限检查临时文件
+.trae_permission_check_*

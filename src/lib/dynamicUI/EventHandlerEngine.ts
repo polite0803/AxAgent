@@ -125,7 +125,7 @@ export function handleEvents(
     }
 
     bindings[trigger] = (...args: unknown[]) => {
-      const eventContext = { ...(context || {}), _eventArgs: args };
+      const eventContext = { ...context, _eventArgs: args };
       void executeActions([...handler.actions], { context: eventContext, onAction, scope, navigate });
     };
   }

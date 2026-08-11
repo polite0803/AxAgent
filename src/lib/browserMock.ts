@@ -3064,7 +3064,6 @@ export async function handleCommand<T>(
         files: ["SKILL.md"],
         manifest: null,
       } as T;
-      break;
 
     case "toggle_skill":
       return undefined as T;

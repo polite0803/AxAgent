@@ -78,7 +78,7 @@ export type LatexSegment =
 // 3. \$ —— 转义美元，当作普通文本（不再作为公式分隔符）
 // 4. $$...$$ —— 块级公式（可跨行）
 // 5. $...$ —— 行内公式（单行内，不可跨行）
-const LATEX_TOKEN_RE = /(```[\s\S]*?```|`[^`\n]+`|\\\$|\$\$[\s\S]+?\$\$|\$[^\$\n]+?\$)/g;
+const LATEX_TOKEN_RE = /(```[\s\S]*?```|`[^`\n]+`|\\[$]|[$][$][\s\S]+?[$][$]|[$][^$\n]+?[$])/g;
 
 // 把文本段追加到 segments，若上一段也是 text 则合并（减少渲染单元）
 function pushText(segments: LatexSegment[], text: string): void {

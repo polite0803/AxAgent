@@ -118,9 +118,7 @@ export function useNodeAIAssist(): NodeAIAssistResult {
             conversationId: `aiassist-${crypto.randomUUID()}`,
             content: enrichedUserPrompt,
             attachments: [],
-            options: {
-              ...(systemPrompt ? { system_prompt: systemPrompt } : {}),
-            },
+            options: systemPrompt ? { system_prompt: systemPrompt } : {},
           },
         });
         // latest-wins 或 cancel：陈旧/取消请求的回调应被静默丢弃

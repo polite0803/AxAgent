@@ -490,7 +490,7 @@ mod tests {
         outcome_distribution.insert("failure".to_string(), 5);
 
         let metrics = TrainingQualityMetrics {
-            avg_quality: 0.75,
+            avg_quality: 0.55,
             avg_value_score: 0.65,
             outcome_distribution,
             tool_diversity: 0.8,

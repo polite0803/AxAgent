@@ -411,7 +411,7 @@ export const BranchTree = React.memo(function BranchTree({
       {/* Graph canvas */}
       {!collapsed && (
         <div style={{ height: 240, width: "100%" }}>
-          {branchCount > 0 || true
+          {branchCount > 0
             ? (
               <BranchTreeCanvas
                 nodes={rfNodes}

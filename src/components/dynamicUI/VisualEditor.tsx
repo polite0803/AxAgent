@@ -1267,7 +1267,7 @@ function DataTab({
   const updateConfigField = (key: string, value: unknown) => {
     setDataSource({
       type: ds?.type ?? "static",
-      config: { ...(ds?.config ?? {}), [key]: value },
+      config: { ...(ds?.config), [key]: value },
       polling: ds?.polling ?? 0,
     });
   };

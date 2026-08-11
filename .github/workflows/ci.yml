@@ -239,7 +239,9 @@ jobs:
         continue-on-error: false
         run: |
           if cargo audit --version &>/dev/null; then
-            cargo audit
+            # RUSTSEC-2026-0235 (rkyv 0.7.x): 上游 rust_decimal 依赖 rkyv 0.7.x，
+            # 0.8.x 为 breaking change，rust_decimal 尚未升级。待上游修复后移除 --ignore。
+            cargo audit --ignore RUSTSEC-2026-0235
           else
             echo "cargo-audit not available, skipping"
           fi

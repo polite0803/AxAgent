@@ -687,7 +687,7 @@ function SmartRouterSection() {
 
   const updateTier = (tier: string, patch: Partial<SmartRouterTierMapping>) => {
     const next: Record<string, SmartRouterTierMapping> = { ...mappings };
-    next[tier] = { ...(next[tier] ?? {}), ...patch };
+    next[tier] = { ...next[tier], ...patch };
     saveSettings({ smart_router_tier_mappings: next });
   };
 

@@ -150,7 +150,7 @@ function schedulePrefetchCleanup(resourceId: string) {
       );
       return {
         prefetchResults: remaining,
-        isPrefetchActive: remaining.length > 0 && remaining.some((r) => !r.ready),
+        isPrefetchActive: remaining.some((r) => !r.ready),
       };
     });
   }, PREFETCH_DISPLAY_DURATION_MS);
