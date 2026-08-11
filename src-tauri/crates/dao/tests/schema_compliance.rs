@@ -772,6 +772,7 @@ const SCHEMA: &[(&str, &[(&str, &str)])] = &[
             ("content_hash", "TEXT"),
             ("author", "TEXT"),
             ("page_type", "TEXT"),
+            ("tags", "TEXT"),
             ("source_refs", "TEXT"),
             ("related_pages", "TEXT"),
             ("quality_score", "REAL"),

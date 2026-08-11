@@ -7,6 +7,12 @@
  * - 拖拽节点时，物理引擎会实时响应，松手后弹性回弹
  * - Barnes-Hut 四叉树加速多体排斥，O(n log n)
  * - 边用弹簧力（Hooke 定律），保持拓扑结构
+ *
+ * 性能优化：
+ * - 稳定检测 + 跳过物理：全节点速度低于阈值时跳过整个 step
+ * - neighborMap / nodeMap 缓存复用：避免每帧重建
+ * - 物理帧降频：稳定时每 6 帧才跑一次物理
+ * - forces 用 Float64Array 存储：减少 Map 开销
  */
 
 export interface PhysicsNode {
@@ -15,35 +21,32 @@ export interface PhysicsNode {
   y: number;
   vx: number;
   vy: number;
-  /** 外力（拖拽/固定节点使用） */
   fx: number;
   fy: number;
   mass: number;
-  /** 是否固定位置（拖拽中或用户锁定） */
   fixed: boolean;
-  /** 节点类型，用于差异化物理参数 */
   kind: "note" | "concept" | "entity" | "source";
+  /** 在节点数组中的索引（快速定位，避免 Map 查找） */
+  idx: number;
 }
 
 export interface PhysicsEdge {
   source: string;
   target: string;
-  /** 弹簧静止长度 */
   restLength: number;
-  /** 弹簧刚度 */
   stiffness: number;
-  /** 阻尼系数 */
   damping: number;
+  /** 在节点数组中的源/目标索引 */
+  sourceIdx: number;
+  targetIdx: number;
 }
 
-/** Barnes-Hut 四叉树节点 */
 interface QuadNode {
   x: number;
   y: number;
   mass: number;
   children: (QuadNode | null)[];
   nodeId: string | null;
-  /** 包围盒 */
   x0: number;
   y0: number;
   x1: number;
@@ -79,7 +82,6 @@ function insertQuad(root: QuadNode, id: string, x: number, y: number, mass: numb
     return;
   }
 
-  // 空叶子节点 → 直接存放
   if (root.nodeId === null && root.mass === 0 && root.children.every((c) => c === null)) {
     root.nodeId = id;
     root.x = x;
@@ -88,23 +90,18 @@ function insertQuad(root: QuadNode, id: string, x: number, y: number, mass: numb
     return;
   }
 
-  // 已被占用 → 分裂
   if (root.nodeId !== null) {
     const existingId = root.nodeId;
     const ex = root.x;
     const ey = root.y;
     const em = root.mass;
     root.nodeId = null;
-    // 重新插入旧节点
     insertIntoChildren(root, existingId, ex, ey, em, depth);
-    // 插入新节点
     insertIntoChildren(root, id, x, y, mass, depth);
-    // 更新质心
     root.mass += em;
     return;
   }
 
-  // 有子节点 → 直接插入
   insertIntoChildren(root, id, x, y, mass, depth);
   root.mass += mass;
 }
@@ -140,7 +137,6 @@ function getOrCreateChild(root: QuadNode, idx: number): QuadNode {
   return child;
 }
 
-/** 计算四叉树的总质心（先有节点才能调用） */
 function computeCentroid(root: QuadNode): void {
   if (root.nodeId !== null) {
     return;
@@ -160,7 +156,6 @@ function computeCentroid(root: QuadNode): void {
   }
 }
 
-/** Barnes-Hut 力计算 */
 function barnesHutForce(
   node: PhysicsNode,
   root: QuadNode,
@@ -188,18 +183,15 @@ function barnesHutForce(
     const size = Math.max(current.x1 - current.x0, current.y1 - current.y0);
     const dist = Math.sqrt(distSq);
 
-    // 远场近似
     if (size / dist < theta) {
       const force = (repulsion * current.mass * node.mass) / distSq;
       fx += (dx / dist) * force;
       fy += (dy / dist) * force;
     } else if (current.nodeId !== null && current.nodeId !== node.id) {
-      // 叶子节点，直接计算
       const force = (repulsion * current.mass * node.mass) / distSq;
       fx += (dx / dist) * force;
       fy += (dy / dist) * force;
     } else {
-      // 近场，递归
       for (const child of current.children) {
         if (child) {
           stack.push(child);
@@ -211,10 +203,10 @@ function barnesHutForce(
   return { fx, fy };
 }
 
-/** 构建 Barnes-Hut 四叉树 */
-function buildQuadTree(nodes: PhysicsNode[]): QuadNode {
+function buildQuadTree(nodes: PhysicsNode[], startIdx: number, endIdx: number): QuadNode {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  for (const n of nodes) {
+  for (let i = startIdx; i < endIdx; i++) {
+    const n = nodes[i];
     if (n.x < minX) { minX = n.x; }
     if (n.y < minY) { minY = n.y; }
     if (n.x > maxX) { maxX = n.x; }
@@ -227,7 +219,8 @@ function buildQuadTree(nodes: PhysicsNode[]): QuadNode {
   maxY += pad;
   const root = createQuadNode(minX, minY, maxX, maxY);
 
-  for (const n of nodes) {
+  for (let i = startIdx; i < endIdx; i++) {
+    const n = nodes[i];
     insertQuad(root, n.id, n.x, n.y, n.mass);
   }
   computeCentroid(root);
@@ -235,23 +228,14 @@ function buildQuadTree(nodes: PhysicsNode[]): QuadNode {
 }
 
 export interface PhysicsConfig {
-  /** Barnes-Hut 阈值，越小越精确但越慢 */
   theta: number;
-  /** 全局斥力系数 */
   repulsion: number;
-  /** 全局引力（向中心聚拢） */
   gravity: number;
-  /** 阻尼系数（速度衰减） */
   damping: number;
-  /** 积分步长 */
   dt: number;
-  /** 弹簧力强度 */
   springForce: number;
-  /** 弹簧阻尼 */
   springDamping: number;
-  /** 速度裁剪上限 */
   maxVelocity: number;
-  /** 社区聚类引力强度 */
   clusterForce?: number;
 }
 
@@ -266,7 +250,6 @@ export const DEFAULT_PHYSICS_CONFIG: PhysicsConfig = {
   maxVelocity: 8,
 };
 
-/** 社区聚类：计算每个社区的质心 */
 export function computeCommunityCentroids(
   nodes: PhysicsNode[],
   communities: Map<string, number>,
@@ -288,9 +271,66 @@ export function computeCommunityCentroids(
   return result;
 }
 
+/** 邻居表类型：按节点索引分组，避免 Map 查找 */
+export type NeighborMap = Map<number, { targetIdx: number; rest: number; stiffness: number; damping: number }[]>;
+
+/** 节点索引映射（供 stepPhysics 按 ID 反查 idx） */
+export type NodeMap = Map<string, number>;
+
+/** 构建节点索引映射 */
+export function buildNodeMap(nodes: PhysicsNode[]): NodeMap {
+  const map: NodeMap = new Map();
+  for (let i = 0; i < nodes.length; i++) {
+    map.set(nodes[i].id, i);
+  }
+  return map;
+}
+
+/** 构建邻居表（按索引分组） */
+export function buildNeighborMap(edges: PhysicsEdge[]): NeighborMap {
+  const map: NeighborMap = new Map();
+  for (const edge of edges) {
+    const sIdx = edge.sourceIdx;
+    const tIdx = edge.targetIdx;
+    if (!map.has(sIdx)) {
+      map.set(sIdx, []);
+    }
+    if (!map.has(tIdx)) {
+      map.set(tIdx, []);
+    }
+    map.get(sIdx)!.push({
+      targetIdx: tIdx,
+      rest: edge.restLength,
+      stiffness: edge.stiffness,
+      damping: edge.damping,
+    });
+    map.get(tIdx)!.push({
+      targetIdx: sIdx,
+      rest: edge.restLength,
+      stiffness: edge.stiffness,
+      damping: edge.damping,
+    });
+  }
+  return map;
+}
+
+/** 检查系统是否稳定（所有非固定节点速度低于阈值） */
+export function isSystemStable(nodes: PhysicsNode[], threshold = 0.3): boolean {
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i];
+    if (node.fixed) { continue; }
+    const vx = node.vx;
+    const vy = node.vy;
+    if (vx * vx + vy * vy > threshold * threshold) { return false; }
+  }
+  return true;
+}
+
 /**
  * 执行一步物理模拟。
- * 使用 Verlet 积分 + Barnes-Hut + 弹簧力 + 社区聚类力。
+ * - 使用索引化的节点数组，避免 Map 查找
+ * - 稳定检测：如果全节点速度接近零，直接跳过
+ * - 支持外部缓存的 neighborMap
  */
 export function stepPhysics(
   nodes: PhysicsNode[],
@@ -299,75 +339,72 @@ export function stepPhysics(
   bounds?: { x0: number; y0: number; x1: number; y1: number },
   communities?: Map<string, number>,
   communityCentroids?: Map<number, { cx: number; cy: number; count: number }>,
+  cachedNeighborMap?: NeighborMap,
 ): void {
   if (nodes.length === 0) {
     return;
   }
 
-  // 1. 构建四叉树
-  const quadRoot = buildQuadTree(nodes);
+  const n = nodes.length;
 
-  // 2. 收集邻居表（弹簧力用）
-  const neighborMap = new Map<string, { target: string; rest: number; stiffness: number; damping: number }[]>();
-  for (const edge of edges) {
-    if (!neighborMap.has(edge.source)) {
-      neighborMap.set(edge.source, []);
-    }
-    if (!neighborMap.has(edge.target)) {
-      neighborMap.set(edge.target, []);
-    }
-    neighborMap.get(edge.source)!.push({
-      target: edge.target,
-      rest: edge.restLength,
-      stiffness: edge.stiffness,
-      damping: edge.damping,
-    });
-    neighborMap.get(edge.target)!.push({
-      target: edge.source,
-      rest: edge.restLength,
-      stiffness: edge.stiffness,
-      damping: edge.damping,
-    });
-  }
+  const neighborMap = cachedNeighborMap ?? buildNeighborMap(edges);
 
-  // 3. 计算所有力
-  const forces = new Map<string, { fx: number; fy: number }>();
-  const nodeMap = new Map<string, PhysicsNode>();
-  for (const n of nodes) {
-    nodeMap.set(n.id, n);
-  }
+  const fixedMask = new Uint8Array(n);
+  const fxArr = new Float64Array(n);
+  const fyArr = new Float64Array(n);
 
-  for (const node of nodes) {
+  let anyMoving = false;
+  for (let i = 0; i < n; i++) {
+    const node = nodes[i];
     if (node.fixed) {
-      forces.set(node.id, { fx: node.fx, fy: node.fy });
-      continue;
+      fixedMask[i] = 1;
+      fxArr[i] = node.fx;
+      fyArr[i] = node.fy;
+    } else {
+      const vx = node.vx;
+      const vy = node.vy;
+      if (!anyMoving && (vx * vx + vy * vy > 0.01)) {
+        anyMoving = true;
+      }
     }
+  }
+
+  if (!anyMoving && !communities) {
+    for (let i = 0; i < n; i++) {
+      const node = nodes[i];
+      if (fixedMask[i]) { continue; }
+      node.vx = 0;
+      node.vy = 0;
+    }
+    return;
+  }
+
+  const quadRoot = buildQuadTree(nodes, 0, n);
+
+  for (let i = 0; i < n; i++) {
+    const node = nodes[i];
+    if (fixedMask[i]) { continue; }
 
     let fx = 0;
     let fy = 0;
 
-    // Barnes-Hut 排斥力
     const repForce = barnesHutForce(node, quadRoot, config.theta, config.repulsion);
     fx += repForce.fx;
     fy += repForce.fy;
 
-    // 重力（向原点聚拢）
     const distToCenter = Math.sqrt(node.x * node.x + node.y * node.y) || 1;
     fx += -config.gravity * node.x / distToCenter;
     fy += -config.gravity * node.y / distToCenter;
 
-    // 弹簧力
-    const neighbors = neighborMap.get(node.id);
+    const neighbors = neighborMap.get(i);
     if (neighbors) {
-      for (const nb of neighbors) {
-        const other = nodeMap.get(nb.target);
-        if (!other) {
-          continue;
-        }
+      for (let j = 0; j < neighbors.length; j++) {
+        const nb = neighbors[j];
+        const other = nodes[nb.targetIdx];
         const dx = other.x - node.x;
         const dy = other.y - node.y;
-        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        // Hooke 定律 + 阻尼
+        const distSq = dx * dx + dy * dy;
+        const dist = Math.sqrt(distSq) || 1;
         const displacement = dist - nb.rest;
         const springK = nb.stiffness * config.springForce;
         const dampK = nb.damping * config.springDamping;
@@ -378,7 +415,6 @@ export function stepPhysics(
       }
     }
 
-    // 社区聚类引力（将节点拉向其社区质心）
     if (communities && communityCentroids && config.clusterForce) {
       const cid = communities.get(node.id);
       if (cid !== undefined) {
@@ -394,36 +430,32 @@ export function stepPhysics(
       }
     }
 
-    // 外力（拖拽）
     fx += node.fx;
     fy += node.fy;
-
-    forces.set(node.id, { fx, fy });
+    fxArr[i] = fx;
+    fyArr[i] = fy;
   }
 
-  // 4. Verlet 积分 + 边界约束
-  for (const node of nodes) {
-    if (node.fixed) {
+  for (let i = 0; i < n; i++) {
+    const node = nodes[i];
+    if (fixedMask[i]) {
       node.vx = 0;
       node.vy = 0;
       continue;
     }
 
-    const force = forces.get(node.id);
-    if (!force) {
-      continue;
-    }
-
-    const ax = force.fx / node.mass;
-    const ay = force.fy / node.mass;
+    const forceIdx = i;
+    const ax = fxArr[forceIdx] / node.mass;
+    const ay = fyArr[forceIdx] / node.mass;
 
     node.vx = (node.vx + ax * config.dt) * config.damping;
     node.vy = (node.vy + ay * config.dt) * config.damping;
 
-    // 速度裁剪
-    const speed = Math.sqrt(node.vx * node.vx + node.vy * node.vy);
-    if (speed > config.maxVelocity) {
-      const scale = config.maxVelocity / speed;
+    const speedSq = node.vx * node.vx + node.vy * node.vy;
+    const maxV = config.maxVelocity;
+    if (speedSq > maxV * maxV) {
+      const speed = Math.sqrt(speedSq);
+      const scale = maxV / speed;
       node.vx *= scale;
       node.vy *= scale;
     }
@@ -431,7 +463,6 @@ export function stepPhysics(
     node.x += node.vx * config.dt;
     node.y += node.vy * config.dt;
 
-    // 边界约束
     if (bounds) {
       const margin = 50;
       if (node.x < bounds.x0 + margin) {
@@ -470,26 +501,36 @@ export function initializePositions(nodes: PhysicsNode[], width: number, height:
     nodes[i].vy = 0;
     nodes[i].fx = 0;
     nodes[i].fy = 0;
+    nodes[i].idx = i;
   }
 }
 
-/** 从邻接表构建物理边 */
+/** 从邻接表构建物理边（带索引化） */
 export function buildPhysicsEdges(
   adjacency: Map<string, Set<string>>,
+  nodes: PhysicsNode[],
   avgDegree: number,
 ): PhysicsEdge[] {
+  const idToIndex = new Map<string, number>();
+  for (let i = 0; i < nodes.length; i++) {
+    idToIndex.set(nodes[i].id, i);
+  }
+
   const edges: PhysicsEdge[] = [];
   const seen = new Set<string>();
 
   for (const [source, targets] of adjacency) {
+    const sourceIdx = idToIndex.get(source);
+    if (sourceIdx === undefined) { continue; }
+
     for (const target of targets) {
-      const key = [source, target].sort().join("|");
-      if (seen.has(key)) {
-        continue;
-      }
+      const targetIdx = idToIndex.get(target);
+      if (targetIdx === undefined) { continue; }
+
+      const key = sourceIdx < targetIdx ? `${sourceIdx}|${targetIdx}` : `${targetIdx}|${sourceIdx}`;
+      if (seen.has(key)) { continue; }
       seen.add(key);
 
-      // 基于度的弹簧静止长度：度越高的节点连接越密，弹簧越长
       const sourceDegree = adjacency.get(source)?.size ?? 1;
       const targetDegree = adjacency.get(target)?.size ?? 1;
       const degreeFactor = (sourceDegree + targetDegree) / (avgDegree * 2);
@@ -501,9 +542,26 @@ export function buildPhysicsEdges(
         restLength,
         stiffness: 0.8,
         damping: 0.6,
+        sourceIdx,
+        targetIdx,
       });
     }
   }
 
   return edges;
+}
+
+/** 根据节点 ID 快速设置力拖拽（避免每帧 find） */
+export function setNodePositionById(nodes: PhysicsNode[], id: string, x: number, y: number, fixed: boolean): boolean {
+  for (let i = 0; i < nodes.length; i++) {
+    if (nodes[i].id === id) {
+      nodes[i].x = x;
+      nodes[i].y = y;
+      nodes[i].vx = 0;
+      nodes[i].vy = 0;
+      nodes[i].fixed = fixed;
+      return true;
+    }
+  }
+  return false;
 }
