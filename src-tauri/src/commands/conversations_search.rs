@@ -676,10 +676,7 @@ pub async fn session_search_with_lineage(
     let mut results_with_lineage = Vec::with_capacity(results.len());
     for result in results {
         let (parent_id, lineage) = if with_lineage {
-            match get_conversation_lineage(db, &result.conversation_id).await {
-                Ok(val) => val,
-                Err(_) => (None, Vec::new()),
-            }
+            get_conversation_lineage(db, &result.conversation_id).await.unwrap_or_default()
         } else {
             (None, Vec::new())
         };
@@ -715,11 +712,8 @@ pub async fn session_search_with_summary(
     // 获取谱系信息
     let mut results_with_lineage = Vec::with_capacity(results.len());
     for result in &results {
-        let (parent_id, lineage) = match get_conversation_lineage(db, &result.conversation_id).await
-        {
-            Ok(val) => val,
-            Err(_) => (None, Vec::new()),
-        };
+        let (parent_id, lineage) =
+            get_conversation_lineage(db, &result.conversation_id).await.unwrap_or_default();
 
         results_with_lineage.push(SearchResultWithLineage {
             result: result.clone(),

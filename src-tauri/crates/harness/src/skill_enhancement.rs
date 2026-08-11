@@ -102,7 +102,7 @@ pub enum TriggerConditionType {
 // ---------------------------------------------------------------------------
 
 /// 条件激活配置
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ConditionalActivation {
     /// 是否启用条件激活
     pub enabled: bool,
@@ -110,12 +110,6 @@ pub struct ConditionalActivation {
     pub activation_rules: Vec<ActivationRule>,
     /// 失活规则列表（满足则不激活）
     pub deactivation_rules: Vec<ActivationRule>,
-}
-
-impl Default for ConditionalActivation {
-    fn default() -> Self {
-        Self { enabled: false, activation_rules: Vec::new(), deactivation_rules: Vec::new() }
-    }
 }
 
 /// 激活规则
@@ -312,7 +306,7 @@ impl SkillUsageStats {
 
         // 更新每日统计
         let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
-        let daily = self.daily_stats.entry(today).or_insert(DailyUsageStats::default());
+        let daily = self.daily_stats.entry(today).or_default();
         daily.total += 1;
         if success {
             daily.success += 1;

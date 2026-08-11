@@ -56,11 +56,13 @@ insta = { version = "1.48", features = ["yaml", "json", "redactions"] }
 lazy_static = "1"
 libsqlite3-sys = { version = "0.37", features = ["bundled"] }
 reqwest = { version = "0.13", features = ["json"] }
+# NOTE: sea-orm 2.0.0 仍在 RC 阶段，升级到 2.0.0 stable 时需评估破坏性变更
 sea-orm = { version = "2.0.0-rc.40", features = ["sqlx-sqlite", "sqlx-postgres", "runtime-tokio-native-tls", "macros"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
 sha2 = "0.11"
+# NOTE: sqlite-vec 仍在 Alpha 阶段，生产环境需关注版本更新
 sqlite-vec = "0.1.8-alpha.1"
 thiserror = "2"
 tokio = { version = "1", features = ["full"] }

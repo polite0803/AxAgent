@@ -762,6 +762,13 @@ mod tests_conversation {
             in_memory_entries: Vec::new(),
             similarity_threshold: 0.85,
         }));
+        let skill_learning_manager: Arc<
+            tokio::sync::RwLock<axagent_trajectory::SkillLearningManager>,
+        > = {
+            let config = axagent_trajectory::SkillLearningConfig::default();
+            let manager = axagent_trajectory::SkillLearningManager::new(config);
+            Arc::new(tokio::sync::RwLock::new(manager))
+        };
         let state = crate::AppState {
             credential_manager: Arc::new(axagent_credential::CredentialManager::new(
                 axagent_credential::CredentialStore::new(temp_dir.join("credentials"), [0; 32]),
@@ -841,6 +848,7 @@ mod tests_conversation {
                     axagent_trajectory::TrajectoryStorage::new(std::sync::Arc::new(db.clone())),
                 )),
             )),
+            skill_learning_manager: skill_learning_manager.clone(),
             auto_memory_extractor: Arc::new(tokio::sync::RwLock::new(
                 axagent_trajectory::AutoMemoryExtractor::new(
                     Arc::new(axagent_trajectory::TrajectoryStorage::new(std::sync::Arc::new(
@@ -1110,6 +1118,7 @@ mod tests_conversation {
                     ))),
                 ))),
                 Arc::new(tokio::sync::RwLock::new(axagent_trajectory::SkillDecomposer::new())),
+                skill_learning_manager.clone(),
                 crate::state::SandboxExecutorField::Real(Arc::new(
                     axagent_trajectory::SkillSandboxExecutor::with_default_policy(),
                 )),
@@ -1158,6 +1167,10 @@ mod tests_conversation {
                     Box::new(axagent_trajectory::DefaultSandboxToolTester),
                 ),
             ))),
+            memory_write_approval_config: Arc::new(tokio::sync::RwLock::new(
+                axagent_harness::memory::MemoryWriteApprovalConfig::default(),
+            )),
+            pending_memory_writes: Arc::new(tokio::sync::RwLock::new(Vec::new())),
         };
 
         let attachments = vec![AttachmentInput {

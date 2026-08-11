@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+use std::sync::RwLock;
 
 static PERSONALITIES_DIR: std::sync::LazyLock<PathBuf> = std::sync::LazyLock::new(|| {
     dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")).join(".axagent").join("personalities")
@@ -16,6 +17,13 @@ static ACTIVE_FILE: std::sync::LazyLock<PathBuf> = std::sync::LazyLock::new(|| {
         .join("personalities")
         .join(".active")
 });
+
+static ACTIVE_PERSONALITY: RwLock<Option<String>> = RwLock::new(None);
+
+/// 获取当前激活的人格名称（线程安全的内存读取）
+pub fn get_active_personality() -> Option<String> {
+    ACTIVE_PERSONALITY.read().ok().and_then(|guard| guard.clone())
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Personality {
@@ -306,8 +314,13 @@ impl PersonalityManager {
         }
         fs::write(&*ACTIVE_FILE, name)
             .map_err(|e| format!("Failed to write active personality: {}", e))?;
-        // 设置环境变量用于条件上下文段
-        // SAFETY: 仅在 tokio runtime 外的同步上下文里设置/清除环境变量,不存在并发竞态
+        // 线程安全的内存写入（主通道）
+        if let Ok(mut guard) = ACTIVE_PERSONALITY.write() {
+            *guard = Some(name.to_string());
+        }
+        // SAFETY: env var 仅作为跨 crate 兼容性通道（tools crate 等需读取），
+        // 写入前已通过 RwLock 同步内存状态。set_active/clear_active 均在
+        // 单线程同步上下文中调用，不存在并发写入竞态。
         unsafe { std::env::set_var("AXAGENT_PERSONALITY", name) };
         Ok(())
     }
@@ -317,6 +330,11 @@ impl PersonalityManager {
             fs::remove_file(&*ACTIVE_FILE)
                 .map_err(|e| format!("Failed to clear active personality: {}", e))?;
         }
+        // 线程安全的内存清理
+        if let Ok(mut guard) = ACTIVE_PERSONALITY.write() {
+            *guard = None;
+        }
+        // SAFETY: 同上，单线程同步上下文，无并发竞态
         unsafe { std::env::remove_var("AXAGENT_PERSONALITY") };
         Ok(())
     }

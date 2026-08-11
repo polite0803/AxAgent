@@ -218,10 +218,10 @@ impl SkillReinjector {
         for msg in messages {
             if msg.role == crate::conversation_model::MessageRole::System {
                 for block in &msg.blocks {
-                    if let crate::conversation_model::ContentBlock::Text { text } = block {
-                        if text.contains("## 当前可用技能") {
-                            skills.push(text.clone());
-                        }
+                    if let crate::conversation_model::ContentBlock::Text { text } = block
+                        && text.contains("## 当前可用技能")
+                    {
+                        skills.push(text.clone());
                     }
                 }
             }

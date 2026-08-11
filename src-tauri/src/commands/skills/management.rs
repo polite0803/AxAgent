@@ -1268,9 +1268,8 @@ fn extract_numbered_steps(content: &str) -> Vec<String> {
             || trimmed.starts_with("4.")
             || trimmed.starts_with("5."))
             && trimmed.len() > 3
+            || trimmed.starts_with("- ") && trimmed.len() > 2
         {
-            steps.push(trimmed.to_string());
-        } else if trimmed.starts_with("- ") && trimmed.len() > 2 {
             steps.push(trimmed.to_string());
         }
     }
@@ -1423,11 +1422,9 @@ pub async fn learn_skill(
         name.clone()
     } else {
         // 从内容中自动生成名称
-        let generated_name =
-            extract_title(&input.content).map(|t| slugify(&t)).unwrap_or_else(|| {
-                format!("learned-{}-{}", source_type, Utc::now().format("%Y%m%d%H%M%S"))
-            });
-        generated_name
+        extract_title(&input.content).map(|t| slugify(&t)).unwrap_or_else(|| {
+            format!("learned-{}-{}", source_type, Utc::now().format("%Y%m%d%H%M%S"))
+        })
     };
 
     validate_skill_name(&skill_name)?;

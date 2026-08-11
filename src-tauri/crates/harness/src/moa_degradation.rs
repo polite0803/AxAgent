@@ -73,7 +73,7 @@ pub enum DegradationTrigger {
 }
 
 /// 降级状态
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct DegradationState {
     /// 当前降级深度
     pub current_depth: u32,
@@ -85,18 +85,6 @@ pub struct DegradationState {
     pub recovery_at: Option<String>,
     /// 连续失败次数
     pub consecutive_failures: u32,
-}
-
-impl Default for DegradationState {
-    fn default() -> Self {
-        Self {
-            current_depth: 0,
-            current_strategy: None,
-            last_degradation_at: None,
-            recovery_at: None,
-            consecutive_failures: 0,
-        }
-    }
 }
 
 impl DegradationState {

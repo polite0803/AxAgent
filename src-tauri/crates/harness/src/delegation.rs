@@ -178,10 +178,10 @@ pub fn execute_approval(request: ApprovalRequest) -> ApprovalResponse {
     }
 
     // 如果有回调，使用回调
-    if let Some(callback_arc) = get_approval_callback() {
-        if let Ok(callback) = callback_arc.lock() {
-            return callback(request);
-        }
+    if let Some(callback_arc) = get_approval_callback()
+        && let Ok(callback) = callback_arc.lock()
+    {
+        return callback(request);
     }
 
     // 默认：低风险自动批准，其他拒绝
@@ -377,8 +377,10 @@ mod tests {
 
     #[test]
     fn test_tool_filter_allowed_list() {
-        let mut config = ToolFilterConfig::default();
-        config.allowed_tools = HashSet::from(["read_file".to_string(), "search_code".to_string()]);
+        let config = ToolFilterConfig {
+            allowed_tools: HashSet::from(["read_file".to_string(), "search_code".to_string()]),
+            ..Default::default()
+        };
 
         assert!(config.is_tool_allowed("read_file"));
         assert!(config.is_tool_allowed("search_code"));

@@ -990,7 +990,12 @@ async fn dispatch_command(
                 ));
             }
 
-            let cmd_meta = registry.find_by_name(command).unwrap();
+            let cmd_meta = match registry.find_by_name(command) {
+                Some(meta) => meta,
+                None => {
+                    return Err(format!("命令 '{}' 在查找过程中不可用，请重试。", command));
+                },
+            };
             let safety = &cmd_meta.safety;
             let permission_mode = input["permission_mode"].as_str().unwrap_or("default");
 

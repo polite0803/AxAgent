@@ -203,15 +203,14 @@ impl SkillScaffoldStripper {
             }
 
             // 检测 section 标题
-            if lower.starts_with("# ") || lower.starts_with("## ") {
-                if lower.contains("when to use")
+            if (lower.starts_with("# ") || lower.starts_with("## "))
+                && (lower.contains("when to use")
                     || lower.contains("procedure")
                     || lower.contains("pitfalls")
-                    || lower.contains("verification")
-                {
-                    in_scaffold = true;
-                    continue;
-                }
+                    || lower.contains("verification"))
+            {
+                in_scaffold = true;
+                continue;
             }
 
             // 跳过 YAML frontmatter
@@ -342,10 +341,10 @@ impl MemoryWriteApprovalRequest {
         }
 
         // 白名单命名空间自动通过
-        if let Some(ref ns) = self.namespace {
-            if config.auto_approve_namespaces.contains(ns) {
-                return false;
-            }
+        if let Some(ref ns) = self.namespace
+            && config.auto_approve_namespaces.contains(ns)
+        {
+            return false;
         }
 
         // 重要性超过阈值需要审批

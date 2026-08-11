@@ -309,7 +309,29 @@ impl ErrorClassifier {
             "overloaded",
             "capacity",
         ];
-        patterns.iter().any(|p| error.contains(p))
+        let has_provider_pattern = patterns.iter().any(|p| error.contains(p));
+
+        // 排除明确是应用 bug 的情况（如 "null pointer dereference"），
+        // 这些应该由 is_unrecoverable 处理而非被误判为 ProviderOutage
+        let bug_patterns = [
+            "null pointer",
+            "panic",
+            "assertion",
+            "invariant",
+            "not implemented",
+            "unsupported",
+            "illegal",
+            "malformed",
+            "syntax error",
+            "parse error",
+            "invalid syntax",
+            "invalid format",
+            "type mismatch",
+            "cast error",
+        ];
+        let is_bug = bug_patterns.iter().any(|p| error.contains(p));
+
+        has_provider_pattern && !is_bug
     }
 
     fn is_network_timeout(error: &str) -> bool {

@@ -429,14 +429,14 @@ impl LifecycleGuard {
         }
 
         // 5. 检查系统负载
-        if let (Some(load), Some(max_load)) = (system_load, self.max_system_load) {
-            if load > max_load {
-                return GuardCheckResult::Blocked(format!(
-                    "系统负载 {:.1}% 超过阈值 {:.1}%",
-                    load * 100.0,
-                    max_load * 100.0
-                ));
-            }
+        if let (Some(load), Some(max_load)) = (system_load, self.max_system_load)
+            && load > max_load
+        {
+            return GuardCheckResult::Blocked(format!(
+                "系统负载 {:.1}% 超过阈值 {:.1}%",
+                load * 100.0,
+                max_load * 100.0
+            ));
         }
 
         GuardCheckResult::Allowed

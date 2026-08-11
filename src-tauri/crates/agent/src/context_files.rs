@@ -236,7 +236,7 @@ fn evaluate_condition(condition_type: &str, condition_value: &str) -> bool {
         "platform" => std::env::consts::OS == condition_value,
         "toolset" => is_toolset_available(condition_value),
         "personality" => {
-            std::env::var("AXAGENT_PERSONALITY").unwrap_or_default().eq(condition_value)
+            crate::personality::get_active_personality().unwrap_or_default().eq(condition_value)
         },
         _ => false,
     }

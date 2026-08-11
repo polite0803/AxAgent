@@ -784,14 +784,14 @@ impl FTS5Search {
 
         // 仅保留当前会话的直接匹配；无谱系表时不做前缀猜测（避免假阳性召回）
         for result in &all_results {
-            if let Some(ref sid) = result.session_id {
-                if sid == session_id {
-                    lineage_results.push(LineageSearchResult {
-                        result: result.clone(),
-                        related_session_ids: vec![session_id.to_string()],
-                        lineage_distance: 0,
-                    });
-                }
+            if let Some(ref sid) = result.session_id
+                && sid == session_id
+            {
+                lineage_results.push(LineageSearchResult {
+                    result: result.clone(),
+                    related_session_ids: vec![session_id.to_string()],
+                    lineage_distance: 0,
+                });
             }
             if lineage_results.len() >= limit {
                 break;

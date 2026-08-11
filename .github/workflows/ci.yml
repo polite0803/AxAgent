@@ -55,12 +55,10 @@ jobs:
       - name: Check frontend formatting (dprint)
         run: npm run format:check
 
-      # ⚠️ TS7 临时禁用：typescript-eslint 全版本 peer 上限 typescript <6.1.0，
-      # 在 TS 7 下 typescript-estree 读已变更内部 API 会崩（TypeError ... 'Cjs'）。
-      # 待 typescript-eslint 发 TS7 支持版后，删除 `if: false` 恢复本步骤。
-      - name: ESLint check
-        if: false
-        run: npx eslint src --max-warnings=0
+      # ⚠️ TS7 临时替代：typescript-eslint 尚未支持 TS 7，
+      # 使用 oxlint 作为临时替代方案。待 typescript-eslint 升级后恢复 ESLint。
+      - name: OxLint check (ESLint TS7 兼容替代)
+        run: npx oxlint src --max-warnings=0
 
       - name: TypeScript type check
         run: npm run typecheck
@@ -196,7 +194,7 @@ jobs:
         run: npm run test:integration
 
       - name: npm audit
-        run: npm audit --audit-level=high || echo "npm audit found issues (non-blocking, run npm audit fix for details)"
+        run: npm audit --audit-level=high
 
   test-e2e:
     name: E2E Tests (macOS)
@@ -238,10 +236,10 @@ jobs:
 
       - name: Run cargo audit
         working-directory: src-tauri
-        continue-on-error: true
+        continue-on-error: false
         run: |
           if cargo audit --version &>/dev/null; then
-            cargo audit --ignore RUSTSEC-2023-0071 --ignore RUSTSEC-2026-0194 --ignore RUSTSEC-2026-0195
+            cargo audit
           else
             echo "cargo-audit not available, skipping"
           fi

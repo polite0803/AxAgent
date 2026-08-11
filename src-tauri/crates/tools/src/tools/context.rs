@@ -408,6 +408,8 @@ fn eval_condition(condition_type: &str, condition_value: &str) -> bool {
         "platform" => std::env::consts::OS == condition_value,
         "toolset" => is_toolset_available(condition_value),
         "personality" => {
+            // SAFETY: env var 由 agent crate 的 personality 模块通过 RwLock
+            // 同步后写入，仅作为跨 crate 兼容性读取通道。
             std::env::var("AXAGENT_PERSONALITY").unwrap_or_default().eq(condition_value)
         },
         _ => false,

@@ -154,7 +154,7 @@
     "vitest": "^4.1.4"
   },
   "simple-git-hooks": {
-    "pre-commit": "npx dprint check && npx tsc --noEmit",
+    "pre-commit": "npx dprint check && npx tsc --noEmit && cd src-tauri && cargo fmt --check",
     "pre-push": "npm run ci:check:quick"
   },
   "optionalDependencies": {

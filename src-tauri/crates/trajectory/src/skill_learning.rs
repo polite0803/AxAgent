@@ -22,6 +22,8 @@ use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
 use uuid::Uuid;
 
+type SkillEventListener = dyn Fn(SkillLearnEvent) + Send + Sync;
+
 // ── 配置 ─────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -232,7 +234,7 @@ pub struct SkillLearningManager {
     skill_creator: SkillCreator,
     known_skills: RwLock<HashSet<String>>,
     pending_operations: RwLock<Vec<PendingSkillOperation>>,
-    event_listeners: RwLock<Vec<Arc<dyn Fn(SkillLearnEvent) + Send + Sync>>>,
+    event_listeners: RwLock<Vec<Arc<SkillEventListener>>>,
     pending_dir: PathBuf,
     skills_root: PathBuf,
     safety_guard: SkillSafetyGuard,
@@ -394,10 +396,10 @@ impl SkillLearningManager {
         let mut found_error = false;
 
         for step in &trajectory.steps {
-            if let Some(results) = &step.tool_results {
-                if results.iter().any(|r| r.is_error) {
-                    found_error = true;
-                }
+            if let Some(results) = &step.tool_results
+                && results.iter().any(|r| r.is_error)
+            {
+                found_error = true;
             }
 
             if !found_error {
@@ -549,7 +551,7 @@ impl SkillLearningManager {
 
     fn generate_skill_from_pattern(pattern: &DetectedPattern) -> String {
         let mut content = String::new();
-        content.push_str(&format!("# Auto-Generated Skill\n\n"));
+        content.push_str("# Auto-Generated Skill\n\n");
         content.push_str("## When to Use\n");
         content.push_str(&format!(
             "This skill is triggered when you need to perform a sequence involving: {}\n\n",
@@ -845,12 +847,11 @@ impl SkillLearningManager {
         let mut loaded = Vec::new();
         if let Ok(entries) = std::fs::read_dir(dir) {
             for entry in entries.flatten() {
-                if entry.path().extension().is_some_and(|e| e == "json") {
-                    if let Ok(content) = std::fs::read_to_string(entry.path()) {
-                        if let Ok(op) = serde_json::from_str::<PendingSkillOperation>(&content) {
-                            loaded.push(op);
-                        }
-                    }
+                if entry.path().extension().is_some_and(|e| e == "json")
+                    && let Ok(content) = std::fs::read_to_string(entry.path())
+                    && let Ok(op) = serde_json::from_str::<PendingSkillOperation>(&content)
+                {
+                    loaded.push(op);
                 }
             }
         }

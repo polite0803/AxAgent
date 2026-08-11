@@ -41,7 +41,8 @@ fn test_classify_transient_network_error() {
 fn test_classify_recoverable_rate_limit() {
     let engine = ErrorRecoveryEngine::new();
     let classified = engine.classify_error("insufficient quota exceeded for resource");
-    assert_eq!(classified.error_type, ErrorType::Recoverable);
+    // 新逻辑: quota 耗尽属于 QuotaExceeded → Unrecoverable（需用户充值，系统无法自动恢复）
+    assert_eq!(classified.error_type, ErrorType::Unrecoverable);
 }
 
 #[test]
