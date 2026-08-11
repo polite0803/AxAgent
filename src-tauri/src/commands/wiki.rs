@@ -2613,3 +2613,115 @@ fn replace_inline_links(text: &str) -> String {
     result.push_str(remaining);
     result
 }
+
+/// 修复 Wiki 图谱关联结果
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RepairWikiGraphResult {
+    /// Wiki ID
+    pub wiki_id: String,
+    /// 关联的 KB ID
+    pub kb_id: Option<String>,
+    /// 修复的笔记数量
+    pub repaired_notes: usize,
+    /// 是否成功关联了 KB
+    pub kb_linked: bool,
+    /// 消息
+    pub message: String,
+}
+
+/// 修复 Wiki 图谱关联：
+/// 1. 自动关联 Wiki 与 KB（如未关联）
+/// 2. 遍历所有笔记，重新解析 [[wikilink]] 并同步到 note_links 表
+/// 3. 失效图谱缓存，确保下次加载获取最新数据
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "修复 Wiki 图谱关联")]
+#[tauri::command]
+pub async fn repair_wiki_graph(
+    state: State<'_, AppState>,
+    wiki_id: String,
+) -> Result<RepairWikiGraphResult, String> {
+    let db = state.harness.db();
+
+    // 1. 获取 Wiki 信息
+    let wiki = axagent_dao::repo::wiki::get_wiki(db, &wiki_id).await.map_err(|_| {
+        String::from(crate::commands::error::ErrorResponse::err_with_detail(
+            crate::commands::error_code::wiki::NOT_FOUND,
+            format!("Wiki {} 不存在", wiki_id),
+        ))
+    })?;
+
+    let mut kb_id = wiki.knowledge_base_id.clone();
+    let mut kb_linked = kb_id.is_some();
+
+    // 2. 如果 Wiki 未关联 KB，尝试通过名称匹配自动关联
+    if kb_id.is_none() {
+        let expected_kb_name = format!("{}图谱", wiki.name);
+        let kbs = axagent_dao::repo::knowledge::list_knowledge_bases(db).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+
+        if let Some(matching_kb) = kbs.into_iter().find(|kb| kb.name == expected_kb_name) {
+            // 自动关联
+            axagent_dao::repo::wiki::update_wiki(
+                db,
+                &wiki_id,
+                None,
+                None,
+                None,
+                Some(Some(matching_kb.id.clone())),
+            )
+            .await
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
+
+            kb_id = Some(matching_kb.id);
+            kb_linked = true;
+            tracing::info!("[repair_graph] 自动关联 Wiki {} 与 KB", wiki_id);
+        }
+    }
+
+    // 3. 修复 wikilink：遍历所有笔记，重新解析 [[wikilink]]
+    let notes = axagent_dao::repo::note::list_notes(db, &wiki_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+
+    let mut repaired_notes = 0usize;
+    for note in &notes {
+        match axagent_dao::repo::note::sync_note_links_from_content(
+            db,
+            &wiki_id,
+            &note.id,
+            &note.content,
+        )
+        .await
+        {
+            Ok(()) => {
+                repaired_notes += 1;
+            },
+            Err(e) => {
+                tracing::warn!("[repair_graph] 笔记 {} 链接同步失败: {}", note.title, e);
+            },
+        }
+    }
+
+    // 4. 失效图谱缓存
+    let _ = axagent_dao::repo::wiki_graph_cache::invalidate_cache(db, &wiki_id).await;
+
+    let message = if kb_linked {
+        format!("修复完成：已关联 KB，修复 {} 篇笔记的链接", repaired_notes)
+    } else {
+        format!("修复完成：修复 {} 篇笔记的链接（未找到匹配的 KB）", repaired_notes)
+    };
+
+    Ok(RepairWikiGraphResult { wiki_id, kb_id, repaired_notes, kb_linked, message })
+}

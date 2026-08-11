@@ -6203,7 +6203,10 @@
       "largestComponent": "Largest Component",
       "avgDegree": "Avg Degree",
       "highlighted": "Highlighted",
-      "legend": "Легенда"
+      "legend": "Легенда",
+      "repairGraph": "Исправить ссылки графа",
+      "repairSuccess": "Исправление завершено: KB связан, исправлено {{count}} ссылок заметок",
+      "repairPartial": "Исправление завершено: исправлено {{count}} ссылок заметок (подходящий KB не найден)"
     },
     "hidePanel": "Скрыть панель",
     "history": "История",

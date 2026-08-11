@@ -6203,7 +6203,10 @@
       "largestComponent": "Largest Component",
       "avgDegree": "Avg Degree",
       "highlighted": "Highlighted",
-      "legend": "कुंजी"
+      "legend": "कुंजी",
+      "repairGraph": "ग्राफ लिंक मरम्मत करें",
+      "repairSuccess": "मरम्मत पूरी: KB लिंक किया गया, {{count}} नोट्स के लिंक मरम्मत किए गए",
+      "repairPartial": "मरम्मत पूरी: {{count}} नोट्स के लिंक मरम्मत किए गए (कोई मेल खाता KB नहीं मिला)"
     },
     "hidePanel": "पैनल छिपाएं",
     "history": "इतिहास",

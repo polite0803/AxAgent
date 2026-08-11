@@ -6203,7 +6203,10 @@
       "largestComponent": "Largest Component",
       "avgDegree": "Avg Degree",
       "highlighted": "Highlighted",
-      "legend": "دليل"
+      "legend": "دليل",
+      "repairGraph": "إصلاح روابط الرسم البياني",
+      "repairSuccess": "اكتمل الإصلاح: تم ربط KB، وتم إصلاح {{count}} روابط الملاحظات",
+      "repairPartial": "اكتمل الإصلاح: تم إصلاح {{count}} روابط الملاحظات (لم يتم العثور على KB مطابق)"
     },
     "hidePanel": "إخفاء اللوحة",
     "history": "السجل",

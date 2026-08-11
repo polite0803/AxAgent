@@ -966,6 +966,7 @@ macro_rules! register_all_commands {
             commands::wiki::get_wiki_graph_cached,
             commands::wiki::wiki_graph_communities_cached,
             commands::wiki::invalidate_wiki_graph_cache,
+            commands::wiki::repair_wiki_graph,
             commands::wiki::sync_note_to_knowledge_base,
             commands::wiki::sync_knowledge_document_to_wiki,
             commands::wiki::wiki_note_versions,

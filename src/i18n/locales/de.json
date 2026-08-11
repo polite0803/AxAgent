@@ -6203,7 +6203,10 @@
       "largestComponent": "Largest Component",
       "avgDegree": "Avg Degree",
       "highlighted": "Highlighted",
-      "legend": "Legende"
+      "legend": "Legende",
+      "repairGraph": "Graph-Links reparieren",
+      "repairSuccess": "Reparatur abgeschlossen: KB verknüpft, {{count}} Notiz-Links repariert",
+      "repairPartial": "Reparatur abgeschlossen: {{count}} Notiz-Links repariert (kein passendes KB gefunden)"
     },
     "hidePanel": "Panel ausblenden",
     "history": "Verlauf",

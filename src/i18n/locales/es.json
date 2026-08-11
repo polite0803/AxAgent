@@ -6203,7 +6203,10 @@
       "largestComponent": "Largest Component",
       "avgDegree": "Avg Degree",
       "highlighted": "Highlighted",
-      "legend": "Leyenda"
+      "legend": "Leyenda",
+      "repairGraph": "Reparar enlaces del gráfico",
+      "repairSuccess": "Reparación completada: KB vinculado, {{count}} enlaces de notas reparados",
+      "repairPartial": "Reparación completada: {{count}} enlaces de notas reparados (no se encontró un KB coincidente)"
     },
     "hidePanel": "Ocultar panel",
     "history": "Historial",

@@ -42,7 +42,7 @@ fn extract_wikilink_targets(content: &str) -> Vec<String> {
 
 /// 解析笔记内容中的 `[[wikilink]]` 并同步 note_links + note_backlinks 表。
 /// 在笔记创建/更新时自动调用，确保所有路径（包括批量导入、脚本桥接）都能正确解析链接。
-async fn sync_note_links_from_content(
+pub async fn sync_note_links_from_content(
     db: &DatabaseConnection,
     vault_id: &str,
     source_note_id: &str,

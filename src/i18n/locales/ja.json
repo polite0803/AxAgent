@@ -6203,7 +6203,10 @@
       "largestComponent": "Largest Component",
       "avgDegree": "Avg Degree",
       "highlighted": "Highlighted",
-      "legend": "凡例"
+      "legend": "凡例",
+      "repairGraph": "グラフリンクを修復",
+      "repairSuccess": "修復完了：KBがリンクされ、{{count}}件のノートのリンクを修復しました",
+      "repairPartial": "修復完了：{{count}}件のノートのリンクを修復しました（マッチするKBが見つかりませんでした）"
     },
     "hidePanel": "パネルを非表示",
     "history": "履歴",
