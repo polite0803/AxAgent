@@ -6180,7 +6180,8 @@
         "contradicts": "يتعارض مع",
         "derived": "مشتق",
         "link": "رابط",
-        "reference": "مرجع"
+        "reference": "مرجع",
+        "mapping": "تناظر"
       },
       "edges": "حواف",
       "empty": "لا توجد بيانات رسم بياني",
@@ -6207,6 +6208,7 @@
       "fisheyeOff": "عدسة عين السمكة: إيقاف",
       "clusterOn": "وضع المجموعة: تشغيل",
       "clusterOff": "وضع المجموعة: إيقاف",
+      "clusterLabel": "مجموعة {{id}}",
       "nodeType": {
         "note": "ملاحظة",
         "concept": "مفهوم",

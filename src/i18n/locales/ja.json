@@ -6182,7 +6182,8 @@
         "contradicts": "矛盾する",
         "derived": "派生",
         "link": "リンク",
-        "reference": "参照"
+        "reference": "参照",
+        "mapping": "マッピング"
       },
       "edges": "エッジ",
       "empty": "グラフデータがありません",
@@ -6209,6 +6210,7 @@
       "fisheyeOff": "魚眼レンズ：オフ",
       "clusterOn": "クラスタモード：オン",
       "clusterOff": "クラスタモード：オフ",
+      "clusterLabel": "クラスター {{id}}",
       "nodeType": {
         "note": "ノート",
         "concept": "概念",
