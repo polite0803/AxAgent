@@ -9283,7 +9283,27 @@
       "tags": "Etiquetas",
       "relationships": "Relaciones",
       "show": "Mostrar grafo",
-      "hide": "Ocultar grafo"
+      "hide": "Ocultar grafo",
+      "entityLabels": {
+        "project": "Proyecto",
+        "user": "Usuario",
+        "concept": "Concepto",
+        "file": "Archivo",
+        "task": "Tarea"
+      },
+      "relationshipLabels": {
+        "partOf": "Parte de",
+        "relatedTo": "Relacionado con",
+        "dependsOn": "Depende de",
+        "owns": "Posee",
+        "defines": "Define",
+        "implements": "Implementa",
+        "contains": "Contiene",
+        "calls": "Llama",
+        "methodOf": "Método de",
+        "performs": "Realiza",
+        "associatedWith": "Asociado con"
+      }
     }
   }
 }

@@ -9287,7 +9287,27 @@
       "tags": "标签",
       "relationships": "关联关系",
       "show": "显示图谱",
-      "hide": "隐藏图谱"
+      "hide": "隐藏图谱",
+      "entityLabels": {
+        "project": "项目",
+        "user": "用户",
+        "concept": "概念",
+        "file": "文件",
+        "task": "任务"
+      },
+      "relationshipLabels": {
+        "partOf": "组成部分",
+        "relatedTo": "相关",
+        "dependsOn": "依赖",
+        "owns": "拥有",
+        "defines": "定义",
+        "implements": "实现",
+        "contains": "包含",
+        "calls": "调用",
+        "methodOf": "方法",
+        "performs": "执行",
+        "associatedWith": "关联"
+      }
     }
   }
 }

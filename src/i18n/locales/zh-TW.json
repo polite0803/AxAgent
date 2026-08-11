@@ -9283,7 +9283,27 @@
       "tags": "標籤",
       "relationships": "關聯關係",
       "show": "顯示圖譜",
-      "hide": "隱藏圖譜"
+      "hide": "隱藏圖譜",
+      "entityLabels": {
+        "project": "專案",
+        "user": "使用者",
+        "concept": "概念",
+        "file": "檔案",
+        "task": "任務"
+      },
+      "relationshipLabels": {
+        "partOf": "組成部分",
+        "relatedTo": "相關",
+        "dependsOn": "依賴",
+        "owns": "擁有",
+        "defines": "定義",
+        "implements": "實作",
+        "contains": "包含",
+        "calls": "呼叫",
+        "methodOf": "方法",
+        "performs": "執行",
+        "associatedWith": "關聯"
+      }
     }
   }
 }

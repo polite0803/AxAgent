@@ -9283,7 +9283,27 @@
       "tags": "علامات",
       "relationships": "علاقات",
       "show": "إظهار الرسم البياني",
-      "hide": "إخفاء الرسم البياني"
+      "hide": "إخفاء الرسم البياني",
+      "entityLabels": {
+        "project": "مشروع",
+        "user": "مستخدم",
+        "concept": "مفهوم",
+        "file": "ملف",
+        "task": "مهمة"
+      },
+      "relationshipLabels": {
+        "partOf": "جزء من",
+        "relatedTo": "ذو صلة",
+        "dependsOn": "يعتمد على",
+        "owns": "يمتلك",
+        "defines": "يحدد",
+        "implements": "ينفذ",
+        "contains": "يحتوي",
+        "calls": "يستدعي",
+        "methodOf": "طريقة",
+        "performs": "يقوم بتنفيذ",
+        "associatedWith": "مرتبط بـ"
+      }
     }
   }
 }

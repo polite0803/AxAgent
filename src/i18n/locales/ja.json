@@ -9283,7 +9283,27 @@
       "tags": "タグ",
       "relationships": "関係",
       "show": "グラフを表示",
-      "hide": "グラフを非表示"
+      "hide": "グラフを非表示",
+      "entityLabels": {
+        "project": "プロジェクト",
+        "user": "ユーザー",
+        "concept": "概念",
+        "file": "ファイル",
+        "task": "タスク"
+      },
+      "relationshipLabels": {
+        "partOf": "の一部",
+        "relatedTo": "関連",
+        "dependsOn": "依存",
+        "owns": "所有",
+        "defines": "定義",
+        "implements": "実装",
+        "contains": "含む",
+        "calls": "呼び出す",
+        "methodOf": "のメソッド",
+        "performs": "実行",
+        "associatedWith": "関連付けられた"
+      }
     }
   }
 }

@@ -169,35 +169,35 @@ export function computeBacklinkCounts(
 }
 
 /**
- * 格式化实体类型为显示标签
+ * 格式化实体类型为显示标签（返回 i18n key，由调用方使用 t() 翻译）
  */
-export function formatEntityType(type: string): string {
-  const labels: Record<string, string> = {
-    project: "项目",
-    user: "用户",
-    concept: "概念",
-    file: "文件",
-    task: "任务",
+export function getEntityTypeKey(type: string): string {
+  const keyMap: Record<string, string> = {
+    project: "memory.graph.entityLabels.project",
+    user: "memory.graph.entityLabels.user",
+    concept: "memory.graph.entityLabels.concept",
+    file: "memory.graph.entityLabels.file",
+    task: "memory.graph.entityLabels.task",
   };
-  return labels[type.toLowerCase()] ?? type;
+  return keyMap[type.toLowerCase()] ?? type;
 }
 
 /**
- * 格式化关系类型为显示标签
+ * 格式化关系类型为显示标签（返回 i18n key，由调用方使用 t() 翻译）
  */
-export function formatRelationshipType(type: string): string {
-  const labels: Record<string, string> = {
-    part_of: "组成部分",
-    related_to: "相关",
-    depends_on: "依赖",
-    owns: "拥有",
-    defines: "定义",
-    implements: "实现",
-    contains: "包含",
-    calls: "调用",
-    method_of: "方法",
-    performs: "执行",
-    associated_with: "关联",
+export function getRelationshipTypeKey(type: string): string {
+  const keyMap: Record<string, string> = {
+    part_of: "memory.graph.relationshipLabels.partOf",
+    related_to: "memory.graph.relationshipLabels.relatedTo",
+    depends_on: "memory.graph.relationshipLabels.dependsOn",
+    owns: "memory.graph.relationshipLabels.owns",
+    defines: "memory.graph.relationshipLabels.defines",
+    implements: "memory.graph.relationshipLabels.implements",
+    contains: "memory.graph.relationshipLabels.contains",
+    calls: "memory.graph.relationshipLabels.calls",
+    method_of: "memory.graph.relationshipLabels.methodOf",
+    performs: "memory.graph.relationshipLabels.performs",
+    associated_with: "memory.graph.relationshipLabels.associatedWith",
   };
-  return labels[type.toLowerCase()] ?? type;
+  return keyMap[type.toLowerCase()] ?? type;
 }

@@ -9283,7 +9283,27 @@
       "tags": "टैग",
       "relationships": "संबंध",
       "show": "ग्राफ़ दिखाएँ",
-      "hide": "ग्राफ़ छुपाएँ"
+      "hide": "ग्राफ़ छुपाएँ",
+      "entityLabels": {
+        "project": "परियोजना",
+        "user": "उपयोगकर्ता",
+        "concept": "अवधारणा",
+        "file": "फ़ाइल",
+        "task": "कार्य"
+      },
+      "relationshipLabels": {
+        "partOf": "का भाग",
+        "relatedTo": "संबंधित",
+        "dependsOn": "पर निर्भर",
+        "owns": "का मालिक",
+        "defines": "परिभाषित करता",
+        "implements": "कार्यान्वित करता",
+        "contains": "शामिल है",
+        "calls": "कॉल करता",
+        "methodOf": "की विधि",
+        "performs": "करता",
+        "associatedWith": "से जुड़ा"
+      }
     }
   }
 }

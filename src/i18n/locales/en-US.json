@@ -9285,7 +9285,27 @@
       "tags": "Tags",
       "relationships": "Relationships",
       "show": "Show Graph",
-      "hide": "Hide Graph"
+      "hide": "Hide Graph",
+      "entityLabels": {
+        "project": "Project",
+        "user": "User",
+        "concept": "Concept",
+        "file": "File",
+        "task": "Task"
+      },
+      "relationshipLabels": {
+        "partOf": "Part of",
+        "relatedTo": "Related to",
+        "dependsOn": "Depends on",
+        "owns": "Owns",
+        "defines": "Defines",
+        "implements": "Implements",
+        "contains": "Contains",
+        "calls": "Calls",
+        "methodOf": "Method of",
+        "performs": "Performs",
+        "associatedWith": "Associated with"
+      }
     }
   }
 }

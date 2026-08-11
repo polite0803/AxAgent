@@ -9283,7 +9283,27 @@
       "tags": "태그",
       "relationships": "관계",
       "show": "그래프 표시",
-      "hide": "그래프 숨기기"
+      "hide": "그래프 숨기기",
+      "entityLabels": {
+        "project": "프로젝트",
+        "user": "사용자",
+        "concept": "개념",
+        "file": "파일",
+        "task": "작업"
+      },
+      "relationshipLabels": {
+        "partOf": "의 일부",
+        "relatedTo": "관련됨",
+        "dependsOn": "의존",
+        "owns": "소유",
+        "defines": "정의",
+        "implements": "구현",
+        "contains": "포함",
+        "calls": "호출",
+        "methodOf": "메서드",
+        "performs": "실행",
+        "associatedWith": "연결됨"
+      }
     }
   }
 }

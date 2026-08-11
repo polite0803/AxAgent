@@ -9283,7 +9283,27 @@
       "tags": "Теги",
       "relationships": "Связи",
       "show": "Показать граф",
-      "hide": "Скрыть граф"
+      "hide": "Скрыть граф",
+      "entityLabels": {
+        "project": "Проект",
+        "user": "Пользователь",
+        "concept": "Концепция",
+        "file": "Файл",
+        "task": "Задача"
+      },
+      "relationshipLabels": {
+        "partOf": "Часть",
+        "relatedTo": "Связано",
+        "dependsOn": "Зависит от",
+        "owns": "Владеет",
+        "defines": "Определяет",
+        "implements": "Реализует",
+        "contains": "Содержит",
+        "calls": "Вызывает",
+        "methodOf": "Метод",
+        "performs": "Выполняет",
+        "associatedWith": "Связано с"
+      }
     }
   }
 }
