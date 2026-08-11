@@ -2644,10 +2644,10 @@ pub async fn repair_wiki_graph(
 
     // 1. 获取 Wiki 信息
     let wiki = axagent_dao::repo::wiki::get_wiki(db, &wiki_id).await.map_err(|_| {
-        String::from(crate::commands::error::ErrorResponse::err_with_detail(
+        crate::commands::error::ErrorResponse::err_with_detail(
             crate::commands::error_code::wiki::NOT_FOUND,
             format!("Wiki {} 不存在", wiki_id),
-        ))
+        )
     })?;
 
     let mut kb_id = wiki.knowledge_base_id.clone();
