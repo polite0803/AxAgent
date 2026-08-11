@@ -8511,6 +8511,7 @@
       "viewContent": "عرض المحتوى"
     },
     "retry": "إعادة المحاولة",
+    "sourceLocal": "محلي",
     "runtimeError": "خطأ وقت تشغيل Skill \"{{name}}\"",
     "search": "البحث عن المهارات...",
     "stats": {
@@ -8845,9 +8846,6 @@
       "createTitle": "مصدر معرفة جديد",
       "sourceType": "النوع",
       "pathRequired": "أدخل URL أو مسارًا",
-      "createSubmit": "إنشاء"
-    },
-    "enterFailed": "找不到对应的知识库记录，请尝试刷新页面"
       "createSubmit": "إنشاء",
       "targetLabel": "المصدر المستهدف",
       "selectTargetPlaceholder": "اختر مصدرًا",
@@ -9865,9 +9863,7 @@
     },
     "wikiMeta": {
       "rootPath": "根路径"
-    }
-    "collapseAll": "طي الكل",
-    "expandAll": "توسيع الكل",
+    },
     "noteLoadFailed": "فشل تحميل الملاحظة"
   },
   "workflow": {

@@ -8511,6 +8511,7 @@
       "viewContent": "सामग्री देखें"
     },
     "retry": "पुनः प्रयास",
+    "sourceLocal": "स्थानीय",
     "runtimeError": "Skill \"{{name}}\" रनटाइम त्रुटि",
     "search": "कौशल खोजें...",
     "stats": {
@@ -8845,9 +8846,6 @@
       "createTitle": "नया ज्ञान स्रोत",
       "sourceType": "प्रकार",
       "pathRequired": "URL या पथ दर्ज करें",
-      "createSubmit": "बनाएँ"
-    },
-    "enterFailed": "找不到对应的知识库记录，请尝试刷新页面"
       "createSubmit": "बनाएँ",
       "targetLabel": "लक्ष्य स्रोत",
       "selectTargetPlaceholder": "स्रोत चुनें",
@@ -9865,9 +9863,7 @@
     },
     "wikiMeta": {
       "rootPath": "根路径"
-    }
-    "collapseAll": "सभी सिकोड़ें",
-    "expandAll": "सभी विस्तारित करें",
+    },
     "noteLoadFailed": "नोट लोड करने में विफल"
   },
   "workflow": {

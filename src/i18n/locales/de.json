@@ -8511,6 +8511,7 @@
       "viewContent": "Inhalt anzeigen"
     },
     "retry": "Wiederholen",
+    "sourceLocal": "Lokal",
     "runtimeError": "Skill \"{{name}}\": Laufzeitfehler",
     "search": "Fähigkeiten suchen...",
     "stats": {
@@ -8845,9 +8846,6 @@
       "createTitle": "Neue Wissensquelle",
       "sourceType": "Typ",
       "pathRequired": "URL oder Pfad eingeben",
-      "createSubmit": "Erstellen"
-    },
-    "enterFailed": "找不到对应的知识库记录，请尝试刷新页面"
       "createSubmit": "Erstellen",
       "targetLabel": "Zielquelle",
       "selectTargetPlaceholder": "Quelle auswählen",
@@ -9867,7 +9865,7 @@
     },
     "wikiMeta": {
       "rootPath": "根路径"
-    }
+    },
     "noteLoadFailed": "Notiz konnte nicht geladen werden"
   },
   "workflow": {

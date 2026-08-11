@@ -8511,6 +8511,7 @@
       "viewContent": "콘텐츠 보기"
     },
     "retry": "재시도",
+    "sourceLocal": "로컬",
     "runtimeError": "Skill \"{{name}}\" 런타임 오류",
     "search": "스킬 검색...",
     "stats": {
@@ -8845,9 +8846,6 @@
       "createTitle": "새 지식 소스",
       "sourceType": "유형",
       "pathRequired": "URL 또는 경로 입력",
-      "createSubmit": "만들기"
-    },
-    "enterFailed": "找不到对应的知识库记录，请尝试刷新页面"
       "createSubmit": "만들기",
       "targetLabel": "대상 소스",
       "selectTargetPlaceholder": "소스 선택",
@@ -9865,9 +9863,7 @@
     },
     "wikiMeta": {
       "rootPath": "根路径"
-    }
-    "collapseAll": "모두 접기",
-    "expandAll": "모두 펼치기",
+    },
     "noteLoadFailed": "노트를 불러오지 못했습니다"
   },
   "workflow": {

@@ -11,7 +11,7 @@ import { useMemoryStore } from "@/stores/feature/memoryStore";
 import type { SourceConfig, UnifiedSource } from "@/stores/feature/sourceStore";
 import type { KnowledgeBase } from "@/types";
 import {
-  App,
+  App as AntdApp,
   Button,
   Card,
   Col,
@@ -144,7 +144,7 @@ function SourceConfigModal({
   const [saving, setSaving] = useState(false);
   const [rebuildConfirmOpen, setRebuildConfirmOpen] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
-  const { message: messageApi } = App.useApp();
+  const { message: messageApi } = AntdApp.useApp();
 
   useEffect(() => {
     if (!open || !source) {
@@ -638,7 +638,7 @@ function SourceCard({
   const meta = TYPE_META[source.containerType];
   const deleteSource = useSourceStore((s) => s.deleteSource);
   const fetchSources = useSourceStore((s) => s.fetchSources);
-  const { message: messageApi, modal } = App.useApp();
+  const { message: messageApi, modal } = AntdApp.useApp();
   const formatProviderLabel = useEmbeddingProviderLabel();
 
   const handleView = useCallback(() => {
@@ -1275,7 +1275,7 @@ function WikiCard({ wiki }: { wiki: Wiki }) {
   const { token } = theme.useToken();
   const navigate = useNavigate();
   const deleteWiki = useLlmWikiStore((s) => s.deleteWiki);
-  const { message: messageApi } = App.useApp();
+  const { message: messageApi } = AntdApp.useApp();
 
   const handleDelete = async () => {
     try {
@@ -1383,7 +1383,7 @@ function AllSourcesTab({
 }) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const { message } = App.useApp();
+  const { message } = AntdApp.useApp();
   const { sources, loading, searchAllSources } = useSourceStore();
   const {
     loadSources,

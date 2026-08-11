@@ -8511,6 +8511,7 @@
       "viewContent": "Просмотр содержимого"
     },
     "retry": "Повторить",
+    "sourceLocal": "Локальный",
     "runtimeError": "Ошибка выполнения Skill \"{{name}}\"",
     "search": "Поиск навыков...",
     "stats": {
@@ -8845,9 +8846,6 @@
       "createTitle": "Новый источник знаний",
       "sourceType": "Тип",
       "pathRequired": "Введите URL или путь",
-      "createSubmit": "Создать"
-    },
-    "enterFailed": "找不到对应的知识库记录，请尝试刷新页面"
       "createSubmit": "Создать",
       "targetLabel": "Целевой источник",
       "selectTargetPlaceholder": "Выберите источник",
@@ -9865,9 +9863,7 @@
     },
     "wikiMeta": {
       "rootPath": "根路径"
-    }
-    "collapseAll": "Свернуть все",
-    "expandAll": "Развернуть все",
+    },
     "noteLoadFailed": "Не удалось загрузить заметку"
   },
   "workflow": {

@@ -4,7 +4,7 @@ members = [
   "crates/agent",
   "crates/agent-command-types",
   "crates/agent-macro",
-"crates/analysis-engine",
+  "crates/analysis-engine",
   "crates/astock-data",
   "crates/axagent-mobile",
   "crates/cache",
@@ -253,8 +253,6 @@ incremental = true
 # Windows MSVC 关键优化：split-debuginfo="unpacked" 将 PDB 拆分到 .pdb 文件，
 # 避免链接器把 debug info 打包进 .dll/.exe，每次链接减少数分钟
 split-debuginfo = "unpacked"
-# axagent 主 crate 代码量大，减少 codegen-units 降低并行编译开销
-codegen-units = 8
 
 # 第三方依赖：codegen-units 从 64 降至 16
 # 64 → 每个 dep crate 产出 64 个 .o 文件 → 3200 crate × 64 = 204800 目标文件
@@ -264,13 +262,6 @@ codegen-units = 8
 opt-level = 0
 codegen-units = 16
 debug = false
-incremental = true
-
-# axagent 主 crate 优化：减少 codegen-units，降低 Windows 链接开销
-[profile.dev.overrides.axagent]
-opt-level = 0
-codegen-units = 4
-debug = "line-tables-only"
 incremental = true
 
 [dev-dependencies]

@@ -8511,6 +8511,7 @@
       "viewContent": "查看內容"
     },
     "retry": "重試",
+    "sourceLocal": "本機",
     "runtimeError": "Skill \"{{name}}\" 運行時錯誤",
     "search": "搜搜尋技能...",
     "stats": {
@@ -8845,9 +8846,6 @@
       "createTitle": "新增知識源",
       "sourceType": "類型",
       "pathRequired": "請輸入 URL 或路徑",
-      "createSubmit": "建立"
-    },
-    "enterFailed": "找不到对应的知识库记录，请尝试刷新页面"
       "createSubmit": "建立",
       "targetLabel": "目標知識源",
       "selectTargetPlaceholder": "請選擇知識源",
@@ -9865,9 +9863,7 @@
     },
     "wikiMeta": {
       "rootPath": "根路徑"
-    }
-    "collapseAll": "全部摺疊",
-    "expandAll": "全部展開",
+    },
     "noteLoadFailed": "筆記載入失敗"
   },
   "workflow": {

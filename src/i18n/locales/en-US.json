@@ -8511,6 +8511,7 @@
       "viewContent": "View content"
     },
     "retry": "Retry",
+    "sourceLocal": "Local",
     "runtimeError": "Skill \"{{name}}\" runtime error",
     "search": "Search skills...",
     "stats": {
@@ -9867,7 +9868,7 @@
     "vaultPath": "Vault path...",
     "wikiMeta": {
       "rootPath": "Root Path"
-    }
+    },
     "noteLoadFailed": "Failed to load note"
   },
   "workflow": {

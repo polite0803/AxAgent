@@ -64,11 +64,19 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-const INSTALL_TARGETS = [
+interface InstallTarget {
+  key: string;
+  label: string;
+  desc?: string;
+  descKey?: string;
+  icon: React.ReactNode;
+}
+
+const INSTALL_TARGETS: InstallTarget[] = [
   {
     key: "axagent",
     label: "~/.axagent/skills/",
-    desc: "本地",
+    descKey: "skill.sourceLocal",
     icon: <Sparkles size={14} color={CHAT_ICON_COLORS.Sparkles} />,
   },
   {
@@ -101,7 +109,7 @@ const INSTALL_TARGETS = [
     desc: "Agents",
     icon: <FolderOpen size={14} color={CHAT_ICON_COLORS.FolderOpen} />,
   },
-] as const;
+];
 
 const openExternalUrl = (url: string) => {
   import("@tauri-apps/plugin-opener")
@@ -130,7 +138,7 @@ const SOURCE_ICONS: Record<string, React.ReactNode> = {
 };
 
 const SOURCE_LABELS: Record<string, string> = {
-  axagent: "本地",
+  axagent: "skill.sourceLocal",
   workbuddy: "WorkBuddy",
   project: "skills.source.project",
 };
@@ -775,7 +783,7 @@ export function SkillsPage() {
               items: INSTALL_TARGETS.map((target) => ({
                 key: target.key,
                 icon: target.icon,
-                label: `${target.desc} (${target.label})`,
+                label: `${target.descKey ? t(target.descKey) : target.desc} (${target.label})`,
               })),
               onClick: ({ key }) => handleInstallFromUrl(key),
             }}

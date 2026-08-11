@@ -8511,6 +8511,7 @@
       "viewContent": "Ver contenido"
     },
     "retry": "Reintentar",
+    "sourceLocal": "Local",
     "runtimeError": "Error de ejecución del Skill \"{{name}}\"",
     "search": "Buscar habilidades...",
     "stats": {
@@ -8845,9 +8846,6 @@
       "createTitle": "Nueva fuente de conocimiento",
       "sourceType": "Tipo",
       "pathRequired": "Ingresa URL o ruta",
-      "createSubmit": "Crear"
-    },
-    "enterFailed": "找不到对应的知识库记录，请尝试刷新页面"
       "createSubmit": "Crear",
       "targetLabel": "Fuente objetivo",
       "selectTargetPlaceholder": "Seleccione una fuente",
@@ -9865,9 +9863,7 @@
     },
     "wikiMeta": {
       "rootPath": "根路径"
-    }
-    "collapseAll": "Contraer todo",
-    "expandAll": "Expandir todo",
+    },
     "noteLoadFailed": "No se pudo cargar la nota"
   },
   "workflow": {
