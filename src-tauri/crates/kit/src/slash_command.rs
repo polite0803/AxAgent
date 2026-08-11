@@ -373,7 +373,7 @@ mod tests {
 
     #[test]
     fn test_builtin_new() {
-        let action = process_slash_command("/new").unwrap();
+        let action = process_slash_command("/new").expect("测试应成功");
         assert_eq!(
             action,
             SlashCommandAction::BuiltIn { command: "new".to_string(), args: String::new() }
@@ -382,7 +382,7 @@ mod tests {
 
     #[test]
     fn test_builtin_model_with_args() {
-        let action = process_slash_command("/model gpt-4").unwrap();
+        let action = process_slash_command("/model gpt-4").expect("测试应成功");
         assert_eq!(
             action,
             SlashCommandAction::BuiltIn { command: "model".to_string(), args: "gpt-4".to_string() }
@@ -391,7 +391,7 @@ mod tests {
 
     #[test]
     fn test_builtin_personality() {
-        let action = process_slash_command("/personality").unwrap();
+        let action = process_slash_command("/personality").expect("测试应成功");
         assert_eq!(
             action,
             SlashCommandAction::BuiltIn { command: "personality".to_string(), args: String::new() }
@@ -401,20 +401,20 @@ mod tests {
     #[test]
     fn test_builtin_commands_all_recognized() {
         for cmd in BUILTIN_COMMANDS {
-            let action = process_slash_command(&format!("/{}", cmd)).unwrap();
+            let action = process_slash_command(&format!("/{}", cmd)).expect("测试应成功");
             assert!(matches!(action, SlashCommandAction::BuiltIn { .. }));
         }
     }
 
     #[test]
     fn test_unknown_slash_command() {
-        let action = process_slash_command("/nonexistent-command-xyz").unwrap();
+        let action = process_slash_command("/nonexistent-command-xyz").expect("测试应成功");
         assert_eq!(action, SlashCommandAction::Unknown);
     }
 
     #[test]
     fn test_slash_with_whitespace() {
-        let action = process_slash_command("  /new  ").unwrap();
+        let action = process_slash_command("  /new  ").expect("测试应成功");
         assert_eq!(
             action,
             SlashCommandAction::BuiltIn { command: "new".to_string(), args: String::new() }
@@ -423,7 +423,7 @@ mod tests {
 
     #[test]
     fn test_slash_command_router_process() {
-        let action = SlashCommandRouter::process("/stop").unwrap();
+        let action = SlashCommandRouter::process("/stop").expect("测试：process 应成功");
         assert_eq!(
             action,
             SlashCommandAction::BuiltIn { command: "stop".to_string(), args: String::new() }
@@ -432,7 +432,7 @@ mod tests {
 
     #[test]
     fn test_slash_command_with_multi_word_args() {
-        let action = process_slash_command("/model gpt-4 turbo mode").unwrap();
+        let action = process_slash_command("/model gpt-4 turbo mode").expect("测试应成功");
         assert_eq!(
             action,
             SlashCommandAction::BuiltIn {
@@ -444,7 +444,7 @@ mod tests {
 
     #[test]
     fn test_builtin_takes_priority_over_bundle() {
-        let action = process_slash_command("/bundles").unwrap();
+        let action = process_slash_command("/bundles").expect("测试应成功");
         assert_eq!(
             action,
             SlashCommandAction::BuiltIn { command: "bundles".to_string(), args: String::new() }
@@ -453,7 +453,7 @@ mod tests {
 
     #[test]
     fn test_builtin_skills_command() {
-        let action = process_slash_command("/skills").unwrap();
+        let action = process_slash_command("/skills").expect("测试应成功");
         assert!(matches!(action, SlashCommandAction::BuiltIn { .. }));
     }
 
@@ -479,8 +479,9 @@ mod tests {
             name: "my-skill".to_string(),
             args: "do something".to_string(),
         };
-        let json = serde_json::to_string(&action).unwrap();
-        let deserialized: SlashCommandAction = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&action).expect("测试：JSON序列化应成功");
+        let deserialized: SlashCommandAction =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(action, deserialized);
     }
 }

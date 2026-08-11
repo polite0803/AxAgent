@@ -854,7 +854,7 @@ impl LlmReasoningProvider for ProviderAdapterBridge {
             conversation: None,
             previous_response_id: None,
             store: None,
-            response_format: None,
+            response_format: None,
         };
 
         // ── 中心化路径：如果配置了 LlmCallConfig + LlmExecutionService，走 harness 路径 ──
@@ -907,7 +907,7 @@ impl LlmReasoningProvider for ProviderAdapterBridge {
             conversation: None,
             previous_response_id: None,
             store: None,
-            response_format: None,
+            response_format: None,
         };
 
         // ── 中心化路径：如果配置了 LlmCallConfig + LlmExecutionService，走 harness 路径 ──
@@ -978,7 +978,7 @@ mod tests {
     fn test_engine_default_values() {
         let engine = TreeOfThoughtsEngine::new(3, 5, 0.3);
         assert!(engine.get_node(&engine.root_id).is_some());
-        let root = engine.get_node(&engine.root_id).unwrap();
+        let root = engine.get_node(&engine.root_id).expect("测试：get_node 应成功");
         assert!(root.parent.is_none());
         assert!(root.children.is_empty());
     }
@@ -1132,8 +1132,11 @@ mod tests {
         assert_eq!(pruned.len(), 1);
         assert_eq!(pruned[0], low_id);
 
-        assert_eq!(engine.tree.get(&low_id).unwrap().status, ThoughtStatus::Pruned);
-        assert_eq!(engine.tree.get(&high_id).unwrap().status, ThoughtStatus::Generated);
+        assert_eq!(engine.tree.get(&low_id).expect("测试：键应存在").status, ThoughtStatus::Pruned);
+        assert_eq!(
+            engine.tree.get(&high_id).expect("测试：键应存在").status,
+            ThoughtStatus::Generated
+        );
     }
 
     #[test]
@@ -1157,7 +1160,10 @@ mod tests {
 
         let pruned = engine.prune_below_threshold(0.5);
         assert!(pruned.is_empty());
-        assert_eq!(engine.tree.get(&low_explored_id).unwrap().status, ThoughtStatus::Explored);
+        assert_eq!(
+            engine.tree.get(&low_explored_id).expect("测试：键应存在").status,
+            ThoughtStatus::Explored
+        );
     }
 
     #[test]
@@ -1192,8 +1198,11 @@ mod tests {
         let result = engine.backtrack_to(&child_id);
         assert!(result.is_ok());
         assert_eq!(engine.total_nodes(), 2);
-        assert!(engine.tree.get(&child_id).unwrap().children.is_empty());
-        assert_eq!(engine.tree.get(&child_id).unwrap().status, ThoughtStatus::Explored);
+        assert!(engine.tree.get(&child_id).expect("测试：键应存在").children.is_empty());
+        assert_eq!(
+            engine.tree.get(&child_id).expect("测试：键应存在").status,
+            ThoughtStatus::Explored
+        );
     }
 
     #[test]
@@ -1234,7 +1243,7 @@ mod tests {
 
         engine.add_tool_result(&root_id, "search".to_string(), "found results".to_string(), false);
 
-        let node = engine.get_node(&root_id).unwrap();
+        let node = engine.get_node(&root_id).expect("测试：get_node 应成功");
         assert_eq!(node.tool_calls.len(), 1);
         assert_eq!(node.tool_calls[0].tool_name, "search");
         assert!(!node.tool_calls[0].is_error);
@@ -1246,7 +1255,7 @@ mod tests {
         let root_id = engine.root_id.clone();
 
         engine.mark_node_selected(&root_id);
-        assert_eq!(engine.get_node(&root_id).unwrap().status, ThoughtStatus::Selected);
+        assert_eq!(engine.get_node(&root_id).expect("测试应成功").status, ThoughtStatus::Selected);
     }
 
     #[test]
@@ -1342,7 +1351,7 @@ mod tests {
 
         let leaf = engine.select_best_leaf();
         assert!(leaf.is_some());
-        assert_eq!(leaf.unwrap(), child_id);
+        assert_eq!(leaf.expect("测试应成功"), child_id);
     }
 
     #[test]
@@ -1412,11 +1421,11 @@ mod tests {
         }
         engine.tree.insert(child_id.clone(), child);
 
-        let rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().expect("测试：创建Tokio Runtime应成功");
         let provider: Arc<dyn LlmReasoningProvider> = Arc::new(DefaultToTReasoningProvider::new());
         let result = rt.block_on(engine.generate_branching_options(child_id, "test", &provider));
         assert!(result.is_ok());
-        assert!(result.unwrap().is_empty());
+        assert!(result.expect("测试应成功").is_empty());
     }
 
     #[tokio::test]
@@ -1424,13 +1433,13 @@ mod tests {
         let mut engine = TreeOfThoughtsEngine::new(3, 5, 0.3);
         let root_id = engine.root_id.clone();
 
-        let root = engine.tree.get_mut(&root_id).unwrap();
+        let root = engine.tree.get_mut(&root_id).expect("测试：键应存在");
         root.status = ThoughtStatus::Pruned;
 
         let provider: Arc<dyn LlmReasoningProvider> = Arc::new(DefaultToTReasoningProvider::new());
         let result = engine.generate_branching_options(root_id, "test", &provider).await;
         assert!(result.is_ok());
-        assert!(result.unwrap().is_empty());
+        assert!(result.expect("测试应成功").is_empty());
     }
 
     #[tokio::test]
@@ -1444,8 +1453,9 @@ mod tests {
     #[test]
     fn test_thought_status_serialization() {
         let status = ThoughtStatus::Generated;
-        let json = serde_json::to_string(&status).unwrap();
-        let deserialized: ThoughtStatus = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&status).expect("测试：JSON序列化应成功");
+        let deserialized: ThoughtStatus =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized, ThoughtStatus::Generated);
     }
 
@@ -1456,8 +1466,9 @@ mod tests {
         node.status = ThoughtStatus::Explored;
         node.add_child("n2".to_string());
 
-        let json = serde_json::to_string(&node).unwrap();
-        let deserialized: ThoughtNode = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&node).expect("测试：JSON序列化应成功");
+        let deserialized: ThoughtNode =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.id, "n1");
         assert_eq!(deserialized.evaluation_score, 0.75);
         assert_eq!(deserialized.status, ThoughtStatus::Explored);
@@ -1468,8 +1479,9 @@ mod tests {
     fn test_tot_state_summary_serialization() {
         let engine = TreeOfThoughtsEngine::new(3, 5, 0.3);
         let state = engine.get_current_state();
-        let json = serde_json::to_string(&state).unwrap();
-        let deserialized: ToTStateSummary = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&state).expect("测试：JSON序列化应成功");
+        let deserialized: ToTStateSummary =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.root_id, engine.root_id);
     }
 
@@ -1480,8 +1492,9 @@ mod tests {
             output: "found data".to_string(),
             is_error: false,
         };
-        let json = serde_json::to_string(&result).unwrap();
-        let deserialized: ToolCallResult = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&result).expect("测试：JSON序列化应成功");
+        let deserialized: ToolCallResult =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.tool_name, "search");
         assert!(!deserialized.is_error);
     }
@@ -1494,10 +1507,10 @@ mod tests {
         let provider: Arc<dyn LlmReasoningProvider> = Arc::new(DefaultToTReasoningProvider::new());
         let score = engine.evaluate_and_score_node(&root_id, "test context", &provider).await;
         assert!(score.is_ok());
-        let s = score.unwrap();
+        let s = score.expect("测试应成功");
         assert!((0.0..=1.0).contains(&s));
 
-        let node = engine.get_node(&root_id).unwrap();
+        let node = engine.get_node(&root_id).expect("测试：get_node 应成功");
         assert_eq!(node.status, ThoughtStatus::Explored);
         assert!((node.evaluation_score - s).abs() < f64::EPSILON);
     }

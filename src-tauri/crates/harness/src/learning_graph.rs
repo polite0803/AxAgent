@@ -172,7 +172,7 @@ impl LearningGraph {
     pub fn add_node(&mut self, node: LearningNode) -> &LearningNode {
         self.nodes.push(node);
         self.updated_at = chrono::Utc::now().to_rfc3339();
-        self.nodes.last().unwrap()
+        self.nodes.last().expect("集合为空")
     }
 
     /// 添加边
@@ -369,7 +369,7 @@ mod tests {
 
         let node = graph.get_node("1");
         assert!(node.is_some());
-        assert_eq!(node.unwrap().label, "技能 A");
+        assert_eq!(node.expect("测试应成功").label, "技能 A");
     }
 
     #[test]
@@ -383,7 +383,7 @@ mod tests {
         let stats = graph.stats();
         assert_eq!(stats.total_nodes, 3);
         assert!(stats.node_type_distribution.contains_key("Skill"));
-        assert_eq!(stats.node_type_distribution.get("Skill").unwrap(), &2);
+        assert_eq!(stats.node_type_distribution.get("Skill").expect("测试：键应存在"), &2);
     }
 
     #[test]

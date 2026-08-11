@@ -115,7 +115,7 @@ mod tests {
     fn test_render_simple() {
         let renderer = PromptTemplateRenderer::new("Hello, {name}!");
         let vars = json!({"name": "World"});
-        assert_eq!(renderer.render(&vars).unwrap(), "Hello, World!");
+        assert_eq!(renderer.render(&vars).expect("测试：render 应成功"), "Hello, World!");
     }
 
     #[test]
@@ -129,7 +129,7 @@ mod tests {
     fn test_render_with_number() {
         let renderer = PromptTemplateRenderer::new("Count: {count}");
         let vars = json!({"count": 42});
-        assert_eq!(renderer.render(&vars).unwrap(), "Count: 42");
+        assert_eq!(renderer.render(&vars).expect("测试：render 应成功"), "Count: 42");
     }
 
     #[test]

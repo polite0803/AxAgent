@@ -318,10 +318,7 @@ impl PersonalityManager {
         if let Ok(mut guard) = ACTIVE_PERSONALITY.write() {
             *guard = Some(name.to_string());
         }
-        // SAFETY: env var 仅作为跨 crate 兼容性通道（tools crate 等需读取），
-        // 写入前已通过 RwLock 同步内存状态。set_active/clear_active 均在
-        // 单线程同步上下文中调用，不存在并发写入竞态。
-        unsafe { std::env::set_var("AXAGENT_PERSONALITY", name) };
+        // AXAGENT_PERSONALITY 已统一通过 get_active_personality() 读取
         Ok(())
     }
 
@@ -334,8 +331,7 @@ impl PersonalityManager {
         if let Ok(mut guard) = ACTIVE_PERSONALITY.write() {
             *guard = None;
         }
-        // SAFETY: 同上，单线程同步上下文，无并发竞态
-        unsafe { std::env::remove_var("AXAGENT_PERSONALITY") };
+        // AXAGENT_PERSONALITY 已统一通过 get_active_personality() 读取
         Ok(())
     }
 }

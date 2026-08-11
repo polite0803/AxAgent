@@ -224,21 +224,21 @@ mod tests {
     fn test_reindex_file() {
         let dir = std::env::temp_dir().join("axagent_incremental_test");
         let _ = fs::remove_dir_all(&dir);
-        fs::create_dir_all(&dir).unwrap();
+        fs::create_dir_all(&dir).expect("测试：创建目录应成功");
 
         let test_file = dir.join("test.rs");
-        let mut f = fs::File::create(&test_file).unwrap();
-        writeln!(f, "fn hello() {{ println!(\"hi\"); }}").unwrap();
+        let mut f = fs::File::create(&test_file).expect("测试应成功");
+        writeln!(f, "fn hello() {{ println!(\"hi\"); }}").expect("测试应成功");
 
-        let conn = Connection::open_in_memory().unwrap();
-        let fi = FileIndex::new(conn).unwrap();
-        let ai_conn = Connection::open_in_memory().unwrap();
-        let ai = AstIndex::new(ai_conn).unwrap();
+        let conn = Connection::open_in_memory().expect("测试：打开内存数据库应成功");
+        let fi = FileIndex::new(conn).expect("测试：new 应成功");
+        let ai_conn = Connection::open_in_memory().expect("测试：打开内存数据库应成功");
+        let ai = AstIndex::new(ai_conn).expect("测试：new 应成功");
 
         let indexer = IncrementalIndexer::default();
-        indexer.reindex_file(&test_file, &dir, &fi, &ai).unwrap();
+        indexer.reindex_file(&test_file, &dir, &fi, &ai).expect("测试：reindex_file 应成功");
 
-        let results = ai.search_functions("hello", 10).unwrap();
+        let results = ai.search_functions("hello", 10).expect("测试：search_functions 应成功");
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].name, "hello");
 

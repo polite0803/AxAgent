@@ -117,7 +117,10 @@ mod tests {
     #[test]
     fn noop_passes_through() {
         let guard = NoopPromptGuard;
-        assert_eq!(guard.process_user_input("hello world").unwrap(), "hello world");
+        assert_eq!(
+            guard.process_user_input("hello world").expect("测试：process_user_input 应成功"),
+            "hello world"
+        );
         assert_eq!(guard.process_external_data("data", "rag", "kb-1"), "data");
     }
 

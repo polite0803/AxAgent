@@ -25,7 +25,7 @@ fn test_builtin_tools_module_has_skill_metadata() {
 #[test]
 fn test_builtin_tools_skill_metadata_deserializes() {
     let json = r#"{"name":"test","description":"desc","version":"1.0"}"#;
-    let metadata: SkillMetadata = serde_json::from_str(json).unwrap();
+    let metadata: SkillMetadata = serde_json::from_str(json).expect("测试应成功");
     assert_eq!(metadata.name, "test");
 }
 
@@ -40,7 +40,7 @@ fn test_chat_message_serialization() {
         tool_call_id: None,
         thinking: None,
     };
-    let json_str = serde_json::to_string(&msg).unwrap();
+    let json_str = serde_json::to_string(&msg).expect("测试应成功");
     assert!(json_str.contains("Hello"));
     assert!(json_str.contains("user"));
 }

@@ -446,7 +446,7 @@ color: blue
 ---
 你是一个代码审查专家。"#;
 
-        let fm = parse_frontmatter(content).unwrap();
+        let fm = parse_frontmatter(content).expect("测试应成功");
         let def = build_definition(&fm, AgentDefSource::User, Path::new("/tmp/agents/reviewer.md"));
 
         assert_eq!(def.agent_type, "reviewer");
@@ -456,7 +456,7 @@ color: blue
         assert_eq!(def.model, Some("opus".to_string()));
         assert_eq!(def.max_turns, Some(25));
         assert!(def.system_prompt.is_some());
-        assert!(def.system_prompt.unwrap().contains("代码审查专家"));
+        assert!(def.system_prompt.expect("测试应成功").contains("代码审查专家"));
         assert!(!def.background);
     }
 }

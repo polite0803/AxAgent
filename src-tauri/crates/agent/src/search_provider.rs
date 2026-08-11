@@ -502,7 +502,7 @@ mod tests {
         let to = chrono::Utc::now();
         let builder = SearchQueryBuilder::new("test").date_range(Some(from), Some(to));
         assert!(builder.date_range.is_some());
-        let range = builder.date_range.unwrap();
+        let range = builder.date_range.expect("测试应成功");
         assert!(range.from.is_some());
         assert!(range.to.is_some());
     }
@@ -653,7 +653,7 @@ mod tests {
     async fn test_mock_provider_search() {
         let provider = MockProvider { source: SourceType::Web, name: "Test", rate: None };
         let query = SearchQuery::new("test".to_string());
-        let results = provider.search(&query).await.unwrap();
+        let results = provider.search(&query).await.expect("测试：异步操作应成功");
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].source_type, SourceType::Web);
     }
@@ -661,7 +661,8 @@ mod tests {
     #[tokio::test]
     async fn test_mock_provider_extract() {
         let provider = MockProvider { source: SourceType::Web, name: "Test", rate: None };
-        let content = provider.extract_content("https://example.com").await.unwrap();
+        let content =
+            provider.extract_content("https://example.com").await.expect("测试：异步操作应成功");
         assert_eq!(content.url, "https://example.com");
     }
 

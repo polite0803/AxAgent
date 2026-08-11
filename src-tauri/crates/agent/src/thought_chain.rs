@@ -258,9 +258,9 @@ mod tests {
         assert_eq!(step.state, ReasoningState::Acting);
         assert_eq!(step.reasoning, "acting on data");
         assert!(step.action.is_some());
-        let a = step.action.unwrap();
+        let a = step.action.expect("测试应成功");
         assert_eq!(a.action_type, ActionType::ToolCall);
-        assert_eq!(a.tool_name.unwrap(), "read_file");
+        assert_eq!(a.tool_name.expect("测试应成功"), "read_file");
     }
 
     #[test]
@@ -295,11 +295,11 @@ mod tests {
 
         let step1 = ThoughtStep::new(ReasoningState::Thinking, "first");
         chain.add_step(step1);
-        assert_eq!(chain.latest_step().unwrap().reasoning, "first");
+        assert_eq!(chain.latest_step().expect("测试应成功").reasoning, "first");
 
         let step2 = ThoughtStep::new(ReasoningState::Acting, "second");
         chain.add_step(step2);
-        assert_eq!(chain.latest_step().unwrap().reasoning, "second");
+        assert_eq!(chain.latest_step().expect("测试应成功").reasoning, "second");
     }
 
     #[test]
@@ -311,7 +311,7 @@ mod tests {
         if let Some(s) = chain.latest_step_mut() {
             s.reasoning = "modified".to_string();
         }
-        assert_eq!(chain.latest_step().unwrap().reasoning, "modified");
+        assert_eq!(chain.latest_step().expect("测试应成功").reasoning, "modified");
     }
 
     #[test]
@@ -321,7 +321,7 @@ mod tests {
         chain.add_step(step);
 
         chain.update_step_result("done", true);
-        let latest = chain.latest_step().unwrap();
+        let latest = chain.latest_step().expect("测试：latest_step 应成功");
         assert_eq!(latest.result.as_deref(), Some("done"));
         assert!(latest.is_verified);
     }
@@ -340,7 +340,10 @@ mod tests {
         chain.add_step(step);
 
         chain.update_step_observation("saw something");
-        assert_eq!(chain.latest_step().unwrap().observation.as_deref(), Some("saw something"));
+        assert_eq!(
+            chain.latest_step().expect("测试应成功").observation.as_deref(),
+            Some("saw something")
+        );
     }
 
     #[test]
@@ -381,7 +384,7 @@ mod tests {
     fn test_action_tool_call() {
         let action = Action::tool_call("bash", serde_json::json!({"cmd": "ls"}));
         assert_eq!(action.action_type, ActionType::ToolCall);
-        assert_eq!(action.tool_name.unwrap(), "bash");
+        assert_eq!(action.tool_name.expect("测试应成功"), "bash");
         assert!(action.tool_input.is_some());
         assert!(action.llm_prompt.is_none());
         assert!(!action.requires_confirmation);
@@ -393,7 +396,7 @@ mod tests {
         assert_eq!(action.action_type, ActionType::LlmCall);
         assert!(action.tool_name.is_none());
         assert!(action.tool_input.is_none());
-        assert_eq!(action.llm_prompt.unwrap(), "explain this code");
+        assert_eq!(action.llm_prompt.expect("测试应成功"), "explain this code");
         assert!(!action.requires_confirmation);
     }
 
@@ -402,7 +405,7 @@ mod tests {
         let action = Action::user_confirm("proceed with delete?");
         assert_eq!(action.action_type, ActionType::UserConfirm);
         assert!(action.requires_confirmation);
-        assert_eq!(action.llm_prompt.unwrap(), "proceed with delete?");
+        assert_eq!(action.llm_prompt.expect("测试应成功"), "proceed with delete?");
     }
 
     #[test]
@@ -410,7 +413,7 @@ mod tests {
         let action = Action::validate("check output correctness");
         assert_eq!(action.action_type, ActionType::Validate);
         assert!(!action.requires_confirmation);
-        assert_eq!(action.llm_prompt.unwrap(), "check output correctness");
+        assert_eq!(action.llm_prompt.expect("测试应成功"), "check output correctness");
     }
 
     #[test]
@@ -447,7 +450,7 @@ mod tests {
         let step = ThoughtStep::new(ReasoningState::Thinking, "test step");
         emitter.emit(ThoughtEvent::StepStarted(step.clone()));
 
-        let event = receiver.recv().await.unwrap();
+        let event = receiver.recv().await.expect("测试：异步操作应成功");
         match event {
             ThoughtEvent::StepStarted(s) => assert_eq!(s.reasoning, "test step"),
             _ => panic!("expected StepStarted event"),
@@ -461,7 +464,7 @@ mod tests {
 
         emitter.emit(ThoughtEvent::StateChanged(ReasoningState::Acting));
 
-        let event = receiver.recv().await.unwrap();
+        let event = receiver.recv().await.expect("测试：异步操作应成功");
         match event {
             ThoughtEvent::StateChanged(state) => assert_eq!(state, ReasoningState::Acting),
             _ => panic!("expected StateChanged event"),
@@ -475,7 +478,7 @@ mod tests {
 
         emitter.emit(ThoughtEvent::IterationComplete(3));
 
-        let event = receiver.recv().await.unwrap();
+        let event = receiver.recv().await.expect("测试：异步操作应成功");
         match event {
             ThoughtEvent::IterationComplete(n) => assert_eq!(n, 3),
             _ => panic!("expected IterationComplete event"),
@@ -493,7 +496,7 @@ mod tests {
 
         emitter.emit(ThoughtEvent::ChainComplete(summary.clone()));
 
-        let event = receiver.recv().await.unwrap();
+        let event = receiver.recv().await.expect("测试：异步操作应成功");
         match event {
             ThoughtEvent::ChainComplete(s) => assert_eq!(s.total_steps, 1),
             _ => panic!("expected ChainComplete event"),
@@ -507,7 +510,7 @@ mod tests {
 
         emitter.emit(ThoughtEvent::Error("something went wrong".to_string()));
 
-        let event = receiver.recv().await.unwrap();
+        let event = receiver.recv().await.expect("测试：异步操作应成功");
         match event {
             ThoughtEvent::Error(msg) => assert_eq!(msg, "something went wrong"),
             _ => panic!("expected Error event"),
@@ -524,8 +527,9 @@ mod tests {
     #[test]
     fn test_thought_step_serialization() {
         let step = ThoughtStep::new(ReasoningState::Thinking, "serialize me");
-        let json = serde_json::to_string(&step).unwrap();
-        let deserialized: ThoughtStep = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&step).expect("测试：JSON序列化应成功");
+        let deserialized: ThoughtStep =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.reasoning, "serialize me");
         assert_eq!(deserialized.state, ReasoningState::Thinking);
     }
@@ -533,10 +537,10 @@ mod tests {
     #[test]
     fn test_action_serialization() {
         let action = Action::tool_call("grep", serde_json::json!({"pattern": "test"}));
-        let json = serde_json::to_string(&action).unwrap();
-        let deserialized: Action = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&action).expect("测试：JSON序列化应成功");
+        let deserialized: Action = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.action_type, ActionType::ToolCall);
-        assert_eq!(deserialized.tool_name.unwrap(), "grep");
+        assert_eq!(deserialized.tool_name.expect("测试应成功"), "grep");
     }
 
     #[test]
@@ -544,8 +548,9 @@ mod tests {
         let mut chain = ThoughtChain::new();
         chain.add_step(ThoughtStep::new(ReasoningState::Thinking, "step"));
         let summary = chain.to_summary();
-        let json = serde_json::to_string(&summary).unwrap();
-        let deserialized: ChainSummary = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&summary).expect("测试：JSON序列化应成功");
+        let deserialized: ChainSummary =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.total_steps, 1);
     }
 }

@@ -1040,7 +1040,7 @@ mod tests {
 ```"#;
         let result = IngestPipeline::parse_analysis_json(json);
         assert!(result.is_ok());
-        let analysis = result.unwrap();
+        let analysis = result.expect("测试：数据导入应成功");
         assert!(analysis.entities.is_empty());
         assert!(analysis.concepts.is_empty());
     }
@@ -1075,7 +1075,7 @@ mod tests {
 ```"#;
         let result = IngestPipeline::parse_analysis_json(json);
         assert!(result.is_ok());
-        let analysis = result.unwrap();
+        let analysis = result.expect("测试：数据导入应成功");
         assert_eq!(analysis.entities.len(), 1);
         assert_eq!(analysis.entities[0].name, "Rust");
     }
@@ -1086,7 +1086,7 @@ mod tests {
         let response = "```json\n{\"title\": \"Test Page\", \"content\": \"# Test\\nSome content\", \"page_type\": \"concept\"}\n```";
         let result = pipeline.parse_pages_from_response(response, "src1");
         assert!(result.is_ok());
-        let pages = result.unwrap();
+        let pages = result.expect("测试：数据导入应成功");
         assert_eq!(pages.len(), 1);
         assert_eq!(pages[0].title, "Test Page");
         assert_eq!(pages[0].page_type, "concept");
@@ -1098,7 +1098,7 @@ mod tests {
         let response = "```json\n{\"title\": \"Page 1\", \"content\": \"Content 1\", \"page_type\": \"entity\"}\n```\n```json\n{\"title\": \"Page 2\", \"content\": \"Content 2\", \"page_type\": \"concept\"}\n```";
         let result = pipeline.parse_pages_from_response(response, "src1");
         assert!(result.is_ok());
-        let pages = result.unwrap();
+        let pages = result.expect("测试：数据导入应成功");
         assert_eq!(pages.len(), 2);
     }
 
@@ -1131,45 +1131,57 @@ mod tests {
     #[tokio::test]
     async fn test_extract_metadata_title_from_heading() {
         let pipeline = create_test_pipeline().await;
-        let metadata = pipeline.extract_metadata("# My Document\n\nSome body text").await.unwrap();
+        let metadata = pipeline
+            .extract_metadata("# My Document\n\nSome body text")
+            .await
+            .expect("测试：数据导入应成功");
         assert_eq!(metadata.title.as_deref(), Some("My Document"));
     }
 
     #[tokio::test]
     async fn test_extract_metadata_title_from_prefix() {
         let pipeline = create_test_pipeline().await;
-        let metadata = pipeline.extract_metadata("Title: My Title\n\nBody text").await.unwrap();
+        let metadata = pipeline
+            .extract_metadata("Title: My Title\n\nBody text")
+            .await
+            .expect("测试：数据导入应成功");
         assert_eq!(metadata.title.as_deref(), Some("My Title"));
     }
 
     #[tokio::test]
     async fn test_extract_metadata_author() {
         let pipeline = create_test_pipeline().await;
-        let metadata =
-            pipeline.extract_metadata("# Title\nAuthor: John Doe\n\nBody").await.unwrap();
+        let metadata = pipeline
+            .extract_metadata("# Title\nAuthor: John Doe\n\nBody")
+            .await
+            .expect("测试：数据导入应成功");
         assert_eq!(metadata.author.as_deref(), Some("John Doe"));
     }
 
     #[tokio::test]
     async fn test_extract_metadata_author_lowercase() {
         let pipeline = create_test_pipeline().await;
-        let metadata =
-            pipeline.extract_metadata("# Title\nauthor: Jane Smith\n\nBody").await.unwrap();
+        let metadata = pipeline
+            .extract_metadata("# Title\nauthor: Jane Smith\n\nBody")
+            .await
+            .expect("测试：数据导入应成功");
         assert_eq!(metadata.author.as_deref(), Some("Jane Smith"));
     }
 
     #[tokio::test]
     async fn test_extract_metadata_date() {
         let pipeline = create_test_pipeline().await;
-        let metadata =
-            pipeline.extract_metadata("# Title\nDate: 2024-01-15\n\nBody").await.unwrap();
+        let metadata = pipeline
+            .extract_metadata("# Title\nDate: 2024-01-15\n\nBody")
+            .await
+            .expect("测试：数据导入应成功");
         assert_eq!(metadata.created_date.as_deref(), Some("2024-01-15"));
     }
 
     #[tokio::test]
     async fn test_extract_metadata_empty_content() {
         let pipeline = create_test_pipeline().await;
-        let metadata = pipeline.extract_metadata("").await.unwrap();
+        let metadata = pipeline.extract_metadata("").await.expect("测试：数据导入应成功");
         assert!(metadata.title.is_none());
         assert!(metadata.author.is_none());
         assert!(metadata.created_date.is_none());
@@ -1178,8 +1190,10 @@ mod tests {
     #[tokio::test]
     async fn test_extract_metadata_no_title() {
         let pipeline = create_test_pipeline().await;
-        let metadata =
-            pipeline.extract_metadata("Just some text\nwithout any heading").await.unwrap();
+        let metadata = pipeline
+            .extract_metadata("Just some text\nwithout any heading")
+            .await
+            .expect("测试：数据导入应成功");
         assert!(metadata.title.is_none());
     }
 
@@ -1200,8 +1214,9 @@ mod tests {
     #[test]
     fn test_ingest_source_type_serialize_deserialize() {
         let st = IngestSourceType::WebArticle;
-        let json = serde_json::to_string(&st).unwrap();
-        let deserialized: IngestSourceType = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&st).expect("测试：数据导入应成功");
+        let deserialized: IngestSourceType =
+            serde_json::from_str(&json).expect("测试：数据导入应成功");
         assert_eq!(st, deserialized);
     }
 
@@ -1213,8 +1228,9 @@ mod tests {
             created_date: Some("2024-01-01".to_string()),
             page_count: Some(42),
         };
-        let json = serde_json::to_string(&metadata).unwrap();
-        let deserialized: SourceMetadata = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&metadata).expect("测试：数据导入应成功");
+        let deserialized: SourceMetadata =
+            serde_json::from_str(&json).expect("测试：数据导入应成功");
         assert_eq!(metadata.title, deserialized.title);
         assert_eq!(metadata.author, deserialized.author);
         assert_eq!(metadata.page_count, deserialized.page_count);
@@ -1227,8 +1243,9 @@ mod tests {
             entity_type: "language".to_string(),
             description: "Systems programming language".to_string(),
         };
-        let json = serde_json::to_string(&entity).unwrap();
-        let deserialized: EntityMention = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&entity).expect("测试：数据导入应成功");
+        let deserialized: EntityMention =
+            serde_json::from_str(&json).expect("测试：数据导入应成功");
         assert_eq!(entity.name, deserialized.name);
         assert_eq!(entity.entity_type, deserialized.entity_type);
     }
@@ -1240,8 +1257,9 @@ mod tests {
             description: "Memory management model".to_string(),
             related_concepts: vec!["Borrowing".to_string(), "Lifetime".to_string()],
         };
-        let json = serde_json::to_string(&concept).unwrap();
-        let _deserialized: ConceptMention = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&concept).expect("测试：数据导入应成功");
+        let _deserialized: ConceptMention =
+            serde_json::from_str(&json).expect("测试：数据导入应成功");
         assert_eq!(concept.related_concepts.len(), 2);
     }
 
@@ -1252,8 +1270,9 @@ mod tests {
             content: "# Test\nContent".to_string(),
             page_type: "concept".to_string(),
         };
-        let json = serde_json::to_string(&page).unwrap();
-        let deserialized: GeneratedPage = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&page).expect("测试：数据导入应成功");
+        let deserialized: GeneratedPage =
+            serde_json::from_str(&json).expect("测试：数据导入应成功");
         assert_eq!(page.title, deserialized.title);
         assert_eq!(page.page_type, deserialized.page_type);
     }
@@ -1267,8 +1286,8 @@ mod tests {
             pages_generated: 3,
             generated_note_ids: vec!["note1".to_string(), "note2".to_string()],
         };
-        let json = serde_json::to_string(&result).unwrap();
-        let deserialized: IngestResult = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&result).expect("测试：数据导入应成功");
+        let deserialized: IngestResult = serde_json::from_str(&json).expect("测试：数据导入应成功");
         assert_eq!(result.source_id, deserialized.source_id);
         assert_eq!(result.pages_generated, deserialized.pages_generated);
     }

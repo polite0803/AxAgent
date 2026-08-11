@@ -970,7 +970,7 @@ mod tests {
             trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
         let found = trainer.get_job(&job.id);
         assert!(found.is_some());
-        assert_eq!(found.unwrap().dataset_id, "ds1");
+        assert_eq!(found.expect("测试应成功").dataset_id, "ds1");
         assert!(trainer.get_job("nonexistent").is_none());
     }
 
@@ -981,11 +981,11 @@ mod tests {
             trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
         let result = trainer.start_training(&job.id);
         assert!(result.is_ok());
-        let training_result = result.unwrap();
+        let training_result = result.expect("测试应成功");
         assert_eq!(training_result.job_id, job.id);
         assert!(training_result.output_lora_path.contains("adapter_model.json"));
         assert!(!training_result.train_loss_curve.is_empty());
-        let found = trainer.get_job(&job.id).unwrap();
+        let found = trainer.get_job(&job.id).expect("测试：get_job 应成功");
         assert_eq!(found.status, JobStatus::Completed);
         assert!(found.metrics.final_loss.is_some());
         assert!(found.metrics.best_loss.is_some());
@@ -996,7 +996,7 @@ mod tests {
         let mut trainer = FineTuneTrainer::new();
         let job =
             trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
-        trainer.start_training(&job.id).unwrap();
+        trainer.start_training(&job.id).expect("测试：start_training 应成功");
         // Job is now Completed — restart should fail
         let result = trainer.start_training(&job.id);
         assert!(result.is_err());
@@ -1016,7 +1016,7 @@ mod tests {
             trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
         let result = trainer.cancel_training(&job.id);
         assert!(result.is_ok());
-        assert_eq!(trainer.get_job(&job.id).unwrap().status, JobStatus::Cancelled);
+        assert_eq!(trainer.get_job(&job.id).expect("测试应成功").status, JobStatus::Cancelled);
     }
 
     #[test]
@@ -1025,11 +1025,11 @@ mod tests {
         let job =
             trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
         // Manually set to Preparing → can call complete_job directly (bypass pipeline)
-        let j = trainer.get_job_mut(&job.id).unwrap();
+        let j = trainer.get_job_mut(&job.id).expect("测试：get_job_mut 应成功");
         j.status = JobStatus::Preparing;
         let result = trainer.complete_job(&job.id, "/output/lora".to_string());
         assert!(result.is_ok());
-        assert_eq!(trainer.get_job(&job.id).unwrap().status, JobStatus::Completed);
+        assert_eq!(trainer.get_job(&job.id).expect("测试应成功").status, JobStatus::Completed);
     }
 
     #[test]
@@ -1039,7 +1039,7 @@ mod tests {
             trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
         let result = trainer.fail_job(&job.id);
         assert!(result.is_ok());
-        assert_eq!(trainer.get_job(&job.id).unwrap().status, JobStatus::Failed);
+        assert_eq!(trainer.get_job(&job.id).expect("测试应成功").status, JobStatus::Failed);
     }
 
     #[test]
@@ -1060,7 +1060,7 @@ mod tests {
             trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
         let result = trainer.update_progress(&job.id, 1, 10, 0.5);
         assert!(result.is_ok());
-        let found = trainer.get_job(&job.id).unwrap();
+        let found = trainer.get_job(&job.id).expect("测试：get_job 应成功");
         assert_eq!(found.progress.current_epoch, 1);
         assert_eq!(found.progress.current_step, 10);
         assert!((found.progress.loss - 0.5).abs() < 0.001);
@@ -1071,7 +1071,7 @@ mod tests {
         let mut trainer = FineTuneTrainer::new();
         let j1 = trainer.create_job("ds1".to_string(), "m1".to_string(), LoRAConfig::default());
         let _j2 = trainer.create_job("ds2".to_string(), "m2".to_string(), LoRAConfig::default());
-        trainer.cancel_training(&j1.id).unwrap();
+        trainer.cancel_training(&j1.id).expect("测试：cancel_training 应成功");
         let pending = trainer.list_jobs_by_status(JobStatus::Cancelled);
         assert_eq!(pending.len(), 1);
         let active = trainer.list_jobs_by_status(JobStatus::Pending);
@@ -1083,7 +1083,7 @@ mod tests {
         let mut trainer = FineTuneTrainer::new();
         let j1 = trainer.create_job("ds1".to_string(), "m1".to_string(), LoRAConfig::default());
         let _j2 = trainer.create_job("ds2".to_string(), "m2".to_string(), LoRAConfig::default());
-        trainer.cancel_training(&j1.id).unwrap();
+        trainer.cancel_training(&j1.id).expect("测试：cancel_training 应成功");
         let stats = trainer.get_training_stats();
         assert_eq!(stats.total_jobs, 2);
         assert_eq!(stats.failed_jobs, 0);
@@ -1094,7 +1094,7 @@ mod tests {
         let ds = make_dataset();
         let result = DatasetConverter::convert_to_alpaca(&ds);
         assert!(result.is_ok());
-        let json = result.unwrap();
+        let json = result.expect("测试应成功");
         assert!(json.contains("instruction"));
         assert!(json.contains("output"));
     }
@@ -1104,7 +1104,7 @@ mod tests {
         let ds = make_dataset();
         let result = DatasetConverter::convert_to_chatml(&ds);
         assert!(result.is_ok());
-        let output = result.unwrap();
+        let output = result.expect("测试应成功");
         assert!(output.contains("system"));
         assert!(output.contains("user"));
         assert!(output.contains("assistant"));
@@ -1115,7 +1115,7 @@ mod tests {
         let ds = make_dataset();
         let result = DatasetConverter::convert_to_jsonl(&ds);
         assert!(result.is_ok());
-        let output = result.unwrap();
+        let output = result.expect("测试应成功");
         assert!(output.contains("hello"));
         assert!(output.contains("foo"));
     }
@@ -1126,7 +1126,7 @@ mod tests {
         let job =
             trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
         // Manually set to Training state (bypass pipeline)
-        let j = trainer.get_job_mut(&job.id).unwrap();
+        let j = trainer.get_job_mut(&job.id).expect("测试：get_job_mut 应成功");
         j.status = JobStatus::Training;
         let result = trainer.pause_training(&job.id);
         assert!(result.is_ok());
@@ -1138,21 +1138,22 @@ mod tests {
 
         let tmp = std::env::temp_dir()
             .join(format!("axagent_test_traces_{}.jsonl", uuid::Uuid::new_v4()));
-        let mut f = std::fs::File::create(&tmp).unwrap();
-        writeln!(f, r#"{{"task_description":"task1","agent_response":"resp1","success":true,"quality_score":0.9,"reflection":null,"source":"test","timestamp":1000}}"#).unwrap();
-        writeln!(f, r#"{{"task_description":"task2","agent_response":"resp2","success":false,"quality_score":0.3,"reflection":null,"source":"test","timestamp":1001}}"#).unwrap();
-        writeln!(f, r#"{{"task_description":"task3","agent_response":"resp3","success":true,"quality_score":0.5,"reflection":null,"source":"test","timestamp":1002}}"#).unwrap();
-        writeln!(f, r#"{{"task_description":"task4","agent_response":"resp4","success":true,"quality_score":0.95,"reflection":"needs improvement","source":"prod","timestamp":1003}}"#).unwrap();
+        let mut f = std::fs::File::create(&tmp).expect("测试应成功");
+        writeln!(f, r#"{{"task_description":"task1","agent_response":"resp1","success":true,"quality_score":0.9,"reflection":null,"source":"test","timestamp":1000}}"#).expect("测试应成功");
+        writeln!(f, r#"{{"task_description":"task2","agent_response":"resp2","success":false,"quality_score":0.3,"reflection":null,"source":"test","timestamp":1001}}"#).expect("测试应成功");
+        writeln!(f, r#"{{"task_description":"task3","agent_response":"resp3","success":true,"quality_score":0.5,"reflection":null,"source":"test","timestamp":1002}}"#).expect("测试应成功");
+        writeln!(f, r#"{{"task_description":"task4","agent_response":"resp4","success":true,"quality_score":0.95,"reflection":"needs improvement","source":"prod","timestamp":1003}}"#).expect("测试应成功");
         drop(f);
 
-        let dataset = FineTuneTrainer::prepare_dataset_from_traces(&tmp, 0.7, "test_ds").unwrap();
+        let dataset = FineTuneTrainer::prepare_dataset_from_traces(&tmp, 0.7, "test_ds")
+            .expect("测试：prepare_dataset_from_traces 应成功");
         // task2 failed (excluded), task3 quality_score 0.5 < 0.7 (excluded)
         // Only task1 and task4 should be included
         assert_eq!(dataset.samples.len(), 2);
         assert_eq!(dataset.samples[0].input, "task1");
         assert_eq!(dataset.samples[1].input, "task4");
         assert_eq!(
-            dataset.samples[1].system_prompt.as_deref().unwrap(),
+            dataset.samples[1].system_prompt.as_deref().expect("测试应成功"),
             "Previous execution reflection: needs improvement\n\nImprove future responses."
         );
 
@@ -1167,7 +1168,7 @@ mod tests {
         let called = std::sync::Arc::new(std::sync::Mutex::new(false));
         let called_clone = called.clone();
         trainer.set_callback(Box::new(move |status| {
-            *called_clone.lock().expect("trainer lock") = true;
+            *called_clone.lock().unwrap_or_else(|e| e.into_inner()) = true;
             if status.phase == TrainingPhase::Training {
                 assert!(status.loss > 0.0, "training loss should be positive");
             }
@@ -1175,9 +1176,9 @@ mod tests {
 
         let job =
             trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
-        trainer.start_training(&job.id).unwrap();
+        trainer.start_training(&job.id).expect("测试：start_training 应成功");
         assert!(
-            *called.lock().expect("trainer lock"),
+            *called.lock().unwrap_or_else(|e| e.into_inner()),
             "callback should have been called during training"
         );
     }

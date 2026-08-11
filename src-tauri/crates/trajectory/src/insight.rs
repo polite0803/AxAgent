@@ -492,7 +492,7 @@ mod tests {
         ];
 
         let categorized = system.categorize_insights(&insights);
-        assert_eq!(categorized.get(&InsightCategory::Pattern).unwrap().len(), 1);
-        assert_eq!(categorized.get(&InsightCategory::Warning).unwrap().len(), 1);
+        assert_eq!(categorized.get(&InsightCategory::Pattern).expect("测试：键应存在").len(), 1);
+        assert_eq!(categorized.get(&InsightCategory::Warning).expect("测试：键应存在").len(), 1);
     }
 }

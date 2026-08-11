@@ -1063,18 +1063,18 @@ mod tests {
 
         let result = run_after_directory_ready(
             move || async move {
-                check_events.lock().expect("webdav lock").push("check");
+                check_events.lock().unwrap_or_else(|e| e.into_inner()).push("check");
                 Ok(true)
             },
             move || async move {
-                action_events.lock().expect("webdav lock").push("action");
+                action_events.lock().unwrap_or_else(|e| e.into_inner()).push("action");
                 Ok::<_, AxAgentError>("done")
             },
         )
         .await;
 
         assert!(matches!(result, Ok("done")));
-        assert_eq!(*events.lock().expect("webdav lock"), vec!["check", "action"]);
+        assert_eq!(*events.lock().unwrap_or_else(|e| e.into_inner()), vec!["check", "action"]);
     }
 
     #[tokio::test]
@@ -1085,18 +1085,18 @@ mod tests {
 
         let result: Result<&'static str> = run_after_directory_ready(
             move || async move {
-                check_events.lock().expect("webdav lock").push("check");
+                check_events.lock().unwrap_or_else(|e| e.into_inner()).push("check");
                 Err(AxAgentError::Gateway("probe failed".into()))
             },
             move || async move {
-                action_events.lock().expect("webdav lock").push("action");
+                action_events.lock().unwrap_or_else(|e| e.into_inner()).push("action");
                 Ok("done")
             },
         )
         .await;
 
         assert!(result.is_err(), "check failures must stop the action");
-        assert_eq!(*events.lock().expect("webdav lock"), vec!["check"]);
+        assert_eq!(*events.lock().unwrap_or_else(|e| e.into_inner()), vec!["check"]);
     }
 
     #[test]

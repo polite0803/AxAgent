@@ -52,7 +52,7 @@ impl NodeDispatcher {
     /// 注入工作流 Hook 接收端。
     /// 必须在 tokio runtime 中调用(因为 dispatch 中的 hook emit 是 async)。
     pub fn set_hook_sink(&self, sink: SharedWorkflowHookSink) {
-        let mut guard = self.hook_sink.lock().expect("hook_sink mutex poisoned");
+        let mut guard = self.hook_sink.lock().unwrap_or_else(|e| e.into_inner());
         *guard = Some(sink);
     }
 
@@ -63,7 +63,7 @@ impl NodeDispatcher {
 
     /// 注入权限检查器。注入后,对白名单节点类型在执行前调用 `check` 做权限检查。
     pub fn set_permission_checker(&self, checker: Arc<dyn PermissionChecker>) {
-        let mut guard = self.permission_checker.lock().expect("permission_checker mutex poisoned");
+        let mut guard = self.permission_checker.lock().unwrap_or_else(|e| e.into_inner());
         *guard = Some(checker);
     }
 
@@ -512,7 +512,10 @@ mod tests {
 
     #[test]
     fn register_and_lookup() {
-        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("测试：build 应成功");
         let disp = NodeDispatcher::new();
         rt.block_on(disp.register(TestExecutor::new("testExec")));
         assert!(rt.block_on(disp.get_executor("testExec")).is_some());
@@ -521,7 +524,10 @@ mod tests {
 
     #[test]
     fn registered_types_collects_keys() {
-        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("测试：build 应成功");
         let disp = NodeDispatcher::new();
         rt.block_on(disp.register(TestExecutor::new("customA")));
         rt.block_on(disp.register(TestExecutor::new("customB")));
@@ -540,7 +546,7 @@ mod tests {
         let ctx = make_test_exec_state();
         let result = disp.dispatch(&node, &ctx).await;
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().output["node_type"], "tool");
+        assert_eq!(result.expect("测试应成功").output["node_type"], "tool");
     }
 
     #[tokio::test]
@@ -551,7 +557,7 @@ mod tests {
         let ctx = make_test_exec_state();
         let result = disp.dispatch(&node, &ctx).await;
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().output["node_type"], "fallback");
+        assert_eq!(result.expect("测试应成功").output["node_type"], "fallback");
     }
 
     // ── PermissionChecker mock 实现 ──
@@ -644,7 +650,7 @@ mod tests {
         let ctx = make_test_exec_state();
         let result = disp.dispatch(&node, &ctx).await;
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().output["node_type"], "tool");
+        assert_eq!(result.expect("测试应成功").output["node_type"], "tool");
     }
 
     #[tokio::test]
@@ -656,7 +662,7 @@ mod tests {
         let ctx = make_test_exec_state();
         let result = disp.dispatch(&node, &ctx).await;
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().output["node_type"], "tool");
+        assert_eq!(result.expect("测试应成功").output["node_type"], "tool");
     }
 
     #[tokio::test]
@@ -669,7 +675,7 @@ mod tests {
         let ctx = make_test_exec_state();
         let result = disp.dispatch(&node, &ctx).await;
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().output["node_type"], "tool");
+        assert_eq!(result.expect("测试应成功").output["node_type"], "tool");
     }
 
     // Re-use helper from dag_store tests — define locally

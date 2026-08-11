@@ -965,8 +965,10 @@ mod tests {
         let searcher = Arc::new(WebSearchProvider::new_test());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
         let gaps = vec!["definition of Rust".to_string(), "history of Rust".to_string()];
-        let queries =
-            researcher.generate_gap_queries("Rust", &gaps, None, None, None).await.unwrap();
+        let queries = researcher
+            .generate_gap_queries("Rust", &gaps, None, None, None)
+            .await
+            .expect("测试：异步操作应成功");
         assert!(!queries.is_empty());
         assert!(queries.len() <= 5);
     }
@@ -976,7 +978,10 @@ mod tests {
         let pipeline = Arc::new(IngestPipeline::new_for_test());
         let searcher = Arc::new(WebSearchProvider::new_test());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
-        let queries = researcher.generate_gap_queries("Rust", &[], None, None, None).await.unwrap();
+        let queries = researcher
+            .generate_gap_queries("Rust", &[], None, None, None)
+            .await
+            .expect("测试：异步操作应成功");
         assert!(!queries.is_empty());
     }
 
@@ -1144,7 +1149,7 @@ mod tests {
         let searcher = Arc::new(WebSearchProvider::new_test());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
         let text = r#"Here are the results: [{"query": "test", "rationale": "why"}] done"#;
-        let json = researcher.extract_json(text).unwrap();
+        let json = researcher.extract_json(text).expect("测试：extract_json 应成功");
         assert!(json.starts_with('['));
         assert!(json.ends_with(']'));
     }
@@ -1155,7 +1160,7 @@ mod tests {
         let searcher = Arc::new(WebSearchProvider::new_test());
         let researcher = DeepResearcher::new(DeepResearchConfig::default(), searcher, pipeline);
         let text = r#"Result: {"key": "value"} end"#;
-        let json = researcher.extract_json(text).unwrap();
+        let json = researcher.extract_json(text).expect("测试：extract_json 应成功");
         assert!(json.starts_with('{'));
         assert!(json.ends_with('}'));
     }

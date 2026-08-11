@@ -343,8 +343,9 @@ mod tests {
             payload: serde_json::json!({"key": "value"}),
             correlation_id: Some("corr-1".to_string()),
         };
-        let json = serde_json::to_string(&payload).unwrap();
-        let deserialized: FrontendEventPayload = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&payload).expect("测试：JSON序列化应成功");
+        let deserialized: FrontendEventPayload =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.event_type, "TurnStarted");
         assert_eq!(deserialized.source, "agent");
         assert_eq!(deserialized.correlation_id, Some("corr-1".to_string()));
@@ -373,8 +374,9 @@ mod tests {
             correlation_id: None,
         };
         let envelope = TauriEventEnvelope::new(AgentEventType::Error, payload);
-        let json = serde_json::to_string(&envelope).unwrap();
-        let deserialized: TauriEventEnvelope = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&envelope).expect("测试：JSON序列化应成功");
+        let deserialized: TauriEventEnvelope =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.event_name, "agent::Error");
     }
 

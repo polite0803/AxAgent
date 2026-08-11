@@ -181,7 +181,7 @@ mod tests {
             ToolSelectionPolicy::new("p1".to_string(), "Test".to_string(), "m1".to_string());
         policy.update_q_value("state1:action1", 1.0, 0.5);
         assert!(policy.q_values.contains_key("state1:action1"));
-        let q = policy.q_values.get("state1:action1").unwrap();
+        let q = policy.q_values.get("state1:action1").expect("测试：键应存在");
         assert!(*q > 0.0);
     }
 
@@ -191,9 +191,9 @@ mod tests {
             ToolSelectionPolicy::new("p1".to_string(), "Test".to_string(), "m1".to_string());
         policy.training_config.learning_rate = 0.1;
         policy.update_q_value("state1:action1", 1.0, 0.5);
-        let first_q = *policy.q_values.get("state1:action1").unwrap();
+        let first_q = *policy.q_values.get("state1:action1").expect("测试：键应存在");
         policy.update_q_value("state1:action1", 0.5, 0.3);
-        let second_q = *policy.q_values.get("state1:action1").unwrap();
+        let second_q = *policy.q_values.get("state1:action1").expect("测试：键应存在");
         assert!((second_q - first_q).abs() > 0.001);
     }
 
@@ -205,7 +205,7 @@ mod tests {
         policy.q_values.insert("state1:action_b".to_string(), 0.3);
         let best = policy.get_best_action("state1");
         assert!(best.is_some());
-        assert_eq!(best.unwrap(), "action_a");
+        assert_eq!(best.expect("测试应成功"), "action_a");
     }
 
     #[test]
@@ -236,8 +236,9 @@ mod tests {
             PolicyRewardSignalType::UserFeedback,
         ];
         for t in types {
-            let json = serde_json::to_string(&t).unwrap();
-            let de: PolicyRewardSignalType = serde_json::from_str(&json).unwrap();
+            let json = serde_json::to_string(&t).expect("测试：JSON序列化应成功");
+            let de: PolicyRewardSignalType =
+                serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
             assert_eq!(de, t);
         }
     }
@@ -251,8 +252,9 @@ mod tests {
             DecompositionType::Conditional,
         ];
         for t in types {
-            let json = serde_json::to_string(&t).unwrap();
-            let de: DecompositionType = serde_json::from_str(&json).unwrap();
+            let json = serde_json::to_string(&t).expect("测试：JSON序列化应成功");
+            let de: DecompositionType =
+                serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
             assert_eq!(de, t);
         }
     }
@@ -267,8 +269,8 @@ mod tests {
             ErrorCategory::NetworkError,
         ];
         for c in cats {
-            let json = serde_json::to_string(&c).unwrap();
-            let de: ErrorCategory = serde_json::from_str(&json).unwrap();
+            let json = serde_json::to_string(&c).expect("测试：JSON序列化应成功");
+            let de: ErrorCategory = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
             assert_eq!(de, c);
         }
     }
@@ -283,8 +285,8 @@ mod tests {
             StrategyType::SkipTask,
         ];
         for t in types {
-            let json = serde_json::to_string(&t).unwrap();
-            let de: StrategyType = serde_json::from_str(&json).unwrap();
+            let json = serde_json::to_string(&t).expect("测试：JSON序列化应成功");
+            let de: StrategyType = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
             assert_eq!(de, t);
         }
     }
@@ -298,8 +300,9 @@ mod tests {
             min_task_size: 1,
             learned_patterns: vec![],
         };
-        let json = serde_json::to_string(&policy).unwrap();
-        let de: TaskDecompositionPolicy = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&policy).expect("测试：JSON序列化应成功");
+        let de: TaskDecompositionPolicy =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(de.id, "tdp1");
         assert_eq!(de.max_depth, 3);
     }
@@ -312,8 +315,9 @@ mod tests {
             recovery_strategies: HashMap::new(),
             learned_heuristics: vec![],
         };
-        let json = serde_json::to_string(&policy).unwrap();
-        let de: ErrorRecoveryPolicy = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&policy).expect("测试：JSON序列化应成功");
+        let de: ErrorRecoveryPolicy =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(de.id, "erp1");
     }
 
@@ -325,8 +329,8 @@ mod tests {
             tools_required: vec!["tool1".to_string()],
             dependencies: vec![],
         };
-        let json = serde_json::to_string(&spec).unwrap();
-        let de: SubtaskSpec = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&spec).expect("测试：JSON序列化应成功");
+        let de: SubtaskSpec = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(de.name, "sub1");
         assert_eq!(de.tools_required.len(), 1);
     }
@@ -339,8 +343,8 @@ mod tests {
             backoff_multiplier: 2.0,
             fallback_action: Some("skip".to_string()),
         };
-        let json = serde_json::to_string(&strategy).unwrap();
-        let de: RecoveryStrategy = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&strategy).expect("测试：JSON序列化应成功");
+        let de: RecoveryStrategy = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(de.max_retries, 3);
         assert_eq!(de.strategy_type, StrategyType::Retry);
     }
@@ -353,8 +357,8 @@ mod tests {
             success_rate: 0.85,
             usage_count: 10,
         };
-        let json = serde_json::to_string(&heuristic).unwrap();
-        let de: ErrorHeuristic = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&heuristic).expect("测试：JSON序列化应成功");
+        let de: ErrorHeuristic = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert!((de.success_rate - 0.85).abs() < 0.001);
         assert_eq!(de.usage_count, 10);
     }

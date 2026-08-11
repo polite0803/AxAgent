@@ -616,12 +616,12 @@ mod tests {
     async fn approve_request_grants() {
         let a = FileAuthorizer::new();
         let r = a.request_authorization(req("/tmp/legit.txt", PermissionLevel::Read)).await;
-        let req_id = r.request_id.unwrap();
+        let req_id = r.request_id.expect("测试应成功");
         let r2 = a.approve_request(&req_id, "user-1").await;
         assert!(r2.authorized);
         assert!(r2.auth_id.is_some());
         // SECURITY: 批准者被记录
-        let auth = a.get_authorization(&r2.auth_id.unwrap()).await.unwrap();
+        let auth = a.get_authorization(&r2.auth_id.unwrap()).await.expect("测试：异步操作应成功");
         assert_eq!(auth.approver.as_deref(), Some("user-1"));
     }
 
@@ -631,12 +631,12 @@ mod tests {
         let a = FileAuthorizer::new();
         // 用 tempdir 的真实路径
         let dir = std::env::temp_dir().join(format!("axagent-fauth-{}", Uuid::new_v4()));
-        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::create_dir_all(&dir).expect("测试：创建目录应成功");
         let file = dir.join("inside.txt");
-        std::fs::write(&file, "x").unwrap();
+        std::fs::write(&file, "x").expect("测试：写入文件应成功");
 
         let r = a.request_authorization(req(&dir.to_string_lossy(), PermissionLevel::Read)).await;
-        let req_id = r.request_id.unwrap();
+        let req_id = r.request_id.expect("测试应成功");
         let r2 = a.approve_request(&req_id, "user-1").await;
         assert!(r2.authorized);
 
@@ -651,10 +651,10 @@ mod tests {
         // SECURITY (H4): Temp 必须带 expires_at
         let a = FileAuthorizer::new();
         let r = a.request_authorization(req("/tmp/x.txt", PermissionLevel::Temp)).await;
-        let req_id = r.request_id.unwrap();
+        let req_id = r.request_id.expect("测试应成功");
         let r2 = a.approve_request(&req_id, "user-1").await;
-        let auth_id = r2.auth_id.unwrap();
-        let auth = a.get_authorization(&auth_id).await.unwrap();
+        let auth_id = r2.auth_id.expect("测试应成功");
+        let auth = a.get_authorization(&auth_id).await.expect("测试：异步操作应成功");
         assert!(auth.expires_at.is_some());
     }
 
@@ -663,7 +663,7 @@ mod tests {
         // SECURITY (M10)
         let a = FileAuthorizer::new();
         let r = a.request_authorization(req("/tmp/x.txt", PermissionLevel::Read)).await;
-        let req_id = r.request_id.unwrap();
+        let req_id = r.request_id.expect("测试应成功");
         let _ = a.approve_request(&req_id, "user-1").await;
         let log = a.get_audit_log().await;
         assert!(log.iter().any(|e| e.action == "approve_request"));

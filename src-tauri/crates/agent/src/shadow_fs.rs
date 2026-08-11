@@ -290,8 +290,8 @@ mod tests {
     #[test]
     fn test_file_op_serialization() {
         let op = FileOp::Create;
-        let json = serde_json::to_string(&op).unwrap();
-        let deserialized: FileOp = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&op).expect("测试：JSON序列化应成功");
+        let deserialized: FileOp = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized, FileOp::Create);
     }
 
@@ -303,8 +303,9 @@ mod tests {
             shadow_content: Some("new content".to_string()),
             original_content: Some("old content".to_string()),
         };
-        let json = serde_json::to_string(&diff).unwrap();
-        let deserialized: ShadowDiff = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&diff).expect("测试：JSON序列化应成功");
+        let deserialized: ShadowDiff =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.relative_path, "src/main.rs");
         assert_eq!(deserialized.op, FileOp::Modify);
         assert_eq!(deserialized.shadow_content, Some("new content".to_string()));
@@ -361,32 +362,37 @@ mod tests {
 
     #[tokio::test]
     async fn test_shadow_fs_ensure_shadow_dir() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let fs = ShadowFs::new(dir.path(), "session-1");
-        fs.ensure_shadow_dir().await.unwrap();
+        fs.ensure_shadow_dir().await.expect("测试：异步操作应成功");
         assert!(fs.shadow_dir().exists());
     }
 
     #[tokio::test]
     async fn test_shadow_fs_write_shadow_file() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let fs = ShadowFs::new(dir.path(), "session-1");
-        let path = fs.write_shadow_file("src/main.rs", "fn main() {}").await.unwrap();
+        let path = fs
+            .write_shadow_file("src/main.rs", "fn main() {}")
+            .await
+            .expect("测试：异步操作应成功");
         assert!(path.exists());
         assert_eq!(path, fs.shadow_dir().join("src/main.rs"));
     }
 
     #[tokio::test]
     async fn test_shadow_fs_write_shadow_file_creates_parent_dirs() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let fs = ShadowFs::new(dir.path(), "session-1");
-        fs.write_shadow_file("deep/nested/path/file.rs", "content").await.unwrap();
+        fs.write_shadow_file("deep/nested/path/file.rs", "content")
+            .await
+            .expect("测试：异步操作应成功");
         assert!(fs.shadow_dir().join("deep/nested/path/file.rs").exists());
     }
 
     #[tokio::test]
     async fn test_shadow_fs_write_shadow_file_invalid_path() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let fs = ShadowFs::new(dir.path(), "session-1");
         assert!(fs.write_shadow_file("../escape", "content").await.is_err());
         assert!(fs.write_shadow_file("/absolute", "content").await.is_err());
@@ -395,7 +401,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_shadow_fs_write_shadow_file_too_large() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let fs = ShadowFs::new(dir.path(), "session-1");
         let huge_content = "a".repeat(shadow_const::DIFF_FILE_SIZE_LIMIT + 1);
         assert!(fs.write_shadow_file("big.txt", &huge_content).await.is_err());
@@ -403,28 +409,28 @@ mod tests {
 
     #[tokio::test]
     async fn test_shadow_fs_delete_shadow_file() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let fs = ShadowFs::new(dir.path(), "session-1");
-        fs.delete_shadow_file("src/main.rs").await.unwrap();
+        fs.delete_shadow_file("src/main.rs").await.expect("测试：异步操作应成功");
         // 应创建 .deleted 标记文件
         assert!(fs.shadow_dir().join("src/main.rs.deleted").exists());
     }
 
     #[tokio::test]
     async fn test_shadow_fs_compute_diff_empty() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let fs = ShadowFs::new(dir.path(), "session-1");
-        let diffs = fs.compute_diff().await.unwrap();
+        let diffs = fs.compute_diff().await.expect("测试：异步操作应成功");
         assert!(diffs.is_empty());
     }
 
     #[tokio::test]
     async fn test_shadow_fs_compute_diff_create() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let fs = ShadowFs::new(dir.path(), "session-1");
         // 写入影子目录(真实目录中不存在)
-        fs.write_shadow_file("new_file.rs", "new content").await.unwrap();
-        let diffs = fs.compute_diff().await.unwrap();
+        fs.write_shadow_file("new_file.rs", "new content").await.expect("测试：异步操作应成功");
+        let diffs = fs.compute_diff().await.expect("测试：异步操作应成功");
         assert_eq!(diffs.len(), 1);
         assert_eq!(diffs[0].op, FileOp::Create);
         assert_eq!(diffs[0].relative_path, "new_file.rs");
@@ -434,13 +440,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_shadow_fs_compute_diff_modify() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         // 在真实目录创建文件
-        std::fs::write(dir.path().join("existing.rs"), "old content").unwrap();
+        std::fs::write(dir.path().join("existing.rs"), "old content").expect("测试应成功");
         let fs = ShadowFs::new(dir.path(), "session-1");
         // 在影子目录写入修改后的内容
-        fs.write_shadow_file("existing.rs", "new content").await.unwrap();
-        let diffs = fs.compute_diff().await.unwrap();
+        fs.write_shadow_file("existing.rs", "new content").await.expect("测试：异步操作应成功");
+        let diffs = fs.compute_diff().await.expect("测试：异步操作应成功");
         assert_eq!(diffs.len(), 1);
         assert_eq!(diffs[0].op, FileOp::Modify);
         assert_eq!(diffs[0].shadow_content, Some("new content".to_string()));
@@ -449,13 +455,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_shadow_fs_compute_diff_delete() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         // 在真实目录创建文件
-        std::fs::write(dir.path().join("to_delete.rs"), "content").unwrap();
+        std::fs::write(dir.path().join("to_delete.rs"), "content").expect("测试应成功");
         let fs = ShadowFs::new(dir.path(), "session-1");
         // 在影子目录标记删除
-        fs.delete_shadow_file("to_delete.rs").await.unwrap();
-        let diffs = fs.compute_diff().await.unwrap();
+        fs.delete_shadow_file("to_delete.rs").await.expect("测试：异步操作应成功");
+        let diffs = fs.compute_diff().await.expect("测试：异步操作应成功");
         assert_eq!(diffs.len(), 1);
         assert_eq!(diffs[0].op, FileOp::Delete);
         assert_eq!(diffs[0].shadow_content, None);
@@ -464,32 +470,32 @@ mod tests {
 
     #[tokio::test]
     async fn test_shadow_fs_compute_diff_no_diff_when_same() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         // 在真实目录创建文件
-        std::fs::write(dir.path().join("same.rs"), "same content").unwrap();
+        std::fs::write(dir.path().join("same.rs"), "same content").expect("测试应成功");
         let fs = ShadowFs::new(dir.path(), "session-1");
         // 在影子目录写入相同内容
-        fs.write_shadow_file("same.rs", "same content").await.unwrap();
-        let diffs = fs.compute_diff().await.unwrap();
+        fs.write_shadow_file("same.rs", "same content").await.expect("测试：异步操作应成功");
+        let diffs = fs.compute_diff().await.expect("测试：异步操作应成功");
         assert!(diffs.is_empty());
     }
 
     #[tokio::test]
     async fn test_shadow_fs_compute_diff_multiple() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("modify.rs"), "old").unwrap();
-        std::fs::write(dir.path().join("delete.rs"), "to delete").unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
+        std::fs::write(dir.path().join("modify.rs"), "old").expect("测试应成功");
+        std::fs::write(dir.path().join("delete.rs"), "to delete").expect("测试应成功");
         let fs = ShadowFs::new(dir.path(), "session-1");
-        fs.write_shadow_file("create.rs", "new").await.unwrap();
-        fs.write_shadow_file("modify.rs", "new").await.unwrap();
-        fs.delete_shadow_file("delete.rs").await.unwrap();
-        let diffs = fs.compute_diff().await.unwrap();
+        fs.write_shadow_file("create.rs", "new").await.expect("测试：异步操作应成功");
+        fs.write_shadow_file("modify.rs", "new").await.expect("测试：异步操作应成功");
+        fs.delete_shadow_file("delete.rs").await.expect("测试：异步操作应成功");
+        let diffs = fs.compute_diff().await.expect("测试：异步操作应成功");
         assert_eq!(diffs.len(), 3);
     }
 
     #[tokio::test]
     async fn test_shadow_fs_apply_diff_create() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let fs = ShadowFs::new(dir.path(), "session-1");
         let diffs = vec![ShadowDiff {
             relative_path: "new_file.rs".to_string(),
@@ -497,16 +503,19 @@ mod tests {
             shadow_content: Some("new content".to_string()),
             original_content: None,
         }];
-        let applied = fs.apply_diff(&diffs).await.unwrap();
+        let applied = fs.apply_diff(&diffs).await.expect("测试：异步操作应成功");
         assert_eq!(applied, 1);
         assert!(dir.path().join("new_file.rs").exists());
-        assert_eq!(std::fs::read_to_string(dir.path().join("new_file.rs")).unwrap(), "new content");
+        assert_eq!(
+            std::fs::read_to_string(dir.path().join("new_file.rs")).expect("测试应成功"),
+            "new content"
+        );
     }
 
     #[tokio::test]
     async fn test_shadow_fs_apply_diff_modify() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("file.rs"), "old content").unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
+        std::fs::write(dir.path().join("file.rs"), "old content").expect("测试应成功");
         let fs = ShadowFs::new(dir.path(), "session-1");
         let diffs = vec![ShadowDiff {
             relative_path: "file.rs".to_string(),
@@ -514,15 +523,18 @@ mod tests {
             shadow_content: Some("new content".to_string()),
             original_content: Some("old content".to_string()),
         }];
-        let applied = fs.apply_diff(&diffs).await.unwrap();
+        let applied = fs.apply_diff(&diffs).await.expect("测试：异步操作应成功");
         assert_eq!(applied, 1);
-        assert_eq!(std::fs::read_to_string(dir.path().join("file.rs")).unwrap(), "new content");
+        assert_eq!(
+            std::fs::read_to_string(dir.path().join("file.rs")).expect("测试应成功"),
+            "new content"
+        );
     }
 
     #[tokio::test]
     async fn test_shadow_fs_apply_diff_delete() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("file.rs"), "content").unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
+        std::fs::write(dir.path().join("file.rs"), "content").expect("测试应成功");
         let fs = ShadowFs::new(dir.path(), "session-1");
         let diffs = vec![ShadowDiff {
             relative_path: "file.rs".to_string(),
@@ -530,14 +542,14 @@ mod tests {
             shadow_content: None,
             original_content: Some("content".to_string()),
         }];
-        let applied = fs.apply_diff(&diffs).await.unwrap();
+        let applied = fs.apply_diff(&diffs).await.expect("测试：异步操作应成功");
         assert_eq!(applied, 1);
         assert!(!dir.path().join("file.rs").exists());
     }
 
     #[tokio::test]
     async fn test_shadow_fs_apply_diff_creates_parent_dirs() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let fs = ShadowFs::new(dir.path(), "session-1");
         let diffs = vec![ShadowDiff {
             relative_path: "deep/nested/file.rs".to_string(),
@@ -545,37 +557,37 @@ mod tests {
             shadow_content: Some("content".to_string()),
             original_content: None,
         }];
-        fs.apply_diff(&diffs).await.unwrap();
+        fs.apply_diff(&diffs).await.expect("测试：异步操作应成功");
         assert!(dir.path().join("deep/nested/file.rs").exists());
     }
 
     #[tokio::test]
     async fn test_shadow_fs_rollback() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let fs = ShadowFs::new(dir.path(), "session-1");
-        fs.write_shadow_file("file.rs", "content").await.unwrap();
+        fs.write_shadow_file("file.rs", "content").await.expect("测试：异步操作应成功");
         assert!(fs.shadow_dir().exists());
-        fs.rollback().await.unwrap();
+        fs.rollback().await.expect("测试：异步操作应成功");
         assert!(!fs.shadow_dir().exists());
     }
 
     #[tokio::test]
     async fn test_shadow_fs_rollback_nonexistent() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let fs = ShadowFs::new(dir.path(), "session-1");
         // 不存在的影子目录回滚应成功(幂等)
-        fs.rollback().await.unwrap();
+        fs.rollback().await.expect("测试：异步操作应成功");
     }
 
     #[tokio::test]
     async fn test_shadow_fs_cleanup_after_apply() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let fs = ShadowFs::new(dir.path(), "session-1");
-        fs.write_shadow_file("new.rs", "content").await.unwrap();
-        let diffs = fs.compute_diff().await.unwrap();
-        fs.apply_diff(&diffs).await.unwrap();
+        fs.write_shadow_file("new.rs", "content").await.expect("测试：异步操作应成功");
+        let diffs = fs.compute_diff().await.expect("测试：异步操作应成功");
+        fs.apply_diff(&diffs).await.expect("测试：异步操作应成功");
         // 应用后清理影子目录
-        fs.cleanup().await.unwrap();
+        fs.cleanup().await.expect("测试：异步操作应成功");
         assert!(!fs.shadow_dir().exists());
         // 真实目录中的文件应保留
         assert!(dir.path().join("new.rs").exists());
@@ -583,19 +595,19 @@ mod tests {
 
     #[tokio::test]
     async fn test_shadow_fs_full_workflow_create() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let fs = ShadowFs::new(dir.path(), "session-1");
         // 1. 投机执行:写入影子目录
-        fs.write_shadow_file("new_file.rs", "fn main() {}").await.unwrap();
+        fs.write_shadow_file("new_file.rs", "fn main() {}").await.expect("测试：异步操作应成功");
         // 2. 计算 diff
-        let diffs = fs.compute_diff().await.unwrap();
+        let diffs = fs.compute_diff().await.expect("测试：异步操作应成功");
         assert_eq!(diffs.len(), 1);
         assert_eq!(diffs[0].op, FileOp::Create);
         // 3. 应用 diff
-        let applied = fs.apply_diff(&diffs).await.unwrap();
+        let applied = fs.apply_diff(&diffs).await.expect("测试：异步操作应成功");
         assert_eq!(applied, 1);
         // 4. 清理
-        fs.cleanup().await.unwrap();
+        fs.cleanup().await.expect("测试：异步操作应成功");
         // 验证:真实目录中存在文件,影子目录已删除
         assert!(dir.path().join("new_file.rs").exists());
         assert!(!fs.shadow_dir().exists());
@@ -603,12 +615,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_shadow_fs_full_workflow_reject() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let fs = ShadowFs::new(dir.path(), "session-1");
         // 1. 投机执行:写入影子目录
-        fs.write_shadow_file("new_file.rs", "fn main() {}").await.unwrap();
+        fs.write_shadow_file("new_file.rs", "fn main() {}").await.expect("测试：异步操作应成功");
         // 2. 用户拒绝:回滚
-        fs.rollback().await.unwrap();
+        fs.rollback().await.expect("测试：异步操作应成功");
         // 验证:真实目录中不存在文件,影子目录已删除
         assert!(!dir.path().join("new_file.rs").exists());
         assert!(!fs.shadow_dir().exists());
@@ -616,11 +628,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_shadow_fs_compute_diff_respects_file_limit() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let fs = ShadowFs::new(dir.path(), "session-1");
         // 创建超过限制的文件数
         for i in 0..(shadow_const::SHADOW_MAX_FILES + 1) {
-            fs.write_shadow_file(&format!("file_{}.rs", i), "content").await.unwrap();
+            fs.write_shadow_file(&format!("file_{}.rs", i), "content")
+                .await
+                .expect("测试：异步操作应成功");
         }
         let result = fs.compute_diff().await;
         assert!(result.is_err());
@@ -628,20 +642,20 @@ mod tests {
 
     #[tokio::test]
     async fn test_shadow_fs_multiple_sessions_isolated() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let fs1 = ShadowFs::new(dir.path(), "session-1");
         let fs2 = ShadowFs::new(dir.path(), "session-2");
         // 不同会话写入不同文件
-        fs1.write_shadow_file("file1.rs", "content1").await.unwrap();
-        fs2.write_shadow_file("file2.rs", "content2").await.unwrap();
+        fs1.write_shadow_file("file1.rs", "content1").await.expect("测试：异步操作应成功");
+        fs2.write_shadow_file("file2.rs", "content2").await.expect("测试：异步操作应成功");
         // 验证影子目录隔离
         assert!(fs1.shadow_dir().join("file1.rs").exists());
         assert!(fs2.shadow_dir().join("file2.rs").exists());
         assert!(!fs1.shadow_dir().join("file2.rs").exists());
         assert!(!fs2.shadow_dir().join("file1.rs").exists());
         // 各自计算 diff 互不影响
-        let diffs1 = fs1.compute_diff().await.unwrap();
-        let diffs2 = fs2.compute_diff().await.unwrap();
+        let diffs1 = fs1.compute_diff().await.expect("测试：异步操作应成功");
+        let diffs2 = fs2.compute_diff().await.expect("测试：异步操作应成功");
         assert_eq!(diffs1.len(), 1);
         assert_eq!(diffs2.len(), 1);
         assert_eq!(diffs1[0].relative_path, "file1.rs");

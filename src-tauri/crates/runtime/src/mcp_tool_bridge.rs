@@ -621,7 +621,7 @@ mod tests {
         registry.register_server("srv", McpConnectionStatus::AuthRequired, vec![], vec![], None);
 
         registry.set_auth_status("srv", McpConnectionStatus::Connected).expect("should succeed");
-        let state = registry.get_server("srv").unwrap();
+        let state = registry.get_server("srv").expect("测试：get_server 应成功");
         assert_eq!(state.status, McpConnectionStatus::Connected);
 
         let removed = registry.disconnect("srv");

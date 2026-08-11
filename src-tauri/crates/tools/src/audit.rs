@@ -278,7 +278,7 @@ impl ToolAuditor {
             let e = entry.clone();
             let db = db.clone();
             let _ = tokio::task::spawn_blocking(move || {
-                let conn = db.lock().expect("audit log lock");
+                let conn = db.lock().unwrap_or_else(|e| e.into_inner());
                 let _ = conn.execute(
                     "INSERT INTO audit_log (timestamp, tool_name, conversation_id, success, duration_ms, output_preview, has_sensitive_input, has_sensitive_output)
                      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",

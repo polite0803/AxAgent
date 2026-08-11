@@ -746,11 +746,12 @@ mod tests {
 
     #[tokio::test]
     async fn create_message_round_trips_attachment_metadata() {
-        let h = create_test_pool().await.unwrap();
+        let h = create_test_pool().await.expect("测试：异步操作应成功");
         let db = &h.conn;
 
-        let conv =
-            conversation::create_conversation(db, "Attach Chat", "m1", "p1", None).await.unwrap();
+        let conv = conversation::create_conversation(db, "Attach Chat", "m1", "p1", None)
+            .await
+            .expect("测试：异步操作应成功");
 
         let msg = create_message(
             db,
@@ -769,7 +770,7 @@ mod tests {
             0,
         )
         .await
-        .unwrap();
+        .expect("测试应成功");
 
         assert_eq!(msg.attachments.len(), 1);
         assert_eq!(msg.attachments[0].file_name, "image.png");

@@ -129,8 +129,9 @@ mod tests {
             evaluation: None,
             trace: vec![],
         };
-        let json = serde_json::to_string(&result).unwrap();
-        let deserialized: RoundResult = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&result).expect("测试：JSON序列化应成功");
+        let deserialized: RoundResult =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.round, 1);
         assert_eq!(deserialized.output, "test output");
         assert!(deserialized.evaluation.is_none());
@@ -145,7 +146,8 @@ mod tests {
             "gaps": [],
             "strengths": []
         }"#;
-        let eval: RoundEvaluation = serde_json::from_str(json_old).unwrap();
+        let eval: RoundEvaluation =
+            serde_json::from_str(json_old).expect("测试：JSON反序列化应成功");
         assert_eq!(eval.score, 0.8);
         assert!(eval.next_direction.is_none());
     }

@@ -344,9 +344,9 @@ mod collect_skill_content_tests {
 
     #[test]
     fn test_collect_basic() {
-        let tmp = TempDir::new().unwrap();
-        fs::write(tmp.path().join("a.md"), "# Title\nContent").unwrap();
-        fs::write(tmp.path().join("b.md"), "## Sub\nMore text").unwrap();
+        let tmp = TempDir::new().expect("测试：new 应成功");
+        fs::write(tmp.path().join("a.md"), "# Title\nContent").expect("测试应成功");
+        fs::write(tmp.path().join("b.md"), "## Sub\nMore text").expect("测试应成功");
 
         let result = collect_content(tmp.path());
         assert!(result.contains("# Title"));
@@ -355,15 +355,15 @@ mod collect_skill_content_tests {
 
     #[test]
     fn test_collect_respects_depth_limit() {
-        let tmp = TempDir::new().unwrap();
+        let tmp = TempDir::new().expect("测试：new 应成功");
         // 创建深度过大的目录结构
         let mut current = tmp.path().to_path_buf();
         for i in 0..=MAX_RECURSION_DEPTH + 1 {
             current = current.join(format!("level_{}", i));
-            fs::create_dir_all(&current).unwrap();
+            fs::create_dir_all(&current).expect("测试：创建目录应成功");
         }
         // 在最深层创建 .md 文件
-        fs::write(current.join("deep.md"), "# Deep").unwrap();
+        fs::write(current.join("deep.md"), "# Deep").expect("测试应成功");
 
         let result = collect_content(tmp.path());
         // 最深层的文件应被跳过
@@ -372,13 +372,13 @@ mod collect_skill_content_tests {
 
     #[test]
     fn test_collect_respects_file_size_limit() {
-        let tmp = TempDir::new().unwrap();
+        let tmp = TempDir::new().expect("测试：new 应成功");
         // 创建一个小文件和一个大文件
-        fs::write(tmp.path().join("small.md"), "# Small").unwrap();
+        fs::write(tmp.path().join("small.md"), "# Small").expect("测试应成功");
 
         let large_path = tmp.path().join("large.md");
         let large_content = "A".repeat((MAX_SINGLE_FILE_SIZE + 1) as usize);
-        fs::write(&large_path, &large_content).unwrap();
+        fs::write(&large_path, &large_content).expect("测试：写入文件应成功");
 
         let result = collect_content(tmp.path());
         assert!(result.contains("# Small"));
@@ -387,11 +387,12 @@ mod collect_skill_content_tests {
 
     #[test]
     fn test_collect_total_size_limit() {
-        let tmp = TempDir::new().unwrap();
+        let tmp = TempDir::new().expect("测试：new 应成功");
         let chunk_size = (MAX_SINGLE_FILE_SIZE / 2) as usize;
         // 创建5个文件，每个小于单文件限制，总和超过总限制
         for i in 0..5 {
-            fs::write(tmp.path().join(format!("{i}.md")), "X".repeat(chunk_size)).unwrap();
+            fs::write(tmp.path().join(format!("{i}.md")), "X".repeat(chunk_size))
+                .expect("测试应成功");
         }
 
         let result = collect_content(tmp.path());
@@ -400,7 +401,7 @@ mod collect_skill_content_tests {
 
     #[test]
     fn test_collect_empty_dir() {
-        let tmp = TempDir::new().unwrap();
+        let tmp = TempDir::new().expect("测试：new 应成功");
         let result = collect_content(tmp.path());
         assert!(result.is_empty());
     }

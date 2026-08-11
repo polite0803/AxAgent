@@ -309,9 +309,9 @@ mod tests {
 
         manager
             .add_argument(&debate_id, DebateSide::Pro, "This is good because data", 0.8)
-            .unwrap();
+            .expect("测试应成功");
 
-        let result = manager.get_result(&debate_id).unwrap();
+        let result = manager.get_result(&debate_id).expect("测试：get_result 应成功");
         assert_eq!(result.rounds_count, 1);
         assert_eq!(result.pro_score, 0.8);
     }
@@ -331,10 +331,12 @@ mod tests {
 
         manager
             .add_argument(&debate_id, DebateSide::Pro, "A is better due to performance", 0.9)
-            .unwrap();
-        manager.add_argument(&debate_id, DebateSide::Con, "B has lower cost", 0.7).unwrap();
+            .expect("测试应成功");
+        manager
+            .add_argument(&debate_id, DebateSide::Con, "B has lower cost", 0.7)
+            .expect("测试：add_argument 应成功");
 
-        let result = manager.get_result(&debate_id).unwrap();
+        let result = manager.get_result(&debate_id).expect("测试：get_result 应成功");
         assert_eq!(result.winner, DebateSide::Pro);
     }
 

@@ -208,9 +208,9 @@ mod tests {
     fn process_media_detects_real_file_delivery_mode() {
         // 创建真实临时文件以走通 is_file() 分支，验证 delivery_mode 逻辑
         let dir = std::env::temp_dir().join(format!("axtest-{}", uuid::Uuid::new_v4()));
-        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::create_dir_all(&dir).expect("测试：创建目录应成功");
         let audio = dir.join("clip.mp3");
-        std::fs::write(&audio, b"fake").unwrap();
+        std::fs::write(&audio, b"fake").expect("测试：写入文件应成功");
         let audio_str = audio.to_string_lossy().replace('\\', "/");
 
         // 默认 → Native

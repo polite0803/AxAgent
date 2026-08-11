@@ -588,9 +588,9 @@ mod tests {
     fn test_memory_set_get() {
         let mem = SharedMemory::new();
 
-        mem.set("key1", "value1", "ns1").unwrap();
+        mem.set("key1", "value1", "ns1").expect("测试：set 应成功");
 
-        let entry = mem.get("key1", "ns1").unwrap();
+        let entry = mem.get("key1", "ns1").expect("测试：get 应成功");
         assert_eq!(entry.value, "value1");
     }
 
@@ -606,11 +606,11 @@ mod tests {
     fn test_namespace_isolation() {
         let mem = SharedMemory::new();
 
-        mem.set("key1", "value1", "ns1").unwrap();
-        mem.set("key1", "value2", "ns2").unwrap();
+        mem.set("key1", "value1", "ns1").expect("测试：set 应成功");
+        mem.set("key1", "value2", "ns2").expect("测试：set 应成功");
 
-        let v1 = mem.get("key1", "ns1").unwrap();
-        let v2 = mem.get("key1", "ns2").unwrap();
+        let v1 = mem.get("key1", "ns1").expect("测试：get 应成功");
+        let v2 = mem.get("key1", "ns2").expect("测试：get 应成功");
 
         assert_eq!(v1.value, "value1");
         assert_eq!(v2.value, "value2");
@@ -620,15 +620,15 @@ mod tests {
     fn test_cas() {
         let mem = SharedMemory::new();
 
-        mem.set("key1", "original", "ns1").unwrap();
+        mem.set("key1", "original", "ns1").expect("测试：set 应成功");
 
-        let swapped = mem.cas("key1", "ns1", "wrong", "new").unwrap();
+        let swapped = mem.cas("key1", "ns1", "wrong", "new").expect("测试：cas 应成功");
         assert!(!swapped);
 
-        let swapped = mem.cas("key1", "ns1", "original", "new").unwrap();
+        let swapped = mem.cas("key1", "ns1", "original", "new").expect("测试：cas 应成功");
         assert!(swapped);
 
-        let entry = mem.get("key1", "ns1").unwrap();
+        let entry = mem.get("key1", "ns1").expect("测试：get 应成功");
         assert_eq!(entry.value, "new");
     }
 

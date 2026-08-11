@@ -87,8 +87,8 @@ fn test_serialize_deserialize_config() {
         ..Default::default()
     };
 
-    let json = serde_json::to_string(&config).unwrap();
-    let deserialized: PlatformConfig = serde_json::from_str(&json).unwrap();
+    let json = serde_json::to_string(&config).expect("测试应成功");
+    let deserialized: PlatformConfig = serde_json::from_str(&json).expect("测试应成功");
 
     assert!(deserialized.telegram_enabled);
     assert_eq!(deserialized.telegram_bot_token, Some("test_bot_token".to_string()));
@@ -102,9 +102,9 @@ fn test_allowed_users_filtering() {
     let config =
         PlatformConfig { telegram_allowed_users: Some(vec![111, 222]), ..Default::default() };
 
-    assert!(config.telegram_allowed_users.as_ref().unwrap().contains(&111));
-    assert!(config.telegram_allowed_users.as_ref().unwrap().contains(&222));
-    assert!(!config.telegram_allowed_users.as_ref().unwrap().contains(&333));
+    assert!(config.telegram_allowed_users.as_ref().expect("测试应成功").contains(&111));
+    assert!(config.telegram_allowed_users.as_ref().expect("测试应成功").contains(&222));
+    assert!(!config.telegram_allowed_users.as_ref().expect("测试应成功").contains(&333));
 }
 
 #[test]

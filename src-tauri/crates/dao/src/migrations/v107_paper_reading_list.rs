@@ -172,8 +172,8 @@ mod tests {
     /// v107 单独 idempotent：重复跑不报错（所有 CREATE 都用 IF NOT EXISTS）。
     #[tokio::test]
     async fn v107_is_self_idempotent() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        up(db.clone()).await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        up(db.clone()).await.expect("测试：异步操作应成功");
         up(db).await.expect("v107 must be re-runnable in isolation");
     }
 
@@ -181,8 +181,8 @@ mod tests {
     #[tokio::test]
     async fn v107_tables_and_indices_exist() {
         use sea_orm::Statement;
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        up(db.clone()).await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        up(db.clone()).await.expect("测试：异步操作应成功");
 
         // 表存在
         for table in &["paper_overviews", "reading_lists", "reading_list_items"] {
@@ -193,7 +193,7 @@ mod tests {
                     [(*table).into()],
                 ))
                 .await
-                .unwrap();
+                .expect("测试应成功");
             assert!(row.is_some(), "table {} should exist after v107", table);
         }
 
@@ -214,7 +214,7 @@ mod tests {
                     [(*idx).into()],
                 ))
                 .await
-                .unwrap();
+                .expect("测试应成功");
             assert!(row.is_some(), "index {} should exist after v107", idx);
         }
     }

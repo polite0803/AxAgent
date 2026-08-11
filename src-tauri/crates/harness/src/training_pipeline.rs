@@ -445,7 +445,7 @@ mod tests {
         pipeline.add_step(CompressionStepType::SummaryCompression);
         assert_eq!(pipeline.steps.len(), initial_count + 1);
 
-        let step_id = pipeline.steps.last().unwrap().id.clone();
+        let step_id = pipeline.steps.last().expect("测试：列表应非空").id.clone();
         assert!(pipeline.remove_step(&step_id));
         assert_eq!(pipeline.steps.len(), initial_count);
     }

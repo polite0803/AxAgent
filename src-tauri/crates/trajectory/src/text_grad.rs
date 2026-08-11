@@ -854,7 +854,7 @@ mod tests {
         graph.add_edge(ComputationEdge::new("a", "b"));
         graph.add_edge(ComputationEdge::new("b", "c"));
 
-        let sorted = graph.topological_sort().unwrap();
+        let sorted = graph.topological_sort().expect("测试：topological_sort 应成功");
         assert_eq!(sorted, vec!["a", "b", "c"]);
     }
 
@@ -874,7 +874,7 @@ mod tests {
         graph.add_edge(ComputationEdge::new("b", "d"));
         graph.add_edge(ComputationEdge::new("c", "d"));
 
-        let sorted = graph.topological_sort().unwrap();
+        let sorted = graph.topological_sort().expect("测试：topological_sort 应成功");
         assert_eq!(sorted[0], "a");
         assert_eq!(sorted[3], "d");
         assert!(sorted[1..3].contains(&"b".to_string()));
@@ -908,7 +908,8 @@ mod tests {
         graph.add_edge(ComputationEdge::new("a", "b"));
         graph.add_edge(ComputationEdge::new("b", "c"));
 
-        let sorted = graph.reverse_topological_sort().unwrap();
+        let sorted =
+            graph.reverse_topological_sort().expect("测试：reverse_topological_sort 应成功");
         assert_eq!(sorted, vec!["c", "b", "a"]);
     }
 
@@ -927,9 +928,9 @@ mod tests {
         let result = graph.backward("The output was incorrect");
         assert!(result.is_ok());
 
-        assert!(graph.get_node("memory").unwrap().gradient.is_some());
-        assert!(graph.get_node("tool").unwrap().gradient.is_some());
-        assert!(graph.get_node("prompt").unwrap().gradient.is_some());
+        assert!(graph.get_node("memory").expect("测试应成功").gradient.is_some());
+        assert!(graph.get_node("tool").expect("测试应成功").gradient.is_some());
+        assert!(graph.get_node("prompt").expect("测试应成功").gradient.is_some());
     }
 
     #[test]
@@ -986,7 +987,7 @@ mod tests {
         let gradient = provider
             .compute_gradient("You are an assistant", "The output had an error")
             .await
-            .unwrap();
+            .expect("测试应成功");
         assert!(!gradient.is_empty());
         assert!(gradient.contains("error") || gradient.contains("Error"));
     }
@@ -997,7 +998,7 @@ mod tests {
         let gradient = provider
             .compute_gradient("Search the web", "The tool was too slow and timed out")
             .await
-            .unwrap();
+            .expect("测试应成功");
         assert!(
             gradient.to_lowercase().contains("performance")
                 || gradient.to_lowercase().contains("optim")
@@ -1007,8 +1008,10 @@ mod tests {
     #[tokio::test]
     async fn test_default_provider_generic_feedback() {
         let provider = DefaultTextGradProvider::new();
-        let gradient =
-            provider.compute_gradient("Do something", "The result was okay").await.unwrap();
+        let gradient = provider
+            .compute_gradient("Do something", "The result was okay")
+            .await
+            .expect("测试：异步操作应成功");
         assert!(!gradient.is_empty());
     }
 
@@ -1039,7 +1042,10 @@ mod tests {
         graph.add_edge(ComputationEdge::new("a", "b"));
 
         let mut engine = TextGradEngine::new(graph, TextGradConfig::default());
-        let gradients = engine.backward_text_grad("The output was incorrect").await.unwrap();
+        let gradients = engine
+            .backward_text_grad("The output was incorrect")
+            .await
+            .expect("测试：异步操作应成功");
 
         assert!(!gradients.is_empty());
         assert!(gradients.contains_key("a"));
@@ -1054,13 +1060,15 @@ mod tests {
 
         let mut engine = TextGradEngine::new(graph, TextGradConfig::default());
 
-        engine.graph_mut().get_node_mut("a").unwrap().gradient =
+        engine.graph_mut().get_node_mut("a").expect("测试应成功").gradient =
             Some("Add more specificity".to_string());
 
         let modifications = engine.apply_gradients();
         assert!(!modifications.is_empty());
-        assert!(engine.graph().get_node("a").unwrap().content.contains("TextGrad revision"));
-        assert!(engine.graph().get_node("a").unwrap().gradient.is_none());
+        assert!(
+            engine.graph().get_node("a").expect("测试应成功").content.contains("TextGrad revision")
+        );
+        assert!(engine.graph().get_node("a").expect("测试应成功").gradient.is_none());
     }
 
     #[tokio::test]
@@ -1078,9 +1086,9 @@ mod tests {
         };
 
         let mut engine = TextGradEngine::new(graph, config);
-        engine.graph_mut().get_node_mut("a").unwrap().gradient =
+        engine.graph_mut().get_node_mut("a").expect("测试应成功").gradient =
             Some("gradient for prompt".to_string());
-        engine.graph_mut().get_node_mut("b").unwrap().gradient =
+        engine.graph_mut().get_node_mut("b").expect("测试应成功").gradient =
             Some("gradient for tool".to_string());
 
         let modifications = engine.apply_gradients();
@@ -1102,7 +1110,7 @@ mod tests {
             TextGradConfig { max_iterations: 3, gradient_threshold: 0.001, ..Default::default() };
 
         let mut engine = TextGradEngine::new(graph, config);
-        let result = engine.optimize("The output had errors").await.unwrap();
+        let result = engine.optimize("The output had errors").await.expect("测试：异步操作应成功");
 
         assert!(result.iterations <= 3);
         assert!(!result.final_output.is_empty());
@@ -1119,7 +1127,7 @@ mod tests {
             TextGradConfig { max_iterations: 10, gradient_threshold: 100.0, ..Default::default() };
 
         let mut engine = TextGradEngine::new(graph, config);
-        let result = engine.optimize("Minor feedback").await.unwrap();
+        let result = engine.optimize("Minor feedback").await.expect("测试：异步操作应成功");
 
         assert!(result.converged);
         assert!(result.iterations < 10);
@@ -1163,8 +1171,9 @@ mod tests {
         graph.add_node(n2);
         graph.add_edge(ComputationEdge::new("a", "b"));
 
-        let json = serde_json::to_string(&graph).unwrap();
-        let deserialized: ComputationGraph = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&graph).expect("测试：JSON序列化应成功");
+        let deserialized: ComputationGraph =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.nodes.len(), 2);
         assert_eq!(deserialized.edges.len(), 1);
         assert_eq!(deserialized.nodes[0].node_type, NodeType::Prompt);
@@ -1173,8 +1182,9 @@ mod tests {
     #[test]
     fn test_config_serialization() {
         let config = TextGradConfig::default();
-        let json = serde_json::to_string(&config).unwrap();
-        let deserialized: TextGradConfig = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&config).expect("测试：JSON序列化应成功");
+        let deserialized: TextGradConfig =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.max_iterations, config.max_iterations);
         assert_eq!(deserialized.gradient_threshold, config.gradient_threshold);
     }
@@ -1189,8 +1199,9 @@ mod tests {
                 m
             },
         };
-        let json = serde_json::to_string(&result).unwrap();
-        let deserialized: ForwardResult = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&result).expect("测试：JSON序列化应成功");
+        let deserialized: ForwardResult =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.output, "test output");
     }
 
@@ -1203,8 +1214,9 @@ mod tests {
             gradient_norms: vec![1.0, 0.5, 0.1],
             node_modifications: HashMap::new(),
         };
-        let json = serde_json::to_string(&result).unwrap();
-        let deserialized: OptimizeResult = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&result).expect("测试：JSON序列化应成功");
+        let deserialized: OptimizeResult =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.iterations, 5);
         assert!(deserialized.converged);
     }
@@ -1233,8 +1245,10 @@ mod tests {
         let forward1 = engine.forward();
         assert!(!forward1.output.is_empty());
 
-        let gradients =
-            engine.backward_text_grad("The code search returned incorrect results").await.unwrap();
+        let gradients = engine
+            .backward_text_grad("The code search returned incorrect results")
+            .await
+            .expect("测试：异步操作应成功");
         assert_eq!(gradients.len(), 3);
 
         let modifications = engine.apply_gradients();

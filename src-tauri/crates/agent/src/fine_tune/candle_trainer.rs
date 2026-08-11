@@ -383,8 +383,12 @@ pub fn train_with_embeddings(
         "lora_b_shape": [embedding_model_dim as u32, config.rank],
     });
     let config_path = adapter_dir.join("adapter_config.json");
-    std::fs::write(&config_path, serde_json::to_string_pretty(&config_json).unwrap())
-        .map_err(|e| format!("write config: {e}"))?;
+    std::fs::write(
+        &config_path,
+        serde_json::to_string_pretty(&config_json)
+            .expect("Candle 训练：序列化 config JSON 不应失败"),
+    )
+    .map_err(|e| format!("write config: {e}"))?;
 
     info!(
         "[CandleLoRA] Training complete: adapter={}, safetensors={} (dim={})",
@@ -476,7 +480,11 @@ fn stack_tensors(tensors: &[Tensor], device: &Device) -> candle_core::Result<Ten
     let data: Vec<f32> = tensors
         .iter()
         .flat_map(|t| {
-            let d: Vec<f32> = t.flatten_all().unwrap().to_vec1().unwrap_or_default();
+            let d: Vec<f32> = t
+                .flatten_all()
+                .expect("Candle 训练：flatten_all 不应失败")
+                .to_vec1()
+                .unwrap_or_default();
             d
         })
         .collect();

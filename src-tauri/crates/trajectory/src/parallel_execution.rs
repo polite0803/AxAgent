@@ -565,10 +565,12 @@ impl ParallelExecutionVerifier {
         let parsed: Vec<(&str, serde_json::Map<String, serde_json::Value>)> = completed_tasks
             .iter()
             .filter_map(|t| {
-                serde_json::from_str::<serde_json::Value>(t.result.as_ref().unwrap())
-                    .ok()
-                    .and_then(|v| v.as_object().cloned())
-                    .map(|obj| (t.name.as_str(), obj))
+                serde_json::from_str::<serde_json::Value>(
+                    t.result.as_ref().expect("并行执行：已完成任务应有结果"),
+                )
+                .ok()
+                .and_then(|v| v.as_object().cloned())
+                .map(|obj| (t.name.as_str(), obj))
             })
             .collect();
 
@@ -740,7 +742,7 @@ impl ParallelExecutionVerifier {
         let total = tasks_with_results.len();
 
         for task in &tasks_with_results {
-            let size = task.result.as_ref().unwrap().len();
+            let size = task.result.as_ref().expect("并行执行：已完成任务应有结果").len();
             if size > self.config.max_result_size_bytes {
                 oversized.push(format!(
                     "{}: {} bytes（上限 {} bytes）",
@@ -1120,7 +1122,11 @@ mod tests {
         ];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result.checks.iter().find(|c| c.name == "output_completeness").unwrap();
+        let check = result
+            .checks
+            .iter()
+            .find(|c| c.name == "output_completeness")
+            .expect("测试：查找应成功");
         assert!(check.passed);
         assert!((check.score - 1.0).abs() < 1e-10);
     }
@@ -1134,7 +1140,11 @@ mod tests {
         ];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result.checks.iter().find(|c| c.name == "output_completeness").unwrap();
+        let check = result
+            .checks
+            .iter()
+            .find(|c| c.name == "output_completeness")
+            .expect("测试：查找应成功");
         assert!(!check.passed);
         assert!((check.score - 0.5).abs() < 1e-10);
     }
@@ -1147,7 +1157,11 @@ mod tests {
         let tasks = vec![make_completed_task("t1", Some("result"), None, None, 100), cancelled];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result.checks.iter().find(|c| c.name == "output_completeness").unwrap();
+        let check = result
+            .checks
+            .iter()
+            .find(|c| c.name == "output_completeness")
+            .expect("测试：查找应成功");
         assert!(check.passed, "cancelled tasks should be ignored");
     }
 
@@ -1160,7 +1174,8 @@ mod tests {
         let tasks = vec![make_completed_task("t1", Some(output), Some(schema), None, 100)];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result.checks.iter().find(|c| c.name == "schema_validation").unwrap();
+        let check =
+            result.checks.iter().find(|c| c.name == "schema_validation").expect("测试：查找应成功");
         assert!(check.passed);
     }
 
@@ -1173,7 +1188,8 @@ mod tests {
         let tasks = vec![make_completed_task("t1", Some(output), Some(schema), None, 100)];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result.checks.iter().find(|c| c.name == "schema_validation").unwrap();
+        let check =
+            result.checks.iter().find(|c| c.name == "schema_validation").expect("测试：查找应成功");
         assert!(!check.passed);
     }
 
@@ -1183,7 +1199,8 @@ mod tests {
         let tasks = vec![make_completed_task("t1", Some("data"), None, None, 100)];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result.checks.iter().find(|c| c.name == "schema_validation").unwrap();
+        let check =
+            result.checks.iter().find(|c| c.name == "schema_validation").expect("测试：查找应成功");
         assert!(check.passed, "no schema should pass");
     }
 
@@ -1196,7 +1213,11 @@ mod tests {
         ];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result.checks.iter().find(|c| c.name == "cross_task_consistency").unwrap();
+        let check = result
+            .checks
+            .iter()
+            .find(|c| c.name == "cross_task_consistency")
+            .expect("测试：查找应成功");
         assert!(check.passed);
     }
 
@@ -1209,7 +1230,11 @@ mod tests {
         ];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result.checks.iter().find(|c| c.name == "cross_task_consistency").unwrap();
+        let check = result
+            .checks
+            .iter()
+            .find(|c| c.name == "cross_task_consistency")
+            .expect("测试：查找应成功");
         assert!(!check.passed);
     }
 
@@ -1219,7 +1244,11 @@ mod tests {
         let tasks = vec![make_completed_task("t1", Some(r#"{"a":1}"#), None, None, 100)];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result.checks.iter().find(|c| c.name == "cross_task_consistency").unwrap();
+        let check = result
+            .checks
+            .iter()
+            .find(|c| c.name == "cross_task_consistency")
+            .expect("测试：查找应成功");
         assert!(check.passed, "< 2 tasks should pass");
     }
 
@@ -1232,7 +1261,11 @@ mod tests {
         ];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result.checks.iter().find(|c| c.name == "timeout_compliance").unwrap();
+        let check = result
+            .checks
+            .iter()
+            .find(|c| c.name == "timeout_compliance")
+            .expect("测试：查找应成功");
         assert!(check.passed);
     }
 
@@ -1242,7 +1275,11 @@ mod tests {
         let tasks = vec![make_completed_task("t1", Some("r1"), None, Some(1), 5000)];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result.checks.iter().find(|c| c.name == "timeout_compliance").unwrap();
+        let check = result
+            .checks
+            .iter()
+            .find(|c| c.name == "timeout_compliance")
+            .expect("测试：查找应成功");
         assert!(!check.passed);
     }
 
@@ -1257,7 +1294,8 @@ mod tests {
         ];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result.checks.iter().find(|c| c.name == "error_rate").unwrap();
+        let check =
+            result.checks.iter().find(|c| c.name == "error_rate").expect("测试：查找应成功");
         assert!(check.passed); // 25% < 30%
     }
 
@@ -1271,7 +1309,8 @@ mod tests {
         ];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result.checks.iter().find(|c| c.name == "error_rate").unwrap();
+        let check =
+            result.checks.iter().find(|c| c.name == "error_rate").expect("测试：查找应成功");
         assert!(!check.passed); // 50% > 20%
     }
 
@@ -1281,7 +1320,8 @@ mod tests {
         let tasks = vec![make_completed_task("t1", Some("small"), None, None, 100)];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result.checks.iter().find(|c| c.name == "output_size").unwrap();
+        let check =
+            result.checks.iter().find(|c| c.name == "output_size").expect("测试：查找应成功");
         assert!(check.passed);
     }
 
@@ -1292,7 +1332,8 @@ mod tests {
         let tasks = vec![make_completed_task("t1", Some("too long"), None, None, 100)];
         let exec = make_execution(tasks);
         let result = verifier.verify(&exec);
-        let check = result.checks.iter().find(|c| c.name == "output_size").unwrap();
+        let check =
+            result.checks.iter().find(|c| c.name == "output_size").expect("测试：查找应成功");
         assert!(!check.passed);
     }
 
@@ -1371,11 +1412,11 @@ mod tests {
                 3,
             )
             .await
-            .unwrap();
+            .expect("测试应成功");
 
         {
             let mut executions = service.executions.write().await;
-            let exec = executions.get_mut(&exec_id).unwrap();
+            let exec = executions.get_mut(&exec_id).expect("测试：get_mut 应成功");
             let task = &mut exec.tasks[0];
             task.status = ParallelTaskStatus::Running;
             task.started_at = Some(Utc::now() - chrono::Duration::seconds(60));
@@ -1385,7 +1426,7 @@ mod tests {
         let timed_out = service.check_and_apply_timeouts(&exec_id).await;
         assert_eq!(timed_out.len(), 1);
 
-        let exec = service.get_execution(&exec_id).await.unwrap();
+        let exec = service.get_execution(&exec_id).await.expect("测试：异步操作应成功");
         assert_eq!(exec.tasks[0].status, ParallelTaskStatus::Timeout);
     }
 
@@ -1402,11 +1443,11 @@ mod tests {
                 3,
             )
             .await
-            .unwrap();
+            .expect("测试应成功");
 
         {
             let mut executions = service.executions.write().await;
-            let exec = executions.get_mut(&exec_id).unwrap();
+            let exec = executions.get_mut(&exec_id).expect("测试：get_mut 应成功");
             let task = &mut exec.tasks[0];
             task.status = ParallelTaskStatus::Running;
             task.started_at = Some(Utc::now() - chrono::Duration::seconds(5));

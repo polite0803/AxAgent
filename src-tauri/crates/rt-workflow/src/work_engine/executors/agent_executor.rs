@@ -439,7 +439,13 @@ impl NodeExecutorTrait for AgentExecutor {
                     }
                 });
                 if let Some(true) = cached_valid {
-                    Some(cache.get(pid.as_str()).unwrap().profile.clone())
+                    Some(
+                        cache
+                            .get(pid.as_str())
+                            .expect("Agent 执行器：缓存应在检查后命中")
+                            .profile
+                            .clone(),
+                    )
                 } else {
                     drop(cache);
                     let result = axagent_harness::repositories::agent_profile_repository()

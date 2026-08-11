@@ -374,7 +374,7 @@ mod tests {
     #[test]
     fn parse_update_variable() {
         let s = r#"{"action_type":"update_variable","data":{"template_id":"t1","name":"score.min","value":0.5}}"#;
-        let a: ChatAction = serde_json::from_str(s).unwrap();
+        let a: ChatAction = serde_json::from_str(s).expect("测试：JSON反序列化应成功");
         match a {
             ChatAction::UpdateVariable { data } => {
                 assert_eq!(data.template_id, "t1");
@@ -388,7 +388,7 @@ mod tests {
     #[test]
     fn parse_rollback_to_version() {
         let s = r#"{"action_type":"rollback_to_version","data":{"template_id":"t1","version":3}}"#;
-        let a: ChatAction = serde_json::from_str(s).unwrap();
+        let a: ChatAction = serde_json::from_str(s).expect("测试：JSON反序列化应成功");
         match a {
             ChatAction::RollbackToVersion { data } => {
                 assert_eq!(data.version, 3);
@@ -400,7 +400,7 @@ mod tests {
     #[test]
     fn parse_update_input_mapping() {
         let s = r#"{"action_type":"update_input_mapping","data":{"node_id":"n1","mappings":[{"target":"a","source":"b"}]}}"#;
-        let a: ChatAction = serde_json::from_str(s).unwrap();
+        let a: ChatAction = serde_json::from_str(s).expect("测试：JSON反序列化应成功");
         match a {
             ChatAction::UpdateInputMapping { data } => {
                 assert_eq!(data.mappings.len(), 1);
@@ -414,7 +414,7 @@ mod tests {
     #[test]
     fn parse_edit_asset_file_replace() {
         let s = r#"{"action_type":"edit_asset_file","data":{"path":"x.rhai","operation":"replace","anchor_line":10,"code":"new body","description":"fix"}}"#;
-        let a: ChatAction = serde_json::from_str(s).unwrap();
+        let a: ChatAction = serde_json::from_str(s).expect("测试：JSON反序列化应成功");
         match a {
             ChatAction::EditAssetFile { data } => {
                 assert_eq!(data.operation, EditAssetOperation::Replace);
@@ -427,7 +427,7 @@ mod tests {
     #[test]
     fn parse_edit_asset_file_delete_omits_code() {
         let s = r#"{"action_type":"edit_asset_file","data":{"path":"x.rhai","operation":"delete","anchor_line":10,"description":"rm"}}"#;
-        let a: ChatAction = serde_json::from_str(s).unwrap();
+        let a: ChatAction = serde_json::from_str(s).expect("测试：JSON反序列化应成功");
         match a {
             ChatAction::EditAssetFile { data } => {
                 assert_eq!(data.operation, EditAssetOperation::Delete);
@@ -440,7 +440,7 @@ mod tests {
     #[test]
     fn parse_edit_asset_file_delete_rejects_code() {
         let s = r#"{"action_type":"edit_asset_file","data":{"path":"x.rhai","operation":"delete","anchor_line":10,"code":"x","description":"rm"}}"#;
-        let a: ChatAction = serde_json::from_str(s).unwrap();
+        let a: ChatAction = serde_json::from_str(s).expect("测试：JSON反序列化应成功");
         if let ChatAction::EditAssetFile { data } = a {
             let err = data.operation.validate_code(data.code.as_ref());
             assert!(err.is_err(), "delete with code should be invalid");
@@ -452,7 +452,7 @@ mod tests {
     #[test]
     fn parse_edit_asset_file_replace_requires_code() {
         let s = r#"{"action_type":"edit_asset_file","data":{"path":"x.rhai","operation":"replace","anchor_line":10,"description":"x"}}"#;
-        let a: ChatAction = serde_json::from_str(s).unwrap();
+        let a: ChatAction = serde_json::from_str(s).expect("测试：JSON反序列化应成功");
         if let ChatAction::EditAssetFile { data } = a {
             let err = data.operation.validate_code(data.code.as_ref());
             assert!(err.is_err(), "replace without code should be invalid");
@@ -464,7 +464,7 @@ mod tests {
     #[test]
     fn parse_apply_diff_with_validation() {
         let s = r#"{"action_type":"apply_diff_with_validation","data":{"actions":[{"action_type":"update_variable","data":{"template_id":"t","name":"x","value":1}}],"validation":{"type":"backtest","params":{"min_sample":10}},"rollback_on_failure":true}}"#;
-        let a: ChatAction = serde_json::from_str(s).unwrap();
+        let a: ChatAction = serde_json::from_str(s).expect("测试：JSON反序列化应成功");
         match a {
             ChatAction::ApplyDiffWithValidation { data } => {
                 assert_eq!(data.actions.len(), 1);
@@ -480,7 +480,7 @@ mod tests {
     #[test]
     fn parse_diagnostic_issue_critical_with_fix() {
         let s = r#"{"severity":"critical","category":"prompt_quality","title":"x","detail":"y","suggestion":"z","fix":{"action_type":"set_node_field","node_id":"n1","field":"temperature","value":0.2}}"#;
-        let issue: DiagnosticIssue = serde_json::from_str(s).unwrap();
+        let issue: DiagnosticIssue = serde_json::from_str(s).expect("测试：JSON反序列化应成功");
         assert_eq!(issue.severity, DiagnosticSeverity::Critical);
         assert_eq!(issue.category, DiagnosticCategory::PromptQuality);
         assert!(issue.fix.is_some());
@@ -489,14 +489,14 @@ mod tests {
     #[test]
     fn parse_diagnostic_issue_node_id_null() {
         let s = r#"{"severity":"low","category":"semantic_conflict","node_id":null,"title":"x","detail":"y","suggestion":"z"}"#;
-        let issue: DiagnosticIssue = serde_json::from_str(s).unwrap();
+        let issue: DiagnosticIssue = serde_json::from_str(s).expect("测试：JSON反序列化应成功");
         assert_eq!(issue.node_id, None);
     }
 
     #[test]
     fn parse_diagnostic_issue_high_without_fix_rejected() {
         let s = r#"{"severity":"high","category":"prompt_quality","title":"x","detail":"y","suggestion":"z"}"#;
-        let issue: DiagnosticIssue = serde_json::from_str(s).unwrap();
+        let issue: DiagnosticIssue = serde_json::from_str(s).expect("测试：JSON反序列化应成功");
         let err = validate_issue(&issue);
         assert!(err.is_err());
         assert!(err.unwrap_err().contains("must include a fix"));
@@ -505,7 +505,7 @@ mod tests {
     #[test]
     fn parse_diagnostic_issue_medium_without_fix_ok() {
         let s = r#"{"severity":"medium","category":"prompt_quality","title":"x","detail":"y","suggestion":"z"}"#;
-        let issue: DiagnosticIssue = serde_json::from_str(s).unwrap();
+        let issue: DiagnosticIssue = serde_json::from_str(s).expect("测试：JSON反序列化应成功");
         assert!(validate_issue(&issue).is_ok());
     }
 
@@ -514,28 +514,28 @@ mod tests {
     #[test]
     fn parse_fix_set_node_field() {
         let s = r#"{"action_type":"set_node_field","node_id":"n","field":"x","value":1}"#;
-        let f: DiagnosticFix = serde_json::from_str(s).unwrap();
+        let f: DiagnosticFix = serde_json::from_str(s).expect("测试：JSON反序列化应成功");
         assert_eq!(f.action_type_label(), "set_node_field");
     }
 
     #[test]
     fn parse_fix_enable_retry() {
         let s = r#"{"action_type":"enable_retry","node_id":"n","max_retries":3}"#;
-        let f: DiagnosticFix = serde_json::from_str(s).unwrap();
+        let f: DiagnosticFix = serde_json::from_str(s).expect("测试：JSON反序列化应成功");
         assert_eq!(f.action_type_label(), "enable_retry");
     }
 
     #[test]
     fn parse_fix_rollback_to_version() {
         let s = r#"{"action_type":"rollback_to_version","template_id":"t","version":2}"#;
-        let f: DiagnosticFix = serde_json::from_str(s).unwrap();
+        let f: DiagnosticFix = serde_json::from_str(s).expect("测试：JSON反序列化应成功");
         assert_eq!(f.action_type_label(), "rollback_to_version");
     }
 
     #[test]
     fn parse_fix_edit_asset_file() {
         let s = r#"{"action_type":"edit_asset_file","path":"x.rhai","operation":"insert_after","anchor_line":5,"code":"new","description":"d"}"#;
-        let f: DiagnosticFix = serde_json::from_str(s).unwrap();
+        let f: DiagnosticFix = serde_json::from_str(s).expect("测试：JSON反序列化应成功");
         assert_eq!(f.action_type_label(), "edit_asset_file");
     }
 
@@ -544,7 +544,7 @@ mod tests {
         let f1: DiagnosticFix = serde_json::from_str(
             r#"{"action_type":"set_node_field","node_id":"n","field":"x","value":1}"#,
         )
-        .unwrap();
+        .expect("测试应成功");
         let f2 = f1.clone();
         let out = dedup_fixes(&[f1, f2]);
         assert_eq!(out.len(), 1);
@@ -555,11 +555,11 @@ mod tests {
         let f1: DiagnosticFix = serde_json::from_str(
             r#"{"action_type":"set_node_field","node_id":"n","field":"x","value":1}"#,
         )
-        .unwrap();
+        .expect("测试应成功");
         let f2: DiagnosticFix = serde_json::from_str(
             r#"{"action_type":"set_node_field","node_id":"n","field":"x","value":2}"#,
         )
-        .unwrap();
+        .expect("测试应成功");
         let out = dedup_fixes(&[f1, f2]);
         assert_eq!(out.len(), 2);
     }
@@ -569,7 +569,7 @@ mod tests {
     #[test]
     fn parse_report_v2_with_fixes() {
         let s = r#"{"summary":"ok","issues":[],"suggestions":["a"],"fixes":[{"action_type":"rollback_to_version","template_id":"t","version":1}],"auto_apply":false}"#;
-        let r: DiagnosticReportV2 = serde_json::from_str(s).unwrap();
+        let r: DiagnosticReportV2 = serde_json::from_str(s).expect("测试：JSON反序列化应成功");
         assert!(!r.auto_apply);
         assert_eq!(r.fixes.len(), 1);
         assert!(validate_report(&r).is_ok());
@@ -578,7 +578,7 @@ mod tests {
     #[test]
     fn report_auto_apply_without_fixes_rejected() {
         let s = r#"{"summary":"ok","issues":[],"suggestions":[],"fixes":[],"auto_apply":true}"#;
-        let r: DiagnosticReportV2 = serde_json::from_str(s).unwrap();
+        let r: DiagnosticReportV2 = serde_json::from_str(s).expect("测试：JSON反序列化应成功");
         assert!(validate_report(&r).is_err());
     }
 }

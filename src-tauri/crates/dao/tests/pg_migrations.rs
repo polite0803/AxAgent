@@ -78,7 +78,7 @@ async fn pg_migrations_apply_and_search_works() {
                 [t.into()],
             ))
             .await
-            .unwrap();
+            .expect("测试应成功");
         assert!(row.is_some(), "table {t} should exist on PostgreSQL");
     }
 
@@ -91,7 +91,7 @@ async fn pg_migrations_apply_and_search_works() {
         "trajectory_messages.tsv",
     ];
     for col in tsv_cols {
-        let (table, column) = col.split_once('.').unwrap();
+        let (table, column) = col.split_once('.').expect("测试应成功");
         let row = db
             .query_one_raw(Statement::from_sql_and_values(
                 DbBackend::Postgres,
@@ -100,7 +100,7 @@ async fn pg_migrations_apply_and_search_works() {
                 [table.into(), column.into()],
             ))
             .await
-            .unwrap();
+            .expect("测试应成功");
         assert!(row.is_some(), "tsvector column {col} should exist on PostgreSQL");
     }
 
@@ -113,9 +113,9 @@ async fn pg_migrations_apply_and_search_works() {
             Vec::<sea_orm::Value>::new(),
         ))
         .await
-        .unwrap()
+        .expect("测试应成功")
         .expect("max version row");
-    let max_v: i32 = max_row.try_get_by("v").unwrap();
+    let max_v: i32 = max_row.try_get_by("v").expect("测试应成功");
     assert_eq!(max_v, 100, "schema version should be 100 (v100 consolidated), got {max_v}");
 
     // 4) 端到端：插入会话+消息，跑 PG 全文检索，验证 tsvector 真实生效
@@ -143,6 +143,6 @@ async fn pg_migrations_apply_and_search_works() {
             ["postgresql".into()],
         ))
         .await
-        .unwrap();
+        .expect("测试应成功");
     assert!(found.is_some(), "PostgreSQL tsvector search should match the inserted message");
 }

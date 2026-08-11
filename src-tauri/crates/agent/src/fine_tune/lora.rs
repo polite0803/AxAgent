@@ -433,8 +433,8 @@ mod tests {
     fn test_bias_type_variants() {
         let biases = vec![BiasType::None, BiasType::All, BiasType::LoraOnly];
         for bias in biases {
-            let json = serde_json::to_string(&bias).unwrap();
-            let de: BiasType = serde_json::from_str(&json).unwrap();
+            let json = serde_json::to_string(&bias).expect("测试：JSON序列化应成功");
+            let de: BiasType = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
             assert_eq!(de, bias);
         }
     }
@@ -451,8 +451,8 @@ mod tests {
             JobStatus::Cancelled,
         ];
         for status in statuses {
-            let json = serde_json::to_string(&status).unwrap();
-            let de: JobStatus = serde_json::from_str(&json).unwrap();
+            let json = serde_json::to_string(&status).expect("测试：JSON序列化应成功");
+            let de: JobStatus = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
             assert_eq!(de, status);
         }
     }

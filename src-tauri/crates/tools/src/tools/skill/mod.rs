@@ -1659,15 +1659,23 @@ fn set_skill_config_value(skill_name: &str, key: &str, value: &str) -> Result<()
     if doc.is_null() || !doc.is_object() {
         doc = serde_json::json!({});
     }
-    let obj = doc.as_object_mut().unwrap();
+    let obj = doc.as_object_mut().expect("技能配置：doc 应已确保为 object");
     if !obj.contains_key("skills") {
         obj.insert("skills".into(), serde_json::json!({}));
     }
-    let skills = obj.get_mut("skills").unwrap().as_object_mut().unwrap();
+    let skills = obj
+        .get_mut("skills")
+        .expect("技能配置：skills 键应已确保存在")
+        .as_object_mut()
+        .expect("技能配置：skills 应为 object");
     if !skills.contains_key("config") {
         skills.insert("config".into(), serde_json::json!({}));
     }
-    let config = skills.get_mut("config").unwrap().as_object_mut().unwrap();
+    let config = skills
+        .get_mut("config")
+        .expect("技能配置：config 键应已确保存在")
+        .as_object_mut()
+        .expect("技能配置：config 应为 object");
     config.insert(format!("{}.{}", skill_name, key), serde_json::Value::String(value.to_string()));
     write_config_yaml(&doc)
 }

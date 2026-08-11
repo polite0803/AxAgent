@@ -387,7 +387,7 @@ mod tests {
         let mut team = create_team("测试团队");
         let tm = add_teammate(&mut team, "Alice", BackendType::SubProcess);
         assert!(tm.is_some());
-        let tm = tm.unwrap();
+        let tm = tm.expect("测试应成功");
         assert_eq!(tm.agent_id, "Alice@测试团队");
         assert_eq!(team.members.len(), 1);
     }
@@ -451,7 +451,7 @@ mod tests {
             from: "Alice@T".into(),
             status: TeammateStatus::Idle,
         };
-        let json = serde_json::to_string(&msg).unwrap();
+        let json = serde_json::to_string(&msg).expect("测试：JSON序列化应成功");
         assert!(json.contains("heartbeat"));
         assert!(json.contains("Alice@T"));
     }

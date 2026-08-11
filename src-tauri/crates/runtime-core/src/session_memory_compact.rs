@@ -458,13 +458,13 @@ mod tests {
             // 创建足够大的消息以确保 token 估算值超过压缩阈值
             let text = format!("message {} {}", i, "x".repeat(10_000));
             if i % 2 == 0 {
-                session.push_message(ConversationMessageExt::user_text(&text)).unwrap();
+                session.push_message(ConversationMessageExt::user_text(&text)).expect("测试应成功");
             } else {
                 session
                     .push_message(ConversationMessageExt::assistant(vec![ContentBlock::Text {
                         text,
                     }]))
-                    .unwrap();
+                    .expect("测试应成功");
             }
         }
         session
@@ -511,7 +511,7 @@ mod tests {
             CompactionConfig::default(),
         );
         assert!(result.is_some());
-        let r = result.unwrap();
+        let r = result.expect("测试应成功");
         assert!(!r.messages_to_keep.is_empty());
         assert!(!r.session_memory_content.is_empty());
         assert!(!r.was_truncated);
@@ -544,7 +544,7 @@ mod tests {
                 name: "read_file".to_string(),
                 input: "main.rs".to_string(),
             }]))
-            .unwrap();
+            .expect("测试应成功");
         // Tool result
         session
             .push_message(ConversationMessageExt::tool_result(
@@ -553,10 +553,12 @@ mod tests {
                 "contents here",
                 false,
             ))
-            .unwrap();
+            .expect("测试应成功");
         // More messages
         for i in 0..5 {
-            session.push_message(ConversationMessageExt::user_text(format!("msg {}", i))).unwrap();
+            session
+                .push_message(ConversationMessageExt::user_text(format!("msg {}", i)))
+                .expect("测试应成功");
         }
 
         // 尝试在 tool_result 处切割
@@ -583,7 +585,7 @@ mod tests {
             &config,
             CompactionConfig { max_estimated_tokens: 500_000, ..CompactionConfig::default() },
         )
-        .unwrap();
+        .expect("测试应成功");
 
         let compaction = to_compaction_result(&result, &session);
         assert!(compaction.removed_message_count > 0);

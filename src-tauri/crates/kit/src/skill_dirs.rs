@@ -77,17 +77,17 @@ static EXTERNAL_DIRS: RwLock<Option<Vec<PathBuf>>> = RwLock::new(None);
 
 fn init_if_needed() {
     {
-        let dirs = SKILL_DIRS.read().unwrap();
+        let dirs = SKILL_DIRS.read().unwrap_or_else(|e| e.into_inner());
         if dirs.is_some() {
             return;
         }
     }
-    let mut dirs = SKILL_DIRS.write().unwrap();
+    let mut dirs = SKILL_DIRS.write().unwrap_or_else(|e| e.into_inner());
     if dirs.is_some() {
         return;
     }
     let ext = load_external_dirs_from_config();
-    *EXTERNAL_DIRS.write().unwrap() = Some(ext.clone());
+    *EXTERNAL_DIRS.write().unwrap_or_else(|e| e.into_inner()) = Some(ext.clone());
     *dirs = Some(compute_skill_dirs(&ext));
 }
 
@@ -106,8 +106,8 @@ pub fn self_source_kind() -> &'static str {
 pub fn reload_skill_dirs() -> Vec<(String, PathBuf)> {
     let ext = load_external_dirs_from_config();
     let computed = compute_skill_dirs(&ext);
-    *EXTERNAL_DIRS.write().unwrap() = Some(ext);
-    *SKILL_DIRS.write().unwrap() = Some(computed.clone());
+    *EXTERNAL_DIRS.write().unwrap_or_else(|e| e.into_inner()) = Some(ext);
+    *SKILL_DIRS.write().unwrap_or_else(|e| e.into_inner()) = Some(computed.clone());
     computed
 }
 
@@ -115,7 +115,7 @@ pub fn skill_dirs() -> Vec<(String, PathBuf)> {
     init_if_needed();
     SKILL_DIRS
         .read()
-        .unwrap()
+        .unwrap_or_else(|e| e.into_inner())
         .as_ref()
         .map(|d| d.iter().map(|(label, dir)| (label.clone(), dir.clone())).collect())
         .unwrap_or_default()
@@ -125,7 +125,7 @@ pub fn all_skills_dirs() -> Vec<PathBuf> {
     init_if_needed();
     SKILL_DIRS
         .read()
-        .unwrap()
+        .unwrap_or_else(|e| e.into_inner())
         .as_ref()
         .map(|d| d.iter().map(|(_, dir)| dir.clone()).collect())
         .unwrap_or_default()
@@ -133,5 +133,5 @@ pub fn all_skills_dirs() -> Vec<PathBuf> {
 
 pub fn external_skill_dirs() -> Vec<PathBuf> {
     init_if_needed();
-    EXTERNAL_DIRS.read().unwrap().clone().unwrap_or_default()
+    EXTERNAL_DIRS.read().unwrap_or_else(|e| e.into_inner()).clone().unwrap_or_default()
 }

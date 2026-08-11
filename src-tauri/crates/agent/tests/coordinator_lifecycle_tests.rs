@@ -115,13 +115,13 @@ async fn test_coordinator_execute_simple() {
     let coordinator =
         AgentCoordinator::new(agent, None, Arc::new(NoopCacheService), Arc::new(NoopHookService));
 
-    coordinator.initialize(AgentConfig::default()).await.unwrap();
+    coordinator.initialize(AgentConfig::default()).await.expect("测试应成功");
 
     let result =
         coordinator.execute(AgentInput { content: "test".to_string(), context: None }).await;
 
     assert!(result.is_ok(), "Execution should succeed");
-    let output = result.unwrap();
+    let output = result.expect("测试应成功");
     assert_eq!(output.content, "done");
 }
 
@@ -131,7 +131,7 @@ async fn test_coordinator_cannot_execute_twice() {
     let coordinator =
         AgentCoordinator::new(agent, None, Arc::new(NoopCacheService), Arc::new(NoopHookService));
 
-    coordinator.initialize(AgentConfig::default()).await.unwrap();
+    coordinator.initialize(AgentConfig::default()).await.expect("测试应成功");
 
     // First execution
     let r1 = coordinator.execute(AgentInput { content: "first".to_string(), context: None }).await;
@@ -163,9 +163,12 @@ async fn test_coordinator_prepare_for_new_session() {
     let coordinator =
         AgentCoordinator::new(agent, None, Arc::new(NoopCacheService), Arc::new(NoopHookService));
 
-    coordinator.initialize(AgentConfig::default()).await.unwrap();
+    coordinator.initialize(AgentConfig::default()).await.expect("测试应成功");
 
-    coordinator.execute(AgentInput { content: "test".to_string(), context: None }).await.unwrap();
+    coordinator
+        .execute(AgentInput { content: "test".to_string(), context: None })
+        .await
+        .expect("测试应成功");
 
     // Should be able to prepare for a new session
     coordinator.prepare_for_new_session().await;

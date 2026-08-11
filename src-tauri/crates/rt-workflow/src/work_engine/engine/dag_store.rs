@@ -302,7 +302,7 @@ mod tests {
         let edges = vec![make_edge("a", "b")];
         let mut wf = make_workflow("wf4", vec![a, b], edges);
         // Mark "a" as completed
-        wf.node_states.get_mut("a").unwrap().status = NodeStatus::Completed;
+        wf.node_states.get_mut("a").expect("测试：键应存在").status = NodeStatus::Completed;
         let ready = WorkEngine::compute_ready_nodes(&wf);
         assert_eq!(ready, vec!["b"]);
     }

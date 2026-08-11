@@ -29,9 +29,9 @@ mod tests {
 
     #[tokio::test]
     async fn v105_adds_kind_and_vault_path_columns() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        super::super::v100_consolidated::up(db.clone()).await.unwrap();
-        up(db.clone()).await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        super::super::v100_consolidated::up(db.clone()).await.expect("测试：异步操作应成功");
+        up(db.clone()).await.expect("测试：异步操作应成功");
 
         // 直接查表是否有 kind 列：尝试 SELECT kind，如果列不存在会报错
         let result = db
@@ -53,9 +53,9 @@ mod tests {
 
     #[tokio::test]
     async fn v105_is_self_idempotent() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        super::super::v100_consolidated::up(db.clone()).await.unwrap();
-        up(db.clone()).await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        super::super::v100_consolidated::up(db.clone()).await.expect("测试：异步操作应成功");
+        up(db.clone()).await.expect("测试：异步操作应成功");
         up(db).await.expect("v105 must be re-runnable in isolation");
     }
 }

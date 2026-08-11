@@ -443,7 +443,7 @@ impl WorkEngine {
 
     /// 注入数据库连接（供 ApprovalOps 回调使用）。
     pub fn set_db(&self, db: sea_orm::DatabaseConnection) {
-        *self.db.lock().expect("db mutex poisoned") = Some(db);
+        *self.db.lock().unwrap_or_else(|e| e.into_inner()) = Some(db);
     }
 
     /// 从模板 tool_defs 预编译 Rhai 工具（覆盖 DAG 扫描结果）
@@ -668,7 +668,7 @@ impl WorkEngine {
     ///
     /// 多次调用：后者覆盖前者（标准 setter 语义）。
     pub async fn set_domain_constraints(&self, f: DomainConstraintsFn) {
-        *self.domain_constraints.lock().expect("domain_constraints mutex poisoned") = Some(f);
+        *self.domain_constraints.lock().unwrap_or_else(|e| e.into_inner()) = Some(f);
     }
 
     /// 取出当前注册的领域约束（用于在执行 agent 节点时转发给 `AgentExecutor`）。
@@ -676,7 +676,7 @@ impl WorkEngine {
     /// 内部 clone 出 Arc，避免锁长时间持有。仅暴露给 crate 内部消费
     /// （engine.rs 的 run_workflow 中转发给 agent_executor）。
     pub(crate) fn domain_constraints(&self) -> Option<DomainConstraintsFn> {
-        self.domain_constraints.lock().expect("domain_constraints mutex poisoned").clone()
+        self.domain_constraints.lock().unwrap_or_else(|e| e.into_inner()).clone()
     }
 
     /// 注册业务规则引擎。
@@ -689,23 +689,22 @@ impl WorkEngine {
         &self,
         engine: Arc<crate::business_rules::BusinessRuleEngine>,
     ) {
-        *self.business_rule_engine.lock().expect("business_rule_engine mutex poisoned") =
-            Some(engine);
+        *self.business_rule_engine.lock().unwrap_or_else(|e| e.into_inner()) = Some(engine);
     }
 
     /// 取出当前注册的业务规则引擎（用于在执行节点时注入到 ExecutionState）。
     fn business_rule_engine(&self) -> Option<Arc<crate::business_rules::BusinessRuleEngine>> {
-        self.business_rule_engine.lock().expect("business_rule_engine mutex poisoned").clone()
+        self.business_rule_engine.lock().unwrap_or_else(|e| e.into_inner()).clone()
     }
 
     /// 注册工具注册表（可选，设置后 tool_executor 优先走 ToolRegistry 中心化路径）
     pub async fn set_tool_registry(&self, registry: Arc<dyn axagent_harness::ToolRegistry>) {
-        *self.tool_registry.lock().expect("tool_registry mutex poisoned") = Some(registry);
+        *self.tool_registry.lock().unwrap_or_else(|e| e.into_inner()) = Some(registry);
     }
 
     /// 取出当前注册的工具注册表（用于在执行节点时注入到 ExecutionState）
     fn tool_registry(&self) -> Option<Arc<dyn axagent_harness::ToolRegistry>> {
-        self.tool_registry.lock().expect("tool_registry mutex poisoned").clone()
+        self.tool_registry.lock().unwrap_or_else(|e| e.into_inner()).clone()
     }
 }
 
@@ -2340,7 +2339,8 @@ impl WorkEngine {
                             // 持久化审批请求到 workflow_approvals 表
                             {
                                 let db_clone = {
-                                    let db_guard = self.db.lock().expect("db mutex poisoned");
+                                    let db_guard =
+                                        self.db.lock().unwrap_or_else(|e| e.into_inner());
                                     db_guard.clone()
                                 };
                                 if let Some(db) = db_clone.as_ref() {
@@ -2415,8 +2415,10 @@ impl WorkEngine {
                                         // 更新审批记录为 expired
                                         {
                                             let db_clone = {
-                                                let db_guard =
-                                                    self.db.lock().expect("db mutex poisoned");
+                                                let db_guard = self
+                                                    .db
+                                                    .lock()
+                                                    .unwrap_or_else(|e| e.into_inner());
                                                 db_guard.clone()
                                             };
                                             if let Some(db) = db_clone.as_ref() {

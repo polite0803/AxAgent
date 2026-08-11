@@ -1251,7 +1251,7 @@ mod tests {
         let v = RuleBasedValidator::new();
         let ratio = v.check_success_patterns("read_file", "File contents loaded");
         assert!(ratio.is_some());
-        assert!(ratio.unwrap() > 0.0);
+        assert!(ratio.expect("测试应成功") > 0.0);
     }
 
     #[test]
@@ -1259,7 +1259,7 @@ mod tests {
         let v = RuleBasedValidator::new();
         let ratio = v.check_success_patterns("read_file", "unexpected garbage");
         assert!(ratio.is_some());
-        assert!((ratio.unwrap() - 0.4).abs() < f32::EPSILON);
+        assert!((ratio.expect("测试应成功") - 0.4).abs() < f32::EPSILON);
     }
 
     #[test]
@@ -1307,7 +1307,7 @@ mod tests {
         let v = RuleBasedValidator::new();
         let result = v.check_format_consistency("web_search", "just plain text");
         assert!(result.is_some());
-        let r = result.unwrap();
+        let r = result.expect("测试应成功");
         assert!(r.confidence < 1.0);
     }
 
@@ -1344,7 +1344,7 @@ mod tests {
         let result =
             v.validate_semantically("read_file", "{}", "File contents loaded successfully").await;
         assert!(result.is_ok());
-        let r = result.unwrap();
+        let r = result.expect("测试应成功");
         assert!(r.is_valid);
     }
 
@@ -1355,7 +1355,7 @@ mod tests {
             .validate_semantically("execute_command", "{}", "Error: command failed with exception")
             .await;
         assert!(result.is_ok());
-        let r = result.unwrap();
+        let r = result.expect("测试应成功");
         assert!(!r.is_valid);
     }
 
@@ -1365,7 +1365,7 @@ mod tests {
         let result =
             v.validate_semantically("execute_command", "{}", "Build completed with 0 errors").await;
         assert!(result.is_ok());
-        let r = result.unwrap();
+        let r = result.expect("测试应成功");
         assert!(r.is_valid);
     }
 
@@ -1586,7 +1586,7 @@ mod tests {
         };
         let result = sv.verify(&step, "goal").await;
         assert!(result.is_ok());
-        assert!(result.unwrap().is_valid);
+        assert!(result.expect("测试应成功").is_valid);
     }
 
     #[tokio::test]
@@ -1608,7 +1608,7 @@ mod tests {
             is_verified: false,
             timestamp: String::new(),
         };
-        let result = sv.verify(&step, "goal").await.unwrap();
+        let result = sv.verify(&step, "goal").await.expect("测试：异步操作应成功");
         assert!(!result.is_valid);
     }
 
@@ -1631,7 +1631,7 @@ mod tests {
             is_verified: false,
             timestamp: String::new(),
         };
-        let result = sv.verify(&step, "goal").await.unwrap();
+        let result = sv.verify(&step, "goal").await.expect("测试：异步操作应成功");
         assert!(!result.is_valid);
     }
 
@@ -1654,7 +1654,7 @@ mod tests {
             is_verified: false,
             timestamp: String::new(),
         };
-        let result = sv.verify(&step, "goal").await.unwrap();
+        let result = sv.verify(&step, "goal").await.expect("测试：异步操作应成功");
         assert!(!result.is_valid);
     }
 

@@ -95,8 +95,9 @@ mod tests {
             payload: serde_json::json!({"text": "hello"}),
             timestamp: 1700000000,
         };
-        let json = serde_json::to_string(&chunk).unwrap();
-        let deserialized: AgentStreamChunk = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&chunk).expect("测试：JSON序列化应成功");
+        let deserialized: AgentStreamChunk =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.agent_id, "agent-1");
         assert_eq!(deserialized.sub_task_id, "task-1");
         match deserialized.kind {

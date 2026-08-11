@@ -381,7 +381,7 @@ mod tests {
     #[test]
     fn test_default_theme() {
         let engine = ThemeEngine::new(PathBuf::from("."));
-        let theme = engine.get_theme("default").unwrap();
+        let theme = engine.get_theme("default").expect("测试：get_theme 应成功");
         assert_eq!(theme.metadata.name, "Default");
         assert_eq!(theme.colors.background, "#1e1e2e");
     }
@@ -389,7 +389,7 @@ mod tests {
     #[test]
     fn test_xterm_theme_conversion() {
         let engine = ThemeEngine::new(PathBuf::from("."));
-        let theme = engine.get_theme("default").unwrap();
+        let theme = engine.get_theme("default").expect("测试：get_theme 应成功");
         let xterm_theme = theme.to_xterm_theme();
         assert_eq!(xterm_theme.background, "#1e1e2e");
         assert_eq!(xterm_theme.foreground, "#cdd6f4");

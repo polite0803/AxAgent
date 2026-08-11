@@ -600,7 +600,7 @@ mod tests {
         let results = provider.search(&query).await;
 
         assert!(results.is_ok());
-        let results = results.unwrap();
+        let results = results.expect("测试应成功");
         assert!(!results.is_empty());
     }
 

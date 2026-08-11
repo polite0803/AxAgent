@@ -152,7 +152,7 @@ impl FeedbackOrchestrator {
     ) -> Option<(u8, OrchestratorAction)> {
         // 去重：同 trace_id 只处理一次
         {
-            let mut seen = self.seen_traces.lock().expect("feedback_cache lock");
+            let mut seen = self.seen_traces.lock().unwrap_or_else(|e| e.into_inner());
             if !seen.insert(trace_id.to_string()) {
                 tracing::debug!("[FeedbackOrchestrator] skipping duplicate trace_id={}", trace_id);
                 return None;
@@ -191,7 +191,7 @@ impl FeedbackOrchestrator {
 
     /// 获取已处理 trace_id 数量（去重计数）。
     pub fn seen_count(&self) -> usize {
-        self.seen_traces.lock().expect("feedback_cache lock").len()
+        self.seen_traces.lock().unwrap_or_else(|e| e.into_inner()).len()
     }
 
     /// 重置负反馈计数器（RL 训练完成后调用）。

@@ -138,7 +138,7 @@ mod tests {
 
     #[test]
     fn roundtrip_axagent_home() {
-        let home = dirs::home_dir().unwrap();
+        let home = dirs::home_dir().expect("测试：获取home目录应成功");
         let original =
             home.join(".axagent").join("ssl").join("cert.pem").to_string_lossy().to_string();
         let encoded = encode_path(&original);
@@ -164,7 +164,7 @@ mod tests {
 
     #[test]
     fn roundtrip_home() {
-        let home = dirs::home_dir().unwrap();
+        let home = dirs::home_dir().expect("测试：获取home目录应成功");
         let original =
             home.join("some").join("random").join("file.txt").to_string_lossy().to_string();
         let encoded = encode_path(&original);
@@ -174,7 +174,7 @@ mod tests {
 
     #[test]
     fn axagent_home_takes_priority_over_home() {
-        let home = dirs::home_dir().unwrap();
+        let home = dirs::home_dir().expect("测试：获取home目录应成功");
         let original = home.join(".axagent").join("backups").to_string_lossy().to_string();
         let encoded = encode_path(&original);
         assert!(
@@ -205,17 +205,17 @@ mod tests {
 
     #[test]
     fn option_helpers_some() {
-        let home = dirs::home_dir().unwrap();
+        let home = dirs::home_dir().expect("测试：获取home目录应成功");
         let path = home.join(".axagent").join("backups").to_string_lossy().to_string();
         let encoded = encode_path_opt(&Some(path.clone()));
-        assert!(encoded.as_ref().unwrap().starts_with(VAR_AX_AGENT_HOME));
+        assert!(encoded.as_ref().expect("测试：as_ref 应成功").starts_with(VAR_AX_AGENT_HOME));
         let decoded = decode_path_opt(&encoded);
         assert_eq!(decoded, Some(path));
     }
 
     #[test]
     fn exact_prefix_without_trailing_component() {
-        let home = dirs::home_dir().unwrap();
+        let home = dirs::home_dir().expect("测试：获取home目录应成功");
         let exact = home.join(".axagent").to_string_lossy().to_string();
         let encoded = encode_path(&exact);
         assert_eq!(encoded, VAR_AX_AGENT_HOME);
@@ -225,7 +225,7 @@ mod tests {
     #[test]
     fn already_encoded_path_is_decoded() {
         let decoded = decode_path("{{AxAgent_HOME}}/ssl/cert.pem");
-        let home = dirs::home_dir().unwrap();
+        let home = dirs::home_dir().expect("测试：获取home目录应成功");
         let expected =
             home.join(".axagent").join("ssl").join("cert.pem").to_string_lossy().to_string();
         assert_eq!(decoded, expected);
@@ -233,7 +233,7 @@ mod tests {
 
     #[test]
     fn path_without_variable_left_unchanged_by_decode() {
-        let home = dirs::home_dir().unwrap();
+        let home = dirs::home_dir().expect("测试：获取home目录应成功");
         let abs = home.join(".axagent").join("foo").to_string_lossy().to_string();
         assert_eq!(decode_path(&abs), abs);
     }

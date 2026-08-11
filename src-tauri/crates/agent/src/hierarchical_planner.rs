@@ -996,7 +996,7 @@ mod tests {
         let result = planner.start_execution();
         assert!(result.is_ok());
 
-        let plan = planner.get_plan().unwrap();
+        let plan = planner.get_plan().expect("测试：get_plan 应成功");
         assert_eq!(plan.status, PlanStatus::Executing);
         assert_eq!(plan.phases[0].status, PhaseStatus::InProgress);
     }
@@ -1019,11 +1019,13 @@ mod tests {
             }],
         );
 
-        planner.start_execution().unwrap();
-        planner.mark_task_started(&task_id).unwrap();
-        planner.mark_task_completed(&task_id, serde_json::json!({"output": "done"})).unwrap();
+        planner.start_execution().expect("测试：start_execution 应成功");
+        planner.mark_task_started(&task_id).expect("测试：mark_task_started 应成功");
+        planner
+            .mark_task_completed(&task_id, serde_json::json!({"output": "done"}))
+            .expect("测试应成功");
 
-        let plan = planner.get_plan().unwrap();
+        let plan = planner.get_plan().expect("测试：get_plan 应成功");
         assert_eq!(plan.phases[0].tasks[0].status, TaskStatus::Completed);
         assert_eq!(plan.phases[0].status, PhaseStatus::Completed);
         assert_eq!(plan.status, PlanStatus::Completed);
@@ -1050,14 +1052,14 @@ mod tests {
             }],
         );
 
-        planner.start_execution().unwrap();
+        planner.start_execution().expect("测试：start_execution 应成功");
 
         let next = planner.get_next_executable_tasks();
         assert_eq!(next.len(), 1);
         assert_eq!(next[0].id, task1_id);
 
-        planner.mark_task_started(&task1_id).unwrap();
-        planner.mark_task_completed(&task1_id, serde_json::json!({})).unwrap();
+        planner.mark_task_started(&task1_id).expect("测试：mark_task_started 应成功");
+        planner.mark_task_completed(&task1_id, serde_json::json!({})).expect("测试应成功");
 
         let next = planner.get_next_executable_tasks();
         assert_eq!(next.len(), 1);
@@ -1083,14 +1085,14 @@ mod tests {
             }],
         );
 
-        planner.start_execution().unwrap();
+        planner.start_execution().expect("测试：start_execution 应成功");
         let progress = planner.get_progress();
         assert_eq!(progress.total_tasks, 2);
         assert_eq!(progress.pending_tasks, 2);
         assert_eq!(progress.percentage, 0.0);
 
-        planner.mark_task_started(&task1_id).unwrap();
-        planner.mark_task_completed(&task1_id, serde_json::json!({})).unwrap();
+        planner.mark_task_started(&task1_id).expect("测试：mark_task_started 应成功");
+        planner.mark_task_completed(&task1_id, serde_json::json!({})).expect("测试应成功");
 
         let progress = planner.get_progress();
         assert_eq!(progress.completed_tasks, 1);
@@ -1114,17 +1116,17 @@ mod tests {
             }],
         );
 
-        planner.start_execution().unwrap();
-        planner.mark_task_started(&task_id).unwrap();
+        planner.start_execution().expect("测试：start_execution 应成功");
+        planner.mark_task_started(&task_id).expect("测试：mark_task_started 应成功");
 
-        planner.mark_task_failed(&task_id, "timeout").unwrap();
-        let plan = planner.get_plan().unwrap();
+        planner.mark_task_failed(&task_id, "timeout").expect("测试：mark_task_failed 应成功");
+        let plan = planner.get_plan().expect("测试：get_plan 应成功");
         assert_eq!(plan.phases[0].tasks[0].status, TaskStatus::Pending);
         assert_eq!(plan.phases[0].tasks[0].retry_count, 1);
 
-        planner.mark_task_started(&task_id).unwrap();
-        planner.mark_task_failed(&task_id, "timeout again").unwrap();
-        let plan = planner.get_plan().unwrap();
+        planner.mark_task_started(&task_id).expect("测试：mark_task_started 应成功");
+        planner.mark_task_failed(&task_id, "timeout again").expect("测试：mark_task_failed 应成功");
+        let plan = planner.get_plan().expect("测试：get_plan 应成功");
         assert_eq!(plan.phases[0].tasks[0].status, TaskStatus::Failed);
     }
 
@@ -1166,11 +1168,11 @@ mod tests {
             }],
         );
 
-        planner.start_execution().unwrap();
-        planner.mark_task_started(&task_id).unwrap();
-        planner.mark_task_failed(&task_id, "timeout").unwrap();
-        planner.mark_task_started(&task_id).unwrap();
-        planner.mark_task_failed(&task_id, "timeout again").unwrap();
+        planner.start_execution().expect("测试：start_execution 应成功");
+        planner.mark_task_started(&task_id).expect("测试：mark_task_started 应成功");
+        planner.mark_task_failed(&task_id, "timeout").expect("测试：mark_task_failed 应成功");
+        planner.mark_task_started(&task_id).expect("测试：mark_task_started 应成功");
+        planner.mark_task_failed(&task_id, "timeout again").expect("测试：mark_task_failed 应成功");
 
         let failed = planner.get_failed_steps();
         assert_eq!(failed.len(), 1);
@@ -1186,15 +1188,15 @@ mod tests {
             modified_parameters: Some(serde_json::json!({"timeout_ms": 30000})),
         }];
 
-        let record = planner.replan(reason, actions).unwrap();
+        let record = planner.replan(reason, actions).expect("测试：replan 应成功");
 
         assert_eq!(record.version, 1);
         assert!(matches!(record.reason, ReplanReason::StepFailed { .. }));
         assert_eq!(record.completed_steps.len(), 0);
         assert_eq!(record.failed_steps.len(), 1);
 
-        let plan = planner.get_plan().unwrap();
-        let task = plan.phases[0].tasks.iter().find(|t| t.id == task_id).unwrap();
+        let plan = planner.get_plan().expect("测试：get_plan 应成功");
+        let task = plan.phases[0].tasks.iter().find(|t| t.id == task_id).expect("测试：查找应成功");
         assert_eq!(task.status, TaskStatus::Pending);
         assert_eq!(task.retry_count, 0);
         assert_eq!(task.error, None);
@@ -1222,22 +1224,24 @@ mod tests {
             }],
         );
 
-        planner.start_execution().unwrap();
+        planner.start_execution().expect("测试：start_execution 应成功");
 
         let reason = ReplanReason::ResourceConstraint {
             constraint: "External API rate limit exceeded".to_string(),
         };
 
-        let task1_id = planner.get_plan().unwrap().phases[0].tasks[0].id.clone();
+        let task1_id =
+            planner.get_plan().expect("测试：get_plan 应成功").phases[0].tasks[0].id.clone();
         let actions = vec![ReplanAction::Skip {
             task_id: task1_id.clone(),
             reason: "API rate limited, skipping for now".to_string(),
         }];
 
-        planner.replan(reason, actions).unwrap();
+        planner.replan(reason, actions).expect("测试：replan 应成功");
 
-        let plan = planner.get_plan().unwrap();
-        let task = plan.phases[0].tasks.iter().find(|t| t.id == task1_id).unwrap();
+        let plan = planner.get_plan().expect("测试：get_plan 应成功");
+        let task =
+            plan.phases[0].tasks.iter().find(|t| t.id == task1_id).expect("测试：查找应成功");
         assert_eq!(task.status, TaskStatus::Skipped);
     }
 
@@ -1258,7 +1262,7 @@ mod tests {
             }],
         );
 
-        let phase_id = planner.get_plan().unwrap().phases[0].id.clone();
+        let phase_id = planner.get_plan().expect("测试：get_plan 应成功").phases[0].id.clone();
 
         let new_task = TaskBuilder::new("Run migration", "shell").with_dependencies(vec![]).build();
 
@@ -1270,10 +1274,10 @@ mod tests {
         let actions =
             vec![ReplanAction::Insert { phase_id: phase_id.clone(), task: new_task, position: 0 }];
 
-        planner.replan(reason, actions).unwrap();
+        planner.replan(reason, actions).expect("测试：replan 应成功");
 
-        let plan = planner.get_plan().unwrap();
-        let phase = plan.phases.iter().find(|p| p.id == phase_id).unwrap();
+        let plan = planner.get_plan().expect("测试：get_plan 应成功");
+        let phase = plan.phases.iter().find(|p| p.id == phase_id).expect("测试：查找应成功");
         assert_eq!(phase.tasks.len(), 2);
         assert_eq!(phase.tasks[0].description, "Run migration");
         assert_eq!(phase.tasks[1].description, "Deploy app");
@@ -1310,9 +1314,9 @@ mod tests {
 
         let actions = vec![ReplanAction::AddPhase { phase: new_phase, position: 1 }];
 
-        planner.replan(reason, actions).unwrap();
+        planner.replan(reason, actions).expect("测试：replan 应成功");
 
-        let plan = planner.get_plan().unwrap();
+        let plan = planner.get_plan().expect("测试：get_plan 应成功");
         assert_eq!(plan.phases.len(), 2);
         assert_eq!(plan.phases[1].name, "Phase 2");
     }
@@ -1335,7 +1339,8 @@ mod tests {
             }],
         );
 
-        let task_id = planner.get_plan().unwrap().phases[0].tasks[0].id.clone();
+        let task_id =
+            planner.get_plan().expect("测试：get_plan 应成功").phases[0].tasks[0].id.clone();
 
         let reason = ReplanReason::ManualIntervention {
             reason: "Increase retries and change role".to_string(),
@@ -1349,10 +1354,10 @@ mod tests {
 
         let actions = vec![ReplanAction::ModifyTask { task_id: task_id.clone(), modifications }];
 
-        planner.replan(reason, actions).unwrap();
+        planner.replan(reason, actions).expect("测试：replan 应成功");
 
-        let plan = planner.get_plan().unwrap();
-        let task = plan.phases[0].tasks.iter().find(|t| t.id == task_id).unwrap();
+        let plan = planner.get_plan().expect("测试：get_plan 应成功");
+        let task = plan.phases[0].tasks.iter().find(|t| t.id == task_id).expect("测试：查找应成功");
         assert_eq!(task.max_retries, 5);
         assert_eq!(task.assigned_role, Some("senior_developer".to_string()));
         assert_eq!(task.description, "Updated task description");
@@ -1376,7 +1381,8 @@ mod tests {
             }],
         );
 
-        let task1_id = planner.get_plan().unwrap().phases[0].tasks[0].id.clone();
+        let task1_id =
+            planner.get_plan().expect("测试：get_plan 应成功").phases[0].tasks[0].id.clone();
 
         let reason = ReplanReason::StepFailed {
             task_id: task1_id.clone(),
@@ -1388,9 +1394,9 @@ mod tests {
             reason: "No longer needed".to_string(),
         }];
 
-        planner.replan(reason, actions).unwrap();
+        planner.replan(reason, actions).expect("测试：replan 应成功");
 
-        let plan = planner.get_plan().unwrap();
+        let plan = planner.get_plan().expect("测试：get_plan 应成功");
         assert_eq!(plan.phases[0].tasks.len(), 1);
         assert!(plan.phases[0].tasks.iter().all(|t| t.id != task1_id));
     }
@@ -1413,7 +1419,8 @@ mod tests {
             }],
         );
 
-        let task2_id = planner.get_plan().unwrap().phases[0].tasks[1].id.clone();
+        let task2_id =
+            planner.get_plan().expect("测试：get_plan 应成功").phases[0].tasks[1].id.clone();
 
         let reason = ReplanReason::NewDependencyDiscovered {
             task_id: task2_id.clone(),
@@ -1422,9 +1429,9 @@ mod tests {
 
         let actions = vec![ReplanAction::Reorder { task_id: task2_id.clone(), new_position: 0 }];
 
-        planner.replan(reason, actions).unwrap();
+        planner.replan(reason, actions).expect("测试：replan 应成功");
 
-        let plan = planner.get_plan().unwrap();
+        let plan = planner.get_plan().expect("测试：get_plan 应成功");
         assert_eq!(plan.phases[0].tasks[0].id, task2_id);
     }
 
@@ -1446,18 +1453,19 @@ mod tests {
 
         let reason = ReplanReason::ManualIntervention { reason: "Test rollback".to_string() };
 
-        let task_id = planner.get_plan().unwrap().phases[0].tasks[0].id.clone();
+        let task_id =
+            planner.get_plan().expect("测试：get_plan 应成功").phases[0].tasks[0].id.clone();
         let actions =
             vec![ReplanAction::Remove { task_id: task_id.clone(), reason: "Testing".to_string() }];
 
-        planner.replan(reason, actions).unwrap();
+        planner.replan(reason, actions).expect("测试：replan 应成功");
 
-        let plan = planner.get_plan().unwrap();
+        let plan = planner.get_plan().expect("测试：get_plan 应成功");
         assert_eq!(plan.phases[0].tasks.len(), 0);
 
-        planner.rollback(0).unwrap();
+        planner.rollback(0).expect("测试：rollback 应成功");
 
-        let plan = planner.get_plan().unwrap();
+        let plan = planner.get_plan().expect("测试：get_plan 应成功");
         assert_eq!(plan.phases[0].tasks.len(), 1);
         assert_eq!(planner.current_version, 0);
     }
@@ -1497,21 +1505,22 @@ mod tests {
             }],
         );
 
-        let task_id = planner.get_plan().unwrap().phases[0].tasks[0].id.clone();
+        let task_id =
+            planner.get_plan().expect("测试：get_plan 应成功").phases[0].tasks[0].id.clone();
 
         planner
             .replan(
                 ReplanReason::StepFailed { task_id: task_id.clone(), error: "error1".to_string() },
                 vec![ReplanAction::Retry { task_id: task_id.clone(), modified_parameters: None }],
             )
-            .unwrap();
+            .expect("测试应成功");
 
         planner
             .replan(
                 ReplanReason::ManualIntervention { reason: "manual".to_string() },
                 vec![ReplanAction::Skip { task_id: task_id.clone(), reason: "skip".to_string() }],
             )
-            .unwrap();
+            .expect("测试应成功");
 
         assert_eq!(planner.get_replan_history().len(), 2);
         assert_eq!(planner.get_replan_history()[0].version, 1);
@@ -1565,20 +1574,23 @@ mod tests {
             }],
         );
 
-        planner.start_execution().unwrap();
-        planner.mark_task_completed(&task1_id, serde_json::json!({"done": true})).unwrap();
+        planner.start_execution().expect("测试：start_execution 应成功");
+        planner
+            .mark_task_completed(&task1_id, serde_json::json!({"done": true}))
+            .expect("测试应成功");
 
-        let task2_id = planner.get_plan().unwrap().phases[0].tasks[1].id.clone();
+        let task2_id =
+            planner.get_plan().expect("测试：get_plan 应成功").phases[0].tasks[1].id.clone();
 
         planner
             .replan(
                 ReplanReason::StepFailed { task_id: task2_id.clone(), error: "failed".to_string() },
                 vec![ReplanAction::Retry { task_id: task2_id.clone(), modified_parameters: None }],
             )
-            .unwrap();
+            .expect("测试应成功");
 
-        let plan = planner.get_plan().unwrap();
-        let t1 = plan.phases[0].tasks.iter().find(|t| t.id == task1_id).unwrap();
+        let plan = planner.get_plan().expect("测试：get_plan 应成功");
+        let t1 = plan.phases[0].tasks.iter().find(|t| t.id == task1_id).expect("测试：查找应成功");
         assert_eq!(t1.status, TaskStatus::Completed);
         assert_eq!(t1.result, Some(serde_json::json!({"done": true})));
     }

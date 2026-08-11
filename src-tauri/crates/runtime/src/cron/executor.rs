@@ -56,13 +56,13 @@ mod tests {
 
         executor.set_handler(move |job| {
             assert_eq!(job.name, "test");
-            let mut c = called_clone.lock().expect("cron executor lock");
+            let mut c = called_clone.lock().unwrap_or_else(|e| e.into_inner());
             *c = true;
         });
 
         let job = CronJob::new("test", "* * * * *", "test prompt", "test description");
         executor.execute(job).await;
 
-        assert!(*called.lock().expect("cron executor lock"));
+        assert!(*called.lock().unwrap_or_else(|e| e.into_inner()));
     }
 }

@@ -247,13 +247,13 @@ mod tests {
         for i in 0..10 {
             let text = format!("msg{} {}", i, "x".repeat(chars_per_msg.max(20)));
             if i % 2 == 0 {
-                session.push_message(ConversationMessageExt::user_text(&text)).unwrap();
+                session.push_message(ConversationMessageExt::user_text(&text)).expect("测试应成功");
             } else {
                 session
                     .push_message(ConversationMessageExt::assistant(vec![ContentBlock::Text {
                         text,
                     }]))
-                    .unwrap();
+                    .expect("测试应成功");
             }
         }
         session

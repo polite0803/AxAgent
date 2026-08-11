@@ -146,7 +146,7 @@ mod tests {
 
     #[test]
     fn parses_s3_uri() {
-        let uri = WorkspaceUri::parse("s3://my-bucket/projects/demo").unwrap();
+        let uri = WorkspaceUri::parse("s3://my-bucket/projects/demo").expect("测试：parse 应成功");
         assert_eq!(uri.scheme, "s3");
         assert_eq!(uri.authority, "my-bucket");
         assert_eq!(uri.path, "projects/demo");
@@ -155,14 +155,14 @@ mod tests {
 
     #[test]
     fn parses_cos_uri() {
-        let uri = WorkspaceUri::parse("cos://my-cos-bucket/data").unwrap();
+        let uri = WorkspaceUri::parse("cos://my-cos-bucket/data").expect("测试：parse 应成功");
         assert_eq!(uri.scheme, "cos");
         assert_eq!(uri.authority, "my-cos-bucket");
     }
 
     #[test]
     fn parses_local_uri() {
-        let uri = WorkspaceUri::parse("local:///home/user/workspace").unwrap();
+        let uri = WorkspaceUri::parse("local:///home/user/workspace").expect("测试：parse 应成功");
         assert_eq!(uri.scheme, "local");
         assert_eq!(uri.path, "/home/user/workspace");
         assert!(uri.is_local());
@@ -170,7 +170,7 @@ mod tests {
 
     #[test]
     fn parses_plain_path_as_local() {
-        let uri = WorkspaceUri::parse("/home/user/project").unwrap();
+        let uri = WorkspaceUri::parse("/home/user/project").expect("测试：parse 应成功");
         assert_eq!(uri.scheme, "local");
         assert!(uri.is_local());
     }

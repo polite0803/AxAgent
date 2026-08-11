@@ -204,17 +204,18 @@ mod tests {
             field: "action".to_string(),
             value: "deploy".to_string(),
         };
-        let json = serde_json::to_string(&d).unwrap();
-        let parsed: AgentDecision = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&d).expect("测试：JSON序列化应成功");
+        let parsed: AgentDecision = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(parsed.agent_id, "a1");
         assert_eq!(parsed.value, "deploy");
     }
 
     #[test]
     fn coordination_mode_serde() {
-        let json = serde_json::to_string(&CoordinationMode::Swarm).unwrap();
+        let json = serde_json::to_string(&CoordinationMode::Swarm).expect("测试：JSON序列化应成功");
         assert_eq!(json, r#""swarm""#);
-        let m: CoordinationMode = serde_json::from_str(r#""debate""#).unwrap();
+        let m: CoordinationMode =
+            serde_json::from_str(r#""debate""#).expect("测试：JSON反序列化应成功");
         assert_eq!(m, CoordinationMode::Debate);
     }
 
@@ -223,8 +224,8 @@ mod tests {
         let majority = ConflictResolution::MajorityVote { winner: "A".to_string(), vote_count: 3 };
         let tie =
             ConflictResolution::TieBreak { chosen: "X".to_string(), reason: "平局".to_string() };
-        let m_json = serde_json::to_string(&majority).unwrap();
-        let t_json = serde_json::to_string(&tie).unwrap();
+        let m_json = serde_json::to_string(&majority).expect("测试：JSON序列化应成功");
+        let t_json = serde_json::to_string(&tie).expect("测试：JSON序列化应成功");
         assert!(m_json.contains("MajorityVote"));
         assert!(t_json.contains("TieBreak"));
     }

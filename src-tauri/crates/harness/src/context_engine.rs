@@ -291,7 +291,7 @@ mod tests {
 
         let injection = SkillReinjector::generate_skill_injection(&skills);
         assert!(injection.is_some());
-        let text = injection.unwrap();
+        let text = injection.expect("测试应成功");
         assert!(text.contains("代码审查"));
         assert!(text.contains("当用户请求审查代码"));
     }

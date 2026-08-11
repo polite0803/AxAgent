@@ -133,10 +133,11 @@ async fn loop_foreach_aggregates_results() {
                 control: None,
             }
         });
-    state.callbacks.as_mut().unwrap().loop_body_dispatch = Some(make_body_dispatch(body_fn));
+    state.callbacks.as_mut().expect("测试应成功").loop_body_dispatch =
+        Some(make_body_dispatch(body_fn));
 
     let (cp_ops, _cp_store) = in_memory_checkpoint_ops();
-    state.callbacks.as_mut().unwrap().loop_checkpoint = Some(cp_ops);
+    state.callbacks.as_mut().expect("测试应成功").loop_checkpoint = Some(cp_ops);
 
     let node = make_loop_node(LoopNodeConfig {
         loop_type: LoopType::ForEach,
@@ -196,10 +197,11 @@ async fn loop_interrupt_pause_then_resume_continues() {
             }
         })
     };
-    state.callbacks.as_mut().unwrap().loop_body_dispatch = Some(make_body_dispatch(body_fn));
+    state.callbacks.as_mut().expect("测试应成功").loop_body_dispatch =
+        Some(make_body_dispatch(body_fn));
 
     let (cp_ops, cp_store) = in_memory_checkpoint_ops();
-    state.callbacks.as_mut().unwrap().loop_checkpoint = Some(cp_ops);
+    state.callbacks.as_mut().expect("测试应成功").loop_checkpoint = Some(cp_ops);
 
     // interrupt signal
     let interrupt_signal = Arc::new(tokio::sync::Notify::new());
@@ -308,10 +310,11 @@ async fn loop_partial_results_arrive_in_order() {
                 control: None,
             }
         });
-    state.callbacks.as_mut().unwrap().loop_body_dispatch = Some(make_body_dispatch(body_fn));
+    state.callbacks.as_mut().expect("测试应成功").loop_body_dispatch =
+        Some(make_body_dispatch(body_fn));
 
     let (cp_ops, _cp_store) = in_memory_checkpoint_ops();
-    state.callbacks.as_mut().unwrap().loop_checkpoint = Some(cp_ops);
+    state.callbacks.as_mut().expect("测试应成功").loop_checkpoint = Some(cp_ops);
 
     // partial broadcast
     let (tx, mut rx) = tokio::sync::broadcast::channel::<PartialResultEvent>(16);

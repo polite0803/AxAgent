@@ -192,7 +192,7 @@ mod tests {
             vec![],
         );
 
-        let json = export.serialize().unwrap();
+        let json = export.serialize().expect("测试：serialize 应成功");
         assert!(json.contains("Test Template"));
     }
 }

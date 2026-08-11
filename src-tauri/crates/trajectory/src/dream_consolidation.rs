@@ -878,7 +878,7 @@ mod tests {
             reasoning_summary: "Analyzed and modified".to_string(),
             timestamp: Utc::now(),
         };
-        let json = serde_json::to_string(&record).unwrap();
+        let json = serde_json::to_string(&record).expect("测试：JSON序列化应成功");
         assert!(json.contains("file editing"));
     }
 

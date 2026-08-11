@@ -3,9 +3,7 @@
 // LaTeX 数学公式渲染组件 + Markdown 内容中 $...$ / $$...$$ 公式分割工具
 // 集成入口：ChatMarkdownNodes.tsx 的 AssistantMarkdown
 
-import { BlockMath, InlineMath } from "react-katex";
-
-// 引入 KaTeX 样式（含字体）；Vite/Esm 会自动去重，多次实例化不会重复打包
+import katex from "katex";
 import "katex/dist/katex.min.css";
 
 import { useTranslation } from "react-i18next";
@@ -23,8 +21,8 @@ interface LatexRendererProps {
  * LaTeX 渲染失败的回退节点：红色边框 + 原始公式文本
  * 方便用户定位问题并复制原文
  */
-function renderLatexError(content: string, title: string): (error: Error) => ReactNode {
-  return (_error: Error) => (
+function renderLatexError(content: string, title: string): ReactNode {
+  return (
     <span
       style={{
         display: "inline-block",
@@ -48,17 +46,23 @@ function renderLatexError(content: string, title: string): (error: Error) => Rea
 /**
  * LaTeX 公式渲染组件
  *
- * 使用 react-katex 的 InlineMath / BlockMath 渲染。
+ * 使用 katex 直接渲染（替代 react-katex）。
  * 解析失败时回退显示原始 LaTeX 文本（红色边框提示）。
  */
 export function LatexRenderer({ content, displayMode = false }: LatexRendererProps) {
   const { t } = useTranslation();
   const errorTitle = t("chat.latex.parseError");
-  const errorRenderer = renderLatexError(content, errorTitle);
-  if (displayMode) {
-    return <BlockMath math={content} renderError={errorRenderer} />;
+
+  try {
+    const html = katex.renderToString(content, {
+      displayMode,
+      throwOnError: true,
+    });
+    const Tag = displayMode ? "div" : "span";
+    return <Tag dangerouslySetInnerHTML={{ __html: html }} />;
+  } catch {
+    return renderLatexError(content, errorTitle);
   }
-  return <InlineMath math={content} renderError={errorRenderer} />;
 }
 
 // ── Markdown 内容分割工具 ────────────────────────────────────────────────

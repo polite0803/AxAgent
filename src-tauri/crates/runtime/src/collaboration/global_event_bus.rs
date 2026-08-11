@@ -168,9 +168,9 @@ mod tests {
             payload: serde_json::json!({"key": "value"}),
             correlation_id: None,
         })
-        .unwrap();
+        .expect("测试应成功");
 
-        let event = rx.recv().await.unwrap();
+        let event = rx.recv().await.expect("测试：异步操作应成功");
         assert_eq!(event.source, "test_engine");
         assert_eq!(event.event_type, "test_event");
     }
@@ -186,7 +186,7 @@ mod tests {
             payload: serde_json::json!({}),
             correlation_id: None,
         })
-        .unwrap();
+        .expect("测试应成功");
 
         bus.emit(GlobalEngineEvent {
             source: "engine_a".into(),
@@ -194,9 +194,9 @@ mod tests {
             payload: serde_json::json!({}),
             correlation_id: None,
         })
-        .unwrap();
+        .expect("测试应成功");
 
-        let event = sub.recv().await.unwrap();
+        let event = sub.recv().await.expect("测试：异步操作应成功");
         assert_eq!(event.source, "engine_a");
         assert_eq!(event.event_type, "processed");
     }

@@ -629,16 +629,18 @@ mod tests {
             max_delay_ms: 10000,
             exponential_backoff: true,
         };
-        let json = serde_json::to_string(&strategy).unwrap();
-        let deserialized: RecoveryStrategy = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&strategy).expect("测试：JSON序列化应成功");
+        let deserialized: RecoveryStrategy =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert!(matches!(deserialized, RecoveryStrategy::Retry { .. }));
     }
 
     #[test]
     fn test_failover_reason_serialization() {
         let reason = FailoverReason::AuthFailed;
-        let json = serde_json::to_string(&reason).unwrap();
-        let deserialized: FailoverReason = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&reason).expect("测试：JSON序列化应成功");
+        let deserialized: FailoverReason =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized, reason);
     }
 
@@ -652,8 +654,9 @@ mod tests {
             context: None,
             failover_reason: Some(FailoverReason::ContextLength),
         };
-        let json = serde_json::to_string(&error).unwrap();
-        let deserialized: ClassifiedError = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&error).expect("测试：JSON序列化应成功");
+        let deserialized: ClassifiedError =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.error_type, ErrorType::Recoverable);
         assert_eq!(deserialized.failover_reason, Some(FailoverReason::ContextLength));
     }

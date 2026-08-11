@@ -83,12 +83,12 @@ impl TeamRegistry {
     }
 
     pub fn get(&self, team_id: &str) -> Option<Team> {
-        let inner = self.inner.lock().expect("team registry lock poisoned");
+        let inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         inner.teams.get(team_id).cloned()
     }
 
     pub fn list(&self) -> Vec<Team> {
-        let inner = self.inner.lock().expect("team registry lock poisoned");
+        let inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         inner.teams.values().cloned().collect()
     }
 
@@ -108,7 +108,7 @@ impl TeamRegistry {
 
     #[must_use]
     pub fn len(&self) -> usize {
-        let inner = self.inner.lock().expect("team registry lock poisoned");
+        let inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         inner.teams.len()
     }
 
@@ -146,7 +146,7 @@ mod tests {
         let deleted = registry.delete(&t1.team_id).expect("delete should succeed");
         assert_eq!(deleted.status, TeamStatus::Deleted);
 
-        let still_there = registry.get(&t1.team_id).unwrap();
+        let still_there = registry.get(&t1.team_id).expect("测试：get 应成功");
         assert_eq!(still_there.status, TeamStatus::Deleted);
 
         registry.remove(&t2.team_id);

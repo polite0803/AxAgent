@@ -630,8 +630,9 @@ mod tests {
     #[test]
     fn test_recovery_config_serialization() {
         let config = RecoveryConfig::default();
-        let json = serde_json::to_string(&config).unwrap();
-        let deserialized: RecoveryConfig = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&config).expect("测试：JSON序列化应成功");
+        let deserialized: RecoveryConfig =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.max_total_attempts, 5);
         assert!(deserialized.enable_fallback);
         assert!(deserialized.enable_adjustments);

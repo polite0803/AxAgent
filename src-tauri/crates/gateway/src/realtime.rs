@@ -1035,7 +1035,8 @@ mod tests {
     #[test]
     fn deserialize_session_create() {
         let json = r#"{"type":"session.create","model":"gpt-4o"}"#;
-        let msg: RealtimeClientMessage = serde_json::from_str(json).unwrap();
+        let msg: RealtimeClientMessage =
+            serde_json::from_str(json).expect("测试：JSON反序列化应成功");
         match msg {
             RealtimeClientMessage::SessionCreate { model, voice, .. } => {
                 assert_eq!(model, "gpt-4o");
@@ -1048,7 +1049,8 @@ mod tests {
     #[test]
     fn deserialize_session_create_with_voice() {
         let json = r#"{"type":"session.create","model":"gpt-4o","voice":"nova"}"#;
-        let msg: RealtimeClientMessage = serde_json::from_str(json).unwrap();
+        let msg: RealtimeClientMessage =
+            serde_json::from_str(json).expect("测试：JSON反序列化应成功");
         match msg {
             RealtimeClientMessage::SessionCreate { model, voice, .. } => {
                 assert_eq!(model, "gpt-4o");
@@ -1061,7 +1063,8 @@ mod tests {
     #[test]
     fn deserialize_session_create_with_stt_tts_providers() {
         let json = r#"{"type":"session.create","model":"gpt-4o","voice":"nova","stt_provider":"my-whisper","tts_provider":"my-tts"}"#;
-        let msg: RealtimeClientMessage = serde_json::from_str(json).unwrap();
+        let msg: RealtimeClientMessage =
+            serde_json::from_str(json).expect("测试：JSON反序列化应成功");
         match msg {
             RealtimeClientMessage::SessionCreate { model, voice, stt_provider, tts_provider } => {
                 assert_eq!(model, "gpt-4o");
@@ -1076,7 +1079,8 @@ mod tests {
     #[test]
     fn deserialize_session_create_only_stt_provider() {
         let json = r#"{"type":"session.create","model":"gpt-4o","stt_provider":"custom-stt"}"#;
-        let msg: RealtimeClientMessage = serde_json::from_str(json).unwrap();
+        let msg: RealtimeClientMessage =
+            serde_json::from_str(json).expect("测试：JSON反序列化应成功");
         match msg {
             RealtimeClientMessage::SessionCreate { model, stt_provider, tts_provider, .. } => {
                 assert_eq!(model, "gpt-4o");
@@ -1090,21 +1094,24 @@ mod tests {
     #[test]
     fn deserialize_audio_commit() {
         let json = r#"{"type":"input_audio_buffer.commit"}"#;
-        let msg: RealtimeClientMessage = serde_json::from_str(json).unwrap();
+        let msg: RealtimeClientMessage =
+            serde_json::from_str(json).expect("测试：JSON反序列化应成功");
         assert!(matches!(msg, RealtimeClientMessage::AudioCommit));
     }
 
     #[test]
     fn deserialize_response_cancel() {
         let json = r#"{"type":"response.cancel"}"#;
-        let msg: RealtimeClientMessage = serde_json::from_str(json).unwrap();
+        let msg: RealtimeClientMessage =
+            serde_json::from_str(json).expect("测试：JSON反序列化应成功");
         assert!(matches!(msg, RealtimeClientMessage::ResponseCancel));
     }
 
     #[test]
     fn deserialize_session_close() {
         let json = r#"{"type":"session.close"}"#;
-        let msg: RealtimeClientMessage = serde_json::from_str(json).unwrap();
+        let msg: RealtimeClientMessage =
+            serde_json::from_str(json).expect("测试：JSON反序列化应成功");
         assert!(matches!(msg, RealtimeClientMessage::SessionClose));
     }
 
@@ -1126,8 +1133,8 @@ mod tests {
     #[test]
     fn serialize_session_created() {
         let msg = RealtimeServerMessage::SessionCreated { session_id: "sess-1".into() };
-        let json = serde_json::to_string(&msg).unwrap();
-        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&msg).expect("测试：JSON序列化应成功");
+        let v: serde_json::Value = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(v["type"], "session.created");
         assert_eq!(v["session_id"], "sess-1");
     }
@@ -1135,8 +1142,8 @@ mod tests {
     #[test]
     fn serialize_input_transcript() {
         let msg = RealtimeServerMessage::InputTranscript { transcript: "你好".into() };
-        let json = serde_json::to_string(&msg).unwrap();
-        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&msg).expect("测试：JSON序列化应成功");
+        let v: serde_json::Value = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(v["type"], "conversation.item.input_audio_transcription.completed");
         assert_eq!(v["transcript"], "你好");
     }
@@ -1144,8 +1151,8 @@ mod tests {
     #[test]
     fn serialize_text_delta() {
         let msg = RealtimeServerMessage::TextDelta { delta: "Hello".into() };
-        let json = serde_json::to_string(&msg).unwrap();
-        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&msg).expect("测试：JSON序列化应成功");
+        let v: serde_json::Value = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(v["type"], "response.text.delta");
         assert_eq!(v["delta"], "Hello");
     }
@@ -1153,8 +1160,8 @@ mod tests {
     #[test]
     fn serialize_audio_delta() {
         let msg = RealtimeServerMessage::AudioDelta { delta: "AAAA".into() };
-        let json = serde_json::to_string(&msg).unwrap();
-        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&msg).expect("测试：JSON序列化应成功");
+        let v: serde_json::Value = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(v["type"], "response.audio.delta");
         assert_eq!(v["delta"], "AAAA");
     }
@@ -1162,24 +1169,24 @@ mod tests {
     #[test]
     fn serialize_audio_done() {
         let msg = RealtimeServerMessage::AudioDone;
-        let json = serde_json::to_string(&msg).unwrap();
-        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&msg).expect("测试：JSON序列化应成功");
+        let v: serde_json::Value = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(v["type"], "response.audio.done");
     }
 
     #[test]
     fn serialize_response_done() {
         let msg = RealtimeServerMessage::ResponseDone;
-        let json = serde_json::to_string(&msg).unwrap();
-        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&msg).expect("测试：JSON序列化应成功");
+        let v: serde_json::Value = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(v["type"], "response.done");
     }
 
     #[test]
     fn serialize_error() {
         let msg = RealtimeServerMessage::error(voice_err::STT_FAILED, "Something went wrong");
-        let json = serde_json::to_string(&msg).unwrap();
-        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&msg).expect("测试：JSON序列化应成功");
+        let v: serde_json::Value = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(v["type"], "error");
         assert_eq!(v["code"], voice_err::STT_FAILED);
         assert_eq!(v["message"], "Something went wrong");
@@ -1194,7 +1201,7 @@ mod tests {
             "model not found",
             json!({ "model": "gpt-4o-voice" }),
         );
-        let v: serde_json::Value = serde_json::to_value(&msg).unwrap();
+        let v: serde_json::Value = serde_json::to_value(&msg).expect("测试应成功");
         assert_eq!(v["type"], "error");
         assert_eq!(v["code"], voice_err::MODEL_NOT_FOUND);
         assert_eq!(v["params"]["model"], "gpt-4o-voice");

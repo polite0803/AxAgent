@@ -138,21 +138,22 @@ mod tests {
     #[tokio::test]
     async fn crud_round_trip() {
         use crate::migrations::v107_paper_reading_list as v107;
-        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
-        v107::up(db.clone()).await.unwrap();
+        let db =
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        v107::up(db.clone()).await.expect("测试：异步操作应成功");
 
         // create
-        let created = create(&db, sample_input("待读")).await.unwrap();
+        let created = create(&db, sample_input("待读")).await.expect("测试：异步操作应成功");
         assert_eq!(created.name, "待读");
         assert_eq!(created.status, "active");
         assert_eq!(created.sort_order, 0);
 
         // get
-        let fetched = get(&db, &created.id).await.unwrap();
+        let fetched = get(&db, &created.id).await.expect("测试：异步操作应成功");
         assert_eq!(fetched.id, created.id);
 
         // list_all
-        let list = list_all(&db).await.unwrap();
+        let list = list_all(&db).await.expect("测试：异步操作应成功");
         assert_eq!(list.len(), 1);
 
         // update
@@ -166,29 +167,32 @@ mod tests {
             },
         )
         .await
-        .unwrap();
+        .expect("测试应成功");
         assert_eq!(updated.name, "已读");
         assert_eq!(updated.description, None);
 
         // delete
-        delete(&db, &created.id).await.unwrap();
+        delete(&db, &created.id).await.expect("测试：异步操作应成功");
         assert!(get(&db, &created.id).await.is_err());
     }
 
     #[tokio::test]
     async fn reorder_changes_sort_order() {
         use crate::migrations::v107_paper_reading_list as v107;
-        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
-        v107::up(db.clone()).await.unwrap();
+        let db =
+            sea_orm::Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        v107::up(db.clone()).await.expect("测试：异步操作应成功");
 
-        let a = create(&db, sample_input("A")).await.unwrap();
-        let b = create(&db, sample_input("B")).await.unwrap();
-        let c = create(&db, sample_input("C")).await.unwrap();
+        let a = create(&db, sample_input("A")).await.expect("测试：异步操作应成功");
+        let b = create(&db, sample_input("B")).await.expect("测试：异步操作应成功");
+        let c = create(&db, sample_input("C")).await.expect("测试：异步操作应成功");
 
         // 反序排列
-        reorder(&db, &[c.id.clone(), b.id.clone(), a.id.clone()]).await.unwrap();
+        reorder(&db, &[c.id.clone(), b.id.clone(), a.id.clone()])
+            .await
+            .expect("测试：异步操作应成功");
 
-        let list = list_all(&db).await.unwrap();
+        let list = list_all(&db).await.expect("测试：异步操作应成功");
         assert_eq!(list[0].name, "C");
         assert_eq!(list[1].name, "B");
         assert_eq!(list[2].name, "A");

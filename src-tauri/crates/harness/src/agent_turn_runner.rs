@@ -184,8 +184,9 @@ mod tests {
             max_tool_rounds: Some(5),
             workspace_dir: Some("/tmp/work".to_string()),
         };
-        let json = serde_json::to_string(&req).unwrap();
-        let parsed: AgentTurnRequest = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&req).expect("测试：JSON序列化应成功");
+        let parsed: AgentTurnRequest =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(parsed.execution_id, "exec-001");
         assert_eq!(parsed.node_id, "agent-1");
         assert_eq!(parsed.model, "claude-3-5-sonnet");
@@ -209,8 +210,9 @@ mod tests {
             iterations: 2,
             stopped_by_limit: false,
         };
-        let json = serde_json::to_string(&result).unwrap();
-        let parsed: AgentTurnResult = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&result).expect("测试：JSON序列化应成功");
+        let parsed: AgentTurnResult =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(parsed.content, "Done");
         assert_eq!(parsed.tool_calls.len(), 1);
         assert_eq!(parsed.tool_calls[0].tool_name, "read_file");
@@ -277,7 +279,7 @@ mod tests {
             max_tool_rounds: None,
             workspace_dir: None,
         };
-        let result = runner.run_turn(req).await.unwrap();
+        let result = runner.run_turn(req).await.expect("测试：异步操作应成功");
         assert_eq!(result.content, "stub");
         assert_eq!(result.iterations, 1);
     }

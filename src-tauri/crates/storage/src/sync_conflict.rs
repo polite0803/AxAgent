@@ -192,7 +192,10 @@ impl SyncState {
     pub fn count_conflicts(&self) -> usize {
         self.files
             .values()
-            .filter(|e| e.conflict.is_some() && !e.conflict.as_ref().unwrap().resolved)
+            .filter(|e| {
+                e.conflict.is_some()
+                    && !e.conflict.as_ref().expect("同步冲突：is_some 检查后应有值").resolved
+            })
             .count()
     }
 

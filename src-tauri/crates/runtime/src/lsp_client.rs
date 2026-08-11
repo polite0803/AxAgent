@@ -151,7 +151,7 @@ impl LspRegistry {
                 .unwrap_or_default()
         };
 
-        let mut inner = self.inner.lock().expect("lsp registry lock poisoned");
+        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         inner.servers.insert(
             language.clone(),
             LspServerState {
@@ -168,7 +168,7 @@ impl LspRegistry {
 
     pub async fn stop_server(&self, language: &str) -> Result<(), String> {
         {
-            let mut inner = self.inner.lock().expect("lsp registry lock poisoned");
+            let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
             inner.servers.remove(language);
         }
         self.process_manager.stop_server(language).await
@@ -185,7 +185,7 @@ impl LspRegistry {
         root_path: Option<&str>,
         capabilities: Vec<String>,
     ) {
-        let mut inner = self.inner.lock().expect("lsp registry lock poisoned");
+        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         inner.servers.insert(
             language.to_owned(),
             LspServerState {
@@ -236,7 +236,7 @@ impl LspRegistry {
         language: &str,
         diagnostics: Vec<LspDiagnostic>,
     ) -> Result<(), String> {
-        let mut inner = self.inner.lock().expect("lsp registry lock poisoned");
+        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         let server = inner
             .servers
             .get_mut(language)
@@ -259,7 +259,7 @@ impl LspRegistry {
 
     /// Clear diagnostics for a language server.
     pub fn clear_diagnostics(&self, language: &str) -> Result<(), String> {
-        let mut inner = self.inner.lock().expect("lsp registry lock poisoned");
+        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         let server = inner
             .servers
             .get_mut(language)
@@ -438,10 +438,14 @@ mod tests {
         registry.register("rust", LspServerStatus::Connected, None, vec![]);
         registry.register("typescript", LspServerStatus::Connected, None, vec![]);
 
-        let rs_server = registry.find_server_for_path("src/main.rs").unwrap();
+        let rs_server = registry
+            .find_server_for_path("src/main.rs")
+            .expect("测试：find_server_for_path 应成功");
         assert_eq!(rs_server.language, "rust");
 
-        let ts_server = registry.find_server_for_path("src/index.ts").unwrap();
+        let ts_server = registry
+            .find_server_for_path("src/index.ts")
+            .expect("测试：find_server_for_path 应成功");
         assert_eq!(ts_server.language, "typescript");
 
         assert!(registry.find_server_for_path("data.csv").is_none());
@@ -464,13 +468,13 @@ mod tests {
                     source: Some("rust-analyzer".into()),
                 }],
             )
-            .unwrap();
+            .expect("测试应成功");
 
         let diags = registry.get_diagnostics("src/main.rs");
         assert_eq!(diags.len(), 1);
         assert_eq!(diags[0].message, "mismatched types");
 
-        registry.clear_diagnostics("rust").unwrap();
+        registry.clear_diagnostics("rust").expect("测试：clear_diagnostics 应成功");
         assert!(registry.get_diagnostics("src/main.rs").is_empty());
     }
 
@@ -490,10 +494,12 @@ mod tests {
                     source: None,
                 }],
             )
-            .unwrap();
+            .expect("测试应成功");
 
-        let result =
-            registry.dispatch("diagnostics", Some("src/lib.rs"), None, None, None).await.unwrap();
+        let result = registry
+            .dispatch("diagnostics", Some("src/lib.rs"), None, None, None)
+            .await
+            .expect("测试：异步操作应成功");
         assert_eq!(result["count"], 1);
     }
 

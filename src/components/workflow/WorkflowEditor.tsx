@@ -17,7 +17,7 @@ import {
   useNodesState,
   useReactFlow,
 } from "@xyflow/react";
-import domtoimage from "dom-to-image-more";
+import html2canvas from "html2canvas";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "@xyflow/react/dist/style.css";
 import { invoke, isTauri, logIpcError } from "@/lib/invoke";
@@ -1245,9 +1245,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       const defaultName = `${currentTemplate?.name || "workflow"}.png`;
 
       if (isTauri()) {
-        const blob = await domtoimage.toBlob(container, {
-          bgColor: "#1a1a2e",
+        const canvas = await html2canvas(container, {
+          backgroundColor: "#1a1a2e",
           scale: 2,
+        });
+        const blob = await new Promise<Blob>((resolve) => {
+          canvas.toBlob((b) => resolve(b!), "image/png");
         });
         if (!blob) {
           message.error(t("workflow.exportFailed"));
@@ -1262,10 +1265,11 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         if (!filePath) { return; }
         await writeFile(filePath, new Uint8Array(await blob.arrayBuffer()));
       } else {
-        const dataUrl = await domtoimage.toPng(container, {
-          bgColor: "#1a1a2e",
+        const canvas = await html2canvas(container, {
+          backgroundColor: "#1a1a2e",
           scale: 2,
         });
+        const dataUrl = canvas.toDataURL("image/png");
         const link = document.createElement("a");
         link.download = defaultName;
         link.href = dataUrl;

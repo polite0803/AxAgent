@@ -848,28 +848,28 @@ mod tests {
     #[test]
     fn apply_value_path_replaces_root() {
         let mut v = json!({"score": 0.5});
-        apply_value_path(&mut v, "score", json!(0.8)).unwrap();
+        apply_value_path(&mut v, "score", json!(0.8)).expect("测试应成功");
         assert_eq!(v, json!({"score": 0.8}));
     }
 
     #[test]
     fn apply_value_path_dotted_modifies_field() {
         let mut v = json!({"min": 0.5, "max": 1.0});
-        apply_value_path(&mut v, "min", json!(0.3)).unwrap();
+        apply_value_path(&mut v, "min", json!(0.3)).expect("测试应成功");
         assert_eq!(v, json!({"min": 0.3, "max": 1.0}));
     }
 
     #[test]
     fn apply_value_path_creates_intermediate_objects() {
         let mut v = json!(null);
-        apply_value_path(&mut v, "a.b.c", json!(42)).unwrap();
+        apply_value_path(&mut v, "a.b.c", json!(42)).expect("测试应成功");
         assert_eq!(v, json!({"a": {"b": {"c": 42}}}));
     }
 
     #[test]
     fn apply_value_path_overwrites_non_object_intermediate() {
         let mut v = json!(123);
-        apply_value_path(&mut v, "a.b", json!("x")).unwrap();
+        apply_value_path(&mut v, "a.b", json!("x")).expect("测试应成功");
         // 123 被替换为 {a: {b: "x"}}
         assert_eq!(v, json!({"a": {"b": "x"}}));
     }

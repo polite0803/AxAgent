@@ -282,6 +282,9 @@ mod tests {
 
         // 应该超时或收到 None（因为 chunk 发给了别的 agent）
         let result = tokio::time::timeout(tokio::time::Duration::from_millis(100), rx.recv()).await;
-        assert!(result.is_err() || result.unwrap().is_none(), "不应收到其他 agent 的 chunk");
+        assert!(
+            result.is_err() || result.expect("测试应成功").is_none(),
+            "不应收到其他 agent 的 chunk"
+        );
     }
 }

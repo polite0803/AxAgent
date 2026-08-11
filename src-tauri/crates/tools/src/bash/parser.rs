@@ -255,28 +255,28 @@ mod tests {
 
     #[test]
     fn test_simple_command() {
-        let cmd = parse_command("git status").unwrap();
+        let cmd = parse_command("git status").expect("测试应成功");
         assert_eq!(cmd.argv, vec!["git", "status"]);
         assert!(cmd.next_pipe.is_none());
     }
 
     #[test]
     fn test_command_with_flags() {
-        let cmd = parse_command("ls -la /tmp").unwrap();
+        let cmd = parse_command("ls -la /tmp").expect("测试应成功");
         assert_eq!(cmd.argv, vec!["ls", "-la", "/tmp"]);
     }
 
     #[test]
     fn test_pipe() {
-        let cmd = parse_command("cat file.txt | grep error").unwrap();
+        let cmd = parse_command("cat file.txt | grep error").expect("测试应成功");
         assert_eq!(cmd.argv, vec!["cat", "file.txt"]);
         assert!(cmd.next_pipe.is_some());
-        assert_eq!(cmd.next_pipe.unwrap().argv, vec!["grep", "error"]);
+        assert_eq!(cmd.next_pipe.expect("测试应成功").argv, vec!["grep", "error"]);
     }
 
     #[test]
     fn test_redirect() {
-        let cmd = parse_command("echo hello > out.txt").unwrap();
+        let cmd = parse_command("echo hello > out.txt").expect("测试应成功");
         assert_eq!(cmd.argv, vec!["echo", "hello"]);
         assert_eq!(cmd.redirects.len(), 1);
         assert_eq!(cmd.redirects[0].kind, RedirectKind::Output);
@@ -285,7 +285,7 @@ mod tests {
 
     #[test]
     fn test_quoted_args() {
-        let cmd = parse_command(r#"echo "hello world""#).unwrap();
+        let cmd = parse_command(r#"echo "hello world""#).expect("测试应成功");
         assert_eq!(cmd.argv, vec!["echo", "hello world"]);
     }
 }

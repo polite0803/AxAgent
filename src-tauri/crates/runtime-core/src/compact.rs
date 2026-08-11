@@ -983,7 +983,9 @@ mod tests {
         let tool_id = "call_abc";
         let mut session = Session::default();
         // Turn 1: user prompt
-        session.push_message(ConversationMessage::user_text("Search for files")).unwrap();
+        session
+            .push_message(ConversationMessage::user_text("Search for files"))
+            .expect("测试应成功");
         // Turn 2: assistant calls a tool
         session
             .push_message(ConversationMessage::assistant(vec![ContentBlock::ToolUse {
@@ -991,7 +993,7 @@ mod tests {
                 name: "search".to_string(),
                 input: "{\"q\":\"*.rs\"}".to_string(),
             }]))
-            .unwrap();
+            .expect("测试应成功");
         // Turn 3: tool result
         session
             .push_message(ConversationMessage::tool_result(
@@ -1000,13 +1002,13 @@ mod tests {
                 "found 5 files",
                 false,
             ))
-            .unwrap();
+            .expect("测试应成功");
         // Turn 4: assistant final response
         session
             .push_message(ConversationMessage::assistant(vec![ContentBlock::Text {
                 text: "Done.".to_string(),
             }]))
-            .unwrap();
+            .expect("测试应成功");
 
         // Compact preserving only 1 recent message — without the fix this
         // would cut the boundary so that the tool result (turn 3) is first,

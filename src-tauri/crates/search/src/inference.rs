@@ -669,27 +669,35 @@ mod tests {
         let r = InferenceEngine::new()
             .rerank("x", "rust code", &["rust".into(), "python".into()])
             .await
-            .unwrap();
+            .expect("测试应成功");
         assert!(r[0] > r[1]);
     }
 
     #[tokio::test]
     async fn test_judge_fallback_relevant() {
-        let o = InferenceEngine::new().judge("x", "rust code", "rust programming").await.unwrap();
+        let o = InferenceEngine::new()
+            .judge("x", "rust code", "rust programming")
+            .await
+            .expect("测试：异步操作应成功");
         assert!(o.relevant);
     }
 
     #[tokio::test]
     async fn test_judge_fallback_irrelevant() {
-        let o =
-            InferenceEngine::new().judge("x", "rust programming", "python django").await.unwrap();
+        let o = InferenceEngine::new()
+            .judge("x", "rust programming", "python django")
+            .await
+            .expect("测试：异步操作应成功");
         assert!(!o.relevant || o.score < 0.5);
     }
 
     #[tokio::test]
     async fn test_embed_sparse_returns_empty_when_not_loaded() {
         // 未加载任何 sparse encoder 时，返回空 Vec（调用方应回退到 BM25/dense）
-        let r = InferenceEngine::new().embed_sparse("x", "hello world").await.unwrap();
+        let r = InferenceEngine::new()
+            .embed_sparse("x", "hello world")
+            .await
+            .expect("测试：异步操作应成功");
         assert!(r.is_empty());
     }
 
@@ -744,8 +752,9 @@ mod tests {
     #[test]
     fn test_sparse_vector_entry_serialization() {
         let entry = SparseVectorEntry { token_id: 42, weight: 0.5 };
-        let json = serde_json::to_string(&entry).unwrap();
-        let decoded: SparseVectorEntry = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&entry).expect("测试：JSON序列化应成功");
+        let decoded: SparseVectorEntry =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(entry, decoded);
     }
 }

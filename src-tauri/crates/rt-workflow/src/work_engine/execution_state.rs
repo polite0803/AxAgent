@@ -503,9 +503,9 @@ mod tests {
     fn test_snapshot_roundtrip() {
         let state = make_test_state();
         let snapshot = ExecutionStateSnapshot::from(&state);
-        let json = snapshot.to_json().unwrap();
+        let json = snapshot.to_json().expect("测试：to_json 应成功");
 
-        let restored = ExecutionStateSnapshot::from_json(&json).unwrap();
+        let restored = ExecutionStateSnapshot::from_json(&json).expect("测试：from_json 应成功");
         assert_eq!(restored.execution_id, "exec-001");
         assert_eq!(restored.workflow_id, "wf-001");
         assert_eq!(restored.status, ExecutionStatus::Running);
@@ -545,8 +545,8 @@ mod tests {
         state.pause_state = Some(PauseState::new(PauseReason::Manual));
 
         let snapshot = ExecutionStateSnapshot::from(&state);
-        let json = snapshot.to_json().unwrap();
-        let restored = ExecutionStateSnapshot::from_json(&json).unwrap();
+        let json = snapshot.to_json().expect("测试：to_json 应成功");
+        let restored = ExecutionStateSnapshot::from_json(&json).expect("测试：from_json 应成功");
 
         assert_eq!(restored.status, ExecutionStatus::Paused);
         assert_eq!(restored.pause_reason, Some(PauseReason::Manual));
@@ -555,9 +555,9 @@ mod tests {
     #[test]
     fn test_execution_status_serialization() {
         let status = ExecutionStatus::Completed;
-        let json = serde_json::to_string(&status).unwrap();
+        let json = serde_json::to_string(&status).expect("测试：JSON序列化应成功");
         // 默认 serde 表示为枚举索引值
-        let deser: ExecutionStatus = serde_json::from_str(&json).unwrap();
+        let deser: ExecutionStatus = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deser, ExecutionStatus::Completed);
 
         // Display 表示为小写字符串
@@ -567,10 +567,10 @@ mod tests {
     #[test]
     fn test_pause_reason_serialization() {
         let reason = PauseReason::Manual;
-        let json = serde_json::to_string(&reason).unwrap();
+        let json = serde_json::to_string(&reason).expect("测试：JSON序列化应成功");
         assert!(!json.is_empty());
 
-        let deser: PauseReason = serde_json::from_str(&json).unwrap();
+        let deser: PauseReason = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deser, PauseReason::Manual);
     }
 
@@ -593,8 +593,8 @@ mod tests {
         });
 
         let snapshot = ExecutionStateSnapshot::from(&state);
-        let json = snapshot.to_json().unwrap();
-        let restored = ExecutionStateSnapshot::from_json(&json).unwrap();
+        let json = snapshot.to_json().expect("测试：to_json 应成功");
+        let restored = ExecutionStateSnapshot::from_json(&json).expect("测试：from_json 应成功");
 
         assert_eq!(restored.node_records.len(), 1);
         assert_eq!(restored.node_records[0].node_id, "node-1");

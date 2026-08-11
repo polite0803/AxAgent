@@ -141,9 +141,9 @@ mod tests {
             total_pages: 10,
             items: vec![],
         };
-        let h = render_header(&ctx, None).unwrap();
+        let h = render_header(&ctx, None).expect("测试：渲染页头应成功");
         assert_eq!(h, "Doc");
-        let f = render_footer(&ctx, None).unwrap();
+        let f = render_footer(&ctx, None).expect("测试：渲染页脚应成功");
         assert_eq!(f, "页 3 / 10");
     }
 
@@ -154,7 +154,7 @@ mod tests {
             TocItem { level: 2, title: "1.1 节".to_string(), indent: "  ".to_string() },
             TocItem { level: 1, title: "第二章".to_string(), indent: String::new() },
         ];
-        let s = render_toc(&items, None).unwrap();
+        let s = render_toc(&items, None).expect("测试：渲染目录应成功");
         assert!(s.contains("第一章"));
         assert!(s.contains("  1.1 节"));
         assert!(s.contains("第二章"));

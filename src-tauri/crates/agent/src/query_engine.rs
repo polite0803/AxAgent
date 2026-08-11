@@ -590,8 +590,9 @@ mod tests {
     #[test]
     fn test_query_result_serialization() {
         let result = QueryResult { pages: vec![], total: 0 };
-        let json = serde_json::to_string(&result).unwrap();
-        let deserialized: QueryResult = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&result).expect("测试：JSON序列化应成功");
+        let deserialized: QueryResult =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.total, 0);
         assert!(deserialized.pages.is_empty());
     }
@@ -605,8 +606,9 @@ mod tests {
             relevance_score: 0.85,
             link_paths: vec!["link1".to_string(), "link2".to_string()],
         };
-        let json = serde_json::to_string(&page).unwrap();
-        let deserialized: PageResult = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&page).expect("测试：JSON序列化应成功");
+        let deserialized: PageResult =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.note_id, "n1");
         assert_eq!(deserialized.title, "Test Page");
         assert_eq!(deserialized.relevance_score, 0.85);
@@ -621,8 +623,9 @@ mod tests {
             limit: 10,
             offset: 0,
         };
-        let json = serde_json::to_string(&ctx).unwrap();
-        let deserialized: QueryContext = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&ctx).expect("测试：JSON序列化应成功");
+        let deserialized: QueryContext =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.query, "test query");
         assert_eq!(deserialized.wiki_id, "wiki-1");
         assert_eq!(deserialized.limit, 10);
@@ -931,8 +934,8 @@ mod tests {
             relevance_score: 0.75,
             link_paths: vec!["link_a".to_string(), "link_b".to_string()],
         };
-        let json = serde_json::to_string(&page).unwrap();
-        let back: PageResult = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&page).expect("测试：JSON序列化应成功");
+        let back: PageResult = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(back.note_id, page.note_id);
         assert_eq!(back.title, page.title);
         assert_eq!(back.content_snippet, page.content_snippet);
@@ -972,7 +975,7 @@ mod tests {
         let mock = MockVectorSearch {
             results: vec![("note1".to_string(), 0.5), ("note2".to_string(), 0.3)],
         };
-        let results = mock.search("wiki1", &[0.1; 128], 10).await.unwrap();
+        let results = mock.search("wiki1", &[0.1; 128], 10).await.expect("测试：异步操作应成功");
         assert_eq!(results.len(), 2);
         assert_eq!(results[0].0, "note1");
         assert!((results[0].1 - 0.5).abs() < f64::EPSILON);
@@ -1006,7 +1009,7 @@ mod tests {
         assert_eq!(combined.len(), 3);
         let n3_entry = combined.iter().find(|(id, _)| id == "n3");
         assert!(n3_entry.is_some());
-        assert!((n3_entry.unwrap().1 - 0.3).abs() < f64::EPSILON);
+        assert!((n3_entry.expect("测试应成功").1 - 0.3).abs() < f64::EPSILON);
     }
 
     #[test]

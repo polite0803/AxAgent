@@ -369,18 +369,18 @@ mod tests {
     #[test]
     fn test_benchmark_category_serde() {
         let cat = BenchmarkCategory::Reasoning;
-        let json = serde_json::to_string(&cat).unwrap();
+        let json = serde_json::to_string(&cat).expect("测试：JSON序列化应成功");
         assert!(json.contains("reasoning"));
-        let de: BenchmarkCategory = serde_json::from_str(&json).unwrap();
+        let de: BenchmarkCategory = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(de, cat);
     }
 
     #[test]
     fn test_difficulty_serde() {
         let diff = Difficulty::Hard;
-        let json = serde_json::to_string(&diff).unwrap();
+        let json = serde_json::to_string(&diff).expect("测试：JSON序列化应成功");
         assert!(json.contains("hard"));
-        let de: Difficulty = serde_json::from_str(&json).unwrap();
+        let de: Difficulty = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(de, diff);
     }
 
@@ -396,8 +396,9 @@ mod tests {
             EvaluationMetric::Performance,
         ];
         for m in metrics {
-            let json = serde_json::to_string(&m).unwrap();
-            let de: EvaluationMetric = serde_json::from_str(&json).unwrap();
+            let json = serde_json::to_string(&m).expect("测试：JSON序列化应成功");
+            let de: EvaluationMetric =
+                serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
             assert_eq!(de, m);
         }
     }
@@ -423,7 +424,7 @@ mod tests {
         let suite = BenchmarkSuite::new();
         let benchmark = suite.get("reasoning");
         assert!(benchmark.is_some());
-        assert_eq!(benchmark.unwrap().category, BenchmarkCategory::Reasoning);
+        assert_eq!(benchmark.expect("测试应成功").category, BenchmarkCategory::Reasoning);
     }
 
     #[test]
@@ -508,8 +509,8 @@ mod tests {
             difficulty: Difficulty::Easy,
             tags: vec!["test".to_string()],
         };
-        let json = serde_json::to_string(&task).unwrap();
-        let de: BenchmarkTask = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&task).expect("测试：JSON序列化应成功");
+        let de: BenchmarkTask = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(de.id, "test_001");
         assert_eq!(de.difficulty, Difficulty::Easy);
     }

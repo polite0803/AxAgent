@@ -795,7 +795,7 @@ mod tests_2_7 {
         let handle = filtering.level_handle();
 
         // 通过共享句柄切换级别
-        *handle.write().unwrap() = TelemetryLevel::Full;
+        *handle.write().unwrap_or_else(|e| e.into_inner()) = TelemetryLevel::Full;
         assert_eq!(filtering.current_level(), TelemetryLevel::Full);
 
         filtering.record(analytics_event());

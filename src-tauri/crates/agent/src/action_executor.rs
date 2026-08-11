@@ -571,7 +571,7 @@ mod tests {
         let action = Action::llm_call("test prompt");
         let result = executor.execute(action, "conv-1").await;
         assert!(result.is_ok());
-        match result.unwrap() {
+        match result.expect("测试应成功") {
             ActionResult::LlmResponse(text) => assert_eq!(text, "test prompt"),
             _ => panic!("Expected LlmResponse"),
         }
@@ -598,7 +598,7 @@ mod tests {
         let action = Action::user_confirm("confirm this?");
         let result = executor.execute(action, "conv-1").await;
         assert!(result.is_ok());
-        match result.unwrap() {
+        match result.expect("测试应成功") {
             ActionResult::UserConfirmationRequired(msg) => assert_eq!(msg, "confirm this?"),
             _ => panic!("Expected UserConfirmationRequired"),
         }
@@ -616,7 +616,7 @@ mod tests {
         };
         let result = executor.execute(action, "conv-1").await;
         assert!(result.is_ok());
-        match result.unwrap() {
+        match result.expect("测试应成功") {
             ActionResult::UserConfirmationRequired(msg) => assert_eq!(msg, ""),
             _ => panic!("Expected UserConfirmationRequired"),
         }
@@ -628,7 +628,7 @@ mod tests {
         let action = Action::validate("check this");
         let result = executor.execute(action, "conv-1").await;
         assert!(result.is_ok());
-        match result.unwrap() {
+        match result.expect("测试应成功") {
             ActionResult::Validation(desc) => assert_eq!(desc, "check this"),
             _ => panic!("Expected Validation"),
         }
@@ -646,7 +646,7 @@ mod tests {
         };
         let result = executor.execute(action, "conv-1").await;
         assert!(result.is_ok());
-        match result.unwrap() {
+        match result.expect("测试应成功") {
             ActionResult::Analysis(desc) => assert_eq!(desc, "analyze this"),
             _ => panic!("Expected Analysis"),
         }
@@ -664,7 +664,7 @@ mod tests {
         };
         let result = executor.execute(action, "conv-1").await;
         assert!(result.is_ok());
-        match result.unwrap() {
+        match result.expect("测试应成功") {
             ActionResult::Planning(desc) => assert_eq!(desc, "plan this"),
             _ => panic!("Expected Planning"),
         }
@@ -682,7 +682,7 @@ mod tests {
         };
         let result = executor.execute(action, "conv-1").await;
         assert!(result.is_ok());
-        match result.unwrap() {
+        match result.expect("测试应成功") {
             ActionResult::Reflection(desc) => assert_eq!(desc, "reflect on this"),
             _ => panic!("Expected Reflection"),
         }
@@ -700,7 +700,7 @@ mod tests {
         };
         let result = executor.execute(action, "conv-1").await;
         assert!(result.is_ok());
-        match result.unwrap() {
+        match result.expect("测试应成功") {
             ActionResult::Synthesis(desc) => assert_eq!(desc, "synthesize this"),
             _ => panic!("Expected Synthesis"),
         }

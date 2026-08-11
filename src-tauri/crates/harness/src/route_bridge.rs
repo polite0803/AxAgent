@@ -206,7 +206,7 @@ mod tests {
         let (req, mapping) = apply_tier_to_request(request, "budget", &resolver).await;
         assert_eq!(req.model, "gpt-4o-mini");
         assert!(mapping.is_some());
-        assert_eq!(mapping.unwrap().model_id, "gpt-4o-mini");
+        assert_eq!(mapping.expect("测试应成功").model_id, "gpt-4o-mini");
     }
 
     #[tokio::test]
@@ -265,7 +265,7 @@ mod tests {
         let request = make_request("placeholder");
         let (req, mapping) = apply_tier_to_request(request, "premium", &resolver).await;
         assert_eq!(req.model, "claude-opus");
-        let mapping = mapping.unwrap();
+        let mapping = mapping.expect("测试应成功");
         assert_eq!(mapping.provider_id, "anthropic");
     }
 
@@ -284,7 +284,7 @@ mod tests {
 
         let result = resolver.resolve("balanced").await;
         assert!(result.is_some());
-        assert_eq!(result.unwrap().model_id, "gpt-4o");
+        assert_eq!(result.expect("测试应成功").model_id, "gpt-4o");
 
         let result = resolver.resolve("unknown").await;
         assert!(result.is_none());

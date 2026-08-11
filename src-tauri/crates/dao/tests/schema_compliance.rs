@@ -1494,7 +1494,7 @@ const SCHEMA: &[(&str, &[(&str, &str)])] = &[
 
 #[tokio::test]
 async fn verify_all_entity_columns_exist_in_db() {
-    let db = Database::connect("sqlite::memory:").await.unwrap();
+    let db = Database::connect("sqlite::memory:").await.expect("测试应成功");
 
     // 跑全部迁移
     axagent_dao::migrations::run_migrations(&db)

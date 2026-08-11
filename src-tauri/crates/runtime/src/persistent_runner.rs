@@ -460,8 +460,9 @@ mod tests {
     #[test]
     fn test_session_status_serialization() {
         let status = SessionStatus::Pending;
-        let json = serde_json::to_string(&status).unwrap();
-        let deserialized: SessionStatus = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&status).expect("测试：JSON序列化应成功");
+        let deserialized: SessionStatus =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized, SessionStatus::Pending);
     }
 
@@ -548,8 +549,9 @@ mod tests {
     #[test]
     fn test_persistent_session_serialization() {
         let session = PersistentSession::new("s1", "test input");
-        let json = serde_json::to_string(&session).unwrap();
-        let deserialized: PersistentSession = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&session).expect("测试：JSON序列化应成功");
+        let deserialized: PersistentSession =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.session_id, "s1");
         assert_eq!(deserialized.input, "test input");
         assert_eq!(deserialized.status, SessionStatus::Pending);
@@ -604,37 +606,37 @@ mod tests {
 
     #[tokio::test]
     async fn test_persistent_runner_ensure_storage_dir() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let runner = PersistentRunner::new(dir.path(), PersistentRunnerConfig::default());
-        runner.ensure_storage_dir().await.unwrap();
+        runner.ensure_storage_dir().await.expect("测试：异步操作应成功");
         assert!(runner.storage_dir().exists());
     }
 
     #[tokio::test]
     async fn test_persistent_runner_save_and_load_session() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let runner = PersistentRunner::new(dir.path(), PersistentRunnerConfig::default());
         let session = PersistentSession::new("session-1", "test input");
-        let path = runner.save_session(&session).await.unwrap();
+        let path = runner.save_session(&session).await.expect("测试：异步操作应成功");
         assert!(path.exists());
-        let loaded = runner.load_session("session-1").await.unwrap();
+        let loaded = runner.load_session("session-1").await.expect("测试：异步操作应成功");
         assert!(loaded.is_some());
-        let loaded = loaded.unwrap();
+        let loaded = loaded.expect("测试应成功");
         assert_eq!(loaded.session_id, "session-1");
         assert_eq!(loaded.input, "test input");
     }
 
     #[tokio::test]
     async fn test_persistent_runner_load_session_nonexistent() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let runner = PersistentRunner::new(dir.path(), PersistentRunnerConfig::default());
-        let loaded = runner.load_session("nonexistent").await.unwrap();
+        let loaded = runner.load_session("nonexistent").await.expect("测试：异步操作应成功");
         assert!(loaded.is_none());
     }
 
     #[tokio::test]
     async fn test_persistent_runner_load_session_invalid_id() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let runner = PersistentRunner::new(dir.path(), PersistentRunnerConfig::default());
         assert!(runner.load_session("../escape").await.is_err());
         assert!(runner.load_session("").await.is_err());
@@ -642,38 +644,38 @@ mod tests {
 
     #[tokio::test]
     async fn test_persistent_runner_delete_session() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let runner = PersistentRunner::new(dir.path(), PersistentRunnerConfig::default());
         let session = PersistentSession::new("session-1", "input");
-        runner.save_session(&session).await.unwrap();
-        let deleted = runner.delete_session("session-1").await.unwrap();
+        runner.save_session(&session).await.expect("测试：异步操作应成功");
+        let deleted = runner.delete_session("session-1").await.expect("测试：异步操作应成功");
         assert!(deleted);
         // 再次删除应返回 false
-        let deleted_again = runner.delete_session("session-1").await.unwrap();
+        let deleted_again = runner.delete_session("session-1").await.expect("测试：异步操作应成功");
         assert!(!deleted_again);
     }
 
     #[tokio::test]
     async fn test_persistent_runner_list_pending_empty() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let config = PersistentRunnerConfig { enabled: true, ..Default::default() };
         let runner = PersistentRunner::new(dir.path(), config);
-        let pending = runner.list_pending_sessions().await.unwrap();
+        let pending = runner.list_pending_sessions().await.expect("测试：异步操作应成功");
         assert!(pending.is_empty());
     }
 
     #[tokio::test]
     async fn test_persistent_runner_list_pending_disabled() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let runner = PersistentRunner::new(dir.path(), PersistentRunnerConfig::default());
         // 默认 enabled=false,应返回空
-        let pending = runner.list_pending_sessions().await.unwrap();
+        let pending = runner.list_pending_sessions().await.expect("测试：异步操作应成功");
         assert!(pending.is_empty());
     }
 
     #[tokio::test]
     async fn test_persistent_runner_list_pending_with_sessions() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let config = PersistentRunnerConfig {
             enabled: true,
             cooldown_secs: 0, // 立即可重试
@@ -683,31 +685,31 @@ mod tests {
         // 创建 2 个 pending session
         let s1 = PersistentSession::new("session-1", "input1");
         let s2 = PersistentSession::new("session-2", "input2");
-        runner.save_session(&s1).await.unwrap();
-        runner.save_session(&s2).await.unwrap();
-        let pending = runner.list_pending_sessions().await.unwrap();
+        runner.save_session(&s1).await.expect("测试：异步操作应成功");
+        runner.save_session(&s2).await.expect("测试：异步操作应成功");
+        let pending = runner.list_pending_sessions().await.expect("测试：异步操作应成功");
         assert_eq!(pending.len(), 2);
     }
 
     #[tokio::test]
     async fn test_persistent_runner_list_pending_excludes_completed() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let config =
             PersistentRunnerConfig { enabled: true, cooldown_secs: 0, ..Default::default() };
         let runner = PersistentRunner::new(dir.path(), config);
         let mut s1 = PersistentSession::new("session-1", "input1");
         s1.mark_completed();
         let s2 = PersistentSession::new("session-2", "input2");
-        runner.save_session(&s1).await.unwrap();
-        runner.save_session(&s2).await.unwrap();
-        let pending = runner.list_pending_sessions().await.unwrap();
+        runner.save_session(&s1).await.expect("测试：异步操作应成功");
+        runner.save_session(&s2).await.expect("测试：异步操作应成功");
+        let pending = runner.list_pending_sessions().await.expect("测试：异步操作应成功");
         assert_eq!(pending.len(), 1);
         assert_eq!(pending[0].session_id, "session-2");
     }
 
     #[tokio::test]
     async fn test_persistent_runner_list_pending_excludes_expired() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let config = PersistentRunnerConfig {
             enabled: true,
             cooldown_secs: 0,
@@ -718,16 +720,16 @@ mod tests {
         let mut s1 = PersistentSession::new("session-1", "input1");
         s1.first_attempt_at = current_timestamp() - 7 * 3600; // 7 小时前
         let s2 = PersistentSession::new("session-2", "input2");
-        runner.save_session(&s1).await.unwrap();
-        runner.save_session(&s2).await.unwrap();
-        let pending = runner.list_pending_sessions().await.unwrap();
+        runner.save_session(&s1).await.expect("测试：异步操作应成功");
+        runner.save_session(&s2).await.expect("测试：异步操作应成功");
+        let pending = runner.list_pending_sessions().await.expect("测试：异步操作应成功");
         assert_eq!(pending.len(), 1);
         assert_eq!(pending[0].session_id, "session-2");
     }
 
     #[tokio::test]
     async fn test_persistent_runner_list_pending_excludes_max_retries() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let config = PersistentRunnerConfig {
             enabled: true,
             cooldown_secs: 0,
@@ -738,16 +740,16 @@ mod tests {
         let mut s1 = PersistentSession::new("session-1", "input1");
         s1.retry_count = 3; // 已达最大重试
         let s2 = PersistentSession::new("session-2", "input2");
-        runner.save_session(&s1).await.unwrap();
-        runner.save_session(&s2).await.unwrap();
-        let pending = runner.list_pending_sessions().await.unwrap();
+        runner.save_session(&s1).await.expect("测试：异步操作应成功");
+        runner.save_session(&s2).await.expect("测试：异步操作应成功");
+        let pending = runner.list_pending_sessions().await.expect("测试：异步操作应成功");
         assert_eq!(pending.len(), 1);
         assert_eq!(pending[0].session_id, "session-2");
     }
 
     #[tokio::test]
     async fn test_persistent_runner_list_pending_respects_cooldown() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let config = PersistentRunnerConfig {
             enabled: true,
             cooldown_secs: 3600, // 1 小时冷却
@@ -756,27 +758,27 @@ mod tests {
         let runner = PersistentRunner::new(dir.path(), config);
         let mut s1 = PersistentSession::new("session-1", "input1");
         s1.last_attempt_at = current_timestamp(); // 刚失败,未过冷却
-        runner.save_session(&s1).await.unwrap();
-        let pending = runner.list_pending_sessions().await.unwrap();
+        runner.save_session(&s1).await.expect("测试：异步操作应成功");
+        let pending = runner.list_pending_sessions().await.expect("测试：异步操作应成功");
         assert_eq!(pending.len(), 0); // 全部未过冷却
     }
 
     #[tokio::test]
     async fn test_persistent_runner_list_all_sessions() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let runner = PersistentRunner::new(dir.path(), PersistentRunnerConfig::default());
         let mut s1 = PersistentSession::new("session-1", "input1");
         s1.mark_completed();
         let s2 = PersistentSession::new("session-2", "input2");
-        runner.save_session(&s1).await.unwrap();
-        runner.save_session(&s2).await.unwrap();
-        let all = runner.list_all_sessions().await.unwrap();
+        runner.save_session(&s1).await.expect("测试：异步操作应成功");
+        runner.save_session(&s2).await.expect("测试：异步操作应成功");
+        let all = runner.list_all_sessions().await.expect("测试：异步操作应成功");
         assert_eq!(all.len(), 2);
     }
 
     #[tokio::test]
     async fn test_persistent_runner_cleanup_expired() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let config = PersistentRunnerConfig { max_run_hours: 6, ..Default::default() };
         let runner = PersistentRunner::new(dir.path(), config);
         let mut s1 = PersistentSession::new("session-1", "input1");
@@ -784,35 +786,36 @@ mod tests {
         let mut s2 = PersistentSession::new("session-2", "input2");
         s2.first_attempt_at = current_timestamp() - 7 * 3600; // 已过期
         let s3 = PersistentSession::new("session-3", "input3"); // 保留
-        runner.save_session(&s1).await.unwrap();
-        runner.save_session(&s2).await.unwrap();
-        runner.save_session(&s3).await.unwrap();
-        let cleaned = runner.cleanup_expired().await.unwrap();
+        runner.save_session(&s1).await.expect("测试：异步操作应成功");
+        runner.save_session(&s2).await.expect("测试：异步操作应成功");
+        runner.save_session(&s3).await.expect("测试：异步操作应成功");
+        let cleaned = runner.cleanup_expired().await.expect("测试：异步操作应成功");
         assert_eq!(cleaned, 2);
-        let all = runner.list_all_sessions().await.unwrap();
+        let all = runner.list_all_sessions().await.expect("测试：异步操作应成功");
         assert_eq!(all.len(), 1);
         assert_eq!(all[0].session_id, "session-3");
     }
 
     #[tokio::test]
     async fn test_persistent_runner_schedule_success() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let config =
             PersistentRunnerConfig { enabled: true, cooldown_secs: 0, ..Default::default() };
         let runner = PersistentRunner::new(dir.path(), config);
         let session = PersistentSession::new("session-1", "input1");
-        runner.save_session(&session).await.unwrap();
-        let (succeeded, failed) = runner.schedule(|_session| async { Ok(()) }).await.unwrap();
+        runner.save_session(&session).await.expect("测试：异步操作应成功");
+        let (succeeded, failed) =
+            runner.schedule(|_session| async { Ok(()) }).await.expect("测试：异步操作应成功");
         assert_eq!(succeeded, 1);
         assert_eq!(failed, 0);
         // 验证 session 已标记为 completed
-        let loaded = runner.load_session("session-1").await.unwrap().unwrap();
+        let loaded = runner.load_session("session-1").await.expect("测试：异步操作应成功").unwrap();
         assert_eq!(loaded.status, SessionStatus::Completed);
     }
 
     #[tokio::test]
     async fn test_persistent_runner_schedule_failure_increments_retry() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let config = PersistentRunnerConfig {
             enabled: true,
             cooldown_secs: 0,
@@ -821,13 +824,15 @@ mod tests {
         };
         let runner = PersistentRunner::new(dir.path(), config);
         let session = PersistentSession::new("session-1", "input1");
-        runner.save_session(&session).await.unwrap();
-        let (succeeded, failed) =
-            runner.schedule(|_session| async { Err("test failure".to_string()) }).await.unwrap();
+        runner.save_session(&session).await.expect("测试：异步操作应成功");
+        let (succeeded, failed) = runner
+            .schedule(|_session| async { Err("test failure".to_string()) })
+            .await
+            .expect("测试：异步操作应成功");
         assert_eq!(succeeded, 0);
         assert_eq!(failed, 1);
         // 验证 session retry_count 已增加
-        let loaded = runner.load_session("session-1").await.unwrap().unwrap();
+        let loaded = runner.load_session("session-1").await.expect("测试：异步操作应成功").unwrap();
         assert_eq!(loaded.retry_count, 1);
         assert_eq!(loaded.last_error, Some("test failure".to_string()));
         assert_eq!(loaded.status, SessionStatus::Pending);
@@ -835,7 +840,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_persistent_runner_schedule_failure_marks_failed_after_max_retries() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let config = PersistentRunnerConfig {
             enabled: true,
             cooldown_secs: 0,
@@ -845,10 +850,12 @@ mod tests {
         let runner = PersistentRunner::new(dir.path(), config);
         let mut session = PersistentSession::new("session-1", "input1");
         session.retry_count = 2; // 已达最大重试
-        runner.save_session(&session).await.unwrap();
+        runner.save_session(&session).await.expect("测试：异步操作应成功");
         // list_pending 会过滤掉 max_retries_exceeded,所以 schedule 不会执行它
-        let (succeeded, failed) =
-            runner.schedule(|_session| async { Err("test failure".to_string()) }).await.unwrap();
+        let (succeeded, failed) = runner
+            .schedule(|_session| async { Err("test failure".to_string()) })
+            .await
+            .expect("测试：异步操作应成功");
         assert_eq!(succeeded, 0);
         assert_eq!(failed, 0);
     }

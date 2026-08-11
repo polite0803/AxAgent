@@ -481,7 +481,7 @@ mod cache_break_tests {
         // 实际只读取了 3000 tokens → 异常
         let event = cache.record_cache_read(3000).await;
         assert!(event.is_some());
-        assert!(event.unwrap().is_anomaly);
+        assert!(event.expect("测试应成功").is_anomaly);
     }
 
     #[tokio::test]

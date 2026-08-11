@@ -126,7 +126,7 @@ fn get_cpu_usage() -> f32 {
         s.refresh_cpu_usage();
         Mutex::new(s)
     });
-    let mut sys = sys_mutex.lock().unwrap();
+    let mut sys = sys_mutex.lock().unwrap_or_else(|e| e.into_inner());
     // sysinfo requires two refreshes for accurate CPU usage;
     // the first call returns 0% on fresh System. Use a short sleep + re-refresh.
     sys.refresh_cpu_usage();
@@ -137,7 +137,7 @@ fn get_memory_usage() -> f32 {
     use std::sync::{Mutex, OnceLock};
     static SYS: OnceLock<Mutex<sysinfo::System>> = OnceLock::new();
     let sys_mutex = SYS.get_or_init(|| Mutex::new(sysinfo::System::new_all()));
-    let mut sys = sys_mutex.lock().unwrap();
+    let mut sys = sys_mutex.lock().unwrap_or_else(|e| e.into_inner());
     sys.refresh_memory();
     let total = sys.total_memory();
     if total > 0 {

@@ -234,8 +234,8 @@ mod tests {
     #[test]
     fn test_usage_pattern_serialization() {
         let pattern = make_pattern("p1", "sig1", 0.85);
-        let json = serde_json::to_string(&pattern).unwrap();
-        let de: UsagePattern = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&pattern).expect("测试：JSON序列化应成功");
+        let de: UsagePattern = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(de.pattern_id, "p1");
         assert!((de.success_rate - 0.85).abs() < 0.001);
     }
@@ -248,8 +248,8 @@ mod tests {
             avg_effectiveness: 0.75,
             task_categories: vec!["cat1".to_string()],
         };
-        let json = serde_json::to_string(&gp).unwrap();
-        let de: GlobalPattern = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&gp).expect("测试：JSON序列化应成功");
+        let de: GlobalPattern = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(de.frequency, 5);
     }
 }

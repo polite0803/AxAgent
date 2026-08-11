@@ -396,7 +396,7 @@ mod tests {
         let result = dsg.generate(&plan);
         assert!(result.is_ok());
 
-        let graph = result.unwrap();
+        let graph = result.expect("测试应成功");
         assert_eq!(graph.nodes.len(), 2);
         // task_2 depends on task_1 → should have one edge
         assert!(graph.edges.iter().any(|e| e.source == "task_1" && e.target == "task_2"));

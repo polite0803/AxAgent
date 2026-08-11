@@ -178,10 +178,10 @@ mod tests {
 
     #[tokio::test]
     async fn v113_adds_new_columns_to_entities() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
         // 先跑 v100 建表
-        super::super::v100_consolidated::up(db.clone()).await.unwrap();
-        up(db.clone()).await.unwrap();
+        super::super::v100_consolidated::up(db.clone()).await.expect("测试：异步操作应成功");
+        up(db.clone()).await.expect("测试：异步操作应成功");
 
         // 验证新列存在
         for col in &["source_type", "source_id", "node_type", "external_id"] {
@@ -197,9 +197,9 @@ mod tests {
 
     #[tokio::test]
     async fn v113_adds_new_columns_to_relations() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        super::super::v100_consolidated::up(db.clone()).await.unwrap();
-        up(db.clone()).await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        super::super::v100_consolidated::up(db.clone()).await.expect("测试：异步操作应成功");
+        up(db.clone()).await.expect("测试：异步操作应成功");
 
         for col in &["source_type", "source_id"] {
             let result = db
@@ -214,18 +214,18 @@ mod tests {
 
     #[tokio::test]
     async fn v113_is_idempotent() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        super::super::v100_consolidated::up(db.clone()).await.unwrap();
-        up(db.clone()).await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        super::super::v100_consolidated::up(db.clone()).await.expect("测试：异步操作应成功");
+        up(db.clone()).await.expect("测试：异步操作应成功");
         // 第二次跑：所有列已存在，应跳过不报错
         up(db.clone()).await.expect("v113 must be re-runnable without error");
     }
 
     #[tokio::test]
     async fn v113_can_insert_multi_source_entities() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        super::super::v100_consolidated::up(db.clone()).await.unwrap();
-        up(db.clone()).await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        super::super::v100_consolidated::up(db.clone()).await.expect("测试：异步操作应成功");
+        up(db.clone()).await.expect("测试：异步操作应成功");
 
         // 插入不同来源的实体
         let entities = vec![
@@ -258,7 +258,7 @@ mod tests {
                 id, kb_id, name, source_type, ext_id_str, node_type, ext_id_str
             ))
             .await
-            .unwrap();
+            .expect("测试应成功");
         }
 
         // 验证可按 source_type 查询
@@ -269,9 +269,9 @@ mod tests {
                     .to_string(),
             ))
             .await
-            .unwrap()
+            .expect("测试应成功")
             .expect("row should exist");
-        let cnt: i64 = row.try_get_by("cnt").unwrap();
+        let cnt: i64 = row.try_get_by("cnt").expect("测试应成功");
         assert_eq!(cnt, 1, "should find 1 wiki entity");
 
         let row = db
@@ -281,9 +281,9 @@ mod tests {
                     .to_string(),
             ))
             .await
-            .unwrap()
+            .expect("测试应成功")
             .expect("row should exist");
-        let cnt: i64 = row.try_get_by("cnt").unwrap();
+        let cnt: i64 = row.try_get_by("cnt").expect("测试应成功");
         assert_eq!(cnt, 1, "should find 1 memory item entity");
     }
 }

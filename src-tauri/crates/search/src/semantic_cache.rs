@@ -782,7 +782,7 @@ mod tests {
 
         let result = cache.search(&embedding);
         assert!(result.is_some());
-        assert_eq!(result.unwrap().query_text, "What is Rust?");
+        assert_eq!(result.expect("测试应成功").query_text, "What is Rust?");
     }
 
     #[test]
@@ -930,16 +930,16 @@ mod tests {
             3600,
         );
 
-        let temp_file = NamedTempFile::new().unwrap();
-        cache.save_to_disk(temp_file.path()).unwrap();
+        let temp_file = NamedTempFile::new().expect("测试：new 应成功");
+        cache.save_to_disk(temp_file.path()).expect("测试应成功");
 
         let mut cache2 = SemanticCache::new(0.95, 100);
-        cache2.load_from_disk(temp_file.path()).unwrap();
+        cache2.load_from_disk(temp_file.path()).expect("测试应成功");
 
         assert_eq!(cache2.entries.len(), 1);
         let result = cache2.search(&embedding);
         assert!(result.is_some());
-        assert_eq!(result.unwrap().query_text, "test query");
+        assert_eq!(result.expect("测试应成功").query_text, "test query");
     }
 
     #[test]
@@ -1000,7 +1000,7 @@ mod tests {
         cache.search(&embedding);
         cache.search(&embedding);
 
-        let entry = cache.entries.values().next().unwrap();
+        let entry = cache.entries.values().next().expect("测试：迭代器应有下一个");
         assert_eq!(entry.access_count, 3);
     }
 
@@ -1049,7 +1049,7 @@ mod tests {
 
         let result = cache.search_by_text("how to read a file in Rust");
         assert!(result.is_some());
-        assert_eq!(result.unwrap().query_text, "how to read a file in Rust");
+        assert_eq!(result.expect("测试应成功").query_text, "how to read a file in Rust");
     }
 
     #[test]
@@ -1215,6 +1215,6 @@ mod tests {
 
         let result = cache.search(&emb);
         assert!(result.is_some());
-        assert_eq!(result.unwrap().query_text, "q1");
+        assert_eq!(result.expect("测试应成功").query_text, "q1");
     }
 }

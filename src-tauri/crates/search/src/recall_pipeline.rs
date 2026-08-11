@@ -295,23 +295,25 @@ mod tests {
     use rusqlite::Connection;
 
     fn setup() -> (FileIndex, AstIndex) {
-        let conn = Connection::open_in_memory().unwrap();
-        let fi = FileIndex::new(conn).unwrap();
-        let ai_conn = Connection::open_in_memory().unwrap();
-        let ai = AstIndex::new(ai_conn).unwrap();
+        let conn = Connection::open_in_memory().expect("测试：打开内存数据库应成功");
+        let fi = FileIndex::new(conn).expect("测试：new 应成功");
+        let ai_conn = Connection::open_in_memory().expect("测试：打开内存数据库应成功");
+        let ai = AstIndex::new(ai_conn).expect("测试：new 应成功");
         (fi, ai)
     }
 
     #[test]
     fn test_pipeline_l1_l2_only() {
         let (fi, ai) = setup();
-        fi.upsert("/src/main.rs", "rs", 1024, 1000).unwrap();
-        fi.upsert("/src/lib.rs", "rs", 2048, 2000).unwrap();
-        fi.upsert("/app.ts", "ts", 512, 500).unwrap();
+        fi.upsert("/src/main.rs", "rs", 1024, 1000).expect("测试：upsert 应成功");
+        fi.upsert("/src/lib.rs", "rs", 2048, 2000).expect("测试：upsert 应成功");
+        fi.upsert("/app.ts", "ts", 512, 500).expect("测试：upsert 应成功");
 
-        ai.index_file("/src/main.rs", "fn calculate() -> u32 { 42 }\nfn render() {}").unwrap();
-        ai.index_file("/src/lib.rs", "pub fn add(a: i32, b: i32) -> i32 { a + b }").unwrap();
-        ai.index_file("/app.ts", "function hello() { console.log('hi'); }").unwrap();
+        ai.index_file("/src/main.rs", "fn calculate() -> u32 { 42 }\nfn render() {}")
+            .expect("测试应成功");
+        ai.index_file("/src/lib.rs", "pub fn add(a: i32, b: i32) -> i32 { a + b }")
+            .expect("测试应成功");
+        ai.index_file("/app.ts", "function hello() { console.log('hi'); }").expect("测试应成功");
 
         let pipeline = RecallPipeline::new(
             &fi,
@@ -319,7 +321,7 @@ mod tests {
             PipelineConfig { l3_enabled: false, ..Default::default() },
         );
 
-        let results = pipeline.execute("calculate", None).unwrap();
+        let results = pipeline.execute("calculate", None).expect("测试：execute 应成功");
         assert!(!results.is_empty());
         assert!(results.iter().any(|r| r.file_path.contains("main.rs")));
     }
@@ -327,11 +329,12 @@ mod tests {
     #[test]
     fn test_pipeline_empty_query() {
         let (fi, ai) = setup();
-        fi.upsert("/src/main.rs", "rs", 1024, 1000).unwrap();
-        ai.index_file("/src/main.rs", "fn main() {}").unwrap();
+        fi.upsert("/src/main.rs", "rs", 1024, 1000).expect("测试：upsert 应成功");
+        ai.index_file("/src/main.rs", "fn main() {}").expect("测试应成功");
 
         let pipeline = RecallPipeline::new(&fi, &ai, PipelineConfig::default());
-        let results = pipeline.execute("nonexistent_function_xyz", None).unwrap();
+        let results =
+            pipeline.execute("nonexistent_function_xyz", None).expect("测试：execute 应成功");
         assert!(results.is_empty());
     }
 }

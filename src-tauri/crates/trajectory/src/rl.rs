@@ -686,8 +686,10 @@ mod tests {
         let rewards = engine.compute_rewards(&mut trajectory).await;
 
         assert!(!rewards.is_empty());
-        let final_reward =
-            rewards.iter().find(|r| r.reward_type == RewardType::TaskCompletion).unwrap();
+        let final_reward = rewards
+            .iter()
+            .find(|r| r.reward_type == RewardType::TaskCompletion)
+            .expect("测试：查找应成功");
         assert!(final_reward.value > 0.0);
     }
 
@@ -700,8 +702,10 @@ mod tests {
         let mut trajectory = create_test_trajectory(TrajectoryOutcome::Failure);
         let rewards = engine.compute_rewards(&mut trajectory).await;
 
-        let final_reward =
-            rewards.iter().find(|r| r.reward_type == RewardType::TaskCompletion).unwrap();
+        let final_reward = rewards
+            .iter()
+            .find(|r| r.reward_type == RewardType::TaskCompletion)
+            .expect("测试：查找应成功");
         assert!(final_reward.value < 0.0);
     }
 

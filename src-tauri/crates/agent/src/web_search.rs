@@ -634,7 +634,7 @@ mod tests {
         let query = SearchQuery::new("rust programming".to_string()).with_max_results(5);
         let results = provider.parse_ddg_html(html, &query);
         assert!(results.is_ok());
-        let results = results.unwrap();
+        let results = results.expect("测试应成功");
         assert_eq!(results.len(), 2);
         assert_eq!(results[0].title, "Rust Programming");
         assert_eq!(results[0].url, "https://example.com/rust");
@@ -657,7 +657,7 @@ mod tests {
         let query = SearchQuery::new("test".to_string()).with_max_results(2);
         let results = provider.parse_ddg_html(html, &query);
         assert!(results.is_ok());
-        assert_eq!(results.unwrap().len(), 2);
+        assert_eq!(results.expect("测试应成功").len(), 2);
     }
 
     #[test]
@@ -674,7 +674,7 @@ mod tests {
         let query = SearchQuery::new("test".to_string()).with_max_results(10);
         let results = provider.parse_ddg_html(html, &query);
         assert!(results.is_ok());
-        let results = results.unwrap();
+        let results = results.expect("测试应成功");
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].url, "https://example.com");
     }
@@ -690,7 +690,7 @@ mod tests {
         let query = SearchQuery::new("test".to_string()).with_max_results(10);
         let results = provider.parse_ddg_html(html, &query);
         assert!(results.is_ok());
-        let results = results.unwrap();
+        let results = results.expect("测试应成功");
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].snippet, "");
     }
@@ -766,7 +766,7 @@ mod tests {
         let provider = WebSearchProvider::new(Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let rate_limit = provider.rate_limit();
         assert!(rate_limit.is_some());
-        let duration = rate_limit.unwrap();
+        let duration = rate_limit.expect("测试应成功");
         assert_eq!(duration.as_secs(), 60);
     }
 
@@ -785,7 +785,7 @@ mod tests {
             WebSearchProvider::with_config(config, Arc::new(crate::noop_kit::NoopHtmlCleaner));
         let rate_limit = provider.rate_limit();
         assert!(rate_limit.is_some());
-        assert_eq!(rate_limit.unwrap().as_secs(), 30);
+        assert_eq!(rate_limit.expect("测试应成功").as_secs(), 30);
     }
 
     #[test]
@@ -856,8 +856,9 @@ mod tests {
     #[test]
     fn test_web_search_config_serialization() {
         let config = WebSearchConfig::default();
-        let json = serde_json::to_string(&config).unwrap();
-        let deserialized: WebSearchConfig = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&config).expect("测试：JSON序列化应成功");
+        let deserialized: WebSearchConfig =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.timeout_secs, config.timeout_secs);
         assert_eq!(deserialized.rate_limit_per_minute, config.rate_limit_per_minute);
     }

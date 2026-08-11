@@ -1261,7 +1261,7 @@ mod tests {
                 None,
             )
             .await
-            .unwrap();
+            .expect("测试应成功");
 
         assert_eq!(operation.status, ApprovalStatus::Pending);
 
@@ -1270,8 +1270,8 @@ mod tests {
         assert_eq!(pending.len(), 1);
 
         // 批准
-        manager.approve_operation(&operation.id).await.unwrap();
-        let approved = manager.get_operation(&operation.id).await.unwrap();
+        manager.approve_operation(&operation.id).await.expect("测试：异步操作应成功");
+        let approved = manager.get_operation(&operation.id).await.expect("测试：异步操作应成功");
         assert_eq!(approved.status, ApprovalStatus::Approved);
         assert!(approved.approved_at.is_some());
 
@@ -1296,11 +1296,11 @@ mod tests {
                 None,
             )
             .await
-            .unwrap();
+            .expect("测试应成功");
 
-        manager.reject_operation(&operation.id, "Not needed").await.unwrap();
+        manager.reject_operation(&operation.id, "Not needed").await.expect("测试：异步操作应成功");
 
-        let op = manager.get_operation(&operation.id).await.unwrap();
+        let op = manager.get_operation(&operation.id).await.expect("测试：异步操作应成功");
         assert_eq!(op.status, ApprovalStatus::Rejected);
         assert!(op.rejected_at.is_some());
         assert_eq!(op.rejection_reason, Some("Not needed".to_string()));
@@ -1400,7 +1400,7 @@ mod tests {
                 None,
             )
             .await
-            .unwrap();
+            .expect("测试应成功");
 
         // 清理过期（操作创建于现在，不应被清理）
         manager.cleanup_expired(1).await;

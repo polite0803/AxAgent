@@ -505,8 +505,9 @@ mod tests {
     #[test]
     fn test_rule_based_review() {
         let decomposer = RuleBasedDecomposer::new();
-        let plan =
-            decomposer.decompose("Review the API design", OrchestrationStrategy::Ordered).unwrap();
+        let plan = decomposer
+            .decompose("Review the API design", OrchestrationStrategy::Ordered)
+            .expect("测试：decompose 应成功");
         assert_eq!(plan.sub_tasks.len(), 3);
         assert!(plan.sub_tasks.iter().any(|t| t.id == "review"));
     }
@@ -516,7 +517,7 @@ mod tests {
         let decomposer = RuleBasedDecomposer::new();
         let plan = decomposer
             .decompose("Refactor database layer", OrchestrationStrategy::Ordered)
-            .unwrap();
+            .expect("测试应成功");
         assert_eq!(plan.sub_tasks.len(), 4);
         assert!(plan.sub_tasks.iter().any(|t| t.id == "verify"));
     }
@@ -524,8 +525,9 @@ mod tests {
     #[test]
     fn test_rule_based_design() {
         let decomposer = RuleBasedDecomposer::new();
-        let plan =
-            decomposer.decompose("Design new architecture", OrchestrationStrategy::Debate).unwrap();
+        let plan = decomposer
+            .decompose("Design new architecture", OrchestrationStrategy::Debate)
+            .expect("测试：decompose 应成功");
         assert_eq!(plan.sub_tasks.len(), 3);
         assert!(plan.sub_tasks.iter().any(|t| t.id == "design"));
     }
@@ -533,8 +535,9 @@ mod tests {
     #[test]
     fn test_rule_based_default() {
         let decomposer = RuleBasedDecomposer::new();
-        let plan =
-            decomposer.decompose("Fix the login bug", OrchestrationStrategy::Ordered).unwrap();
+        let plan = decomposer
+            .decompose("Fix the login bug", OrchestrationStrategy::Ordered)
+            .expect("测试：decompose 应成功");
         assert_eq!(plan.sub_tasks.len(), 3);
     }
 

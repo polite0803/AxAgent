@@ -518,7 +518,7 @@ mod tests {
             .record_change(EntityType::Conversation, "conv-1", ChangeOperation::Create, None)
             .await;
 
-        let result = engine.incremental_sync("test-device").await.unwrap();
+        let result = engine.incremental_sync("test-device").await.expect("测试：异步操作应成功");
         assert!(result.success);
         assert_eq!(result.files_synced, 1);
     }
@@ -543,7 +543,7 @@ mod tests {
             is_synced: false,
         }];
 
-        let conflicts = engine.push_changes(remote_changes).await.unwrap();
+        let conflicts = engine.push_changes(remote_changes).await.expect("测试：异步操作应成功");
         assert!(conflicts.is_empty()); // 不同实体，无冲突
     }
 
@@ -551,7 +551,7 @@ mod tests {
     async fn test_get_sync_status() {
         let engine = create_test_engine().await;
 
-        let status = engine.get_sync_status("test-device").await.unwrap();
+        let status = engine.get_sync_status("test-device").await.expect("测试：异步操作应成功");
         assert_eq!(status.local_device_id, "test-device");
     }
 }

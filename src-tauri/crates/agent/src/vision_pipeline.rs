@@ -251,8 +251,9 @@ mod tests {
             bounding_box: Some(BoundingBox { x: 10.0, y: 20.0, width: 100.0, height: 40.0 }),
             actionable: true,
         };
-        let json = serde_json::to_string(&element).unwrap();
-        let deserialized: UiElement = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&element).expect("测试：JSON序列化应成功");
+        let deserialized: UiElement =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.element_type, "button");
         assert_eq!(deserialized.label, Some("Submit".to_string()));
         assert!(deserialized.actionable);
@@ -261,8 +262,9 @@ mod tests {
     #[test]
     fn test_bounding_box_serialization() {
         let bbox = BoundingBox { x: 1.0, y: 2.0, width: 100.0, height: 50.0 };
-        let json = serde_json::to_string(&bbox).unwrap();
-        let deserialized: BoundingBox = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&bbox).expect("测试：JSON序列化应成功");
+        let deserialized: BoundingBox =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert!((deserialized.x - 1.0).abs() < f32::EPSILON);
         assert!((deserialized.width - 100.0).abs() < f32::EPSILON);
     }
@@ -277,8 +279,9 @@ mod tests {
             confidence: 0.95,
             model: "gpt-4o".to_string(),
         };
-        let json = serde_json::to_string(&result).unwrap();
-        let deserialized: VisionResult = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&result).expect("测试：JSON序列化应成功");
+        let deserialized: VisionResult =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert!(matches!(deserialized.task, VisionTask::Ocr));
         assert_eq!(deserialized.model, "gpt-4o");
         assert!(deserialized.text_content.is_some());
@@ -312,8 +315,9 @@ mod tests {
     #[test]
     fn test_vision_task_serialization() {
         let task = VisionTask::ChartAnalysis;
-        let json = serde_json::to_string(&task).unwrap();
-        let deserialized: VisionTask = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&task).expect("测试：JSON序列化应成功");
+        let deserialized: VisionTask =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert!(matches!(deserialized, VisionTask::ChartAnalysis));
     }
 }

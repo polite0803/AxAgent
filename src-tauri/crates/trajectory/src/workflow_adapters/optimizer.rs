@@ -478,7 +478,7 @@ mod tests {
         let o = WorkflowOptimizerImpl::new();
         let template = make_empty_template();
         let reflection = make_reflection(3, make_metadata());
-        let suggestions = o.suggest(&template, &reflection).await.unwrap();
+        let suggestions = o.suggest(&template, &reflection).await.expect("测试：异步操作应成功");
         assert!(!suggestions.is_empty(), "expected suggestions from metadata");
         // 低质量分下应该有 High 优先级建议
         assert!(suggestions.iter().any(|s| matches!(
@@ -493,7 +493,7 @@ mod tests {
         let template = make_empty_template();
         let reflection =
             Reflection::new("exec-1".to_string()).with_quality(5, "no meta".to_string());
-        let suggestions = o.suggest(&template, &reflection).await.unwrap();
+        let suggestions = o.suggest(&template, &reflection).await.expect("测试：异步操作应成功");
         assert!(suggestions.is_empty());
     }
 
@@ -515,7 +515,7 @@ mod tests {
             confidence: 0.8,
             estimated_impact: Some(0.7),
         };
-        let impact = o.estimate_impact(&template, &suggestion).await.unwrap();
+        let impact = o.estimate_impact(&template, &suggestion).await.expect("测试：异步操作应成功");
         assert!((impact - 0.7).abs() < 0.01);
     }
 
@@ -537,7 +537,7 @@ mod tests {
             confidence: 0.5,
             estimated_impact: None,
         };
-        let impact = o.estimate_impact(&template, &suggestion).await.unwrap();
+        let impact = o.estimate_impact(&template, &suggestion).await.expect("测试：异步操作应成功");
         // ErrorHandling(0.6) + Critical(0.2) + confidence*0.1(0.05) = 0.85
         assert!((impact - 0.85).abs() < 0.01, "got impact {}", impact);
     }
@@ -557,8 +557,10 @@ mod tests {
             confidence: 0.9,
             estimated_impact: None,
         };
-        let new_template =
-            o.apply_suggestions(&template, std::slice::from_ref(&suggestion)).await.unwrap();
+        let new_template = o
+            .apply_suggestions(&template, std::slice::from_ref(&suggestion))
+            .await
+            .expect("测试：异步操作应成功");
         // 空模板移除节点应保持空(不 panic)
         assert!(new_template.nodes.is_empty());
     }

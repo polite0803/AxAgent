@@ -470,8 +470,8 @@ mod tests {
             sync: false,
         };
 
-        let json = serde_json::to_string(&payload).unwrap();
-        let parsed: WebhookPayload = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&payload).expect("测试：JSON序列化应成功");
+        let parsed: WebhookPayload = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(parsed.message.content, "Hello world");
         assert_eq!(parsed.platform, Some("slack".to_string()));
         assert!(!parsed.sync);

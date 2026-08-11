@@ -903,7 +903,7 @@ mod tests {
         assert!(reflection.quality_score >= 1 && reflection.quality_score <= 10);
         assert!(!reflection.overall_summary.is_empty());
         assert!(reflection.quality_metrics.is_some());
-        let metrics = reflection.quality_metrics.unwrap();
+        let metrics = reflection.quality_metrics.expect("测试应成功");
         assert!(metrics.overall_weighted_score >= 0.0 && metrics.overall_weighted_score <= 10.0);
         assert_eq!(metrics.task_success_score, 10.0);
     }
@@ -926,7 +926,7 @@ mod tests {
         let reflection = reflector.reflect(&record).await;
 
         assert!(reflection.quality_score < 5);
-        let metrics = reflection.quality_metrics.unwrap();
+        let metrics = reflection.quality_metrics.expect("测试应成功");
         assert_eq!(metrics.task_success_score, 0.0);
         assert!(metrics.tool_efficiency_score < 7.0);
         assert!(metrics.error_recovery_score < 1.0);
@@ -994,7 +994,7 @@ mod tests {
             .with_iterations(8);
 
         let reflection = reflector.reflect(&record).await;
-        let metrics = reflection.quality_metrics.unwrap();
+        let metrics = reflection.quality_metrics.expect("测试应成功");
         assert_eq!(metrics.error_recovery_score, 7.0);
     }
 }

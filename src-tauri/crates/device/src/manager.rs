@@ -315,7 +315,7 @@ mod tests {
             "1.0.0".to_string(),
         );
 
-        let registered = manager.register_device(device).await.unwrap();
+        let registered = manager.register_device(device).await.expect("测试：异步操作应成功");
         assert!(!registered.device_id.is_empty());
         assert_eq!(registered.name, "Test Device");
     }
@@ -325,7 +325,7 @@ mod tests {
         let store = Arc::new(DeviceStore::new());
         let manager = DeviceManagerImpl::new(store);
 
-        let code = manager.generate_pairing_code().await.unwrap();
+        let code = manager.generate_pairing_code().await.expect("测试：异步操作应成功");
         assert_eq!(code.code.len(), 6);
         assert!(code.code.chars().all(|c| c.is_ascii_digit()));
     }
@@ -341,7 +341,7 @@ mod tests {
             "Windows".to_string(),
             "1.0.0".to_string(),
         );
-        manager.register_device(device1).await.unwrap();
+        manager.register_device(device1).await.expect("测试：异步操作应成功");
 
         let device2 = DeviceManagerImpl::create_local_device(
             "Device 2".to_string(),
@@ -349,9 +349,9 @@ mod tests {
             "macOS".to_string(),
             "1.0.0".to_string(),
         );
-        manager.register_device(device2).await.unwrap();
+        manager.register_device(device2).await.expect("测试：异步操作应成功");
 
-        let devices = manager.list_devices().await.unwrap();
+        let devices = manager.list_devices().await.expect("测试：异步操作应成功");
         assert_eq!(devices.len(), 2);
     }
 

@@ -66,7 +66,7 @@ pub async fn rate_limit_middleware(request: Request, next: Next) -> Response {
 
     // RwLockReadGuard 是 !Send，不能跨 await 持有，放入块中提前释放。
     let is_limited = {
-        let limiter = RATE_LIMITER.read().expect("rate limiter RwLock poisoned");
+        let limiter = RATE_LIMITER.read().unwrap_or_else(|e| e.into_inner());
         limiter.check_key(&key).is_err()
     };
     if is_limited {

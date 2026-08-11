@@ -256,11 +256,14 @@ mod tests {
 
     #[test]
     fn test_template_sections_order() {
-        let purpose_pos = DEFAULT_PURPOSE_TEMPLATE.find("## Purpose").unwrap();
-        let questions_pos = DEFAULT_PURPOSE_TEMPLATE.find("## Key Questions").unwrap();
-        let scope_pos = DEFAULT_PURPOSE_TEMPLATE.find("## Research Scope").unwrap();
-        let thesis_pos = DEFAULT_PURPOSE_TEMPLATE.find("## Thesis").unwrap();
-        let notes_pos = DEFAULT_PURPOSE_TEMPLATE.find("## Evolving Notes").unwrap();
+        let purpose_pos = DEFAULT_PURPOSE_TEMPLATE.find("## Purpose").expect("测试：find 应成功");
+        let questions_pos =
+            DEFAULT_PURPOSE_TEMPLATE.find("## Key Questions").expect("测试：find 应成功");
+        let scope_pos =
+            DEFAULT_PURPOSE_TEMPLATE.find("## Research Scope").expect("测试：find 应成功");
+        let thesis_pos = DEFAULT_PURPOSE_TEMPLATE.find("## Thesis").expect("测试：find 应成功");
+        let notes_pos =
+            DEFAULT_PURPOSE_TEMPLATE.find("## Evolving Notes").expect("测试：find 应成功");
 
         assert!(purpose_pos < questions_pos);
         assert!(questions_pos < scope_pos);

@@ -16,7 +16,10 @@ mod tests {
     #[test]
     fn test_span_event_with_attribute() {
         let event = SpanEvent::new("test_event").with_attribute("key", serde_json::json!("value"));
-        assert_eq!(event.attributes.get("key").unwrap(), &serde_json::json!("value"));
+        assert_eq!(
+            event.attributes.get("key").expect("测试：键应存在"),
+            &serde_json::json!("value")
+        );
     }
 
     #[test]
@@ -32,6 +35,6 @@ mod tests {
         let error =
             SpanError::new("TypeError", "Something went wrong").with_stack_trace("at line 42");
         assert!(error.stack_trace.is_some());
-        assert_eq!(error.stack_trace.unwrap(), "at line 42");
+        assert_eq!(error.stack_trace.expect("测试应成功"), "at line 42");
     }
 }

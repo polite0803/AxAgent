@@ -825,7 +825,12 @@ mod tests {
         let result = response.result.expect("tools/call result");
         assert_eq!(result["isError"], false);
         assert_eq!(result["content"][0]["type"], "text");
-        assert!(result["content"][0]["text"].as_str().unwrap().starts_with("called echo"));
+        assert!(
+            result["content"][0]["text"]
+                .as_str()
+                .expect("测试：字符串转换应成功")
+                .starts_with("called echo")
+        );
     }
 
     #[tokio::test]

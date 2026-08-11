@@ -86,11 +86,12 @@ fn bench_json_deserialize_tool_input(c: &mut Criterion) {
             "include_metadata": true
         }
     });
-    let raw = serde_json::to_string(&payload).unwrap();
+    let raw = serde_json::to_string(&payload).expect("Bench：序列化 payload 应成功");
 
     c.bench_function("json_deserialize_tool_input", |b| {
         b.iter(|| {
-            let v: serde_json::Value = serde_json::from_str(std::hint::black_box(&raw)).unwrap();
+            let v: serde_json::Value =
+                serde_json::from_str(std::hint::black_box(&raw)).expect("Bench：反序列化应成功");
             std::hint::black_box(v);
         })
     });
@@ -110,7 +111,8 @@ fn bench_json_serialize_tool_output(c: &mut Criterion) {
 
     c.bench_function("json_serialize_tool_output", |b| {
         b.iter(|| {
-            let s = serde_json::to_string(std::hint::black_box(&output)).unwrap();
+            let s = serde_json::to_string(std::hint::black_box(&output))
+                .expect("Bench：序列化 output 应成功");
             std::hint::black_box(s);
         })
     });

@@ -111,7 +111,7 @@ impl SkillPackageParser {
 
         for line in content.lines() {
             if let Some(caps) = from_re.captures(line) {
-                let module = caps.get(1).unwrap().as_str();
+                let module = caps.get(1).expect("键不存在").as_str();
                 if !module.starts_with('.') {
                     refs.push(FileReference {
                         from_file: file_path.to_string(),
@@ -121,7 +121,7 @@ impl SkillPackageParser {
                     });
                 }
             } else if let Some(caps) = import_re.captures(line) {
-                let module = caps.get(1).unwrap().as_str();
+                let module = caps.get(1).expect("键不存在").as_str();
                 refs.push(FileReference {
                     from_file: file_path.to_string(),
                     to_file: module.to_string(),
@@ -142,7 +142,7 @@ impl SkillPackageParser {
 
         for line in content.lines() {
             if let Some(caps) = require_re.captures(line) {
-                let module = caps.get(1).unwrap().as_str();
+                let module = caps.get(1).expect("键不存在").as_str();
                 if !module.starts_with('.') && !module.starts_with("node:") {
                     refs.push(FileReference {
                         from_file: file_path.to_string(),
@@ -153,7 +153,7 @@ impl SkillPackageParser {
                 }
             }
             if let Some(caps) = import_re.captures(line) {
-                let module = caps.get(1).unwrap().as_str();
+                let module = caps.get(1).expect("键不存在").as_str();
                 if !module.starts_with('.') && !module.starts_with("node:") {
                     refs.push(FileReference {
                         from_file: file_path.to_string(),
@@ -170,12 +170,13 @@ impl SkillPackageParser {
 
     fn extract_markdown_refs(file_path: &str, content: &str) -> Vec<FileReference> {
         let mut refs = Vec::new();
-        let file_link_re = Regex::new(r#"\[([^\]]+)\]\(([^\)]+)\)"#).unwrap();
-        let code_ref_re = Regex::new(r#"```(\w+)\s+([^\s]+)"#).unwrap();
+        let file_link_re =
+            Regex::new(r#"\[([^\]]+)\]\(([^\)]+)\)"#).expect("正则表达式：Markdown 链接模式");
+        let code_ref_re = Regex::new(r#"```(\w+)\s+([^\s]+)"#).expect("正则表达式：代码引用模式");
 
         for cap in file_link_re.captures_iter(content) {
-            let link_text = cap.get(1).unwrap().as_str();
-            let link_target = cap.get(2).unwrap().as_str();
+            let link_text = cap.get(1).expect("键不存在").as_str();
+            let link_target = cap.get(2).expect("键不存在").as_str();
 
             if !link_target.starts_with("http") && !link_target.starts_with('#') {
                 refs.push(FileReference {
@@ -197,8 +198,8 @@ impl SkillPackageParser {
         }
 
         for cap in code_ref_re.captures_iter(content) {
-            let lang = cap.get(1).unwrap().as_str();
-            let ref_name = cap.get(2).unwrap().as_str();
+            let lang = cap.get(1).expect("键不存在").as_str();
+            let ref_name = cap.get(2).expect("键不存在").as_str();
 
             if lang == "python" || lang == "javascript" || lang == "typescript" {
                 refs.push(FileReference {
@@ -215,7 +216,8 @@ impl SkillPackageParser {
 
     fn extract_config_refs(file_path: &str, content: &str) -> Vec<FileReference> {
         let mut refs = Vec::new();
-        let ref_re = Regex::new(r#"\$\{(\w+)\}|ref:\s*([^\s]+)"#).unwrap();
+        let ref_re =
+            Regex::new(r#"\$\{(\w+)\}|ref:\s*([^\s]+)"#).expect("正则表达式：配置引用模式");
 
         for cap in ref_re.captures_iter(content) {
             let reference = cap.get(1).or(cap.get(2)).map(|m| m.as_str());

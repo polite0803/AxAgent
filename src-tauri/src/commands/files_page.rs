@@ -577,8 +577,10 @@ mod tests {
     }
 
     fn make_temp_app_data_dir() -> std::path::PathBuf {
-        let unique =
-            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("测试应成功")
+            .as_nanos();
         std::env::temp_dir().join(format!(
             "axagent-files-page-tests-{}-{}",
             std::process::id(),
@@ -650,7 +652,7 @@ mod tests {
     #[test]
     fn test_existing_file_rows_are_not_flagged_missing() {
         // current_exe() always exists on the test runner machine
-        let existing = std::env::current_exe().unwrap().to_string_lossy().to_string();
+        let existing = std::env::current_exe().expect("测试应成功").to_string_lossy().to_string();
         let files = vec![make_stored_file("1", "app.bin", "application/octet-stream", &existing)];
         let entries = build_file_entries(&files);
         assert_eq!(entries.len(), 1);
@@ -706,7 +708,7 @@ mod tests {
 
     #[test]
     fn test_open_succeeds_for_existing_path() {
-        let existing = std::env::current_exe().unwrap().to_string_lossy().to_string();
+        let existing = std::env::current_exe().expect("测试应成功").to_string_lossy().to_string();
         assert!(validate_path_for_open(&existing).is_ok());
     }
 
@@ -733,8 +735,9 @@ mod tests {
         let dir = axagent_storage::storage_paths::documents_root();
         let _ = std::fs::create_dir_all(&dir);
         let test_file = dir.join("__axagent_test_open_attachment__.txt");
-        std::fs::write(&test_file, b"content").unwrap();
-        let validated = open_attachment_file_validate(test_file.to_str().unwrap());
+        std::fs::write(&test_file, b"content").expect("测试：写入文件应成功");
+        let validated =
+            open_attachment_file_validate(test_file.to_str().expect("测试：路径转字符串应成功"));
         let _ = std::fs::remove_file(&test_file);
         assert!(validated.is_ok(), "expected Ok, got {:?}", validated);
     }
@@ -743,14 +746,14 @@ mod tests {
 
     #[test]
     fn test_cleanup_parse_attachment_id() {
-        let (kind, id) = parse_entry_id("attachment::abc123").unwrap();
+        let (kind, id) = parse_entry_id("attachment::abc123").expect("测试应成功");
         assert_eq!(kind, "attachment");
         assert_eq!(id, "abc123");
     }
 
     #[test]
     fn test_cleanup_parse_backup_manifest_id() {
-        let (kind, id) = parse_entry_id("backup_manifest::xyz789").unwrap();
+        let (kind, id) = parse_entry_id("backup_manifest::xyz789").expect("测试应成功");
         assert_eq!(kind, "backup_manifest");
         assert_eq!(id, "xyz789");
     }
@@ -767,12 +770,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_attachment_cleanup_removes_disk_file_and_db_record() {
-        let db = axagent_dao::db::create_test_pool().await.unwrap().conn;
+        let db = axagent_dao::db::create_test_pool().await.expect("测试：异步操作应成功").conn;
         let app_data_dir = make_temp_app_data_dir();
-        std::fs::create_dir_all(&app_data_dir).unwrap();
+        std::fs::create_dir_all(&app_data_dir).expect("测试：创建目录应成功");
 
         let file_store = axagent_storage::file_store::FileStore::with_root(app_data_dir.clone());
-        let saved = file_store.save_file(b"hello world", "photo.png", "image/png").unwrap();
+        let saved = file_store
+            .save_file(b"hello world", "photo.png", "image/png")
+            .expect("测试：save_file 应成功");
         let physical_path = app_data_dir.join(&saved.storage_path);
         assert!(physical_path.exists(), "test fixture file must exist before cleanup");
 
@@ -787,7 +792,7 @@ mod tests {
             None,
         )
         .await
-        .unwrap();
+        .expect("测试应成功");
 
         let cleanup_result =
             file_cleanup::delete_attachment_reference(&db, &file_store, "file-1").await;
@@ -809,12 +814,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_attachment_cleanup_preserves_shared_file_until_last_reference() {
-        let db = axagent_dao::db::create_test_pool().await.unwrap().conn;
+        let db = axagent_dao::db::create_test_pool().await.expect("测试：异步操作应成功").conn;
         let app_data_dir = make_temp_app_data_dir();
-        std::fs::create_dir_all(&app_data_dir).unwrap();
+        std::fs::create_dir_all(&app_data_dir).expect("测试：创建目录应成功");
 
         let file_store = axagent_storage::file_store::FileStore::with_root(app_data_dir.clone());
-        let saved = file_store.save_file(b"same-bytes", "shared.png", "image/png").unwrap();
+        let saved = file_store
+            .save_file(b"same-bytes", "shared.png", "image/png")
+            .expect("测试：save_file 应成功");
         let physical_path = app_data_dir.join(&saved.storage_path);
         assert!(physical_path.exists(), "shared fixture file must exist before cleanup");
 
@@ -830,7 +837,7 @@ mod tests {
                 None,
             )
             .await
-            .unwrap();
+            .expect("测试应成功");
         }
 
         let cleanup_result =
@@ -942,7 +949,7 @@ mod tests {
 
     #[test]
     fn test_image_entry_has_preview_url_when_file_exists() {
-        let existing = std::env::current_exe().unwrap().to_string_lossy().to_string();
+        let existing = std::env::current_exe().expect("测试应成功").to_string_lossy().to_string();
         let files = vec![make_stored_file("1", "photo.jpg", "image/jpeg", &existing)];
         let entries = build_image_entries(&files);
         assert_eq!(entries.len(), 1);
@@ -998,12 +1005,13 @@ mod tests {
 
         // Use a temp dir so we don't pollute the real ~/Documents/axagent
         let tmp = make_temp_app_data_dir();
-        std::fs::create_dir_all(&tmp).unwrap();
+        std::fs::create_dir_all(&tmp).expect("测试：创建目录应成功");
 
         // Save via FileStore directly (mirrors command logic without the Tauri runtime)
         let store = axagent_storage::file_store::FileStore::with_root(tmp.clone());
-        let decoded = base64::engine::general_purpose::STANDARD.decode(&b64).unwrap();
-        let saved = store.save_file(&decoded, "avatar", "image/png").unwrap();
+        let decoded = base64::engine::general_purpose::STANDARD.decode(&b64).expect("测试应成功");
+        let saved =
+            store.save_file(&decoded, "avatar", "image/png").expect("测试：save_file 应成功");
 
         assert!(
             saved.storage_path.starts_with("images/"),

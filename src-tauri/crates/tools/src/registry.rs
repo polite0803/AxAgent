@@ -1606,7 +1606,7 @@ mod tests {
         assert!(registry.contains("echo"));
         assert!(registry.contains("echo_test")); // alias
 
-        let tool = registry.find("echo").unwrap();
+        let tool = registry.find("echo").expect("测试：find 应成功");
         assert_eq!(tool.name(), "echo");
     }
 
@@ -1615,7 +1615,7 @@ mod tests {
         let mut registry = ToolRegistry::new();
         registry.register(Arc::new(EchoTool));
 
-        let by_alias = registry.find("echo_test").unwrap();
+        let by_alias = registry.find("echo_test").expect("测试：find 应成功");
         assert_eq!(by_alias.name(), "echo");
     }
 }
@@ -1633,14 +1633,17 @@ mod file_sandbox_tests {
 
     /// 创建唯一的临时目录用于测试（避免并行测试冲突）
     fn make_temp_dir(prefix: &str) -> PathBuf {
-        let nanos = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().subsec_nanos();
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("测试：系统时间应晚于 UNIX EPOCH")
+            .subsec_nanos();
         let dir = std::env::temp_dir().join(format!(
             "axagent_test_{}_{}_{}",
             prefix,
             std::process::id(),
             nanos
         ));
-        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::create_dir_all(&dir).expect("测试：创建目录应成功");
         dir
     }
 
@@ -1699,9 +1702,13 @@ mod file_sandbox_tests {
         let config = SandboxConfig { allowed_paths: vec![workspace.clone()], ..Default::default() };
         let sandbox = crate::AccessPolicyValidator::new(config);
         let inside = workspace.join("file.txt");
-        std::fs::write(&inside, "test").unwrap();
+        std::fs::write(&inside, "test").expect("测试：写入文件应成功");
 
-        let result = validate_file_paths(&[inside], &sandbox, workspace.to_str().unwrap());
+        let result = validate_file_paths(
+            &[inside],
+            &sandbox,
+            workspace.to_str().expect("测试：路径转字符串应成功"),
+        );
         assert!(result.is_ok(), "工作区内路径应允许");
 
         let _ = std::fs::remove_dir_all(&workspace);
@@ -1714,9 +1721,13 @@ mod file_sandbox_tests {
         let config = SandboxConfig { allowed_paths: vec![workspace.clone()], ..Default::default() };
         let sandbox = crate::AccessPolicyValidator::new(config);
         let outside_file = outside.join("secret.txt");
-        std::fs::write(&outside_file, "secret").unwrap();
+        std::fs::write(&outside_file, "secret").expect("测试：写入文件应成功");
 
-        let result = validate_file_paths(&[outside_file], &sandbox, workspace.to_str().unwrap());
+        let result = validate_file_paths(
+            &[outside_file],
+            &sandbox,
+            workspace.to_str().expect("测试：路径转字符串应成功"),
+        );
         assert!(result.is_err(), "工作区外路径应拒绝");
 
         let _ = std::fs::remove_dir_all(&workspace);
@@ -1727,7 +1738,7 @@ mod file_sandbox_tests {
     fn validate_denied_list_takes_priority() {
         let workspace = make_temp_dir("ws");
         let secret_dir = workspace.join("secret");
-        std::fs::create_dir_all(&secret_dir).unwrap();
+        std::fs::create_dir_all(&secret_dir).expect("测试：创建目录应成功");
         let config = SandboxConfig {
             allowed_paths: vec![workspace.clone()],
             denied_paths: vec![secret_dir.clone()],
@@ -1735,9 +1746,13 @@ mod file_sandbox_tests {
         };
         let sandbox = crate::AccessPolicyValidator::new(config);
         let secret_file = secret_dir.join("key.txt");
-        std::fs::write(&secret_file, "key").unwrap();
+        std::fs::write(&secret_file, "key").expect("测试：写入文件应成功");
 
-        let result = validate_file_paths(&[secret_file], &sandbox, workspace.to_str().unwrap());
+        let result = validate_file_paths(
+            &[secret_file],
+            &sandbox,
+            workspace.to_str().expect("测试：路径转字符串应成功"),
+        );
         assert!(result.is_err(), "denied_paths 命中应拒绝（即使在工作区内）");
 
         let _ = std::fs::remove_dir_all(&workspace);
@@ -1753,14 +1768,22 @@ mod file_sandbox_tests {
 
         // 工作区内允许
         let inside = workspace.join("file.txt");
-        std::fs::write(&inside, "test").unwrap();
-        let result = validate_file_paths(&[inside], &sandbox, workspace.to_str().unwrap());
+        std::fs::write(&inside, "test").expect("测试：写入文件应成功");
+        let result = validate_file_paths(
+            &[inside],
+            &sandbox,
+            workspace.to_str().expect("测试：路径转字符串应成功"),
+        );
         assert!(result.is_ok(), "allowed_paths 为空时工作区内路径应允许");
 
         // 工作区外拒绝
         let outside_file = outside.join("secret.txt");
-        std::fs::write(&outside_file, "secret").unwrap();
-        let result = validate_file_paths(&[outside_file], &sandbox, workspace.to_str().unwrap());
+        std::fs::write(&outside_file, "secret").expect("测试：写入文件应成功");
+        let result = validate_file_paths(
+            &[outside_file],
+            &sandbox,
+            workspace.to_str().expect("测试：路径转字符串应成功"),
+        );
         assert!(result.is_err(), "allowed_paths 为空时工作区外路径应拒绝");
 
         let _ = std::fs::remove_dir_all(&workspace);
@@ -1771,17 +1794,22 @@ mod file_sandbox_tests {
     fn validate_traversal_dotdot_is_blocked() {
         let workspace = make_temp_dir("ws");
         // 在 workspace 的父目录下创建一个真实逃逸目录，使 canonicalize 能成功
-        let escaped = workspace.parent().unwrap().join("axagent_escaped_test");
-        std::fs::create_dir_all(&escaped).unwrap();
+        let escaped =
+            workspace.parent().expect("测试：路径应有父目录").join("axagent_escaped_test");
+        std::fs::create_dir_all(&escaped).expect("测试：创建目录应成功");
         let escaped_file = escaped.join("secret.txt");
-        std::fs::write(&escaped_file, "secret").unwrap();
+        std::fs::write(&escaped_file, "secret").expect("测试：写入文件应成功");
 
         let config = SandboxConfig { allowed_paths: vec![workspace.clone()], ..Default::default() };
         let sandbox = crate::AccessPolicyValidator::new(config);
 
         // 用 ../ 形式构造穿越路径，canonicalize 后会解析到 workspace 父目录
         let traversal = workspace.join("..").join("axagent_escaped_test").join("secret.txt");
-        let result = validate_file_paths(&[traversal], &sandbox, workspace.to_str().unwrap());
+        let result = validate_file_paths(
+            &[traversal],
+            &sandbox,
+            workspace.to_str().expect("测试：路径转字符串应成功"),
+        );
         assert!(result.is_err(), "../ 穿越路径应被拒绝");
 
         let _ = std::fs::remove_dir_all(&workspace);
@@ -1792,16 +1820,20 @@ mod file_sandbox_tests {
     fn validate_relative_path_resolved_against_working_dir() {
         let workspace = make_temp_dir("ws");
         let subdir = workspace.join("sub");
-        std::fs::create_dir_all(&subdir).unwrap();
+        std::fs::create_dir_all(&subdir).expect("测试：创建目录应成功");
         let file = subdir.join("file.txt");
-        std::fs::write(&file, "test").unwrap();
+        std::fs::write(&file, "test").expect("测试：写入文件应成功");
 
         let config = SandboxConfig { allowed_paths: vec![workspace.clone()], ..Default::default() };
         let sandbox = crate::AccessPolicyValidator::new(config);
 
         // 相对路径 "sub/file.txt" 应被 join working_dir 后通过校验
         let rel = PathBuf::from("sub").join("file.txt");
-        let result = validate_file_paths(&[rel], &sandbox, workspace.to_str().unwrap());
+        let result = validate_file_paths(
+            &[rel],
+            &sandbox,
+            workspace.to_str().expect("测试：路径转字符串应成功"),
+        );
         assert!(result.is_ok(), "工作区内相对路径应允许");
 
         let _ = std::fs::remove_dir_all(&workspace);
@@ -1815,13 +1847,16 @@ mod file_sandbox_tests {
         let sandbox = crate::AccessPolicyValidator::new(config);
 
         let inside = workspace.join("a.txt");
-        std::fs::write(&inside, "a").unwrap();
+        std::fs::write(&inside, "a").expect("测试：写入文件应成功");
         let outside_file = outside.join("b.txt");
-        std::fs::write(&outside_file, "b").unwrap();
+        std::fs::write(&outside_file, "b").expect("测试：写入文件应成功");
 
         // 一个在工作区内，一个在外 → 整体拒绝
-        let result =
-            validate_file_paths(&[inside, outside_file], &sandbox, workspace.to_str().unwrap());
+        let result = validate_file_paths(
+            &[inside, outside_file],
+            &sandbox,
+            workspace.to_str().expect("测试：路径转字符串应成功"),
+        );
         assert!(result.is_err(), "多路径中任一越权应整体拒绝");
 
         let _ = std::fs::remove_dir_all(&workspace);

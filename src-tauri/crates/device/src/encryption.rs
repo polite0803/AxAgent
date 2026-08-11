@@ -240,7 +240,7 @@ mod tests {
         let enc1 = SyncEncryptor::from_password("password1", &salt);
         let enc2 = SyncEncryptor::from_password("password2", &salt);
 
-        let encrypted = enc1.encrypt("test").unwrap();
+        let encrypted = enc1.encrypt("test").expect("测试：encrypt 应成功");
 
         // 用错误密码解密应失败
         assert!(enc2.decrypt(&encrypted).is_err());

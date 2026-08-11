@@ -496,7 +496,7 @@ mod tests {
         };
         validator.add_known_domain(domain_info);
         assert!(validator.known_domains.contains_key("custom.org"));
-        let info = validator.known_domains.get("custom.org").unwrap();
+        let info = validator.known_domains.get("custom.org").expect("测试：键应存在");
         assert_eq!(info.source_type, SourceType::Academic);
         assert!(info.is_paywalled);
         assert_eq!(info.credibility_weight, 0.88);
@@ -505,7 +505,7 @@ mod tests {
     #[test]
     fn test_add_known_domain_overwrites_existing() {
         let mut validator = SourceValidator::new();
-        let original = validator.known_domains.get("arxiv.org").unwrap().clone();
+        let original = validator.known_domains.get("arxiv.org").expect("测试：键应存在").clone();
         assert!(!original.is_paywalled);
 
         let updated = DomainInfo {
@@ -516,7 +516,7 @@ mod tests {
             notes: "Updated".to_string(),
         };
         validator.add_known_domain(updated);
-        let info = validator.known_domains.get("arxiv.org").unwrap();
+        let info = validator.known_domains.get("arxiv.org").expect("测试：键应存在");
         assert!(info.is_paywalled);
         assert_eq!(info.credibility_weight, 0.99);
     }
@@ -716,7 +716,7 @@ mod tests {
         let validator = SourceValidator::new();
         let info = validator.get_domain_info("https://arxiv.org/abs/2103.00001");
         assert!(info.is_some());
-        let info = info.unwrap();
+        let info = info.expect("测试应成功");
         assert_eq!(info.source_type, SourceType::Academic);
         assert!(!info.is_paywalled);
     }
@@ -868,8 +868,9 @@ mod tests {
             is_paywalled: false,
             notes: "Test domain".to_string(),
         };
-        let json = serde_json::to_string(&info).unwrap();
-        let deserialized: DomainInfo = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&info).expect("测试：JSON序列化应成功");
+        let deserialized: DomainInfo =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.domain, "test.org");
         assert_eq!(deserialized.source_type, SourceType::Academic);
         assert_eq!(deserialized.credibility_weight, 0.85);
@@ -878,8 +879,9 @@ mod tests {
     #[test]
     fn test_validator_config_serialization() {
         let config = ValidatorConfig::default();
-        let json = serde_json::to_string(&config).unwrap();
-        let deserialized: ValidatorConfig = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&config).expect("测试：JSON序列化应成功");
+        let deserialized: ValidatorConfig =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.check_ssl, config.check_ssl);
         assert_eq!(deserialized.check_accessibility, config.check_accessibility);
         assert_eq!(deserialized.max_age_days, config.max_age_days);
@@ -898,8 +900,9 @@ mod tests {
             score: 0.8,
             warnings: vec!["Warning".to_string()],
         };
-        let json = serde_json::to_string(&result).unwrap();
-        let deserialized: SourceValidationResult = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&result).expect("测试：JSON序列化应成功");
+        let deserialized: SourceValidationResult =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.url, "https://example.com");
         assert!(deserialized.is_valid);
         assert_eq!(deserialized.issues.len(), 1);

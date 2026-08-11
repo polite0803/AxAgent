@@ -264,7 +264,7 @@ pub(crate) fn merge_env_file(
     }
 
     let mut all_lines = existing_lines;
-    if !all_lines.is_empty() && !all_lines.last().unwrap().is_empty() {
+    if !all_lines.is_empty() && !all_lines.last().expect("集合为空").is_empty() {
         all_lines.push(String::new());
     }
     all_lines.extend(new_lines);
@@ -444,7 +444,7 @@ mod tests {
     use serde_yaml::Value;
 
     fn parse(s: &str) -> Value {
-        serde_yaml::from_str(s).unwrap()
+        serde_yaml::from_str(s).expect("测试应成功")
     }
 
     #[test]
@@ -452,10 +452,10 @@ mod tests {
         let base = parse("a: 1\nb: 2\n");
         let overlay = parse("a: 99\nc: 3\n");
         let merged = merge_yaml_values(base, overlay, false);
-        let m = merged.as_mapping().unwrap();
-        assert_eq!(m.get(Value::from("a")).unwrap(), &Value::from(1)); // 保留 base
-        assert_eq!(m.get(Value::from("b")).unwrap(), &Value::from(2)); // base 原值
-        assert_eq!(m.get(Value::from("c")).unwrap(), &Value::from(3)); // 新增 key
+        let m = merged.as_mapping().expect("测试：as_mapping 应成功");
+        assert_eq!(m.get(Value::from("a")).expect("测试应成功"), &Value::from(1)); // 保留 base
+        assert_eq!(m.get(Value::from("b")).expect("测试应成功"), &Value::from(2)); // base 原值
+        assert_eq!(m.get(Value::from("c")).expect("测试应成功"), &Value::from(3)); // 新增 key
     }
 
     #[test]
@@ -463,10 +463,10 @@ mod tests {
         let base = parse("a: 1\nb: 2\n");
         let overlay = parse("a: 99\nc: 3\n");
         let merged = merge_yaml_values(base, overlay, true);
-        let m = merged.as_mapping().unwrap();
-        assert_eq!(m.get(Value::from("a")).unwrap(), &Value::from(99)); // 被覆盖
-        assert_eq!(m.get(Value::from("b")).unwrap(), &Value::from(2));
-        assert_eq!(m.get(Value::from("c")).unwrap(), &Value::from(3));
+        let m = merged.as_mapping().expect("测试：as_mapping 应成功");
+        assert_eq!(m.get(Value::from("a")).expect("测试应成功"), &Value::from(99)); // 被覆盖
+        assert_eq!(m.get(Value::from("b")).expect("测试应成功"), &Value::from(2));
+        assert_eq!(m.get(Value::from("c")).expect("测试应成功"), &Value::from(3));
     }
 
     #[test]
@@ -474,10 +474,10 @@ mod tests {
         let base = parse("x:\n  p: 1\n  q: 2\n");
         let overlay = parse("x:\n  q: 3\n  r: 4\n");
         let merged = merge_yaml_values(base, overlay, false);
-        let x = merged.get("x").unwrap().as_mapping().unwrap();
-        assert_eq!(x.get(Value::from("p")).unwrap(), &Value::from(1)); // base 保留
-        assert_eq!(x.get(Value::from("q")).unwrap(), &Value::from(2)); // base 保留
-        assert_eq!(x.get(Value::from("r")).unwrap(), &Value::from(4)); // 新增
+        let x = merged.get("x").expect("测试：get 应成功").as_mapping().unwrap();
+        assert_eq!(x.get(Value::from("p")).expect("测试应成功"), &Value::from(1)); // base 保留
+        assert_eq!(x.get(Value::from("q")).expect("测试应成功"), &Value::from(2)); // base 保留
+        assert_eq!(x.get(Value::from("r")).expect("测试应成功"), &Value::from(4)); // 新增
     }
 
     #[test]
@@ -485,6 +485,6 @@ mod tests {
         let base = parse("a: 1\n");
         let overlay = parse("a: 2\n");
         let merged = merge_yaml_values(base, overlay, true);
-        assert_eq!(merged.get("a").unwrap(), &Value::from(2));
+        assert_eq!(merged.get("a").expect("测试：get 应成功"), &Value::from(2));
     }
 }

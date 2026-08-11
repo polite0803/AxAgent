@@ -1128,14 +1128,14 @@ mod tests {
         request: Request<Body>,
     ) -> Response<Body> {
         let (parts, body) = request.into_parts();
-        let bytes = to_bytes(body, usize::MAX).await.unwrap();
+        let bytes = to_bytes(body, usize::MAX).await.expect("测试：异步操作应成功");
         let json_body = if bytes.is_empty() {
             json!(null)
         } else {
-            serde_json::from_slice(&bytes).unwrap()
+            serde_json::from_slice(&bytes).expect("测试应成功")
         };
 
-        state.captures.lock().unwrap().push(CapturedUpstreamRequest {
+        state.captures.lock().unwrap_or_else(|e| e.into_inner()).push(CapturedUpstreamRequest {
             method: parts.method.to_string(),
             path_and_query: parts
                 .uri
@@ -1169,7 +1169,7 @@ mod tests {
         for (name, value) in state.headers.iter() {
             response = response.header(name, value);
         }
-        response.body(Body::from(state.body.clone())).unwrap()
+        response.body(Body::from(state.body.clone())).expect("测试应成功")
     }
 
     async fn spawn_mock_upstream(
@@ -1180,10 +1180,11 @@ mod tests {
         let captures = Arc::new(Mutex::new(Vec::new()));
         let state = MockUpstreamState { captures: captures.clone(), status, headers, body };
         let app = Router::new().fallback(any(mock_upstream_handler)).with_state(state);
-        let listener = tokio::net::TcpListener::bind("127.1.0.0:0").await.unwrap();
-        let addr = listener.local_addr().unwrap();
+        let listener =
+            tokio::net::TcpListener::bind("127.1.0.0:0").await.expect("测试：异步操作应成功");
+        let addr = listener.local_addr().expect("测试：local_addr 应成功");
         let task = tokio::spawn(async move {
-            axum::serve(listener, app).await.unwrap();
+            axum::serve(listener, app).await.expect("测试：异步操作应成功");
         });
 
         (format!("http://{}", addr), captures, task)
@@ -1481,11 +1482,13 @@ mod tests {
 
     #[test]
     fn parses_gemini_model_action_suffixes() {
-        let parsed = parse_gemini_model_action("gemini-2.5-pro:streamGenerateContent").unwrap();
+        let parsed =
+            parse_gemini_model_action("gemini-2.5-pro:streamGenerateContent").expect("测试应成功");
         assert_eq!(parsed.model, "gemini-2.5-pro");
         assert_eq!(parsed.operation, GeminiOperation::StreamGenerateContent);
 
-        let parsed = parse_gemini_model_action("models/gemini-2.5-pro:countTokens").unwrap();
+        let parsed =
+            parse_gemini_model_action("models/gemini-2.5-pro:countTokens").expect("测试应成功");
         assert_eq!(parsed.model, "models/gemini-2.5-pro");
         assert_eq!(parsed.operation, GeminiOperation::CountTokens);
 
@@ -1572,7 +1575,10 @@ mod tests {
     #[tokio::test]
     async fn openai_responses_proxy_records_usage() {
         let mut headers = HeaderMap::new();
-        headers.insert(header::CONTENT_TYPE, "application/json".parse().unwrap());
+        headers.insert(
+            header::CONTENT_TYPE,
+            "application/json".parse().expect("测试：插入操作应成功"),
+        );
         let upstream_body = json!({
             "id": "resp_123",
             "object": "response",
@@ -1602,19 +1608,19 @@ mod tests {
                         })
                         .to_string(),
                     ))
-                    .unwrap(),
+                    .expect("测试应成功"),
             )
             .await
-            .unwrap();
+            .expect("测试应成功");
 
         assert_eq!(response.status(), StatusCode::OK);
-        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let body = to_bytes(response.into_body(), usize::MAX).await.expect("测试：异步操作应成功");
         assert_eq!(
-            serde_json::from_slice::<serde_json::Value>(&body).unwrap(),
-            serde_json::from_str::<serde_json::Value>(&upstream_body).unwrap()
+            serde_json::from_slice::<serde_json::Value>(&body).expect("测试应成功"),
+            serde_json::from_str::<serde_json::Value>(&upstream_body).expect("测试应成功")
         );
 
-        let captured = captures.lock().expect("gateway state lock");
+        let captured = captures.lock().unwrap_or_else(|e| e.into_inner());
         assert_eq!(captured.len(), 1);
         assert_eq!(captured[0].method, "POST");
         assert_eq!(captured[0].path_and_query, "/v1/responses");
@@ -1628,7 +1634,10 @@ mod tests {
     #[tokio::test]
     async fn anthropic_stream_proxy_records_usage() {
         let mut headers = HeaderMap::new();
-        headers.insert(header::CONTENT_TYPE, "text/event-stream".parse().unwrap());
+        headers.insert(
+            header::CONTENT_TYPE,
+            "text/event-stream".parse().expect("测试：插入操作应成功"),
+        );
         let upstream_body = concat!(
             "event: message_start\n",
             "data: {\"type\":\"message_start\",\"message\":{\"usage\":{\"input_tokens\":61}}}\n\n",
@@ -1661,20 +1670,20 @@ mod tests {
                         })
                         .to_string(),
                     ))
-                    .unwrap(),
+                    .expect("测试应成功"),
             )
             .await
-            .unwrap();
+            .expect("测试应成功");
 
         let status = response.status();
         let content_type = response.headers().get(header::CONTENT_TYPE).cloned();
-        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
-        let body_text = String::from_utf8(body.to_vec()).unwrap();
+        let body = to_bytes(response.into_body(), usize::MAX).await.expect("测试：异步操作应成功");
+        let body_text = String::from_utf8(body.to_vec()).expect("测试应成功");
         assert_eq!(status, StatusCode::OK, "unexpected anthropic body: {body_text}");
-        assert_eq!(content_type.unwrap(), "text/event-stream");
+        assert_eq!(content_type.expect("测试应成功"), "text/event-stream");
         assert_eq!(body_text, upstream_body);
 
-        let captured = captures.lock().expect("gateway state lock");
+        let captured = captures.lock().unwrap_or_else(|e| e.into_inner());
         assert_eq!(captured.len(), 1);
         assert_eq!(captured[0].path_and_query, "/v1/messages");
         assert_eq!(captured[0].x_api_key.as_deref(), Some("upstream-secret"));
@@ -1687,7 +1696,10 @@ mod tests {
     #[tokio::test]
     async fn gemini_count_tokens_logs_without_aggregate_usage() {
         let mut headers = HeaderMap::new();
-        headers.insert(header::CONTENT_TYPE, "application/json".parse().unwrap());
+        headers.insert(
+            header::CONTENT_TYPE,
+            "application/json".parse().expect("测试：插入操作应成功"),
+        );
         let upstream_body = json!({ "totalTokens": 27 }).to_string();
         let (upstream_base, captures, upstream_task) =
             spawn_mock_upstream(StatusCode::OK, headers, upstream_body.clone()).await;
@@ -1710,21 +1722,21 @@ mod tests {
                         })
                         .to_string(),
                     ))
-                    .unwrap(),
+                    .expect("测试应成功"),
             )
             .await
-            .unwrap();
+            .expect("测试应成功");
 
         let status = response.status();
-        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
-        let body_text = String::from_utf8(body.to_vec()).unwrap();
+        let body = to_bytes(response.into_body(), usize::MAX).await.expect("测试：异步操作应成功");
+        let body_text = String::from_utf8(body.to_vec()).expect("测试应成功");
         assert_eq!(status, StatusCode::OK, "unexpected gemini body: {body_text}");
         assert_eq!(
-            serde_json::from_str::<serde_json::Value>(&body_text).unwrap(),
-            serde_json::from_str::<serde_json::Value>(&upstream_body).unwrap()
+            serde_json::from_str::<serde_json::Value>(&body_text).expect("测试应成功"),
+            serde_json::from_str::<serde_json::Value>(&upstream_body).expect("测试应成功")
         );
 
-        let captured = captures.lock().expect("gateway state lock");
+        let captured = captures.lock().unwrap_or_else(|e| e.into_inner());
         assert_eq!(captured.len(), 1);
         // Gemini 现在通过 x-goog-api-key header 传递 key，而非 query param
         assert_eq!(captured[0].path_and_query, "/v1beta/models/gemini-2.5-pro:countTokens");
@@ -1737,7 +1749,10 @@ mod tests {
     #[tokio::test]
     async fn openai_responses_prefers_matching_provider_with_active_key() {
         let mut headers = HeaderMap::new();
-        headers.insert(header::CONTENT_TYPE, "application/json".parse().unwrap());
+        headers.insert(
+            header::CONTENT_TYPE,
+            "application/json".parse().expect("测试：插入操作应成功"),
+        );
         let upstream_body = json!({
             "id": "resp_456",
             "object": "response",
@@ -1784,13 +1799,13 @@ mod tests {
                         })
                         .to_string(),
                     ))
-                    .unwrap(),
+                    .expect("测试应成功"),
             )
             .await
-            .unwrap();
+            .expect("测试应成功");
 
         assert_eq!(response.status(), StatusCode::OK);
-        let captured = captures.lock().expect("gateway state lock");
+        let captured = captures.lock().unwrap_or_else(|e| e.into_inner());
         assert_eq!(captured.len(), 1);
         assert_eq!(captured[0].path_and_query, "/v1/responses");
 
@@ -1800,7 +1815,10 @@ mod tests {
     #[tokio::test]
     async fn openai_responses_reuses_existing_v1_base_path() {
         let mut headers = HeaderMap::new();
-        headers.insert(header::CONTENT_TYPE, "application/json".parse().unwrap());
+        headers.insert(
+            header::CONTENT_TYPE,
+            "application/json".parse().expect("测试：插入操作应成功"),
+        );
         let upstream_body = json!({
             "id": "resp_789",
             "object": "response",
@@ -1831,13 +1849,13 @@ mod tests {
                         })
                         .to_string(),
                     ))
-                    .unwrap(),
+                    .expect("测试应成功"),
             )
             .await
-            .unwrap();
+            .expect("测试应成功");
 
         assert_eq!(response.status(), StatusCode::OK);
-        let captured = captures.lock().expect("gateway state lock");
+        let captured = captures.lock().unwrap_or_else(|e| e.into_inner());
         assert_eq!(captured.len(), 1);
         assert_eq!(captured[0].path_and_query, "/v1/responses");
 

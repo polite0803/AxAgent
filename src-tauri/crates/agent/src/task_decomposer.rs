@@ -501,7 +501,7 @@ mod tests {
             parallel_groups: vec![vec!["1".to_string(), "2".to_string()]],
             reasoning: "parallel tasks".to_string(),
         };
-        let graph = decomposer.build_graph(result).unwrap();
+        let graph = decomposer.build_graph(result).expect("测试：build_graph 应成功");
         assert_eq!(graph.tasks.len(), 2);
         assert_eq!(graph.parallel_groups.len(), 1);
     }
@@ -514,7 +514,7 @@ mod tests {
             .collect();
         let result =
             DecompositionResult { tasks, parallel_groups: vec![], reasoning: String::new() };
-        let graph = decomposer.build_graph(result).unwrap();
+        let graph = decomposer.build_graph(result).expect("测试：build_graph 应成功");
         assert_eq!(graph.tasks.len(), 2);
     }
 
@@ -526,7 +526,7 @@ mod tests {
             .collect();
         let result =
             DecompositionResult { tasks, parallel_groups: vec![], reasoning: String::new() };
-        let graph = decomposer.build_graph(result).unwrap();
+        let graph = decomposer.build_graph(result).expect("测试：build_graph 应成功");
         assert_eq!(graph.tasks.len(), 3);
     }
 
@@ -663,7 +663,7 @@ mod tests {
             "parallel_groups": [["1"], ["2"]],
             "reasoning": "test"
         });
-        let result = decomposer.parse_json_value(&json).unwrap();
+        let result = decomposer.parse_json_value(&json).expect("测试：parse_json_value 应成功");
         assert_eq!(result.tasks.len(), 2);
         assert_eq!(result.tasks[0].id, "1");
         assert_eq!(result.tasks[1].task_type, TaskType::ToolCall);
@@ -685,7 +685,7 @@ mod tests {
         let json = serde_json::json!({
             "tasks": [{"description": "a task"}]
         });
-        let result = decomposer.parse_json_value(&json).unwrap();
+        let result = decomposer.parse_json_value(&json).expect("测试：parse_json_value 应成功");
         assert_eq!(result.tasks.len(), 1);
         assert_eq!(result.tasks[0].id, "0");
         assert_eq!(result.tasks[0].task_type, TaskType::Query);
@@ -703,7 +703,7 @@ mod tests {
                 {"id": "4", "type": "validation"}
             ]
         });
-        let result = decomposer.parse_json_value(&json).unwrap();
+        let result = decomposer.parse_json_value(&json).expect("测试：parse_json_value 应成功");
         assert_eq!(result.tasks[0].task_type, TaskType::ToolCall);
         assert_eq!(result.tasks[1].task_type, TaskType::Reasoning);
         assert_eq!(result.tasks[2].task_type, TaskType::Query);
@@ -716,7 +716,7 @@ mod tests {
         let json = serde_json::json!({
             "tasks": [{"id": "1", "type": "unknown_type"}]
         });
-        let result = decomposer.parse_json_value(&json).unwrap();
+        let result = decomposer.parse_json_value(&json).expect("测试：parse_json_value 应成功");
         assert_eq!(result.tasks[0].task_type, TaskType::Query);
     }
 
@@ -729,7 +729,7 @@ mod tests {
                 {"id": "2", "description": "task 2", "type": "query"}
             ]
         });
-        let result = decomposer.parse_json_value(&json).unwrap();
+        let result = decomposer.parse_json_value(&json).expect("测试：parse_json_value 应成功");
         assert_eq!(result.parallel_groups.len(), 1);
         assert_eq!(result.parallel_groups[0], vec!["1", "2"]);
     }
@@ -753,7 +753,9 @@ mod tests {
     fn test_task_decomposer_parse_fallback_response_valid() {
         let decomposer = TaskDecomposer::new();
         let response = "first task\nsecond task\nthird task";
-        let result = decomposer.parse_fallback_response(response).unwrap();
+        let result = decomposer
+            .parse_fallback_response(response)
+            .expect("测试：parse_fallback_response 应成功");
         assert_eq!(result.tasks.len(), 3);
         assert_eq!(result.tasks[0].id, "1");
         assert_eq!(result.tasks[1].id, "2");
@@ -765,7 +767,9 @@ mod tests {
     fn test_task_decomposer_parse_fallback_response_with_markers() {
         let decomposer = TaskDecomposer::new();
         let response = "- first task\n* second task\n→ third task\n• fourth task";
-        let result = decomposer.parse_fallback_response(response).unwrap();
+        let result = decomposer
+            .parse_fallback_response(response)
+            .expect("测试：parse_fallback_response 应成功");
         assert_eq!(result.tasks.len(), 4);
         assert_eq!(result.tasks[0].description, "first task");
         assert_eq!(result.tasks[1].description, "second task");
@@ -777,7 +781,9 @@ mod tests {
     fn test_task_decomposer_parse_fallback_response_blank_lines() {
         let decomposer = TaskDecomposer::new();
         let response = "first task\n\n\nsecond task";
-        let result = decomposer.parse_fallback_response(response).unwrap();
+        let result = decomposer
+            .parse_fallback_response(response)
+            .expect("测试：parse_fallback_response 应成功");
         assert_eq!(result.tasks.len(), 2);
     }
 
@@ -785,7 +791,7 @@ mod tests {
     fn test_task_decomposer_parse_response_json() {
         let decomposer = TaskDecomposer::new();
         let response = r#"{"tasks":[{"id":"1","description":"test","type":"query","dependencies":[]}],"parallel_groups":[["1"]],"reasoning":"test"}"#;
-        let result = decomposer.parse_response(response).unwrap();
+        let result = decomposer.parse_response(response).expect("测试：parse_response 应成功");
         assert_eq!(result.tasks.len(), 1);
     }
 
@@ -793,7 +799,7 @@ mod tests {
     fn test_task_decomposer_parse_response_fallback() {
         let decomposer = TaskDecomposer::new();
         let response = "task one\ntask two";
-        let result = decomposer.parse_response(response).unwrap();
+        let result = decomposer.parse_response(response).expect("测试：parse_response 应成功");
         assert_eq!(result.tasks.len(), 2);
     }
 
@@ -801,7 +807,7 @@ mod tests {
     fn test_task_decomposer_parse_response_invalid_json_fallback() {
         let decomposer = TaskDecomposer::new();
         let response = "{invalid json}\nsecond line";
-        let result = decomposer.parse_response(response).unwrap();
+        let result = decomposer.parse_response(response).expect("测试：parse_response 应成功");
         assert_eq!(result.tasks.len(), 2);
     }
 

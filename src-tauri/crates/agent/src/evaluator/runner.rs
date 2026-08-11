@@ -464,7 +464,7 @@ mod tests {
     async fn test_run_benchmark_reasoning() {
         let runner = EvaluationRunner::new(RunnerConfig::default());
         let suite = crate::evaluator::benchmark::BenchmarkSuite::new();
-        let benchmark = suite.get("reasoning").unwrap();
+        let benchmark = suite.get("reasoning").expect("测试：get 应成功");
         let result = runner.run_benchmark(benchmark).await;
         assert_eq!(result.benchmark_id, "reasoning");
         assert!(!result.task_results.is_empty());
@@ -480,7 +480,7 @@ mod tests {
         };
         let runner = EvaluationRunner::new(config);
         let suite = crate::evaluator::benchmark::BenchmarkSuite::new();
-        let benchmark = suite.get("reasoning").unwrap();
+        let benchmark = suite.get("reasoning").expect("测试：get 应成功");
         let result = runner.run_benchmark(benchmark).await;
         for task_result in &result.task_results {
             assert!(task_result.difficulty <= Difficulty::Easy);
@@ -497,12 +497,12 @@ mod tests {
     async fn test_benchmark_runner_state_run() {
         let state = BenchmarkRunnerState::new();
         let suite = crate::evaluator::benchmark::BenchmarkSuite::new();
-        let benchmark = suite.get("reasoning").unwrap();
+        let benchmark = suite.get("reasoning").expect("测试：get 应成功");
         let result = state.run(benchmark, RunnerConfig::default()).await;
         assert_eq!(result.benchmark_id, "reasoning");
         let current = state.get_current_result().await;
         assert!(current.is_some());
-        assert_eq!(current.unwrap().benchmark_id, "reasoning");
+        assert_eq!(current.expect("测试应成功").benchmark_id, "reasoning");
     }
 
     #[test]
@@ -519,8 +519,8 @@ mod tests {
             error: None,
             trace_id: None,
         };
-        let json = serde_json::to_string(&result).unwrap();
-        let de: TaskResult = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&result).expect("测试：JSON序列化应成功");
+        let de: TaskResult = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(de.task_id, "t1");
         assert!(de.success);
     }
@@ -534,8 +534,8 @@ mod tests {
             weighted_score: 0.6,
             passed: true,
         };
-        let json = serde_json::to_string(&score).unwrap();
-        let de: ScoreResult = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&score).expect("测试：JSON序列化应成功");
+        let de: ScoreResult = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert!((de.raw_score - 1.0).abs() < 0.001);
         assert!(de.passed);
     }
@@ -560,8 +560,8 @@ mod tests {
             },
             duration_ms: 0,
         };
-        let json = serde_json::to_string(&result).unwrap();
-        let de: BenchmarkResult = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&result).expect("测试：JSON序列化应成功");
+        let de: BenchmarkResult = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(de.benchmark_id, "b1");
     }
 
@@ -573,8 +573,8 @@ mod tests {
             max_difficulty: Some(Difficulty::Hard),
             include_traces: true,
         };
-        let json = serde_json::to_string(&config).unwrap();
-        let de: RunnerConfig = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&config).expect("测试：JSON序列化应成功");
+        let de: RunnerConfig = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(de.max_concurrency, 5);
         assert_eq!(de.max_difficulty, Some(Difficulty::Hard));
     }

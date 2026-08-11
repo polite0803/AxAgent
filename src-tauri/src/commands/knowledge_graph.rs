@@ -658,7 +658,7 @@ mod tests {
           ]
         }
         ```"#;
-        let (entities, relations) = parse_entity_extraction_response(response).unwrap();
+        let (entities, relations) = parse_entity_extraction_response(response).expect("测试应成功");
         assert_eq!(entities.len(), 2);
         assert_eq!(entities[0].name, "Rust");
         assert_eq!(entities[0].entity_type, "technology");
@@ -672,7 +672,7 @@ mod tests {
     #[test]
     fn test_parse_entity_extraction_response_invalid_returns_empty() {
         let response = "Sorry, I cannot help with that.";
-        let (entities, relations) = parse_entity_extraction_response(response).unwrap();
+        let (entities, relations) = parse_entity_extraction_response(response).expect("测试应成功");
         assert!(entities.is_empty());
         assert!(relations.is_empty());
     }
@@ -689,7 +689,7 @@ mod tests {
                 {"source": "A", "target": "B"}
             ]
         }"#;
-        let (entities, relations) = parse_entity_extraction_response(response).unwrap();
+        let (entities, relations) = parse_entity_extraction_response(response).expect("测试应成功");
         assert_eq!(entities.len(), 1);
         assert_eq!(entities[0].name, "Valid");
         assert_eq!(relations.len(), 1);
@@ -702,7 +702,7 @@ mod tests {
             "entities": [{"name": "X"}],
             "relations": [{"source": "A", "target": "B"}]
         }"#;
-        let (entities, relations) = parse_entity_extraction_response(response).unwrap();
+        let (entities, relations) = parse_entity_extraction_response(response).expect("测试应成功");
         assert_eq!(entities[0].entity_type, "concept");
         assert!(entities[0].aliases.is_empty());
         assert!(entities[0].description.is_empty());

@@ -411,8 +411,9 @@ mod tests {
             .with_exponential_backoff(true)
             .with_jitter(false);
 
-        let json = serde_json::to_string(&policy).unwrap();
-        let deserialized: AgentRetryPolicy = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&policy).expect("测试：JSON序列化应成功");
+        let deserialized: AgentRetryPolicy =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.max_attempts, 5);
         assert_eq!(deserialized.base_delay, Duration::from_millis(500));
         assert_eq!(deserialized.max_delay, Duration::from_secs(30));
@@ -425,7 +426,7 @@ mod tests {
         let policy =
             AgentRetryPolicy::new(3).with_base_delay(Duration::from_millis(1)).with_jitter(false);
         let result = with_retry(&policy, || async { Ok::<i32, String>(42) }).await;
-        assert_eq!(result.unwrap(), 42);
+        assert_eq!(result.expect("测试应成功"), 42);
     }
 
     #[tokio::test]
@@ -444,7 +445,7 @@ mod tests {
             }
         })
         .await;
-        assert_eq!(result.unwrap(), 99);
+        assert_eq!(result.expect("测试应成功"), 99);
     }
 
     #[tokio::test]

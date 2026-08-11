@@ -1712,8 +1712,9 @@ mod tests {
             cache_miss_input_tokens: Some(0),
         };
         let breakdown = TokenUsageBreakdown::from_turn_summary(&usage, 0);
-        let json = serde_json::to_string(&breakdown).unwrap();
-        let deserialized: TokenUsageBreakdown = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&breakdown).expect("测试：JSON序列化应成功");
+        let deserialized: TokenUsageBreakdown =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.input_tokens, 100);
         assert_eq!(deserialized.output_tokens, 50);
         assert_eq!(deserialized.total_tokens, 150);
@@ -1774,8 +1775,10 @@ mod tests {
     async fn test_session_manager_create_session() {
         let mgr =
             SessionManager::new_for_test(axagent_harness::test_support::empty_agent_session_repo());
-        let session =
-            mgr.create_session("provider-1".to_string(), "conv-1".to_string()).await.unwrap();
+        let session = mgr
+            .create_session("provider-1".to_string(), "conv-1".to_string())
+            .await
+            .expect("测试：异步操作应成功");
         assert_eq!(session.provider_id(), "provider-1");
         assert_eq!(session.conversation_id(), "conv-1");
         assert!(session.axagent_session_id().is_some());
@@ -1786,20 +1789,24 @@ mod tests {
     async fn test_session_manager_create_and_get_session() {
         let mgr =
             SessionManager::new_for_test(axagent_harness::test_support::empty_agent_session_repo());
-        let session =
-            mgr.create_session("provider-1".to_string(), "conv-1".to_string()).await.unwrap();
+        let session = mgr
+            .create_session("provider-1".to_string(), "conv-1".to_string())
+            .await
+            .expect("测试：异步操作应成功");
         let session_id = session.session().session_id.clone();
         let retrieved = mgr.get_session(&session_id).await;
         assert!(retrieved.is_some());
-        assert_eq!(retrieved.unwrap().provider_id(), "provider-1");
+        assert_eq!(retrieved.expect("测试应成功").provider_id(), "provider-1");
     }
 
     #[tokio::test]
     async fn test_session_manager_create_and_remove_session() {
         let mgr =
             SessionManager::new_for_test(axagent_harness::test_support::empty_agent_session_repo());
-        let session =
-            mgr.create_session("provider-1".to_string(), "conv-1".to_string()).await.unwrap();
+        let session = mgr
+            .create_session("provider-1".to_string(), "conv-1".to_string())
+            .await
+            .expect("测试：异步操作应成功");
         let session_id = session.session().session_id.clone();
         assert_eq!(mgr.session_count().await, 1);
         let removed = mgr.remove_session(&session_id).await;
@@ -1815,7 +1822,7 @@ mod tests {
         let session = mgr
             .get_or_create_session("provider-1".to_string(), "conv-1".to_string())
             .await
-            .unwrap();
+            .expect("测试应成功");
         assert_eq!(session.provider_id(), "provider-1");
         assert_eq!(session.conversation_id(), "conv-1");
     }
@@ -1827,11 +1834,11 @@ mod tests {
         let session1 = mgr
             .get_or_create_session("provider-1".to_string(), "conv-1".to_string())
             .await
-            .unwrap();
+            .expect("测试应成功");
         let session2 = mgr
             .get_or_create_session("provider-2".to_string(), "conv-1".to_string())
             .await
-            .unwrap();
+            .expect("测试应成功");
         assert_eq!(session1.session().session_id, session2.session().session_id);
         assert_eq!(mgr.session_count().await, 1);
     }
@@ -1840,7 +1847,9 @@ mod tests {
     async fn test_session_manager_clear_session() {
         let mgr =
             SessionManager::new_for_test(axagent_harness::test_support::empty_agent_session_repo());
-        mgr.create_session("provider-1".to_string(), "conv-1".to_string()).await.unwrap();
+        mgr.create_session("provider-1".to_string(), "conv-1".to_string())
+            .await
+            .expect("测试：异步操作应成功");
         assert_eq!(mgr.session_count().await, 1);
         mgr.clear_session("conv-1").await;
         assert_eq!(mgr.session_count().await, 0);
@@ -1850,7 +1859,9 @@ mod tests {
     async fn test_session_manager_clear_session_nonexistent() {
         let mgr =
             SessionManager::new_for_test(axagent_harness::test_support::empty_agent_session_repo());
-        mgr.create_session("provider-1".to_string(), "conv-1".to_string()).await.unwrap();
+        mgr.create_session("provider-1".to_string(), "conv-1".to_string())
+            .await
+            .expect("测试：异步操作应成功");
         mgr.clear_session("nonexistent").await;
         assert_eq!(mgr.session_count().await, 1);
     }
@@ -1859,9 +1870,15 @@ mod tests {
     async fn test_session_manager_multiple_sessions() {
         let mgr =
             SessionManager::new_for_test(axagent_harness::test_support::empty_agent_session_repo());
-        mgr.create_session("p1".to_string(), "conv-1".to_string()).await.unwrap();
-        mgr.create_session("p2".to_string(), "conv-2".to_string()).await.unwrap();
-        mgr.create_session("p3".to_string(), "conv-3".to_string()).await.unwrap();
+        mgr.create_session("p1".to_string(), "conv-1".to_string())
+            .await
+            .expect("测试：异步操作应成功");
+        mgr.create_session("p2".to_string(), "conv-2".to_string())
+            .await
+            .expect("测试：异步操作应成功");
+        mgr.create_session("p3".to_string(), "conv-3".to_string())
+            .await
+            .expect("测试：异步操作应成功");
         assert_eq!(mgr.session_count().await, 3);
     }
 
@@ -1869,7 +1886,9 @@ mod tests {
     async fn test_session_manager_conversation_index() {
         let mgr =
             SessionManager::new_for_test(axagent_harness::test_support::empty_agent_session_repo());
-        mgr.create_session("p1".to_string(), "conv-1".to_string()).await.unwrap();
+        mgr.create_session("p1".to_string(), "conv-1".to_string())
+            .await
+            .expect("测试：异步操作应成功");
         let conv_index = mgr.conversation_index.lock().await;
         assert!(conv_index.contains_key("conv-1"));
     }
@@ -1878,10 +1897,12 @@ mod tests {
     async fn test_session_manager_session_last_access_updated() {
         let mgr =
             SessionManager::new_for_test(axagent_harness::test_support::empty_agent_session_repo());
-        mgr.create_session("p1".to_string(), "conv-1".to_string()).await.unwrap();
+        mgr.create_session("p1".to_string(), "conv-1".to_string())
+            .await
+            .expect("测试：异步操作应成功");
         let session_id = {
             let conv_index = mgr.conversation_index.lock().await;
-            conv_index.get("conv-1").cloned().unwrap()
+            conv_index.get("conv-1").cloned().expect("测试应成功")
         };
         let last_access = mgr.session_last_access.lock().await;
         assert!(last_access.contains_key(&session_id));
@@ -1907,11 +1928,11 @@ mod tests {
         };
         let inner = Arc::new(inner);
         {
-            let mut set = inner.always_allowed.lock().expect("session_manager lock");
+            let mut set = inner.always_allowed.lock().unwrap_or_else(|e| e.into_inner());
             set.insert("read_file".to_string());
             set.insert("bash".to_string());
         }
-        let set = inner.always_allowed.lock().expect("session_manager lock");
+        let set = inner.always_allowed.lock().unwrap_or_else(|e| e.into_inner());
         assert_eq!(set.len(), 2);
         assert!(set.contains("read_file"));
         assert!(set.contains("bash"));
@@ -1926,7 +1947,7 @@ mod tests {
         };
         let inner = Arc::new(inner);
         let result = {
-            let mut map = inner.pending_senders.lock().expect("session_manager lock");
+            let mut map = inner.pending_senders.lock().unwrap_or_else(|e| e.into_inner());
             if let Some(sender) = map.remove("nonexistent") {
                 sender.send(PermissionPromptDecision::Allow).is_ok()
             } else {
@@ -1946,16 +1967,16 @@ mod tests {
         let inner = Arc::new(inner);
         let (tx, rx) = std::sync::mpsc::channel::<PermissionPromptDecision>();
         {
-            let mut map = inner.pending_senders.lock().expect("session_manager lock");
+            let mut map = inner.pending_senders.lock().unwrap_or_else(|e| e.into_inner());
             map.insert("req-1".to_string(), tx);
         }
         {
-            let mut map = inner.pending_senders.lock().expect("session_manager lock");
+            let mut map = inner.pending_senders.lock().unwrap_or_else(|e| e.into_inner());
             assert_eq!(map.len(), 1);
             map.clear();
         }
         {
-            let map = inner.pending_senders.lock().expect("session_manager lock");
+            let map = inner.pending_senders.lock().unwrap_or_else(|e| e.into_inner());
             assert!(map.is_empty());
         }
         drop(rx);
@@ -1971,11 +1992,11 @@ mod tests {
         let inner = Arc::new(inner);
         let (tx, rx) = std::sync::mpsc::channel::<PermissionPromptDecision>();
         {
-            let mut map = inner.pending_senders.lock().expect("session_manager lock");
+            let mut map = inner.pending_senders.lock().unwrap_or_else(|e| e.into_inner());
             map.insert("req-1".to_string(), tx);
         }
         let result = {
-            let mut map = inner.pending_senders.lock().expect("session_manager lock");
+            let mut map = inner.pending_senders.lock().unwrap_or_else(|e| e.into_inner());
             if let Some(sender) = map.remove("req-1") {
                 sender.send(PermissionPromptDecision::Allow).is_ok()
             } else {
@@ -1983,7 +2004,7 @@ mod tests {
             }
         };
         assert!(result);
-        let decision = rx.recv_timeout(std::time::Duration::from_millis(100)).unwrap();
+        let decision = rx.recv_timeout(std::time::Duration::from_millis(100)).expect("测试应成功");
         assert!(matches!(decision, PermissionPromptDecision::Allow));
     }
 
@@ -1997,7 +2018,7 @@ mod tests {
             workspace_root: std::sync::Mutex::new(String::new()),
         };
         let inner = Arc::new(inner);
-        let set = inner.always_allowed.lock().expect("session_manager lock");
+        let set = inner.always_allowed.lock().unwrap_or_else(|e| e.into_inner());
         assert!(set.contains("read_file"));
         assert!(!set.contains("bash"));
     }
@@ -2010,7 +2031,7 @@ mod tests {
             workspace_root: std::sync::Mutex::new("/my/workspace".to_string()),
         };
         let inner = Arc::new(inner);
-        let root = inner.workspace_root.lock().expect("session_manager lock");
+        let root = inner.workspace_root.lock().unwrap_or_else(|e| e.into_inner());
         assert_eq!(*root, "/my/workspace");
     }
 

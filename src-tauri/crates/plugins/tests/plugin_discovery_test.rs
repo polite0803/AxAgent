@@ -14,7 +14,7 @@ fn discover_valid_plugin_from_directory() {
 
     let result = load_manifest(&plugin_dir);
     assert!(result.is_ok(), "Expected valid manifest, got: {:?}", result.err());
-    let manifest = result.unwrap();
+    let manifest = result.expect("测试应成功");
     assert_eq!(manifest.name, "hello-world");
     assert_eq!(manifest.version, "1.0.0");
 }
@@ -38,7 +38,7 @@ fn discover_plugin_with_mcp_servers() {
 
     let result = load_manifest(&plugin_dir);
     assert!(result.is_ok());
-    let manifest = result.unwrap();
+    let manifest = result.expect("测试应成功");
     assert_eq!(manifest.mcp_servers.len(), 1);
     assert_eq!(manifest.mcp_servers[0].name, "filesystem");
 }
@@ -48,7 +48,7 @@ fn reject_missing_manifest() {
     let tmp = TempDir::new("discover-no-manifest");
     // 空目录 — 没有 plugin.json
     let empty_dir = tmp.path.join("empty-plugin");
-    std::fs::create_dir_all(&empty_dir).unwrap();
+    std::fs::create_dir_all(&empty_dir).expect("测试应成功");
 
     let result = load_manifest(&empty_dir);
     assert!(result.is_err(), "Expected error for missing manifest");
@@ -79,11 +79,11 @@ fn discover_multiple_plugins_from_same_fixture_dir() {
         "defaultEnabled": false
     }"#;
     let plugin_b_dir = tmp.path.join("plugin-b");
-    std::fs::create_dir_all(&plugin_b_dir).unwrap();
-    std::fs::write(plugin_b_dir.join("plugin.json"), plugin_b_json).unwrap();
+    std::fs::create_dir_all(&plugin_b_dir).expect("测试应成功");
+    std::fs::write(plugin_b_dir.join("plugin.json"), plugin_b_json).expect("测试应成功");
 
-    let a = load_manifest(&plugin_a).unwrap();
-    let b = load_manifest(&plugin_b_dir).unwrap();
+    let a = load_manifest(&plugin_a).expect("测试应成功");
+    let b = load_manifest(&plugin_b_dir).expect("测试应成功");
     assert_eq!(a.name, "plugin-a");
     assert_eq!(b.name, "plugin-b");
     assert_ne!(a.name, b.name);

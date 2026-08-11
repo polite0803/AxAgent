@@ -180,7 +180,9 @@ mod tests {
         assert!(detector.check_repeated_call("bash", "ls -la", 2).is_none());
 
         // 第三次触发告警
-        let alert = detector.check_repeated_call("bash", "ls -la", 3).unwrap();
+        let alert = detector
+            .check_repeated_call("bash", "ls -la", 3)
+            .expect("测试：check_repeated_call 应成功");
         assert_eq!(
             alert,
             CycleAlert::RepeatCall {
@@ -211,7 +213,7 @@ mod tests {
         // 第三步：仍无进展
         assert!(detector.check_state_convergence(1, Some("output1")).is_none());
         // 第四步：触发告警
-        let alert = detector.check_state_convergence(1, Some("output1")).unwrap();
+        let alert = detector.check_state_convergence(1, Some("output1")).expect("测试应成功");
         assert_eq!(alert, CycleAlert::NoProgress { stagnant_iterations: 3 });
     }
 

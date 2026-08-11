@@ -96,7 +96,8 @@ fn detect_mime_from_bytes(data: &[u8], fallback_ext: &str) -> String {
 }
 
 fn extract_absolute_paths(text: &str) -> Vec<String> {
-    let re = regex::Regex::new(r#"(?:(?:[A-Za-z]:[/\\])|/)[^\s"'<>\]\)}，。；：！？、]+"#).unwrap();
+    let re = regex::Regex::new(r#"(?:(?:[A-Za-z]:[/\\])|/)[^\s"'<>\]\)}，。；：！？、]+"#)
+        .expect("正则表达式：绝对路径模式");
     let mut seen = std::collections::HashSet::new();
     let mut paths = Vec::new();
     for cap in re.captures_iter(text) {

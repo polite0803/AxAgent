@@ -115,7 +115,7 @@ async fn with_retry_succeeds_on_first_attempt() {
     let policy = AgentRetryPolicy::new(3);
     let result = with_retry(&policy, || async { Ok::<_, &str>("success") }).await;
     assert!(result.is_ok());
-    assert_eq!(result.unwrap(), "success");
+    assert_eq!(result.expect("测试应成功"), "success");
 }
 
 #[tokio::test]

@@ -2159,7 +2159,7 @@ mod tests {
         let source = "line1\nline2\nline3\nMATCH\nline5\nline6\nline7";
         let result = extract_surrounding_lines(source, "MATCH", 2);
         assert!(result.is_some());
-        let result = result.unwrap();
+        let result = result.expect("测试应成功");
         assert!(result.contains("line2"));
         assert!(result.contains("line6"));
         assert!(!result.contains("line1"));
@@ -2209,7 +2209,7 @@ mod tests {
             overlap: 10,
             separator: None,
         };
-        let chunks = prepare_chunks("doc-1", &strategy).unwrap();
+        let chunks = prepare_chunks("doc-1", &strategy).expect("测试应成功");
         assert!(!chunks.is_empty());
         for (id, _content, index) in &chunks {
             assert!(id.starts_with("doc-1_"));
@@ -2225,14 +2225,14 @@ mod tests {
             overlap: 20,
             separator: None,
         };
-        let chunks = prepare_chunks("doc-1", &strategy).unwrap();
+        let chunks = prepare_chunks("doc-1", &strategy).expect("测试应成功");
         assert!(chunks.is_empty());
     }
 
     #[test]
     fn test_direct_chunk_strategy_returns_empty() {
         let strategy = ChunkStrategy::Direct;
-        let chunks = prepare_chunks("item-1", &strategy).unwrap();
+        let chunks = prepare_chunks("item-1", &strategy).expect("测试应成功");
         assert!(chunks.is_empty());
     }
 

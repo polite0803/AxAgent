@@ -364,8 +364,9 @@ mod tests {
             reasons: vec!["Cross-community connection".to_string()],
             dismissed: false,
         };
-        let json = serde_json::to_string(&conn).unwrap();
-        let deserialized: SurprisingConnection = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&conn).expect("测试：JSON序列化应成功");
+        let deserialized: SurprisingConnection =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.page_a, "a");
         assert_eq!(deserialized.surprise_score, 3.5);
         assert!(!deserialized.dismissed);
@@ -381,8 +382,9 @@ mod tests {
             community_id: None,
             suggested_action: "Link pages".to_string(),
         };
-        let json = serde_json::to_string(&gap).unwrap();
-        let deserialized: KnowledgeGap = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&gap).expect("测试：JSON序列化应成功");
+        let deserialized: KnowledgeGap =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.gap_type, GapType::IsolatedPages);
         assert!(deserialized.community_id.is_none());
     }
@@ -395,8 +397,9 @@ mod tests {
             connected_communities: vec![1, 2, 3],
             community_count: 3,
         };
-        let json = serde_json::to_string(&node).unwrap();
-        let deserialized: BridgeNode = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&node).expect("测试：JSON序列化应成功");
+        let deserialized: BridgeNode =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.community_count, 3);
         assert_eq!(deserialized.connected_communities.len(), 3);
     }
@@ -410,8 +413,9 @@ mod tests {
             avg_cohesion: 0.65,
             modularity: 0.42,
         };
-        let json = serde_json::to_string(&stats).unwrap();
-        let deserialized: GraphInsightStats = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&stats).expect("测试：JSON序列化应成功");
+        let deserialized: GraphInsightStats =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.total_pages, 100);
         assert_eq!(deserialized.total_edges, 250);
     }
@@ -431,8 +435,9 @@ mod tests {
                 modularity: 0.3,
             },
         };
-        let json = serde_json::to_string(&insights).unwrap();
-        let deserialized: GraphInsights = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&insights).expect("测试：JSON序列化应成功");
+        let deserialized: GraphInsights =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.isolated_pages.len(), 1);
         assert!(deserialized.surprising_connections.is_empty());
     }

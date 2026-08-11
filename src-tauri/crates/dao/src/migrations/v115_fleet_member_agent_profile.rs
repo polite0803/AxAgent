@@ -80,13 +80,13 @@ mod tests {
 
     #[tokio::test]
     async fn v115_adds_agent_profile_id_column() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
         // 先跑 v102 建 fleet_members 表
-        super::super::v102_create_fleets::up(db.clone()).await.unwrap();
+        super::super::v102_create_fleets::up(db.clone()).await.expect("测试：异步操作应成功");
         // 再跑 v115
-        up(db.clone()).await.unwrap();
+        up(db.clone()).await.expect("测试：异步操作应成功");
 
-        let cols = existing_columns(&db, "fleet_members").await.unwrap();
+        let cols = existing_columns(&db, "fleet_members").await.expect("测试：异步操作应成功");
         assert!(
             cols.iter().any(|c| c == "agent_profile_id"),
             "agent_profile_id column should exist"
@@ -95,9 +95,9 @@ mod tests {
 
     #[tokio::test]
     async fn v115_is_self_idempotent() {
-        let db = Database::connect("sqlite::memory:").await.unwrap();
-        super::super::v102_create_fleets::up(db.clone()).await.unwrap();
-        up(db.clone()).await.unwrap();
+        let db = Database::connect("sqlite::memory:").await.expect("测试：连接数据库应成功");
+        super::super::v102_create_fleets::up(db.clone()).await.expect("测试：异步操作应成功");
+        up(db.clone()).await.expect("测试：异步操作应成功");
         // 第二次跑：列已存在，应跳过 ALTER，不报错
         up(db).await.expect("v115 must be re-runnable in isolation");
     }

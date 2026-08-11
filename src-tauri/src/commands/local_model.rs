@@ -1119,7 +1119,7 @@ pub async fn local_model_download(
 
     // 任务已存在（同文件正在下载）→ 直接返回
     {
-        let tasks = DOWNLOAD_TASKS.lock().unwrap();
+        let tasks = DOWNLOAD_TASKS.lock().unwrap_or_else(|e| e.into_inner());
         if let Some(t) = tasks.get(&request.filename)
             && t.status == "downloading"
         {
@@ -1134,7 +1134,10 @@ pub async fn local_model_download(
         status: "downloading".to_string(),
         error: None,
     };
-    DOWNLOAD_TASKS.lock().unwrap().insert(request.filename.clone(), info.clone());
+    DOWNLOAD_TASKS
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .insert(request.filename.clone(), info.clone());
 
     let dl = ModelDownloader::with_cache_dir(dir.clone());
     let fname = request.filename.clone();
@@ -1159,7 +1162,7 @@ pub async fn local_model_download(
                 })),
             )
             .await;
-        let mut tasks = DOWNLOAD_TASKS.lock().unwrap();
+        let mut tasks = DOWNLOAD_TASKS.lock().unwrap_or_else(|e| e.into_inner());
         match result {
             Ok(path) => {
                 let t = tasks.entry(fname.clone()).or_insert_with(|| DownloadTaskInfo {
@@ -1195,7 +1198,7 @@ pub async fn local_model_download(
 #[agent_command(domain = model, safety = Safe, call_mode = StateOnly, description = "查询下载任务进度")]
 #[tauri::command]
 pub async fn local_model_download_progress() -> Result<Vec<DownloadTaskInfo>, String> {
-    let tasks = DOWNLOAD_TASKS.lock().unwrap();
+    let tasks = DOWNLOAD_TASKS.lock().unwrap_or_else(|e| e.into_inner());
     Ok(tasks.values().cloned().collect())
 }
 
@@ -1222,7 +1225,7 @@ pub async fn local_model_delete_local_model(
     if tmp.exists() {
         let _ = std::fs::remove_file(&tmp);
     }
-    DOWNLOAD_TASKS.lock().unwrap().remove(&filename);
+    DOWNLOAD_TASKS.lock().unwrap_or_else(|e| e.into_inner()).remove(&filename);
     Ok(())
 }
 
@@ -1436,7 +1439,7 @@ pub async fn local_model_install_server(
 ) -> Result<LlamaCppInstallStatus, String> {
     // 检查是否正在安装
     {
-        let tasks = INSTALL_TASKS.lock().unwrap();
+        let tasks = INSTALL_TASKS.lock().unwrap_or_else(|e| e.into_inner());
         if let Some(task) = tasks.get("current") {
             if !task.tag.is_empty() {
                 return Err(ErrorResponse::err(lm_err::INSTALL_IN_PROGRESS));
@@ -1461,7 +1464,7 @@ pub async fn local_model_install_server(
         downloaded_bytes: AtomicU64::new(0),
         total_bytes: AtomicU64::new(0),
     };
-    INSTALL_TASKS.lock().unwrap().insert("current".to_string(), task);
+    INSTALL_TASKS.lock().unwrap_or_else(|e| e.into_inner()).insert("current".to_string(), task);
 
     let install_dir_clone = install_dir.clone();
     let tag_clone = tag.clone();
@@ -1484,7 +1487,7 @@ pub async fn local_model_install_server(
 
             let total_size = resp.content_length().unwrap_or(0);
             {
-                let tasks = INSTALL_TASKS.lock().unwrap();
+                let tasks = INSTALL_TASKS.lock().unwrap_or_else(|e| e.into_inner());
                 if let Some(task) = tasks.get("current") {
                     task.total_bytes.store(total_size, Ordering::Relaxed);
                 }
@@ -1502,7 +1505,7 @@ pub async fn local_model_install_server(
                 file.write_all(&chunk).map_err(|e| format!("写入下载文件失败: {e}"))?;
                 downloaded += chunk.len() as u64;
                 {
-                    let tasks = INSTALL_TASKS.lock().unwrap();
+                    let tasks = INSTALL_TASKS.lock().unwrap_or_else(|e| e.into_inner());
                     if let Some(task) = tasks.get("current") {
                         task.downloaded_bytes.store(downloaded, Ordering::Relaxed);
                     }
@@ -1555,7 +1558,7 @@ pub async fn local_model_install_server(
 
         // 清理安装任务
         {
-            let mut tasks = INSTALL_TASKS.lock().unwrap();
+            let mut tasks = INSTALL_TASKS.lock().unwrap_or_else(|e| e.into_inner());
             tasks.remove("current");
         }
 
@@ -1602,7 +1605,7 @@ pub async fn local_model_get_install_status(
 
     // 检查下载进度
     let (is_downloading, progress, error) = {
-        let tasks = INSTALL_TASKS.lock().unwrap();
+        let tasks = INSTALL_TASKS.lock().unwrap_or_else(|e| e.into_inner());
         if let Some(task) = tasks.get("current") {
             let downloaded = task.downloaded_bytes.load(Ordering::Relaxed);
             let total = task.total_bytes.load(Ordering::Relaxed);

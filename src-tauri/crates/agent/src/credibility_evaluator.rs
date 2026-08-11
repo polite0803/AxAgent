@@ -542,8 +542,9 @@ mod tests {
     #[test]
     fn test_credibility_score_serialization() {
         let score = CredibilityScore::new(0.8, 0.7, 0.6, 0.5);
-        let json = serde_json::to_string(&score).unwrap();
-        let deserialized: CredibilityScore = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&score).expect("测试：JSON序列化应成功");
+        let deserialized: CredibilityScore =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized, score);
     }
 
@@ -860,8 +861,9 @@ mod tests {
             score: 0.85,
             reasoning: "High authority source".to_string(),
         };
-        let json = serde_json::to_string(&factor).unwrap();
-        let deserialized: CredibilityFactor = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&factor).expect("测试：JSON序列化应成功");
+        let deserialized: CredibilityFactor =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.dimension, FactorDimension::Authority);
         assert!((deserialized.score - 0.85).abs() < f32::EPSILON);
     }
@@ -877,8 +879,9 @@ mod tests {
             assessed_at: Utc::now(),
             factors: vec![],
         };
-        let json = serde_json::to_string(&assessment).unwrap();
-        let deserialized: CredibilityAssessment = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&assessment).expect("测试：JSON序列化应成功");
+        let deserialized: CredibilityAssessment =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(deserialized.source_url, "https://example.com");
     }
 }

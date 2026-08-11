@@ -463,8 +463,8 @@ mod tests {
             weighted_score: 0.54,
             passed: true,
         };
-        let json = serde_json::to_string(&score).unwrap();
-        let de: EvaluationScore = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&score).expect("测试：JSON序列化应成功");
+        let de: EvaluationScore = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert!((de.raw_score - 0.9).abs() < 0.001);
         assert!(de.passed);
     }

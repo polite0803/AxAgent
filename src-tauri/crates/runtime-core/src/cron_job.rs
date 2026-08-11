@@ -208,8 +208,9 @@ fn calculate_next_run(schedule: &str, now_ms: i64) -> Option<i64> {
         let target_sec = hour * 3600 + minute * 60;
         let day_sec = 86400;
         let current_day_sec = {
-            let dt = chrono::DateTime::from_timestamp(now_sec, 0)
-                .unwrap_or_else(|| chrono::DateTime::from_timestamp(0, 0).unwrap());
+            let dt = chrono::DateTime::from_timestamp(now_sec, 0).unwrap_or_else(|| {
+                chrono::DateTime::from_timestamp(0, 0).expect("Cron：Unix epoch 0 应始终有效")
+            });
             (dt.hour() as i64) * 3600 + (dt.minute() as i64) * 60
         };
 

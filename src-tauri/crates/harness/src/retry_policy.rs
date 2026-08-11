@@ -457,7 +457,7 @@ mod tests {
         let policy = RetryPolicy::default_llm();
         let result: Result<i32, RetryError> =
             policy.execute_with_retry(|| async { Ok::<i32, String>(42) }).await;
-        assert_eq!(result.unwrap(), 42);
+        assert_eq!(result.expect("测试应成功"), 42);
     }
 
     #[tokio::test]

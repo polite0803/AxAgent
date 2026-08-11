@@ -253,7 +253,7 @@ mod tests {
 
         let conn = engine.find_bidirectional_connection(&graph, "a", "b", &source_map);
         assert!(conn.is_some());
-        let conn = conn.unwrap();
+        let conn = conn.expect("测试应成功");
         assert_eq!(conn.source, "a");
         assert_eq!(conn.target, "b");
     }

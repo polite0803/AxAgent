@@ -647,7 +647,7 @@ mod tests {
                 make_node("n2", NodeStatus::Completed, 1, 200),
             ],
         );
-        let reflection = r.reflect(&record).await.unwrap();
+        let reflection = r.reflect(&record).await.expect("测试：异步操作应成功");
         assert!(
             reflection.quality_score >= 8,
             "expected high quality, got {}",
@@ -669,7 +669,7 @@ mod tests {
                 },
             ],
         );
-        let reflection = r.reflect(&record).await.unwrap();
+        let reflection = r.reflect(&record).await.expect("测试：异步操作应成功");
         assert!(
             reflection.quality_score <= 5,
             "expected low quality, got {}",
@@ -695,7 +695,7 @@ mod tests {
             completed_at: Some(100),
             sub_workflow_id: None,
         };
-        let reflection = r.reflect_node(&record, &failed_node).await.unwrap();
+        let reflection = r.reflect_node(&record, &failed_node).await.expect("测试：异步操作应成功");
         assert!(reflection.quality_score <= 4);
     }
 
@@ -706,8 +706,8 @@ mod tests {
             WorkflowRunStatus::Completed,
             vec![make_node("n1", NodeStatus::Completed, 1, 100)],
         );
-        r.reflect(&record).await.unwrap();
-        let history = r.get_history("wf-1", 10).await.unwrap();
+        r.reflect(&record).await.expect("测试：异步操作应成功");
+        let history = r.get_history("wf-1", 10).await.expect("测试：异步操作应成功");
         assert_eq!(history.len(), 1);
         assert!(history[0].metadata.is_some());
     }
@@ -725,7 +725,7 @@ mod tests {
                 vec![make_node("n1", NodeStatus::Completed, 1, 100)],
             ),
         ];
-        let patterns = r.aggregate_patterns(&records).await.unwrap();
+        let patterns = r.aggregate_patterns(&records).await.expect("测试：异步操作应成功");
         assert!(!patterns.is_empty());
         assert_eq!(patterns[0].frequency, 2);
     }

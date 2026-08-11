@@ -800,11 +800,14 @@ mod tests {
     #[tokio::test]
     async fn test_execute_subgraph_with_mock_dispatcher() {
         let executor = OrchestratorExecutor::new().with_dispatcher(Arc::new(MockDispatcher));
-        executor.receive_mission("Quick fix", OrchestrationStrategy::Ordered).await.unwrap();
-        executor.generate_subgraph().await.unwrap();
+        executor
+            .receive_mission("Quick fix", OrchestrationStrategy::Ordered)
+            .await
+            .expect("测试：异步操作应成功");
+        executor.generate_subgraph().await.expect("测试：异步操作应成功");
 
         // 执行后所有 SubTask 应该都成功完成
-        let final_plan = executor.execute_subgraph().await.unwrap();
+        let final_plan = executor.execute_subgraph().await.expect("测试：异步操作应成功");
         assert!(final_plan.is_some(), "execute_subgraph should return final plan");
 
         let state = executor.current_state().await;
@@ -814,7 +817,10 @@ mod tests {
     #[tokio::test]
     async fn test_execute_subgraph_without_dispatcher_errors() {
         let executor = OrchestratorExecutor::new();
-        executor.receive_mission("Quick fix", OrchestrationStrategy::Ordered).await.unwrap();
+        executor
+            .receive_mission("Quick fix", OrchestrationStrategy::Ordered)
+            .await
+            .expect("测试：异步操作应成功");
 
         let result = executor.execute_subgraph().await;
         assert!(result.is_err());
@@ -827,7 +833,7 @@ mod tests {
         let plan = executor
             .receive_mission("Implement user authentication", OrchestrationStrategy::Ordered)
             .await
-            .unwrap();
+            .expect("测试应成功");
 
         assert_eq!(plan.sub_tasks.len(), 3); // Default pattern
         assert!(plan.sub_tasks[0].dependencies.is_empty()); // analyze has no deps
@@ -840,7 +846,7 @@ mod tests {
         let plan = executor
             .receive_mission("Refactor the database layer", OrchestrationStrategy::Ordered)
             .await
-            .unwrap();
+            .expect("测试应成功");
 
         assert_eq!(plan.sub_tasks.len(), 4); // Refactor pattern
         assert_eq!(plan.sub_tasks[1].role, "planner");
@@ -850,9 +856,12 @@ mod tests {
     #[tokio::test]
     async fn test_generate_subgraph() {
         let executor = OrchestratorExecutor::new();
-        executor.receive_mission("Fix login bug", OrchestrationStrategy::Ordered).await.unwrap();
+        executor
+            .receive_mission("Fix login bug", OrchestrationStrategy::Ordered)
+            .await
+            .expect("测试：异步操作应成功");
 
-        let graph = executor.generate_subgraph().await.unwrap();
+        let graph = executor.generate_subgraph().await.expect("测试：异步操作应成功");
         assert_eq!(graph.nodes.len(), 3);
         // Should have 2 edges (analyze→implement, implement→review)
         assert!(graph.edges.len() >= 2);
@@ -861,17 +870,27 @@ mod tests {
     #[tokio::test]
     async fn test_report_completed_and_terminal() {
         let executor = OrchestratorExecutor::new();
-        executor.receive_mission("Quick fix", OrchestrationStrategy::Ordered).await.unwrap();
+        executor
+            .receive_mission("Quick fix", OrchestrationStrategy::Ordered)
+            .await
+            .expect("测试：异步操作应成功");
 
         // Complete first two
-        let result = executor.report_sub_task_completed("analyze", None).await.unwrap();
+        let result = executor
+            .report_sub_task_completed("analyze", None)
+            .await
+            .expect("测试：异步操作应成功");
         assert!(result.is_none()); // Not terminal yet
 
-        let result = executor.report_sub_task_completed("implement", None).await.unwrap();
+        let result = executor
+            .report_sub_task_completed("implement", None)
+            .await
+            .expect("测试：异步操作应成功");
         assert!(result.is_none()); // Still not terminal
 
         // Complete last
-        let result = executor.report_sub_task_completed("review", None).await.unwrap();
+        let result =
+            executor.report_sub_task_completed("review", None).await.expect("测试：异步操作应成功");
         assert!(result.is_none()); // Terminal but no failures
 
         let state = executor.current_state().await;
@@ -881,25 +900,31 @@ mod tests {
     #[tokio::test]
     async fn test_replan_on_failure() {
         let executor = OrchestratorExecutor::new();
-        let plan =
-            executor.receive_mission("Quick fix", OrchestrationStrategy::Ordered).await.unwrap();
+        let plan = executor
+            .receive_mission("Quick fix", OrchestrationStrategy::Ordered)
+            .await
+            .expect("测试：异步操作应成功");
 
         // Collect actual sub-task IDs from the plan
         let all_ids: Vec<String> = plan.sub_tasks.iter().map(|st| st.id.clone()).collect();
 
         // Fail ALL sub-tasks so the plan becomes terminal
         for id in &all_ids {
-            executor.update_sub_task_status(id, SubTaskStatus::Failed).await.unwrap();
+            executor
+                .update_sub_task_status(id, SubTaskStatus::Failed)
+                .await
+                .expect("测试：异步操作应成功");
         }
 
         // Trigger replan — plan is terminal with failures
-        let result = executor.monitor_and_maybe_replan().await.unwrap();
+        let result = executor.monitor_and_maybe_replan().await.expect("测试：异步操作应成功");
 
         // Should trigger replan since all terminal with failures
         assert!(result.is_some());
-        let new_plan = result.unwrap();
+        let new_plan = result.expect("测试应成功");
         // Failed analyze should be reset to pending
-        let retried = new_plan.sub_tasks.iter().find(|st| st.id == "analyze").unwrap();
+        let retried =
+            new_plan.sub_tasks.iter().find(|st| st.id == "analyze").expect("测试：查找应成功");
         assert_eq!(retried.status, SubTaskStatus::Pending);
         assert_eq!(retried.attempts, 1);
 
@@ -913,7 +938,7 @@ mod tests {
         let plan = executor
             .receive_mission("Impossible task", OrchestrationStrategy::Ordered)
             .await
-            .unwrap();
+            .expect("测试应成功");
 
         let max_replans = plan.max_replans;
 
@@ -924,7 +949,10 @@ mod tests {
         for _round in 0..=max_replans {
             // Fail all sub-tasks to make the plan terminal
             for id in &all_ids {
-                executor.update_sub_task_status(id, SubTaskStatus::Failed).await.unwrap();
+                executor
+                    .update_sub_task_status(id, SubTaskStatus::Failed)
+                    .await
+                    .expect("测试：异步操作应成功");
             }
 
             // Trigger replan check. The first max_replans rounds succeed

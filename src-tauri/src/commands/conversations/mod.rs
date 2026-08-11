@@ -2804,11 +2804,11 @@ pub(crate) fn apply_rag_token_budget(context_parts: &[String], budget: usize) ->
 pub(crate) fn build_message_content_turns_images_into_multipart_data_urls() {
     let temp_dir =
         std::env::temp_dir().join(format!("axagent-vision-test-{}", axagent_kit::utils::gen_id()));
-    fs::create_dir_all(&temp_dir).unwrap();
+    fs::create_dir_all(&temp_dir).expect("测试应成功");
 
     let result = {
         let file_store = axagent_storage::file_store::FileStore::with_root(temp_dir.clone());
-        let saved = file_store.save_file(b"abc", "image.png", "image/png").unwrap();
+        let saved = file_store.save_file(b"abc", "image.png", "image/png").expect("测试应成功");
         let message = Message {
             id: "msg-1".into(),
             conversation_id: "conv-1".into(),
@@ -2844,10 +2844,10 @@ pub(crate) fn build_message_content_turns_images_into_multipart_data_urls() {
             quoted_message_id: None,
         };
 
-        build_message_content(&file_store, &message).unwrap()
+        build_message_content(&file_store, &message).expect("测试应成功")
     };
 
-    fs::remove_dir_all(&temp_dir).unwrap();
+    fs::remove_dir_all(&temp_dir).expect("测试应成功");
 
     match result {
         ChatContent::Multipart(parts) => {
@@ -2866,7 +2866,7 @@ pub(crate) fn build_message_content_turns_images_into_multipart_data_urls() {
 pub(crate) fn build_message_content_uses_inline_attachment_data_when_file_path_is_missing() {
     let temp_dir =
         std::env::temp_dir().join(format!("axagent-vision-test-{}", axagent_kit::utils::gen_id()));
-    fs::create_dir_all(&temp_dir).unwrap();
+    fs::create_dir_all(&temp_dir).expect("测试应成功");
 
     let result = {
         let file_store = axagent_storage::file_store::FileStore::with_root(temp_dir.clone());
@@ -2905,10 +2905,10 @@ pub(crate) fn build_message_content_uses_inline_attachment_data_when_file_path_i
             quoted_message_id: None,
         };
 
-        build_message_content(&file_store, &message).unwrap()
+        build_message_content(&file_store, &message).expect("测试应成功")
     };
 
-    fs::remove_dir_all(&temp_dir).unwrap();
+    fs::remove_dir_all(&temp_dir).expect("测试应成功");
 
     match result {
         ChatContent::Multipart(parts) => {
@@ -2923,10 +2923,10 @@ pub(crate) fn build_message_content_uses_inline_attachment_data_when_file_path_i
 
 #[tokio::test]
 async fn delete_conversation_removes_attached_files_and_records() {
-    let db = axagent_dao::db::create_test_pool().await.unwrap().conn;
+    let db = axagent_dao::db::create_test_pool().await.expect("测试应成功").conn;
     let temp_dir = std::env::temp_dir()
         .join(format!("axagent-conv-delete-test-{}", axagent_kit::utils::gen_id()));
-    fs::create_dir_all(&temp_dir).unwrap();
+    fs::create_dir_all(&temp_dir).expect("测试应成功");
 
     let conversation = axagent_dao::repo::conversation::create_conversation(
         &db,
@@ -2936,10 +2936,11 @@ async fn delete_conversation_removes_attached_files_and_records() {
         None,
     )
     .await
-    .unwrap();
+    .expect("测试应成功");
 
     let file_store = axagent_storage::file_store::FileStore::with_root(temp_dir.clone());
-    let saved = file_store.save_file(b"cleanup me", "cleanup.png", "image/png").unwrap();
+    let saved =
+        file_store.save_file(b"cleanup me", "cleanup.png", "image/png").expect("测试应成功");
     let physical_path = temp_dir.join(&saved.storage_path);
     assert!(physical_path.exists(), "fixture file must exist before deleting the conversation");
 
@@ -2954,7 +2955,7 @@ async fn delete_conversation_removes_attached_files_and_records() {
         Some(&conversation.id),
     )
     .await
-    .unwrap();
+    .expect("测试应成功");
 
     let result =
         delete_conversation_with_attachments_using(&db, &file_store, &conversation.id).await;
@@ -2969,7 +2970,7 @@ async fn delete_conversation_removes_attached_files_and_records() {
     assert!(
         axagent_dao::repo::stored_file::list_stored_files_by_conversation(&db, &conversation.id)
             .await
-            .unwrap()
+            .expect("测试应成功")
             .is_empty(),
         "conversation attachments must be removed from the database"
     );
@@ -2986,7 +2987,7 @@ async fn delete_conversation_removes_attached_files_and_records() {
 pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() {
     use base64::Engine;
 
-    let db = axagent_dao::db::create_test_pool().await.unwrap().conn;
+    let db = axagent_dao::db::create_test_pool().await.expect("测试：创建连接池应成功").conn;
     let temp_dir = std::env::temp_dir()
         .join(format!("axagent-persist-attachments-test-{}", axagent_kit::utils::gen_id()));
     fs::create_dir_all(&temp_dir).unwrap();
@@ -2998,7 +2999,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         None,
     )
     .await
-    .unwrap();
+    .expect("测试：创建会话应成功");
 
     let vector_store = Arc::new(axagent_search::vector_store::VectorStore::new(db.clone()));
     let memory_service = {
@@ -3422,7 +3423,9 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
 
     axagent_storage::storage_paths::set_documents_root(temp_dir.clone());
 
-    let persisted = persist_attachments(&state, &conversation.id, &attachments).await.unwrap();
+    let persisted = persist_attachments(&state, &conversation.id, &attachments)
+        .await
+        .expect("测试：持久化附件应成功");
     assert_eq!(persisted.len(), 1);
     assert!(
         persisted[0].file_path.starts_with("images/"),
@@ -3430,7 +3433,9 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         persisted[0].file_path
     );
 
-    let stored_files = axagent_dao::repo::stored_file::list_all_stored_files(&db).await.unwrap();
+    let stored_files = axagent_dao::repo::stored_file::list_all_stored_files(&db)
+        .await
+        .expect("测试：列出存储文件应成功");
     assert_eq!(
         stored_files.len(),
         1,

@@ -518,7 +518,7 @@ mod tests {
     #[test]
     fn test_error_serialization() {
         let err = AxAgentError::Validation("Field is required".to_string());
-        let json = serde_json::to_string(&err).unwrap();
+        let json = serde_json::to_string(&err).expect("测试：JSON序列化应成功");
         assert!(json.contains("Validation"));
     }
 

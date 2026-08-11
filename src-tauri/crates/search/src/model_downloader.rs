@@ -470,7 +470,7 @@ mod tests {
 
     #[test]
     fn test_list_all_models_shows_all() {
-        let tmp = TempDir::new().unwrap();
+        let tmp = TempDir::new().expect("测试：new 应成功");
         let dl = ModelDownloader::with_cache_dir(tmp.path().to_path_buf());
         let models = dl.list_all_models();
         assert_eq!(models.len(), 4);
@@ -485,7 +485,7 @@ mod tests {
         // 按文件名查找 sparse encoder 预设（注册式查找，非硬编码路径）
         let m = ModelDownloader::find_preset("bge-m3-sparse.Q4_K_M.gguf");
         assert!(m.is_some());
-        assert_eq!(m.unwrap().model_type, PresetModelType::SparseEncoder);
+        assert_eq!(m.expect("测试应成功").model_type, PresetModelType::SparseEncoder);
     }
 
     #[test]
@@ -495,7 +495,7 @@ mod tests {
 
     #[test]
     fn test_remove_nonexistent_model() {
-        let tmp = TempDir::new().unwrap();
+        let tmp = TempDir::new().expect("测试：new 应成功");
         let dl = ModelDownloader::with_cache_dir(tmp.path().to_path_buf());
         let result = dl.remove_model("nonexistent.gguf");
         assert!(result.is_ok());
@@ -504,11 +504,11 @@ mod tests {
     #[test]
     fn test_sha256_file() {
         use std::io::Write;
-        let tmp = TempDir::new().unwrap();
+        let tmp = TempDir::new().expect("测试：new 应成功");
         let path = tmp.path().join("test.bin");
-        let mut f = std::fs::File::create(&path).unwrap();
-        f.write_all(b"hello world").unwrap();
-        let hash = ModelDownloader::sha256_file(&path).unwrap();
+        let mut f = std::fs::File::create(&path).expect("测试应成功");
+        f.write_all(b"hello world").expect("测试：write_all 应成功");
+        let hash = ModelDownloader::sha256_file(&path).expect("测试：sha256_file 应成功");
         assert_eq!(hash, "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9");
     }
 }

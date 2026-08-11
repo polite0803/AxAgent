@@ -448,7 +448,8 @@ mod tests {
 
         assert_eq!(provider.cached_knowledge_count().await, 1);
 
-        let cached = provider.knowledge_cache.read().await.get("k1").cloned().unwrap();
+        let cached =
+            provider.knowledge_cache.read().await.get("k1").cloned().expect("测试：cloned 应成功");
         assert_eq!(cached.content, "Pattern A");
     }
 
@@ -474,7 +475,13 @@ mod tests {
 
         assert_eq!(provider.cached_suggestions_count().await, 1);
 
-        let cached = provider.suggestions_cache.read().await.get("sug1").cloned().unwrap();
+        let cached = provider
+            .suggestions_cache
+            .read()
+            .await
+            .get("sug1")
+            .cloned()
+            .expect("测试：cloned 应成功");
         assert_eq!(cached.content, "Improve X");
     }
 
@@ -509,18 +516,24 @@ mod tests {
             cache.insert(k2.id.clone(), k2);
         }
 
-        let tool_knowledge: Vec<DistilledKnowledge> =
-            provider.fetch_existing_knowledge(&KnowledgeType::ToolUsagePattern).await.unwrap();
+        let tool_knowledge: Vec<DistilledKnowledge> = provider
+            .fetch_existing_knowledge(&KnowledgeType::ToolUsagePattern)
+            .await
+            .expect("测试：异步操作应成功");
         assert_eq!(tool_knowledge.len(), 1);
         assert_eq!(tool_knowledge[0].id, "k1");
 
-        let reasoning_knowledge: Vec<DistilledKnowledge> =
-            provider.fetch_existing_knowledge(&KnowledgeType::ReasoningStrategy).await.unwrap();
+        let reasoning_knowledge: Vec<DistilledKnowledge> = provider
+            .fetch_existing_knowledge(&KnowledgeType::ReasoningStrategy)
+            .await
+            .expect("测试：异步操作应成功");
         assert_eq!(reasoning_knowledge.len(), 1);
         assert_eq!(reasoning_knowledge[0].id, "k2");
 
-        let error_knowledge: Vec<DistilledKnowledge> =
-            provider.fetch_existing_knowledge(&KnowledgeType::ErrorRecovery).await.unwrap();
+        let error_knowledge: Vec<DistilledKnowledge> = provider
+            .fetch_existing_knowledge(&KnowledgeType::ErrorRecovery)
+            .await
+            .expect("测试：异步操作应成功");
         assert!(error_knowledge.is_empty());
     }
 
@@ -539,7 +552,7 @@ mod tests {
             created_at: Utc::now(),
         };
 
-        provider.store_suggestion(&suggestion).await.unwrap();
+        provider.store_suggestion(&suggestion).await.expect("测试：异步操作应成功");
 
         assert_eq!(provider.cached_suggestions_count().await, 1);
     }
@@ -611,7 +624,7 @@ mod tests {
         });
         let summary = build_reasoning_summary(&traj);
         let parts: Vec<&str> = summary.split(" | ").collect();
-        let last_part = parts.last().unwrap();
+        let last_part = parts.last().expect("测试：last 应成功");
         assert!(last_part.len() <= 200);
     }
 

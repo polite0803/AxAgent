@@ -347,7 +347,7 @@ mod tests {
         ttc.extend_from_slice(&1u32.to_be_bytes()); // numFonts
         ttc.extend_from_slice(&16u32.to_be_bytes()); // first offset
         ttc.extend_from_slice(b"OTTO\x00\x01"); // fake TTF data
-        let out = extract_first_ttf_from_ttc(&ttc).unwrap();
+        let out = extract_first_ttf_from_ttc(&ttc).expect("测试应成功");
         assert_eq!(out, b"OTTO\x00\x01");
     }
 

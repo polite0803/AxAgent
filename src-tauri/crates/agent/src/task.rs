@@ -643,7 +643,7 @@ mod tests {
         if let Some(task) = graph.get_task_mut("t1") {
             task.start();
         }
-        assert_eq!(graph.get_task("t1").unwrap().status, AgentTaskStatus::Running);
+        assert_eq!(graph.get_task("t1").expect("测试应成功").status, AgentTaskStatus::Running);
     }
 
     #[test]
@@ -731,7 +731,7 @@ mod tests {
             TaskNode::new("t2", "Task 2", TaskType::Reasoning)
                 .with_dependencies(vec!["t1".to_string()]),
         );
-        let result = graph.topological_sort().unwrap();
+        let result = graph.topological_sort().expect("测试：topological_sort 应成功");
         assert_eq!(result.len(), 2);
         assert!(result[0].contains(&"t1".to_string()));
         assert!(result[1].contains(&"t2".to_string()));
@@ -860,7 +860,7 @@ mod tests {
         graph.add_task(t1);
         assert!(!graph.is_completed("t1"), "严格语义下 Skipped 不算完成");
         // 宽松语义仍可由 TaskNode::is_complete() 体现
-        assert!(graph.get_task("t1").unwrap().is_complete());
+        assert!(graph.get_task("t1").expect("测试：get_task 应成功").is_complete());
     }
 
     /// DependencyPolicy::Complete：仅 Completed 视为依赖满足。
@@ -985,7 +985,7 @@ mod tests {
             }
             graph.add_task(node);
         }
-        let result = graph.topological_sort().unwrap();
+        let result = graph.topological_sort().expect("测试：topological_sort 应成功");
         assert_eq!(result.len(), 100);
         assert_eq!(result[0], vec!["t0".to_string()]);
         assert_eq!(result[99], vec!["t99".to_string()]);

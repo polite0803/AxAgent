@@ -57,13 +57,13 @@ mod tests {
 
     #[test]
     fn test_scan_empty_storage() {
-        let tmp = tempfile::tempdir().unwrap();
+        let tmp = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let images = tmp.path().join("images");
         let files = tmp.path().join("files");
         let backups = tmp.path().join("backups");
-        fs::create_dir_all(&images).unwrap();
-        fs::create_dir_all(&files).unwrap();
-        fs::create_dir_all(&backups).unwrap();
+        fs::create_dir_all(&images).expect("测试：创建目录应成功");
+        fs::create_dir_all(&files).expect("测试：创建目录应成功");
+        fs::create_dir_all(&backups).expect("测试：创建目录应成功");
 
         for name in &["images", "files", "backups"] {
             let (count, bytes) = count_dir_contents(&tmp.path().join(name));
@@ -74,13 +74,13 @@ mod tests {
 
     #[test]
     fn test_scan_with_files() {
-        let tmp = tempfile::tempdir().unwrap();
+        let tmp = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let images = tmp.path().join("images");
-        fs::create_dir_all(&images).unwrap();
+        fs::create_dir_all(&images).expect("测试：创建目录应成功");
 
         // Write two files of known sizes
-        fs::write(images.join("a.png"), vec![0u8; 1024]).unwrap();
-        fs::write(images.join("b.jpg"), vec![0u8; 2048]).unwrap();
+        fs::write(images.join("a.png"), vec![0u8; 1024]).expect("测试应成功");
+        fs::write(images.join("b.jpg"), vec![0u8; 2048]).expect("测试应成功");
 
         let (count, bytes) = count_dir_contents(&images);
         assert_eq!(count, 2);
@@ -89,7 +89,7 @@ mod tests {
 
     #[test]
     fn test_count_dir_nonexistent() {
-        let tmp = tempfile::tempdir().unwrap();
+        let tmp = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let missing = tmp.path().join("nonexistent");
         let (count, bytes) = count_dir_contents(&missing);
         assert_eq!(count, 0);
@@ -98,10 +98,10 @@ mod tests {
 
     #[test]
     fn test_count_dir_skips_subdirectories() {
-        let tmp = tempfile::tempdir().unwrap();
+        let tmp = tempfile::tempdir().expect("测试：创建临时目录应成功");
         let dir = tmp.path().join("mixed");
-        fs::create_dir_all(dir.join("subdir")).unwrap();
-        fs::write(dir.join("file.txt"), vec![0u8; 512]).unwrap();
+        fs::create_dir_all(dir.join("subdir")).expect("测试应成功");
+        fs::write(dir.join("file.txt"), vec![0u8; 512]).expect("测试应成功");
 
         let (count, bytes) = count_dir_contents(&dir);
         assert_eq!(count, 1, "should only count files, not subdirs");

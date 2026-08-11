@@ -243,7 +243,7 @@ mod tests {
         let created = store.create_policy(policy).await;
 
         assert!(!created.id.is_empty());
-        let fetched = store.get_policy(&created.id).await.unwrap();
+        let fetched = store.get_policy(&created.id).await.expect("测试：异步操作应成功");
         assert_eq!(fetched.name, "默认策略");
     }
 
@@ -259,7 +259,7 @@ mod tests {
                 SyncPolicyUpdate { name: Some("新名称".to_string()), ..Default::default() },
             )
             .await
-            .unwrap();
+            .expect("测试应成功");
 
         assert_eq!(updated.name, "新名称");
     }
@@ -270,7 +270,7 @@ mod tests {
         let policy = PolicyStore::default_policy();
         let created = store.create_policy(policy).await;
 
-        store.delete_policy(&created.id).await.unwrap();
+        store.delete_policy(&created.id).await.expect("测试：异步操作应成功");
         assert!(store.get_policy(&created.id).await.is_none());
     }
 
@@ -282,7 +282,7 @@ mod tests {
         let policy = PolicyStore::default_policy();
         let created = store.create_policy(policy).await;
 
-        let fetched = store.get_policy(&created.id).await.unwrap();
+        let fetched = store.get_policy(&created.id).await.expect("测试：异步操作应成功");
         assert_eq!(fetched.name, "默认策略");
 
         let all = store.list_policies().await;

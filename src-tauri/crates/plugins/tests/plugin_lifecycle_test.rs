@@ -54,7 +54,7 @@ fn lifecycle_load_enable_disable_unload() {
 
     // 1. Load manifest from fixture
     let plugin_dir = tmp.write_plugin_json(&minimal_plugin_json("full-lifecycle", "1.0.0"));
-    let manifest = load_plugin_from_directory(&plugin_dir).unwrap();
+    let manifest = load_plugin_from_directory(&plugin_dir).expect("测试应成功");
     assert_eq!(manifest.name, "full-lifecycle");
 
     // 2. Simulate enable

@@ -397,9 +397,12 @@ mod tests {
     #[test]
     fn extract_client_ip_prefers_xff() {
         let mut req = Request::new(Body::empty());
-        req.headers_mut().insert("x-forwarded-for", "203.0.113.1, 10.0.0.1".parse().unwrap());
+        req.headers_mut().insert(
+            "x-forwarded-for",
+            "203.0.113.1, 10.0.0.1".parse().expect("测试：插入操作应成功"),
+        );
         // peer 是 trusted proxy 时才解析 XFF
-        let addr: SocketAddr = "10.0.0.1:54321".parse().unwrap();
+        let addr: SocketAddr = "10.0.0.1:54321".parse().expect("测试应成功");
         let policy = ClientIpPolicy::trust_all();
         let ip = extract_client_ip(&req, Some(addr), &policy);
         assert_eq!(ip, "203.0.113.1");
@@ -408,8 +411,8 @@ mod tests {
     #[test]
     fn extract_client_ip_falls_back_to_x_real_ip() {
         let mut req = Request::new(Body::empty());
-        req.headers_mut().insert("x-real-ip", "203.0.113.2".parse().unwrap());
-        let addr: SocketAddr = "10.0.0.1:54321".parse().unwrap();
+        req.headers_mut().insert("x-real-ip", "203.0.113.2".parse().expect("测试：插入操作应成功"));
+        let addr: SocketAddr = "10.0.0.1:54321".parse().expect("测试应成功");
         let policy = ClientIpPolicy::trust_all();
         let ip = extract_client_ip(&req, Some(addr), &policy);
         assert_eq!(ip, "203.0.113.2");
@@ -418,7 +421,7 @@ mod tests {
     #[test]
     fn extract_client_ip_falls_back_to_peer() {
         let req = Request::new(Body::empty());
-        let addr: SocketAddr = "10.0.0.5:54321".parse().unwrap();
+        let addr: SocketAddr = "10.0.0.5:54321".parse().expect("测试应成功");
         let policy = ClientIpPolicy::default();
         let ip = extract_client_ip(&req, Some(addr), &policy);
         assert_eq!(ip, "10.0.0.5");
@@ -437,8 +440,9 @@ mod tests {
         // P1-7: 关键安全测试 —— 攻击者伪造 XFF，peer 不是 trusted proxy
         // 时必须忽略 header，否则 per-IP 限流形同虚设。
         let mut req = Request::new(Body::empty());
-        req.headers_mut().insert("x-forwarded-for", "1.2.3.4".parse().unwrap());
-        let addr: SocketAddr = "203.0.113.99:54321".parse().unwrap();
+        req.headers_mut()
+            .insert("x-forwarded-for", "1.2.3.4".parse().expect("测试：插入操作应成功"));
+        let addr: SocketAddr = "203.0.113.99:54321".parse().expect("测试应成功");
         let policy = ClientIpPolicy::default(); // 没有任何 trusted proxy
         let ip = extract_client_ip(&req, Some(addr), &policy);
         // 必须用 peer IP 而不是 1.2.3.4

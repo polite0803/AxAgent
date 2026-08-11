@@ -500,7 +500,7 @@ mod tests {
         }]);
 
         assert_eq!(
-            serde_json::to_value(&contents[0]).unwrap(),
+            serde_json::to_value(&contents[0]).expect("测试应成功"),
             json!({
                 "role": "user",
                 "parts": [

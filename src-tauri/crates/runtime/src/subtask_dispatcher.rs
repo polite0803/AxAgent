@@ -136,7 +136,7 @@ mod tests {
     #[tokio::test]
     async fn noop_handler_returns_success() {
         let dispatcher = RuntimeSubTaskDispatcher::noop();
-        let result = dispatcher.dispatch(make_request("t1")).await.unwrap();
+        let result = dispatcher.dispatch(make_request("t1")).await.expect("测试：异步操作应成功");
         assert!(result.success);
         assert_eq!(result.sub_task_id, "t1");
         assert!(result.handover_json.is_some());
@@ -160,7 +160,7 @@ mod tests {
     #[tokio::test]
     async fn custom_handler_injection() {
         let dispatcher = RuntimeSubTaskDispatcher::new(Arc::new(EchoHandler));
-        let result = dispatcher.dispatch(make_request("t2")).await.unwrap();
+        let result = dispatcher.dispatch(make_request("t2")).await.expect("测试：异步操作应成功");
         assert!(result.success);
         assert_eq!(result.handover_json.as_deref(), Some(r#"{"echo":"mission-t2"}"#));
     }

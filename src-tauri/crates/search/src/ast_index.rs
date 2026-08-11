@@ -834,16 +834,16 @@ mod tests {
     use super::*;
 
     fn test_index() -> AstIndex {
-        let conn = Connection::open_in_memory().unwrap();
-        AstIndex::new(conn).unwrap()
+        let conn = Connection::open_in_memory().expect("测试：打开内存数据库应成功");
+        AstIndex::new(conn).expect("测试应成功")
     }
 
     #[test]
     fn test_extract_rust_functions() {
         let code = "fn main() {\n    println!(\"hello\");\n}\n\npub fn add(a: i32, b: i32) -> i32 {\n    a + b\n}\n";
         let idx = test_index();
-        idx.index_file("/test.rs", code).unwrap();
-        let results = idx.search_functions("add", 10).unwrap();
+        idx.index_file("/test.rs", code).expect("测试：index_file 应成功");
+        let results = idx.search_functions("add", 10).expect("测试：search_functions 应成功");
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].name, "add");
         assert!(results[0].signature.contains("pub fn add"));
@@ -853,12 +853,12 @@ mod tests {
     fn test_extract_rust_structs() {
         let code = "pub struct User {\n    name: String,\n}\n\nenum Color { Red, Blue }\n";
         let idx = test_index();
-        idx.index_file("/test.rs", code).unwrap();
-        let results = idx.search_classes("User", 10).unwrap();
+        idx.index_file("/test.rs", code).expect("测试：index_file 应成功");
+        let results = idx.search_classes("User", 10).expect("测试：search_classes 应成功");
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].name, "User");
 
-        let all = idx.search_classes("Color", 10).unwrap();
+        let all = idx.search_classes("Color", 10).expect("测试：search_classes 应成功");
         assert_eq!(all.len(), 1);
     }
 
@@ -866,8 +866,8 @@ mod tests {
     fn test_search_all() {
         let code = "fn calculate() -> u32 { 42 }\nfn render() {}\nstruct Widget {}\n";
         let idx = test_index();
-        idx.index_file("/test.rs", code).unwrap();
-        let results = idx.search_all("calc", 10).unwrap();
+        idx.index_file("/test.rs", code).expect("测试：index_file 应成功");
+        let results = idx.search_all("calc", 10).expect("测试：search_all 应成功");
         assert!(results.contains(&"/test.rs".to_string()));
     }
 
@@ -875,10 +875,10 @@ mod tests {
     fn test_extract_python() {
         let code = "def hello():\n    print('hi')\n\nclass MyClass:\n    pass\n";
         let idx = test_index();
-        idx.index_file("/test.py", code).unwrap();
-        let fns = idx.search_functions("hello", 10).unwrap();
+        idx.index_file("/test.py", code).expect("测试：index_file 应成功");
+        let fns = idx.search_functions("hello", 10).expect("测试：search_functions 应成功");
         assert_eq!(fns[0].name, "hello");
-        let cls = idx.search_classes("MyClass", 10).unwrap();
+        let cls = idx.search_classes("MyClass", 10).expect("测试：search_classes 应成功");
         assert_eq!(cls[0].name, "MyClass");
     }
 }

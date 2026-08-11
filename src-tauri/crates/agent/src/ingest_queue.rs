@@ -477,7 +477,7 @@ mod tests {
         let id = queue.enqueue("wiki1", make_source("/test.md")).await;
         assert!(!id.is_empty());
 
-        let task = queue.get_task(&id).await.unwrap();
+        let task = queue.get_task(&id).await.expect("测试：异步操作应成功");
         assert_eq!(task.wiki_id, "wiki1");
         assert_eq!(task.status, IngestTaskStatus::Pending);
         assert_eq!(task.retry_count, 0);
@@ -496,7 +496,7 @@ mod tests {
         assert_eq!(ids.len(), 3);
 
         for id in &ids {
-            let task = queue.get_task(id).await.unwrap();
+            let task = queue.get_task(id).await.expect("测试：异步操作应成功");
             assert_eq!(task.status, IngestTaskStatus::Pending);
         }
     }
@@ -561,7 +561,7 @@ mod tests {
             }
         }
 
-        let task = queue.get_task(&id).await.unwrap();
+        let task = queue.get_task(&id).await.expect("测试：异步操作应成功");
         assert_eq!(task.status, IngestTaskStatus::Cancelled);
         assert!(task.completed_at.is_some());
     }
@@ -598,7 +598,7 @@ mod tests {
             }
         }
 
-        let task = queue.get_task(&id).await.unwrap();
+        let task = queue.get_task(&id).await.expect("测试：异步操作应成功");
         assert_eq!(task.status, IngestTaskStatus::Pending);
         assert_eq!(task.retry_count, 0);
         assert!(task.error_message.is_none());
@@ -772,8 +772,9 @@ mod tests {
             started_at: None,
             completed_at: None,
         };
-        let json = serde_json::to_string(&task).unwrap();
-        let deserialized: QueuedIngestTask = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&task).expect("测试：JSON序列化应成功");
+        let deserialized: QueuedIngestTask =
+            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(task.id, deserialized.id);
         assert_eq!(task.wiki_id, deserialized.wiki_id);
         assert_eq!(task.status, deserialized.status);
@@ -788,8 +789,9 @@ mod tests {
             IngestTaskStatus::Failed,
             IngestTaskStatus::Cancelled,
         ] {
-            let json = serde_json::to_string(&status).unwrap();
-            let deserialized: IngestTaskStatus = serde_json::from_str(&json).unwrap();
+            let json = serde_json::to_string(&status).expect("测试：JSON序列化应成功");
+            let deserialized: IngestTaskStatus =
+                serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
             assert_eq!(status, deserialized);
         }
     }
@@ -797,7 +799,7 @@ mod tests {
     #[tokio::test]
     async fn test_load_from_disk_no_file() {
         let queue = create_test_queue().await;
-        let count = queue.load_from_disk().await.unwrap();
+        let count = queue.load_from_disk().await.expect("测试：异步操作应成功");
         assert_eq!(count, 0);
     }
 
@@ -835,7 +837,7 @@ mod tests {
             }
         }
 
-        let task = queue.get_task(&id).await.unwrap();
+        let task = queue.get_task(&id).await.expect("测试：异步操作应成功");
         assert_eq!(task.status, IngestTaskStatus::Completed);
         assert!(task.completed_at.is_some());
     }
