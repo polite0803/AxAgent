@@ -445,6 +445,19 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   // 折叠的社区集合（聚类模式下默认全折叠；点击聚合节点展开/收起）
   const collapsedRef = useRef<Set<number>>(new Set());
   const hoverClusterRef = useRef<number | null>(null);
+  // LOD 缩放阈值：渐进式展开，类似地图缩放细节
+  const LOD_THRESHOLDS = {
+    COLLAPSED: 0.5, // zoom < 0.5: 全折叠
+    VIEWPORT: 1.0, // 0.5 <= zoom < 1: 视口内展开
+    EXPANDED: 2.0, // 1 <= zoom < 2: 视口+邻近展开
+    ALL: 4.0, // zoom >= 2: 全部展开
+  };
+  // 上次 LOD 级别，防抖用
+  const lastLodLevelRef = useRef(0);
+  // 手动展开的社区（用户点击展开的，不会因缩放折叠回去）
+  const manualExpandedRef = useRef<Set<number>>(new Set());
+  // 每帧最多新增展开的社区数（防止一次性展开过多导致卡顿）
+  const MAX_EXPAND_PER_FRAME = 5;
   // 聚合节点几何缓存：cid → { 质心, 半径, 计数, 代表名 }（低频刷新）
   const clusterGeomRef = useRef<
     Map<number, { cx: number; cy: number; r: number; count: number; label: string }>
@@ -664,6 +677,10 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       const next = new Set(collapsedRef.current);
       next.delete(cid);
       collapsedRef.current = next;
+      // 标记为手动展开，防止 LOD 自动折叠
+      const manualNext = new Set(manualExpandedRef.current);
+      manualNext.add(cid);
+      manualExpandedRef.current = manualNext;
       refreshClusterGeom();
       buildAggregatePhysics();
       setClusterCollapseVersion((v) => v + 1);
@@ -1152,11 +1169,134 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       const hasDrag = !!dragRef.current;
       const hasInteraction = mouseScreenRef.current.active || !!panRef.current;
 
+      // 预先获取聚合物理状态供 LOD 逻辑使用
+      const aggPhys = aggPhysRef.current;
+      const aggActive = aggPhys !== null && aggPhys.nodes.length > 0;
+
+      // ── LOD 渐进式聚类展开：根据缩放级别自动展开/折叠社区 ──
+      // 类似地图缩放：缩得越近，看到的细节越多
+      if (clusterModeRef.current && aggActive) {
+        const zoom = cam.zoom;
+        const geom = clusterGeomRef.current;
+
+        // 计算当前 LOD 级别
+        let lodLevel = 0;
+        if (zoom >= LOD_THRESHOLDS.ALL) { lodLevel = 3; }
+        else if (zoom >= LOD_THRESHOLDS.EXPANDED) { lodLevel = 2; }
+        else if (zoom >= LOD_THRESHOLDS.VIEWPORT) { lodLevel = 1; }
+
+        // LOD 变化时重新计算折叠状态（防抖：至少保持 5 帧）
+        if (lodLevel !== lastLodLevelRef.current && frameCounterRef.current % 5 === 0) {
+          lastLodLevelRef.current = lodLevel;
+
+          const newCollapsed = new Set<number>();
+          const expandedInThisFrame: number[] = [];
+          const prevCollapsedSize = collapsedRef.current.size;
+
+          // 视口范围（世界坐标）
+          const viewW = cam.zoom > 0 ? w / cam.zoom : 0;
+          const viewH = cam.zoom > 0 ? h / cam.zoom : 0;
+          const vx0 = -cam.x / cam.zoom - viewW / 2;
+          const vy0 = -cam.y / cam.zoom - viewH / 2;
+          const vx1 = -cam.x / cam.zoom + viewW / 2;
+          const vy1 = -cam.y / cam.zoom + viewH / 2;
+
+          for (const [cid, g] of geom) {
+            // 手动展开的永远保持展开
+            if (manualExpandedRef.current.has(cid)) { continue; }
+
+            if (lodLevel === 0) {
+              // LOD 0: 全折叠
+              newCollapsed.add(cid);
+            } else if (lodLevel === 1) {
+              // LOD 1: 仅视口内展开
+              const inViewport = g.cx >= vx0 && g.cx <= vx1 && g.cy >= vy0 && g.cy <= vy1;
+              if (!inViewport) { newCollapsed.add(cid); }
+            } else if (lodLevel === 2) {
+              // LOD 2: 视口 + 邻近区域展开（2x 视口范围）
+              const marginX = viewW;
+              const marginY = viewH;
+              const inExpanded = g.cx >= vx0 - marginX && g.cx <= vx1 + marginX
+                && g.cy >= vy0 - marginY && g.cy <= vy1 + marginY;
+              if (!inExpanded) { newCollapsed.add(cid); }
+            }
+            // lodLevel === 3: 全展开（newCollapsed 保持空）
+          }
+
+          // 渐进式展开：限制每帧新增展开的社区数
+          if (newCollapsed.size < collapsedRef.current.size) {
+            // 有新的展开，限制数量
+            const toExpand = [];
+            for (const cid of collapsedRef.current) {
+              if (!newCollapsed.has(cid) && !manualExpandedRef.current.has(cid)) {
+                toExpand.push(cid);
+              }
+            }
+            // 按距离视口中心排序，优先展开近处的
+            const cx = (vx0 + vx1) / 2;
+            const cy = (vy0 + vy1) / 2;
+            toExpand.sort((a, b) => {
+              const ga = geom.get(a);
+              const gb = geom.get(b);
+              if (!ga || !gb) { return 0; }
+              const da = Math.hypot(ga.cx - cx, ga.cy - cy);
+              const db = Math.hypot(gb.cx - cx, gb.cy - cy);
+              return da - db;
+            });
+
+            // 计算展开后预计的物理节点数
+            const expandedCount = toExpand.length;
+            const newAggNodeCount = (aggPhys?.nodes.length ?? 0) + expandedCount * 10; // 粗略估算
+
+            // 如果展开后会超出物理节点限制，只展开部分
+            const maxExpand = newAggNodeCount > MAX_AGG_PHYS_NODES
+              ? Math.max(1, Math.floor((MAX_AGG_PHYS_NODES - (aggPhys?.nodes.length ?? 0)) / 10))
+              : MAX_EXPAND_PER_FRAME;
+
+            for (let i = 0; i < Math.min(maxExpand, toExpand.length); i++) {
+              newCollapsed.delete(toExpand[i]);
+              expandedInThisFrame.push(toExpand[i]);
+            }
+          }
+
+          // 物理节点数保护：如果当前聚合物理已超限，强制折叠最远的非手动社区
+          if (aggPhys && aggPhys.nodes.length > MAX_AGG_PHYS_NODES) {
+            const cx = (vx0 + vx1) / 2;
+            const cy = (vy0 + vy1) / 2;
+            const collapsible = [];
+            for (const cid of newCollapsed) {
+              if (manualExpandedRef.current.has(cid)) { continue; }
+              const g = geom.get(cid);
+              if (!g) { continue; }
+              collapsible.push({ cid, dist: Math.hypot(g.cx - cx, g.cy - cy), count: g.count });
+            }
+            // 按距离从远到近排序，折叠最远的
+            collapsible.sort((a, b) => b.dist - a.dist);
+            let currentOver = aggPhys.nodes.length - MAX_AGG_PHYS_NODES;
+            for (const { cid, count } of collapsible) {
+              if (currentOver <= 0) { break; }
+              newCollapsed.add(cid);
+              currentOver -= count;
+            }
+          }
+
+          collapsedRef.current = newCollapsed;
+
+          // LOD 变化导致折叠集合改变 → 重建聚合物理集
+          if (newCollapsed.size !== prevCollapsedSize) {
+            // 延迟一帧重建，避免在渲染循环中立即触发重计算
+            setTimeout(() => {
+              refreshClusterGeom();
+              buildAggregatePhysics();
+              setClusterCollapseVersion((v) => v + 1);
+            }, 0);
+          }
+        }
+      }
+
       // ── 聚合物理分支（聚类折叠模式）：物理只模拟聚合节点 + 未折叠节点 ──
       // 折叠社区成员不参与力导向模拟（数量级骤降），聚合节点坐标回写 clusterGeom，
       // 驱动折叠社区几何/聚合边/聚合节点渲染。万级节点打开不卡死的核心。
-      const aggPhys = aggPhysRef.current;
-      const aggActive = aggPhys !== null && aggPhys.nodes.length > 0;
       if (aggActive) {
         const config: PhysicsConfig = {
           theta: 0.5,
@@ -2376,12 +2516,18 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   // 切换社区折叠状态（点击聚合节点）
   const toggleCluster = useCallback((cid: number) => {
     const next = new Set(collapsedRef.current);
+    const manualNext = new Set(manualExpandedRef.current);
     if (next.has(cid)) {
       next.delete(cid);
+      // 手动展开的社区标记，防止 LOD 自动折叠
+      manualNext.add(cid);
     } else {
       next.add(cid);
+      // 手动折叠的社区，从手动展开列表移除
+      manualNext.delete(cid);
     }
     collapsedRef.current = next;
+    manualExpandedRef.current = manualNext;
     // 立即刷新聚合几何（展开/收起后质心渲染立即生效）
     refreshClusterGeom();
     // 折叠集合变化 → 重建聚合物理集（聚合节点/未折叠成员集合都变了）
