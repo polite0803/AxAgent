@@ -904,8 +904,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     const EDGE_STRIDE = 5;
     const nodeBuffer = new Float64Array(nodeCount * NODE_STRIDE);
     const edgeBuffer = new Float64Array(edgeCount * EDGE_STRIDE);
-    const nodeIds: string[] = new Array(nodeCount);
-    const nodeKinds: string[] = new Array(nodeCount);
+    const nodeIds: string[] = Array.from({ length: nodeCount });
+    const nodeKinds: string[] = Array.from({ length: nodeCount });
 
     for (let i = 0; i < nodeCount; i++) {
       const n = pNodes[i];
