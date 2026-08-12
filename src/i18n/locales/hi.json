@@ -6214,7 +6214,16 @@
         "concept": "अवधारणा",
         "entity": "इकाई",
         "source": "स्रोत"
-      }
+      },
+      "particlesOn": "कण प्रवाह: चालू",
+      "particlesOff": "कण प्रवाह: बंद",
+      "collapseMinimap": "मिनिमैप संकुचित करें",
+      "expandMinimap": "मिनिमैप विस्तारित करें",
+      "linksCount": "लिंक {{count}}",
+      "backlinksCount": "बैकलिंक {{count}}",
+      "totalDegree": "कुल {{count}}",
+      "canvasAriaLabel": "ज्ञान ग्राफ कैनवास, पैन करने के लिए खींचें, ज़ूम के लिए स्क्रॉल करें, नोड चुनने के लिए क्लिक करें",
+      "minimapAriaLabel": "मिनिमैप नेविगेशन, क्षेत्र पर जाने के लिए क्लिक या खींचें"
     },
     "hidePanel": "पैनल छिपाएं",
     "history": "इतिहास",

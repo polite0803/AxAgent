@@ -6214,7 +6214,16 @@
         "concept": "مفهوم",
         "entity": "كيان",
         "source": "مصدر"
-      }
+      },
+      "particlesOn": "تدفق الجسيمات: تشغيل",
+      "particlesOff": "تدفق الجسيمات: إيقاف",
+      "collapseMinimap": "طي الخريطة المصغرة",
+      "expandMinimap": "توسيع الخريطة المصغرة",
+      "linksCount": "روابط {{count}}",
+      "backlinksCount": "روابط عكسية {{count}}",
+      "totalDegree": "المجموع {{count}}",
+      "canvasAriaLabel": "لوحة رسم الرسم البياني المعرفي، اسحب للتحريك، مرر للتكبير، انقر لاختيار العقدة",
+      "minimapAriaLabel": "تنقل الخريطة المصغرة، انقر أو اسحب للانتقال إلى المنطقة"
     },
     "hidePanel": "إخفاء اللوحة",
     "history": "السجل",

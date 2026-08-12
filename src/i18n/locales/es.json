@@ -6214,7 +6214,16 @@
         "concept": "Concepto",
         "entity": "Entidad",
         "source": "Fuente"
-      }
+      },
+      "particlesOn": "Partículas: Activadas",
+      "particlesOff": "Partículas: Desactivadas",
+      "collapseMinimap": "Contraer minimapa",
+      "expandMinimap": "Expandir minimapa",
+      "linksCount": "Enlaces {{count}}",
+      "backlinksCount": "Retrolinks {{count}}",
+      "totalDegree": "Total {{count}}",
+      "canvasAriaLabel": "Lienzo de grafo de conocimiento, arrastrar para mover, scroll para zoom, clic para seleccionar",
+      "minimapAriaLabel": "Navegación minimapa, clic o arrastrar para saltar al área"
     },
     "hidePanel": "Ocultar panel",
     "history": "Historial",

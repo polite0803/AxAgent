@@ -6216,7 +6216,16 @@
         "concept": "Concept",
         "entity": "Entity",
         "source": "Source"
-      }
+      },
+      "particlesOn": "Particles: On",
+      "particlesOff": "Particles: Off",
+      "collapseMinimap": "Collapse minimap",
+      "expandMinimap": "Expand minimap",
+      "linksCount": "Links {{count}}",
+      "backlinksCount": "Backlinks {{count}}",
+      "totalDegree": "Total {{count}}",
+      "canvasAriaLabel": "Knowledge graph canvas, drag to pan, scroll to zoom, click to select node",
+      "minimapAriaLabel": "Minimap navigation, click or drag to jump to area"
     },
     "hidePanel": "Hide Panel",
     "history": "History",

@@ -6216,7 +6216,16 @@
         "concept": "Konzept",
         "entity": "Entität",
         "source": "Quelle"
-      }
+      },
+      "particlesOn": "Partikel: An",
+      "particlesOff": "Partikel: Aus",
+      "collapseMinimap": "Minimap einklappen",
+      "expandMinimap": "Minimap ausklappen",
+      "linksCount": "Links {{count}}",
+      "backlinksCount": "Rücklinks {{count}}",
+      "totalDegree": "Gesamt {{count}}",
+      "canvasAriaLabel": "Wissensgraph-Leinwand, ziehen zum Verschieben, scrollen zum Zoomen, klicken zum Auswählen",
+      "minimapAriaLabel": "Minimap-Navigation, klicken oder ziehen um zum Bereich zu springen"
     },
     "hidePanel": "Panel ausblenden",
     "history": "Verlauf",
