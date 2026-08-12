@@ -39,6 +39,7 @@ import {
   type PhysicsNode,
   stepPhysics,
 } from "./graphPhysics";
+import type { WorkerMessage, WorkerResponse } from "./graphPhysics.worker";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 公共类型（保持向后兼容）
@@ -262,6 +263,19 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
+
+  // Worker 相关
+  const workerRef = useRef<Worker | null>(null);
+  const workerInitializedRef = useRef(false);
+  const workerResultRef = useRef<
+    {
+      positions: Float64Array;
+      velocities: Float64Array;
+      stable: boolean;
+      tick: number;
+    } | null
+  >(null);
+  const pendingStepRef = useRef(false);
 
   // 物理节点和边（在 ref 中持久化，不触发 React 重渲染）
   const physNodesRef = useRef<PhysicsNode[]>([]);
@@ -629,6 +643,85 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       }
     };
     requestAnimationFrame(runLayoutStep);
+
+    // ── 初始化物理 Worker ──
+    // 销毁旧 Worker
+    if (workerRef.current) {
+      workerRef.current.postMessage({ type: "destroy" } as WorkerMessage);
+      workerRef.current.terminate();
+      workerRef.current = null;
+      workerInitializedRef.current = false;
+    }
+
+    const worker = new Worker(
+      new URL("./graphPhysics.worker.ts", import.meta.url),
+      { type: "module" },
+    );
+    workerRef.current = worker;
+
+    // 构建 Worker 初始化数据
+    const initNodes = pNodes.map((n) => ({
+      id: n.id,
+      x: n.x,
+      y: n.y,
+      vx: n.vx,
+      vy: n.vy,
+      fx: n.fx,
+      fy: n.fy,
+      mass: n.mass,
+      fixed: n.fixed,
+      kind: n.kind,
+      idx: n.idx,
+    }));
+    const initEdges = pEdges.map((e) => ({
+      source: e.source,
+      target: e.target,
+      restLength: e.restLength,
+      stiffness: e.stiffness,
+      damping: e.damping,
+      sourceIdx: e.sourceIdx,
+      targetIdx: e.targetIdx,
+    }));
+
+    const workerConfig: PhysicsConfig = {
+      theta: 0.5,
+      repulsion: 6000,
+      gravity: 0.01,
+      damping: 0.92,
+      dt: 0.25,
+      springForce: 0.04,
+      springDamping: 0.85,
+      maxVelocity: 4,
+    };
+
+    const initMsg: WorkerMessage = {
+      type: "init",
+      payload: {
+        nodes: initNodes,
+        edges: initEdges,
+        config: workerConfig,
+        communities: communities ? Object.fromEntries(communities) : undefined,
+      },
+    };
+    worker.postMessage(initMsg);
+
+    worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
+      const msg = e.data;
+      if (msg.type === "ready") {
+        workerInitializedRef.current = true;
+      } else if (msg.type === "result") {
+        workerResultRef.current = {
+          positions: msg.payload.positions,
+          velocities: msg.payload.velocities,
+          stable: msg.payload.stable,
+          tick: msg.payload.tick,
+        };
+        pendingStepRef.current = false;
+      } else if (msg.type === "error") {
+        console.error("[GraphWorker]", msg.message);
+        pendingStepRef.current = false;
+      }
+    };
   }, [data, communities, token]);
 
   // 主动画循环
@@ -706,22 +799,110 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       const edges = physEdgesRef.current;
       frameCounterRef.current++;
 
-      // ── 物理步进优化：稳定检测 + 缓存复用 + 降频 ──
+      // ── Worker 物理步进 + 帧间插值 ──
+      const worker = workerRef.current;
+      const workerReady = workerInitializedRef.current;
       const hasDrag = !!dragRef.current;
       const hasInteraction = mouseScreenRef.current.active || !!panRef.current;
 
-      if (nodes.length > 0 && !hasDrag) {
-        const stable = isSystemStable(nodes, 0.15);
+      // 如果有 Worker 且已初始化，使用 Worker 物理
+      if (worker && workerReady && nodes.length > 0) {
+        const enableClusters = clusterModeRef.current && communities;
 
+        // 拖拽时同步位置到 Worker
+        if (hasDrag) {
+          const dragNode = nodes.find((n) => n.id === dragRef.current!.nodeId);
+          if (dragNode) {
+            worker.postMessage({
+              type: "update",
+              payload: {
+                nodeId: dragNode.id,
+                x: dragNode.x,
+                y: dragNode.y,
+                fixed: dragNode.fixed,
+                vx: dragNode.vx,
+                vy: dragNode.vy,
+              },
+            } as WorkerMessage);
+          }
+        }
+
+        // 请求下一个物理步进（如果没有 pending 的请求）
+        if (!pendingStepRef.current && !hasDrag) {
+          const config: PhysicsConfig = {
+            theta: 0.5,
+            repulsion: 6000,
+            gravity: 0.01,
+            damping: 0.92,
+            dt: 0.25,
+            springForce: 0.04,
+            springDamping: 0.85,
+            maxVelocity: 4,
+            clusterForce: enableClusters ? 0.15 : undefined,
+          };
+          const centroids = enableClusters
+            ? computeCommunityCentroids(nodes, communities!)
+            : undefined;
+
+          worker.postMessage({
+            type: "step",
+            payload: {
+              config,
+              communities: enableClusters ? Object.fromEntries(communities!) : undefined,
+              centroids: centroids ? Object.fromEntries(centroids) : undefined,
+            },
+          } as WorkerMessage);
+          pendingStepRef.current = true;
+        }
+
+        // 应用 Worker 返回的结果到物理节点
+        const result = workerResultRef.current;
+        if (result && result.positions) {
+          const n = nodes.length;
+          // 帧间插值：用 Worker 返回的结果直接更新（Worker 内部已平滑）
+          for (let i = 0; i < n; i++) {
+            const node = nodes[i];
+            if (!node.fixed) {
+              node.x = result.positions[i * 2];
+              node.y = result.positions[i * 2 + 1];
+              node.vx = result.velocities[i * 2];
+              node.vy = result.velocities[i * 2 + 1];
+            }
+          }
+
+          // 更新网格空间索引
+          if (frameCounterRef.current % 3 === 0) {
+            const gridIndex = new Map<string, string[]>();
+            for (const n of nodes) {
+              const gx = Math.floor(n.x / GRID_CELL_SIZE);
+              const gy = Math.floor(n.y / GRID_CELL_SIZE);
+              const key = `${gx},${gy}`;
+              const bucket = gridIndex.get(key);
+              if (bucket) {
+                bucket.push(n.id);
+              } else {
+                gridIndex.set(key, [n.id]);
+              }
+            }
+            gridIndexRef.current = gridIndex;
+          }
+
+          // 稳定检测：根据 Worker 返回的 stable 标志
+          if (result.stable && !hasInteraction) {
+            idleCounterRef.current++;
+          } else {
+            idleCounterRef.current = 0;
+          }
+        }
+      } else if (nodes.length > 0 && !hasDrag) {
+        // 回退：没有 Worker 时用原来的主线程物理（兼容 fallback）
+        const stable = isSystemStable(nodes, 0.15);
         if (stable && !hasInteraction) {
           idleCounterRef.current++;
         } else {
           idleCounterRef.current = 0;
         }
-
-        // 稳定无交互时每 12 帧执行一次物理，拖拽/交互时全速
         const shouldRunPhysics = hasInteraction || !stable || idleCounterRef.current % 12 === 0;
-
         if (shouldRunPhysics) {
           const enableClusters = clusterModeRef.current && communities;
           let centroids = communityCentroidsRef.current;
@@ -749,8 +930,6 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
             enableClusters ? centroids : undefined,
             neighborMapCacheRef.current,
           );
-
-          // 更新网格空间索引（物理改变位置后）
           if (frameCounterRef.current % 3 === 0) {
             const gridIndex = new Map<string, string[]>();
             for (const n of nodes) {
@@ -1512,6 +1691,21 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         node.fixed = false;
         node.fx = 0;
         node.fy = 0;
+        // 同步到 Worker：释放节点
+        const worker = workerRef.current;
+        if (worker) {
+          worker.postMessage({
+            type: "update",
+            payload: {
+              nodeId: node.id,
+              x: node.x,
+              y: node.y,
+              fixed: false,
+              vx: 0,
+              vy: 0,
+            },
+          } as WorkerMessage);
+        }
       }
       dragRef.current = null;
 
@@ -1531,7 +1725,23 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     onNodeHover?.(null);
     if (dragRef.current) {
       const node = physNodesRef.current.find((n) => n.id === dragRef.current!.nodeId);
-      if (node) { node.fixed = false; }
+      if (node) {
+        node.fixed = false;
+        const worker = workerRef.current;
+        if (worker) {
+          worker.postMessage({
+            type: "update",
+            payload: {
+              nodeId: node.id,
+              x: node.x,
+              y: node.y,
+              fixed: false,
+              vx: 0,
+              vy: 0,
+            },
+          } as WorkerMessage);
+        }
+      }
       dragRef.current = null;
     }
     panRef.current = null;
