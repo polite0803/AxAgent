@@ -207,6 +207,13 @@ export interface DemandLead {
   ai_analysis_json: string | null;
   matched_capabilities_json: string | null;
   recommended_workflow_id: string | null;
+  // 需求价值评估字段
+  pain_score: number | null;
+  market_gap_score: number | null;
+  commercial_value_score: number | null;
+  opportunity_level: string | null;
+  demand_type: string | null;
+  evaluated_at: number | null;
   created_at: number;
   updated_at: number;
 }
@@ -277,6 +284,32 @@ export interface CapabilityGap {
   updated_at: number;
   closed_at: number | null;
 }
+
+// ── 定时任务类型 ──────────────────────────────────────────────
+
+export interface CronJobData {
+  id: string;
+  name: string;
+  schedule: string;
+  description: string;
+  prompt: string;
+  status: string;
+  workflow_id: string | null;
+  task_type: string | null;
+  platform: string | null;
+  enabled_toolsets: string[];
+  last_run_at: number | null;
+  next_run_at: number | null;
+  created_at: number;
+  updated_at: number;
+}
+
+export const CRON_STATUS_COLOR_MAP: Record<string, string> = {
+  active: "green",
+  paused: "orange",
+  completed: "default",
+  failed: "red",
+};
 
 // ── 人才市场常量 ──────────────────────────────────────────────
 

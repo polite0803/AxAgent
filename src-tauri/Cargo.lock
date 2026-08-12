@@ -960,6 +960,7 @@ dependencies = [
  "chrono",
  "csv",
  "futures",
+ "regex",
  "sea-orm",
  "serde",
  "serde_json",

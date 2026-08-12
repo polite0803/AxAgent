@@ -4,11 +4,15 @@ import { invoke } from "@/lib/invoke";
 import {
   AppstoreOutlined,
   BugOutlined,
+  ClockCircleOutlined,
   DeleteOutlined,
   EditOutlined,
   FireOutlined,
   GlobalOutlined,
+  PauseCircleOutlined,
+  PlayCircleOutlined,
   PlusOutlined,
+  ReloadOutlined,
   SearchOutlined,
   SettingOutlined,
   ThunderboltOutlined,
@@ -47,11 +51,12 @@ import type {
   CapabilityEntry,
   CapabilityGap,
   CapabilityInventory,
+  CronJobData,
   Delivery,
   DemandLead,
   MarketPlatform,
 } from "../utils/constants";
-import { DELIVERY_STATUS_COLOR_MAP, LEAD_STATUS_COLOR_MAP } from "../utils/constants";
+import { CRON_STATUS_COLOR_MAP, DELIVERY_STATUS_COLOR_MAP, LEAD_STATUS_COLOR_MAP } from "../utils/constants";
 
 const { TextArea } = Input;
 
@@ -160,6 +165,15 @@ export function DemandDiscoveryTab() {
               </span>
             ),
             children: <DemandDiscoveryConfigPanel />,
+          },
+          {
+            key: "crons",
+            label: (
+              <span>
+                <ClockCircleOutlined /> {t("opc.demand.crons")}
+              </span>
+            ),
+            children: <CronPanel />,
           },
         ]}
       />
@@ -321,6 +335,55 @@ function LeadsPanel() {
       key: "confidence",
       width: 100,
       render: (v: number) => <Progress percent={Math.round(v * 100)} size="small" />,
+    },
+    {
+      title: t("opc.demand.colPainScore"),
+      dataIndex: "pain_score",
+      key: "pain_score",
+      width: 90,
+      render: (v: number | null) =>
+        v != null ? <Progress percent={Math.round(v)} size="small" status={v >= 60 ? "active" : undefined} /> : "-",
+    },
+    {
+      title: t("opc.demand.colMarketGap"),
+      dataIndex: "market_gap_score",
+      key: "market_gap_score",
+      width: 90,
+      render: (v: number | null) =>
+        v != null ? <Progress percent={Math.round(v)} size="small" status={v >= 60 ? "active" : undefined} /> : "-",
+    },
+    {
+      title: t("opc.demand.colCommercialValue"),
+      dataIndex: "commercial_value_score",
+      key: "commercial_value_score",
+      width: 90,
+      render: (v: number | null) =>
+        v != null ? <Progress percent={Math.round(v)} size="small" status={v >= 60 ? "active" : undefined} /> : "-",
+    },
+    {
+      title: t("opc.demand.colOpportunityLevel"),
+      dataIndex: "opportunity_level",
+      key: "opportunity_level",
+      width: 100,
+      render: (v: string | null) => {
+        if (!v) return "-";
+        const color = v === "high" ? "green" : v === "medium" ? "orange" : "default";
+        return <Tag color={color}>{t(`opc.demand.opportunityLevel.${v}`)}</Tag>;
+      },
+    },
+    {
+      title: t("opc.demand.colDemandType"),
+      dataIndex: "demand_type",
+      key: "demand_type",
+      width: 110,
+      render: (v: string | null) => (v ? <Tag>{t(`opc.demand.demandType.${v}`)}</Tag> : "-"),
+    },
+    {
+      title: t("opc.demand.colEvaluatedAt"),
+      dataIndex: "evaluated_at",
+      key: "evaluated_at",
+      width: 140,
+      render: (v: number | null) => (v ? new Date(v * 1000).toLocaleString() : "-"),
     },
     {
       title: t("opc.demand.colMatched"),
@@ -1184,6 +1247,305 @@ function CapabilityGapsPanel() {
         pagination={{ pageSize: 10 }}
         scroll={{ x: 1100 }}
       />
+    </div>
+  );
+}
+
+// ── 定时任务管理面板 ──────────────────────────────────────────
+
+function CronPanel() {
+  const { t } = useTranslation();
+  const [jobs, setJobs] = useState<CronJobData[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<CronJobData | null>(null);
+  const [executing, setExecuting] = useState(false);
+  const [form] = Form.useForm();
+
+  const loadJobs = useCallback(() => {
+    setLoading(true);
+    invoke<CronJobData[]>("list_scheduled_tasks")
+      .then(setJobs)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    loadJobs();
+  }, [loadJobs]);
+
+  const openCreate = () => {
+    setEditing(null);
+    form.resetFields();
+    form.setFieldsValue({
+      status: "active",
+      schedule: "0 2 * * *",
+    });
+    setModalOpen(true);
+  };
+
+  const openEdit = (job: CronJobData) => {
+    setEditing(job);
+    form.setFieldsValue({
+      name: job.name,
+      schedule: job.schedule,
+      description: job.description,
+      prompt: job.prompt,
+      workflow_id: job.workflow_id || "",
+      task_type: job.task_type || "",
+      platform: job.platform || "",
+      status: job.status,
+      enabled_toolsets: job.enabled_toolsets?.join(", ") || "",
+    });
+    setModalOpen(true);
+  };
+
+  const handleSave = async () => {
+    const values = await form.validateFields();
+    const input = {
+      id: editing?.id || "",
+      name: values.name,
+      schedule: values.schedule,
+      description: values.description,
+      prompt: values.prompt,
+      workflow_id: values.workflow_id || null,
+      task_type: values.task_type || null,
+      platform: values.platform || null,
+      status: values.status,
+      enabled_toolsets: values.enabled_toolsets
+        ? values.enabled_toolsets.split(",").map((s: string) => s.trim()).filter(Boolean)
+        : [],
+    };
+    try {
+      if (editing) {
+        await invoke("update_scheduled_task", { input });
+        message.success(t("opc.demand.cronUpdated"));
+      } else {
+        await invoke("create_scheduled_task", { input });
+        message.success(t("opc.demand.cronCreated"));
+      }
+      setModalOpen(false);
+      loadJobs();
+    } catch (e) {
+      message.error(String(e));
+    }
+  };
+
+  const handleToggleStatus = async (job: CronJobData) => {
+    try {
+      if (job.status === "active") {
+        await invoke("pause_scheduled_task", { taskId: job.id });
+        message.success(t("opc.demand.cronPaused"));
+      } else {
+        await invoke("resume_scheduled_task", { taskId: job.id });
+        message.success(t("opc.demand.cronResumed"));
+      }
+      loadJobs();
+    } catch (e) {
+      message.error(String(e));
+    }
+  };
+
+  const handleExecute = async (id: string) => {
+    setExecuting(true);
+    try {
+      await invoke("execute_scheduled_task", { taskId: id });
+      message.success(t("opc.demand.cronExecuted"));
+      loadJobs();
+    } catch (e) {
+      message.error(String(e));
+    } finally {
+      setExecuting(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await invoke("delete_scheduled_task", { taskId: id });
+      message.success(t("opc.demand.cronDeleted"));
+      loadJobs();
+    } catch (e) {
+      message.error(String(e));
+    }
+  };
+
+  const columns: ColumnsType<CronJobData> = [
+    {
+      title: t("opc.demand.colCronName"),
+      dataIndex: "name",
+      key: "name",
+      width: 180,
+      ellipsis: true,
+    },
+    {
+      title: t("opc.demand.colCronSchedule"),
+      dataIndex: "schedule",
+      key: "schedule",
+      width: 140,
+      render: (v: string) => <Tag>{v}</Tag>,
+    },
+    {
+      title: t("opc.demand.colCronDescription"),
+      dataIndex: "description",
+      key: "description",
+      ellipsis: true,
+    },
+    {
+      title: t("opc.demand.colCronWorkflow"),
+      dataIndex: "workflow_id",
+      key: "workflow_id",
+      width: 160,
+      ellipsis: true,
+    },
+    {
+      title: t("opc.demand.colCronStatus"),
+      dataIndex: "status",
+      key: "status",
+      width: 100,
+      render: (v: string) => (
+        <Tag color={CRON_STATUS_COLOR_MAP[v] || "default"}>
+          {t(`opc.demand.cronStatus.${v}`)}
+        </Tag>
+      ),
+    },
+    {
+      title: t("opc.demand.colCronLastRun"),
+      dataIndex: "last_run_at",
+      key: "last_run_at",
+      width: 140,
+      render: (v: number | null) => (v ? new Date(v * 1000).toLocaleString() : "-"),
+    },
+    {
+      title: t("opc.demand.colCronNextRun"),
+      dataIndex: "next_run_at",
+      key: "next_run_at",
+      width: 140,
+      render: (v: number | null) => (v ? new Date(v * 1000).toLocaleString() : "-"),
+    },
+    {
+      title: t("opc.demand.colActions"),
+      key: "actions",
+      width: 200,
+      fixed: "right",
+      render: (_: unknown, r: CronJobData) => (
+        <Space size="small">
+          <Button
+            size="small"
+            icon={<ReloadOutlined />}
+            loading={executing}
+            onClick={() => handleExecute(r.id)}
+          >
+            {t("opc.demand.actionExecute")}
+          </Button>
+          <Button
+            size="small"
+            icon={r.status === "active" ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
+            onClick={() => handleToggleStatus(r)}
+          >
+            {r.status === "active" ? t("opc.demand.actionPause") : t("opc.demand.actionResume")}
+          </Button>
+          <Button
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => openEdit(r)}
+          >
+            {t("opc.demand.actionEdit")}
+          </Button>
+          <Popconfirm
+            title={t("opc.demand.confirmDeleteCron")}
+            onConfirm={() => handleDelete(r.id)}
+          >
+            <Button size="small" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <Card size="small">
+        <Row gutter={[16, 16]} align="middle">
+          <Col>
+            <Space>
+              <Button icon={<PlusOutlined />} type="primary" onClick={openCreate}>
+                {t("opc.demand.cronCreate")}
+              </Button>
+              <Button icon={<ReloadOutlined />} onClick={loadJobs} loading={loading}>
+                {t("opc.demand.btnRefresh")}
+              </Button>
+            </Space>
+          </Col>
+        </Row>
+      </Card>
+
+      <Table
+        rowKey="id"
+        loading={loading}
+        dataSource={jobs}
+        columns={columns}
+        pagination={{ pageSize: 10 }}
+        scroll={{ x: 1200 }}
+      />
+
+      {/* 创建/编辑定时任务弹窗 */}
+      <Modal
+        title={editing ? t("opc.demand.cronEdit") : t("opc.demand.cronCreate")}
+        open={modalOpen}
+        onCancel={() => setModalOpen(false)}
+        onOk={handleSave}
+        width={600}
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item
+            name="name"
+            label={t("opc.demand.colCronName")}
+            rules={[{ required: true, message: t("opc.demand.formTitleRequired") }]}
+          >
+            <Input placeholder={t("opc.demand.formCronNamePlaceholder")} />
+          </Form.Item>
+          <Form.Item
+            name="schedule"
+            label={t("opc.demand.colCronSchedule")}
+            rules={[{ required: true }]}
+          >
+            <Input placeholder="0 2 * * *" />
+          </Form.Item>
+          <Form.Item name="description" label={t("opc.demand.colCronDescription")}>
+            <TextArea rows={2} />
+          </Form.Item>
+          <Form.Item name="prompt" label={t("opc.demand.colCronPrompt")}>
+            <TextArea rows={3} placeholder={t("opc.demand.formCronPromptPlaceholder")} />
+          </Form.Item>
+          <Row gutter={12}>
+            <Col span={12}>
+              <Form.Item name="workflow_id" label={t("opc.demand.colCronWorkflow")}>
+                <Input placeholder="opc-demand-discovery" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="task_type" label={t("opc.demand.colCronTaskType")}>
+                <Input placeholder="opc-demand-discovery" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={12}>
+            <Col span={12}>
+              <Form.Item name="platform" label={t("opc.demand.colPlatform")}>
+                <Input placeholder="all" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="status" label={t("opc.demand.colCronStatus")}>
+                <Input />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item name="enabled_toolsets" label={t("opc.demand.colCronToolsets")}>
+            <Input placeholder="opc_scanner, opc_evaluator" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }

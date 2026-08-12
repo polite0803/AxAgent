@@ -6188,7 +6188,59 @@
         "dbCleanupDays": "DB cleanup days",
         "logLevel": "Log level: debug/info/warn/error",
         "enableAnalytics": "Enable analytics"
-      }
+      },
+      "colPainScore": "Pain Score",
+      "colMarketGap": "Market Gap",
+      "colCommercialValue": "Commercial Value",
+      "colOpportunityLevel": "Opportunity",
+      "colDemandType": "Demand Type",
+      "colEvaluatedAt": "Evaluated At",
+      "opportunityLevel": {
+        "high": "High Value",
+        "medium": "Medium Value",
+        "low": "Low Value"
+      },
+      "demandType": {
+        "tool_software": "Tool/Software",
+        "content_creation": "Content Creation",
+        "design": "Design",
+        "development": "Development",
+        "marketing": "Marketing",
+        "consulting": "Consulting",
+        "education": "Education",
+        "finance": "Finance",
+        "other": "Other"
+      },
+      "crons": "Scheduled Tasks",
+      "cronCreate": "Create Task",
+      "cronEdit": "Edit Task",
+      "cronCreated": "Scheduled task created",
+      "cronUpdated": "Scheduled task updated",
+      "cronDeleted": "Scheduled task deleted",
+      "cronPaused": "Scheduled task paused",
+      "cronResumed": "Scheduled task resumed",
+      "cronExecuted": "Scheduled task executed",
+      "confirmDeleteCron": "Are you sure you want to delete this scheduled task?",
+      "actionPause": "Pause",
+      "actionResume": "Resume",
+      "colCronName": "Task Name",
+      "colCronSchedule": "Cron Expression",
+      "colCronDescription": "Description",
+      "colCronWorkflow": "Workflow",
+      "colCronStatus": "Status",
+      "colCronLastRun": "Last Run",
+      "colCronNextRun": "Next Run",
+      "colCronPrompt": "Prompt",
+      "colCronTaskType": "Task Type",
+      "colCronToolsets": "Toolsets",
+      "cronStatus": {
+        "active": "Active",
+        "paused": "Paused",
+        "completed": "Completed",
+        "failed": "Failed"
+      },
+      "formCronNamePlaceholder": "e.g. Daily demand scan",
+      "formCronPromptPlaceholder": "Describe what this task should do..."
     }
   },
   "pasteButton": {

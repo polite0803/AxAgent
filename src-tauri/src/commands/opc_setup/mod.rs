@@ -17,6 +17,7 @@ mod domain_experts;
 mod industry_agents;
 mod industry_experts;
 mod roles;
+mod seed_opc_cron;
 mod seed_opc_workflow_template;
 
 pub use roles::{APPROVAL_ROLES, OPC_OPERATIONAL_ROLES, OPC_ROLES};

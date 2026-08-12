@@ -314,6 +314,19 @@ pub fn run() {
                 });
             }
 
+            // Seed OPC demand discovery cron jobs
+            {
+                let cron_store = state.cron_job_store.clone();
+                tauri::async_runtime::block_on(async {
+                    if let Err(e) =
+                        crate::commands::opc_setup::seed_opc_cron::seed_demand_discovery_crons(&cron_store)
+                            .await
+                    {
+                        tracing::error!("[opc-cron] Seed failed: {e}");
+                    }
+                });
+            }
+
             // Initialize pricing configuration from pricing.toml
             commands::agent::init_pricing_config(app.handle());
 
