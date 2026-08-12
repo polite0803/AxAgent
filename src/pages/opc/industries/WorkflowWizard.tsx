@@ -443,7 +443,7 @@ export function WorkflowWizard({ open, workflow, data, onClose }: WorkflowWizard
           </div>
         </div>
       }
-      destroyOnClose
+      destroyOnHidden
     >
       <Steps
         current={step}

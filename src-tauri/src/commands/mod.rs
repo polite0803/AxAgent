@@ -32,6 +32,7 @@ pub mod conversations_search;
 pub mod crash_report;
 pub mod dashboard;
 pub mod db_config;
+pub mod demand_discovery;
 #[cfg(not(mobile))]
 pub mod desktop;
 pub mod device_sync;

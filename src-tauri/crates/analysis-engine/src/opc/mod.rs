@@ -4,6 +4,7 @@ pub mod analysis;
 pub mod analytics;
 pub mod audit_log;
 pub mod automation;
+pub mod capability;
 pub mod content_asset;
 pub mod customer;
 pub mod data_service;

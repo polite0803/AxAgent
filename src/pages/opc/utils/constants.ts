@@ -160,6 +160,124 @@ export const KANBAN_COLUMNS = [
   "opc.kanban.colCancelled",
 ];
 
+// ── 需求发现类型 ───────────────────────────────────────────────
+
+export interface CapabilityEntry {
+  id: string;
+  name: string;
+  description: string;
+  source: string;
+  source_id: string;
+  capability_type: string;
+  applicable_scenarios: string[];
+  example_deliverables: string[];
+  metadata: Record<string, unknown>;
+}
+
+export interface CapabilityInventory {
+  tools: CapabilityEntry[];
+  skills: CapabilityEntry[];
+  mcp_tools: CapabilityEntry[];
+  workflows: CapabilityEntry[];
+  scanned_at: number;
+  total_count: number;
+}
+
+export interface DemandLead {
+  id: string;
+  platform: string;
+  title: string;
+  description: string;
+  status: string;
+  priority: number;
+  budget_min: number | null;
+  budget_max: number | null;
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  source_url: string | null;
+  raw_snapshot: Record<string, unknown>;
+  ai_analysis: Record<string, unknown>;
+  matched_capabilities: Array<{ id: string; name: string; source: string; score: number }>;
+  recommended_workflow: string | null;
+  confidence_score: number;
+  // 后端实体原始字段（_json 为 JSON 字符串，由 mapLead 解析到上面的对象字段）
+  confidence: number | null;
+  raw_snapshot_json: string | null;
+  ai_analysis_json: string | null;
+  matched_capabilities_json: string | null;
+  recommended_workflow_id: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface Delivery {
+  id: string;
+  lead_id: string;
+  title: string;
+  workflow_template_id: string;
+  status: string;
+  progress: number;
+  started_at: number | null;
+  completed_at: number | null;
+  result_summary: string | null;
+  deliverables: Array<Record<string, unknown>>;
+  errors: Array<Record<string, unknown>>;
+  metadata: Record<string, unknown>;
+  created_at: number;
+  updated_at: number;
+}
+
+export const LEAD_STATUS_COLOR_MAP: Record<string, string> = {
+  new: "default",
+  qualified: "blue",
+  executing: "orange",
+  running: "cyan",
+  delivered: "green",
+  failed: "red",
+  cancelled: "default",
+  expired: "red",
+  claimed: "purple",
+};
+
+export const DELIVERY_STATUS_COLOR_MAP: Record<string, string> = {
+  pending: "default",
+  running: "blue",
+  completed: "green",
+  failed: "red",
+  cancelled: "default",
+};
+
+// ── 平台配置 / 能力缺口类型 ──────────────────────────────────
+
+export interface MarketPlatform {
+  id: string;
+  name: string;
+  platform_type: string;
+  enabled: number;
+  base_url: string | null;
+  config: Record<string, unknown>;
+  last_sync_at: number | null;
+  status: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface CapabilityGap {
+  id: string;
+  lead_id: string | null;
+  title: string;
+  description: string;
+  missing_capability: string;
+  gap_type: string;
+  suggested_action: string;
+  priority: number;
+  status: string;
+  created_at: number;
+  updated_at: number;
+  closed_at: number | null;
+}
+
 // ── 人才市场常量 ──────────────────────────────────────────────
 
 export interface TalentRole {

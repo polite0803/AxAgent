@@ -77,9 +77,10 @@ pub mod v217_opc_publish_schedules;
 pub mod v218_merge_business_roles;
 pub mod v219_trade_intent_audit;
 pub mod v220_narrative_structure;
+pub mod v221_demand_discovery;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 220;
+pub const CURRENT_VERSION: i32 = 221;
 
 /// P2-10: Schema 版本追踪表名。
 ///
@@ -316,6 +317,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 220,
         description: "v220_narrative_structure: 新增 narrative_structures 表，支持叙事结构的跨会话保存与恢复",
         up: |db| Box::pin(v220_narrative_structure::up(db)),
+    },
+    Migration {
+        version: 221,
+        description: "v221_demand_discovery: 新增 OPC 需求发现相关表（opc_capability / opc_demand_lead / opc_delivery）",
+        up: |db| Box::pin(v221_demand_discovery::up(db)),
     },
 ];
 

@@ -30,6 +30,7 @@ pub mod grep;
 pub mod integration;
 pub mod knowledge;
 pub mod lsp;
+pub mod marketplace_scanner;
 pub mod media;
 pub mod media_delivery;
 pub mod messaging;

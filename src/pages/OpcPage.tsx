@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import {
+  AppstoreOutlined,
   DollarOutlined,
   FileTextOutlined,
   ProjectOutlined,
@@ -17,6 +18,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ContentMediaTab } from "./opc/components/ContentMediaTab";
 import { CustomersTab } from "./opc/components/CustomersTab";
 import { DashboardTab } from "./opc/components/DashboardTab";
+import { DemandDiscoveryTab } from "./opc/components/DemandDiscoveryTab";
 import { InvoicesTab } from "./opc/components/InvoicesTab";
 import { KanbanTab } from "./opc/components/KanbanTab";
 import { MarketPackTab } from "./opc/components/MarketPackTab";
@@ -35,6 +37,7 @@ const OPC_TABS = [
   { key: "content_media", labelKey: "opc.nav.contentMedia", icon: <VideoCameraOutlined />, component: ContentMediaTab },
   { key: "talent", labelKey: "opc.nav.talent", icon: <SearchOutlined />, component: TalentMarketTab },
   { key: "market", labelKey: "opc.nav.market", icon: <RiseOutlined />, component: MarketPackTab },
+  { key: "demand", labelKey: "opc.nav.demand", icon: <AppstoreOutlined />, component: DemandDiscoveryTab },
   { key: "kanban", labelKey: "opc.nav.kanban", icon: <ProjectOutlined />, component: KanbanTab },
 ];
 
