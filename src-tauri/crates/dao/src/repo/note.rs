@@ -533,15 +533,9 @@ pub async fn get_vault_graph(db: &DatabaseConnection, vault_id: &str) -> Result<
         let tags: Vec<String> = tags_json
             .as_ref()
             .and_then(|v| {
-                if let Some(arr) = v.as_array() {
-                    Some(
-                        arr.iter()
-                            .filter_map(|item| item.as_str().map(|s| s.to_string()))
-                            .collect(),
-                    )
-                } else {
-                    None
-                }
+                v.as_array().map(|arr| {
+                    arr.iter().filter_map(|item| item.as_str().map(|s| s.to_string())).collect()
+                })
             })
             .unwrap_or_default();
 
