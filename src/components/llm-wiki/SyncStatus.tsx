@@ -39,6 +39,8 @@ interface SyncStatusProps {
   refreshInterval?: number;
   /** 紧凑模式：工具栏里只显示 Badge 按钮，点击 Popover 展示完整面板 */
   compact?: boolean;
+  /** 是否在挂载时自动加载（默认 false，避免阻塞页面渲染） */
+  autoLoad?: boolean;
 }
 
 export function SyncStatus({
@@ -46,9 +48,10 @@ export function SyncStatus({
   autoRefresh = false,
   refreshInterval = 30000,
   compact = false,
+  autoLoad = false,
 }: SyncStatusProps) {
   const { t } = useTranslation();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(autoLoad);
   const [queueItems, setQueueItems] = useState<SyncQueueItem[]>([]);
   const [capacityInfo, setCapacityInfo] = useState<CapacityInfo | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -77,9 +80,15 @@ export function SyncStatus({
     loadSyncStatusRef.current = loadSyncStatus;
   }, [loadSyncStatus]);
 
+  // 默认不在挂载时自动加载，避免阻塞页面渲染
   useEffect(() => {
-    loadSyncStatusRef.current();
-  }, [wikiId]);
+    if (autoLoad) {
+      void loadSyncStatusRef.current();
+    } else {
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wikiId, autoLoad]);
 
   useEffect(() => {
     if (!autoRefresh) {
@@ -156,7 +165,13 @@ export function SyncStatus({
     return (
       <Popover
         open={popoverOpen}
-        onOpenChange={setPopoverOpen}
+        onOpenChange={(open) => {
+          setPopoverOpen(open);
+          // 首次打开 Popover 时才加载数据（懒加载）
+          if (open && !loading && queueItems.length === 0) {
+            void loadSyncStatusRef.current();
+          }
+        }}
         trigger="click"
         placement="bottomRight"
         arrow={false}

@@ -16,6 +16,8 @@ interface QualityScoreProps {
   refreshInterval?: number;
   /** 紧凑模式：工具栏里只显示分数 Badge 按钮，点击 Popover 展示详情 */
   compact?: boolean;
+  /** 是否在挂载时自动加载（默认 false，避免阻塞页面渲染） */
+  autoLoad?: boolean;
 }
 
 interface QualityDetails {
@@ -34,17 +36,24 @@ export function QualityScore({
   autoRefresh = false,
   refreshInterval = 60000,
   compact = false,
+  autoLoad = false,
 }: QualityScoreProps) {
   const { t } = useTranslation();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(autoLoad);
   const [details, setDetails] = useState<QualityDetails | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
 
+  // 默认不在挂载时自动加载（lint_vault 耗时 9 秒级，会阻塞主线程渲染）
+  // 仅在 autoLoad=true 时才自动加载
   useEffect(() => {
-    void loadQualityScore();
+    if (autoLoad) {
+      void loadQualityScore();
+    } else {
+      setLoading(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wikiId, pageId]);
+  }, [wikiId, pageId, autoLoad]);
 
   useEffect(() => {
     if (!autoRefresh) {
@@ -201,7 +210,13 @@ export function QualityScore({
     return (
       <Popover
         open={popoverOpen}
-        onOpenChange={setPopoverOpen}
+        onOpenChange={(open) => {
+          setPopoverOpen(open);
+          // 首次打开 Popover 时才加载数据（懒加载）
+          if (open && !details && !loading) {
+            void loadQualityScore();
+          }
+        }}
         trigger="click"
         placement="bottomRight"
         arrow={false}
