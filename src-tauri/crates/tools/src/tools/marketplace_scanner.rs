@@ -10,6 +10,26 @@
 //! - `MockMarketplaceScanner`：Mock 数据（测试/演示）
 //! - `ManualMarketplaceScanner`：手动补录（最轻路径）
 
+use crate::tools::arxiv_scanner::ArxivScanner;
+use crate::tools::csdn_scanner::CsdnScanner;
+use crate::tools::dribbble_scanner::DribbbleScanner;
+use crate::tools::github_discussions_scanner::GitHubDiscussionsScanner;
+use crate::tools::github_issue_scanner::GitHubIssueScanner;
+use crate::tools::hacker_news_scanner::HackerNewsScanner;
+use crate::tools::huggingface_scanner::HuggingFaceScanner;
+use crate::tools::linkedin_scanner::LinkedInScanner;
+use crate::tools::package_ecosystem_scanner::PackageEcosystemScanner;
+use crate::tools::product_hunt_scanner::ProductHuntScanner;
+use crate::tools::reddit_scanner::RedditScanner;
+use crate::tools::stackoverflow_scanner::StackOverflowScanner;
+use crate::tools::twitter_scanner::TwitterScanner;
+use crate::tools::upwork_scanner::UpworkScanner;
+use crate::tools::xianyu_scanner::XianyuScanner;
+use crate::tools::zhihu_scanner::ZhihuScanner;
+use crate::tools::zhubajie_scanner::ZhubajieScanner;
+use axagent_analysis_engine::opc::evaluator::{
+    evaluate_demand_value, DemandEvaluation, EvaluationConfig,
+};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
@@ -66,6 +86,32 @@ impl DemandLead {
             confidence: 0.0,
         }
     }
+
+    /// 将线索转换为评估请求
+    pub fn to_evaluation_input(&self) -> (String, String, String) {
+        (self.id.clone(), self.title.clone(), self.description.clone())
+    }
+}
+
+/// 带评估结果的需求线索
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EvaluatedDemandLead {
+    pub lead: DemandLead,
+    pub evaluation: DemandEvaluation,
+}
+
+impl EvaluatedDemandLead {
+    pub fn new(lead: DemandLead, evaluation: DemandEvaluation) -> Self {
+        Self { lead, evaluation }
+    }
+
+    pub fn value_score(&self) -> f64 {
+        self.evaluation.commercial_value_score
+    }
+
+    pub fn opportunity_level(&self) -> String {
+        self.evaluation.opportunity_level.clone()
+    }
 }
 
 // ── 扫描 trait ────────────────────────────────────────────────
@@ -87,15 +133,48 @@ pub trait MarketplaceScanner: Send + Sync {
 /// 多平台聚合扫描器
 pub struct AggregateMarketplaceScanner {
     scanners: Vec<Box<dyn MarketplaceScanner>>,
+    /// 记录被禁用的平台名称
+    disabled_platforms: std::collections::HashSet<String>,
 }
 
 impl AggregateMarketplaceScanner {
     pub fn new() -> Self {
-        Self { scanners: Vec::new() }
+        Self { 
+            scanners: Vec::new(),
+            disabled_platforms: std::collections::HashSet::new(),
+        }
     }
 
     pub fn add_scanner(&mut self, scanner: Box<dyn MarketplaceScanner>) {
         self.scanners.push(scanner);
+    }
+
+    /// 禁用指定平台的扫描器
+    pub fn disable_scanner(&mut self, platform: &str) {
+        self.disabled_platforms.insert(platform.to_string());
+        tracing::info!(platform = platform, "[AggregateMarketplaceScanner] 已禁用扫描器");
+    }
+
+    /// 启用指定平台的扫描器
+    pub fn enable_scanner(&mut self, platform: &str) {
+        self.disabled_platforms.remove(platform);
+        tracing::info!(platform = platform, "[AggregateMarketplaceScanner] 已启用扫描器");
+    }
+
+    /// 检查扫描器是否启用
+    pub fn is_scanner_enabled(&self, platform: &str) -> bool {
+        !self.disabled_platforms.contains(platform)
+    }
+
+    /// 列出所有已注册的平台及其启用状态
+    pub fn list_scanners(&self) -> Vec<(String, bool)> {
+        self.scanners.iter()
+            .map(|s| {
+                let p = s.platform().to_string();
+                let enabled = !self.disabled_platforms.contains(&p);
+                (p, enabled)
+            })
+            .collect()
     }
 
     /// 从平台配置批量注册扫描器
@@ -126,6 +205,15 @@ impl AggregateMarketplaceScanner {
     pub async fn search_all(&self, q: &str) -> Result<Vec<DemandLead>, String> {
         let mut leads: Vec<DemandLead> = Vec::new();
         for scanner in &self.scanners {
+            let platform = scanner.platform();
+            if !self.is_scanner_enabled(platform) {
+                tracing::debug!(
+                    platform = platform,
+                    "[AggregateMarketplaceScanner] 扫描器已禁用，跳过"
+                );
+                continue;
+            }
+            
             match scanner.search(q).await {
                 Ok(raw) => {
                     for r in raw {
@@ -134,7 +222,7 @@ impl AggregateMarketplaceScanner {
                 },
                 Err(e) => {
                     tracing::warn!(
-                        platform = scanner.platform(),
+                        platform = platform,
                         error = %e,
                         "[AggregateMarketplaceScanner] 扫描器失败，跳过"
                     );
@@ -143,11 +231,110 @@ impl AggregateMarketplaceScanner {
         }
         Ok(leads)
     }
+
+    /// 搜索需求线索并执行价值评估
+    ///
+    /// 完整流水线：扫描 → 评估 → 筛选高价值 → 排序
+    pub async fn search_and_evaluate(
+        &self,
+        q: &str,
+        config: Option<&EvaluationConfig>,
+    ) -> Result<Vec<EvaluatedDemandLead>, String> {
+        let leads = self.search_all(q).await?;
+
+        let mut evaluated: Vec<EvaluatedDemandLead> = leads
+            .into_iter()
+            .map(|lead| {
+                let (id, title, desc) = lead.to_evaluation_input();
+                let evaluation = if let Some(cfg) = config {
+                    axagent_analysis_engine::opc::evaluator::evaluate_demand_with_config(
+                        &id, &title, &desc, None, cfg,
+                    )
+                } else {
+                    evaluate_demand_value(&id, &title, &desc, None)
+                };
+                EvaluatedDemandLead::new(lead, evaluation)
+            })
+            .collect();
+
+        // 按价值分排序
+        evaluated.sort_by(|a, b| {
+            b.value_score()
+                .partial_cmp(&a.value_score())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+
+        Ok(evaluated)
+    }
+
+    /// 搜索并筛选高价值需求
+    ///
+    /// # 参数
+    /// - `q`: 搜索关键词
+    /// - `min_score`: 最低价值分阈值（默认 50.0）
+    ///
+    /// # 返回
+    /// 高价值需求列表（已按价值分排序）
+    pub async fn search_high_value(
+        &self,
+        q: &str,
+        min_score: f64,
+    ) -> Result<Vec<EvaluatedDemandLead>, String> {
+        let evaluated = self.search_and_evaluate(q, None).await?;
+        let filtered: Vec<EvaluatedDemandLead> = evaluated
+            .into_iter()
+            .filter(|e| e.value_score() >= min_score)
+            .collect();
+        Ok(filtered)
+    }
+
+    /// 对已有线索进行批量评估
+    pub fn evaluate_leads(
+        &self,
+        leads: Vec<DemandLead>,
+    ) -> Vec<EvaluatedDemandLead> {
+        leads
+            .into_iter()
+            .map(|lead| {
+                let (id, title, desc) = lead.to_evaluation_input();
+                let evaluation = evaluate_demand_value(&id, &title, &desc, None);
+                EvaluatedDemandLead::new(lead, evaluation)
+            })
+            .collect()
+    }
 }
 
 impl Default for AggregateMarketplaceScanner {
     fn default() -> Self {
-        Self::new()
+        let mut scanner = Self::new();
+        // 注册技术社区扫描器
+        scanner.add_scanner(Box::new(RedditScanner::new()));
+        scanner.add_scanner(Box::new(HackerNewsScanner::new()));
+        scanner.add_scanner(Box::new(GitHubIssueScanner::new()));
+        scanner.add_scanner(Box::new(GitHubDiscussionsScanner::new()));
+        scanner.add_scanner(Box::new(StackOverflowScanner::new()));
+        // 注册产品生态扫描器
+        scanner.add_scanner(Box::new(ProductHuntScanner::new()));
+        scanner.add_scanner(Box::new(HuggingFaceScanner::new()));
+        scanner.add_scanner(Box::new(PackageEcosystemScanner::new()));
+        // 注册研究动态扫描器
+        scanner.add_scanner(Box::new(ArxivScanner::new()));
+        // 注册社交媒体扫描器
+        scanner.add_scanner(Box::new(TwitterScanner::new()));
+        // 注册中国市场扫描器
+        scanner.add_scanner(Box::new(ZhubajieScanner::new()));
+        scanner.add_scanner(Box::new(XianyuScanner::new()));
+        // 注册 B2B/企业需求扫描器
+        scanner.add_scanner(Box::new(LinkedInScanner::new()));
+        // 注册中国开发者社区扫描器
+        scanner.add_scanner(Box::new(ZhihuScanner::new()));
+        scanner.add_scanner(Box::new(CsdnScanner::csdn()));
+        scanner.add_scanner(Box::new(CsdnScanner::juejin()));
+        // 注册设计需求扫描器
+        scanner.add_scanner(Box::new(DribbbleScanner::new()));
+        // 注册国际外包市场扫描器
+        scanner.add_scanner(Box::new(UpworkScanner::new()));
+        scanner
     }
 }
 
@@ -495,5 +682,183 @@ impl MarketplaceScanner for ManualMarketplaceScanner {
             "[ManualMarketplaceScanner] 请在 OPC 需求发现面板手动录入需求线索"
         );
         Ok(Vec::new())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new_aggregate_scanner() {
+        let scanner = AggregateMarketplaceScanner::new();
+        assert!(scanner.disabled_platforms.is_empty());
+    }
+
+    #[test]
+    fn test_disable_and_enable_scanner() {
+        let mut scanner = AggregateMarketplaceScanner::new();
+        scanner.add_scanner(Box::new(MockMarketplaceScanner::new("test_platform")));
+        
+        // 默认启用
+        assert!(scanner.is_scanner_enabled("test_platform"));
+        
+        // 禁用
+        scanner.disable_scanner("test_platform");
+        assert!(!scanner.is_scanner_enabled("test_platform"));
+        
+        // 重新启用
+        scanner.enable_scanner("test_platform");
+        assert!(scanner.is_scanner_enabled("test_platform"));
+    }
+
+    #[test]
+    fn test_list_scanners_status() {
+        let mut scanner = AggregateMarketplaceScanner::new();
+        scanner.add_scanner(Box::new(MockMarketplaceScanner::new("platform_a")));
+        scanner.add_scanner(Box::new(MockMarketplaceScanner::new("platform_b")));
+        
+        // 禁用 platform_a
+        scanner.disable_scanner("platform_a");
+        
+        let status = scanner.list_scanners();
+        assert_eq!(status.len(), 2);
+        
+        let platform_a_status = status.iter().find(|(p, _)| p == "platform_a");
+        assert!(platform_a_status.is_some());
+        assert_eq!(platform_a_status.unwrap().1, false); // disabled
+        
+        let platform_b_status = status.iter().find(|(p, _)| p == "platform_b");
+        assert!(platform_b_status.is_some());
+        assert_eq!(platform_b_status.unwrap().1, true); // enabled
+    }
+
+    #[tokio::test]
+    async fn test_search_all_skips_disabled_scanners() {
+        let mut scanner = AggregateMarketplaceScanner::new();
+        scanner.add_scanner(Box::new(MockMarketplaceScanner::new("enabled_platform")));
+        scanner.add_scanner(Box::new(MockMarketplaceScanner::new("disabled_platform")));
+        
+        // 禁用一个扫描器
+        scanner.disable_scanner("disabled_platform");
+        
+        // 搜索
+        let results = scanner.search_all("test").await.unwrap();
+        
+        // 应该只包含 enabled_platform 的结果
+        assert!(results.iter().all(|r| r.platform != "disabled_platform"));
+        assert!(results.iter().any(|r| r.platform == "enabled_platform"));
+    }
+
+    #[tokio::test]
+    async fn test_search_all_without_disabled_scanners() {
+        let mut scanner = AggregateMarketplaceScanner::new();
+        scanner.add_scanner(Box::new(MockMarketplaceScanner::new("platform_a")));
+        
+        // 不禁用任何扫描器
+        let results = scanner.search_all("test").await.unwrap();
+        
+        // 应该包含 platform_a 的结果
+        assert!(!results.is_empty());
+        assert!(results.iter().all(|r| r.platform == "platform_a"));
+    }
+
+    #[test]
+    fn test_disable_nonexistent_platform() {
+        let mut scanner = AggregateMarketplaceScanner::new();
+        scanner.add_scanner(Box::new(MockMarketplaceScanner::new("test_platform")));
+        
+        // 禁用不存在的平台不应报错
+        scanner.disable_scanner("nonexistent_platform");
+        
+        // 原平台仍应启用
+        assert!(scanner.is_scanner_enabled("test_platform"));
+    }
+
+    #[tokio::test]
+    async fn test_search_and_evaluate() {
+        let mut scanner = AggregateMarketplaceScanner::new();
+        scanner.add_scanner(Box::new(MockMarketplaceScanner::new("test")));
+
+        let results = scanner.search_and_evaluate("test", None).await.unwrap();
+
+        assert!(!results.is_empty(), "应返回评估后的线索");
+        for evaluated in &results {
+            assert!(evaluated.value_score() >= 0.0 && evaluated.value_score() <= 100.0);
+            assert!(!evaluated.opportunity_level().is_empty());
+        }
+
+        // 验证已按价值分排序
+        for i in 0..results.len().saturating_sub(1) {
+            assert!(results[i].value_score() >= results[i + 1].value_score());
+        }
+    }
+
+    #[tokio::test]
+    async fn test_search_high_value() {
+        let mut scanner = AggregateMarketplaceScanner::new();
+        scanner.add_scanner(Box::new(MockMarketplaceScanner::new("test")));
+
+        let results = scanner.search_high_value("test", 0.0).await.unwrap();
+        assert!(!results.is_empty(), "阈值为0时应返回所有结果");
+
+        let results = scanner.search_high_value("test", 100.0).await.unwrap();
+        assert!(results.is_empty(), "阈值为100时应无结果");
+    }
+
+    #[test]
+    fn test_evaluate_leads() {
+        let scanner = AggregateMarketplaceScanner::new();
+
+        let leads = vec![
+            DemandLead {
+                id: "test-1".to_string(),
+                platform: "test".to_string(),
+                title: "高价值需求".to_string(),
+                description: "这是一个非常紧急且昂贵的痛点问题".to_string(),
+                budget_min: None,
+                budget_max: None,
+                budget_currency: "CNY".to_string(),
+                contact_name: None,
+                contact_email: None,
+                contact_phone: None,
+                source_url: None,
+                raw_snapshot: serde_json::Value::Null,
+                status: "new".to_string(),
+                confidence: 0.0,
+            },
+        ];
+
+        let evaluated = scanner.evaluate_leads(leads);
+        assert_eq!(evaluated.len(), 1);
+        assert!(evaluated[0].value_score() >= 0.0);
+    }
+
+    #[test]
+    fn test_evaluated_demand_lead() {
+        let lead = DemandLead {
+            id: "test".to_string(),
+            platform: "test".to_string(),
+            title: "Test".to_string(),
+            description: "Description".to_string(),
+            budget_min: None,
+            budget_max: None,
+            budget_currency: "CNY".to_string(),
+            contact_name: None,
+            contact_email: None,
+            contact_phone: None,
+            source_url: None,
+            raw_snapshot: serde_json::Value::Null,
+            status: "new".to_string(),
+            confidence: 0.0,
+        };
+
+        let evaluation = axagent_analysis_engine::opc::evaluator::evaluate_demand_value(
+            "test", "Test", "Description", None,
+        );
+
+        let evaluated = EvaluatedDemandLead::new(lead, evaluation);
+        assert!(evaluated.value_score() >= 0.0);
+        assert!(!evaluated.opportunity_level().is_empty());
     }
 }

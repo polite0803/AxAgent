@@ -4,8 +4,14 @@
 //!
 //! 参考 stock_analysis_setup::seed_stock_analysis_workflow_template 模式
 //!
+//! v2 增强：增加技术社区扫描（Reddit/HN/GitHub）和需求价值评估
+//!
 //! 工作流结构：
-//!   Trigger → ToolNode(获取数据) → 并行 AgentNode(多角色分析) → 汇总决策 → End
+//!   Trigger → Phase 1: 多平台扫描（技术社区 + 众包平台）
+//!          → Phase 2: 需求价值评估
+//!          → Phase 3: 现有数据收集
+//!          → Phase 4: 并行 AgentNode(多角色分析)
+//!          → Phase 5: 汇总决策 → End
 //!
 //! Agent 节点绑定 agent_profile_id 实现三要素：
 //!   1. AgentRole.system_prompt      → 岗位/角色定义
@@ -22,7 +28,7 @@ use axagent_harness::workflow_types::{
 use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
 
 const TEMPLATE_ID: &str = "opc-demand-discovery";
-const TEMPLATE_VERSION: i32 = 1;
+const TEMPLATE_VERSION: i32 = 2;
 
 /// 种子化 OPC 需求发现工作流模板到数据库
 pub(crate) async fn seed_opc_workflow_template(db: &DatabaseConnection) -> Result<(), String> {
@@ -222,6 +228,174 @@ pub(crate) async fn seed_opc_workflow_template(db: &DatabaseConnection) -> Resul
             description: None,
             properties: Some(std::collections::HashMap::new()),
             required: None,
+            items: None,
+        }),
+    });
+
+    // ── v2 新增：多平台扫描器 ──
+
+    // RedditScanner - Reddit 技术社区扫描
+    tool_defs.push(ToolDef {
+        name: "RedditScanner".into(),
+        description: Some("扫描 Reddit 技术社区，获取相关需求线索".into()),
+        parameters: Some(JsonSchema {
+            schema_type: "object".into(),
+            description: None,
+            properties: Some({
+                let mut props = std::collections::HashMap::new();
+                props.insert(
+                    "query".into(),
+                    JsonSchemaProperty {
+                        schema_type: "string".into(),
+                        description: Some("搜索关键词，如'AI tools'".into()),
+                        default: None,
+                        enum_values: None,
+                        format: None,
+                    },
+                );
+                props
+            }),
+            required: Some(vec!["query".into()]),
+            items: None,
+        }),
+    });
+
+    // HackerNewsScanner - HackerNews 扫描
+    tool_defs.push(ToolDef {
+        name: "HackerNewsScanner".into(),
+        description: Some("扫描 HackerNews，获取技术趋势和需求线索".into()),
+        parameters: Some(JsonSchema {
+            schema_type: "object".into(),
+            description: None,
+            properties: Some({
+                let mut props = std::collections::HashMap::new();
+                props.insert(
+                    "query".into(),
+                    JsonSchemaProperty {
+                        schema_type: "string".into(),
+                        description: Some("搜索关键词".into()),
+                        default: None,
+                        enum_values: None,
+                        format: None,
+                    },
+                );
+                props
+            }),
+            required: Some(vec!["query".into()]),
+            items: None,
+        }),
+    });
+
+    // GitHubIssueScanner - GitHub Issue 扫描
+    tool_defs.push(ToolDef {
+        name: "GitHubIssueScanner".into(),
+        description: Some("扫描 GitHub Issue，获取开源项目中的需求和 Bug".into()),
+        parameters: Some(JsonSchema {
+            schema_type: "object".into(),
+            description: None,
+            properties: Some({
+                let mut props = std::collections::HashMap::new();
+                props.insert(
+                    "query".into(),
+                    JsonSchemaProperty {
+                        schema_type: "string".into(),
+                        description: Some("搜索关键词，如'feature request AI'".into()),
+                        default: None,
+                        enum_values: None,
+                        format: None,
+                    },
+                );
+                props
+            }),
+            required: Some(vec!["query".into()]),
+            items: None,
+        }),
+    });
+
+    // ZhumajieScanner - 猪八戒平台扫描
+    tool_defs.push(ToolDef {
+        name: "ZhumajieScanner".into(),
+        description: Some("扫描猪八戒平台，获取外包需求线索".into()),
+        parameters: Some(JsonSchema {
+            schema_type: "object".into(),
+            description: None,
+            properties: Some({
+                let mut props = std::collections::HashMap::new();
+                props.insert(
+                    "query".into(),
+                    JsonSchemaProperty {
+                        schema_type: "string".into(),
+                        description: Some("搜索关键词，如'小程序开发'".into()),
+                        default: None,
+                        enum_values: None,
+                        format: None,
+                    },
+                );
+                props
+            }),
+            required: Some(vec!["query".into()]),
+            items: None,
+        }),
+    });
+
+    // XianyuScanner - 闲鱼平台扫描
+    tool_defs.push(ToolDef {
+        name: "XianyuScanner".into(),
+        description: Some("扫描闲鱼平台，获取二手需求线索".into()),
+        parameters: Some(JsonSchema {
+            schema_type: "object".into(),
+            description: None,
+            properties: Some({
+                let mut props = std::collections::HashMap::new();
+                props.insert(
+                    "query".into(),
+                    JsonSchemaProperty {
+                        schema_type: "string".into(),
+                        description: Some("搜索关键词".into()),
+                        default: None,
+                        enum_values: None,
+                        format: None,
+                    },
+                );
+                props
+            }),
+            required: Some(vec!["query".into()]),
+            items: None,
+        }),
+    });
+
+    // DemandValueEvaluator - 需求价值评估
+    tool_defs.push(ToolDef {
+        name: "DemandValueEvaluator".into(),
+        description: Some("评估需求的商业价值，输出痛点分、市场缺口分、综合评分".into()),
+        parameters: Some(JsonSchema {
+            schema_type: "object".into(),
+            description: None,
+            properties: Some({
+                let mut props = std::collections::HashMap::new();
+                props.insert(
+                    "demands".into(),
+                    JsonSchemaProperty {
+                        schema_type: "array".into(),
+                        description: Some("需求列表，每项包含 id、title、description".into()),
+                        default: None,
+                        enum_values: None,
+                        format: None,
+                    },
+                );
+                props.insert(
+                    "min_score".into(),
+                    JsonSchemaProperty {
+                        schema_type: "number".into(),
+                        description: Some("最低价值分阈值（0-100）".into()),
+                        default: Some(serde_json::json!(50)),
+                        enum_values: None,
+                        format: None,
+                    },
+                );
+                props
+            }),
+            required: Some(vec!["demands".into()]),
             items: None,
         }),
     });

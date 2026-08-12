@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 pub mod agent;
 pub mod agent_memory;
+pub mod arxiv_scanner;
 pub mod bash;
 pub mod batch_missing;
 pub mod browser;
@@ -25,8 +26,12 @@ pub mod file_system;
 pub mod file_write;
 pub mod finance;
 pub mod git;
+pub mod github_discussions_scanner;
+pub mod github_issue_scanner;
 pub mod glob;
 pub mod grep;
+pub mod hacker_news_scanner;
+pub mod huggingface_scanner;
 pub mod integration;
 pub mod knowledge;
 pub mod lsp;
@@ -42,21 +47,35 @@ pub mod network;
 pub mod obsidian;
 pub mod ocr;
 pub mod opc;
+pub mod package_ecosystem_scanner;
 pub mod personality;
 pub mod plan;
+pub mod product_hunt_scanner;
 pub mod push_notification;
+pub mod reddit_scanner;
 pub mod repl;
 pub mod rpc;
 pub mod skill;
+pub mod stackoverflow_scanner;
 pub mod storage;
 pub mod system_info;
 pub mod task_system;
 pub mod testing;
 pub mod todo_write;
+pub mod twitter_scanner;
 pub mod web_fetch;
 pub mod web_search;
 pub mod workspace;
 pub mod worktree;
+pub mod xianyu_scanner;
+pub mod zhubajie_scanner;
+
+// 新增扫描器
+pub mod csdn_scanner;
+pub mod dribbble_scanner;
+pub mod linkedin_scanner;
+pub mod upwork_scanner;
+pub mod zhihu_scanner;
 
 pub use todo_write::{AskUserQuestionTool, NotebookEditTool};
 
