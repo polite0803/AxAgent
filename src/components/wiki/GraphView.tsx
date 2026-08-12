@@ -466,7 +466,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   // communities prop 的 ref 镜像，供 useCallback / 事件回调读取最新值而无需将其加入依赖
   const communitiesRef = useRef<Map<string, number> | undefined>(undefined);
   useEffect(() => {
-    communitiesRef.current = communities;
+    // 优先使用哈希合并后的虚拟聚类映射
+    communitiesRef.current = effectiveCommunitiesRef.current ?? communities;
   }, [communities]);
 
   const gridIndexRef = useRef<Map<string, string[]>>(new Map());
@@ -484,10 +485,24 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   // 聚合物理规模上限：聚合节点 + 未折叠节点数超过此值时，放弃力导向（仅静态显示），
   // 防止社区粒度极细（甚至每节点一社区）时聚合物理规模仍达万级，主线程每帧 O(n log n) 卡死不响应。
   const MAX_AGG_PHYS_NODES = 800;
+  // 强制聚类数量上限：当社区数超过此值时，通过哈希合并到虚拟聚类
+  const FORCE_CLUSTER_COUNT = 200;
   // 主线程物理规模上限：超过此节点数时，fallback 主线程物理一律禁用（静态显示）。
   // fallback 是 Worker 未就绪时的兜底；若在大图上每帧跑全量 O(n log n) 力导向，
   // 主线程会被完全阻塞、鼠标键盘全部无响应。大图等待 Worker 就绪即可，绝不走主线程物理。
   const MAX_MAIN_THREAD_PHYSICS = 1500;
+
+  // 有效社区映射（考虑哈希合并后的虚拟聚类）
+  const effectiveCommunitiesRef = useRef<Map<string, number> | null>(null);
+
+  // 哈希字符串转整数（用于节点到虚拟聚类的稳定分桶）
+  function hashStringToInt(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+    }
+    return hash;
+  }
 
   const minimapRef = useRef<HTMLCanvasElement>(null);
   const [minimapOpen, setMinimapOpen] = useState(true);
@@ -940,7 +955,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         nodes: [],
         edges: [],
         config: workerConfig,
-        communities: communities ? Object.fromEntries(communities) : undefined,
+        communities: (effectiveCommunitiesRef.current ?? communities)
+          ? Object.fromEntries(effectiveCommunitiesRef.current ?? communities!)
+          : undefined,
         compact: {
           nodeBuffer,
           edgeBuffer,
@@ -987,18 +1004,38 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     // ── 大图自动聚合：节点数超过阈值且 communities 可用时，自动进入聚类折叠聚合视图 ──
     // 折叠全部社区 → 物理只模拟聚合节点（几十个 + 未折叠成员），
     // 从根本上避免万级节点全量力导向收敛导致的打开卡死。
-    // 重要保护：仅当社区数量合理（<= MAX_AGG_PHYS_NODES）时才自动聚合。
-    // 社区粒度极细（如每节点一社区，社区数接近节点数达万级）时，折叠会产生上万
-    // 重叠聚合节点，且 aggOver 保护会禁用聚合物理 → 这些聚类保持质心位置重叠，
-    // drawCollapsedClusters 每帧绘制上万聚类圆 + 标签 → 主线程卡死、全网无响应。
-    // 超细粒度大图跳过自动聚合，由 Worker 物理 + 视口裁剪渲染，保证打开即响应。
-    if (
-      communities
-      && pNodes.length > AUTO_CLUSTER_THRESHOLD
-      && communities.size <= MAX_AGG_PHYS_NODES
-    ) {
+    // 核心策略：大图（>3000节点）必须进入聚类模式，无论社区粒度如何。
+    // 社区数过多时（>MAX_AGG_PHYS_NODES），通过哈希将节点强制合并到 FORCE_CLUSTER_COUNT 个虚拟聚类。
+    const shouldForceCluster = pNodes.length > AUTO_CLUSTER_THRESHOLD;
+    if (shouldForceCluster) {
+      let effectiveCommunities = communities;
+      if (!effectiveCommunities || effectiveCommunities.size > MAX_AGG_PHYS_NODES) {
+        // 哈希合并：将所有节点均匀分配到 FORCE_CLUSTER_COUNT 个虚拟聚类
+        // 使用节点 ID 的哈希值确保同一节点始终在同一聚类
+        const hashMap = new Map<string, number>();
+        const buckets = new Set<number>();
+        if (effectiveCommunities) {
+          for (const [nodeId] of effectiveCommunities) {
+            const hash = Math.abs(hashStringToInt(nodeId)) % FORCE_CLUSTER_COUNT;
+            hashMap.set(nodeId, hash);
+            buckets.add(hash);
+          }
+        } else {
+          // 没有社区数据时，直接对所有节点哈希分桶
+          for (const n of pNodes) {
+            const hash = Math.abs(hashStringToInt(n.id)) % FORCE_CLUSTER_COUNT;
+            hashMap.set(n.id, hash);
+            buckets.add(hash);
+          }
+        }
+        effectiveCommunities = hashMap;
+        // 更新 communities 引用（供后续代码使用）
+        // 注意：不能直接修改 props，使用 ref 存
+        effectiveCommunitiesRef.current = effectiveCommunities;
+      }
+
       const all = new Set<number>();
-      for (const cid of communities.values()) {
+      for (const cid of effectiveCommunities.values()) {
         all.add(cid);
       }
       collapsedRef.current = all;
@@ -1106,6 +1143,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       const edges = physEdgesRef.current;
       frameCounterRef.current++;
 
+      // ── 计算有效社区映射（优先使用哈希合并后的虚拟聚类） ──
+      const effCommunities = effectiveCommunitiesRef.current ?? communities;
+
       // ── Worker 物理步进 + 帧间插值 ──
       const worker = workerRef.current;
       const workerReady = workerInitializedRef.current;
@@ -1180,7 +1220,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         // 聚合物理激活时不使用 Worker 结果
         workerResultRef.current = null;
       } else if (worker && workerReady && nodes.length > 0) {
-        const enableClusters = clusterModeRef.current && communities;
+        const enableClusters = clusterModeRef.current && effCommunities;
 
         // 拖拽时同步位置到 Worker
         if (hasDrag) {
@@ -1214,7 +1254,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
             clusterForce: enableClusters ? 0.15 : undefined,
           };
           const centroids = enableClusters
-            ? computeCommunityCentroids(nodes, communities!)
+            ? computeCommunityCentroids(nodes, effCommunities!)
             : undefined;
 
           worker.postMessage({
@@ -1292,10 +1332,10 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         }
         const shouldRunPhysics = mainThreadSafe && (hasInteraction || !stable || idleCounterRef.current % 12 === 0);
         if (shouldRunPhysics) {
-          const enableClusters = clusterModeRef.current && communities;
+          const enableClusters = clusterModeRef.current && effCommunities;
           let centroids = communityCentroidsRef.current;
           if (enableClusters && frameCounterRef.current % 3 === 0) {
-            centroids = computeCommunityCentroids(nodes, communities!);
+            centroids = computeCommunityCentroids(nodes, effCommunities!);
             communityCentroidsRef.current = centroids;
           }
           const config: PhysicsConfig = {
@@ -1314,7 +1354,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
             edges,
             config,
             undefined,
-            enableClusters ? communities : undefined,
+            enableClusters ? effCommunities : undefined,
             enableClusters ? centroids : undefined,
             neighborMapCacheRef.current,
           );
@@ -1491,14 +1531,15 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
   // ── 社区聚类区域渲染 ──
   function drawClusterRegions(ctx: CanvasRenderingContext2D, nodes: PhysicsNode[]) {
-    if (!communities) { return; }
+    const activeCommunities = effectiveCommunitiesRef.current ?? communities;
+    if (!activeCommunities) { return; }
     const centroids = communityCentroidsRef.current;
     if (centroids.size === 0) { return; }
 
     // 按社区分组收集节点位置
     const communityNodes = new Map<number, { sx: number; sy: number }[]>();
     for (const node of nodes) {
-      const cid = communities.get(node.id);
+      const cid = activeCommunities.get(node.id);
       if (cid === undefined) { continue; }
       const list = communityNodes.get(cid) ?? [];
       list.push({ sx: node.x, sy: node.y });
@@ -2294,7 +2335,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
   // 刷新聚合节点几何（质心/半径/计数/代表名）。O(N) 遍历，低频调用（每 6 帧 / 切换时）
   const refreshClusterGeom = useCallback(() => {
-    if (!communities || !clusterModeRef.current) {
+    const activeCommunities = effectiveCommunitiesRef.current ?? communities;
+    if (!activeCommunities || !clusterModeRef.current) {
       clusterGeomRef.current = new Map();
       return;
     }
@@ -2305,7 +2347,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     const nodes = physNodesRef.current;
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
-      const cid = communities.get(node.id);
+      const cid = activeCommunities.get(node.id);
       if (cid === undefined) { continue; }
       const b = buckets.get(cid) ?? { sx: 0, sy: 0, count: 0, bestId: null, bestDegree: -1 };
       b.sx += node.x;
@@ -3204,9 +3246,10 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     initializePositions(nodes, dimensions.width, dimensions.height);
 
     // 集群力模式下，重置时同步社区质心，Worker step 会据此收敛
-    const enableClusters = clusterModeRef.current && communities;
+    const activeCommunities = effectiveCommunitiesRef.current ?? communities;
+    const enableClusters = clusterModeRef.current && activeCommunities;
     const centroids = enableClusters
-      ? computeCommunityCentroids(nodes, communities!)
+      ? computeCommunityCentroids(nodes, activeCommunities!)
       : undefined;
     if (enableClusters) {
       communityCentroidsRef.current = centroids!;
