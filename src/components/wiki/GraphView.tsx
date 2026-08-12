@@ -440,6 +440,16 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   const clusterGeomRef = useRef<
     Map<number, { cx: number; cy: number; r: number; count: number; label: string }>
   >(new Map());
+  // ── 聚合物理（聚类折叠模式下物理只模拟聚合节点 + 未折叠节点，而非全部底层节点）──
+  // 折叠社区的成员节点不参与物理（数量级骤降），聚合节点坐标驱动 clusterGeom。
+  const aggPhysRef = useRef<
+    {
+      nodes: PhysicsNode[];
+      edges: PhysicsEdge[];
+      cidToNodeIdx: Map<number, number>;
+      neighborMap: NeighborMap;
+    } | null
+  >(null);
   // 展开/收起状态变化时触发重渲染
   const [, setClusterCollapseVersion] = useState(0);
   const mouseScreenRef = useRef({ x: 0, y: 0, active: false });
@@ -459,6 +469,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   const MAX_PARTICLES = 4000; // 粒子总数上限：超过则停止创建（大图粒子动画代价过高）
   const GLOW_NODE_LIMIT = 2000; // 超过此节点数：普通节点不绘制 glow，仅交互节点保留
   const MINIMAP_REDRAW_INTERVAL = 15; // minimap 重绘间隔（帧），大图避免每帧全量遍历
+  // 节点数超过此值且 communities 可用时，打开自动进入聚类折叠聚合视图，
+  // 物理只模拟聚合节点（几十个），从根本上避免万级节点全量力导向收敛导致的卡死。
+  const AUTO_CLUSTER_THRESHOLD = 3000;
 
   const minimapRef = useRef<HTMLCanvasElement>(null);
   const [minimapOpen, setMinimapOpen] = useState(true);
@@ -546,10 +559,12 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       }
       collapsedRef.current = all;
       refreshClusterGeom();
+      buildAggregatePhysics();
       setClusterCollapseVersion((v) => v + 1);
     } else {
       collapsedRef.current = new Set();
       hoverClusterRef.current = null;
+      aggPhysRef.current = null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clusterMode, communities]);
@@ -611,6 +626,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       next.delete(cid);
       collapsedRef.current = next;
       refreshClusterGeom();
+      buildAggregatePhysics();
       setClusterCollapseVersion((v) => v + 1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -915,6 +931,22 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       }
     };
 
+    // ── 大图自动聚合：节点数超过阈值且 communities 可用时，自动进入聚类折叠聚合视图 ──
+    // 折叠全部社区 → 物理只模拟聚合节点（几十个 + 未折叠成员），
+    // 从根本上避免万级节点全量力导向收敛导致的打开卡死。
+    if (communities && pNodes.length > AUTO_CLUSTER_THRESHOLD) {
+      const all = new Set<number>();
+      for (const cid of communities.values()) {
+        all.add(cid);
+      }
+      collapsedRef.current = all;
+      clusterModeRef.current = true;
+      setClusterMode(true);
+      refreshClusterGeom();
+      buildAggregatePhysics();
+      setClusterCollapseVersion((v) => v + 1);
+    }
+
     // 组件卸载时销毁 Worker，避免线程泄漏和内存堆积
     return () => {
       if (workerRef.current === worker) {
@@ -997,8 +1029,70 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       const hasDrag = !!dragRef.current;
       const hasInteraction = mouseScreenRef.current.active || !!panRef.current;
 
-      // 如果有 Worker 且已初始化，使用 Worker 物理
-      if (worker && workerReady && nodes.length > 0) {
+      // ── 聚合物理分支（聚类折叠模式）：物理只模拟聚合节点 + 未折叠节点 ──
+      // 折叠社区成员不参与力导向模拟（数量级骤降），聚合节点坐标回写 clusterGeom，
+      // 驱动折叠社区几何/聚合边/聚合节点渲染。万级节点打开不卡死的核心。
+      const aggPhys = aggPhysRef.current;
+      const aggActive = aggPhys !== null && aggPhys.nodes.length > 0;
+      if (aggActive) {
+        const config: PhysicsConfig = {
+          theta: 0.5,
+          repulsion: 6000,
+          gravity: 0.01,
+          damping: 0.92,
+          dt: 0.25,
+          springForce: 0.04,
+          springDamping: 0.85,
+          maxVelocity: 4,
+        };
+        const stable = isSystemStable(aggPhys.nodes, 0.15);
+        if (hasInteraction) {
+          idleCounterRef.current = 0;
+        } else if (stable) {
+          idleCounterRef.current++;
+        } else {
+          idleCounterRef.current = 0;
+        }
+        // 稳定降频：非交互时每 6 帧才跑一次聚合物理（规模小，成本极低）
+        const shouldRun = hasInteraction || !stable || frameCounterRef.current % 6 === 0;
+        if (shouldRun) {
+          stepPhysics(
+            aggPhys.nodes,
+            aggPhys.edges,
+            config,
+            undefined,
+            undefined,
+            undefined,
+            aggPhys.neighborMap,
+          );
+          // 聚合节点坐标 → 回写 clusterGeom，驱动折叠社区几何/聚合边/聚合节点渲染
+          const geom = clusterGeomRef.current;
+          for (const [cid, idx] of aggPhys.cidToNodeIdx) {
+            const gn = aggPhys.nodes[idx];
+            const g = geom.get(cid);
+            if (g) {
+              g.cx = gn.x;
+              g.cy = gn.y;
+            }
+          }
+          // 更新网格空间索引（未折叠节点位置可能变化）
+          const gridIndex = new Map<string, string[]>();
+          for (const n of aggPhys.nodes) {
+            const gx = Math.floor(n.x / GRID_CELL_SIZE);
+            const gy = Math.floor(n.y / GRID_CELL_SIZE);
+            const key = `${gx},${gy}`;
+            const bucket = gridIndex.get(key);
+            if (bucket) {
+              bucket.push(n.id);
+            } else {
+              gridIndex.set(key, [n.id]);
+            }
+          }
+          gridIndexRef.current = gridIndex;
+        }
+        // 聚合物理激活时不使用 Worker 结果
+        workerResultRef.current = null;
+      } else if (worker && workerReady && nodes.length > 0) {
         const enableClusters = clusterModeRef.current && communities;
 
         // 拖拽时同步位置到 Worker
@@ -1166,7 +1260,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
       // 聚合几何低频刷新（6 帧一次；切换展开/收起时立即刷新）
       // 系统稳定时跳过（节点位置不变，cluster geom 也无需重算，节省 O(N) 遍历）
-      if (clusterModeRef.current && frameCounterRef.current % 6 === 0 && idleCounterRef.current < 30) {
+      // 聚合物理激活时跳过：折叠社区的 cx/cy 由聚合物理节点回写驱动，避免被质心覆盖
+      if (clusterModeRef.current && !aggActive && frameCounterRef.current % 6 === 0 && idleCounterRef.current < 30) {
         refreshClusterGeom();
       }
 
@@ -1843,6 +1938,98 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
   // ── 交互事件 ──
 
+  // 构建聚合物理集：聚类折叠模式下，只对「聚合节点 + 未折叠节点」做物理。
+  // 折叠社区的成员节点不进入物理（数量级骤降，物理规模 = 社区数 + 未折叠成员数），
+  // 从根本上避免万级节点全量力导向收敛导致的卡死。
+  const buildAggregatePhysics = useCallback(() => {
+    const collapsed = collapsedRef.current;
+    const communitiesMap = communitiesRef.current;
+    const allNodes = physNodesRef.current;
+    const edgeMeta = edgeMetaRef.current;
+    if (!communitiesMap || collapsed.size === 0 || allNodes.length === 0) {
+      aggPhysRef.current = null;
+      return;
+    }
+    const aggNodes: PhysicsNode[] = [];
+    const idToIdx = new Map<string, number>();
+    const cidToNodeIdx = new Map<number, number>();
+
+    // 每个折叠社区 → 1 个聚合物理节点（坐标取当前聚合几何质心）
+    for (const cid of collapsed) {
+      const geom = clusterGeomRef.current.get(cid);
+      let count = 0;
+      for (const node of allNodes) {
+        if (communitiesMap.get(node.id) === cid) { count++; }
+      }
+      const idx = aggNodes.length;
+      const id = `__agg__${cid}`;
+      aggNodes.push({
+        id,
+        x: geom?.cx ?? 0,
+        y: geom?.cy ?? 0,
+        vx: 0,
+        vy: 0,
+        fx: 0,
+        fy: 0,
+        mass: Math.max(1, count * 0.6), // 聚合质量 = 成员数加权
+        fixed: false,
+        kind: "source",
+        idx,
+      });
+      idToIdx.set(id, idx);
+      cidToNodeIdx.set(cid, idx);
+    }
+
+    // 未折叠社区成员 + 零散节点 → 真实物理节点（共享 physNodesRef 对象引用，就地更新）
+    for (const node of allNodes) {
+      const cid = communitiesMap.get(node.id);
+      if (cid !== undefined && collapsed.has(cid)) { continue; }
+      idToIdx.set(node.id, aggNodes.length);
+      aggNodes.push(node);
+    }
+
+    // 聚合边：遍历全部边，把端点映射到聚合/真实节点索引，去重合并
+    const aggEdges: PhysicsEdge[] = [];
+    const seen = new Map<number, number>();
+    const edgeKey = (a: number, b: number) => (a < b ? a * 100000 + b : b * 100000 + a);
+    for (const em of edgeMeta) {
+      const sCid = communitiesMap.get(em.source);
+      const tCid = communitiesMap.get(em.target);
+      const sIsCollapsed = sCid !== undefined && collapsed.has(sCid);
+      const tIsCollapsed = tCid !== undefined && collapsed.has(tCid);
+      const sKey = sIsCollapsed ? `__agg__${sCid}` : em.source;
+      const tKey = tIsCollapsed ? `__agg__${tCid}` : em.target;
+      const sIdx = idToIdx.get(sKey);
+      const tIdx = idToIdx.get(tKey);
+      if (sIdx === undefined || tIdx === undefined || sIdx === tIdx) { continue; }
+      const key = edgeKey(sIdx, tIdx);
+      const existing = seen.get(key);
+      if (existing !== undefined) {
+        // 合并重复边：保留更紧凑的 restLength（多边归并为单一拓扑张力）
+        const e = aggEdges[existing];
+        if (e.restLength > 140) { e.restLength = 140; }
+        continue;
+      }
+      seen.set(key, aggEdges.length);
+      aggEdges.push({
+        source: sKey,
+        target: tKey,
+        restLength: 140,
+        stiffness: 0.8,
+        damping: 0.6,
+        sourceIdx: sIdx,
+        targetIdx: tIdx,
+      });
+    }
+
+    aggPhysRef.current = {
+      nodes: aggNodes,
+      edges: aggEdges,
+      cidToNodeIdx,
+      neighborMap: buildNeighborMap(aggEdges),
+    };
+  }, []);
+
   // 刷新聚合节点几何（质心/半径/计数/代表名）。O(N) 遍历，低频调用（每 6 帧 / 切换时）
   const refreshClusterGeom = useCallback(() => {
     if (!communities || !clusterModeRef.current) {
@@ -1893,8 +2080,10 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     collapsedRef.current = next;
     // 立即刷新聚合几何（展开/收起后质心渲染立即生效）
     refreshClusterGeom();
+    // 折叠集合变化 → 重建聚合物理集（聚合节点/未折叠成员集合都变了）
+    buildAggregatePhysics();
     setClusterCollapseVersion((v) => v + 1);
-  }, [refreshClusterGeom]);
+  }, [refreshClusterGeom, buildAggregatePhysics]);
 
   // 聚合节点命中检测（聚类模式 + 折叠社区）
   const findClusterAt = useCallback((sx: number, sy: number): number | null => {
