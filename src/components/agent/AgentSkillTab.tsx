@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { useSkillStore } from "@/stores/feature/skillStore";
 import { CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined } from "@ant-design/icons";
 import { Empty, Input, Switch, Tag, Typography } from "antd";
 import { useEffect, useState } from "react";
@@ -24,7 +25,6 @@ export function AgentSkillTab() {
     let unsub: (() => void) | undefined;
     (async () => {
       try {
-        const { useSkillStore } = await import("@/stores");
         const store = useSkillStore.getState();
         if (store.skills.length === 0) {
           await store.loadSkills();
@@ -50,7 +50,6 @@ export function AgentSkillTab() {
 
   const handleToggle = async (name: string, enabled: boolean) => {
     try {
-      const { useSkillStore } = await import("@/stores");
       await useSkillStore.getState().toggleSkill(name, enabled);
     } catch {
       // 静默失败

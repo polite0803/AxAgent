@@ -116,7 +116,12 @@ export default defineConfig(async () => ({
   build: {
     sourcemap: false, // 生产构建不暴露源码
     modulePreload: { polyfill: false },
-    chunkSizeWarningLimit: 1000, // 1MB 合理上限，及时捕获包体积回归
+    // 阈值设为略高于最大的单体第三方库 chunk（d2 ~8.2MB）。
+    // antd / monaco-editor / mermaid / d2 等单体库无法拆分到 1MB 以下，
+    // 可拆分的大库（mermaid/phaser/recharts/xyflow/framer-motion/xterm/dagre/antv 等）
+    // 已在上方 codeSplitting.groups 中拆为独立 chunk。此阈值仅用于兜底这些单体库，
+    // 仍可捕获新增的明显体积回归。
+    chunkSizeWarningLimit: 8500, // 单位 kB
     rolldownOptions: {
       output: {
         codeSplitting: {
@@ -168,6 +173,68 @@ export default defineConfig(async () => ({
               name: "d2-vendor",
               test: /node_modules\/@terrastruct\/d2/,
               priority: 20,
+            },
+            // ── Granular groups for the large fallback libs (priority 15) ──
+            // 将原先落入 vendor 兜底组的单体大库拆分为独立 chunk，便于缓存与按需加载
+            {
+              name: "recharts-vendor",
+              test: /node_modules\/recharts/,
+              priority: 15,
+            },
+            {
+              name: "phaser-vendor",
+              test: /node_modules\/phaser/,
+              priority: 15,
+            },
+            {
+              name: "sigma-vendor",
+              test: /node_modules\/sigma\//,
+              priority: 15,
+            },
+            {
+              name: "xyflow-vendor",
+              test: /node_modules\/@xyflow/,
+              priority: 15,
+            },
+            {
+              name: "framer-motion-vendor",
+              test: /node_modules\/framer-motion/,
+              priority: 15,
+            },
+            {
+              name: "dnd-kit-vendor",
+              test: /node_modules\/@dnd-kit/,
+              priority: 15,
+            },
+            {
+              name: "xterm-vendor",
+              test: /node_modules\/@xterm/,
+              priority: 15,
+            },
+            {
+              name: "dagre-vendor",
+              test: /node_modules\/(?:dagre|graphlib|@dagrejs)/,
+              priority: 15,
+            },
+            {
+              name: "antv-vendor",
+              test: /node_modules\/@antv/,
+              priority: 15,
+            },
+            {
+              name: "font-vendor",
+              test: /node_modules\/@fontsource-variable/,
+              priority: 15,
+            },
+            {
+              name: "dprint-vendor",
+              test: /node_modules\/@dprint/,
+              priority: 15,
+            },
+            {
+              name: "mermaid-vendor",
+              test: /node_modules\/mermaid/,
+              priority: 15,
             },
             // ── Fallback: everything else in node_modules ──
             {

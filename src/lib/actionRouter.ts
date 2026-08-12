@@ -3,6 +3,10 @@
 import i18n from "@/i18n";
 import { invoke } from "@/lib/invoke";
 import { isStoreReadCovered, isStoreWriteCovered, isWildcardMatch } from "@/lib/skillPermissions";
+import { useConversationStore } from "@/stores/domain/conversationStore";
+import { useProviderStore } from "@/stores/feature/providerStore";
+import { useSettingsStore } from "@/stores/feature/settingsStore";
+import { useSkillExtensionStore } from "@/stores/feature/skillExtensionStore";
 import type { AgenticAction, DeclarativeActionType, SkillCommandAction, SkillPermissions } from "@/types";
 
 export interface ActionContext {
@@ -270,7 +274,6 @@ export class ActionRouter {
         error: i18n.t("actionRouter.agenticMissingPrompt"),
       };
     }
-    const { useConversationStore, useProviderStore, useSettingsStore } = await import("@/stores");
     const convStore = useConversationStore.getState();
     const providerStore = useProviderStore.getState();
     const settingsStore = useSettingsStore.getState().settings;
@@ -526,7 +529,6 @@ export class ActionRouter {
       if (action.type !== "handler") {
         return { success: false, error: i18n.t("actionRouter.typeMismatch") };
       }
-      const { useSkillExtensionStore } = await import("@/stores");
       const handler = useSkillExtensionStore.getState().getHandler(action.name);
       if (!handler) {
         return {

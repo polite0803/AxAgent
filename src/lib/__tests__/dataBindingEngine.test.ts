@@ -16,7 +16,7 @@ vi.mock("@/lib/invoke", () => ({
   invoke: vi.fn(),
 }));
 
-vi.mock("@/stores", () => ({
+vi.mock("@/stores/feature/executionStore", () => ({
   useExecutionStore: {
     getState: vi.fn(),
   },
@@ -134,7 +134,7 @@ describe("DataBindingEngine", () => {
 
     describe("agent-generated 类型", () => {
       it("应返回 agent 生成数据", async () => {
-        const { useExecutionStore } = await import("@/stores");
+        const { useExecutionStore } = await import("@/stores/feature/executionStore");
         const mockState = {
           gen_123: { data: "generated", score: 0.95 },
         };
@@ -150,7 +150,7 @@ describe("DataBindingEngine", () => {
       });
 
       it("应使用 selector 获取嵌套值", async () => {
-        const { useExecutionStore } = await import("@/stores");
+        const { useExecutionStore } = await import("@/stores/feature/executionStore");
         const mockState = {
           gen_456: { output: { result: "nested" } },
         };
@@ -166,7 +166,7 @@ describe("DataBindingEngine", () => {
       });
 
       it("generationId 不存在时应抛出错误", async () => {
-        const { useExecutionStore } = await import("@/stores");
+        const { useExecutionStore } = await import("@/stores/feature/executionStore");
         vi.mocked(useExecutionStore.getState).mockReturnValue(
           {} as unknown as ReturnType<typeof useExecutionStore.getState>,
         );

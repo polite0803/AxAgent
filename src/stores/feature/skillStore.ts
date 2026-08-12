@@ -13,6 +13,11 @@ import { create } from "zustand";
 
 import i18n from "@/i18n";
 
+// 注意：此处静态导入 skillExtensionStore 与 skillExtensionStore 中的
+// 静态导入 skillStore 构成循环依赖，但双方仅在函数体内（运行时）引用对方，
+// 不会在模块初始化阶段访问，因此安全。
+import { useSkillExtensionStore } from "./skillExtensionStore";
+
 interface SkillState {
   skills: Skill[];
   marketplaceSkills: MarketplaceSkill[];
@@ -65,7 +70,6 @@ interface SkillState {
 
 /** 将已加载的 skills 同步到扩展 store，避免重复 IPC 调用。 */
 async function syncExtensionStore(skills: Skill[]): Promise<void> {
-  const { useSkillExtensionStore } = await import("@/stores");
   useSkillExtensionStore.getState().syncFromSkills(skills);
 }
 

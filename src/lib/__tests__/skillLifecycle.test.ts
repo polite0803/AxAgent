@@ -22,8 +22,9 @@ vi.mock("@/lib/invoke", () => ({
 }));
 
 // Mock store for triggerSkillReload
+// skillLifecycle 直接静态导入 @/stores/feature/skillExtensionStore（不再经 @/stores barrel）
 const mockRefreshSkill = vi.fn();
-vi.mock("@/stores", () => ({
+vi.mock("@/stores/feature/skillExtensionStore", () => ({
   useSkillExtensionStore: {
     getState: () => ({ refreshSkill: mockRefreshSkill }),
   },
