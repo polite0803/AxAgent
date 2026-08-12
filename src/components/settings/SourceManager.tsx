@@ -1772,7 +1772,7 @@ function AllSourcesTab({
         open={githubOpen}
         onCancel={() => setGithubOpen(false)}
         footer={null}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={githubForm} layout="vertical" onFinish={handleGithubImport}>
           <Form.Item
@@ -1803,7 +1803,7 @@ function AllSourcesTab({
         open={sitemapOpen}
         onCancel={() => setSitemapOpen(false)}
         footer={null}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={sitemapForm} layout="vertical" onFinish={handleSitemap}>
           <Form.Item

@@ -381,6 +381,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     } | null
   >(null);
   const pendingStepRef = useRef(false);
+  // 追踪已处理的 Worker tick：只有 Worker 返回新结果时才更新节点/重建网格，
+  // 避免每帧都用旧结果重算 O(N) 网格索引（大图下每秒 60 次 × 20k 节点 = 灾难性）
+  const lastProcessedTickRef = useRef(-1);
 
   // 物理节点和边（在 ref 中持久化，不触发 React 重渲染）
   const physNodesRef = useRef<PhysicsNode[]>([]);
@@ -864,6 +867,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       workerRef.current.terminate();
       workerRef.current = null;
       workerInitializedRef.current = false;
+      lastProcessedTickRef.current = -1;
     }
 
     const worker = new Worker(
@@ -1022,6 +1026,27 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       const w = dimensions.width;
       const h = dimensions.height;
 
+      // ── 空闲跳帧：系统闲置超过 1 秒且无交互时，完全跳过 Canvas 绘制 ──
+      // 节点位置由 Worker/物理模拟驱动，稳定后画面不变；跳帧避免每帧 O(N+E) 遍历
+      // 大图（万级节点）下这是关键优化：将 60fps 全量渲染降为按需渲染
+      if (idleCounterRef.current > 60) {
+        const hasInteraction = mouseScreenRef.current.active || !!dragRef.current || !!panRef.current;
+        if (!hasInteraction) {
+          rafRef.current = requestAnimationFrame(render);
+          return;
+        }
+      }
+
+      // ── 绘制降频：空闲超过 0.5 秒时，每 2 帧才绘制一次 ──
+      // 物理仍以 60fps 运行，但 Canvas 渲染降为 30fps
+      const isIdleSlow = idleCounterRef.current > 30;
+      const shouldRender = !isIdleSlow || frameCounterRef.current % 2 === 0;
+
+      // ── Worker 未就绪时的大图保护：节点数 > 3000 且 Worker 未就绪时，
+      // 跳过完整渲染（只保留上一帧画面），避免在主线程用 fallback 渲染 20k 节点。
+      // Worker 初始化通常 < 500ms，此期间显示加载指示器即可
+      const workerNotReadyLargeGraph = !workerInitializedRef.current && physNodesRef.current.length > 3000;
+
       if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
         canvas.width = w * dpr;
         canvas.height = h * dpr;
@@ -1173,37 +1198,41 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         // 应用 Worker 返回的结果到物理节点
         const result = workerResultRef.current;
         if (result && result.positions) {
-          const n = nodes.length;
-          // 帧间插值：用 Worker 返回的结果直接更新（Worker 内部已平滑）
-          for (let i = 0; i < n; i++) {
-            const node = nodes[i];
-            if (!node.fixed) {
-              node.x = result.positions[i * 2];
-              node.y = result.positions[i * 2 + 1];
-              node.vx = result.velocities[i * 2];
-              node.vy = result.velocities[i * 2 + 1];
-            }
-          }
-
-          // 更新网格空间索引：每帧重建（避免节点已移出旧 bucket 仍被命中导致 hover 错位）
-          // 万级节点下 O(N) Map 操作约 1-2ms，可接受
-          {
-            const gridIndex = new Map<string, string[]>();
-            for (const n of nodes) {
-              const gx = Math.floor(n.x / GRID_CELL_SIZE);
-              const gy = Math.floor(n.y / GRID_CELL_SIZE);
-              const key = `${gx},${gy}`;
-              const bucket = gridIndex.get(key);
-              if (bucket) {
-                bucket.push(n.id);
-              } else {
-                gridIndex.set(key, [n.id]);
+          // 关键优化：只有 Worker 返回新结果（tick 变化）时才更新节点和重建网格
+          // 否则每帧都会用旧结果重算 O(N) 操作，大图下是性能灾难
+          const hasNewResult = result.tick !== lastProcessedTickRef.current;
+          if (hasNewResult) {
+            lastProcessedTickRef.current = result.tick;
+            const n = nodes.length;
+            for (let i = 0; i < n; i++) {
+              const node = nodes[i];
+              if (!node.fixed) {
+                node.x = result.positions[i * 2];
+                node.y = result.positions[i * 2 + 1];
+                node.vx = result.velocities[i * 2];
+                node.vy = result.velocities[i * 2 + 1];
               }
             }
-            gridIndexRef.current = gridIndex;
+
+            // 仅在节点位置更新后才重建网格空间索引
+            {
+              const gridIndex = new Map<string, string[]>();
+              for (const n of nodes) {
+                const gx = Math.floor(n.x / GRID_CELL_SIZE);
+                const gy = Math.floor(n.y / GRID_CELL_SIZE);
+                const key = `${gx},${gy}`;
+                const bucket = gridIndex.get(key);
+                if (bucket) {
+                  bucket.push(n.id);
+                } else {
+                  gridIndex.set(key, [n.id]);
+                }
+              }
+              gridIndexRef.current = gridIndex;
+            }
           }
 
-          // 稳定检测：根据 Worker 返回的 stable 标志
+          // 稳定检测：即使没有新结果，也基于上一次的 stable 状态更新 idle 计数
           if (result.stable && !hasInteraction) {
             idleCounterRef.current++;
           } else {
@@ -1300,11 +1329,14 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       }
 
       // 绘制（传入视口范围用于裁剪）
-      drawEdgesOptimized(ctx, nodes, fisheye, viewWorld);
-      drawParticlesOptimized(ctx, nodes, fisheye, viewWorld);
-      drawNodesOptimized(ctx, nodes, fisheye, viewWorld);
-      // 聚合节点（顶层）
-      drawCollapsedClusters(ctx, viewWorld);
+      // Worker 未就绪的大图：跳过完整渲染，避免主线程 fallback 卡死
+      if (shouldRender && !workerNotReadyLargeGraph) {
+        drawEdgesOptimized(ctx, nodes, fisheye, viewWorld);
+        drawParticlesOptimized(ctx, nodes, fisheye, viewWorld);
+        drawNodesOptimized(ctx, nodes, fisheye, viewWorld);
+        // 聚合节点（顶层）
+        drawCollapsedClusters(ctx, viewWorld);
+      }
 
       ctx.restore();
 
@@ -1472,13 +1504,19 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     const visibleCommunitiesSet = visibleCommunitiesRef.current;
     const zoom = cameraRef.current.zoom;
 
+    // 大图边数量保护：超过 50000 条边时，限制处理数量避免主线程阻塞
+    // 交互时（hover/选中）恢复全量，确保用户能看到所有相关边
+    const totalEdges = edgeMeta.length;
+    const hasActiveInteraction = hovered || !!selected;
+    const edgeLimit = totalEdges > 50000 && !hasActiveInteraction ? 30000 : totalEdges;
+
     const hasCommunityFilter = hasCommunityFilterRef.current;
 
     // 批量描边：普通边按 (颜色, 线宽) 合并到 Path2D，最后统一 stroke。
     // 万级边场景下从「每边一次 stroke」降为「每样式一次 stroke」，是最大的性能收益。
     const batchPaths = new Map<string, { path: Path2D; color: string; width: number }>();
 
-    for (let i = 0; i < edgeMeta.length; i++) {
+    for (let i = 0; i < edgeLimit; i++) {
       const em = edgeMeta[i];
 
       if (!visibleTypes.has(em.type)) { continue; }
