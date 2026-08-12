@@ -86,7 +86,9 @@ const relationshipTypeToGraphEdgeType = (relationType: string): GraphEdgeType =>
  * @returns GraphView 可直接消费的 GraphData
  */
 export function adaptMemoryToGraphData(response: MemoryGraphResponse): GraphData {
-  const { entities, relationships } = response;
+  // 防御：IPC 层可能返回空数组或缺失字段（如浏览器 mock 兜底），避免后续 .map 崩溃。
+  const entities = Array.isArray(response?.entities) ? response.entities : [];
+  const relationships = Array.isArray(response?.relationships) ? response.relationships : [];
 
   // 构建 Entity 查找表
   const entityMap = new Map<string, MemoryEntity>();
