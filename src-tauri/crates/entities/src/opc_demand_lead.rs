@@ -37,6 +37,13 @@ pub struct Model {
     pub customer_id: Option<String>,
     pub expires_at: Option<i64>,
     pub claimed_by: Option<String>,
+    // 需求价值评估字段（v222 新增）
+    pub pain_score: f64,
+    pub market_gap_score: f64,
+    pub commercial_value_score: f64,
+    pub opportunity_level: String,
+    pub demand_type: String,
+    pub evaluated_at: Option<i64>,
     pub created_at: i64,
     pub updated_at: i64,
 }

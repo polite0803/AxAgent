@@ -6191,7 +6191,59 @@
         "dbCleanupDays": "数据库清理天数",
         "logLevel": "日志级别: debug/info/warn/error",
         "enableAnalytics": "启用分析统计"
-      }
+      },
+      "colPainScore": "痛点强度",
+      "colMarketGap": "市场缺口",
+      "colCommercialValue": "商业价值",
+      "colOpportunityLevel": "机会等级",
+      "colDemandType": "需求类型",
+      "colEvaluatedAt": "评估时间",
+      "opportunityLevel": {
+        "high": "高价值",
+        "medium": "中价值",
+        "low": "低价值"
+      },
+      "demandType": {
+        "tool_software": "工具软件",
+        "content_creation": "内容创作",
+        "design": "设计",
+        "development": "开发",
+        "marketing": "营销",
+        "consulting": "咨询",
+        "education": "教育",
+        "finance": "金融",
+        "other": "其他"
+      },
+      "crons": "定时任务",
+      "cronCreate": "创建定时任务",
+      "cronEdit": "编辑定时任务",
+      "cronCreated": "定时任务创建成功",
+      "cronUpdated": "定时任务更新成功",
+      "cronDeleted": "定时任务删除成功",
+      "cronPaused": "定时任务已暂停",
+      "cronResumed": "定时任务已恢复",
+      "cronExecuted": "定时任务已执行",
+      "confirmDeleteCron": "确定删除该定时任务？",
+      "actionPause": "暂停",
+      "actionResume": "恢复",
+      "colCronName": "任务名称",
+      "colCronSchedule": "Cron 表达式",
+      "colCronDescription": "描述",
+      "colCronWorkflow": "关联工作流",
+      "colCronStatus": "状态",
+      "colCronLastRun": "上次执行",
+      "colCronNextRun": "下次执行",
+      "colCronPrompt": "执行指令",
+      "colCronTaskType": "任务类型",
+      "colCronToolsets": "工具集",
+      "cronStatus": {
+        "active": "运行中",
+        "paused": "已暂停",
+        "completed": "已完成",
+        "failed": "失败"
+      },
+      "formCronNamePlaceholder": "如：每日需求扫描",
+      "formCronPromptPlaceholder": "描述定时任务的执行目标..."
     }
   },
   "pasteButton": {

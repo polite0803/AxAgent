@@ -20,15 +20,20 @@
 
 use axagent_entities::workflow_template;
 use axagent_harness::workflow_types::{
-    AgentNode, AgentNodeConfig, BackoffType, EdgeType, EndNode, EndNodeConfig, JsonSchema,
-    JsonSchemaProperty, NotificationNode, NotificationNodeConfig, OutputMode, Position,
-    RetryConfig, ToolDef, ToolNode, ToolNodeConfig, TriggerConfig, TriggerNode, TriggerType,
-    WorkflowEdge, WorkflowNode, WorkflowNodeBase,
+    AgentNode, AgentNodeConfig, BackoffType, Branch, DegradeStrategy, EdgeType, EndNode,
+    EndNodeConfig, JsonSchema, JsonSchemaProperty, MergeStrategy, NotificationNode,
+    NotificationNodeConfig, OutputMode, ParallelNode, ParallelNodeConfig, Position, RetryConfig,
+    ToolDef, ToolNode, ToolNodeConfig, TriggerConfig, TriggerNode, TriggerType, WorkflowEdge,
+    WorkflowNode, WorkflowNodeBase,
 };
 use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
 
 const TEMPLATE_ID: &str = "opc-demand-discovery";
-const TEMPLATE_VERSION: i32 = 2;
+
+// V4(2026-08-13): 添加 Phase 1 多平台扫描器 + Phase 2 需求价值评估
+// V3(2026-08-13): 与股票分析工作流完全对齐
+// V2: 初始版本
+const TEMPLATE_VERSION: i32 = 4;
 
 /// 种子化 OPC 需求发现工作流模板到数据库
 pub(crate) async fn seed_opc_workflow_template(db: &DatabaseConnection) -> Result<(), String> {
@@ -527,6 +532,74 @@ pub(crate) async fn seed_opc_workflow_template(db: &DatabaseConnection) -> Resul
         },
     }));
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // Phase 1: 多平台需求扫描（ParallelNode: p-scanners）
+    // ═══════════════════════════════════════════════════════════════════════
+    // 并行执行 5 个扫描器，收集原始需求线索
+    let scanner_configs: &[(&str, &str, &str, &str, f64)] = &[
+        ("t-reddit-scan", "Reddit 扫描", "RedditScanner", "keywords", 60.0),
+        ("t-hn-scan", "HackerNews 扫描", "HackerNewsScanner", "days", 140.0),
+        ("t-github-scan", "GitHub Issue 扫描", "GitHubIssueScanner", "repos", 220.0),
+        ("t-zhumajie-scan", "猪八戒扫描", "ZhumajieScanner", "category", 300.0),
+        ("t-xianyu-scan", "闲鱼扫描", "XianyuScanner", "keyword", 380.0),
+    ];
+
+    let mut scanner_branches: Vec<Branch> = Vec::new();
+    for (tool_id, title, tool_name, arg_key, y) in scanner_configs {
+        let mut im = std::collections::HashMap::new();
+        im.insert(arg_key.to_string(), "all".to_string());
+        let tn = tool_node(tool_id, title, tool_name, &format!("{tool_id}_result"), im, Some("p-scanners"), 60.0, *y);
+        nodes.push(tn);
+
+        scanner_branches.push(Branch {
+            id: format!("branch-{tool_id}"),
+            title: title.to_string(),
+            steps: vec![tool_id.to_string()],
+            branch_timeout_ms: Some(120),
+            degrade_strategy: DegradeStrategy::UseDefault,
+        });
+    }
+
+    nodes.push(WorkflowNode::Parallel(ParallelNode {
+        base: WorkflowNodeBase {
+            id: "p-scanners".into(),
+            title: "多平台需求扫描".into(),
+            description: Some("并行扫描 Reddit/HackerNews/GitHub/猪八戒/闲鱼".into()),
+            position: Position { x: 20.0, y: 60.0 },
+            retry: RetryConfig::default(),
+            timeout: Some(600),
+            enabled: true,
+            parent_id: None,
+            compensation: None,
+            continue_on_fail: false,
+        },
+        config: ParallelNodeConfig {
+            branches: scanner_branches,
+            wait_for_all: false,
+            timeout: Some(600),
+            aggregation: Some(MergeStrategy::All),
+            auto_input_from_parent: false,
+            sub_graph: None,
+        },
+    }));
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Phase 2: 需求价值评估（ToolNode）
+    // ═══════════════════════════════════════════════════════════════════════
+    // 汇总扫描结果，评估需求商业价值
+    let mut im_eval = std::collections::HashMap::new();
+    im_eval.insert("scan_results".to_string(), "all".to_string());
+    nodes.push(tool_node(
+        "t-demand-eval",
+        "需求价值评估",
+        "DemandValueEvaluator",
+        "evaluation_result",
+        im_eval,
+        None,
+        60.0,
+        460.0,
+    ));
+
     // Phase 1: 数据收集层 (ToolNodes)
     // 获取现有项目数据
     let mut im_projects = std::collections::HashMap::new();
@@ -834,13 +907,21 @@ pub(crate) async fn seed_opc_workflow_template(db: &DatabaseConnection) -> Resul
     }));
 
     // ── 构建边 ──
-    // Trigger → 数据收集层
-    edges.push(edge("e1", "trigger", "t-projects"));
-    edges.push(edge("e2", "trigger", "t-customers"));
-    edges.push(edge("e3", "trigger", "t-invoices"));
-    edges.push(edge("e4", "trigger", "t-dashboard"));
-    edges.push(edge("e5", "trigger", "t-blog"));
-    edges.push(edge("e6", "trigger", "t-kpis"));
+    // Trigger → 扫描器
+    edges.push(edge("e-trigger-scanners", "trigger", "p-scanners"));
+
+    // 扫描器 → 评估节点
+    for (tool_id, _, _, _, _) in scanner_configs {
+        edges.push(edge(&format!("e-{tool_id}-eval"), tool_id, "t-demand-eval"));
+    }
+
+    // 评估节点 → 数据收集层
+    edges.push(edge("e-eval-projects", "t-demand-eval", "t-projects"));
+    edges.push(edge("e-eval-customers", "t-demand-eval", "t-customers"));
+    edges.push(edge("e-eval-invoices", "t-demand-eval", "t-invoices"));
+    edges.push(edge("e-eval-dashboard", "t-demand-eval", "t-dashboard"));
+    edges.push(edge("e-eval-blog", "t-demand-eval", "t-blog"));
+    edges.push(edge("e-eval-kpis", "t-demand-eval", "t-kpis"));
 
     // 数据收集层 → 并行分析层
     edges.push(edge("e7", "t-projects", "a-cpo-analysis"));

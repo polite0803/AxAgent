@@ -285,6 +285,21 @@ pub async fn opc_create_lead(
         customer_id: Set(input.get("customer_id").and_then(|v| v.as_str()).map(|s| s.to_string())),
         expires_at: Set(input.get("expires_at").and_then(|v| v.as_i64())),
         claimed_by: Set(input.get("claimed_by").and_then(|v| v.as_str()).map(|s| s.to_string())),
+        // 需求价值评估字段（v222 新增）
+        pain_score: Set(input.get("pain_score").and_then(|v| v.as_f64()).unwrap_or(0.0)),
+        market_gap_score: Set(input.get("market_gap_score").and_then(|v| v.as_f64()).unwrap_or(0.0)),
+        commercial_value_score: Set(input.get("commercial_value_score").and_then(|v| v.as_f64()).unwrap_or(0.0)),
+        opportunity_level: Set(input
+            .get("opportunity_level")
+            .and_then(|v| v.as_str())
+            .unwrap_or("low")
+            .to_string()),
+        demand_type: Set(input
+            .get("demand_type")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown")
+            .to_string()),
+        evaluated_at: Set(input.get("evaluated_at").and_then(|v| v.as_i64())),
         created_at: Set(now),
         updated_at: Set(now),
     };

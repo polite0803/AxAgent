@@ -1,5 +1,6 @@
 // OPC (One-Person Company) 模块，融合自原 opc-types 和 opc-dao
 
+pub mod agent;
 pub mod analysis;
 pub mod analytics;
 pub mod audit_log;
@@ -23,6 +24,7 @@ pub mod site;
 pub mod vendors;
 pub mod workflow;
 
+pub use agent::*;
 pub use analysis::*;
 pub use analytics::*;
 pub use audit_log::*;

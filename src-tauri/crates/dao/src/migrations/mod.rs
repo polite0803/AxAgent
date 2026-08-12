@@ -77,9 +77,10 @@ pub mod v218_extend_agent_roles;
 pub mod v219_trade_intent_audit;
 pub mod v220_narrative_structure;
 pub mod v221_demand_discovery;
+pub mod v222_demand_lead_evaluation;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 221;
+pub const CURRENT_VERSION: i32 = 222;
 
 /// P2-10: Schema 版本追踪表名。
 ///
@@ -321,6 +322,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 221,
         description: "v221_demand_discovery: 新增 OPC 需求发现相关表（opc_capability / opc_demand_lead / opc_delivery）",
         up: |db| Box::pin(v221_demand_discovery::up(db)),
+    },
+    Migration {
+        version: 222,
+        description: "v222_demand_lead_evaluation: 为 opc_demand_lead 表添加需求价值评估字段",
+        up: |db| Box::pin(v222_demand_lead_evaluation::up(db)),
     },
 ];
 
