@@ -69,7 +69,7 @@ pub trait LlmEvaluator: Send + Sync {
     ) -> Result<LlmEvaluationResult, String>;
 }
 
-// ── Mock 实现 ───────────────────────────────────────────────────────────
+// ── Mock / Noop 实现 ───────────────────────────────────────────────────
 
 /// Mock LLM 评估器（用于测试和离线模式）
 ///
@@ -133,6 +133,48 @@ impl LlmEvaluator for MockLlmEvaluator {
     }
 }
 
+/// Noop LLM 评估器（纯规则引擎模式）
+///
+/// 直接返回规则引擎的评分结果作为"LLM 评分"，不做任何二次评估。
+/// 适用于无可用 LLM 提供商的场景，保证评估流水线不中断。
+pub struct NoopLlmEvaluator;
+
+impl NoopLlmEvaluator {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl Default for NoopLlmEvaluator {
+    fn default() -> Self {
+        Self
+    }
+}
+
+#[async_trait]
+impl LlmEvaluator for NoopLlmEvaluator {
+    async fn evaluate(
+        &self,
+        _title: &str,
+        _description: &str,
+        rule_engine_result: Option<&DemandEvaluation>,
+    ) -> Result<LlmEvaluationResult, String> {
+        // 直接使用规则引擎结果作为 LLM 评分，无额外评估
+        let rule = rule_engine_result
+            .ok_or_else(|| "NoopLlmEvaluator 需要规则引擎结果作为输入".to_string())?;
+
+        Ok(LlmEvaluationResult {
+            llm_score: rule.commercial_value_score,
+            detected_type: rule.demand_type.as_str().to_string(),
+            pain_intensity: rule.pain_score,
+            market_potential: rule.market_gap_score,
+            competition_level: 50.0,
+            recommendation: "无 LLM 评估器，使用规则引擎评分".to_string(),
+            raw_response: "Noop: 规则引擎直通".to_string(),
+        })
+    }
+}
+
 // ── ValueAssessmentAgent ────────────────────────────────────────────────
 
 /// 需求价值评估 Agent
@@ -161,6 +203,14 @@ impl ValueAssessmentAgent {
     /// 使用 Mock 评估器创建（用于测试）
     pub fn with_mock() -> Self {
         Self::new(Box::new(MockLlmEvaluator::default()), 0.3)
+    }
+
+    /// 使用 Noop 评估器创建（纯规则引擎模式，无 LLM 依赖）
+    ///
+    /// 适用于生产环境中无可用 LLM 提供商的场景。
+    /// 评估结果完全基于规则引擎评分，不降级、不报错。
+    pub fn with_noop() -> Self {
+        Self::new(Box::new(NoopLlmEvaluator::new()), 0.0)
     }
 
     /// 设置 LLM 评分权重
@@ -209,11 +259,26 @@ impl ValueAssessmentAgent {
             known_competitors,
         );
 
-        // Step 2: LLM 二次评估
-        let llm_result = self
+        // Step 2: LLM 二次评估（失败时降级为纯规则引擎）
+        let llm_result = match self
             .llm_evaluator
             .evaluate(title, description, Some(&rule_result))
-            .await?;
+            .await
+        {
+            Ok(result) => result,
+            Err(e) => {
+                tracing::warn!(
+                    "[ValueAssessmentAgent] LLM 评估失败，降级为纯规则引擎: {}",
+                    e
+                );
+                return Ok(self.assess_with_rules_only(
+                    demand_id,
+                    title,
+                    description,
+                    known_competitors,
+                ));
+            }
+        };
 
         // Step 3: 融合结果
         self.fuse_results(demand_id, title, &rule_result, &llm_result)
@@ -586,5 +651,252 @@ mod tests {
         let user_prompt_with_rule =
             generate_user_prompt("测试标题", "测试描述", Some(&rule_result));
         assert!(user_prompt_with_rule.contains("规则引擎"));
+    }
+
+    #[tokio::test]
+    async fn test_noop_llm_evaluator() {
+        let evaluator = NoopLlmEvaluator::new();
+        let rule = crate::opc::evaluator::evaluate_demand_value(
+            "test-id",
+            "测试标题",
+            "测试描述",
+            None,
+        );
+        let result = evaluator
+            .evaluate("测试标题", "测试描述", Some(&rule))
+            .await
+            .unwrap();
+
+        assert_eq!(result.llm_score, rule.commercial_value_score);
+        assert_eq!(result.detected_type, rule.demand_type.as_str());
+        assert_eq!(result.pain_intensity, rule.pain_score);
+        assert!(result.recommendation.contains("规则引擎"));
+    }
+
+    #[tokio::test]
+    async fn test_noop_agent_constructor() {
+        let agent = ValueAssessmentAgent::with_noop();
+        // Noop agent should have llm_weight = 0.0
+        assert_eq!(agent.llm_weight(), 0.0);
+
+        let result = agent
+            .assess("test-id", "测试标题", "测试描述", None)
+            .await
+            .unwrap();
+
+        // With Noop, final_score should equal rule engine score (weight=0)
+        assert!(result.final_score > 0.0);
+        // llm_weight is 0.0, so the final_score comes purely from rule engine
+        assert!(result.llm_result.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_llm_fallback_on_error() {
+        // 使用一个会失败的 LLM 评估器来测试降级逻辑
+        struct FailingLlmEvaluator;
+
+        #[async_trait]
+        impl LlmEvaluator for FailingLlmEvaluator {
+            async fn evaluate(
+                &self,
+                _title: &str,
+                _description: &str,
+                _rule_engine_result: Option<&DemandEvaluation>,
+            ) -> Result<LlmEvaluationResult, String> {
+                Err("模拟 LLM 调用失败".to_string())
+            }
+        }
+
+        let agent = ValueAssessmentAgent::new(Box::new(FailingLlmEvaluator), 0.3);
+        let result = agent
+            .assess("test-id", "测试标题", "测试描述", None)
+            .await
+            .unwrap();
+
+        // 降级后应该返回纯规则引擎结果
+        assert!(result.final_score > 0.0);
+        assert!(result.llm_result.is_none()); // 降级后 LLM 结果为 None
+        assert_eq!(result.fusion_notes, "纯规则引擎评估");
+    }
+
+    #[tokio::test]
+    async fn test_llm_fallback_produces_valid_result() {
+        // 验证即使 LLM 失败，降级后的结果仍然包含完整的评估信息
+        struct AlwaysFailingEvaluator;
+
+        #[async_trait]
+        impl LlmEvaluator for AlwaysFailingEvaluator {
+            async fn evaluate(
+                &self,
+                _title: &str,
+                _description: &str,
+                _rule_engine_result: Option<&DemandEvaluation>,
+            ) -> Result<LlmEvaluationResult, String> {
+                Err("LLM 服务不可用".to_string())
+            }
+        }
+
+        let agent = ValueAssessmentAgent::new(Box::new(AlwaysFailingEvaluator), 0.5);
+        let result = agent
+            .assess(
+                "test-fallback",
+                "紧急需要 AI 工具",
+                "市场上没有好的解决方案，急需一个定制化的 AI 系统",
+                None,
+            )
+            .await
+            .unwrap();
+
+        // 降级后的结果应该包含有效的规则引擎评分
+        assert!(result.rule_engine_score > 0.0);
+        assert!(result.final_score >= 0.0);
+        assert!(result.confidence >= 0.0 && result.confidence <= 1.0);
+        assert!(!result.opportunity_level.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_noop_requires_rule_engine_result() {
+        // NoopLlmEvaluator 在没有规则引擎结果时应该返回错误
+        let evaluator = NoopLlmEvaluator::new();
+        let result = evaluator.evaluate("标题", "描述", None).await;
+        assert!(result.is_err(), "Noop 需要规则引擎结果作为输入");
+        assert!(result.unwrap_err().contains("规则引擎"));
+    }
+
+    #[tokio::test]
+    async fn test_assess_empty_input_boundary() {
+        // 空字符串边界测试
+        let agent = ValueAssessmentAgent::with_mock();
+        let result = agent.assess("empty-test", "", "", None).await;
+        assert!(result.is_ok(), "空输入不应导致 panic");
+        let eval = result.unwrap();
+        // 空输入也应有有效评分（可能是低分）
+        assert!(eval.final_score >= 0.0 && eval.final_score <= 100.0);
+        assert!(!eval.opportunity_level.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_assess_with_known_competitors() {
+        // 带已知竞品数量的评估
+        let agent = ValueAssessmentAgent::with_mock();
+        let result = agent
+            .assess("comp-test", "新项目管理工具", "需要一个项目管理 SaaS 工具", Some(20))
+            .await
+            .unwrap();
+
+        assert!(result.rule_engine_result.existing_solutions == 20);
+        // 竞争激烈时市场缺口应较低
+        assert!(result.rule_engine_result.market_gap_score <= 50.0);
+    }
+
+    #[test]
+    fn test_final_evaluation_high_value_boundary() {
+        // is_high_value 边界测试：70 分应为边界
+        let eval = FinalEvaluation {
+            demand_id: "boundary".to_string(),
+            title: "边界测试".to_string(),
+            rule_engine_score: 69.0,
+            llm_score: Some(75.0),
+            final_score: 69.0,
+            fused_type: DemandType::ToolSoftware,
+            opportunity_level: "medium".to_string(),
+            confidence: 0.5,
+            rule_engine_result: DemandEvaluation {
+                demand_id: "boundary".to_string(),
+                pain_score: 50.0,
+                existing_solutions: 2,
+                market_gap_score: 45.0,
+                commercial_value_score: 69.0,
+                opportunity_level: "medium".to_string(),
+                confidence: 0.5,
+                demand_type: DemandType::ToolSoftware,
+                extracted_price_range: None,
+                market_fit_score: 50.0,
+            },
+            llm_result: None,
+            fusion_notes: "测试".to_string(),
+        };
+
+        assert!(!eval.is_high_value(), "69 分不应被视为高价值");
+
+        let high_eval = FinalEvaluation {
+            final_score: 70.0,
+            ..eval
+        };
+        assert!(high_eval.is_high_value(), "70 分应被视为高价值（边界）");
+    }
+
+    #[test]
+    fn test_needs_review_threshold() {
+        let eval = FinalEvaluation {
+            demand_id: "review".to_string(),
+            title: "审核测试".to_string(),
+            rule_engine_score: 50.0,
+            llm_score: Some(80.0),
+            final_score: 59.0,
+            fused_type: DemandType::Development,
+            opportunity_level: "medium".to_string(),
+            confidence: 0.4,
+            rule_engine_result: DemandEvaluation {
+                demand_id: "review".to_string(),
+                pain_score: 60.0,
+                existing_solutions: 3,
+                market_gap_score: 50.0,
+                commercial_value_score: 50.0,
+                opportunity_level: "medium".to_string(),
+                confidence: 0.4,
+                demand_type: DemandType::Development,
+                extracted_price_range: None,
+                market_fit_score: 50.0,
+            },
+            llm_result: None,
+            fusion_notes: "测试".to_string(),
+        };
+
+        assert!(eval.needs_review(0.5), "置信度 0.4 < 0.5 应需要审核");
+        assert!(!eval.needs_review(0.3), "置信度 0.4 >= 0.3 不需要审核");
+    }
+
+    #[tokio::test]
+    async fn test_mock_evaluator_with_rule_context() {
+        // 测试 Mock 评估器接收规则引擎结果时的融合行为
+        let evaluator = MockLlmEvaluator::default();
+        let rule = crate::opc::evaluator::evaluate_demand_value(
+            "ctx-test",
+            "急需解决方案",
+            "市场上缺少好的工具",
+            None,
+        );
+        let result = evaluator
+            .evaluate("急需解决方案", "市场上缺少好的工具", Some(&rule))
+            .await
+            .unwrap();
+
+        // 有规则引擎结果时，Mock 会取两者平均值
+        assert!(result.llm_score >= 30.0);
+        assert_eq!(result.detected_type, "tool_software");
+    }
+
+    #[test]
+    fn test_correlation_edge_cases() {
+        // 完全正相关
+        let a = vec![10.0, 20.0, 30.0];
+        let b = vec![10.0, 20.0, 30.0];
+        assert!((calculate_correlation(&a, &b) - 1.0).abs() < 1e-10);
+
+        // 完全负相关
+        let c = vec![10.0, 20.0, 30.0];
+        let d = vec![30.0, 20.0, 10.0];
+        assert!((calculate_correlation(&c, &d) + 1.0).abs() < 1e-10);
+
+        // 常量数组（方差为0）
+        let e = vec![5.0, 5.0, 5.0];
+        let f = vec![10.0, 20.0, 30.0];
+        assert_eq!(calculate_correlation(&e, &f), 0.0);
+
+        // 长度不匹配
+        let g = vec![1.0, 2.0];
+        let h = vec![1.0, 2.0, 3.0];
+        assert_eq!(calculate_correlation(&g, &h), 0.0);
     }
 }

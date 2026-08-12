@@ -207,6 +207,252 @@ pub async fn opc_discover_leads(
     })
 }
 
+/// 一体化需求发现：扫描 → 智能评估 → 入库
+///
+/// 扫描多平台需求线索，自动进行价值评估（规则引擎 + 可选 LLM），
+/// 将评估结果直接写入 opc_demand_lead 表。
+#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "扫描并评估需求线索")]
+#[tauri::command]
+pub async fn opc_discover_and_evaluate_leads(
+    state: State<'_, AppState>,
+    query: String,
+    min_score: Option<f64>,
+) -> Result<serde_json::Value, String> {
+    use axagent_entities::opc_demand_lead;
+    use axagent_entities::opc_market_platform;
+    use axagent_tools::tools::marketplace_scanner::AggregateMarketplaceScanner;
+    use sea_orm::*;
+
+    let db = state.harness.db();
+    let now = chrono::Utc::now().timestamp();
+
+    // 1) 从平台配置加载已启用的平台连接器
+    let mut scanner = AggregateMarketplaceScanner::new();
+    let platforms = opc_market_platform::Entity::find()
+        .filter(opc_market_platform::Column::Enabled.eq(1))
+        .all(db)
+        .await
+        .map_err(|e| {
+            ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)
+                .to_string()
+        })?;
+
+    for p in platforms {
+        let config: serde_json::Value =
+            serde_json::from_str(&p.config_json).unwrap_or(serde_json::json!({}));
+        scanner.add_platform(&p.name, &p.platform_type, p.base_url.as_deref(), &config);
+    }
+
+    // 2) 执行「扫描 + 评估」一体化流水线
+    let evaluated = scanner
+        .search_and_evaluate(&query, None)
+        .await
+        .map_err(|e| {
+            ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)
+                .to_string()
+        })?;
+
+    // 3) 可选：按价值分阈值筛选
+    let min_threshold = min_score.unwrap_or(0.0);
+    let filtered: Vec<_> = evaluated
+        .into_iter()
+        .filter(|e| e.value_score() >= min_threshold)
+        .collect();
+
+    // 4) 将评估结果入库
+    let mut saved_leads: Vec<opc_demand_lead::Model> = Vec::new();
+    for el in &filtered {
+        let demand_type_str = el.evaluation.demand_type.as_str().to_string();
+        let entity = opc_demand_lead::ActiveModel {
+            id: Set(el.lead.id.clone()),
+            platform: Set(el.lead.platform.clone()),
+            title: Set(el.lead.title.clone()),
+            description: Set(el.lead.description.clone()),
+            budget_min: Set(el.lead.budget_min),
+            budget_max: Set(el.lead.budget_max),
+            budget_currency: Set(el.lead.budget_currency.clone()),
+            contact_name: Set(el.lead.contact_name.clone()),
+            contact_email: Set(el.lead.contact_email.clone()),
+            contact_phone: Set(el.lead.contact_phone.clone()),
+            source_url: Set(el.lead.source_url.clone()),
+            raw_snapshot_json: Set(
+                serde_json::to_string(&el.lead.raw_snapshot).unwrap_or_default(),
+            ),
+            matched_capabilities_json: Set("[]".to_string()),
+            ai_analysis_json: Set(
+                serde_json::to_string(&el.evaluation).unwrap_or_default(),
+            ),
+            recommended_workflow_id: Set(None),
+            status: Set("new".to_string()),
+            priority: Set(3),
+            confidence: Set(el.evaluation.confidence),
+            notes: Set(String::new()),
+            project_id: Set(None),
+            customer_id: Set(None),
+            expires_at: Set(None),
+            claimed_by: Set(None),
+            // 需求价值评估字段
+            pain_score: Set(el.evaluation.pain_score),
+            market_gap_score: Set(el.evaluation.market_gap_score),
+            commercial_value_score: Set(el.evaluation.commercial_value_score),
+            opportunity_level: Set(el.evaluation.opportunity_level.clone()),
+            demand_type: Set(demand_type_str),
+            evaluated_at: Set(Some(now)),
+            created_at: Set(now),
+            updated_at: Set(now),
+        };
+
+        match entity.insert(db).await {
+            Ok(model) => saved_leads.push(model),
+            Err(e) => {
+                tracing::warn!(
+                    "[opc_discover_and_evaluate_leads] 入库失败 {}: {}",
+                    el.lead.id,
+                    e
+                );
+            }
+        }
+    }
+
+    // 5) 记录平台最近同步时间
+    let _ = opc_market_platform::Entity::update_many()
+        .col_expr(opc_market_platform::Column::LastSyncAt, Expr::value(now))
+        .col_expr(opc_market_platform::Column::Status, Expr::value("synced"))
+        .col_expr(opc_market_platform::Column::UpdatedAt, Expr::value(now))
+        .exec(db)
+        .await;
+
+    // 6) 返回结果（含统计信息）
+    let total_scanned = filtered.len();
+    let high_value_count = saved_leads.iter().filter(|l| l.commercial_value_score >= 70.0).count();
+
+    let result = serde_json::json!({
+        "total_scanned": total_scanned,
+        "saved_count": saved_leads.len(),
+        "high_value_count": high_value_count,
+        "leads": saved_leads,
+    });
+
+    serde_json::to_value(&result).map_err(|e| {
+        ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)
+            .to_string()
+    })
+}
+
+// ── Cron 路由辅助函数 ───────────────────────────────────────────
+
+/// 需求发现定时任务执行函数
+///
+/// 供 CronExecutor 调用，执行「扫描 → 评估 → 入库」完整流水线。
+/// 与 `opc_discover_and_evaluate_leads` 命令共享核心逻辑，
+/// 但不依赖 Tauri State，可在任意上下文中执行。
+pub async fn run_demand_discovery_cron(
+    db: &sea_orm::DatabaseConnection,
+    query: &str,
+) -> Result<String, String> {
+    use axagent_entities::opc_demand_lead;
+    use axagent_entities::opc_market_platform;
+    use axagent_tools::tools::marketplace_scanner::AggregateMarketplaceScanner;
+    use sea_orm::*;
+
+    let now = chrono::Utc::now().timestamp();
+
+    // 1) 加载已启用的平台连接器
+    let mut scanner = AggregateMarketplaceScanner::new();
+    let platforms = opc_market_platform::Entity::find()
+        .filter(opc_market_platform::Column::Enabled.eq(1))
+        .all(db)
+        .await
+        .map_err(|e| format!("加载平台配置失败: {e}"))?;
+
+    for p in platforms {
+        let config: serde_json::Value =
+            serde_json::from_str(&p.config_json).unwrap_or(serde_json::json!({}));
+        scanner.add_platform(&p.name, &p.platform_type, p.base_url.as_deref(), &config);
+    }
+
+    // 2) 执行「扫描 + 评估」
+    let evaluated = scanner
+        .search_and_evaluate(query, None)
+        .await
+        .map_err(|e| format!("需求扫描失败: {e}"))?;
+
+    // 3) 入库
+    let mut saved_count = 0usize;
+    let mut high_value_count = 0usize;
+    for el in &evaluated {
+        let demand_type_str = el.evaluation.demand_type.as_str().to_string();
+        let entity = opc_demand_lead::ActiveModel {
+            id: Set(el.lead.id.clone()),
+            platform: Set(el.lead.platform.clone()),
+            title: Set(el.lead.title.clone()),
+            description: Set(el.lead.description.clone()),
+            budget_min: Set(el.lead.budget_min),
+            budget_max: Set(el.lead.budget_max),
+            budget_currency: Set(el.lead.budget_currency.clone()),
+            contact_name: Set(el.lead.contact_name.clone()),
+            contact_email: Set(el.lead.contact_email.clone()),
+            contact_phone: Set(el.lead.contact_phone.clone()),
+            source_url: Set(el.lead.source_url.clone()),
+            raw_snapshot_json: Set(
+                serde_json::to_string(&el.lead.raw_snapshot).unwrap_or_default(),
+            ),
+            matched_capabilities_json: Set("[]".to_string()),
+            ai_analysis_json: Set(
+                serde_json::to_string(&el.evaluation).unwrap_or_default(),
+            ),
+            recommended_workflow_id: Set(None),
+            status: Set("new".to_string()),
+            priority: Set(3),
+            confidence: Set(el.evaluation.confidence),
+            notes: Set(String::new()),
+            project_id: Set(None),
+            customer_id: Set(None),
+            expires_at: Set(None),
+            claimed_by: Set(None),
+            pain_score: Set(el.evaluation.pain_score),
+            market_gap_score: Set(el.evaluation.market_gap_score),
+            commercial_value_score: Set(el.evaluation.commercial_value_score),
+            opportunity_level: Set(el.evaluation.opportunity_level.clone()),
+            demand_type: Set(demand_type_str),
+            evaluated_at: Set(Some(now)),
+            created_at: Set(now),
+            updated_at: Set(now),
+        };
+
+        match entity.insert(db).await {
+            Ok(_) => {
+                saved_count += 1;
+                if el.evaluation.commercial_value_score >= 70.0 {
+                    high_value_count += 1;
+                }
+            },
+            Err(e) => {
+                tracing::warn!(
+                    "[run_demand_discovery_cron] 入库失败 {}: {}",
+                    el.lead.id,
+                    e
+                );
+            }
+        }
+    }
+
+    // 4) 更新平台同步时间
+    let _ = opc_market_platform::Entity::update_many()
+        .col_expr(opc_market_platform::Column::LastSyncAt, Expr::value(now))
+        .col_expr(opc_market_platform::Column::Status, Expr::value("synced"))
+        .col_expr(opc_market_platform::Column::UpdatedAt, Expr::value(now))
+        .exec(db)
+        .await;
+
+    Ok(format!(
+        "需求发现完成: 扫描 {} 条, 入库 {} 条, 高价值 {} 条",
+        evaluated.len(),
+        saved_count,
+        high_value_count
+    ))
+}
+
 // ── 需求线索 CRUD ──────────────────────────────────────────────
 
 /// 创建需求线索（手动补录或从平台线索转化）

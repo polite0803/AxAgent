@@ -2439,6 +2439,66 @@ fn start_cron_scheduler(state: &AppState) {
             });
             return;
         }
+        // 需求发现兜底路由：task_type = opc-demand-discovery
+        // 直接执行「扫描→评估→入库」流水线，不依赖工作流引擎
+        if job.task_type.as_deref() == Some("opc-demand-discovery") {
+            let store = cron_store.clone();
+            let db = sync_db.clone();
+            let job_id = job.id.clone();
+            let job_name = job.name.clone();
+            let recurring = job.recurring;
+            let prompt = job.prompt.clone();
+            tokio::task::spawn(async move {
+                let started = axagent_runtime_core::cron_job::now_millis();
+                let query = if prompt.trim().is_empty() {
+                    "AI tool software developer tool".to_string()
+                } else {
+                    prompt.clone()
+                };
+                let result =
+                    crate::commands::demand_discovery::run_demand_discovery_cron(&db, &query)
+                        .await;
+                let duration =
+                    (axagent_runtime_core::cron_job::now_millis() - started) as u64;
+                let task_result = match result {
+                    Ok(summary) => {
+                        tracing::info!(
+                            "[CronScheduler] 需求发现任务 '{}' 完成: {}",
+                            job_name,
+                            summary
+                        );
+                        axagent_runtime_core::TaskRunResult {
+                            success: true,
+                            output: Some(summary),
+                            error: None,
+                            duration_ms: duration,
+                            executed_at: started,
+                        }
+                    },
+                    Err(e) => {
+                        tracing::error!(
+                            "[CronScheduler] 需求发现任务 '{}' 失败: {}",
+                            job_name,
+                            e
+                        );
+                        axagent_runtime_core::TaskRunResult {
+                            success: false,
+                            output: None,
+                            error: Some(e),
+                            duration_ms: duration,
+                            executed_at: started,
+                        }
+                    },
+                };
+                store.record_run(&job_id, task_result).await;
+                if !recurring {
+                    let _ = store
+                        .set_status(&job_id, axagent_runtime_core::CronJobStatus::Disabled)
+                        .await;
+                }
+            });
+            return;
+        }
         // 荐股定时任务（task_type = stock-recommendation，无 workflow_id）
         if job.workflow_id.is_none() && job.task_type.as_deref() == Some("stock-recommendation") {
             let store = cron_store.clone();

@@ -366,7 +366,7 @@ function LeadsPanel() {
       key: "opportunity_level",
       width: 100,
       render: (v: string | null) => {
-        if (!v) return "-";
+        if (!v) { return "-"; }
         const color = v === "high" ? "green" : v === "medium" ? "orange" : "default";
         return <Tag color={color}>{t(`opc.demand.opportunityLevel.${v}`)}</Tag>;
       },

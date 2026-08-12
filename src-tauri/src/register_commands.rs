@@ -1315,6 +1315,7 @@ commands::opc::run_self_improving_opc_work_item,
 // demand_discovery — 需求发现与交付
 commands::demand_discovery::opc_scan_capabilities,
 commands::demand_discovery::opc_discover_leads,
+commands::demand_discovery::opc_discover_and_evaluate_leads,
 commands::demand_discovery::opc_create_lead,
 commands::demand_discovery::opc_list_leads,
 commands::demand_discovery::opc_confirm_lead,
