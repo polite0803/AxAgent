@@ -2304,19 +2304,19 @@ export async function handleCommand<T>(
         entities: [
           {
             id: "ent_1",
-            name: "AxAgent 项目",
+            name: "AxAgent Project",
             entity_type: "project",
-            properties: { 状态: "开发中" },
+            properties: {},
             aliases: ["AxAgent", "axagent"],
             mention_count: 12,
             confidence: 0.95,
           },
           {
             id: "ent_2",
-            name: "知识图谱视图",
+            name: "Knowledge Graph View",
             entity_type: "concept",
             properties: {},
-            aliases: ["图谱", "graph"],
+            aliases: ["graph"],
             mention_count: 8,
             confidence: 0.9,
           },
@@ -2331,7 +2331,7 @@ export async function handleCommand<T>(
           },
           {
             id: "ent_4",
-            name: "memory 模块",
+            name: "Memory Module",
             entity_type: "file",
             properties: {},
             aliases: [],
