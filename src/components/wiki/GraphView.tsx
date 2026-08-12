@@ -907,7 +907,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         workerErrorCountRef.current++;
         // 连续 3 次错误：terminate 并降级到主线程物理
         if (workerErrorCountRef.current >= 3 && workerRef.current === worker) {
-          console.warn("[GraphWorker] 持续报错，降级到主线程物理");
+          console.warn("[GraphWorker] persistent errors, falling back to main-thread physics");
           worker.terminate();
           workerRef.current = null;
           workerInitializedRef.current = false;
