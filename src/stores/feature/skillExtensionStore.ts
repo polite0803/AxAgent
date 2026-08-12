@@ -14,6 +14,11 @@ import type {
 } from "@/types";
 import { create } from "zustand";
 
+// 注意：此处静态导入 skillStore 与 skillStore 中的静态导入
+// skillExtensionStore 构成循环依赖，但双方仅在函数体内（运行时）引用对方，
+// 不会在模块初始化阶段访问，因此安全。
+import { useSkillStore } from "./skillStore";
+
 export interface MergedCommand {
   id: string;
   label: string;
@@ -424,7 +429,7 @@ function setupBrowserPolling(): void {
       );
       if (currentHash !== lastHash && lastHash !== "") {
         useSkillExtensionStore.getState().fetchSkills();
-        await import("@/stores").then((s) => s.useSkillStore.getState().loadSkills());
+        useSkillStore.getState().loadSkills();
       }
       lastHash = currentHash;
     } catch {

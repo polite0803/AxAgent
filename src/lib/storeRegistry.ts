@@ -1,5 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { useConversationStore } from "@/stores/domain/conversationStore";
+import { usePreferenceStore } from "@/stores/domain/preferenceStore";
+import { useStreamStore } from "@/stores/domain/streamStore";
+import { useAgentStore } from "@/stores/feature/agentStore";
+import { useExecutionStore } from "@/stores/feature/executionStore";
+import { useKnowledgeStore } from "@/stores/feature/knowledgeStore";
+import { useProviderStore } from "@/stores/feature/providerStore";
+import { useSettingsStore } from "@/stores/feature/settingsStore";
+import { useArtifactStore } from "@/stores/shared/artifactStore";
+import { useTabStore } from "@/stores/shared/tabStore";
+import { useUIStore } from "@/stores/shared/uiStore";
+
 /** Zustand Store 注册表，供声明式 Action 的 store 类型访问 */
 
 type StoreAccessor = {
@@ -23,8 +35,6 @@ export async function initStoreRegistry(): Promise<void> {
   }
   _initialized = true;
 
-  const stores = await import("@/stores");
-
   const registry: Array<{
     name: string;
     store: {
@@ -36,7 +46,7 @@ export async function initStoreRegistry(): Promise<void> {
     {
       name: "preference",
       // SAFE: uniform store registry — all Zustand stores expose getState/setState
-      store: stores.usePreferenceStore as unknown as {
+      store: usePreferenceStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
         subscribe: (listener: () => void) => () => void;
@@ -45,7 +55,7 @@ export async function initStoreRegistry(): Promise<void> {
     {
       name: "conversation",
       // SAFE: uniform store registry — all Zustand stores expose getState/setState
-      store: stores.useConversationStore as unknown as {
+      store: useConversationStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
         subscribe: (listener: () => void) => () => void;
@@ -54,7 +64,7 @@ export async function initStoreRegistry(): Promise<void> {
     {
       name: "ui",
       // SAFE: uniform store registry — all Zustand stores expose getState/setState
-      store: stores.useUIStore as unknown as {
+      store: useUIStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
         subscribe: (listener: () => void) => () => void;
@@ -65,7 +75,7 @@ export async function initStoreRegistry(): Promise<void> {
     {
       name: "artifact",
       // SAFE: uniform store registry — all Zustand stores expose getState/setState
-      store: stores.useArtifactStore as unknown as {
+      store: useArtifactStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
         subscribe: (listener: () => void) => () => void;
@@ -74,7 +84,7 @@ export async function initStoreRegistry(): Promise<void> {
     {
       name: "chatWorkspace",
       // SAFE: uniform store registry — all Zustand stores expose getState/setState
-      store: stores.useUIStore as unknown as {
+      store: useUIStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
         subscribe: (listener: () => void) => () => void;
@@ -83,7 +93,7 @@ export async function initStoreRegistry(): Promise<void> {
     {
       name: "settings",
       // SAFE: uniform store registry — all Zustand stores expose getState/setState
-      store: stores.useSettingsStore as unknown as {
+      store: useSettingsStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
         subscribe: (listener: () => void) => () => void;
@@ -92,7 +102,7 @@ export async function initStoreRegistry(): Promise<void> {
     {
       name: "provider",
       // SAFE: uniform store registry — all Zustand stores expose getState/setState
-      store: stores.useProviderStore as unknown as {
+      store: useProviderStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
         subscribe: (listener: () => void) => () => void;
@@ -101,7 +111,7 @@ export async function initStoreRegistry(): Promise<void> {
     {
       name: "knowledge",
       // SAFE: uniform store registry — all Zustand stores expose getState/setState
-      store: stores.useKnowledgeStore as unknown as {
+      store: useKnowledgeStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
         subscribe: (listener: () => void) => () => void;
@@ -110,7 +120,7 @@ export async function initStoreRegistry(): Promise<void> {
     {
       name: "agent",
       // SAFE: uniform store registry — all Zustand stores expose getState/setState
-      store: stores.useAgentStore as unknown as {
+      store: useAgentStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
         subscribe: (listener: () => void) => () => void;
@@ -119,7 +129,7 @@ export async function initStoreRegistry(): Promise<void> {
     {
       name: "tab",
       // SAFE: uniform store registry — all Zustand stores expose getState/setState
-      store: stores.useTabStore as unknown as {
+      store: useTabStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
         subscribe: (listener: () => void) => () => void;
@@ -128,7 +138,7 @@ export async function initStoreRegistry(): Promise<void> {
     {
       name: "stream",
       // SAFE: uniform store registry — all Zustand stores expose getState/setState
-      store: stores.useStreamStore as unknown as {
+      store: useStreamStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
         subscribe: (listener: () => void) => () => void;
@@ -137,7 +147,7 @@ export async function initStoreRegistry(): Promise<void> {
     {
       name: "execution",
       // SAFE: uniform store registry — all Zustand stores expose getState/setState
-      store: stores.useExecutionStore as unknown as {
+      store: useExecutionStore as unknown as {
         getState: () => unknown;
         setState: (partial: unknown) => void;
         subscribe: (listener: () => void) => () => void;

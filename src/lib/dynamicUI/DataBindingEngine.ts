@@ -2,6 +2,7 @@
 
 import i18n from "@/i18n";
 import { invoke } from "@/lib/invoke";
+import { useExecutionStore } from "@/stores/feature/executionStore";
 import type { DataSourceConfig } from "@/types";
 import { getNestedValue } from "./utils";
 
@@ -68,7 +69,6 @@ export async function resolveDataSource(
         generationId: string;
         selector?: string;
       };
-      const { useExecutionStore } = await import("@/stores");
       const executionState = useExecutionStore.getState();
       const generation =
         (executionState as unknown as Record<string, unknown>) /* SAFE: dynamic UI data binding from execution state */[

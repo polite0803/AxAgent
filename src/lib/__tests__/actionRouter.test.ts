@@ -19,6 +19,9 @@ const mockInvoke = vi.fn();
 vi.mock("@/lib/invoke", () => ({
   invoke: (...args: unknown[]) => mockInvoke(...args),
   isTauri: () => false,
+  // agentStore 在模块初始化阶段调用 listen 订阅计划确认事件，
+  // 此处补齐导出以避免 "No listen export" 错误。
+  listen: vi.fn().mockResolvedValue(vi.fn()),
 }));
 
 // Mock skillPermissions
@@ -45,28 +48,38 @@ vi.mock("@/lib/skillActionExecutor", () => ({
   getCustomFunction: vi.fn().mockReturnValue(vi.fn()),
 }));
 
-// Mock stores
+// Mock stores — actionRouter 直接静态导入具体 store 文件（不再经 @/stores barrel），
+// 因此按实际导入路径 mock，避免加载真实 store 及其重型依赖树。
 const mockCreateConversation = vi.fn();
 const mockSendMessage = vi.fn();
 const mockGetHandler = vi.fn();
 
-vi.mock("@/stores", () => ({
+vi.mock("@/stores/domain/conversationStore", () => ({
   useConversationStore: {
     getState: () => ({
       createConversation: mockCreateConversation,
       sendMessage: mockSendMessage,
     }),
   },
+}));
+
+vi.mock("@/stores/feature/providerStore", () => ({
   useProviderStore: {
     getState: () => ({
       providers: [],
     }),
   },
+}));
+
+vi.mock("@/stores/feature/settingsStore", () => ({
   useSettingsStore: {
     getState: () => ({
       settings: {},
     }),
   },
+}));
+
+vi.mock("@/stores/feature/skillExtensionStore", () => ({
   useSkillExtensionStore: {
     getState: () => ({
       getHandler: mockGetHandler,
