@@ -49,6 +49,19 @@ interface InitPayload {
   }[];
   config: PhysicsConfig;
   communities?: Record<string, number>;
+  // 压缩格式：主线程用 Float64Array/Uint32Array 零拷贝传输，避免 JSON 序列化阻塞
+  // nodeBuffer: [x, y, vx, vy, fx, fy, mass, fixed, kind, idx, ...] 每节点 10 个值
+  // edgeBuffer: [sIdx, tIdx, restLength, stiffness, damping, ...] 每边 5 个值
+  // nodeIds: 节点 ID 数组（字符串）
+  // nodeKinds: 节点类型数组（字符串）
+  compact?: {
+    nodeBuffer: Float64Array;
+    edgeBuffer: Float64Array;
+    nodeIds: string[];
+    nodeKinds: string[];
+    nodeCount: number;
+    edgeCount: number;
+  };
 }
 
 interface StepPayload {
@@ -112,6 +125,14 @@ let neighborEdgesCount = 0;
 
 let tick = 0;
 let initialized = false;
+
+// ── 紧凑格式数据布局常量（与主线程 GraphView.tsx 中 NODE_STRIDE/EDGE_STRIDE 对齐） ──
+// 节点数据布局：[x, y, vx, vy, fx, fy, mass, fixed, kind(kind->idx映射), idx]
+// fixed: 0/1 (float64)
+// kind: 字符串，放在 nodeKinds 数组中，buffer 中存 0
+const NODE_STRIDE = 10;
+// 边数据布局：[sIdx, tIdx, restLength, stiffness, damping]
+const EDGE_STRIDE = 5;
 
 // ── 四叉树（与 graphPhysics.ts 保持一致的实现） ──
 
@@ -402,52 +423,100 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
   switch (msg.type) {
     case "init": {
       try {
-        const n = msg.payload.nodes.length;
-        nodePositions = new Float64Array(n * 2);
-        nodeVelocities = new Float64Array(n * 2);
-        nodeFx = new Float64Array(n);
-        nodeFy = new Float64Array(n);
-        nodeMass = new Float64Array(n);
-        nodeFixed = new Uint8Array(n);
-        nodeIdxToCommunity = new Int32Array(n).fill(-1);
-        nodeIds = [];
-        nodeKinds = [];
+        // ── 零拷贝路径：使用 compact Float64Array 格式，避免 JSON 序列化阻塞主线程 ──
+        if (msg.payload.compact) {
+          const { nodeBuffer, edgeBuffer, nodeIds: nIds, nodeKinds: nKinds, nodeCount: n, edgeCount } =
+            msg.payload.compact;
+          nodePositions = new Float64Array(n * 2);
+          nodeVelocities = new Float64Array(n * 2);
+          nodeFx = new Float64Array(n);
+          nodeFy = new Float64Array(n);
+          nodeMass = new Float64Array(n);
+          nodeFixed = new Uint8Array(n);
+          nodeIdxToCommunity = new Int32Array(n).fill(-1);
+          nodeIds = nIds;
+          nodeKinds = nKinds;
 
-        for (let i = 0; i < n; i++) {
-          const node = msg.payload.nodes[i];
-          nodePositions[i * 2] = node.x;
-          nodePositions[i * 2 + 1] = node.y;
-          nodeVelocities[i * 2] = node.vx;
-          nodeVelocities[i * 2 + 1] = node.vy;
-          nodeFx[i] = node.fx;
-          nodeFy[i] = node.fy;
-          nodeMass[i] = node.mass;
-          nodeFixed[i] = node.fixed ? 1 : 0;
-          nodeIds.push(node.id);
-          nodeKinds.push(node.kind);
-        }
+          // 直接从 Float64Array 拷贝，零对象创建
+          for (let i = 0; i < n; i++) {
+            const base = i * NODE_STRIDE; // 10 个 float 节点数据
+            nodePositions[i * 2] = nodeBuffer[base]; // x
+            nodePositions[i * 2 + 1] = nodeBuffer[base + 1]; // y
+            nodeVelocities[i * 2] = nodeBuffer[base + 2]; // vx
+            nodeVelocities[i * 2 + 1] = nodeBuffer[base + 3]; // vy
+            nodeFx[i] = nodeBuffer[base + 4]; // fx
+            nodeFy[i] = nodeBuffer[base + 5]; // fy
+            nodeMass[i] = nodeBuffer[base + 6]; // mass
+            nodeFixed[i] = nodeBuffer[base + 7] ? 1 : 0; // fixed (0/1)
+            // nodeBuffer[base + 8] 保留给 kind（uint32 但这里用 float64 传输）
+            // nodeBuffer[base + 9] 保留给 idx
+          }
 
-        // 构建邻居表
-        neighborMap = new Map();
-        neighborEdgesCount = 0;
-        for (const edge of msg.payload.edges) {
-          const sIdx = edge.sourceIdx;
-          const tIdx = edge.targetIdx;
-          if (!neighborMap.has(sIdx)) { neighborMap.set(sIdx, []); }
-          if (!neighborMap.has(tIdx)) { neighborMap.set(tIdx, []); }
-          neighborMap.get(sIdx)!.push({
-            targetIdx: tIdx,
-            rest: edge.restLength,
-            stiffness: edge.stiffness,
-            damping: edge.damping,
-          });
-          neighborMap.get(tIdx)!.push({
-            targetIdx: sIdx,
-            rest: edge.restLength,
-            stiffness: edge.stiffness,
-            damping: edge.damping,
-          });
-          neighborEdgesCount++;
+          // 构建邻居表（从 Float64Array 直接读取）
+          neighborMap = new Map();
+          neighborEdgesCount = 0;
+          for (let e = 0; e < edgeCount; e++) {
+            const eBase = e * EDGE_STRIDE; // 5 个 float 边数据
+            const sIdx = edgeBuffer[eBase];
+            const tIdx = edgeBuffer[eBase + 1];
+            const rest = edgeBuffer[eBase + 2];
+            const stiffness = edgeBuffer[eBase + 3];
+            const damping = edgeBuffer[eBase + 4];
+            if (!neighborMap.has(sIdx)) { neighborMap.set(sIdx, []); }
+            if (!neighborMap.has(tIdx)) { neighborMap.set(tIdx, []); }
+            neighborMap.get(sIdx)!.push({ targetIdx: tIdx, rest, stiffness, damping });
+            neighborMap.get(tIdx)!.push({ targetIdx: sIdx, rest, stiffness, damping });
+            neighborEdgesCount++;
+          }
+        } else {
+          // ── 兼容旧 JSON 格式（用于小数据量或测试） ──
+          const n = msg.payload.nodes.length;
+          nodePositions = new Float64Array(n * 2);
+          nodeVelocities = new Float64Array(n * 2);
+          nodeFx = new Float64Array(n);
+          nodeFy = new Float64Array(n);
+          nodeMass = new Float64Array(n);
+          nodeFixed = new Uint8Array(n);
+          nodeIdxToCommunity = new Int32Array(n).fill(-1);
+          nodeIds = [];
+          nodeKinds = [];
+
+          for (let i = 0; i < n; i++) {
+            const node = msg.payload.nodes[i];
+            nodePositions[i * 2] = node.x;
+            nodePositions[i * 2 + 1] = node.y;
+            nodeVelocities[i * 2] = node.vx;
+            nodeVelocities[i * 2 + 1] = node.vy;
+            nodeFx[i] = node.fx;
+            nodeFy[i] = node.fy;
+            nodeMass[i] = node.mass;
+            nodeFixed[i] = node.fixed ? 1 : 0;
+            nodeIds.push(node.id);
+            nodeKinds.push(node.kind);
+          }
+
+          // 构建邻居表
+          neighborMap = new Map();
+          neighborEdgesCount = 0;
+          for (const edge of msg.payload.edges) {
+            const sIdx = edge.sourceIdx;
+            const tIdx = edge.targetIdx;
+            if (!neighborMap.has(sIdx)) { neighborMap.set(sIdx, []); }
+            if (!neighborMap.has(tIdx)) { neighborMap.set(tIdx, []); }
+            neighborMap.get(sIdx)!.push({
+              targetIdx: tIdx,
+              rest: edge.restLength,
+              stiffness: edge.stiffness,
+              damping: edge.damping,
+            });
+            neighborMap.get(tIdx)!.push({
+              targetIdx: sIdx,
+              rest: edge.restLength,
+              stiffness: edge.stiffness,
+              damping: edge.damping,
+            });
+            neighborEdgesCount++;
+          }
         }
 
         // 构建节点索引 → 社区 ID 映射

@@ -414,6 +414,12 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   const bgCacheRef = useRef<HTMLCanvasElement | null>(null);
   const bgCacheSizeRef = useRef({ w: 0, h: 0 });
 
+  // 大图位图缓存：将所有节点/边预渲染到离屏 Canvas，每帧仅 drawImage 拷贝
+  // 彻底消除每帧 5 万+ 矢量 Canvas 操作导致的主线程阻塞
+  const spriteCacheRef = useRef<HTMLCanvasElement | null>(null);
+  const spriteWorldBBoxRef = useRef({ minX: -5000, minY: -5000, maxX: 5000, maxY: 5000 });
+  const FORCE_BITMAP_THRESHOLD = 3000; // 超过此节点数时强制使用位图模式
+
   // 相机变换
   const cameraRef = useRef({ x: 0, y: 0, zoom: 1 });
 
@@ -876,30 +882,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     );
     workerRef.current = worker;
 
-    // 构建 Worker 初始化数据
-    const initNodes = pNodes.map((n) => ({
-      id: n.id,
-      x: n.x,
-      y: n.y,
-      vx: n.vx,
-      vy: n.vy,
-      fx: n.fx,
-      fy: n.fy,
-      mass: n.mass,
-      fixed: n.fixed,
-      kind: n.kind,
-      idx: n.idx,
-    }));
-    const initEdges = pEdges.map((e) => ({
-      source: e.source,
-      target: e.target,
-      restLength: e.restLength,
-      stiffness: e.stiffness,
-      damping: e.damping,
-      sourceIdx: e.sourceIdx,
-      targetIdx: e.targetIdx,
-    }));
-
+    // ── 零拷贝初始化：使用 Float64Array + Transfer List ──
     const workerConfig: PhysicsConfig = {
       theta: 0.5,
       repulsion: 6000,
@@ -911,16 +894,67 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       maxVelocity: 4,
     };
 
+    // ── 零拷贝初始化：使用 Float64Array + Transfer List ──
+    // 避免 JSON 序列化（structured clone）阻塞主线程
+    // 节点布局：[x, y, vx, vy, fx, fy, mass, fixed(0/1), kind(0), idx] = 10 floats
+    // 边布局：[sIdx, tIdx, restLength, stiffness, damping] = 5 floats
+    const nodeCount = pNodes.length;
+    const edgeCount = pEdges.length;
+    const NODE_STRIDE = 10;
+    const EDGE_STRIDE = 5;
+    const nodeBuffer = new Float64Array(nodeCount * NODE_STRIDE);
+    const edgeBuffer = new Float64Array(edgeCount * EDGE_STRIDE);
+    const nodeIds: string[] = Array.from({ length: nodeCount });
+    const nodeKinds: string[] = Array.from({ length: nodeCount });
+
+    for (let i = 0; i < nodeCount; i++) {
+      const n = pNodes[i];
+      const base = i * NODE_STRIDE;
+      nodeBuffer[base] = n.x;
+      nodeBuffer[base + 1] = n.y;
+      nodeBuffer[base + 2] = n.vx;
+      nodeBuffer[base + 3] = n.vy;
+      nodeBuffer[base + 4] = n.fx;
+      nodeBuffer[base + 5] = n.fy;
+      nodeBuffer[base + 6] = n.mass;
+      nodeBuffer[base + 7] = n.fixed ? 1 : 0;
+      nodeBuffer[base + 8] = 0; // kind 存储在 nodeKinds 数组中
+      nodeBuffer[base + 9] = n.idx;
+      nodeIds[i] = n.id;
+      nodeKinds[i] = n.kind;
+    }
+
+    for (let e = 0; e < edgeCount; e++) {
+      const edge = pEdges[e];
+      const eBase = e * EDGE_STRIDE;
+      edgeBuffer[eBase] = edge.sourceIdx;
+      edgeBuffer[eBase + 1] = edge.targetIdx;
+      edgeBuffer[eBase + 2] = edge.restLength;
+      edgeBuffer[eBase + 3] = edge.stiffness;
+      edgeBuffer[eBase + 4] = edge.damping;
+    }
+
     const initMsg: WorkerMessage = {
       type: "init",
       payload: {
-        nodes: initNodes,
-        edges: initEdges,
+        nodes: [],
+        edges: [],
         config: workerConfig,
         communities: communities ? Object.fromEntries(communities) : undefined,
+        compact: {
+          nodeBuffer,
+          edgeBuffer,
+          nodeIds,
+          nodeKinds,
+          nodeCount,
+          edgeCount,
+        },
       },
     };
-    worker.postMessage(initMsg);
+
+    // 使用 Transfer List 实现零拷贝：ArrayBuffer 所有权直接转移到 Worker
+    // 主线程零阻塞（之前用 postMessage 传递 JSON 对象时，structured clone 会阻塞数秒）
+    worker.postMessage(initMsg, [nodeBuffer.buffer, edgeBuffer.buffer]);
 
     worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
       const msg = e.data;
@@ -1230,6 +1264,12 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
               }
               gridIndexRef.current = gridIndex;
             }
+
+            // 大图位图缓存：Worker 返回新结果时重建（节点位置已更新）
+            // 仅在非交互状态下重建，避免与拖拽冲突
+            if (nodes.length > FORCE_BITMAP_THRESHOLD && !hasInteraction) {
+              spriteCacheRef.current = buildBigGraphSpriteCache(nodes);
+            }
           }
 
           // 稳定检测：即使没有新结果，也基于上一次的 stable 状态更新 idle 计数
@@ -1298,6 +1338,10 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
       phaseRef.current += 0.02;
 
+      // 获取当前交互状态（绘制阶段需要）
+      const hovered = hoverNodeRef.current;
+      const selected = selectedNodeIdRef.current;
+
       // 计算鱼眼参数（世界坐标下的鼠标位置 + 放大因子）
       const fisheye = computeFisheye();
 
@@ -1331,11 +1375,35 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       // 绘制（传入视口范围用于裁剪）
       // Worker 未就绪的大图：跳过完整渲染，避免主线程 fallback 卡死
       if (shouldRender && !workerNotReadyLargeGraph) {
-        drawEdgesOptimized(ctx, nodes, fisheye, viewWorld);
-        drawParticlesOptimized(ctx, nodes, fisheye, viewWorld);
-        drawNodesOptimized(ctx, nodes, fisheye, viewWorld);
-        // 聚合节点（顶层）
-        drawCollapsedClusters(ctx, viewWorld);
+        // ── 大图位图模式：>3000 节点且无交互时，使用预渲染位图代替矢量绘制 ──
+        // 这是解决 2 万+ 节点卡死的关键：将 5 万+ 矢量操作降为 1 次 drawImage
+        const isLargeGraph = nodes.length > FORCE_BITMAP_THRESHOLD;
+        const hasActiveInteraction = hovered || !!selected || !!dragRef.current;
+
+        if (isLargeGraph && !hasActiveInteraction && spriteCacheRef.current) {
+          // 使用位图缓存：1 次 drawImage 替代 5 万+ 矢量操作
+          const bbox = spriteWorldBBoxRef.current;
+          const worldW = bbox.maxX - bbox.minX;
+          const worldH = bbox.maxY - bbox.minY;
+          const camZ = cam.zoom;
+
+          // 计算位图在屏幕上的位置（相机变换已应用）
+          const sx = (bbox.minX) * camZ;
+          const sy = (bbox.minY) * camZ;
+          const sw = worldW * camZ;
+          const sh = worldH * camZ;
+
+          ctx.drawImage(spriteCacheRef.current, sx, sy, sw, sh);
+
+          // 聚合节点（若存在）仍用矢量绘制
+          drawCollapsedClusters(ctx, viewWorld);
+        } else {
+          // 矢量模式：小图或交互中（需要实时反馈）
+          drawEdgesOptimized(ctx, nodes, fisheye, viewWorld);
+          drawParticlesOptimized(ctx, nodes, fisheye, viewWorld);
+          drawNodesOptimized(ctx, nodes, fisheye, viewWorld);
+          drawCollapsedClusters(ctx, viewWorld);
+        }
       }
 
       ctx.restore();
@@ -1481,6 +1549,98 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   }
 
   // ── 优化绘制函数：带视口裁剪，跳过屏幕外元素 ──
+
+  // 构建大图位图缓存：将所有节点/边预渲染到离屏 Canvas
+  // 万级节点下每帧 5 万+ 矢量操作是卡死根因，位图模式将其降为 1 次 drawImage
+  function buildBigGraphSpriteCache(nodes: PhysicsNode[]): HTMLCanvasElement | null {
+    if (nodes.length === 0) { return null; }
+
+    // 计算节点分布 bounding box
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const n of nodes) {
+      if (n.x < minX) { minX = n.x; }
+      if (n.y < minY) { minY = n.y; }
+      if (n.x > maxX) { maxX = n.x; }
+      if (n.y > maxY) { maxY = n.y; }
+    }
+
+    // Padding 覆盖整个可视范围
+    const padding = 800;
+    minX -= padding;
+    minY -= padding;
+    maxX += padding;
+    maxY += padding;
+    spriteWorldBBoxRef.current = { minX, minY, maxX, maxY };
+
+    const worldW = maxX - minX;
+    const worldH = maxY - minY;
+
+    // 限制离屏 Canvas 最大尺寸，防止内存溢出
+    const MAX_CANVAS = 16384;
+    const scale = Math.min(1, MAX_CANVAS / Math.max(worldW, worldH));
+    const cw = Math.max(1, Math.ceil(worldW * scale));
+    const ch = Math.max(1, Math.ceil(worldH * scale));
+
+    const oc = document.createElement("canvas");
+    oc.width = cw;
+    oc.height = ch;
+    const octx = oc.getContext("2d")!;
+
+    // 世界坐标 → 离屏坐标变换
+    octx.save();
+    octx.scale(scale, scale);
+    octx.translate(-minX, -minY);
+
+    // 批量绘制边（Path2D 合并）
+    const edgeMeta = edgeMetaRef.current;
+    const nodeColors = nodeColorRef.current;
+    const edgeBatches = new Map<string, Path2D>();
+    for (let i = 0; i < edgeMeta.length; i++) {
+      const em = edgeMeta[i];
+      const sIdx = em.sourceIdx;
+      const tIdx = em.targetIdx;
+      if (sIdx < 0 || tIdx < 0) { continue; }
+      const s = nodes[sIdx];
+      const t = nodes[tIdx];
+      if (!s || !t) { continue; }
+      if (!edgeBatches.has(em.color)) { edgeBatches.set(em.color, new Path2D()); }
+      const p = edgeBatches.get(em.color)!;
+      p.moveTo(s.x, s.y);
+      p.lineTo(t.x, t.y);
+    }
+    octx.lineWidth = 0.8;
+    for (const [color, path] of edgeBatches) {
+      octx.strokeStyle = color;
+      octx.stroke(path);
+    }
+
+    // 批量绘制节点（按颜色合并）
+    const nodeBatches = new Map<string, Path2D>();
+    const nodeSizes = nodeSizeRef.current;
+    for (const n of nodes) {
+      if (clusterModeRef.current) {
+        const ncid = communities?.get(n.id);
+        if (ncid !== undefined && collapsedRef.current.has(ncid)) { continue; }
+      }
+      const color = nodeColors.get(n.id) || token.colorPrimary;
+      const size = (nodeSizes.get(n.id) || 6) * 1.2;
+      const key = `${color}|${size.toFixed(1)}`;
+      if (!nodeBatches.has(key)) { nodeBatches.set(key, new Path2D()); }
+      const p = nodeBatches.get(key)!;
+      // 用 arc 添加到 Path2D
+      const r = size;
+      p.moveTo(n.x + r, n.y);
+      p.arc(n.x, n.y, r, 0, Math.PI * 2);
+    }
+    for (const [key, path] of nodeBatches) {
+      const [color] = key.split("|");
+      octx.fillStyle = color;
+      octx.fill(path);
+    }
+
+    octx.restore();
+    return oc;
+  }
 
   function isInView(
     x: number,
