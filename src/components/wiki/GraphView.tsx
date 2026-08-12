@@ -1644,12 +1644,43 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
     const zoom = cameraRef.current.zoom;
     const showAllLabels = zoom >= 0.6 && !hasHighlight && !hovered && !selected && nodes.length < 300;
-    // 大图 LOD：超过阈值时普通节点不绘制 glow（万级节点每帧数万次 arc+fill 是大开销）
     const isLargeGraph = nodes.length > GLOW_NODE_LIMIT;
 
-    for (const node of nodes) {
-      // 视口裁剪：节点不在视口内时跳过（大幅减少绘制开销）
-      if (!isInView(node.x, node.y, viewWorld)) { continue; }
+    // ── 关键性能优化：使用网格索引获取视口内的节点，避免遍历所有节点 ──
+    const gridIndex = gridIndexRef.current;
+    const nodeMap = posMapRef.current; // id -> PhysicsNode 映射
+    const visibleNodeIds = new Set<string>();
+
+    if (gridIndex && nodes.length > 1000) {
+      // 大图模式：使用网格索引
+      const gx0 = Math.floor(viewWorld.x0 / GRID_CELL_SIZE);
+      const gy0 = Math.floor(viewWorld.y0 / GRID_CELL_SIZE);
+      const gx1 = Math.floor(viewWorld.x1 / GRID_CELL_SIZE);
+      const gy1 = Math.floor(viewWorld.y1 / GRID_CELL_SIZE);
+
+      for (let gx = gx0; gx <= gx1; gx++) {
+        for (let gy = gy0; gy <= gy1; gy++) {
+          const bucket = gridIndex.get(`${gx},${gy}`);
+          if (bucket) {
+            for (const id of bucket) {
+              visibleNodeIds.add(id);
+            }
+          }
+        }
+      }
+    } else {
+      // 小图模式：直接遍历所有节点（小图性能影响不大）
+      for (const node of nodes) {
+        if (isInView(node.x, node.y, viewWorld)) {
+          visibleNodeIds.add(node.id);
+        }
+      }
+    }
+
+    // 只绘制视口内的节点
+    for (const nodeId of visibleNodeIds) {
+      const node = nodeMap.get(nodeId);
+      if (!node) { continue; }
 
       // 聚类折叠模式：折叠社区的节点由聚合节点替代，不单独绘制
       if (clusterModeRef.current) {
@@ -1706,13 +1737,11 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       const pulse = 1 + Math.sin(phase + node.x * 0.01) * 0.08;
       const finalSize = size * pulse;
 
-      // 交互节点（选中/hover/邻居）恒绘制 glow；普通节点仅小图绘制
       const isInteractNode = isSelected || isHovered
         || (selected && neighborsOfSelected.has(node.id))
         || (hovered && neighborsOfHovered.has(node.id));
 
       if (glowAlpha > 0 && zoom >= 0.6 && (isInteractNode || !isLargeGraph)) {
-        // 稳定时跳过 shadowBlur（开销大）；用直接属性设置替代 save/restore
         if (idleCounterRef.current === 0) {
           ctx.shadowColor = color;
           ctx.shadowBlur = glowRadius;
@@ -1725,8 +1754,6 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         ctx.shadowBlur = 0;
       }
 
-      // 节点核心：小尺寸用 fillRect（实测远快于 drawImage 缩放，视觉无差），
-      // 屏幕尺寸足够大时用 sprite 保留渐变质感
       ctx.globalAlpha = alpha;
       const screenR = finalSize * cameraRef.current.zoom;
       const sprite = nodeSpriteCacheRef.current.get(color);
@@ -1734,12 +1761,10 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         const dstSize = finalSize * 2;
         ctx.drawImage(sprite, 0, 0, SPRITE_SIZE, SPRITE_SIZE, node.x - finalSize, node.y - finalSize, dstSize, dstSize);
       } else {
-        // 小尺寸或 fallback：纯色填充（sprite 缓存通常已覆盖所有颜色，fallback 几乎不触发）
         ctx.fillStyle = color;
         ctx.fillRect(node.x - finalSize, node.y - finalSize, finalSize * 2, finalSize * 2);
       }
 
-      // hover 波纹反馈（对齐 Obsidian：涟漪从节点向外扩散）
       if (isHovered) {
         const ripplePhase = phase * 0.5;
         const rippleBase = finalSize * 2.5;
@@ -1755,7 +1780,6 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         ctx.globalAlpha = 1;
       }
 
-      // 标签：仅在需要时绘制（交互节点或小图全量）
       if (showLabel || showAllLabels) {
         const meta = nodeMetaRef.current.get(node.id);
         if (meta) {
@@ -1773,7 +1797,6 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     }
     ctx.globalAlpha = 1;
 
-    // 绘制鱼眼透镜边框
     if (fisheye.active) {
       ctx.save();
       ctx.strokeStyle = token.colorPrimary;
