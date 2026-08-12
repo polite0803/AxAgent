@@ -876,30 +876,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     );
     workerRef.current = worker;
 
-    // 构建 Worker 初始化数据
-    const initNodes = pNodes.map((n) => ({
-      id: n.id,
-      x: n.x,
-      y: n.y,
-      vx: n.vx,
-      vy: n.vy,
-      fx: n.fx,
-      fy: n.fy,
-      mass: n.mass,
-      fixed: n.fixed,
-      kind: n.kind,
-      idx: n.idx,
-    }));
-    const initEdges = pEdges.map((e) => ({
-      source: e.source,
-      target: e.target,
-      restLength: e.restLength,
-      stiffness: e.stiffness,
-      damping: e.damping,
-      sourceIdx: e.sourceIdx,
-      targetIdx: e.targetIdx,
-    }));
-
+    // ── 零拷贝初始化：使用 Float64Array + Transfer List ──
     const workerConfig: PhysicsConfig = {
       theta: 0.5,
       repulsion: 6000,
@@ -911,16 +888,67 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       maxVelocity: 4,
     };
 
+    // ── 零拷贝初始化：使用 Float64Array + Transfer List ──
+    // 避免 JSON 序列化（structured clone）阻塞主线程
+    // 节点布局：[x, y, vx, vy, fx, fy, mass, fixed(0/1), kind(0), idx] = 10 floats
+    // 边布局：[sIdx, tIdx, restLength, stiffness, damping] = 5 floats
+    const nodeCount = pNodes.length;
+    const edgeCount = pEdges.length;
+    const NODE_STRIDE = 10;
+    const EDGE_STRIDE = 5;
+    const nodeBuffer = new Float64Array(nodeCount * NODE_STRIDE);
+    const edgeBuffer = new Float64Array(edgeCount * EDGE_STRIDE);
+    const nodeIds: string[] = new Array(nodeCount);
+    const nodeKinds: string[] = new Array(nodeCount);
+
+    for (let i = 0; i < nodeCount; i++) {
+      const n = pNodes[i];
+      const base = i * NODE_STRIDE;
+      nodeBuffer[base] = n.x;
+      nodeBuffer[base + 1] = n.y;
+      nodeBuffer[base + 2] = n.vx;
+      nodeBuffer[base + 3] = n.vy;
+      nodeBuffer[base + 4] = n.fx;
+      nodeBuffer[base + 5] = n.fy;
+      nodeBuffer[base + 6] = n.mass;
+      nodeBuffer[base + 7] = n.fixed ? 1 : 0;
+      nodeBuffer[base + 8] = 0; // kind 存储在 nodeKinds 数组中
+      nodeBuffer[base + 9] = n.idx;
+      nodeIds[i] = n.id;
+      nodeKinds[i] = n.kind;
+    }
+
+    for (let e = 0; e < edgeCount; e++) {
+      const edge = pEdges[e];
+      const eBase = e * EDGE_STRIDE;
+      edgeBuffer[eBase] = edge.sourceIdx;
+      edgeBuffer[eBase + 1] = edge.targetIdx;
+      edgeBuffer[eBase + 2] = edge.restLength;
+      edgeBuffer[eBase + 3] = edge.stiffness;
+      edgeBuffer[eBase + 4] = edge.damping;
+    }
+
     const initMsg: WorkerMessage = {
       type: "init",
       payload: {
-        nodes: initNodes,
-        edges: initEdges,
+        nodes: [],
+        edges: [],
         config: workerConfig,
         communities: communities ? Object.fromEntries(communities) : undefined,
+        compact: {
+          nodeBuffer,
+          edgeBuffer,
+          nodeIds,
+          nodeKinds,
+          nodeCount,
+          edgeCount,
+        },
       },
     };
-    worker.postMessage(initMsg);
+
+    // 使用 Transfer List 实现零拷贝：ArrayBuffer 所有权直接转移到 Worker
+    // 主线程零阻塞（之前用 postMessage 传递 JSON 对象时，structured clone 会阻塞数秒）
+    worker.postMessage(initMsg, [nodeBuffer.buffer, edgeBuffer.buffer]);
 
     worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
       const msg = e.data;
