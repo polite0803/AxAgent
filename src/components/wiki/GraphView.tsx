@@ -472,6 +472,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   // 节点数超过此值且 communities 可用时，打开自动进入聚类折叠聚合视图，
   // 物理只模拟聚合节点（几十个），从根本上避免万级节点全量力导向收敛导致的卡死。
   const AUTO_CLUSTER_THRESHOLD = 3000;
+  // 聚合物理规模上限：聚合节点 + 未折叠节点数超过此值时，放弃力导向（仅静态显示），
+  // 防止社区粒度极细（甚至每节点一社区）时聚合物理规模仍达万级，主线程每帧 O(n log n) 卡死不响应。
+  const MAX_AGG_PHYS_NODES = 800;
 
   const minimapRef = useRef<HTMLCanvasElement>(null);
   const [minimapOpen, setMinimapOpen] = useState(true);
@@ -1045,7 +1048,11 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
           springDamping: 0.85,
           maxVelocity: 4,
         };
-        const stable = isSystemStable(aggPhys.nodes, 0.15);
+        // 规模保护：聚合物理节点过多（社区粒度极细）时放弃力导向，仅静态显示聚合节点，
+        // 聚合节点坐标保持质心，避免主线程每帧 O(n log n) 力导向导致完全不响应。
+        // 拖拽仍有效（mouse 事件直接写 node.x/y），不受此限制。
+        const aggOver = aggPhys.nodes.length > MAX_AGG_PHYS_NODES;
+        const stable = aggOver ? false : isSystemStable(aggPhys.nodes, 0.15);
         if (hasInteraction) {
           idleCounterRef.current = 0;
         } else if (stable) {
@@ -1054,7 +1061,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
           idleCounterRef.current = 0;
         }
         // 稳定降频：非交互时每 6 帧才跑一次聚合物理（规模小，成本极低）
-        const shouldRun = hasInteraction || !stable || frameCounterRef.current % 6 === 0;
+        const shouldRun = !aggOver && (hasInteraction || !stable || frameCounterRef.current % 6 === 0);
         if (shouldRun) {
           stepPhysics(
             aggPhys.nodes,
@@ -1954,13 +1961,20 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     const idToIdx = new Map<string, number>();
     const cidToNodeIdx = new Map<number, number>();
 
+    // 预计算每个社区成员数（O(N) 一次遍历，替代 naive 的 O(C×N) 双重循环。
+    // 大图打开时若社区粒度细，O(C×N) 可达数千万次 Map 查找，主线程会卡死数秒）
+    const memberCount = new Map<number, number>();
+    for (const node of allNodes) {
+      const cid = communitiesMap.get(node.id);
+      if (cid !== undefined) {
+        memberCount.set(cid, (memberCount.get(cid) ?? 0) + 1);
+      }
+    }
+
     // 每个折叠社区 → 1 个聚合物理节点（坐标取当前聚合几何质心）
     for (const cid of collapsed) {
       const geom = clusterGeomRef.current.get(cid);
-      let count = 0;
-      for (const node of allNodes) {
-        if (communitiesMap.get(node.id) === cid) { count++; }
-      }
+      const count = memberCount.get(cid) ?? 0;
       const idx = aggNodes.length;
       const id = `__agg__${cid}`;
       aggNodes.push({
