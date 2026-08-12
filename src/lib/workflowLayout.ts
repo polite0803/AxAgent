@@ -1044,10 +1044,12 @@ export function resolveOverlaps(nodes: Node[], parentRefs: Record<string, string
 }
 
 /**
- * 完整的自动布局流程：Dagre 层级布局 + 重叠修正。
+ * 完整的自动布局流程（重构版）：
  *
- * @param parentRefs 容器子树映射（childId → parentId），用于让每个 parallel 节点
- *  内部的子节点先单独 dagre 排布，再随父容器整体定位。不传则退化为扁平布局。
+ * 采用**自底向上**的递归布局策略：
+ * 1. 首先处理最内层容器的子节点布局，计算出容器的精确尺寸
+ * 2. 将容器视为“大节点”参与上一层的 Dagre 布局
+ * 3. 最终所有节点获得绝对坐标后，统一转换为 React Flow 需要的相对坐标
  */
 export function autoLayoutWorkflow(
   nodes: Node[],
@@ -1075,68 +1077,265 @@ export function autoLayoutWorkflow(
     target: e.target,
   }));
 
-  const layoutedAutoNodes = forceLayout(autoNodes, layoutEdges, childOf);
+  // 执行自底向上的递归布局
+  const layoutedAutoNodes = recursiveLayout(autoNodes, layoutEdges, childOf);
 
-  const newAbs: Record<string, { x: number; y: number }> = {};
+  // 构建最终节点映射
+  const nodeMap = new Map<string, AutoNode>();
   for (const n of layoutedAutoNodes) {
-    newAbs[n.id] = { x: n.position.x, y: n.position.y };
-  }
-
-  const PADDING = CONTAINER_PADDING;
-  const HEADER_H = CONTAINER_HEADER_H;
-  const MIN_W = CONTAINER_MIN_W;
-  const MIN_H = CONTAINER_MIN_H;
-
-  const containerSizes: Record<string, { width: number; height: number }> = {};
-  const containers = layoutNodes.filter((n) => CONTAINER_NODE_TYPES.has(n.type || ""));
-
-  for (const c of containers) {
-    const childIds = Object.keys(childOf).filter((cid) => childOf[cid] === c.id);
-    if (childIds.length === 0) {
-      const size = getNodeSize(c.type || "");
-      containerSizes[c.id] = { width: size.width, height: size.height };
-      continue;
-    }
-
-    const cAbs = newAbs[c.id];
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const cid of childIds) {
-      const pos = newAbs[cid];
-      if (!pos || !cAbs) { continue; }
-      const child = layoutNodes.find((n) => n.id === cid);
-      if (!child) { continue; }
-      const sz = getNodeSize((child.data?.type as string) || child.type || "");
-      // 使用相对坐标计算容器内 bbox
-      const relX = pos.x - cAbs.x;
-      const relY = pos.y - cAbs.y;
-      minX = Math.min(minX, relX);
-      minY = Math.min(minY, relY);
-      maxX = Math.max(maxX, relX + sz.width);
-      maxY = Math.max(maxY, relY + sz.height);
-    }
-
-    containerSizes[c.id] = {
-      width: Math.max(MIN_W, maxX - minX + PADDING * 2),
-      height: Math.max(MIN_H, maxY - minY + PADDING * 2 + HEADER_H),
-    };
+    nodeMap.set(n.id, n);
   }
 
   const result: Node[] = nodes.map((n) => {
-    const abs = newAbs[n.id];
-    if (!abs) { return n; }
+    const layouted = nodeMap.get(n.id);
+    if (!layouted) { return n; }
+
     const pid = childOf[n.id];
-    let final = abs;
+    let finalPos = layouted.position;
+
+    // 关键修复：如果节点有父容器，将绝对坐标转换为相对坐标
     if (pid) {
-      const parentAbs = newAbs[pid];
-      if (parentAbs) {
-        final = { x: abs.x - parentAbs.x, y: abs.y - parentAbs.y };
+      const parentNode = nodeMap.get(pid);
+      if (parentNode) {
+        finalPos = {
+          x: layouted.position.x - parentNode.position.x,
+          y: layouted.position.y - parentNode.position.y,
+        };
       }
     }
-    return { ...n, position: final };
+
+    return { ...n, position: finalPos };
   });
 
-  const clamped = clampChildrenIntoContainers(result, childOf, containerSizes, PADDING);
-  return { nodes: [...clamped, ...excludedNodes], edges };
+  return { nodes: [...result, ...excludedNodes], edges };
+}
+
+/**
+ * 递归布局核心函数（自底向上）
+ */
+function recursiveLayout(
+  nodes: AutoNode[],
+  edges: LayoutEdge[],
+  parentRefs: Record<string, string>,
+): AutoNode[] {
+  if (nodes.length === 0) { return []; }
+
+  const childOf = parentRefs;
+  const allPositions: Record<string, { x: number; y: number }> = {};
+  const containerSizes: Record<string, { width: number; height: number }> = {};
+
+  // 步骤 1：递归处理所有容器（深层优先）
+  const containers = nodes
+    .filter((n) => CONTAINER_NODE_TYPES.has(n.type || layoutNodeType(n)))
+    .sort((a, b) => {
+      // 深层容器优先
+      const depth = (id: string): number => {
+        let d = 0;
+        let cur = id;
+        let p = childOf[cur];
+        while (p) {
+          d++;
+          cur = p;
+          p = childOf[cur];
+        }
+        return d;
+      };
+      return depth(b.id) - depth(a.id);
+    });
+
+  for (const container of containers) {
+    const childIds = Object.keys(childOf).filter((cid) => childOf[cid] === container.id);
+    const childNodes = childIds
+      .map((cid) => nodes.find((n) => n.id === cid))
+      .filter((n): n is AutoNode => Boolean(n));
+
+    if (childNodes.length === 0) {
+      // 空容器：使用最小尺寸
+      const sz = getNodeSize(container.type || layoutNodeType(container));
+      containerSizes[container.id] = {
+        width: Math.max(CONTAINER_MIN_W, sz.width + CONTAINER_PADDING * 2),
+        height: Math.max(CONTAINER_MIN_H, sz.height + CONTAINER_PADDING * 2 + CONTAINER_HEADER_H),
+      };
+      continue;
+    }
+
+    // 递归布局子节点
+    const childEdges = edges.filter(
+      (e) => childIds.includes(e.source) && childIds.includes(e.target),
+    );
+    const childLayouted = recursiveLayout(childNodes, childEdges, childOf);
+
+    // 使用 Dagre 布局子节点
+    const g = new dagre.graphlib.Graph();
+    g.setDefaultEdgeLabel(() => ({}));
+    g.setGraph({
+      rankdir: "TB",
+      ranksep: 50,
+      nodesep: 40,
+      marginx: 20,
+      marginy: CONTAINER_HEADER_H + CONTAINER_PADDING,
+      edgesep: 20,
+    });
+
+    for (const cn of childLayouted) {
+      const t = cn.type || layoutNodeType(cn);
+      let sz: { width: number; height: number };
+      if (CONTAINER_NODE_TYPES.has(t)) {
+        sz = containerSizes[cn.id] || getNodeSize(t);
+      } else {
+        sz = getNodeSize(t);
+      }
+      g.setNode(cn.id, { width: sz.width, height: sz.height });
+    }
+
+    for (const e of childEdges) {
+      g.setEdge(e.source, e.target);
+    }
+
+    dagre.layout(g);
+
+    // 收集子节点位置（容器内相对坐标）
+    let minAbsX = Infinity, minAbsY = Infinity;
+    let maxAbsX = -Infinity, maxAbsY = -Infinity;
+
+    for (const cn of childLayouted) {
+      const dagreNode = g.node(cn.id);
+      if (!dagreNode) { continue; }
+
+      const t = cn.type || layoutNodeType(cn);
+      let sz: { width: number; height: number };
+      if (CONTAINER_NODE_TYPES.has(t)) {
+        sz = containerSizes[cn.id] || getNodeSize(t);
+      } else {
+        sz = getNodeSize(t);
+      }
+
+      // 转换为容器内相对坐标（左上角为原点）
+      const relX = dagreNode.x - sz.width / 2;
+      const relY = dagreNode.y - sz.height / 2;
+
+      childOf[cn.id] = container.id;
+      allPositions[cn.id] = { x: relX, y: relY };
+
+      minAbsX = Math.min(minAbsX, relX);
+      minAbsY = Math.min(minAbsY, relY);
+      maxAbsX = Math.max(maxAbsX, relX + sz.width);
+      maxAbsY = Math.max(maxAbsY, relY + sz.height);
+    }
+
+    // 计算容器尺寸（基于子节点的包围盒）
+    const innerW = maxAbsX - minAbsX + CONTAINER_PADDING * 2;
+    const innerH = maxAbsY - minAbsY + CONTAINER_PADDING * 2;
+
+    containerSizes[container.id] = {
+      width: Math.max(CONTAINER_MIN_W, innerW),
+      height: Math.max(CONTAINER_MIN_H, innerH + CONTAINER_HEADER_H),
+    };
+  }
+
+  // 步骤 2：顶层节点使用 Dagre TB 布局
+  const topLevel = nodes.filter((n) => !childOf[n.id]);
+
+  if (topLevel.length === 0) {
+    // 如果所有节点都在容器内，返回已有位置
+    return nodes.map((n) => {
+      const pos = allPositions[n.id] || { x: MARGIN, y: MARGIN };
+      return { ...n, position: pos };
+    });
+  }
+
+  const g = new dagre.graphlib.Graph();
+  g.setDefaultEdgeLabel(() => ({}));
+  g.setGraph({
+    rankdir: "TB",
+    ranksep: 80,
+    nodesep: 60,
+    marginx: 60,
+    marginy: 60,
+    edgesep: 30,
+    ranker: "network-simplex",
+  });
+
+  for (const n of topLevel) {
+    const t = n.type || layoutNodeType(n);
+    let sz: { width: number; height: number };
+    if (CONTAINER_NODE_TYPES.has(t)) {
+      sz = containerSizes[n.id] || getNodeSize(t);
+    } else {
+      sz = getNodeSize(t);
+    }
+    g.setNode(n.id, { width: sz.width, height: sz.height });
+  }
+
+  const topLevelEdges = edges.filter(
+    (e) => !childOf[e.source] && !childOf[e.target],
+  );
+  for (const e of topLevelEdges) {
+    g.setEdge(e.source, e.target);
+  }
+
+  dagre.layout(g);
+
+  // 收集顶层节点绝对坐标
+  for (const n of topLevel) {
+    const dagreNode = g.node(n.id);
+    if (!dagreNode) { continue; }
+
+    const t = n.type || layoutNodeType(n);
+    let sz: { width: number; height: number };
+    if (CONTAINER_NODE_TYPES.has(t)) {
+      sz = containerSizes[n.id] || getNodeSize(t);
+    } else {
+      sz = getNodeSize(t);
+    }
+
+    allPositions[n.id] = {
+      x: dagreNode.x - sz.width / 2,
+      y: dagreNode.y - sz.height / 2,
+    };
+  }
+
+  // 步骤 3：将容器内子节点的相对坐标转换为绝对坐标
+  // 按深度排序，确保父容器位置已确定
+  const sortedContainers = containers.slice().sort((a, b) => {
+    const depth = (id: string): number => {
+      let d = 0;
+      let cur = id;
+      let p = childOf[cur];
+      while (p && !topLevel.find((t) => t.id === p)) {
+        d++;
+        cur = p;
+        p = childOf[cur];
+      }
+      return d;
+    };
+    return depth(a.id) - depth(b.id);
+  });
+
+  for (const container of sortedContainers) {
+    const containerPos = allPositions[container.id];
+    if (!containerPos) { continue; }
+
+    const childIds = Object.keys(childOf).filter((cid) => childOf[cid] === container.id);
+    for (const cid of childIds) {
+      const relativePos = allPositions[cid];
+      if (relativePos) {
+        allPositions[cid] = {
+          x: containerPos.x + relativePos.x,
+          y: containerPos.y + relativePos.y,
+        };
+      }
+    }
+  }
+
+  // 返回所有节点的新位置
+  return nodes.map((n) => {
+    const pos = allPositions[n.id];
+    if (!pos) {
+      return { ...n, position: { x: MARGIN, y: MARGIN } };
+    }
+    return { ...n, position: pos };
+  });
 }
 
 // ── 容器尺寸常量（修复1、2、7）────────────────────────────────────
@@ -1172,29 +1371,231 @@ function layoutNodeType(n: { type?: string; data?: Record<string, unknown> }): s
 }
 
 /**
- * 使用 d3-force 力导向布局进行自动布局，专门优化工作流流程图的布局效果。
+ * 自动布局主入口：采用自底向上的递归布局策略。
  *
- * 策略：
- * 1. 使用 Dagre 进行初始布局，确保层级关系正确（自上而下）
- * 2. 使用 d3-force 进行力导向优化：
- *    - forceLink: 边的拉力，保持连接关系
- *    - forceManyBody: 节点间斥力，避免重叠
- *    - forceCenter: 重力，将图拉向中心
- *    - forceCollide: 碰撞检测，防止节点重叠
- *    - forceY: 保持 Dagre 的层级顺序
- * 3. 容器节点内部使用独立的布局
- *
- * @param nodes - 节点列表（需包含 id / type / position / data）
- * @param edges - 边列表（需包含 source / target）
- * @param parentRefs - 容器父子映射（childId → parentId），可选
- * @returns 更新了 position 的 nodes 副本（保持原输入形状）
+ * 核心流程：
+ * 1. 首先递归处理所有容器节点，计算容器的精确尺寸
+ * 2. 容器内部使用 Dagre 进行层次布局
+ * 3. 顶层节点（包括容器）使用 Dagre 进行布局
+ * 4. 所有坐标统一转换为绝对坐标
  */
 export function auto_layout(
   nodes: AutoNode[],
   edges: LayoutEdge[],
   parentRefs: Record<string, string> = {},
 ): AutoNode[] {
-  return forceLayout(nodes, edges, parentRefs);
+  if (nodes.length === 0) { return []; }
+
+  const childOf = parentRefs;
+  const allPositions: Record<string, { x: number; y: number }> = {};
+  const containerSizes: Record<string, { width: number; height: number }> = {};
+
+  // 步骤 1：递归处理所有容器（深层优先）
+  const containers = nodes
+    .filter((n) => CONTAINER_NODE_TYPES.has(n.type || layoutNodeType(n)))
+    .sort((a, b) => {
+      const depth = (id: string): number => {
+        let d = 0;
+        let cur = id;
+        let p = childOf[cur];
+        while (p) {
+          d++;
+          cur = p;
+          p = childOf[cur];
+        }
+        return d;
+      };
+      return depth(b.id) - depth(a.id);
+    });
+
+  for (const container of containers) {
+    const childIds = Object.keys(childOf).filter((cid) => childOf[cid] === container.id);
+    const childNodes = childIds
+      .map((cid) => nodes.find((n) => n.id === cid))
+      .filter((n): n is AutoNode => Boolean(n));
+
+    if (childNodes.length === 0) {
+      const sz = getNodeSize(container.type || layoutNodeType(container));
+      containerSizes[container.id] = {
+        width: Math.max(CONTAINER_MIN_W, sz.width + CONTAINER_PADDING * 2),
+        height: Math.max(CONTAINER_MIN_H, sz.height + CONTAINER_PADDING * 2 + CONTAINER_HEADER_H),
+      };
+      continue;
+    }
+
+    // 递归布局子节点
+    const childEdges = edges.filter(
+      (e) => childIds.includes(e.source) && childIds.includes(e.target),
+    );
+    const childLayouted = auto_layout(childNodes, childEdges, childOf);
+
+    // 使用 Dagre 布局子节点
+    const g = new dagre.graphlib.Graph();
+    g.setDefaultEdgeLabel(() => ({}));
+    g.setGraph({
+      rankdir: "TB",
+      ranksep: 50,
+      nodesep: 40,
+      marginx: CONTAINER_PADDING,
+      marginy: CONTAINER_HEADER_H + CONTAINER_PADDING,
+      edgesep: 20,
+    });
+
+    for (const cn of childLayouted) {
+      const t = cn.type || layoutNodeType(cn);
+      let sz: { width: number; height: number };
+      if (CONTAINER_NODE_TYPES.has(t)) {
+        sz = containerSizes[cn.id] || getNodeSize(t);
+      } else {
+        sz = getNodeSize(t);
+      }
+      g.setNode(cn.id, { width: sz.width, height: sz.height });
+    }
+
+    for (const e of childEdges) {
+      g.setEdge(e.source, e.target);
+    }
+
+    dagre.layout(g);
+
+    // 收集子节点位置并计算容器 bbox
+    let minAbsX = Infinity, minAbsY = Infinity;
+    let maxAbsX = -Infinity, maxAbsY = -Infinity;
+
+    for (const cn of childLayouted) {
+      const dagreNode = g.node(cn.id);
+      if (!dagreNode) { continue; }
+
+      const t = cn.type || layoutNodeType(cn);
+      let sz: { width: number; height: number };
+      if (CONTAINER_NODE_TYPES.has(t)) {
+        sz = containerSizes[cn.id] || getNodeSize(t);
+      } else {
+        sz = getNodeSize(t);
+      }
+
+      const relX = dagreNode.x - sz.width / 2;
+      const relY = dagreNode.y - sz.height / 2;
+
+      allPositions[cn.id] = { x: relX, y: relY };
+
+      minAbsX = Math.min(minAbsX, relX);
+      minAbsY = Math.min(minAbsY, relY);
+      maxAbsX = Math.max(maxAbsX, relX + sz.width);
+      maxAbsY = Math.max(maxAbsY, relY + sz.height);
+    }
+
+    // 计算容器尺寸
+    const innerW = Math.max(maxAbsX - minAbsX, 100);
+    const innerH = Math.max(maxAbsY - minAbsY, 50);
+
+    containerSizes[container.id] = {
+      width: Math.max(CONTAINER_MIN_W, innerW + CONTAINER_PADDING * 2),
+      height: Math.max(CONTAINER_MIN_H, innerH + CONTAINER_PADDING * 2 + CONTAINER_HEADER_H),
+    };
+  }
+
+  // 步骤 2：顶层节点使用 Dagre TB 布局
+  const topLevel = nodes.filter((n) => !childOf[n.id]);
+
+  if (topLevel.length === 0) {
+    return nodes.map((n) => {
+      const pos = allPositions[n.id] || { x: MARGIN, y: MARGIN };
+      return { ...n, position: pos };
+    });
+  }
+
+  const g = new dagre.graphlib.Graph();
+  g.setDefaultEdgeLabel(() => ({}));
+  g.setGraph({
+    rankdir: "TB",
+    ranksep: 100,
+    nodesep: 60,
+    marginx: MARGIN_X,
+    marginy: MARGIN_Y,
+    edgesep: 30,
+    ranker: "network-simplex",
+  });
+
+  for (const n of topLevel) {
+    const t = n.type || layoutNodeType(n);
+    let sz: { width: number; height: number };
+    if (CONTAINER_NODE_TYPES.has(t)) {
+      sz = containerSizes[n.id] || getNodeSize(t);
+    } else {
+      sz = getNodeSize(t);
+    }
+    g.setNode(n.id, { width: sz.width, height: sz.height });
+  }
+
+  const topLevelEdges = edges.filter(
+    (e) => !childOf[e.source] && !childOf[e.target],
+  );
+  for (const e of topLevelEdges) {
+    g.setEdge(e.source, e.target);
+  }
+
+  dagre.layout(g);
+
+  // 收集顶层节点绝对坐标
+  for (const n of topLevel) {
+    const dagreNode = g.node(n.id);
+    if (!dagreNode) { continue; }
+
+    const t = n.type || layoutNodeType(n);
+    let sz: { width: number; height: number };
+    if (CONTAINER_NODE_TYPES.has(t)) {
+      sz = containerSizes[n.id] || getNodeSize(t);
+    } else {
+      sz = getNodeSize(t);
+    }
+
+    allPositions[n.id] = {
+      x: dagreNode.x - sz.width / 2,
+      y: dagreNode.y - sz.height / 2,
+    };
+  }
+
+  // 步骤 3：将容器内子节点的相对坐标转换为绝对坐标
+  const sortedContainers = containers.slice().sort((a, b) => {
+    const depth = (id: string): number => {
+      let d = 0;
+      let cur = id;
+      let p = childOf[cur];
+      while (p && !topLevel.find((t) => t.id === p)) {
+        d++;
+        cur = p;
+        p = childOf[cur];
+      }
+      return d;
+    };
+    return depth(a.id) - depth(b.id);
+  });
+
+  for (const container of sortedContainers) {
+    const containerPos = allPositions[container.id];
+    if (!containerPos) { continue; }
+
+    const childIds = Object.keys(childOf).filter((cid) => childOf[cid] === container.id);
+    for (const cid of childIds) {
+      const relativePos = allPositions[cid];
+      if (relativePos) {
+        allPositions[cid] = {
+          x: containerPos.x + relativePos.x,
+          y: containerPos.y + relativePos.y,
+        };
+      }
+    }
+  }
+
+  // 返回所有节点的新位置
+  return nodes.map((n) => {
+    const pos = allPositions[n.id];
+    if (!pos) {
+      return { ...n, position: { x: MARGIN, y: MARGIN } };
+    }
+    return { ...n, position: pos };
+  });
 }
 
 /**

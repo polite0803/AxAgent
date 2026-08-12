@@ -6,11 +6,6 @@ import { EdgeLabelRenderer, type EdgeProps } from "@xyflow/react";
 import { theme } from "antd";
 import React from "react";
 
-const MIN_CTRL = 40;
-
-const MAX_CTRL = 120;
-const BEND_AMOUNT = 60;
-
 /**
  * 解析 sourceHandle 中的 port 信息，返回水平偏移量。
  * 格式：`"port-N"`（N=0~5，对应 1/7 ~ 6/7 宽度位置）。
@@ -61,48 +56,95 @@ function getSmoothStepPath(
   const absDx = Math.abs(dx);
   const absDy = Math.abs(dy);
 
-  const isForward = sourcePosition === "bottom" && targetPosition === "top";
+  // Calculate control points for cubic bezier curve
+  // Default offset for control points
+  const offset = Math.max(50, Math.min(absDx, absDy) * 0.5);
 
-  let cp1x: number;
-  let cp1y = sourceY;
-  let cp2x: number;
-  let cp2y = targetY;
+  let cp1x: number, cp1y: number;
+  let cp2x: number, cp2y: number;
 
-  if (isForward) {
-    const baseCtrl = Math.max(absDx * 0.3, MIN_CTRL);
-    const ctrl = Math.min(baseCtrl, MAX_CTRL);
-
-    cp1x = sourceX + ctrl;
-    cp2x = targetX - ctrl;
-
-    if (absDy > 60) {
-      const bendFactor = Math.min(absDy / 200, 1);
-      const bend = BEND_AMOUNT * bendFactor;
-      cp1y = sourceY + bend;
-      cp2y = targetY - bend;
-    } else if (dx < 0) {
-      cp1y = sourceY + BEND_AMOUNT;
-      cp2y = targetY - BEND_AMOUNT;
-    }
+  // Determine control points based on source and target positions
+  if (sourcePosition === "bottom" && targetPosition === "top") {
+    // Forward vertical connection
+    cp1x = sourceX;
+    cp1y = sourceY + offset;
+    cp2x = targetX;
+    cp2y = targetY - offset;
+  } else if (sourcePosition === "top" && targetPosition === "bottom") {
+    // Backward vertical connection
+    cp1x = sourceX;
+    cp1y = sourceY - offset;
+    cp2x = targetX;
+    cp2y = targetY + offset;
+  } else if (sourcePosition === "right" && targetPosition === "left") {
+    // Forward horizontal connection
+    cp1x = sourceX + offset;
+    cp1y = sourceY;
+    cp2x = targetX - offset;
+    cp2y = targetY;
+  } else if (sourcePosition === "left" && targetPosition === "right") {
+    // Backward horizontal connection
+    cp1x = sourceX - offset;
+    cp1y = sourceY;
+    cp2x = targetX + offset;
+    cp2y = targetY;
+  } else if (sourcePosition === "bottom" && targetPosition === "right") {
+    // Top to right
+    cp1x = sourceX;
+    cp1y = sourceY + offset;
+    cp2x = targetX - offset;
+    cp2y = targetY;
+  } else if (sourcePosition === "bottom" && targetPosition === "left") {
+    // Top to left
+    cp1x = sourceX;
+    cp1y = sourceY + offset;
+    cp2x = targetX + offset;
+    cp2y = targetY;
+  } else if (sourcePosition === "top" && targetPosition === "right") {
+    // Bottom to right
+    cp1x = sourceX;
+    cp1y = sourceY - offset;
+    cp2x = targetX - offset;
+    cp2y = targetY;
+  } else if (sourcePosition === "top" && targetPosition === "left") {
+    // Bottom to left
+    cp1x = sourceX;
+    cp1y = sourceY - offset;
+    cp2x = targetX + offset;
+    cp2y = targetY;
+  } else if (sourcePosition === "right" && targetPosition === "top") {
+    // Left to top
+    cp1x = sourceX + offset;
+    cp1y = sourceY;
+    cp2x = targetX;
+    cp2y = targetY + offset;
+  } else if (sourcePosition === "right" && targetPosition === "bottom") {
+    // Left to bottom
+    cp1x = sourceX + offset;
+    cp1y = sourceY;
+    cp2x = targetX;
+    cp2y = targetY - offset;
+  } else if (sourcePosition === "left" && targetPosition === "top") {
+    // Right to top
+    cp1x = sourceX - offset;
+    cp1y = sourceY;
+    cp2x = targetX;
+    cp2y = targetY + offset;
+  } else if (sourcePosition === "left" && targetPosition === "bottom") {
+    // Right to bottom
+    cp1x = sourceX - offset;
+    cp1y = sourceY;
+    cp2x = targetX;
+    cp2y = targetY - offset;
   } else {
-    const baseCtrl = Math.max(absDx * 0.3, MIN_CTRL);
-    const ctrl = Math.min(baseCtrl, MAX_CTRL);
-
-    cp1x = sourceX - ctrl;
-    cp2x = targetX + ctrl;
-
-    if (absDy > 60) {
-      const bendFactor = Math.min(absDy / 200, 1);
-      const bend = BEND_AMOUNT * bendFactor;
-      cp1y = sourceY - bend;
-      cp2y = targetY + bend;
-    } else if (dx > 0) {
-      cp1y = sourceY - BEND_AMOUNT;
-      cp2y = targetY + BEND_AMOUNT;
-    }
+    // Fallback: simple curve
+    cp1x = sourceX + (targetX - sourceX) * 0.3;
+    cp1y = sourceY;
+    cp2x = targetX - (targetX - sourceX) * 0.3;
+    cp2y = targetY;
   }
 
-  // 三次贝塞尔曲线 B(t) 在 t=0.5 的点：B(0.5) = (P0 + 3·P1 + 3·P2 + P3) / 8
+  // Calculate midpoint for label positioning
   const midX = (sourceX + 3 * cp1x + 3 * cp2x + targetX) / 8;
   const midY = (sourceY + 3 * cp1y + 3 * cp2y + targetY) / 8;
 

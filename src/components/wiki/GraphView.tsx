@@ -445,6 +445,19 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   // 折叠的社区集合（聚类模式下默认全折叠；点击聚合节点展开/收起）
   const collapsedRef = useRef<Set<number>>(new Set());
   const hoverClusterRef = useRef<number | null>(null);
+  // LOD 缩放阈值：渐进式展开，类似地图缩放细节
+  const LOD_THRESHOLDS = {
+    COLLAPSED: 0.5, // zoom < 0.5: 全折叠
+    VIEWPORT: 1.0, // 0.5 <= zoom < 1: 视口内展开
+    EXPANDED: 2.0, // 1 <= zoom < 2: 视口+邻近展开
+    ALL: 4.0, // zoom >= 2: 全部展开
+  };
+  // 上次 LOD 级别，防抖用
+  const lastLodLevelRef = useRef(0);
+  // 手动展开的社区（用户点击展开的，不会因缩放折叠回去）
+  const manualExpandedRef = useRef<Set<number>>(new Set());
+  // 每帧最多新增展开的社区数（防止一次性展开过多导致卡顿）
+  const MAX_EXPAND_PER_FRAME = 5;
   // 聚合节点几何缓存：cid → { 质心, 半径, 计数, 代表名 }（低频刷新）
   const clusterGeomRef = useRef<
     Map<number, { cx: number; cy: number; r: number; count: number; label: string }>
@@ -466,7 +479,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   // communities prop 的 ref 镜像，供 useCallback / 事件回调读取最新值而无需将其加入依赖
   const communitiesRef = useRef<Map<string, number> | undefined>(undefined);
   useEffect(() => {
-    communitiesRef.current = communities;
+    // 优先使用哈希合并后的虚拟聚类映射
+    communitiesRef.current = effectiveCommunitiesRef.current ?? communities;
   }, [communities]);
 
   const gridIndexRef = useRef<Map<string, string[]>>(new Map());
@@ -484,10 +498,24 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   // 聚合物理规模上限：聚合节点 + 未折叠节点数超过此值时，放弃力导向（仅静态显示），
   // 防止社区粒度极细（甚至每节点一社区）时聚合物理规模仍达万级，主线程每帧 O(n log n) 卡死不响应。
   const MAX_AGG_PHYS_NODES = 800;
+  // 强制聚类数量上限：当社区数超过此值时，通过哈希合并到虚拟聚类
+  const FORCE_CLUSTER_COUNT = 200;
   // 主线程物理规模上限：超过此节点数时，fallback 主线程物理一律禁用（静态显示）。
   // fallback 是 Worker 未就绪时的兜底；若在大图上每帧跑全量 O(n log n) 力导向，
   // 主线程会被完全阻塞、鼠标键盘全部无响应。大图等待 Worker 就绪即可，绝不走主线程物理。
   const MAX_MAIN_THREAD_PHYSICS = 1500;
+
+  // 有效社区映射（考虑哈希合并后的虚拟聚类）
+  const effectiveCommunitiesRef = useRef<Map<string, number> | null>(null);
+
+  // 哈希字符串转整数（用于节点到虚拟聚类的稳定分桶）
+  function hashStringToInt(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+    }
+    return hash;
+  }
 
   const minimapRef = useRef<HTMLCanvasElement>(null);
   const [minimapOpen, setMinimapOpen] = useState(true);
@@ -649,6 +677,10 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       const next = new Set(collapsedRef.current);
       next.delete(cid);
       collapsedRef.current = next;
+      // 标记为手动展开，防止 LOD 自动折叠
+      const manualNext = new Set(manualExpandedRef.current);
+      manualNext.add(cid);
+      manualExpandedRef.current = manualNext;
       refreshClusterGeom();
       buildAggregatePhysics();
       setClusterCollapseVersion((v) => v + 1);
@@ -940,7 +972,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         nodes: [],
         edges: [],
         config: workerConfig,
-        communities: communities ? Object.fromEntries(communities) : undefined,
+        communities: (effectiveCommunitiesRef.current ?? communities)
+          ? Object.fromEntries(effectiveCommunitiesRef.current ?? communities!)
+          : undefined,
         compact: {
           nodeBuffer,
           edgeBuffer,
@@ -987,18 +1021,38 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     // ── 大图自动聚合：节点数超过阈值且 communities 可用时，自动进入聚类折叠聚合视图 ──
     // 折叠全部社区 → 物理只模拟聚合节点（几十个 + 未折叠成员），
     // 从根本上避免万级节点全量力导向收敛导致的打开卡死。
-    // 重要保护：仅当社区数量合理（<= MAX_AGG_PHYS_NODES）时才自动聚合。
-    // 社区粒度极细（如每节点一社区，社区数接近节点数达万级）时，折叠会产生上万
-    // 重叠聚合节点，且 aggOver 保护会禁用聚合物理 → 这些聚类保持质心位置重叠，
-    // drawCollapsedClusters 每帧绘制上万聚类圆 + 标签 → 主线程卡死、全网无响应。
-    // 超细粒度大图跳过自动聚合，由 Worker 物理 + 视口裁剪渲染，保证打开即响应。
-    if (
-      communities
-      && pNodes.length > AUTO_CLUSTER_THRESHOLD
-      && communities.size <= MAX_AGG_PHYS_NODES
-    ) {
+    // 核心策略：大图（>3000节点）必须进入聚类模式，无论社区粒度如何。
+    // 社区数过多时（>MAX_AGG_PHYS_NODES），通过哈希将节点强制合并到 FORCE_CLUSTER_COUNT 个虚拟聚类。
+    const shouldForceCluster = pNodes.length > AUTO_CLUSTER_THRESHOLD;
+    if (shouldForceCluster) {
+      let effectiveCommunities = communities;
+      if (!effectiveCommunities || effectiveCommunities.size > MAX_AGG_PHYS_NODES) {
+        // 哈希合并：将所有节点均匀分配到 FORCE_CLUSTER_COUNT 个虚拟聚类
+        // 使用节点 ID 的哈希值确保同一节点始终在同一聚类
+        const hashMap = new Map<string, number>();
+        const buckets = new Set<number>();
+        if (effectiveCommunities) {
+          for (const [nodeId] of effectiveCommunities) {
+            const hash = Math.abs(hashStringToInt(nodeId)) % FORCE_CLUSTER_COUNT;
+            hashMap.set(nodeId, hash);
+            buckets.add(hash);
+          }
+        } else {
+          // 没有社区数据时，直接对所有节点哈希分桶
+          for (const n of pNodes) {
+            const hash = Math.abs(hashStringToInt(n.id)) % FORCE_CLUSTER_COUNT;
+            hashMap.set(n.id, hash);
+            buckets.add(hash);
+          }
+        }
+        effectiveCommunities = hashMap;
+        // 更新 communities 引用（供后续代码使用）
+        // 注意：不能直接修改 props，使用 ref 存
+        effectiveCommunitiesRef.current = effectiveCommunities;
+      }
+
       const all = new Set<number>();
-      for (const cid of communities.values()) {
+      for (const cid of effectiveCommunities.values()) {
         all.add(cid);
       }
       collapsedRef.current = all;
@@ -1106,17 +1160,143 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       const edges = physEdgesRef.current;
       frameCounterRef.current++;
 
+      // ── 计算有效社区映射（优先使用哈希合并后的虚拟聚类） ──
+      const effCommunities = effectiveCommunitiesRef.current ?? communities;
+
       // ── Worker 物理步进 + 帧间插值 ──
       const worker = workerRef.current;
       const workerReady = workerInitializedRef.current;
       const hasDrag = !!dragRef.current;
       const hasInteraction = mouseScreenRef.current.active || !!panRef.current;
 
+      // 预先获取聚合物理状态供 LOD 逻辑使用
+      const aggPhys = aggPhysRef.current;
+      const aggActive = aggPhys !== null && aggPhys.nodes.length > 0;
+
+      // ── LOD 渐进式聚类展开：根据缩放级别自动展开/折叠社区 ──
+      // 类似地图缩放：缩得越近，看到的细节越多
+      if (clusterModeRef.current && aggActive) {
+        const zoom = cam.zoom;
+        const geom = clusterGeomRef.current;
+
+        // 计算当前 LOD 级别
+        let lodLevel = 0;
+        if (zoom >= LOD_THRESHOLDS.ALL) { lodLevel = 3; }
+        else if (zoom >= LOD_THRESHOLDS.EXPANDED) { lodLevel = 2; }
+        else if (zoom >= LOD_THRESHOLDS.VIEWPORT) { lodLevel = 1; }
+
+        // LOD 变化时重新计算折叠状态（防抖：至少保持 5 帧）
+        if (lodLevel !== lastLodLevelRef.current && frameCounterRef.current % 5 === 0) {
+          lastLodLevelRef.current = lodLevel;
+
+          const newCollapsed = new Set<number>();
+          const expandedInThisFrame: number[] = [];
+          const prevCollapsedSize = collapsedRef.current.size;
+
+          // 视口范围（世界坐标）
+          const viewW = cam.zoom > 0 ? w / cam.zoom : 0;
+          const viewH = cam.zoom > 0 ? h / cam.zoom : 0;
+          const vx0 = -cam.x / cam.zoom - viewW / 2;
+          const vy0 = -cam.y / cam.zoom - viewH / 2;
+          const vx1 = -cam.x / cam.zoom + viewW / 2;
+          const vy1 = -cam.y / cam.zoom + viewH / 2;
+
+          for (const [cid, g] of geom) {
+            // 手动展开的永远保持展开
+            if (manualExpandedRef.current.has(cid)) { continue; }
+
+            if (lodLevel === 0) {
+              // LOD 0: 全折叠
+              newCollapsed.add(cid);
+            } else if (lodLevel === 1) {
+              // LOD 1: 仅视口内展开
+              const inViewport = g.cx >= vx0 && g.cx <= vx1 && g.cy >= vy0 && g.cy <= vy1;
+              if (!inViewport) { newCollapsed.add(cid); }
+            } else if (lodLevel === 2) {
+              // LOD 2: 视口 + 邻近区域展开（2x 视口范围）
+              const marginX = viewW;
+              const marginY = viewH;
+              const inExpanded = g.cx >= vx0 - marginX && g.cx <= vx1 + marginX
+                && g.cy >= vy0 - marginY && g.cy <= vy1 + marginY;
+              if (!inExpanded) { newCollapsed.add(cid); }
+            }
+            // lodLevel === 3: 全展开（newCollapsed 保持空）
+          }
+
+          // 渐进式展开：限制每帧新增展开的社区数
+          if (newCollapsed.size < collapsedRef.current.size) {
+            // 有新的展开，限制数量
+            const toExpand = [];
+            for (const cid of collapsedRef.current) {
+              if (!newCollapsed.has(cid) && !manualExpandedRef.current.has(cid)) {
+                toExpand.push(cid);
+              }
+            }
+            // 按距离视口中心排序，优先展开近处的
+            const cx = (vx0 + vx1) / 2;
+            const cy = (vy0 + vy1) / 2;
+            toExpand.sort((a, b) => {
+              const ga = geom.get(a);
+              const gb = geom.get(b);
+              if (!ga || !gb) { return 0; }
+              const da = Math.hypot(ga.cx - cx, ga.cy - cy);
+              const db = Math.hypot(gb.cx - cx, gb.cy - cy);
+              return da - db;
+            });
+
+            // 计算展开后预计的物理节点数
+            const expandedCount = toExpand.length;
+            const newAggNodeCount = (aggPhys?.nodes.length ?? 0) + expandedCount * 10; // 粗略估算
+
+            // 如果展开后会超出物理节点限制，只展开部分
+            const maxExpand = newAggNodeCount > MAX_AGG_PHYS_NODES
+              ? Math.max(1, Math.floor((MAX_AGG_PHYS_NODES - (aggPhys?.nodes.length ?? 0)) / 10))
+              : MAX_EXPAND_PER_FRAME;
+
+            for (let i = 0; i < Math.min(maxExpand, toExpand.length); i++) {
+              newCollapsed.delete(toExpand[i]);
+              expandedInThisFrame.push(toExpand[i]);
+            }
+          }
+
+          // 物理节点数保护：如果当前聚合物理已超限，强制折叠最远的非手动社区
+          if (aggPhys && aggPhys.nodes.length > MAX_AGG_PHYS_NODES) {
+            const cx = (vx0 + vx1) / 2;
+            const cy = (vy0 + vy1) / 2;
+            const collapsible = [];
+            for (const cid of newCollapsed) {
+              if (manualExpandedRef.current.has(cid)) { continue; }
+              const g = geom.get(cid);
+              if (!g) { continue; }
+              collapsible.push({ cid, dist: Math.hypot(g.cx - cx, g.cy - cy), count: g.count });
+            }
+            // 按距离从远到近排序，折叠最远的
+            collapsible.sort((a, b) => b.dist - a.dist);
+            let currentOver = aggPhys.nodes.length - MAX_AGG_PHYS_NODES;
+            for (const { cid, count } of collapsible) {
+              if (currentOver <= 0) { break; }
+              newCollapsed.add(cid);
+              currentOver -= count;
+            }
+          }
+
+          collapsedRef.current = newCollapsed;
+
+          // LOD 变化导致折叠集合改变 → 重建聚合物理集
+          if (newCollapsed.size !== prevCollapsedSize) {
+            // 延迟一帧重建，避免在渲染循环中立即触发重计算
+            setTimeout(() => {
+              refreshClusterGeom();
+              buildAggregatePhysics();
+              setClusterCollapseVersion((v) => v + 1);
+            }, 0);
+          }
+        }
+      }
+
       // ── 聚合物理分支（聚类折叠模式）：物理只模拟聚合节点 + 未折叠节点 ──
       // 折叠社区成员不参与力导向模拟（数量级骤降），聚合节点坐标回写 clusterGeom，
       // 驱动折叠社区几何/聚合边/聚合节点渲染。万级节点打开不卡死的核心。
-      const aggPhys = aggPhysRef.current;
-      const aggActive = aggPhys !== null && aggPhys.nodes.length > 0;
       if (aggActive) {
         const config: PhysicsConfig = {
           theta: 0.5,
@@ -1180,7 +1360,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         // 聚合物理激活时不使用 Worker 结果
         workerResultRef.current = null;
       } else if (worker && workerReady && nodes.length > 0) {
-        const enableClusters = clusterModeRef.current && communities;
+        const enableClusters = clusterModeRef.current && effCommunities;
 
         // 拖拽时同步位置到 Worker
         if (hasDrag) {
@@ -1214,7 +1394,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
             clusterForce: enableClusters ? 0.15 : undefined,
           };
           const centroids = enableClusters
-            ? computeCommunityCentroids(nodes, communities!)
+            ? computeCommunityCentroids(nodes, effCommunities!)
             : undefined;
 
           worker.postMessage({
@@ -1292,10 +1472,10 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         }
         const shouldRunPhysics = mainThreadSafe && (hasInteraction || !stable || idleCounterRef.current % 12 === 0);
         if (shouldRunPhysics) {
-          const enableClusters = clusterModeRef.current && communities;
+          const enableClusters = clusterModeRef.current && effCommunities;
           let centroids = communityCentroidsRef.current;
           if (enableClusters && frameCounterRef.current % 3 === 0) {
-            centroids = computeCommunityCentroids(nodes, communities!);
+            centroids = computeCommunityCentroids(nodes, effCommunities!);
             communityCentroidsRef.current = centroids;
           }
           const config: PhysicsConfig = {
@@ -1314,7 +1494,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
             edges,
             config,
             undefined,
-            enableClusters ? communities : undefined,
+            enableClusters ? effCommunities : undefined,
             enableClusters ? centroids : undefined,
             neighborMapCacheRef.current,
           );
@@ -1491,14 +1671,15 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
   // ── 社区聚类区域渲染 ──
   function drawClusterRegions(ctx: CanvasRenderingContext2D, nodes: PhysicsNode[]) {
-    if (!communities) { return; }
+    const activeCommunities = effectiveCommunitiesRef.current ?? communities;
+    if (!activeCommunities) { return; }
     const centroids = communityCentroidsRef.current;
     if (centroids.size === 0) { return; }
 
     // 按社区分组收集节点位置
     const communityNodes = new Map<number, { sx: number; sy: number }[]>();
     for (const node of nodes) {
-      const cid = communities.get(node.id);
+      const cid = activeCommunities.get(node.id);
       if (cid === undefined) { continue; }
       const list = communityNodes.get(cid) ?? [];
       list.push({ sx: node.x, sy: node.y });
@@ -2294,7 +2475,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
   // 刷新聚合节点几何（质心/半径/计数/代表名）。O(N) 遍历，低频调用（每 6 帧 / 切换时）
   const refreshClusterGeom = useCallback(() => {
-    if (!communities || !clusterModeRef.current) {
+    const activeCommunities = effectiveCommunitiesRef.current ?? communities;
+    if (!activeCommunities || !clusterModeRef.current) {
       clusterGeomRef.current = new Map();
       return;
     }
@@ -2305,7 +2487,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     const nodes = physNodesRef.current;
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
-      const cid = communities.get(node.id);
+      const cid = activeCommunities.get(node.id);
       if (cid === undefined) { continue; }
       const b = buckets.get(cid) ?? { sx: 0, sy: 0, count: 0, bestId: null, bestDegree: -1 };
       b.sx += node.x;
@@ -2334,12 +2516,18 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   // 切换社区折叠状态（点击聚合节点）
   const toggleCluster = useCallback((cid: number) => {
     const next = new Set(collapsedRef.current);
+    const manualNext = new Set(manualExpandedRef.current);
     if (next.has(cid)) {
       next.delete(cid);
+      // 手动展开的社区标记，防止 LOD 自动折叠
+      manualNext.add(cid);
     } else {
       next.add(cid);
+      // 手动折叠的社区，从手动展开列表移除
+      manualNext.delete(cid);
     }
     collapsedRef.current = next;
+    manualExpandedRef.current = manualNext;
     // 立即刷新聚合几何（展开/收起后质心渲染立即生效）
     refreshClusterGeom();
     // 折叠集合变化 → 重建聚合物理集（聚合节点/未折叠成员集合都变了）
@@ -3204,9 +3392,10 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     initializePositions(nodes, dimensions.width, dimensions.height);
 
     // 集群力模式下，重置时同步社区质心，Worker step 会据此收敛
-    const enableClusters = clusterModeRef.current && communities;
+    const activeCommunities = effectiveCommunitiesRef.current ?? communities;
+    const enableClusters = clusterModeRef.current && activeCommunities;
     const centroids = enableClusters
-      ? computeCommunityCentroids(nodes, communities!)
+      ? computeCommunityCentroids(nodes, activeCommunities!)
       : undefined;
     if (enableClusters) {
       communityCentroidsRef.current = centroids!;
