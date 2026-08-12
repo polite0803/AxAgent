@@ -922,4 +922,84 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn test_demand_type_as_str() {
+        assert_eq!(DemandType::Unknown.as_str(), "unknown");
+        assert_eq!(DemandType::ToolSoftware.as_str(), "tool_software");
+        assert_eq!(DemandType::ContentCreation.as_str(), "content_creation");
+        assert_eq!(DemandType::Design.as_str(), "design");
+        assert_eq!(DemandType::Development.as_str(), "development");
+        assert_eq!(DemandType::Operations.as_str(), "operations");
+        assert_eq!(DemandType::Marketing.as_str(), "marketing");
+        assert_eq!(DemandType::Education.as_str(), "education");
+        assert_eq!(DemandType::EnterpriseService.as_str(), "enterprise_service");
+        assert_eq!(DemandType::Outsourcing.as_str(), "outsourcing");
+        assert_eq!(DemandType::Consulting.as_str(), "consulting");
+    }
+
+    #[test]
+    fn test_demand_type_typical_price_range() {
+        let (min, max) = DemandType::ToolSoftware.typical_price_range();
+        assert!(min > 0.0);
+        assert!(max > min);
+
+        let (min, max) = DemandType::Unknown.typical_price_range();
+        assert_eq!(min, 1000.0);
+        assert_eq!(max, 1000.0);
+    }
+
+    #[test]
+    fn test_price_extraction_no_price() {
+        let result = evaluate_demand_value(
+            "no-price",
+            "简单需求",
+            "这是一个没有任何价格信息的需求描述",
+            None,
+        );
+        assert!(result.extracted_price_range.is_none());
+    }
+
+    #[test]
+    fn test_evaluation_consistency() {
+        // evaluate_demand_value 应等价于 evaluate_demand_with_config + 默认配置
+        let result1 = evaluate_demand_value("consistency", "测试需求", "测试描述", None);
+        let result2 = evaluate_demand_with_config(
+            "consistency",
+            "测试需求",
+            "测试描述",
+            None,
+            &EvaluationConfig::default(),
+        );
+
+        assert_eq!(result1.pain_score, result2.pain_score);
+        assert_eq!(result1.market_gap_score, result2.market_gap_score);
+        assert_eq!(result1.commercial_value_score, result2.commercial_value_score);
+        assert_eq!(result1.demand_type, result2.demand_type);
+    }
+
+    #[test]
+    fn test_batch_evaluate_empty() {
+        let results = batch_evaluate(&[]);
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_filter_high_value_empty() {
+        let high_value = filter_high_value(&[], 50.0);
+        assert!(high_value.is_empty());
+    }
+
+    #[test]
+    fn test_sort_by_value_empty() {
+        let mut evaluations: Vec<DemandEvaluation> = vec![];
+        sort_by_value(&mut evaluations);
+        assert!(evaluations.is_empty());
+    }
+
+    #[test]
+    fn test_group_by_type_empty() {
+        let groups = group_by_type(&[]);
+        assert!(groups.is_empty());
+    }
 }
