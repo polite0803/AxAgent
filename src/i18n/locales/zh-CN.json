@@ -9592,7 +9592,16 @@
         "concept": "概念",
         "entity": "实体",
         "source": "来源"
-      }
+      },
+      "particlesOn": "粒子流动：开",
+      "particlesOff": "粒子流动：关",
+      "collapseMinimap": "收起缩略图",
+      "expandMinimap": "展开缩略图",
+      "linksCount": "出链 {{count}}",
+      "backlinksCount": "入链 {{count}}",
+      "totalDegree": "总度 {{count}}",
+      "canvasAriaLabel": "知识图谱画布，支持拖拽平移、滚轮缩放、点击选中节点",
+      "minimapAriaLabel": "缩略图导航，点击或拖拽可跳转到对应区域"
     },
     "hidePanel": "隐藏面板",
     "history": "历史记录",

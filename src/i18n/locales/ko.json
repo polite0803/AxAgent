@@ -9589,7 +9589,16 @@
         "concept": "개념",
         "entity": "엔티티",
         "source": "소스"
-      }
+      },
+      "particlesOn": "입자 흐름: 켜짐",
+      "particlesOff": "입자 흐름: 꺼짐",
+      "collapseMinimap": "미니맵 접기",
+      "expandMinimap": "미니맵 펼치기",
+      "linksCount": "나가는 링크 {{count}}",
+      "backlinksCount": "들어오는 링크 {{count}}",
+      "totalDegree": "전체 {{count}}",
+      "canvasAriaLabel": "지식 그래프 캔버스, 드래그로 이동, 스크롤로 확대, 클릭으로 노드 선택",
+      "minimapAriaLabel": "미니맵 내비게이션, 클릭 또는 드래그로 영역 이동"
     },
     "hidePanel": "패널 숨기기",
     "history": "기록",

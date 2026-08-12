@@ -16,6 +16,7 @@ export type WorkerMessage =
   | { type: "init"; payload: InitPayload }
   | { type: "step"; payload: StepPayload }
   | { type: "update"; payload: UpdatePayload }
+  | { type: "reset"; payload: ResetPayload }
   | { type: "destroy" };
 
 export type WorkerResponse =
@@ -56,6 +57,11 @@ interface StepPayload {
   centroids?: Record<number, { cx: number; cy: number; count: number }>;
 }
 
+// 节点索引 → 社区 ID 映射（-1 表示无社区）
+// 在 init 时根据 communities（键为 nodeId 字符串）+ nodeIds 构建一次，
+// 避免 step 时每帧用 Number("note:xxx") → NaN 查询失败
+let nodeIdxToCommunity: Int32Array | null = null;
+
 interface UpdatePayload {
   nodeId: string;
   x: number;
@@ -63,6 +69,11 @@ interface UpdatePayload {
   fixed: boolean;
   vx?: number;
   vy?: number;
+}
+
+// 重置布局：主线程重新随机分布后，把新坐标同步回 Worker
+interface ResetPayload {
+  positions: Float64Array; // x, y 交替，长度 = 节点数 * 2
 }
 
 interface ResultPayload {
@@ -253,7 +264,6 @@ function barnesHutForce(nIdx: number, root: QuadNode, theta: number, repulsion: 
 
 function stepPhysicsInternal(
   config: PhysicsConfig,
-  communities?: Map<number, number>,
   centroids?: Map<number, { cx: number; cy: number; count: number }>,
 ): boolean {
   if (!nodePositions || !nodeVelocities || !nodeMass || !nodeFixed) { return false; }
@@ -261,13 +271,15 @@ function stepPhysicsInternal(
   const n = nodePositions.length / 2;
   if (n === 0) { return false; }
 
-  // 快速稳定检测（只检查前 10 个非固定节点即可近似判断）
+  // 全量稳定检测：万级节点下一次循环开销可忽略，
+  // 避免前 20 个节点恰好稳定但其余仍在剧烈运动时误判
   let stable = true;
-  for (let i = 0; i < Math.min(n, 20); i++) {
+  const stableThresholdSq = 0.04; // 0.2²
+  for (let i = 0; i < n; i++) {
     if (nodeFixed[i]) { continue; }
     const vx = nodeVelocities[i * 2];
     const vy = nodeVelocities[i * 2 + 1];
-    if (vx * vx + vy * vy > 0.04) {
+    if (vx * vx + vy * vy > stableThresholdSq) {
       stable = false;
       break;
     }
@@ -330,10 +342,10 @@ function stepPhysicsInternal(
       }
     }
 
-    // 聚类力
-    if (communities && centroids && config.clusterForce) {
-      const cid = communities.get(i);
-      if (cid !== undefined) {
+    // 聚类力：使用 init 时构建的 nodeIdxToCommunity（Int32Array，O(1) 查询）
+    if (nodeIdxToCommunity && centroids && config.clusterForce) {
+      const cid = nodeIdxToCommunity[i];
+      if (cid >= 0) {
         const centroid = centroids.get(cid);
         if (centroid) {
           const cdx = centroid.cx - nx;
@@ -397,6 +409,7 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
         nodeFy = new Float64Array(n);
         nodeMass = new Float64Array(n);
         nodeFixed = new Uint8Array(n);
+        nodeIdxToCommunity = new Int32Array(n).fill(-1);
         nodeIds = [];
         nodeKinds = [];
 
@@ -437,6 +450,21 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
           neighborEdgesCount++;
         }
 
+        // 构建节点索引 → 社区 ID 映射
+        // init 时 communities 键是 nodeId 字符串，需通过 nodeIds 反查索引
+        if (msg.payload.communities) {
+          const idToIdx = new Map<string, number>();
+          for (let i = 0; i < nodeIds.length; i++) {
+            idToIdx.set(nodeIds[i], i);
+          }
+          for (const [nodeId, cid] of Object.entries(msg.payload.communities)) {
+            const idx = idToIdx.get(nodeId);
+            if (idx !== undefined) {
+              nodeIdxToCommunity[idx] = cid;
+            }
+          }
+        }
+
         tick = 0;
         initialized = true;
 
@@ -457,14 +485,24 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
       try {
         const config = msg.payload.config;
 
-        // 反序列化 communities / centroids（主线程传的是 Object）
-        let communities: Map<number, number> | undefined;
-        if (msg.payload.communities) {
-          communities = new Map();
-          for (const [k, v] of Object.entries(msg.payload.communities)) {
-            communities.set(Number(k), v);
+        // communities 已在 init 时构建为 nodeIdxToCommunity（Int32Array），
+        // step 时不再反序列化（避免 Number("note:xxx") → NaN 的键查询失败）
+        // 仅当主线程在 step 时传入新的 communities 才热更新映射
+        if (msg.payload.communities && nodeIdxToCommunity) {
+          const idToIdx = new Map<string, number>();
+          for (let i = 0; i < nodeIds.length; i++) {
+            idToIdx.set(nodeIds[i], i);
+          }
+          nodeIdxToCommunity.fill(-1);
+          for (const [nodeId, cid] of Object.entries(msg.payload.communities)) {
+            const idx = idToIdx.get(nodeId);
+            if (idx !== undefined) {
+              nodeIdxToCommunity[idx] = cid;
+            }
           }
         }
+
+        // centroids 反序列化（键是数字字符串，转 number 安全）
         let centroids: Map<number, { cx: number; cy: number; count: number }> | undefined;
         if (msg.payload.centroids) {
           centroids = new Map();
@@ -473,7 +511,7 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
           }
         }
 
-        const stable = stepPhysicsInternal(config, communities, centroids);
+        const stable = stepPhysicsInternal(config, centroids);
         tick++;
 
         const positionsCopy = new Float64Array(nodePositions!);
@@ -504,6 +542,32 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
       break;
     }
 
+    case "reset": {
+      if (!initialized || !nodePositions || !nodeVelocities || !nodeFixed) { break; }
+      const positions = msg.payload.positions;
+      const n = nodePositions.length / 2;
+      const count = Math.min(n, positions.length / 2);
+      for (let i = 0; i < count; i++) {
+        nodePositions[i * 2] = positions[i * 2];
+        nodePositions[i * 2 + 1] = positions[i * 2 + 1];
+        nodeVelocities[i * 2] = 0;
+        nodeVelocities[i * 2 + 1] = 0;
+        nodeFixed[i] = 0;
+      }
+      tick = 0;
+      // 同步主线程：重置后返回当前坐标，并让渲染循环立刻衔接新布局
+      const positionsCopy = new Float64Array(nodePositions);
+      const velocitiesCopy = new Float64Array(nodeVelocities!);
+      (globalThis as unknown as Worker).postMessage(
+        {
+          type: "result",
+          payload: { positions: positionsCopy, velocities: velocitiesCopy, stable: false, tick },
+        } as WorkerResponse,
+        [positionsCopy.buffer, velocitiesCopy.buffer],
+      );
+      break;
+    }
+
     case "destroy": {
       nodePositions = null;
       nodeVelocities = null;
@@ -511,6 +575,7 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
       nodeFy = null;
       nodeMass = null;
       nodeFixed = null;
+      nodeIdxToCommunity = null;
       nodeIds = [];
       nodeKinds = [];
       neighborMap = new Map();

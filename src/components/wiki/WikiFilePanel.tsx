@@ -433,7 +433,7 @@ export function WikiFilePanel({
                   style={{ backgroundColor: getTypeColor(type, token) }}
                 />
                 <span style={{ color: token.colorTextTertiary }}>
-                  {type} {count}
+                  {t(`wiki.graph.nodeType.${type}`, { defaultValue: type })} {count}
                 </span>
               </span>
             ))}

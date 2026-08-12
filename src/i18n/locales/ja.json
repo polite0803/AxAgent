@@ -9591,7 +9591,16 @@
         "concept": "概念",
         "entity": "エンティティ",
         "source": "ソース"
-      }
+      },
+      "particlesOn": "パーティクル：オン",
+      "particlesOff": "パーティクル：オフ",
+      "collapseMinimap": "ミニマップを折りたたむ",
+      "expandMinimap": "ミニマップを展開",
+      "linksCount": "出リンク {{count}}",
+      "backlinksCount": "逆リンク {{count}}",
+      "totalDegree": "合計 {{count}}",
+      "canvasAriaLabel": "ナレッジグラフキャンバス、ドラッグでパン、スクロールでズーム、クリックでノード選択",
+      "minimapAriaLabel": "ミニマップナビゲーション、クリックまたはドラッグでエリアにジャンプ"
     },
     "hidePanel": "パネルを非表示",
     "history": "履歴",

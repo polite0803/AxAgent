@@ -9589,7 +9589,16 @@
         "concept": "概念",
         "entity": "實體",
         "source": "來源"
-      }
+      },
+      "particlesOn": "粒子流動：開",
+      "particlesOff": "粒子流動：關",
+      "collapseMinimap": "收起縮圖",
+      "expandMinimap": "展開縮圖",
+      "linksCount": "出鏈 {{count}}",
+      "backlinksCount": "入鏈 {{count}}",
+      "totalDegree": "總度 {{count}}",
+      "canvasAriaLabel": "知識圖譜畫布，支援拖曳平移、滾輪縮放、點擊選取節點",
+      "minimapAriaLabel": "縮圖導航，點擊或拖曳可跳轉到對應區域"
     },
     "hidePanel": "隱藏面板",
     "history": "歷史記錄",

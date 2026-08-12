@@ -12,7 +12,17 @@
 
 import { Tooltip } from "@/components/layout/Tooltip";
 import { Button, Card, Empty, Popover, theme, Typography } from "antd";
-import { Download, Eye, Fullscreen, Maximize2, RefreshCw, SlidersHorizontal, ZoomIn, ZoomOut } from "lucide-react";
+import {
+  Download,
+  Eye,
+  Fullscreen,
+  Maximize2,
+  RefreshCw,
+  SlidersHorizontal,
+  Sparkles,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 import {
   type CSSProperties,
   forwardRef,
@@ -127,13 +137,45 @@ const getNodeColorMap = (token: TokenType): Record<GraphNodeType, string> => ({
 // ─────────────────────────────────────────────────────────────────────────────
 
 const LAYOUT_STORAGE_PREFIX = "wiki_graph_layout_";
+// LRU 上限：最多保留 10 个 wiki 的布局，超出按 savedAt 时间淘汰最旧的
+const LAYOUT_MAX_ENTRIES = 10;
+// 单 wiki 布局超过此节点数则不持久化（避免万级节点序列化 500KB+ 逼近配额）
+const LAYOUT_MAX_NODES = 2000;
 
 interface SavedLayout {
   positions: Record<string, { x: number; y: number }>;
   savedAt: number;
 }
 
+function pruneLayoutStorage(currentWikiId: string): void {
+  // 收集所有布局条目，按 savedAt 升序，超出上限时删除最旧
+  const entries: Array<{ wikiId: string; savedAt: number }> = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key || !key.startsWith(LAYOUT_STORAGE_PREFIX)) { continue; }
+    const wid = key.slice(LAYOUT_STORAGE_PREFIX.length);
+    if (wid === currentWikiId) { continue; }
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) { continue; }
+      const layout = JSON.parse(raw) as SavedLayout;
+      entries.push({ wikiId: wid, savedAt: layout.savedAt || 0 });
+    } catch {
+      // 损坏的条目直接删除
+      localStorage.removeItem(key);
+    }
+  }
+  entries.sort((a, b) => a.savedAt - b.savedAt);
+  // 已有条目数（不含当前）+ 当前 1 个 > 上限 → 删除最旧的
+  const excess = entries.length + 1 - LAYOUT_MAX_ENTRIES;
+  for (let i = 0; i < excess; i++) {
+    localStorage.removeItem(LAYOUT_STORAGE_PREFIX + entries[i].wikiId);
+  }
+}
+
 function saveLayout(wikiId: string, nodes: PhysicsNode[]): void {
+  // 节点数超阈值时不持久化（避免逼近 localStorage 配额）
+  if (nodes.length > LAYOUT_MAX_NODES) { return; }
   try {
     const positions: Record<string, { x: number; y: number }> = {};
     for (const node of nodes) {
@@ -143,6 +185,8 @@ function saveLayout(wikiId: string, nodes: PhysicsNode[]): void {
       positions,
       savedAt: Date.now(),
     };
+    // 写入前做 LRU 清理，确保不超过 LAYOUT_MAX_ENTRIES
+    pruneLayoutStorage(wikiId);
     localStorage.setItem(LAYOUT_STORAGE_PREFIX + wikiId, JSON.stringify(layout));
   } catch {
     // localStorage 可能已满，静默忽略
@@ -159,7 +203,7 @@ function loadLayout(wikiId: string): SavedLayout | null {
   }
 }
 
-function applySavedLayout(nodes: PhysicsNode[], saved: SavedLayout): void {
+function applySavedLayout(nodes: PhysicsNode[], saved: SavedLayout): boolean {
   let matched = 0;
   for (const node of nodes) {
     const savedPos = saved.positions[node.id];
@@ -169,15 +213,21 @@ function applySavedLayout(nodes: PhysicsNode[], saved: SavedLayout): void {
       matched++;
     }
   }
-  // 匹配率低于 30% 时放弃：清空位置，交由 initializePositions 重新随机。
-  // 注意：恢复位置不设 fixed —— 保存的布局只是"初始形态"，
-  // 节点仍参与低速力导向模拟（保持呼吸动画），拖拽/重新布局可随时覆盖。
+  // 匹配率低于 30% 时整体放弃：清空位置，返回 false 让 initializePositions 重新圆形布局
   if (matched < nodes.length * 0.3) {
-    for (const node of nodes) {
-      node.x = 0;
-      node.y = 0;
-    }
+    return false;
   }
+  // 匹配率 ≥ 30% 但部分未匹配：给未匹配节点做圆形分布，避免堆叠在原点
+  const unmatched = nodes.filter((n) => !saved.positions[n.id]);
+  if (unmatched.length > 0) {
+    const radius = Math.max(200, Math.sqrt(unmatched.length) * 30);
+    unmatched.forEach((n, i) => {
+      const angle = (i / unmatched.length) * Math.PI * 2;
+      n.x = Math.cos(angle) * radius;
+      n.y = Math.sin(angle) * radius;
+    });
+  }
+  return true;
 }
 
 const getEdgeTypeStylesMap = (
@@ -231,6 +281,60 @@ function getNodeSize(node: GraphNode): number {
   return Math.max(4, Math.min(15, 4 + degree * 0.4));
 }
 
+// ── XML 转义（SVG 导出防注入） ──
+function escapeXml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+// ── 颜色工具：支持 #RRGGBB / #RRGGBBAA / #RGB / rgb()/rgba() ──
+interface RGBA {
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+}
+
+function parseColor(color: string): RGBA | null {
+  if (!color) { return null; }
+  const hexMatch = color.match(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/);
+  if (hexMatch) {
+    const hex = hexMatch[1];
+    if (hex.length === 3) {
+      return {
+        r: parseInt(hex[0] + hex[0], 16),
+        g: parseInt(hex[1] + hex[1], 16),
+        b: parseInt(hex[2] + hex[2], 16),
+        a: 255,
+      };
+    }
+    return {
+      r: parseInt(hex.slice(0, 2), 16),
+      g: parseInt(hex.slice(2, 4), 16),
+      b: parseInt(hex.slice(4, 6), 16),
+      a: hex.length === 8 ? parseInt(hex.slice(6, 8), 16) : 255,
+    };
+  }
+  const rgbMatch = color.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)$/);
+  if (rgbMatch) {
+    return {
+      r: parseInt(rgbMatch[1], 10),
+      g: parseInt(rgbMatch[2], 10),
+      b: parseInt(rgbMatch[3], 10),
+      a: rgbMatch[4] !== undefined ? Math.round(parseFloat(rgbMatch[4]) * 255) : 255,
+    };
+  }
+  return null;
+}
+
+function clamp(v: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, v));
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 核心组件
 // ─────────────────────────────────────────────────────────────────────────────
@@ -267,6 +371,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   // Worker 相关
   const workerRef = useRef<Worker | null>(null);
   const workerInitializedRef = useRef(false);
+  const workerErrorCountRef = useRef(0); // Worker 连续错误计数，超阈值降级到主线程
   const workerResultRef = useRef<
     {
       positions: Float64Array;
@@ -323,13 +428,37 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   const idleCounterRef = useRef(0);
 
   // 鱼眼 / 聚类 状态
-  const fisheyeEnabledRef = useRef(true);
+  const fisheyeEnabledRef = useRef(false);
   const clusterModeRef = useRef(false);
+  // 粒子流动默认关闭（对齐 Obsidian：静态细边；可按 p 键或工具栏开关临时开启）
+  const particlesEnabledRef = useRef(false);
+  // ── 社区聚合折叠 ──
+  // 折叠的社区集合（聚类模式下默认全折叠；点击聚合节点展开/收起）
+  const collapsedRef = useRef<Set<number>>(new Set());
+  const hoverClusterRef = useRef<number | null>(null);
+  // 聚合节点几何缓存：cid → { 质心, 半径, 计数, 代表名 }（低频刷新）
+  const clusterGeomRef = useRef<
+    Map<number, { cx: number; cy: number; r: number; count: number; label: string }>
+  >(new Map());
+  // 展开/收起状态变化时触发重渲染
+  const [, setClusterCollapseVersion] = useState(0);
   const mouseScreenRef = useRef({ x: 0, y: 0, active: false });
   const communityCentroidsRef = useRef<Map<number, { cx: number; cy: number; count: number }>>(new Map());
+  // communities prop 的 ref 镜像，供 useCallback / 事件回调读取最新值而无需将其加入依赖
+  const communitiesRef = useRef<Map<string, number> | undefined>(undefined);
+  useEffect(() => {
+    communitiesRef.current = communities;
+  }, [communities]);
 
   const gridIndexRef = useRef<Map<string, string[]>>(new Map());
   const GRID_CELL_SIZE = 80;
+  // minimap 包围盒缓存：系统稳定时复用，避免每 15 帧全量遍历计算
+  const minimapBBoxRef = useRef<{ minX: number; minY: number; maxX: number; maxY: number } | null>(null);
+
+  // ── 性能 LOD 阈值（万级节点保障） ──
+  const MAX_PARTICLES = 4000; // 粒子总数上限：超过则停止创建（大图粒子动画代价过高）
+  const GLOW_NODE_LIMIT = 2000; // 超过此节点数：普通节点不绘制 glow，仅交互节点保留
+  const MINIMAP_REDRAW_INTERVAL = 15; // minimap 重绘间隔（帧），大图避免每帧全量遍历
 
   const minimapRef = useRef<HTMLCanvasElement>(null);
   const [minimapOpen, setMinimapOpen] = useState(true);
@@ -343,8 +472,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   const posMapRef = useRef<Map<string, PhysicsNode>>(new Map());
   const neighborsRef = useRef<Map<string, Set<string>>>(new Map());
 
-  const [fisheyeEnabled, setFisheyeEnabled] = useState(true);
+  const [fisheyeEnabled, setFisheyeEnabled] = useState(false);
   const [clusterMode, setClusterMode] = useState(false);
+  const [particlesEnabled, setParticlesEnabled] = useState(false);
 
   // Tooltip: 节点内容用 useState (低频更新)，位置用 ref + DOM 操作 (高频更新)
   const [tooltipNodeIdState, setTooltipNodeIdState] = useState<string | null>(null);
@@ -396,6 +526,33 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   useEffect(() => {
     clusterModeRef.current = clusterMode;
   }, [clusterMode]);
+  useEffect(() => {
+    particlesEnabledRef.current = particlesEnabled;
+  }, [particlesEnabled]);
+
+  // 聚类模式切换：开启时默认全折叠（聚合视图），关闭时清空
+  useEffect(() => {
+    if (clusterMode && communities) {
+      const all = new Set<number>();
+      for (const cid of communities.values()) {
+        all.add(cid);
+      }
+      // 排除当前选中节点所在社区，避免选中节点被折叠隐藏导致用户困惑
+      if (selectedNodeIdRef.current) {
+        const selCid = communities.get(selectedNodeIdRef.current);
+        if (selCid !== undefined) {
+          all.delete(selCid);
+        }
+      }
+      collapsedRef.current = all;
+      refreshClusterGeom();
+      setClusterCollapseVersion((v) => v + 1);
+    } else {
+      collapsedRef.current = new Set();
+      hoverClusterRef.current = null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clusterMode, communities]);
 
   // 社区可见性筛选
   const [visibleCommunities, setVisibleCommunities] = useState<Set<number>>(new Set());
@@ -443,6 +600,22 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     hasCommunityFilterRef.current = visibleCommunities.size < allCids.size;
   }, [communities, visibleCommunities]);
 
+  // 选中/导航到折叠社区内的节点时：自动展开该社区，确保目标可见
+  useEffect(() => {
+    if (!selectedNodeId || !clusterModeRef.current || !communities) {
+      return;
+    }
+    const cid = communities.get(selectedNodeId);
+    if (cid !== undefined && collapsedRef.current.has(cid)) {
+      const next = new Set(collapsedRef.current);
+      next.delete(cid);
+      collapsedRef.current = next;
+      refreshClusterGeom();
+      setClusterCollapseVersion((v) => v + 1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedNodeId, communities]);
+
   // 选中节点时自动聚焦（搜索定位 / 点击导航）
   const prevSelectedRef = useRef<string | null>(null);
   // 画布交互（点击/拖拽/右键/触摸）触发的选中不聚焦——用户已在节点旁，
@@ -462,23 +635,51 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       const nodes = physNodesRef.current;
       const node = nodes.find((n) => n.id === selectedNodeId);
       if (!node) { return; }
-      // 平滑移动相机到节点位置
-      const targetZoom = Math.max(cameraRef.current.zoom, 1.5);
-      cameraRef.current.x = -node.x * targetZoom;
-      cameraRef.current.y = -node.y * targetZoom;
-      cameraRef.current.zoom = targetZoom;
+      // 平滑移动相机到节点位置（400ms 缓动，避免相机突变割裂感）
+      const cam = cameraRef.current;
+      const targetZoom = Math.max(cam.zoom, 1.5);
+      const targetX = -node.x * targetZoom;
+      const targetY = -node.y * targetZoom;
+      const startX = cam.x;
+      const startY = cam.y;
+      const startZoom = cam.zoom;
+      const duration = 400;
+      const startTime = performance.now();
+      const animate = (now: number) => {
+        const elapsed = now - startTime;
+        const t = Math.min(elapsed / duration, 1);
+        const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        cam.x = startX + (targetX - startX) * ease;
+        cam.y = startY + (targetY - startY) * ease;
+        cam.zoom = startZoom + (targetZoom - startZoom) * ease;
+        if (t < 1) {
+          requestAnimationFrame(animate);
+        }
+      };
+      requestAnimationFrame(animate);
     });
   }, [selectedNodeId]);
 
-  // 容器尺寸监听
+  // 容器尺寸监听（rAF 去抖，避免拖动窗口时高频触发渲染重建）
   useEffect(() => {
     const el = containerRef.current;
     if (!el) { return; }
+    let rafId = 0;
     const update = () => setDimensions({ width: el.clientWidth, height: el.clientHeight });
     update();
-    const ro = new ResizeObserver(update);
+    const scheduleUpdate = () => {
+      if (rafId) { return; }
+      rafId = requestAnimationFrame(() => {
+        rafId = 0;
+        setDimensions({ width: el.clientWidth, height: el.clientHeight });
+      });
+    };
+    const ro = new ResizeObserver(scheduleUpdate);
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => {
+      if (rafId) { cancelAnimationFrame(rafId); }
+      ro.disconnect();
+    };
   }, []);
 
   // 全屏状态
@@ -491,6 +692,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   // 数据变化 → 重建物理世界
   useEffect(() => {
     if (!data || data.nodes.length === 0) { return; }
+
+    // 清空 minimap 包围盒缓存（节点集已变化，旧缓存失效）
+    minimapBBoxRef.current = null;
 
     const colorCache = buildNodeColorCache(data.nodes, communities, token);
     nodeColorRef.current = colorCache;
@@ -512,16 +716,16 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     }));
 
     // 首次布局：优先从 localStorage 加载已保存的布局
+    let layoutApplied = false;
     if (wikiId) {
       const saved = loadLayout(wikiId);
       if (saved) {
-        applySavedLayout(pNodes, saved);
+        layoutApplied = applySavedLayout(pNodes, saved);
       }
     }
 
-    // 若无已保存布局或匹配率太低，则使用力导向布局
-    const hasPositions = pNodes.some((n) => n.x !== 0 || n.y !== 0);
-    if (!hasPositions) {
+    // 若无已保存布局或匹配率太低（applySavedLayout 返回 false），则使用圆形布局
+    if (!layoutApplied) {
       initializePositions(pNodes, dimensions.width, dimensions.height);
     }
 
@@ -596,14 +800,16 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       };
     });
 
-    // 粒子系统
+    // 粒子系统（总数量上限：大图场景避免数万粒子每帧遍历+绘制）
     const particles: Particle[] = [];
     for (let i = 0; i < data.edges.length; i++) {
+      if (particles.length >= MAX_PARTICLES) { break; }
       const em = edgeMetaRef.current[i];
       if (em.animated) {
         // 每条动画边 1-2 个粒子
         const count = em.type === "reference" ? 2 : 1;
         for (let j = 0; j < count; j++) {
+          if (particles.length >= MAX_PARTICLES) { break; }
           particles.push({
             edgeIndex: i,
             progress: Math.random(),
@@ -616,33 +822,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     }
     particlesRef.current = particles;
 
-    // 初始布局：用 requestAnimationFrame 异步迭代，避免阻塞主线程
-    const config: PhysicsConfig = {
-      theta: 0.5,
-      repulsion: 6000,
-      gravity: 0.01,
-      damping: 0.82,
-      dt: 0.5,
-      springForce: 0.06,
-      springDamping: 0.8,
-      maxVelocity: 10,
-    };
-    let iter = 0;
-    const MAX_ITER = 30;
-    const runLayoutStep = () => {
-      if (iter >= MAX_ITER) {
-        return;
-      }
-      stepPhysics(pNodes, pEdges, config);
-      iter++;
-      // 每 3 帧让一帧给浏览器渲染
-      if (iter % 3 === 0) {
-        requestAnimationFrame(runLayoutStep);
-      } else {
-        runLayoutStep();
-      }
-    };
-    requestAnimationFrame(runLayoutStep);
+    // 初始布局收敛交由 Worker 完成（见下文 Worker init + 渲染循环持续 STEP）。
+    // 不在主线程同步跑 stepPhysics：几万节点时 Barnes-Hut 单步即数百 ms，
+    // 主线程同步迭代会冻结 UI 数秒。Worker 就绪前节点保持 initial/保存布局即可。
 
     // ── 初始化物理 Worker ──
     // 销毁旧 Worker
@@ -709,6 +891,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       const msg = e.data;
       if (msg.type === "ready") {
         workerInitializedRef.current = true;
+        workerErrorCountRef.current = 0;
       } else if (msg.type === "result") {
         workerResultRef.current = {
           positions: msg.payload.positions,
@@ -717,9 +900,28 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
           tick: msg.payload.tick,
         };
         pendingStepRef.current = false;
+        workerErrorCountRef.current = 0;
       } else if (msg.type === "error") {
         console.error("[GraphWorker]", msg.message);
         pendingStepRef.current = false;
+        workerErrorCountRef.current++;
+        // 连续 3 次错误：terminate 并降级到主线程物理
+        if (workerErrorCountRef.current >= 3 && workerRef.current === worker) {
+          console.warn("[GraphWorker] 持续报错，降级到主线程物理");
+          worker.terminate();
+          workerRef.current = null;
+          workerInitializedRef.current = false;
+        }
+      }
+    };
+
+    // 组件卸载时销毁 Worker，避免线程泄漏和内存堆积
+    return () => {
+      if (workerRef.current === worker) {
+        worker.postMessage({ type: "destroy" } as WorkerMessage);
+        worker.terminate();
+        workerRef.current = null;
+        workerInitializedRef.current = false;
       }
     };
   }, [data, communities, token]);
@@ -745,22 +947,12 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       offscreen.height = h;
       const offCtx = offscreen.getContext("2d")!;
 
-      // 绘制背景
+      // 绘制背景（纯色渐变，无网格点阵——对齐 Obsidian 的干净感）
       const grad = offCtx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h) * 0.7);
       grad.addColorStop(0, token.colorBgContainer);
       grad.addColorStop(1, token.colorBgElevated);
       offCtx.fillStyle = grad;
       offCtx.fillRect(0, 0, w, h);
-
-      offCtx.fillStyle = hexToRgba(token.colorText, 0.03);
-      const gridSize = 40;
-      for (let x = gridSize; x < w; x += gridSize) {
-        for (let y = gridSize; y < h; y += gridSize) {
-          offCtx.beginPath();
-          offCtx.arc(x, y, 1, 0, Math.PI * 2);
-          offCtx.fill();
-        }
-      }
 
       bgCacheRef.current = offscreen;
       bgCacheSizeRef.current = { w, h };
@@ -827,8 +1019,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
           }
         }
 
-        // 请求下一个物理步进（如果没有 pending 的请求）
-        if (!pendingStepRef.current && !hasDrag) {
+        // 请求下一个物理步进（无 pending 时；稳定后降频到每 12 帧一次，减少 worker 空转）
+        if (!pendingStepRef.current && !hasDrag && (hasInteraction || frameCounterRef.current % 12 === 0)) {
           const config: PhysicsConfig = {
             theta: 0.5,
             repulsion: 6000,
@@ -848,7 +1040,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
             type: "step",
             payload: {
               config,
-              communities: enableClusters ? Object.fromEntries(communities!) : undefined,
+              // communities 在 init/reset 时已同步到 Worker（nodeIdxToCommunity），
+              // step 无需重复传递，避免每 12 帧一次 O(N) 序列化
               centroids: centroids ? Object.fromEntries(centroids) : undefined,
             },
           } as WorkerMessage);
@@ -870,8 +1063,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
             }
           }
 
-          // 更新网格空间索引
-          if (frameCounterRef.current % 3 === 0) {
+          // 更新网格空间索引：每帧重建（避免节点已移出旧 bucket 仍被命中导致 hover 错位）
+          // 万级节点下 O(N) Map 操作约 1-2ms，可接受
+          {
             const gridIndex = new Map<string, string[]>();
             for (const n of nodes) {
               const gx = Math.floor(n.x / GRID_CELL_SIZE);
@@ -961,15 +1155,27 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         y1: (h / 2 - cam.y) / cam.zoom + 50,
       };
 
-      // 绘制社区聚类区域（在边之前绘制，作为背景层）
-      if (clusterModeRef.current && communities) {
+      // 绘制社区聚类区域（背景层；5 帧一次降频）。
+      // 聚合折叠视图下由聚合节点表达社区，跳过气泡避免视觉重叠
+      if (
+        clusterModeRef.current && communities && collapsedRef.current.size === 0
+        && frameCounterRef.current % 5 === 0
+      ) {
         drawClusterRegions(ctx, nodes);
+      }
+
+      // 聚合几何低频刷新（6 帧一次；切换展开/收起时立即刷新）
+      // 系统稳定时跳过（节点位置不变，cluster geom 也无需重算，节省 O(N) 遍历）
+      if (clusterModeRef.current && frameCounterRef.current % 6 === 0 && idleCounterRef.current < 30) {
+        refreshClusterGeom();
       }
 
       // 绘制（传入视口范围用于裁剪）
       drawEdgesOptimized(ctx, nodes, fisheye, viewWorld);
       drawParticlesOptimized(ctx, nodes, fisheye, viewWorld);
       drawNodesOptimized(ctx, nodes, fisheye, viewWorld);
+      // 聚合节点（顶层）
+      drawCollapsedClusters(ctx, viewWorld);
 
       ctx.restore();
 
@@ -984,7 +1190,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         }
       }
 
-      if (showMinimap && minimapOpen && minimapRef.current && frameCounterRef.current % 3 === 0) {
+      if (showMinimap && minimapOpen && minimapRef.current && frameCounterRef.current % MINIMAP_REDRAW_INTERVAL === 0) {
         const mmCanvas = minimapRef.current;
         const mmCtx = mmCanvas.getContext("2d");
         if (mmCtx) {
@@ -1000,7 +1206,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       running = false;
       cancelAnimationFrame(rafRef.current);
     };
-  }, [dimensions, token]);
+    // communities 异步加载后会变化：加入依赖使渲染循环闭包拿到最新值，
+    // 否则聚类气泡/社区筛选/聚合折叠全部读不到社区数据（stale closure）
+  }, [dimensions, token, communities]);
 
   function getScreenToWorld(sx: number, sy: number): { x: number; y: number } {
     const cam = cameraRef.current;
@@ -1137,22 +1345,34 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
     const hasCommunityFilter = hasCommunityFilterRef.current;
 
+    // 批量描边：普通边按 (颜色, 线宽) 合并到 Path2D，最后统一 stroke。
+    // 万级边场景下从「每边一次 stroke」降为「每样式一次 stroke」，是最大的性能收益。
+    const batchPaths = new Map<string, { path: Path2D; color: string; width: number }>();
+
     for (let i = 0; i < edgeMeta.length; i++) {
       const em = edgeMeta[i];
 
       if (!visibleTypes.has(em.type)) { continue; }
 
       // 直接数组访问，避免 Map 查找
-      const s = nodes[em.sourceIdx];
-      const t = nodes[em.targetIdx];
-      if (!s || !t) { continue; }
+      const sNode = nodes[em.sourceIdx];
+      const tNode = nodes[em.targetIdx];
+      if (!sNode || !tNode) { continue; }
 
-      // 视口裁剪：两端节点都不在视口内时跳过
+      // 聚类折叠模式：折叠社区的成员端点接到聚合节点质心
+      const sCid = communities?.get(em.source);
+      const tCid = communities?.get(em.target);
+      const sCollapsed = clusterModeRef.current && sCid !== undefined && collapsedRef.current.has(sCid);
+      const tCollapsed = clusterModeRef.current && tCid !== undefined && collapsedRef.current.has(tCid);
+      const sGeom = sCollapsed ? clusterGeomRef.current.get(sCid!) : undefined;
+      const tGeom = tCollapsed ? clusterGeomRef.current.get(tCid!) : undefined;
+      const s: { x: number; y: number } = sGeom ? { x: sGeom.cx, y: sGeom.cy } : sNode;
+      const t: { x: number; y: number } = tGeom ? { x: tGeom.cx, y: tGeom.cy } : tNode;
+
+      // 视口裁剪：两端都不在视口内时跳过
       if (!isInView(s.x, s.y, viewWorld) && !isInView(t.x, t.y, viewWorld)) { continue; }
 
       if (hasCommunityFilter) {
-        const sCid = communities?.get(em.source);
-        const tCid = communities?.get(em.target);
         const sVisible = sCid === undefined || visibleCommunitiesSet.has(sCid);
         const tVisible = tCid === undefined || visibleCommunitiesSet.has(tCid);
         if (!sVisible || !tVisible) { continue; }
@@ -1164,24 +1384,42 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       // 低缩放下简化渲染
       if (zoom < 0.3 && !isRelevant) { continue; }
 
-      const sScale = fisheyeScale(s.x, s.y, fisheye);
-      const tScale = fisheyeScale(t.x, t.y, fisheye);
-      const avgScale = (sScale + tScale) / 2;
-
-      ctx.beginPath();
-      ctx.moveTo(s.x, s.y);
-      ctx.lineTo(t.x, t.y);
-
       if (isRelevant) {
+        // 相关边（hover/选中邻居）逐条绘制：保留鱼眼线宽与高亮
+        const sScale = fisheyeScale(s.x, s.y, fisheye);
+        const tScale = fisheyeScale(t.x, t.y, fisheye);
+        const avgScale = (sScale + tScale) / 2;
+        ctx.beginPath();
+        ctx.moveTo(s.x, s.y);
+        ctx.lineTo(t.x, t.y);
         ctx.strokeStyle = em.color;
         ctx.lineWidth = em.width * 1.5 * avgScale;
         ctx.globalAlpha = 0.9;
+        ctx.stroke();
       } else {
-        ctx.strokeStyle = em.color;
-        ctx.lineWidth = em.width * avgScale;
-        ctx.globalAlpha = 0.25;
+        // 普通边收集到批量路径（批量模式下不做鱼眼线宽缩放，性能优先）
+        const key = `${em.color}|${em.width}`;
+        let entry = batchPaths.get(key);
+        if (!entry) {
+          entry = { path: new Path2D(), color: em.color, width: em.width };
+          batchPaths.set(key, entry);
+        }
+        entry.path.moveTo(s.x, s.y);
+        entry.path.lineTo(t.x, t.y);
       }
-      ctx.stroke();
+    }
+
+    // 批量 stroke：普通边统一低透明度；hover/选中时非邻居边近乎消失（对齐 Obsidian 的彻底淡出）
+    // 鱼眼激活时：对批量边宽度应用 fisheye 中心处的全局 scale，
+    // 避免与逐条绘制的相关边形成明显线宽断层（性能与一致性的折中）
+    if (batchPaths.size > 0) {
+      ctx.globalAlpha = (hovered || selected) ? 0.08 : 0.25;
+      const batchFeScale = fisheye.active ? fisheyeScale(fisheye.worldX, fisheye.worldY, fisheye) : 1;
+      for (const entry of batchPaths.values()) {
+        ctx.strokeStyle = entry.color;
+        ctx.lineWidth = entry.width * batchFeScale;
+        ctx.stroke(entry.path);
+      }
       ctx.globalAlpha = 1;
     }
   }
@@ -1192,6 +1430,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     fisheye: FisheyeState,
     viewWorld: { x0: number; y0: number; x1: number; y1: number },
   ) {
+    // 粒子默认关闭（对齐 Obsidian 静态细边），开关在工具栏/快捷键 p
+    if (!particlesEnabledRef.current) { return; }
     const zoom = cameraRef.current.zoom;
     if (zoom < 0.5) { return; }
 
@@ -1219,6 +1459,18 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       const t = nodes[em.targetIdx];
       if (!s || !t) { continue; }
 
+      // 聚类折叠模式：折叠社区内的边不画粒子（由聚合节点/聚合边表达）
+      if (clusterModeRef.current) {
+        const sCid = communities?.get(em.source);
+        const tCid = communities?.get(em.target);
+        if (
+          (sCid !== undefined && collapsedRef.current.has(sCid))
+          || (tCid !== undefined && collapsedRef.current.has(tCid))
+        ) {
+          continue;
+        }
+      }
+
       const x = s.x + (t.x - s.x) * p.progress;
       const y = s.y + (t.y - s.y) * p.progress;
 
@@ -1227,8 +1479,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
       const scale = fisheyeScale(x, y, fisheye);
       const alpha = 0.6 + 0.4 * Math.sin(p.progress * Math.PI * 2);
-      ctx.save();
-      // 稳定时跳过 shadowBlur（开销大）
+      // 稳定时跳过 shadowBlur（开销大）；用直接属性设置替代 save/restore
       if (!isStable) {
         ctx.shadowColor = p.color;
         ctx.shadowBlur = 6 * scale;
@@ -1238,9 +1489,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       ctx.beginPath();
       ctx.arc(x, y, p.size * scale, 0, Math.PI * 2);
       ctx.fill();
-      ctx.restore();
     }
     ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
   }
 
   function drawNodesOptimized(
@@ -1264,10 +1515,18 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
     const zoom = cameraRef.current.zoom;
     const showAllLabels = zoom >= 0.6 && !hasHighlight && !hovered && !selected && nodes.length < 300;
+    // 大图 LOD：超过阈值时普通节点不绘制 glow（万级节点每帧数万次 arc+fill 是大开销）
+    const isLargeGraph = nodes.length > GLOW_NODE_LIMIT;
 
     for (const node of nodes) {
       // 视口裁剪：节点不在视口内时跳过（大幅减少绘制开销）
       if (!isInView(node.x, node.y, viewWorld)) { continue; }
+
+      // 聚类折叠模式：折叠社区的节点由聚合节点替代，不单独绘制
+      if (clusterModeRef.current) {
+        const ncid = communities?.get(node.id);
+        if (ncid !== undefined && collapsedRef.current.has(ncid)) { continue; }
+      }
 
       if (hasCommunityFilter) {
         const cid = communities?.get(node.id);
@@ -1310,7 +1569,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         glowAlpha = 0;
         size = baseSize * 0.8 * feScale;
       } else if (hovered || selected) {
-        alpha = 0.3;
+        alpha = 0.15;
         glowAlpha = 0;
         size = baseSize * 0.85 * feScale;
       }
@@ -1318,11 +1577,13 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       const pulse = 1 + Math.sin(phase + node.x * 0.01) * 0.08;
       const finalSize = size * pulse;
 
-      // 仅对 hovered/selected/邻居节点绘制 glow，跳过远处节点
-      // 视口裁剪增强：0.6x 缩放以下完全跳过 glow
-      if (glowAlpha > 0 && zoom >= 0.6) {
-        ctx.save();
-        // 稳定时跳过 shadowBlur（开销大）
+      // 交互节点（选中/hover/邻居）恒绘制 glow；普通节点仅小图绘制
+      const isInteractNode = isSelected || isHovered
+        || (selected && neighborsOfSelected.has(node.id))
+        || (hovered && neighborsOfHovered.has(node.id));
+
+      if (glowAlpha > 0 && zoom >= 0.6 && (isInteractNode || !isLargeGraph)) {
+        // 稳定时跳过 shadowBlur（开销大）；用直接属性设置替代 save/restore
         if (idleCounterRef.current === 0) {
           ctx.shadowColor = color;
           ctx.shadowBlur = glowRadius;
@@ -1332,36 +1593,40 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         ctx.arc(node.x, node.y, finalSize, 0, Math.PI * 2);
         ctx.fillStyle = color;
         ctx.fill();
-        ctx.restore();
+        ctx.shadowBlur = 0;
       }
 
-      // 节点核心（预渲染 sprite 缓存）
-      const sprite = nodeSpriteCacheRef.current.get(color);
-      ctx.save();
+      // 节点核心：小尺寸用 fillRect（实测远快于 drawImage 缩放，视觉无差），
+      // 屏幕尺寸足够大时用 sprite 保留渐变质感
       ctx.globalAlpha = alpha;
-      if (sprite) {
+      const screenR = finalSize * cameraRef.current.zoom;
+      const sprite = nodeSpriteCacheRef.current.get(color);
+      if (sprite && screenR >= 4) {
         const dstSize = finalSize * 2;
         ctx.drawImage(sprite, 0, 0, SPRITE_SIZE, SPRITE_SIZE, node.x - finalSize, node.y - finalSize, dstSize, dstSize);
       } else {
-        const grad = ctx.createRadialGradient(
-          node.x - finalSize * 0.3,
-          node.y - finalSize * 0.3,
-          0,
-          node.x,
-          node.y,
-          finalSize,
-        );
-        grad.addColorStop(0, lightenColor(color, 40));
-        grad.addColorStop(0.7, color);
-        grad.addColorStop(1, darkenColor(color, 20));
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, finalSize, 0, Math.PI * 2);
-        ctx.fillStyle = grad;
-        ctx.fill();
+        // 小尺寸或 fallback：纯色填充（sprite 缓存通常已覆盖所有颜色，fallback 几乎不触发）
+        ctx.fillStyle = color;
+        ctx.fillRect(node.x - finalSize, node.y - finalSize, finalSize * 2, finalSize * 2);
       }
-      ctx.restore();
 
-      // 标签：仅在需要时绘制
+      // hover 波纹反馈（对齐 Obsidian：涟漪从节点向外扩散）
+      if (isHovered) {
+        const ripplePhase = phase * 0.5;
+        const rippleBase = finalSize * 2.5;
+        for (let ri = 0; ri < 2; ri++) {
+          const rp = (ripplePhase + ri * 0.5) % 1;
+          ctx.globalAlpha = (ri === 0 ? 0.35 : 0.18) * (1 - rp);
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, rippleBase + rp * 26, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      // 标签：仅在需要时绘制（交互节点或小图全量）
       if (showLabel || showAllLabels) {
         const meta = nodeMetaRef.current.get(node.id);
         if (meta) {
@@ -1377,6 +1642,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         }
       }
     }
+    ctx.globalAlpha = 1;
 
     // 绘制鱼眼透镜边框
     if (fisheye.active) {
@@ -1393,29 +1659,144 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     }
   }
 
+  // ── 社区聚合节点渲染（聚类折叠模式的顶层视图） ──
+  // 聚合边 Path2D 缓存：系统稳定时复用，避免每帧全量遍历 edgeMeta
+  const aggEdgePathCacheRef = useRef<Path2D | null>(null);
+  const aggEdgeCacheIdleRef = useRef(-1);
+
+  function drawCollapsedClusters(
+    ctx: CanvasRenderingContext2D,
+    viewWorld: { x0: number; y0: number; x1: number; y1: number },
+  ) {
+    if (!clusterModeRef.current || collapsedRef.current.size === 0) {
+      return;
+    }
+    const geom = clusterGeomRef.current;
+    const edgeMeta = edgeMetaRef.current;
+    const nodes = physNodesRef.current;
+    const phase = phaseRef.current;
+    const hoverCluster = hoverClusterRef.current;
+    const zoom = cameraRef.current.zoom;
+
+    // 聚合边：两端都折叠的社区之间（质心连线，批量 Path2D）
+    // 系统稳定时（idleCounter > 30 且缓存有效）复用 Path2D，避免每帧 O(E) 遍历
+    const stable = idleCounterRef.current > 30;
+    let aggEdgePath: Path2D | null = null;
+    let aggEdgeCount = 0;
+    if (stable && aggEdgePathCacheRef.current && aggEdgeCacheIdleRef.current === idleCounterRef.current) {
+      aggEdgePath = aggEdgePathCacheRef.current;
+      aggEdgeCount = 1; // 标记有内容
+    } else if (stable && aggEdgePathCacheRef.current) {
+      // 稳定但未本帧重建：复用缓存
+      aggEdgePath = aggEdgePathCacheRef.current;
+      aggEdgeCount = 1;
+    } else {
+      aggEdgePath = new Path2D();
+      for (let i = 0; i < edgeMeta.length; i++) {
+        const em = edgeMeta[i];
+        const sNode = nodes[em.sourceIdx];
+        const tNode = nodes[em.targetIdx];
+        if (!sNode || !tNode) { continue; }
+        const sCid = communities?.get(em.source);
+        const tCid = communities?.get(em.target);
+        if (sCid === undefined || tCid === undefined || sCid === tCid) { continue; }
+        if (!collapsedRef.current.has(sCid) || !collapsedRef.current.has(tCid)) { continue; }
+        const sg = geom.get(sCid);
+        const tg = geom.get(tCid);
+        if (!sg || !tg) { continue; }
+        aggEdgePath.moveTo(sg.cx, sg.cy);
+        aggEdgePath.lineTo(tg.cx, tg.cy);
+        aggEdgeCount++;
+      }
+      if (stable && aggEdgeCount > 0) {
+        aggEdgePathCacheRef.current = aggEdgePath;
+        aggEdgeCacheIdleRef.current = idleCounterRef.current;
+      }
+    }
+    if (aggEdgeCount > 0 && aggEdgePath) {
+      ctx.strokeStyle = token.colorBorderSecondary;
+      ctx.globalAlpha = 0.4;
+      ctx.lineWidth = 1;
+      ctx.stroke(aggEdgePath);
+      ctx.globalAlpha = 1;
+    }
+
+    // 聚合节点
+    for (const [cid, g] of geom) {
+      if (!collapsedRef.current.has(cid)) { continue; }
+      if (!isInView(g.cx, g.cy, viewWorld, 120)) { continue; }
+      const color = communityPalette[cid % communityPalette.length];
+      const isHover = hoverCluster === cid;
+      const r = g.r * (isHover ? 1.12 : 1);
+
+      // 外圈光晕（半透明）
+      ctx.globalAlpha = isHover ? 0.3 : 0.2;
+      ctx.beginPath();
+      ctx.arc(g.cx, g.cy, r * 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+
+      // 主体
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      ctx.arc(g.cx, g.cy, r, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+
+      // 中心亮核（缩小版，体现"聚合"层次）
+      ctx.beginPath();
+      ctx.arc(g.cx, g.cy, r * 0.42, 0, Math.PI * 2);
+      ctx.fillStyle = lightenColor(color, 46);
+      ctx.fill();
+
+      // hover 波纹
+      if (isHover) {
+        const rp = (phase * 0.5) % 1;
+        ctx.globalAlpha = 0.35 * (1 - rp);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(g.cx, g.cy, r + 6 + rp * 22, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+
+      // 标签（常显）：代表名 + 计数；低缩放时隐藏避免重叠
+      if (zoom >= 0.35) {
+        ctx.font = `bold ${Math.max(11, Math.round(12 / Math.max(zoom, 0.5)))}px Inter, system-ui, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        ctx.fillStyle = token.colorText;
+        ctx.globalAlpha = 0.95;
+        ctx.fillText(`${g.label} · ${g.count}`, g.cx, g.cy + r + 6);
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+
   // ── 颜色工具 ──
-  function lightenColor(hex: string, percent: number): string {
-    const num = parseInt(hex.slice(1), 16);
-    const r = Math.min(255, (num >> 16) + percent);
-    const g = Math.min(255, ((num >> 8) & 0xff) + percent);
-    const b = Math.min(255, (num & 0xff) + percent);
+  function lightenColor(color: string, percent: number): string {
+    const c = parseColor(color);
+    if (!c) { return color; }
+    const r = clamp(c.r + percent, 0, 255);
+    const g = clamp(c.g + percent, 0, 255);
+    const b = clamp(c.b + percent, 0, 255);
     return `rgb(${r},${g},${b})`;
   }
 
-  function darkenColor(hex: string, percent: number): string {
-    const num = parseInt(hex.slice(1), 16);
-    const r = Math.max(0, (num >> 16) - percent);
-    const g = Math.max(0, ((num >> 8) & 0xff) - percent);
-    const b = Math.max(0, (num & 0xff) - percent);
+  function darkenColor(color: string, percent: number): string {
+    const c = parseColor(color);
+    if (!c) { return color; }
+    const r = clamp(c.r - percent, 0, 255);
+    const g = clamp(c.g - percent, 0, 255);
+    const b = clamp(c.b - percent, 0, 255);
     return `rgb(${r},${g},${b})`;
   }
 
-  function hexToRgba(hex: string, alpha: number): string {
-    const num = parseInt(hex.slice(1), 16);
-    const r = (num >> 16) & 0xff;
-    const g = (num >> 8) & 0xff;
-    const b = num & 0xff;
-    return `rgba(${r},${g},${b},${alpha})`;
+  function hexToRgba(color: string, alpha: number): string {
+    const c = parseColor(color);
+    if (!c) { return color; }
+    return `rgba(${c.r},${c.g},${c.b},${alpha})`;
   }
 
   const SPRITE_SIZE = 128;
@@ -1462,6 +1843,75 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
   // ── 交互事件 ──
 
+  // 刷新聚合节点几何（质心/半径/计数/代表名）。O(N) 遍历，低频调用（每 6 帧 / 切换时）
+  const refreshClusterGeom = useCallback(() => {
+    if (!communities || !clusterModeRef.current) {
+      clusterGeomRef.current = new Map();
+      return;
+    }
+    const buckets = new Map<
+      number,
+      { sx: number; sy: number; count: number; bestId: string | null; bestDegree: number }
+    >();
+    const nodes = physNodesRef.current;
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      const cid = communities.get(node.id);
+      if (cid === undefined) { continue; }
+      const b = buckets.get(cid) ?? { sx: 0, sy: 0, count: 0, bestId: null, bestDegree: -1 };
+      b.sx += node.x;
+      b.sy += node.y;
+      b.count += 1;
+      const meta = nodeMetaRef.current.get(node.id);
+      const deg = (meta?.linkCount ?? 0) + (meta?.backlinkCount ?? 0);
+      if (deg > b.bestDegree) {
+        b.bestDegree = deg;
+        b.bestId = node.id;
+      }
+      buckets.set(cid, b);
+    }
+    const next = new Map<number, { cx: number; cy: number; r: number; count: number; label: string }>();
+    for (const [cid, b] of buckets) {
+      const cx = b.sx / b.count;
+      const cy = b.sy / b.count;
+      const r = Math.max(10, Math.min(44, 8 + Math.sqrt(b.count) * 2.2));
+      const title = b.bestId ? (nodeMetaRef.current.get(b.bestId)?.title ?? "") : "";
+      const label = title.length > 14 ? title.slice(0, 12) + "…" : title || `#${cid}`;
+      next.set(cid, { cx, cy, r, count: b.count, label });
+    }
+    clusterGeomRef.current = next;
+  }, [communities]);
+
+  // 切换社区折叠状态（点击聚合节点）
+  const toggleCluster = useCallback((cid: number) => {
+    const next = new Set(collapsedRef.current);
+    if (next.has(cid)) {
+      next.delete(cid);
+    } else {
+      next.add(cid);
+    }
+    collapsedRef.current = next;
+    // 立即刷新聚合几何（展开/收起后质心渲染立即生效）
+    refreshClusterGeom();
+    setClusterCollapseVersion((v) => v + 1);
+  }, [refreshClusterGeom]);
+
+  // 聚合节点命中检测（聚类模式 + 折叠社区）
+  const findClusterAt = useCallback((sx: number, sy: number): number | null => {
+    if (!clusterModeRef.current) { return null; }
+    const world = getScreenToWorld(sx, sy);
+    for (const [cid, geom] of clusterGeomRef.current) {
+      if (!collapsedRef.current.has(cid)) { continue; }
+      const dx = world.x - geom.cx;
+      const dy = world.y - geom.cy;
+      const hitR = geom.r * 1.6; // 含外圈光晕
+      if (dx * dx + dy * dy < hitR * hitR) {
+        return cid;
+      }
+    }
+    return null;
+  }, [dimensions]);
+
   const findNodeAt = useCallback((sx: number, sy: number): string | null => {
     const world = getScreenToWorld(sx, sy);
     const grid = gridIndexRef.current;
@@ -1478,6 +1928,11 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
           const id = ids[i];
           const n = posMap.get(id);
           if (!n) { continue; }
+          // 聚类折叠模式：折叠社区的节点被聚合节点覆盖，不参与命中
+          if (clusterModeRef.current) {
+            const cid = communities?.get(id);
+            if (cid !== undefined && collapsedRef.current.has(cid)) { continue; }
+          }
           const size = nodeSizeRef.current.get(id) || 6;
           const wx = n.x - world.x;
           const wy = n.y - world.y;
@@ -1496,13 +1951,21 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   const drawMinimap = useCallback((mmCtx: CanvasRenderingContext2D, nodes: PhysicsNode[]) => {
     if (nodes.length === 0) { return; }
 
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const n of nodes) {
-      if (n.x < minX) { minX = n.x; }
-      if (n.y < minY) { minY = n.y; }
-      if (n.x > maxX) { maxX = n.x; }
-      if (n.y > maxY) { maxY = n.y; }
+    // 系统稳定时复用缓存包围盒；运动中或无缓存时重算
+    const stable = idleCounterRef.current > 30;
+    let bbox = stable ? minimapBBoxRef.current : null;
+    if (!bbox) {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const n of nodes) {
+        if (n.x < minX) { minX = n.x; }
+        if (n.y < minY) { minY = n.y; }
+        if (n.x > maxX) { maxX = n.x; }
+        if (n.y > maxY) { maxY = n.y; }
+      }
+      bbox = { minX, minY, maxX, maxY };
+      minimapBBoxRef.current = bbox;
     }
+    let { minX, minY, maxX, maxY } = bbox;
     const bboxW = Math.max(maxX - minX, 1);
     const bboxH = Math.max(maxY - minY, 1);
     const padX = bboxW * 0.1;
@@ -1530,14 +1993,47 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       }
     }
 
-    for (const n of nodes) {
-      const color = nodeColorRef.current.get(n.id) || token.colorPrimary;
-      const mx = (n.x - minX) * scale + offsetX;
-      const my = (n.y - minY) * scale + offsetY;
-      mmCtx.fillStyle = color;
-      mmCtx.beginPath();
-      mmCtx.arc(mx, my, 1.8, 0, Math.PI * 2);
-      mmCtx.fill();
+    // 聚合折叠模式：minimap 与主视图一致——折叠社区画聚合点，展开社区画真实节点
+    const clusterActive = clusterModeRef.current && collapsedRef.current.size > 0;
+    if (clusterActive) {
+      const geom = clusterGeomRef.current;
+      // 折叠社区 → 聚合点（社区色，更大）
+      for (const [cid, g] of geom) {
+        if (!collapsedRef.current.has(cid)) { continue; }
+        const mx = (g.cx - minX) * scale + offsetX;
+        const my = (g.cy - minY) * scale + offsetY;
+        mmCtx.fillStyle = communityPalette[cid % communityPalette.length];
+        mmCtx.beginPath();
+        mmCtx.arc(mx, my, 2.6, 0, Math.PI * 2);
+        mmCtx.fill();
+      }
+      // 展开社区 → 真实节点（小点，降采样）
+      const nodeStep = nodes.length > 20000 ? 8 : nodes.length > 8000 ? 4 : nodes.length > 3000 ? 2 : 1;
+      for (let i = 0; i < nodes.length; i += nodeStep) {
+        const n = nodes[i];
+        const cid = communities?.get(n.id);
+        if (cid !== undefined && collapsedRef.current.has(cid)) { continue; }
+        const color = nodeColorRef.current.get(n.id) || token.colorPrimary;
+        const mx = (n.x - minX) * scale + offsetX;
+        const my = (n.y - minY) * scale + offsetY;
+        mmCtx.fillStyle = color;
+        mmCtx.beginPath();
+        mmCtx.arc(mx, my, 1.8, 0, Math.PI * 2);
+        mmCtx.fill();
+      }
+    } else {
+      // 普通模式：节点绘制降采样（大图概览无需逐点绘制）
+      const nodeStep = nodes.length > 20000 ? 8 : nodes.length > 8000 ? 4 : nodes.length > 3000 ? 2 : 1;
+      for (let i = 0; i < nodes.length; i += nodeStep) {
+        const n = nodes[i];
+        const color = nodeColorRef.current.get(n.id) || token.colorPrimary;
+        const mx = (n.x - minX) * scale + offsetX;
+        const my = (n.y - minY) * scale + offsetY;
+        mmCtx.fillStyle = color;
+        mmCtx.beginPath();
+        mmCtx.arc(mx, my, 1.8, 0, Math.PI * 2);
+        mmCtx.fill();
+      }
     }
 
     const cam = cameraRef.current;
@@ -1554,7 +2050,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     mmCtx.fillStyle = hexToRgba(token.colorPrimary, 0.08);
     mmCtx.fillRect(vx - vw / 2, vy - vh / 2, vw, vh);
     mmCtx.restore();
-  }, [token, dimensions]);
+  }, [token, dimensions, communities]);
 
   const getMinimapWorldBounds = useCallback(() => {
     const nodes = physNodesRef.current;
@@ -1617,6 +2113,15 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     const rect = canvasRef.current!.getBoundingClientRect();
     const sx = e.clientX - rect.left;
     const sy = e.clientY - rect.top;
+
+    // 聚合节点点击：展开/收起社区（优先于普通节点/平移）
+    const clusterId = findClusterAt(sx, sy);
+    if (clusterId !== null) {
+      suppressAutoFocusRef.current = true;
+      toggleCluster(clusterId);
+      return;
+    }
+
     const nodeId = findNodeAt(sx, sy);
 
     if (nodeId) {
@@ -1632,7 +2137,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       panRef.current = { startX: e.clientX, startY: e.clientY, camX: cameraRef.current.x, camY: cameraRef.current.y };
       onDeselect?.();
     }
-  }, [findNodeAt, onNodeClick, onDeselect]);
+  }, [findNodeAt, findClusterAt, toggleCluster, onNodeClick, onDeselect]);
 
   const handleMouseMove = useCallback((e: ReactMouseEvent<HTMLCanvasElement>) => {
     const rect = canvasRef.current!.getBoundingClientRect();
@@ -1658,6 +2163,23 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       cameraRef.current.y = panRef.current.camY + dy;
     } else {
       // hover 检测
+      // 聚合节点 hover 优先（聚类折叠模式）
+      const clusterId = findClusterAt(sx, sy);
+      if (clusterId !== null) {
+        if (hoverClusterRef.current !== clusterId) {
+          hoverClusterRef.current = clusterId;
+          canvasRef.current!.style.cursor = "pointer";
+        }
+        if (hoverNodeRef.current) {
+          hoverNodeRef.current = null;
+          onNodeHover?.(null);
+          tooltipVisibleRef.current = false;
+          setTooltipNodeIdState(null);
+        }
+        return;
+      }
+      hoverClusterRef.current = null;
+
       const nodeId = findNodeAt(sx, sy);
       if (nodeId !== hoverNodeRef.current) {
         hoverNodeRef.current = nodeId;
@@ -1682,7 +2204,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         tooltipPosRef.current = { x: tooltipX, y: tooltipY };
       }
     }
-  }, [findNodeAt, onNodeHover, dimensions]);
+  }, [findNodeAt, findClusterAt, onNodeHover, dimensions]);
 
   const handleMouseUp = useCallback(() => {
     if (dragRef.current) {
@@ -1719,6 +2241,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
   const handleMouseLeave = useCallback(() => {
     hoverNodeRef.current = null;
+    hoverClusterRef.current = null;
     mouseScreenRef.current = { x: 0, y: 0, active: false };
     tooltipVisibleRef.current = false;
     setTooltipNodeIdState(null);
@@ -2005,19 +2528,29 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
             break;
           case "h":
           case "H":
-            // 切换鱼眼模式
+            // 切换鱼眼模式（同步 state 使工具栏按钮状态一致）
             fisheyeEnabledRef.current = !fisheyeEnabledRef.current;
+            setFisheyeEnabled(fisheyeEnabledRef.current);
             break;
           case "l":
           case "L":
-            // 切换聚类模式
+            // 切换聚类模式（同步 state 使工具栏按钮状态一致）
             clusterModeRef.current = !clusterModeRef.current;
+            setClusterMode(clusterModeRef.current);
+            break;
+          case "p":
+          case "P":
+            // 切换粒子流动（默认关闭；同步 state 使工具栏按钮状态一致）
+            particlesEnabledRef.current = !particlesEnabledRef.current;
+            setParticlesEnabled(particlesEnabledRef.current);
             break;
         }
       }
 
       // Delete/Backspace 删除（需二次确认）
       if ((e.key === "Delete" || e.key === "Backspace") && selectedNodeIdRef.current && !isInputFocused) {
+        // 阻止 Backspace 在浏览器中触发"返回上一页"，避免误操作离开图谱页
+        e.preventDefault();
         const nodeId = selectedNodeIdRef.current;
         if (pendingDeleteRef.current === nodeId) {
           pendingDeleteRef.current = null;
@@ -2057,12 +2590,35 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     const nodes = physNodesRef.current;
     if (nodes.length === 0) { return; }
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    // cluster mode 下折叠节点的位置仍是原始坐标（远离聚合质心），
+    // 若参与包围盒会导致 fitAll 后聚合节点挤在角落；
+    // 此模式下用聚合几何 + 未折叠节点计算包围盒
+    const clusterGeoms = clusterGeomRef.current;
+    const collapsed = collapsedRef.current;
+    const communitiesMap = communitiesRef.current;
+    const isClusterActive = clusterModeRef.current && communitiesMap && collapsed.size > 0;
     for (const n of nodes) {
+      if (isClusterActive && communitiesMap) {
+        const cid = communitiesMap.get(n.id);
+        if (cid !== undefined && collapsed.has(cid)) {
+          continue; // 折叠节点不参与包围盒
+        }
+      }
       if (n.x < minX) { minX = n.x; }
       if (n.y < minY) { minY = n.y; }
       if (n.x > maxX) { maxX = n.x; }
       if (n.y > maxY) { maxY = n.y; }
     }
+    // 加入聚合节点的包围盒
+    if (isClusterActive) {
+      for (const [, geom] of clusterGeoms) {
+        if (geom.cx < minX) { minX = geom.cx; }
+        if (geom.cy < minY) { minY = geom.cy; }
+        if (geom.cx > maxX) { maxX = geom.cx; }
+        if (geom.cy > maxY) { maxY = geom.cy; }
+      }
+    }
+    if (!isFinite(minX)) { return; }
     const bboxW = maxX - minX;
     const bboxH = maxY - minY;
     const targetZoom = Math.min(
@@ -2138,7 +2694,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     svgParts.push(
       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${viewBoxW} ${viewBoxH}" width="${viewBoxW}" height="${viewBoxH}">`,
     );
-    svgParts.push(`<rect width="100%" height="100%" fill="${token.colorBgContainer}"/>`);
+    svgParts.push(`<rect width="100%" height="100%" fill="${escapeXml(token.colorBgContainer)}"/>`);
 
     // 绘制边
     for (let i = 0; i < edges.length; i++) {
@@ -2152,7 +2708,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       const x2 = t.x + offsetX;
       const y2 = t.y + offsetY;
       svgParts.push(
-        `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${em.color}" stroke-width="${em.width}" opacity="0.7"/>`,
+        `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${
+          escapeXml(em.color)
+        }" stroke-width="${em.width}" opacity="0.7"/>`,
       );
     }
 
@@ -2164,13 +2722,13 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       const size = sizeCache.get(node.id) || 6;
       const cx = node.x + offsetX;
       const cy = node.y + offsetY;
-      svgParts.push(`<circle cx="${cx}" cy="${cy}" r="${size}" fill="${color}" opacity="0.9"/>`);
+      svgParts.push(`<circle cx="${cx}" cy="${cy}" r="${size}" fill="${escapeXml(color)}" opacity="0.9"/>`);
       // 标签
       const label = meta.title.length > 20 ? meta.title.slice(0, 18) + "…" : meta.title;
       svgParts.push(
-        `<text x="${cx}" y="${
-          cy + size + 12
-        }" text-anchor="middle" font-size="10" fill="${token.colorText}" font-family="Inter, system-ui, sans-serif">${label}</text>`,
+        `<text x="${cx}" y="${cy + size + 12}" text-anchor="middle" font-size="10" fill="${
+          escapeXml(token.colorText)
+        }" font-family="Inter, system-ui, sans-serif">${escapeXml(label)}</text>`,
       );
     }
 
@@ -2193,28 +2751,49 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     }
 
     initializePositions(nodes, dimensions.width, dimensions.height);
+
+    // 集群力模式下，重置时同步社区质心，Worker step 会据此收敛
     const enableClusters = clusterModeRef.current && communities;
-    const config: PhysicsConfig = {
-      theta: 0.5,
-      repulsion: 6000,
-      gravity: 0.01,
-      damping: 0.92,
-      dt: 0.25,
-      springForce: 0.04,
-      springDamping: 0.85,
-      maxVelocity: 4,
-      clusterForce: enableClusters ? 0.15 : undefined,
-    };
-    const centroids = enableClusters ? computeCommunityCentroids(nodes, communities!) : undefined;
-    for (let i = 0; i < 60; i++) {
-      stepPhysics(
-        nodes,
-        physEdgesRef.current,
-        config,
-        undefined,
-        enableClusters ? communities : undefined,
-        centroids,
-      );
+    const centroids = enableClusters
+      ? computeCommunityCentroids(nodes, communities!)
+      : undefined;
+    if (enableClusters) {
+      communityCentroidsRef.current = centroids!;
+    }
+
+    // 同步新布局到 Worker（避免主线程同步跑 Barnes-Hut 冻结 UI）
+    const worker = workerRef.current;
+    if (worker && workerInitializedRef.current) {
+      const positions = new Float64Array(nodes.length * 2);
+      for (let i = 0; i < nodes.length; i++) {
+        positions[i * 2] = nodes[i].x;
+        positions[i * 2 + 1] = nodes[i].y;
+      }
+      worker.postMessage({ type: "reset", payload: { positions } } as WorkerMessage);
+      pendingStepRef.current = false;
+    } // Worker 未就绪时：主线程短暂收敛（仅小图，避免大图卡顿——大图 Worker 几乎总是就绪）
+    else if (nodes.length <= 8000) {
+      const config: PhysicsConfig = {
+        theta: 0.5,
+        repulsion: 6000,
+        gravity: 0.01,
+        damping: 0.92,
+        dt: 0.25,
+        springForce: 0.04,
+        springDamping: 0.85,
+        maxVelocity: 4,
+        clusterForce: enableClusters ? 0.15 : undefined,
+      };
+      for (let i = 0; i < 30; i++) {
+        stepPhysics(
+          nodes,
+          physEdgesRef.current,
+          config,
+          undefined,
+          enableClusters ? communities : undefined,
+          centroids,
+        );
+      }
     }
 
     // 保存新布局
@@ -2330,6 +2909,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     >
       <canvas
         ref={canvasRef}
+        role="application"
+        aria-label={t("wiki.graph.canvasAriaLabel")}
         style={{
           display: "block",
           width: "100%",
@@ -2587,6 +3168,25 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
             ◈
           </button>
         </Tooltip>
+        {/* 粒子流动 toggle（默认关闭，对齐 Obsidian 静态细边） */}
+        <Tooltip title={particlesEnabled ? t("wiki.graph.particlesOn") : t("wiki.graph.particlesOff")}>
+          <button
+            onClick={() => setParticlesEnabled((v) => !v)}
+            style={{
+              ...ctrlBtnStyle,
+              width: 24,
+              height: 24,
+              minWidth: 24,
+              background: particlesEnabled ? `${token.colorPrimary}20` : "transparent",
+              border: "none",
+              color: particlesEnabled ? token.colorPrimary : token.colorTextSecondary,
+            }}
+            onMouseEnter={hoverBtnStyle}
+            onMouseLeave={leaveBtnStyle}
+          >
+            <Sparkles size={14} />
+          </button>
+        </Tooltip>
         <div style={{ width: 1, height: 14, background: token.colorBorderSecondary, margin: "0 2px" }} />
         <Tooltip title={t("wiki.graph.fullscreen")}>
           <button
@@ -2785,9 +3385,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
               {/* 统计 */}
               <div style={{ display: "flex", gap: 10, fontSize: 11, color: token.colorTextSecondary, marginBottom: 6 }}>
-                <span>→ {meta.linkCount}</span>
-                <span>← {meta.backlinkCount}</span>
-                <span>Σ {meta.linkCount + meta.backlinkCount}</span>
+                <span>{t("wiki.graph.linksCount", { count: meta.linkCount })}</span>
+                <span>{t("wiki.graph.backlinksCount", { count: meta.backlinkCount })}</span>
+                <span>{t("wiki.graph.totalDegree", { count: meta.linkCount + meta.backlinkCount })}</span>
               </div>
 
               {/* 路径 */}
@@ -2855,7 +3455,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
               color: token.colorTextSecondary,
               cursor: "pointer",
             }}
-            title={minimapOpen ? "Collapse minimap" : "Expand minimap"}
+            title={minimapOpen ? t("wiki.graph.collapseMinimap") : t("wiki.graph.expandMinimap")}
+            aria-label={minimapOpen ? t("wiki.graph.collapseMinimap") : t("wiki.graph.expandMinimap")}
           >
             {minimapOpen ? "▾" : "▴"}
           </button>
@@ -2864,6 +3465,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
               ref={minimapRef}
               width={MINIMAP_W}
               height={MINIMAP_H}
+              role="application"
+              aria-label={t("wiki.graph.minimapAriaLabel")}
               onMouseDown={handleMinimapMouseDown}
               onMouseMove={handleMinimapMouseMove}
               onMouseUp={handleMinimapMouseUp}
