@@ -217,20 +217,40 @@ fn extract_verdict_str(v) {
     ""
 }
 
-// validate_verdict_schema: 深度字段校验
+// validate_verdict_schema: 深度字段校验与自动归一化修复
 // 检查：1) bull_score + bear_score 自洽性 2) verdict 与评分方向一致性 3) confidence 范围
-// 返回问题列表（空数组表示无问题）
-fn validate_verdict_schema(verdict_data, analyst_name) {
+// 返回修复后的 verdict_data 和问题列表
+fn validate_and_fix_verdict_schema(verdict_data, analyst_name) {
     let issues = [];
-    if type_of(verdict_data) != "map" { return issues; }
+    let fixed_data = verdict_data; // 准备进行修改的副本
 
-    // 1. bull_score + bear_score 自洽性检查（允许 10 误差）
+    if type_of(verdict_data) != "map" { return { "data": fixed_data, "issues": issues }; }
+
+    // 1. bull_score + bear_score 自洽性检查与修复
     let bs = extract_bull_score(verdict_data);
     let bes = extract_bear_score(verdict_data);
+    
     if present(bs) && present(bes) {
         let sum = bs + bes;
+        // 如果总和偏离 100 超过 10，触发告警
         if sum < 90.0 || sum > 110.0 {
             issues.push(`[${analyst_name}] 评分不自洽: bull_score + bear_score = ${sum} (应约为 100)`);
+            
+            // 自动归一化修复（强制修复，确保数据自洽）
+            // 防止除以0
+            if sum > 0.0 {
+                let new_bs = round((bs / sum) * 100.0);
+                let new_bes = round((bes / sum) * 100.0);
+                
+                // 修正后的分数写回
+                fixed_data["bull_score"] = new_bs;
+                fixed_data["bear_score"] = new_bes;
+                
+                issues.push(`[${analyst_name}] 已自动修复评分: bull_score -> ${new_bs}, bear_score -> ${new_bes} (归一化至 100)`);
+            }
+        } else if sum < 95.0 || sum > 105.0 {
+            // 轻微偏离（5-10之间），仅告警，不强制修复
+            issues.push(`[${analyst_name}] 评分轻微偏离: bull_score + bear_score = ${sum} (建议约为 100)`);
         }
     }
 
@@ -239,11 +259,16 @@ fn validate_verdict_schema(verdict_data, analyst_name) {
     if v != "" && present(bs) && present(bes) {
         let is_bull = v.contains("看多") || v.contains("看涨") || v.contains("偏多");
         let is_bear = v.contains("看空") || v.contains("看跌") || v.contains("偏空");
-        if is_bull && bs <= bes {
-            issues.push(`[${analyst_name}] 逻辑矛盾: verdict='${v}' 但 bull_score(${bs}) <= bear_score(${bes})`);
+        
+        // 如果评分被修复，使用修复后的分数进行判断
+        let effective_bs = present(fixed_data["bull_score"]) ? fixed_data["bull_score"].to_float() : bs;
+        let effective_bes = present(fixed_data["bear_score"]) ? fixed_data["bear_score"].to_float() : bes;
+
+        if is_bull && effective_bs <= effective_bes {
+            issues.push(`[${analyst_name}] 逻辑矛盾: verdict='${v}' 但 bull_score(${effective_bs}) <= bear_score(${effective_bes})`);
         }
-        if is_bear && bes <= bs {
-            issues.push(`[${analyst_name}] 逻辑矛盾: verdict='${v}' 但 bear_score(${bes}) <= bull_score(${bs})`);
+        if is_bear && effective_bes <= effective_bs {
+            issues.push(`[${analyst_name}] 逻辑矛盾: verdict='${v}' 但 bear_score(${effective_bes}) <= bull_score(${effective_bs})`);
         }
     }
 
@@ -252,6 +277,8 @@ fn validate_verdict_schema(verdict_data, analyst_name) {
     if conf >= 0.0 {
         if conf > 100.0 {
             issues.push(`[${analyst_name}] 置信度越界: confidence=${conf} (超出 0-100)`);
+            // 自动修复 confidence
+            fixed_data["confidence"] = 100.0;
         }
         // 极低置信度也告警
         if conf > 0.0 && conf < 10.0 {
@@ -259,7 +286,13 @@ fn validate_verdict_schema(verdict_data, analyst_name) {
         }
     }
 
-    issues
+    { "data": fixed_data, "issues": issues }
+}
+
+// 保留旧接口以兼容
+fn validate_verdict_schema(verdict_data, analyst_name) {
+    let result = validate_and_fix_verdict_schema(verdict_data, analyst_name);
+    result["issues"]
 }
 
 // report_quality: 算法化报告质量分（0-100）

@@ -1,6 +1,6 @@
 # AxAgent 角色配置文件
 # 优先级：DB > 此文件 > 内置枚举
-# 注意：OPC 核心角色（CEO/CTO/CFO/COO/CMO/CPO）和业务岗位在 roles.rs 中定义
+# 注意：OPC 核心角色（CEO/CTO/CFO/COO/CMO/CPO）和运营角色在 roles.rs 中定义
 #       本文件用于补充专业角色和额外的 OPC 扩展角色
 schema_version: 1
 
@@ -26,7 +26,7 @@ roles:
     max_concurrent: 1
     timeout_seconds: 900
 
-  # ── OPC 扩展业务岗位 ─────────────────────────────────
+  # ── OPC 扩展运营角色 ─────────────────────────────────
   # 注意：opc_financial_clerk、opc_operations_manager、opc_sales_rep、opc_business_analyst
   #       已在 roles.rs 中定义，这里不再重复
 

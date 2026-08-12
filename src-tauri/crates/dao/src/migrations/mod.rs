@@ -16,8 +16,7 @@
 //!   - v200 INT4→INT8 ALTER 通道与 v100 pg_ddl() 类型转换重复
 //!   - 多次数据转换逻辑相互覆盖，难以维护
 //! - 现已合并为 v100 单一基线：
-//!   - v101_business_roles / v102_mission_hash / v103_workflow_reflections
-//!     的字段和表全部合并到 v100 PHASE 2/8/9/10
+//!   - 旧版 v101–v103 的字段和表全部合并到 v100 PHASE 2/8/9/10
 //!   - v200_pg_int4_to_int8_axinvest 删除（pg_ddl 在 CREATE TABLE 时一次性
 //!     产出正确类型，无需二次 ALTER）
 //!   - 所有 ALTER TABLE 补字段通道删除（字段直接在 CREATE TABLE 中建好）
@@ -74,7 +73,7 @@ pub mod v214_opc_experience;
 pub mod v215_opc_rl_experience;
 pub mod v216_opc_content_assets;
 pub mod v217_opc_publish_schedules;
-pub mod v218_merge_business_roles;
+pub mod v218_extend_agent_roles;
 pub mod v219_trade_intent_audit;
 pub mod v220_narrative_structure;
 pub mod v221_demand_discovery;
@@ -305,8 +304,8 @@ const MIGRATIONS: &[Migration] = &[
     },
     Migration {
         version: 218,
-        description: "v218_merge_business_roles: agent_roles 扩展 8 个岗位字段（responsibilities/decision_authority/reports_to 等）",
-        up: |db| Box::pin(v218_merge_business_roles::up(db)),
+        description: "v218: agent_roles 扩展 8 个字段（responsibilities/decision_authority/reports_to 等）",
+        up: |db| Box::pin(v218_extend_agent_roles::up(db)),
     },
     Migration {
         version: 219,

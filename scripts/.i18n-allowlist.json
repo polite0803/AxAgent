@@ -761,7 +761,7 @@
       "phase": 3
     },
     {
-      "file": "src/components/settings/BusinessRoleManager.tsx",
+      "file": "src/components/settings/AgentRoleManager.tsx",
       "lines": "3,5,6,7,8,38,62,145",
       "reason": "硬编码中文字符串",
       "phase": 3
@@ -2705,7 +2705,7 @@
       "phase": 3
     },
     {
-      "file": "src/stores/feature/businessRoleStore.ts",
+      "file": "src/stores/feature/agentRoleStore.ts",
       "lines": "3,5,6,7,9,10,11,20,21,22,44,57,72,96,97,125",
       "reason": "硬编码中文字符串",
       "phase": 3
@@ -3005,7 +3005,7 @@
       "phase": 3
     },
     {
-      "file": "src/types/businessRole.ts",
+      "file": "src/types/agentRole.ts",
       "lines": "3,4,5,6,7,8,11,12,13,17,21,24,25,26,32,34,36,38,40,42,44,56,57,60,61,62,65,71,72,73,80",
       "reason": "硬编码中文字符串",
       "phase": 3

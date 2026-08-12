@@ -153,40 +153,15 @@ pub async fn seed_screenshot_portfolio_diagnosis_template(
                 continue_on_fail: false,
             },
             config: AgentNodeConfig {
-                system_prompt: r#"你是 A 股持仓截图诊断助手。任务非常简单：调用 `screenshot_diagnosis_create_from_image` 工具完成截图诊断全流程。
+                system_prompt: r#"调用 `screenshot_diagnosis_create_from_image` 工具完成截图诊断全流程。
 
-## 工具调用规则
+【输入参数】
+- image_base64: {{image_base64}}
+- source_app: {{source_app}}（可选，若空传 null）
+- provider_id: {{provider_id}}
+- model_id: {{model_id}}
 
-1. 必须调用 `screenshot_diagnosis_create_from_image` 工具，参数从触发器变量获取：
-   - image_base64: {{image_base64}}
-   - source_app: {{source_app}}（可选，若空传 null）
-   - provider_id: {{provider_id}}
-   - model_id: {{model_id}}
-
-2. 工具返回的 JSON 即为诊断结果，包含：
-   - id: 诊断记录 ID
-   - imageHash: 截图 SHA256（去重用）
-   - ocrText: OCR 提取的完整文本
-   - positionsJson: 结构化持仓 JSON 数组
-   - diagnosisJson: 7 项风险指标 JSON
-   - narrative: LLM 生成的中文诊断说明
-   - recommendedActions: 建议动作数组
-   - status: 状态（active/archived/failed）
-
-3. 工具内部已计算 7 项风险指标（concentration_risk / overlap_positions / defense_ratio / us_exposure / weak_exposure / repeated_positions / core_concentration），无需再次计算。
-
-4. 工具内部已持久化到 screenshot_diagnoses 表，无需再次写入。
-
-## 输出格式
-
-直接输出工具返回的 JSON（不要包装、不要 markdown 代码块、不要额外文本）。
-
-## 禁区
-
-- 不要尝试用 LLM 自行解析截图，必须调用工具
-- 不要修改工具返回的 JSON 字段
-- 不要重复调用工具（同一截图 hash 会自动去重，返回既有诊断）
-- 工具调用失败时，直接输出 {"error": "<错误信息>"}"#.into(),
+请根据持仓截图诊断方法论完成任务，直接输出工具返回的 JSON 结果。"#.into(),
                 context_sources: vec!["trigger".into()],
                 input_mapping: [
                     ("image_base64".to_string(), "image_base64".to_string()),
@@ -203,11 +178,11 @@ pub async fn seed_screenshot_portfolio_diagnosis_template(
                 tools: agent_tools,
                 exposed_tools: vec![],
                 output_mode: OutputMode::Json,
-                agent_profile_id: None,
+                agent_profile_id: Some("stock-screenshot-diagnoser".into()),
                 max_tool_rounds: Some(2), // 限制为 2 轮（1 轮工具调用 + 1 轮输出）
                 execution_mode: Some("react".into()),
                 rag_source_ids: vec![],
-                model_role: Some("screenshot-diagnoser".into()),
+                model_role: None,
                 consistency_check: None,
                 hallucination_guard: None,
                 fallback_model: None,

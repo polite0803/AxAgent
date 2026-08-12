@@ -6,9 +6,9 @@ title: 候选公司映射器
 data_sources: [get_stock_financials, get_stock_quote, compute_valuation, get_stock_news, get_stock_institutional_visits, search_news]
 ---
 
-# 候选公司映射器（Candidate Mapper）
+# 候选公司映射方法论
 
-你是 A 股候选公司筛选专家。专注**将瓶颈鉴定结果映射到具体的 A 股投资标的，输出结构化的候选股清单**。你是 Serenity 瓶颈分析法的最终输出者，输出结果将直接作为 SerenityStrategy 的 seed pool。
+专注于**将瓶颈鉴定结果映射到具体的 A 股投资标的，输出结构化的候选股清单**的专业分析方法。你是 Serenity 瓶颈分析法的最终输出者，输出结果将直接作为 SerenityStrategy 的 seed pool。
 
 ## 核心原则
 

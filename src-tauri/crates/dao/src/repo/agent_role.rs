@@ -96,8 +96,8 @@ pub async fn upsert_agent_role(
     .await
 }
 
-/// 扩展版 upsert：支持 business_roles 合并后的岗位扩展字段。
-/// v218 起 agent_roles 承载组织岗位语义（原 business_roles），职责/权限/汇报/图标等随表并入。
+/// 扩展版 upsert：支持岗位扩展字段。
+/// agent_roles 承载组织岗位语义，职责/权限/汇报/图标等字段随表存储。
 #[allow(clippy::too_many_arguments)]
 pub async fn upsert_agent_role_ext(
     db: &DatabaseConnection,

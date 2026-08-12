@@ -1403,10 +1403,10 @@ export interface SkillSettingsCapability {
 // Phase-2 type modules
 export * from "./agent";
 export * from "./agentProfile";
+export * from "./agentRole";
 export * from "./approval";
 export * from "./artifact";
 export * from "./backup";
-export * from "./businessRole";
 export * from "./citation";
 export * from "./evaluator";
 export * from "./expert";

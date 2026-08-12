@@ -171,61 +171,13 @@ pub async fn seed_news_cross_market_template(
                 continue_on_fail: false,
             },
             config: AgentNodeConfig {
-                system_prompt: r#"你是 A 股产业链传导分析官。
-
-任务：基于用户输入的新闻文本，识别产业链传导路径，输出跨市场受影响标的清单。
+                system_prompt: r#"基于用户输入的新闻文本，识别产业链传导路径，输出跨市场受影响标的清单。
 
 执行步骤：
-1. 调用 map_news_to_cross_market_stocks(news_text=trigger.news_text) 工具
-   - 返回值包含命中的产业链列表（chain_id / chain_name / matched_keywords / activated_nodes / direction / strength / propagation）
-   - 若返回空数组，说明新闻不涉及预定义产业链，直接输出 {"hit_chains": [], "summary": "未匹配到产业链"}
+1. 调用 map_news_to_cross_market_stocks 工具（news_text 来自触发器变量）
+2. 对每条命中链，调用 get_industry_chain_propagation 工具获取完整传导路径
 
-2. 对每条命中链，调用 get_industry_chain_propagation(chain_id, start_node_id=activated_nodes[0], direction=hit.direction) 工具
-   - 获取完整传导路径（含 A 股 / 美股 / 港股代码、累积强度、滞后天数）
-
-3. 综合输出 JSON 对象，结构如下：
-{
-  "news_summary": "新闻一句话摘要（≤50 字）",
-  "hit_chains": [
-    {
-      "chain_id": "ai_compute",
-      "chain_name": "AI 算力链",
-      "direction": "positive",
-      "strength": 0.9,
-      "matched_keywords": ["英伟达", "光模块"],
-      "propagation_path": [
-        {
-          "node_id": "gpu",
-          "node_name": "GPU/AI 加速芯片",
-          "codes": ["688256"],
-          "us_codes": ["NVDA", "AMD"],
-          "hk_codes": [],
-          "accumulated_strength": 1.0,
-          "total_lag_days": 0,
-          "llm_rationale": "英伟达 CapEx 上修直接利好国产 GPU 替代"
-        }
-      ]
-    }
-  ],
-  "affected_stocks": {
-    "a_share": [{"code": "688256", "name": "寒武纪", "chain": "ai_compute", "direction": "positive", "strength": 0.9}],
-    "us": [{"code": "NVDA", "chain": "ai_compute", "direction": "positive", "strength": 1.0}],
-    "hk": []
-  },
-  "overall_assessment": {
-    "impact_magnitude": "high | medium | low",
-    "persistence": "1d | 1w | 1m",
-    "key_risk": "传导路径中的关键风险点",
-    "confidence": 0.85
-  }
-}
-
-要求：
-1. 调用工具时严格使用上游 trigger 节点传入的 news_text，不要自行编造
-2. llm_rationale 字段必须基于新闻原文与产业链节点语义给出，禁止泛泛而谈
-3.affected_stocks 中股票代码必须来自工具返回的 propagation_path，不要额外添加
-4. strength / confidence 取值范围 0-1，方向只允许 positive / negative / neutral
-5. 若新闻不涉及任何预定义产业链，hit_chains 返回空数组，overall_assessment.impact_magnitude="low""#.into(),
+请根据产业链传导分析方法论完成任务，输出 JSON 结果。"#.into(),
                 context_sources: vec!["trigger".into()],
                 input_mapping: std::collections::HashMap::new(),
                 output_var: "cross-market-output".into(),
@@ -235,11 +187,11 @@ pub async fn seed_news_cross_market_template(
                 tools: agent_tools,
                 exposed_tools: vec![],
                 output_mode: OutputMode::Json,
-                agent_profile_id: None,
+                agent_profile_id: Some("stock-industry-chain-analyzer".into()),
                 max_tool_rounds: Some(6),
                 execution_mode: Some("react".into()),
                 rag_source_ids: vec![],
-                model_role: Some("industry-chain-analyzer".into()),
+                model_role: None,
                 consistency_check: None,
                 hallucination_guard: None,
                 fallback_model: None,

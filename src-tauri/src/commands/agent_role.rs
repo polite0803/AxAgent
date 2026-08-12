@@ -175,7 +175,7 @@ pub async fn save_agent_role(
     system_prompt: String,
     active_domains: Vec<String>,
     source: String,
-    // v218: 岗位扩展字段（原 business_roles 并入 agent_roles）
+    // 岗位扩展字段
     responsibilities: Option<String>,
     decision_authority: Option<String>,
     reports_to: Option<String>,

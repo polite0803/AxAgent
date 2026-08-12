@@ -76,7 +76,9 @@ impl OpcIndustryAdapter for AccountingIndustryAdapter {
                     "OpcListInvoices".to_string(),
                     "OpcListCustomers".to_string(),
                 ],
-                agent_profile_id: None,
+                agent_profile_id: Some(
+                    "opc-accounting_lead-accounting-financial-clerk".to_string(),
+                ),
                 error_handling: "stop".to_string(),
                 order: 1,
                 inputs: user_inputs.clone(),
@@ -90,7 +92,9 @@ impl OpcIndustryAdapter for AccountingIndustryAdapter {
                         .to_string(),
                 ),
                 tools: vec!["OpcGetFinancialReport".to_string(), "OpcListInvoices".to_string()],
-                agent_profile_id: None,
+                agent_profile_id: Some(
+                    "opc-accounting_lead-accounting-financial-approver".to_string(),
+                ),
                 error_handling: "stop".to_string(),
                 order: 2,
                 inputs: user_inputs.clone(),
@@ -104,7 +108,9 @@ impl OpcIndustryAdapter for AccountingIndustryAdapter {
                         .to_string(),
                 ),
                 tools: vec!["OpcSendNotification".to_string(), "OpcListCustomers".to_string()],
-                agent_profile_id: None,
+                agent_profile_id: Some(
+                    "opc-accounting_lead-accounting-financial-assistant".to_string(),
+                ),
                 error_handling: "continue".to_string(),
                 order: 3,
                 inputs: user_inputs.clone(),
@@ -118,7 +124,9 @@ impl OpcIndustryAdapter for AccountingIndustryAdapter {
                         .to_string(),
                 ),
                 tools: vec!["OpcRecordKpi".to_string(), "OpcGetFinancialReport".to_string()],
-                agent_profile_id: None,
+                agent_profile_id: Some(
+                    "opc-accounting_lead-accounting-financial-analyst".to_string(),
+                ),
                 error_handling: "continue".to_string(),
                 order: 4,
                 inputs: user_inputs,

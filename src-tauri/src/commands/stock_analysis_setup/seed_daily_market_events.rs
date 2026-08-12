@@ -160,32 +160,9 @@ pub async fn seed_daily_market_events_template(
                 continue_on_fail: false,
             },
             config: AgentNodeConfig {
-                system_prompt: r#"你是 A 股市场主线提炼官。
+                system_prompt: r#"基于今日多源数据（热点股 / 财联社快讯 / 龙虎榜 / 北向资金），提炼 3-8 条市场主线。
 
-任务：基于今日多源数据（热点股 / 财联社快讯 / 龙虎榜 / 北向资金），提炼 3-8 条市场主线。
-
-每条主线包含：
-- theme：主题名（2-6 字，如 "AI 算力" / "光模块" / "新能源车" / "医药" / "周期" / "消费"）
-- theme_category：大类（科技 / 消费 / 周期 / 金融 / 医药 / 政策 / 其他）
-- narrative：1-2 句话故事线（说明今日该主题为何强 / 弱，关键催化）
-- representative_symbols：代表性标的 3-8 只（A 股 6 位代码）
-- strength_score：强度评分 0-100（综合涨停数 / 资金流入 / 龙头表现）
-- persistence：持续性判断（"1d" 一日游 / "1w" 一周 / "1m" 一月 / "fading" 减退 / "emerging" 新兴）
-- evidence：证据对象（包含 limit_up_count / north_bound_net / dragon_tiger_count 等关键字段）
-
-输出格式：JSON 对象，包含 mainline_date（YYYY-MM-DD）和 mainlines（数组）。
-{
-  "mainline_date": "2026-07-26",
-  "mainlines": [
-    { "theme": "...", "theme_category": "...", "narrative": "...", "representative_symbols": [...], "strength_score": 85, "persistence": "1w", "evidence": {...} }
-  ]
-}
-
-要求：
-1. 主题去重：同日同主题只输出一条，合并代表性标的
-2. 强度评分有据：涨停数 ≥5 / 北向净流入 ≥10 亿 / 龙虎榜上榜 → 80+；中等 50-80；弱 <50
-3. 持续性判断有据：新兴主题 emerging；连续 3 日活跃 1w；连续 5 日 1m；当日爆发但缺乏逻辑 1d；前期活跃今日走弱 fading
-4. 调用 market_mainline_batch_upsert 工具持久化结果（archive_missing=true）"#.into(),
+请根据市场主线综合分析方法论完成任务，调用 `market_mainline_batch_upsert` 工具持久化结果（archive_missing=true），输出 JSON 结果。"#.into(),
                 context_sources: vec!["trigger".into()],
                 input_mapping: std::collections::HashMap::new(),
                 output_var: "mainlines-output".into(),
@@ -195,11 +172,11 @@ pub async fn seed_daily_market_events_template(
                 tools: agent_tools,
                 exposed_tools: vec![],
                 output_mode: OutputMode::Json,
-                agent_profile_id: None,
+                agent_profile_id: Some("stock-market-synthesizer".into()),
                 max_tool_rounds: Some(8),
                 execution_mode: Some("react".into()),
                 rag_source_ids: vec![],
-                model_role: Some("market-synthesizer".into()),
+                model_role: None,
                 consistency_check: None,
                 hallucination_guard: None,
                 fallback_model: None,

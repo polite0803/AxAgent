@@ -8,17 +8,22 @@
 //!
 //! 反思阶段由现有 6h cron 接力（hindsight_date = analysis_date + expected_holding_days）。
 
+#![allow(dead_code)]
+#![allow(clippy::type_complexity)]
+
 use agent_macro::agent_command;
 use std::sync::Arc;
+use tokio::sync::Semaphore;
 
 use axagent_entities::{portfolio_holdings, reco_picks, stock_analyses, stock_pipeline_runs};
+use axagent_harness::workflow_types::{Variable, WorkflowEdge, WorkflowNode};
+use axagent_rt_workflow::work_engine::{ProgressCallback, RunOptions, StepProgressEvent};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set,
 };
 use serde::Serialize;
 use serde_json::json;
 use tauri::{AppHandle, Emitter, State};
-use tokio::sync::Semaphore;
 
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
@@ -99,9 +104,6 @@ async fn load_preseed_from_db(
     Some(seed)
 }
 
-/// 进度回调类型（线程安全）
-type ProgressCallback = Arc<dyn Fn(&str, &str) + Send + Sync>;
-
 /// 管道执行结果
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -117,7 +119,7 @@ pub struct PipelineResult {
 }
 
 /// 单只股票分析摘要
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AnalysisSummary {
     pub stock_code: String,
@@ -205,15 +207,15 @@ impl PipelineConfig {
 
 /// 管道执行内部函数（供 Tauri 命令和 cron 调用）
 ///
-/// 不依赖 `AppHandle`/`State`，适合批量/cron 调用。
-/// 进度通过可选的 `progress_callback` 回调推送。
+/// 使用 WorkEngine 加载工作流模板并执行，与股票分析工作流保持一致。
+/// 进度通过可选的回调推送。
 pub async fn run_stock_pipeline_inner(
     db: &sea_orm::DatabaseConnection,
     client: &Arc<axagent_astock_data::AStockClient>,
     engine: &Arc<axagent_rt_workflow::work_engine::WorkEngine>,
     config: &PipelineConfig,
     as_of_date: Option<&str>,
-    progress_callback: Option<ProgressCallback>,
+    progress_callback: Option<Arc<dyn Fn(&str, &str) + Send + Sync>>,
 ) -> Result<PipelineResult, String> {
     let run_id = uuid::Uuid::new_v4().to_string();
     let run_date = chrono::Utc::now().format("%Y-%m-%d").to_string();
@@ -237,48 +239,60 @@ pub async fn run_stock_pipeline_inner(
     .insert(db)
     .await;
 
-    let emit_step = |step: &str, detail: &str| {
-        if let Some(cb) = progress_callback.as_ref() {
-            cb(step, detail);
-        }
-    };
+    // 加载工作流模板
+    let loaded = load_pipeline_template(db).await?;
 
-    let result =
-        run_pipeline_steps(db, client, engine, config, as_of_date, &run_date, &run_id, &emit_step)
-            .await;
+    // 构建进度回调
+    let progress_cb: ProgressCallback = Arc::new(move |event: StepProgressEvent| {
+        if let Some(cb) = progress_callback.as_ref() {
+            let step = match event.status.as_str() {
+                "running" => format!("{}: 执行中", event.node_id),
+                "completed" => format!("{}: 完成", event.node_id),
+                s if s == "failed" || s == "timeout" => format!("{}: {}", event.node_id, s),
+                _ => event.node_id.clone(),
+            };
+            cb("pipeline_step", &step);
+        }
+        Box::pin(async move {})
+    });
+
+    // 注入变量
+    let variables = build_pipeline_variables(config, as_of_date, &run_date, &run_id);
+
+    // 创建工作流
+    let wf_name = format!("stock-pipeline-{run_id}");
+    let workflow =
+        engine.create_workflow(&wf_name, loaded.nodes, loaded.edges).await.map_err(|e| {
+            ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("创建工作流失败: {e}"))
+        })?;
+    let wf_id = workflow.id.clone();
+
+    // 组装运行选项
+    let mut opts = RunOptions::default().with_progress_callback(progress_cb);
+    opts.input = Some(json!({
+        "max_candidates": config.max_candidates,
+        "new_analysis_concurrency": config.new_analysis_concurrency,
+        "holdings_reassess_concurrency": config.holdings_reassess_concurrency,
+    }));
+    opts.variables = Some(variables);
+    opts.input_schema = loaded.input_schema;
+    opts.output_schema = loaded.output_schema;
+
+    // 执行工作流
+    let result = engine.run_workflow(&wf_id, opts).await;
 
     // 更新 pipeline_run 记录（成功/失败都更新）
     let completed_at = chrono::Utc::now().timestamp_millis();
-    match &result {
-        Ok(pipeline_result) => {
+    let pipeline_result = match result {
+        Ok(ref wf) if wf.status == axagent_rt_workflow::workflow_engine::WorkflowStatus::Failed => {
             let _ = stock_pipeline_runs::Entity::update_many()
                 .col_expr(
                     stock_pipeline_runs::Column::Status,
-                    sea_orm::sea_query::Expr::value("completed"),
+                    sea_orm::sea_query::Expr::value("failed"),
                 )
                 .col_expr(
-                    stock_pipeline_runs::Column::CandidatesJson,
-                    sea_orm::sea_query::Expr::value(
-                        serde_json::to_string(&pipeline_result.candidates).unwrap_or_default(),
-                    ),
-                )
-                .col_expr(
-                    stock_pipeline_runs::Column::NewAnalysesJson,
-                    sea_orm::sea_query::Expr::value(
-                        serde_json::to_string(&pipeline_result.new_analyses).unwrap_or_default(),
-                    ),
-                )
-                .col_expr(
-                    stock_pipeline_runs::Column::ReassessedJson,
-                    sea_orm::sea_query::Expr::value(
-                        serde_json::to_string(&pipeline_result.reassessed).unwrap_or_default(),
-                    ),
-                )
-                .col_expr(
-                    stock_pipeline_runs::Column::SummaryJson,
-                    sea_orm::sea_query::Expr::value(
-                        serde_json::to_string(&pipeline_result.summary).unwrap_or_default(),
-                    ),
+                    stock_pipeline_runs::Column::ErrorMessage,
+                    sea_orm::sea_query::Expr::value("工作流执行失败"),
                 )
                 .col_expr(
                     stock_pipeline_runs::Column::CompletedAt,
@@ -287,6 +301,13 @@ pub async fn run_stock_pipeline_inner(
                 .filter(stock_pipeline_runs::Column::Id.eq(run_id.clone()))
                 .exec(db)
                 .await;
+            Err("工作流执行失败".to_string())
+        },
+        Ok(_wf) => {
+            // 从工作流结果构建 PipelineResult
+            let pr = build_pipeline_result_from_workflow(&_wf, &run_id, &run_date);
+            update_pipeline_run_success(db, &run_id, &pr, completed_at).await;
+            Ok(pr)
         },
         Err(e) => {
             let _ = stock_pipeline_runs::Entity::update_many()
@@ -296,7 +317,7 @@ pub async fn run_stock_pipeline_inner(
                 )
                 .col_expr(
                     stock_pipeline_runs::Column::ErrorMessage,
-                    sea_orm::sea_query::Expr::value(e.clone()),
+                    sea_orm::sea_query::Expr::value(e.to_string()),
                 )
                 .col_expr(
                     stock_pipeline_runs::Column::CompletedAt,
@@ -305,107 +326,121 @@ pub async fn run_stock_pipeline_inner(
                 .filter(stock_pipeline_runs::Column::Id.eq(run_id.clone()))
                 .exec(db)
                 .await;
+            Err(e.to_string())
         },
-    }
+    };
 
-    result
+    let _ = client; // client 保留供未来扩展
+    pipeline_result
 }
 
-/// 执行管道的三个步骤：发现 → 分析新候选 → 持仓再评估 → 汇总
-async fn run_pipeline_steps(
+/// 加载股票管道工作流模板
+async fn load_pipeline_template(
     db: &sea_orm::DatabaseConnection,
-    client: &Arc<axagent_astock_data::AStockClient>,
-    engine: &Arc<axagent_rt_workflow::work_engine::WorkEngine>,
+) -> Result<crate::commands::stock_workflow::decision::LoadedTemplate, String> {
+    use axagent_entities::workflow_template;
+
+    let template = workflow_template::Entity::find_by_id("stock-pipeline")
+        .one(db)
+        .await
+        .map_err(|e| format!("查询工作流模板失败: {e}"))?
+        .ok_or("工作流模板 stock-pipeline 未种子化，请重启应用")?;
+
+    let nodes: Vec<WorkflowNode> =
+        serde_json::from_str(&template.nodes).map_err(|e| format!("解析模板节点失败: {e}"))?;
+    let edges: Vec<WorkflowEdge> =
+        serde_json::from_str(&template.edges).map_err(|e| format!("解析模板边失败: {e}"))?;
+
+    let input_schema = template.input_schema.as_ref().and_then(|s| serde_json::from_str(s).ok());
+    let output_schema = template.output_schema.as_ref().and_then(|s| serde_json::from_str(s).ok());
+    let variables = template.variables.as_ref().and_then(|v| serde_json::from_str(v).ok());
+
+    Ok(crate::commands::stock_workflow::decision::LoadedTemplate {
+        nodes,
+        edges,
+        input_schema,
+        output_schema,
+        variables,
+    })
+}
+
+/// 构建管道工作流变量
+fn build_pipeline_variables(
     config: &PipelineConfig,
     as_of_date: Option<&str>,
     run_date: &str,
     run_id: &str,
-    emit_step: &(dyn Fn(&str, &str) + Sync),
-) -> Result<PipelineResult, String> {
-    // P3-D12: 根据 vendor 健康度动态调节并发数，避免上游降级时雪崩。
-    // client.health_tracker 由 astock-data 维护（30s 滑动窗口、自动恢复），
-    // 这里仅在批量入口取一次快照，避免每次 acquire 都查健康表的开销。
-    let health_snapshot = client.health_tracker.get_all_health().await;
-    let (actual_new_conc, actual_reassess_conc, healthy_ratio) =
-        config.resolve_concurrency_with_vendor_health(&health_snapshot);
-    if (actual_new_conc, actual_reassess_conc)
-        != (config.new_analysis_concurrency, config.holdings_reassess_concurrency)
-    {
-        let msg = format!(
-            "[stock_pipeline] P3-D12 并发动态调节: vendor healthy_ratio={:.2} → \
-             new_analysis {}→{}, holdings_reassess {}→{}",
-            healthy_ratio,
-            config.new_analysis_concurrency,
-            actual_new_conc,
-            config.holdings_reassess_concurrency,
-            actual_reassess_conc,
-        );
-        tracing::warn!("{msg}");
-        emit_step("concurrency_adjusted", &msg);
-    } else {
-        tracing::info!(
-            "[stock_pipeline] P3-D12 vendor healthy_ratio={:.2} → 并发保持配置值 (new={}, reassess={})",
-            healthy_ratio,
-            actual_new_conc,
-            actual_reassess_conc,
-        );
-    }
+) -> Vec<Variable> {
+    vec![
+        Variable {
+            name: "max_candidates".into(),
+            var_type: "integer".into(),
+            value: serde_json::json!(config.max_candidates),
+            description: Some("候选股最大数量".into()),
+            is_secret: false,
+        },
+        Variable {
+            name: "new_analysis_concurrency".into(),
+            var_type: "integer".into(),
+            value: serde_json::json!(config.new_analysis_concurrency),
+            description: Some("新候选股分析并发数".into()),
+            is_secret: false,
+        },
+        Variable {
+            name: "holdings_reassess_concurrency".into(),
+            var_type: "integer".into(),
+            value: serde_json::json!(config.holdings_reassess_concurrency),
+            description: Some("持仓再评估并发数".into()),
+            is_secret: false,
+        },
+        Variable {
+            name: "as_of_date".into(),
+            var_type: "string".into(),
+            value: as_of_date
+                .map(|d| serde_json::Value::String(d.to_string()))
+                .unwrap_or(serde_json::Value::Null),
+            description: Some("指定分析日期".into()),
+            is_secret: false,
+        },
+        Variable {
+            name: "run_date".into(),
+            var_type: "string".into(),
+            value: serde_json::Value::String(run_date.to_string()),
+            description: Some("管道执行日期".into()),
+            is_secret: false,
+        },
+        Variable {
+            name: "run_id".into(),
+            var_type: "string".into(),
+            value: serde_json::Value::String(run_id.to_string()),
+            description: Some("管道运行ID".into()),
+            is_secret: false,
+        },
+    ]
+}
 
-    // ── 步骤 1: 股票发现 ──
-    emit_step("discovery", "开始股票发现");
-    let candidates = discover_candidates(db, client, config).await;
-    emit_step("discovery", &format!("发现 {} 只候选股", candidates.len()));
+/// 从工作流结果构建 PipelineResult
+fn build_pipeline_result_from_workflow(
+    wf: &axagent_rt_workflow::workflow_engine::Workflow,
+    run_id: &str,
+    run_date: &str,
+) -> PipelineResult {
+    // 从工作流结果中提取数据
+    let candidates = extract_var_from_results(&wf.results, "candidates")
+        .and_then(|v| serde_json::from_value::<Vec<String>>(v).ok())
+        .unwrap_or_default();
 
-    // ── 步骤 2: 新候选股分析 ──
-    emit_step("analyze_new", "开始新候选股分析");
-    let new_analyses = analyze_stocks_batch(
-        db,
-        client,
-        engine,
-        &candidates,
-        actual_new_conc,
-        as_of_date,
-        emit_step,
-    )
-    .await;
-    emit_step(
-        "analyze_new",
-        &format!(
-            "新候选股分析完成: {} 成功, {} 失败",
-            new_analyses.iter().filter(|a| a.status == "completed").count(),
-            new_analyses.iter().filter(|a| a.status == "failed").count()
-        ),
-    );
+    let new_analyses = extract_var_from_results(&wf.results, "new_analyses")
+        .and_then(|v| serde_json::from_value::<Vec<AnalysisSummary>>(v).ok())
+        .unwrap_or_default();
 
-    // ── 步骤 3: 持仓再评估 ──
-    emit_step("reassess_holdings", "开始持仓再评估");
-    let holding_codes =
-        get_holding_codes_with_cooldown(db, config.holdings_reassess_cooldown_days).await;
-    let reassessed = analyze_stocks_batch(
-        db,
-        client,
-        engine,
-        &holding_codes,
-        actual_reassess_conc,
-        as_of_date,
-        emit_step,
-    )
-    .await;
-    emit_step(
-        "reassess_holdings",
-        &format!(
-            "持仓再评估完成: {} 成功, {} 失败",
-            reassessed.iter().filter(|a| a.status == "completed").count(),
-            reassessed.iter().filter(|a| a.status == "failed").count()
-        ),
-    );
+    let reassessed = extract_var_from_results(&wf.results, "reassessed")
+        .and_then(|v| serde_json::from_value::<Vec<AnalysisSummary>>(v).ok())
+        .unwrap_or_default();
 
-    // ── 步骤 4: 汇总 ──
-    emit_step("summarize", "生成汇总报告");
-    let summary = build_summary(&candidates, &new_analyses, &reassessed, run_date);
-    emit_step("summarize", "管道执行完成");
+    let summary = extract_var_from_results(&wf.results, "summary").unwrap_or_else(|| json!({}));
 
-    Ok(PipelineResult {
+    PipelineResult {
         run_id: run_id.to_string(),
         run_date: run_date.to_string(),
         status: "completed".to_string(),
@@ -414,7 +449,61 @@ async fn run_pipeline_steps(
         reassessed,
         summary,
         error: None,
-    })
+    }
+}
+
+/// 从工作流 results 中提取变量值
+fn extract_var_from_results(
+    results: &std::collections::HashMap<String, serde_json::Value>,
+    var_name: &str,
+) -> Option<serde_json::Value> {
+    // 尝试从 results 中查找变量
+    for (key, value) in results {
+        if key.contains(var_name) {
+            return Some(value.clone());
+        }
+    }
+    None
+}
+
+/// 更新 pipeline_run 为成功状态
+async fn update_pipeline_run_success(
+    db: &sea_orm::DatabaseConnection,
+    run_id: &str,
+    pr: &PipelineResult,
+    completed_at: i64,
+) {
+    let _ = stock_pipeline_runs::Entity::update_many()
+        .col_expr(stock_pipeline_runs::Column::Status, sea_orm::sea_query::Expr::value("completed"))
+        .col_expr(
+            stock_pipeline_runs::Column::CandidatesJson,
+            sea_orm::sea_query::Expr::value(
+                serde_json::to_string(&pr.candidates).unwrap_or_default(),
+            ),
+        )
+        .col_expr(
+            stock_pipeline_runs::Column::NewAnalysesJson,
+            sea_orm::sea_query::Expr::value(
+                serde_json::to_string(&pr.new_analyses).unwrap_or_default(),
+            ),
+        )
+        .col_expr(
+            stock_pipeline_runs::Column::ReassessedJson,
+            sea_orm::sea_query::Expr::value(
+                serde_json::to_string(&pr.reassessed).unwrap_or_default(),
+            ),
+        )
+        .col_expr(
+            stock_pipeline_runs::Column::SummaryJson,
+            sea_orm::sea_query::Expr::value(serde_json::to_string(&pr.summary).unwrap_or_default()),
+        )
+        .col_expr(
+            stock_pipeline_runs::Column::CompletedAt,
+            sea_orm::sea_query::Expr::value(completed_at),
+        )
+        .filter(stock_pipeline_runs::Column::Id.eq(run_id.to_string()))
+        .exec(db)
+        .await;
 }
 
 /// 步骤 1: 股票发现 — 从 reco_picks 历史推荐构造种子池 + 调 `recommend_stocks` + 排除持仓 + 冷却去重

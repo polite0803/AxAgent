@@ -1305,7 +1305,7 @@ pub(super) fn parse_llm_response(
 
 /// 构造专家清单 brief，用于注入 LLM system prompt。
 ///
-/// 从 harness 全局 repository 查询角色（agent_roles，v218 起含原业务岗位）和专家，
+/// 从 harness 全局 repository 查询角色（agent_roles）和专家，
 /// 格式化为 Markdown 列表。任一 repository 未注册或查询失败时返回 None
 /// （不阻塞 LLM 调用，仅丢失清单信息）。
 ///

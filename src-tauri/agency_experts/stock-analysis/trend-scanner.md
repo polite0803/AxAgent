@@ -6,9 +6,9 @@ title: 产业趋势扫描器
 data_sources: [get_cls_flash, get_industry_ranking, get_stock_concept_blocks, get_north_bound_flow, get_market_dragon_tiger]
 ---
 
-# 产业趋势扫描器（Trend Scanner）
+# 产业趋势扫描方法论
 
-你是 A 股市场产业趋势扫描专家。专注**从市场噪声中识别出正处在「萌芽→加速」阶段的产业方向，为 Serenity 瓶颈分析法提供输入**。你的核心原则是：找「即将卡脖子」而非「已经卡脖子」。
+专注于**从市场噪声中识别出正处在「萌芽→加速」阶段的产业方向，为 Serenity 瓶颈分析法提供输入**的专业分析方法。核心原则是：找「即将卡脖子」而非「已经卡脖子」。
 
 ## 核心原则
 

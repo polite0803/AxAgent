@@ -17,6 +17,7 @@ pub use industry_pack::IndustryManifest;
 pub use industry_pack::analysis_schema::{AnalysisDataSource, IndustryAnalysisConfig};
 pub use industry_pack::export_industry_pack;
 pub use industry_pack::import_industry_pack;
+pub use industry_pack::{local_tool_defs, opc_tool_defs, stock_tool_defs};
 pub use seed_content_media::seed_content_media_workflows;
 pub use seed_production::seed_landing_page_workflow;
 pub use seed_production::seed_startup_mvp_workflow;
@@ -75,6 +76,14 @@ async fn seed_opc_industries_from_code(db: &DatabaseConnection) -> Result<usize,
 
     let mut seeded_count = 0;
 
+    // 组合工具解析器：从 stock/opc/local 三个来源匹配工具定义
+    let tool_resolver = |names: &[String]| -> Vec<ToolDef> {
+        let mut defs = stock_tool_defs(names);
+        defs.extend(opc_tool_defs(names));
+        defs.extend(local_tool_defs(names));
+        defs
+    };
+
     for industry_id in &industry_ids {
         let adapter =
             axagent_analysis_engine::opc::industry::IndustryAdapterFactory::create(industry_id);
@@ -83,12 +92,11 @@ async fn seed_opc_industries_from_code(db: &DatabaseConnection) -> Result<usize,
             continue;
         };
 
-        let workflow = axagent_analysis_engine::opc::workflow::IndustryWorkflow::from_adapter(
+        let template_data = axagent_analysis_engine::opc::workflow::generate_industry_template_data(
             industry_id,
             &*adapter,
+            Some(&tool_resolver),
         );
-
-        let template_data = workflow.to_template_data();
 
         // 版本保护：只在模板版本升级时覆盖，用户编辑不被启动覆盖
         let should_seed =

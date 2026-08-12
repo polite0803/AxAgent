@@ -1502,7 +1502,7 @@ pub struct AgentRoleDef {
     pub sort_order: i32,
     pub created_at: i64,
     pub updated_at: i64,
-    /// 岗位核心职责（JSON 数组字符串）。v218 由 business_roles 合并而来。
+    /// 岗位核心职责（JSON 数组字符串）
     pub responsibilities: Option<String>,
     /// 决策权限边界（JSON 对象字符串）
     pub decision_authority: Option<String>,

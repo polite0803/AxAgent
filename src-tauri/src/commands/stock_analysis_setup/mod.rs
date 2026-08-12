@@ -125,6 +125,28 @@ const EMBEDDED_PROMPTS: &[(&str, &str)] = &[
         "volume-price-analyst",
         include_str!("../../../agency_experts/stock-analysis/volume-price-analyst.md"),
     ),
+    // ── 简化模板升级：3 个新专家 ──
+    (
+        "market-synthesizer",
+        include_str!("../../../agency_experts/stock-analysis/market-synthesizer.md"),
+    ),
+    (
+        "industry-chain-analyzer",
+        include_str!("../../../agency_experts/stock-analysis/industry-chain-analyzer.md"),
+    ),
+    (
+        "screenshot-diagnoser",
+        include_str!("../../../agency_experts/stock-analysis/screenshot-diagnoser.md"),
+    ),
+    // ── 事件驱动模板：仓位规划与止损复查 ──
+    (
+        "position-planner",
+        include_str!("../../../agency_experts/stock-analysis/position-planner.md"),
+    ),
+    (
+        "stop-loss-reviewer",
+        include_str!("../../../agency_experts/stock-analysis/stop-loss-reviewer.md"),
+    ),
 ];
 
 const EXPERT_ROLE_MAP: &[(&str, &str)] = &[
@@ -163,6 +185,13 @@ const EXPERT_ROLE_MAP: &[(&str, &str)] = &[
     ("candidate-mapper", "stock-analyst"),
     ("social-media-analyst", "stock-analyst"),
     ("volume-price-analyst", "stock-analyst"),
+    // ── 简化模板升级：3 个新专家角色映射 ──
+    ("market-synthesizer", "stock-analyst"),
+    ("industry-chain-analyzer", "stock-analyst"),
+    ("screenshot-diagnoser", "stock-analyst"),
+    // ── 事件驱动模板：仓位规划与止损复查角色映射 ──
+    ("position-planner", "decision-maker"),
+    ("stop-loss-reviewer", "decision-maker"),
 ];
 
 struct StockRoleDef {
@@ -176,12 +205,11 @@ struct StockRoleDef {
 
 /// AxInvest 专属角色 — 证券投资负责人。
 ///
-/// v218: 业务岗位并入角色表（business_roles → agent_roles），岗位即角色。
 /// 本角色（stock-investment-lead）seed 进 agent_roles，作为股票专家 profile 的
 /// agent_role 引用，其 system_prompt 注入最外层身份（投资决策责任与合规边界）。
-const STOCK_BUSINESS_ROLE_ID: &str = "stock-investment-lead";
+const STOCK_AGENT_ROLE_ID: &str = "stock-investment-lead";
 
-struct StockBusinessRoleDef {
+struct StockAgentRoleDef {
     id: &'static str,
     name: &'static str,
     description: &'static str,
@@ -194,8 +222,8 @@ struct StockBusinessRoleDef {
     color: &'static str,
 }
 
-const STOCK_BUSINESS_ROLE: StockBusinessRoleDef = StockBusinessRoleDef {
-    id: STOCK_BUSINESS_ROLE_ID,
+const STOCK_AGENT_ROLE: StockAgentRoleDef = StockAgentRoleDef {
+    id: STOCK_AGENT_ROLE_ID,
     name: "证券投资负责人",
     description: "领导多专家团队进行 A 股证券投资分析与决策，对决策合规性与风险调整后收益负责",
     responsibilities: &[
@@ -211,23 +239,30 @@ const STOCK_BUSINESS_ROLE: StockBusinessRoleDef = StockBusinessRoleDef {
     // get_chat_tools_for_domains 只拿到 MCP 工具，丢失所有非-MCP 本地工具（含 invest 域）。
     // 改为合法域: invest（投资域）+ core/general（通用能力），使领域过滤真正生效且不过窄。
     active_domains: &["invest", "core", "general"],
-    system_prompt: "你是证券投资负责人，领导多专家团队进行 A 股投资分析与决策。所有结论须基于公开市场数据与已验证的研究方法论，杜绝内幕信息与市场操纵行为。决策以风险调整后收益最大化为目标，对每一条建议承担可追溯的合规责任。在分析过程中：1) 优先采纳已交叉验证的数据与证据；2) 对不确定性显式标注并量化置信度；3) 在多空辩论分歧时，要求辩手给出可证伪的判定条件；4) 对所有 LLM 输出保持怀疑，发现幻觉或与事实不符时立即标注 untrusted。",
+    // 分层原则：
+    // - Role: 身份 + 职责 + 权限 + 合规边界（通用、稳定）
+    // - Expert: 方法论 + 评分体系 + 输出格式（专业、可演进）
+    system_prompt: "你是证券投资负责人，领导多专家团队进行 A 股投资分析与决策。\
+    \n\n职责：组织多维度分析，评估风险与收益，决策买入/持有/卖出。\
+    \n权限：对所有投资建议承担可追溯的合规责任。\
+    \n合规：杜绝内幕信息与市场操纵，所有结论基于公开数据。\
+    \n目标：以风险调整后收益最大化为目标。",
     icon: "📈",
     color: "#dc2626",
 };
 
 /// 投研办公室子岗位 — 对应 INVESTMENT_OFFICE_TEMPLATE 中的 6 个房间。
 ///
-/// 这些岗位在 BusinessRole 表中作为 `stock-investment-lead` 的下属存在
-/// （reports_to = STOCK_BUSINESS_ROLE_ID），用于：
-/// - AddMemberModal 的 BusinessRole 下拉中可按房间选择对应角色
+/// 这些岗位作为 `stock-investment-lead` 的下属存在
+/// （reports_to = STOCK_AGENT_ROLE_ID），用于：
+/// - AddMemberModal 的角色下拉中可按房间选择对应角色
 /// - 角色 system_prompt 注入到 dispatcher 路由上下文，引导 LLM 将股票相关
 ///   消息路由到合适房间（如「查询行情」→ data-lead，「下单」→ trading-lead）
 ///
 /// 颜色与 sceneTemplates.ts 中的房间 color 保持一致，前端卡片与 Sprite
 /// 渲染时通过 role 反查颜色，无需再维护 ROLE_COLORS 映射表。
-const STOCK_BUSINESS_SUB_ROLES: &[StockBusinessRoleDef] = &[
-    StockBusinessRoleDef {
+const STOCK_AGENT_SUB_ROLES: &[StockAgentRoleDef] = &[
+    StockAgentRoleDef {
         id: "stock-research-lead",
         name: "投研负责人",
         description: "领导行业研究、基本面分析与研报撰写，对应办公室「投研室」",
@@ -243,7 +278,7 @@ const STOCK_BUSINESS_SUB_ROLES: &[StockBusinessRoleDef] = &[
         icon: "🔬",
         color: "#1677ff",
     },
-    StockBusinessRoleDef {
+    StockAgentRoleDef {
         id: "stock-data-lead",
         name: "数据负责人",
         description: "对接 astock-data 行情/财务/新闻接口，对应办公室「数据室」",
@@ -259,7 +294,7 @@ const STOCK_BUSINESS_SUB_ROLES: &[StockBusinessRoleDef] = &[
         icon: "📡",
         color: "#13c2c2",
     },
-    StockBusinessRoleDef {
+    StockAgentRoleDef {
         id: "stock-meeting-host",
         name: "晨会主持",
         description: "组织晨会、投研会议与多空辩论，对应办公室「会议室」",
@@ -275,7 +310,7 @@ const STOCK_BUSINESS_SUB_ROLES: &[StockBusinessRoleDef] = &[
         icon: "🎤",
         color: "#722ed1",
     },
-    StockBusinessRoleDef {
+    StockAgentRoleDef {
         id: "stock-strategy-lead",
         name: "策略负责人",
         description: "策略研发、回测与组合优化，对应办公室「策略室」",
@@ -291,7 +326,7 @@ const STOCK_BUSINESS_SUB_ROLES: &[StockBusinessRoleDef] = &[
         icon: "🎯",
         color: "#eb2f96",
     },
-    StockBusinessRoleDef {
+    StockAgentRoleDef {
         id: "stock-trading-lead",
         name: "交易负责人",
         description: "执行下单、止损止盈与 T+1 涨跌停合规检查，对应办公室「交易室」",
@@ -307,7 +342,7 @@ const STOCK_BUSINESS_SUB_ROLES: &[StockBusinessRoleDef] = &[
         icon: "⚡",
         color: "#f5222d",
     },
-    StockBusinessRoleDef {
+    StockAgentRoleDef {
         id: "stock-risk-lead",
         name: "风控负责人",
         description: "风险评估、压力测试与合规边界，对应办公室「风控室」",
@@ -590,6 +625,39 @@ pub(crate) static PROFILE_TOOLS: &[(&str, &[&str])] = &[
             "search_stock",
         ],
     ),
+    // ── 简化模板升级：3 个新专家工具映射 ──
+    // market-synthesizer: 市场主线综合，需多源数据采集 + 持久化
+    (
+        "market-synthesizer",
+        &[
+            "get_hot_stocks",
+            "get_cls_flash",
+            "get_dragon_tiger_list",
+            "get_north_flow",
+            "market_mainline_batch_upsert",
+        ],
+    ),
+    // industry-chain-analyzer: 产业链传导，需新闻 + 产业链追踪
+    (
+        "industry-chain-analyzer",
+        &[
+            "get_stock_news",
+            "get_cls_flash",
+            "get_stock_concept_blocks",
+            "trace_industry_chain",
+            "search_stock",
+        ],
+    ),
+    // screenshot-diagnoser: 持仓截图诊断，需基础分析工具
+    (
+        "screenshot-diagnoser",
+        &["compute_portfolio_risk", "get_stock_quote", "get_stock_peers", "search_stock"],
+    ),
+    // ── 事件驱动模板：仓位规划与止损复查 ──
+    // position-planner: 仓位规划，需基础行情 + 资金分配
+    ("position-planner", &["get_stock_quote", "get_account_info", "get_stock_risk_metrics"]),
+    // stop-loss-reviewer: 止损复查，需波动率 + 风险指标
+    ("stop-loss-reviewer", &["get_stock_quote", "get_stock_risk_metrics", "compute_volatility"]),
 ];
 
 pub async fn ensure_stock_analysis_experts_seeded(
@@ -604,7 +672,7 @@ pub async fn ensure_stock_analysis_experts_seeded(
 
     seed_agency_experts(db).await?;
     seed_agent_roles(db).await?;
-    seed_business_role(db).await?;
+    seed_stock_agent_roles(db).await?;
     seed_agent_profiles(db).await?;
     seed_stock_analysis_workflow_template(db).await?;
     seed_reflection_workflow_template(db).await?;
@@ -646,6 +714,13 @@ pub async fn ensure_stock_analysis_experts_seeded(
         );
     }
     tracing::warn!("[stock_analysis_setup] === G3.3 跨市场传导分析模板种子完成 ===");
+
+    // stock-pipeline: 股票全业务管道模板 — 失败不阻塞主流程
+    tracing::warn!("[stock_analysis_setup] === 开始种子 stock-pipeline 模板 ===");
+    if let Err(e) = crate::commands::stock_pipeline::seed_stock_pipeline_template(db).await {
+        tracing::error!("[stock_analysis_setup] stock-pipeline 模板种子失败 (非致命): {e}");
+    }
+    tracing::warn!("[stock_analysis_setup] === stock-pipeline 模板种子完成 ===");
     Ok(())
 }
 
@@ -772,36 +847,32 @@ async fn seed_agent_roles(db: &sea_orm::DatabaseConnection) -> Result<(), String
     Ok(())
 }
 
-/// 种子化 AxInvest 专属业务岗位 `stock-investment-lead`（证券投资负责人）
+/// 种子化 AxInvest 专属角色 `stock-investment-lead`（证券投资负责人）
 /// 及其 6 个下属子岗位（投研/数据/会议/策略/交易/风控 负责人）。
 ///
 /// 顶层 leader 的 system_prompt 作为最外层身份提示词，通过上游 agent_executor 4 层
-/// prompt 拼接（BusinessRole → AgentRole → Expert → 节点 inline）注入到所有
-/// 股票专家 AgentProfile 的运行时上下文中。详见 STOCK_BUSINESS_ROLE 注释。
+/// prompt 拼接（AgentRole → Expert → 节点 inline）注入到所有
+/// 股票专家 AgentProfile 的运行时上下文中。详见 STOCK_AGENT_ROLE 注释。
 ///
 /// 6 个子岗位对应 INVESTMENT_OFFICE_TEMPLATE 中的 6 个房间，作为 AddMemberModal
-/// 的 BusinessRole 下拉候选项，让投研办公室成员添加时可按房间选角色。
-async fn seed_business_role(db: &sea_orm::DatabaseConnection) -> Result<(), String> {
+/// 的角色下拉候选项，让投研办公室成员添加时可按房间选角色。
+async fn seed_stock_agent_roles(db: &sea_orm::DatabaseConnection) -> Result<(), String> {
     // 顶层 leader
-    upsert_stock_business_role(db, &STOCK_BUSINESS_ROLE, None, 100).await?;
+    upsert_stock_agent_role(db, &STOCK_AGENT_ROLE, None, 100).await?;
     // 6 个子岗位（投研办公室房间负责人），全部 reports_to = leader
     let mut count = 1u32;
-    for sub in STOCK_BUSINESS_SUB_ROLES {
-        upsert_stock_business_role(db, sub, Some(STOCK_BUSINESS_ROLE_ID), 200 + count as i32)
-            .await?;
+    for sub in STOCK_AGENT_SUB_ROLES {
+        upsert_stock_agent_role(db, sub, Some(STOCK_AGENT_ROLE_ID), 200 + count as i32).await?;
         count += 1;
     }
-    tracing::info!(
-        "[stock_analysis_setup] 已种子化/更新 {} 个业务岗位（1 leader + 6 子岗位）",
-        count
-    );
+    tracing::info!("[stock_analysis_setup] 已种子化/更新 {} 个角色（1 leader + 6 子岗位）", count);
     Ok(())
 }
 
-/// 单个 StockBusinessRoleDef 的 upsert 包装，避免重复样板代码。
-async fn upsert_stock_business_role(
+/// 单个 StockAgentRoleDef 的 upsert 包装，避免重复样板代码。
+async fn upsert_stock_agent_role(
     db: &sea_orm::DatabaseConnection,
-    r: &StockBusinessRoleDef,
+    r: &StockAgentRoleDef,
     reports_to: Option<&str>,
     sort_order: i32,
 ) -> Result<(), String> {
@@ -809,7 +880,6 @@ async fn upsert_stock_business_role(
     let certifications: Vec<String> =
         r.required_certifications.iter().map(|s| s.to_string()).collect();
     let domains: Vec<String> = r.active_domains.iter().map(|s| s.to_string()).collect();
-    // v218: 业务岗位并入角色表（business_roles → agent_roles），岗位即角色。
     // managed_expert_ids 留空——股票专家众多且会动态增减，由前端按 source_dir="stock-analysis" 聚合
     repo::agent_role::upsert_agent_role_ext(
         db,
@@ -834,7 +904,7 @@ async fn upsert_stock_business_role(
     )
     .await
     .map_err(|e| {
-        ErrorResponse::new(stock_setup::INTERNAL).with_detail(format!("种子业务岗位失败: {e}"))
+        ErrorResponse::new(stock_setup::INTERNAL).with_detail(format!("种子角色失败: {e}"))
     })?;
     tracing::info!("[stock_analysis_setup] 已种子化/更新角色岗位 {} ({})", r.id, r.name);
     Ok(())
@@ -878,7 +948,7 @@ async fn seed_agent_profiles(db: &sea_orm::DatabaseConnection) -> Result<(), Str
             expert_id: Set(Some(format!("agency-stock-analysis-{expert_id}"))),
             // v218: 岗位即角色——agent_role 指向证券投资负责人（已并入 agent_roles），
             // 其 system_prompt 作为最外层身份注入；stock-analyst 等执行器标签原未入表，不再使用。
-            agent_role: Set(Some(STOCK_BUSINESS_ROLE_ID.into())),
+            agent_role: Set(Some(STOCK_AGENT_ROLE_ID.into())),
             created_at: Set(now),
             updated_at: Set(now),
         };
@@ -1667,6 +1737,10 @@ struct EventTriggeredTemplateSpec {
     version: i32,
     /// 标签
     tags: &'static [&'static str],
+    /// Agent Profile ID（用于绑定 Role + Expert）
+    agent_profile_id: Option<&'static str>,
+    /// 模型角色（用于注入 A 股约束等）
+    model_role: Option<&'static str>,
 }
 
 /// 内部辅助函数：构建并持久化一个事件订阅型决策联动工作流模板。
@@ -1755,11 +1829,11 @@ async fn seed_event_triggered_decision_template(
                 tools: vec![],
                 exposed_tools: vec![],
                 output_mode: OutputMode::Json,
-                agent_profile_id: None,
+                agent_profile_id: spec.agent_profile_id.map(|id| id.into()),
                 max_tool_rounds: Some(1),
                 execution_mode: None,
                 rag_source_ids: vec![],
-                model_role: Some("decision-maker".into()),
+                model_role: spec.model_role.map(|r| r.into()),
                 consistency_check: None,
                 hallucination_guard: None,
                 fallback_model: None,
@@ -1930,7 +2004,7 @@ async fn seed_auto_position_plan_template(db: &sea_orm::DatabaseConnection) -> R
         agent_node_title: "仓位规划助手",
         version: 1,
         tags: &["stock", "position", "auto", "A股"],
-        agent_system_prompt: r#"你是 A 股仓位规划助手。基于上游交易决策，输出结构化的仓位执行方案。
+        agent_system_prompt: r#"基于上游交易决策，输出结构化的仓位执行方案。
 
 【输入决策上下文】
 - 股票代码: {{stock_code}}
@@ -1940,38 +2014,10 @@ async fn seed_auto_position_plan_template(db: &sea_orm::DatabaseConnection) -> R
 - 分析日期: {{as_of_date}}
 - 分析记录 ID: {{analysis_id}}
 
-【任务】
-根据决策动作与置信度，制定可执行的仓位方案。规则约束：
-1. 仅对"买入/增持"动作输出建仓方案；"减持/卖出"输出减仓方案；"持有/观望"输出维持建议。
-2. 单只股票总仓位不超过总资金的 30%（A 股单票集中度风控）。
-3. 分批建仓：至少分 2-3 批，每批间隔 2-5 个交易日，首批不超过目标仓位的 40%。
-4. 止损位基于决策详情中的风险等级与置信度：高置信(≥0.8) 止损幅度 -8%；中置信(0.5-0.8) -6%；低置信(<0.5) -4%。
-5. 止盈位分两档：第一档 +15% 减仓 50%，第二档 +30% 全部清仓。
-6. 必须考虑 T+1 交易规则（买入当日不能卖出）。
-
-【输出格式】
-严格 JSON（不要 Markdown 代码块、不要多余文本）：
-{
-  "stockCode": "股票代码",
-  "stockName": "股票名称",
-  "action": "原始决策动作",
-  "planType": "build | reduce | hold",
-  "targetPositionPct": 0,
-  "batches": [
-    { "seq": 1, "pctOfTarget": 0.4, "triggerCondition": "首日开盘价±2%内", "delayDays": 0 },
-    { "seq": 2, "pctOfTarget": 0.3, "triggerCondition": "回调至支撑位", "delayDays": 3 },
-    { "seq": 3, "pctOfTarget": 0.3, "triggerCondition": "突破前高确认", "delayDays": 5 }
-  ],
-  "stopLoss": { "pricePct": -0.06, "triggerCondition": "收盘价跌破止损位", "action": "全部清仓" },
-  "takeProfit": [
-    { "tier": 1, "pricePct": 0.15, "reducePct": 0.5 },
-    { "tier": 2, "pricePct": 0.30, "reducePct": 1.0 }
-  ],
-  "capitalAllocation": { "totalPct": 0, "reservedCashPct": 0 },
-  "riskNotes": "风控提示（≤100 字符）",
-  "executionPriority": "high | medium | low"
-}"#,
+请根据仓位规划方法论完成任务，输出 JSON 结果。"#,
         output_var: "position-plan",
+        agent_profile_id: Some("stock-position-planner"),
+        model_role: Some("decision-maker"),
     };
     seed_event_triggered_decision_template(db, spec).await
 }
@@ -1992,7 +2038,7 @@ async fn seed_auto_stop_loss_review_template(
         agent_node_title: "止损复查助手",
         version: 1,
         tags: &["stock", "risk", "auto", "A股"],
-        agent_system_prompt: r#"你是 A 股止损位独立复查助手。对上游交易决策的止损合理性进行风控视角的二次审视。
+        agent_system_prompt: r#"对上游交易决策的止损合理性进行风控视角的二次审视。
 
 【输入决策上下文】
 - 股票代码: {{stock_code}}
@@ -2002,36 +2048,10 @@ async fn seed_auto_stop_loss_review_template(
 - 分析日期: {{as_of_date}}
 - 分析记录 ID: {{analysis_id}}
 
-【任务】
-独立审视决策的止损设置是否合理，重点关注：
-1. **止损幅度合理性**：对照 A 股个股日均波动率（一般 2-4%），止损过紧易被洗盘，过松损失过大。
-   - 高波动股（如创业板/科创板）止损幅度建议 -8% 至 -10%
-   - 主板蓝筹股止损幅度建议 -5% 至 -7%
-   - 严禁止损幅度超过 -12%（单笔最大损失边界）
-2. **止损触发条件**：必须明确"收盘价跌破"还是"盘中触及"，避免假突破洗盘。
-3. **置信度匹配**：决策置信度低于 0.5 时，止损应更紧（-4% 至 -5%）；高于 0.8 时可适度放宽。
-4. **T+1 约束**：买入当日无法止损，需考虑隔夜跳空风险。
-5. **资金管理**：建议单笔最大损失不超过总资金的 2%（凯利公式简化版）。
-
-【输出格式】
-严格 JSON（不要 Markdown 代码块、不要多余文本）：
-{
-  "stockCode": "股票代码",
-  "stockName": "股票名称",
-  "reviewVerdict": "approve | adjust | reject",
-  "originalStopLoss": { "pricePct": 0, "parsedFrom": "decision_json.stopLoss 或 null" },
-  "suggestedStopLoss": { "pricePct": 0, "triggerCondition": "收盘价跌破", "reason": "调整原因" },
-  "riskAssessment": {
-    "volatilityLevel": "high | medium | low",
-    "maxLossPerTrade": 0,
-    "maxLossPctOfCapital": 0,
-    "overnightRisk": "high | medium | low"
-  },
-  "issues": ["问题1", "问题2"],
-  "recommendations": ["建议1", "建议2"],
-  "finalConfidence": 0
-}"#,
+请根据止损复查方法论完成任务，输出 JSON 结果。"#,
         output_var: "stop-loss-review",
+        agent_profile_id: Some("stock-stop-loss-reviewer"),
+        model_role: Some("decision-maker"),
     };
     seed_event_triggered_decision_template(db, spec).await
 }

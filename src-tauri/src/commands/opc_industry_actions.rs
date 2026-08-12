@@ -1650,7 +1650,6 @@ pub async fn opc_execute_workflow(
     user_input: Option<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
     use axagent_analysis_engine::opc::industry::IndustryAdapterFactory;
-    use axagent_analysis_engine::opc::workflow::IndustryWorkflowManager;
 
     let adapter = IndustryAdapterFactory::create(&industry_id)
         .ok_or_else(|| format!("行业适配器不存在: {industry_id}"))?;
@@ -1713,9 +1712,21 @@ pub async fn opc_execute_workflow(
         template_id,
         harness_template_id
     );
-    let mut manager = IndustryWorkflowManager::new();
-    let workflow = manager.create_or_update(&industry_id_normalized, adapter.as_ref()).clone();
-    let template_data = workflow.to_template_data();
+
+    // 组合工具解析器
+    let tool_resolver = |names: &[String]| -> Vec<axagent_harness::workflow_types::ToolDef> {
+        use crate::commands::opc_workflows::{local_tool_defs, opc_tool_defs, stock_tool_defs};
+        let mut defs = stock_tool_defs(names);
+        defs.extend(opc_tool_defs(names));
+        defs.extend(local_tool_defs(names));
+        defs
+    };
+
+    let template_data = axagent_analysis_engine::opc::workflow::generate_industry_template_data(
+        &industry_id_normalized,
+        adapter.as_ref(),
+        Some(&tool_resolver),
+    );
     crate::commands::opc_workflows::upsert_template(db, template_data).await?;
 
     if let Some(result) =

@@ -1,31 +1,30 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// BusinessRole — 角色/岗位（v218 起业务岗位并入 agent_roles，岗位即角色）
-// 本类型保留 BusinessRole 命名以兼容既有 UI（BusinessRoleManager 等），
+// AgentRole — 角色/岗位
 // 数据源为 agent_roles 表（list_agent_roles / save_agent_role）。
 // - AgentRole（角色/岗位）回答「在组织里担什么责、怎么干活」
 // - AgencyExpert（人才）回答「具体技能是什么」
 // AgentProfile 通过 agent_role + expert_id 组合两者。
 
 /**
- * 业务岗位来源
+ * 角色来源
  * - builtin: 内置预设
  * - custom: 用户自定义
  */
-export type BusinessRoleSource = "builtin" | "custom";
+export type AgentRoleSource = "builtin" | "custom";
 
 /** 资历等级（与 AgencyExpert 保持一致） */
 export type SeniorityLevel = "junior" | "mid" | "senior" | "expert";
 
 /**
  * 角色/岗位 DTO，字段对齐后端 `AgentRoleDto`
- * （v218 起承载原 BusinessRoleDto 全部字段，`src-tauri/crates/harness/src/repo_dtos.rs`）。
+ * （`src-tauri/crates/harness/src/repo_dtos.rs`）。
  *
  * 注意：后端 responsibilities / decision_authority / managed_expert_ids /
  * required_certifications / active_domains 均以 JSON 字符串形式存储，
  * 前端在 store 层做 parse / stringify 转换，UI 层直接使用结构化数组/对象。
  */
-export interface BusinessRole {
+export interface AgentRole {
   id: string;
   name: string;
   description: string | null;
@@ -33,7 +32,7 @@ export interface BusinessRole {
   responsibilities: string[];
   /** 决策权限边界（已 parse，结构由业务自定义） */
   decisionAuthority: Record<string, unknown> | null;
-  /** 汇报对象 ID（business_roles.id 自引用） */
+  /** 汇报对象 ID（agent_roles.id 自引用） */
   reportsTo: string | null;
   /** 下属专家 ID 列表（已 parse） */
   managedExpertIds: string[];
@@ -45,7 +44,7 @@ export interface BusinessRole {
   systemPrompt: string;
   icon: string | null;
   color: string | null;
-  source: BusinessRoleSource;
+  source: AgentRoleSource;
   sortOrder: number;
   isEnabled: boolean;
   createdAt: number;
@@ -53,15 +52,13 @@ export interface BusinessRole {
 }
 
 /**
- * 创建/更新业务岗位的输入。
- * 严格对齐后端 `SaveBusinessRoleInput`
- * （`src-tauri/src/commands/business_role.rs`）。
+ * 创建/更新角色的输入。
+ * 严格对齐后端 `save_agent_role` 命令。
  *
  * 语义为 upsert：前端创建时需自行生成 uuid 作为 id；
- * 更新时传入已有 id。后端创建时 is_enabled 默认为 true，
- * 目前未提供通过 save 命令修改 is_enabled 的入口。
+ * 更新时传入已有 id。
  */
-export interface SaveBusinessRoleInput {
+export interface SaveAgentRoleInput {
   /** 必填，前端创建时用 crypto.randomUUID() 生成 */
   id: string;
   name: string;
@@ -81,6 +78,6 @@ export interface SaveBusinessRoleInput {
   systemPrompt: string;
   icon?: string | null;
   color?: string | null;
-  source?: BusinessRoleSource;
+  source?: AgentRoleSource;
   sortOrder?: number;
 }

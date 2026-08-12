@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! v218: agent_roles 扩展岗位字段
+//! v218: agent_roles 扩展字段
 //!
-//! 背景：原 business_roles 表已彻底移除，其承载的岗位语义直接并入 agent_roles。
-//! 本迁移给 agent_roles 补齐 8 个扩展字段，供股票分析/OPC 等业务种子化使用。
+//! 给 agent_roles 补齐 8 个扩展字段，供股票分析/OPC 等业务种子化使用。
 //!
 //! 幂等：列存在性先检查再操作；重复执行安全。
 

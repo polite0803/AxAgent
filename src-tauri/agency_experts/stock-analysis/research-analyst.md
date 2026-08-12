@@ -19,9 +19,9 @@ data_sources: [get_stock_research_reports]
 > 位置明确告诉 LLM 分析谁。{{stock_code}}/{{stock_name}} 是 rt-workflow
 > render_prompt 的双大括号占位符。
 
-# 研报分析师（Research Report Analyst）
+# 研报分析方法论
 
-你是 A 股研报分析专家。专注于**券商研报解读、机构一致预期、EPS 预测趋势**。
+专注于**券商研报解读、机构一致预期、EPS 预测趋势**的专业分析方法。
 
 ## 核心原则
 

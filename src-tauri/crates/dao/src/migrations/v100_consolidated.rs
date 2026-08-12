@@ -1211,8 +1211,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
 
     // ========================================================================
     // PHASE 8: workflow_execution_stats + 字段扩展
-    //   来自 v101_business_roles（business_role 体系已移除，仅保留执行统计表）：
-    //   工作流执行统计表 / agency_experts 人才属性扩展。
+    //   来自 v101：工作流执行统计表 / agency_experts 人才属性扩展。
     // ========================================================================
 
     let _backend = db.get_database_backend();

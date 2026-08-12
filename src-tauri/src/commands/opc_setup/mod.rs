@@ -13,9 +13,11 @@ use axagent_entities::{agency_experts, agent_profiles};
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 
 mod industry_agents;
+mod industry_experts;
 mod roles;
+mod seed_opc_workflow_template;
 
-pub use roles::{OPC_BUSINESS_ROLES, OPC_ROLES};
+pub use roles::{APPROVAL_ROLES, OPC_OPERATIONAL_ROLES, OPC_ROLES};
 
 // ── 编译期嵌入的专家提示词 ──────────────────────────────────────
 
@@ -162,12 +164,13 @@ const PROFILE_TOOLS: &[(&str, &[&str])] = &[
     ),
 ];
 
-/// 主入口：种子化所有 OPC 专家/角色/Profile
+/// 主入口：种子化所有 OPC 专家/角色/Profile/工作流模板
 pub async fn ensure_opc_company_seeded(db: &DatabaseConnection) -> Result<(), String> {
     // 1. 种子化 6 个核心公司专家 + 角色 + Profile
     seed_opc_experts(db).await?;
     seed_opc_roles(db).await?;
-    seed_opc_business_roles(db).await?;
+    seed_opc_operational_roles(db).await?;
+    seed_opc_approval_roles(db).await?; // 审批类岗位
     seed_opc_profiles(db).await?;
 
     // 2. 自动导入 agency-agents-src 下 227 个专家文件
@@ -188,8 +191,12 @@ pub async fn ensure_opc_company_seeded(db: &DatabaseConnection) -> Result<(), St
     // 3. 为所有导入的专家批量创建 agent_profiles
     seed_bulk_expert_profiles(db).await?;
 
-    // 4. 行业专属 agent（ai-research）
+    // 4. 行业专属 agent（ai-research + 12 个新行业）
     industry_agents::seed_ai_research_agents(db).await?;
+    industry_agents::seed_all_industry_agents(db).await?;
+
+    // 5. 种子化需求发现工作流模板（持久化到 workflow_template 表）
+    seed_opc_workflow_template::seed_opc_workflow_template(db).await?;
 
     tracing::info!("[opc-company] 公司架构种子化完成");
     Ok(())
@@ -282,14 +289,13 @@ async fn seed_opc_roles(db: &DatabaseConnection) -> Result<(), String> {
     Ok(())
 }
 
-/// 种子化 4 个 OPC 业务角色到 agent_roles 表
+/// 种子化 4 个 OPC 运营角色到 agent_roles 表
 ///
-/// v218: 业务岗位并入角色表（business_roles → agent_roles），岗位即角色。
 /// 这些角色被 preset_templates.rs 的 PresetStep.role 引用，
 /// 工作流执行时 agent_executor 会通过 agent_role 反查此表获取 system_prompt。
-async fn seed_opc_business_roles(db: &DatabaseConnection) -> Result<(), String> {
+async fn seed_opc_operational_roles(db: &DatabaseConnection) -> Result<(), String> {
     let mut count = 0u32;
-    for role in OPC_BUSINESS_ROLES {
+    for role in OPC_OPERATIONAL_ROLES {
         agent_role::upsert_agent_role(
             db,
             role.id,
@@ -311,7 +317,38 @@ async fn seed_opc_business_roles(db: &DatabaseConnection) -> Result<(), String> 
         })?;
         count += 1;
     }
-    tracing::info!("[opc-company] 种子化 {count} 个业务岗位 agent_roles");
+    tracing::info!("[opc-company] 种子化 {count} 个 agent_roles");
+    Ok(())
+}
+
+/// 种子化 3 个审批类岗位到 agent_roles 表
+///
+/// 审批类岗位用于岗位驱动型工作流（如总经理审批、财务审批人）
+async fn seed_opc_approval_roles(db: &DatabaseConnection) -> Result<(), String> {
+    let mut count = 0u32;
+    for role in APPROVAL_ROLES {
+        agent_role::upsert_agent_role(
+            db,
+            role.id,
+            role.name,
+            Some(role.description),
+            role.system_prompt,
+            &[],
+            &["Opc".into()],
+            role.max_concurrent,
+            role.timeout_seconds,
+            "opc-approval",
+        )
+        .await
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+        count += 1;
+    }
+    tracing::info!("[opc-company] 种子化 {count} 个审批类 agent_roles");
     Ok(())
 }
 

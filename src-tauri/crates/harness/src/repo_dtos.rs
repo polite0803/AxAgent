@@ -291,7 +291,7 @@ pub struct AgencyExpertDto {
     pub avg_token_cost: Option<i64>,
 }
 
-/// Agent Role DTO（角色/岗位定义，来自 DB `agent_roles` 表；v218 起含原 business_roles 字段）
+/// Agent Role DTO（角色/岗位定义，来自 DB `agent_roles` 表）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentRoleDto {

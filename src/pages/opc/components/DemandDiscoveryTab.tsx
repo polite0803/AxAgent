@@ -10,16 +10,20 @@ import {
   GlobalOutlined,
   PlusOutlined,
   SearchOutlined,
+  SettingOutlined,
   ThunderboltOutlined,
   WarningOutlined,
 } from "@ant-design/icons";
 import {
+  Alert,
   Button,
   Card,
   Col,
+  Descriptions,
   Dropdown,
   Form,
   Input,
+  List,
   message,
   Modal,
   Popconfirm,
@@ -30,10 +34,14 @@ import {
   Table,
   Tabs,
   Tag,
+  Timeline,
+  Typography,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+
+import { DemandDiscoveryConfigPanel } from "@/components/settings/DemandDiscoveryConfigPanel";
 
 import type {
   CapabilityEntry,
@@ -143,6 +151,15 @@ export function DemandDiscoveryTab() {
               </span>
             ),
             children: <DeliveriesPanel />,
+          },
+          {
+            key: "config",
+            label: (
+              <span>
+                <SettingOutlined /> {t("opc.demand.config")}
+              </span>
+            ),
+            children: <DemandDiscoveryConfigPanel />,
           },
         ]}
       />
@@ -570,6 +587,8 @@ function DeliveriesPanel() {
   const { t } = useTranslation();
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [loading, setLoading] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [currentDelivery, setCurrentDelivery] = useState<Delivery | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -582,6 +601,31 @@ function DeliveriesPanel() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const handleViewDetail = (d: Delivery) => {
+    setCurrentDelivery(d);
+    setDetailOpen(true);
+  };
+
+  const handleRetry = async (id: string) => {
+    try {
+      await invoke("opc_retry_delivery", { id });
+      message.success(t("opc.demand.deliveryRetried"));
+      load();
+    } catch (e) {
+      message.error(String(e));
+    }
+  };
+
+  const handleCancel = async (id: string) => {
+    try {
+      await invoke("opc_cancel_delivery", { id });
+      message.success(t("opc.demand.deliveryCancelled"));
+      load();
+    } catch (e) {
+      message.error(String(e));
+    }
+  };
 
   const columns: ColumnsType<Delivery> = [
     { title: t("opc.demand.colTitle"), dataIndex: "title", key: "title", width: 200, ellipsis: true },
@@ -630,6 +674,29 @@ function DeliveriesPanel() {
       key: "result",
       ellipsis: true,
     },
+    {
+      title: t("opc.demand.colActions"),
+      key: "actions",
+      width: 180,
+      fixed: "right",
+      render: (_: unknown, r: Delivery) => (
+        <Space size="small">
+          <Button size="small" onClick={() => handleViewDetail(r)}>
+            {t("opc.demand.actionViewDetail")}
+          </Button>
+          {r.status === "failed" && (
+            <Button size="small" type="primary" onClick={() => handleRetry(r.id)}>
+              {t("opc.demand.actionRetry")}
+            </Button>
+          )}
+          {["pending", "running"].includes(r.status) && (
+            <Button size="small" danger onClick={() => handleCancel(r.id)}>
+              {t("opc.demand.actionCancel")}
+            </Button>
+          )}
+        </Space>
+      ),
+    },
   ];
 
   return (
@@ -648,7 +715,196 @@ function DeliveriesPanel() {
         pagination={{ pageSize: 10 }}
         scroll={{ x: 1200 }}
       />
+
+      <DeliveryDetailModal
+        open={detailOpen}
+        delivery={currentDelivery}
+        onClose={() => setDetailOpen(false)}
+        onRetry={handleRetry}
+        onCancel={handleCancel}
+      />
     </div>
+  );
+}
+
+// ── 交付详情模态框 ──────────────────────────────────────────
+
+interface DeliveryDetailModalProps {
+  open: boolean;
+  delivery: Delivery | null;
+  onClose: () => void;
+  onRetry: (id: string) => Promise<void>;
+  onCancel: (id: string) => Promise<void>;
+}
+
+function DeliveryDetailModal({
+  open,
+  delivery,
+  onClose,
+  onRetry,
+  onCancel,
+}: DeliveryDetailModalProps) {
+  const { t } = useTranslation();
+
+  if (!delivery) { return null; }
+
+  const timelineSteps = [
+    {
+      title: t("opc.demand.deliverySteps.initiated"),
+      time: delivery.started_at ? new Date(delivery.started_at * 1000).toLocaleString() : "-",
+      status: "completed",
+    },
+    {
+      title: t("opc.demand.deliverySteps.processing"),
+      time: delivery.progress > 0 ? t("opc.demand.deliverySteps.inProgress") : "-",
+      status: delivery.progress > 0 ? "active" : "pending",
+    },
+    {
+      title: t("opc.demand.deliverySteps.completed"),
+      time: delivery.completed_at ? new Date(delivery.completed_at * 1000).toLocaleString() : "-",
+      status: delivery.status === "completed" || delivery.status === "delivered"
+        ? "completed"
+        : delivery.status === "failed"
+        ? "error"
+        : "pending",
+    },
+  ];
+
+  return (
+    <Modal
+      title={`${t("opc.demand.deliveryDetail")}: ${delivery.title}`}
+      open={open}
+      onCancel={onClose}
+      footer={[
+        (delivery.status === "failed" || delivery.status === "cancelled") && (
+          <Button
+            key="retry"
+            type="primary"
+            onClick={() => onRetry(delivery.id)}
+          >
+            {t("opc.demand.actionRetry")}
+          </Button>
+        ),
+        ["pending", "running"].includes(delivery.status) && (
+          <Button
+            key="cancel"
+            danger
+            onClick={() => onCancel(delivery.id)}
+          >
+            {t("opc.demand.actionCancel")}
+          </Button>
+        ),
+        <Button key="close" onClick={onClose}>
+          {t("opc.demand.actionClose")}
+        </Button>,
+      ].filter(Boolean)}
+      width={720}
+    >
+      <div className="space-y-4">
+        {/* 交付状态卡片 */}
+        <Card size="small" title={t("opc.demand.deliveryInfo")}>
+          <Descriptions column={2} size="small">
+            <Descriptions.Item label={t("opc.demand.colStatus")}>
+              <Tag color={DELIVERY_STATUS_COLOR_MAP[delivery.status] || "default"}>
+                {t(`opc.delivery.status.${delivery.status}`)}
+              </Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label={t("opc.demand.colProgress")}>
+              <Progress percent={Math.round(delivery.progress * 100)} />
+            </Descriptions.Item>
+            <Descriptions.Item label={t("opc.demand.colTemplate")}>
+              {delivery.workflow_template_id || "-"}
+            </Descriptions.Item>
+            <Descriptions.Item label={t("opc.demand.leadId")}>
+              {delivery.lead_id}
+            </Descriptions.Item>
+            <Descriptions.Item label={t("opc.demand.colStartedAt")}>
+              {delivery.started_at ? new Date(delivery.started_at * 1000).toLocaleString() : "-"}
+            </Descriptions.Item>
+            <Descriptions.Item label={t("opc.demand.colCompletedAt")}>
+              {delivery.completed_at ? new Date(delivery.completed_at * 1000).toLocaleString() : "-"}
+            </Descriptions.Item>
+          </Descriptions>
+        </Card>
+
+        {/* 交付时间线 */}
+        <Card size="small" title={t("opc.demand.deliveryTimeline")}>
+          <Timeline
+            items={timelineSteps.map((s) => ({
+              color: s.status === "completed"
+                ? "green"
+                : s.status === "active"
+                ? "blue"
+                : s.status === "error"
+                ? "red"
+                : "gray",
+              children: (
+                <div>
+                  <div className="font-medium">{s.title}</div>
+                  <div className="text-xs text-gray-500">{s.time}</div>
+                </div>
+              ),
+            }))}
+          />
+        </Card>
+
+        {/* 交付结果 */}
+        {delivery.result_summary && (
+          <Card size="small" title={t("opc.demand.deliveryResult")}>
+            <Typography.Paragraph
+              ellipsis={{ rows: 3, expandable: true, symbol: t("opc.demand.expand") }}
+            >
+              {delivery.result_summary}
+            </Typography.Paragraph>
+          </Card>
+        )}
+
+        {/* 可交付物列表 */}
+        {delivery.deliverables && delivery.deliverables.length > 0 && (
+          <Card size="small" title={t("opc.demand.deliverables")}>
+            <List
+              size="small"
+              dataSource={delivery.deliverables}
+              renderItem={(d, idx) => (
+                <List.Item key={idx}>
+                  <Space>
+                    <Tag color="blue">
+                      {(d.name as string) || t("opc.demand.deliverable")}
+                    </Tag>
+                    <span>{(d.type as string) || ""}</span>
+                  </Space>
+                </List.Item>
+              )}
+            />
+          </Card>
+        )}
+
+        {/* 错误列表 */}
+        {delivery.errors && delivery.errors.length > 0 && (
+          <Card size="small" title={t("opc.demand.errors")}>
+            <Alert
+              type="error"
+              showIcon
+              message={t("opc.demand.deliveryError")}
+              description={
+                <ul>
+                  {delivery.errors.map((e, idx) => <li key={idx}>{(e.message as string) || JSON.stringify(e)}</li>)}
+                </ul>
+              }
+            />
+          </Card>
+        )}
+
+        {/* 元数据 */}
+        {delivery.metadata && Object.keys(delivery.metadata).length > 0 && (
+          <Card size="small" title={t("opc.demand.metadata")}>
+            <pre className="text-xs bg-gray-50 p-2 rounded">
+              {JSON.stringify(delivery.metadata, null, 2)}
+            </pre>
+          </Card>
+        )}
+      </div>
+    </Modal>
   );
 }
 

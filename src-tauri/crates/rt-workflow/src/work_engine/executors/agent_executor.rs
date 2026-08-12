@@ -529,8 +529,7 @@ impl NodeExecutorTrait for AgentExecutor {
         //   2. Expert.system_prompt       —— 专家人才（证券分析师/代码审计专家）= 具体技能
         //   3. 节点 inline system_prompt —— 工作流编辑器中本节点自定义的覆盖提示词
         //
-        // v218: business_roles 已并入 agent_roles（业务岗位即角色），原 BusinessRole 层删除，
-        // 岗位 system_prompt（如证券投资负责人）统一由 agent_role 承载。
+        // 角色 system_prompt（如证券投资负责人）统一由 agent_role 承载。
         // 节点 inline prompt 可以覆盖上层指令（primacy + recency 双锚定）。
         if let Some(ref p) = profile {
             // 1. 解析 AgentRole（角色/岗位）的提示词

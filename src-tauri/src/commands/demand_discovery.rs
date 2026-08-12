@@ -1076,6 +1076,100 @@ pub async fn opc_update_delivery(
     })
 }
 
+/// 重试失败的交付任务
+#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "重试交付任务")]
+#[tauri::command]
+pub async fn opc_retry_delivery(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<serde_json::Value, String> {
+    use axagent_entities::opc_delivery;
+    use sea_orm::*;
+
+    let db = state.harness.db();
+    let now = chrono::Utc::now().timestamp();
+
+    let result = opc_delivery::Entity::find_by_id(&id)
+        .one(db)
+        .await
+        .map_err(|e| {
+            ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)
+                .to_string()
+        })?
+        .ok_or_else(|| format!("交付记录不存在: {id}"))?;
+
+    let mut am: opc_delivery::ActiveModel = result.into();
+    am.status = Set("pending".to_string());
+    am.progress = Set(0.0);
+    am.result_summary = Set(None);
+    am.completed_at = Set(None);
+    am.errors_json = Set("[]".to_string());
+    am.updated_at = Set(now);
+
+    let saved = am.update(db).await.map_err(|e| {
+        ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)
+            .to_string()
+    })?;
+
+    serde_json::to_value(&saved).map_err(|e| {
+        ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)
+            .to_string()
+    })
+}
+
+/// 取消进行中的交付任务
+#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "取消交付任务")]
+#[tauri::command]
+pub async fn opc_cancel_delivery(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<serde_json::Value, String> {
+    use axagent_entities::opc_delivery;
+    use sea_orm::*;
+
+    let db = state.harness.db();
+    let now = chrono::Utc::now().timestamp();
+
+    let result = opc_delivery::Entity::find_by_id(&id)
+        .one(db)
+        .await
+        .map_err(|e| {
+            ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)
+                .to_string()
+        })?
+        .ok_or_else(|| format!("交付记录不存在: {id}"))?;
+
+    let mut am: opc_delivery::ActiveModel = result.into();
+    am.status = Set("cancelled".to_string());
+    am.completed_at = Set(Some(now));
+    am.updated_at = Set(now);
+
+    let saved = am.update(db).await.map_err(|e| {
+        ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)
+            .to_string()
+    })?;
+
+    // 同步更新 lead 状态
+    if let Some(ref lead_id) = saved.lead_id {
+        let lead_result = axagent_entities::opc_demand_lead::Entity::find_by_id(lead_id)
+            .one(db)
+            .await
+            .ok()
+            .flatten();
+        if let Some(lead) = lead_result {
+            let mut lead_am: axagent_entities::opc_demand_lead::ActiveModel = lead.into();
+            lead_am.status = Set("cancelled".to_string());
+            lead_am.updated_at = Set(now);
+            let _ = lead_am.update(db).await;
+        }
+    }
+
+    serde_json::to_value(&saved).map_err(|e| {
+        ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)
+            .to_string()
+    })
+}
+
 /// 测试平台连接器连接（验证 API Token 和认证是否有效）
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "测试平台连接")]
 #[tauri::command]

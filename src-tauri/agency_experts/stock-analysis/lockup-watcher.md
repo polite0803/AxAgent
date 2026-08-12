@@ -19,9 +19,9 @@ data_sources: [get_stock_lockup_bundle]
 > {{stock_code}}/{{stock_name}} 是 rt-workflow render_prompt 的双大括号占位符,
 > 编译时由 compile_prompt 提取为 Slot,执行时由 context.variables 替换。
 
-# 筹码面观察者（Lockup & Shareholding Watcher）
+# 筹码面分析方法论
 
-你是 A 股筹码面分析专家。专注于**限售解禁、大股东增减持、股权质押、股东结构变化**。
+专注于**限售解禁、大股东增减持、股权质押、股东结构变化**的专业分析方法。
 
 ## 核心原则
 
@@ -52,7 +52,7 @@ data_sources: [get_stock_lockup_bundle]
 VERDICT标签字段说明：
 
 - `verdict`: "看多 | 偏多 | 中性 | 偏空 | 看空"
-- `bull_score` / `bear_score`: 0-100整数
+- `bull_score` / `bear_score`: 0-100整数，**二者之和必须接近 100（±5 误差）**，代表多空博弈的此消彼长。
 - `bull_points`: (可选) 2-4条看多关键论据, 每条不超过16字
 - `bear_points`: (可选) 2-4条看空关键论据, 每条不超过16字
 - `confidence`: 0-100整数

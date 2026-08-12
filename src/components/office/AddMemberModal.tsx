@@ -3,15 +3,15 @@
 /**
  * AddMemberModal — 添加成员弹窗。
  *
- * 复用 officeStore.addMember + businessRoleStore.roles + sub_agent_list。
+ * 复用 officeStore.addMember + agentRoleStore.roles + sub_agent_list。
  * - agent_id 支持从已注册 SubAgent 选择，也支持手动输入外部 session ID
- * - role 文本域可由 BusinessRole 快捷下拉自动填充（注入 dispatcher prompt）
+ * - role 文本域可由 AgentRole 快捷下拉自动填充（注入 dispatcher prompt）
  * - room_id 下拉项来自当前 fleet 的场景模板房间列表
  */
 import { resolveSceneTemplate } from "@/components/office/phaser/sceneTemplates";
 import { invoke } from "@/lib/invoke";
 import { message } from "@/lib/toast";
-import { useBusinessRoleStore } from "@/stores";
+import { useAgentRoleStore } from "@/stores";
 import { useOfficeStore } from "@/stores";
 import type { AddMemberInput, SubAgent } from "@/types";
 import { Button, Form, Input, Modal, Select, Space } from "antd";
@@ -36,14 +36,14 @@ interface FormValues {
 export function AddMemberModal({ open, fleetId, sceneTemplateSlug, onClose }: AddMemberModalProps) {
   const { t } = useTranslation();
   const addMember = useOfficeStore((s) => s.addMember);
-  const roles = useBusinessRoleStore((s) => s.roles);
-  const fetchRoles = useBusinessRoleStore((s) => s.fetchRoles);
+  const roles = useAgentRoleStore((s) => s.roles);
+  const fetchRoles = useAgentRoleStore((s) => s.fetchRoles);
 
   const [subAgents, setSubAgents] = useState<SubAgent[]>([]);
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm<FormValues>();
 
-  // 初次打开加载 SubAgent 列表与 BusinessRole 列表
+  // 初次打开加载 SubAgent 列表与 AgentRole 列表
   useEffect(() => {
     if (!open) {
       return;
@@ -116,7 +116,7 @@ export function AddMemberModal({ open, fleetId, sceneTemplateSlug, onClose }: Ad
     });
   };
 
-  // 选择 BusinessRole 后填充 role 文本域（注入 dispatcher prompt）
+  // 选择 AgentRole 后填充 role 文本域（注入 dispatcher prompt）
   const handleRolePick = (roleId: string) => {
     const role = roles.find((r) => r.id === roleId);
     if (!role) {
@@ -199,7 +199,7 @@ export function AddMemberModal({ open, fleetId, sceneTemplateSlug, onClose }: Ad
           />
         </Form.Item>
 
-        {/* BusinessRole 快捷填充 */}
+        {/* AgentRole 快捷填充 */}
         {roles.length > 0 && (
           <Form.Item label={t("office.addMember.fillFromRole")}>
             <Select

@@ -6,9 +6,9 @@ title: 政策传导路径分析师
 data_sources: [search_news, get_stock_news, get_cls_flash, get_stock_concept_blocks, get_industry_ranking, get_stock_financials]
 ---
 
-# 政策传导路径分析师（Policy Chain Analyst）
+# 政策传导路径分析方法论
 
-你是 A 股政策传导路径分析专家。专注**将政策文件/新闻映射到具体的受益行业和上市公司**。你的职责是解读政策力度，识别传导路径，输出结构化的受益行业和代表公司清单。
+专注于**将政策文件/新闻映射到具体的受益行业和上市公司**的专业分析方法。解读政策力度，识别传导路径，输出结构化的受益行业和代表公司清单。
 
 ## 核心原则
 

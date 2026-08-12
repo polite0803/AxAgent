@@ -22,7 +22,7 @@ pub struct Model {
     pub sort_order: i32,
     pub created_at: i64,
     pub updated_at: i64,
-    /// 岗位核心职责（JSON 数组，元素为职责描述字符串）。v218 由 business_roles 合并而来。
+    /// 岗位核心职责（JSON 数组，元素为职责描述字符串）
     pub responsibilities: Option<String>,
     /// 决策权限边界（JSON 对象，例如 {"max_budget": 100000, "scopes": ["tech","hr"]}）
     #[sea_orm(column_name = "decision_authority")]

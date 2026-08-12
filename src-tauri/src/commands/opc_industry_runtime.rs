@@ -18,7 +18,6 @@ use agent_macro::agent_command;
 use tauri::State;
 
 use axagent_analysis_engine::opc::industry::IndustryAdapterFactory;
-use axagent_analysis_engine::opc::workflow::IndustryWorkflowManager;
 use axagent_analysis_engine::opc::*;
 use axagent_dao::db::DatabaseConnection;
 
@@ -195,9 +194,21 @@ pub async fn execute_dynamic_workflow(
     // 2. 兜底：从 adapter 一次性种子化到 DB（用户之后可编辑），再走 rt-workflow
     tracing::warn!("[opc-dynamic] 模板 {} 不存在，从 adapter 种子化后执行", harness_template_id);
     let adapter = load_adapter(db, industry_id)?;
-    let mut manager = IndustryWorkflowManager::new();
-    let workflow = manager.create_or_update(&industry_id_normalized, adapter.as_ref()).clone();
-    let template_data = workflow.to_template_data();
+
+    // 组合工具解析器
+    let tool_resolver = |names: &[String]| -> Vec<axagent_harness::workflow_types::ToolDef> {
+        use crate::commands::opc_workflows::{local_tool_defs, opc_tool_defs, stock_tool_defs};
+        let mut defs = stock_tool_defs(names);
+        defs.extend(opc_tool_defs(names));
+        defs.extend(local_tool_defs(names));
+        defs
+    };
+
+    let template_data = axagent_analysis_engine::opc::workflow::generate_industry_template_data(
+        industry_id,
+        adapter.as_ref(),
+        Some(&tool_resolver),
+    );
     crate::commands::opc_workflows::upsert_template(db, template_data).await?;
 
     crate::commands::opc_industry_actions::run_template_via_engine(
