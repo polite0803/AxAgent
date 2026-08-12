@@ -2274,6 +2274,54 @@ export async function handleCommand<T>(
     case "rebuild_memory_index":
     case "clear_memory_index":
       return undefined as T;
+    case "list_knowledge_graph":
+      // 构造示例知识图谱数据，供浏览器预览图谱视图渲染
+      return {
+        entities: [
+          {
+            id: "ent_1",
+            name: "AxAgent 项目",
+            entity_type: "project",
+            properties: { 状态: "开发中" },
+            aliases: ["AxAgent", "axagent"],
+            mention_count: 12,
+            confidence: 0.95,
+          },
+          {
+            id: "ent_2",
+            name: "知识图谱视图",
+            entity_type: "concept",
+            properties: {},
+            aliases: ["图谱", "graph"],
+            mention_count: 8,
+            confidence: 0.9,
+          },
+          {
+            id: "ent_3",
+            name: "Tauri v2",
+            entity_type: "concept",
+            properties: {},
+            aliases: [],
+            mention_count: 5,
+            confidence: 0.88,
+          },
+          {
+            id: "ent_4",
+            name: "memory 模块",
+            entity_type: "file",
+            properties: {},
+            aliases: [],
+            mention_count: 6,
+            confidence: 0.8,
+          },
+        ],
+        relationships: [
+          { id: "rel_1", source_id: "ent_1", target_id: "ent_2", relation_type: "implements", weight: 1 },
+          { id: "rel_2", source_id: "ent_1", target_id: "ent_3", relation_type: "depends_on", weight: 1 },
+          { id: "rel_3", source_id: "ent_1", target_id: "ent_4", relation_type: "contains", weight: 1 },
+          { id: "rel_4", source_id: "ent_4", target_id: "ent_2", relation_type: "related_to", weight: 1 },
+        ],
+      } as T;
 
     // ── Fleet (办公室) ─────────────────────────────────────────────────
     case "fleet_list": {

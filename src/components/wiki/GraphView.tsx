@@ -475,6 +475,10 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   // 聚合物理规模上限：聚合节点 + 未折叠节点数超过此值时，放弃力导向（仅静态显示），
   // 防止社区粒度极细（甚至每节点一社区）时聚合物理规模仍达万级，主线程每帧 O(n log n) 卡死不响应。
   const MAX_AGG_PHYS_NODES = 800;
+  // 主线程物理规模上限：超过此节点数时，fallback 主线程物理一律禁用（静态显示）。
+  // fallback 是 Worker 未就绪时的兜底；若在大图上每帧跑全量 O(n log n) 力导向，
+  // 主线程会被完全阻塞、鼠标键盘全部无响应。大图等待 Worker 就绪即可，绝不走主线程物理。
+  const MAX_MAIN_THREAD_PHYSICS = 1500;
 
   const minimapRef = useRef<HTMLCanvasElement>(null);
   const [minimapOpen, setMinimapOpen] = useState(true);
@@ -549,6 +553,14 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   // 聚类模式切换：开启时默认全折叠（聚合视图），关闭时清空
   useEffect(() => {
     if (clusterMode && communities) {
+      // 社区数量失控（粒度极细至万级）时禁止全折叠：折叠会产生上万重叠聚合节点，
+      // 且聚合物理超限被禁用 → 每帧绘制上万聚类标签 → 主线程卡死。
+      if (communities.size > MAX_AGG_PHYS_NODES) {
+        collapsedRef.current = new Set();
+        hoverClusterRef.current = null;
+        aggPhysRef.current = null;
+        return;
+      }
       const all = new Set<number>();
       for (const cid of communities.values()) {
         all.add(cid);
@@ -937,7 +949,16 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     // ── 大图自动聚合：节点数超过阈值且 communities 可用时，自动进入聚类折叠聚合视图 ──
     // 折叠全部社区 → 物理只模拟聚合节点（几十个 + 未折叠成员），
     // 从根本上避免万级节点全量力导向收敛导致的打开卡死。
-    if (communities && pNodes.length > AUTO_CLUSTER_THRESHOLD) {
+    // 重要保护：仅当社区数量合理（<= MAX_AGG_PHYS_NODES）时才自动聚合。
+    // 社区粒度极细（如每节点一社区，社区数接近节点数达万级）时，折叠会产生上万
+    // 重叠聚合节点，且 aggOver 保护会禁用聚合物理 → 这些聚类保持质心位置重叠，
+    // drawCollapsedClusters 每帧绘制上万聚类圆 + 标签 → 主线程卡死、全网无响应。
+    // 超细粒度大图跳过自动聚合，由 Worker 物理 + 视口裁剪渲染，保证打开即响应。
+    if (
+      communities
+      && pNodes.length > AUTO_CLUSTER_THRESHOLD
+      && communities.size <= MAX_AGG_PHYS_NODES
+    ) {
       const all = new Set<number>();
       for (const cid of communities.values()) {
         all.add(cid);
@@ -1191,13 +1212,16 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         }
       } else if (nodes.length > 0 && !hasDrag) {
         // 回退：没有 Worker 时用原来的主线程物理（兼容 fallback）
-        const stable = isSystemStable(nodes, 0.15);
+        // 大图保护：主线程物理只对中小图可用；超过 MAX_MAIN_THREAD_PHYSICS 时放弃力导向（静态显示）。
+        // 否则每帧全量 O(n log n) 会让主线程完全阻塞、主应用无响应。大图等待 Worker 就绪即可。
+        const mainThreadSafe = nodes.length <= MAX_MAIN_THREAD_PHYSICS;
+        const stable = mainThreadSafe ? isSystemStable(nodes, 0.15) : true;
         if (stable && !hasInteraction) {
           idleCounterRef.current++;
         } else {
           idleCounterRef.current = 0;
         }
-        const shouldRunPhysics = hasInteraction || !stable || idleCounterRef.current % 12 === 0;
+        const shouldRunPhysics = mainThreadSafe && (hasInteraction || !stable || idleCounterRef.current % 12 === 0);
         if (shouldRunPhysics) {
           const enableClusters = clusterModeRef.current && communities;
           let centroids = communityCentroidsRef.current;
@@ -1258,8 +1282,11 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
       // 绘制社区聚类区域（背景层；5 帧一次降频）。
       // 聚合折叠视图下由聚合节点表达社区，跳过气泡避免视觉重叠
+      // 规模保护：社区数失控（粒度极细至万级）时跳过气泡，避免为每个"社区"绘制
+      // 上万 radial-gradient 气泡 + 标签 → 主线程每 5 帧一次全量绘制仍会卡死。
       if (
         clusterModeRef.current && communities && collapsedRef.current.size === 0
+        && communities.size <= MAX_AGG_PHYS_NODES
         && frameCounterRef.current % 5 === 0
       ) {
         drawClusterRegions(ctx, nodes);
