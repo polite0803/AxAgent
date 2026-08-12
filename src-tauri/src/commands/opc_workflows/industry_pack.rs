@@ -717,9 +717,8 @@ pub async fn enabled_industries(
 
 /// 行业包完整 seed：扫描目录 → 注册表（opc_industries）。
 ///
-/// ⚠️ 架构变更：行业工作流已迁移至 Rust 代码种子化（见 mod.rs `seed_opc_industries_from_code`），
+/// ⚠️ 架构变更：行业工作流已迁移至手动定义的 seed 文件（见 mod.rs `seed_opc_industries_from_seed_files`），
 /// 本函数仅负责 manifest 注册（opc_industries 表），不再从 YAML 加载工作流。
-/// 领域包（domains/）仍使用 YAML 加载工作流（ensure_opc_domains_seeded）。
 ///
 /// 返回 seed 的行业 id 列表。
 pub async fn ensure_opc_industries_seeded(
@@ -752,10 +751,10 @@ pub async fn ensure_opc_industries_seeded(
             continue;
         }
 
-        // 行业工作流已由 Rust 适配器生成（seed_opc_industries_from_code），
+        // 行业工作流已由手动定义的 seed 文件生成（seed_opc_industries_from_seed_files），
         // 此处仅注册 manifest 到 opc_industries 表。
         tracing::info!(
-            "[industry-pack] {} manifest 注册完成（v{}，工作流由 Rust 适配器提供）",
+            "[industry-pack] {} manifest 注册完成（v{}，工作流由手动 seed 文件提供）",
             m.id,
             m.version
         );

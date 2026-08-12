@@ -9,6 +9,39 @@ use sea_orm::DatabaseConnection;
 pub mod domain_workflows;
 mod industry_pack;
 mod seed_content_media;
+mod seed_domain_academic;
+mod seed_domain_design;
+mod seed_domain_engineering;
+mod seed_domain_finance;
+mod seed_domain_gamedev;
+mod seed_domain_gis;
+mod seed_domain_helpers;
+mod seed_domain_marketing;
+mod seed_domain_paidmedia;
+mod seed_domain_pm;
+mod seed_domain_product;
+mod seed_domain_sales;
+mod seed_domain_security;
+mod seed_domain_spatial;
+mod seed_domain_specialized;
+mod seed_domain_strategy;
+mod seed_domain_support;
+mod seed_domain_testing;
+mod seed_domain_utils;
+mod seed_industry_accounting;
+mod seed_industry_ai_research;
+mod seed_industry_content_media;
+mod seed_industry_design;
+mod seed_industry_ecommerce;
+mod seed_industry_education;
+mod seed_industry_finance_invest;
+mod seed_industry_game_dev;
+mod seed_industry_geospatial;
+mod seed_industry_industry_consulting;
+mod seed_industry_project_management;
+mod seed_industry_sales_growth;
+mod seed_industry_security;
+mod seed_industry_software_dev;
 mod seed_production;
 
 pub use industry_pack::INDUSTRIES_DIR;
@@ -19,6 +52,20 @@ pub use industry_pack::export_industry_pack;
 pub use industry_pack::import_industry_pack;
 pub use industry_pack::{local_tool_defs, opc_tool_defs, stock_tool_defs};
 pub use seed_content_media::seed_content_media_workflows;
+pub use seed_industry_accounting::seed_industry_accounting_workflow_template;
+pub use seed_industry_ai_research::seed_industry_ai_research_workflow_template;
+pub use seed_industry_content_media::seed_industry_content_media_workflow_template;
+pub use seed_industry_design::seed_industry_design_workflow_template;
+pub use seed_industry_ecommerce::seed_industry_ecommerce_workflow_template;
+pub use seed_industry_education::seed_industry_education_workflow_template;
+pub use seed_industry_finance_invest::seed_industry_finance_invest_workflow_template;
+pub use seed_industry_game_dev::seed_industry_game_dev_workflow_template;
+pub use seed_industry_geospatial::seed_industry_geospatial_workflow_template;
+pub use seed_industry_industry_consulting::seed_industry_industry_consulting_workflow_template;
+pub use seed_industry_project_management::seed_industry_project_management_workflow_template;
+pub use seed_industry_sales_growth::seed_industry_sales_growth_workflow_template;
+pub use seed_industry_security::seed_industry_security_workflow_template;
+pub use seed_industry_software_dev::seed_industry_software_dev_workflow_template;
 pub use seed_production::seed_landing_page_workflow;
 pub use seed_production::seed_startup_mvp_workflow;
 
@@ -30,17 +77,19 @@ pub fn industries_base_dir() -> std::path::PathBuf {
 const OPC_TEMPLATE_VERSION: i32 = 2; // 升级到 2 以覆盖旧 YAML 版本
 
 /// 主入口：全代码驱动种子化（行业 + 领域 + 生产 + 内容媒体）。
+///
+/// 与股票分析工作流一致：手动定义 WorkflowNode/Edge →
+/// 种子化写入 workflow_template 表 → 运行时 DB 加载执行。
 pub async fn ensure_opc_workflows_seeded(
     db: &DatabaseConnection,
     _app_dir: Option<&std::path::Path>,
 ) -> Result<(), String> {
-    // 1) 行业工作流（9 大行业，代码驱动，对齐股票业务）
-    let industry_seeded = seed_opc_industries_from_code(db).await?;
-    tracing::info!("[opc-workflows] Industries seeded from code: {industry_seeded}");
+    // 1) 行业工作流（14 行业，手动定义 WorkflowNode/Edge）
+    seed_opc_industries_from_seed_files(db).await?;
 
-    // 2) 领域工作流（17 领域 70+ 工作流，代码驱动）
-    let domain_seeded = seed_domains_from_code(db).await?;
-    tracing::info!("[opc-workflows] Domains seeded from code: {domain_seeded}");
+    // 2) 领域工作流（17 领域 75 个工作流，手动定义 seed 文件）
+    let domain_seeded = seed_domains_from_seed_files(db).await?;
+    tracing::info!("[opc-workflows] Domains seeded from seed files: {domain_seeded}");
 
     // 3) 生产工作流（landing page / startup MVP）
     seed_landing_page_workflow(db).await?;
@@ -54,101 +103,73 @@ pub async fn ensure_opc_workflows_seeded(
     Ok(())
 }
 
-/// 代码驱动种子化：从 IndustryAdapterFactory 创建 Adapter，调用 from_adapter 生成工作流。
-/// 完全对齐股票业务的代码驱动模式。
-async fn seed_opc_industries_from_code(db: &DatabaseConnection) -> Result<usize, String> {
-    let industry_ids = vec![
-        "accounting",
-        "ai_research",
-        "content_media",
-        "ecommerce",
-        "education",
-        "finance_invest",
-        "industry_consulting",
-        "sales_growth",
-        "software_dev",
-        "design",
-        "project_management",
-        "security",
-        "geospatial",
-        "game_dev",
-    ];
-
+/// 从手动定义的 seed 文件种子化 14 个行业工作流。
+///
+/// 每个 seed 文件手动定义 WorkflowNode/Edge，与股票分析工作流一致。
+/// 替换了旧版通过 IndustryAdapterFactory 动态生成 DAG 的方式。
+async fn seed_opc_industries_from_seed_files(db: &DatabaseConnection) -> Result<usize, String> {
     let mut seeded_count = 0;
 
-    // 组合工具解析器：从 stock/opc/local 三个来源匹配工具定义
-    let tool_resolver = |names: &[String]| -> Vec<ToolDef> {
-        let mut defs = stock_tool_defs(names);
-        defs.extend(opc_tool_defs(names));
-        defs.extend(local_tool_defs(names));
-        defs
-    };
+    seed_industry_accounting_workflow_template(db).await?;
+    seeded_count += 1;
+    seed_industry_ai_research_workflow_template(db).await?;
+    seeded_count += 1;
+    seed_industry_content_media_workflow_template(db).await?;
+    seeded_count += 1;
+    seed_industry_design_workflow_template(db).await?;
+    seeded_count += 1;
+    seed_industry_ecommerce_workflow_template(db).await?;
+    seeded_count += 1;
+    seed_industry_education_workflow_template(db).await?;
+    seeded_count += 1;
+    seed_industry_finance_invest_workflow_template(db).await?;
+    seeded_count += 1;
+    seed_industry_game_dev_workflow_template(db).await?;
+    seeded_count += 1;
+    seed_industry_geospatial_workflow_template(db).await?;
+    seeded_count += 1;
+    seed_industry_industry_consulting_workflow_template(db).await?;
+    seeded_count += 1;
+    seed_industry_project_management_workflow_template(db).await?;
+    seeded_count += 1;
+    seed_industry_sales_growth_workflow_template(db).await?;
+    seeded_count += 1;
+    seed_industry_security_workflow_template(db).await?;
+    seeded_count += 1;
+    seed_industry_software_dev_workflow_template(db).await?;
+    seeded_count += 1;
 
-    for industry_id in &industry_ids {
-        let adapter =
-            axagent_analysis_engine::opc::industry::IndustryAdapterFactory::create(industry_id);
-        let Some(adapter) = adapter else {
-            tracing::warn!("[opc-workflows] Adapter not found for: {industry_id}");
-            continue;
-        };
-
-        let template_data = axagent_analysis_engine::opc::workflow::generate_industry_template_data(
-            industry_id,
-            &*adapter,
-            Some(&tool_resolver),
-        );
-
-        // 版本保护：只在模板版本升级时覆盖，用户编辑不被启动覆盖
-        let should_seed =
-            check_template_version(db, &template_data.id, template_data.version).await?;
-        if !should_seed {
-            tracing::debug!(
-                "[opc-workflows] {} v{} 已存在，跳过 seed（保留用户编辑）",
-                template_data.id,
-                template_data.version
-            );
-            continue;
-        }
-
-        upsert_template(db, template_data).await?;
-
-        seeded_count += 1;
-    }
-
+    tracing::info!("[opc-workflows] Industries seeded from seed files: {seeded_count}");
     Ok(seeded_count)
 }
 
-/// 代码驱动种子化：从 DomainAdapterFactory 创建所有领域工作流定义，
-/// 通过 DomainWorkflowGenerator 转换为模板数据后 upsert 到数据库。
-async fn seed_domains_from_code(db: &DatabaseConnection) -> Result<usize, String> {
-    let domain_defs = axagent_analysis_engine::opc::domain::DomainAdapterFactory::create_all();
-
+/// 从手动定义的 seed 文件种子化 17 个领域工作流。
+///
+/// 每个 seed 文件手动定义 WorkflowNode/Edge，通过 check_template_version +
+/// upsert_template 写入数据库。与行业工作流一致，每个领域有独立的 seed 文件。
+/// 注：工程领域 wf-eng-refactor 暂时保留内联生成器调用，待后续完全手动转换。
+async fn seed_domains_from_seed_files(db: &DatabaseConnection) -> Result<usize, String> {
     let mut seeded_count = 0;
-    for def in &domain_defs {
-        let template_data =
-            axagent_analysis_engine::opc::domain::DomainWorkflowGenerator::gen_to_template_data(
-                def,
-                OPC_TEMPLATE_VERSION,
-            );
-        // 版本保护：只在版本升级时覆盖，用户编辑不被启动覆盖
-        let should_seed =
-            check_template_version(db, &template_data.id, template_data.version).await?;
-        if !should_seed {
-            tracing::debug!(
-                "[opc-workflows] {} v{} 已存在，跳过 seed（保留用户编辑）",
-                template_data.id,
-                template_data.version
-            );
-            continue;
-        }
-        upsert_template(db, template_data).await?;
-        seeded_count += 1;
-    }
 
-    tracing::info!(
-        "[opc-workflows] Domains seeded: {seeded_count} workflows from {} domains",
-        axagent_analysis_engine::opc::domain::DomainAdapterFactory::list_all().len()
-    );
+    seeded_count += seed_domain_academic::seed_domain_academic_workflows(db).await?;
+    seeded_count += seed_domain_design::seed_domain_design_workflows(db).await?;
+    seeded_count += seed_domain_engineering::seed_domain_engineering_workflows(db).await?;
+    seeded_count += seed_domain_finance::seed_domain_finance_workflows(db).await?;
+    seeded_count += seed_domain_gamedev::seed_domain_gamedev_workflows(db).await?;
+    seeded_count += seed_domain_gis::seed_domain_gis_workflows(db).await?;
+    seeded_count += seed_domain_marketing::seed_domain_marketing_workflows(db).await?;
+    seeded_count += seed_domain_paidmedia::seed_domain_paidmedia_workflows(db).await?;
+    seeded_count += seed_domain_pm::seed_domain_pm_workflows(db).await?;
+    seeded_count += seed_domain_product::seed_domain_product_workflows(db).await?;
+    seeded_count += seed_domain_sales::seed_domain_sales_workflows(db).await?;
+    seeded_count += seed_domain_security::seed_domain_security_workflows(db).await?;
+    seeded_count += seed_domain_spatial::seed_domain_spatial_workflows(db).await?;
+    seeded_count += seed_domain_specialized::seed_domain_specialized_workflows(db).await?;
+    seeded_count += seed_domain_strategy::seed_domain_strategy_workflows(db).await?;
+    seeded_count += seed_domain_support::seed_domain_support_workflows(db).await?;
+    seeded_count += seed_domain_testing::seed_domain_testing_workflows(db).await?;
+
+    tracing::info!("[opc-workflows] Domains seeded from seed files: {seeded_count}");
     Ok(seeded_count)
 }
 
@@ -488,8 +509,8 @@ mod tests {
         let count = opc_industries::Entity::find().count(db).await.unwrap();
         assert_eq!(count, 14, "opc_industries 应有 14 行");
 
-        // 工作流由 Rust 适配器种子化
-        let wf_seeded = seed_opc_industries_from_code(db).await.expect("代码 seed 成功");
+        // 工作流由 Rust 种子文件
+        let wf_seeded = seed_opc_industries_from_seed_files(db).await.expect("seed 文件成功");
         assert_eq!(wf_seeded, 14, "应 seed 14 行业工作流");
 
         use axagent_entities::workflow_template;
@@ -554,7 +575,7 @@ mod tests {
         let h = axagent_dao::db::create_test_pool().await.unwrap();
         let db = &h.conn;
 
-        let seeded = seed_domains_from_code(db).await.expect("领域代码 seed 成功");
+        let seeded = seed_domains_from_seed_files(db).await.expect("领域 seed 文件成功");
         assert!(seeded > 65, "应 seed 至少 65 个领域工作流，实际 {seeded}");
 
         use axagent_entities::workflow_template;
@@ -565,7 +586,7 @@ mod tests {
             .expect("wf-eng-code-review 应存在");
         assert!(!wf.nodes.is_empty(), "节点不应为空");
 
-        seed_domains_from_code(db).await.expect("二次 seed 应成功");
+        seed_domains_from_seed_files(db).await.expect("二次 seed 应成功");
     }
 
     #[tokio::test]
@@ -574,8 +595,8 @@ mod tests {
         let h = axagent_dao::db::create_test_pool().await.unwrap();
         let db = &h.conn;
 
-        // 行业工作流由 Rust 适配器种子化
-        seed_opc_industries_from_code(db).await.expect("代码 seed 成功");
+        // 行业工作流由 Rust 种子文件
+        seed_opc_industries_from_seed_files(db).await.expect("seed 文件成功");
 
         // 金融投资行业工作流应存在（由 Rust adapter 生成）
         use axagent_entities::workflow_template;
@@ -626,8 +647,8 @@ mod tests {
         let h = axagent_dao::db::create_test_pool().await.unwrap();
         let db = &h.conn;
 
-        // 行业工作流由 Rust 适配器种子化
-        seed_opc_industries_from_code(db).await.expect("seed 9 行业");
+        // 行业工作流由 Rust 种子文件
+        seed_opc_industries_from_seed_files(db).await.expect("seed 14 行业");
 
         use axagent_entities::workflow_template;
         use sea_orm::EntityTrait;
@@ -682,7 +703,7 @@ mod tests {
         assert!(sdev.nodes.contains("step_software_dev"), "software_dev 应含步骤节点");
 
         // 5. 幂等：二次 seed 不报错、不产生重复
-        seed_opc_industries_from_code(db).await.expect("二次 seed 应成功");
+        seed_opc_industries_from_seed_files(db).await.expect("二次 seed 应成功");
         let count = workflow_template::Entity::find().count(db).await.unwrap();
         assert_eq!(count, 14, "14 行业共 14 个工作流，二次 seed 后不应残留/重复，实际 {count}");
     }
@@ -693,7 +714,7 @@ mod tests {
         let h = axagent_dao::db::create_test_pool().await.unwrap();
         let db = &h.conn;
 
-        seed_opc_industries_from_code(db).await.expect("代码 seed 成功");
+        seed_opc_industries_from_seed_files(db).await.expect("seed 文件成功");
 
         use axagent_entities::workflow_template;
         let wf = workflow_template::Entity::find_by_id("accounting_harness_workflow")

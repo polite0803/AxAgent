@@ -10,8 +10,8 @@ use axagent_harness::self_improving_loop::{
     NextAction, RoundEvaluation, RoundResult, RoundStep, SelfImprovingRound,
 };
 
+use super::data_service::OpcDataService;
 use super::error::OpcResult;
-use super::industry::OpcIndustryAdapter;
 
 // ── OpcIndustryDecision ────────────────────────────────────────
 
@@ -141,14 +141,14 @@ pub struct RiskViolation {
 /// 行业分析回合（实现 SelfImprovingRound trait）
 pub struct OpcIndustryAnalysisRound {
     industry_id: String,
-    adapter: Arc<dyn OpcIndustryAdapter>,
+    data_service: Arc<dyn OpcDataService>,
     risk_gate: OpcRiskGate,
 }
 
 impl OpcIndustryAnalysisRound {
-    pub fn new(industry_id: String, adapter: Arc<dyn OpcIndustryAdapter>) -> Self {
+    pub fn new(industry_id: String, data_service: Arc<dyn OpcDataService>) -> Self {
         let risk_gate = OpcRiskGate::new(&industry_id);
-        Self { industry_id, adapter, risk_gate }
+        Self { industry_id, data_service, risk_gate }
     }
 
     /// 执行分析并返回决策
@@ -156,7 +156,12 @@ impl OpcIndustryAnalysisRound {
         &self,
         time_range: &super::data_service::TimeRange,
     ) -> OpcResult<OpcIndustryDecision> {
-        let kpis = self.adapter.compute_kpis(time_range).await?;
+        let kpis = super::industry_kpi_service::compute_kpis(
+            &self.industry_id,
+            &self.data_service,
+            time_range,
+        )
+        .await?;
         let risk_check = self.risk_gate.check(&kpis).await?;
 
         let recommendations = self.generate_recommendations(&kpis, &risk_check);

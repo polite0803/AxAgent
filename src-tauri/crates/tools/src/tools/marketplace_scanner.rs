@@ -13,6 +13,10 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
+use super::github_issue_scanner::GitHubIssueScanner;
+use super::hacker_news_scanner::HackerNewsScanner;
+use super::reddit_scanner::RedditScanner;
+
 // ── DTO 定义 ──────────────────────────────────────────────────
 
 /// 原始线索（平台返回的原始数据，未经归一化）
@@ -147,7 +151,12 @@ impl AggregateMarketplaceScanner {
 
 impl Default for AggregateMarketplaceScanner {
     fn default() -> Self {
-        Self::new()
+        let mut scanner = Self::new();
+        // 注册技术社区扫描器（Phase 1 新增）
+        scanner.add_scanner(Box::new(RedditScanner::new()));
+        scanner.add_scanner(Box::new(HackerNewsScanner::new()));
+        scanner.add_scanner(Box::new(GitHubIssueScanner::new(None)));
+        scanner
     }
 }
 

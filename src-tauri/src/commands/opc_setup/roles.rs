@@ -233,6 +233,7 @@ pub const APPROVAL_ROLES: &[OpcRoleDef] = &[
     },
 ];
 
+#[allow(dead_code)]
 /// 行业专属角色（可选）
 ///
 /// 注意：角色对应岗位，在 agent 节点中可以为空。

@@ -183,6 +183,7 @@ async fn seed_profiles(
     Ok(())
 }
 
+#[allow(dead_code)]
 /// 种子化岗位驱动型 AgentProfile（只有角色，没有专家）
 ///
 /// 岗位驱动型工作流：必须有角色，专家可选
@@ -252,6 +253,7 @@ pub async fn seed_role_only_profile(
     Ok(())
 }
 
+#[allow(dead_code)]
 /// 种子化混合型 AgentProfile（角色 + 专家）
 ///
 /// 混合型工作流：角色定义身份，专家定义方法论

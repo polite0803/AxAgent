@@ -346,6 +346,12 @@ pub mod stock_setup {
     pub const INTERNAL: &str = "STOCK_SETUP_INTERNAL";
 }
 
+/// OPC 需求发现工作流种子数据相关错误码
+pub mod opc_setup {
+    /// 内部错误
+    pub const INTERNAL: &str = "OPC_SETUP_INTERNAL";
+}
+
 /// 工作流反思 / 进化 / 优化相关错误码(阶段 5 wiring 层)
 pub mod workflow_reflection {
     /// 反思执行失败(内部异常,通常底层 trait 返回 Err)

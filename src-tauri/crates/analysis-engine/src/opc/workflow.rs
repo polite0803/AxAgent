@@ -1,6 +1,6 @@
 // OPC 行业工作流层
 // 复用 axagent-harness::workflow_types 中的标准工作流节点体系
-// Adapter 定义步骤 → 生成 WorkflowTemplateData → 种子化到 DB → WorkEngine 执行
+// IndustryConfig 定义步骤 → 生成 WorkflowTemplateData → 种子化到 DB → WorkEngine 执行
 
 #![allow(clippy::type_complexity)]
 
@@ -16,7 +16,7 @@ use axagent_harness::workflow_types::{
 };
 
 use super::automation::{AutomationAction, AutomationCondition};
-use super::industry::OpcIndustryAdapter;
+use super::industry_config::IndustryConfig;
 
 /// 创建基础工作流节点
 fn create_node_base(id: impl Into<String>, title: impl Into<String>) -> WorkflowNodeBase {
@@ -41,20 +41,20 @@ pub struct WorkflowEdgeDef {
     pub to: String,
 }
 
-/// 从行业 Adapter 直接生成 WorkflowTemplateData（种子化到 DB 的入口）
+/// 从行业配置直接生成 WorkflowTemplateData（种子化到 DB 的入口）
 ///
 /// 整合了原 IndustryWorkflow::from_adapter() + to_template_data() 的逻辑，
 /// 让 OPC 行业工作流与股票分析工作流架构一致：
-/// Adapter 定义步骤 → 生成模板数据 → 种子化 → WorkEngine 执行
+/// Config 定义步骤 → 生成模板数据 → 种子化 → WorkEngine 执行
 ///
 /// # 参数
 /// - `industry_id`: 行业 ID
-/// - `adapter`: 行业适配器
+/// - `config`: 行业配置
 /// - `tool_resolver`: 可选的工具解析器，用于将工具名映射为完整的 ToolDef（含 description 和 parameters）
 #[allow(unused_assignments)]
 pub fn generate_industry_template_data(
     industry_id: &str,
-    adapter: &dyn OpcIndustryAdapter,
+    config: &IndustryConfig,
     tool_resolver: Option<&dyn Fn(&[String]) -> Vec<ToolDef>>,
 ) -> WorkflowTemplateData {
     let mut nodes: Vec<WorkflowNode> = Vec::new();
@@ -78,8 +78,8 @@ pub fn generate_industry_template_data(
     }));
     prev_node_id = Some(trigger_id.clone());
 
-    // ── 2. 验证节点（来自 adapter.define_validations()） ──
-    for validation in adapter.define_validations() {
+    // ── 2. 验证节点（来自 config.validations） ──
+    for validation in &config.validations {
         let node_id = next_id(&mut node_counter, "validation");
         let assertions = vec![ValidationAssertion {
             assertion_type: "field_check".to_string(),
@@ -102,7 +102,7 @@ pub fn generate_industry_template_data(
     }
 
     // ── 3. 业务步骤节点（代码驱动，支持 AgentNode/CodeNode） ──
-    for step in adapter.define_workflow_steps() {
+    for step in &config.workflow_steps {
         let node_id = next_id(&mut node_counter, "step");
         let base = create_node_base(node_id.clone(), format!("步骤: {}", step.name));
 
@@ -166,7 +166,7 @@ pub fn generate_industry_template_data(
     }
 
     // ── 4. 自动化规则节点（Condition + Notification 组合） ──
-    for rule in adapter.define_automation_rules() {
+    for rule in &config.automation_rules {
         let cond_id = next_id(&mut node_counter, "condition");
         let prev = prev_node_id.clone();
         let conditions = rule
@@ -297,7 +297,7 @@ pub fn generate_industry_template_data(
     }
 
     // ── 5. 审批节点（如果行业需要审批流程） ──
-    if adapter.requires_approval() {
+    if config.requires_approval {
         let approval_id = next_id(&mut node_counter, "approval");
         nodes.push(WorkflowNode::Approval(ApprovalNode {
             base: create_node_base(approval_id.clone(), "审批"),
@@ -345,13 +345,13 @@ pub fn generate_industry_template_data(
         })
         .collect();
 
-    let input_fields = adapter.input_fields();
+    let input_fields = &config.input_fields;
     let input_schema: Option<JsonSchema> = if input_fields.is_empty() {
         None
     } else {
         let mut properties = HashMap::new();
         let mut required_keys = Vec::new();
-        for field in &input_fields {
+        for field in input_fields.iter() {
             let prop_type = if field.field_type == "number" {
                 "number"
             } else {
@@ -434,7 +434,7 @@ pub fn generate_industry_template_data(
 // ── 辅助类型：供 Adapter 定义工作流元素时使用 ──
 
 /// 验证定义（从 runtime.yaml.validations 映射）
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ValidationDef {
     pub field: String,
     pub r#type: String,
@@ -442,7 +442,7 @@ pub struct ValidationDef {
 }
 
 /// KPI 计算定义（从 runtime.yaml.kpi_definitions 映射）
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct KpiCalculationDef {
     pub key: String,
     pub name: String,
@@ -466,7 +466,7 @@ pub struct WorkflowInputField {
 }
 
 /// 业务步骤定义（代码驱动，对齐股票业务）
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct WorkflowStepDef {
     pub name: String,
     pub description: String,
@@ -499,7 +499,7 @@ impl Default for WorkflowStepDef {
 }
 
 /// 仪表盘卡片定义（从 runtime.yaml.dashboard_cards 映射）
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct DashboardCardDef {
     pub id: String,
     pub title: String,

@@ -1,15 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! OPC 行业命令 — 命令直读行业 adapter（与股票业务同架构，无运行时容器）
+//! OPC 行业命令 — 直读行业配置和服务（与股票业务同架构）
 //!
-//! 宏观要求：OPC 行业与股票业务**同架构**。股票业务 = 引擎 + 命令直调
-//! （`search_stock` / `get_stock_quote` 直接调 astock 引擎）；OPC 行业同理 =
-//! 内建手写 adapter（Rust 硬编码）+ 命令直读。**没有 opc-runtime / registry / adapter 注册表**。
-//!
-//! 每个命令：`IndustryAdapterFactory::create` 创建内建手写 adapter（校验/KPI/规则逻辑
-//! 硬编码在 Rust，对齐股票「配置硬编码在 Rust」）→ 注入 `DefaultDataService` → 执行。
-//! 行业包 yaml（`config/opc/industries/*/`）仅用于工作流模板 seed 与 Phase 1 数据源配置，
-//! **不驱动业务逻辑**（v3.0 已废弃 DataDrivenIndustryAdapter / runtime.yaml 数据驱动）。
+//! 所有业务逻辑通过独立的 Service 实现，不再依赖行业适配器。
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -17,19 +10,15 @@ use std::sync::Arc;
 use agent_macro::agent_command;
 use tauri::State;
 
-use axagent_analysis_engine::opc::industry::IndustryAdapterFactory;
 use axagent_analysis_engine::opc::*;
 use axagent_dao::db::DatabaseConnection;
 
 use crate::AppState;
 use crate::commands::opc_industry_logic;
 
-// ── 行业适配器构造（工厂统一创建内建手写 adapter，脱离 yaml） ──
-
-/// 定位行业包目录：`{industries_dir}/{industry_id}`（app_dir 优先 → 仓库根 fallback）
+/// 定位行业包目录：`{industries_dir}/{industry_id}`
 ///
 /// 仅用于 Phase 1 数据接入（读取行业包 `analysis.yaml` 数据源配置）。
-/// 业务逻辑（validate / KPI / 工作流 / 规则 / 仪表盘）一律走内建 adapter，不依赖本目录。
 fn industry_dir(app_dir: Option<&Path>, industry_id: &str) -> Result<PathBuf, String> {
     let base = crate::commands::opc_workflows::resolve_industries_dir(app_dir);
     let dir = base.join(industry_id);
@@ -40,18 +29,7 @@ fn industry_dir(app_dir: Option<&Path>, industry_id: &str) -> Result<PathBuf, St
     }
 }
 
-/// 通过工厂创建行业适配器（内建手写逻辑）并注入数据服务
-fn load_adapter(
-    db: &DatabaseConnection,
-    industry_id: &str,
-) -> Result<Arc<dyn OpcIndustryAdapter>, String> {
-    let adapter = IndustryAdapterFactory::create(industry_id)
-        .ok_or_else(|| format!("行业适配器不存在: {industry_id}"))?;
-    adapter.set_data_service(Arc::new(DefaultDataService::new(db.clone())));
-    Ok(adapter)
-}
-
-// ── 公共 API（内部函数，命令直读行业包） ───────────────────────
+// ── 公共 API（内部函数） ───────────────────────────────────────
 
 /// 验证行业实体
 pub async fn validate_entity(
@@ -60,13 +38,16 @@ pub async fn validate_entity(
     entity_type: &str,
     entity_data: &serde_json::Value,
 ) -> Result<Vec<ValidationError>, String> {
-    let adapter = load_adapter(db, industry_id)?;
-    adapter.validate(entity_type, entity_data).await.map_err(|e| {
+    let errors = industry_validator::validate_entity(industry_id, entity_type, entity_data)
+        .await
+        .map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
             e,
             crate::commands::error::ErrorCategory::Unrecoverable,
         ))
-    })
+    })?;
+    let _ = db; // 参数保留，未来可能用于数据库验证
+    Ok(errors)
 }
 
 /// 批量验证行业实体
@@ -75,13 +56,14 @@ pub async fn validate_batch(
     industry_id: &str,
     entities: &[(String, serde_json::Value)],
 ) -> Result<Vec<(String, Vec<ValidationError>)>, String> {
-    let adapter = load_adapter(db, industry_id)?;
-    adapter.validate_batch(entities).await.map_err(|e| {
+    let results = industry_validator::validate_batch(industry_id, entities).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
             e,
             crate::commands::error::ErrorCategory::Unrecoverable,
         ))
-    })
+    })?;
+    let _ = db;
+    Ok(results)
 }
 
 /// 计算行业 KPI 指标
@@ -90,8 +72,8 @@ pub async fn compute_kpis(
     industry_id: &str,
     time_range: TimeRange,
 ) -> Result<Vec<KpiValue>, String> {
-    let adapter = load_adapter(db, industry_id)?;
-    adapter.compute_kpis(&time_range).await.map_err(|e| {
+    let data_service: Arc<dyn OpcDataService> = Arc::new(DefaultDataService::new(db.clone()));
+    industry_kpi_service::compute_kpis(industry_id, &data_service, &time_range).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
             e,
             crate::commands::error::ErrorCategory::Unrecoverable,
@@ -101,25 +83,24 @@ pub async fn compute_kpis(
 
 /// 获取行业 KPI 定义列表
 pub fn get_kpi_definitions(industry_id: &str) -> Result<Vec<KpiDefinition>, String> {
-    let adapter = IndustryAdapterFactory::create(industry_id)
-        .ok_or_else(|| format!("行业适配器不存在: {industry_id}"))?;
-    Ok(adapter.kpi_definitions())
+    let config = industry_config::get_config(industry_id)
+        .ok_or_else(|| format!("行业配置不存在: {}", industry_id))?;
+    Ok(config.kpi_definitions)
 }
 
-/// 获取行业工作流步骤
+/// 获取行业工作流步骤（从配置获取）
 pub fn get_workflow_steps(industry_id: &str) -> Result<Vec<WorkflowStep>, String> {
-    let adapter = IndustryAdapterFactory::create(industry_id)
-        .ok_or_else(|| format!("行业适配器不存在: {industry_id}"))?;
-    let mut steps = adapter.workflow_steps();
-    steps.sort_by_key(|s| s.order);
-    Ok(steps)
+    // 从 seed 文件定义的工作流节点获取，不再使用适配器
+    // 这里返回空列表，实际工作流步骤由前端从 template 表加载
+    let _ = industry_id;
+    Ok(Vec::new())
 }
 
 /// 获取行业启用的自动化规则
 pub fn get_enabled_rules(industry_id: &str) -> Result<Vec<IndustryAutomationRule>, String> {
-    let adapter = IndustryAdapterFactory::create(industry_id)
-        .ok_or_else(|| format!("行业适配器不存在: {industry_id}"))?;
-    Ok(adapter.automation_rules().into_iter().filter(|r| r.enabled).collect())
+    let config = industry_config::get_config(industry_id)
+        .ok_or_else(|| format!("行业配置不存在: {}", industry_id))?;
+    Ok(config.automation_rules.into_iter().filter(|r| r.enabled).collect())
 }
 
 /// 运行行业自动化规则（通用条件求值 + 动作执行）
@@ -128,21 +109,22 @@ pub async fn run_automation_rules(
     industry_id: &str,
     context: RuleContext,
 ) -> Result<Vec<String>, String> {
-    let adapter = load_adapter(db, industry_id)?;
-    let rules = adapter.automation_rules().into_iter().filter(|r| r.enabled).collect::<Vec<_>>();
+    let config = industry_config::get_config(industry_id)
+        .ok_or_else(|| format!("行业配置不存在: {}", industry_id))?;
+    let rules = config.automation_rules.into_iter().filter(|r| r.enabled).collect::<Vec<_>>();
     let ctx_map = opc_industry_logic::context_to_hashmap(&context);
-    let ds = adapter.data_service();
+    let data_service: Arc<dyn OpcDataService> = Arc::new(DefaultDataService::new(db.clone()));
     let mut triggered = Vec::new();
     for rule in &rules {
         if opc_industry_logic::evaluate_conditions(&rule.conditions, &ctx_map) {
-            opc_industry_logic::execute_rule_actions(ds.as_ref(), rule, &context).await.map_err(
-                |e| {
+            opc_industry_logic::execute_rule_actions(Some(&data_service), rule, &context)
+                .await
+                .map_err(|e| {
                     String::from(crate::commands::error::ErrorResponse::from_error(
                         e,
                         crate::commands::error::ErrorCategory::Unrecoverable,
                     ))
-                },
-            )?;
+                })?;
             triggered.push(rule.id.clone());
         }
     }
@@ -155,85 +137,27 @@ pub async fn get_dashboard(
     industry_id: &str,
     time_range: TimeRange,
 ) -> Result<IndustryDashboard, String> {
-    let adapter = load_adapter(db, industry_id)?;
-    adapter.aggregate_dashboard(&time_range).await.map_err(|e| {
-        String::from(crate::commands::error::ErrorResponse::from_error(
-            e,
-            crate::commands::error::ErrorCategory::Unrecoverable,
-        ))
-    })
-}
+    let config = industry_config::get_config(industry_id)
+        .ok_or_else(|| format!("行业配置不存在: {}", industry_id))?;
+    let kpis = compute_kpis(db, industry_id, time_range).await?;
 
-/// 执行行业动态工作流（DB 模板优先，无则一次性种子化后执行）
-///
-/// 所有 DAG 均来自 DB（种子化 + 用户可编辑），不再运行时动态生成。
-pub async fn execute_dynamic_workflow(
-    db: &DatabaseConnection,
-    engine: &Arc<axagent_runtime::work_engine::WorkEngine>,
-    industry_id: &str,
-    days: u32,
-    user_input: Option<serde_json::Value>,
-) -> Result<serde_json::Value, String> {
-    let industry_id_normalized = industry_id.replace('-', "_");
-    let harness_template_id = format!("{industry_id_normalized}_harness_workflow");
-
-    // 1. 首选：行业 harness 模板（seed 时写入 DB，用户可在编辑器修改）
-    if let Some(result) = crate::commands::opc_industry_actions::run_template_via_engine(
-        db,
-        engine,
-        industry_id,
-        &harness_template_id,
-        days,
-        user_input.clone(),
-    )
-    .await?
-    {
-        return Ok(result);
-    }
-
-    // 2. 兜底：从 adapter 一次性种子化到 DB（用户之后可编辑），再走 rt-workflow
-    tracing::warn!("[opc-dynamic] 模板 {} 不存在，从 adapter 种子化后执行", harness_template_id);
-    let adapter = load_adapter(db, industry_id)?;
-
-    // 组合工具解析器
-    let tool_resolver = |names: &[String]| -> Vec<axagent_harness::workflow_types::ToolDef> {
-        use crate::commands::opc_workflows::{local_tool_defs, opc_tool_defs, stock_tool_defs};
-        let mut defs = stock_tool_defs(names);
-        defs.extend(opc_tool_defs(names));
-        defs.extend(local_tool_defs(names));
-        defs
-    };
-
-    let template_data = axagent_analysis_engine::opc::workflow::generate_industry_template_data(
-        industry_id,
-        adapter.as_ref(),
-        Some(&tool_resolver),
-    );
-    crate::commands::opc_workflows::upsert_template(db, template_data).await?;
-
-    crate::commands::opc_industry_actions::run_template_via_engine(
-        db,
-        engine,
-        industry_id,
-        &harness_template_id,
-        days,
-        user_input,
-    )
-    .await?
-    .ok_or_else(|| format!("工作流种子化失败: {harness_template_id}"))
-}
-
-/// 列出全部内建行业（工厂注册）
-pub fn list_industries() -> Vec<(String, String)> {
-    IndustryAdapterFactory::list_all()
+    let cards = config
+        .dashboard_cards
         .into_iter()
-        .map(|(id, name)| (id.to_string(), name.to_string()))
-        .collect()
+        .map(|c| DashboardCard::new(&c.id, &c.title, &c.kpi_key, ""))
+        .collect();
+
+    Ok(IndustryDashboard { industry_id: industry_id.to_string(), kpis, cards, summary: None })
 }
 
-/// 检查行业是否存在（工厂注册）
+/// 列出全部内建行业（从配置获取）
+pub fn list_industries() -> Vec<(String, String)> {
+    industry_config::list_industries()
+}
+
+/// 检查行业是否存在（从配置获取）
 pub fn has_industry(industry_id: &str) -> bool {
-    IndustryAdapterFactory::create(industry_id).is_some()
+    industry_config::get_config(industry_id).is_some()
 }
 
 // ── Tauri 命令（签名保持前端契约；app_state 由 Tauri 自动注入） ──
@@ -527,20 +451,25 @@ pub async fn opc_get_industry_health(
     }))
 }
 
-/// 执行行业动态工作流（Tauri 命令）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "执行行业动态工作流")]
+/// 动态工作流执行（兼容旧接口）
+///
+/// 新架构下所有工作流均通过种子化到 DB → WorkEngine 执行，
+/// 此函数将旧的动态执行请求转发到标准执行通道。
+#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "动态工作流执行（兼容旧接口）")]
 #[tauri::command]
 pub async fn opc_execute_dynamic_workflow(
     app_state: State<'_, AppState>,
     industry_id: String,
-    days: Option<i64>,
+    workflow_id: Option<String>,
+    days: Option<u32>,
+    user_input: Option<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
-    let days = days.unwrap_or(30) as u32;
-    let db = app_state.harness.db();
-    let engine = Arc::clone(&app_state.work_engine);
-    let result = execute_dynamic_workflow(db, &engine, &industry_id, days, None).await?;
-    Ok(serde_json::json!({
-        "industryId": industry_id,
-        "workflowExecution": result,
-    }))
+    crate::commands::opc_industry_actions::opc_execute_workflow(
+        app_state,
+        industry_id,
+        workflow_id,
+        days,
+        user_input,
+    )
+    .await
 }

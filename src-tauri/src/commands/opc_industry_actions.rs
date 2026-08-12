@@ -1459,20 +1459,20 @@ pub async fn opc_list_industry_workflows(industry_id: String) -> Result<serde_js
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "执行行业分析")]
 #[tauri::command]
 pub async fn opc_execute_analysis(
-    _app_state: State<'_, AppState>,
+    app_state: State<'_, AppState>,
     industry_id: String,
     days: Option<u32>,
 ) -> Result<serde_json::Value, String> {
+    use axagent_analysis_engine::opc::DefaultDataService;
     use axagent_analysis_engine::opc::data_service::TimeRange;
-    use axagent_analysis_engine::opc::industry::IndustryAdapterFactory;
-
-    let adapter = IndustryAdapterFactory::create(&industry_id)
-        .ok_or_else(|| format!("行业适配器不存在: {industry_id}"))?;
 
     let days = days.unwrap_or(30);
     let time_range = TimeRange::days(days as i64);
 
-    let round = OpcIndustryAnalysisRound::new(industry_id.clone(), adapter);
+    let db = app_state.harness.db();
+    let data_service: std::sync::Arc<dyn axagent_analysis_engine::opc::OpcDataService> =
+        std::sync::Arc::new(DefaultDataService::new(db.clone()));
+    let round = OpcIndustryAnalysisRound::new(industry_id.clone(), data_service);
     let decision = round.analyze(&time_range).await.map_err(|e| format!("分析执行失败: {e}"))?;
 
     serde_json::to_value(decision).map_err(|e| {
@@ -1649,10 +1649,7 @@ pub async fn opc_execute_workflow(
     days: Option<u32>,
     user_input: Option<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
-    use axagent_analysis_engine::opc::industry::IndustryAdapterFactory;
-
-    let adapter = IndustryAdapterFactory::create(&industry_id)
-        .ok_or_else(|| format!("行业适配器不存在: {industry_id}"))?;
+    use axagent_analysis_engine::opc::industry_config as engine_config;
 
     let days = days.unwrap_or(30);
 
@@ -1706,12 +1703,16 @@ pub async fn opc_execute_workflow(
         }
     }
 
-    // 3. 兜底：模板不存在时从 adapter 一次性种子化到 DB（用户之后可在编辑器修改），再走 rt-workflow
+    // 3. 兜底：模板不存在时从行业配置一次性种子化到 DB（用户之后可在编辑器修改），再走 rt-workflow
     tracing::warn!(
-        "[opc-execute] 模板 {} 与 {} 均不存在，从 adapter 种子化后执行",
+        "[opc-execute] 模板 {} 与 {} 均不存在，从行业配置种子化后执行",
         template_id,
         harness_template_id
     );
+
+    // 从 analysis-engine 的行业配置获取工作流模板数据
+    let industry_engine_config = engine_config::get_config(&industry_id_normalized)
+        .ok_or_else(|| format!("行业配置不存在: {industry_id}"))?;
 
     // 组合工具解析器
     let tool_resolver = |names: &[String]| -> Vec<axagent_harness::workflow_types::ToolDef> {
@@ -1724,7 +1725,7 @@ pub async fn opc_execute_workflow(
 
     let template_data = axagent_analysis_engine::opc::workflow::generate_industry_template_data(
         &industry_id_normalized,
-        adapter.as_ref(),
+        &industry_engine_config,
         Some(&tool_resolver),
     );
     crate::commands::opc_workflows::upsert_template(db, template_data).await?;

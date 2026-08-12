@@ -12,6 +12,8 @@ use axagent_dao::repo::agent_role;
 use axagent_entities::{agency_experts, agent_profiles};
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 
+mod domain_agents;
+mod domain_experts;
 mod industry_agents;
 mod industry_experts;
 mod roles;
@@ -195,7 +197,10 @@ pub async fn ensure_opc_company_seeded(db: &DatabaseConnection) -> Result<(), St
     industry_agents::seed_ai_research_agents(db).await?;
     industry_agents::seed_all_industry_agents(db).await?;
 
-    // 5. 种子化需求发现工作流模板（持久化到 workflow_template 表）
+    // 5. 领域专属 agent（17 个领域，72 个专家）
+    domain_agents::seed_all_domain_agents(db).await?;
+
+    // 6. 种子化需求发现工作流模板（持久化到 workflow_template 表）
     seed_opc_workflow_template::seed_opc_workflow_template(db).await?;
 
     tracing::info!("[opc-company] 公司架构种子化完成");
