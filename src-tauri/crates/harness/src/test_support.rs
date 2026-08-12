@@ -1757,6 +1757,12 @@ impl NoteBacklinkRepository for EmptyNoteBacklinkRepository {
     async fn count_by_target_note_id(&self, _note_id: &str) -> std::result::Result<usize, String> {
         Ok(0)
     }
+    async fn batch_count_by_target_note_ids(
+        &self,
+        _note_ids: &[String],
+    ) -> std::result::Result<HashMap<String, i64>, String> {
+        Ok(HashMap::new())
+    }
     async fn find_by_target_note_id(
         &self,
         _note_id: &str,

@@ -42,6 +42,20 @@ jobs:
     name: Frontend Check
     runs-on: ubuntu-24.04
     steps:
+      - name: Diagnose git TLS config (temporary)
+        continue-on-error: true
+        run: |
+          echo "=== GIT_SSL env ==="
+          env | grep -i GIT_SSL || echo "(none)"
+          echo "=== git ssl config (with origin) ==="
+          git config --list --show-origin 2>&1 | grep -i ssl || echo "(no ssl entries)"
+          echo "=== system CA bundle ==="
+          ls -l /etc/ssl/certs/ca-certificates.crt 2>&1 || echo "(system CA missing)"
+          echo "=== curl CA ==="
+          curl --version | head -1
+          curl -sS -o /dev/null -w "%{http_code}\n" https://github.com 2>&1 || echo "(curl to github failed)"
+          echo "=== git version ==="
+          git --version
       - uses: actions/checkout@v5
 
       - uses: actions/setup-node@v5

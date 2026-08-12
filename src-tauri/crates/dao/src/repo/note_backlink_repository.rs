@@ -2,6 +2,7 @@
 
 //! DAO implementation of NoteBacklinkRepository using SeaORM.
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use axagent_entities::note_backlinks;
@@ -29,6 +30,33 @@ impl NoteBacklinkRepository for DaoNoteBacklinkRepository {
             .map_err(|e| format!("DB error: {}", e))?;
 
         Ok(count as usize)
+    }
+
+    async fn batch_count_by_target_note_ids(
+        &self,
+        note_ids: &[String],
+    ) -> Result<HashMap<String, i64>, String> {
+        if note_ids.is_empty() {
+            return Ok(HashMap::new());
+        }
+
+        // 批量查询所有 backlink 计数，在数据库端用 GROUP BY 聚合，避免 N+1 查询
+        let results = note_backlinks::Entity::find()
+            .select_only()
+            .column(note_backlinks::Column::TargetNoteId)
+            .column_as(note_backlinks::Column::SourceNoteId.count(), "cnt")
+            .filter(note_backlinks::Column::TargetNoteId.is_in(note_ids.to_vec()))
+            .group_by(note_backlinks::Column::TargetNoteId)
+            .into_tuple::<(String, i64)>()
+            .all(self.db.as_ref())
+            .await
+            .map_err(|e| format!("DB error: {}", e))?;
+
+        let mut map = HashMap::with_capacity(note_ids.len());
+        for (target_id, count) in results {
+            map.insert(target_id, count);
+        }
+        Ok(map)
     }
 
     async fn find_by_target_note_id(

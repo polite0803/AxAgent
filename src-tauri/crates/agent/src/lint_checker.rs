@@ -89,7 +89,6 @@ impl LintChecker {
 
         // 批量预加载：构建 notes_map 和 backlink_counts，消除 N+1 查询
         let mut notes_map: HashMap<String, &Note> = HashMap::new();
-        let mut backlink_counts: HashMap<String, i64> = HashMap::new();
 
         for note in &db_notes {
             all_titles.insert(note.title.clone());
@@ -97,26 +96,73 @@ impl LintChecker {
             notes_map.insert(note.id.clone(), note);
         }
 
-        // 批量查询所有笔记的 backlink 计数
-        for note_id in &note_ids {
-            let count = self.backlink_repo.count_by_target_note_id(note_id).await? as i64;
-            backlink_counts.insert(note_id.clone(), count);
-        }
+        // 批量查询所有笔记的 backlink 计数（替代 N+1 单条查询）
+        let backlink_counts = self.backlink_repo.batch_count_by_target_note_ids(&note_ids).await?;
 
         for note in &db_notes {
             let mut issues = Vec::new();
 
-            self.check_frontmatter(note, &mut issues);
-            self.check_links_with_data(note, &mut issues, &all_titles, &backlink_counts).await?;
-            self.check_structure(note, &mut issues);
-            self.check_content_quality(note, &mut issues);
-
+            // 每个笔记只解析一次 markdown（避免重复解析）
             let parsed = self.parser.parse(&note.content);
+
+            // check_frontmatter 使用预解析结果
+            if note.title.is_empty() {
+                issues.push(LintIssue {
+                    severity: IssueSeverity::Error,
+                    code: "missing-title".to_string(),
+                    message: "Missing title in frontmatter".to_string(),
+                    line: None,
+                });
+            }
+            if note.author.is_empty() {
+                issues.push(LintIssue {
+                    severity: IssueSeverity::Warning,
+                    code: "missing-author".to_string(),
+                    message: "Missing author field".to_string(),
+                    line: None,
+                });
+            }
+            if parsed.frontmatter.tags.is_empty() && note.author == "llm" {
+                issues.push(LintIssue {
+                    severity: IssueSeverity::Info,
+                    code: "missing-tags".to_string(),
+                    message: "LLM page has no tags".to_string(),
+                    line: None,
+                });
+            }
+
+            // check_links_with_data：使用预解析结果 + 预加载数据
             for link in &parsed.links {
+                if link.link_type != "wiki" {
+                    continue;
+                }
+                let target_exists = all_titles.contains(&link.target);
+                if !target_exists {
+                    issues.push(LintIssue {
+                        severity: IssueSeverity::Warning,
+                        code: "broken-link".to_string(),
+                        message: format!("Broken link to [[{}]]", link.target),
+                        line: None,
+                    });
+                }
                 if link.link_type == "wiki" {
                     linked_titles.insert(link.target.clone());
                 }
             }
+
+            // 使用预加载的 backlink_counts 进行 O(1) 查找
+            let backlink_count = backlink_counts.get(&note.id).copied().unwrap_or(0);
+            if backlink_count == 0 && note.author == "llm" {
+                issues.push(LintIssue {
+                    severity: IssueSeverity::Info,
+                    code: "no-backlinks".to_string(),
+                    message: "No other pages reference this page".to_string(),
+                    line: None,
+                });
+            }
+
+            self.check_structure(note, &mut issues);
+            self.check_content_quality(note, &mut issues);
 
             let score = Self::calculate_score(&issues);
             results.push(LintResult { note_id: note.id.clone(), issues, score });
@@ -188,50 +234,6 @@ impl LintChecker {
         }
 
         let backlink_count = self.backlink_repo.count_by_target_note_id(&note.id).await?;
-
-        if backlink_count == 0 && note.author == "llm" {
-            issues.push(LintIssue {
-                severity: IssueSeverity::Info,
-                code: "no-backlinks".to_string(),
-                message: "No other pages reference this page".to_string(),
-                line: None,
-            });
-        }
-
-        Ok(())
-    }
-
-    /// 使用预加载数据的优化版本：消除 N+1 查询，提升批量 lint 性能
-    /// 直接使用预加载的 all_titles (O(1) 查找) 和 backlink_counts (O(1) 查找)
-    async fn check_links_with_data(
-        &self,
-        note: &Note,
-        issues: &mut Vec<LintIssue>,
-        all_titles: &HashSet<String>,
-        backlink_counts: &HashMap<String, i64>,
-    ) -> Result<(), String> {
-        let parsed = self.parser.parse(&note.content);
-
-        for link in &parsed.links {
-            if link.link_type != "wiki" {
-                continue;
-            }
-
-            // 使用预加载的 all_titles 进行 O(1) 查找
-            let target_exists = all_titles.contains(&link.target);
-
-            if !target_exists {
-                issues.push(LintIssue {
-                    severity: IssueSeverity::Warning,
-                    code: "broken-link".to_string(),
-                    message: format!("Broken link to [[{}]]", link.target),
-                    line: None,
-                });
-            }
-        }
-
-        // 使用预加载的 backlink_counts 进行 O(1) 查找
-        let backlink_count = backlink_counts.get(&note.id).copied().unwrap_or(0);
 
         if backlink_count == 0 && note.author == "llm" {
             issues.push(LintIssue {

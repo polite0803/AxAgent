@@ -235,6 +235,12 @@ pub trait NoteBacklinkRepository: Send + Sync {
     /// Count backlinks pointing to a note.
     async fn count_by_target_note_id(&self, note_id: &str) -> Result<usize, String>;
 
+    /// Batch count backlinks pointing to multiple notes. Returns map of note_id -> count.
+    async fn batch_count_by_target_note_ids(
+        &self,
+        note_ids: &[String],
+    ) -> Result<std::collections::HashMap<String, i64>, String>;
+
     /// Find backlinks by target note ID.
     async fn find_by_target_note_id(&self, note_id: &str) -> Result<Vec<NoteBacklink>, String>;
 }
