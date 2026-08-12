@@ -1618,6 +1618,55 @@ pub enum NodeStatus {
     Skipped,
 }
 
+impl NodeStatus {
+    /// 状态机合法性校验:检查从 `current` 状态迁移到 `self`(目标状态) 是否合法。
+    ///
+    /// 合法迁移规则:
+    /// - 同态幂等:任何状态保持自身都合法(用于进度心跳等场景)
+    /// - 终态(Completed/Failed/Skipped) → 终态(自身或其他终态):允许(幂等或补偿)
+    /// - Pending → Ready/Skipped/Completed/Failed:就绪/被跳过/补偿直接标记
+    /// - Ready → Running/Skipped:开始执行或被跳过
+    /// - Running → Completed/Failed/Skipped:完成/失败/被取消
+    ///
+    /// 非法迁移:
+    /// - 终态 → 非终态(Completed/Failed/Skipped → Pending/Ready/Running):禁止
+    /// - Pending → Running:必须先经过 Ready
+    /// - Ready → Completed/Failed:必须先经过 Running
+    pub fn is_valid_transition_from(self, current: NodeStatus) -> bool {
+        use NodeStatus::*;
+        // 同态幂等:任何状态保持自身都合法
+        if self == current {
+            return true;
+        }
+        // 终态不变性:终态不能回退到非终态
+        if current.is_terminal() && !self.is_terminal() {
+            return false;
+        }
+        // 从 Pending:允许 Ready/Skipped/Completed/Failed,禁止 Running
+        if matches!(current, Pending) {
+            return matches!(self, Ready | Skipped | Completed | Failed);
+        }
+        // 从 Ready:允许 Running/Skipped,禁止 Completed/Failed/Pending
+        if matches!(current, Ready) {
+            return matches!(self, Running | Skipped);
+        }
+        // 从 Running:允许 Completed/Failed/Skipped (同态 Running 已在顶部处理)
+        if matches!(current, Running) {
+            return matches!(self, Completed | Failed | Skipped);
+        }
+        // 从终态到其他终态:允许
+        if current.is_terminal() && self.is_terminal() {
+            return true;
+        }
+        false
+    }
+
+    /// 是否为终态(不可再迁移到非终态)
+    pub fn is_terminal(self) -> bool {
+        matches!(self, NodeStatus::Completed | NodeStatus::Failed | NodeStatus::Skipped)
+    }
+}
+
 /// 工作流整体状态。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "snake_case")]
@@ -2085,4 +2134,98 @@ pub struct ValidationResult {
     pub is_valid: bool,
     pub errors: Vec<ValidationError>,
     pub warnings: Vec<ValidationWarning>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_isomorphic_transitions_always_valid() {
+        // 同态幂等: 任何状态保持自身都合法
+        let statuses = [
+            NodeStatus::Pending,
+            NodeStatus::Ready,
+            NodeStatus::Running,
+            NodeStatus::Completed,
+            NodeStatus::Failed,
+            NodeStatus::Skipped,
+        ];
+        for s in &statuses {
+            assert!(s.is_valid_transition_from(*s), "{:?} → {:?} 应合法(同态幂等)", s, s);
+        }
+    }
+
+    #[test]
+    fn test_pending_valid_transitions() {
+        assert!(NodeStatus::Ready.is_valid_transition_from(NodeStatus::Pending));
+        assert!(NodeStatus::Skipped.is_valid_transition_from(NodeStatus::Pending));
+        assert!(NodeStatus::Completed.is_valid_transition_from(NodeStatus::Pending));
+        assert!(NodeStatus::Failed.is_valid_transition_from(NodeStatus::Pending));
+    }
+
+    #[test]
+    fn test_pending_to_running_rejected() {
+        assert!(!NodeStatus::Running.is_valid_transition_from(NodeStatus::Pending));
+    }
+
+    #[test]
+    fn test_ready_valid_transitions() {
+        assert!(NodeStatus::Running.is_valid_transition_from(NodeStatus::Ready));
+        assert!(NodeStatus::Skipped.is_valid_transition_from(NodeStatus::Ready));
+    }
+
+    #[test]
+    fn test_ready_to_terminal_rejected() {
+        assert!(!NodeStatus::Completed.is_valid_transition_from(NodeStatus::Ready));
+        assert!(!NodeStatus::Failed.is_valid_transition_from(NodeStatus::Ready));
+    }
+
+    #[test]
+    fn test_running_valid_transitions() {
+        assert!(NodeStatus::Completed.is_valid_transition_from(NodeStatus::Running));
+        assert!(NodeStatus::Failed.is_valid_transition_from(NodeStatus::Running));
+        assert!(NodeStatus::Skipped.is_valid_transition_from(NodeStatus::Running));
+    }
+
+    #[test]
+    fn test_running_to_non_terminal_rejected() {
+        assert!(!NodeStatus::Pending.is_valid_transition_from(NodeStatus::Running));
+        assert!(!NodeStatus::Ready.is_valid_transition_from(NodeStatus::Running));
+    }
+
+    #[test]
+    fn test_terminal_cannot_regress_to_non_terminal() {
+        let terminals = [NodeStatus::Completed, NodeStatus::Failed, NodeStatus::Skipped];
+        let non_terminals = [NodeStatus::Pending, NodeStatus::Ready, NodeStatus::Running];
+        for term in &terminals {
+            for non_term in &non_terminals {
+                assert!(
+                    !non_term.is_valid_transition_from(*term),
+                    "终态 {:?} → 非终态 {:?} 应被拒绝",
+                    term,
+                    non_term
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_terminal_to_terminal_allowed() {
+        // 终态之间的幂等/补偿转换允许
+        assert!(NodeStatus::Completed.is_valid_transition_from(NodeStatus::Failed));
+        assert!(NodeStatus::Failed.is_valid_transition_from(NodeStatus::Completed));
+        assert!(NodeStatus::Skipped.is_valid_transition_from(NodeStatus::Failed));
+        assert!(NodeStatus::Completed.is_valid_transition_from(NodeStatus::Skipped));
+    }
+
+    #[test]
+    fn test_is_terminal() {
+        assert!(NodeStatus::Completed.is_terminal());
+        assert!(NodeStatus::Failed.is_terminal());
+        assert!(NodeStatus::Skipped.is_terminal());
+        assert!(!NodeStatus::Pending.is_terminal());
+        assert!(!NodeStatus::Ready.is_terminal());
+        assert!(!NodeStatus::Running.is_terminal());
+    }
 }

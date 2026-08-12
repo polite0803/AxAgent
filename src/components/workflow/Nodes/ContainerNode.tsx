@@ -9,10 +9,6 @@ import React, { memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { nodeIconFor } from "./nodeIcons";
 
-/**
- * 容器节点的共享 data 接口。
- * 各容器节点在 data 中应包含这些字段，ContainerNode 根据它们渲染。
- */
 export interface ContainerNodeData {
   id: string;
   type: string;
@@ -21,43 +17,23 @@ export interface ContainerNodeData {
   color: string;
   nodeType: string;
   enabled: boolean;
-  /** 容器子图节点数量（折叠态显示） */
   childCount?: number;
-  /** 装饰容器标记（用于 parallel kind="decorative"） */
   kind?: "decorative" | "executable";
-  /** 是否存在分支级别的超时/降级配置（显示 timeout 标记） */
   hasBranchTimeout?: boolean;
-  /** 外部传入的宽度（WorkflowEditor 根据子节点 bbox 计算） */
   nodeWidth?: number;
-  /** 外部传入的高度 */
   nodeHeight?: number;
 }
 
 interface ContainerNodeProps {
-  /** ReactFlow NodeProps 的 data */
   data: ContainerNodeData;
   selected: boolean;
-  /** 容器类型对应的图标（antd 图标 ReactNode；缺省按 nodeType 解析） */
   icon?: React.ReactNode;
-  /** 额外子元素（渲染在标题栏右侧的标签区域） */
   extraTags?: React.ReactNode;
-  /** 折叠态下额外显示的内容（在计数下方） */
   collapsedExtra?: React.ReactNode;
-  /** 是否禁用 Handle（装饰容器等） */
   disableHandles?: boolean;
-  /** 内部子节点类型标签（如 "Agents"、"Debaters"），用于折叠态计数显示：⊕ N <label> */
   childLabel?: string;
 }
 
-/**
- * 通用复合节点渲染组件（n8n 紧凑风格）。
- *
- * 为 Parallel / Debate / Loop / SubWorkflow / Swarm 等内部含多个子节点的节点
- * 提供统一的视觉标识：
- * - 虚线边框 + 轻微背景色
- * - 紧凑标题栏（图标 + 标题 + 折叠按钮一行）
- * - 折叠态仅显示标题 + 内部节点数量
- */
 const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
   data,
   selected,
@@ -82,59 +58,72 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
 
   const childCount = data.childCount ?? 0;
 
+  // n8n 风格容器视觉
+  const borderColor = selected ? token.colorPrimary : `${data.color}80`;
+  const backgroundColor = isCollapsed
+    ? `${token.colorBgElevated}`
+    : `${data.color}08`; // 非常浅的背景色，体现容器包裹感
+
   return (
     <div
       style={{
-        // 展开态下，内层 div 的尺寸必须与 useFlowNodes 计算的 containerStyle 一致。
-        // useFlowNodes 最小值为 CONTAINER_MIN_W=240 / CONTAINER_MIN_H=120（修复1、7）。
-        // 当 data.nodeWidth/nodeHeight 缺失时（兜底场景），使用与 useFlowNodes
-        // 相同的 fallback 值，否则内层 div 过小 → 子节点视觉上超出容器边界。
         width: isCollapsed ? 160 : (data.nodeWidth ?? 240),
-        height: isCollapsed ? 34 : (data.nodeHeight ?? 120),
-        background: `${data.color}06`,
-        border: `1.5px dashed ${selected ? token.colorPrimary : `${data.color}50`}`,
+        height: isCollapsed ? 32 : (data.nodeHeight ?? 120),
+        background: backgroundColor,
+        border: `2px dashed ${borderColor}`,
         borderRadius: 8,
-        padding: isCollapsed ? "6px 8px" : 8,
-        opacity: data.enabled ? (data.kind === "decorative" ? 0.55 : 1) : 0.5,
+        opacity: data.enabled ? (data.kind === "decorative" ? 0.45 : 1) : 0.5,
         position: "relative",
-        transition: "opacity 0.15s, border-color 0.15s",
-        // 确保子节点可见（ReactFlow 通过 wrapper + extent:parent 实现约束，
-        // 内层 div 不 clip）
+        transition: "opacity 0.15s, border-color 0.15s, width 0.2s, height 0.2s",
+        boxShadow: selected
+          ? `0 0 0 1px ${data.color}40, 0 2px 6px rgba(0,0,0,0.06)`
+          : "none",
+        // n8n 风格：容器有内边距包裹子节点
+        padding: isCollapsed ? 0 : "28px 12px 12px 12px",
         overflow: "visible",
       }}
     >
-      {/* 标题栏 — 紧凑单行 */}
+      {/* 标题栏 — 容器头部 (n8n 风格: 紧凑条带) */}
       <div
         className="workflow-container-drag-handle"
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 5,
-          background: isCollapsed || data.kind === "decorative"
-            ? "transparent"
-            : token.colorBgElevated,
-          border: isCollapsed || data.kind === "decorative"
-            ? "none"
-            : `1px solid ${data.color}20`,
-          borderRadius: 4,
-          padding: "3px 6px",
+          gap: 6,
+          background: token.colorBgElevated,
+          border: `1px solid ${borderColor}`,
+          borderRadius: 6,
+          padding: isCollapsed ? "4px 8px" : "4px 10px",
           zIndex: 10,
           cursor: "grab",
+          boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+          // 展开态标题栏定位在容器顶部内侧
           ...(isCollapsed ? {} : {
             position: "absolute",
-            top: 6,
-            left: 8,
+            top: 10,
+            left: 10,
+            right: 10,
           }),
         }}
       >
-        {/* 图标色块 */}
+        {/* 左侧强调色 (n8n 风格) */}
+        <div
+          style={{
+            width: 3,
+            height: 14,
+            background: data.color,
+            borderRadius: 1,
+            flexShrink: 0,
+          }}
+        />
+
+        {/* 图标块 */}
         <div
           style={{
             width: 18,
             height: 18,
             borderRadius: 3,
-            background: `${data.color}18`,
-            border: `1px solid ${data.color}30`,
+            background: `${data.color}20`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -146,7 +135,14 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
           {resolvedIcon}
         </div>
 
-        <span style={{ fontSize: 11, color: data.color, fontWeight: 600, lineHeight: "18px" }}>
+        <span
+          style={{
+            fontSize: 11,
+            color: token.colorText,
+            fontWeight: 600,
+            lineHeight: "16px",
+          }}
+        >
           {data.title}
         </span>
 
@@ -158,11 +154,11 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
           <Tag
             style={{
               margin: 0,
-              fontSize: 9,
-              padding: "0 4px",
+              fontSize: 10,
+              padding: "0 5px",
               lineHeight: "16px",
-              background: `${data.color}12`,
-              border: `1px solid ${data.color}30`,
+              background: `${data.color}15`,
+              border: `1px solid ${data.color}40`,
               color: data.color,
               fontWeight: 600,
             }}
@@ -186,11 +182,11 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
             style={{
               position: "absolute",
               top: 8,
-              right: 30,
-              fontSize: 8,
-              lineHeight: "12px",
-              padding: "1px 4px",
-              borderRadius: 2,
+              right: 40,
+              fontSize: 10,
+              lineHeight: "14px",
+              padding: "1px 5px",
+              borderRadius: 3,
               background: `${token.colorWarning}15`,
               border: `1px solid ${token.colorWarning}40`,
               color: token.colorWarning,
@@ -199,7 +195,7 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
               userSelect: "none",
             }}
           >
-            <ClockCircleOutlined style={{ fontSize: 9 }} />
+            <ClockCircleOutlined style={{ fontSize: 10 }} />
           </span>
         </Tooltip>
       )}
@@ -215,17 +211,17 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
           onClick={toggleCollapse}
           style={{
             position: "absolute",
-            top: 6,
+            top: 7,
             right: 8,
             cursor: "pointer",
             fontSize: 10,
             lineHeight: 1,
             padding: "3px 5px",
             borderRadius: 3,
-            background: isCollapsed ? "transparent" : token.colorBgElevated,
-            border: isCollapsed ? "none" : `1px solid ${data.color}20`,
+            background: token.colorBgElevated,
+            border: `1px solid ${token.colorBorder}`,
             zIndex: 10,
-            opacity: 0.6,
+            opacity: 0.7,
             transition: "opacity 0.15s",
             userSelect: "none",
           }}
@@ -233,10 +229,10 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
             (e.currentTarget as HTMLElement).style.opacity = "1";
           }}
           onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.opacity = "0.6";
+            (e.currentTarget as HTMLElement).style.opacity = "0.7";
           }}
         >
-          {isCollapsed ? "▶" : "▼"}
+          {isCollapsed ? "▼" : "▲"}
         </span>
       </Tooltip>
 
@@ -245,14 +241,14 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
         <div
           style={{
             position: "absolute",
-            bottom: 4,
-            left: 8,
+            bottom: 6,
+            left: 10,
             display: "flex",
             alignItems: "center",
             gap: 3,
-            fontSize: 9,
+            fontSize: 10,
             color: data.color,
-            fontWeight: 600,
+            fontWeight: 500,
             opacity: 0.7,
             zIndex: 5,
             userSelect: "none",
@@ -274,14 +270,14 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
             type="target"
             position={Position.Top}
             style={{
-              background: `${data.color}80`,
-              border: `1.5px solid ${data.color}`,
+              background: token.colorBgElevated,
+              border: `2px solid ${data.color}`,
               width: PORT_SIZE,
               height: PORT_SIZE,
               pointerEvents: "all",
               ...getHandlePosition(
                 isCollapsed ? 160 : (data.nodeWidth ?? 240),
-                isCollapsed ? 34 : (data.nodeHeight ?? 120),
+                isCollapsed ? 32 : (data.nodeHeight ?? 120),
                 "top",
               ),
             }}
@@ -290,14 +286,14 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
             type="source"
             position={Position.Bottom}
             style={{
-              background: `${data.color}80`,
-              border: `1.5px solid ${data.color}`,
+              background: token.colorBgElevated,
+              border: `2px solid ${data.color}`,
               width: PORT_SIZE,
               height: PORT_SIZE,
               pointerEvents: "all",
               ...getHandlePosition(
                 isCollapsed ? 160 : (data.nodeWidth ?? 240),
-                isCollapsed ? 34 : (data.nodeHeight ?? 120),
+                isCollapsed ? 32 : (data.nodeHeight ?? 120),
                 "bottom",
               ),
             }}

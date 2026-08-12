@@ -1120,6 +1120,9 @@ impl WorkEngine {
     }
 
     /// 节点状态变更的核心逻辑（从 `update_node_status` 抽取，供两个入口共用）。
+    ///
+    /// 包含状态机合法性校验：非法迁移（如终态→非终态）会被拒绝并记录警告日志，
+    /// 防止并发执行或异常路径导致的状态机混乱。
     fn apply_node_status_update(
         workflow: &mut Workflow,
         node_id: &str,
@@ -1132,6 +1135,19 @@ impl WorkEngine {
             Some(s) => s,
             None => return,
         };
+
+        // ── 状态机合法性校验 ──
+        let current_status = state.status;
+        if !status.is_valid_transition_from(current_status) {
+            tracing::warn!(
+                "[状态机] 非法状态迁移被拒绝: node={}, {:?} → {:?} (workflow={})",
+                node_id,
+                current_status,
+                status,
+                workflow.id
+            );
+            return;
+        }
 
         state.status = status;
         // ── 时间戳维护：保证 started_at/completed_at 在 status 变化时正确更新 ──
