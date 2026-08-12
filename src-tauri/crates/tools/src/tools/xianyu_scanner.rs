@@ -1,8 +1,8 @@
 //! 闲鱼扫描器
 //! 通过公开 API 或轻量级代理采集闲鱼平台的二手需求线索
 
-use async_trait::async_trait;
 use super::marketplace_scanner::{MarketplaceScanner, RawLead};
+use async_trait::async_trait;
 
 /// 闲鱼扫描器
 pub struct XianyuScanner {
@@ -17,11 +17,7 @@ impl XianyuScanner {
     pub fn new() -> Self {
         let http = reqwest::Client::new();
         let api_token = std::env::var("XIANYU_API_TOKEN").ok();
-        Self {
-            http,
-            api_token,
-            base_url: "https://www.goofish.com".to_string(),
-        }
+        Self { http, api_token, base_url: "https://www.goofish.com".to_string() }
     }
 
     /// 从配置创建
@@ -50,7 +46,9 @@ impl XianyuScanner {
         );
         headers.insert(
             reqwest::header::ACCEPT,
-            "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8".parse().unwrap(),
+            "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+                .parse()
+                .unwrap(),
         );
         if let Some(ref token) = self.api_token {
             headers.insert(
@@ -65,15 +63,34 @@ impl XianyuScanner {
     fn demand_categories() -> Vec<&'static str> {
         vec![
             // 数码类（可能有定制需求）
-            "手机", "电脑", "相机", "无人机", "智能设备",
+            "手机",
+            "电脑",
+            "相机",
+            "无人机",
+            "智能设备",
             // 设计类（设计服务需求）
-            "设计", "定制", "Logo", "VI设计", "包装设计",
+            "设计",
+            "定制",
+            "Logo",
+            "VI设计",
+            "包装设计",
             // 服务类（外包/兼职需求）
-            "代练", "代写", "代做", "代运营", "代设计",
+            "代练",
+            "代写",
+            "代做",
+            "代运营",
+            "代设计",
             // 开发类（技术需求）
-            "小程序", "网站", "APP", "系统", "软件",
+            "小程序",
+            "网站",
+            "APP",
+            "系统",
+            "软件",
             // 创意类
-            "手绘", "插画", "动画", "视频剪辑",
+            "手绘",
+            "插画",
+            "动画",
+            "视频剪辑",
         ]
     }
 
@@ -103,11 +120,19 @@ impl XianyuScanner {
     /// 检查是否属于需求相关内容
     fn is_demand_related(title: &str, description: &str) -> bool {
         let full_text = format!("{} {}", title, description).to_lowercase();
-        
+
         // 首先排除明显的出售/卖出内容
         let sell_patterns = [
-            "出售", "卖出", "转卖", "闲置", "九成新", "全新",
-            "包邮", "包邮出", "低价出", "诚心出",
+            "出售",
+            "卖出",
+            "转卖",
+            "闲置",
+            "九成新",
+            "全新",
+            "包邮",
+            "包邮出",
+            "低价出",
+            "诚心出",
         ];
         if sell_patterns.iter().any(|p| full_text.contains(p)) {
             return false;
@@ -115,12 +140,30 @@ impl XianyuScanner {
 
         // 检查需求模式
         let demand_patterns = [
-            "求购", "求", "定制", "定做", "代做", "代开发", "代设计",
-            "代练", "代写", "代运营", "代办",
-            "合作", "合伙", "招合伙人",
-            "换", "以物换物", "置换",
-            "设计", "开发", "制作", "实现",
-            "帮忙", "协助", "需要",
+            "求购",
+            "求",
+            "定制",
+            "定做",
+            "代做",
+            "代开发",
+            "代设计",
+            "代练",
+            "代写",
+            "代运营",
+            "代办",
+            "合作",
+            "合伙",
+            "招合伙人",
+            "换",
+            "以物换物",
+            "置换",
+            "设计",
+            "开发",
+            "制作",
+            "实现",
+            "帮忙",
+            "协助",
+            "需要",
         ];
 
         if demand_patterns.iter().any(|p| full_text.contains(p)) {
@@ -136,12 +179,13 @@ impl XianyuScanner {
     fn extract_price(text: &str) -> Option<String> {
         // 简化实现：查找常见的价格格式
         // 匹配 "数字元"、"¥数字"、"￥数字" 等格式
-        
+
         // 尝试匹配 "¥500" 或 "￥500" 格式
         for prefix in ["¥", "￥"] {
             if let Some(start) = text.find(prefix) {
                 let after = &text[start + prefix.len()..];
-                let end = after.find(|c: char| !c.is_ascii_digit() && c != '.')
+                let end = after
+                    .find(|c: char| !c.is_ascii_digit() && c != '.')
                     .map(|pos| start + prefix.len() + pos)
                     .unwrap_or(text.len());
                 let price_str = &text[start + prefix.len()..end];
@@ -158,7 +202,7 @@ impl XianyuScanner {
                 let mut chars = text[..end].chars().rev();
                 let mut num_start = end;
                 let mut found_digit = false;
-                
+
                 for c in chars.by_ref() {
                     if c.is_ascii_digit() || c == '.' {
                         found_digit = true;
@@ -169,7 +213,7 @@ impl XianyuScanner {
                         break;
                     }
                 }
-                
+
                 if found_digit && num_start < end {
                     let price_num = &text[num_start..end];
                     return Some(format!("{}{}", price_num, suffix));
@@ -216,17 +260,9 @@ impl MarketplaceScanner for XianyuScanner {
         let url = self.build_search_url(q);
         let headers = self.build_headers();
 
-        tracing::info!(
-            query = q,
-            "[XianyuScanner] 发起搜索请求"
-        );
+        tracing::info!(query = q, "[XianyuScanner] 发起搜索请求");
 
-        let response = self
-            .http
-            .get(&url)
-            .headers(headers)
-            .send()
-            .await;
+        let response = self.http.get(&url).headers(headers).send().await;
 
         let mut leads = Vec::new();
 
@@ -235,7 +271,7 @@ impl MarketplaceScanner for XianyuScanner {
                 if let Ok(body) = resp.text().await {
                     // 闲鱼页面通常是 JavaScript 渲染，需要特殊处理
                     // 这里提供基础的文本分析逻辑
-                    
+
                     // 按行分割，查找包含需求信号的文本块
                     for segment in body.split(|c: char| c.is_control() && c != ' ' && c != '\n') {
                         let trimmed = segment.trim();
@@ -270,24 +306,20 @@ impl MarketplaceScanner for XianyuScanner {
                         }
                     }
                 }
-            }
+            },
             Ok(resp) => {
                 let status = resp.status();
                 tracing::warn!(status = status.as_u16(), "[XianyuScanner] 请求失败");
                 if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
                     return Err("闲鱼 API 速率限制".to_string());
                 }
-            }
+            },
             Err(e) => {
                 tracing::warn!(error = %e, "[XianyuScanner] 网络请求异常，返回空结果");
-            }
+            },
         }
 
-        tracing::info!(
-            query = q,
-            filtered = leads.len(),
-            "[XianyuScanner] 搜索完成"
-        );
+        tracing::info!(query = q, filtered = leads.len(), "[XianyuScanner] 搜索完成");
 
         Ok(leads)
     }
@@ -310,7 +342,7 @@ mod tests {
         // 中文直接保留，空格转为 +
         assert!(url.contains("设计定制"));
         assert!(url.contains("search"));
-        
+
         let url_with_space = scanner.build_search_url("设计 定制");
         assert!(url_with_space.contains("设计+定制"));
     }
@@ -322,7 +354,7 @@ mod tests {
         assert!(XianyuScanner::is_demand_related("定制Logo设计", ""));
         assert!(XianyuScanner::is_demand_related("代做小程序", ""));
         assert!(XianyuScanner::is_demand_related("找合伙人合作", ""));
-        
+
         // 不相关内容
         assert!(!XianyuScanner::is_demand_related("出售一台手机", ""));
         assert!(!XianyuScanner::is_demand_related("九成新，包邮", ""));

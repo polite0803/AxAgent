@@ -1,8 +1,8 @@
 //! ProductHunt 扫描器
 //! 通过 ProductHunt API 采集产品发布和需求反馈
 
-use async_trait::async_trait;
 use super::marketplace_scanner::{MarketplaceScanner, RawLead};
+use async_trait::async_trait;
 
 /// ProductHunt 扫描器
 pub struct ProductHuntScanner {
@@ -57,10 +57,7 @@ impl ProductHuntScanner {
     /// 构建请求头
     fn build_headers(&self) -> reqwest::header::HeaderMap {
         let mut headers = reqwest::header::HeaderMap::new();
-        headers.insert(
-            reqwest::header::CONTENT_TYPE,
-            "application/json".parse().unwrap(),
-        );
+        headers.insert(reqwest::header::CONTENT_TYPE, "application/json".parse().unwrap());
         if let Some(ref token) = self.access_token {
             headers.insert(
                 reqwest::header::AUTHORIZATION,
@@ -73,50 +70,108 @@ impl ProductHuntScanner {
     /// 需求相关话题标签
     fn demand_topics() -> Vec<&'static str> {
         vec![
-            "developer-tools", "api", "integration", "productivity",
-            "automation", "ai", "machine-learning", "data",
-            "finance", "trading", "investment", "stock-market",
-            "cryptocurrency", "blockchain", "analytics",
+            "developer-tools",
+            "api",
+            "integration",
+            "productivity",
+            "automation",
+            "ai",
+            "machine-learning",
+            "data",
+            "finance",
+            "trading",
+            "investment",
+            "stock-market",
+            "cryptocurrency",
+            "blockchain",
+            "analytics",
         ]
     }
 
     /// 检查产品是否与需求相关
-    fn is_demand_related(
-        name: &str,
-        tagline: &str,
-        description: &str,
-        topics: &[String],
-    ) -> bool {
+    fn is_demand_related(name: &str, tagline: &str, description: &str, topics: &[String]) -> bool {
         let demand_keywords = [
-            "api", "integration", "plugin", "extension", "sdk",
-            "automation", "workflow", "pipeline", "orchestration",
-            "developer", "programming", "coding", "debugging",
-            "stock", "trading", "finance", "investment", "market",
-            "data", "analytics", "reporting", "dashboard",
-            "machine learning", "nlp",
+            "api",
+            "integration",
+            "plugin",
+            "extension",
+            "sdk",
+            "automation",
+            "workflow",
+            "pipeline",
+            "orchestration",
+            "developer",
+            "programming",
+            "coding",
+            "debugging",
+            "stock",
+            "trading",
+            "finance",
+            "investment",
+            "market",
+            "data",
+            "analytics",
+            "reporting",
+            "dashboard",
+            "machine learning",
+            "nlp",
         ];
 
         let full_text = format!("{} {} {}", name, tagline, description).to_lowercase();
         let has_demand_keyword = demand_keywords.iter().any(|kw| full_text.contains(kw));
 
-        let demand_topics_set: std::collections::HashSet<&str> = Self::demand_topics().into_iter().collect();
-        let has_demand_topic = topics
-            .iter()
-            .any(|t| demand_topics_set.contains(t.to_lowercase().as_str()));
+        let demand_topics_set: std::collections::HashSet<&str> =
+            Self::demand_topics().into_iter().collect();
+        let has_demand_topic =
+            topics.iter().any(|t| demand_topics_set.contains(t.to_lowercase().as_str()));
 
         has_demand_keyword || has_demand_topic
     }
 
     /// 从评论中提取需求信号
-    fn extract_demand_from_comments(
-        comments: &[String],
-    ) -> Vec<String> {
+    fn extract_demand_from_comments(comments: &[String]) -> Vec<String> {
         let demand_patterns = [
-            ("feature_request", vec!["feature request", "would love", "would be great", "it would be nice", "please add", "wish there was", "hope you'll add"]),
-            ("integration", vec!["integrate", "integration with", "connect to", "works with", "compatible with"]),
-            ("improvement", vec!["improve", "better", "faster", "more reliable", "could be", "needs improvement"]),
-            ("use_case", vec!["use case", "i need", "i want", "looking for", "use it for", "would use"]),
-            ("issue", vec!["issue", "bug", "problem", "doesn't work", "not working", "broken", "error"]),
+            (
+                "feature_request",
+                vec![
+                    "feature request",
+                    "would love",
+                    "would be great",
+                    "it would be nice",
+                    "please add",
+                    "wish there was",
+                    "hope you'll add",
+                ],
+            ),
+            (
+                "integration",
+                vec![
+                    "integrate",
+                    "integration with",
+                    "connect to",
+                    "works with",
+                    "compatible with",
+                ],
+            ),
+            (
+                "improvement",
+                vec![
+                    "improve",
+                    "better",
+                    "faster",
+                    "more reliable",
+                    "could be",
+                    "needs improvement",
+                ],
+            ),
+            (
+                "use_case",
+                vec!["use case", "i need", "i want", "looking for", "use it for", "would use"],
+            ),
+            (
+                "issue",
+                vec!["issue", "bug", "problem", "doesn't work", "not working", "broken", "error"],
+            ),
         ];
 
         let mut demands = Vec::new();
@@ -125,7 +180,11 @@ impl ProductHuntScanner {
             let comment_lower = comment.to_lowercase();
             for (category, patterns) in &demand_patterns {
                 if patterns.iter().any(|p| comment_lower.contains(p)) {
-                    demands.push(format!("[{}] {}", category, comment.chars().take(100).collect::<String>()));
+                    demands.push(format!(
+                        "[{}] {}",
+                        category,
+                        comment.chars().take(100).collect::<String>()
+                    ));
                     break;
                 }
             }
@@ -152,10 +211,7 @@ impl MarketplaceScanner for ProductHuntScanner {
             return Ok(Vec::new());
         }
 
-        tracing::info!(
-            query = q,
-            "[ProductHuntScanner] 开始搜索"
-        );
+        tracing::info!(query = q, "[ProductHuntScanner] 开始搜索");
 
         // 如果没有 access token，使用公开 API 或跳过
         if self.access_token.is_none() {
@@ -195,10 +251,8 @@ impl MarketplaceScanner for ProductHuntScanner {
             ));
         }
 
-        let data: serde_json::Value = response
-            .json()
-            .await
-            .map_err(|e| format!("ProductHunt API 响应解析失败: {}", e))?;
+        let data: serde_json::Value =
+            response.json().await.map_err(|e| format!("ProductHunt API 响应解析失败: {}", e))?;
 
         let mut leads = Vec::new();
 
@@ -247,7 +301,10 @@ impl MarketplaceScanner for ProductHuntScanner {
                         let description_text = if !demand_comments.is_empty() {
                             demand_comments.join("\n")
                         } else {
-                            format!("{} - {} ({} votes, {} comments)", name, tagline, votes, comment_count)
+                            format!(
+                                "{} - {} ({} votes, {} comments)",
+                                name, tagline, votes, comment_count
+                            )
                         };
 
                         leads.push(RawLead {
@@ -264,11 +321,7 @@ impl MarketplaceScanner for ProductHuntScanner {
             }
         }
 
-        tracing::info!(
-            query = q,
-            filtered = leads.len(),
-            "[ProductHuntScanner] 搜索完成"
-        );
+        tracing::info!(query = q, filtered = leads.len(), "[ProductHuntScanner] 搜索完成");
 
         Ok(leads)
     }

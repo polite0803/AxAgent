@@ -100,16 +100,34 @@ impl LlmEvaluator for MockLlmEvaluator {
 
         // 简单的关键词匹配评分
         let high_value_keywords = [
-            "urgent", "critical", "must", "need", "problem", "solution",
-            "紧急", "急需", "必须", "痛点", "解决方案",
+            "urgent",
+            "critical",
+            "must",
+            "need",
+            "problem",
+            "solution",
+            "紧急",
+            "急需",
+            "必须",
+            "痛点",
+            "解决方案",
         ];
         let medium_value_keywords = [
-            "improve", "optimize", "better", "faster", "easier",
-            "改善", "优化", "更好", "更快", "更简单",
+            "improve",
+            "optimize",
+            "better",
+            "faster",
+            "easier",
+            "改善",
+            "优化",
+            "更好",
+            "更快",
+            "更简单",
         ];
 
         let high_hits = high_value_keywords.iter().filter(|k| text.contains(**k)).count() as f64;
-        let medium_hits = medium_value_keywords.iter().filter(|k| text.contains(**k)).count() as f64;
+        let medium_hits =
+            medium_value_keywords.iter().filter(|k| text.contains(**k)).count() as f64;
 
         let base_score = 30.0 + high_hits * 8.0 + medium_hits * 4.0;
         let llm_score = (base_score).min(100.0);
@@ -128,7 +146,10 @@ impl LlmEvaluator for MockLlmEvaluator {
             market_potential: (final_score * 0.9).min(100.0),
             competition_level: 40.0,
             recommendation: "Mock 评估：建议进一步调研市场需求".to_string(),
-            raw_response: format!("Mock LLM response for: {}", title.chars().take(50).collect::<String>()),
+            raw_response: format!(
+                "Mock LLM response for: {}",
+                title.chars().take(50).collect::<String>()
+            ),
         })
     }
 }
@@ -193,11 +214,7 @@ impl ValueAssessmentAgent {
     /// - `llm_evaluator`: LLM 评估器实现
     /// - `llm_weight`: LLM 评分权重（0.0 = 纯规则引擎，1.0 = 纯 LLM）
     pub fn new(llm_evaluator: Box<dyn LlmEvaluator>, llm_weight: f64) -> Self {
-        Self {
-            llm_evaluator,
-            llm_weight: llm_weight.clamp(0.0, 1.0),
-            min_confidence: 0.6,
-        }
+        Self { llm_evaluator, llm_weight: llm_weight.clamp(0.0, 1.0), min_confidence: 0.6 }
     }
 
     /// 使用 Mock 评估器创建（用于测试）
@@ -260,25 +277,19 @@ impl ValueAssessmentAgent {
         );
 
         // Step 2: LLM 二次评估（失败时降级为纯规则引擎）
-        let llm_result = match self
-            .llm_evaluator
-            .evaluate(title, description, Some(&rule_result))
-            .await
-        {
-            Ok(result) => result,
-            Err(e) => {
-                tracing::warn!(
-                    "[ValueAssessmentAgent] LLM 评估失败，降级为纯规则引擎: {}",
-                    e
-                );
-                return Ok(self.assess_with_rules_only(
-                    demand_id,
-                    title,
-                    description,
-                    known_competitors,
-                ));
-            }
-        };
+        let llm_result =
+            match self.llm_evaluator.evaluate(title, description, Some(&rule_result)).await {
+                Ok(result) => result,
+                Err(e) => {
+                    tracing::warn!("[ValueAssessmentAgent] LLM 评估失败，降级为纯规则引擎: {}", e);
+                    return Ok(self.assess_with_rules_only(
+                        demand_id,
+                        title,
+                        description,
+                        known_competitors,
+                    ));
+                },
+            };
 
         // Step 3: 融合结果
         self.fuse_results(demand_id, title, &rule_result, &llm_result)
@@ -333,15 +344,9 @@ impl ValueAssessmentAgent {
 
         // 如果置信度低于阈值，标记需要人工审核
         let fusion_notes = if confidence < self.min_confidence {
-            format!(
-                "⚠️ 规则引擎与LLM评分差异较大（diff={:.1}），建议人工审核",
-                score_diff
-            )
+            format!("⚠️ 规则引擎与LLM评分差异较大（diff={:.1}），建议人工审核", score_diff)
         } else {
-            format!(
-                "✓ 规则引擎与LLM评估一致（agreement={:.2}）",
-                agreement
-            )
+            format!("✓ 规则引擎与LLM评估一致（agreement={:.2}）", agreement)
         };
 
         // 机会等级判定
@@ -483,11 +488,13 @@ pub fn generate_system_prompt() -> String {
 }
 
 /// 生成 LLM 评估的用户提示
-pub fn generate_user_prompt(title: &str, description: &str, rule_result: Option<&DemandEvaluation>) -> String {
-    let mut prompt = format!(
-        "请评估以下需求的商业价值：\n\n【标题】{}\n\n【描述】{}\n",
-        title, description
-    );
+pub fn generate_user_prompt(
+    title: &str,
+    description: &str,
+    rule_result: Option<&DemandEvaluation>,
+) -> String {
+    let mut prompt =
+        format!("请评估以下需求的商业价值：\n\n【标题】{}\n\n【描述】{}\n", title, description);
 
     if let Some(rule) = rule_result {
         prompt.push_str(&format!(
@@ -514,11 +521,7 @@ mod tests {
     async fn test_mock_evaluator() {
         let evaluator = MockLlmEvaluator::default();
         let result = evaluator
-            .evaluate(
-                "测试需求",
-                "用户急需一个解决方案来解决这个严重的问题",
-                None,
-            )
+            .evaluate("测试需求", "用户急需一个解决方案来解决这个严重的问题", None)
             .await
             .unwrap();
 
@@ -529,10 +532,7 @@ mod tests {
     #[tokio::test]
     async fn test_value_assessment_agent_with_mock() {
         let agent = ValueAssessmentAgent::with_mock();
-        let result = agent
-            .assess("test-001", "测试需求", "急需一个解决方案", None)
-            .await
-            .unwrap();
+        let result = agent.assess("test-001", "测试需求", "急需一个解决方案", None).await.unwrap();
 
         assert!(result.final_score > 0.0);
         assert!(!result.summary().is_empty());
@@ -542,8 +542,7 @@ mod tests {
     #[tokio::test]
     async fn test_assess_with_rules_only() {
         let agent = ValueAssessmentAgent::with_mock();
-        let result = agent
-            .assess_with_rules_only("test-002", "测试需求", "普通需求描述", None);
+        let result = agent.assess_with_rules_only("test-002", "测试需求", "普通需求描述", None);
 
         assert!(result.llm_result.is_none());
         assert_eq!(result.fusion_notes, "纯规则引擎评估");
@@ -656,16 +655,9 @@ mod tests {
     #[tokio::test]
     async fn test_noop_llm_evaluator() {
         let evaluator = NoopLlmEvaluator::new();
-        let rule = crate::opc::evaluator::evaluate_demand_value(
-            "test-id",
-            "测试标题",
-            "测试描述",
-            None,
-        );
-        let result = evaluator
-            .evaluate("测试标题", "测试描述", Some(&rule))
-            .await
-            .unwrap();
+        let rule =
+            crate::opc::evaluator::evaluate_demand_value("test-id", "测试标题", "测试描述", None);
+        let result = evaluator.evaluate("测试标题", "测试描述", Some(&rule)).await.unwrap();
 
         assert_eq!(result.llm_score, rule.commercial_value_score);
         assert_eq!(result.detected_type, rule.demand_type.as_str());
@@ -679,10 +671,7 @@ mod tests {
         // Noop agent should have llm_weight = 0.0
         assert_eq!(agent.llm_weight(), 0.0);
 
-        let result = agent
-            .assess("test-id", "测试标题", "测试描述", None)
-            .await
-            .unwrap();
+        let result = agent.assess("test-id", "测试标题", "测试描述", None).await.unwrap();
 
         // With Noop, final_score should equal rule engine score (weight=0)
         assert!(result.final_score > 0.0);
@@ -708,10 +697,7 @@ mod tests {
         }
 
         let agent = ValueAssessmentAgent::new(Box::new(FailingLlmEvaluator), 0.3);
-        let result = agent
-            .assess("test-id", "测试标题", "测试描述", None)
-            .await
-            .unwrap();
+        let result = agent.assess("test-id", "测试标题", "测试描述", None).await.unwrap();
 
         // 降级后应该返回纯规则引擎结果
         assert!(result.final_score > 0.0);
@@ -819,10 +805,7 @@ mod tests {
 
         assert!(!eval.is_high_value(), "69 分不应被视为高价值");
 
-        let high_eval = FinalEvaluation {
-            final_score: 70.0,
-            ..eval
-        };
+        let high_eval = FinalEvaluation { final_score: 70.0, ..eval };
         assert!(high_eval.is_high_value(), "70 分应被视为高价值（边界）");
     }
 
@@ -867,10 +850,8 @@ mod tests {
             "市场上缺少好的工具",
             None,
         );
-        let result = evaluator
-            .evaluate("急需解决方案", "市场上缺少好的工具", Some(&rule))
-            .await
-            .unwrap();
+        let result =
+            evaluator.evaluate("急需解决方案", "市场上缺少好的工具", Some(&rule)).await.unwrap();
 
         // 有规则引擎结果时，Mock 会取两者平均值
         assert!(result.llm_score >= 30.0);

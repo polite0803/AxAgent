@@ -2,8 +2,8 @@
 //! 通过公开 API 采集知乎上的技术需求和痛点讨论
 //! 主要数据源：知乎问答、文章
 
-use async_trait::async_trait;
 use super::marketplace_scanner::{MarketplaceScanner, RawLead};
+use async_trait::async_trait;
 
 /// 知乎扫描器
 pub struct ZhihuScanner {
@@ -18,11 +18,7 @@ impl ZhihuScanner {
     pub fn new() -> Self {
         let http = reqwest::Client::new();
         let api_token = std::env::var("ZHIHU_API_TOKEN").ok();
-        Self {
-            http,
-            api_token,
-            base_url: "https://www.zhihu.com".to_string(),
-        }
+        Self { http, api_token, base_url: "https://www.zhihu.com".to_string() }
     }
 
     /// 从配置创建
@@ -38,10 +34,7 @@ impl ZhihuScanner {
     /// 构建搜索 URL
     fn build_search_url(&self, query: &str) -> String {
         let encoded_query = query.replace(' ', "%20");
-        format!(
-            "{}/search?q={}&type=content",
-            self.base_url, encoded_query
-        )
+        format!("{}/search?q={}&type=content", self.base_url, encoded_query)
     }
 
     /// 构建请求头（模拟浏览器访问）
@@ -55,10 +48,7 @@ impl ZhihuScanner {
             reqwest::header::ACCEPT,
             "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8".parse().unwrap(),
         );
-        headers.insert(
-            reqwest::header::REFERER,
-            "https://www.zhihu.com/".parse().unwrap(),
-        );
+        headers.insert(reqwest::header::REFERER, "https://www.zhihu.com/".parse().unwrap());
         if let Some(ref token) = self.api_token {
             headers.insert(
                 reqwest::header::AUTHORIZATION,
@@ -72,17 +62,46 @@ impl ZhihuScanner {
     fn pain_point_keywords() -> Vec<&'static str> {
         vec![
             // AI/机器学习痛点
-            "大模型", "LLM", "RAG", "向量数据库", "embedding",
-            "微调", "prompt", "agent", "智能体",
-            "扩散模型", "diffusion", "transformer",
+            "大模型",
+            "LLM",
+            "RAG",
+            "向量数据库",
+            "embedding",
+            "微调",
+            "prompt",
+            "agent",
+            "智能体",
+            "扩散模型",
+            "diffusion",
+            "transformer",
             // 开发痛点
-            "解决", "问题", "报错", "异常", "失败",
-            "优化", "性能", "卡顿", "慢",
-            "配置", "部署", "环境", "依赖",
+            "解决",
+            "问题",
+            "报错",
+            "异常",
+            "失败",
+            "优化",
+            "性能",
+            "卡顿",
+            "慢",
+            "配置",
+            "部署",
+            "环境",
+            "依赖",
             // 需求表达
-            "怎么", "如何", "有没有", "有没有人", "求",
-            "推荐", "对比", "哪个好", "怎么选",
-            "新手", "入门", "教程", "指南",
+            "怎么",
+            "如何",
+            "有没有",
+            "有没有人",
+            "求",
+            "推荐",
+            "对比",
+            "哪个好",
+            "怎么选",
+            "新手",
+            "入门",
+            "教程",
+            "指南",
         ]
     }
 
@@ -93,11 +112,8 @@ impl ZhihuScanner {
 
         // 检查痛点关键词
         let pain_keywords = Self::pain_point_keywords();
-        let matched_keywords: Vec<&str> = pain_keywords
-            .iter()
-            .filter(|kw| text_lower.contains(*kw))
-            .cloned()
-            .collect();
+        let matched_keywords: Vec<&str> =
+            pain_keywords.iter().filter(|kw| text_lower.contains(*kw)).cloned().collect();
 
         if !matched_keywords.is_empty() {
             signals.push(format!("pain_points:{}", matched_keywords.join(",")));
@@ -108,7 +124,10 @@ impl ZhihuScanner {
             ("demand:how_to", vec!["怎么", "如何", "怎样", "要怎么做"]),
             ("demand:comparison", vec!["对比", "比较", "哪个好", "区别", "vs"]),
             ("demand:recommendation", vec!["推荐", "有什么推荐", "求推荐", "哪家好"]),
-            ("demand:troubleshooting", vec!["报错", "异常", "失败", "解决不了", "求助", "遇到问题"]),
+            (
+                "demand:troubleshooting",
+                vec!["报错", "异常", "失败", "解决不了", "求助", "遇到问题"],
+            ),
             ("demand:learning", vec!["学习", "入门", "教程", "指南", "有没有资料"]),
             ("demand:implementation", vec!["实现", "代码", "示例", "demo", "有没有人做过"]),
             ("demand:architecture", vec!["架构", "设计模式", "最佳实践", "怎么设计"]),
@@ -127,11 +146,27 @@ impl ZhihuScanner {
     fn is_valuable_demand(content: &str) -> bool {
         // 至少包含一个需求模式
         let demand_patterns = [
-            "怎么", "如何", "对比", "推荐", "报错",
-            "学习", "实现", "架构", "优化", "配置",
-            "问题", "解决", "求助", "有没有",
-            "哪个", "更好", "哪个好", "优缺点",
-            "区别", "vs", "vs",
+            "怎么",
+            "如何",
+            "对比",
+            "推荐",
+            "报错",
+            "学习",
+            "实现",
+            "架构",
+            "优化",
+            "配置",
+            "问题",
+            "解决",
+            "求助",
+            "有没有",
+            "哪个",
+            "更好",
+            "哪个好",
+            "优缺点",
+            "区别",
+            "vs",
+            "vs",
         ];
         demand_patterns.iter().any(|p| content.contains(p))
     }
@@ -175,17 +210,9 @@ impl MarketplaceScanner for ZhihuScanner {
         let url = self.build_search_url(q);
         let headers = self.build_headers();
 
-        tracing::info!(
-            query = q,
-            "[ZhihuScanner] 发起搜索请求"
-        );
+        tracing::info!(query = q, "[ZhihuScanner] 发起搜索请求");
 
-        let response = self
-            .http
-            .get(&url)
-            .headers(headers)
-            .send()
-            .await;
+        let response = self.http.get(&url).headers(headers).send().await;
 
         let mut leads = Vec::new();
 
@@ -194,7 +221,7 @@ impl MarketplaceScanner for ZhihuScanner {
                 if let Ok(body) = resp.text().await {
                     // 知乎页面通常需要 JavaScript 渲染
                     // 此处提供基础的文本分析逻辑
-                    
+
                     // 按行分割，查找包含需求信号的文本块
                     for line in body.lines() {
                         let trimmed = line.trim();
@@ -237,7 +264,7 @@ impl MarketplaceScanner for ZhihuScanner {
                         });
                     }
                 }
-            }
+            },
             Ok(resp) => {
                 let status = resp.status();
                 tracing::warn!(status = status.as_u16(), "[ZhihuScanner] 请求失败");
@@ -247,17 +274,13 @@ impl MarketplaceScanner for ZhihuScanner {
                 if status == reqwest::StatusCode::FORBIDDEN {
                     return Err("知乎 API 需要认证或被限制".to_string());
                 }
-            }
+            },
             Err(e) => {
                 tracing::warn!(error = %e, "[ZhihuScanner] 网络请求异常，返回空结果");
-            }
+            },
         }
 
-        tracing::info!(
-            query = q,
-            filtered = leads.len(),
-            "[ZhihuScanner] 搜索完成"
-        );
+        tracing::info!(query = q, filtered = leads.len(), "[ZhihuScanner] 搜索完成");
 
         Ok(leads)
     }
@@ -284,9 +307,8 @@ mod tests {
     #[test]
     fn test_extract_demand_signals() {
         // 包含多个需求信号
-        let signals = ZhihuScanner::extract_demand_signals(
-            "大模型 RAG 怎么实现？有没有推荐的向量数据库？"
-        );
+        let signals =
+            ZhihuScanner::extract_demand_signals("大模型 RAG 怎么实现？有没有推荐的向量数据库？");
         assert!(!signals.is_empty());
         assert!(signals.iter().any(|s| s.contains("demand:how_to")));
         assert!(signals.iter().any(|s| s.contains("demand:recommendation")));
@@ -299,7 +321,7 @@ mod tests {
         assert!(ZhihuScanner::is_valuable_demand("请问大模型怎么部署？"));
         assert!(ZhihuScanner::is_valuable_demand("RAG 和 fine-tuning 哪个更好？"));
         assert!(ZhihuScanner::is_valuable_demand("求推荐一个好用的向量数据库"));
-        
+
         // 无价值内容
         assert!(!ZhihuScanner::is_valuable_demand("今天天气不错"));
         assert!(!ZhihuScanner::is_valuable_demand("大模型")); // 太短太泛
@@ -319,10 +341,7 @@ mod tests {
         let summary = ZhihuScanner::extract_summary("如何学习大模型开发", None);
         assert_eq!(summary, "如何学习大模型开发");
 
-        let summary = ZhihuScanner::extract_summary(
-            "标题",
-            Some("这是一段描述内容")
-        );
+        let summary = ZhihuScanner::extract_summary("标题", Some("这是一段描述内容"));
         assert!(summary.contains("标题"));
         assert!(summary.contains("这是一段描述内容"));
     }

@@ -2,8 +2,8 @@
 //! 通过公开 API 采集 LinkedIn 上的 B2B 需求信号
 //! 主要数据源：招聘 JD、公司页面、动态
 
-use async_trait::async_trait;
 use super::marketplace_scanner::{MarketplaceScanner, RawLead};
+use async_trait::async_trait;
 
 /// LinkedIn 扫描器
 pub struct LinkedInScanner {
@@ -18,11 +18,7 @@ impl LinkedInScanner {
     pub fn new() -> Self {
         let http = reqwest::Client::new();
         let api_token = std::env::var("LINKEDIN_API_TOKEN").ok();
-        Self {
-            http,
-            api_token,
-            base_url: "https://api.linkedin.com/v2".to_string(),
-        }
+        Self { http, api_token, base_url: "https://api.linkedin.com/v2".to_string() }
     }
 
     /// 从配置创建
@@ -38,23 +34,15 @@ impl LinkedInScanner {
     /// 构建搜索 URL（Jobs API - 招聘信息是 B2B 需求的核心信号）
     fn build_jobs_search_url(&self, query: &str) -> String {
         let encoded_query = query.replace(' ', "+");
-        format!(
-            "{}/jobSearch?keywords={}&start=0&count=20",
-            self.base_url, encoded_query
-        )
+        format!("{}/jobSearch?keywords={}&start=0&count=20", self.base_url, encoded_query)
     }
 
     /// 构建请求头
     fn build_headers(&self) -> reqwest::header::HeaderMap {
         let mut headers = reqwest::header::HeaderMap::new();
-        headers.insert(
-            reqwest::header::USER_AGENT,
-            "AxAgent/1.0 (DemandDiscovery)".parse().unwrap(),
-        );
-        headers.insert(
-            reqwest::header::ACCEPT,
-            "application/json".parse().unwrap(),
-        );
+        headers
+            .insert(reqwest::header::USER_AGENT, "AxAgent/1.0 (DemandDiscovery)".parse().unwrap());
+        headers.insert(reqwest::header::ACCEPT, "application/json".parse().unwrap());
         if let Some(ref token) = self.api_token {
             headers.insert(
                 reqwest::header::AUTHORIZATION,
@@ -68,19 +56,44 @@ impl LinkedInScanner {
     fn tech_stack_keywords() -> Vec<&'static str> {
         vec![
             // AI 相关
-            "llm", "gpt", "transformer", "diffusion", "rag",
-            "vector database", "milvus", "pinecone", "weaviate",
-            "embedding", "fine-tuning", "prompt engineering",
-            "agent", "copilot", "autonomous",
+            "llm",
+            "gpt",
+            "transformer",
+            "diffusion",
+            "rag",
+            "vector database",
+            "milvus",
+            "pinecone",
+            "weaviate",
+            "embedding",
+            "fine-tuning",
+            "prompt engineering",
+            "agent",
+            "copilot",
+            "autonomous",
             // 云原生
-            "kubernetes", "docker", "serverless", "faas",
-            "aws", "azure", "gcp",
+            "kubernetes",
+            "docker",
+            "serverless",
+            "faas",
+            "aws",
+            "azure",
+            "gcp",
             // 数据工程
-            "spark", "flink", "kafka", "airflow",
-            "data warehouse", "data lake", "lakehouse",
+            "spark",
+            "flink",
+            "kafka",
+            "airflow",
+            "data warehouse",
+            "data lake",
+            "lakehouse",
             // 现代前端
-            "react", "vue", "next.js", "svelte",
-            "tailwind", "typescript",
+            "react",
+            "vue",
+            "next.js",
+            "svelte",
+            "tailwind",
+            "typescript",
         ]
     }
 
@@ -103,13 +116,38 @@ impl LinkedInScanner {
 
         // 检查需求模式
         let demand_patterns = [
-            ("demand:new_role", vec!["hiring", "looking for", "seeking", "recruiting", "we are looking"]),
-            ("demand:team_expansion", vec!["expanding", "growing team", "new team member", "additional engineer"]),
+            (
+                "demand:new_role",
+                vec!["hiring", "looking for", "seeking", "recruiting", "we are looking"],
+            ),
+            (
+                "demand:team_expansion",
+                vec!["expanding", "growing team", "new team member", "additional engineer"],
+            ),
             ("demand:new_project", vec!["new project", "greenfield", "from scratch", "build from"]),
-            ("demand:modernization", vec!["migrate", "upgrade", "refactor", "legacy", "modernize", "tech debt"]),
-            ("demand:integration", vec!["integrate", "integration with", "connect", "plugin", "sdk", "api integration"]),
-            ("demand:scale", vec!["scale", "high traffic", "high concurrency", "performance", "optimize"]),
-            ("demand:ai_transformation", vec!["ai transformation", "digital transformation", "ai strategy", "generative ai"]),
+            (
+                "demand:modernization",
+                vec!["migrate", "upgrade", "refactor", "legacy", "modernize", "tech debt"],
+            ),
+            (
+                "demand:integration",
+                vec![
+                    "integrate",
+                    "integration with",
+                    "connect",
+                    "plugin",
+                    "sdk",
+                    "api integration",
+                ],
+            ),
+            (
+                "demand:scale",
+                vec!["scale", "high traffic", "high concurrency", "performance", "optimize"],
+            ),
+            (
+                "demand:ai_transformation",
+                vec!["ai transformation", "digital transformation", "ai strategy", "generative ai"],
+            ),
         ];
 
         for (tag, patterns) in &demand_patterns {
@@ -122,7 +160,11 @@ impl LinkedInScanner {
     }
 
     /// 从职位描述中提取核心需求摘要
-    fn extract_demand_summary(title: &str, company: Option<&str>, location: Option<&str>) -> String {
+    fn extract_demand_summary(
+        title: &str,
+        company: Option<&str>,
+        location: Option<&str>,
+    ) -> String {
         let mut parts = vec![title.to_string()];
         if let Some(c) = company {
             parts.push(format!("公司: {}", c));
@@ -154,17 +196,9 @@ impl MarketplaceScanner for LinkedInScanner {
         let url = self.build_jobs_search_url(q);
         let headers = self.build_headers();
 
-        tracing::info!(
-            query = q,
-            "[LinkedInScanner] 发起搜索请求"
-        );
+        tracing::info!(query = q, "[LinkedInScanner] 发起搜索请求");
 
-        let response = self
-            .http
-            .get(&url)
-            .headers(headers)
-            .send()
-            .await;
+        let response = self.http.get(&url).headers(headers).send().await;
 
         let mut leads = Vec::new();
 
@@ -173,9 +207,10 @@ impl MarketplaceScanner for LinkedInScanner {
                 if let Ok(text) = resp.text().await {
                     // 实际实现中应解析 JSON 响应
                     // 此处演示处理逻辑
-                    
+
                     // 简单的文本分析：查找包含需求信号的内容块
-                    for segment in text.split(|c: char| c.is_control() && !c.is_ascii_whitespace()) {
+                    for segment in text.split(|c: char| c.is_control() && !c.is_ascii_whitespace())
+                    {
                         let trimmed = segment.trim();
                         if trimmed.len() < 30 {
                             continue;
@@ -209,7 +244,7 @@ impl MarketplaceScanner for LinkedInScanner {
                         }
                     }
                 }
-            }
+            },
             Ok(resp) => {
                 let status = resp.status();
                 tracing::warn!(status = status.as_u16(), "[LinkedInScanner] 请求失败");
@@ -219,17 +254,13 @@ impl MarketplaceScanner for LinkedInScanner {
                 if status == reqwest::StatusCode::UNAUTHORIZED {
                     return Err("LinkedIn API 需要认证".to_string());
                 }
-            }
+            },
             Err(e) => {
                 tracing::warn!(error = %e, "[LinkedInScanner] 网络请求异常，返回空结果");
-            }
+            },
         }
 
-        tracing::info!(
-            query = q,
-            filtered = leads.len(),
-            "[LinkedInScanner] 搜索完成"
-        );
+        tracing::info!(query = q, filtered = leads.len(), "[LinkedInScanner] 搜索完成");
 
         Ok(leads)
     }
@@ -257,7 +288,7 @@ mod tests {
     fn test_extract_b2b_signals_tech_adoption() {
         // 检测技术栈采用
         let signals = LinkedInScanner::extract_b2b_signals(
-            "We are looking for a Senior Engineer with experience in Kubernetes and Kafka"
+            "We are looking for a Senior Engineer with experience in Kubernetes and Kafka",
         );
         assert!(signals.iter().any(|s| s.contains("adoption:kubernetes")));
         assert!(signals.iter().any(|s| s.contains("adoption:kafka")));
@@ -268,7 +299,7 @@ mod tests {
     fn test_extract_b2b_signals_demand_patterns() {
         // 检测需求模式
         let signals = LinkedInScanner::extract_b2b_signals(
-            "Our company is expanding and looking for engineers to help with our AI transformation initiative"
+            "Our company is expanding and looking for engineers to help with our AI transformation initiative",
         );
         assert!(signals.iter().any(|s| s.contains("demand:team_expansion")));
         assert!(signals.iter().any(|s| s.contains("demand:ai_transformation")));
@@ -278,7 +309,7 @@ mod tests {
     fn test_extract_b2b_signals_modernization() {
         // 检测技术升级需求
         let signals = LinkedInScanner::extract_b2b_signals(
-            "Legacy system migration to modern cloud stack, need someone experienced in refactoring"
+            "Legacy system migration to modern cloud stack, need someone experienced in refactoring",
         );
         assert!(signals.iter().any(|s| s.contains("demand:modernization")));
     }
@@ -297,7 +328,7 @@ mod tests {
         let summary = LinkedInScanner::extract_demand_summary(
             "Senior AI Engineer",
             Some("TechCorp Inc."),
-            Some("San Francisco")
+            Some("San Francisco"),
         );
         assert!(summary.contains("Senior AI Engineer"));
         assert!(summary.contains("TechCorp Inc."));

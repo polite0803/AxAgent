@@ -2456,10 +2456,8 @@ fn start_cron_scheduler(state: &AppState) {
                     prompt.clone()
                 };
                 let result =
-                    crate::commands::demand_discovery::run_demand_discovery_cron(&db, &query)
-                        .await;
-                let duration =
-                    (axagent_runtime_core::cron_job::now_millis() - started) as u64;
+                    crate::commands::demand_discovery::run_demand_discovery_cron(&db, &query).await;
+                let duration = (axagent_runtime_core::cron_job::now_millis() - started) as u64;
                 let task_result = match result {
                     Ok(summary) => {
                         tracing::info!(
@@ -2476,11 +2474,7 @@ fn start_cron_scheduler(state: &AppState) {
                         }
                     },
                     Err(e) => {
-                        tracing::error!(
-                            "[CronScheduler] 需求发现任务 '{}' 失败: {}",
-                            job_name,
-                            e
-                        );
+                        tracing::error!("[CronScheduler] 需求发现任务 '{}' 失败: {}", job_name, e);
                         axagent_runtime_core::TaskRunResult {
                             success: false,
                             output: None,

@@ -1,8 +1,8 @@
 //! HuggingFace 扫描器
 //! 通过 HuggingFace API 采集模型和应用的需求信号
 
-use async_trait::async_trait;
 use super::marketplace_scanner::{MarketplaceScanner, RawLead};
+use async_trait::async_trait;
 
 /// HuggingFace 扫描器
 pub struct HuggingFaceScanner {
@@ -48,14 +48,25 @@ impl HuggingFaceScanner {
     /// 需求相关标签
     fn demand_tags() -> Vec<&'static str> {
         vec![
-            "text-generation", "translation", "summarization",
-            "question-answering", "text-classification",
-            "image-generation", "image-to-text", "text-to-image",
-            "audio", "speech", "voice",
-            "object-detection", "image-segmentation",
-            "tabular", "time-series",
-            "reinforcement-learning", "robotics",
-            "text-to-video", "video-classification",
+            "text-generation",
+            "translation",
+            "summarization",
+            "question-answering",
+            "text-classification",
+            "image-generation",
+            "image-to-text",
+            "text-to-image",
+            "audio",
+            "speech",
+            "voice",
+            "object-detection",
+            "image-segmentation",
+            "tabular",
+            "time-series",
+            "reinforcement-learning",
+            "robotics",
+            "text-to-video",
+            "video-classification",
         ]
     }
 
@@ -67,22 +78,37 @@ impl HuggingFaceScanner {
         downloads: u64,
     ) -> bool {
         let demand_keywords = [
-            "api", "integration", "deploy", "production",
-            "real-time", "streaming", "low-latency",
-            "custom", "fine-tune", "fine tuning", "finetune",
-            "financial", "trading", "stock",
-            "multi-modal", "multimodal",
-            "agent", "agentic", "autonomous",
-            "embedding", "embeddings", "vector",
+            "api",
+            "integration",
+            "deploy",
+            "production",
+            "real-time",
+            "streaming",
+            "low-latency",
+            "custom",
+            "fine-tune",
+            "fine tuning",
+            "finetune",
+            "financial",
+            "trading",
+            "stock",
+            "multi-modal",
+            "multimodal",
+            "agent",
+            "agentic",
+            "autonomous",
+            "embedding",
+            "embeddings",
+            "vector",
         ];
 
         let full_text = format!("{} {} {}", model_id, pipeline_tag, tags.join(" ")).to_lowercase();
         let has_demand_keyword = demand_keywords.iter().any(|kw| full_text.contains(kw));
 
-        let demand_tags_set: std::collections::HashSet<&str> = Self::demand_tags().into_iter().collect();
-        let has_demand_tag = tags
-            .iter()
-            .any(|t| demand_tags_set.contains(t.to_lowercase().as_str()));
+        let demand_tags_set: std::collections::HashSet<&str> =
+            Self::demand_tags().into_iter().collect();
+        let has_demand_tag =
+            tags.iter().any(|t| demand_tags_set.contains(t.to_lowercase().as_str()));
 
         // 下载量大的热门模型也视为有价值信号
         let is_popular = downloads >= 100_000;
@@ -121,10 +147,7 @@ impl HuggingFaceScanner {
                 trend_label, model_id, downloads, likes
             ))
         } else if downloads > 100_000 {
-            Some(format!(
-                "[流行] {} | {} | {} 次下载",
-                trend_label, model_id, downloads
-            ))
+            Some(format!("[流行] {} | {} | {} 次下载", trend_label, model_id, downloads))
         } else {
             None
         }
@@ -153,10 +176,7 @@ impl MarketplaceScanner for HuggingFaceScanner {
 
         // 搜索模型
         let models_url = Self::build_models_search_url(q, 30);
-        tracing::info!(
-            query = q,
-            "[HuggingFaceScanner] 搜索模型"
-        );
+        tracing::info!(query = q, "[HuggingFaceScanner] 搜索模型");
 
         let models_response = self
             .http
@@ -171,10 +191,8 @@ impl MarketplaceScanner for HuggingFaceScanner {
         }
 
         if models_response.status().is_success() {
-            let models: Vec<serde_json::Value> = models_response
-                .json()
-                .await
-                .map_err(|e| format!("响应解析失败: {}", e))?;
+            let models: Vec<serde_json::Value> =
+                models_response.json().await.map_err(|e| format!("响应解析失败: {}", e))?;
 
             for model in &models {
                 let model_id = model["id"].as_str().unwrap_or("").to_string();
@@ -185,19 +203,13 @@ impl MarketplaceScanner for HuggingFaceScanner {
                 let tags: Vec<String> = model["tags"]
                     .as_array()
                     .map(|arr| {
-                        arr.iter()
-                            .filter_map(|t| t.as_str().map(|s| s.to_string()))
-                            .collect()
+                        arr.iter().filter_map(|t| t.as_str().map(|s| s.to_string())).collect()
                     })
                     .unwrap_or_default();
 
                 if Self::is_demand_model(&model_id, &pipeline_tag, &tags, downloads)
-                    && let Some(trend) = Self::extract_model_trend(
-                        &model_id,
-                        &pipeline_tag,
-                        downloads,
-                        likes,
-                    )
+                    && let Some(trend) =
+                        Self::extract_model_trend(&model_id, &pipeline_tag, downloads, likes)
                 {
                     let url = format!("https://huggingface.co/{}", model_id);
                     let mut snapshot = model.clone();
@@ -219,23 +231,12 @@ impl MarketplaceScanner for HuggingFaceScanner {
 
         // 搜索 Spaces
         let spaces_url = Self::build_spaces_search_url(q, 20);
-        tracing::info!(
-            query = q,
-            "[HuggingFaceScanner] 搜索 Spaces"
-        );
+        tracing::info!(query = q, "[HuggingFaceScanner] 搜索 Spaces");
 
-        if let Ok(spaces_response) = self
-            .http
-            .get(&spaces_url)
-            .headers(headers)
-            .send()
-            .await
+        if let Ok(spaces_response) = self.http.get(&spaces_url).headers(headers).send().await
             && spaces_response.status().is_success()
         {
-            let spaces: Vec<serde_json::Value> = spaces_response
-                .json()
-                .await
-                .unwrap_or_default();
+            let spaces: Vec<serde_json::Value> = spaces_response.json().await.unwrap_or_default();
 
             for space in &spaces {
                 let space_id = space["id"].as_str().unwrap_or("").to_string();
@@ -263,11 +264,7 @@ impl MarketplaceScanner for HuggingFaceScanner {
             }
         }
 
-        tracing::info!(
-            query = q,
-            filtered = leads.len(),
-            "[HuggingFaceScanner] 搜索完成"
-        );
+        tracing::info!(query = q, filtered = leads.len(), "[HuggingFaceScanner] 搜索完成");
 
         Ok(leads)
     }
@@ -309,12 +306,7 @@ mod tests {
         ));
 
         // 需求关键词
-        assert!(HuggingFaceScanner::is_demand_model(
-            "finetune-model",
-            "",
-            &[],
-            50
-        ));
+        assert!(HuggingFaceScanner::is_demand_model("finetune-model", "", &[], 50));
 
         // 不相关且不热门
         assert!(!HuggingFaceScanner::is_demand_model(
@@ -338,22 +330,12 @@ mod tests {
         assert!(trend.unwrap().contains("热门"));
 
         // 流行模型
-        let trend = HuggingFaceScanner::extract_model_trend(
-            "bert-base",
-            "",
-            200_000,
-            50_000,
-        );
+        let trend = HuggingFaceScanner::extract_model_trend("bert-base", "", 200_000, 50_000);
         assert!(trend.is_some());
         assert!(trend.unwrap().contains("流行"));
 
         // 小众模型
-        let trend = HuggingFaceScanner::extract_model_trend(
-            "small-model",
-            "",
-            5_000,
-            100,
-        );
+        let trend = HuggingFaceScanner::extract_model_trend("small-model", "", 5_000, 100);
         assert!(trend.is_none());
 
         // 翻译模型

@@ -2,8 +2,8 @@
 //! 通过公开 API 采集 Upwork 平台的国际外包需求线索
 //! 与猪八戒形成国内外外包市场的互补
 
-use async_trait::async_trait;
 use super::marketplace_scanner::{MarketplaceScanner, RawLead};
+use async_trait::async_trait;
 
 /// Upwork 扫描器
 pub struct UpworkScanner {
@@ -18,11 +18,7 @@ impl UpworkScanner {
     pub fn new() -> Self {
         let http = reqwest::Client::new();
         let api_token = std::env::var("UPWORK_API_TOKEN").ok();
-        Self {
-            http,
-            api_token,
-            base_url: "https://www.upwork.com".to_string(),
-        }
+        Self { http, api_token, base_url: "https://www.upwork.com".to_string() }
     }
 
     /// 从配置创建
@@ -51,10 +47,8 @@ impl UpworkScanner {
             reqwest::header::USER_AGENT,
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36".parse().unwrap(),
         );
-        headers.insert(
-            reqwest::header::ACCEPT,
-            "application/json, text/plain, */*".parse().unwrap(),
-        );
+        headers
+            .insert(reqwest::header::ACCEPT, "application/json, text/plain, */*".parse().unwrap());
         headers.insert(
             reqwest::header::REFERER,
             "https://www.upwork.com/nx/search/jobs/".parse().unwrap(),
@@ -72,23 +66,54 @@ impl UpworkScanner {
     fn skill_categories() -> Vec<&'static str> {
         vec![
             // AI/机器学习
-            "machine learning", "deep learning", "nlp", "computer vision",
-            "llm", "gpt", "ai agent", "rag", "langchain",
+            "machine learning",
+            "deep learning",
+            "nlp",
+            "computer vision",
+            "llm",
+            "gpt",
+            "ai agent",
+            "rag",
+            "langchain",
             // 全栈开发
-            "full stack", "react", "vue", "next.js", "node.js",
-            "python", "django", "flask", "fastapi",
+            "full stack",
+            "react",
+            "vue",
+            "next.js",
+            "node.js",
+            "python",
+            "django",
+            "flask",
+            "fastapi",
             // 云/DevOps
-            "aws", "azure", "gcp", "docker", "kubernetes",
-            "devops", "ci/cd", "terraform",
+            "aws",
+            "azure",
+            "gcp",
+            "docker",
+            "kubernetes",
+            "devops",
+            "ci/cd",
+            "terraform",
             // 移动端
-            "ios", "android", "react native", "flutter",
-            "swift", "kotlin",
+            "ios",
+            "android",
+            "react native",
+            "flutter",
+            "swift",
+            "kotlin",
             // 设计
-            "ui/ux design", "web design", "mobile app design",
-            "logo design", "brand identity",
+            "ui/ux design",
+            "web design",
+            "mobile app design",
+            "logo design",
+            "brand identity",
             // 数据
-            "data analysis", "data science", "tableau", "power bi",
-            "sql", "python for data",
+            "data analysis",
+            "data science",
+            "tableau",
+            "power bi",
+            "sql",
+            "python for data",
         ]
     }
 
@@ -108,11 +133,20 @@ impl UpworkScanner {
         let project_patterns = [
             ("project:web_app", vec!["web application", "website", "web app", "saas", "dashboard"]),
             ("project:mobile_app", vec!["mobile app", "ios app", "android app", "ios application"]),
-            ("project:api_development", vec!["api", "rest api", "graphql", "backend", "microservices"]),
-            ("project:ai_implementation", vec!["ai", "machine learning", "llm", "ai agent", "chatbot"]),
+            (
+                "project:api_development",
+                vec!["api", "rest api", "graphql", "backend", "microservices"],
+            ),
+            (
+                "project:ai_implementation",
+                vec!["ai", "machine learning", "llm", "ai agent", "chatbot"],
+            ),
             ("project:design", vec!["design", "ui design", "ux design", "logo", "branding"]),
             ("project:data", vec!["data analysis", "data science", "dashboard", "reporting", "bi"]),
-            ("project:integration", vec!["integration", "api integration", "third party", "plugin", "extension"]),
+            (
+                "project:integration",
+                vec!["integration", "api integration", "third party", "plugin", "extension"],
+            ),
             ("project:migration", vec!["migration", "upgrade", "refactor", "rewrite", "convert"]),
         ];
 
@@ -126,7 +160,10 @@ impl UpworkScanner {
         if text.contains("hourly") || text.contains("per hour") || text.contains("/hr") {
             signals.push("contract:hourly".to_string());
         }
-        if text.contains("fixed price") || text.contains("fixed-price") || text.contains("project-based") {
+        if text.contains("fixed price")
+            || text.contains("fixed-price")
+            || text.contains("project-based")
+        {
             signals.push("contract:fixed".to_string());
         }
 
@@ -136,7 +173,7 @@ impl UpworkScanner {
     /// 从薪资范围提取价格信号
     fn extract_price_range(text: &str) -> Option<(f64, f64)> {
         let text_lower = text.to_lowercase();
-        
+
         // 匹配 "$500-$1000" 或 "$20/hr" 等格式
         let price_patterns = [
             // 固定价格范围
@@ -159,7 +196,7 @@ impl UpworkScanner {
                     "$20/hr" => return Some((20.0, 40.0)),
                     "$50/hr" => return Some((50.0, 100.0)),
                     "$100/hr" => return Some((100.0, 200.0)),
-                    _ => {}
+                    _ => {},
                 }
             }
         }
@@ -170,24 +207,44 @@ impl UpworkScanner {
     /// 判断是否为高价值外包需求
     fn is_valuable_hiring(job_title: &str) -> bool {
         let text_lower = job_title.to_lowercase();
-        
+
         // 首先排除明显的低价值职位
         let low_value_patterns = [
-            "data entry", "clerk", "virtual assistant", "customer service",
-            "call center", "telemarketing", "sales representative",
-            "receptionist", "administrative", "office assistant",
-            "cleaning", "maintenance", "labor",
+            "data entry",
+            "clerk",
+            "virtual assistant",
+            "customer service",
+            "call center",
+            "telemarketing",
+            "sales representative",
+            "receptionist",
+            "administrative",
+            "office assistant",
+            "cleaning",
+            "maintenance",
+            "labor",
         ];
         if low_value_patterns.iter().any(|p| text_lower.contains(p)) {
             return false;
         }
 
         let high_value_skills = [
-            "ai", "llm", "machine learning", "python",
-            "react", "vue", "full stack", "mobile app",
-            "aws", "kubernetes", "devops",
-            "design", "ui", "ux",
-            "data science", "analytics engineer",
+            "ai",
+            "llm",
+            "machine learning",
+            "python",
+            "react",
+            "vue",
+            "full stack",
+            "mobile app",
+            "aws",
+            "kubernetes",
+            "devops",
+            "design",
+            "ui",
+            "ux",
+            "data science",
+            "analytics engineer",
         ];
         high_value_skills.iter().any(|s| text_lower.contains(s))
     }
@@ -225,17 +282,9 @@ impl MarketplaceScanner for UpworkScanner {
         let url = self.build_jobs_search_url(q);
         let headers = self.build_headers();
 
-        tracing::info!(
-            query = q,
-            "[UpworkScanner] 发起搜索请求"
-        );
+        tracing::info!(query = q, "[UpworkScanner] 发起搜索请求");
 
-        let response = self
-            .http
-            .get(&url)
-            .headers(headers)
-            .send()
-            .await;
+        let response = self.http.get(&url).headers(headers).send().await;
 
         let mut leads = Vec::new();
 
@@ -244,7 +293,7 @@ impl MarketplaceScanner for UpworkScanner {
                 if let Ok(text) = resp.text().await {
                     // 实际实现中应解析 JSON 响应并提取职位列表
                     // 此处提供文本分析逻辑
-                    
+
                     for line in text.lines() {
                         let trimmed = line.trim();
                         if trimmed.len() < 20 {
@@ -263,9 +312,8 @@ impl MarketplaceScanner for UpworkScanner {
 
                         // 提取价格信息
                         let price_range = Self::extract_price_range(trimmed);
-                        let price_text = price_range.map(|(min, max)| {
-                            format!("${:.0}-${:.0}", min, max)
-                        });
+                        let price_text =
+                            price_range.map(|(min, max)| format!("${:.0}-${:.0}", min, max));
 
                         let title = if trimmed.len() > 100 {
                             format!("{}...", &trimmed[..100])
@@ -291,7 +339,7 @@ impl MarketplaceScanner for UpworkScanner {
                         });
                     }
                 }
-            }
+            },
             Ok(resp) => {
                 let status = resp.status();
                 tracing::warn!(status = status.as_u16(), "[UpworkScanner] 请求失败");
@@ -301,17 +349,13 @@ impl MarketplaceScanner for UpworkScanner {
                 if status == reqwest::StatusCode::UNAUTHORIZED {
                     return Err("Upwork API 需要认证".to_string());
                 }
-            }
+            },
             Err(e) => {
                 tracing::warn!(error = %e, "[UpworkScanner] 网络请求异常，返回空结果");
-            }
+            },
         }
 
-        tracing::info!(
-            query = q,
-            filtered = leads.len(),
-            "[UpworkScanner] 搜索完成"
-        );
+        tracing::info!(query = q, filtered = leads.len(), "[UpworkScanner] 搜索完成");
 
         Ok(leads)
     }
@@ -340,7 +384,7 @@ mod tests {
         // 包含多个需求信号
         let signals = UpworkScanner::extract_hiring_signals(
             "Looking for Python Developer for AI Project",
-            "Need someone experienced in LLMs and RAG"
+            "Need someone experienced in LLMs and RAG",
         );
         assert!(!signals.is_empty());
         assert!(signals.iter().any(|s| s.contains("skill_demand:python")));
@@ -354,7 +398,7 @@ mod tests {
         assert!(UpworkScanner::is_valuable_hiring("AI Developer for LLM Project"));
         assert!(UpworkScanner::is_valuable_hiring("Full Stack React Developer"));
         assert!(UpworkScanner::is_valuable_hiring("AWS DevOps Engineer"));
-        
+
         // 低价值需求
         assert!(!UpworkScanner::is_valuable_hiring("Data Entry Clerk"));
         assert!(!UpworkScanner::is_valuable_hiring("Virtual Assistant"));
@@ -374,7 +418,7 @@ mod tests {
         let summary = UpworkScanner::extract_summary(
             "AI Developer Needed",
             Some("TechCorp Inc."),
-            Some("$5,000-$10,000")
+            Some("$5,000-$10,000"),
         );
         assert!(summary.contains("AI Developer Needed"));
         assert!(summary.contains("TechCorp Inc."));

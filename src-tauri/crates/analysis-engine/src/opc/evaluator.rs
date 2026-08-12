@@ -106,12 +106,7 @@ pub struct PriceRange {
 
 impl PriceRange {
     pub fn new(min: f64, max: f64, currency: &str) -> Self {
-        Self {
-            min,
-            max,
-            currency: currency.to_string(),
-            confidence: 1.0,
-        }
+        Self { min, max, currency: currency.to_string(), confidence: 1.0 }
     }
 
     pub fn midpoint(&self) -> f64 {
@@ -178,7 +173,13 @@ pub fn evaluate_demand_value(
     description: &str,
     known_competitors: Option<u32>,
 ) -> DemandEvaluation {
-    evaluate_demand_with_config(demand_id, title, description, known_competitors, &EvaluationConfig::default())
+    evaluate_demand_with_config(
+        demand_id,
+        title,
+        description,
+        known_competitors,
+        &EvaluationConfig::default(),
+    )
 }
 
 /// 使用自定义配置评估需求
@@ -193,9 +194,8 @@ pub fn evaluate_demand_with_config(
     let pain_score = calculate_pain_intensity_bilingual(title, description);
 
     // 2. 估算现有方案数
-    let solutions = known_competitors.unwrap_or_else(|| {
-        estimate_solution_count_bilingual(title, description)
-    });
+    let solutions =
+        known_competitors.unwrap_or_else(|| estimate_solution_count_bilingual(title, description));
 
     // 3. 计算市场缺口分
     let market_gap = calculate_market_gap(pain_score, solutions);
@@ -246,22 +246,74 @@ pub fn evaluate_demand_with_config(
 /// 计算痛点强度（中英文双语关键词）
 fn calculate_pain_intensity_bilingual(title: &str, description: &str) -> f64 {
     let en_keywords = [
-        "difficult", "hard", "struggle", "problem", "issue",
-        "frustrating", "impossible", "lack", "missing", "can't",
-        "need", "urgent", "critical", "blocked", "stuck",
-        "painful", "slow", "expensive", "complicated", "confusing",
-        "annoying", "inconvenient", "time-consuming", "error", "bug",
-        "crash", "fail", "broken", "doesn't work", "not working",
+        "difficult",
+        "hard",
+        "struggle",
+        "problem",
+        "issue",
+        "frustrating",
+        "impossible",
+        "lack",
+        "missing",
+        "can't",
+        "need",
+        "urgent",
+        "critical",
+        "blocked",
+        "stuck",
+        "painful",
+        "slow",
+        "expensive",
+        "complicated",
+        "confusing",
+        "annoying",
+        "inconvenient",
+        "time-consuming",
+        "error",
+        "bug",
+        "crash",
+        "fail",
+        "broken",
+        "doesn't work",
+        "not working",
     ];
 
     let zh_keywords = [
-        "困难", "麻烦", "问题", "报错", "出错",
-        "无法", "不能", "缺少", "不足", "需要",
-        "紧急", "关键", "阻塞", "卡住", "痛点",
-        "缓慢", "昂贵", "复杂", "混乱", "困惑",
-        "烦人", "不便", "耗时", "错误", "故障",
-        "崩溃", "失败", "损坏", "不正常", "不工作",
-        "怎么", "如何", "为什么", "对比", "哪个",
+        "困难",
+        "麻烦",
+        "问题",
+        "报错",
+        "出错",
+        "无法",
+        "不能",
+        "缺少",
+        "不足",
+        "需要",
+        "紧急",
+        "关键",
+        "阻塞",
+        "卡住",
+        "痛点",
+        "缓慢",
+        "昂贵",
+        "复杂",
+        "混乱",
+        "困惑",
+        "烦人",
+        "不便",
+        "耗时",
+        "错误",
+        "故障",
+        "崩溃",
+        "失败",
+        "损坏",
+        "不正常",
+        "不工作",
+        "怎么",
+        "如何",
+        "为什么",
+        "对比",
+        "哪个",
     ];
 
     let text = format!("{} {}", title, description).to_lowercase();
@@ -278,17 +330,47 @@ fn calculate_pain_intensity_bilingual(title: &str, description: &str) -> f64 {
 /// 估算现有解决方案数量（中英文双语）
 fn estimate_solution_count_bilingual(title: &str, description: &str) -> u32 {
     let en_keywords = [
-        "solution", "tool", "software", "platform", "service",
-        "app", "library", "framework", "plugin", "module",
-        "system", "product", "feature", "implement", "integration",
-        "api", "sdk", "template", "boilerplate", "starter",
+        "solution",
+        "tool",
+        "software",
+        "platform",
+        "service",
+        "app",
+        "library",
+        "framework",
+        "plugin",
+        "module",
+        "system",
+        "product",
+        "feature",
+        "implement",
+        "integration",
+        "api",
+        "sdk",
+        "template",
+        "boilerplate",
+        "starter",
     ];
 
     let zh_keywords = [
-        "方案", "工具", "软件", "平台", "服务",
-        "应用", "库", "框架", "插件", "模块",
-        "系统", "产品", "功能", "实现", "集成",
-        "接口", "模板", "脚手架",
+        "方案",
+        "工具",
+        "软件",
+        "平台",
+        "服务",
+        "应用",
+        "库",
+        "框架",
+        "插件",
+        "模块",
+        "系统",
+        "产品",
+        "功能",
+        "实现",
+        "集成",
+        "接口",
+        "模板",
+        "脚手架",
     ];
 
     let text = format!("{} {}", title, description).to_lowercase();
@@ -319,81 +401,177 @@ fn identify_demand_type(title: &str, description: &str) -> DemandType {
         (
             DemandType::Development,
             vec![
-                "develop", "开发", "code", "编程", "programming",
-                "api", "后端", "frontend", "前端", "backend",
-                "全栈", "fullstack", "web", "网站", "app", "应用",
-                "mobile", "ios", "android", "小程序",
+                "develop",
+                "开发",
+                "code",
+                "编程",
+                "programming",
+                "api",
+                "后端",
+                "frontend",
+                "前端",
+                "backend",
+                "全栈",
+                "fullstack",
+                "web",
+                "网站",
+                "app",
+                "应用",
+                "mobile",
+                "ios",
+                "android",
+                "小程序",
             ],
         ),
         (
             DemandType::Design,
             vec![
-                "design", "设计", "ui", "ux", "logo", "品牌",
-                "视觉", "graphic", "illustration", "插画",
-                "banner", "海报", "包装", "packaging",
+                "design",
+                "设计",
+                "ui",
+                "ux",
+                "logo",
+                "品牌",
+                "视觉",
+                "graphic",
+                "illustration",
+                "插画",
+                "banner",
+                "海报",
+                "包装",
+                "packaging",
             ],
         ),
         (
             DemandType::ToolSoftware,
             vec![
-                "tool", "工具", "software", "软件", "saas",
-                "dashboard", "仪表盘", "系统", "system",
-                "platform", "平台", "crm", "erp",
+                "tool",
+                "工具",
+                "software",
+                "软件",
+                "saas",
+                "dashboard",
+                "仪表盘",
+                "系统",
+                "system",
+                "platform",
+                "平台",
+                "crm",
+                "erp",
             ],
         ),
         (
             DemandType::ContentCreation,
             vec![
-                "content", "内容", "article", "文章", "blog",
-                "writing", "写作", "video", "视频", "podcast",
-                "audio", "音频", "翻译", "translate",
+                "content",
+                "内容",
+                "article",
+                "文章",
+                "blog",
+                "writing",
+                "写作",
+                "video",
+                "视频",
+                "podcast",
+                "audio",
+                "音频",
+                "翻译",
+                "translate",
             ],
         ),
         (
             DemandType::Marketing,
             vec![
-                "marketing", "营销", "seo", "sem", "广告",
-                "social", "媒体", "推广", "promotion",
-                "lead", "客户", "funnel", "漏斗",
+                "marketing",
+                "营销",
+                "seo",
+                "sem",
+                "广告",
+                "social",
+                "媒体",
+                "推广",
+                "promotion",
+                "lead",
+                "客户",
+                "funnel",
+                "漏斗",
             ],
         ),
         (
             DemandType::EnterpriseService,
             vec![
-                "enterprise", "企业", "company", "公司",
-                "b2b", "business", "商业", "crm", "erp",
-                "consulting", "咨询", "strategy", "战略",
+                "enterprise",
+                "企业",
+                "company",
+                "公司",
+                "b2b",
+                "business",
+                "商业",
+                "crm",
+                "erp",
+                "consulting",
+                "咨询",
+                "strategy",
+                "战略",
             ],
         ),
         (
             DemandType::Outsourcing,
             vec![
-                "outsource", "外包", "freelance", "自由职业",
-                "contract", "合同", "part-time", "兼职",
-                "project", "项目", "deliver", "交付",
+                "outsource",
+                "外包",
+                "freelance",
+                "自由职业",
+                "contract",
+                "合同",
+                "part-time",
+                "兼职",
+                "project",
+                "项目",
+                "deliver",
+                "交付",
             ],
         ),
         (
             DemandType::Education,
             vec![
-                "course", "课程", "training", "培训", "learn",
-                "学习", "teach", "教学", "tutorial", "教程",
-                "education", "教育", "school", "学校",
+                "course",
+                "课程",
+                "training",
+                "培训",
+                "learn",
+                "学习",
+                "teach",
+                "教学",
+                "tutorial",
+                "教程",
+                "education",
+                "教育",
+                "school",
+                "学校",
             ],
         ),
         (
             DemandType::Operations,
             vec![
-                "operation", "运营", "manage", "管理",
-                "admin", "行政", "support", "支持",
-                "service", "service", "客服", "crm",
+                "operation",
+                "运营",
+                "manage",
+                "管理",
+                "admin",
+                "行政",
+                "support",
+                "支持",
+                "service",
+                "service",
+                "客服",
+                "crm",
             ],
         ),
         (
             DemandType::Consulting,
             vec![
-                "consult", "咨询", "advice", "建议",
-                "strategy", "策略", "analysis", "分析",
+                "consult", "咨询", "advice", "建议", "strategy", "策略", "analysis", "分析",
                 "expert", "专家", "advisor", "顾问",
             ],
         ),
@@ -533,13 +711,8 @@ fn calculate_confidence(pain_score: f64, solutions: u32) -> f64 {
 }
 
 /// 批量评估需求
-pub fn batch_evaluate(
-    demands: &[(String, String, String)],
-) -> Vec<DemandEvaluation> {
-    demands
-        .iter()
-        .map(|(id, title, desc)| evaluate_demand_value(id, title, desc, None))
-        .collect()
+pub fn batch_evaluate(demands: &[(String, String, String)]) -> Vec<DemandEvaluation> {
+    demands.iter().map(|(id, title, desc)| evaluate_demand_value(id, title, desc, None)).collect()
 }
 
 /// 使用配置批量评估需求
@@ -549,9 +722,7 @@ pub fn batch_evaluate_with_config(
 ) -> Vec<DemandEvaluation> {
     demands
         .iter()
-        .map(|(id, title, desc)| {
-            evaluate_demand_with_config(id, title, desc, None, config)
-        })
+        .map(|(id, title, desc)| evaluate_demand_with_config(id, title, desc, None, config))
         .collect()
 }
 
@@ -560,10 +731,7 @@ pub fn filter_high_value(
     evaluations: &[DemandEvaluation],
     min_score: f64,
 ) -> Vec<&DemandEvaluation> {
-    evaluations
-        .iter()
-        .filter(|e| e.commercial_value_score >= min_score)
-        .collect()
+    evaluations.iter().filter(|e| e.commercial_value_score >= min_score).collect()
 }
 
 /// 按价值分排序需求
@@ -630,10 +798,7 @@ mod tests {
             None,
         );
 
-        assert!(
-            result.pain_score > 20.0,
-            "高痛点需求应有较高的痛点分"
-        );
+        assert!(result.pain_score > 20.0, "高痛点需求应有较高的痛点分");
     }
 
     #[test]
@@ -645,10 +810,7 @@ mod tests {
             None,
         );
 
-        assert!(
-            result.pain_score < 30.0,
-            "低痛点需求应有较低的痛点分"
-        );
+        assert!(result.pain_score < 30.0, "低痛点需求应有较低的痛点分");
     }
 
     #[test]
@@ -661,10 +823,7 @@ mod tests {
         );
 
         assert_eq!(result.existing_solutions, 10);
-        assert!(
-            result.market_gap_score < 50.0,
-            "竞争激烈时市场缺口应较低"
-        );
+        assert!(result.market_gap_score < 50.0, "竞争激烈时市场缺口应较低");
     }
 
     #[test]
@@ -730,38 +889,21 @@ mod tests {
 
         assert_eq!(evaluation.opportunity_level(), "very_high");
 
-        let evaluation = DemandEvaluation {
-            commercial_value_score: 65.0,
-            ..evaluation.clone()
-        };
+        let evaluation = DemandEvaluation { commercial_value_score: 65.0, ..evaluation.clone() };
         assert_eq!(evaluation.opportunity_level(), "high");
 
-        let evaluation = DemandEvaluation {
-            commercial_value_score: 45.0,
-            ..evaluation.clone()
-        };
+        let evaluation = DemandEvaluation { commercial_value_score: 45.0, ..evaluation.clone() };
         assert_eq!(evaluation.opportunity_level(), "medium");
 
-        let evaluation = DemandEvaluation {
-            commercial_value_score: 20.0,
-            ..evaluation.clone()
-        };
+        let evaluation = DemandEvaluation { commercial_value_score: 20.0, ..evaluation.clone() };
         assert_eq!(evaluation.opportunity_level(), "low");
     }
 
     #[test]
     fn test_batch_evaluate() {
         let demands = vec![
-            (
-                "id-1".to_string(),
-                "Test demand 1".to_string(),
-                "Description 1".to_string(),
-            ),
-            (
-                "id-2".to_string(),
-                "Test demand 2".to_string(),
-                "Description 2".to_string(),
-            ),
+            ("id-1".to_string(), "Test demand 1".to_string(), "Description 1".to_string()),
+            ("id-2".to_string(), "Test demand 2".to_string(), "Description 2".to_string()),
         ];
 
         let results = batch_evaluate(&demands);

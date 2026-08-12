@@ -30,12 +30,29 @@ impl HackerNewsScanner {
     /// 检查故事是否与需求相关
     fn is_demand_related(&self, title: &str) -> bool {
         let demand_keywords = [
-            "need", "looking for", "want", "how to", "problem",
-            "issue", "help", "require", "implement", "build",
-            "frustrating", "difficult", "lack", "missing", "solution",
-            "ask hn", "discuss",
-            "anyone else", "is there", "what's the best",
-            "recommendation", "suggestion", "feedback",
+            "need",
+            "looking for",
+            "want",
+            "how to",
+            "problem",
+            "issue",
+            "help",
+            "require",
+            "implement",
+            "build",
+            "frustrating",
+            "difficult",
+            "lack",
+            "missing",
+            "solution",
+            "ask hn",
+            "discuss",
+            "anyone else",
+            "is there",
+            "what's the best",
+            "recommendation",
+            "suggestion",
+            "feedback",
         ];
         let text = title.to_lowercase();
         demand_keywords.iter().any(|kw| text.contains(kw))

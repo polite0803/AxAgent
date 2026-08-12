@@ -1,8 +1,8 @@
 //! ArXiv 扫描器
 //! 通过 ArXiv API 采集研究论文中的技术趋势和需求信号
 
-use async_trait::async_trait;
 use super::marketplace_scanner::{MarketplaceScanner, RawLead};
+use async_trait::async_trait;
 
 /// ArXiv 扫描器
 pub struct ArxivScanner {
@@ -41,32 +41,42 @@ impl ArxivScanner {
     }
 
     /// 检查论文是否为需求相关
-    fn is_demand_paper(
-        title: &str,
-        abstract_text: &str,
-        categories: &[String],
-    ) -> bool {
+    fn is_demand_paper(title: &str, abstract_text: &str, categories: &[String]) -> bool {
         let demand_keywords = [
-            "framework", "library", "tool", "system",
-            "implementation", "architecture", "design",
-            "integration", "api", "protocol",
-            "optimization", "performance", "efficiency",
-            "real-world", "production", "deployment",
-            "financial", "trading", "market", "stock",
-            "application", "app", "platform",
-            "benchmark", "evaluation", "comparison",
+            "framework",
+            "library",
+            "tool",
+            "system",
+            "implementation",
+            "architecture",
+            "design",
+            "integration",
+            "api",
+            "protocol",
+            "optimization",
+            "performance",
+            "efficiency",
+            "real-world",
+            "production",
+            "deployment",
+            "financial",
+            "trading",
+            "market",
+            "stock",
+            "application",
+            "app",
+            "platform",
+            "benchmark",
+            "evaluation",
+            "comparison",
         ];
 
         let full_text = format!("{} {}", title, abstract_text).to_lowercase();
         let has_demand_keyword = demand_keywords.iter().any(|kw| full_text.contains(kw));
 
-        let demand_categories: std::collections::HashSet<&str> = Self::category_map()
-            .iter()
-            .map(|(cat, _)| *cat)
-            .collect();
-        let has_demand_category = categories
-            .iter()
-            .any(|c| demand_categories.contains(c.as_str()));
+        let demand_categories: std::collections::HashSet<&str> =
+            Self::category_map().iter().map(|(cat, _)| *cat).collect();
+        let has_demand_category = categories.iter().any(|c| demand_categories.contains(c.as_str()));
 
         has_demand_keyword || has_demand_category
     }
@@ -215,27 +225,17 @@ impl MarketplaceScanner for ArxivScanner {
 
         let url = Self::build_search_url(q, 30);
 
-        tracing::info!(
-            query = q,
-            "[ArxivScanner] 发起搜索请求"
-        );
+        tracing::info!(query = q, "[ArxivScanner] 发起搜索请求");
 
-        let response = self
-            .http
-            .get(&url)
-            .send()
-            .await
-            .map_err(|e| format!("ArXiv API 请求失败: {}", e))?;
+        let response =
+            self.http.get(&url).send().await.map_err(|e| format!("ArXiv API 请求失败: {}", e))?;
 
         if !response.status().is_success() {
             let status = response.status();
             return Err(format!("ArXiv API 返回状态码 {}", status));
         }
 
-        let body = response
-            .text()
-            .await
-            .map_err(|e| format!("ArXiv 响应读取失败: {}", e))?;
+        let body = response.text().await.map_err(|e| format!("ArXiv 响应读取失败: {}", e))?;
 
         let papers = Self::parse_atom_response(&body)?;
 
@@ -248,11 +248,7 @@ impl MarketplaceScanner for ArxivScanner {
             let pdf_link = paper["pdf_link"].as_str().unwrap_or("").to_string();
             let categories: Vec<String> = paper["categories"]
                 .as_array()
-                .map(|arr| {
-                    arr.iter()
-                        .filter_map(|c| c.as_str().map(|s| s.to_string()))
-                        .collect()
-                })
+                .map(|arr| arr.iter().filter_map(|c| c.as_str().map(|s| s.to_string())).collect())
                 .unwrap_or_default();
 
             if Self::is_demand_paper(&title, &summary, &categories)

@@ -27,10 +27,10 @@ use crate::tools::upwork_scanner::UpworkScanner;
 use crate::tools::xianyu_scanner::XianyuScanner;
 use crate::tools::zhihu_scanner::ZhihuScanner;
 use crate::tools::zhubajie_scanner::ZhubajieScanner;
-use axagent_analysis_engine::opc::evaluator::{
-    evaluate_demand_value, DemandEvaluation, EvaluationConfig,
-};
 use async_trait::async_trait;
+use axagent_analysis_engine::opc::evaluator::{
+    DemandEvaluation, EvaluationConfig, evaluate_demand_value,
+};
 use serde::{Deserialize, Serialize};
 
 // ── DTO 定义 ──────────────────────────────────────────────────
@@ -139,10 +139,7 @@ pub struct AggregateMarketplaceScanner {
 
 impl AggregateMarketplaceScanner {
     pub fn new() -> Self {
-        Self { 
-            scanners: Vec::new(),
-            disabled_platforms: std::collections::HashSet::new(),
-        }
+        Self { scanners: Vec::new(), disabled_platforms: std::collections::HashSet::new() }
     }
 
     pub fn add_scanner(&mut self, scanner: Box<dyn MarketplaceScanner>) {
@@ -168,7 +165,8 @@ impl AggregateMarketplaceScanner {
 
     /// 列出所有已注册的平台及其启用状态
     pub fn list_scanners(&self) -> Vec<(String, bool)> {
-        self.scanners.iter()
+        self.scanners
+            .iter()
             .map(|s| {
                 let p = s.platform().to_string();
                 let enabled = !self.disabled_platforms.contains(&p);
@@ -213,7 +211,7 @@ impl AggregateMarketplaceScanner {
                 );
                 continue;
             }
-            
+
             match scanner.search(q).await {
                 Ok(raw) => {
                     for r in raw {
@@ -259,9 +257,7 @@ impl AggregateMarketplaceScanner {
 
         // 按价值分排序
         evaluated.sort_by(|a, b| {
-            b.value_score()
-                .partial_cmp(&a.value_score())
-                .unwrap_or(std::cmp::Ordering::Equal)
+            b.value_score().partial_cmp(&a.value_score()).unwrap_or(std::cmp::Ordering::Equal)
         });
 
         Ok(evaluated)
@@ -281,18 +277,13 @@ impl AggregateMarketplaceScanner {
         min_score: f64,
     ) -> Result<Vec<EvaluatedDemandLead>, String> {
         let evaluated = self.search_and_evaluate(q, None).await?;
-        let filtered: Vec<EvaluatedDemandLead> = evaluated
-            .into_iter()
-            .filter(|e| e.value_score() >= min_score)
-            .collect();
+        let filtered: Vec<EvaluatedDemandLead> =
+            evaluated.into_iter().filter(|e| e.value_score() >= min_score).collect();
         Ok(filtered)
     }
 
     /// 对已有线索进行批量评估
-    pub fn evaluate_leads(
-        &self,
-        leads: Vec<DemandLead>,
-    ) -> Vec<EvaluatedDemandLead> {
+    pub fn evaluate_leads(&self, leads: Vec<DemandLead>) -> Vec<EvaluatedDemandLead> {
         leads
             .into_iter()
             .map(|lead| {
@@ -699,14 +690,14 @@ mod tests {
     fn test_disable_and_enable_scanner() {
         let mut scanner = AggregateMarketplaceScanner::new();
         scanner.add_scanner(Box::new(MockMarketplaceScanner::new("test_platform")));
-        
+
         // 默认启用
         assert!(scanner.is_scanner_enabled("test_platform"));
-        
+
         // 禁用
         scanner.disable_scanner("test_platform");
         assert!(!scanner.is_scanner_enabled("test_platform"));
-        
+
         // 重新启用
         scanner.enable_scanner("test_platform");
         assert!(scanner.is_scanner_enabled("test_platform"));
@@ -717,17 +708,17 @@ mod tests {
         let mut scanner = AggregateMarketplaceScanner::new();
         scanner.add_scanner(Box::new(MockMarketplaceScanner::new("platform_a")));
         scanner.add_scanner(Box::new(MockMarketplaceScanner::new("platform_b")));
-        
+
         // 禁用 platform_a
         scanner.disable_scanner("platform_a");
-        
+
         let status = scanner.list_scanners();
         assert_eq!(status.len(), 2);
-        
+
         let platform_a_status = status.iter().find(|(p, _)| p == "platform_a");
         assert!(platform_a_status.is_some());
         assert_eq!(platform_a_status.unwrap().1, false); // disabled
-        
+
         let platform_b_status = status.iter().find(|(p, _)| p == "platform_b");
         assert!(platform_b_status.is_some());
         assert_eq!(platform_b_status.unwrap().1, true); // enabled
@@ -738,13 +729,13 @@ mod tests {
         let mut scanner = AggregateMarketplaceScanner::new();
         scanner.add_scanner(Box::new(MockMarketplaceScanner::new("enabled_platform")));
         scanner.add_scanner(Box::new(MockMarketplaceScanner::new("disabled_platform")));
-        
+
         // 禁用一个扫描器
         scanner.disable_scanner("disabled_platform");
-        
+
         // 搜索
         let results = scanner.search_all("test").await.unwrap();
-        
+
         // 应该只包含 enabled_platform 的结果
         assert!(results.iter().all(|r| r.platform != "disabled_platform"));
         assert!(results.iter().any(|r| r.platform == "enabled_platform"));
@@ -754,10 +745,10 @@ mod tests {
     async fn test_search_all_without_disabled_scanners() {
         let mut scanner = AggregateMarketplaceScanner::new();
         scanner.add_scanner(Box::new(MockMarketplaceScanner::new("platform_a")));
-        
+
         // 不禁用任何扫描器
         let results = scanner.search_all("test").await.unwrap();
-        
+
         // 应该包含 platform_a 的结果
         assert!(!results.is_empty());
         assert!(results.iter().all(|r| r.platform == "platform_a"));
@@ -767,10 +758,10 @@ mod tests {
     fn test_disable_nonexistent_platform() {
         let mut scanner = AggregateMarketplaceScanner::new();
         scanner.add_scanner(Box::new(MockMarketplaceScanner::new("test_platform")));
-        
+
         // 禁用不存在的平台不应报错
         scanner.disable_scanner("nonexistent_platform");
-        
+
         // 原平台仍应启用
         assert!(scanner.is_scanner_enabled("test_platform"));
     }
@@ -810,24 +801,22 @@ mod tests {
     fn test_evaluate_leads() {
         let scanner = AggregateMarketplaceScanner::new();
 
-        let leads = vec![
-            DemandLead {
-                id: "test-1".to_string(),
-                platform: "test".to_string(),
-                title: "高价值需求".to_string(),
-                description: "这是一个非常紧急且昂贵的痛点问题".to_string(),
-                budget_min: None,
-                budget_max: None,
-                budget_currency: "CNY".to_string(),
-                contact_name: None,
-                contact_email: None,
-                contact_phone: None,
-                source_url: None,
-                raw_snapshot: serde_json::Value::Null,
-                status: "new".to_string(),
-                confidence: 0.0,
-            },
-        ];
+        let leads = vec![DemandLead {
+            id: "test-1".to_string(),
+            platform: "test".to_string(),
+            title: "高价值需求".to_string(),
+            description: "这是一个非常紧急且昂贵的痛点问题".to_string(),
+            budget_min: None,
+            budget_max: None,
+            budget_currency: "CNY".to_string(),
+            contact_name: None,
+            contact_email: None,
+            contact_phone: None,
+            source_url: None,
+            raw_snapshot: serde_json::Value::Null,
+            status: "new".to_string(),
+            confidence: 0.0,
+        }];
 
         let evaluated = scanner.evaluate_leads(leads);
         assert_eq!(evaluated.len(), 1);
@@ -854,7 +843,10 @@ mod tests {
         };
 
         let evaluation = axagent_analysis_engine::opc::evaluator::evaluate_demand_value(
-            "test", "Test", "Description", None,
+            "test",
+            "Test",
+            "Description",
+            None,
         );
 
         let evaluated = EvaluatedDemandLead::new(lead, evaluation);

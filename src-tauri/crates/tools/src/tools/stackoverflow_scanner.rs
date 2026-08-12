@@ -1,8 +1,8 @@
 //! Stack Overflow 扫描器
 //! 通过 Stack Overflow API 采集技术痛点和需求线索
 
-use async_trait::async_trait;
 use super::marketplace_scanner::{MarketplaceScanner, RawLead};
+use async_trait::async_trait;
 
 /// Stack Overflow 扫描器
 pub struct StackOverflowScanner {
@@ -34,36 +34,75 @@ impl StackOverflowScanner {
     /// 需求相关标签
     fn demand_tags() -> Vec<&'static str> {
         vec![
-            "api", "rest", "graphql", "integration",
-            "automation", "workflow", "pipeline",
-            "data", "analytics", "reporting",
-            "trading", "finance", "stock",
-            "machine-learning", "ai", "nlp",
-            "performance", "optimization", "scalability",
-            "security", "authentication", "authorization",
+            "api",
+            "rest",
+            "graphql",
+            "integration",
+            "automation",
+            "workflow",
+            "pipeline",
+            "data",
+            "analytics",
+            "reporting",
+            "trading",
+            "finance",
+            "stock",
+            "machine-learning",
+            "ai",
+            "nlp",
+            "performance",
+            "optimization",
+            "scalability",
+            "security",
+            "authentication",
+            "authorization",
         ]
     }
 
     /// 检查问题是否为需求相关
     fn is_demand_question(title: &str, tags: &[String]) -> bool {
         let demand_keywords = [
-            "how to", "how do i", "how can", "how does",
-            "possible to", "able to", "support", "implement",
-            "integration", "integrate", "connect", "communicate",
-            "api", "rest", "graphql", "webhook",
-            "trading", "stock", "market", "finance",
-            "problem", "issue", "error", "bug", "fix",
-            "performance", "slow", "fast", "optimize",
-            "recommended", "best practice", "approach",
+            "how to",
+            "how do i",
+            "how can",
+            "how does",
+            "possible to",
+            "able to",
+            "support",
+            "implement",
+            "integration",
+            "integrate",
+            "connect",
+            "communicate",
+            "api",
+            "rest",
+            "graphql",
+            "webhook",
+            "trading",
+            "stock",
+            "market",
+            "finance",
+            "problem",
+            "issue",
+            "error",
+            "bug",
+            "fix",
+            "performance",
+            "slow",
+            "fast",
+            "optimize",
+            "recommended",
+            "best practice",
+            "approach",
         ];
 
         let title_lower = title.to_lowercase();
         let has_demand_keyword = demand_keywords.iter().any(|kw| title_lower.contains(kw));
 
-        let demand_tags_set: std::collections::HashSet<&str> = Self::demand_tags().into_iter().collect();
-        let has_demand_tag = tags
-            .iter()
-            .any(|t| demand_tags_set.contains(t.to_lowercase().as_str()));
+        let demand_tags_set: std::collections::HashSet<&str> =
+            Self::demand_tags().into_iter().collect();
+        let has_demand_tag =
+            tags.iter().any(|t| demand_tags_set.contains(t.to_lowercase().as_str()));
 
         has_demand_keyword || has_demand_tag
     }
@@ -78,13 +117,42 @@ impl StackOverflowScanner {
         let body_lower = body.to_lowercase();
 
         let demand_patterns = [
-            ("integration", vec!["integrate", "integration", "connect", "communicate", "api", "rest", "graphql"]),
-            ("performance", vec!["performance", "slow", "fast", "speed", "optimize", "cache", "memory"]),
-            ("data_processing", vec!["data", "process", "transform", "parse", "extract", "analyze"]),
-            ("trading_finance", vec!["trading", "stock", "market", "finance", "investment", "portfolio"]),
-            ("ai_ml", vec!["machine learning", "deep learning", "ai", "model", "nlp", "prediction"]),
-            ("deployment", vec!["deploy", "deployment", "docker", "kubernetes", "ci", "cd", "pipeline"]),
-            ("security", vec!["security", "authentication", "authorization", "token", "jwt", "oauth"]),
+            (
+                "integration",
+                vec![
+                    "integrate",
+                    "integration",
+                    "connect",
+                    "communicate",
+                    "api",
+                    "rest",
+                    "graphql",
+                ],
+            ),
+            (
+                "performance",
+                vec!["performance", "slow", "fast", "speed", "optimize", "cache", "memory"],
+            ),
+            (
+                "data_processing",
+                vec!["data", "process", "transform", "parse", "extract", "analyze"],
+            ),
+            (
+                "trading_finance",
+                vec!["trading", "stock", "market", "finance", "investment", "portfolio"],
+            ),
+            (
+                "ai_ml",
+                vec!["machine learning", "deep learning", "ai", "model", "nlp", "prediction"],
+            ),
+            (
+                "deployment",
+                vec!["deploy", "deployment", "docker", "kubernetes", "ci", "cd", "pipeline"],
+            ),
+            (
+                "security",
+                vec!["security", "authentication", "authorization", "token", "jwt", "oauth"],
+            ),
             ("ui_ux", vec!["ui", "ux", "interface", "design", "component", "responsive"]),
         ];
 
@@ -134,10 +202,7 @@ impl MarketplaceScanner for StackOverflowScanner {
         ];
         let url = self.build_search_url(q, &default_tags);
 
-        tracing::info!(
-            query = q,
-            "[StackOverflowScanner] 发起搜索请求"
-        );
+        tracing::info!(query = q, "[StackOverflowScanner] 发起搜索请求");
 
         let response = self
             .http
@@ -160,10 +225,8 @@ impl MarketplaceScanner for StackOverflowScanner {
             ));
         }
 
-        let data: serde_json::Value = response
-            .json()
-            .await
-            .map_err(|e| format!("StackOverflow API 响应解析失败: {}", e))?;
+        let data: serde_json::Value =
+            response.json().await.map_err(|e| format!("StackOverflow API 响应解析失败: {}", e))?;
 
         let mut leads = Vec::new();
 
@@ -179,19 +242,13 @@ impl MarketplaceScanner for StackOverflowScanner {
                 let tags: Vec<String> = item["tags"]
                     .as_array()
                     .map(|arr| {
-                        arr.iter()
-                            .filter_map(|t| t.as_str().map(|s| s.to_string()))
-                            .collect()
+                        arr.iter().filter_map(|t| t.as_str().map(|s| s.to_string())).collect()
                     })
                     .unwrap_or_default();
 
                 if Self::is_demand_question(&title, &tags)
-                    && let Some(desc) = Self::extract_demand_description(
-                        &title,
-                        &body,
-                        answer_count,
-                        view_count,
-                    )
+                    && let Some(desc) =
+                        Self::extract_demand_description(&title, &body, answer_count, view_count)
                 {
                     let mut snapshot = item.clone();
                     snapshot["_extracted_demand"] = serde_json::json!(desc);
@@ -249,16 +306,10 @@ mod tests {
         ));
 
         // 包含需求标签
-        assert!(StackOverflowScanner::is_demand_question(
-            "Simple question",
-            &["api".to_string()]
-        ));
+        assert!(StackOverflowScanner::is_demand_question("Simple question", &["api".to_string()]));
 
         // 不相关
-        assert!(!StackOverflowScanner::is_demand_question(
-            "What is 2 + 2?",
-            &["math".to_string()]
-        ));
+        assert!(!StackOverflowScanner::is_demand_question("What is 2 + 2?", &["math".to_string()]));
 
         // 性能相关
         assert!(StackOverflowScanner::is_demand_question(

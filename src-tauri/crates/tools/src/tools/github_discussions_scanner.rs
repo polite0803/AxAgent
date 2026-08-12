@@ -1,8 +1,8 @@
 //! GitHub Discussions 扫描器
 //! 通过 GitHub Search API 采集 Discussions 中的需求线索
 
-use async_trait::async_trait;
 use super::marketplace_scanner::{MarketplaceScanner, RawLead};
+use async_trait::async_trait;
 use std::collections::HashSet;
 
 /// GitHub Discussions 扫描器
@@ -30,10 +30,7 @@ impl GitHubDiscussionsScanner {
     /// 构建请求头
     fn build_headers(&self) -> reqwest::header::HeaderMap {
         let mut headers = reqwest::header::HeaderMap::new();
-        headers.insert(
-            reqwest::header::ACCEPT,
-            "application/vnd.github.v3+json".parse().unwrap(),
-        );
+        headers.insert(reqwest::header::ACCEPT, "application/vnd.github.v3+json".parse().unwrap());
         if let Some(ref token) = self.github_token {
             headers.insert(
                 reqwest::header::AUTHORIZATION,
@@ -46,25 +43,34 @@ impl GitHubDiscussionsScanner {
     /// 需求相关标签
     fn demand_labels() -> Vec<&'static str> {
         vec![
-            "enhancement", "feature", "feature-request", "new-feature",
-            "improvement", "suggestion", "request",
+            "enhancement",
+            "feature",
+            "feature-request",
+            "new-feature",
+            "improvement",
+            "suggestion",
+            "request",
         ]
     }
 
     /// 检查是否为需求相关讨论
     fn is_demand_discussion(title: &str, labels: &[String]) -> bool {
         let demand_keywords = [
-            "feature request", "feature", "enhancement",
-            "new feature", "would be nice",
-            "integrate", "integration", "connect",
+            "feature request",
+            "feature",
+            "enhancement",
+            "new feature",
+            "would be nice",
+            "integrate",
+            "integration",
+            "connect",
         ];
         let title_lower = title.to_lowercase();
         let has_demand_keyword = demand_keywords.iter().any(|kw| title_lower.contains(kw));
 
         let demand_labels_set: HashSet<&str> = Self::demand_labels().into_iter().collect();
-        let has_demand_label = labels
-            .iter()
-            .any(|label| demand_labels_set.contains(label.to_lowercase().as_str()));
+        let has_demand_label =
+            labels.iter().any(|label| demand_labels_set.contains(label.to_lowercase().as_str()));
 
         has_demand_keyword || has_demand_label
     }
@@ -80,14 +86,42 @@ impl GitHubDiscussionsScanner {
         let text_lower = full_text.to_lowercase();
 
         let demand_patterns = [
-            ("feature_request", vec!["feature request", "new feature", "would it be possible", "could you add", "is there a way"]),
+            (
+                "feature_request",
+                vec![
+                    "feature request",
+                    "new feature",
+                    "would it be possible",
+                    "could you add",
+                    "is there a way",
+                ],
+            ),
             ("how_to", vec!["how do i", "how to", "how can i", "how does", "how would"]),
-            ("enhancement", vec!["enhancement", "improvement", "better", "optimize", "faster", "more efficient"]),
-            ("integration", vec!["integrate", "integration", "connect", "plugin", "extension", "adapter"]),
+            (
+                "enhancement",
+                vec![
+                    "enhancement",
+                    "improvement",
+                    "better",
+                    "optimize",
+                    "faster",
+                    "more efficient",
+                ],
+            ),
+            (
+                "integration",
+                vec!["integrate", "integration", "connect", "plugin", "extension", "adapter"],
+            ),
             ("ui_ux", vec!["ui", "ux", "interface", "design", "layout", "theme", "dark mode"]),
             ("api", vec!["api", "rest", "graphql", "endpoint", "webhook", "sdk", "library"]),
-            ("performance", vec!["performance", "slow", "fast", "speed", "cache", "optimize", "memory"]),
-            ("use_case", vec!["use case", "use cases", "scenario", "workflow", "pipeline", "automation"]),
+            (
+                "performance",
+                vec!["performance", "slow", "fast", "speed", "cache", "optimize", "memory"],
+            ),
+            (
+                "use_case",
+                vec!["use case", "use cases", "scenario", "workflow", "pipeline", "automation"],
+            ),
         ];
 
         let mut detected_categories = Vec::new();
@@ -98,12 +132,7 @@ impl GitHubDiscussionsScanner {
         }
 
         if !detected_categories.is_empty() || comments > 0 {
-            Some(format!(
-                "[{}] {} ({} comments)",
-                detected_categories.join(", "),
-                title,
-                comments
-            ))
+            Some(format!("[{}] {} ({} comments)", detected_categories.join(", "), title, comments))
         } else {
             None
         }
@@ -130,10 +159,7 @@ impl MarketplaceScanner for GitHubDiscussionsScanner {
         let url = self.build_search_url(q);
         let headers = self.build_headers();
 
-        tracing::info!(
-            query = q,
-            "[GitHubDiscussionsScanner] 发起搜索请求"
-        );
+        tracing::info!(query = q, "[GitHubDiscussionsScanner] 发起搜索请求");
 
         let response = self
             .http
@@ -180,7 +206,8 @@ impl MarketplaceScanner for GitHubDiscussionsScanner {
                     .unwrap_or_default();
 
                 if Self::is_demand_discussion(&title, &labels)
-                    && let Some(desc) = Self::extract_demand_description(&title, body.as_deref(), comments)
+                    && let Some(desc) =
+                        Self::extract_demand_description(&title, body.as_deref(), comments)
                 {
                     let mut snapshot = item.clone();
                     snapshot["_extracted_demand"] = serde_json::json!(desc);
@@ -277,11 +304,7 @@ mod tests {
         assert!(desc.unwrap().contains("how_to"));
 
         // 简单讨论无回复
-        let desc = GitHubDiscussionsScanner::extract_demand_description(
-            "Test discussion",
-            None,
-            0,
-        );
+        let desc = GitHubDiscussionsScanner::extract_demand_description("Test discussion", None, 0);
         assert!(desc.is_none());
     }
 

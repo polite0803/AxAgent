@@ -1,8 +1,8 @@
 //! Twitter 扫描器
 //! 通过公开 API 或轻量级代理采集 Twitter/X 上的 AI 相关讨论和趋势
 
-use async_trait::async_trait;
 use super::marketplace_scanner::{MarketplaceScanner, RawLead};
+use async_trait::async_trait;
 
 /// Twitter 扫描器
 pub struct TwitterScanner {
@@ -19,7 +19,7 @@ impl TwitterScanner {
         let api_token = std::env::var("TWITTER_BEARER_TOKEN").ok();
         // 为了演示，这里使用一个公开的 Nitter 实例作为备用数据源
         // 实际生产中应优先使用官方 API
-        let base_url = "https://nitter.net".to_string(); 
+        let base_url = "https://nitter.net".to_string();
         Self { http, api_token, base_url }
     }
 
@@ -27,10 +27,7 @@ impl TwitterScanner {
     fn build_search_url(&self, query: &str, _max_results: u32) -> String {
         let encoded_query = query.replace(' ', "+");
         // 这里演示如何使用 Nitter 搜索。实际应用中应调用 Twitter v2 API
-        format!(
-            "{}/search?f=tweets&q={}&since=&until=&near=",
-            self.base_url, encoded_query
-        )
+        format!("{}/search?f=tweets&q={}&since=&until=&near=", self.base_url, encoded_query)
     }
 
     /// 构建请求头
@@ -52,10 +49,19 @@ impl TwitterScanner {
     /// AI/技术趋势关键词
     fn trend_keywords() -> Vec<&'static str> {
         vec![
-            "llm", "gpt", "ai agent", "agentic", "rag",
-            "vector database", "embedding", "fine-tuning",
-            "opensource alternative", "how to integrate",
-            "struggling with", "looking for", "need help",
+            "llm",
+            "gpt",
+            "ai agent",
+            "agentic",
+            "rag",
+            "vector database",
+            "embedding",
+            "fine-tuning",
+            "opensource alternative",
+            "how to integrate",
+            "struggling with",
+            "looking for",
+            "need help",
         ]
     }
 
@@ -73,10 +79,55 @@ impl TwitterScanner {
 
         // 需求模式
         let demand_patterns = [
-            ("demand:problem", vec!["how to", "how do i", "trying to", "struggling", "issue with", "bug in", "doesn't work", "not working"]),
-            ("demand:integration", vec!["integrate", "integration with", "connect to", "works with", "supports", "plugin for", "sdk for"]),
-            ("demand:feature_request", vec!["would love", "would be great if", "is there a way", "any plans", "feature request", "need a", "looking for a"]),
-            ("demand:comparison", vec!["vs", "versus", "compare", "better than", "alternative to", "why use", "which is best"]),
+            (
+                "demand:problem",
+                vec![
+                    "how to",
+                    "how do i",
+                    "trying to",
+                    "struggling",
+                    "issue with",
+                    "bug in",
+                    "doesn't work",
+                    "not working",
+                ],
+            ),
+            (
+                "demand:integration",
+                vec![
+                    "integrate",
+                    "integration with",
+                    "connect to",
+                    "works with",
+                    "supports",
+                    "plugin for",
+                    "sdk for",
+                ],
+            ),
+            (
+                "demand:feature_request",
+                vec![
+                    "would love",
+                    "would be great if",
+                    "is there a way",
+                    "any plans",
+                    "feature request",
+                    "need a",
+                    "looking for a",
+                ],
+            ),
+            (
+                "demand:comparison",
+                vec![
+                    "vs",
+                    "versus",
+                    "compare",
+                    "better than",
+                    "alternative to",
+                    "why use",
+                    "which is best",
+                ],
+            ),
         ];
 
         for (tag, patterns) in &demand_patterns {
@@ -123,21 +174,13 @@ impl MarketplaceScanner for TwitterScanner {
         let url = self.build_search_url(q, 20);
         let headers = self.build_headers();
 
-        tracing::info!(
-            query = q,
-            "[TwitterScanner] 发起搜索请求"
-        );
+        tracing::info!(query = q, "[TwitterScanner] 发起搜索请求");
 
         // 注意：在真实生产环境中，这里应该使用 Twitter v2 API (`https://api.twitter.com/2/tweets/search/recent`)
         // 并解析 JSON 响应。当前的实现演示了处理逻辑，针对 Nitter HTML 解析或 fallback 逻辑。
         // 为了保证在无网络或非官方环境下也能正常测试，我们先尝试请求，失败则返回空结果。
-        
-        let response = self
-            .http
-            .get(&url)
-            .headers(headers)
-            .send()
-            .await;
+
+        let response = self.http.get(&url).headers(headers).send().await;
 
         let mut leads = Vec::new();
 
@@ -169,7 +212,7 @@ impl MarketplaceScanner for TwitterScanner {
                         }
                     }
                 }
-            }
+            },
             Ok(resp) => {
                 let status = resp.status();
                 tracing::warn!(status = status.as_u16(), "[TwitterScanner] 请求失败");
@@ -177,18 +220,14 @@ impl MarketplaceScanner for TwitterScanner {
                 if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
                     return Err("Twitter API 速率限制".to_string());
                 }
-            }
+            },
             Err(e) => {
                 tracing::warn!(error = %e, "[TwitterScanner] 网络请求异常，返回空结果");
                 // 网络错误时不中断流程，返回空结果
-            }
+            },
         }
 
-        tracing::info!(
-            query = q,
-            filtered = leads.len(),
-            "[TwitterScanner] 搜索完成"
-        );
+        tracing::info!(query = q, filtered = leads.len(), "[TwitterScanner] 搜索完成");
 
         Ok(leads)
     }
@@ -210,7 +249,8 @@ mod tests {
     #[test]
     fn test_extract_signals_demand() {
         // 包含需求信号
-        let signals = TwitterScanner::extract_signals("How to integrate this LLM with my existing API?");
+        let signals =
+            TwitterScanner::extract_signals("How to integrate this LLM with my existing API?");
         assert!(signals.is_some());
         let sigs = signals.unwrap();
         assert!(sigs.iter().any(|s| s.contains("integration")));
@@ -219,7 +259,9 @@ mod tests {
     #[test]
     fn test_extract_signals_trend() {
         // 包含技术趋势
-        let signals = TwitterScanner::extract_signals("Just tried the new RAG approach with vector databases, game changer!");
+        let signals = TwitterScanner::extract_signals(
+            "Just tried the new RAG approach with vector databases, game changer!",
+        );
         assert!(signals.is_some());
         assert!(signals.unwrap().iter().any(|s| s.contains("vector database")));
     }

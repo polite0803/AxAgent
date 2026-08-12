@@ -2,8 +2,8 @@
 //! 通过公开 API 采集国内开发者社区的技术需求和趋势
 //! 主要数据源：CSDN 博客、掘金文章
 
-use async_trait::async_trait;
 use super::marketplace_scanner::{MarketplaceScanner, RawLead};
+use async_trait::async_trait;
 
 /// 开发者社区类型
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -28,11 +28,7 @@ impl CsdnScanner {
             DevCommunity::Csdn => "https://so.csdn.net".to_string(),
             DevCommunity::Juejin => "https://api.juejin.cn".to_string(),
         };
-        Self {
-            http,
-            community,
-            base_url,
-        }
+        Self { http, community, base_url }
     }
 
     /// 创建 CSDN 扫描器
@@ -54,13 +50,10 @@ impl CsdnScanner {
                     "{}/api/v1/search?q={}&t=all&p=1&s=0&tm=0&lv=-1&ft=0&l=&u=&ct=-1&pnt=-1&ry=-1&ss=-1&dct=-1&vt=-1&bnt=-1&ewt=-1&fst=0&ra=21",
                     self.base_url, encoded_query
                 )
-            }
+            },
             DevCommunity::Juejin => {
-                format!(
-                    "{}/search_api/v1/search?keyword={}&limit=20",
-                    self.base_url, encoded_query
-                )
-            }
+                format!("{}/search_api/v1/search?keyword={}&limit=20", self.base_url, encoded_query)
+            },
         }
     }
 
@@ -71,30 +64,19 @@ impl CsdnScanner {
             reqwest::header::USER_AGENT,
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36".parse().unwrap(),
         );
-        headers.insert(
-            reqwest::header::ACCEPT,
-            "application/json, text/plain, */*".parse().unwrap(),
-        );
-        
+        headers
+            .insert(reqwest::header::ACCEPT, "application/json, text/plain, */*".parse().unwrap());
+
         match self.community {
             DevCommunity::Csdn => {
-                headers.insert(
-                    reqwest::header::REFERER,
-                    "https://so.csdn.net/".parse().unwrap(),
-                );
-                headers.insert(
-                    "X-Ca-Timestamp",
-                    "1".parse().unwrap(),
-                );
-            }
+                headers.insert(reqwest::header::REFERER, "https://so.csdn.net/".parse().unwrap());
+                headers.insert("X-Ca-Timestamp", "1".parse().unwrap());
+            },
             DevCommunity::Juejin => {
-                headers.insert(
-                    reqwest::header::REFERER,
-                    "https://juejin.cn/".parse().unwrap(),
-                );
-            }
+                headers.insert(reqwest::header::REFERER, "https://juejin.cn/".parse().unwrap());
+            },
         }
-        
+
         headers
     }
 
@@ -102,18 +84,40 @@ impl CsdnScanner {
     fn trend_keywords() -> Vec<&'static str> {
         vec![
             // AI 技术趋势
-            "大模型", "LLM", "GPT", "RAG", "向量数据库",
-            "Agent", "智能体", "Diffusion", "扩散模型",
-            "微调", "Fine-tuning", "Embedding",
+            "大模型",
+            "LLM",
+            "GPT",
+            "RAG",
+            "向量数据库",
+            "Agent",
+            "智能体",
+            "Diffusion",
+            "扩散模型",
+            "微调",
+            "Fine-tuning",
+            "Embedding",
             // 框架/工具趋势
-            "LangChain", "LlamaIndex", "Dify",
-            "PyTorch", "TensorFlow", "JAX",
+            "LangChain",
+            "LlamaIndex",
+            "Dify",
+            "PyTorch",
+            "TensorFlow",
+            "JAX",
             // 工程实践趋势
-            "容器", "Kubernetes", "微服务", "Serverless",
-            "DevOps", "CI/CD", "云原生",
+            "容器",
+            "Kubernetes",
+            "微服务",
+            "Serverless",
+            "DevOps",
+            "CI/CD",
+            "云原生",
             // 前端趋势
-            "React 19", "Vue 3", "Svelte 5",
-            "Tailwind", "Vite", "Turbopack",
+            "React 19",
+            "Vue 3",
+            "Svelte 5",
+            "Tailwind",
+            "Vite",
+            "Turbopack",
         ]
     }
 
@@ -153,11 +157,23 @@ impl CsdnScanner {
     /// 判断文章是否为高价值需求信号
     fn is_valuable_signal(title: &str) -> bool {
         let high_value_patterns = [
-            "大模型", "LLM", "AI", "人工智能",
-            "实战", "教程", "项目", "案例",
-            "对比", "选型", "推荐",
-            "问题", "解决", "踩坑",
-            "架构", "设计", "优化",
+            "大模型",
+            "LLM",
+            "AI",
+            "人工智能",
+            "实战",
+            "教程",
+            "项目",
+            "案例",
+            "对比",
+            "选型",
+            "推荐",
+            "问题",
+            "解决",
+            "踩坑",
+            "架构",
+            "设计",
+            "优化",
         ];
         high_value_patterns.iter().any(|p| title.contains(p))
     }
@@ -220,12 +236,7 @@ impl MarketplaceScanner for CsdnScanner {
             "[CsdnScanner] 发起搜索请求"
         );
 
-        let response = self
-            .http
-            .get(&url)
-            .headers(headers)
-            .send()
-            .await;
+        let response = self.http.get(&url).headers(headers).send().await;
 
         let mut leads = Vec::new();
 
@@ -235,7 +246,7 @@ impl MarketplaceScanner for CsdnScanner {
                     // 解析响应
                     // 实际实现中应解析 JSON 响应并提取文章列表
                     // 此处提供文本分析逻辑
-                    
+
                     for line in text.lines() {
                         let trimmed = line.trim();
                         if trimmed.len() < 15 {
@@ -277,17 +288,21 @@ impl MarketplaceScanner for CsdnScanner {
                         });
                     }
                 }
-            }
+            },
             Ok(resp) => {
                 let status = resp.status();
-                tracing::warn!(status = status.as_u16(), community = platform, "[CsdnScanner] 请求失败");
+                tracing::warn!(
+                    status = status.as_u16(),
+                    community = platform,
+                    "[CsdnScanner] 请求失败"
+                );
                 if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
                     return Err(format!("{} API 速率限制", platform));
                 }
-            }
+            },
             Err(e) => {
                 tracing::warn!(error = %e, community = platform, "[CsdnScanner] 网络请求异常，返回空结果");
-            }
+            },
         }
 
         tracing::info!(
@@ -338,7 +353,7 @@ mod tests {
         // 包含多个需求信号
         let signals = CsdnScanner::extract_demand_signals(
             "大模型 RAG 实战教程",
-            "详细介绍如何从零搭建 RAG 系统"
+            "详细介绍如何从零搭建 RAG 系统",
         );
         assert!(!signals.is_empty());
         assert!(signals.iter().any(|s| s.contains("trend:大模型")));
@@ -352,7 +367,7 @@ mod tests {
         assert!(CsdnScanner::is_valuable_signal("大模型 RAG 实战"));
         assert!(CsdnScanner::is_valuable_signal("LLM 应用对比与选型"));
         assert!(CsdnScanner::is_valuable_signal("Kubernetes 架构设计最佳实践"));
-        
+
         // 低价值信号
         assert!(!CsdnScanner::is_valuable_signal("闲聊几句"));
         assert!(!CsdnScanner::is_valuable_signal("今日心情"));
@@ -372,10 +387,7 @@ mod tests {
         let summary = CsdnScanner::extract_summary("大模型 RAG 实战教程", None);
         assert_eq!(summary, "大模型 RAG 实战教程");
 
-        let summary = CsdnScanner::extract_summary(
-            "标题",
-            Some("这是一段关于大模型的描述")
-        );
+        let summary = CsdnScanner::extract_summary("标题", Some("这是一段关于大模型的描述"));
         assert!(summary.contains("标题"));
         assert!(summary.contains("大模型"));
     }

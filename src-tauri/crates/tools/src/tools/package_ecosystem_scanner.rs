@@ -1,8 +1,8 @@
 //! 包生态扫描器
 //! 通过 PyPI 和 npm API 采集包下载量和采用率信号
 
-use async_trait::async_trait;
 use super::marketplace_scanner::{MarketplaceScanner, RawLead};
+use async_trait::async_trait;
 
 /// 包生态扫描器
 pub struct PackageEcosystemScanner {
@@ -28,27 +28,57 @@ impl PackageEcosystemScanner {
     /// 需求相关包关键词
     fn demand_package_keywords() -> Vec<&'static str> {
         vec![
-            "api", "client", "server", "framework", "library",
-            "tool", "sdk", "integration", "adapter", "plugin",
-            "connector", "driver", "wrapper", "gateway",
-            "data", "analytics", "reporting", "dashboard",
-            "trading", "finance", "stock", "market", "exchange",
-            "ai", "ml", "machine-learning", "nlp", "llm",
-            "automation", "workflow", "orchestration", "pipeline",
-            "cloud", "aws", "azure", "gcp", "kubernetes",
-            "database", "sql", "nosql", "cache", "queue",
+            "api",
+            "client",
+            "server",
+            "framework",
+            "library",
+            "tool",
+            "sdk",
+            "integration",
+            "adapter",
+            "plugin",
+            "connector",
+            "driver",
+            "wrapper",
+            "gateway",
+            "data",
+            "analytics",
+            "reporting",
+            "dashboard",
+            "trading",
+            "finance",
+            "stock",
+            "market",
+            "exchange",
+            "ai",
+            "ml",
+            "machine-learning",
+            "nlp",
+            "llm",
+            "automation",
+            "workflow",
+            "orchestration",
+            "pipeline",
+            "cloud",
+            "aws",
+            "azure",
+            "gcp",
+            "kubernetes",
+            "database",
+            "sql",
+            "nosql",
+            "cache",
+            "queue",
         ]
     }
 
     /// 检查包是否为需求相关
-    fn is_demand_package(
-        package_name: &str,
-        description: &str,
-        keywords: &[String],
-    ) -> bool {
+    fn is_demand_package(package_name: &str, description: &str, keywords: &[String]) -> bool {
         let demand_keywords = Self::demand_package_keywords();
 
-        let full_text = format!("{} {} {}", package_name, description, keywords.join(" ")).to_lowercase();
+        let full_text =
+            format!("{} {} {}", package_name, description, keywords.join(" ")).to_lowercase();
         demand_keywords.iter().any(|kw| full_text.contains(kw))
     }
 
@@ -63,7 +93,10 @@ impl PackageEcosystemScanner {
         if downloads >= 1_000_000 {
             Some(format!(
                 "[{}热门] {} v{} | {} 次下载 | {}",
-                ecosystem, package_name, version, downloads,
+                ecosystem,
+                package_name,
+                version,
+                downloads,
                 description.chars().take(80).collect::<String>()
             ))
         } else if downloads >= 100_000 {
@@ -80,21 +113,15 @@ impl PackageEcosystemScanner {
     async fn fetch_pypi_package(&self, package: &str) -> Result<Option<PackageInfo>, String> {
         let url = Self::build_pypi_url(package);
 
-        let response = self
-            .http
-            .get(&url)
-            .send()
-            .await
-            .map_err(|e| format!("PyPI API 请求失败: {}", e))?;
+        let response =
+            self.http.get(&url).send().await.map_err(|e| format!("PyPI API 请求失败: {}", e))?;
 
         if !response.status().is_success() {
             return Ok(None);
         }
 
-        let data: serde_json::Value = response
-            .json()
-            .await
-            .map_err(|e| format!("PyPI 响应解析失败: {}", e))?;
+        let data: serde_json::Value =
+            response.json().await.map_err(|e| format!("PyPI 响应解析失败: {}", e))?;
 
         let info = &data["info"];
         let name = info["name"].as_str().unwrap_or(package).to_string();
@@ -102,21 +129,13 @@ impl PackageEcosystemScanner {
         let version = info["version"].as_str().unwrap_or("unknown").to_string();
         let keywords: Vec<String> = info["keywords"]
             .as_str()
-            .map(|k| {
-                k.split(',')
-                    .map(|s| s.trim().to_string())
-                    .collect()
-            })
+            .map(|k| k.split(',').map(|s| s.trim().to_string()).collect())
             .unwrap_or_default();
 
         // 获取最近一个月的下载量（简化估算）
         let downloads = data["urls"]
             .as_array()
-            .map(|urls| {
-                urls.iter()
-                    .filter_map(|u| u["downloads"].as_i64())
-                    .sum::<i64>() as u64
-            })
+            .map(|urls| urls.iter().filter_map(|u| u["downloads"].as_i64()).sum::<i64>() as u64)
             .unwrap_or(0);
 
         Ok(Some(PackageInfo {
@@ -134,32 +153,22 @@ impl PackageEcosystemScanner {
     async fn fetch_npm_package(&self, package: &str) -> Result<Option<PackageInfo>, String> {
         let url = Self::build_npm_url(package);
 
-        let response = self
-            .http
-            .get(&url)
-            .send()
-            .await
-            .map_err(|e| format!("npm API 请求失败: {}", e))?;
+        let response =
+            self.http.get(&url).send().await.map_err(|e| format!("npm API 请求失败: {}", e))?;
 
         if !response.status().is_success() {
             return Ok(None);
         }
 
-        let data: serde_json::Value = response
-            .json()
-            .await
-            .map_err(|e| format!("npm 响应解析失败: {}", e))?;
+        let data: serde_json::Value =
+            response.json().await.map_err(|e| format!("npm 响应解析失败: {}", e))?;
 
         let name = data["name"].as_str().unwrap_or(package).to_string();
         let description = data["description"].as_str().unwrap_or("").to_string();
         let version = data["dist-tags"]["latest"].as_str().unwrap_or("unknown").to_string();
         let keywords: Vec<String> = data["keywords"]
             .as_array()
-            .map(|arr| {
-                arr.iter()
-                    .filter_map(|k| k.as_str().map(|s| s.to_string()))
-                    .collect()
-            })
+            .map(|arr| arr.iter().filter_map(|k| k.as_str().map(|s| s.to_string())).collect())
             .unwrap_or_default();
 
         // npm 下载量需要额外请求，这里用粗略估算
@@ -205,19 +214,13 @@ impl MarketplaceScanner for PackageEcosystemScanner {
             return Ok(Vec::new());
         }
 
-        tracing::info!(
-            query = q,
-            "[PackageEcosystemScanner] 开始搜索"
-        );
+        tracing::info!(query = q, "[PackageEcosystemScanner] 开始搜索");
 
         let mut leads = Vec::new();
 
         // 将查询拆分为可能的包名
-        let potential_packages: Vec<String> = q
-            .split_whitespace()
-            .map(|s| s.to_lowercase())
-            .filter(|s| s.len() > 2)
-            .collect();
+        let potential_packages: Vec<String> =
+            q.split_whitespace().map(|s| s.to_lowercase()).filter(|s| s.len() > 2).collect();
 
         // 同时在 PyPI 和 npm 搜索
         for package_name in &potential_packages {
@@ -289,11 +292,7 @@ impl MarketplaceScanner for PackageEcosystemScanner {
             tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
         }
 
-        tracing::info!(
-            query = q,
-            filtered = leads.len(),
-            "[PackageEcosystemScanner] 搜索完成"
-        );
+        tracing::info!(query = q, filtered = leads.len(), "[PackageEcosystemScanner] 搜索完成");
 
         Ok(leads)
     }

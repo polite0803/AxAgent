@@ -548,7 +548,16 @@ pub(crate) async fn seed_opc_workflow_template(db: &DatabaseConnection) -> Resul
     for (tool_id, title, tool_name, arg_key, y) in scanner_configs {
         let mut im = std::collections::HashMap::new();
         im.insert(arg_key.to_string(), "all".to_string());
-        let tn = tool_node(tool_id, title, tool_name, &format!("{tool_id}_result"), im, Some("p-scanners"), 60.0, *y);
+        let tn = tool_node(
+            tool_id,
+            title,
+            tool_name,
+            &format!("{tool_id}_result"),
+            im,
+            Some("p-scanners"),
+            60.0,
+            *y,
+        );
         nodes.push(tn);
 
         scanner_branches.push(Branch {

@@ -244,20 +244,15 @@ pub async fn opc_discover_and_evaluate_leads(
     }
 
     // 2) 执行「扫描 + 评估」一体化流水线
-    let evaluated = scanner
-        .search_and_evaluate(&query, None)
-        .await
-        .map_err(|e| {
-            ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)
-                .to_string()
-        })?;
+    let evaluated = scanner.search_and_evaluate(&query, None).await.map_err(|e| {
+        ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)
+            .to_string()
+    })?;
 
     // 3) 可选：按价值分阈值筛选
     let min_threshold = min_score.unwrap_or(0.0);
-    let filtered: Vec<_> = evaluated
-        .into_iter()
-        .filter(|e| e.value_score() >= min_threshold)
-        .collect();
+    let filtered: Vec<_> =
+        evaluated.into_iter().filter(|e| e.value_score() >= min_threshold).collect();
 
     // 4) 将评估结果入库
     let mut saved_leads: Vec<opc_demand_lead::Model> = Vec::new();
@@ -275,13 +270,9 @@ pub async fn opc_discover_and_evaluate_leads(
             contact_email: Set(el.lead.contact_email.clone()),
             contact_phone: Set(el.lead.contact_phone.clone()),
             source_url: Set(el.lead.source_url.clone()),
-            raw_snapshot_json: Set(
-                serde_json::to_string(&el.lead.raw_snapshot).unwrap_or_default(),
-            ),
+            raw_snapshot_json: Set(serde_json::to_string(&el.lead.raw_snapshot).unwrap_or_default()),
             matched_capabilities_json: Set("[]".to_string()),
-            ai_analysis_json: Set(
-                serde_json::to_string(&el.evaluation).unwrap_or_default(),
-            ),
+            ai_analysis_json: Set(serde_json::to_string(&el.evaluation).unwrap_or_default()),
             recommended_workflow_id: Set(None),
             status: Set("new".to_string()),
             priority: Set(3),
@@ -305,12 +296,8 @@ pub async fn opc_discover_and_evaluate_leads(
         match entity.insert(db).await {
             Ok(model) => saved_leads.push(model),
             Err(e) => {
-                tracing::warn!(
-                    "[opc_discover_and_evaluate_leads] 入库失败 {}: {}",
-                    el.lead.id,
-                    e
-                );
-            }
+                tracing::warn!("[opc_discover_and_evaluate_leads] 入库失败 {}: {}", el.lead.id, e);
+            },
         }
     }
 
@@ -372,10 +359,8 @@ pub async fn run_demand_discovery_cron(
     }
 
     // 2) 执行「扫描 + 评估」
-    let evaluated = scanner
-        .search_and_evaluate(query, None)
-        .await
-        .map_err(|e| format!("需求扫描失败: {e}"))?;
+    let evaluated =
+        scanner.search_and_evaluate(query, None).await.map_err(|e| format!("需求扫描失败: {e}"))?;
 
     // 3) 入库
     let mut saved_count = 0usize;
@@ -394,13 +379,9 @@ pub async fn run_demand_discovery_cron(
             contact_email: Set(el.lead.contact_email.clone()),
             contact_phone: Set(el.lead.contact_phone.clone()),
             source_url: Set(el.lead.source_url.clone()),
-            raw_snapshot_json: Set(
-                serde_json::to_string(&el.lead.raw_snapshot).unwrap_or_default(),
-            ),
+            raw_snapshot_json: Set(serde_json::to_string(&el.lead.raw_snapshot).unwrap_or_default()),
             matched_capabilities_json: Set("[]".to_string()),
-            ai_analysis_json: Set(
-                serde_json::to_string(&el.evaluation).unwrap_or_default(),
-            ),
+            ai_analysis_json: Set(serde_json::to_string(&el.evaluation).unwrap_or_default()),
             recommended_workflow_id: Set(None),
             status: Set("new".to_string()),
             priority: Set(3),
@@ -428,12 +409,8 @@ pub async fn run_demand_discovery_cron(
                 }
             },
             Err(e) => {
-                tracing::warn!(
-                    "[run_demand_discovery_cron] 入库失败 {}: {}",
-                    el.lead.id,
-                    e
-                );
-            }
+                tracing::warn!("[run_demand_discovery_cron] 入库失败 {}: {}", el.lead.id, e);
+            },
         }
     }
 
@@ -533,8 +510,14 @@ pub async fn opc_create_lead(
         claimed_by: Set(input.get("claimed_by").and_then(|v| v.as_str()).map(|s| s.to_string())),
         // 需求价值评估字段（v222 新增）
         pain_score: Set(input.get("pain_score").and_then(|v| v.as_f64()).unwrap_or(0.0)),
-        market_gap_score: Set(input.get("market_gap_score").and_then(|v| v.as_f64()).unwrap_or(0.0)),
-        commercial_value_score: Set(input.get("commercial_value_score").and_then(|v| v.as_f64()).unwrap_or(0.0)),
+        market_gap_score: Set(input
+            .get("market_gap_score")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0)),
+        commercial_value_score: Set(input
+            .get("commercial_value_score")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0)),
         opportunity_level: Set(input
             .get("opportunity_level")
             .and_then(|v| v.as_str())

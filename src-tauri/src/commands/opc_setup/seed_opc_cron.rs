@@ -28,10 +28,7 @@ pub async fn seed_demand_discovery_crons(store: &Arc<CronJobStore>) -> Result<()
     .with_workflow_id("opc-demand-discovery".to_string())
     .with_task_type("opc-demand-discovery")
     .with_platform("all")
-    .with_toolsets(vec![
-        "opc_scanner".to_string(),
-        "opc_evaluator".to_string(),
-    ]);
+    .with_toolsets(vec!["opc_scanner".to_string(), "opc_evaluator".to_string()]);
 
     // 2. 周度需求汇总任务（每周一 9:00）
     // Cron 表达式: 0 9 * * 1 (每周一 9:00)
