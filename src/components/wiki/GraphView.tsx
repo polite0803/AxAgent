@@ -414,6 +414,12 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   const bgCacheRef = useRef<HTMLCanvasElement | null>(null);
   const bgCacheSizeRef = useRef({ w: 0, h: 0 });
 
+  // 大图位图缓存：将所有节点/边预渲染到离屏 Canvas，每帧仅 drawImage 拷贝
+  // 彻底消除每帧 5 万+ 矢量 Canvas 操作导致的主线程阻塞
+  const spriteCacheRef = useRef<HTMLCanvasElement | null>(null);
+  const spriteWorldBBoxRef = useRef({ minX: -5000, minY: -5000, maxX: 5000, maxY: 5000 });
+  const FORCE_BITMAP_THRESHOLD = 3000; // 超过此节点数时强制使用位图模式
+
   // 相机变换
   const cameraRef = useRef({ x: 0, y: 0, zoom: 1 });
 
@@ -1258,6 +1264,12 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
               }
               gridIndexRef.current = gridIndex;
             }
+
+            // 大图位图缓存：Worker 返回新结果时重建（节点位置已更新）
+            // 仅在非交互状态下重建，避免与拖拽冲突
+            if (nodes.length > FORCE_BITMAP_THRESHOLD && !hasInteraction) {
+              spriteCacheRef.current = buildBigGraphSpriteCache(nodes);
+            }
           }
 
           // 稳定检测：即使没有新结果，也基于上一次的 stable 状态更新 idle 计数
@@ -1326,6 +1338,10 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
       phaseRef.current += 0.02;
 
+      // 获取当前交互状态（绘制阶段需要）
+      const hovered = hoverNodeRef.current;
+      const selected = selectedNodeIdRef.current;
+
       // 计算鱼眼参数（世界坐标下的鼠标位置 + 放大因子）
       const fisheye = computeFisheye();
 
@@ -1359,11 +1375,35 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       // 绘制（传入视口范围用于裁剪）
       // Worker 未就绪的大图：跳过完整渲染，避免主线程 fallback 卡死
       if (shouldRender && !workerNotReadyLargeGraph) {
-        drawEdgesOptimized(ctx, nodes, fisheye, viewWorld);
-        drawParticlesOptimized(ctx, nodes, fisheye, viewWorld);
-        drawNodesOptimized(ctx, nodes, fisheye, viewWorld);
-        // 聚合节点（顶层）
-        drawCollapsedClusters(ctx, viewWorld);
+        // ── 大图位图模式：>3000 节点且无交互时，使用预渲染位图代替矢量绘制 ──
+        // 这是解决 2 万+ 节点卡死的关键：将 5 万+ 矢量操作降为 1 次 drawImage
+        const isLargeGraph = nodes.length > FORCE_BITMAP_THRESHOLD;
+        const hasActiveInteraction = hovered || !!selected || !!dragRef.current;
+
+        if (isLargeGraph && !hasActiveInteraction && spriteCacheRef.current) {
+          // 使用位图缓存：1 次 drawImage 替代 5 万+ 矢量操作
+          const bbox = spriteWorldBBoxRef.current;
+          const worldW = bbox.maxX - bbox.minX;
+          const worldH = bbox.maxY - bbox.minY;
+          const camZ = cam.zoom;
+
+          // 计算位图在屏幕上的位置（相机变换已应用）
+          const sx = (bbox.minX) * camZ;
+          const sy = (bbox.minY) * camZ;
+          const sw = worldW * camZ;
+          const sh = worldH * camZ;
+
+          ctx.drawImage(spriteCacheRef.current, sx, sy, sw, sh);
+
+          // 聚合节点（若存在）仍用矢量绘制
+          drawCollapsedClusters(ctx, viewWorld);
+        } else {
+          // 矢量模式：小图或交互中（需要实时反馈）
+          drawEdgesOptimized(ctx, nodes, fisheye, viewWorld);
+          drawParticlesOptimized(ctx, nodes, fisheye, viewWorld);
+          drawNodesOptimized(ctx, nodes, fisheye, viewWorld);
+          drawCollapsedClusters(ctx, viewWorld);
+        }
       }
 
       ctx.restore();
@@ -1509,6 +1549,98 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   }
 
   // ── 优化绘制函数：带视口裁剪，跳过屏幕外元素 ──
+
+  // 构建大图位图缓存：将所有节点/边预渲染到离屏 Canvas
+  // 万级节点下每帧 5 万+ 矢量操作是卡死根因，位图模式将其降为 1 次 drawImage
+  function buildBigGraphSpriteCache(nodes: PhysicsNode[]): HTMLCanvasElement | null {
+    if (nodes.length === 0) { return null; }
+
+    // 计算节点分布 bounding box
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const n of nodes) {
+      if (n.x < minX) { minX = n.x; }
+      if (n.y < minY) { minY = n.y; }
+      if (n.x > maxX) { maxX = n.x; }
+      if (n.y > maxY) { maxY = n.y; }
+    }
+
+    // Padding 覆盖整个可视范围
+    const padding = 800;
+    minX -= padding;
+    minY -= padding;
+    maxX += padding;
+    maxY += padding;
+    spriteWorldBBoxRef.current = { minX, minY, maxX, maxY };
+
+    const worldW = maxX - minX;
+    const worldH = maxY - minY;
+
+    // 限制离屏 Canvas 最大尺寸，防止内存溢出
+    const MAX_CANVAS = 16384;
+    const scale = Math.min(1, MAX_CANVAS / Math.max(worldW, worldH));
+    const cw = Math.max(1, Math.ceil(worldW * scale));
+    const ch = Math.max(1, Math.ceil(worldH * scale));
+
+    const oc = document.createElement("canvas");
+    oc.width = cw;
+    oc.height = ch;
+    const octx = oc.getContext("2d")!;
+
+    // 世界坐标 → 离屏坐标变换
+    octx.save();
+    octx.scale(scale, scale);
+    octx.translate(-minX, -minY);
+
+    // 批量绘制边（Path2D 合并）
+    const edgeMeta = edgeMetaRef.current;
+    const nodeColors = nodeColorRef.current;
+    const edgeBatches = new Map<string, Path2D>();
+    for (let i = 0; i < edgeMeta.length; i++) {
+      const em = edgeMeta[i];
+      const sIdx = em.sourceIdx;
+      const tIdx = em.targetIdx;
+      if (sIdx < 0 || tIdx < 0) { continue; }
+      const s = nodes[sIdx];
+      const t = nodes[tIdx];
+      if (!s || !t) { continue; }
+      if (!edgeBatches.has(em.color)) { edgeBatches.set(em.color, new Path2D()); }
+      const p = edgeBatches.get(em.color)!;
+      p.moveTo(s.x, s.y);
+      p.lineTo(t.x, t.y);
+    }
+    octx.lineWidth = 0.8;
+    for (const [color, path] of edgeBatches) {
+      octx.strokeStyle = color;
+      octx.stroke(path);
+    }
+
+    // 批量绘制节点（按颜色合并）
+    const nodeBatches = new Map<string, Path2D>();
+    const nodeSizes = nodeSizeRef.current;
+    for (const n of nodes) {
+      if (clusterModeRef.current) {
+        const ncid = communities?.get(n.id);
+        if (ncid !== undefined && collapsedRef.current.has(ncid)) { continue; }
+      }
+      const color = nodeColors.get(n.id) || token.colorPrimary;
+      const size = (nodeSizes.get(n.id) || 6) * 1.2;
+      const key = `${color}|${size.toFixed(1)}`;
+      if (!nodeBatches.has(key)) { nodeBatches.set(key, new Path2D()); }
+      const p = nodeBatches.get(key)!;
+      // 用 arc 添加到 Path2D
+      const r = size;
+      p.moveTo(n.x + r, n.y);
+      p.arc(n.x, n.y, r, 0, Math.PI * 2);
+    }
+    for (const [key, path] of nodeBatches) {
+      const [color] = key.split("|");
+      octx.fillStyle = color;
+      octx.fill(path);
+    }
+
+    octx.restore();
+    return oc;
+  }
 
   function isInView(
     x: number,
