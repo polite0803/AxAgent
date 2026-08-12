@@ -529,10 +529,20 @@ pub async fn get_vault_graph(db: &DatabaseConnection, vault_id: &str) -> Result<
 
     let mut nodes: Vec<GraphNode> = Vec::new();
     for (id, title, file_path, page_type, tags_json) in &notes {
-        // 解析 tags JSON 数组
+        // tags_json 现在是 Option<serde_json::Value>，直接解析为 Vec<String>
         let tags: Vec<String> = tags_json
             .as_ref()
-            .and_then(|json| serde_json::from_str::<Vec<String>>(json).ok())
+            .and_then(|v| {
+                if let Some(arr) = v.as_array() {
+                    Some(
+                        arr.iter()
+                            .filter_map(|item| item.as_str().map(|s| s.to_string()))
+                            .collect(),
+                    )
+                } else {
+                    None
+                }
+            })
             .unwrap_or_default();
 
         nodes.push(GraphNode {
@@ -570,12 +580,14 @@ pub async fn get_vault_graph(db: &DatabaseConnection, vault_id: &str) -> Result<
 /// 不加载 content（10 万节点 × 5KB content = 500MB，图谱无需 content）。
 ///
 /// 返回元组 (id, title, file_path, page_type, tags_json)。
-/// tags 已持久化在 notes 表中（JSON 数组字符串），无需从 content 解析。
+/// tags 已持久化在 notes 表中（JSON 数组），无需从 content 解析。
+/// 注意：tags 列使用 serde_json::Value 类型以正确映射 SeaORM 的 Json 字段。
 pub async fn list_notes_for_graph(
     db: &DatabaseConnection,
     vault_id: &str,
-) -> Result<Vec<(String, String, String, Option<String>, Option<String>)>> {
-    let rows = notes::Entity::find()
+) -> Result<Vec<(String, String, String, Option<String>, Option<serde_json::Value>)>> {
+    // 尝试包含 tags 的查询
+    let query = notes::Entity::find()
         .filter(notes::Column::VaultId.eq(vault_id))
         .filter(notes::Column::IsDeleted.eq(0))
         .select_only()
@@ -584,8 +596,8 @@ pub async fn list_notes_for_graph(
         .column(notes::Column::FilePath)
         .column(notes::Column::PageType)
         .column(notes::Column::Tags)
-        .into_tuple::<(String, String, String, Option<String>, Option<String>)>()
-        .all(db)
-        .await?;
+        .into_tuple::<(String, String, String, Option<String>, Option<serde_json::Value>)>();
+
+    let rows = query.all(db).await?;
     Ok(rows)
 }
