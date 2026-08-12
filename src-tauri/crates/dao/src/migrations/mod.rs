@@ -209,7 +209,7 @@ const MIGRATIONS: &[Migration] = &[
     },
     Migration {
         version: 119,
-        description: "v119_add_note_tags: 为 notes 表添加 tags 字段，用于存储笔记标签列表（JSON 数组），修复 Wiki 图谱节点标签缺失问题",
+        description: "v119_add_note_tags: 为 notes 表添加 tags 字段（PostgreSQL 用 JSONB，SQLite 用 TEXT），修复 Wiki 图谱节点标签缺失问题",
         up: |db| Box::pin(v119_add_note_tags::up(db)),
     },
     Migration {

@@ -10,9 +10,9 @@
 //!
 //! ## Strategy
 //!
-//! - 为 notes 表新增 tags 列（TEXT 类型，存储 JSON 数组）
-//! - 使用 exec_ddl 做幂等 + SQLite/PG 兼容
-//! - 后续在保存笔记时自动提取 tags 并更新此字段
+//! - SQLite: 新增 tags 列 (TEXT, 存储 JSON 数组)
+//! - PostgreSQL: 新增 tags 列 (JSONB, 存储 JSON 数组)
+//!   - 若列已存在但类型错误（旧版本 v119 可能创建为 TEXT），则自动修复类型为 JSONB
 //! - 迁移时对历史笔记分批回填（tags IS NULL 的记录从 content 提取），
 //!   避免大 vault 一次性内存峰值；空 tags 也写入 `[]` 使回填可重入
 //! - list_notes_for_graph 查询时加载 tags 列
@@ -27,10 +27,31 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     let is_pg = db.get_database_backend() == DbBackend::Postgres;
 
     // PHASE 1: 为 notes 表添加 tags 列
-    exec_ddl(&db, is_pg, "ALTER TABLE notes ADD COLUMN tags TEXT").await.or_else(|e| {
-        tracing::warn!("[v119] notes.tags 列可能已存在，忽略错误: {}", e);
-        Ok::<(), DbErr>(())
-    })?;
+    if is_pg {
+        // PostgreSQL: 使用 JSONB 类型（SeaORM Json 类型在 PG 上映射为 JSONB）
+        // 先尝试添加列，如果已存在则忽略错误
+        exec_ddl(&db, is_pg, "ALTER TABLE notes ADD COLUMN IF NOT EXISTS tags JSONB")
+            .await
+            .or_else(|e| {
+                tracing::warn!("[v119] notes.tags 列可能已存在，忽略错误: {}", e);
+                Ok::<(), DbErr>(())
+            })?;
+
+        // 修复旧版本创建的错误类型（TEXT → JSONB）
+        // 只有当列类型不是 JSONB 时才执行 ALTER COLUMN
+        exec_ddl(&db, is_pg, "ALTER TABLE notes ALTER COLUMN tags TYPE JSONB USING tags::JSONB")
+            .await
+            .or_else(|e| {
+                tracing::warn!("[v119] notes.tags 类型修复可能已完成，忽略错误: {}", e);
+                Ok::<(), DbErr>(())
+            })?;
+    } else {
+        // SQLite: 使用 TEXT 类型（SQLite 没有原生 JSONB）
+        exec_ddl(&db, is_pg, "ALTER TABLE notes ADD COLUMN tags TEXT").await.or_else(|e| {
+            tracing::warn!("[v119] notes.tags 列可能已存在，忽略错误: {}", e);
+            Ok::<(), DbErr>(())
+        })?;
+    }
 
     // PHASE 2: 回填历史笔记 tags（分批；up 失败重跑时仅处理仍为 NULL 的记录）
     backfill_tags(&db).await?;
