@@ -551,11 +551,23 @@ export function Sidebar() {
         </Tooltip>
       )}
 
+      {/* Settings — lower group, above plugins in prototype */}
+      <Tooltip title={sidebarCollapsed ? t("settings.openSettings") : ""} placement="right">
+        <button
+          type="button"
+          className={`nav-item${activePage === "settings" ? " active" : ""}`}
+          onClick={() => navigate("/settings")}
+          aria-label={t("settings.openSettings")}
+        >
+          <Icon icon="fluent:settings-20-filled" size={17} />
+          {!sidebarCollapsed && <span className="nav-label">{t("settings.openSettings")}</span>}
+        </button>
+      </Tooltip>
       {/* Mobile action buttons (TitleBar actions on Android) */}
       <MobileActions />
 
       {/* Help button */}
-      <Tooltip title={t("help.title")} placement="right">
+      <Tooltip title={sidebarCollapsed ? t("help.title") : ""} placement="right">
         <button
           type="button"
           className="nav-item"
@@ -563,6 +575,7 @@ export function Sidebar() {
           aria-label={t("help.title")}
         >
           <Icon icon="fluent:question-circle-20-filled" size={17} />
+          {!sidebarCollapsed && <span className="nav-label">{t("help.title")}</span>}
         </button>
       </Tooltip>
 

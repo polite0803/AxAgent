@@ -1755,11 +1755,58 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
                 });
               }
               ctx.restore();
+            } else {
+              // ── Fallback：聚合几何尚未就绪（Worker ready 回调延迟计算），
+              // 退回非聚类渲染路径，确保节点和边始终可见。
+              // 临时清除 collapsed 集，避免 drawNodesOptimized/drawEdgesOptimized
+              // 因 clusterModeRef.current 为 true 而跳过折叠社区的节点/边。 ──
+              const prevCollapsed = collapsedRef.current;
+              collapsedRef.current = new Set();
+              const isLargeGraphFallback = nodes.length > FORCE_BITMAP_THRESHOLD;
+              if (isLargeGraphFallback && spriteCacheRef.current) {
+                const bbox = spriteWorldBBoxRef.current;
+                const worldW = bbox.maxX - bbox.minX;
+                const worldH = bbox.maxY - bbox.minY;
+                const camZ = cam.zoom;
+                const sx = bbox.minX * camZ;
+                const sy = bbox.minY * camZ;
+                const sw = worldW * camZ;
+                const sh = worldH * camZ;
+                ctx.drawImage(spriteCacheRef.current, sx, sy, sw, sh);
+              } else {
+                drawEdgesOptimized(ctx, nodes, fisheye, viewWorld);
+                drawParticlesOptimized(ctx, nodes, fisheye, viewWorld);
+                drawNodesOptimized(ctx, nodes, fisheye, viewWorld);
+              }
+              collapsedRef.current = prevCollapsed;
             }
           } else {
             // ── 部分展开：绘制展开社区的节点和边 ──
             if (activeCommunities) {
               drawExpandedCommunity(ctx, nodes, viewWorld, activeCommunities, isLargeGraph);
+            } else {
+              // ── Fallback：无社区数据时退回非聚类渲染路径。
+              // 临时清除 collapsed 集，避免因 clusterModeRef.current 为 true
+              // 而跳过折叠社区的节点/边。 ──
+              const prevCollapsed2 = collapsedRef.current;
+              collapsedRef.current = new Set();
+              const isLargeFallback = nodes.length > FORCE_BITMAP_THRESHOLD;
+              if (isLargeFallback && spriteCacheRef.current) {
+                const bbox = spriteWorldBBoxRef.current;
+                const worldW = bbox.maxX - bbox.minX;
+                const worldH = bbox.maxY - bbox.minY;
+                const camZ = cam.zoom;
+                const sx = bbox.minX * camZ;
+                const sy = bbox.minY * camZ;
+                const sw = worldW * camZ;
+                const sh = worldH * camZ;
+                ctx.drawImage(spriteCacheRef.current, sx, sy, sw, sh);
+              } else {
+                drawEdgesOptimized(ctx, nodes, fisheye, viewWorld);
+                drawParticlesOptimized(ctx, nodes, fisheye, viewWorld);
+                drawNodesOptimized(ctx, nodes, fisheye, viewWorld);
+              }
+              collapsedRef.current = prevCollapsed2;
             }
           }
         } else {
