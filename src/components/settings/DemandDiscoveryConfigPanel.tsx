@@ -213,8 +213,8 @@ export function DemandDiscoveryConfigPanel(_props: Props) {
         if (rsp && (!rsp.variables || rsp.variables.length === 0)) {
           const defaults = getDefaultVariables();
           const input: WorkflowTemplateInput = {
-            name: rsp.name || "需求发现工作流",
-            description: rsp.description || "需求发现与交付工作流配置",
+            name: rsp.name || t("opc.demand.configDefaultWorkflowName"),
+            description: rsp.description || t("opc.demand.configDefaultWorkflowDesc"),
             icon: rsp.icon || "🔍",
             tags: rsp.tags || ["opc", "demand"],
             trigger_config: rsp.trigger_config,

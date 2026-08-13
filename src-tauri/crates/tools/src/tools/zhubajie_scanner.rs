@@ -178,6 +178,8 @@ impl MarketplaceScanner for ZhubajieScanner {
                                 url: url.clone(),
                                 price_text,
                                 contact: None,
+                                contact_email: None,
+                                contact_phone: None,
                                 snapshot: serde_json::json!({
                                     "source": "zhubajie_scanner",
                                     "type": "outsourcing",

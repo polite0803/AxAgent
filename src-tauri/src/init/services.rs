@@ -41,7 +41,7 @@ pub fn start_background_services(
     start_insight_generator_task_executor(state);
     start_auto_tool_observation(state);
     start_text_grad_analysis(state);
-    start_cron_scheduler(state);
+    start_cron_scheduler(app, state);
     start_trigger_recovery(state);
     start_persistent_runner(state);
     start_platform_adapters(state);
@@ -2166,7 +2166,7 @@ fn start_text_grad_analysis(state: &AppState) {
     });
 }
 
-fn start_cron_scheduler(state: &AppState) {
+fn start_cron_scheduler(app: &tauri::AppHandle, state: &AppState) {
     use axagent_runtime::cron::{CronExecutor, CronScheduler};
     use std::sync::Arc;
 
@@ -2398,6 +2398,7 @@ fn start_cron_scheduler(state: &AppState) {
     let astock_client = state.astock_client.clone();
     let notification_dispatcher = state.notification_dispatcher.clone();
     let sync_db = state.harness.db().clone();
+    let app_handle_for_executor = app.clone();
     let mut executor = CronExecutor::new();
     executor.set_handler(move |job| {
         // 知识源定时刷新：task_type = knowledge_source_fetch_all
@@ -2448,6 +2449,7 @@ fn start_cron_scheduler(state: &AppState) {
             let job_name = job.name.clone();
             let recurring = job.recurring;
             let prompt = job.prompt.clone();
+            let app_handle = app_handle_for_executor.clone();
             tokio::task::spawn(async move {
                 let started = axagent_runtime_core::cron_job::now_millis();
                 let query = if prompt.trim().is_empty() {
@@ -2455,8 +2457,12 @@ fn start_cron_scheduler(state: &AppState) {
                 } else {
                     prompt.clone()
                 };
-                let result =
-                    crate::commands::demand_discovery::run_demand_discovery_cron(&db, &query).await;
+                let result = crate::commands::demand_discovery::run_demand_discovery_cron(
+                    &db,
+                    &query,
+                    Some(&app_handle),
+                )
+                .await;
                 let duration = (axagent_runtime_core::cron_job::now_millis() - started) as u64;
                 let task_result = match result {
                     Ok(summary) => {

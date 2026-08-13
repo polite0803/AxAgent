@@ -44,6 +44,8 @@ pub struct RawLead {
     pub url: String,
     pub price_text: Option<String>,
     pub contact: Option<String>,
+    pub contact_email: Option<String>,
+    pub contact_phone: Option<String>,
     pub snapshot: serde_json::Value,
 }
 
@@ -78,8 +80,8 @@ impl DemandLead {
             budget_max: None,
             budget_currency: "CNY".to_string(),
             contact_name: raw.contact,
-            contact_email: None,
-            contact_phone: None,
+            contact_email: raw.contact_email,
+            contact_phone: raw.contact_phone,
             source_url: Some(raw.url),
             raw_snapshot: raw.snapshot,
             status: "new".to_string(),
@@ -551,6 +553,33 @@ impl MarketplaceScanner for ApiMarketplaceScanner {
                 .get("contact_name")
                 .and_then(|v| v.as_str())
                 .or_else(|| item.get("contact").and_then(|v| v.as_str()))
+                .or_else(|| {
+                    // 尝试从 name / author / owner 字段提取
+                    item.get("name")
+                        .and_then(|v| v.as_str())
+                        .or_else(|| item.get("author").and_then(|v| v.as_str()))
+                        .or_else(|| item.get("owner").and_then(|v| v.as_str()))
+                })
+                .map(|s| s.to_string());
+
+            // 提取邮箱：尝试多个常见字段名
+            let contact_email = item
+                .get("contact_email")
+                .and_then(|v| v.as_str())
+                .or_else(|| item.get("email").and_then(|v| v.as_str()))
+                .or_else(|| item.get("e-mail").and_then(|v| v.as_str()))
+                .or_else(|| item.get("mail").and_then(|v| v.as_str()))
+                .map(|s| s.to_string())
+                .or_else(|| extract_email_from_text(&description));
+
+            // 提取电话：尝试多个常见字段名
+            let contact_phone = item
+                .get("contact_phone")
+                .and_then(|v| v.as_str())
+                .or_else(|| item.get("phone").and_then(|v| v.as_str()))
+                .or_else(|| item.get("mobile").and_then(|v| v.as_str()))
+                .or_else(|| item.get("tel").and_then(|v| v.as_str()))
+                .or_else(|| item.get("wechat").and_then(|v| v.as_str()))
                 .map(|s| s.to_string());
 
             leads.push(RawLead {
@@ -560,6 +589,8 @@ impl MarketplaceScanner for ApiMarketplaceScanner {
                 url: item_url,
                 price_text,
                 contact,
+                contact_email,
+                contact_phone,
                 snapshot: item.clone(),
             });
         }
@@ -599,10 +630,12 @@ impl MarketplaceScanner for MockMarketplaceScanner {
             RawLead {
                 platform: self.platform.to_string(),
                 title: format!("官网建设 - 中小型企业展示型网站 (关键词: {})", q),
-                description: "需要一个响应式官网，5-8个页面，包含产品展示、关于我们、联系方式。需要支持移动端。".to_string(),
+                description: "需要一个响应式官网，5-8个页面，包含产品展示、关于我们、联系方式。需要支持移动端。联系邮箱：zhang@example.com".to_string(),
                 url: "https://example.com/lead/1".to_string(),
                 price_text: Some("8000-15000元".to_string()),
                 contact: Some("张经理".to_string()),
+                contact_email: Some("zhang@example.com".to_string()),
+                contact_phone: Some("13800138000".to_string()),
                 snapshot: serde_json::json!({
                     "source": "mock",
                     "category": "web_development",
@@ -616,6 +649,8 @@ impl MarketplaceScanner for MockMarketplaceScanner {
                 url: "https://example.com/lead/2".to_string(),
                 price_text: Some("3000-5000元".to_string()),
                 contact: Some("李总".to_string()),
+                contact_email: Some("li@design-studio.com".to_string()),
+                contact_phone: None,
                 snapshot: serde_json::json!({
                     "source": "mock",
                     "category": "design",
@@ -629,6 +664,8 @@ impl MarketplaceScanner for MockMarketplaceScanner {
                 url: "https://example.com/lead/3".to_string(),
                 price_text: Some("20000-30000元".to_string()),
                 contact: Some("王主任".to_string()),
+                contact_email: None,
+                contact_phone: Some("微信: wangzhuren_biz".to_string()),
                 snapshot: serde_json::json!({
                     "source": "mock",
                     "category": "mini_program",
@@ -674,6 +711,74 @@ impl MarketplaceScanner for ManualMarketplaceScanner {
         );
         Ok(Vec::new())
     }
+}
+
+// ── 工具函数 ──────────────────────────────────────────────────
+
+/// 从文本中提取邮箱地址
+///
+/// 使用简单的正则匹配模式，尝试从描述文本中提取邮箱。
+/// 这是一个辅助手段，主要依赖 API 返回的结构化字段。
+fn extract_email_from_text(text: &str) -> Option<String> {
+    // 匹配常见邮箱格式：xxx@yyy.zzz
+    let email_patterns = [
+        // 带 @ 的标准邮箱
+        r"[\w.+-]+@[\w-]+\.[\w.-]+",
+    ];
+
+    for pattern in email_patterns {
+        if let Some(captures) = regex_find(text, pattern) {
+            return Some(captures);
+        }
+    }
+    None
+}
+
+/// 简单的正则查找（不依赖 regex crate）
+///
+/// 注意：这里使用简化的字符串匹配，仅作为兜底方案。
+/// 如果需要更完善的正则支持，建议引入 regex crate。
+fn regex_find(text: &str, pattern: &str) -> Option<String> {
+    // 简单实现：检查是否包含 @ 符号的文本
+    if pattern.contains('@') {
+        // 查找包含 @ 的子串
+        let bytes = text.as_bytes();
+        for (i, &byte) in bytes.iter().enumerate() {
+            if byte == b'@' {
+                // 向前找用户名部分
+                let mut start = i;
+                while start > 0
+                    && (bytes[start - 1].is_ascii_alphanumeric()
+                        || bytes[start - 1] == b'.'
+                        || bytes[start - 1] == b'+'
+                        || bytes[start - 1] == b'-'
+                        || bytes[start - 1] == b'_')
+                {
+                    start -= 1;
+                }
+
+                // 向后找域名部分
+                let mut end = i + 1;
+                while end < bytes.len()
+                    && (bytes[end].is_ascii_alphanumeric()
+                        || bytes[end] == b'.'
+                        || bytes[end] == b'-'
+                        || bytes[end] == b'_')
+                {
+                    end += 1;
+                }
+
+                if end > start && end - start > 5 {
+                    // 确保有域名后缀
+                    let email = &text[start..end];
+                    if email.contains('.') {
+                        return Some(email.to_string());
+                    }
+                }
+            }
+        }
+    }
+    None
 }
 
 #[cfg(test)]
@@ -852,5 +957,49 @@ mod tests {
         let evaluated = EvaluatedDemandLead::new(lead, evaluation);
         assert!(evaluated.value_score() >= 0.0);
         assert!(!evaluated.opportunity_level().is_empty());
+    }
+
+    #[test]
+    fn test_extract_email_from_text() {
+        // 测试标准邮箱格式
+        let text = "请联系我：test@example.com 获取详细信息";
+        let email = extract_email_from_text(text);
+        assert_eq!(email, Some("test@example.com".to_string()));
+
+        // 测试多个邮箱时只提取第一个
+        let text = "联系 a@b.com 或 c@d.org";
+        let email = extract_email_from_text(text);
+        assert_eq!(email, Some("a@b.com".to_string()));
+
+        // 测试无邮箱的情况
+        let text = "这是一段没有邮箱的文本";
+        let email = extract_email_from_text(text);
+        assert!(email.is_none());
+
+        // 测试带特殊字符的邮箱
+        let text = "我的邮箱是 user.name+tag@domain.co.uk";
+        let email = extract_email_from_text(text);
+        assert!(email.is_some());
+    }
+
+    #[test]
+    fn test_contact_info_in_demand_lead() {
+        // 测试 RawLead 到 DemandLead 的联系方式转换
+        let raw = RawLead {
+            platform: "test".to_string(),
+            title: "Test".to_string(),
+            description: "Description".to_string(),
+            url: "https://example.com".to_string(),
+            price_text: None,
+            contact: Some("张三".to_string()),
+            contact_email: Some("zhangsan@example.com".to_string()),
+            contact_phone: Some("13800000000".to_string()),
+            snapshot: serde_json::Value::Null,
+        };
+
+        let lead = DemandLead::new_from_raw(raw);
+        assert_eq!(lead.contact_name, Some("张三".to_string()));
+        assert_eq!(lead.contact_email, Some("zhangsan@example.com".to_string()));
+        assert_eq!(lead.contact_phone, Some("13800000000".to_string()));
     }
 }

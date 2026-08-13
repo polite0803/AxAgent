@@ -268,6 +268,8 @@ impl MarketplaceScanner for DribbbleScanner {
                             url: url.clone(),
                             price_text: None,
                             contact: None,
+                            contact_email: None,
+                            contact_phone: None,
                             snapshot: serde_json::json!({
                                 "source": "dribbble_scanner",
                                 "signals": signals,

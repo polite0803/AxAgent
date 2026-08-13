@@ -203,6 +203,8 @@ impl MarketplaceScanner for TwitterScanner {
                                 url,
                                 price_text: None,
                                 contact: None,
+                                contact_email: None,
+                                contact_phone: None,
                                 snapshot: serde_json::json!({
                                     "source": "twitter_scanner",
                                     "signals": signals,

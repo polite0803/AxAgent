@@ -1138,7 +1138,7 @@ function PlatformsPanel() {
             <Input placeholder={t("opc.demand.formPlatformTypePlaceholder")} />
           </Form.Item>
           <Form.Item name="base_url" label={t("opc.demand.formBaseUrl")}>
-            <Input placeholder="https://..." />
+            <Input placeholder={t("opc.demand.formBaseUrlPlaceholder")} />
           </Form.Item>
           <Form.Item name="enabled" label={t("opc.demand.formEnabled")} valuePropName="checked">
             <Switch />
@@ -1520,19 +1520,19 @@ function CronPanel() {
           <Row gutter={12}>
             <Col span={12}>
               <Form.Item name="workflow_id" label={t("opc.demand.colCronWorkflow")}>
-                <Input placeholder="opc-demand-discovery" />
+                <Input placeholder={t("opc.demand.colCronWorkflowPlaceholder")} />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item name="task_type" label={t("opc.demand.colCronTaskType")}>
-                <Input placeholder="opc-demand-discovery" />
+                <Input placeholder={t("opc.demand.colCronTaskTypePlaceholder")} />
               </Form.Item>
             </Col>
           </Row>
           <Row gutter={12}>
             <Col span={12}>
               <Form.Item name="platform" label={t("opc.demand.colPlatform")}>
-                <Input placeholder="all" />
+                <Input placeholder={t("opc.demand.colPlatformPlaceholder")} />
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -1542,7 +1542,7 @@ function CronPanel() {
             </Col>
           </Row>
           <Form.Item name="enabled_toolsets" label={t("opc.demand.colCronToolsets")}>
-            <Input placeholder="opc_scanner, opc_evaluator" />
+            <Input placeholder={t("opc.demand.colCronToolsetsPlaceholder")} />
           </Form.Item>
         </Form>
       </Modal>

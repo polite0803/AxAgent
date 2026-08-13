@@ -271,6 +271,8 @@ impl MarketplaceScanner for ArxivScanner {
                     url,
                     price_text: None,
                     contact: None,
+                    contact_email: None,
+                    contact_phone: None,
                     snapshot,
                 });
             }

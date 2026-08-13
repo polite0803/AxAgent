@@ -6152,7 +6152,14 @@
         "dbCleanupDays": "資料庫清理天數",
         "logLevel": "日誌層級: debug/info/warn/error",
         "enableAnalytics": "啟用分析統計"
-      }
+      },
+      "formBaseUrlPlaceholder": "https://...",
+      "colCronWorkflowPlaceholder": "opc-demand-discovery",
+      "colCronTaskTypePlaceholder": "opc-demand-discovery",
+      "colPlatformPlaceholder": "all",
+      "colCronToolsetsPlaceholder": "opc_scanner, opc_evaluator",
+      "configDefaultWorkflowName": "Demand Discovery Workflow",
+      "configDefaultWorkflowDesc": "Demand Discovery & Delivery Workflow Config"
     }
   },
   "pasteButton": {

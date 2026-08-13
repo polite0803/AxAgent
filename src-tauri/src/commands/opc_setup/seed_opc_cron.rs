@@ -6,11 +6,11 @@
 //! - 每日凌晨 2:00 执行全平台需求扫描
 //! - 每周一 9:00 执行周度需求汇总
 
-use axagent_runtime_core::{CronJob, CronJobStatus, TaskConfig};
+#[cfg(test)]
+use axagent_runtime_core::CronJobStatus;
+use axagent_runtime_core::cron_job::now_millis;
+use axagent_runtime_core::{CronJob, CronJobStore};
 use std::sync::Arc;
-use tokio::sync::RwLock;
-
-use axagent_runtime_core::CronJobStore;
 
 const DEMAND_DISCOVERY_JOB_ID: &str = "opc-demand-discovery-daily";
 const DEMAND_WEEKLY_JOB_ID: &str = "opc-demand-discovery-weekly";
@@ -19,7 +19,7 @@ const DEMAND_WEEKLY_JOB_ID: &str = "opc-demand-discovery-weekly";
 pub async fn seed_demand_discovery_crons(store: &Arc<CronJobStore>) -> Result<(), String> {
     // 1. 每日需求扫描任务（凌晨 2:00 UTC+8 = 18:00 UTC 前一天）
     // Cron 表达式: 0 2 * * * (每天凌晨 2:00)
-    let daily_job = CronJob::new(
+    let mut daily_job = CronJob::new(
         "OPC 需求发现 - 每日扫描",
         "0 2 * * *",
         "执行全平台需求扫描，收集 Reddit/HackerNews/GitHub/猪八戒/闲鱼的最新需求线索",
@@ -29,10 +29,11 @@ pub async fn seed_demand_discovery_crons(store: &Arc<CronJobStore>) -> Result<()
     .with_task_type("opc-demand-discovery")
     .with_platform("all")
     .with_toolsets(vec!["opc_scanner".to_string(), "opc_evaluator".to_string()]);
+    daily_job.id = DEMAND_DISCOVERY_JOB_ID.to_string();
 
     // 2. 周度需求汇总任务（每周一 9:00）
     // Cron 表达式: 0 9 * * 1 (每周一 9:00)
-    let weekly_job = CronJob::new(
+    let mut weekly_job = CronJob::new(
         "OPC 需求发现 - 周度汇总",
         "0 9 * * 1",
         "汇总本周需求线索，生成周度需求分析报告",
@@ -46,6 +47,7 @@ pub async fn seed_demand_discovery_crons(store: &Arc<CronJobStore>) -> Result<()
         "opc_evaluator".to_string(),
         "opc_analysis".to_string(),
     ]);
+    weekly_job.id = DEMAND_WEEKLY_JOB_ID.to_string();
 
     // 检查并添加/更新任务
     upsert_cron_job(store, daily_job).await?;
@@ -60,22 +62,28 @@ async fn upsert_cron_job(store: &Arc<CronJobStore>, job: CronJob) -> Result<(), 
     let existing = store.get(&job.id).await;
 
     match existing {
-        Some(mut existing_job) => {
+        Some(_existing_job) => {
             // 更新现有任务的配置，但保留执行历史
-            existing_job.name = job.name;
-            existing_job.description = job.description;
-            existing_job.schedule = job.schedule;
-            existing_job.prompt = job.prompt;
-            existing_job.workflow_id = job.workflow_id;
-            existing_job.task_type = job.task_type;
-            existing_job.platform = job.platform;
-            existing_job.enabled_toolsets = job.enabled_toolsets;
-            existing_job.config = job.config;
-            existing_job.delivery = job.delivery;
-            existing_job.updated_at = axagent_runtime_core::now_millis();
+            let job_id = job.id.clone();
+            let updated = store
+                .update(&job_id, |existing| {
+                    existing.name = job.name;
+                    existing.description = job.description;
+                    existing.schedule = job.schedule;
+                    existing.prompt = job.prompt;
+                    existing.workflow_id = job.workflow_id;
+                    existing.task_type = job.task_type;
+                    existing.platform = job.platform;
+                    existing.enabled_toolsets = job.enabled_toolsets;
+                    existing.config = job.config;
+                    existing.delivery = job.delivery;
+                    existing.updated_at = now_millis();
+                })
+                .await;
 
-            store.update(existing_job).await;
-            tracing::debug!("[opc-cron] 更新现有任务: {}", job.id);
+            if updated {
+                tracing::debug!("[opc-cron] 更新现有任务: {}", job.id);
+            }
         },
         None => {
             // 添加新任务
@@ -88,6 +96,7 @@ async fn upsert_cron_job(store: &Arc<CronJobStore>, job: CronJob) -> Result<(), 
 }
 
 /// 获取默认的需求发现 Cron 表达式选项
+#[allow(dead_code)]
 pub fn get_default_cron_options() -> Vec<CronOption> {
     vec![
         CronOption {
@@ -114,6 +123,7 @@ pub fn get_default_cron_options() -> Vec<CronOption> {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[allow(dead_code)]
 pub struct CronOption {
     pub label: String,
     pub schedule: String,

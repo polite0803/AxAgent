@@ -278,6 +278,8 @@ impl MarketplaceScanner for CsdnScanner {
                             url: url.clone(),
                             price_text: None,
                             contact: None,
+                            contact_email: None,
+                            contact_phone: None,
                             snapshot: serde_json::json!({
                                 "source": "dev_community_scanner",
                                 "community": platform,

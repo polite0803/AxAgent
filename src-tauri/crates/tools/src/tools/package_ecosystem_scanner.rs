@@ -246,6 +246,8 @@ impl MarketplaceScanner for PackageEcosystemScanner {
                     url: pkg_info.url.clone(),
                     price_text: None,
                     contact: None,
+                    contact_email: None,
+                    contact_phone: None,
                     snapshot: serde_json::json!({
                         "name": pkg_info.name,
                         "version": pkg_info.version,
@@ -278,6 +280,8 @@ impl MarketplaceScanner for PackageEcosystemScanner {
                     url: pkg_info.url.clone(),
                     price_text: None,
                     contact: None,
+                    contact_email: None,
+                    contact_phone: None,
                     snapshot: serde_json::json!({
                         "name": pkg_info.name,
                         "version": pkg_info.version,

@@ -6152,7 +6152,14 @@
         "dbCleanupDays": "Días de limpieza de base de datos",
         "logLevel": "Nivel de registro: debug/info/warn/error",
         "enableAnalytics": "Habilitar análisis"
-      }
+      },
+      "formBaseUrlPlaceholder": "https://...",
+      "colCronWorkflowPlaceholder": "opc-demand-discovery",
+      "colCronTaskTypePlaceholder": "opc-demand-discovery",
+      "colPlatformPlaceholder": "all",
+      "colCronToolsetsPlaceholder": "opc_scanner, opc_evaluator",
+      "configDefaultWorkflowName": "Demand Discovery Workflow",
+      "configDefaultWorkflowDesc": "Demand Discovery & Delivery Workflow Config"
     }
   },
   "pasteButton": {

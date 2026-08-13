@@ -330,6 +330,8 @@ impl MarketplaceScanner for UpworkScanner {
                             url: url.clone(),
                             price_text,
                             contact: None,
+                            contact_email: None,
+                            contact_phone: None,
                             snapshot: serde_json::json!({
                                 "source": "upwork_scanner",
                                 "signals": signals,

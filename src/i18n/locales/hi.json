@@ -6152,7 +6152,14 @@
         "dbCleanupDays": "डेटाबेस सफ़ाई दिन",
         "logLevel": "लॉग स्तर: debug/info/warn/error",
         "enableAnalytics": "विश्लेषण सक्षम करें"
-      }
+      },
+      "formBaseUrlPlaceholder": "https://...",
+      "colCronWorkflowPlaceholder": "opc-demand-discovery",
+      "colCronTaskTypePlaceholder": "opc-demand-discovery",
+      "colPlatformPlaceholder": "all",
+      "colCronToolsetsPlaceholder": "opc_scanner, opc_evaluator",
+      "configDefaultWorkflowName": "Demand Discovery Workflow",
+      "configDefaultWorkflowDesc": "Demand Discovery & Delivery Workflow Config"
     }
   },
   "pasteButton": {

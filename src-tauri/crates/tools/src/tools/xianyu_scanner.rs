@@ -296,6 +296,8 @@ impl MarketplaceScanner for XianyuScanner {
                                 url: url.clone(),
                                 price_text: price,
                                 contact: None,
+                                contact_email: None,
+                                contact_phone: None,
                                 snapshot: serde_json::json!({
                                     "source": "xianyu_scanner",
                                     "patterns": patterns,

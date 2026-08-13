@@ -221,6 +221,8 @@ impl MarketplaceScanner for GitHubDiscussionsScanner {
                         url: html_url,
                         price_text: None,
                         contact: None,
+                        contact_email: None,
+                        contact_phone: None,
                         snapshot,
                     });
                 }

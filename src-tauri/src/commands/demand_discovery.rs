@@ -333,9 +333,15 @@ pub async fn opc_discover_and_evaluate_leads(
 /// 供 CronExecutor 调用，执行「扫描 → 评估 → 入库」完整流水线。
 /// 与 `opc_discover_and_evaluate_leads` 命令共享核心逻辑，
 /// 但不依赖 Tauri State，可在任意上下文中执行。
+///
+/// # 参数
+/// - `db`: 数据库连接
+/// - `query`: 搜索关键词
+/// - `app_handle`: Tauri AppHandle（用于发送桌面通知，可选）
 pub async fn run_demand_discovery_cron(
     db: &sea_orm::DatabaseConnection,
     query: &str,
+    app_handle: Option<&tauri::AppHandle>,
 ) -> Result<String, String> {
     use axagent_entities::opc_demand_lead;
     use axagent_entities::opc_market_platform;
@@ -362,11 +368,15 @@ pub async fn run_demand_discovery_cron(
     let evaluated =
         scanner.search_and_evaluate(query, None).await.map_err(|e| format!("需求扫描失败: {e}"))?;
 
-    // 3) 入库
+    // 3) 入库 + 收集高价值需求信息
     let mut saved_count = 0usize;
     let mut high_value_count = 0usize;
+    let mut high_value_leads: Vec<(String, f64, String)> = Vec::new(); // (id, score, title)
+
     for el in &evaluated {
         let demand_type_str = el.evaluation.demand_type.as_str().to_string();
+        let is_high_value = el.evaluation.commercial_value_score >= 70.0;
+
         let entity = opc_demand_lead::ActiveModel {
             id: Set(el.lead.id.clone()),
             platform: Set(el.lead.platform.clone()),
@@ -383,8 +393,8 @@ pub async fn run_demand_discovery_cron(
             matched_capabilities_json: Set("[]".to_string()),
             ai_analysis_json: Set(serde_json::to_string(&el.evaluation).unwrap_or_default()),
             recommended_workflow_id: Set(None),
-            status: Set("new".to_string()),
-            priority: Set(3),
+            status: Set(if is_high_value { "high_value" } else { "new" }.to_string()),
+            priority: Set(if is_high_value { 1 } else { 3 }),
             confidence: Set(el.evaluation.confidence),
             notes: Set(String::new()),
             project_id: Set(None),
@@ -404,8 +414,13 @@ pub async fn run_demand_discovery_cron(
         match entity.insert(db).await {
             Ok(_) => {
                 saved_count += 1;
-                if el.evaluation.commercial_value_score >= 70.0 {
+                if is_high_value {
                     high_value_count += 1;
+                    high_value_leads.push((
+                        el.lead.id.clone(),
+                        el.evaluation.commercial_value_score,
+                        el.lead.title.clone(),
+                    ));
                 }
             },
             Err(e) => {
@@ -422,12 +437,66 @@ pub async fn run_demand_discovery_cron(
         .exec(db)
         .await;
 
+    // 5) 发送高价值需求通知
+    if high_value_count > 0 {
+        send_high_value_notification(app_handle, &high_value_leads).await;
+    }
+
     Ok(format!(
         "需求发现完成: 扫描 {} 条, 入库 {} 条, 高价值 {} 条",
         evaluated.len(),
         saved_count,
         high_value_count
     ))
+}
+
+/// 发送高价值需求通知
+///
+/// 通过 Tauri 桌面通知 + 前端事件推送，提醒用户关注高价值需求。
+async fn send_high_value_notification(
+    app_handle: Option<&tauri::AppHandle>,
+    high_value_leads: &[(String, f64, String)],
+) {
+    if high_value_leads.is_empty() {
+        return;
+    }
+
+    let count = high_value_leads.len();
+    let titles: Vec<String> = high_value_leads
+        .iter()
+        .take(3)
+        .map(|(_, score, title)| format!("{} (评分: {:.1})", title, score))
+        .collect();
+
+    let body = if count > 3 {
+        format!("{} 条高价值需求: {} ...等", count, titles.join(", "))
+    } else {
+        format!("{} 条高价值需求: {}", count, titles.join(", "))
+    };
+
+    // 发送 Tauri 桌面通知
+    if let Some(app) = app_handle {
+        if let Err(e) = crate::commands::desktop::send_desktop_notification(
+            app.clone(),
+            "🔔 OPC 需求发现：发现高价值需求".to_string(),
+            body.clone(),
+        )
+        .await
+        {
+            tracing::warn!("[DemandDiscovery] 桌面通知发送失败: {}", e);
+        }
+    }
+
+    // 同时通过日志记录，便于排查
+    tracing::info!("[DemandDiscovery] 高价值需求通知: 发现 {} 条高价值需求", count);
+    for (id, score, title) in high_value_leads {
+        tracing::info!(
+            "[DemandDiscovery] 高价值需求详情: id={}, score={:.1}, title={}",
+            id,
+            score,
+            title
+        );
+    }
 }
 
 // ── 需求线索 CRUD ──────────────────────────────────────────────

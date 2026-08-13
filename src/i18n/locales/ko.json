@@ -6152,7 +6152,14 @@
         "dbCleanupDays": "데이터베이스 정리 일수",
         "logLevel": "로그 수준: debug/info/warn/error",
         "enableAnalytics": "분석 활성화"
-      }
+      },
+      "formBaseUrlPlaceholder": "https://...",
+      "colCronWorkflowPlaceholder": "opc-demand-discovery",
+      "colCronTaskTypePlaceholder": "opc-demand-discovery",
+      "colPlatformPlaceholder": "all",
+      "colCronToolsetsPlaceholder": "opc_scanner, opc_evaluator",
+      "configDefaultWorkflowName": "Demand Discovery Workflow",
+      "configDefaultWorkflowDesc": "Demand Discovery & Delivery Workflow Config"
     }
   },
   "pasteButton": {

@@ -234,6 +234,8 @@ impl MarketplaceScanner for LinkedInScanner {
                                 url: url.clone(),
                                 price_text: None,
                                 contact: None,
+                                contact_email: None,
+                                contact_phone: None,
                                 snapshot: serde_json::json!({
                                     "source": "linkedin_scanner",
                                     "signals": signals,

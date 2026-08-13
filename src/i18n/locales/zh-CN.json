@@ -6243,7 +6243,14 @@
         "failed": "失败"
       },
       "formCronNamePlaceholder": "如：每日需求扫描",
-      "formCronPromptPlaceholder": "描述定时任务的执行目标..."
+      "formCronPromptPlaceholder": "描述定时任务的执行目标...",
+      "formBaseUrlPlaceholder": "https://...",
+      "colCronWorkflowPlaceholder": "opc-demand-discovery",
+      "colCronTaskTypePlaceholder": "opc-demand-discovery",
+      "colPlatformPlaceholder": "all",
+      "colCronToolsetsPlaceholder": "opc_scanner, opc_evaluator",
+      "configDefaultWorkflowName": "需求发现工作流",
+      "configDefaultWorkflowDesc": "需求发现与交付工作流配置"
     }
   },
   "pasteButton": {

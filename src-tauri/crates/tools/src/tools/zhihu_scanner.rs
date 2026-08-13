@@ -255,6 +255,8 @@ impl MarketplaceScanner for ZhihuScanner {
                             url: url.clone(),
                             price_text: None,
                             contact: None,
+                            contact_email: None,
+                            contact_phone: None,
                             snapshot: serde_json::json!({
                                 "source": "zhihu_scanner",
                                 "signals": signals,
