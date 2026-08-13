@@ -506,7 +506,13 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   const MAX_MAIN_THREAD_PHYSICS = 1500;
 
   // 有效社区映射（考虑哈希合并后的虚拟聚类）
-  const effectiveCommunitiesRef = useRef<Map<string, number> | null>(null);
+  const effectiveCommunitiesRef = useRef<Map<string, number> | undefined>(undefined);
+
+  // 统一的社区查找函数：所有代码路径必须使用这个，不能直接用 communities prop
+  // 因为哈希合并后的虚拟聚类映射存在 effectiveCommunitiesRef 中
+  const getCommunityId = useCallback((nodeId: string): number | undefined => {
+    return effectiveCommunitiesRef.current?.get(nodeId);
+  }, []);
 
   // 哈希字符串转整数（用于节点到虚拟聚类的稳定分桶）
   function hashStringToInt(str: string): number {
@@ -604,7 +610,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       }
       // 排除当前选中节点所在社区，避免选中节点被折叠隐藏导致用户困惑
       if (selectedNodeIdRef.current) {
-        const selCid = communities.get(selectedNodeIdRef.current);
+        const selCid = getCommunityId(selectedNodeIdRef.current);
         if (selCid !== undefined) {
           all.delete(selCid);
         }
@@ -669,10 +675,10 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
   // 选中/导航到折叠社区内的节点时：自动展开该社区，确保目标可见
   useEffect(() => {
-    if (!selectedNodeId || !clusterModeRef.current || !communities) {
+    if (!selectedNodeId || !clusterModeRef.current || !effectiveCommunitiesRef.current) {
       return;
     }
-    const cid = communities.get(selectedNodeId);
+    const cid = getCommunityId(selectedNodeId);
     if (cid !== undefined && collapsedRef.current.has(cid)) {
       const next = new Set(collapsedRef.current);
       next.delete(cid);
@@ -898,6 +904,42 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     // 不在主线程同步跑 stepPhysics：几万节点时 Barnes-Hut 单步即数百 ms，
     // 主线程同步迭代会冻结 UI 数秒。Worker 就绪前节点保持 initial/保存布局即可。
 
+    // ── 预计算有效社区映射（在 Worker 初始化之前执行） ──
+    // 大图（>3000节点）必须进入聚类模式，无论社区粒度如何。
+    // 社区数过多时（>MAX_AGG_PHYS_NODES），通过哈希合并到 FORCE_CLUSTER_COUNT 个虚拟聚类。
+    let effectiveCommunities: Map<string, number> | undefined = communities;
+    const shouldForceCluster = pNodes.length > AUTO_CLUSTER_THRESHOLD;
+    if (shouldForceCluster) {
+      if (!effectiveCommunities || effectiveCommunities.size > MAX_AGG_PHYS_NODES) {
+        // 哈希合并：将所有节点均匀分配到 FORCE_CLUSTER_COUNT 个虚拟聚类
+        const hashMap = new Map<string, number>();
+        if (effectiveCommunities) {
+          for (const [nodeId] of effectiveCommunities) {
+            const hash = Math.abs(hashStringToInt(nodeId)) % FORCE_CLUSTER_COUNT;
+            hashMap.set(nodeId, hash);
+          }
+        } else {
+          // 没有社区数据时，直接对所有节点哈希分桶
+          for (const n of pNodes) {
+            const hash = Math.abs(hashStringToInt(n.id)) % FORCE_CLUSTER_COUNT;
+            hashMap.set(n.id, hash);
+          }
+        }
+        effectiveCommunities = hashMap;
+      }
+      // 关键：更新 effectiveCommunitiesRef，供 Worker 初始化和后续代码使用
+      effectiveCommunitiesRef.current = effectiveCommunities;
+
+      console.log("[GraphView] 预计算有效社区", {
+        nodeCount: pNodes.length,
+        effectiveCommunitiesSize: effectiveCommunities?.size ?? 0,
+        usedHashMerge: !communities || communities.size > MAX_AGG_PHYS_NODES,
+      });
+    } else {
+      // 小图直接使用原始 communities
+      effectiveCommunitiesRef.current = effectiveCommunities;
+    }
+
     // ── 初始化物理 Worker ──
     // 销毁旧 Worker
     if (workerRef.current) {
@@ -972,8 +1014,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         nodes: [],
         edges: [],
         config: workerConfig,
-        communities: (effectiveCommunitiesRef.current ?? communities)
-          ? Object.fromEntries(effectiveCommunitiesRef.current ?? communities!)
+        communities: effectiveCommunities
+          ? Object.fromEntries(effectiveCommunities)
           : undefined,
         compact: {
           nodeBuffer,
@@ -1018,38 +1060,11 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       }
     };
 
-    // ── 大图自动聚合：节点数超过阈值且 communities 可用时，自动进入聚类折叠聚合视图 ──
-    // 折叠全部社区 → 物理只模拟聚合节点（几十个 + 未折叠成员），
-    // 从根本上避免万级节点全量力导向收敛导致的打开卡死。
-    // 核心策略：大图（>3000节点）必须进入聚类模式，无论社区粒度如何。
-    // 社区数过多时（>MAX_AGG_PHYS_NODES），通过哈希将节点强制合并到 FORCE_CLUSTER_COUNT 个虚拟聚类。
-    const shouldForceCluster = pNodes.length > AUTO_CLUSTER_THRESHOLD;
-    if (shouldForceCluster) {
-      let effectiveCommunities = communities;
-      if (!effectiveCommunities || effectiveCommunities.size > MAX_AGG_PHYS_NODES) {
-        // 哈希合并：将所有节点均匀分配到 FORCE_CLUSTER_COUNT 个虚拟聚类
-        // 使用节点 ID 的哈希值确保同一节点始终在同一聚类
-        const hashMap = new Map<string, number>();
-        const buckets = new Set<number>();
-        if (effectiveCommunities) {
-          for (const [nodeId] of effectiveCommunities) {
-            const hash = Math.abs(hashStringToInt(nodeId)) % FORCE_CLUSTER_COUNT;
-            hashMap.set(nodeId, hash);
-            buckets.add(hash);
-          }
-        } else {
-          // 没有社区数据时，直接对所有节点哈希分桶
-          for (const n of pNodes) {
-            const hash = Math.abs(hashStringToInt(n.id)) % FORCE_CLUSTER_COUNT;
-            hashMap.set(n.id, hash);
-            buckets.add(hash);
-          }
-        }
-        effectiveCommunities = hashMap;
-        // 更新 communities 引用（供后续代码使用）
-        // 注意：不能直接修改 props，使用 ref 存
-        effectiveCommunitiesRef.current = effectiveCommunities;
-      }
+    // ── 大图自动聚合：设置折叠状态、刷新几何、构建聚合物理 ──
+    // （effectiveCommunities 已在 Worker 初始化前预计算好）
+    if (shouldForceCluster && effectiveCommunities) {
+      // 关键：同步更新 communitiesRef（buildAggregatePhysics 依赖它）
+      communitiesRef.current = effectiveCommunities;
 
       const all = new Set<number>();
       for (const cid of effectiveCommunities.values()) {
@@ -1061,6 +1076,11 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       refreshClusterGeom();
       buildAggregatePhysics();
       setClusterCollapseVersion((v) => v + 1);
+
+      console.log("[GraphView] 强制聚类已启用", {
+        nodeCount: pNodes.length,
+        clusterCount: all.size,
+      });
     }
 
     // 组件卸载时销毁 Worker，避免线程泄漏和内存堆积
@@ -1736,13 +1756,27 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   function buildBigGraphSpriteCache(nodes: PhysicsNode[]): HTMLCanvasElement | null {
     if (nodes.length === 0) { return null; }
 
-    // 计算节点分布 bounding box
+    // 计算节点分布 bounding box —— 聚类模式下只计算可见节点
+    const clusterActive = clusterModeRef.current;
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    let hasVisible = false;
     for (const n of nodes) {
+      if (clusterActive) {
+        const cid = getCommunityId(n.id);
+        if (cid !== undefined && collapsedRef.current.has(cid)) { continue; }
+      }
       if (n.x < minX) { minX = n.x; }
       if (n.y < minY) { minY = n.y; }
       if (n.x > maxX) { maxX = n.x; }
       if (n.y > maxY) { maxY = n.y; }
+      hasVisible = true;
+    }
+    // 如果所有节点都被折叠，使用全量范围
+    if (!hasVisible) {
+      minX = -500;
+      minY = -500;
+      maxX = 500;
+      maxY = 500;
     }
 
     // Padding 覆盖整个可视范围
@@ -1772,7 +1806,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     octx.scale(scale, scale);
     octx.translate(-minX, -minY);
 
-    // 批量绘制边（Path2D 合并）
+    // 批量绘制边（Path2D 合并）—— 聚类模式下跳过折叠社区的边
     const edgeMeta = edgeMetaRef.current;
     const nodeColors = nodeColorRef.current;
     const edgeBatches = new Map<string, Path2D>();
@@ -1784,6 +1818,15 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       const s = nodes[sIdx];
       const t = nodes[tIdx];
       if (!s || !t) { continue; }
+      // 聚类模式：跳过两端都在折叠社区内的边
+      if (clusterActive) {
+        const sCid = getCommunityId(s.id);
+        const tCid = getCommunityId(t.id);
+        if (
+          sCid !== undefined && tCid !== undefined
+          && collapsedRef.current.has(sCid) && collapsedRef.current.has(tCid)
+        ) { continue; }
+      }
       if (!edgeBatches.has(em.color)) { edgeBatches.set(em.color, new Path2D()); }
       const p = edgeBatches.get(em.color)!;
       p.moveTo(s.x, s.y);
@@ -1800,7 +1843,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     const nodeSizes = nodeSizeRef.current;
     for (const n of nodes) {
       if (clusterModeRef.current) {
-        const ncid = communities?.get(n.id);
+        const ncid = getCommunityId(n.id);
         if (ncid !== undefined && collapsedRef.current.has(ncid)) { continue; }
       }
       const color = nodeColors.get(n.id) || token.colorPrimary;
@@ -1868,8 +1911,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       if (!sNode || !tNode) { continue; }
 
       // 聚类折叠模式：折叠社区的成员端点接到聚合节点质心
-      const sCid = communities?.get(em.source);
-      const tCid = communities?.get(em.target);
+      const sCid = getCommunityId(em.source);
+      const tCid = getCommunityId(em.target);
       const sCollapsed = clusterModeRef.current && sCid !== undefined && collapsedRef.current.has(sCid);
       const tCollapsed = clusterModeRef.current && tCid !== undefined && collapsedRef.current.has(tCid);
       const sGeom = sCollapsed ? clusterGeomRef.current.get(sCid!) : undefined;
@@ -1969,8 +2012,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
       // 聚类折叠模式：折叠社区内的边不画粒子（由聚合节点/聚合边表达）
       if (clusterModeRef.current) {
-        const sCid = communities?.get(em.source);
-        const tCid = communities?.get(em.target);
+        const sCid = getCommunityId(em.source);
+        const tCid = getCommunityId(em.target);
         if (
           (sCid !== undefined && collapsedRef.current.has(sCid))
           || (tCid !== undefined && collapsedRef.current.has(tCid))
@@ -2063,12 +2106,12 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
       // 聚类折叠模式：折叠社区的节点由聚合节点替代，不单独绘制
       if (clusterModeRef.current) {
-        const ncid = communities?.get(node.id);
+        const ncid = getCommunityId(node.id);
         if (ncid !== undefined && collapsedRef.current.has(ncid)) { continue; }
       }
 
       if (hasCommunityFilter) {
-        const cid = communities?.get(node.id);
+        const cid = getCommunityId(node.id);
         if (cid !== undefined && !visibleCommunitiesSet.has(cid)) { continue; }
       }
 
@@ -2228,8 +2271,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         const sNode = nodes[em.sourceIdx];
         const tNode = nodes[em.targetIdx];
         if (!sNode || !tNode) { continue; }
-        const sCid = communities?.get(em.source);
-        const tCid = communities?.get(em.target);
+        const sCid = getCommunityId(em.source);
+        const tCid = getCommunityId(em.target);
         if (sCid === undefined || tCid === undefined || sCid === tCid) { continue; }
         if (!collapsedRef.current.has(sCid) || !collapsedRef.current.has(tCid)) { continue; }
         const sg = geom.get(sCid);
@@ -2569,7 +2612,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
           if (!n) { continue; }
           // 聚类折叠模式：折叠社区的节点被聚合节点覆盖，不参与命中
           if (clusterModeRef.current) {
-            const cid = communities?.get(id);
+            const cid = getCommunityId(id);
             if (cid !== undefined && collapsedRef.current.has(cid)) { continue; }
           }
           const size = nodeSizeRef.current.get(id) || 6;
@@ -2650,7 +2693,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       const nodeStep = nodes.length > 20000 ? 8 : nodes.length > 8000 ? 4 : nodes.length > 3000 ? 2 : 1;
       for (let i = 0; i < nodes.length; i += nodeStep) {
         const n = nodes[i];
-        const cid = communities?.get(n.id);
+        const cid = getCommunityId(n.id);
         if (cid !== undefined && collapsedRef.current.has(cid)) { continue; }
         const color = nodeColorRef.current.get(n.id) || token.colorPrimary;
         const mx = (n.x - minX) * scale + offsetX;
@@ -3964,7 +4007,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
           const meta = nodeMetaRef.current.get(tooltipNodeIdState);
           if (!meta) { return null; }
           const nodeColor = nodeColorRef.current.get(tooltipNodeIdState) || token.colorPrimary;
-          const communityId = communities?.get(tooltipNodeIdState);
+          const communityId = getCommunityId(tooltipNodeIdState);
           return (
             <>
               {/* 标题 */}
