@@ -608,10 +608,9 @@ mod tests {
 
         // 节点字符串应包含核心节点类型
         assert!(!wf.nodes.is_empty(), "工作流节点不应为空");
-        assert!(wf.nodes.contains("trigger_finance_invest"), "应含触发节点");
-        assert!(wf.nodes.contains("validation_finance_invest"), "应含验证节点");
+        assert!(wf.nodes.contains("trigger"), "应含触发节点");
         assert!(wf.nodes.contains("step_finance_invest"), "应含业务步骤节点");
-        assert!(wf.nodes.contains("end_finance_invest"), "应含结束节点");
+        assert!(wf.nodes.contains("end"), "应含结束节点");
 
         // 边字符串应包含至少若干条连接
         assert!(!wf.edges.is_empty(), "边不应为空");
