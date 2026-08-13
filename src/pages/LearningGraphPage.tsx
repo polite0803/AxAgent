@@ -14,11 +14,13 @@ import {
   Background,
   Controls,
   type Edge,
+  Handle,
   MarkerType,
   MiniMap,
   type Node,
   type NodeProps,
   type NodeTypes,
+  Position,
   ReactFlow,
   useEdgesState,
   useNodesState,
@@ -211,28 +213,43 @@ function SkillNode({ data }: NodeProps) {
   const d = data as Record<string, unknown>;
   const color = (d.color as string) || "#4a9eff";
   return (
-    <div
-      style={{
-        padding: "8px 14px",
-        borderRadius: 8,
-        border: `1px solid ${color}`,
-        background: `${color}22`,
-        fontSize: 13,
-        fontWeight: 500,
-        maxWidth: 180,
-        cursor: "pointer",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <BookOutlined style={{ color }} />
-        <Text ellipsis>{d.label as string}</Text>
+    <>
+      {/* 隐藏的 target/source handle，确保 React Flow 能正确创建 edge 连接 */}
+      <Handle
+        type="target"
+        id="target"
+        position={Position.Left}
+        style={{ opacity: 0, width: 1, height: 1 }}
+      />
+      <Handle
+        type="source"
+        id="source"
+        position={Position.Right}
+        style={{ opacity: 0, width: 1, height: 1 }}
+      />
+      <div
+        style={{
+          padding: "8px 14px",
+          borderRadius: 8,
+          border: `1px solid ${color}`,
+          background: `${color}22`,
+          fontSize: 13,
+          fontWeight: 500,
+          maxWidth: 180,
+          cursor: "pointer",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <BookOutlined style={{ color }} />
+          <Text ellipsis>{d.label as string}</Text>
+        </div>
+        {!!d.detail && (
+          <Text type="secondary" style={{ fontSize: 11, display: "block", marginTop: 2 }} ellipsis>
+            {String(d.detail)}
+          </Text>
+        )}
       </div>
-      {!!d.detail && (
-        <Text type="secondary" style={{ fontSize: 11, display: "block", marginTop: 2 }} ellipsis>
-          {String(d.detail)}
-        </Text>
-      )}
-    </div>
+    </>
   );
 }
 
@@ -240,27 +257,41 @@ function MemoryNode({ data }: NodeProps) {
   const d = data as Record<string, unknown>;
   const color = (d.color as string) || "#52c41a";
   return (
-    <div
-      style={{
-        padding: "8px 14px",
-        borderRadius: 8,
-        border: `1px solid ${color}`,
-        background: `${color}22`,
-        fontSize: 13,
-        maxWidth: 200,
-        cursor: "pointer",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <DatabaseOutlined style={{ color }} />
-        <Text ellipsis>{d.label as string}</Text>
+    <>
+      <Handle
+        type="target"
+        id="target"
+        position={Position.Left}
+        style={{ opacity: 0, width: 1, height: 1 }}
+      />
+      <Handle
+        type="source"
+        id="source"
+        position={Position.Right}
+        style={{ opacity: 0, width: 1, height: 1 }}
+      />
+      <div
+        style={{
+          padding: "8px 14px",
+          borderRadius: 8,
+          border: `1px solid ${color}`,
+          background: `${color}22`,
+          fontSize: 13,
+          maxWidth: 200,
+          cursor: "pointer",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <DatabaseOutlined style={{ color }} />
+          <Text ellipsis>{d.label as string}</Text>
+        </div>
+        {!!d.category && (
+          <Tag color="green" style={{ fontSize: 10, marginTop: 4 }}>
+            {String(d.category)}
+          </Tag>
+        )}
       </div>
-      {!!d.category && (
-        <Tag color="green" style={{ fontSize: 10, marginTop: 4 }}>
-          {String(d.category)}
-        </Tag>
-      )}
-    </div>
+    </>
   );
 }
 
@@ -268,27 +299,41 @@ function InsightNode({ data }: NodeProps) {
   const d = data as Record<string, unknown>;
   const color = (d.color as string) || "#faad14";
   return (
-    <div
-      style={{
-        padding: "8px 14px",
-        borderRadius: 8,
-        border: `1px solid ${color}`,
-        background: `${color}22`,
-        fontSize: 13,
-        maxWidth: 200,
-        cursor: "pointer",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <BulbOutlined style={{ color }} />
-        <Text ellipsis>{d.label as string}</Text>
+    <>
+      <Handle
+        type="target"
+        id="target"
+        position={Position.Left}
+        style={{ opacity: 0, width: 1, height: 1 }}
+      />
+      <Handle
+        type="source"
+        id="source"
+        position={Position.Right}
+        style={{ opacity: 0, width: 1, height: 1 }}
+      />
+      <div
+        style={{
+          padding: "8px 14px",
+          borderRadius: 8,
+          border: `1px solid ${color}`,
+          background: `${color}22`,
+          fontSize: 13,
+          maxWidth: 200,
+          cursor: "pointer",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <BulbOutlined style={{ color }} />
+          <Text ellipsis>{d.label as string}</Text>
+        </div>
+        {!!d.detail && (
+          <Text type="secondary" style={{ fontSize: 11, display: "block", marginTop: 2 }} ellipsis>
+            {String(d.detail)}
+          </Text>
+        )}
       </div>
-      {!!d.detail && (
-        <Text type="secondary" style={{ fontSize: 11, display: "block", marginTop: 2 }} ellipsis>
-          {String(d.detail)}
-        </Text>
-      )}
-    </div>
+    </>
   );
 }
 
@@ -296,27 +341,41 @@ function EntityNode({ data }: NodeProps) {
   const d = data as Record<string, unknown>;
   const color = (d.color as string) || "#722ed1";
   return (
-    <div
-      style={{
-        padding: "8px 14px",
-        borderRadius: 8,
-        border: `1px solid ${color}`,
-        background: `${color}22`,
-        fontSize: 13,
-        maxWidth: 200,
-        cursor: "pointer",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <ApartmentOutlined style={{ color }} />
-        <Text ellipsis>{d.label as string}</Text>
+    <>
+      <Handle
+        type="target"
+        id="target"
+        position={Position.Left}
+        style={{ opacity: 0, width: 1, height: 1 }}
+      />
+      <Handle
+        type="source"
+        id="source"
+        position={Position.Right}
+        style={{ opacity: 0, width: 1, height: 1 }}
+      />
+      <div
+        style={{
+          padding: "8px 14px",
+          borderRadius: 8,
+          border: `1px solid ${color}`,
+          background: `${color}22`,
+          fontSize: 13,
+          maxWidth: 200,
+          cursor: "pointer",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <ApartmentOutlined style={{ color }} />
+          <Text ellipsis>{d.label as string}</Text>
+        </div>
+        {!!d.category && (
+          <Tag color="purple" style={{ fontSize: 10, marginTop: 4 }}>
+            {String(d.category)}
+          </Tag>
+        )}
       </div>
-      {!!d.category && (
-        <Tag color="purple" style={{ fontSize: 10, marginTop: 4 }}>
-          {String(d.category)}
-        </Tag>
-      )}
-    </div>
+    </>
   );
 }
 

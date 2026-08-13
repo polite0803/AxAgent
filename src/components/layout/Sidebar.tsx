@@ -368,6 +368,7 @@ export function Sidebar() {
           aria-label={t("settings.openSettings")}
         >
           <Icon icon="fluent:settings-20-filled" size={17} />
+          {!sidebarCollapsed && <span className="nav-label">{t("settings.openSettings")}</span>}
         </button>
       </Tooltip>
 
@@ -375,7 +376,7 @@ export function Sidebar() {
       <MobileActions />
 
       {/* Help button */}
-      <Tooltip title={t("help.title")} placement="right">
+      <Tooltip title={sidebarCollapsed ? t("help.title") : ""} placement="right">
         <button
           type="button"
           className="nav-item"
@@ -383,6 +384,7 @@ export function Sidebar() {
           aria-label={t("help.title")}
         >
           <Icon icon="fluent:question-circle-20-filled" size={17} />
+          {!sidebarCollapsed && <span className="nav-label">{t("help.title")}</span>}
         </button>
       </Tooltip>
 
