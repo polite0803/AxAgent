@@ -3261,7 +3261,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   }, [onNodeHover]);
 
   const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
+    // 注意：React 的 onWheel 是 passive 事件，不能调用 preventDefault
+    // 阻止默认滚动已通过原生非被动监听实现（见 useEffect 中的 wheel 监听）
     const rect = canvasRef.current!.getBoundingClientRect();
     const sx = e.clientX - rect.left;
     const sy = e.clientY - rect.top;
@@ -3310,6 +3311,18 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     };
     canvas.addEventListener("wheel", preventWheel, { passive: false });
     return () => canvas.removeEventListener("wheel", preventWheel);
+  }, []);
+
+  // 原生非被动 touchmove 监听：React 的 onTouchMove 为被动模式，preventDefault 无效
+  // 阻止触摸滚动，让画布可以处理拖拽和缩放手势
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) { return; }
+    const preventTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+    };
+    canvas.addEventListener("touchmove", preventTouchMove, { passive: false });
+    return () => canvas.removeEventListener("touchmove", preventTouchMove);
   }, []);
 
   // ── 触摸事件处理 ──
@@ -3365,7 +3378,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   }, [findNodeAt, onNodeClick, onDeselect]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
+    // 注意：React 的 onTouchMove 是 passive 事件，不能调用 preventDefault
+    // 阻止默认滚动已通过原生非被动监听实现（见 useEffect 中的 touchmove 监听）
 
     if (e.touches.length === 1) {
       const touch = e.touches[0];
