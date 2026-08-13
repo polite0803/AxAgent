@@ -1080,12 +1080,38 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     if (shouldForceCluster) {
       const commForInit = effectiveCommunities ?? effectiveCommunitiesRef.current;
       if (!commForInit) {
-        // 终极 fallback：基于所有节点创建哈希映射
+        // 基于空间位置进行网格分桶（而非随机哈希），确保相邻节点聚在一起
+        // 计算节点坐标范围
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (const n of pNodes) {
+          if (n.x < minX) { minX = n.x; }
+          if (n.x > maxX) { maxX = n.x; }
+          if (n.y < minY) { minY = n.y; }
+          if (n.y > maxY) { maxY = n.y; }
+        }
+        const rangeX = maxX - minX || 1;
+        const rangeY = maxY - minY || 1;
+        // 网格边数：sqrt(目标聚类数)，目标约 200 个聚类
+        const GRID_SIDE = Math.ceil(Math.sqrt(FORCE_CLUSTER_COUNT));
+        const cellW = rangeX / GRID_SIDE;
+        const cellH = rangeY / GRID_SIDE;
+
         const fallbackMap = new Map<string, number>();
         for (const n of pNodes) {
-          const hash = Math.abs(hashStringToInt(n.id)) % FORCE_CLUSTER_COUNT;
-          fallbackMap.set(n.id, hash);
+          const gx = Math.min(GRID_SIDE - 1, Math.max(0, Math.floor((n.x - minX) / cellW)));
+          const gy = Math.min(GRID_SIDE - 1, Math.max(0, Math.floor((n.y - minY) / cellH)));
+          // 将二维网格坐标转为一维 ID：gy * GRID_SIDE + gx
+          const cid = gy * GRID_SIDE + gx;
+          fallbackMap.set(n.id, cid);
         }
+        console.log("[GraphView] forceCluster spatial grid", {
+          gridSide: GRID_SIDE,
+          actualClusters: new Set(fallbackMap.values()).size,
+          rangeX: rangeX.toFixed(0),
+          rangeY: rangeY.toFixed(0),
+          cellW: cellW.toFixed(0),
+          cellH: cellH.toFixed(0),
+        });
         effectiveCommunitiesRef.current = fallbackMap;
       }
 
@@ -1655,6 +1681,15 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
             // ── 全折叠：只画聚类标记（最大15px）+ 聚合边 ──
             const geom = clusterGeomRef.current;
             const aggPhysLocal = aggPhysRef.current;
+            // 视口信息（用于调试日志）
+            const camLocal = cameraRef.current;
+            const zoomLocal = camLocal.zoom;
+            const viewW = zoomLocal > 0 ? w / zoomLocal : 0;
+            const viewH = zoomLocal > 0 ? h / zoomLocal : 0;
+            const vx0Local = -camLocal.x / zoomLocal - viewW / 2;
+            const vy0Local = -camLocal.y / zoomLocal - viewH / 2;
+            const vx1Local = -camLocal.x / zoomLocal + viewW / 2;
+            const vy1Local = -camLocal.y / zoomLocal + viewH / 2;
             if (frameCounterRef.current % 60 === 0) {
               console.log("[GraphView] forceCluster render state", {
                 forceCluster,
@@ -1667,6 +1702,13 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
                 aggPhysNodes: aggPhysLocal?.nodes.length ?? 0,
                 aggPhysEdges: aggPhysLocal?.edges.length ?? 0,
                 collapsedSize: collapsedRef.current.size,
+                camera: { x: camLocal.x.toFixed(0), y: camLocal.y.toFixed(0), zoom: zoomLocal.toFixed(2) },
+                viewport: {
+                  x0: vx0Local.toFixed(0),
+                  y0: vy0Local.toFixed(0),
+                  x1: vx1Local.toFixed(0),
+                  y1: vy1Local.toFixed(0),
+                },
               });
             }
             if (geom.size > 0) {
@@ -2787,9 +2829,20 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     }
     clusterGeomRef.current = next;
     if (frameCounterRef.current % 60 === 0) {
+      const positions = [];
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for (const [cid, g] of next) {
+        positions.push({ cid, cx: g.cx.toFixed(0), cy: g.cy.toFixed(0), r: g.r.toFixed(0), count: g.count });
+        minX = Math.min(minX, g.cx);
+        maxX = Math.max(maxX, g.cx);
+        minY = Math.min(minY, g.cy);
+        maxY = Math.max(maxY, g.cy);
+      }
       console.log("[GraphView] refreshClusterGeom success", {
         bucketCount: buckets.size,
         nextSize: next.size,
+        bbox: { minX: minX.toFixed(0), maxX: maxX.toFixed(0), minY: minY.toFixed(0), maxY: maxY.toFixed(0) },
+        sample: positions.slice(0, 5),
       });
     }
   }, [communities]);
