@@ -1565,107 +1565,72 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       // 绘制（传入视口范围用于裁剪）
       // Worker 未就绪的大图：跳过完整渲染，避免主线程 fallback 卡死
       if (shouldRender && !workerNotReadyLargeGraph) {
-        // ── 聚类模式优化：聚合物理激活时完全跳过原始节点/边/位图渲染 ──
-        // 这是解决卡死的关键：聚类模式下原始 2 万节点的渲染没有意义
-        // 只渲染：聚合节点气泡 + 聚合边 + 少量展开的可见节点
         if (aggActive || clusterModeRef.current) {
-          // 1. 绘制聚合边（连接聚类气泡的线）
-          const hasAggEdges = aggPhys && aggPhys.edges.length > 0;
-          if (hasAggEdges) {
-            ctx.strokeStyle = token.colorBorder;
-            ctx.lineWidth = 0.5;
-            ctx.globalAlpha = 0.6;
-            for (const e of aggPhys.edges) {
-              const sIdx = e.sourceIdx;
-              const tIdx = e.targetIdx;
-              const sNode = aggPhys.nodes[sIdx];
-              const tNode = aggPhys.nodes[tIdx];
-              if (!sNode || !tNode) { continue; }
-              // 视口裁剪
-              if (sNode.x < viewWorld.x0 && tNode.x < viewWorld.x0) { continue; }
-              if (sNode.x > viewWorld.x1 && tNode.x > viewWorld.x1) { continue; }
-              if (sNode.y < viewWorld.y0 && tNode.y < viewWorld.y0) { continue; }
-              if (sNode.y > viewWorld.y1 && tNode.y > viewWorld.y1) { continue; }
-              ctx.beginPath();
-              ctx.moveTo(sNode.x, sNode.y);
-              ctx.lineTo(tNode.x, tNode.y);
-              ctx.stroke();
-            }
-            ctx.globalAlpha = 1;
-          } else if (aggPhys === null && nodes.length > 0) {
-            // 聚合物理未构建（如社区数过多被跳过）→ 回退绘制原始边
-            // 只绘制视口内的边，做性能保护
-            drawEdgesOptimized(ctx, nodes, fisheye, viewWorld);
-          }
-
-          // 2. 绘制聚类气泡（聚合节点）—— 最先绘制作为背景层
-          drawCollapsedClusters(ctx, viewWorld);
-
-          // 3. 绘制展开社区内的原始节点 —— 使用网格索引 + 社区过滤，O(可见节点数)
-          // 关键优化：当所有社区都折叠时（collapsed size >= communities size），
-          // 完全跳过原始节点渲染，零 O(N) 遍历
+          // ── 聚类模式：极简渲染策略 ──
+          // 全折叠时只画小型聚类标记 + 聚合边
+          // 展开社区时才画内部节点
           const activeCommunities = effectiveCommunitiesRef.current ?? communities;
           const totalCommunities = activeCommunities ? new Set(activeCommunities.values()).size : 0;
           const allCollapsed = collapsedRef.current.size >= totalCommunities && totalCommunities > 0;
+          const isLargeGraph = nodes.length > 5000;
 
-          if (!allCollapsed && nodes.length > 0) {
-            // 使用网格索引获取视口内节点（O(1) per cell），而非遍历全量节点
-            const gridIndex = gridIndexRef.current;
-            const posMap = posMapRef.current;
-            const maxVisibleNodes = 500;
-            let drawnNodes = 0;
-            const labelsToDraw: { id: string; x: number; y: number; size: number }[] = [];
+          if (allCollapsed) {
+            // ── 全折叠：只画聚类标记（最大15px）+ 聚合边 ──
+            const geom = clusterGeomRef.current;
+            if (geom.size > 0) {
+              // 聚合边
+              const aggPhysLocal = aggPhysRef.current;
+              if (aggPhysLocal && aggPhysLocal.edges.length > 0) {
+                ctx.save();
+                ctx.strokeStyle = token.colorBorder;
+                ctx.lineWidth = 0.5;
+                ctx.globalAlpha = 0.5;
+                ctx.beginPath();
+                for (const e of aggPhysLocal.edges) {
+                  const sNode = aggPhysLocal.nodes[e.sourceIdx];
+                  const tNode = aggPhysLocal.nodes[e.targetIdx];
+                  if (!sNode || !tNode) { continue; }
+                  if (
+                    !isInView(sNode.x, sNode.y, viewWorld, 30) || !isInView(tNode.x, tNode.y, viewWorld, 30)
+                  ) { continue; }
+                  ctx.moveTo(sNode.x, sNode.y);
+                  ctx.lineTo(tNode.x, tNode.y);
+                }
+                ctx.stroke();
+                ctx.restore();
+              }
 
-            if (gridIndex) {
-              const gx0 = Math.floor(viewWorld.x0 / GRID_CELL_SIZE);
-              const gy0 = Math.floor(viewWorld.y0 / GRID_CELL_SIZE);
-              const gx1 = Math.floor(viewWorld.x1 / GRID_CELL_SIZE);
-              const gy1 = Math.floor(viewWorld.y1 / GRID_CELL_SIZE);
-
-              for (let gx = gx0; gx <= gx1 && drawnNodes < maxVisibleNodes; gx++) {
-                for (let gy = gy0; gy <= gy1 && drawnNodes < maxVisibleNodes; gy++) {
-                  const bucket = gridIndex.get(`${gx},${gy}`);
-                  if (!bucket) { continue; }
-                  for (const id of bucket) {
-                    if (drawnNodes >= maxVisibleNodes) { break; }
-                    const cid = activeCommunities?.get(id);
-                    if (cid !== undefined && collapsedRef.current.has(cid)) { continue; }
-                    const node = posMap.get(id);
-                    if (!node) { continue; }
-                    const color = nodeColorRef.current.get(id) || token.colorPrimary;
-                    const size = (nodeSizeRef.current.get(id) || 5) * 1.0;
-                    ctx.fillStyle = color;
-                    ctx.beginPath();
-                    ctx.arc(node.x, node.y, size, 0, Math.PI * 2);
-                    ctx.fill();
-                    labelsToDraw.push({ id: node.id, x: node.x, y: node.y, size });
-                    drawnNodes++;
-                  }
+              // 聚类标记（小圆形，最大15px）
+              ctx.save();
+              for (const [cid, g] of geom) {
+                if (!collapsedRef.current.has(cid)) { continue; }
+                if (!isInView(g.cx, g.cy, viewWorld, 30)) { continue; }
+                const color = communityPalette[cid % communityPalette.length];
+                const maxR = Math.min(15, g.r);
+                // 主体
+                ctx.globalAlpha = 0.85;
+                ctx.beginPath();
+                ctx.arc(g.cx, g.cy, maxR, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+                // 标签
+                if (cam.zoom >= 0.3) {
+                  ctx.globalAlpha = 0.9;
+                  ctx.font = `${Math.max(10, Math.round(11 * cam.zoom + 2))}px Inter, system-ui, sans-serif`;
+                  ctx.textAlign = "center";
+                  ctx.textBaseline = "top";
+                  ctx.fillStyle = token.colorText;
+                  ctx.fillText(`${g.label} (${g.count})`, g.cx, g.cy + maxR + 2);
                 }
               }
-            }
-
-            // 绘制标签（Obsidian 风格：简洁白色文字 + 轻微背景）
-            if (cam.zoom >= 0.3 && labelsToDraw.length > 0) {
-              ctx.save();
-              ctx.textAlign = "center";
-              ctx.textBaseline = "top";
-              for (const label of labelsToDraw) {
-                const meta = nodeMetaRef.current.get(label.id);
-                if (!meta) { continue; }
-                const title = meta.title.length > 20 ? meta.title.slice(0, 18) + "…" : meta.title;
-                const fontSize = Math.max(10, Math.min(13, Math.round(11 * cam.zoom + 2)));
-                ctx.font = `${fontSize}px Inter, system-ui, sans-serif`;
-                ctx.fillStyle = token.colorText;
-                ctx.globalAlpha = 0.85;
-                ctx.fillText(title, label.x, label.y + label.size + 4);
-              }
-              ctx.globalAlpha = 1;
               ctx.restore();
             }
+          } else {
+            // ── 部分展开：绘制展开社区的节点和边 ──
+            if (activeCommunities) {
+              drawExpandedCommunity(ctx, nodes, viewWorld, activeCommunities, isLargeGraph);
+            }
           }
-
-          // 跳过：位图缓存、全量边、全量粒子 —— 这些在聚类模式下都会导致卡死
         } else {
           // ── 非聚类模式：使用原始渲染路径 ──
           const isLargeGraph = nodes.length > FORCE_BITMAP_THRESHOLD;
@@ -1958,6 +1923,132 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     margin = 80,
   ): boolean {
     return x >= view.x0 - margin && x <= view.x1 + margin && y >= view.y0 - margin && y <= view.y1 + margin;
+  }
+
+  function drawExpandedCommunity(
+    ctx: CanvasRenderingContext2D,
+    _nodes: PhysicsNode[],
+    viewWorld: { x0: number; y0: number; x1: number; y1: number },
+    activeCommunities: Map<string, number>,
+    isLargeGraph: boolean,
+  ) {
+    const zoom = cameraRef.current.zoom;
+    const collapsedSet = collapsedRef.current;
+    const edgeMeta = edgeMetaRef.current;
+    const posMap = posMapRef.current;
+    const gridIndex = gridIndexRef.current;
+
+    // 收集展开社区的节点（不在 collapsed 中的社区）
+    const expandedNodeIds = new Set<string>();
+    if (gridIndex) {
+      const gx0 = Math.floor(viewWorld.x0 / GRID_CELL_SIZE);
+      const gy0 = Math.floor(viewWorld.y0 / GRID_CELL_SIZE);
+      const gx1 = Math.floor(viewWorld.x1 / GRID_CELL_SIZE);
+      const gy1 = Math.floor(viewWorld.y1 / GRID_CELL_SIZE);
+
+      for (let gx = gx0; gx <= gx1; gx++) {
+        for (let gy = gy0; gy <= gy1; gy++) {
+          const bucket = gridIndex.get(`${gx},${gy}`);
+          if (!bucket) { continue; }
+          for (const id of bucket) {
+            const cid = activeCommunities.get(id);
+            if (cid !== undefined && !collapsedSet.has(cid)) {
+              expandedNodeIds.add(id);
+            }
+          }
+        }
+      }
+    }
+
+    if (expandedNodeIds.size === 0) { return; }
+
+    // 降采样：大图只画部分节点
+    const nodeSampleRate = isLargeGraph ? 0.5 : 1.0;
+    const visibleNodes: { id: string; x: number; y: number; size: number; color: string }[] = [];
+
+    for (const id of expandedNodeIds) {
+      if (nodeSampleRate < 1 && Math.random() > nodeSampleRate) { continue; }
+      const node = posMap.get(id);
+      if (!node) { continue; }
+      if (!isInView(node.x, node.y, viewWorld, 20)) { continue; }
+      const color = nodeColorRef.current.get(id) || token.colorPrimary;
+      const size = nodeSizeRef.current.get(id) || 5;
+      visibleNodes.push({ id, x: node.x, y: node.y, size, color });
+    }
+
+    // 绘制节点
+    ctx.save();
+    for (const node of visibleNodes) {
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, node.size, 0, Math.PI * 2);
+      ctx.fillStyle = node.color;
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // 绘制标签（zoom 足够时）
+    if (zoom >= 0.4 && visibleNodes.length > 0) {
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      for (const node of visibleNodes) {
+        const meta = nodeMetaRef.current.get(node.id);
+        if (!meta) { continue; }
+        const title = meta.title.length > 18 ? meta.title.slice(0, 16) + "…" : meta.title;
+        const fontSize = Math.max(9, Math.min(12, Math.round(10 * zoom + 2)));
+        ctx.font = `${fontSize}px Inter, system-ui, sans-serif`;
+        ctx.globalAlpha = 0.85;
+        ctx.fillStyle = token.colorText;
+        ctx.fillText(title, node.x, node.y + node.size + 3);
+      }
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
+
+    // 绘制边（只连接展开社区的节点）
+    if (edgeMeta.length > 0 && visibleNodes.length > 1) {
+      const idSet = new Set(visibleNodes.map(n => n.id));
+      const edgeSampleRate = isLargeGraph ? 0.3 : 0.7;
+
+      ctx.save();
+      ctx.strokeStyle = token.colorBorder;
+      ctx.lineWidth = 0.4;
+      ctx.globalAlpha = 0.4;
+
+      // 批量路径
+      const batchPaths = new Map<string, Path2D>();
+
+      for (let i = 0; i < edgeMeta.length; i++) {
+        const em = edgeMeta[i];
+        if (!idSet.has(em.source) || !idSet.has(em.target)) { continue; }
+        if (edgeSampleRate < 1 && (i % Math.round(1 / edgeSampleRate)) !== 0) { continue; }
+
+        const sNode = posMap.get(em.source);
+        const tNode = posMap.get(em.target);
+        if (!sNode || !tNode) { continue; }
+        if (!isInView(sNode.x, sNode.y, viewWorld, 10) && !isInView(tNode.x, tNode.y, viewWorld, 10)) { continue; }
+
+        const key = `${em.color}|${em.width}`;
+        let path = batchPaths.get(key);
+        if (!path) {
+          path = new Path2D();
+          batchPaths.set(key, path);
+        }
+        path.moveTo(sNode.x, sNode.y);
+        path.lineTo(tNode.x, tNode.y);
+      }
+
+      // 绘制批量路径
+      for (const [key, path] of batchPaths) {
+        const [color, width] = key.split("|");
+        ctx.strokeStyle = color;
+        ctx.lineWidth = parseFloat(width);
+        ctx.stroke(path);
+      }
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
   }
 
   function drawEdgesOptimized(
@@ -2340,95 +2431,6 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       ctx.stroke();
       ctx.setLineDash([]);
       ctx.restore();
-    }
-  }
-
-  // ── 社区聚合节点渲染（聚类折叠模式的顶层视图） ──
-  function drawCollapsedClusters(
-    ctx: CanvasRenderingContext2D,
-    viewWorld: { x0: number; y0: number; x1: number; y1: number },
-  ) {
-    if (!clusterModeRef.current || collapsedRef.current.size === 0) {
-      return;
-    }
-    const geom = clusterGeomRef.current;
-    const phase = phaseRef.current;
-    const hoverCluster = hoverClusterRef.current;
-    const zoom = cameraRef.current.zoom;
-
-    // 聚合边：直接使用 aggPhys 的边数据（不遍历原始 4 万条边）
-    const aggPhys = aggPhysRef.current;
-    if (aggPhys && aggPhys.edges.length > 0) {
-      ctx.strokeStyle = token.colorBorderSecondary;
-      ctx.globalAlpha = 0.4;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      for (const e of aggPhys.edges) {
-        const sNode = aggPhys.nodes[e.sourceIdx];
-        const tNode = aggPhys.nodes[e.targetIdx];
-        if (!sNode || !tNode) { continue; }
-        // 视口裁剪
-        if (sNode.x < viewWorld.x0 && tNode.x < viewWorld.x0) { continue; }
-        if (sNode.x > viewWorld.x1 && tNode.x > viewWorld.x1) { continue; }
-        if (sNode.y < viewWorld.y0 && tNode.y < viewWorld.y0) { continue; }
-        if (sNode.y > viewWorld.y1 && tNode.y > viewWorld.y1) { continue; }
-        ctx.moveTo(sNode.x, sNode.y);
-        ctx.lineTo(tNode.x, tNode.y);
-      }
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
-
-    // 聚合节点
-    for (const [cid, g] of geom) {
-      if (!collapsedRef.current.has(cid)) { continue; }
-      if (!isInView(g.cx, g.cy, viewWorld, 120)) { continue; }
-      const color = communityPalette[cid % communityPalette.length];
-      const isHover = hoverCluster === cid;
-      const r = g.r * (isHover ? 1.12 : 1);
-
-      // 外圈光晕（半透明）
-      ctx.globalAlpha = isHover ? 0.3 : 0.2;
-      ctx.beginPath();
-      ctx.arc(g.cx, g.cy, r * 1.5, 0, Math.PI * 2);
-      ctx.fillStyle = color;
-      ctx.fill();
-
-      // 主体
-      ctx.globalAlpha = 1;
-      ctx.beginPath();
-      ctx.arc(g.cx, g.cy, r, 0, Math.PI * 2);
-      ctx.fillStyle = color;
-      ctx.fill();
-
-      // 中心亮核（缩小版，体现"聚合"层次）
-      ctx.beginPath();
-      ctx.arc(g.cx, g.cy, r * 0.42, 0, Math.PI * 2);
-      ctx.fillStyle = lightenColor(color, 46);
-      ctx.fill();
-
-      // hover 波纹
-      if (isHover) {
-        const rp = (phase * 0.5) % 1;
-        ctx.globalAlpha = 0.35 * (1 - rp);
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        ctx.arc(g.cx, g.cy, r + 6 + rp * 22, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-      }
-
-      // 标签（常显）：代表名 + 计数；低缩放时隐藏避免重叠
-      if (zoom >= 0.35) {
-        ctx.font = `bold ${Math.max(11, Math.round(12 / Math.max(zoom, 0.5)))}px Inter, system-ui, sans-serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "top";
-        ctx.fillStyle = token.colorText;
-        ctx.globalAlpha = 0.95;
-        ctx.fillText(`${g.label} · ${g.count}`, g.cx, g.cy + r + 6);
-        ctx.globalAlpha = 1;
-      }
     }
   }
 
