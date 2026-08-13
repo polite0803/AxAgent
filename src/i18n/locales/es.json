@@ -2466,6 +2466,7 @@
     "ONBOARDING_NO_PROVIDER": "No hay proveedor configurado",
     "ONBOARDING_OLLAMA_NOT_CONFIGURED": "Ollama no está configurado",
     "ONBOARDING_OPENAI_NOT_CONFIGURED": "OpenAI no está configurado",
+    "OPC_SETUP_INTERNAL": "Error interno de configuración OPC",
     "PLATFORM_ADAPTER_NOT_FOUND": "Adaptador de plataforma no encontrado",
     "PLATFORM_API_SERVER_NOT_ENABLED": "Plataforma de servidor API no habilitada",
     "PLATFORM_DISCORD_NOT_ENABLED": "Plataforma Discord no habilitada",

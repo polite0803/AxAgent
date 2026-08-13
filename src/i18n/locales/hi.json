@@ -2466,6 +2466,7 @@
     "ONBOARDING_NO_PROVIDER": "कोई प्रदाता कॉन्फ़िगर नहीं",
     "ONBOARDING_OLLAMA_NOT_CONFIGURED": "Ollama कॉन्फ़िगर नहीं",
     "ONBOARDING_OPENAI_NOT_CONFIGURED": "OpenAI कॉन्फ़िगर नहीं",
+    "OPC_SETUP_INTERNAL": "OPC सेटअप आंतरिक त्रुटि",
     "PLATFORM_ADAPTER_NOT_FOUND": "प्लेटफ़ॉर्म एडाप्टर नहीं मिला",
     "PLATFORM_API_SERVER_NOT_ENABLED": "API सर्वर प्लेटफ़ॉर्म सक्षम नहीं",
     "PLATFORM_DISCORD_NOT_ENABLED": "Discord प्लेटफ़ॉर्म सक्षम नहीं",

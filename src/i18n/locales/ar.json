@@ -2466,6 +2466,7 @@
     "ONBOARDING_NO_PROVIDER": "لا يوجد موفر مهيأ",
     "ONBOARDING_OLLAMA_NOT_CONFIGURED": "Ollama غير مهيأ",
     "ONBOARDING_OPENAI_NOT_CONFIGURED": "OpenAI غير مهيأ",
+    "OPC_SETUP_INTERNAL": "خطأ داخلي في إعداد OPC",
     "PLATFORM_ADAPTER_NOT_FOUND": "محول المنصة غير موجود",
     "PLATFORM_API_SERVER_NOT_ENABLED": "منصة خادم API غير مفعلة",
     "PLATFORM_DISCORD_NOT_ENABLED": "منصة Discord غير مفعلة",

@@ -2466,6 +2466,7 @@
     "ONBOARDING_NO_PROVIDER": "구성된 제공자가 없습니다",
     "ONBOARDING_OLLAMA_NOT_CONFIGURED": "Ollama가 구성되지 않았습니다",
     "ONBOARDING_OPENAI_NOT_CONFIGURED": "OpenAI가 구성되지 않았습니다",
+    "OPC_SETUP_INTERNAL": "OPC 설정 내부 오류",
     "PLATFORM_ADAPTER_NOT_FOUND": "플랫폼 어댑터를 찾을 수 없습니다",
     "PLATFORM_API_SERVER_NOT_ENABLED": "API 서버 플랫폼이 활성화되지 않았습니다",
     "PLATFORM_DISCORD_NOT_ENABLED": "Discord 플랫폼이 활성화되지 않았습니다",
