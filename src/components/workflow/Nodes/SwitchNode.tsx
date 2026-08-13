@@ -27,6 +27,7 @@ const SwitchNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => 
     >
       <Handle
         type="target"
+        id="in"
         position={Position.Top}
         style={{ background: data.color, border: "none", width: 7, height: 7 }}
       />

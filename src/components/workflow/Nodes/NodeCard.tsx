@@ -45,6 +45,10 @@ export const NodeCard: React.FC<NodeCardProps> = ({
       style={{
         position: "relative",
         minWidth: 100,
+        // 关键：必须给根节点一个固定高度。内容区域是 absolute 定位（不撑开高度），
+        // 若不设 height，React Flow 测量节点高度为 0，导致节点不可见（只显示容器）。
+        // 用 wrapperStyle 可覆盖（如 SubWorkflowNode 折叠态指定尺寸）。
+        height: 32,
         opacity: isDisabled ? 0.5 : 1,
         filter: isDisabled ? "grayscale(100%)" : "none",
         transition: "opacity 0.15s",

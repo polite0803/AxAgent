@@ -61,6 +61,7 @@ const ConditionNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) 
     >
       <Handle
         type="target"
+        id="in"
         position={Position.Top}
         style={{
           background: color,

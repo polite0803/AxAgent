@@ -186,7 +186,17 @@ export function useFlowNodes(params: UseFlowNodesParams) {
         type: rtType,
         position: relPos,
         ...(pid ? { parentId: pid, extent: "parent" as const } : {}),
-        ...(containerStyle ? { style: containerStyle } : {}),
+        ...(containerStyle
+          ? {
+            // 关键：同时设置顶层 width/height 和 style。React Flow 计算 edge 锚点
+            // 时优先使用节点 internals 缓存的尺寸（通过 width/height 主动给定，
+            // 避免依赖 ResizeObserver 测量）。折叠/展开切换时 handle 位置变了，
+            // 若不显式更新尺寸，React Flow 会沿用旧尺寸计算锚点导致连线错位。
+            style: containerStyle,
+            width: (containerStyle as React.CSSProperties).width as number | undefined,
+            height: (containerStyle as React.CSSProperties).height as number | undefined,
+          }
+          : {}),
         ...(isContainer ? { dragHandle: ".workflow-container-drag-handle", zIndex: 0 } : {}),
         ...(!isContainer ? { zIndex: 10 } : {}),
         ...(childIsHidden ? { hidden: true } : {}),

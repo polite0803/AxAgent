@@ -49,7 +49,46 @@ export function useWorkflowAutoSave(): AutoSaveController {
       useWorkflowEditorStore.setState({ edges: cleanedEdges });
     }
 
-    const nodesWithParent = buildNodesWithParent(nodes, parentRefs);
+    // 装饰节点（_phaseSeparator / groupFrame）仅用于编辑器视觉分区，后端 WorkflowNode
+    // 枚举未定义这些变体，反序列化会报 unknown_variant 错误。因此持久化前必须过滤，
+    // 否则自动保存必失败。过滤后仍保留在编辑器中显示。
+    const PERSISTED_NODE_TYPES = new Set([
+      "trigger",
+      "agent",
+      "llm",
+      "condition",
+      "parallel",
+      "loop",
+      "merge",
+      "delay",
+      "validation",
+      "subWorkflow",
+      "documentParser",
+      "vectorRetrieve",
+      "httpRequest",
+      "switch",
+      "databaseQuery",
+      "notification",
+      "approval",
+      "fileOperation",
+      "dataTransformer",
+      "webhookSend",
+      "logging",
+      "llmClassifier",
+      "aggregator",
+      "email",
+      "debate",
+      "swarm",
+      "multiAgent",
+      "storage",
+      "workflowRef",
+      "end",
+      "tool",
+      "code",
+    ]);
+
+    const nodesWithParent = buildNodesWithParent(nodes, parentRefs)
+      .filter((n) => PERSISTED_NODE_TYPES.has(n.type));
     const input = {
       name: currentTemplate?.name || "Unnamed Workflow",
       description: currentTemplate?.description,
@@ -89,12 +128,12 @@ export function useWorkflowAutoSave(): AutoSaveController {
     await doSave();
   }, [doSave]);
 
-  // 监听 isDirty 变化调度自动保存
+  // 通过选择器订阅 isDirty，仅在脏状态变化（而非每次渲染）时调度自动保存。
+  // 之前效果无依赖数组、且用 getState() 读取，导致每次渲染都重建 timer。
+  const isDirty = useWorkflowEditorStore((s) => s.isDirty);
+
   useEffect(() => {
-    const state = useWorkflowEditorStore.getState();
-    if (!state.isDirty || state.isSaving || state.isDecompositionTemplate) {
-      return;
-    }
+    if (!isDirty) { return; }
 
     timerRef.current = setTimeout(async () => {
       await doSave();
@@ -106,7 +145,7 @@ export function useWorkflowAutoSave(): AutoSaveController {
         timerRef.current = null;
       }
     };
-  });
+  }, [isDirty, doSave]);
 
   return { saveNow, resetRetryCount, retryCountRef };
 }

@@ -16,6 +16,7 @@ import {
   useEdgesState,
   useNodesState,
   useReactFlow,
+  useUpdateNodeInternals,
 } from "@xyflow/react";
 import html2canvas from "html2canvas";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -332,12 +333,25 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
 
   /** 自动保存逻辑已迁移至 useWorkflowAutoSave Hook */
 
+  const updateNodeInternals = useUpdateNodeInternals();
+
   useEffect(() => {
     if (isDraggingRef.current || suppressRebuildRef.current) { return; }
 
     setRNodes(computedFlowNodes);
     setREdges(computedFlowEdges);
     setIsInitialized(true);
+
+    // 折叠/展开后容器节点的 width/height 发生变化，需要在 setRNodes 完成后
+    // 强制 React Flow 重新测量 internals，否则 handleBounds 缓存仍是旧尺寸，
+    // edge 锚点错位导致连线断开。
+    const remeasureIds = containerIdsNeedingRemeasureRef.current;
+    if (remeasureIds.length > 0) {
+      containerIdsNeedingRemeasureRef.current = [];
+      requestAnimationFrame(() => {
+        updateNodeInternals(remeasureIds);
+      });
+    }
 
     for (const [childId, expectedParent] of Object.entries(expectedParentByNode)) {
       if (parentRefs[childId] !== expectedParent) {
@@ -443,6 +457,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     updateNode,
     setRNodes,
     setREdges,
+    updateNodeInternals,
   ]);
 
   const onConnect = useCallback(
@@ -554,6 +569,25 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   }, [setSelectedNode, setSelectedEdge]);
 
   const reactFlowInstance = useReactFlow();
+
+  // 折叠/展开容器后，容器 handle 位置变化但 React Flow 缓存了旧的节点
+  // internals（含 handle 位置），导致 edge 锚点沿用旧尺寸、连线错位
+  // （折叠后下方连线断开）。在 setRNodes 完成后（下一帧）强制重新测量
+  // 相关容器节点，确保 handleBounds 与真实 DOM 尺寸同步。
+  const collapsedContainersRef = React.useRef<Record<string, boolean>>({});
+  const containerIdsNeedingRemeasureRef = React.useRef<string[]>([]);
+  useEffect(() => {
+    const prev = collapsedContainersRef.current;
+    collapsedContainersRef.current = collapsedContainers;
+    const changedIds = new Set<string>();
+    const allIds = new Set([...Object.keys(prev), ...Object.keys(collapsedContainers)]);
+    for (const id of allIds) {
+      if (prev[id] !== collapsedContainers[id]) { changedIds.add(id); }
+    }
+    if (changedIds.size > 0) {
+      containerIdsNeedingRemeasureRef.current = [...changedIds];
+    }
+  }, [collapsedContainers]);
 
   const onMoveEnd = useCallback(() => {
     setZoom(reactFlowInstance.getZoom());
