@@ -20,13 +20,12 @@ import type { AppSettings, PageKey } from "@/types";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { Avatar } from "antd";
 import {
+  Building2,
   Code,
   Cpu,
   DollarSign,
-  FolderKanban,
   Globe,
   GraduationCap,
-  LayoutDashboard,
   LineChart,
   MapPin,
   MessageSquare,
@@ -96,33 +95,12 @@ const builtinNavItems: NavItem[] = [
     path: BUILTIN_PAGE_PATH.invest,
     isPlugin: false,
   },
-  // OPC 一人公司管理 — 管理页面
+  // OPC 一人公司管理 — 统一入口（内部 Tab 切换：仪表盘/发票/客户/项目等）
   {
-    key: "opc-dashboard",
-    icon: <LayoutDashboard size={17} />,
-    labelKey: "opc.nav.dashboard",
-    path: `${BUILTIN_PAGE_PATH.opc}/dashboard`,
-    isPlugin: false,
-  },
-  {
-    key: "opc-invoices",
-    icon: <DollarSign size={17} />,
-    labelKey: "opc.nav.invoices",
-    path: `${BUILTIN_PAGE_PATH.opc}/invoices`,
-    isPlugin: false,
-  },
-  {
-    key: "opc-customers",
-    icon: <Users size={17} />,
-    labelKey: "opc.nav.customers",
-    path: `${BUILTIN_PAGE_PATH.opc}/customers`,
-    isPlugin: false,
-  },
-  {
-    key: "opc-projects",
-    icon: <FolderKanban size={17} />,
-    labelKey: "opc.nav.projects",
-    path: `${BUILTIN_PAGE_PATH.opc}/projects`,
+    key: "opc",
+    icon: <Building2 size={17} />,
+    labelKey: "nav.opc",
+    path: BUILTIN_PAGE_PATH.opc,
     isPlugin: false,
   },
   // OPC 一人公司管理 — 9 大垂直行业入口
@@ -469,7 +447,7 @@ export function Sidebar() {
     sections.push({
       key: "opc",
       labelKey: "nav.opc",
-      items: builtinNavItems.filter((n) => n.key.startsWith("opc-")),
+      items: builtinNavItems.filter((n) => n.key === "opc" || n.key.startsWith("opc-")),
     });
 
     return sections.filter((s) => s.items.length > 0);

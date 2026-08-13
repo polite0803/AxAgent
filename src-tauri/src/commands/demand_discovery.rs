@@ -826,7 +826,7 @@ pub async fn opc_match_lead_capabilities(
 
 // ── 平台配置 CRUD ──────────────────────────────────────────────
 
-/// 列出所有平台连接器配置
+/// 列出所有平台连接器配置（自动确保预置平台存在）
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateOnly, description = "列出市场平台配置")]
 #[tauri::command]
 pub async fn opc_list_platforms(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
@@ -834,8 +834,13 @@ pub async fn opc_list_platforms(state: State<'_, AppState>) -> Result<serde_json
     use sea_orm::*;
 
     let db = state.harness.db();
+
+    // 确保预置平台种子数据存在
+    let _ = axagent_dao::repo::market_platform::ensure_preset_platforms(db).await;
+
     let results = opc_market_platform::Entity::find()
-        .order_by_desc(opc_market_platform::Column::CreatedAt)
+        .order_by_desc(opc_market_platform::Column::Enabled)
+        .order_by_asc(opc_market_platform::Column::Name)
         .all(db)
         .await
         .map_err(|e| {

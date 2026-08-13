@@ -96,17 +96,41 @@ export function OpcPage() {
 
 export function OpcSubPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const params = useParams();
-  const tab = params?.tab || "dashboard";
-  const tabConfig = OPC_TABS.find((item) => item.key === tab);
-  const Component = tabConfig?.component || DashboardTab;
+  const [tab, setTab] = useState(params?.tab || "dashboard");
+
+  useEffect(() => {
+    const newTab = params?.tab || "dashboard";
+    if (newTab !== tab) {
+      setTab(newTab);
+    }
+  }, [params?.tab]);
+
+  const handleTabChange = useCallback((key: string) => {
+    setTab(key);
+    navigate(`/opc/${key}`, { replace: true });
+  }, [navigate]);
 
   return (
     <div className="p-6 h-full overflow-auto">
       <Title level={3} style={{ marginBottom: 16 }}>
-        {tabConfig?.icon} {t(tabConfig?.labelKey || "opc.title")}
+        <FileTextOutlined style={{ marginRight: 8 }} />
+        {t("opc.title")}
       </Title>
-      <Component />
+      <Tabs
+        activeKey={tab}
+        onChange={handleTabChange}
+        items={OPC_TABS.map((item) => ({
+          key: item.key,
+          label: (
+            <span>
+              {item.icon} {t(item.labelKey)}
+            </span>
+          ),
+          children: <item.component />,
+        }))}
+      />
     </div>
   );
 }

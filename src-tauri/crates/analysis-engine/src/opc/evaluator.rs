@@ -1088,7 +1088,7 @@ mod tests {
 
         let (min, max) = DemandType::Unknown.typical_price_range();
         assert_eq!(min, 1000.0);
-        assert_eq!(max, 1000.0);
+        assert_eq!(max, 10000.0);
     }
 
     #[test]

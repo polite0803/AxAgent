@@ -151,6 +151,239 @@ interface Settings {
   [key: string]: unknown;
 }
 
+// ── OPC 需求发现预置平台（浏览器模式 Mock 数据） ────────────────────
+interface MarketPlatform {
+  id: string;
+  name: string;
+  platform_type: string;
+  enabled: number;
+  base_url: string | null;
+  config_json: string;
+  last_sync_at: number | null;
+  status: string;
+  created_at: number;
+  updated_at: number;
+}
+
+let PRESET_MOCK_PLATFORMS: MarketPlatform[] = [
+  {
+    id: "reddit",
+    name: "Reddit",
+    platform_type: "scanner",
+    enabled: 1,
+    base_url: "https://www.reddit.com",
+    config_json: '{"description":"Reddit 技术社区扫描器","auto_sync":true}',
+    last_sync_at: null,
+    status: "idle",
+    created_at: 1700000000,
+    updated_at: 1700000000,
+  },
+  {
+    id: "hackernews",
+    name: "HackerNews",
+    platform_type: "scanner",
+    enabled: 1,
+    base_url: "https://news.ycombinator.com",
+    config_json: '{"description":"HackerNews 扫描器","auto_sync":true}',
+    last_sync_at: null,
+    status: "idle",
+    created_at: 1700000000,
+    updated_at: 1700000000,
+  },
+  {
+    id: "github-issues",
+    name: "GitHub Issues",
+    platform_type: "scanner",
+    enabled: 1,
+    base_url: "https://github.com",
+    config_json: '{"description":"GitHub Issues 扫描器","auto_sync":true}',
+    last_sync_at: null,
+    status: "idle",
+    created_at: 1700000000,
+    updated_at: 1700000000,
+  },
+  {
+    id: "github-discussions",
+    name: "GitHub Discussions",
+    platform_type: "scanner",
+    enabled: 1,
+    base_url: "https://github.com",
+    config_json: '{"description":"GitHub Discussions 扫描器","auto_sync":true}',
+    last_sync_at: null,
+    status: "idle",
+    created_at: 1700000000,
+    updated_at: 1700000000,
+  },
+  {
+    id: "stackoverflow",
+    name: "StackOverflow",
+    platform_type: "scanner",
+    enabled: 1,
+    base_url: "https://stackoverflow.com",
+    config_json: '{"description":"StackOverflow 扫描器","auto_sync":true}',
+    last_sync_at: null,
+    status: "idle",
+    created_at: 1700000000,
+    updated_at: 1700000000,
+  },
+  {
+    id: "producthunt",
+    name: "Product Hunt",
+    platform_type: "scanner",
+    enabled: 1,
+    base_url: "https://www.producthunt.com",
+    config_json: '{"description":"Product Hunt 扫描器","auto_sync":true}',
+    last_sync_at: null,
+    status: "idle",
+    created_at: 1700000000,
+    updated_at: 1700000000,
+  },
+  {
+    id: "huggingface",
+    name: "HuggingFace",
+    platform_type: "scanner",
+    enabled: 1,
+    base_url: "https://huggingface.co",
+    config_json: '{"description":"HuggingFace 扫描器","auto_sync":true}',
+    last_sync_at: null,
+    status: "idle",
+    created_at: 1700000000,
+    updated_at: 1700000000,
+  },
+  {
+    id: "package-ecosystem",
+    name: "Package Ecosystem",
+    platform_type: "scanner",
+    enabled: 1,
+    base_url: null,
+    config_json: '{"description":"包生态扫描器","auto_sync":true}',
+    last_sync_at: null,
+    status: "idle",
+    created_at: 1700000000,
+    updated_at: 1700000000,
+  },
+  {
+    id: "arxiv",
+    name: "arXiv",
+    platform_type: "scanner",
+    enabled: 1,
+    base_url: "https://arxiv.org",
+    config_json: '{"description":"arXiv 论文扫描器","auto_sync":true}',
+    last_sync_at: null,
+    status: "idle",
+    created_at: 1700000000,
+    updated_at: 1700000000,
+  },
+  {
+    id: "twitter",
+    name: "Twitter/X",
+    platform_type: "scanner",
+    enabled: 1,
+    base_url: "https://twitter.com",
+    config_json: '{"description":"Twitter/X 扫描器","auto_sync":true}',
+    last_sync_at: null,
+    status: "idle",
+    created_at: 1700000000,
+    updated_at: 1700000000,
+  },
+  {
+    id: "zhubajie",
+    name: "猪八戒",
+    platform_type: "scanner",
+    enabled: 1,
+    base_url: "https://www.zbj.com",
+    config_json: '{"description":"猪八戒扫描器","auto_sync":true}',
+    last_sync_at: null,
+    status: "idle",
+    created_at: 1700000000,
+    updated_at: 1700000000,
+  },
+  {
+    id: "xianyu",
+    name: "闲鱼",
+    platform_type: "scanner",
+    enabled: 1,
+    base_url: "https://www.goofish.com",
+    config_json: '{"description":"闲鱼扫描器","auto_sync":true}',
+    last_sync_at: null,
+    status: "idle",
+    created_at: 1700000000,
+    updated_at: 1700000000,
+  },
+  {
+    id: "linkedin",
+    name: "LinkedIn",
+    platform_type: "scanner",
+    enabled: 1,
+    base_url: "https://www.linkedin.com",
+    config_json: '{"description":"LinkedIn 扫描器","auto_sync":true}',
+    last_sync_at: null,
+    status: "idle",
+    created_at: 1700000000,
+    updated_at: 1700000000,
+  },
+  {
+    id: "zhihu",
+    name: "知乎",
+    platform_type: "scanner",
+    enabled: 1,
+    base_url: "https://www.zhihu.com",
+    config_json: '{"description":"知乎扫描器","auto_sync":true}',
+    last_sync_at: null,
+    status: "idle",
+    created_at: 1700000000,
+    updated_at: 1700000000,
+  },
+  {
+    id: "csdn",
+    name: "CSDN",
+    platform_type: "scanner",
+    enabled: 1,
+    base_url: "https://www.csdn.net",
+    config_json: '{"description":"CSDN 扫描器","auto_sync":true}',
+    last_sync_at: null,
+    status: "idle",
+    created_at: 1700000000,
+    updated_at: 1700000000,
+  },
+  {
+    id: "juejin",
+    name: "掘金",
+    platform_type: "scanner",
+    enabled: 1,
+    base_url: "https://juejin.cn",
+    config_json: '{"description":"掘金扫描器","auto_sync":true}',
+    last_sync_at: null,
+    status: "idle",
+    created_at: 1700000000,
+    updated_at: 1700000000,
+  },
+  {
+    id: "dribbble",
+    name: "Dribbble",
+    platform_type: "scanner",
+    enabled: 1,
+    base_url: "https://dribbble.com",
+    config_json: '{"description":"Dribbble 扫描器","auto_sync":true}',
+    last_sync_at: null,
+    status: "idle",
+    created_at: 1700000000,
+    updated_at: 1700000000,
+  },
+  {
+    id: "upwork",
+    name: "Upwork",
+    platform_type: "scanner",
+    enabled: 1,
+    base_url: "https://www.upwork.com",
+    config_json: '{"description":"Upwork 扫描器","auto_sync":true}',
+    last_sync_at: null,
+    status: "idle",
+    created_at: 1700000000,
+    updated_at: 1700000000,
+  },
+];
+
 function genId(): string {
   return crypto.randomUUID();
 }
@@ -4794,6 +5027,290 @@ export async function handleCommand<T>(
     case "opc_list_customers_inactive":
     case "opc_list_customers_new":
       return [] as unknown as T;
+
+    // ── OPC 需求发现相关 ────────────────────────────────────────────
+    case "opc_list_platforms": {
+      return [
+        {
+          id: "reddit",
+          name: "Reddit",
+          platform_type: "scanner",
+          enabled: 1,
+          base_url: "https://www.reddit.com",
+          config_json: '{"description":"Reddit 技术社区扫描器","auto_sync":true}',
+          last_sync_at: null,
+          status: "idle",
+          created_at: 1700000000,
+          updated_at: 1700000000,
+        },
+        {
+          id: "hackernews",
+          name: "HackerNews",
+          platform_type: "scanner",
+          enabled: 1,
+          base_url: "https://news.ycombinator.com",
+          config_json: '{"description":"HackerNews 扫描器","auto_sync":true}',
+          last_sync_at: null,
+          status: "idle",
+          created_at: 1700000000,
+          updated_at: 1700000000,
+        },
+        {
+          id: "github-issues",
+          name: "GitHub Issues",
+          platform_type: "scanner",
+          enabled: 1,
+          base_url: "https://github.com",
+          config_json: '{"description":"GitHub Issues 扫描器","auto_sync":true}',
+          last_sync_at: null,
+          status: "idle",
+          created_at: 1700000000,
+          updated_at: 1700000000,
+        },
+        {
+          id: "github-discussions",
+          name: "GitHub Discussions",
+          platform_type: "scanner",
+          enabled: 1,
+          base_url: "https://github.com",
+          config_json: '{"description":"GitHub Discussions 扫描器","auto_sync":true}',
+          last_sync_at: null,
+          status: "idle",
+          created_at: 1700000000,
+          updated_at: 1700000000,
+        },
+        {
+          id: "stackoverflow",
+          name: "StackOverflow",
+          platform_type: "scanner",
+          enabled: 1,
+          base_url: "https://stackoverflow.com",
+          config_json: '{"description":"StackOverflow 扫描器","auto_sync":true}',
+          last_sync_at: null,
+          status: "idle",
+          created_at: 1700000000,
+          updated_at: 1700000000,
+        },
+        {
+          id: "producthunt",
+          name: "Product Hunt",
+          platform_type: "scanner",
+          enabled: 1,
+          base_url: "https://www.producthunt.com",
+          config_json: '{"description":"Product Hunt 扫描器","auto_sync":true}',
+          last_sync_at: null,
+          status: "idle",
+          created_at: 1700000000,
+          updated_at: 1700000000,
+        },
+        {
+          id: "huggingface",
+          name: "HuggingFace",
+          platform_type: "scanner",
+          enabled: 1,
+          base_url: "https://huggingface.co",
+          config_json: '{"description":"HuggingFace 扫描器","auto_sync":true}',
+          last_sync_at: null,
+          status: "idle",
+          created_at: 1700000000,
+          updated_at: 1700000000,
+        },
+        {
+          id: "package-ecosystem",
+          name: "Package Ecosystem",
+          platform_type: "scanner",
+          enabled: 1,
+          base_url: null,
+          config_json: '{"description":"包生态扫描器","auto_sync":true}',
+          last_sync_at: null,
+          status: "idle",
+          created_at: 1700000000,
+          updated_at: 1700000000,
+        },
+        {
+          id: "arxiv",
+          name: "arXiv",
+          platform_type: "scanner",
+          enabled: 1,
+          base_url: "https://arxiv.org",
+          config_json: '{"description":"arXiv 论文扫描器","auto_sync":true}',
+          last_sync_at: null,
+          status: "idle",
+          created_at: 1700000000,
+          updated_at: 1700000000,
+        },
+        {
+          id: "twitter",
+          name: "Twitter/X",
+          platform_type: "scanner",
+          enabled: 1,
+          base_url: "https://twitter.com",
+          config_json: '{"description":"Twitter/X 扫描器","auto_sync":true}',
+          last_sync_at: null,
+          status: "idle",
+          created_at: 1700000000,
+          updated_at: 1700000000,
+        },
+        {
+          id: "zhubajie",
+          name: "猪八戒",
+          platform_type: "scanner",
+          enabled: 1,
+          base_url: "https://www.zbj.com",
+          config_json: '{"description":"猪八戒扫描器","auto_sync":true}',
+          last_sync_at: null,
+          status: "idle",
+          created_at: 1700000000,
+          updated_at: 1700000000,
+        },
+        {
+          id: "xianyu",
+          name: "闲鱼",
+          platform_type: "scanner",
+          enabled: 1,
+          base_url: "https://www.goofish.com",
+          config_json: '{"description":"闲鱼扫描器","auto_sync":true}',
+          last_sync_at: null,
+          status: "idle",
+          created_at: 1700000000,
+          updated_at: 1700000000,
+        },
+        {
+          id: "linkedin",
+          name: "LinkedIn",
+          platform_type: "scanner",
+          enabled: 1,
+          base_url: "https://www.linkedin.com",
+          config_json: '{"description":"LinkedIn 扫描器","auto_sync":true}',
+          last_sync_at: null,
+          status: "idle",
+          created_at: 1700000000,
+          updated_at: 1700000000,
+        },
+        {
+          id: "zhihu",
+          name: "知乎",
+          platform_type: "scanner",
+          enabled: 1,
+          base_url: "https://www.zhihu.com",
+          config_json: '{"description":"知乎扫描器","auto_sync":true}',
+          last_sync_at: null,
+          status: "idle",
+          created_at: 1700000000,
+          updated_at: 1700000000,
+        },
+        {
+          id: "csdn",
+          name: "CSDN",
+          platform_type: "scanner",
+          enabled: 1,
+          base_url: "https://www.csdn.net",
+          config_json: '{"description":"CSDN 扫描器","auto_sync":true}',
+          last_sync_at: null,
+          status: "idle",
+          created_at: 1700000000,
+          updated_at: 1700000000,
+        },
+        {
+          id: "juejin",
+          name: "掘金",
+          platform_type: "scanner",
+          enabled: 1,
+          base_url: "https://juejin.cn",
+          config_json: '{"description":"掘金扫描器","auto_sync":true}',
+          last_sync_at: null,
+          status: "idle",
+          created_at: 1700000000,
+          updated_at: 1700000000,
+        },
+        {
+          id: "dribbble",
+          name: "Dribbble",
+          platform_type: "scanner",
+          enabled: 1,
+          base_url: "https://dribbble.com",
+          config_json: '{"description":"Dribbble 扫描器","auto_sync":true}',
+          last_sync_at: null,
+          status: "idle",
+          created_at: 1700000000,
+          updated_at: 1700000000,
+        },
+        {
+          id: "upwork",
+          name: "Upwork",
+          platform_type: "scanner",
+          enabled: 1,
+          base_url: "https://www.upwork.com",
+          config_json: '{"description":"Upwork 扫描器","auto_sync":true}',
+          last_sync_at: null,
+          status: "idle",
+          created_at: 1700000000,
+          updated_at: 1700000000,
+        },
+      ] as unknown as T;
+    }
+
+    case "opc_save_platform": {
+      const input = args as {
+        id?: string;
+        name?: string;
+        platform_type?: string;
+        enabled?: number;
+        base_url?: string;
+        config?: Record<string, unknown>;
+      };
+      const now = Math.floor(Date.now() / 1000);
+      const existingIdx = PRESET_MOCK_PLATFORMS.findIndex((p) => p.id === input.id);
+      const platform = {
+        id: input.id || `mp-${Date.now()}`,
+        name: input.name || "New Platform",
+        platform_type: input.platform_type || "manual",
+        enabled: input.enabled ?? 1,
+        base_url: input.base_url || null,
+        config_json: JSON.stringify(input.config || {}),
+        last_sync_at: null,
+        status: "idle",
+        created_at: now,
+        updated_at: now,
+      };
+      if (existingIdx >= 0) {
+        PRESET_MOCK_PLATFORMS[existingIdx] = { ...PRESET_MOCK_PLATFORMS[existingIdx], ...platform, updated_at: now };
+      } else {
+        PRESET_MOCK_PLATFORMS.push(platform as typeof PRESET_MOCK_PLATFORMS[0]);
+      }
+      return platform as unknown as T;
+    }
+
+    case "opc_delete_platform": {
+      const { id } = args as { id: string };
+      const idx = PRESET_MOCK_PLATFORMS.findIndex((p) => p.id === id);
+      if (idx >= 0) {
+        PRESET_MOCK_PLATFORMS.splice(idx, 1);
+      }
+      return null as unknown as T;
+    }
+
+    case "opc_list_leads":
+      return [] as unknown as T;
+
+    case "opc_list_capabilities":
+      return [] as unknown as T;
+
+    case "opc_list_deliveries":
+      return [] as unknown as T;
+
+    case "opc_list_capability_gaps":
+      return [] as unknown as T;
+
+    case "opc_discover_and_evaluate_leads": {
+      return {
+        total_scanned: 0,
+        total_evaluated: 0,
+        total_saved: 0,
+        high_value_count: 0,
+        leads: [],
+      } as unknown as T;
+    }
 
     case "opc_get_dashboard_summary":
       return {
