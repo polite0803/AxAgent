@@ -844,24 +844,43 @@ impl NodeExecutorTrait for AgentExecutor {
             )
         })?;
 
-        // 5. 构建 user_prompt：仅包含 context_sources 的变量（更精准，减少噪声）
-        let user_prompt = if an.config.context_sources.is_empty() {
-            // 向后兼容：无 context_sources 时包含所有变量
-            context
-                .variables
-                .iter()
-                .filter(|(k, _)| !k.starts_with("__"))
-                .map(|(k, v)| format!("{k}: {v}"))
-                .collect::<Vec<_>>()
-                .join("\n")
+        // 5. 构建 user_prompt：始终包含用户原始消息 + context_sources 变量
+        let user_message =
+            context.variables.get(super::USER_MESSAGE_VAR).and_then(|v| v.as_str()).unwrap_or("");
+
+        let mut user_prompt_parts: Vec<String> = Vec::new();
+
+        // 始终注入用户消息（若存在），作为 LLM 理解用户意图的基础
+        if !user_message.is_empty() {
+            user_prompt_parts.push(format!("用户消息: {user_message}"));
+        }
+
+        // 注入 context_sources 指定的变量（若有）
+        if !an.config.context_sources.is_empty() {
+            for source in &an.config.context_sources {
+                if let Some(value) = context.variables.get(source) {
+                    // 跳过 input / user_message（已在上方注入，避免重复）
+                    if source == super::USER_INPUT_VAR || source == super::USER_MESSAGE_VAR {
+                        continue;
+                    }
+                    user_prompt_parts.push(format!("{source}: {value}"));
+                }
+            }
         } else {
-            an.config
-                .context_sources
-                .iter()
-                .filter_map(|s| context.variables.get(s).map(|v| format!("{s}: {v}")))
-                .collect::<Vec<_>>()
-                .join("\n")
-        };
+            // 向后兼容：无 context_sources 时包含所有非 __ 前缀变量
+            // （但 input/user_message 已在上方注入，过滤避免重复）
+            for (k, v) in &context.variables {
+                if k.starts_with("__") {
+                    continue;
+                }
+                if k == super::USER_INPUT_VAR || k == super::USER_MESSAGE_VAR {
+                    continue;
+                }
+                user_prompt_parts.push(format!("{k}: {v}"));
+            }
+        }
+
+        let user_prompt = user_prompt_parts.join("\n");
 
         let mut messages: Vec<ChatMessage> = vec![
             ChatMessage {

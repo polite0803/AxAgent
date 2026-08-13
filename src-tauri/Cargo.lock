@@ -851,6 +851,7 @@ dependencies = [
  "open",
  "openssl",
  "rcgen",
+ "regex",
  "reqwest",
  "rusqlite",
  "rustls",

@@ -78,6 +78,8 @@ pub use crate::work_engine::node_executor_trait::node_type_name;
 // LLM 选择/Provider 解析等元信息。集中定义避免散落字符串。
 pub const WORKFLOW_MODEL_VAR: &str = "__workflow_model__";
 pub const WORKFLOW_PROVIDER_ID_VAR: &str = "__workflow_provider_id__";
+pub const USER_INPUT_VAR: &str = "input";
+pub const USER_MESSAGE_VAR: &str = "user_message";
 
 // ── 公共 LLM 解析助手 ──
 // 4 个 executor（agent/condition/llm/llm_classifier）都重复

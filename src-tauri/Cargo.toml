@@ -56,6 +56,7 @@ image = { version = "0.25", features = ["png"] }
 insta = { version = "1.48", features = ["yaml", "json", "redactions"] }
 lazy_static = "1"
 libsqlite3-sys = { version = "0.37", features = ["bundled"] }
+regex = "1"
 reqwest = { version = "0.13", features = ["json"] }
 sea-orm = { version = "2.0.1", features = ["sqlx-sqlite", "sqlx-postgres", "runtime-tokio-native-tls", "macros"] }
 serde = { version = "1", features = ["derive"] }
@@ -168,6 +169,7 @@ lazy_static = { workspace = true }
 notify = "9.0.0-rc.4"
 open = "5"
 rcgen = "0.14"
+regex = { workspace = true }
 reqwest = { workspace = true }
 rusqlite = { version = "0.39", features = ["bundled"] }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "ring"] }
