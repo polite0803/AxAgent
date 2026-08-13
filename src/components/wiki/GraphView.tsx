@@ -1570,7 +1570,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         // 只渲染：聚合节点气泡 + 聚合边 + 少量展开的可见节点
         if (aggActive || clusterModeRef.current) {
           // 1. 绘制聚合边（连接聚类气泡的线）
-          if (aggPhys && aggPhys.edges.length > 0) {
+          const hasAggEdges = aggPhys && aggPhys.edges.length > 0;
+          if (hasAggEdges) {
             ctx.strokeStyle = token.colorBorder;
             ctx.lineWidth = 0.5;
             ctx.globalAlpha = 0.6;
@@ -1591,6 +1592,10 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
               ctx.stroke();
             }
             ctx.globalAlpha = 1;
+          } else if (aggPhys === null && nodes.length > 0) {
+            // 聚合物理未构建（如社区数过多被跳过）→ 回退绘制原始边
+            // 只绘制视口内的边，做性能保护
+            drawEdgesOptimized(ctx, nodes, fisheye, viewWorld);
           }
 
           // 2. 绘制聚类气泡（聚合节点）—— 最先绘制作为背景层
@@ -1609,6 +1614,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
             const posMap = posMapRef.current;
             const maxVisibleNodes = 500;
             let drawnNodes = 0;
+            const labelsToDraw: { id: string; x: number; y: number; size: number }[] = [];
 
             if (gridIndex) {
               const gx0 = Math.floor(viewWorld.x0 / GRID_CELL_SIZE);
@@ -1622,7 +1628,6 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
                   if (!bucket) { continue; }
                   for (const id of bucket) {
                     if (drawnNodes >= maxVisibleNodes) { break; }
-                    // 跳过折叠社区的节点
                     const cid = activeCommunities?.get(id);
                     if (cid !== undefined && collapsedRef.current.has(cid)) { continue; }
                     const node = posMap.get(id);
@@ -1633,10 +1638,30 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
                     ctx.beginPath();
                     ctx.arc(node.x, node.y, size, 0, Math.PI * 2);
                     ctx.fill();
+                    labelsToDraw.push({ id: node.id, x: node.x, y: node.y, size });
                     drawnNodes++;
                   }
                 }
               }
+            }
+
+            // 绘制标签（Obsidian 风格：简洁白色文字 + 轻微背景）
+            if (cam.zoom >= 0.3 && labelsToDraw.length > 0) {
+              ctx.save();
+              ctx.textAlign = "center";
+              ctx.textBaseline = "top";
+              for (const label of labelsToDraw) {
+                const meta = nodeMetaRef.current.get(label.id);
+                if (!meta) { continue; }
+                const title = meta.title.length > 20 ? meta.title.slice(0, 18) + "…" : meta.title;
+                const fontSize = Math.max(10, Math.min(13, Math.round(11 * cam.zoom + 2)));
+                ctx.font = `${fontSize}px Inter, system-ui, sans-serif`;
+                ctx.fillStyle = token.colorText;
+                ctx.globalAlpha = 0.85;
+                ctx.fillText(title, label.x, label.y + label.size + 4);
+              }
+              ctx.globalAlpha = 1;
+              ctx.restore();
             }
           }
 
@@ -2150,7 +2175,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     const hasCommunityFilter = hasCommunityFilterRef.current;
 
     const zoom = cameraRef.current.zoom;
-    const showAllLabels = zoom >= 0.6 && !hasHighlight && !hovered && !selected && nodes.length < 300;
+    const showAllLabels = zoom >= 0.35 && !hasHighlight;
     const isLargeGraph = nodes.length > GLOW_NODE_LIMIT;
 
     // ── 关键性能优化：使用网格索引获取视口内的节点，避免遍历所有节点 ──
