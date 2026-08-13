@@ -1755,14 +1755,31 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
                 ctx.fillStyle = color;
                 ctx.fill();
                 drawnClusters++;
-                // 标签
-                if (cam.zoom >= 0.3) {
+                // 标签：仅在较高缩放级别显示，字号随缩放动态调整
+                // 世界坐标下字号保持约 12px，通过 zoom 换算
+                if (cam.zoom >= 0.8) {
+                  const fontSize = 12 / cam.zoom;
                   ctx.globalAlpha = 0.9;
-                  ctx.font = `${Math.max(10, Math.round(11 * cam.zoom + 2))}px Inter, system-ui, sans-serif`;
+                  ctx.font = `${fontSize.toFixed(1)}px Inter, system-ui, sans-serif`;
                   ctx.textAlign = "center";
                   ctx.textBaseline = "top";
                   ctx.fillStyle = token.colorText;
-                  ctx.fillText(`${g.label} (${g.count})`, g.cx, g.cy + maxR + 2);
+                  const label = `${g.label} (${g.count})`;
+                  // 限制标签最大宽度，超过则截断
+                  const maxLabelWidth = 80 / cam.zoom;
+                  let displayLabel = label;
+                  const metrics = ctx.measureText(label);
+                  if (metrics.width > maxLabelWidth) {
+                    const ellipsis = "…";
+                    let w = ctx.measureText(ellipsis).width;
+                    let i = 0;
+                    while (w < maxLabelWidth && i < label.length) {
+                      i++;
+                      w = ctx.measureText(label.slice(0, i) + ellipsis).width;
+                    }
+                    displayLabel = label.slice(0, i) + ellipsis;
+                  }
+                  ctx.fillText(displayLabel, g.cx, g.cy + maxR + fontSize);
                 }
               }
               if (frameCounterRef.current % 60 === 0) {
