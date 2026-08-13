@@ -28,6 +28,7 @@ const EndNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
       {/* EndNode only has target handle (no source) */}
       <Handle
         type="target"
+        id="in"
         position={Position.Top}
         style={{ background: data.color, border: "none", width: 7, height: 7 }}
       />

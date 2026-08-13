@@ -29,6 +29,7 @@ const ToolNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
     >
       <Handle
         type="target"
+        id="in"
         position={Position.Top}
         style={{
           background: data.color,
@@ -40,6 +41,7 @@ const ToolNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) => {
       />
       <Handle
         type="source"
+        id="out"
         position={Position.Bottom}
         style={{
           background: data.color,

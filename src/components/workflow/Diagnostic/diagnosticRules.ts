@@ -101,12 +101,24 @@ const CONTAINER_NODE_TYPES = new Set([
   "merge",
 ]);
 
+// 装饰节点类型：阶段分隔线 / 分组框，仅用于编辑器视觉分区，不参与布局/校验/执行，
+// 与 workflowLayout.ts 的 isLayoutExcluded 保持一致。它们天然无边，不应被误报为孤立节点。
+const DECORATION_NODE_TYPES = new Set(["_phaseSeparator", "groupFrame"]);
+
 const RULE_ORPHAN_NODES: Rule = (ctx) => {
   const results: DiagnosticIssue[] = [];
+  const parentByNode = new Map<string, string>();
+  for (const n of ctx.nodes) {
+    const b = baseOf(n);
+    if (b.parentId) { parentByNode.set(b.id, b.parentId); }
+  }
   for (const n of ctx.nodes) {
     const id = baseOf(n).id;
     const type = nodeType(n);
-    if (type === "trigger" || CONTAINER_NODE_TYPES.has(type)) { continue; }
+    // 触发节点、容器节点、装饰节点均不参与孤立检查
+    if (type === "trigger" || CONTAINER_NODE_TYPES.has(type) || DECORATION_NODE_TYPES.has(type)) { continue; }
+    // 容器子节点通过 parentId 归属父容器（不经过边），跳过孤立检查
+    if (parentByNode.has(id)) { continue; }
     const up = ctx.upstreamOf.get(id);
     const down = ctx.downstreamOf.get(id);
     if ((!up || up.length === 0) && (!down || down.length === 0)) {

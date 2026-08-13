@@ -28,6 +28,7 @@ const TriggerNodeComponent: React.FC<NodeProps> = ({ data: _data, selected }) =>
       {/* TriggerNode only has source handle (no target) */}
       <Handle
         type="source"
+        id="out"
         position={Position.Bottom}
         style={{ background: data.color, border: "none", width: 7, height: 7 }}
       />

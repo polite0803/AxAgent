@@ -3,8 +3,8 @@
 import { TemplateList } from "@/components/workflow/Templates";
 import type { WorkflowTemplateResponse } from "@/components/workflow/types";
 import { WorkflowMarketplace } from "@/pages/WorkflowMarketplace";
-import { Button, Tabs } from "antd";
-import { GitBranch, Plus, Store } from "lucide-react";
+import { Tabs } from "antd";
+import { GitBranch, Store } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 interface WorkflowSettingsProps {
@@ -42,26 +42,6 @@ export function WorkflowSettings({
 
   const renderMyWorkflows = () => (
     <div style={{ padding: "16px 0", flex: 1, minHeight: 0, overflowY: "auto" }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 24,
-        }}
-      >
-        <div>
-          <Button
-            type="primary"
-            data-testid="workflow-create-new-btn"
-            icon={<Plus size={16} />}
-            onClick={handleCreateNew}
-          >
-            {t("settings.workflow.createNew")}
-          </Button>
-        </div>
-      </div>
-
       <TemplateList
         onSelectTemplate={handleSelectTemplate}
         onCreateNew={handleCreateNew}

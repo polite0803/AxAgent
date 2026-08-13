@@ -154,6 +154,7 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
         {/* Handle（端口） */}
         <Handle
           type="target"
+          id="in"
           position={Position.Top}
           style={{
             background: token.colorBgElevated,
@@ -165,6 +166,7 @@ const BaseNodeComponent: React.FC<NodeProps> = ({
         />
         <Handle
           type="source"
+          id="out"
           position={Position.Bottom}
           style={{
             background: token.colorBgElevated,

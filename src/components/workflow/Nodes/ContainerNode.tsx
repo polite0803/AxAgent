@@ -32,6 +32,8 @@ interface ContainerNodeProps {
   collapsedExtra?: React.ReactNode;
   disableHandles?: boolean;
   childLabel?: string;
+  /** 容器尺寸 transition 结束后回调，用于触发 React Flow 重新测量 internals */
+  onSizeTransitionEnd?: () => void;
 }
 
 const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
@@ -42,6 +44,7 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
   collapsedExtra,
   disableHandles,
   childLabel,
+  onSizeTransitionEnd,
 }) => {
   const { t } = useTranslation();
   const { token } = theme.useToken();
@@ -66,6 +69,11 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
 
   return (
     <div
+      onTransitionEnd={(e) => {
+        if (e.propertyName === "width" || e.propertyName === "height") {
+          onSizeTransitionEnd?.();
+        }
+      }}
       style={{
         width: isCollapsed ? 160 : (data.nodeWidth ?? 240),
         height: isCollapsed ? 32 : (data.nodeHeight ?? 120),
@@ -74,7 +82,10 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
         borderRadius: 8,
         opacity: data.enabled ? (data.kind === "decorative" ? 0.45 : 1) : 0.5,
         position: "relative",
-        transition: "opacity 0.15s, border-color 0.15s, width 0.2s, height 0.2s",
+        // 关键：width/height 不加 transition — 折叠/展开时需要瞬间完成尺寸变化，
+        // 让 ResizeObserver 能在尺寸稳定后正确测量，React Flow 的 handleBounds 缓存
+        // 才能对应真实尺寸，否则 edge 锚点会沿用旧尺寸导致连线错位/断开。
+        transition: "opacity 0.15s, border-color 0.15s",
         boxShadow: selected
           ? `0 0 0 1px ${data.color}40, 0 2px 6px rgba(0,0,0,0.06)`
           : "none",
@@ -268,6 +279,7 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
         <>
           <Handle
             type="target"
+            id="in"
             position={Position.Top}
             style={{
               background: token.colorBgElevated,
@@ -284,6 +296,7 @@ const ContainerNodeComponent: React.FC<ContainerNodeProps> = ({
           />
           <Handle
             type="source"
+            id="out"
             position={Position.Bottom}
             style={{
               background: token.colorBgElevated,
