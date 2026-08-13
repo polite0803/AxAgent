@@ -2442,6 +2442,7 @@ fn start_cron_scheduler(app: &tauri::AppHandle, state: &AppState) {
         }
         // 需求发现兜底路由：task_type = opc-demand-discovery
         // 直接执行「扫描→评估→入库」流水线，不依赖工作流引擎
+        // 当 prompt 为空时，自动从配置中提取领域关键词进行主动扫描
         if job.task_type.as_deref() == Some("opc-demand-discovery") {
             let store = cron_store.clone();
             let db = sync_db.clone();
@@ -2452,14 +2453,15 @@ fn start_cron_scheduler(app: &tauri::AppHandle, state: &AppState) {
             let app_handle = app_handle_for_executor.clone();
             tokio::task::spawn(async move {
                 let started = axagent_runtime_core::cron_job::now_millis();
-                let query = if prompt.trim().is_empty() {
-                    "AI tool software developer tool".to_string()
+                // prompt 为空时，run_demand_discovery_cron 会自动从配置提取领域关键词
+                let query_opt = if prompt.trim().is_empty() {
+                    None
                 } else {
-                    prompt.clone()
+                    Some(prompt.as_str())
                 };
                 let result = crate::commands::demand_discovery::run_demand_discovery_cron(
                     &db,
-                    &query,
+                    query_opt,
                     Some(&app_handle),
                 )
                 .await;

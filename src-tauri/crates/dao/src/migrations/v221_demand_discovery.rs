@@ -23,9 +23,9 @@ CREATE TABLE IF NOT EXISTS opc_capability (
     example_deliverables_json TEXT NOT NULL DEFAULT '[]',
     metadata_json TEXT NOT NULL DEFAULT '{}',
     is_active INTEGER NOT NULL DEFAULT 1,
-    scanned_at INTEGER NOT NULL,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
+    scanned_at BIGINT NOT NULL,
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL
 )"#;
 
     let create_demand_lead = r#"
@@ -51,10 +51,10 @@ CREATE TABLE IF NOT EXISTS opc_demand_lead (
     notes TEXT NOT NULL DEFAULT '',
     project_id TEXT,
     customer_id TEXT,
-    expires_at INTEGER,
+    expires_at BIGINT,
     claimed_by TEXT,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL
 )"#;
 
     let create_delivery = r#"
@@ -68,14 +68,14 @@ CREATE TABLE IF NOT EXISTS opc_delivery (
     description TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL DEFAULT 'pending',
     progress REAL NOT NULL DEFAULT 0.0,
-    started_at INTEGER,
-    completed_at INTEGER,
+    started_at BIGINT,
+    completed_at BIGINT,
     result_summary TEXT,
     deliverables_json TEXT NOT NULL DEFAULT '[]',
     errors_json TEXT NOT NULL DEFAULT '[]',
     metadata_json TEXT NOT NULL DEFAULT '{}',
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL
 )"#;
 
     let create_market_platform = r#"
@@ -86,10 +86,10 @@ CREATE TABLE IF NOT EXISTS opc_market_platform (
     enabled INTEGER NOT NULL DEFAULT 1,
     base_url TEXT,
     config_json TEXT NOT NULL DEFAULT '{}',
-    last_sync_at INTEGER,
+    last_sync_at BIGINT,
     status TEXT NOT NULL DEFAULT 'idle',
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL
 )"#;
 
     let create_capability_gap = r#"
@@ -103,9 +103,9 @@ CREATE TABLE IF NOT EXISTS opc_capability_gap (
     suggested_action TEXT NOT NULL DEFAULT '',
     priority INTEGER NOT NULL DEFAULT 3,
     status TEXT NOT NULL DEFAULT 'open',
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL,
-    closed_at INTEGER
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL,
+    closed_at BIGINT
 )"#;
 
     let indices = [

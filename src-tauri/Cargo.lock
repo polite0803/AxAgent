@@ -870,6 +870,7 @@ dependencies = [
  "open",
  "openssl",
  "rcgen",
+ "regex",
  "reqwest",
  "rhai",
  "rusqlite",

@@ -472,6 +472,33 @@ pub async fn repair_schema(db: &sea_orm::DatabaseConnection) -> Result<(usize, u
     ))
     .await?;
 
+    // 修复时间戳列类型：从 INTEGER(INT4) 改为 BIGINT(INT8)
+    // 修复 SeaORM 实体 i64 与数据库 INT4 类型不匹配的问题
+    let fix_timestamp_columns = [
+        "ALTER TABLE opc_capability ALTER COLUMN scanned_at TYPE BIGINT",
+        "ALTER TABLE opc_capability ALTER COLUMN created_at TYPE BIGINT",
+        "ALTER TABLE opc_capability ALTER COLUMN updated_at TYPE BIGINT",
+        "ALTER TABLE opc_market_platform ALTER COLUMN created_at TYPE BIGINT",
+        "ALTER TABLE opc_market_platform ALTER COLUMN updated_at TYPE BIGINT",
+        "ALTER TABLE opc_market_platform ALTER COLUMN last_sync_at TYPE BIGINT",
+        "ALTER TABLE opc_demand_lead ALTER COLUMN created_at TYPE BIGINT",
+        "ALTER TABLE opc_demand_lead ALTER COLUMN updated_at TYPE BIGINT",
+        "ALTER TABLE opc_demand_lead ALTER COLUMN expires_at TYPE BIGINT",
+        "ALTER TABLE opc_delivery ALTER COLUMN created_at TYPE BIGINT",
+        "ALTER TABLE opc_delivery ALTER COLUMN updated_at TYPE BIGINT",
+        "ALTER TABLE opc_delivery ALTER COLUMN started_at TYPE BIGINT",
+        "ALTER TABLE opc_delivery ALTER COLUMN completed_at TYPE BIGINT",
+        "ALTER TABLE opc_capability_gap ALTER COLUMN created_at TYPE BIGINT",
+        "ALTER TABLE opc_capability_gap ALTER COLUMN updated_at TYPE BIGINT",
+        "ALTER TABLE opc_capability_gap ALTER COLUMN closed_at TYPE BIGINT",
+    ];
+
+    for sql in &fix_timestamp_columns {
+        if let Err(e) = db.execute_unprepared(sql).await {
+            tracing::debug!("[repair_schema] 时间戳列类型修复（可忽略）: {}", e);
+        }
+    }
+
     let mut fixed = 0usize;
     let total = MIGRATIONS.len();
 

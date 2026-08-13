@@ -1502,6 +1502,23 @@ impl WorkEngine {
                         state.variables.insert(var.name.clone(), var.value.clone());
                     }
                 }
+                // 注入用户原始输入为工作流变量，使 Agent 节点可通过 context_sources 或
+                // system_prompt 模板引用 `input` / `user_message` 获取用户消息。
+                // - `input`: 原始 JSON 值（可能是字符串或对象）
+                // - `user_message`: 字符串表示，确保纯文本场景也能访问
+                if let Some(ref raw_input) = options.input {
+                    state
+                        .variables
+                        .insert(super::executors::USER_INPUT_VAR.to_string(), raw_input.clone());
+                    let msg = match raw_input {
+                        serde_json::Value::String(s) => s.clone(),
+                        other => other.to_string(),
+                    };
+                    state.variables.insert(
+                        super::executors::USER_MESSAGE_VAR.to_string(),
+                        serde_json::Value::String(msg),
+                    );
+                }
                 if options.plan_callbacks.is_some() {
                     state.plan_callbacks = options.plan_callbacks.clone();
                 }
@@ -2179,10 +2196,21 @@ impl WorkEngine {
                             merged_vars.entry(k.clone()).or_insert_with(|| v.clone());
                         }
                         // input_params 兜底：兼容只设置 options.input 的调用方
-                        if let serde_json::Value::Object(map) = &state.input_params {
-                            for (k, v) in map {
-                                merged_vars.entry(k.clone()).or_insert_with(|| v.clone());
-                            }
+                        // 对象 → 合并各字段；字符串 → 同时注入 "input" 和 "user_message"
+                        match &state.input_params {
+                            serde_json::Value::Object(map) => {
+                                for (k, v) in map {
+                                    merged_vars.entry(k.clone()).or_insert_with(|| v.clone());
+                                }
+                            },
+                            other => {
+                                merged_vars
+                                    .entry("input".to_string())
+                                    .or_insert_with(|| other.clone());
+                                merged_vars.entry("user_message".to_string()).or_insert_with(
+                                    || serde_json::Value::String(other.to_string()),
+                                );
+                            },
                         }
                     }
                 }

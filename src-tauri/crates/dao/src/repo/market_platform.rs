@@ -221,12 +221,14 @@ pub async fn ensure_preset_platforms(db: &DatabaseConnection) -> Result<(), Stri
     Ok(())
 }
 
-/// 列出所有平台（先确保预置存在）
+/// 列出所有平台（确保预置存在）
+///
+/// 每次调用时都会触发种子化，如果种子化失败会返回错误。
 pub async fn list_platforms(
     db: &DatabaseConnection,
 ) -> Result<Vec<opc_market_platform::Model>, String> {
-    // 确保预置平台存在
-    let _ = ensure_preset_platforms(db).await;
+    // 确保预置平台存在（如果表为空则插入种子数据）
+    ensure_preset_platforms(db).await?;
 
     opc_market_platform::Entity::find()
         .order_by_desc(opc_market_platform::Column::Enabled)

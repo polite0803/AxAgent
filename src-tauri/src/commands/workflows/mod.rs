@@ -9,10 +9,11 @@ use crate::commands::spawn_guard::SpawnGuard;
 use agent_macro::agent_command;
 use axagent_dao::repo::{conversation, message, workflow_template};
 use axagent_harness::types::{MessageRole, UpdateConversationInput};
-use axagent_harness::workflow_types::Workflow;
+use axagent_harness::workflow_types::{Variable, Workflow};
 use axagent_runtime::work_engine::{
     HeartbeatCallback, ProgressCallback, StepProgressEvent, TimeoutWarningCallback, node_type_of,
 };
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -164,6 +165,7 @@ pub async fn workflow_execute(
             let clamped = mc.max(1);
             opts = opts.with_max_concurrent(clamped);
         }
+        let user_input_ref = input.clone();
         opts.input = input;
 
         // ── 对话驱动模式：自动加载模板变量 ──
@@ -196,6 +198,42 @@ pub async fn workflow_execute(
                         }
                     }
                 }
+            }
+        }
+
+        // ── 参数提取：从用户输入中提取结构化变量 ──
+        // 两种模式：
+        //   1) JSON 对象输入：直接将 key-value 作为模板变量覆盖（如 {"stock_code": "301302"}）
+        //   2) 纯文本输入：尝试用内置规则提取常见参数（股票代码、字数、章节数等）
+        if let Some(ref user_input) = user_input_ref {
+            let existing_vars = opts.variables.get_or_insert_with(Vec::new);
+
+            // 模式 1：JSON 对象 → 直接提取 key-value
+            if let serde_json::Value::Object(map) = user_input {
+                for (key, value) in map {
+                    // 跳过系统保留 key
+                    if key == "input" || key == "user_message" {
+                        continue;
+                    }
+                    // 若模板变量中已定义此 key，则用用户值覆盖
+                    if let Some(pos) = existing_vars.iter().position(|v| v.name == *key) {
+                        existing_vars[pos].value = value.clone();
+                    } else {
+                        // 否则新增为动态变量
+                        existing_vars.push(axagent_harness::workflow_types::Variable {
+                            name: key.clone(),
+                            var_type: "string".to_string(),
+                            value: value.clone(),
+                            description: None,
+                            is_secret: false,
+                        });
+                    }
+                }
+            }
+            // 模式 2：纯文本 → 用内置规则提取
+            else if let Some(text) = user_input.as_str() {
+                let existing_vars = opts.variables.get_or_insert_with(Vec::new);
+                extract_params_from_text(text, existing_vars);
             }
         }
 
@@ -513,6 +551,86 @@ pub async fn workflow_execute(
     });
 
     Ok(workflow_id)
+}
+
+/// 从用户纯文本中提取结构化参数的内置规则集。
+///
+/// 支持的提取模式：
+/// - `stock_code`: A 股 6 位股票代码（如 301302、600519）
+/// - `word_count`: "不超过 X 字"/"约 X 字"/"X 万字" 等字数限制
+/// - `chapter_count`: "分 X 章"/"X 章" 等章节数
+/// - `topic`: 从 "XX 题材"/"XX 主题" 中提取主题关键词
+/// - `genre`: 体裁识别（小说/散文/诗歌等）
+///
+/// 提取后若 vars 中已有同名变量则覆盖，否则新增。
+fn extract_params_from_text(text: &str, vars: &mut Vec<Variable>) {
+    // 1. 股票代码：6 位纯数字，独立出现
+    if let Ok(re) = Regex::new(r"\b(\d{6})\b") {
+        if let Some(caps) = re.captures(text) {
+            if let Some(code) = caps.get(1) {
+                upsert_var(vars, "stock_code", code.as_str());
+            }
+        }
+    }
+
+    // 2. 字数限制：支持 "不超过50万字"/"约10万字"/"5万字" 等
+    if let Ok(re) = Regex::new(r"(?:不超过|约|共计|总计)?(\d+(?:\.\d+)?)\s*(万?字)") {
+        if let Some(caps) = re.captures(text) {
+            let num = caps.get(1).map(|m| m.as_str()).unwrap_or("");
+            let unit = caps.get(2).map(|m| m.as_str()).unwrap_or("字");
+            let value = if unit.contains("万") {
+                format!("{}0000", num.replace('.', ""))
+            } else {
+                num.to_string()
+            };
+            upsert_var(vars, "word_count", &value);
+        }
+    }
+
+    // 3. 章节数：支持 "分10章"/"共10章"/"10章进行"
+    if let Ok(re) = Regex::new(r"(?:分|共|共计)?\s*(\d+)\s*章") {
+        if let Some(caps) = re.captures(text) {
+            if let Some(num) = caps.get(1) {
+                upsert_var(vars, "chapter_count", num.as_str());
+            }
+        }
+    }
+
+    // 4. 题材/主题提取：识别 "海军题材"/"军旅题材"/"XX 题材"/"XX 主题"
+    if let Ok(re) = Regex::new(r#"([\u4e00-\u9fa5A-Za-z]+?)(?:题材|主题|小说)"#) {
+        if let Some(caps) = re.captures(text) {
+            if let Some(topic) = caps.get(1) {
+                let topic_val = topic.as_str().trim();
+                if !topic_val.is_empty() && topic_val.len() >= 2 {
+                    upsert_var(vars, "topic", topic_val);
+                }
+            }
+        }
+    }
+
+    // 5. 体裁识别：小说/散文/诗歌/报告等
+    if let Ok(re) = Regex::new(r#"(小说|散文|诗歌|报告文学|传记|剧本)"#) {
+        if let Some(caps) = re.captures(text) {
+            if let Some(genre) = caps.get(1) {
+                upsert_var(vars, "genre", genre.as_str());
+            }
+        }
+    }
+}
+
+/// 辅助函数：插入或覆盖变量
+fn upsert_var(vars: &mut Vec<Variable>, name: &str, value: &str) {
+    if let Some(pos) = vars.iter().position(|v| v.name == name) {
+        vars[pos].value = Value::String(value.to_string());
+    } else {
+        vars.push(Variable {
+            name: name.to_string(),
+            var_type: "string".to_string(),
+            value: Value::String(value.to_string()),
+            description: None,
+            is_secret: false,
+        });
+    }
 }
 
 /// 提取工作流执行结果文本（不含步骤清单）。

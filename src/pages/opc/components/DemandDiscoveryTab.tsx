@@ -187,10 +187,17 @@ function LeadsPanel() {
   const { t } = useTranslation();
   const [leads, setLeads] = useState<DemandLead[]>([]);
   const [loading, setLoading] = useState(false);
-  const [discoverModalOpen, setDiscoverModalOpen] = useState(false);
-  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [discovering, setDiscovering] = useState(false);
-  const [discoverQuery, setDiscoverQuery] = useState("");
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [analyzingGaps, setAnalyzingGaps] = useState(false);
+  const [lastScanResult, setLastScanResult] = useState<
+    {
+      total_queries?: number;
+      total_scanned?: number;
+      total_saved?: number;
+      high_value_count?: number;
+    } | null
+  >(null);
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
   const [platformFilter] = useState<string | undefined>();
   const [form] = Form.useForm();
@@ -207,26 +214,48 @@ function LeadsPanel() {
     loadLeads();
   }, [loadLeads]);
 
-  const handleDiscover = async () => {
-    if (!discoverQuery.trim()) {
-      message.warning(t("opc.demand.enterSearchQuery"));
-      return;
-    }
+  const handleProactiveDiscover = async () => {
     setDiscovering(true);
     try {
-      const found = await invoke<DemandLead[]>("opc_discover_leads", { query: discoverQuery });
-      if (found && found.length > 0) {
-        message.success(t("opc.demand.discoveredCount", { count: found.length }));
-        setDiscoverModalOpen(false);
-        setDiscoverQuery("");
-        loadLeads();
-      } else {
-        message.info(t("opc.demand.noLeadsFound"));
-      }
+      const result = await invoke<{
+        total_queries: number;
+        total_scanned: number;
+        total_saved: number;
+        high_value_count: number;
+      }>("opc_proactive_evaluate_and_save_leads", { min_score: 0.0 });
+      setLastScanResult(result);
+      message.success(
+        t("opc.demand.proactiveScanComplete", {
+          saved: result.total_saved,
+          highValue: result.high_value_count,
+        }),
+      );
+      loadLeads();
     } catch (e) {
       message.error(String(e));
     } finally {
       setDiscovering(false);
+    }
+  };
+
+  const handleAnalyzeGaps = async () => {
+    setAnalyzingGaps(true);
+    try {
+      const result = await invoke<{
+        auto_created_gaps: string[];
+        missing_keywords_count: number;
+      }>("opc_analyze_capability_gaps", {});
+      if (result.auto_created_gaps.length > 0) {
+        message.success(
+          t("opc.demand.gapsAnalyzedCreated", { count: result.auto_created_gaps.length }),
+        );
+      } else {
+        message.info(t("opc.demand.gapsAnalyzedNoNew"));
+      }
+    } catch (e) {
+      message.error(String(e));
+    } finally {
+      setAnalyzingGaps(false);
     }
   };
 
@@ -459,12 +488,23 @@ function LeadsPanel() {
       <Card size="small">
         <Row gutter={[16, 16]} align="middle">
           <Col span={6}>
-            <Button
-              icon={<SearchOutlined />}
-              onClick={() => setDiscoverModalOpen(true)}
-            >
-              {t("opc.demand.btnDiscover")}
-            </Button>
+            <Space>
+              <Button
+                type="primary"
+                icon={<ReloadOutlined />}
+                loading={discovering}
+                onClick={handleProactiveDiscover}
+              >
+                {t("opc.demand.btnProactiveScan")}
+              </Button>
+              <Button
+                icon={<WarningOutlined />}
+                loading={analyzingGaps}
+                onClick={handleAnalyzeGaps}
+              >
+                {t("opc.demand.btnAnalyzeGaps")}
+              </Button>
+            </Space>
           </Col>
           <Col span={6}>
             <Button
@@ -493,6 +533,22 @@ function LeadsPanel() {
         </Row>
       </Card>
 
+      {/* 最近扫描统计 */}
+      {lastScanResult && (
+        <Card size="small" className="mb-4">
+          <Alert
+            type="success"
+            showIcon
+            message={t("opc.demand.lastScanResult", {
+              queries: lastScanResult.total_queries,
+              scanned: lastScanResult.total_scanned,
+              saved: lastScanResult.total_saved,
+              highValue: lastScanResult.high_value_count,
+            })}
+          />
+        </Card>
+      )}
+
       <Table
         rowKey="id"
         loading={loading}
@@ -501,26 +557,6 @@ function LeadsPanel() {
         pagination={{ pageSize: 10 }}
         scroll={{ x: 1200 }}
       />
-
-      {/* 发现线索弹窗 */}
-      <Modal
-        title={t("opc.demand.discoverTitle")}
-        open={discoverModalOpen}
-        onCancel={() => setDiscoverModalOpen(false)}
-        onOk={handleDiscover}
-        confirmLoading={discovering}
-      >
-        <Form layout="vertical">
-          <Form.Item label={t("opc.demand.searchQuery")}>
-            <TextArea
-              rows={3}
-              value={discoverQuery}
-              onChange={(e) => setDiscoverQuery(e.target.value)}
-              placeholder={t("opc.demand.searchQueryPlaceholder")}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
 
       {/* 手动创建弹窗 */}
       <Modal
