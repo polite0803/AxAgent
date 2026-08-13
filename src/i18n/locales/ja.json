@@ -10233,7 +10233,6 @@
     "wikiMeta": {
       "rootPath": "根路径"
     },
-    "noteLoadFailed": "ノートの読み込みに失敗しました"
     "noteLoadFailed": "ノートの読み込みに失敗しました",
     "entityNodeInfo": "エンティティノード",
     "entityNodeDesc": "これは知識グラフのエンティティで、関連付けられたノートがありません。グラフビューで関係を確認できます。"

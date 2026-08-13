@@ -10233,7 +10233,6 @@
     "wikiMeta": {
       "rootPath": "根路径"
     },
-    "noteLoadFailed": "笔记加载失败"
     "noteLoadFailed": "笔记加载失败",
     "entityNodeInfo": "实体节点",
     "entityNodeDesc": "这是一个知识图谱实体，没有关联的笔记。可通过图谱视图查看其关系。"
