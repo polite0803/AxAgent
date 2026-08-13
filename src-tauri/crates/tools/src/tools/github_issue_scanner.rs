@@ -273,8 +273,7 @@ mod tests {
         let scanner = GitHubIssueScanner::new();
         let result = scanner.search("rust async").await;
         // 应该成功（公开 API 无需 token，但可能有速率限制）
-        if result.is_err() {
-            let err = result.unwrap_err();
+        if let Err(err) = result {
             // 速率限制或网络错误是可接受的
             assert!(err.contains("速率限制") || err.contains("失败") || err.contains("错误"));
         }

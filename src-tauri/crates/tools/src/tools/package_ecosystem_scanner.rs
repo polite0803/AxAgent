@@ -396,7 +396,6 @@ mod tests {
         assert!(result.is_ok());
         if let Ok(Some(pkg)) = result {
             assert!(!pkg.name.is_empty());
-            assert!(pkg.downloads >= 0);
         }
     }
 

@@ -381,7 +381,7 @@ mod tests {
 
         let paper = &papers[0];
         assert!(paper["title"].as_str().unwrap().contains("Test Paper Title"));
-        assert!(paper["categories"].as_array().unwrap().len() > 0);
+        assert!(!paper["categories"].as_array().unwrap().is_empty());
     }
 
     #[tokio::test]

@@ -1017,7 +1017,7 @@ mod tests {
             for solutions in [0, 1, 5, 10, 20, 50] {
                 let conf = calculate_confidence(pain, solutions);
                 assert!(
-                    conf >= 0.0 && conf <= 1.0,
+                    (0.0..=1.0).contains(&conf),
                     "置信度 {} 超出范围 (pain={}, solutions={})",
                     conf,
                     pain,

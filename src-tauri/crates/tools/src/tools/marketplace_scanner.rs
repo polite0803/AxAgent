@@ -822,11 +822,11 @@ mod tests {
 
         let platform_a_status = status.iter().find(|(p, _)| p == "platform_a");
         assert!(platform_a_status.is_some());
-        assert_eq!(platform_a_status.unwrap().1, false); // disabled
+        assert!(!platform_a_status.unwrap().1); // disabled
 
         let platform_b_status = status.iter().find(|(p, _)| p == "platform_b");
         assert!(platform_b_status.is_some());
-        assert_eq!(platform_b_status.unwrap().1, true); // enabled
+        assert!(platform_b_status.unwrap().1); // enabled
     }
 
     #[tokio::test]
