@@ -594,30 +594,26 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
   // 聚类模式切换：开启时默认全折叠（聚合视图），关闭时清空
   useEffect(() => {
-    if (clusterMode && communities) {
-      // 社区数量失控（粒度极细至万级）时禁止全折叠：折叠会产生上万重叠聚合节点，
-      // 且聚合物理超限被禁用 → 每帧绘制上万聚类标签 → 主线程卡死。
-      if (communities.size > MAX_AGG_PHYS_NODES) {
-        collapsedRef.current = new Set();
-        hoverClusterRef.current = null;
-        aggPhysRef.current = null;
-        return;
-      }
-      const all = new Set<number>();
-      for (const cid of communities.values()) {
-        all.add(cid);
-      }
-      // 排除当前选中节点所在社区，避免选中节点被折叠隐藏导致用户困惑
-      if (selectedNodeIdRef.current) {
-        const selCid = getCommunityId(selectedNodeIdRef.current);
-        if (selCid !== undefined) {
-          all.delete(selCid);
+    if (clusterMode) {
+      // 使用 effectiveCommunitiesRef（可能是哈希合并后的虚拟聚类）
+      const ec = effectiveCommunitiesRef.current;
+      if (ec) {
+        const all = new Set<number>();
+        for (const cid of ec.values()) {
+          all.add(cid);
         }
+        // 排除当前选中节点所在社区
+        if (selectedNodeIdRef.current) {
+          const selCid = getCommunityId(selectedNodeIdRef.current);
+          if (selCid !== undefined) {
+            all.delete(selCid);
+          }
+        }
+        collapsedRef.current = all;
+        refreshClusterGeom();
+        buildAggregatePhysics();
+        setClusterCollapseVersion((v) => v + 1);
       }
-      collapsedRef.current = all;
-      refreshClusterGeom();
-      buildAggregatePhysics();
-      setClusterCollapseVersion((v) => v + 1);
     } else {
       collapsedRef.current = new Set();
       hoverClusterRef.current = null;
@@ -927,6 +923,29 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
           }
         }
         effectiveCommunities = hashMap;
+      }
+      // 关键修复：在 forceCluster 模式下，确保所有节点都被映射到社区。
+      // 即使原始 communities 数据已经存在，也可能只覆盖了部分节点。
+      // 补全缺失节点的社区分配，确保 buildAggregatePhysics 能正确处理所有边。
+      if (effectiveCommunities) {
+        let hasMissingNodes = false;
+        for (const n of pNodes) {
+          if (!effectiveCommunities.has(n.id)) {
+            hasMissingNodes = true;
+            break;
+          }
+        }
+        if (hasMissingNodes) {
+          // 补全缺失节点：使用哈希分配到现有或新的社区
+          const updatedMap = new Map<string, number>(effectiveCommunities);
+          for (const n of pNodes) {
+            if (!updatedMap.has(n.id)) {
+              const hash = Math.abs(hashStringToInt(n.id)) % FORCE_CLUSTER_COUNT;
+              updatedMap.set(n.id, hash);
+            }
+          }
+          effectiveCommunities = updatedMap;
+        }
       }
       // 关键：更新 effectiveCommunitiesRef，供 Worker 初始化和后续代码使用
       effectiveCommunitiesRef.current = effectiveCommunities;
@@ -1558,20 +1577,28 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       // 聚合几何低频刷新（6 帧一次；切换展开/收起时立即刷新）
       // 系统稳定时跳过（节点位置不变，cluster geom 也无需重算，节省 O(N) 遍历）
       // 聚合物理激活时跳过：折叠社区的 cx/cy 由聚合物理节点回写驱动，避免被质心覆盖
-      if (clusterModeRef.current && !aggActive && frameCounterRef.current % 6 === 0 && idleCounterRef.current < 30) {
+      const forceCluster = nodes.length > AUTO_CLUSTER_THRESHOLD;
+      if (
+        (clusterModeRef.current || forceCluster) && !aggActive && frameCounterRef.current % 6 === 0
+        && idleCounterRef.current < 30
+      ) {
         refreshClusterGeom();
       }
 
       // 绘制（传入视口范围用于裁剪）
       // Worker 未就绪的大图：跳过完整渲染，避免主线程 fallback 卡死
       if (shouldRender && !workerNotReadyLargeGraph) {
-        if (aggActive || clusterModeRef.current) {
+        // 强制聚类：节点数 > 3000 时自动进入聚类渲染模式
+        if (aggActive || clusterModeRef.current || forceCluster) {
           // ── 聚类模式：极简渲染策略 ──
           // 全折叠时只画小型聚类标记 + 聚合边
           // 展开社区时才画内部节点
           const activeCommunities = effectiveCommunitiesRef.current ?? communities;
           const totalCommunities = activeCommunities ? new Set(activeCommunities.values()).size : 0;
-          const allCollapsed = collapsedRef.current.size >= totalCommunities && totalCommunities > 0;
+          // forceCluster 模式下如果没有折叠状态，强制全折叠
+          const allCollapsed = forceCluster
+            ? totalCommunities > 0
+            : collapsedRef.current.size >= totalCommunities && totalCommunities > 0;
           const isLargeGraph = nodes.length > 5000;
 
           if (allCollapsed) {
@@ -1939,7 +1966,12 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     const gridIndex = gridIndexRef.current;
 
     // 收集展开社区的节点（不在 collapsed 中的社区）
+    // 关键修复：在 forceCluster/aggActive 模式下，gridIndex 只包含聚合节点 ID（__agg__*），
+    // 不包含原始节点 ID，导致无法通过网格索引找到展开社区的原始节点。
+    // 解决方案：当 gridIndex 查找失败时，使用 posMap 作为 fallback 数据源。
     const expandedNodeIds = new Set<string>();
+
+    // 第一优先级：使用网格索引（O(可见区域) 效率高）
     if (gridIndex) {
       const gx0 = Math.floor(viewWorld.x0 / GRID_CELL_SIZE);
       const gy0 = Math.floor(viewWorld.y0 / GRID_CELL_SIZE);
@@ -1956,6 +1988,19 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
               expandedNodeIds.add(id);
             }
           }
+        }
+      }
+    }
+
+    // Fallback：在 forceCluster/aggActive 模式下，gridIndex 可能只包含聚合节点 ID。
+    // 如果网格索引查找结果为空，改用 posMap 遍历所有节点（O(N) 但保证正确性）。
+    // 这是必要的性能-正确性权衡：大图模式下节点可见性比性能更重要。
+    if (expandedNodeIds.size === 0 && posMap.size > 0) {
+      for (const [id, node] of posMap) {
+        if (!isInView(node.x, node.y, viewWorld, 20)) { continue; }
+        const cid = activeCommunities.get(id);
+        if (cid !== undefined && !collapsedSet.has(cid)) {
+          expandedNodeIds.add(id);
         }
       }
     }
@@ -2605,7 +2650,10 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   // 刷新聚合节点几何（质心/半径/计数/代表名）。O(N) 遍历，低频调用（每 6 帧 / 切换时）
   const refreshClusterGeom = useCallback(() => {
     const activeCommunities = effectiveCommunitiesRef.current ?? communities;
-    if (!activeCommunities || !clusterModeRef.current) {
+    const nodeCount = physNodesRef.current.length;
+    // 强制聚类模式：节点数超过阈值时也需要计算聚类几何
+    const isForceCluster = nodeCount > AUTO_CLUSTER_THRESHOLD;
+    if (!activeCommunities || (!clusterModeRef.current && !isForceCluster)) {
       clusterGeomRef.current = new Map();
       return;
     }
