@@ -1336,6 +1336,12 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
           collapsedRef.current = newCollapsed;
 
+          console.log("[GraphView] LOD update", {
+            lodLevel,
+            newCollapsedSize: newCollapsed.size,
+            prevCollapsedSize,
+          });
+
           // LOD 变化导致折叠集合改变 → 重建聚合物理集
           if (newCollapsed.size !== prevCollapsedSize) {
             // 延迟一帧重建，避免在渲染循环中立即触发重计算
@@ -1502,7 +1508,18 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
             // 关键修复：在 forceCluster/clusterMode 下，Worker 返回新位置后必须重建
             // clusterGeomRef.current（聚类质心/半径）和 aggPhysRef.current（聚合物理节点）。
             // 否则渲染时使用的是初始位置计算的旧几何数据，所有聚类看起来重叠在一起。
+            // 同时确保 collapsedRef.current 不为空（可能被 LOD 逻辑意外清空）
             if (clusterModeRef.current || nodes.length > AUTO_CLUSTER_THRESHOLD) {
+              const comm = communitiesRef.current;
+              if (comm && collapsedRef.current.size === 0) {
+                // collapsed 被清空时重建：forceCluster 模式下默认所有社区折叠
+                const all = new Set<number>();
+                for (const cid of comm.values()) {
+                  all.add(cid);
+                }
+                collapsedRef.current = all;
+                console.log("[GraphView] forceCluster: rebuilt collapsed set", { size: all.size });
+              }
               refreshClusterGeom();
               buildAggregatePhysics();
             }
