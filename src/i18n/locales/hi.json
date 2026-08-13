@@ -10234,6 +10234,11 @@
       "rootPath": "根路径"
     },
     "noteLoadFailed": "नोट लोड करने में विफल"
+    "collapseAll": "सभी सिकोड़ें",
+    "expandAll": "सभी विस्तारित करें",
+    "noteLoadFailed": "नोट लोड करने में विफल",
+    "entityNodeInfo": "एंटिटी नोड",
+    "entityNodeDesc": "यह एक ज्ञान ग्राफ़ एंटिटी है जिससे कोई नोट जुड़ा नहीं है। ग्राफ़ व्यू के माध्यम से इसके संबंध देखें।"
   },
   "workflow": {
     "autoSave": {

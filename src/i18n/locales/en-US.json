@@ -10234,6 +10234,9 @@
       "rootPath": "Root Path"
     },
     "noteLoadFailed": "Failed to load note"
+    "noteLoadFailed": "Failed to load note",
+    "entityNodeInfo": "Entity Node",
+    "entityNodeDesc": "This is a knowledge graph entity with no associated note. View its relations through the graph."
   },
   "workflow": {
     "editor": {

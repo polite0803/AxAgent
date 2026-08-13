@@ -10234,6 +10234,11 @@
       "rootPath": "根路径"
     },
     "noteLoadFailed": "فشل تحميل الملاحظة"
+    "collapseAll": "طي الكل",
+    "expandAll": "توسيع الكل",
+    "noteLoadFailed": "فشل تحميل الملاحظة",
+    "entityNodeInfo": "عقدة كيان",
+    "entityNodeDesc": "هذا كيان في رسم المعرفة ليس له ملاحظة مرتبطة. عرض علاقاته من خلال عرض الرسم."
   },
   "workflow": {
     "autoSave": {

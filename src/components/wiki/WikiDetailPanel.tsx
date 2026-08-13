@@ -60,6 +60,15 @@ export function WikiDetailPanel({
     if (!noteId) {
       return;
     }
+    // 实体节点无对应笔记，显示实体信息面板而非尝试加载
+    if (noteId.startsWith("entity:")) {
+      setNote(null);
+      setContent("");
+      setTitle("");
+      setLoadFailed(true);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setLoadFailed(false);
     const n = await getNote(noteId);
@@ -68,7 +77,6 @@ export function WikiDetailPanel({
       setContent(n.content);
       setTitle(n.title);
     } else {
-      // 笔记不存在或加载失败：明确提示，避免渲染空白编辑区
       setLoadFailed(true);
       message.error(t("wiki.noteLoadFailed"));
     }
@@ -222,6 +230,7 @@ export function WikiDetailPanel({
 
   const noteNode = graphData?.nodes.find((n) => n.id === noteId);
   const noteTitle = noteNode?.title || note?.title || "";
+  const isEntityNode = noteId?.startsWith("entity:") ?? false;
 
   if (!noteId) {
     return (
@@ -241,6 +250,46 @@ export function WikiDetailPanel({
         style={{ backgroundColor: token.colorBgElevated }}
       >
         <Spin />
+      </div>
+    );
+  }
+
+  // 实体节点：显示实体信息而非笔记编辑器
+  if (isEntityNode) {
+    return (
+      <div
+        className="h-full flex flex-col"
+        style={{ backgroundColor: token.colorBgElevated }}
+      >
+        <div
+          className="flex items-center gap-2 px-4 py-2.5 shrink-0"
+          style={{
+            borderBottom: `1px solid ${token.colorBorderSecondary}20`,
+            backgroundColor: `${token.colorBgContainer}dd`,
+          }}
+        >
+          <div
+            className="w-1.5 h-5 rounded-full"
+            style={{ backgroundColor: "#FA8C16" }}
+          />
+          <Text strong ellipsis style={{ flex: 1 }}>
+            {noteNode?.title || noteId}
+          </Text>
+        </div>
+        <div className="flex-1 flex items-center justify-center p-6">
+          <Empty
+            description={
+              <div style={{ textAlign: "center" }}>
+                <div style={{ marginBottom: 8, fontWeight: 500 }}>
+                  {t("wiki.entityNodeInfo")}
+                </div>
+                <div style={{ color: token.colorTextTertiary, fontSize: 12 }}>
+                  {t("wiki.entityNodeDesc")}
+                </div>
+              </div>
+            }
+          />
+        </div>
       </div>
     );
   }

@@ -439,6 +439,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   // 鱼眼 / 聚类 状态
   const fisheyeEnabledRef = useRef(false);
   const clusterModeRef = useRef(false);
+  // 自动 force cluster 标记：区分自动触发和用户手动开启的聚类模式
+  // 自动触发时默认展开社区让用户看到真实节点；用户手动开启时保持全折叠
+  const isAutoForceClusterRef = useRef(false);
   // 粒子流动默认开启（对齐 Obsidian 的动态美感；大规模节点自动降级）
   const particlesEnabledRef = useRef(true);
   // ── 社区聚合折叠 ──
@@ -595,6 +598,10 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   // 聚类模式切换：开启时默认全折叠（聚合视图），关闭时清空
   useEffect(() => {
     if (clusterMode) {
+      // 自动 force cluster 模式下跳过全折叠初始化，保持展开状态让用户看到真实节点
+      if (isAutoForceClusterRef.current) {
+        return;
+      }
       // 使用 effectiveCommunitiesRef（可能是哈希合并后的虚拟聚类）
       const ec = effectiveCommunitiesRef.current;
       if (ec) {
@@ -615,6 +622,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         setClusterCollapseVersion((v) => v + 1);
       }
     } else {
+      // 用户关闭聚类模式时清除自动 force cluster 标志
+      isAutoForceClusterRef.current = false;
       collapsedRef.current = new Set();
       hoverClusterRef.current = null;
       aggPhysRef.current = null;
@@ -1100,13 +1109,10 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       // 关键：同步更新 communitiesRef（buildAggregatePhysics 依赖它）
       communitiesRef.current = comm;
 
-      const all = new Set<number>();
-      if (comm) {
-        for (const cid of comm.values()) {
-          all.add(cid);
-        }
-      }
-      collapsedRef.current = all;
+      // 自动 force cluster 模式：默认不折叠社区，让用户看到真实节点
+      // 用户可通过 UI 手动切换聚类模式来折叠/展开
+      isAutoForceClusterRef.current = true;
+      collapsedRef.current = new Set();
       clusterModeRef.current = true;
       // 注意：不在此处同步调用 refreshClusterGeom/buildAggregatePhysics
       // 这两个函数在 2万+ 节点下是 O(N) + O(E)，会阻塞主线程数秒
@@ -1635,8 +1641,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
           // 展开社区时才画内部节点
           const activeCommunities = effectiveCommunitiesRef.current ?? communities;
           const totalCommunities = activeCommunities ? new Set(activeCommunities.values()).size : 0;
-          // forceCluster 模式下如果没有折叠状态，强制全折叠
-          const allCollapsed = forceCluster
+          // forceCluster 模式下：只有用户手动触发时才强制全折叠
+          // 自动 force cluster（isAutoForceClusterRef=true）时保持部分展开，让用户看到真实节点
+          const allCollapsed = (forceCluster && !isAutoForceClusterRef.current)
             ? totalCommunities > 0
             : collapsedRef.current.size >= totalCommunities && totalCommunities > 0;
           const isLargeGraph = nodes.length > 5000;
@@ -4166,7 +4173,12 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         {/* 聚类模式 toggle */}
         <Tooltip title={clusterMode ? t("wiki.graph.clusterOff") : t("wiki.graph.clusterOn")}>
           <button
-            onClick={() => setClusterMode((v) => !v)}
+            onClick={() => {
+              // 用户手动切换聚类模式时，清除自动 force cluster 标志
+              // 让用户的操作优先于自动行为
+              isAutoForceClusterRef.current = false;
+              setClusterMode((v) => !v);
+            }}
             style={{
               ...ctrlBtnStyle,
               width: 24,

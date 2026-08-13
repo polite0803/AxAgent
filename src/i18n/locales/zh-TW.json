@@ -10234,6 +10234,11 @@
       "rootPath": "根路徑"
     },
     "noteLoadFailed": "筆記載入失敗"
+    "collapseAll": "全部摺疊",
+    "expandAll": "全部展開",
+    "noteLoadFailed": "筆記載入失敗",
+    "entityNodeInfo": "實體節點",
+    "entityNodeDesc": "這是一個知識圖譜實體，沒有關聯的筆記。可通過圖譜視圖查看其關係。"
   },
   "workflow": {
     "autoSave": {
