@@ -6442,7 +6442,9 @@
     "lintReport": "린트 보고서",
     "collapseAll": "모두 접기",
     "expandAll": "모두 펼치기",
-    "noteLoadFailed": "노트를 불러오지 못했습니다"
+    "noteLoadFailed": "노트를 불러오지 못했습니다",
+    "entityNodeInfo": "엔티티 노드",
+    "entityNodeDesc": "이것은 지식 그래프 엔티티로, 연결된 노트가 없습니다. 그래프 뷰에서 관계를 확인하세요."
   },
   "workflow": {
     "autoSave": {

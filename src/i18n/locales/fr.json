@@ -6442,7 +6442,9 @@
     "lintReport": "Rapport lint",
     "collapseAll": "Réduire tout",
     "expandAll": "Développer tout",
-    "noteLoadFailed": "Échec du chargement de la note"
+    "noteLoadFailed": "Échec du chargement de la note",
+    "entityNodeInfo": "Nœud d'entité",
+    "entityNodeDesc": "Il s'agit d'une entité de graphe de connaissances sans note associée. Affichez ses relations via la vue graphe."
   },
   "workflow": {
     "autoSave": {

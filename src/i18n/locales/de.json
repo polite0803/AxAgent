@@ -6442,7 +6442,9 @@
     "timeline": "Zeitachse",
     "operationTimeline": "Vorgangszeitachse",
     "lintReport": "Lint-Bericht",
-    "noteLoadFailed": "Notiz konnte nicht geladen werden"
+    "noteLoadFailed": "Notiz konnte nicht geladen werden",
+    "entityNodeInfo": "Entitätsknoten",
+    "entityNodeDesc": "Dies ist ein Wissensgraph-Entität ohne zugehörige Notiz. Zeigen Sie ihre Beziehungen über die Grafikansicht an."
   },
   "workflow": {
     "autoSave": {
