@@ -7,7 +7,7 @@ use crate::commands::error_code::agent as agent_err;
 use crate::commands::spawn_guard::SpawnGuard;
 
 use agent_macro::agent_command;
-use axagent_dao::repo::{conversation, message};
+use axagent_dao::repo::{conversation, message, workflow_template};
 use axagent_harness::types::{MessageRole, UpdateConversationInput};
 use axagent_harness::workflow_types::Workflow;
 use axagent_runtime::work_engine::{ProgressCallback, StepProgressEvent, node_type_of};
@@ -94,7 +94,7 @@ pub async fn workflow_execute(
     workflow_id: String,
     model_id: Option<String>,
     provider_id: Option<String>,
-    variables: Option<Vec<axagent_harness::workflow_types::Variable>>,
+    mut variables: Option<Vec<axagent_harness::workflow_types::Variable>>,
     max_concurrent: Option<usize>,
     conversation_id: Option<String>,
     input: Option<serde_json::Value>,
@@ -158,15 +158,52 @@ pub async fn workflow_execute(
         if let Some(p) = provider_id {
             opts = opts.with_provider(p);
         }
-        if let Some(vars) = variables {
-            opts = opts.with_variables(vars);
-        }
         if let Some(mc) = max_concurrent {
             // 合理下限保护：至少 1 个并发，避免 0 导致死锁。
             let clamped = mc.max(1);
             opts = opts.with_max_concurrent(clamped);
         }
         opts.input = input;
+
+        // ── 对话驱动模式：自动加载模板变量 ──
+        // 当 conversation_id 存在时，从会话获取 workflow_template_id，
+        // 从数据库加载模板变量定义（如 stock_code 等），合并到执行选项。
+        // 这样即使前端没有显式传递 variables，模板定义的变量也能被正确注入。
+        if let Some(ref conv_id) = conversation_id {
+            if let Ok(conv) = conversation::get_conversation(&db, conv_id).await {
+                if let Some(ref template_id) = conv.workflow_template_id {
+                    if let Ok(Some(template_model)) =
+                        workflow_template::get_workflow_template(&db, template_id).await
+                    {
+                        let template_data =
+                            workflow_template::template_model_to_data(&template_model);
+                        let template_vars = template_data.variables;
+                        if !template_vars.is_empty() {
+                            // 前端显式传入的变量优先级高于模板默认值
+                            let mut merged = template_vars;
+                            if let Some(ref mut front_vars) = variables {
+                                for fv in front_vars {
+                                    if let Some(pos) = merged.iter().position(|m| m.name == fv.name)
+                                    {
+                                        merged[pos] = fv.clone();
+                                    } else {
+                                        merged.push(fv.clone());
+                                    }
+                                }
+                            }
+                            opts = opts.with_variables(merged);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 前端显式传入的变量（若非对话驱动模式或模板无变量时生效）
+        if let Some(vars) = variables {
+            if opts.variables.is_none() {
+                opts = opts.with_variables(vars);
+            }
+        }
 
         // ── 对话驱动模式：创建 assistant 占位消息 + 桥接步骤事件 ──
         // 步骤文本累积缓冲：与前端实时事件同格式，最终与结果一并写入 DB 消息，

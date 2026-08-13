@@ -1851,7 +1851,19 @@ export function InputArea() {
           textareaRef.current.style.height = "auto";
         }
       });
-      if (currentMode === "agent" && workStrategy === "plan") {
+      // 工作流会话强制走 sendAgentMessage（它内部有完整的 workflow_execute 逻辑）
+      const currentConv = useConversationStore.getState().conversations.find(
+        (c) => c.id === activeConversationId,
+      );
+      const isWorkflowSession = currentConv?.session_type === "workflow";
+
+      if (isWorkflowSession && currentMode === "agent") {
+        await sendAgentMessage(
+          trimmed,
+          attachments,
+          effectiveSearchProviderId,
+        );
+      } else if (currentMode === "agent" && workStrategy === "plan") {
         await sendPlanMessage(
           trimmed,
           attachments,
