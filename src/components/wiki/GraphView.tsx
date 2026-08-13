@@ -439,8 +439,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   // 鱼眼 / 聚类 状态
   const fisheyeEnabledRef = useRef(false);
   const clusterModeRef = useRef(false);
-  // 粒子流动默认关闭（对齐 Obsidian：静态细边；可按 p 键或工具栏开关临时开启）
-  const particlesEnabledRef = useRef(false);
+  // 粒子流动默认开启（对齐 Obsidian 的动态美感；大规模节点自动降级）
+  const particlesEnabledRef = useRef(true);
   // ── 社区聚合折叠 ──
   // 折叠的社区集合（聚类模式下默认全折叠；点击聚合节点展开/收起）
   const collapsedRef = useRef<Set<number>>(new Set());
@@ -489,7 +489,6 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   const minimapBBoxRef = useRef<{ minX: number; minY: number; maxX: number; maxY: number } | null>(null);
 
   // ── 性能 LOD 阈值（万级节点保障） ──
-  const MAX_PARTICLES = 4000; // 粒子总数上限：超过则停止创建（大图粒子动画代价过高）
   const GLOW_NODE_LIMIT = 2000; // 超过此节点数：普通节点不绘制 glow，仅交互节点保留
   const MINIMAP_REDRAW_INTERVAL = 15; // minimap 重绘间隔（帧），大图避免每帧全量遍历
   // 节点数超过此值且 communities 可用时，打开自动进入聚类折叠聚合视图，
@@ -878,16 +877,18 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       };
     });
 
-    // 粒子系统（总数量上限：大图场景避免数万粒子每帧遍历+绘制）
+    // 粒子系统（动态上限：大图场景自动减少粒子数）
+    const particleNodeCount = pNodes.length;
+    const maxParticles = particleNodeCount > 10000 ? 300 : particleNodeCount > 5000 ? 1000 : 4000;
     const particles: Particle[] = [];
     for (let i = 0; i < data.edges.length; i++) {
-      if (particles.length >= MAX_PARTICLES) { break; }
+      if (particles.length >= maxParticles) { break; }
       const em = edgeMetaRef.current[i];
       if (em.animated) {
         // 每条动画边 1-2 个粒子
         const count = em.type === "reference" ? 2 : 1;
         for (let j = 0; j < count; j++) {
-          if (particles.length >= MAX_PARTICLES) { break; }
+          if (particles.length >= maxParticles) { break; }
           particles.push({
             edgeIndex: i,
             progress: Math.random(),
@@ -1592,33 +1593,52 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
             ctx.globalAlpha = 1;
           }
 
-          // 2. 绘制可见的（未折叠的）原始节点 —— 仅绘制展开社区内的节点
-          // 使用视口裁剪 + 节点数量限制
-          const maxVisibleNodes = 500; // 聚类模式下最多绘制 500 个展开节点
-          let drawnNodes = 0;
-          if (nodes.length > 0 && drawnNodes < maxVisibleNodes) {
-            for (const n of nodes) {
-              if (drawnNodes >= maxVisibleNodes) { break; }
-              // 跳过折叠社区的节点
-              const cid = getCommunityId(n.id);
-              if (cid !== undefined && collapsedRef.current.has(cid)) { continue; }
-              // 视口裁剪
-              if (
-                n.x < viewWorld.x0 || n.x > viewWorld.x1
-                || n.y < viewWorld.y0 || n.y > viewWorld.y1
-              ) { continue; }
-              const color = nodeColorRef.current.get(n.id) || token.colorPrimary;
-              const size = (nodeSizeRef.current.get(n.id) || 5) * 1.0;
-              ctx.fillStyle = color;
-              ctx.beginPath();
-              ctx.arc(n.x, n.y, size, 0, Math.PI * 2);
-              ctx.fill();
-              drawnNodes++;
+          // 2. 绘制聚类气泡（聚合节点）—— 最先绘制作为背景层
+          drawCollapsedClusters(ctx, viewWorld);
+
+          // 3. 绘制展开社区内的原始节点 —— 使用网格索引 + 社区过滤，O(可见节点数)
+          // 关键优化：当所有社区都折叠时（collapsed size >= communities size），
+          // 完全跳过原始节点渲染，零 O(N) 遍历
+          const activeCommunities = effectiveCommunitiesRef.current ?? communities;
+          const totalCommunities = activeCommunities ? new Set(activeCommunities.values()).size : 0;
+          const allCollapsed = collapsedRef.current.size >= totalCommunities && totalCommunities > 0;
+
+          if (!allCollapsed && nodes.length > 0) {
+            // 使用网格索引获取视口内节点（O(1) per cell），而非遍历全量节点
+            const gridIndex = gridIndexRef.current;
+            const posMap = posMapRef.current;
+            const maxVisibleNodes = 500;
+            let drawnNodes = 0;
+
+            if (gridIndex) {
+              const gx0 = Math.floor(viewWorld.x0 / GRID_CELL_SIZE);
+              const gy0 = Math.floor(viewWorld.y0 / GRID_CELL_SIZE);
+              const gx1 = Math.floor(viewWorld.x1 / GRID_CELL_SIZE);
+              const gy1 = Math.floor(viewWorld.y1 / GRID_CELL_SIZE);
+
+              for (let gx = gx0; gx <= gx1 && drawnNodes < maxVisibleNodes; gx++) {
+                for (let gy = gy0; gy <= gy1 && drawnNodes < maxVisibleNodes; gy++) {
+                  const bucket = gridIndex.get(`${gx},${gy}`);
+                  if (!bucket) { continue; }
+                  for (const id of bucket) {
+                    if (drawnNodes >= maxVisibleNodes) { break; }
+                    // 跳过折叠社区的节点
+                    const cid = activeCommunities?.get(id);
+                    if (cid !== undefined && collapsedRef.current.has(cid)) { continue; }
+                    const node = posMap.get(id);
+                    if (!node) { continue; }
+                    const color = nodeColorRef.current.get(id) || token.colorPrimary;
+                    const size = (nodeSizeRef.current.get(id) || 5) * 1.0;
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, size, 0, Math.PI * 2);
+                    ctx.fill();
+                    drawnNodes++;
+                  }
+                }
+              }
             }
           }
-
-          // 3. 绘制聚类气泡（聚合节点）
-          drawCollapsedClusters(ctx, viewWorld);
 
           // 跳过：位图缓存、全量边、全量粒子 —— 这些在聚类模式下都会导致卡死
         } else {
@@ -1976,27 +1996,52 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       if (zoom < 0.3 && !isRelevant) { continue; }
 
       if (isRelevant) {
-        // 相关边（hover/选中邻居）逐条绘制：保留鱼眼线宽与高亮
+        // 相关边（hover/选中邻居）逐条绘制：使用贝塞尔曲线 + 鱼眼线宽
         const sScale = fisheyeScale(s.x, s.y, fisheye);
         const tScale = fisheyeScale(t.x, t.y, fisheye);
         const avgScale = (sScale + tScale) / 2;
         ctx.beginPath();
         ctx.moveTo(s.x, s.y);
-        ctx.lineTo(t.x, t.y);
+        // 贝塞尔曲线：控制点为中点 + 垂直偏移
+        const dx = t.x - s.x;
+        const dy = t.y - s.y;
+        const mx = (s.x + t.x) / 2;
+        const my = (s.y + t.y) / 2;
+        const curveAmount = Math.min(30, Math.sqrt(dx * dx + dy * dy) * 0.15);
+        const nx = -dy / (Math.sqrt(dx * dx + dy * dy) || 1);
+        const ny = dx / (Math.sqrt(dx * dx + dy * dy) || 1);
+        const cpX = mx + nx * curveAmount;
+        const cpY = my + ny * curveAmount;
+        ctx.quadraticCurveTo(cpX, cpY, t.x, t.y);
         ctx.strokeStyle = em.color;
         ctx.lineWidth = em.width * 1.5 * avgScale;
         ctx.globalAlpha = 0.9;
         ctx.stroke();
       } else {
-        // 普通边收集到批量路径（批量模式下不做鱼眼线宽缩放，性能优先）
+        // 普通边收集到批量路径：小图用贝塞尔曲线，大图用直线
         const key = `${em.color}|${em.width}`;
         let entry = batchPaths.get(key);
         if (!entry) {
           entry = { path: new Path2D(), color: em.color, width: em.width };
           batchPaths.set(key, entry);
         }
-        entry.path.moveTo(s.x, s.y);
-        entry.path.lineTo(t.x, t.y);
+        if (nodes.length < 5000) {
+          // 小图：贝塞尔曲线
+          const dx = t.x - s.x;
+          const dy = t.y - s.y;
+          const mx = (s.x + t.x) / 2;
+          const my = (s.y + t.y) / 2;
+          const curveAmount = Math.min(20, Math.sqrt(dx * dx + dy * dy) * 0.1);
+          const len = Math.sqrt(dx * dx + dy * dy) || 1;
+          const cpX = mx + (-dy / len) * curveAmount;
+          const cpY = my + (dx / len) * curveAmount;
+          entry.path.moveTo(s.x, s.y);
+          entry.path.quadraticCurveTo(cpX, cpY, t.x, t.y);
+        } else {
+          // 大图：直线（性能优先）
+          entry.path.moveTo(s.x, s.y);
+          entry.path.lineTo(t.x, t.y);
+        }
       }
     }
 
