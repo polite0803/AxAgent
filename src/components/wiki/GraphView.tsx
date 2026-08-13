@@ -929,12 +929,6 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       }
       // 关键：更新 effectiveCommunitiesRef，供 Worker 初始化和后续代码使用
       effectiveCommunitiesRef.current = effectiveCommunities;
-
-      console.log("[GraphView] 预计算有效社区", {
-        nodeCount: pNodes.length,
-        effectiveCommunitiesSize: effectiveCommunities?.size ?? 0,
-        usedHashMerge: !communities || communities.size > MAX_AGG_PHYS_NODES,
-      });
     } else {
       // 小图直接使用原始 communities
       effectiveCommunitiesRef.current = effectiveCommunities;
@@ -1076,11 +1070,6 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       refreshClusterGeom();
       buildAggregatePhysics();
       setClusterCollapseVersion((v) => v + 1);
-
-      console.log("[GraphView] 强制聚类已启用", {
-        nodeCount: pNodes.length,
-        clusterCount: all.size,
-      });
     }
 
     // 组件卸载时销毁 Worker，避免线程泄漏和内存堆积
