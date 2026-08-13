@@ -1124,15 +1124,15 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
         originalOnMessage(e);
         if (e.data.type === "ready") {
-          // 放到 requestIdleCallback 中：让浏览器先绘制首帧，再在空闲时计算
-          // 这两个函数在 2万+ 节点下是 O(N) + O(E)，耗时数百毫秒
-          // 使用 requestIdleCallback 确保不阻塞首帧渲染
-          requestIdleCallback(() => {
+          // 用 setTimeout(0) 而非 requestIdleCallback：
+          // requestIdleCallback 在高负载下可能长时间不触发，导致 clusterGeom 始终为空
+          // setTimeout(0) 会立即在下一个事件循环中执行，确保聚类数据尽快就绪
+          setTimeout(() => {
             if (!clusterModeRef.current) { return; }
             refreshClusterGeom();
             buildAggregatePhysics();
             setClusterCollapseVersion((v) => v + 1);
-          }, { timeout: 2000 });
+          }, 0);
         }
       };
     }
@@ -1249,127 +1249,136 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
       // ── LOD 渐进式聚类展开：根据缩放级别自动展开/折叠社区 ──
       // 类似地图缩放：缩得越近，看到的细节越多
+      // 关键修复：自动 force cluster 模式下跳过 LOD 折叠，确保首次打开就能看到节点
       if (clusterModeRef.current && aggActive) {
         const zoom = cam.zoom;
         const geom = clusterGeomRef.current;
 
-        // 计算当前 LOD 级别
-        let lodLevel = 0;
-        if (zoom >= LOD_THRESHOLDS.ALL) { lodLevel = 3; }
-        else if (zoom >= LOD_THRESHOLDS.EXPANDED) { lodLevel = 2; }
-        else if (zoom >= LOD_THRESHOLDS.VIEWPORT) { lodLevel = 1; }
+        // 自动 force cluster 模式：默认全展开，用户缩放后才启用 LOD
+        // 避免首次打开时因 zoom < 0.5 导致 LOD 0 全折叠，节点完全不可见
+        if (isAutoForceClusterRef.current && !hasInteraction) {
+          // 保持 collapsed 为空集（全展开），不执行 LOD 折叠
+          collapsedRef.current = new Set();
+          lastLodLevelRef.current = -1; // 重置 LOD 状态，下次交互时重新计算
+        } else {
+          // 计算当前 LOD 级别
+          let lodLevel = 0;
+          if (zoom >= LOD_THRESHOLDS.ALL) { lodLevel = 3; }
+          else if (zoom >= LOD_THRESHOLDS.EXPANDED) { lodLevel = 2; }
+          else if (zoom >= LOD_THRESHOLDS.VIEWPORT) { lodLevel = 1; }
 
-        // LOD 变化时重新计算折叠状态（防抖：至少保持 5 帧）
-        if (lodLevel !== lastLodLevelRef.current && frameCounterRef.current % 5 === 0) {
-          lastLodLevelRef.current = lodLevel;
+          // LOD 变化时重新计算折叠状态（防抖：至少保持 5 帧）
+          if (lodLevel !== lastLodLevelRef.current && frameCounterRef.current % 5 === 0) {
+            lastLodLevelRef.current = lodLevel;
 
-          const newCollapsed = new Set<number>();
-          const expandedInThisFrame: number[] = [];
-          const prevCollapsedSize = collapsedRef.current.size;
+            const newCollapsed = new Set<number>();
+            const expandedInThisFrame: number[] = [];
+            const prevCollapsedSize = collapsedRef.current.size;
 
-          // 视口范围（世界坐标）
-          const viewW = cam.zoom > 0 ? w / cam.zoom : 0;
-          const viewH = cam.zoom > 0 ? h / cam.zoom : 0;
-          const vx0 = -cam.x / cam.zoom - viewW / 2;
-          const vy0 = -cam.y / cam.zoom - viewH / 2;
-          const vx1 = -cam.x / cam.zoom + viewW / 2;
-          const vy1 = -cam.y / cam.zoom + viewH / 2;
+            // 视口范围（世界坐标）
+            const viewW = cam.zoom > 0 ? w / cam.zoom : 0;
+            const viewH = cam.zoom > 0 ? h / cam.zoom : 0;
+            const vx0 = -cam.x / cam.zoom - viewW / 2;
+            const vy0 = -cam.y / cam.zoom - viewH / 2;
+            const vx1 = -cam.x / cam.zoom + viewW / 2;
+            const vy1 = -cam.y / cam.zoom + viewH / 2;
 
-          for (const [cid, g] of geom) {
-            // 手动展开的永远保持展开
-            if (manualExpandedRef.current.has(cid)) { continue; }
+            for (const [cid, g] of geom) {
+              // 手动展开的永远保持展开
+              if (manualExpandedRef.current.has(cid)) { continue; }
 
-            if (lodLevel === 0) {
-              // LOD 0: 全折叠
-              newCollapsed.add(cid);
-            } else if (lodLevel === 1) {
-              // LOD 1: 仅视口内展开
-              const inViewport = g.cx >= vx0 && g.cx <= vx1 && g.cy >= vy0 && g.cy <= vy1;
-              if (!inViewport) { newCollapsed.add(cid); }
-            } else if (lodLevel === 2) {
-              // LOD 2: 视口 + 邻近区域展开（2x 视口范围）
-              const marginX = viewW;
-              const marginY = viewH;
-              const inExpanded = g.cx >= vx0 - marginX && g.cx <= vx1 + marginX
-                && g.cy >= vy0 - marginY && g.cy <= vy1 + marginY;
-              if (!inExpanded) { newCollapsed.add(cid); }
+              if (lodLevel === 0) {
+                // LOD 0: 全折叠
+                newCollapsed.add(cid);
+              } else if (lodLevel === 1) {
+                // LOD 1: 仅视口内展开
+                const inViewport = g.cx >= vx0 && g.cx <= vx1 && g.cy >= vy0 && g.cy <= vy1;
+                if (!inViewport) { newCollapsed.add(cid); }
+              } else if (lodLevel === 2) {
+                // LOD 2: 视口 + 邻近区域展开（2x 视口范围）
+                const marginX = viewW;
+                const marginY = viewH;
+                const inExpanded = g.cx >= vx0 - marginX && g.cx <= vx1 + marginX
+                  && g.cy >= vy0 - marginY && g.cy <= vy1 + marginY;
+                if (!inExpanded) { newCollapsed.add(cid); }
+              }
+              // lodLevel === 3: 全展开（newCollapsed 保持空）
             }
-            // lodLevel === 3: 全展开（newCollapsed 保持空）
-          }
 
-          // 渐进式展开：限制每帧新增展开的社区数
-          if (newCollapsed.size < collapsedRef.current.size) {
-            // 有新的展开，限制数量
-            const toExpand = [];
-            for (const cid of collapsedRef.current) {
-              if (!newCollapsed.has(cid) && !manualExpandedRef.current.has(cid)) {
-                toExpand.push(cid);
+            // 渐进式展开：限制每帧新增展开的社区数
+            if (newCollapsed.size < collapsedRef.current.size) {
+              // 有新的展开，限制数量
+              const toExpand = [];
+              for (const cid of collapsedRef.current) {
+                if (!newCollapsed.has(cid) && !manualExpandedRef.current.has(cid)) {
+                  toExpand.push(cid);
+                }
+              }
+              // 按距离视口中心排序，优先展开近处的
+              const cx = (vx0 + vx1) / 2;
+              const cy = (vy0 + vy1) / 2;
+              toExpand.sort((a, b) => {
+                const ga = geom.get(a);
+                const gb = geom.get(b);
+                if (!ga || !gb) { return 0; }
+                const da = Math.hypot(ga.cx - cx, ga.cy - cy);
+                const db = Math.hypot(gb.cx - cx, gb.cy - cy);
+                return da - db;
+              });
+
+              // 计算展开后预计的物理节点数
+              const expandedCount = toExpand.length;
+              const newAggNodeCount = (aggPhys?.nodes.length ?? 0) + expandedCount * 10; // 粗略估算
+
+              // 如果展开后会超出物理节点限制，只展开部分
+              const maxExpand = newAggNodeCount > MAX_AGG_PHYS_NODES
+                ? Math.max(1, Math.floor((MAX_AGG_PHYS_NODES - (aggPhys?.nodes.length ?? 0)) / 10))
+                : MAX_EXPAND_PER_FRAME;
+
+              for (let i = 0; i < Math.min(maxExpand, toExpand.length); i++) {
+                newCollapsed.delete(toExpand[i]);
+                expandedInThisFrame.push(toExpand[i]);
               }
             }
-            // 按距离视口中心排序，优先展开近处的
-            const cx = (vx0 + vx1) / 2;
-            const cy = (vy0 + vy1) / 2;
-            toExpand.sort((a, b) => {
-              const ga = geom.get(a);
-              const gb = geom.get(b);
-              if (!ga || !gb) { return 0; }
-              const da = Math.hypot(ga.cx - cx, ga.cy - cy);
-              const db = Math.hypot(gb.cx - cx, gb.cy - cy);
-              return da - db;
+
+            // 物理节点数保护：如果当前聚合物理已超限，强制折叠最远的非手动社区
+            if (aggPhys && aggPhys.nodes.length > MAX_AGG_PHYS_NODES) {
+              const cx = (vx0 + vx1) / 2;
+              const cy = (vy0 + vy1) / 2;
+              const collapsible = [];
+              for (const cid of newCollapsed) {
+                if (manualExpandedRef.current.has(cid)) { continue; }
+                const g = geom.get(cid);
+                if (!g) { continue; }
+                collapsible.push({ cid, dist: Math.hypot(g.cx - cx, g.cy - cy), count: g.count });
+              }
+              // 按距离从远到近排序，折叠最远的
+              collapsible.sort((a, b) => b.dist - a.dist);
+              let currentOver = aggPhys.nodes.length - MAX_AGG_PHYS_NODES;
+              for (const { cid, count } of collapsible) {
+                if (currentOver <= 0) { break; }
+                newCollapsed.add(cid);
+                currentOver -= count;
+              }
+            }
+
+            collapsedRef.current = newCollapsed;
+
+            console.log("[GraphView] LOD update", {
+              lodLevel,
+              newCollapsedSize: newCollapsed.size,
+              prevCollapsedSize,
             });
 
-            // 计算展开后预计的物理节点数
-            const expandedCount = toExpand.length;
-            const newAggNodeCount = (aggPhys?.nodes.length ?? 0) + expandedCount * 10; // 粗略估算
-
-            // 如果展开后会超出物理节点限制，只展开部分
-            const maxExpand = newAggNodeCount > MAX_AGG_PHYS_NODES
-              ? Math.max(1, Math.floor((MAX_AGG_PHYS_NODES - (aggPhys?.nodes.length ?? 0)) / 10))
-              : MAX_EXPAND_PER_FRAME;
-
-            for (let i = 0; i < Math.min(maxExpand, toExpand.length); i++) {
-              newCollapsed.delete(toExpand[i]);
-              expandedInThisFrame.push(toExpand[i]);
+            // LOD 变化导致折叠集合改变 → 重建聚合物理集
+            if (newCollapsed.size !== prevCollapsedSize) {
+              // 放到 requestIdleCallback 中：避免阻塞下一帧渲染
+              requestIdleCallback(() => {
+                refreshClusterGeom();
+                buildAggregatePhysics();
+                setClusterCollapseVersion((v) => v + 1);
+              }, { timeout: 500 });
             }
-          }
-
-          // 物理节点数保护：如果当前聚合物理已超限，强制折叠最远的非手动社区
-          if (aggPhys && aggPhys.nodes.length > MAX_AGG_PHYS_NODES) {
-            const cx = (vx0 + vx1) / 2;
-            const cy = (vy0 + vy1) / 2;
-            const collapsible = [];
-            for (const cid of newCollapsed) {
-              if (manualExpandedRef.current.has(cid)) { continue; }
-              const g = geom.get(cid);
-              if (!g) { continue; }
-              collapsible.push({ cid, dist: Math.hypot(g.cx - cx, g.cy - cy), count: g.count });
-            }
-            // 按距离从远到近排序，折叠最远的
-            collapsible.sort((a, b) => b.dist - a.dist);
-            let currentOver = aggPhys.nodes.length - MAX_AGG_PHYS_NODES;
-            for (const { cid, count } of collapsible) {
-              if (currentOver <= 0) { break; }
-              newCollapsed.add(cid);
-              currentOver -= count;
-            }
-          }
-
-          collapsedRef.current = newCollapsed;
-
-          console.log("[GraphView] LOD update", {
-            lodLevel,
-            newCollapsedSize: newCollapsed.size,
-            prevCollapsedSize,
-          });
-
-          // LOD 变化导致折叠集合改变 → 重建聚合物理集
-          if (newCollapsed.size !== prevCollapsedSize) {
-            // 放到 requestIdleCallback 中：避免阻塞下一帧渲染
-            requestIdleCallback(() => {
-              refreshClusterGeom();
-              buildAggregatePhysics();
-              setClusterCollapseVersion((v) => v + 1);
-            }, { timeout: 500 });
           }
         }
       }
@@ -1426,8 +1435,90 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
           // 原始节点的 gridIndex 已在数据初始化时构建，保持不变
           // 聚合节点的位置变化通过 clusterGeom 的 cx/cy 回写驱动渲染
         }
-        // 聚合物理激活时不使用 Worker 结果
-        workerResultRef.current = null;
+
+        // 关键修复：aggActive 模式下仍然需要应用 Worker 结果更新原始节点位置。
+        // 之前设置 workerResultRef.current = null 导致原始节点位置从未被更新，
+        // 节点停留在初始化时的随机位置，而边使用 clusterGeom 中已更新的聚合位置，
+        // 造成"只显示边、不显示节点"的问题。
+        if (worker && workerReady && !hasDrag) {
+          // 请求下一个 Worker 步进
+          if (!pendingStepRef.current && !hasDrag && (hasInteraction || frameCounterRef.current % 12 === 0)) {
+            const workerConfig: PhysicsConfig = {
+              theta: 0.5,
+              repulsion: 6000,
+              gravity: 0.01,
+              damping: 0.92,
+              dt: 0.25,
+              springForce: 0.04,
+              springDamping: 0.85,
+              maxVelocity: 4,
+            };
+            const centroids = clusterModeRef.current && effCommunities
+              ? computeCommunityCentroids(nodes, effCommunities)
+              : undefined;
+
+            worker.postMessage({
+              type: "step",
+              payload: {
+                config: workerConfig,
+                centroids: centroids ? Object.fromEntries(centroids) : undefined,
+              },
+            } as WorkerMessage);
+            pendingStepRef.current = true;
+          }
+
+          // 应用 Worker 返回的结果到原始节点位置
+          const result = workerResultRef.current;
+          if (result && result.positions) {
+            const hasNewResult = result.tick !== lastProcessedTickRef.current;
+            if (hasNewResult) {
+              lastProcessedTickRef.current = result.tick;
+              const n = nodes.length;
+              const posMap = posMapRef.current;
+              for (let i = 0; i < n; i++) {
+                const node = nodes[i];
+                if (!node.fixed) {
+                  node.x = result.positions[i * 2];
+                  node.y = result.positions[i * 2 + 1];
+                  node.vx = result.velocities[i * 2];
+                  node.vy = result.velocities[i * 2 + 1];
+                  // 同步更新 posMap
+                  const pmNode = posMap.get(node.id);
+                  if (pmNode) {
+                    pmNode.x = node.x;
+                    pmNode.y = node.y;
+                  }
+                }
+              }
+              posMapRef.current = posMap;
+
+              // 重建 gridIndex（仅在有新结果时重建）
+              const gridIndex = new Map<string, string[]>();
+              for (const n2 of nodes) {
+                const gx = Math.floor(n2.x / GRID_CELL_SIZE);
+                const gy = Math.floor(n2.y / GRID_CELL_SIZE);
+                const key = `${gx},${gy}`;
+                const bucket = gridIndex.get(key);
+                if (bucket) {
+                  bucket.push(n2.id);
+                } else {
+                  gridIndex.set(key, [n2.id]);
+                }
+              }
+              gridIndexRef.current = gridIndex;
+
+              // 稳定检测
+              if (result.stable && !hasInteraction) {
+                idleCounterRef.current++;
+              } else {
+                idleCounterRef.current = 0;
+              }
+            }
+          }
+        } else if (worker && !workerReady && !hasDrag) {
+          // Worker 未就绪时清空结果标记，避免使用旧结果
+          workerResultRef.current = null;
+        }
       } else if (worker && workerReady && nodes.length > 0) {
         const enableClusters = clusterModeRef.current && effCommunities;
 
@@ -1497,29 +1588,28 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
               }
             }
 
-            // 异步重建 gridIndex：放到 requestIdleCallback 中执行，避免阻塞渲染帧
-            // gridIndex 查找在渲染时使用旧值，最坏情况是某些节点不会被渲染出来
-            // 但总比阻塞主线程导致整个应用冻结要好
-            if (n > FORCE_BITMAP_THRESHOLD) {
-              // 大图模式：完全跳过 gridIndex 重建，使用 posMap fallback
-              // posMap 已经包含最新位置，渲染函数会 fallback 到 posMap
-            } else {
-              // 小图模式：在空闲时重建
+            // 同步重建 gridIndex：Worker 返回新位置后立即更新网格索引
+            // 2万节点下 gridIndex 重建约 10-30ms，可接受
+            const gridIndex = new Map<string, string[]>();
+            for (const n2 of nodes) {
+              const gx = Math.floor(n2.x / GRID_CELL_SIZE);
+              const gy = Math.floor(n2.y / GRID_CELL_SIZE);
+              const key = `${gx},${gy}`;
+              const bucket = gridIndex.get(key);
+              if (bucket) {
+                bucket.push(n2.id);
+              } else {
+                gridIndex.set(key, [n2.id]);
+              }
+            }
+            gridIndexRef.current = gridIndex;
+
+            // 如果处于聚类模式且 Worker ready，更新聚类几何
+            // 仅在非聚合物理模式下（aggActive 下由聚合物理节点回写）
+            if (clusterModeRef.current && !aggActive) {
               requestIdleCallback(() => {
-                const gridIndex = new Map<string, string[]>();
-                for (const n2 of nodes) {
-                  const gx = Math.floor(n2.x / GRID_CELL_SIZE);
-                  const gy = Math.floor(n2.y / GRID_CELL_SIZE);
-                  const key = `${gx},${gy}`;
-                  const bucket = gridIndex.get(key);
-                  if (bucket) {
-                    bucket.push(n2.id);
-                  } else {
-                    gridIndex.set(key, [n2.id]);
-                  }
-                }
-                gridIndexRef.current = gridIndex;
-              }, { timeout: 500 });
+                refreshClusterGeom();
+              }, { timeout: 200 });
             }
 
             // 大图位图缓存：异步重建
@@ -1635,7 +1725,11 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       // Worker 未就绪的大图：跳过完整渲染，避免主线程 fallback 卡死
       if (shouldRender && !workerNotReadyLargeGraph) {
         // 强制聚类：节点数 > 3000 时自动进入聚类渲染模式
-        if (aggActive || clusterModeRef.current || forceCluster) {
+        // 但如果 clusterGeom 还没准备好，强制走原始渲染路径
+        const geomReady = clusterGeomRef.current.size > 0;
+        const shouldUseClusterRender = (aggActive || clusterModeRef.current || forceCluster) && geomReady;
+
+        if (shouldUseClusterRender) {
           // ── 聚类模式：极简渲染策略 ──
           // 全折叠时只画小型聚类标记 + 聚合边
           // 展开社区时才画内部节点
@@ -2124,10 +2218,16 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     const gridIndex = gridIndexRef.current;
 
     // 收集展开社区的节点（不在 collapsed 中的社区）
-    // 关键修复：在 forceCluster/aggActive 模式下，gridIndex 只包含聚合节点 ID（__agg__*），
-    // 不包含原始节点 ID，导致无法通过网格索引找到展开社区的原始节点。
-    // 解决方案：当 gridIndex 查找失败时，使用 posMap 作为 fallback 数据源。
+    // 关键修复：节点无社区 ID 时也应绘制，不能被跳过。
+    // 只有当节点有社区 ID 且该社区被折叠时才跳过。
     const expandedNodeIds = new Set<string>();
+
+    // 判断节点是否可见的辅助函数
+    const isNodeVisible = (id: string): boolean => {
+      const cid = activeCommunities.get(id);
+      // 无社区 ID 的节点始终可见；有社区 ID 且社区未折叠时可见
+      return cid === undefined || !collapsedSet.has(cid);
+    };
 
     // 第一优先级：使用网格索引（O(可见区域) 效率高）
     if (gridIndex) {
@@ -2141,8 +2241,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
           const bucket = gridIndex.get(`${gx},${gy}`);
           if (!bucket) { continue; }
           for (const id of bucket) {
-            const cid = activeCommunities.get(id);
-            if (cid !== undefined && !collapsedSet.has(cid)) {
+            if (isNodeVisible(id)) {
               expandedNodeIds.add(id);
             }
           }
@@ -2150,27 +2249,46 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       }
     }
 
-    // Fallback：在 forceCluster/aggActive 模式下，gridIndex 可能只包含聚合节点 ID。
-    // 如果网格索引查找结果为空，改用 posMap 遍历所有节点（O(N) 但保证正确性）。
-    // 这是必要的性能-正确性权衡：大图模式下节点可见性比性能更重要。
+    // Fallback 1：posMap 遍历（覆盖网格索引未命中的节点）
     if (expandedNodeIds.size === 0 && posMap.size > 0) {
       for (const [id, node] of posMap) {
         if (!isInView(node.x, node.y, viewWorld, 20)) { continue; }
-        const cid = activeCommunities.get(id);
-        if (cid !== undefined && !collapsedSet.has(cid)) {
+        if (isNodeVisible(id)) {
           expandedNodeIds.add(id);
         }
       }
     }
 
+    // Fallback 2：直接遍历 _nodes 数组（最终兜底，确保节点不会因任何过滤逻辑丢失）
+    if (expandedNodeIds.size === 0 && _nodes.length > 0) {
+      for (const node of _nodes) {
+        if (!isInView(node.x, node.y, viewWorld, 20)) { continue; }
+        if (isNodeVisible(node.id)) {
+          expandedNodeIds.add(node.id);
+        }
+      }
+    }
+
+    // Fallback 3：终极兜底，跳过所有社区过滤，直接绘制所有视口内节点
+    if (expandedNodeIds.size === 0 && _nodes.length > 0) {
+      for (const node of _nodes) {
+        if (!isInView(node.x, node.y, viewWorld, 20)) { continue; }
+        expandedNodeIds.add(node.id);
+      }
+    }
+
     if (expandedNodeIds.size === 0) { return; }
 
-    // 降采样：大图只画部分节点
+    // 降采样：大图只画部分节点（使用确定性采样避免闪烁）
     const nodeSampleRate = isLargeGraph ? 0.5 : 1.0;
     const visibleNodes: { id: string; x: number; y: number; size: number; color: string }[] = [];
 
     for (const id of expandedNodeIds) {
-      if (nodeSampleRate < 1 && Math.random() > nodeSampleRate) { continue; }
+      // 确定性采样：使用节点 ID 的哈希，确保每帧绘制相同的节点
+      if (nodeSampleRate < 1) {
+        const hash = Math.abs(hashStringToInt(id));
+        if (hash % 100 >= nodeSampleRate * 100) { continue; }
+      }
       const node = posMap.get(id);
       if (!node) { continue; }
       if (!isInView(node.x, node.y, viewWorld, 20)) { continue; }
