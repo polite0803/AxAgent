@@ -982,9 +982,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       maxVelocity: 4,
     };
 
-    // ── 零拷贝初始化：使用 Float64Array + Transfer List ──
-    // 避免 JSON 序列化（structured clone）阻塞主线程
-    // 节点布局：[x, y, vx, vy, fx, fy, mass, fixed(0/1), kind(0), idx] = 10 floats
+    // ── 零拷贝初始化：使用 Float64Array + Int32Array + Transfer List ──
+    // 彻底消除字符串数组的 structured clone 开销（2万+ 字符串序列化阻塞主线程数秒）
+    // 节点布局：[x, y, vx, vy, fx, fy, mass, fixed(0/1), kind(enum), idx] = 10 floats
     // 边布局：[sIdx, tIdx, restLength, stiffness, damping] = 5 floats
     const nodeCount = pNodes.length;
     const edgeCount = pEdges.length;
@@ -992,9 +992,13 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     const EDGE_STRIDE = 5;
     const nodeBuffer = new Float64Array(nodeCount * NODE_STRIDE);
     const edgeBuffer = new Float64Array(edgeCount * EDGE_STRIDE);
-    const nodeIds: string[] = Array.from({ length: nodeCount });
-    const nodeKinds: string[] = Array.from({ length: nodeCount });
-
+    // 节点类型枚举映射（用 Uint8Array 传输，避免字符串序列化）
+    const kindToEnum = new Map<string, number>();
+    const nodeKindEnum = new Uint8Array(nodeCount);
+    // 直接构建 节点索引 → 社区ID 映射（Int32Array，零拷贝传输）
+    // 避免 Worker 中用 nodeIds 反查 communities 的二次构建开销
+    const nodeIdxToCommunity = new Int32Array(nodeCount).fill(-1);
+    const ecLookup = effectiveCommunities;
     for (let i = 0; i < nodeCount; i++) {
       const n = pNodes[i];
       const base = i * NODE_STRIDE;
@@ -1006,10 +1010,22 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       nodeBuffer[base + 5] = n.fy;
       nodeBuffer[base + 6] = n.mass;
       nodeBuffer[base + 7] = n.fixed ? 1 : 0;
-      nodeBuffer[base + 8] = 0; // kind 存储在 nodeKinds 数组中
+      // kind 枚举化
+      let kindVal = kindToEnum.get(n.kind);
+      if (kindVal === undefined) {
+        kindVal = kindToEnum.size;
+        kindToEnum.set(n.kind, kindVal);
+      }
+      nodeKindEnum[i] = kindVal;
+      nodeBuffer[base + 8] = kindVal;
       nodeBuffer[base + 9] = n.idx;
-      nodeIds[i] = n.id;
-      nodeKinds[i] = n.kind;
+      // 社区映射（直接用节点 ID 查找）
+      if (ecLookup) {
+        const cid = ecLookup.get(n.id);
+        if (cid !== undefined) {
+          nodeIdxToCommunity[i] = cid;
+        }
+      }
     }
 
     for (let e = 0; e < edgeCount; e++) {
@@ -1028,23 +1044,26 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         nodes: [],
         edges: [],
         config: workerConfig,
-        communities: effectiveCommunities
-          ? Object.fromEntries(effectiveCommunities)
-          : undefined,
+        communities: undefined, // 已通过 nodeIdxToCommunity 传递，不再需要
         compact: {
           nodeBuffer,
           edgeBuffer,
-          nodeIds,
-          nodeKinds,
+          nodeIdxToCommunity,
+          nodeKindEnum,
           nodeCount,
           edgeCount,
         },
       },
     };
 
-    // 使用 Transfer List 实现零拷贝：ArrayBuffer 所有权直接转移到 Worker
-    // 主线程零阻塞（之前用 postMessage 传递 JSON 对象时，structured clone 会阻塞数秒）
-    worker.postMessage(initMsg, [nodeBuffer.buffer, edgeBuffer.buffer]);
+    // 使用 Transfer List 实现零拷贝：所有 ArrayBuffer 所有权直接转移到 Worker
+    // 彻底消除 structured clone 开销（之前 2万+ 字符串序列化阻塞主线程数秒）
+    worker.postMessage(initMsg, [
+      nodeBuffer.buffer,
+      edgeBuffer.buffer,
+      nodeIdxToCommunity.buffer,
+      nodeKindEnum.buffer,
+    ]);
 
     worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
       const msg = e.data;
@@ -1074,52 +1093,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       }
     };
 
-    // ── 大图自动聚合：设置折叠状态、刷新几何、构建聚合物理 ──
-    // （effectiveCommunities 已在 Worker 初始化前预计算好）
-    // 关键修复：即使 effectiveCommunities 为 null，也要基于 effectiveCommunitiesRef.current 初始化
+    // ── 大图自动聚合：设置折叠状态（延迟计算放到 requestIdleCallback 或下一帧） ──
     if (shouldForceCluster) {
-      const commForInit = effectiveCommunities ?? effectiveCommunitiesRef.current;
-      if (!commForInit) {
-        // 基于空间位置进行网格分桶（而非随机哈希），确保相邻节点聚在一起
-        // 计算节点坐标范围
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        for (const n of pNodes) {
-          if (n.x < minX) { minX = n.x; }
-          if (n.x > maxX) { maxX = n.x; }
-          if (n.y < minY) { minY = n.y; }
-          if (n.y > maxY) { maxY = n.y; }
-        }
-        const rangeX = maxX - minX || 1;
-        const rangeY = maxY - minY || 1;
-        // 网格边数：sqrt(目标聚类数)，目标约 200 个聚类
-        const GRID_SIDE = Math.ceil(Math.sqrt(FORCE_CLUSTER_COUNT));
-        const cellW = rangeX / GRID_SIDE;
-        const cellH = rangeY / GRID_SIDE;
-
-        const fallbackMap = new Map<string, number>();
-        for (const n of pNodes) {
-          const gx = Math.min(GRID_SIDE - 1, Math.max(0, Math.floor((n.x - minX) / cellW)));
-          const gy = Math.min(GRID_SIDE - 1, Math.max(0, Math.floor((n.y - minY) / cellH)));
-          // 将二维网格坐标转为一维 ID：gy * GRID_SIDE + gx
-          const cid = gy * GRID_SIDE + gx;
-          fallbackMap.set(n.id, cid);
-        }
-        console.log("[GraphView] forceCluster spatial grid", {
-          gridSide: GRID_SIDE,
-          actualClusters: new Set(fallbackMap.values()).size,
-          rangeX: rangeX.toFixed(0),
-          rangeY: rangeY.toFixed(0),
-          cellW: cellW.toFixed(0),
-          cellH: cellH.toFixed(0),
-        });
-        effectiveCommunitiesRef.current = fallbackMap;
-      }
-
       const comm = effectiveCommunitiesRef.current;
-      console.log("[GraphView] forceCluster init", {
-        nodeCount: pNodes.length,
-        communityCount: comm?.size ?? 0,
-      });
 
       // 关键：同步更新 communitiesRef（buildAggregatePhysics 依赖它）
       communitiesRef.current = comm;
@@ -1132,15 +1108,27 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       }
       collapsedRef.current = all;
       clusterModeRef.current = true;
+      // 注意：不在此处同步调用 refreshClusterGeom/buildAggregatePhysics
+      // 这两个函数在 2万+ 节点下是 O(N) + O(E)，会阻塞主线程数秒
+      // 改为延迟到 Worker ready 后再计算（Worker ready 回调中处理）
       setClusterMode(true);
-      refreshClusterGeom();
-      buildAggregatePhysics();
-      console.log("[GraphView] forceCluster init done", {
-        collapsedSize: collapsedRef.current.size,
-        clusterGeomSize: clusterGeomRef.current.size,
-        aggPhysNotNull: aggPhysRef.current !== null,
-      });
-      setClusterCollapseVersion((v) => v + 1);
+
+      // Worker ready 回调中处理聚合几何和物理构建
+      const originalOnMessage = worker.onmessage.bind(worker);
+      worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
+        originalOnMessage(e);
+        if (e.data.type === "ready") {
+          // 放到 requestIdleCallback 中：让浏览器先绘制首帧，再在空闲时计算
+          // 这两个函数在 2万+ 节点下是 O(N) + O(E)，耗时数百毫秒
+          // 使用 requestIdleCallback 确保不阻塞首帧渲染
+          requestIdleCallback(() => {
+            if (!clusterModeRef.current) { return; }
+            refreshClusterGeom();
+            buildAggregatePhysics();
+            setClusterCollapseVersion((v) => v + 1);
+          }, { timeout: 2000 });
+        }
+      };
     }
 
     // 组件卸载时销毁 Worker，避免线程泄漏和内存堆积
@@ -1370,12 +1358,12 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
           // LOD 变化导致折叠集合改变 → 重建聚合物理集
           if (newCollapsed.size !== prevCollapsedSize) {
-            // 延迟一帧重建，避免在渲染循环中立即触发重计算
-            setTimeout(() => {
+            // 放到 requestIdleCallback 中：避免阻塞下一帧渲染
+            requestIdleCallback(() => {
               refreshClusterGeom();
               buildAggregatePhysics();
               setClusterCollapseVersion((v) => v + 1);
-            }, 0);
+            }, { timeout: 500 });
           }
         }
       }
@@ -1428,20 +1416,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
               g.cy = gn.y;
             }
           }
-          // 更新网格空间索引（未折叠节点位置可能变化）
-          const gridIndex = new Map<string, string[]>();
-          for (const n of aggPhys.nodes) {
-            const gx = Math.floor(n.x / GRID_CELL_SIZE);
-            const gy = Math.floor(n.y / GRID_CELL_SIZE);
-            const key = `${gx},${gy}`;
-            const bucket = gridIndex.get(key);
-            if (bucket) {
-              bucket.push(n.id);
-            } else {
-              gridIndex.set(key, [n.id]);
-            }
-          }
-          gridIndexRef.current = gridIndex;
+          // 不再用聚合节点覆盖 gridIndex —— 会导致 drawExpandedCommunity 找不到原始节点
+          // 原始节点的 gridIndex 已在数据初始化时构建，保持不变
+          // 聚合节点的位置变化通过 clusterGeom 的 cx/cy 回写驱动渲染
         }
         // 聚合物理激活时不使用 Worker 结果
         workerResultRef.current = null;
@@ -1455,7 +1432,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
             worker.postMessage({
               type: "update",
               payload: {
-                nodeId: dragNode.id,
+                nodeIdx: dragNode.idx,
                 x: dragNode.x,
                 y: dragNode.y,
                 fixed: dragNode.fixed,
@@ -1514,46 +1491,36 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
               }
             }
 
-            // 仅在节点位置更新后才重建网格空间索引
-            {
-              const gridIndex = new Map<string, string[]>();
-              for (const n of nodes) {
-                const gx = Math.floor(n.x / GRID_CELL_SIZE);
-                const gy = Math.floor(n.y / GRID_CELL_SIZE);
-                const key = `${gx},${gy}`;
-                const bucket = gridIndex.get(key);
-                if (bucket) {
-                  bucket.push(n.id);
-                } else {
-                  gridIndex.set(key, [n.id]);
+            // 异步重建 gridIndex：放到 requestIdleCallback 中执行，避免阻塞渲染帧
+            // gridIndex 查找在渲染时使用旧值，最坏情况是某些节点不会被渲染出来
+            // 但总比阻塞主线程导致整个应用冻结要好
+            if (n > FORCE_BITMAP_THRESHOLD) {
+              // 大图模式：完全跳过 gridIndex 重建，使用 posMap fallback
+              // posMap 已经包含最新位置，渲染函数会 fallback 到 posMap
+            } else {
+              // 小图模式：在空闲时重建
+              requestIdleCallback(() => {
+                const gridIndex = new Map<string, string[]>();
+                for (const n2 of nodes) {
+                  const gx = Math.floor(n2.x / GRID_CELL_SIZE);
+                  const gy = Math.floor(n2.y / GRID_CELL_SIZE);
+                  const key = `${gx},${gy}`;
+                  const bucket = gridIndex.get(key);
+                  if (bucket) {
+                    bucket.push(n2.id);
+                  } else {
+                    gridIndex.set(key, [n2.id]);
+                  }
                 }
-              }
-              gridIndexRef.current = gridIndex;
+                gridIndexRef.current = gridIndex;
+              }, { timeout: 500 });
             }
 
-            // 关键修复：在 forceCluster/clusterMode 下，Worker 返回新位置后必须重建
-            // clusterGeomRef.current（聚类质心/半径）和 aggPhysRef.current（聚合物理节点）。
-            // 否则渲染时使用的是初始位置计算的旧几何数据，所有聚类看起来重叠在一起。
-            // 同时确保 collapsedRef.current 不为空（可能被 LOD 逻辑意外清空）
-            if (clusterModeRef.current || nodes.length > AUTO_CLUSTER_THRESHOLD) {
-              const comm = communitiesRef.current;
-              if (comm && collapsedRef.current.size === 0) {
-                // collapsed 被清空时重建：forceCluster 模式下默认所有社区折叠
-                const all = new Set<number>();
-                for (const cid of comm.values()) {
-                  all.add(cid);
-                }
-                collapsedRef.current = all;
-                console.log("[GraphView] forceCluster: rebuilt collapsed set", { size: all.size });
-              }
-              refreshClusterGeom();
-              buildAggregatePhysics();
-            }
-
-            // 大图位图缓存：Worker 返回新结果时重建（节点位置已更新）
-            // 仅在非交互状态下重建，避免与拖拽冲突
+            // 大图位图缓存：异步重建
             if (nodes.length > FORCE_BITMAP_THRESHOLD && !hasInteraction) {
-              spriteCacheRef.current = buildBigGraphSpriteCache(nodes);
+              requestIdleCallback(() => {
+                spriteCacheRef.current = buildBigGraphSpriteCache(nodes);
+              }, { timeout: 1000 });
             }
           }
 
@@ -1603,20 +1570,23 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
             enableClusters ? centroids : undefined,
             neighborMapCacheRef.current,
           );
+          // gridIndex 重建改为异步（主线程 fallback 模式，节点数 <= 1500，影响较小）
           if (frameCounterRef.current % 3 === 0) {
-            const gridIndex = new Map<string, string[]>();
-            for (const n of nodes) {
-              const gx = Math.floor(n.x / GRID_CELL_SIZE);
-              const gy = Math.floor(n.y / GRID_CELL_SIZE);
-              const key = `${gx},${gy}`;
-              const bucket = gridIndex.get(key);
-              if (bucket) {
-                bucket.push(n.id);
-              } else {
-                gridIndex.set(key, [n.id]);
+            requestIdleCallback(() => {
+              const gridIndex = new Map<string, string[]>();
+              for (const n of nodes) {
+                const gx = Math.floor(n.x / GRID_CELL_SIZE);
+                const gy = Math.floor(n.y / GRID_CELL_SIZE);
+                const key = `${gx},${gy}`;
+                const bucket = gridIndex.get(key);
+                if (bucket) {
+                  bucket.push(n.id);
+                } else {
+                  gridIndex.set(key, [n.id]);
+                }
               }
-            }
-            gridIndexRef.current = gridIndex;
+              gridIndexRef.current = gridIndex;
+            }, { timeout: 100 });
           }
         }
       }
@@ -1650,16 +1620,10 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         drawClusterRegions(ctx, nodes);
       }
 
-      // 聚合几何低频刷新（6 帧一次；切换展开/收起时立即刷新）
-      // 系统稳定时跳过（节点位置不变，cluster geom 也无需重算，节省 O(N) 遍历）
-      // 聚合物理激活时跳过：折叠社区的 cx/cy 由聚合物理节点回写驱动，避免被质心覆盖
+      // 聚合几何已在 Worker ready 回调和 LOD 切换时异步计算
+      // 渲染循环中不再同步调用 refreshClusterGeom()，避免 O(N) 阻塞主线程
+      // 聚合物理激活时由聚合物理节点回写驱动，非激活时使用上次计算结果
       const forceCluster = nodes.length > AUTO_CLUSTER_THRESHOLD;
-      if (
-        (clusterModeRef.current || forceCluster) && !aggActive && frameCounterRef.current % 6 === 0
-        && idleCounterRef.current < 30
-      ) {
-        refreshClusterGeom();
-      }
 
       // 绘制（传入视口范围用于裁剪）
       // Worker 未就绪的大图：跳过完整渲染，避免主线程 fallback 卡死
@@ -3209,7 +3173,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
           worker.postMessage({
             type: "update",
             payload: {
-              nodeId: node.id,
+              nodeIdx: node.idx,
               x: node.x,
               y: node.y,
               fixed: false,
@@ -3245,7 +3209,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
           worker.postMessage({
             type: "update",
             payload: {
-              nodeId: node.id,
+              nodeIdx: node.idx,
               x: node.x,
               y: node.y,
               fixed: false,

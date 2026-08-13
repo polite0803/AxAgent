@@ -49,16 +49,16 @@ interface InitPayload {
   }[];
   config: PhysicsConfig;
   communities?: Record<string, number>;
-  // 压缩格式：主线程用 Float64Array/Uint32Array 零拷贝传输，避免 JSON 序列化阻塞
-  // nodeBuffer: [x, y, vx, vy, fx, fy, mass, fixed, kind, idx, ...] 每节点 10 个值
-  // edgeBuffer: [sIdx, tIdx, restLength, stiffness, damping, ...] 每边 5 个值
-  // nodeIds: 节点 ID 数组（字符串）
-  // nodeKinds: 节点类型数组（字符串）
+  // 压缩格式：主线程用 Float64Array/Int32Array/Uint8Array 零拷贝传输
+  // nodeBuffer: [x, y, vx, vy, fx, fy, mass, fixed, kind(enum), idx] 每节点 10 个值
+  // edgeBuffer: [sIdx, tIdx, restLength, stiffness, damping] 每边 5 个值
+  // nodeIdxToCommunity: 节点索引 → 社区ID (Int32Array, -1 表示无社区)
+  // nodeKindEnum: 节点类型枚举 (Uint8Array)
   compact?: {
     nodeBuffer: Float64Array;
     edgeBuffer: Float64Array;
-    nodeIds: string[];
-    nodeKinds: string[];
+    nodeIdxToCommunity: Int32Array;
+    nodeKindEnum: Uint8Array;
     nodeCount: number;
     edgeCount: number;
   };
@@ -76,7 +76,8 @@ interface StepPayload {
 let nodeIdxToCommunity: Int32Array | null = null;
 
 interface UpdatePayload {
-  nodeId: string;
+  nodeId?: string;
+  nodeIdx?: number;
   x: number;
   y: number;
   fixed: boolean;
@@ -115,8 +116,6 @@ let nodeFx: Float64Array | null = null;
 let nodeFy: Float64Array | null = null;
 let nodeMass: Float64Array | null = null;
 let nodeFixed: Uint8Array | null = null;
-let nodeIds: string[] = [];
-let nodeKinds: string[] = [];
 
 // 邻居表（索引化）
 type NeighborEntry = { targetIdx: number; rest: number; stiffness: number; damping: number };
@@ -423,40 +422,36 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
   switch (msg.type) {
     case "init": {
       try {
-        // ── 零拷贝路径：使用 compact Float64Array 格式，避免 JSON 序列化阻塞主线程 ──
+        // ── 零拷贝路径：使用 compact Float64Array/Int32Array/Uint8Array 格式 ──
         if (msg.payload.compact) {
-          const { nodeBuffer, edgeBuffer, nodeIds: nIds, nodeKinds: nKinds, nodeCount: n, edgeCount } =
-            msg.payload.compact;
+          const { nodeBuffer, edgeBuffer, nodeIdxToCommunity: n2c, nodeCount: n, edgeCount } = msg.payload.compact;
           nodePositions = new Float64Array(n * 2);
           nodeVelocities = new Float64Array(n * 2);
           nodeFx = new Float64Array(n);
           nodeFy = new Float64Array(n);
           nodeMass = new Float64Array(n);
           nodeFixed = new Uint8Array(n);
-          nodeIdxToCommunity = new Int32Array(n).fill(-1);
-          nodeIds = nIds;
-          nodeKinds = nKinds;
+          // 直接使用主线程构建的社区映射（零拷贝传输，已在主线程完成填充）
+          nodeIdxToCommunity = n2c;
 
           // 直接从 Float64Array 拷贝，零对象创建
           for (let i = 0; i < n; i++) {
-            const base = i * NODE_STRIDE; // 10 个 float 节点数据
-            nodePositions[i * 2] = nodeBuffer[base]; // x
-            nodePositions[i * 2 + 1] = nodeBuffer[base + 1]; // y
-            nodeVelocities[i * 2] = nodeBuffer[base + 2]; // vx
-            nodeVelocities[i * 2 + 1] = nodeBuffer[base + 3]; // vy
-            nodeFx[i] = nodeBuffer[base + 4]; // fx
-            nodeFy[i] = nodeBuffer[base + 5]; // fy
-            nodeMass[i] = nodeBuffer[base + 6]; // mass
-            nodeFixed[i] = nodeBuffer[base + 7] ? 1 : 0; // fixed (0/1)
-            // nodeBuffer[base + 8] 保留给 kind（uint32 但这里用 float64 传输）
-            // nodeBuffer[base + 9] 保留给 idx
+            const base = i * NODE_STRIDE;
+            nodePositions[i * 2] = nodeBuffer[base];
+            nodePositions[i * 2 + 1] = nodeBuffer[base + 1];
+            nodeVelocities[i * 2] = nodeBuffer[base + 2];
+            nodeVelocities[i * 2 + 1] = nodeBuffer[base + 3];
+            nodeFx[i] = nodeBuffer[base + 4];
+            nodeFy[i] = nodeBuffer[base + 5];
+            nodeMass[i] = nodeBuffer[base + 6];
+            nodeFixed[i] = nodeBuffer[base + 7] ? 1 : 0;
           }
 
           // 构建邻居表（从 Float64Array 直接读取）
           neighborMap = new Map();
           neighborEdgesCount = 0;
           for (let e = 0; e < edgeCount; e++) {
-            const eBase = e * EDGE_STRIDE; // 5 个 float 边数据
+            const eBase = e * EDGE_STRIDE;
             const sIdx = edgeBuffer[eBase];
             const tIdx = edgeBuffer[eBase + 1];
             const rest = edgeBuffer[eBase + 2];
@@ -478,8 +473,6 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
           nodeMass = new Float64Array(n);
           nodeFixed = new Uint8Array(n);
           nodeIdxToCommunity = new Int32Array(n).fill(-1);
-          nodeIds = [];
-          nodeKinds = [];
 
           for (let i = 0; i < n; i++) {
             const node = msg.payload.nodes[i];
@@ -491,8 +484,6 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
             nodeFy[i] = node.fy;
             nodeMass[i] = node.mass;
             nodeFixed[i] = node.fixed ? 1 : 0;
-            nodeIds.push(node.id);
-            nodeKinds.push(node.kind);
           }
 
           // 构建邻居表
@@ -519,20 +510,10 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
           }
         }
 
-        // 构建节点索引 → 社区 ID 映射
-        // init 时 communities 键是 nodeId 字符串，需通过 nodeIds 反查索引
-        if (msg.payload.communities) {
-          const idToIdx = new Map<string, number>();
-          for (let i = 0; i < nodeIds.length; i++) {
-            idToIdx.set(nodeIds[i], i);
-          }
-          for (const [nodeId, cid] of Object.entries(msg.payload.communities)) {
-            const idx = idToIdx.get(nodeId);
-            if (idx !== undefined) {
-              nodeIdxToCommunity[idx] = cid;
-            }
-          }
-        }
+        // 旧 JSON 路径下，根据 communities 构建 nodeIdxToCommunity
+        // compact 路径已在主线程预构建，跳过此步骤
+        // 注意：旧格式下没有存储 nodeIds，无法通过节点 ID 反查索引
+        // 所以 nodeIdxToCommunity 在旧格式下保持为 null（不支持社区力）
 
         tick = 0;
         initialized = true;
@@ -556,20 +537,7 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
 
         // communities 已在 init 时构建为 nodeIdxToCommunity（Int32Array），
         // step 时不再反序列化（避免 Number("note:xxx") → NaN 的键查询失败）
-        // 仅当主线程在 step 时传入新的 communities 才热更新映射
-        if (msg.payload.communities && nodeIdxToCommunity) {
-          const idToIdx = new Map<string, number>();
-          for (let i = 0; i < nodeIds.length; i++) {
-            idToIdx.set(nodeIds[i], i);
-          }
-          nodeIdxToCommunity.fill(-1);
-          for (const [nodeId, cid] of Object.entries(msg.payload.communities)) {
-            const idx = idToIdx.get(nodeId);
-            if (idx !== undefined) {
-              nodeIdxToCommunity[idx] = cid;
-            }
-          }
-        }
+        // compact 路径下 nodeIdxToCommunity 由主线程预构建并零拷贝传输，无需热更新
 
         // centroids 反序列化（键是数字字符串，转 number 安全）
         let centroids: Map<number, { cx: number; cy: number; count: number }> | undefined;
@@ -599,9 +567,9 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
 
     case "update": {
       if (!initialized || !nodePositions) { break; }
-      const ids = nodeIds;
-      const i = ids.indexOf(msg.payload.nodeId);
-      if (i >= 0) {
+      // 使用主线程传来的节点索引（不再需要 nodeIds 反查）
+      const i = msg.payload.nodeIdx ?? -1;
+      if (i >= 0 && i < nodePositions.length / 2) {
         nodePositions![i * 2] = msg.payload.x;
         nodePositions![i * 2 + 1] = msg.payload.y;
         nodeFixed![i] = msg.payload.fixed ? 1 : 0;
@@ -645,8 +613,6 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
       nodeMass = null;
       nodeFixed = null;
       nodeIdxToCommunity = null;
-      nodeIds = [];
-      nodeKinds = [];
       neighborMap = new Map();
       initialized = false;
       break;
