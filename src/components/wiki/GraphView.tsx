@@ -1575,34 +1575,85 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       // 绘制（传入视口范围用于裁剪）
       // Worker 未就绪的大图：跳过完整渲染，避免主线程 fallback 卡死
       if (shouldRender && !workerNotReadyLargeGraph) {
-        // ── 大图位图模式：>3000 节点且无交互时，使用预渲染位图代替矢量绘制 ──
-        // 这是解决 2 万+ 节点卡死的关键：将 5 万+ 矢量操作降为 1 次 drawImage
-        const isLargeGraph = nodes.length > FORCE_BITMAP_THRESHOLD;
-        const hasActiveInteraction = hovered || !!selected || !!dragRef.current;
+        // ── 聚类模式优化：聚合物理激活时完全跳过原始节点/边/位图渲染 ──
+        // 这是解决卡死的关键：聚类模式下原始 2 万节点的渲染没有意义
+        // 只渲染：聚合节点气泡 + 聚合边 + 少量展开的可见节点
+        if (aggActive || clusterModeRef.current) {
+          // 1. 绘制聚合边（连接聚类气泡的线）
+          if (aggPhys && aggPhys.edges.length > 0) {
+            ctx.strokeStyle = token.colorBorder;
+            ctx.lineWidth = 0.5;
+            ctx.globalAlpha = 0.6;
+            for (const e of aggPhys.edges) {
+              const sIdx = e.sourceIdx;
+              const tIdx = e.targetIdx;
+              const sNode = aggPhys.nodes[sIdx];
+              const tNode = aggPhys.nodes[tIdx];
+              if (!sNode || !tNode) { continue; }
+              // 视口裁剪
+              if (sNode.x < viewWorld.x0 && tNode.x < viewWorld.x0) { continue; }
+              if (sNode.x > viewWorld.x1 && tNode.x > viewWorld.x1) { continue; }
+              if (sNode.y < viewWorld.y0 && tNode.y < viewWorld.y0) { continue; }
+              if (sNode.y > viewWorld.y1 && tNode.y > viewWorld.y1) { continue; }
+              ctx.beginPath();
+              ctx.moveTo(sNode.x, sNode.y);
+              ctx.lineTo(tNode.x, tNode.y);
+              ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+          }
 
-        if (isLargeGraph && !hasActiveInteraction && spriteCacheRef.current) {
-          // 使用位图缓存：1 次 drawImage 替代 5 万+ 矢量操作
-          const bbox = spriteWorldBBoxRef.current;
-          const worldW = bbox.maxX - bbox.minX;
-          const worldH = bbox.maxY - bbox.minY;
-          const camZ = cam.zoom;
+          // 2. 绘制可见的（未折叠的）原始节点 —— 仅绘制展开社区内的节点
+          // 使用视口裁剪 + 节点数量限制
+          const maxVisibleNodes = 500; // 聚类模式下最多绘制 500 个展开节点
+          let drawnNodes = 0;
+          if (nodes.length > 0 && drawnNodes < maxVisibleNodes) {
+            for (const n of nodes) {
+              if (drawnNodes >= maxVisibleNodes) { break; }
+              // 跳过折叠社区的节点
+              const cid = getCommunityId(n.id);
+              if (cid !== undefined && collapsedRef.current.has(cid)) { continue; }
+              // 视口裁剪
+              if (
+                n.x < viewWorld.x0 || n.x > viewWorld.x1
+                || n.y < viewWorld.y0 || n.y > viewWorld.y1
+              ) { continue; }
+              const color = nodeColorRef.current.get(n.id) || token.colorPrimary;
+              const size = (nodeSizeRef.current.get(n.id) || 5) * 1.0;
+              ctx.fillStyle = color;
+              ctx.beginPath();
+              ctx.arc(n.x, n.y, size, 0, Math.PI * 2);
+              ctx.fill();
+              drawnNodes++;
+            }
+          }
 
-          // 计算位图在屏幕上的位置（相机变换已应用）
-          const sx = (bbox.minX) * camZ;
-          const sy = (bbox.minY) * camZ;
-          const sw = worldW * camZ;
-          const sh = worldH * camZ;
-
-          ctx.drawImage(spriteCacheRef.current, sx, sy, sw, sh);
-
-          // 聚合节点（若存在）仍用矢量绘制
+          // 3. 绘制聚类气泡（聚合节点）
           drawCollapsedClusters(ctx, viewWorld);
+
+          // 跳过：位图缓存、全量边、全量粒子 —— 这些在聚类模式下都会导致卡死
         } else {
-          // 矢量模式：小图或交互中（需要实时反馈）
-          drawEdgesOptimized(ctx, nodes, fisheye, viewWorld);
-          drawParticlesOptimized(ctx, nodes, fisheye, viewWorld);
-          drawNodesOptimized(ctx, nodes, fisheye, viewWorld);
-          drawCollapsedClusters(ctx, viewWorld);
+          // ── 非聚类模式：使用原始渲染路径 ──
+          const isLargeGraph = nodes.length > FORCE_BITMAP_THRESHOLD;
+          const hasActiveInteraction = hovered || !!selected || !!dragRef.current;
+
+          if (isLargeGraph && !hasActiveInteraction && spriteCacheRef.current) {
+            // 位图模式
+            const bbox = spriteWorldBBoxRef.current;
+            const worldW = bbox.maxX - bbox.minX;
+            const worldH = bbox.maxY - bbox.minY;
+            const camZ = cam.zoom;
+            const sx = (bbox.minX) * camZ;
+            const sy = (bbox.minY) * camZ;
+            const sw = worldW * camZ;
+            const sh = worldH * camZ;
+            ctx.drawImage(spriteCacheRef.current, sx, sy, sw, sh);
+          } else {
+            // 矢量模式
+            drawEdgesOptimized(ctx, nodes, fisheye, viewWorld);
+            drawParticlesOptimized(ctx, nodes, fisheye, viewWorld);
+            drawNodesOptimized(ctx, nodes, fisheye, viewWorld);
+          }
         }
       }
 
@@ -2234,10 +2285,6 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   }
 
   // ── 社区聚合节点渲染（聚类折叠模式的顶层视图） ──
-  // 聚合边 Path2D 缓存：系统稳定时复用，避免每帧全量遍历 edgeMeta
-  const aggEdgePathCacheRef = useRef<Path2D | null>(null);
-  const aggEdgeCacheIdleRef = useRef(-1);
-
   function drawCollapsedClusters(
     ctx: CanvasRenderingContext2D,
     viewWorld: { x0: number; y0: number; x1: number; y1: number },
@@ -2246,52 +2293,30 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       return;
     }
     const geom = clusterGeomRef.current;
-    const edgeMeta = edgeMetaRef.current;
-    const nodes = physNodesRef.current;
     const phase = phaseRef.current;
     const hoverCluster = hoverClusterRef.current;
     const zoom = cameraRef.current.zoom;
 
-    // 聚合边：两端都折叠的社区之间（质心连线，批量 Path2D）
-    // 系统稳定时（idleCounter > 30 且缓存有效）复用 Path2D，避免每帧 O(E) 遍历
-    const stable = idleCounterRef.current > 30;
-    let aggEdgePath: Path2D | null = null;
-    let aggEdgeCount = 0;
-    if (stable && aggEdgePathCacheRef.current && aggEdgeCacheIdleRef.current === idleCounterRef.current) {
-      aggEdgePath = aggEdgePathCacheRef.current;
-      aggEdgeCount = 1; // 标记有内容
-    } else if (stable && aggEdgePathCacheRef.current) {
-      // 稳定但未本帧重建：复用缓存
-      aggEdgePath = aggEdgePathCacheRef.current;
-      aggEdgeCount = 1;
-    } else {
-      aggEdgePath = new Path2D();
-      for (let i = 0; i < edgeMeta.length; i++) {
-        const em = edgeMeta[i];
-        const sNode = nodes[em.sourceIdx];
-        const tNode = nodes[em.targetIdx];
-        if (!sNode || !tNode) { continue; }
-        const sCid = getCommunityId(em.source);
-        const tCid = getCommunityId(em.target);
-        if (sCid === undefined || tCid === undefined || sCid === tCid) { continue; }
-        if (!collapsedRef.current.has(sCid) || !collapsedRef.current.has(tCid)) { continue; }
-        const sg = geom.get(sCid);
-        const tg = geom.get(tCid);
-        if (!sg || !tg) { continue; }
-        aggEdgePath.moveTo(sg.cx, sg.cy);
-        aggEdgePath.lineTo(tg.cx, tg.cy);
-        aggEdgeCount++;
-      }
-      if (stable && aggEdgeCount > 0) {
-        aggEdgePathCacheRef.current = aggEdgePath;
-        aggEdgeCacheIdleRef.current = idleCounterRef.current;
-      }
-    }
-    if (aggEdgeCount > 0 && aggEdgePath) {
+    // 聚合边：直接使用 aggPhys 的边数据（不遍历原始 4 万条边）
+    const aggPhys = aggPhysRef.current;
+    if (aggPhys && aggPhys.edges.length > 0) {
       ctx.strokeStyle = token.colorBorderSecondary;
       ctx.globalAlpha = 0.4;
       ctx.lineWidth = 1;
-      ctx.stroke(aggEdgePath);
+      ctx.beginPath();
+      for (const e of aggPhys.edges) {
+        const sNode = aggPhys.nodes[e.sourceIdx];
+        const tNode = aggPhys.nodes[e.targetIdx];
+        if (!sNode || !tNode) { continue; }
+        // 视口裁剪
+        if (sNode.x < viewWorld.x0 && tNode.x < viewWorld.x0) { continue; }
+        if (sNode.x > viewWorld.x1 && tNode.x > viewWorld.x1) { continue; }
+        if (sNode.y < viewWorld.y0 && tNode.y < viewWorld.y0) { continue; }
+        if (sNode.y > viewWorld.y1 && tNode.y > viewWorld.y1) { continue; }
+        ctx.moveTo(sNode.x, sNode.y);
+        ctx.lineTo(tNode.x, tNode.y);
+      }
+      ctx.stroke();
       ctx.globalAlpha = 1;
     }
 
