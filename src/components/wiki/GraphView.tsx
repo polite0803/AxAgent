@@ -1076,19 +1076,44 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
     // ── 大图自动聚合：设置折叠状态、刷新几何、构建聚合物理 ──
     // （effectiveCommunities 已在 Worker 初始化前预计算好）
-    if (shouldForceCluster && effectiveCommunities) {
+    // 关键修复：即使 effectiveCommunities 为 null，也要基于 effectiveCommunitiesRef.current 初始化
+    if (shouldForceCluster) {
+      const commForInit = effectiveCommunities ?? effectiveCommunitiesRef.current;
+      if (!commForInit) {
+        // 终极 fallback：基于所有节点创建哈希映射
+        const fallbackMap = new Map<string, number>();
+        for (const n of pNodes) {
+          const hash = Math.abs(hashStringToInt(n.id)) % FORCE_CLUSTER_COUNT;
+          fallbackMap.set(n.id, hash);
+        }
+        effectiveCommunitiesRef.current = fallbackMap;
+      }
+
+      const comm = effectiveCommunitiesRef.current;
+      console.log("[GraphView] forceCluster init", {
+        nodeCount: pNodes.length,
+        communityCount: comm?.size ?? 0,
+      });
+
       // 关键：同步更新 communitiesRef（buildAggregatePhysics 依赖它）
-      communitiesRef.current = effectiveCommunities;
+      communitiesRef.current = comm;
 
       const all = new Set<number>();
-      for (const cid of effectiveCommunities.values()) {
-        all.add(cid);
+      if (comm) {
+        for (const cid of comm.values()) {
+          all.add(cid);
+        }
       }
       collapsedRef.current = all;
       clusterModeRef.current = true;
       setClusterMode(true);
       refreshClusterGeom();
       buildAggregatePhysics();
+      console.log("[GraphView] forceCluster init done", {
+        collapsedSize: collapsedRef.current.size,
+        clusterGeomSize: clusterGeomRef.current.size,
+        aggPhysNotNull: aggPhysRef.current !== null,
+      });
       setClusterCollapseVersion((v) => v + 1);
     }
 
@@ -1474,6 +1499,14 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
               gridIndexRef.current = gridIndex;
             }
 
+            // 关键修复：在 forceCluster/clusterMode 下，Worker 返回新位置后必须重建
+            // clusterGeomRef.current（聚类质心/半径）和 aggPhysRef.current（聚合物理节点）。
+            // 否则渲染时使用的是初始位置计算的旧几何数据，所有聚类看起来重叠在一起。
+            if (clusterModeRef.current || nodes.length > AUTO_CLUSTER_THRESHOLD) {
+              refreshClusterGeom();
+              buildAggregatePhysics();
+            }
+
             // 大图位图缓存：Worker 返回新结果时重建（节点位置已更新）
             // 仅在非交互状态下重建，避免与拖拽冲突
             if (nodes.length > FORCE_BITMAP_THRESHOLD && !hasInteraction) {
@@ -1604,9 +1637,23 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
           if (allCollapsed) {
             // ── 全折叠：只画聚类标记（最大15px）+ 聚合边 ──
             const geom = clusterGeomRef.current;
+            const aggPhysLocal = aggPhysRef.current;
+            if (frameCounterRef.current % 60 === 0) {
+              console.log("[GraphView] forceCluster render state", {
+                forceCluster,
+                aggActive,
+                clusterMode: clusterModeRef.current,
+                totalCommunities,
+                allCollapsed,
+                geomSize: geom.size,
+                aggPhysNull: aggPhysLocal === null,
+                aggPhysNodes: aggPhysLocal?.nodes.length ?? 0,
+                aggPhysEdges: aggPhysLocal?.edges.length ?? 0,
+                collapsedSize: collapsedRef.current.size,
+              });
+            }
             if (geom.size > 0) {
               // 聚合边
-              const aggPhysLocal = aggPhysRef.current;
               if (aggPhysLocal && aggPhysLocal.edges.length > 0) {
                 ctx.save();
                 ctx.strokeStyle = token.colorBorder;
@@ -1629,8 +1676,16 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
               // 聚类标记（小圆形，最大15px）
               ctx.save();
+              let drawnClusters = 0;
+              let skippedClusters = 0;
               for (const [cid, g] of geom) {
-                if (!collapsedRef.current.has(cid)) { continue; }
+                if (!collapsedRef.current.has(cid)) {
+                  skippedClusters++;
+                  if (skippedClusters <= 3) {
+                    console.log("[GraphView] cluster skipped (not collapsed)", { cid });
+                  }
+                  continue;
+                }
                 if (!isInView(g.cx, g.cy, viewWorld, 30)) { continue; }
                 const color = communityPalette[cid % communityPalette.length];
                 const maxR = Math.min(15, g.r);
@@ -1640,6 +1695,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
                 ctx.arc(g.cx, g.cy, maxR, 0, Math.PI * 2);
                 ctx.fillStyle = color;
                 ctx.fill();
+                drawnClusters++;
                 // 标签
                 if (cam.zoom >= 0.3) {
                   ctx.globalAlpha = 0.9;
@@ -1649,6 +1705,14 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
                   ctx.fillStyle = token.colorText;
                   ctx.fillText(`${g.label} (${g.count})`, g.cx, g.cy + maxR + 2);
                 }
+              }
+              if (frameCounterRef.current % 60 === 0) {
+                console.log("[GraphView] cluster draw stats", {
+                  totalGeom: geom.size,
+                  drawn: drawnClusters,
+                  skipped: skippedClusters,
+                  collapsedSize: collapsedRef.current.size,
+                });
               }
               ctx.restore();
             }
@@ -2557,6 +2621,11 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     const allNodes = physNodesRef.current;
     const edgeMeta = edgeMetaRef.current;
     if (!communitiesMap || collapsed.size === 0 || allNodes.length === 0) {
+      console.log("[GraphView] buildAggregatePhysics early return", {
+        communitiesMapNull: communitiesMap === null,
+        collapsedSize: collapsed.size,
+        allNodesLength: allNodes.length,
+      });
       aggPhysRef.current = null;
       return;
     }
@@ -2645,6 +2714,11 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       cidToNodeIdx,
       neighborMap: buildNeighborMap(aggEdges),
     };
+    console.log("[GraphView] buildAggregatePhysics success", {
+      aggNodes: aggNodes.length,
+      aggEdges: aggEdges.length,
+      cidToNodeIdx: cidToNodeIdx.size,
+    });
   }, []);
 
   // 刷新聚合节点几何（质心/半径/计数/代表名）。O(N) 遍历，低频调用（每 6 帧 / 切换时）
@@ -2654,6 +2728,13 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     // 强制聚类模式：节点数超过阈值时也需要计算聚类几何
     const isForceCluster = nodeCount > AUTO_CLUSTER_THRESHOLD;
     if (!activeCommunities || (!clusterModeRef.current && !isForceCluster)) {
+      if (frameCounterRef.current % 60 === 0) {
+        console.log("[GraphView] refreshClusterGeom early return", {
+          activeCommunitiesNull: activeCommunities === null,
+          clusterMode: clusterModeRef.current,
+          isForceCluster,
+        });
+      }
       clusterGeomRef.current = new Map();
       return;
     }
@@ -2688,6 +2769,12 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       next.set(cid, { cx, cy, r, count: b.count, label });
     }
     clusterGeomRef.current = next;
+    if (frameCounterRef.current % 60 === 0) {
+      console.log("[GraphView] refreshClusterGeom success", {
+        bucketCount: buckets.size,
+        nextSize: next.size,
+      });
+    }
   }, [communities]);
 
   // 切换社区折叠状态（点击聚合节点）
