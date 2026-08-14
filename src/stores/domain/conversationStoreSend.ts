@@ -23,19 +23,17 @@ export function getConversationDisabledTools(conversationId: string): string[] {
 }
 
 import i18n from "@/i18n";
+import { translateBackendError } from "@/lib/errorI18n";
 import { invoke, isTauri, listen, logIpcError, type UnlistenFn } from "@/lib/invoke";
-import { buildKnowledgeTag, buildMemoryTag, buildWikiTag } from "@/lib/memoryUtils";
-import { buildSearchTag, formatSearchContent } from "@/lib/searchUtils";
 import { message } from "@/lib/toast";
-import { useProviderStore } from "@/stores/feature/providerStore";
-import { useSearchStore } from "@/stores/feature/searchStore";
-import { useSettingsStore } from "@/stores/feature/settingsStore";
 import type {
   AgentDoneEvent,
   AgentErrorEvent,
   AgentStreamTextEvent,
   AgentStreamThinkingEvent,
   AttachmentInput,
+  CognitiveCandidateSummary,
+  CognitiveQueryResponse,
   Message,
   WorkflowCompleteEvent,
   WorkflowEvent,
@@ -51,7 +49,6 @@ import {
   isConversationStreaming as isConvStreaming,
   markStreamActivity,
   setPendingUiChunk,
-  setStreamPrefix,
   setStreamUiFlushTimer,
   startConversationStream,
   stopConversationStream,
@@ -61,78 +58,20 @@ import {
 
 import { tempId } from "./conversationStore";
 
-// ─── Fallback model chain ───
-//
-// When the primary model fails (rate limit, timeout, provider error),
-// we iterate through a chain of fallback models instead of immediately
-// showing an error. The chain is built from the user's configured providers.
-// This increases reliability significantly for long-running sessions.
-
-interface FallbackModel {
-  providerId: string;
-  model_id: string;
-}
-
-/** Build a fallback model chain from available providers, excluding the current model.
- *  Prioritizes models from the same provider, then the user's default model, then others. */
-function buildFallbackChain(
-  currentProviderId: string,
-  currentModelId: string,
-): FallbackModel[] {
-  const chain: FallbackModel[] = [];
-  try {
-    const providers = useProviderStore.getState().providers ?? [];
-    const settings = useSettingsStore.getState().settings;
-    const defaultProviderId: string | undefined = settings.default_provider_id ?? undefined;
-    const defaultModelId: string | undefined = settings.default_model_id ?? undefined;
-
-    for (const p of providers) {
-      for (const m of p.models ?? []) {
-        const key = `${p.id}:${m.model_id}`;
-        if (key === `${currentProviderId}:${currentModelId}`) {
-          continue;
-        }
-
-        const entry: FallbackModel = { providerId: p.id, model_id: m.model_id };
-
-        // Same provider, different model — highest priority
-        if (p.id === currentProviderId) {
-          chain.unshift(entry);
-        } else if (
-          p.id === defaultProviderId
-          && m.model_id === defaultModelId
-        ) {
-          // User's default model — second priority
-          chain.push(entry);
-        } else {
-          chain.push(entry);
-        }
-      }
-    }
-  } catch {
-    // If stores aren't available, return empty chain
-  }
-  return chain.slice(0, 3); // Max 3 fallback attempts
-}
-
 import type { ConversationState } from "./conversationStore";
 
+/** 用户意图提示（显式覆盖执行模式，缺省 auto 由认知编排器自动决策） */
+export type SendModeHint = "auto" | "ask" | "plan" | "act";
+
 export interface SendMethods {
+  /** 统一消息入口：所有会话（chat / plan / agent）统一走 cognitive_query 认知编排器。
+   *  modeHint 仅在用户显式选择时传入，缺省 auto 由路由自动决策执行模式。 */
   sendMessage: (
     content: string,
     attachments?: AttachmentInput[],
     searchProviderId?: string | null,
     quotedMessageId?: string | null,
-  ) => Promise<void>;
-  sendAgentMessage: (
-    content: string,
-    attachments?: AttachmentInput[],
-    searchProviderId?: string | null,
-  ) => Promise<void>;
-  sendPlanMessage: (
-    content: string,
-    attachments?: AttachmentInput[],
-    searchProviderId?: string | null,
+    modeHint?: SendModeHint,
   ) => Promise<void>;
   regenerateMessage: (targetMessageId?: string) => Promise<void>;
   regenerateWithModel: (
@@ -162,403 +101,7 @@ export function createSendMethods(
       attachments: AttachmentInput[] = [],
       searchProviderId: string | null = null,
       quotedMessageId: string | null = null,
-    ) => {
-      const conversationId = get().activeConversationId;
-      if (!conversationId) {
-        throw new Error("No active conversation");
-      }
-
-      // Guard: prevent duplicate sends while a stream is already active for this conversation
-      if (
-        isConvStreaming(useStreamStore.getState().activeStreams, conversationId)
-      ) {
-        return;
-      }
-
-      // Hoisted variables used by both try and catch blocks
-      let finalContent = content;
-      let kbIds: string[];
-      let memIds: string[];
-      let mcpIds: string[] = [];
-      let thinkingBudget: number | undefined;
-
-      // Optimistically add user message BEFORE backend call
-      const optimisticUserMsg: Message = {
-        id: tempId("temp-user-"),
-        conversation_id: conversationId,
-        role: "user",
-        content,
-        provider_id: null,
-        model_id: null,
-        token_count: null,
-        attachments: attachments.map((a) => ({
-          id: tempId("temp-att-"),
-          file_name: a.file_name,
-          file_type: a.file_type,
-          file_path: "",
-          file_size: a.file_size,
-          data: a.data,
-        })),
-        thinking: null,
-        tool_calls_json: null,
-        tool_call_id: null,
-        created_at: Date.now(),
-        parent_message_id: null,
-        version_index: 0,
-        is_active: true,
-        status: "complete",
-        // 引用回复：乐观更新时携带 quoted_message_id，确保 UI 立即显示引用块
-        quoted_message_id: quotedMessageId,
-      };
-
-      // Create assistant placeholder upfront (for search status or streaming)
-      const tempAssistantId = tempId("temp-assistant-");
-      kbIds = usePreferenceStore.getState().enabledKnowledgeBaseIds;
-      const activeMemId1 = usePreferenceStore.getState().activeMemoryNamespaceId;
-      memIds = activeMemId1 ? [activeMemId1] : [];
-      const wikiIds = usePreferenceStore.getState().enabledWikiIds;
-      const hasKnowledgeRag = kbIds.length > 0;
-      const hasMemoryRag = memIds.length > 0;
-      const hasWikiRag = wikiIds.length > 0;
-      const hasAnyRag = hasKnowledgeRag || hasMemoryRag || hasWikiRag;
-      let placeholderContent = "";
-      if (searchProviderId) {
-        placeholderContent += buildSearchTag("searching");
-      }
-      if (hasKnowledgeRag) {
-        placeholderContent += buildKnowledgeTag("searching");
-      }
-      if (hasMemoryRag) {
-        placeholderContent += buildMemoryTag("searching");
-      }
-      if (hasWikiRag) {
-        placeholderContent += buildWikiTag("searching");
-      }
-      const placeholderAssistant: Message = {
-        id: tempAssistantId,
-        conversation_id: conversationId,
-        role: "assistant",
-        content: placeholderContent,
-        provider_id: null,
-        model_id: null,
-        token_count: null,
-        attachments: [],
-        thinking: null,
-        tool_calls_json: null,
-        tool_call_id: null,
-        created_at: Date.now(),
-        parent_message_id: optimisticUserMsg.id,
-        version_index: 0,
-        is_active: true,
-        status: "partial",
-      };
-
-      set((s) => ({
-        messages: [...s.messages, optimisticUserMsg, placeholderAssistant],
-      }));
-      useStreamStore.setState((s) => ({
-        ...startConversationStream(
-          s.activeStreams,
-          conversationId,
-          tempAssistantId,
-        ),
-        streamingStartTimestamps: {
-          ...s.streamingStartTimestamps,
-          [conversationId]: Date.now(),
-        },
-        thinkingActiveMessageIds: new Set<string>(),
-      }));
-      setPendingUiChunk(null);
-      if (_streamUiFlushTimer !== null) {
-        clearTimeout(_streamUiFlushTimer);
-        setStreamUiFlushTimer(null);
-      }
-
-      try {
-        // If web search is enabled, execute search before sending to backend
-        if (searchProviderId) {
-          let searchResultTag = "";
-          try {
-            const searchResult = await useSearchStore
-              .getState()
-              .executeSearch(searchProviderId, content);
-            if (searchResult?.ok && searchResult.results.length > 0) {
-              finalContent = formatSearchContent(searchResult.results, content);
-              searchResultTag = buildSearchTag("done", searchResult.results);
-            } else if (searchResult?.ok) {
-              // 搜索执行了但无结果 — 告知 LLM 未找到，避免幻觉
-              searchResultTag = '<web-search status="empty" data-axagent="1">No results found</web-search>';
-            }
-          } catch {
-            // Search failed, continue without search results
-            searchResultTag = '<web-search status="error" data-axagent="1">Search unavailable</web-search>';
-          }
-          // Replace searching tag with results, keep RAG searching tags if present
-          const kbPart = hasKnowledgeRag ? buildKnowledgeTag("searching") : "";
-          const memPart = hasMemoryRag ? buildMemoryTag("searching") : "";
-          const wikiPart = hasWikiRag ? buildWikiTag("searching") : "";
-          setStreamPrefix(searchResultTag + kbPart + memPart + wikiPart);
-          set((s) => ({
-            messages: s.messages.map((m) =>
-              m.id === tempAssistantId
-                ? {
-                  ...m,
-                  content: searchResultTag + kbPart + memPart + wikiPart,
-                }
-                : m
-            ),
-          }));
-        } else if (hasAnyRag) {
-          // RAG only — set prefix so searching tags flow into stream buffer
-          const kbPart = hasKnowledgeRag ? buildKnowledgeTag("searching") : "";
-          const memPart = hasMemoryRag ? buildMemoryTag("searching") : "";
-          const wikiPart = hasWikiRag ? buildWikiTag("searching") : "";
-          setStreamPrefix(kbPart + memPart + wikiPart);
-        }
-
-        mcpIds = usePreferenceStore.getState().enabledMcpServerIds;
-        thinkingBudget = getEffectiveThinkingBudget(conversationId);
-        kbIds = usePreferenceStore.getState().enabledKnowledgeBaseIds;
-        const activeMemNsIdForSend = usePreferenceStore.getState().activeMemoryNamespaceId;
-        memIds = activeMemNsIdForSend ? [activeMemNsIdForSend] : [];
-        const wikiIdsForSend = usePreferenceStore.getState().enabledWikiIds;
-        const userMessage = await invoke<Message>("send_message", {
-          params: {
-            conversationId,
-            content: finalContent,
-            attachments,
-            options: {
-              enabledMcpServerIds: mcpIds.length > 0 ? mcpIds : undefined,
-              thinkingBudget,
-              enabledKnowledgeBaseIds: kbIds.length > 0 ? kbIds : undefined,
-              enabledMemoryNamespaceIds: memIds.length > 0 ? memIds : undefined,
-              enabledWikiIds: wikiIdsForSend.length > 0 ? wikiIdsForSend : undefined,
-              requirePlanApproval: useAgentStore.getState().planApprovalEnabled,
-            } as any,
-            // 引用回复：传递被引用消息 ID 到后端
-            quotedMessageId: quotedMessageId ?? undefined,
-          },
-        });
-
-        // P0-2 plan rejected: backend returned rejected status, clean optimistic msg + toast
-        if ((userMessage as { rejected?: boolean })?.rejected) {
-          set((s) => ({ messages: s.messages.filter((m) => m.id !== optimisticUserMsg.id) }));
-          message.info(i18n.t("planApproval.rejectedToast"));
-          return;
-        }
-
-        // Stale guard: if user switched conversations while send was in-flight,
-        // discard the response to prevent cross-conversation message pollution.
-        if (get().activeConversationId !== conversationId) {
-          return;
-        }
-
-        // Replace optimistic user msg with real one, update placeholder parent
-        set((s) => ({
-          messages: s.messages.map((m) => {
-            if (m.id === optimisticUserMsg.id) {
-              return userMessage;
-            }
-            if (m.id === tempAssistantId) {
-              return { ...m, parent_message_id: userMessage.id };
-            }
-            return m;
-          }),
-        }));
-
-        // In browser mode, simulate brief loading then fetch the mock AI response
-        if (!isTauri()) {
-          await new Promise((r) => setTimeout(r, 600));
-          useStreamStore.setState((s) => ({
-            ...stopConversationStream(s.activeStreams, conversationId),
-            streamingStartTimestamps: (() => {
-              const t = { ...s.streamingStartTimestamps };
-              delete t[conversationId];
-              return t;
-            })(),
-            thinkingActiveMessageIds: new Set<string>(),
-          }));
-          get().fetchMessages(conversationId);
-        }
-      } catch (e) {
-        logIpcError("sendMessage", { notify: true })(e);
-        const errMsg = String(e);
-
-        // Determine whether this error is retryable (transient) vs permanent.
-        // Only attempt fallback for network, rate limit, timeout, and provider errors.
-        const isRetryable = !errMsg.includes("invalid_request_error") // bad request
-          && !errMsg.includes("authentication") // auth error
-          && !errMsg.includes("insufficient_quota") // billing
-          && !errMsg.includes("invalid_api_key") // auth
-          && !errMsg.includes("context_length_exceeded"); // context too long
-
-        // Try fallback models before showing error (use loop, not recursion)
-        if (isRetryable) {
-          const conversation = get().conversations.find(
-            (c) => c.id === conversationId,
-          );
-          const currentProviderId = conversation?.provider_id;
-          const currentModelId = conversation?.model_id;
-
-          if (currentProviderId && currentModelId) {
-            const fallbackChain = buildFallbackChain(
-              currentProviderId,
-              currentModelId,
-            );
-            let fallbackSucceeded = false;
-            // 保存原始 provider/model，全部 fallback 失败后恢复
-            const originalProviderId = currentProviderId;
-            const originalModelId = currentModelId;
-            // 降级链路顺序尝试：每个备选 provider/model 仅在前一个失败后才尝试，
-            // 成功即 break 退出，失败则继续下一个，必须顺序执行，不能并行。
-            for (let i = 0; i < fallbackChain.length; i++) {
-              const fb = fallbackChain[i];
-              try {
-                await get().updateConversation(conversationId, {
-                  provider_id: fb.providerId,
-                  model_id: fb.model_id,
-                });
-                const currentActiveStreams = useStreamStore.getState().activeStreams;
-                if (isConvStreaming(currentActiveStreams, conversationId)) {
-                  return;
-                }
-                // Remove error placeholder
-                const currentMsgId = getStreamingMessageId(
-                  useStreamStore.getState().activeStreams,
-                  conversationId,
-                );
-                set((s) => ({
-                  messages: s.messages.filter(
-                    (m) =>
-                      m.id !== currentMsgId
-                      && !(
-                        m.status === "error"
-                        && m.role === "assistant"
-                        && m.content === errMsg
-                      ),
-                  ),
-                }));
-                // Re-invoke send_message directly (not recursive sendMessage)
-                await invoke("send_message", {
-                  params: {
-                    conversationId,
-                    content: finalContent,
-                    attachments,
-                    options: {
-                      enabledMcpServerIds: mcpIds.length > 0 ? mcpIds : undefined,
-                      thinkingBudget,
-                      enabledKnowledgeBaseIds: kbIds.length > 0 ? kbIds : undefined,
-                      enabledMemoryNamespaceIds: memIds.length > 0 ? memIds : undefined,
-                      enabledWikiIds: usePreferenceStore.getState().enabledWikiIds.length > 0
-                        ? usePreferenceStore.getState().enabledWikiIds
-                        : undefined,
-                    },
-                    // 引用回复：fallback 路径也需传递被引用消息 ID
-                    quotedMessageId: quotedMessageId ?? undefined,
-                  },
-                });
-                // Re-start stream
-                const newTempId = tempId("temp-assistant-");
-                useStreamStore.setState((s) => ({
-                  ...startConversationStream(
-                    s.activeStreams,
-                    conversationId,
-                    newTempId,
-                  ),
-                  streamingStartTimestamps: {
-                    ...s.streamingStartTimestamps,
-                    [conversationId]: Date.now(),
-                  },
-                  thinkingActiveMessageIds: new Set<string>(),
-                }));
-                fallbackSucceeded = true;
-                break;
-              } catch {
-                /* continue to next */
-              }
-            }
-            if (fallbackSucceeded) {
-              return;
-            }
-
-            // 全部 fallback 失败，恢复原始 provider/model
-            await get()
-              .updateConversation(conversationId, {
-                provider_id: originalProviderId,
-                model_id: originalModelId,
-              })
-              .catch(logIpcError("restore_original_model"));
-          }
-        }
-
-        // All fallbacks exhausted or error not retryable — show error
-        const currentStreamingMessageId = getStreamingMessageId(
-          useStreamStore.getState().activeStreams,
-          conversationId,
-        );
-        useStreamStore.setState((s) => ({
-          ...stopConversationStream(s.activeStreams, conversationId),
-          streamingStartTimestamps: (() => {
-            const t = { ...s.streamingStartTimestamps };
-            delete t[conversationId];
-            return t;
-          })(),
-          thinkingActiveMessageIds: new Set<string>(),
-        }));
-        // Generate error message ID upfront so it can be preserved across fetchMessages
-        const tempErrorId = tempId("temp-error-");
-        set((s) => ({
-          messages: currentStreamingMessageId
-            ? s.messages.map((m) =>
-              m.id === currentStreamingMessageId
-                ? { ...m, content: errMsg, status: "error" as const }
-                : m
-            )
-            : [
-              ...s.messages,
-              {
-                id: tempErrorId,
-                conversation_id: conversationId,
-                role: "assistant" as const,
-                content: errMsg,
-                provider_id: null,
-                model_id: null,
-                token_count: null,
-                attachments: [],
-                thinking: null,
-                tool_calls_json: null,
-                tool_call_id: null,
-                created_at: Date.now(),
-                parent_message_id: null,
-                version_index: 0,
-                is_active: true,
-                status: "error" as const,
-              },
-            ],
-        }));
-        // Sync messages from DB so temp- prefixed user messages get replaced
-        // with real backend IDs, enabling regenerate after a send failure.
-        // Preserve the temp-error message AND the optimistic user message so they
-        // aren't silently dropped when invoke("send_message") failed entirely.
-        // (If the DB also has the real user message, mergePreservedMessages keeps both;
-        // a duplicate user bubble is much less harmful than losing the user's input.)
-        const errorPreserveIds = [
-          optimisticUserMsg.id,
-          tempErrorId,
-          currentStreamingMessageId,
-        ].filter(
-          (value): value is string => typeof value === "string" && value.length > 0,
-        );
-        window.setTimeout(() => {
-          void get().fetchMessages(conversationId, errorPreserveIds);
-        }, 120);
-      }
-    },
-
-    sendAgentMessage: async (
-      content: string,
-      attachments: AttachmentInput[] = [],
-      searchProviderId: string | null = null,
+      modeHint: SendModeHint = "auto",
       disabledTools?: string[],
     ) => {
       const conversationId = get().activeConversationId;
@@ -681,6 +224,8 @@ export function createSendMethods(
         version_index: 0,
         is_active: true,
         status: "complete",
+        // 引用回复：乐观更新时携带 quoted_message_id，确保 UI 立即显示引用块
+        quoted_message_id: quotedMessageId,
       };
 
       // Placeholder assistant message
@@ -1228,18 +773,119 @@ export function createSendMethods(
         const effectiveDisabledTools = disabledTools
           ?? getConversationDisabledTools(conversationId);
 
-        // 对话驱动工作流：workflow 会话且持有真实工作流实例（localStorage 中）时，
-        // 把用户消息作为 input 执行工作流 DAG，而不是普通对话。
-        // 步骤事件经 agent-stream-text（带 type）实时回流，结果经 agent-done /
-        // workflow-complete 事件呈现并写回 assistant 消息。
+        // 统一消息入口：所有会话（chat / plan / agent）统一走 cognitive_query 认知编排器。
+        // 先完成三层路由决策，再按 executionMode 分发执行；后端已同步调用对应执行器：
+        // - Workflow / ParameterExtract → WorkEngine 已执行命中的工作流模板
+        // - Delegate / Ask / Act → agent_query 已执行（前端监听 agent-done 呈现）
+        // - Plan → plan_generate 已触发（planStore 监听 plan-generated 渲染 PlanCard）
+        // - Clarify → 返回 Top2 候选，前端渲染候选卡片供用户选择后二次执行
+        //
+        // legacy workflow 会话（历史手动绑定，localStorage 持有 workflow-id）：
+        // 保留 workflow_execute 的确定性执行，不做认知路由。
         const storedWorkflowId = localStorage.getItem(
           `axagent:workflow-id:${conversationId}`,
         );
-        const isWorkflowDriven = conversation.session_type === "workflow"
+        const isLegacyWorkflowSession = conversation.session_type === "workflow"
           && !!storedWorkflowId;
+        let isWorkflowDriven = isLegacyWorkflowSession;
 
-        const queryResponse = isWorkflowDriven
-          ? await invoke<{
+        const cognitiveResult = isLegacyWorkflowSession
+          ? null
+          : await invoke<CognitiveQueryResponse>(
+            "cognitive_query",
+            {
+              request: {
+                input: content,
+                conversationId,
+                providerId,
+                model_id,
+                agentProfileId: conversation.agent_profile_id ?? undefined,
+                systemPrompt: conversation.system_prompt ?? undefined,
+                searchProviderId: searchProviderId ?? undefined,
+                agentContext: agentContextPayload,
+                options: effectiveDisabledTools.length > 0
+                  ? { disabledTools: effectiveDisabledTools }
+                  : undefined,
+                // 用户意图提示：仅在显式选择时传入，缺省 auto 由路由自动决策
+                modeHint: modeHint !== "auto" ? modeHint : undefined,
+              },
+            },
+            0,
+          );
+
+        // ── 认知编排执行分支分发 ──
+        const execKind = cognitiveResult?.execution?.kind;
+        if (execKind === "workflow") {
+          // 后端已执行 WorkEngine，前端只需按工作流事件流呈现（保留步骤事件，不做覆盖重建）。
+          isWorkflowDriven = true;
+        } else if (execKind === "clarify") {
+          // 澄清分支：模糊命中（0.60 ≤ 置信度 ≤ 0.90），停止占位流并把候选交 UI 呈现，
+          // 用户选择候选后携带 capability_id 二次执行。
+          const candidates = (cognitiveResult?.execution as {
+            candidates?: CognitiveCandidateSummary[];
+          })?.candidates ?? [];
+          useStreamStore.setState((s) => ({
+            ...stopConversationStream(s.activeStreams, conversationId),
+            streamingStartTimestamps: (() => {
+              const t = { ...s.streamingStartTimestamps };
+              delete t[conversationId];
+              return t;
+            })(),
+          }));
+          set((s) => ({
+            messages: s.messages.map((m) =>
+              m.id === currentMsgId
+                ? {
+                  ...m,
+                  content: i18n.t("cognitive.clarifyPrompt"),
+                  status: "complete" as const,
+                }
+                : m
+            ),
+          }));
+          get().setPendingClarification({
+            candidates,
+            originalInput: content,
+            conversationId,
+          });
+          cleanup();
+          window.setTimeout(() => {
+            void get().fetchMessages(conversationId, [optimisticUserMsg.id]);
+          }, 120);
+          return;
+        } else if (execKind === "plan") {
+          // Plan 分支：后端已触发 plan_generate，planStore 监听 plan-generated 渲染 PlanCard。
+          // 停止占位流并更新为"计划已生成"提示，等待 PlanCard 接管。
+          useStreamStore.setState((s) => ({
+            ...stopConversationStream(s.activeStreams, conversationId),
+            streamingStartTimestamps: (() => {
+              const t = { ...s.streamingStartTimestamps };
+              delete t[conversationId];
+              return t;
+            })(),
+          }));
+          set((s) => ({
+            messages: s.messages.map((m) =>
+              m.id === currentMsgId
+                ? {
+                  ...m,
+                  content: i18n.t("agentMode.planGenerated"),
+                  status: "complete" as const,
+                }
+                : m
+            ),
+          }));
+          cleanup();
+          window.setTimeout(() => {
+            void get().fetchMessages(conversationId, [optimisticUserMsg.id]);
+          }, 120);
+          return;
+        }
+
+        // legacy workflow 会话：未走认知路由，需要前端手动触发 workflow_execute。
+        // 认知路由命中的 Workflow 分支由后端执行，前端不再重复触发。
+        if (isLegacyWorkflowSession) {
+          await invoke<{
             status?: string;
             conversationId: string;
             assistantMessageId: string;
@@ -1253,32 +899,14 @@ export function createSendMethods(
               modelId: model_id ?? undefined,
             },
             0,
-          )
-          : await invoke<{
-            status?: string;
-            conversationId: string;
-            assistantMessageId: string;
-          }>(
-            "agent_query",
-            {
-              request: {
-                conversationId,
-                input: content,
-                providerId,
-                model_id,
-                agentProfileId: conversation.agent_profile_id ?? undefined,
-                systemPrompt: conversation.system_prompt ?? undefined,
-                searchProviderId: searchProviderId ?? undefined,
-                agentContext: agentContextPayload,
-                options: effectiveDisabledTools.length > 0
-                  ? { disabledTools: effectiveDisabledTools }
-                  : undefined,
-              },
-            },
-            0,
           );
-        // 计划确认被用户拒绝（P0-2）：后端直接返回 rejected，不会发 agent-done/agent-error
-        if (queryResponse?.status === "rejected") {
+        }
+
+        // 计划确认被用户拒绝（P0-2）：后端直接返回 rejected，不会发 agent-done/agent-error。
+        // cognitive_query 的 Agent 执行分支透传 agent_query 的 status。
+        const isRejected = cognitiveResult?.execution?.kind === "agent"
+          && cognitiveResult.execution.status === "rejected";
+        if (isRejected) {
           set((s) => ({
             messages: s.messages.filter((m) => m.id !== currentMsgId),
           }));
@@ -1295,8 +923,8 @@ export function createSendMethods(
         } catch {
           /* ignore cleanup errors */
         }
-        const errMsg = String(e);
-        logIpcError("sendAgentMessage")(errMsg);
+        const errMsg = translateBackendError(e);
+        logIpcError("sendMessage")(errMsg);
 
         // Stale guard: user switched conversations while agent was running
         if (get().activeConversationId !== conversationId) {
@@ -1346,160 +974,6 @@ export function createSendMethods(
         // with real backend IDs, enabling regenerate after an agent send failure.
         // Preserve the optimistic user message to prevent it from being dropped
         // when agent_query failed before persisting the user message.
-        window.setTimeout(() => {
-          void get().fetchMessages(conversationId, [optimisticUserMsg.id]);
-        }, 120);
-      }
-    },
-
-    sendPlanMessage: async (
-      content: string,
-      attachments: AttachmentInput[] = [],
-      _searchProviderId: string | null = null,
-    ) => {
-      const conversationId = get().activeConversationId;
-      if (!conversationId) {
-        throw new Error("No active conversation");
-      }
-
-      const conversation = get().conversations.find(
-        (c) => c.id === conversationId,
-      );
-      if (!conversation) {
-        throw new Error("Conversation not found");
-      }
-
-      // Guard: prevent duplicate sends while a stream is already active
-      if (
-        isConvStreaming(useStreamStore.getState().activeStreams, conversationId)
-      ) {
-        return;
-      }
-
-      const providerId = conversation.provider_id;
-      const model_id = conversation.model_id;
-
-      // Optimistic user message
-      const optimisticUserMsg: Message = {
-        id: tempId("temp-user-"),
-        conversation_id: conversationId,
-        role: "user",
-        content,
-        provider_id: null,
-        model_id: null,
-        token_count: null,
-        attachments: attachments.map((a) => ({
-          id: tempId("temp-att-"),
-          file_name: a.file_name,
-          file_type: a.file_type,
-          file_path: "",
-          file_size: a.file_size,
-          data: a.data,
-        })),
-        thinking: null,
-        tool_calls_json: null,
-        tool_call_id: null,
-        created_at: Date.now(),
-        parent_message_id: null,
-        version_index: 0,
-        is_active: true,
-        status: "complete",
-      };
-
-      // Placeholder assistant message (will be replaced by PlanCard rendering)
-      const currentMsgId = `temp-plan-${Date.now()}`;
-      const placeholderAssistant: Message = {
-        id: currentMsgId,
-        conversation_id: conversationId,
-        role: "assistant",
-        content: i18n.t("agentMode.generatingPlan"),
-        provider_id: providerId,
-        model_id: model_id,
-        token_count: null,
-        attachments: [],
-        thinking: null,
-        tool_calls_json: null,
-        tool_call_id: null,
-        created_at: Date.now(),
-        parent_message_id: optimisticUserMsg.id,
-        version_index: 0,
-        is_active: true,
-        status: "partial",
-      };
-
-      set((s) => ({
-        messages: [...s.messages, optimisticUserMsg, placeholderAssistant],
-      }));
-      useStreamStore.setState((s) => ({
-        ...startConversationStream(
-          s.activeStreams,
-          conversationId,
-          currentMsgId,
-        ),
-        streamingStartTimestamps: {
-          ...s.streamingStartTimestamps,
-          [conversationId]: Date.now(),
-        },
-      }));
-
-      try {
-        // Trigger plan generation on the backend - it emits plan-generated event via SSE
-        await invoke(
-          "plan_generate",
-          {
-            request: { conversationId, content },
-          },
-          0,
-        );
-
-        // Plan generation is async - the plan-generated event will trigger PlanCard rendering
-        // End the initial text stream so InputArea unblocks
-        useStreamStore.setState((s) => ({
-          ...stopConversationStream(s.activeStreams, conversationId),
-          streamingStartTimestamps: (() => {
-            const t = { ...s.streamingStartTimestamps };
-            delete t[conversationId];
-            return t;
-          })(),
-        }));
-
-        // Update placeholder message to indicate plan is ready for review
-        set((s) => ({
-          messages: s.messages.map((m) =>
-            m.id === currentMsgId
-              ? {
-                ...m,
-                content: i18n.t("agentMode.planGenerated"),
-                status: "complete" as const,
-              }
-              : m
-          ),
-        }));
-
-        // Refresh messages after a short delay to get real IDs
-        window.setTimeout(() => {
-          void get().fetchMessages(conversationId, [optimisticUserMsg.id]);
-        }, 120);
-      } catch (e) {
-        useStreamStore.setState((s) => ({
-          ...stopConversationStream(s.activeStreams, conversationId),
-          streamingStartTimestamps: (() => {
-            const t = { ...s.streamingStartTimestamps };
-            delete t[conversationId];
-            return t;
-          })(),
-        }));
-        const errMsg = String(e);
-        logIpcError("sendPlanMessage")(errMsg);
-        set((s) => ({
-          messages: s.messages.map((m) =>
-            m.id === currentMsgId
-              ? { ...m, content: errMsg, status: "error" as const }
-              : m
-          ),
-        }));
-        // Preserve the optimistic user message — plan_generate doesn't persist it,
-        // so fetchMessages without preservation would drop the user's input entirely.
         window.setTimeout(() => {
           void get().fetchMessages(conversationId, [optimisticUserMsg.id]);
         }, 120);
@@ -1652,7 +1126,7 @@ export function createSendMethods(
         }
       } catch (e) {
         logIpcError("regenerateMessage", { notify: true })(e);
-        const errMsg = String(e);
+        const errMsg = translateBackendError(e);
         const currentStreamingMessageId = getStreamingMessageId(
           useStreamStore.getState().activeStreams,
           conversationId,
@@ -1803,7 +1277,7 @@ export function createSendMethods(
         }
       } catch (e) {
         logIpcError("regenerateWithModel", { notify: true })(e);
-        const errMsg = String(e);
+        const errMsg = translateBackendError(e);
         const currentStreamingMessageId = getStreamingMessageId(
           useStreamStore.getState().activeStreams,
           conversationId,

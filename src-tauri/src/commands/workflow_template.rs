@@ -3,6 +3,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::workflow as workflow_err;
+use crate::init::COGNITIVE_ROUTER_TAG;
 use agent_macro::agent_command;
 use axagent_dao::repo::workflow_template as db_repo;
 use axagent_dao::workflow_conversions::workflow_template_response_from_model;
@@ -11,6 +12,23 @@ use axagent_runtime::work_engine::node_executor_trait::node_type_name;
 use sea_orm::{DatabaseConnection, EntityTrait, Set};
 use serde::Deserialize;
 use tauri::State;
+
+/// 判断模板是否为认知编排器系统模板（is_preset=true + cognitive_router 标签）。
+///
+/// 认知编排器是系统「上帝」工作流，禁止被用户发现/编辑/复制/删除。
+/// 与 CapabilityPassport 的运行时推导规则保持一致，确保系统模板在任何
+/// 用户可见 CRUD 路径上都不可达。
+fn is_cognitive_router_template(model: &axagent_entities::workflow_template::Model) -> bool {
+    if !model.is_preset {
+        return false;
+    }
+    model
+        .tags
+        .as_ref()
+        .and_then(|s| serde_json::from_str::<Vec<String>>(s).ok())
+        .map(|tags| tags.iter().any(|t| t == COGNITIVE_ROUTER_TAG))
+        .unwrap_or(false)
+}
 
 fn model_to_active_model(
     template: &WorkflowTemplateData,
@@ -53,6 +71,8 @@ fn model_to_active_model(
             serde_json::to_string(&template.tool_defs).ok()
         }),
         mission_hash: Set(template.mission_hash.clone()),
+        cluster_id: Set(None),
+        route_path: Set(None),
         created_at: Set(template.created_at),
         updated_at: Set(now),
     }
@@ -63,6 +83,7 @@ fn model_to_active_model(
 pub async fn list_workflow_templates(
     state: State<'_, AppState>,
     is_preset: Option<bool>,
+    include_system: Option<bool>,
 ) -> Result<Vec<WorkflowTemplateResponse>, String> {
     let db = state.harness.db();
     let templates = db_repo::list_workflow_templates(db, is_preset).await.map_err(|e| {
@@ -72,7 +93,14 @@ pub async fn list_workflow_templates(
         ))
     })?;
 
-    Ok(templates.into_iter().map(workflow_template_response_from_model).collect())
+    // 过滤认知编排器等系统模板：业务模板页对系统模板不可见（结构隔离）。
+    // include_system=true（系统模板页）时返回系统模板，供工作流编辑器查看/编辑。
+    let include_system = include_system.unwrap_or(false);
+    Ok(templates
+        .into_iter()
+        .filter(|t| include_system || !is_cognitive_router_template(t))
+        .map(workflow_template_response_from_model)
+        .collect())
 }
 
 #[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "获取单个工作流模板详情")]
@@ -80,6 +108,7 @@ pub async fn list_workflow_templates(
 pub async fn get_workflow_template(
     state: State<'_, AppState>,
     id: String,
+    include_system: Option<bool>,
 ) -> Result<Option<WorkflowTemplateResponse>, String> {
     let db = state.harness.db();
     let template = db_repo::get_workflow_template(db, &id).await.map_err(|e| {
@@ -89,7 +118,12 @@ pub async fn get_workflow_template(
         ))
     })?;
 
-    Ok(template.map(workflow_template_response_from_model))
+    // 系统模板对业务模板页不可见：返回 None（与「不存在」等价）。
+    // include_system=true（系统模板页）时允许读取系统模板。
+    let include_system = include_system.unwrap_or(false);
+    Ok(template
+        .filter(|t| include_system || !is_cognitive_router_template(t))
+        .map(workflow_template_response_from_model))
 }
 
 #[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "创建新工作流模板")]
@@ -123,6 +157,7 @@ pub async fn create_workflow_template(
         is_preset: false,
         is_editable: true,
         is_public: false,
+        visibility: axagent_harness::capability::Visibility::Public,
         trigger_config: input.trigger_config,
         nodes: input.nodes,
         edges: input.edges,
@@ -225,6 +260,22 @@ pub async fn delete_workflow_template(
     id: String,
 ) -> Result<bool, String> {
     let db = state.harness.db();
+
+    // 系统模板（认知编排器等）禁止用户删除
+    if let Some(t) = db_repo::get_workflow_template(db, &id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })? {
+        if is_cognitive_router_template(&t) {
+            return Err(ErrorResponse::err_with_detail(
+                workflow_err::SYSTEM_TEMPLATE_PROTECTED,
+                "System template is protected",
+            ));
+        }
+    }
+
     let deleted = db_repo::delete_workflow_template(db, &id).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
             e,
@@ -261,6 +312,15 @@ pub async fn duplicate_workflow_template(
     let template = template.ok_or_else(|| {
         ErrorResponse::err_with_detail(workflow_err::NOT_FOUND, "Template not found")
     })?;
+
+    // 系统模板（认知编排器等）禁止复制
+    if is_cognitive_router_template(&template) {
+        return Err(ErrorResponse::err_with_detail(
+            workflow_err::SYSTEM_TEMPLATE_PROTECTED,
+            "System template is protected",
+        ));
+    }
+
     let response = workflow_template_response_from_model(template);
 
     let now = chrono::Utc::now().timestamp_millis();
@@ -274,6 +334,7 @@ pub async fn duplicate_workflow_template(
         is_preset: false,
         is_editable: true,
         is_public: false,
+        visibility: Default::default(),
         trigger_config: response.trigger_config,
         nodes: response.nodes,
         edges: response.edges,
@@ -335,6 +396,19 @@ pub async fn get_template_versions(
     id: String,
 ) -> Result<Vec<i32>, String> {
     let db = state.harness.db();
+
+    // 系统模板（认知编排器等）对用户不可见：版本列表返回空
+    if let Some(t) = db_repo::get_workflow_template(db, &id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })? {
+        if is_cognitive_router_template(&t) {
+            return Ok(Vec::new());
+        }
+    }
+
     let versions = db_repo::get_template_versions(db, &id).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
             e,
@@ -352,6 +426,19 @@ pub async fn get_template_by_version(
     version: i32,
 ) -> Result<Option<WorkflowTemplateResponse>, String> {
     let db = state.harness.db();
+
+    // 系统模板（认知编排器等）对用户不可见：返回 None
+    if let Some(t) = db_repo::get_workflow_template(db, &id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })? {
+        if is_cognitive_router_template(&t) {
+            return Ok(None);
+        }
+    }
+
     let template = db_repo::get_template_by_version(db, &id, version).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
             e,
@@ -758,6 +845,12 @@ pub async fn export_workflow_template(
     let template = template.ok_or_else(|| {
         ErrorResponse::err_with_detail(workflow_err::NOT_FOUND, "Template not found")
     })?;
+
+    // 系统模板（认知编排器等）对用户不可见：与「不存在」等价，禁止导出
+    if is_cognitive_router_template(&template) {
+        return Err(ErrorResponse::err_with_detail(workflow_err::NOT_FOUND, "Template not found"));
+    }
+
     let response = workflow_template_response_from_model(template);
 
     serde_json::to_string_pretty(&response).map_err(|e| {
@@ -1735,6 +1828,7 @@ async fn convert_n8n_to_axagent(
         is_preset: false,
         is_editable: true,
         is_public: false,
+        visibility: Default::default(),
         trigger_config: None,
         nodes: ax_nodes,
         edges: ax_edges,
@@ -1779,6 +1873,7 @@ async fn do_import_workflow(
             is_preset: false,
             is_editable: true,
             is_public: false,
+            visibility: Default::default(),
             trigger_config: template.trigger_config,
             nodes,
             edges: template.edges,

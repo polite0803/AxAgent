@@ -64,7 +64,7 @@ export interface ActiveModelInfo {
   generation_params: unknown;
 }
 
-export const useFineTuneStore = create<{
+interface FineTuneState {
   datasets: DatasetInfo[];
   trainingJobs: TrainingJobInfo[];
   stats: TrainingStats | null;
@@ -104,7 +104,9 @@ export const useFineTuneStore = create<{
   setActiveModel: (baseModel: string, adapterIds: string[]) => Promise<void>;
   // DT-P0-4: 与后端 ActiveModelConfig 返回结构对齐
   getActiveModel: () => Promise<ActiveModelInfo | null>;
-}>((set, get) => ({
+}
+
+export const useFineTuneStore = create<FineTuneState>((set, get) => ({
   datasets: [],
   trainingJobs: [],
   stats: null,

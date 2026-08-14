@@ -154,11 +154,14 @@ const defaultEdgeOptions = {
 
 interface WorkflowEditorProps {
   templateId?: string;
+  /** 是否为系统模板（认知编排器等）：加载时透传 include_system=true */
+  isSystemTemplate?: boolean;
   onClose?: () => void;
 }
 
 export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   templateId,
+  isSystemTemplate,
   onClose,
 }) => {
   const { t } = useTranslation();
@@ -311,11 +314,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   useEffect(() => {
     hasAutoLaidOutRef.current = false;
     if (templateId) {
-      loadTemplate(templateId).catch(logIpcError("WorkflowEditor: loadTemplate"));
+      loadTemplate(templateId, isSystemTemplate)
+        .catch(logIpcError("WorkflowEditor: loadTemplate"));
     } else {
       initNewTemplate();
     }
-  }, [templateId, loadTemplate, initNewTemplate]);
+  }, [templateId, isSystemTemplate, loadTemplate, initNewTemplate]);
 
   // 初始化 workEngine 事件监听器：实时接收 node-status-changed / execution-completed 事件
   useEffect(() => {

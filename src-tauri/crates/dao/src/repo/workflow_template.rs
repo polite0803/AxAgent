@@ -217,6 +217,8 @@ pub async fn get_template_by_version(
         composite_source: None,
         tool_defs: None,
         mission_hash: None,
+        cluster_id: None,
+        route_path: None,
         created_at: v.created_at,
         updated_at: v.created_at,
     }))
@@ -304,6 +306,8 @@ pub fn build_active_model_from_data(
         composite_source: Set(None),
         tool_defs: Set(None),
         mission_hash: Set(item.mission_hash.clone()),
+        cluster_id: Set(None),
+        route_path: Set(None),
         created_at: Set(item.created_at),
         updated_at: Set(item.updated_at),
     }
@@ -325,6 +329,7 @@ pub fn template_model_to_data(
         is_preset: model.is_preset,
         is_editable: model.is_editable,
         is_public: model.is_public,
+        visibility: Default::default(),
         trigger_config: model.trigger_config.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         nodes: serde_json::from_str(&model.nodes).unwrap_or_default(),
         edges: serde_json::from_str(&model.edges).unwrap_or_default(),

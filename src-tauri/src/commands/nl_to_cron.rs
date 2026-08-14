@@ -2,6 +2,9 @@
 
 use agent_macro::agent_command;
 
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::nl_to_cron as nl_to_cron_err;
+
 /// 将自然语言描述的定时任务转换为 cron 表达式。
 /// 基于规则匹配，无需 LLM 调用。
 #[agent_command(domain = scheduled_task, safety = Safe, call_mode = StateInput, description = "自然语言转 Cron 表达式")]
@@ -9,7 +12,7 @@ use agent_macro::agent_command;
 pub async fn nl_to_cron(natural_language: String) -> Result<String, String> {
     let text = natural_language.trim().to_lowercase();
     if text.is_empty() {
-        return Err("请输入定时任务描述".to_string());
+        return Err(ErrorResponse::err(nl_to_cron_err::DESCRIPTION_EMPTY));
     }
 
     if text.contains("每天") || text.contains("每日") {

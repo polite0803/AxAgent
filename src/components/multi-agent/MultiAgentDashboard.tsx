@@ -12,8 +12,7 @@
 
 import { useMultiAgentStore } from "@/stores/feature/multiAgentStore";
 import { useProviderStore } from "@/stores/feature/providerStore";
-import type { ProviderConfig } from "@/types";
-import type { MultiAgentRoleInfo } from "@/types/multi-agent";
+import type { MultiAgentRoleInfo, ProviderConfig } from "@/types";
 import {
   CheckCircleOutlined,
   ClearOutlined,

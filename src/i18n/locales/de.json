@@ -827,6 +827,13 @@
       "searching": "Gedächtnis wird durchsucht…"
     },
     "messageArea": "Nachrichtenbereich",
+    "mode": {
+      "action": "Ausführen",
+      "ask": "Fragen",
+      "auto": "Auto",
+      "plan": "Plan",
+      "title": "Ausführungsmodus"
+    },
     "moveToWorkspace": "In Arbeitsbereich verschieben",
     "multiModel": {
       "selectTitle": "Modelle für gleichzeitige Antwort auswählen",
@@ -1089,13 +1096,10 @@
       },
       "completedDesc": "„{{name}}\" abgeschlossen, {{total}} Schritte, {{completed}} erfolgreich.",
       "completedTitle": "Workflow abgeschlossen",
-      "conversationMode": "Konversationsmodus",
-      "conversationModeDesc": "Freie Konversation, kein fester Workflow",
       "dagHint": "Diesen Mermaid-Code in einen Mermaid-Renderer einfügen, um den DAG zu visualisieren.",
       "dagView": "DAG-Ansicht",
       "dagVisualization": "DAG-Visualisierung",
       "dependsOn": "Abhängig von:",
-      "dismiss": "Schließen",
       "docGen": {
         "description": "Umfassende Dokumentation für Code, APIs und Projekte generieren.",
         "name": "Dokumentationsgenerator"
@@ -1124,12 +1128,10 @@
       },
       "result": "Ergebnis",
       "retries": "Versuche:",
-      "searchPlaceholder": "Vorlagen suchen...",
       "security": {
         "description": "Umfassende Sicherheitslücken-Scan- und Risikobewertung durchführen.",
         "name": "Sicherheitsaudit"
       },
-      "selectHint": "Workflow auswählen",
       "status": {
         "completed": "Abgeschlossen",
         "failed": "Fehlgeschlagen",
@@ -1141,16 +1143,10 @@
         "skipped": "Übersprungen"
       },
       "stepStatus": "Status:",
-      "suggestionDesc": "Ihr Bedarf ähnelt dem Workflow „{{name}}\"",
-      "suggestionHint": "Hinweis",
-      "suggestionReason": "Ein Workflow bietet eine strukturiertere mehrstufige Ausführung",
-      "switchToWorkflow": "Zum Workflow wechseln",
       "testGen": {
         "description": "Umfassende Test-Suites mit Unit-, Integrations- und Edge-Case-Tests generieren.",
         "name": "Testgenerator"
       },
-      "title": "Agenten-Workflow-Vorlagen",
-      "unnamed": "Workflow",
       "viewDetails": "Details anzeigen",
       "viewOutput": "Endausgabe",
       "workflowStatus": {
@@ -1975,6 +1971,12 @@
     "CLOUD_UNKNOWN_CONFLICT": "Unbekannter Synchronisationskonflikttyp",
     "CLOUD_UNKNOWN_STORAGE": "Unbekannter Speichertyp",
     "CLOUD_UNKNOWN_STRATEGY": "Unbekannte Synchronisationsstrategie",
+    "COGNITIVE_ROUTE_FAILED": "Cognitive-Routing-Ausführung fehlgeschlagen",
+    "COGNITIVE_EMPTY_INPUT": "Cognitive-Routing-Eingabe ist leer",
+    "COGNITIVE_CIRCUIT_BROKEN": "Cognitive-Routing-Unterbrechung ausgelöst: {reason}",
+    "COGNITIVE_NO_CANDIDATE": "Keine verfügbare Fähigkeit für Cognitive-Routing gefunden",
+    "COGNITIVE_EXECUTION_MODE_INVALID": "Ungültiger Cognitive-Routing-Ausführungsmodus",
+    "COGNITIVE_PROMPT_REJECTED": "Kognitiver Prompt abgelehnt",
     "COMMON_INTERNAL": "Interner Fehler",
     "COMMON_INVALID_INPUT": "Ungültige Eingabe",
     "COMMON_TIMEOUT": "Zeitüberschreitung bei Vorgang",
@@ -2184,6 +2186,7 @@
     "WORKFLOW_REFLECTION_REFLECT_FAILED": "Workflow-Reflexion fehlgeschlagen",
     "WORKFLOW_REFLECTION_SUGGEST_FAILED": "Workflow-Reflexionsvorschlag fehlgeschlagen",
     "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "Ungültige Workflow-Reflexionsvorlage",
+    "WORKFLOW_SYSTEM_TEMPLATE_PROTECTED": "Die Systemvorlage ist geschützt und kann nicht geändert, gelöscht oder dupliziert werden",
     "WORKFLOW_VERSION_NOT_FOUND": "Workflow-Version nicht gefunden",
     "VOICE_TICKET_INVALID": "Voice-Session-Ticket ist ungültig oder abgelaufen",
     "VOICE_MODEL_NOT_FOUND": "Sprachmodell nicht gefunden oder nicht unterstützt",
@@ -2264,7 +2267,41 @@
     "DEVICE_SYNC_PASSWORD_EMPTY": "Verschlüsselungspasswort darf nicht leer sein",
     "DEVICE_SYNC_SALT_REQUIRED": "Salz für Entschlüsselung erforderlich",
     "DEVICE_SYNC_STORAGE_OPERATION_FAILED": "Speichervorgang fehlgeschlagen",
-    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "Richtlinienvorgang fehlgeschlagen"
+    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "Richtlinienvorgang fehlgeschlagen",
+    "CAPABILITY_REGISTER_FAILED": "Funktionsregistrierung fehlgeschlagen",
+    "CAPABILITY_DISCOVER_FAILED": "Funktionserkennung fehlgeschlagen",
+    "CAPABILITY_NOT_FOUND": "Funktion nicht gefunden",
+    "CAPABILITY_INDEX_FAILED": "Funktionsindizierung fehlgeschlagen",
+    "CAPABILITY_EMBEDDING_FAILED": "Einbettungserzeugung fehlgeschlagen",
+    "CAPABILITY_VECTOR_STORE_FAILED": "Vektor-Store-Vorgang fehlgeschlagen",
+    "CAPABILITY_INVALID_PASSPORT": "Ungültiger Funktionspass",
+    "CAPABILITY_LIST_FAILED": "Funktionsliste fehlgeschlagen",
+    "CAPABILITY_STATS_FAILED": "Statistikabruf fehlgeschlagen",
+    "CAPABILITY_METADATA_RESTORE_FAILED": "Metadatenwiederherstellung fehlgeschlagen",
+    "AGENT_INPUT_CHANNEL_CLOSED": "Der Benutzereingabekanal ist geschlossen",
+    "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "Zeitüberschreitung beim Warten auf Benutzerantwort (5 Minuten)",
+    "AGENT_INPUT_NO_PROVIDER": "Kein verfügbarer Provider/Modell: Bitte aktivieren Sie einen Provider in den Einstellungen",
+    "AGENT_ROLE_BUILTIN_NOT_DELETABLE": "Integrierte Rollen können nicht gelöscht werden",
+    "BACKUP_CLOUD_KEY_TRAVERSAL": "Pfad-Traversal erkannt: cloud_key zeigt außerhalb des Sicherungsverzeichnisses",
+    "STREAMING_REQUEST_IN_PROGRESS": "Eine Anfrage läuft bereits, bitte warten Sie auf deren Abschluss",
+    "DYNAMIC_UI_BUILTIN_NOT_MODIFIABLE": "Integrierte Schemas können nicht geändert werden",
+    "DYNAMIC_UI_BUILTIN_NOT_DELETABLE": "Integrierte Schemas können nicht gelöscht werden",
+    "DYNAMIC_UI_SCHEMA_NOT_FOUND": "DynamicUI-Schema existiert nicht",
+    "DYNAMIC_UI_BUILTIN_NOT_ROLLBACK": "Integrierte Schemas können nicht zurückgesetzt werden",
+    "DYNAMIC_UI_EDIT_PROMPT_EMPTY": "Bearbeitungsanweisung darf nicht leer sein",
+    "DYNAMIC_UI_SCHEMA_MISSING_FIELD": "Vom KI zurückgegebenem Schema fehlen Pflichtfelder (type/id)",
+    "DYNAMIC_UI_GENERATE_PROMPT_EMPTY": "Generierungsanweisung darf nicht leer sein",
+    "EVOLUTION_INSUFFICIENT_TRAJECTORY": "Nicht genügend Verlaufsdaten für die Evolution",
+    "EVOLUTION_INITIAL_FEEDBACK_EMPTY": "Initiales Feedback darf nicht leer sein",
+    "NL_TO_CRON_DESCRIPTION_EMPTY": "Bitte geben Sie eine Beschreibung der geplanten Aufgabe ein",
+    "RESEARCH_NOT_ENOUGH_MESSAGES": "Nicht genügend Konversationsnachrichten für die Berichtserstellung",
+    "RESEARCH_TOPIC_EMPTY": "Forschungsthema darf nicht leer sein",
+    "SESSION_SHARE_INVALID_CODE": "Ungültiger Einladungscode",
+    "SESSION_SHARE_ALREADY_FULL": "Sitzung ist voll, Beitritt nicht möglich",
+    "SESSION_SHARE_NOT_FOUND": "Sitzung existiert nicht",
+    "WORK_ENGINE_EXECUTION_NOT_FOUND": "Ungültige execution_id oder Workflow nicht registriert",
+    "TRAJECTORY_NOT_FOUND": "Verlauf nicht gefunden",
+    "UNKNOWN_PRESET": "Unbekannte Vorgabe"
   },
   "errorBoundary": {
     "copied": "Kopiert",
@@ -4901,7 +4938,8 @@
     "workflow": {
       "createNew": "Neue Vorlage erstellen",
       "marketplace": "Marktplatz",
-      "myWorkflows": "Meine Workflows"
+      "myWorkflows": "Meine Workflows",
+      "systemTemplates": "Systemvorlagen"
     },
     "zhipu": "Zhipu",
     "groupVoice": "Sprache",
@@ -8033,6 +8071,15 @@
       "community": "Community",
       "recommended": "Empfohlen",
       "all": "Alle"
+    },
+    "systemTemplateList": {
+      "edit": "Bearbeiten",
+      "hint": "Systemvorlagen (kognitiver Orchestrator usw.) steuern das globale Routing. Anzeigen/Bearbeiten möglich, aber nicht löschen, duplizieren oder exportieren",
+      "moreActions": "Weitere Aktionen",
+      "noDescription": "Keine Beschreibung",
+      "noTemplates": "Keine Systemvorlagen",
+      "systemTag": "System",
+      "view": "Ansehen"
     },
     "templateName": "Vorlagenname",
     "templateSaved": "Vorlage gespeichert",

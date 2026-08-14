@@ -29,6 +29,7 @@ import {
   useUIStore,
   useVoicePreferenceStore,
 } from "@/stores";
+import type { SendModeHint } from "@/stores/domain/conversationStoreSend";
 import { useExpertStore } from "@/stores/feature/expertStore";
 import { useGatewayStore } from "@/stores/feature/gatewayStore";
 import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
@@ -328,8 +329,6 @@ export function InputArea() {
   const compressing = useCompressStore((s) => s.compressing);
   const cancelCurrentStream = useStreamStore((s) => s.cancelCurrentStream);
   const sendMessage = useConversationStore((s) => s.sendMessage);
-  const sendAgentMessage = useConversationStore((s) => s.sendAgentMessage);
-  const sendPlanMessage = useConversationStore((s) => s.sendPlanMessage);
   const createConversation = useConversationStore((s) => s.createConversation);
   const messagesLength = useConversationStore((s) => s.messages.length);
   const totalActiveCount = useConversationStore((s) => s.totalActiveCount);
@@ -416,6 +415,11 @@ export function InputArea() {
 
   // Work strategy state (for plan mode)
   const [workStrategy, setWorkStrategy] = useState<"direct" | "plan">("direct");
+
+  // 用户显式选择的执行模式；"auto" 表示不覆盖，交由认知编排器路由自动决策执行模式
+  const [explicitMode, setExplicitMode] = useState<
+    "auto" | "ask" | "plan" | "action"
+  >("auto");
 
   // Gateway links state
   const gatewayLinks = useGatewayLinkStore((s) => s.links);
@@ -505,13 +509,20 @@ export function InputArea() {
     setWorkStrategy(strategy || "direct");
   }, [activeConversation?.work_strategy, activeConversation?.mode]);
 
-  // Unified mode: ask | plan | action
+  // 统一执行模式（用于 UI 展示）：用户显式选择优先；auto 时按会话上下文派生提示性模式
   const unifiedMode = useMemo((): "ask" | "plan" | "action" => {
+    if (explicitMode !== "auto") { return explicitMode; }
     if (currentMode === "chat") { return "ask"; }
     if (currentMode === "agent" && workStrategy === "plan") { return "plan"; }
-    if (currentMode === "agent" && workStrategy === "direct") { return "action"; }
-    return "ask";
-  }, [currentMode, workStrategy]);
+    return "action";
+  }, [explicitMode, currentMode, workStrategy]);
+
+  // 发送给认知编排器的 modeHint："auto" 时不覆盖，后端路由自动决策执行模式
+  const sendModeHint = useMemo((): SendModeHint => {
+    if (explicitMode === "auto") { return "auto"; }
+    if (explicitMode === "action") { return "act"; }
+    return explicitMode;
+  }, [explicitMode]);
 
   const navigate = useNavigate();
   const setSettingsSection = useUIStore((s) => s.setSettingsSection);
@@ -1039,16 +1050,27 @@ export function InputArea() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expertBuiltinRoles, agencyRoles, customRoles, t]);
 
-  // Unified mode menu items (Ask / Plan / Action)
+  // Unified mode menu items (Auto / Ask / Plan / Action)
   const unifiedModeMenuItems = useMemo((): DropdownItem[] => {
     const items: DropdownItem[] = [
+      {
+        key: "auto",
+        icon: <Zap size={14} />,
+        label: (
+          <span className="flex items-center gap-2">
+            {t("chat.mode.auto")}
+            {explicitMode === "auto" && <Check size={14} style={{ color: token.colorPrimary }} />}
+          </span>
+        ),
+        onClick: () => handleUnifiedModeChange("auto"),
+      },
       {
         key: "ask",
         icon: <MessageSquare size={14} />,
         label: (
           <span className="flex items-center gap-2">
             {t("chat.mode.ask")}
-            {unifiedMode === "ask" && <Check size={14} style={{ color: token.colorPrimary }} />}
+            {explicitMode === "ask" && <Check size={14} style={{ color: token.colorPrimary }} />}
           </span>
         ),
         onClick: () => handleUnifiedModeChange("ask"),
@@ -1059,7 +1081,7 @@ export function InputArea() {
         label: (
           <span className="flex items-center gap-2">
             {t("chat.mode.plan")}
-            {unifiedMode === "plan" && <Check size={14} style={{ color: token.colorPrimary }} />}
+            {explicitMode === "plan" && <Check size={14} style={{ color: token.colorPrimary }} />}
           </span>
         ),
         onClick: () => handleUnifiedModeChange("plan"),
@@ -1070,7 +1092,7 @@ export function InputArea() {
         label: (
           <span className="flex items-center gap-2">
             {t("chat.mode.action")}
-            {unifiedMode === "action" && <Check size={14} style={{ color: token.colorPrimary }} />}
+            {explicitMode === "action" && <Check size={14} style={{ color: token.colorPrimary }} />}
           </span>
         ),
         onClick: () => handleUnifiedModeChange("action"),
@@ -1093,7 +1115,7 @@ export function InputArea() {
     }
     return items;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t, unifiedMode, gatewayLinks, token.colorPrimary]);
+  }, [t, explicitMode, gatewayLinks, token.colorPrimary]);
 
   // Handle expert selection
   const handleExpertSelect = useCallback(
@@ -1510,11 +1532,12 @@ export function InputArea() {
   // 仅在「工作流会话」下隐藏；无活跃会话或普通会话均显示语音入口。
   const { voiceAvailable, hasReasoning, hasVision } = React.useMemo(
     () => ({
-      voiceAvailable: activeConversation?.session_type !== "workflow",
+      // 语音入口对所有会话可用（工作流手动绑定已移除）
+      voiceAvailable: true,
       hasReasoning: supportsReasoning(currentModel),
       hasVision: modelHasCapability(currentModel, "Vision"),
     }),
-    [activeConversation, currentModel],
+    [currentModel],
   );
 
   // Current model key for excluding from multi-select (no longer used - users can select any model)
@@ -1727,15 +1750,6 @@ export function InputArea() {
           clearConversation(activeConversation.id);
           useExecutionStore.getState().clearConversation(activeConversation.id);
           usePlanStore.getState().clearActivePlan(activeConversation.id);
-          if (
-            activeConversation.session_type === "workflow"
-            || activeConversation.workflow_template_id
-          ) {
-            await updateConversation(activeConversation.id, {
-              session_type: "conversation",
-              workflow_template_id: null,
-            });
-          }
         }
       } finally {
         isSwitchingModeRef.current = false;
@@ -1753,7 +1767,12 @@ export function InputArea() {
 
   // ── Unified Mode (Ask / Plan / Action) ──
   const handleUnifiedModeChange = useCallback(
-    async (mode: "ask" | "plan" | "action") => {
+    async (mode: "auto" | "ask" | "plan" | "action") => {
+      setExplicitMode(mode);
+      if (mode === "auto") {
+        // 自动决策：执行模式交由认知编排器路由自动决定，不强制切换会话类型
+        return;
+      }
       if (mode === "ask") {
         await handleModeSwitch("chat");
         if (activeConversationId) {
@@ -1851,31 +1870,9 @@ export function InputArea() {
           textareaRef.current.style.height = "auto";
         }
       });
-      // 工作流会话强制走 sendAgentMessage（它内部有完整的 workflow_execute 逻辑）
-      const currentConv = useConversationStore.getState().conversations.find(
-        (c) => c.id === activeConversationId,
-      );
-      const isWorkflowSession = currentConv?.session_type === "workflow";
-
-      if (isWorkflowSession && currentMode === "agent") {
-        await sendAgentMessage(
-          trimmed,
-          attachments,
-          effectiveSearchProviderId,
-        );
-      } else if (currentMode === "agent" && workStrategy === "plan") {
-        await sendPlanMessage(
-          trimmed,
-          attachments,
-          effectiveSearchProviderId,
-        );
-      } else if (currentMode === "agent") {
-        await sendAgentMessage(
-          trimmed,
-          attachments,
-          effectiveSearchProviderId,
-        );
-      } else if (companionModels.length > 0) {
+      // 统一入口：所有会话（chat / agent / plan）统一走 cognitive_query 认知编排器，
+      // modeHint 仅在用户显式选择时覆盖（ask/plan/act），否则交由路由自动决策
+      if (companionModels.length > 0) {
         await sendMultiModelMessage(
           trimmed,
           companionModels,
@@ -1888,6 +1885,7 @@ export function InputArea() {
           attachments,
           effectiveSearchProviderId,
           quotedMessageId,
+          sendModeHint,
         );
       }
       // 引用回复：发送成功后清除引用状态
@@ -1914,8 +1912,6 @@ export function InputArea() {
     attachedFiles,
     streaming,
     sendMessage,
-    sendAgentMessage,
-    sendPlanMessage,
     sendMultiModelMessage,
     companionModels,
     activeConversationId,
@@ -1926,7 +1922,7 @@ export function InputArea() {
     messageApi,
     t,
     currentMode,
-    workStrategy,
+    sendModeHint,
     selectedGatewayId,
     effectiveSearchProviderId,
     quotedMessageId,
@@ -2780,7 +2776,7 @@ export function InputArea() {
                   />
                 </DropdownMenu>
               )}
-            {unifiedMode === "action" && activeConversation?.session_type !== "workflow" && (
+            {unifiedMode === "action" && (
               <DropdownMenu items={expertMenuItems}>
                 <Tooltip title={t("expertBadge.selectExpert")}>
                   <Button type="text" size="small" icon={<Bot size={14} />} />
@@ -3044,23 +3040,21 @@ export function InputArea() {
                 />
               </Tooltip>
             )}
-            {activeConversation?.session_type !== "workflow" && (
-              <DropdownMenu items={unifiedModeMenuItems}>
-                <Tooltip title={t("chat.mode.title")}>
-                  <Button
-                    type="text"
-                    size="small"
-                    data-tutorial="agent-mode"
-                    icon={unifiedMode === "ask"
-                      ? <MessageSquare size={14} />
-                      : unifiedMode === "plan"
-                      ? <ClipboardList size={14} />
-                      : <Play size={14} />}
-                    style={{ display: "flex", alignItems: "center", gap: 4 }}
-                  />
-                </Tooltip>
-              </DropdownMenu>
-            )}
+            <DropdownMenu items={unifiedModeMenuItems}>
+              <Tooltip title={t("chat.mode.title")}>
+                <Button
+                  type="text"
+                  size="small"
+                  data-tutorial="agent-mode"
+                  icon={unifiedMode === "ask"
+                    ? <MessageSquare size={14} />
+                    : unifiedMode === "plan"
+                    ? <ClipboardList size={14} />
+                    : <Play size={14} />}
+                  style={{ display: "flex", alignItems: "center", gap: 4 }}
+                />
+              </Tooltip>
+            </DropdownMenu>
             {currentMode === "agent" && activeConversationId && (
               <PlanHistoryPanel conversationId={activeConversationId} />
             )}

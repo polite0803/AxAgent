@@ -13,6 +13,7 @@ export function WorkflowPage() {
   const [editingTemplateId, setEditingTemplateId] = useState<
     string | undefined
   >(undefined);
+  const [isEditingSystem, setIsEditingSystem] = useState(false);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
 
   // 编辑器全屏模式：创建新或编辑现有时隐藏 Tabs
@@ -22,8 +23,10 @@ export function WorkflowPage() {
         <ReactFlowProvider>
           <WorkflowEditor
             templateId={isCreatingNew ? undefined : editingTemplateId}
+            isSystemTemplate={isEditingSystem}
             onClose={() => {
               setEditingTemplateId(undefined);
+              setIsEditingSystem(false);
               setIsCreatingNew(false);
             }}
           />
@@ -36,6 +39,10 @@ export function WorkflowPage() {
     <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
       <WorkflowSettings
         onOpenEditor={(templateId?: string) => setEditingTemplateId(templateId)}
+        onOpenSystemEditor={(templateId: string) => {
+          setEditingTemplateId(templateId);
+          setIsEditingSystem(true);
+        }}
         onCreateNew={() => setIsCreatingNew(true)}
       />
     </div>

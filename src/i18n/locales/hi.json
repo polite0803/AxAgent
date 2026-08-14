@@ -827,6 +827,13 @@
       "searching": "स्मृति में खोज रहे हैं..."
     },
     "messageArea": "संदेश क्षेत्र",
+    "mode": {
+      "action": "निष्पादित करें",
+      "ask": "पूछें",
+      "auto": "स्वचालित",
+      "plan": "योजना",
+      "title": "निष्पादन मोड"
+    },
     "moveToWorkspace": "कार्यक्षेत्र में ले जाएं",
     "multiModel": {
       "selectTitle": "एक साथ उत्तर देने के लिए मॉडल चुनें",
@@ -1089,13 +1096,10 @@
       },
       "completedDesc": "\"{{name}}\" पूर्ण, {{total}} चरण, {{completed}} सफल।",
       "completedTitle": "वर्कफ़्लो पूर्ण",
-      "conversationMode": "वार्तालाप मोड",
-      "conversationModeDesc": "मुक्त वार्तालाप, कोई निश्चित वर्कफ़्लो नहीं",
       "dagHint": "DAG को विज़ुअलाइज़ करने के लिए इस Mermaid कोड को Mermaid रेंडरर में पेस्ट करें।",
       "dagView": "DAG दृश्य",
       "dagVisualization": "DAG विज़ुअलाइज़ेशन",
       "dependsOn": "निर्भरता:",
-      "dismiss": "खारिज करें",
       "docGen": {
         "description": "कोड, API और प्रोजेक्ट के लिए व्यापक दस्तावेज़ीकरण जनरेट करें।",
         "name": "दस्तावेज़ीकरण जनरेटर"
@@ -1124,12 +1128,10 @@
       },
       "result": "परिणाम",
       "retries": "पुनः प्रयास:",
-      "searchPlaceholder": "टेम्पलेट खोजें...",
       "security": {
         "description": "व्यापक सुरक्षा भेद्यता स्कैन और जोखिम मूल्यांकन करें।",
         "name": "सुरक्षा ऑडिट"
       },
-      "selectHint": "वर्कफ़्लो चुनें",
       "status": {
         "completed": "पूर्ण",
         "failed": "विफल",
@@ -1141,16 +1143,10 @@
         "skipped": "छोड़ा गया"
       },
       "stepStatus": "स्थिति:",
-      "suggestionDesc": "पता चला कि आपकी आवश्यकता वर्कफ़्लो \"{{name}}\" के समान है",
-      "suggestionHint": "संकेत",
-      "suggestionReason": "वर्कफ़्लो का उपयोग अधिक संरचित बहु-चरण निष्पादन प्रदान करता है",
-      "switchToWorkflow": "वर्कफ़्लो पर स्विच करें",
       "testGen": {
         "description": "यूनिट, एकीकरण और एज केस टेस्ट के साथ व्यापक टेस्ट सूट जनरेट करें।",
         "name": "टेस्ट जनरेटर"
       },
-      "title": "एजेंट वर्कफ़्लो टेम्पलेट",
-      "unnamed": "वर्कफ़्लो",
       "viewDetails": "विवरण देखें",
       "viewOutput": "अंतिम आउटपुट",
       "workflowStatus": {
@@ -1975,6 +1971,12 @@
     "CLOUD_UNKNOWN_CONFLICT": "अज्ञात सिंक विरोध प्रकार",
     "CLOUD_UNKNOWN_STORAGE": "अज्ञात भंडारण प्रकार",
     "CLOUD_UNKNOWN_STRATEGY": "अज्ञात सिंक रणनीति",
+    "COGNITIVE_ROUTE_FAILED": "संज्ञानात्मक रूटिंग निष्पादन विफल",
+    "COGNITIVE_EMPTY_INPUT": "संज्ञानात्मक रूटिंग इनपुट खाली है",
+    "COGNITIVE_CIRCUIT_BROKEN": "संज्ञानात्मक रूटिंग सर्किट ब्रेकर ट्रिप हो गया: {reason}",
+    "COGNITIVE_NO_CANDIDATE": "संज्ञानात्मक रूटिंग के लिए कोई उपलब्ध क्षमता नहीं मिली",
+    "COGNITIVE_EXECUTION_MODE_INVALID": "अमान्य संज्ञानात्मक रूटिंग निष्पादन मोड",
+    "COGNITIVE_PROMPT_REJECTED": "संज्ञानात्मक प्रॉम्प्ट अस्वीकृत",
     "COMMON_INTERNAL": "आंतरिक त्रुटि",
     "COMMON_INVALID_INPUT": "अमान्य इनपुट",
     "COMMON_TIMEOUT": "संचालन का समय समाप्त",
@@ -2184,6 +2186,7 @@
     "WORKFLOW_REFLECTION_REFLECT_FAILED": "वर्कफ़्लो रिफ्लेक्शन विफल",
     "WORKFLOW_REFLECTION_SUGGEST_FAILED": "वर्कफ़्लो रिफ्लेक्शन सुझाव विफल",
     "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "अमान्य वर्कफ़्लो रिफ्लेक्शन टेम्पलेट",
+    "WORKFLOW_SYSTEM_TEMPLATE_PROTECTED": "सिस्टम टेम्पलेट सुरक्षित है और इसे संशोधित, हटाया या डुप्लिकेट नहीं किया जा सकता",
     "WORKFLOW_VERSION_NOT_FOUND": "वर्कफ़्लो संस्करण नहीं मिला",
     "VOICE_TICKET_INVALID": "वॉइस सत्र टिकट अमान्य या समाप्त हो गया",
     "VOICE_MODEL_NOT_FOUND": "वॉइस मॉडल नहीं मिला या असमर्थित",
@@ -2264,7 +2267,41 @@
     "DEVICE_SYNC_PASSWORD_EMPTY": "एन्क्रिप्शन पासवर्ड खाली नहीं हो सकता",
     "DEVICE_SYNC_SALT_REQUIRED": "डिक्रिप्शन के लिए सॉल्ट आवश्यक",
     "DEVICE_SYNC_STORAGE_OPERATION_FAILED": "स्टोरेज ऑपरेशन विफल",
-    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "पॉलिसी ऑपरेशन विफल"
+    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "पॉलिसी ऑपरेशन विफल",
+    "CAPABILITY_REGISTER_FAILED": "क्षमता पंजीकरण विफल",
+    "CAPABILITY_DISCOVER_FAILED": "क्षमता खोज विफल",
+    "CAPABILITY_NOT_FOUND": "क्षमता नहीं मिली",
+    "CAPABILITY_INDEX_FAILED": "क्षमता अनुक्रमण विफल",
+    "CAPABILITY_EMBEDDING_FAILED": "एम्बेडिंग निर्माण विफल",
+    "CAPABILITY_VECTOR_STORE_FAILED": "वेक्टर स्टोर ऑपरेशन विफल",
+    "CAPABILITY_INVALID_PASSPORT": "अमान्य क्षमता पासपोर्ट",
+    "CAPABILITY_LIST_FAILED": "क्षमता सूची प्राप्त करने में विफल",
+    "CAPABILITY_STATS_FAILED": "क्षमता आँकड़े प्राप्त करने में विफल",
+    "CAPABILITY_METADATA_RESTORE_FAILED": "मेटाडेटा पुनर्स्थापना विफल",
+    "AGENT_INPUT_CHANNEL_CLOSED": "उपयोगकर्ता इनपुट चैनल बंद है",
+    "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "उपयोगकर्ता उत्तर की प्रतीक्षा समय समाप्त (5 मिनट)",
+    "AGENT_INPUT_NO_PROVIDER": "कोई उपलब्ध प्रदाता/मॉडल नहीं: कृपया सेटिंग्स में प्रदाता सक्षम करें",
+    "AGENT_ROLE_BUILTIN_NOT_DELETABLE": "अंतर्निहित भूमिकाएँ हटाई नहीं जा सकतीं",
+    "BACKUP_CLOUD_KEY_TRAVERSAL": "पथ ट्रैवर्सल का पता चला: cloud_key बैकअप निर्देशिका के बाहर इंगित करता है",
+    "STREAMING_REQUEST_IN_PROGRESS": "एक अनुरोध पहले से चल रहा है, कृपया पूरा होने तक प्रतीक्षा करें",
+    "DYNAMIC_UI_BUILTIN_NOT_MODIFIABLE": "अंतर्निहित स्कीमा संशोधित नहीं की जा सकती",
+    "DYNAMIC_UI_BUILTIN_NOT_DELETABLE": "अंतर्निहित स्कीमा हटाई नहीं जा सकती",
+    "DYNAMIC_UI_SCHEMA_NOT_FOUND": "DynamicUI स्कीमा मौजूद नहीं है",
+    "DYNAMIC_UI_BUILTIN_NOT_ROLLBACK": "अंतर्निहित स्कीमा को वापस नहीं लाया जा सकता",
+    "DYNAMIC_UI_EDIT_PROMPT_EMPTY": "संपादन निर्देश खाली नहीं हो सकता",
+    "DYNAMIC_UI_SCHEMA_MISSING_FIELD": "AI द्वारा लौटाई गई स्कीमा में आवश्यक फ़ील्ड (type/id) नहीं हैं",
+    "DYNAMIC_UI_GENERATE_PROMPT_EMPTY": "जनरेशन निर्देश खाली नहीं हो सकता",
+    "EVOLUTION_INSUFFICIENT_TRAJECTORY": "विकास के लिए पर्याप्त ट्रैजेक्ट्री डेटा नहीं है",
+    "EVOLUTION_INITIAL_FEEDBACK_EMPTY": "प्रारंभिक फ़ीडबैक खाली नहीं हो सकता",
+    "NL_TO_CRON_DESCRIPTION_EMPTY": "कृपया शेड्यूल किए गए कार्य का विवरण दर्ज करें",
+    "RESEARCH_NOT_ENOUGH_MESSAGES": "रिपोर्ट बनाने के लिए पर्याप्त संवाद संदेश नहीं हैं",
+    "RESEARCH_TOPIC_EMPTY": "शोध विषय खाली नहीं हो सकता",
+    "SESSION_SHARE_INVALID_CODE": "अमान्य निमंत्रण कोड",
+    "SESSION_SHARE_ALREADY_FULL": "सत्र भरा हुआ है, शामिल नहीं हो सकते",
+    "SESSION_SHARE_NOT_FOUND": "सत्र मौजूद नहीं है",
+    "WORK_ENGINE_EXECUTION_NOT_FOUND": "अमान्य execution_id या वर्कफ़्लो पंजीकृत नहीं है",
+    "TRAJECTORY_NOT_FOUND": "ट्रैजेक्ट्री नहीं मिली",
+    "UNKNOWN_PRESET": "अज्ञात प्रीसेट"
   },
   "errorBoundary": {
     "copied": "कॉपी हुआ",
@@ -4901,7 +4938,8 @@
     "workflow": {
       "createNew": "नया टेम्पलेट बनाएं",
       "marketplace": "मार्केटप्लेस",
-      "myWorkflows": "मेरे वर्कफ़्लो"
+      "myWorkflows": "मेरे वर्कफ़्लो",
+      "systemTemplates": "सिस्टम टेम्पलेट"
     },
     "zhipu": "ज़िपू",
     "groupVoice": "आवाज़",
@@ -8033,6 +8071,15 @@
       "community": "समुदाय",
       "recommended": "अनुशंसित",
       "all": "सभी"
+    },
+    "systemTemplateList": {
+      "edit": "संपादित करें",
+      "hint": "सिस्टम टेम्पलेट (संज्ञानात्मक ऑर्केस्ट्रेटर आदि) वैश्विक रूटिंग चलाते हैं। देखा/संपादित किया जा सकता है लेकिन हटाना/कॉपी करना/निर्यात करना प्रतिबंधित है",
+      "moreActions": "अधिक क्रियाएँ",
+      "noDescription": "कोई विवरण नहीं",
+      "noTemplates": "कोई सिस्टम टेम्पलेट नहीं",
+      "systemTag": "सिस्टम",
+      "view": "देखें"
     },
     "templateName": "टेम्पलेट नाम",
     "templateSaved": "टेम्पलेट सहेजा गया",

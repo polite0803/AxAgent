@@ -33,7 +33,6 @@ import { formatDuration, formatSpeed, formatTokenCount } from "../gateway/tokenF
 import { ExpertBadge } from "./ExpertBadge";
 import { AgentProfileSelect } from "./InputArea";
 import { ModelSelector } from "./ModelSelector";
-import { WorkflowBadge } from "./WorkflowBadge";
 
 function StatsPopoverContent({
   stats,
@@ -354,111 +353,22 @@ export function ChatViewToolbar({
               )}
 
             {activeConversation?.mode === "agent" && (
-              <WorkflowBadge
-                sessionType={activeConversation?.session_type ?? "conversation"}
-                workflowTemplateId={activeConversation?.workflow_template_id}
-                workflowStatus={activeConversation?.workflow_status}
-                onSelectWorkflow={async (templateId, workflowId) => {
-                  if (activeConversation.id) {
-                    if (workflowId) {
-                      try {
-                        localStorage.setItem(
-                          `axagent:workflow-id:${activeConversation.id}`,
-                          workflowId,
-                        );
-                        window.dispatchEvent(
-                          new CustomEvent("axagent:workflow-changed", {
-                            detail: {
-                              conversationId: activeConversation.id,
-                              workflowId,
-                            },
-                          }),
-                        );
-                      } catch {
-                        // Ignore storage errors
-                      }
-                    } else {
-                      try {
-                        localStorage.removeItem(
-                          `axagent:workflow-id:${activeConversation.id}`,
-                        );
-                        window.dispatchEvent(
-                          new CustomEvent("axagent:workflow-changed", {
-                            detail: {
-                              conversationId: activeConversation.id,
-                              workflowId: null,
-                            },
-                          }),
-                        );
-                      } catch {
-                        // Ignore storage errors
-                      }
-                    }
-                  }
-                  if (templateId === "") {
+              <>
+                <ExpertBadge
+                  agentProfileId={activeConversation.agent_profile_id ?? null}
+                  onClick={() => setExpertOpen(true)}
+                />
+                <AgentProfileSelect
+                  value={activeConversation.agent_profile_id ?? ""}
+                  onChange={async (profileId) => {
                     await updateConversation(activeConversation.id, {
-                      session_type: "conversation",
-                      workflow_template_id: null,
+                      agent_profile_id: profileId || null,
                     });
-                  } else {
-                    await updateConversation(activeConversation.id, {
-                      session_type: "workflow",
-                      workflow_template_id: workflowId || templateId,
-                      agent_profile_id: null,
-                    });
-                  }
-                  fetchConversation();
-                }}
-                onRemoveWorkflow={async () => {
-                  if (activeConversation.id) {
-                    try {
-                      localStorage.removeItem(
-                        `axagent:workflow-id:${activeConversation.id}`,
-                      );
-                      window.dispatchEvent(
-                        new CustomEvent("axagent:workflow-changed", {
-                          detail: {
-                            conversationId: activeConversation.id,
-                            workflowId: null,
-                          },
-                        }),
-                      );
-                    } catch {
-                      // Ignore storage errors
-                    }
-                  }
-                  await updateConversation(activeConversation.id, {
-                    session_type: "conversation",
-                    workflow_template_id: null,
-                  });
-                  fetchConversation();
-                }}
-                disabled={!!streamingMessageId}
-              />
+                    fetchConversation();
+                  }}
+                />
+              </>
             )}
-            {activeConversation?.mode === "agent"
-              && activeConversation?.session_type !== "workflow"
-              && (activeConversation?.work_strategy !== "plan"
-                || !activeConversation?.workflow_template_id)
-              && (
-                <>
-                  <ExpertBadge
-                    agentProfileId={activeConversation.agent_profile_id ?? null}
-                    onClick={() => setExpertOpen(true)}
-                  />
-                  <AgentProfileSelect
-                    value={activeConversation.agent_profile_id ?? ""}
-                    onChange={async (profileId) => {
-                      await updateConversation(activeConversation.id, {
-                        agent_profile_id: profileId || null,
-                        session_type: "conversation",
-                        workflow_template_id: null,
-                      });
-                      fetchConversation();
-                    }}
-                  />
-                </>
-              )}
             <div className="flex-1" />
 
             <Tooltip

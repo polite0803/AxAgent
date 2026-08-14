@@ -17,8 +17,10 @@ pub mod backup;
 pub mod branches;
 #[cfg(not(mobile))]
 pub mod browser;
+pub mod capability;
 pub mod chart_generator;
 pub mod cloud_workspace;
+pub mod cognitive;
 #[cfg(not(mobile))]
 pub mod computer_control;
 pub mod context_breakdown;

@@ -7,6 +7,7 @@ use crate::state::{
     ToolState,
 };
 use axagent_credential::CredentialManager;
+use axagent_harness::DefaultCapabilityRouter;
 use axagent_harness::fleet::FleetRepository;
 use axagent_plugins::PluginManager;
 use axagent_runtime::dashboard_registry::DashboardRegistry;
@@ -15,6 +16,7 @@ use axagent_runtime_core::prompt_cache::PromptCache;
 use axagent_storage::cloud_storage::SyncEngine;
 use axagent_storage::file_authorizer::FileAuthorizer;
 use axagent_telemetry::TelemetryLevel;
+use axagent_tools::CapabilityIndexerImpl;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -369,6 +371,13 @@ pub struct AppState {
     /// 同一份 `Arc<dyn EventBus>` 注入到 agent / rt-workflow / orchestrator 三方,
     /// 供跨 crate 事件订阅者消费。未注入时三方保持原有行为。
     pub event_bus: Arc<dyn axagent_harness::EventBus>,
+
+    /// 能力发现路由器（全链路编排：检索→过滤→排序→补全）
+    pub capability_router: Arc<DefaultCapabilityRouter>,
+    /// 能力索引器（用于注册/删除/查询能力护照）
+    pub capability_indexer: Arc<CapabilityIndexerImpl>,
+    /// 认知编排器（三层路由树协调器，全局用户消息唯一入口）
+    pub cognitive_router: Arc<dyn axagent_harness::CognitiveRouter>,
 
     // ── Phase 3 P1 Task 3.1: domain decomposition ───────────────────────────
     // The six sub-state structs below provide a focused, composable view of

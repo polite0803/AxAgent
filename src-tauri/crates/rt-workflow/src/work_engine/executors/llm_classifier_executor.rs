@@ -69,13 +69,20 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
             ));
         }
 
-        let categories_list = c
-            .categories
+        // h3：动态分类目录 — 优先从 variables 读取（能力基座运行时构建的 L1/L2 目录），
+        // 读取失败或为空时回退到静态 categories 兜底。
+        let categories = resolve_categories(&c.categories, c.categories_var.as_deref(), context);
+
+        let categories_list = categories
             .iter()
             .enumerate()
             .map(|(i, cat)| format!("{}. {}", i + 1, cat))
             .collect::<Vec<_>>()
             .join("\n");
+
+        // h3：prompt 模板插值 — 替换 `{var}` / `{var.path}` 占位符为当前 variables 值，
+        // 使 L1/L2 路由 prompt 中的 `{user_input}`、`{l1_domain}` 等真正生效。
+        let prompt_rule = render_template(&c.prompt, context);
 
         let prompt = if c.confidence_threshold.is_some() {
             format!(
@@ -86,7 +93,7 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
                  请用 JSON 格式输出，包含 label（类别名称）和 confidence（0.0-1.0 的置信度）。\
                  例如：{{\"label\": \"类别名\", \"confidence\": 0.95}}。\
                  只输出 JSON，不要包含任何其他内容。",
-                prompt_rule = c.prompt,
+                prompt_rule = prompt_rule,
                 categories_list = categories_list,
                 input_text = input_text,
             )
@@ -97,7 +104,7 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
                  ## 可选类别\n{categories_list}\n\n\
                  ## 输入文本\n{input_text}\n\n\
                  请只输出最匹配的类别名称，不要包含任何其他内容。",
-                prompt_rule = c.prompt,
+                prompt_rule = prompt_rule,
                 categories_list = categories_list,
                 input_text = input_text,
             )
@@ -123,7 +130,8 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
         if context.dry_run {
             return Ok(NodeOutput {
                 output: serde_json::json!({
-                    "category": c.categories.first().cloned().unwrap_or_default(),
+                    "category": categories.first().cloned().unwrap_or_default(),
+                    "confidence": serde_json::Value::Null,
                     "model": model,
                     "dry_run": true,
                     "node_id": node.base_id(),
@@ -213,57 +221,75 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
         }
 
         // ── 置信度检查 ──
-        let raw_category = if let Some(threshold) = c.confidence_threshold {
-            let parsed: serde_json::Value = serde_json::from_str(response.response.content.trim())
-                .map_err(|e| {
-                    NodeError::exec_failed(
-                        error_code::VALIDATION_FAILED,
-                        format!(
-                            "LlmClassifier: 无法解析 LLM JSON 响应: {e}, raw: {}",
-                            response.response.content.trim()
-                        ),
-                    )
-                })?;
-            let label = parsed.get("label").and_then(|l| l.as_str()).unwrap_or("").to_string();
-            let confidence = parsed.get("confidence").and_then(|c| c.as_f64()).unwrap_or(0.0);
+        // h3：配置置信度阈值时解析并保留真实 confidence，供上层 DAG 判断
+        //（category 可能被降级为 fallback_label，但 confidence 保持 LLM 返回的真实值）。
+        // 同时透传可选的 execution_mode（direct/workflow/delegate/ask/plan/act），
+        // 供 L3 执行模式决策与主 DAG 消费。
+        let (raw_category, resolved_confidence, resolved_execution_mode) =
+            if let Some(threshold) = c.confidence_threshold {
+                let parsed: serde_json::Value =
+                    serde_json::from_str(response.response.content.trim()).map_err(|e| {
+                        NodeError::exec_failed(
+                            error_code::VALIDATION_FAILED,
+                            format!(
+                                "LlmClassifier: 无法解析 LLM JSON 响应: {e}, raw: {}",
+                                response.response.content.trim()
+                            ),
+                        )
+                    })?;
+                let label = parsed.get("label").and_then(|l| l.as_str()).unwrap_or("").to_string();
+                let confidence = parsed.get("confidence").and_then(|c| c.as_f64()).unwrap_or(0.0);
+                let execution_mode = parsed
+                    .get("execution_mode")
+                    .and_then(|m| m.as_str())
+                    .filter(|s| !s.is_empty())
+                    .map(str::to_string);
 
-            if confidence < threshold {
-                let fallback = c.fallback_label.as_deref().unwrap_or("unknown");
-                tracing::warn!(
-                    "[LlmClassifier] 置信度 {:.2} 低于阈值 {:.2}，降级为 '{}'",
-                    confidence,
-                    threshold,
-                    fallback
-                );
-                fallback.to_string()
+                if confidence < threshold {
+                    let fallback = c.fallback_label.as_deref().unwrap_or("unknown");
+                    tracing::warn!(
+                        "[LlmClassifier] 置信度 {:.2} 低于阈值 {:.2}，降级为 '{}'",
+                        confidence,
+                        threshold,
+                        fallback
+                    );
+                    (fallback.to_string(), Some(confidence), execution_mode)
+                } else {
+                    (label, Some(confidence), execution_mode)
+                }
             } else {
-                label
-            }
-        } else {
-            response.response.content.trim().to_string()
-        };
+                (response.response.content.trim().to_string(), None, None)
+            };
 
-        let matched = c
-            .categories
+        let matched = categories
             .iter()
             .find(|cat| cat.to_lowercase() == raw_category.to_lowercase())
             .cloned()
             .unwrap_or_else(|| {
-                c.categories
+                categories
                     .iter()
                     .find(|cat| raw_category.to_lowercase().contains(&cat.to_lowercase()))
                     .cloned()
                     .unwrap_or(raw_category)
             });
 
+        // h3：输出结构增强 — 配置置信度阈值时携带真实 confidence 字段，
+        // 供上层主 DAG / L1/L2 子工作流对置信度做分支判断。
+        let mut output_obj = serde_json::Map::new();
+        output_obj.insert("category".to_string(), serde_json::json!(matched));
+        output_obj.insert("model".to_string(), serde_json::json!(model));
+        output_obj.insert("provider".to_string(), serde_json::json!(prov.id));
+        output_obj.insert("input_var".to_string(), serde_json::json!(c.input_var));
+        output_obj.insert("node_id".to_string(), serde_json::json!(node.base_id()));
+        if let Some(conf) = resolved_confidence {
+            output_obj.insert("confidence".to_string(), serde_json::json!(conf));
+        }
+        if let Some(mode) = resolved_execution_mode {
+            output_obj.insert("execution_mode".to_string(), serde_json::json!(mode));
+        }
+
         Ok(NodeOutput {
-            output: serde_json::json!({
-                "category": matched,
-                "model": model,
-                "provider": prov.id,
-                "input_var": c.input_var,
-                "node_id": node.base_id(),
-            }),
+            output: serde_json::Value::Object(output_obj),
             output_var: if c.output_var.is_empty() {
                 None
             } else {
@@ -271,6 +297,54 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
             },
             control: None,
         })
+    }
+}
+
+/// 解析 LlmClassifier 分类目录。
+///
+/// 优先级：动态目录（`categories_var` 指向的 variables 变量）→ 静态 `categories` 兜底。
+/// 动态目录值支持两种形态：
+/// - 字符串数组 `["a", "b", ...]`：元素直接作为类别名
+/// - 对象数组 `[{"name": "a", "id": "x", ...}, ...]`：依次取 id/name/label/title 字段
+///   （id 优先 —— 路由场景下类别应取确定性路由地址而非展示名）
+///
+/// 变量缺失、为空或形态无法解析时回退到静态 categories（避免动态目录缺失导致分类不可用）。
+fn resolve_categories(
+    static_categories: &[String],
+    categories_var: Option<&str>,
+    context: &ExecutionState,
+) -> Vec<String> {
+    let Some(var) = categories_var else {
+        return static_categories.to_vec();
+    };
+    let Some(value) = resolve_var_path(var, context) else {
+        return static_categories.to_vec();
+    };
+
+    let extracted: Vec<String> = match &value {
+        serde_json::Value::Array(items) => items
+            .iter()
+            .filter_map(|item| match item {
+                serde_json::Value::String(s) => Some(s.clone()),
+                serde_json::Value::Object(map) => {
+                    // 对象形态：优先取 id/name/label/title 中的第一个字符串字段
+                    // （id 优先：路由场景下 LLM 选中项应为确定性路由地址而非展示名）
+                    ["id", "name", "label", "title"]
+                        .iter()
+                        .find_map(|k| map.get(*k).and_then(|v| v.as_str()))
+                        .map(str::to_string)
+                },
+                _ => None,
+            })
+            .collect(),
+        serde_json::Value::String(s) if !s.is_empty() => vec![s.clone()],
+        _ => Vec::new(),
+    };
+
+    if extracted.is_empty() {
+        static_categories.to_vec()
+    } else {
+        extracted
     }
 }
 
@@ -310,6 +384,23 @@ fn value_to_input_text(v: serde_json::Value) -> String {
         serde_json::Value::Null => String::new(),
         other => serde_json::to_string_pretty(&other).unwrap_or_else(|_| other.to_string()),
     }
+}
+
+/// 渲染 prompt 模板：替换 `{var}` / `{var.path}` 占位符为当前 variables 值。
+///
+/// 变量不存在或解析失败时保留原占位符（避免误删用户写死的模板文本）。
+/// 用于 L1/L2 路由 prompt 中的 `{user_input}`、`{l1_domain}` 等动态插值。
+fn render_template(template: &str, context: &ExecutionState) -> String {
+    let re = regex::Regex::new(r"\{([a-zA-Z0-9_.]+)\}").expect("valid placeholder regex");
+    re.replace_all(template, |caps: &regex::Captures| {
+        let name = &caps[1];
+        match resolve_var_path(name, context) {
+            Some(serde_json::Value::String(s)) => s,
+            Some(other) => other.to_string(),
+            None => caps[0].to_string(),
+        }
+    })
+    .into_owned()
 }
 
 #[cfg(test)]
@@ -495,6 +586,7 @@ mod tests {
             },
             config: LlmClassifierNodeConfig {
                 categories: vec!["a".to_string(), "b".to_string()],
+                categories_var: None,
                 prompt: "classify".to_string(),
                 model: None,
                 input_var: input_var.to_string(),

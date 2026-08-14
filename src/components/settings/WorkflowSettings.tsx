@@ -1,19 +1,22 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { TemplateList } from "@/components/workflow/Templates";
+import { SystemTemplateList, TemplateList } from "@/components/workflow/Templates";
 import type { WorkflowTemplateResponse } from "@/components/workflow/types";
 import { WorkflowMarketplace } from "@/pages/WorkflowMarketplace";
 import { Tabs } from "antd";
-import { GitBranch, Store } from "lucide-react";
+import { BrainCircuit, GitBranch, Store } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 interface WorkflowSettingsProps {
   onOpenEditor?: (templateId?: string) => void;
+  /** 打开系统模板（认知编排器等）到工作流编辑器 */
+  onOpenSystemEditor?: (templateId: string) => void;
   onCreateNew?: () => void;
 }
 
 export function WorkflowSettings({
   onOpenEditor,
+  onOpenSystemEditor,
   onCreateNew,
 }: WorkflowSettingsProps) {
   const { t } = useTranslation();
@@ -50,6 +53,18 @@ export function WorkflowSettings({
     </div>
   );
 
+  const renderSystemTemplates = () => (
+    <div style={{ padding: "16px 0", flex: 1, minHeight: 0, overflowY: "auto" }}>
+      {onOpenSystemEditor ? <SystemTemplateList onOpenEditor={onOpenSystemEditor} /> : (
+        <TemplateList
+          onSelectTemplate={handleSelectTemplate}
+          onCreateNew={handleCreateNew}
+          onEditTemplate={handleEditTemplate}
+        />
+      )}
+    </div>
+  );
+
   return (
     <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
       <Tabs
@@ -68,6 +83,18 @@ export function WorkflowSettings({
               </span>
             ),
             children: renderMyWorkflows(),
+          },
+          {
+            key: "system-templates",
+            label: (
+              <span
+                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+              >
+                <BrainCircuit size={14} />
+                {t("settings.workflow.systemTemplates")}
+              </span>
+            ),
+            children: renderSystemTemplates(),
           },
           {
             key: "marketplace",

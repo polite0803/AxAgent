@@ -12,6 +12,7 @@ use crate::AppState;
 use crate::app_state::SemanticCacheState;
 use crate::commands::agent::cancel_agent_internal;
 use crate::commands::error::ErrorResponse;
+use crate::commands::error_code;
 use crate::commands::error_code::thinking as thinking_err;
 use crate::commands::error_code::title as title_err;
 #[cfg(test)]
@@ -3034,6 +3035,39 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         let manager = axagent_trajectory::SkillLearningManager::new(config);
         Arc::new(tokio::sync::RwLock::new(manager))
     };
+    // 能力发现系统 + 认知编排器（测试用 Mock 嵌入 + 空向量库）
+    let test_embedding: Arc<dyn axagent_harness::rag_provider::EmbeddingProvider> =
+        Arc::new(axagent_tools::MockEmbeddingProvider::new(1536));
+    let test_capability_indexer_impl = Arc::new(axagent_tools::CapabilityIndexerImpl::new(
+        vector_store.clone(),
+        test_embedding.clone(),
+    ));
+    let test_indexer_trait: Arc<dyn axagent_harness::CapabilityIndexer> =
+        test_capability_indexer_impl.clone();
+    let test_retriever = Arc::new(axagent_tools::CapabilityRetrieverImpl::new(
+        vector_store.clone(),
+        test_embedding.clone(),
+        test_indexer_trait,
+    ));
+    let test_capability_router =
+        Arc::new(axagent_tools::capability_router_impl::build_default_router(test_retriever));
+    let test_domain_router: Arc<dyn axagent_harness::DomainRouter> =
+        Arc::new(axagent_harness::DomainRouterImpl::new());
+    let test_cluster_router: Arc<dyn axagent_harness::ClusterRouter> =
+        Arc::new(axagent_harness::ClusterRouterImpl::new());
+    let test_rar_router: Arc<dyn axagent_harness::RarRouter> =
+        Arc::new(axagent_harness::DefaultRarRouter::new(
+            test_embedding,
+            test_capability_indexer_impl.clone(),
+        ));
+    let test_workflow_graph = Arc::new(axagent_harness::WorkflowGraph::new());
+    let test_cognitive_router: Arc<dyn axagent_harness::CognitiveRouter> =
+        Arc::new(axagent_harness::DefaultCognitiveRouter::new(
+            test_domain_router,
+            test_cluster_router,
+            test_rar_router,
+            test_workflow_graph,
+        ));
     let state = crate::AppState {
         credential_manager: Arc::new(axagent_credential::CredentialManager::new(
             axagent_credential::CredentialStore::new(temp_dir.join("credentials"), [0; 32]),
@@ -3185,6 +3219,10 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
                     as Arc<dyn axagent_harness::registry::ProviderRegistry>,
             },
         ),
+        // 能力发现系统 + 认知编排器
+        capability_router: test_capability_router,
+        capability_indexer: test_capability_indexer_impl,
+        cognitive_router: test_cognitive_router,
         tot_sessions: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
         planner_sessions: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
         #[cfg(not(target_os = "android"))]

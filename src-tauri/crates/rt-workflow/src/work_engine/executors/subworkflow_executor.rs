@@ -63,7 +63,8 @@ impl SubWorkflowExecutor {
     ) -> Result<HashMap<String, Value>, NodeError> {
         let mut mapped = HashMap::new();
         for (target_var, source_var) in &node.config.input_mapping {
-            let value = context.variables.get(source_var).cloned().ok_or_else(|| {
+            // 支持点分隔路径（如 "l1_result.domain"），与 condition_executor 等保持一致。
+            let value = resolve_var_path(source_var, context).ok_or_else(|| {
                 NodeError::exec_failed(
                     error_code::SUBWORKFLOW_FAILED,
                     format!("Variable '{}' not found", source_var),
@@ -188,14 +189,30 @@ impl NodeExecutorTrait for SubWorkflowExecutor {
             });
         }
 
-        let cb = context.callbacks.as_ref().and_then(|cbs| cbs.subworkflow.clone()).ok_or_else(
-            || {
+        let sub_workflow_id = &sub_node.config.sub_workflow_id;
+        // h3：system_* 前缀视为系统能力节点（认知编排器的 L1/L2/RAR/图谱等），
+        // 由引擎系统能力回调执行，不回退查询 workflow_templates 表。
+        let is_system_capability = sub_workflow_id.starts_with("system_");
+        let cb = context
+            .callbacks
+            .as_ref()
+            .and_then(|cbs| {
+                if is_system_capability {
+                    cbs.system_capability.clone()
+                } else {
+                    cbs.subworkflow.clone()
+                }
+            })
+            .ok_or_else(|| {
                 NodeError::exec_failed(
                     error_code::SUBWORKFLOW_NOT_CONFIGURED,
-                    "Sub-workflow engine callback not configured".to_string(),
+                    if is_system_capability {
+                        "System capability callback not configured".to_string()
+                    } else {
+                        "Sub-workflow engine callback not configured".to_string()
+                    },
                 )
-            },
-        )?;
+            })?;
 
         let mapped_input = Self::map_inputs(sub_node, context)?;
 
@@ -240,4 +257,27 @@ impl NodeExecutorTrait for SubWorkflowExecutor {
             control: None,
         })
     }
+}
+
+/// 从 ExecutionState 变量中解析点分隔路径（与 tool_executor / condition_executor
+/// / switch_executor / validation_executor / llm_classifier_executor 保持一致）。
+///
+/// 解析规则：
+/// 1. 空路径直接返回 `None`
+/// 2. 尝试按节点输出路径解析：`root = context.variables.get(parts[0])`，
+///    然后沿 `parts[1..]` 逐层下钻嵌套字段
+/// 3. fallback：root 不是节点 ID 时，将整个 `path` 作为模板变量名直查
+fn resolve_var_path(path: &str, context: &ExecutionState) -> Option<serde_json::Value> {
+    if path.is_empty() {
+        return None;
+    }
+    let parts: Vec<&str> = path.split('.').collect();
+    if let Some(root) = context.variables.get(parts[0]) {
+        let mut current = root.clone();
+        for part in &parts[1..] {
+            current = current.get(part)?.clone();
+        }
+        return Some(current);
+    }
+    context.variables.get(path).cloned()
 }

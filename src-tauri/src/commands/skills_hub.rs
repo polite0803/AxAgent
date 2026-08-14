@@ -123,6 +123,8 @@ pub async fn skills_hub_review(
                         composite_source: Set(None),
                         tool_defs: Set(None),
                         mission_hash: Set(None),
+                        cluster_id: Set(None),
+                        route_path: Set(None),
                         created_at: Set(now),
                         updated_at: Set(now),
                     };

@@ -2,8 +2,7 @@
 
 import { showBackendError } from "@/lib/errorI18n";
 import { invoke, logIpcError } from "@/lib/invoke";
-import type { GatewayMetrics } from "@/types";
-import type { GatewayRequestLog } from "@/types/backup";
+import type { GatewayMetrics, GatewayRequestLog } from "@/types";
 import { ReloadOutlined } from "@ant-design/icons";
 import { App, Button, Card, Popconfirm, Spin, Statistic, Table, Tag, theme } from "antd";
 import { Activity, BarChart3, DollarSign, Server, TrendingUp, Zap } from "lucide-react";

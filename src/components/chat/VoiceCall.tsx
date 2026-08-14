@@ -2,9 +2,9 @@
 
 import { useIntentClarification } from "@/hooks/useIntentClarification";
 import { useVoiceChat } from "@/hooks/useVoiceChat";
+import { useTTSChannelStore } from "@/stores";
 import { useApprovalStore } from "@/stores/feature/approvalStore";
 import { useExecutionStore } from "@/stores/feature/executionStore";
-import { useTTSChannelStore } from "@/stores/feature/ttsChannelStore";
 import type { RealtimeConfig, VoiceSessionState } from "@/types";
 import { Alert, Button, Empty, Switch, Tag, theme, Typography } from "antd";
 import { AlertCircle, Loader, Mic, MicOff, Phone, Volume2 } from "lucide-react";

@@ -690,6 +690,7 @@ pub fn convert_preset_to_workflow_template(preset: &PresetTemplate) -> WorkflowT
         is_preset: true,
         is_editable: false,
         is_public: false,
+        visibility: Default::default(),
         trigger_config: Some(TriggerConfig {
             trigger_type: TriggerType::Manual,
             config: serde_json::json!({}),

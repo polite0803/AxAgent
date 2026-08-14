@@ -1100,6 +1100,7 @@ pub(super) fn parse_llm_response(
                 let cfg: LlmClassifierNodeConfig = serde_json::from_value(llm_node.config.clone())
                     .unwrap_or(LlmClassifierNodeConfig {
                         categories: vec![],
+                        categories_var: None,
                         prompt: "".to_string(),
                         model: None,
                         input_var: "input".to_string(),

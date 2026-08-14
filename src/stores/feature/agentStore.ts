@@ -62,13 +62,6 @@ interface QueryStats {
   costUsd?: number;
 }
 
-export interface WorkflowMatchSuggestion {
-  conversationId: string;
-  templateId: string;
-  templateName: string;
-  similarity: number;
-}
-
 /** 当前正在执行（或最近执行）的工具调用追踪（类型复用自 executionToolCallUtils） */
 
 interface AgentStore {
@@ -93,12 +86,6 @@ interface AgentStore {
   toolCalls: Record<string, ToolCallState>;
   agentStatus: Record<string, string>;
   agentPool: Record<string, AgentPoolItem[]>;
-
-  // Workflow match suggestion for conversation-type sessions
-  workflowMatchSuggestion: WorkflowMatchSuggestion | null;
-  setWorkflowMatchSuggestion: (
-    suggestion: WorkflowMatchSuggestion | null,
-  ) => void;
 
   // 队友管理
   addTeammateMessage: (
@@ -198,10 +185,6 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   // --- Agent Profile state ---
   profiles: [],
   loaded: false,
-  workflowMatchSuggestion: null,
-
-  setWorkflowMatchSuggestion: (suggestion) => set({ workflowMatchSuggestion: suggestion }),
-
   // --- AgentPool actions delegated to executionStore ---
 
   upsertPoolItem: () => {/* 由 executionStore 管理 */},
@@ -271,13 +254,8 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     set((s) => ({ profiles: s.profiles.filter((p) => p.id !== id) }));
   },
 
-  clearConversationUI: (conversationId) => {
-    set((s) => ({
-      // currentToolCall 由 executionStore 管理
-      workflowMatchSuggestion: s.workflowMatchSuggestion?.conversationId === conversationId
-        ? null
-        : s.workflowMatchSuggestion,
-    }));
+  clearConversationUI: (_conversationId) => {
+    // 已无会话级 UI 残留字段，保留空实现以维持接口
   },
 
   // ── 队友管理 ──
@@ -862,9 +840,6 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
           : s.currentToolCall,
         queryStats,
         subAgentCards,
-        workflowMatchSuggestion: s.workflowMatchSuggestion?.conversationId === conversationId
-          ? null
-          : s.workflowMatchSuggestion,
       };
     });
   },
@@ -950,12 +925,6 @@ export function setupAgentEventListeners(): () => void {
   unlisteners.push(
     listen<AskUserEvent>("agent-ask-user", (event) => {
       store.handleAskUser(event.payload);
-    }),
-  );
-
-  unlisteners.push(
-    listen<WorkflowMatchSuggestion>("workflow-match-suggestion", (event) => {
-      store.setWorkflowMatchSuggestion(event.payload);
     }),
   );
 

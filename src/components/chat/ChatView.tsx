@@ -54,7 +54,6 @@ import { PlanCard } from "./PlanCard";
 // QuickCommandBar removed: /clear, /compact, /model are covered by bottom toolbar & header ModelSelector
 import { WorkflowEndMarker } from "./WorkflowEndMarker";
 import { WorkflowProgressPanel } from "./WorkflowProgressPanel";
-import { WorkflowSuggestionCard } from "./WorkflowSuggestionCard";
 
 import { useChatViewMessages } from "./ChatViewMessages";
 import { StreamingStyles } from "./ChatViewStreaming";
@@ -274,7 +273,6 @@ function ChatViewInner({
   const currentAgentStatus = useAgentStore((s) =>
     activeConversationId ? s.agentStatus[activeConversationId] : undefined
   );
-  const workflowMatchSuggestion = useAgentStore((s) => s.workflowMatchSuggestion);
 
   const bubbleListRef = useRef<HTMLDivElement & { scrollBoxNativeElement?: HTMLElement | null } | null>(null);
   const messageAreaRef = useRef<HTMLDivElement | null>(null);
@@ -550,29 +548,6 @@ function ChatViewInner({
                     }}
                   />
                 )}
-                {workflowMatchSuggestion
-                  && workflowMatchSuggestion.conversationId === activeConversation?.id
-                  && activeConversation?.mode === "agent"
-                  && (
-                    <WorkflowSuggestionCard
-                      match={{
-                        templateId: workflowMatchSuggestion.templateId,
-                        templateName: workflowMatchSuggestion.templateName,
-                        similarity: workflowMatchSuggestion.similarity,
-                      }}
-                      onSwitch={async (templateId) => {
-                        await updateConversation(activeConversation.id, {
-                          session_type: "workflow",
-                          workflow_template_id: templateId,
-                        });
-                        fetchConversation();
-                        useAgentStore.getState().setWorkflowMatchSuggestion(null);
-                      }}
-                      onDismiss={() => {
-                        useAgentStore.getState().setWorkflowMatchSuggestion(null);
-                      }}
-                    />
-                  )}
               </div>
               <ChatScrollIndicator />
               <MinimapScrollProvider
@@ -688,8 +663,6 @@ function ChatViewInner({
 
           await updateConversation(activeConversationId, {
             agent_profile_id: roleId,
-            session_type: "conversation",
-            workflow_template_id: null,
           });
           expertStore.recordSwitch(activeConversationId, roleId);
 

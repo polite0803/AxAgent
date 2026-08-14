@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 use tauri::{Emitter, State};
 
 use crate::app_state::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::work_engine as work_engine_err;
 use crate::commands::spawn_guard::SpawnGuard;
 
 // ── Types ──
@@ -267,7 +269,7 @@ pub async fn execute_workflow_node(
         ))
     })?;
     if status.workflow_id.is_empty() {
-        return Err("execution_id 无效或工作流未注册".to_string());
+        return Err(ErrorResponse::err(work_engine_err::EXECUTION_NOT_FOUND));
     }
 
     match engine.execute_node(&node, &status).await {

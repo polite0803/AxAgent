@@ -249,6 +249,7 @@ pub async fn compile_mission_to_template(
         is_preset: false,
         is_editable: true,
         is_public: false,
+        visibility: Default::default(),
         trigger_config: None,
         nodes: generated.nodes,
         edges: generated.edges,

@@ -37,6 +37,8 @@ interface BackendTemplateResponse {
   is_preset: boolean;
   is_editable: boolean;
   is_public: boolean;
+  /** 是否为系统模板（认知编排器等） */
+  is_system?: boolean;
   trigger_config?: unknown;
   nodes: BackendWorkflowNode[];
   edges: BackendWorkflowEdge[];

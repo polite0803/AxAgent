@@ -337,7 +337,7 @@ pub use url_utils::{
 };
 
 // ── PromptGuard 契约重导出 ──
-pub use prompt_guard::PromptGuard;
+pub use prompt_guard::{PatternPromptGuard, PromptGuard};
 
 // ── SessionTracer 契约重导出 ──
 pub use session_tracer::SessionTracer;
@@ -534,6 +534,101 @@ pub use knowledge_graph::{
 };
 pub mod indexer;
 pub use indexer::{ChunkProvider, DocumentChunk, DocumentIndexer, IndexConfig, IndexJobStatus};
+
+// ── 能力发现契约（Capability Discovery Pipeline） ──
+pub mod capability;
+pub use capability::{
+    CallerPermissions, CapabilityDomain, CapabilityKind, CapabilityPassport, CapabilityPassportDto,
+    CapabilityStats, DiscoveryWeights, InputModality, ModalitySupport, OutputCapabilities,
+    PlanningComplexity, SecurityLevel, SessionBudget, Visibility,
+};
+pub mod capability_indexer;
+pub use capability_indexer::{
+    CAPABILITY_COLLECTION, CAPABILITY_NEGATIVE_COLLECTION, CapabilityIndexStats, CapabilityIndexer,
+    IndexResult,
+};
+pub mod capability_retriever;
+pub use capability_retriever::{
+    CapabilityCandidate, CapabilityQuery, CapabilityRetrievalResult, CapabilityRetriever,
+};
+pub mod capability_filter;
+pub use capability_filter::{
+    CapabilityFilter, FilterContext, FilterDecision, FilterDimension, FilteredCandidates,
+    OutputDeviceType, PiiType, RejectedCandidate, TaskPlanningLevel,
+};
+pub mod capability_ranker;
+pub use capability_ranker::{CapabilityRanker, RankedCapability, RankingResult};
+pub mod capability_circuit;
+pub use capability_circuit::{
+    CapabilityCircuitBreaker, CapabilityCircuitSnapshot, CapabilityCompleter, CapabilityHotSwapper,
+    CapabilitySuggestion, ContextEntity, ProtectedCapability, ProtectionReason, RefreshReport,
+    SelfReferenceCheckResult, SelfReferenceCircuitBreaker, UserContextSnapshot,
+};
+// ── L2 集群清单(三层路由树第二层) ──
+pub mod capability_clusters;
+pub use capability_clusters::{
+    CapabilityCluster, all_clusters, clusters_by_domain, derive_cluster_for_passport, find_cluster,
+    find_cluster_by_segment,
+};
+// ── 路径地址与路由图(三层路由树地址编码 + DAG 邻接表) ──
+pub mod routing_path;
+pub use routing_path::{RoutingGraph, RoutingPath};
+// ── RAR 召回器契约(检索增强路由,软引导能力推荐) ──
+pub mod rar_recaller;
+pub use rar_recaller::{RarRecallResult, RarRecaller, build_rar_prompt};
+pub mod capability_router;
+pub use capability_router::{
+    CapabilityDiscoveryRequest, CapabilityDiscoveryResult, CapabilityRouter,
+    DefaultCapabilityRouter, PhaseTiming,
+};
+
+// ── L1/L2 分层路由契约 ──
+pub mod domain_router;
+pub use domain_router::{
+    DomainRouter, DomainRouterImpl, DomainRoutingResult, DomainRoutingRule, DomainRuleType,
+    MatchMode, default_domain_rules,
+};
+pub mod cluster_router;
+pub use cluster_router::{
+    ClusterRouter, ClusterRouterImpl, ClusterRoutingResult, ClusterRoutingRule,
+    derive_cluster_from_query,
+};
+pub mod layered_prompt_engine;
+pub use layered_prompt_engine::{
+    LayeredPromptEngine, LayeredPromptResult, PromptLayer, PromptSegment, PromptTemplate,
+    estimate_tokens,
+};
+
+// ── RAR 检索增强（三层路由树第二层） ──
+pub mod rar_router;
+pub use rar_router::{
+    DefaultRarRouter, FilteredReason, RarCandidate, RarCircuitBreaker, RarError, RarFilterReason,
+    RarRouter, RarSearchResult, build_rar_few_shot_prompt, compute_relevance_score,
+    default_top_k_for_cluster,
+};
+
+// ── 工作流图谱（三层路由树第三层） ──
+pub mod workflow_graph;
+pub use workflow_graph::{
+    EdgeType, GraphRouteResult, RouteLevel, WorkflowGraph, WorkflowGraphEdge, WorkflowGraphNode,
+    WorkflowGraphRouter, WorkflowGraphSync,
+};
+
+// ── 认知路由器（三层路由树协调器 · Phase 4 集成层） ──
+pub mod cognitive_router;
+pub use cognitive_router::{
+    CandidateSummary, CognitiveRouter, CognitiveRouterConfig, DefaultCognitiveRouter,
+    ExecutionMode, ModeHint, RouteStage, RouteStageRecord, RoutingDecisionV2, build_route_path,
+    parse_route_path,
+};
+
+// ── 双注册表管理器（元能力隔离核心 Layer 1 + Layer 4 + Layer 5） ──
+pub mod dual_registry;
+pub use dual_registry::{
+    DualRegistry, Privilege, PrivilegedCaller, PrivilegedChainStep, PrivilegedExecutionResult,
+    PrivilegedHealthStatus, RegistryError, RegistryType, RouterSelfUpdateManager, RoutingRule,
+    SystemConfigStore, SystemPrivilegedPipeline,
+};
 
 // ── P8: 网关/平台管理契约 ──
 pub mod gateway_service;

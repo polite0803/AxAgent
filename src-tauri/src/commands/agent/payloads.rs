@@ -186,7 +186,7 @@ pub struct AgentQueryRequest {
     pub agent_context: Option<AgentContextPayload>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct AgentOptions {
     pub temperature: Option<f64>,
     pub top_p: Option<f64>,

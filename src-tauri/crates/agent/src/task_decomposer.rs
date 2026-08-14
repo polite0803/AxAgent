@@ -111,7 +111,7 @@ impl TaskDecomposer {
     fn execute_llm(&self, prompt: &str) -> Result<String, DecompositionError> {
         if let Some(ref client) = self.llm_client {
             let rt = tokio::runtime::Handle::current();
-            rt.block_on(async { client.complete(prompt).await })
+            tokio::task::block_in_place(|| rt.block_on(async { client.complete(prompt).await }))
         } else {
             Ok(format!("Task decomposition for: {}", truncate_string(prompt, 100)))
         }

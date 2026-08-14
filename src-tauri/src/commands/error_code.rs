@@ -166,6 +166,8 @@ pub mod agent {
     pub const WORKFLOW_NOT_FOUND: &str = "AGENT_WORKFLOW_NOT_FOUND";
     /// Agent未找到
     pub const NOT_FOUND: &str = "AGENT_NOT_FOUND";
+    /// 轨迹未找到
+    pub const TRAJECTORY_NOT_FOUND: &str = "TRAJECTORY_NOT_FOUND";
 }
 
 /// 后台任务相关错误码
@@ -192,6 +194,8 @@ pub mod onboarding {
     pub const NO_PROVIDER: &str = "ONBOARDING_NO_PROVIDER";
     /// 添加Key失败
     pub const API_KEY_FAILED: &str = "ONBOARDING_API_KEY_FAILED";
+    /// 未知的预设
+    pub const UNKNOWN_PRESET: &str = "UNKNOWN_PRESET";
 }
 
 /// 提供商相关错误码
@@ -332,6 +336,8 @@ pub mod workflow {
     pub const PLAN_NOT_FOUND: &str = "WORKFLOW_PLAN_NOT_FOUND";
     /// JSON格式无效
     pub const INVALID_JSON: &str = "WORKFLOW_INVALID_JSON";
+    /// 系统模板受保护（认知编排器等 SystemOnly 模板禁止用户 CRUD）
+    pub const SYSTEM_TEMPLATE_PROTECTED: &str = "WORKFLOW_SYSTEM_TEMPLATE_PROTECTED";
 }
 
 /// 工作流反思 / 进化 / 优化相关错误码(阶段 5 wiring 层)
@@ -626,4 +632,112 @@ pub mod device_sync {
     // ─── 策略 ────────────────────────────────────────────────────────
     /// 策略操作失败
     pub const POLICY_OPERATION_FAILED: &str = "DEVICE_SYNC_POLICY_OPERATION_FAILED";
+}
+
+/// 能力发现相关错误码
+pub mod capability {
+    /// 能力注册失败
+    pub const REGISTER_FAILED: &str = "CAPABILITY_REGISTER_FAILED";
+    /// 能力发现失败
+    pub const DISCOVER_FAILED: &str = "CAPABILITY_DISCOVER_FAILED";
+    /// 能力未找到
+    pub const NOT_FOUND: &str = "CAPABILITY_NOT_FOUND";
+    /// 能力索引失败
+    pub const INDEX_FAILED: &str = "CAPABILITY_INDEX_FAILED";
+    /// 嵌入生成失败
+    pub const EMBEDDING_FAILED: &str = "CAPABILITY_EMBEDDING_FAILED";
+    /// 向量存储操作失败
+    pub const VECTOR_STORE_FAILED: &str = "CAPABILITY_VECTOR_STORE_FAILED";
+    /// 无效的能力护照
+    pub const INVALID_PASSPORT: &str = "CAPABILITY_INVALID_PASSPORT";
+    /// 能力列表获取失败
+    pub const LIST_FAILED: &str = "CAPABILITY_LIST_FAILED";
+    /// 能力统计获取失败
+    pub const STATS_FAILED: &str = "CAPABILITY_STATS_FAILED";
+    /// 元数据恢复失败
+    pub const METADATA_RESTORE_FAILED: &str = "CAPABILITY_METADATA_RESTORE_FAILED";
+}
+
+/// 用户提问通道已关闭错误码
+pub mod agent_input {
+    /// 用户提问通道已关闭
+    pub const CHANNEL_CLOSED: &str = "AGENT_INPUT_CHANNEL_CLOSED";
+    /// 等待用户回复超时（5 分钟）
+    pub const WAIT_REPLY_TIMEOUT: &str = "AGENT_INPUT_WAIT_REPLY_TIMEOUT";
+    /// 没有可用的 provider/model：请先在设置中启用提供商
+    pub const NO_PROVIDER: &str = "AGENT_INPUT_NO_PROVIDER";
+}
+
+/// Agent 角色相关错误码
+pub mod agent_role {
+    /// 内置角色不可删除
+    pub const BUILTIN_NOT_DELETABLE: &str = "AGENT_ROLE_BUILTIN_NOT_DELETABLE";
+}
+
+/// 备份路径穿越相关错误码
+pub mod backup_security {
+    /// 路径穿越检测失败：cloud_key 指向了备份目录之外的位置
+    pub const CLOUD_KEY_TRAVERSAL: &str = "BACKUP_CLOUD_KEY_TRAVERSAL";
+}
+
+/// 流式请求并发相关错误码
+pub mod streaming {
+    /// 已有正在进行的请求，请等待完成后再发送
+    pub const REQUEST_IN_PROGRESS: &str = "STREAMING_REQUEST_IN_PROGRESS";
+}
+
+/// DynamicUI 相关错误码
+pub mod dynamic_ui {
+    /// 内置 Schema 不允许修改
+    pub const BUILTIN_NOT_MODIFIABLE: &str = "DYNAMIC_UI_BUILTIN_NOT_MODIFIABLE";
+    /// 内置 Schema 不允许删除
+    pub const BUILTIN_NOT_DELETABLE: &str = "DYNAMIC_UI_BUILTIN_NOT_DELETABLE";
+    /// DynamicUI Schema 不存在
+    pub const SCHEMA_NOT_FOUND: &str = "DYNAMIC_UI_SCHEMA_NOT_FOUND";
+    /// 内置 Schema 不允许回滚
+    pub const BUILTIN_NOT_ROLLBACK: &str = "DYNAMIC_UI_BUILTIN_NOT_ROLLBACK";
+    /// 编辑指令不能为空
+    pub const EDIT_PROMPT_EMPTY: &str = "DYNAMIC_UI_EDIT_PROMPT_EMPTY";
+    /// AI 返回的 Schema 缺少必要字段 (type/id)
+    pub const SCHEMA_MISSING_FIELD: &str = "DYNAMIC_UI_SCHEMA_MISSING_FIELD";
+    /// 生成指令不能为空
+    pub const GENERATE_PROMPT_EMPTY: &str = "DYNAMIC_UI_GENERATE_PROMPT_EMPTY";
+}
+
+/// 进化引擎相关错误码
+pub mod evolution_engine {
+    /// 没有足够的轨迹数据用于进化
+    pub const INSUFFICIENT_TRAJECTORY: &str = "EVOLUTION_INSUFFICIENT_TRAJECTORY";
+    /// 初始反馈不能为空
+    pub const INITIAL_FEEDBACK_EMPTY: &str = "EVOLUTION_INITIAL_FEEDBACK_EMPTY";
+}
+
+/// 自然语言转 Cron 相关错误码
+pub mod nl_to_cron {
+    /// 请输入定时任务描述
+    pub const DESCRIPTION_EMPTY: &str = "NL_TO_CRON_DESCRIPTION_EMPTY";
+}
+
+/// 研究报告相关错误码
+pub mod research {
+    /// 对话消息不足，无法生成报告
+    pub const NOT_ENOUGH_MESSAGES: &str = "RESEARCH_NOT_ENOUGH_MESSAGES";
+    /// 研究主题不能为空
+    pub const TOPIC_EMPTY: &str = "RESEARCH_TOPIC_EMPTY";
+}
+
+/// 会话分享相关错误码
+pub mod session_share {
+    /// 无效的邀请码
+    pub const INVALID_CODE: &str = "SESSION_SHARE_INVALID_CODE";
+    /// 会话已满，无法加入
+    pub const ALREADY_FULL: &str = "SESSION_SHARE_ALREADY_FULL";
+    /// 会话不存在
+    pub const NOT_FOUND: &str = "SESSION_SHARE_NOT_FOUND";
+}
+
+/// 工作流引擎相关错误码
+pub mod work_engine {
+    /// execution_id 无效或工作流未注册
+    pub const EXECUTION_NOT_FOUND: &str = "WORK_ENGINE_EXECUTION_NOT_FOUND";
 }

@@ -173,6 +173,23 @@ impl DynamicSubGraph {
         }
 
         // Apply strategy-level topology when no explicit deps
+        self.apply_strategy_shape(plan, &mut edges)?;
+
+        Ok(edges)
+    }
+
+    /// 应用策略级拓扑形状（P1-2）— 将编排策略映射为 DAG 边结构。
+    ///
+    /// - `Ordered` / `Pipeline`: 无显式依赖的子任务按声明顺序串行连接
+    /// - `FanOut`: 全并行，无隐式边
+    /// - `Race`: 全并行启动，首个完成即收敛（其余候选由 worker/dispatcher 层取消）
+    /// - `Debate`: 除最后一个裁判外，全部节点并行汇聚到裁判
+    /// - `Dynamic`: 依赖由 LLM 提供，仅校验
+    fn apply_strategy_shape(
+        &mut self,
+        plan: &DecompositionPlan,
+        edges: &mut Vec<WorkflowEdge>,
+    ) -> Result<(), OrchestrationError> {
         match plan.strategy {
             OrchestrationStrategy::Ordered | OrchestrationStrategy::Pipeline => {
                 // Add implicit serial edges between sub-tasks that have no explicit deps
@@ -198,8 +215,17 @@ impl DynamicSubGraph {
                     prev_id = Some(&st.id);
                 }
             },
-            OrchestrationStrategy::FanOut | OrchestrationStrategy::Race => {
-                // No implicit edges — all nodes are independent
+            OrchestrationStrategy::FanOut => {
+                // 全并行：无隐式边
+            },
+            OrchestrationStrategy::Race => {
+                // 全并行启动；首个完成即收敛（其余候选由 worker/dispatcher 层取消）。
+                // DAG 层面不引入额外边，避免错误串行化破坏竞争语义。
+                tracing::debug!(
+                    strategy = ?plan.strategy,
+                    node_count = plan.sub_tasks.len(),
+                    "Race 策略：节点全并行，首个完成收敛"
+                );
             },
             OrchestrationStrategy::Debate => {
                 // All nodes connect to a virtual adjudicator (last node)
@@ -229,7 +255,7 @@ impl DynamicSubGraph {
             },
         }
 
-        Ok(edges)
+        Ok(())
     }
 
     /// Validate subgraph correctness:

@@ -1122,7 +1122,16 @@ pub struct StorageNode {
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
 pub struct LlmClassifierNodeConfig {
+    /// 静态分类目录（兜底）。动态目录不可用时的默认类别列表。
     pub categories: Vec<String>,
+    /// 动态分类目录注入口：从工作流 variables 读取类别列表的变量名
+    /// （h3 认知编排器：L1/L2 分类目录由能力基座运行时动态构建注入，
+    /// 优先使用动态目录，读取失败或为空时回退到静态 categories）。
+    /// 变量值支持两种形态：
+    /// - 字符串数组 `["a", "b", ...]`：元素直接作为类别名
+    /// - 对象数组 `[{"name": "a", ...}, ...]`：取 name/id/label/title 字段作为类别名
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub categories_var: Option<String>,
     pub prompt: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
@@ -1578,6 +1587,11 @@ pub struct WorkflowTemplateData {
     pub is_preset: bool,
     pub is_editable: bool,
     pub is_public: bool,
+    /// 能力可见性（元能力隔离核心）：SystemOnly 的系统模板（如认知编排器）
+    /// 不注册进业务能力注册表、不可被用户发现/编辑/删除。
+    /// 默认 Public，保证旧数据反序列化兼容。
+    #[serde(default)]
+    pub visibility: crate::capability::Visibility,
     pub trigger_config: Option<TriggerConfig>,
     pub nodes: Vec<WorkflowNode>,
     pub edges: Vec<WorkflowEdge>,
@@ -1596,6 +1610,21 @@ pub struct WorkflowTemplateData {
     pub mission_hash: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
+}
+
+impl WorkflowTemplateData {
+    /// 是否为系统模板（认知编排器等）。
+    ///
+    /// 判定规则：`is_preset=true` 且带 `cognitive_router` 标签。
+    /// 与 [CapabilityPassport::visibility] 的运行时推导规则保持一致，
+    /// 是系统模板与业务工作流物理隔离的唯一权威判定，供 CRUD 命令与
+    /// 前端响应（is_system 字段）复用。
+    pub fn is_system_template(&self) -> bool {
+        if !self.is_preset {
+            return false;
+        }
+        self.tags.iter().any(|t| t == "cognitive_router")
+    }
 }
 
 // ── 工作流运行时执行态 DTO(阶段 2 从 rt-workflow 上移)──
@@ -1883,6 +1912,64 @@ impl ReviewEvidenceIdentity {
     }
 }
 
+// ── WorkflowTemplateData: CapabilityPassport 实现 ──────
+
+impl crate::capability::CapabilityPassport for WorkflowTemplateData {
+    fn capability_id(&self) -> String {
+        format!("workflow:{}", self.id)
+    }
+
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn description(&self) -> &str {
+        self.description.as_deref().unwrap_or("")
+    }
+
+    fn kind(&self) -> crate::capability::CapabilityKind {
+        crate::capability::CapabilityKind::Workflow
+    }
+
+    fn domain(&self) -> crate::capability::CapabilityDomain {
+        // WorkflowTemplateData 无显式 domain 字段，降级为 General
+        crate::capability::CapabilityDomain::General
+    }
+
+    fn input_schema(&self) -> Option<serde_json::Value> {
+        self.input_schema.as_ref().and_then(|s| serde_json::to_value(s).ok())
+    }
+
+    fn tags(&self) -> Vec<String> {
+        self.tags.clone()
+    }
+
+    fn visibility(&self) -> crate::capability::Visibility {
+        // 系统预置路由模板（认知编排器等）运行时推导为 SystemOnly：
+        // workflow_templates 表未持久化 visibility 列，模板从 DB 读出时字段
+        // 会回到默认 Public，此处用 is_preset + cognitive_router 标签兜底，
+        // 保证其护照永远不被注册进业务能力注册表。
+        if self.is_preset && self.tags.iter().any(|t| t == "cognitive_router") {
+            crate::capability::Visibility::SystemOnly
+        } else {
+            self.visibility
+        }
+    }
+
+    fn planning_complexity(&self) -> crate::capability::PlanningComplexity {
+        // 根据节点数量判断：<=3 Simple，4-10 Moderate，>10 Complex
+        match self.nodes.len() {
+            0..=3 => crate::capability::PlanningComplexity::Simple,
+            4..=10 => crate::capability::PlanningComplexity::Moderate,
+            _ => crate::capability::PlanningComplexity::Complex,
+        }
+    }
+
+    fn is_enabled(&self) -> bool {
+        true
+    }
+}
+
 /// 活跃执行摘要(仅内存运行态,用于可观测性 / 前端轮询)。
 ///
 /// 字段精简自 rt-workflow `ExecutionState`,剔除 callbacks / compiled_prompts / cancel_token
@@ -2063,6 +2150,11 @@ pub struct WorkflowTemplateResponse {
     pub is_preset: bool,
     pub is_editable: bool,
     pub is_public: bool,
+    /// 是否为系统模板（认知编排器等）。由后端按
+    /// `is_preset + cognitive_router 标签` 权威判定，前端据此
+    /// 区分系统模板页与业务模板页（系统模板可查看/编辑但禁止删除/复制/导出）。
+    #[serde(default)]
+    pub is_system: bool,
     pub trigger_config: Option<TriggerConfig>,
     pub nodes: Vec<WorkflowNode>,
     pub edges: Vec<WorkflowEdge>,
@@ -2080,6 +2172,7 @@ pub struct WorkflowTemplateResponse {
 
 impl From<WorkflowTemplateData> for WorkflowTemplateResponse {
     fn from(data: WorkflowTemplateData) -> Self {
+        let is_system = data.is_system_template();
         Self {
             id: data.id,
             name: data.name,
@@ -2090,6 +2183,7 @@ impl From<WorkflowTemplateData> for WorkflowTemplateResponse {
             is_preset: data.is_preset,
             is_editable: data.is_editable,
             is_public: data.is_public,
+            is_system,
             trigger_config: data.trigger_config,
             nodes: data.nodes,
             edges: data.edges,

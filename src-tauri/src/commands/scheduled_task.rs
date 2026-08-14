@@ -21,7 +21,10 @@ use tauri::State;
 /// 并将此函数改为 `state.active_operator.is_some()`。
 fn require_operator(state: &State<'_, AppState>) -> Result<(), String> {
     if !state_has_operator(state) {
-        return Err("operator not authenticated".to_string());
+        return Err(ErrorResponse::err_with_detail(
+            crate::commands::error_code::common::INVALID_INPUT,
+            "operator not authenticated",
+        ));
     }
     Ok(())
 }
@@ -36,18 +39,27 @@ fn state_has_operator(_state: &State<'_, AppState>) -> bool {
 fn validate_cron_expression(cron: &str) -> Result<(), String> {
     let parts: Vec<&str> = cron.split_whitespace().collect();
     if parts.len() != 5 {
-        return Err(format!("Cron must have exactly 5 fields, got {}: '{}'", parts.len(), cron));
+        return Err(ErrorResponse::err_with_detail(
+            crate::commands::error_code::common::INVALID_INPUT,
+            format!("Cron must have exactly 5 fields, got {}: '{}'", parts.len(), cron),
+        ));
     }
     // 检查 minute 字段（第一字段），拒绝过于频繁的执行
     let minute = parts[0];
     if minute == "*" || minute == "*/1" {
-        return Err("Cron 表达式过于频繁：不允许每分钟执行，最小间隔为 2 分钟".to_string());
+        return Err(ErrorResponse::err_with_detail(
+            crate::commands::error_code::common::INVALID_INPUT,
+            "Cron 表达式过于频繁：不允许每分钟执行，最小间隔为 2 分钟",
+        ));
     }
     // 检查 */N 模式中 N < 1 的情况（实际上 N=1 已被上面覆盖）
     if let Some(rest) = minute.strip_prefix("*/") {
         if let Ok(n) = rest.parse::<u32>() {
             if n < 1 {
-                return Err("Cron interval less than 1 minute is not allowed".to_string());
+                return Err(ErrorResponse::err_with_detail(
+                    crate::commands::error_code::common::INVALID_INPUT,
+                    "Cron interval less than 1 minute is not allowed",
+                ));
             }
         }
     }

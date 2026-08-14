@@ -207,7 +207,10 @@ impl MissionDecomposer for RuleBasedDecomposer {
         };
 
         plan.max_parallel = match strategy {
-            OrchestrationStrategy::FanOut => phase_count as u32,
+            // P1-2：Race/Debate 与 FanOut 一样全并行（Race 全候选竞争、Debate 辩手并行+裁判收口）
+            OrchestrationStrategy::FanOut
+            | OrchestrationStrategy::Race
+            | OrchestrationStrategy::Debate => phase_count as u32,
             _ => 2,
         };
 
@@ -461,7 +464,10 @@ Respond with ONLY a JSON object:
         }
 
         plan.max_parallel = match strategy {
-            OrchestrationStrategy::FanOut => plan.sub_tasks.len() as u32,
+            // P1-2：Race/Debate 与 FanOut 一样全并行
+            OrchestrationStrategy::FanOut
+            | OrchestrationStrategy::Race
+            | OrchestrationStrategy::Debate => plan.sub_tasks.len() as u32,
             _ => 2.min(plan.sub_tasks.len() as u32),
         };
 

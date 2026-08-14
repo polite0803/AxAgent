@@ -827,6 +827,13 @@
       "searching": "Поиск в памяти..."
     },
     "messageArea": "Область сообщений",
+    "mode": {
+      "action": "Выполнить",
+      "ask": "Спросить",
+      "auto": "Авто",
+      "plan": "План",
+      "title": "Режим выполнения"
+    },
     "moveToWorkspace": "Переместить в рабочую область",
     "multiModel": {
       "selectTitle": "Выберите модели для одновременного ответа",
@@ -1089,13 +1096,10 @@
       },
       "completedDesc": "«{{name}}» завершено, {{total}} шагов, {{completed}} успешно.",
       "completedTitle": "Рабочий процесс завершён",
-      "conversationMode": "Режим разговора",
-      "conversationModeDesc": "Свободная беседа, без фиксированного рабочего процесса",
       "dagHint": "Вставьте этот код Mermaid в рендерер Mermaid для визуализации DAG.",
       "dagView": "DAG-представление",
       "dagVisualization": "Визуализация DAG",
       "dependsOn": "Зависит от:",
-      "dismiss": "Закрыть",
       "docGen": {
         "description": "Создать подробную документацию для кода, API и проектов.",
         "name": "Генератор документации"
@@ -1124,12 +1128,10 @@
       },
       "result": "Результат",
       "retries": "Повторные попытки:",
-      "searchPlaceholder": "Поиск шаблонов...",
       "security": {
         "description": "Провести комплексное сканирование уязвимостей безопасности и оценку рисков.",
         "name": "Аудит безопасности"
       },
-      "selectHint": "Выбрать рабочий процесс",
       "status": {
         "completed": "Завершено",
         "failed": "Ошибка",
@@ -1141,16 +1143,10 @@
         "skipped": "Пропущено"
       },
       "stepStatus": "Статус:",
-      "suggestionDesc": "Обнаружено, что ваша потребность похожа на рабочий процесс «{{name}}»",
-      "suggestionHint": "Подсказка",
-      "suggestionReason": "Использование рабочего процесса обеспечивает более структурированное многошаговое выполнение",
-      "switchToWorkflow": "Переключиться на рабочий процесс",
       "testGen": {
         "description": "Создать полные наборы тестов с модульными, интеграционными и краевыми тестами.",
         "name": "Генератор тестов"
       },
-      "title": "Шаблоны рабочих процессов агента",
-      "unnamed": "Рабочий процесс",
       "viewDetails": "Подробнее",
       "viewOutput": "Итоговый вывод",
       "workflowStatus": {
@@ -1975,6 +1971,12 @@
     "CLOUD_UNKNOWN_CONFLICT": "Неизвестный тип конфликта синхронизации",
     "CLOUD_UNKNOWN_STORAGE": "Неизвестный тип хранилища",
     "CLOUD_UNKNOWN_STRATEGY": "Неизвестная стратегия синхронизации",
+    "COGNITIVE_ROUTE_FAILED": "Сбой выполнения когнитивной маршрутизации",
+    "COGNITIVE_EMPTY_INPUT": "Ввод когнитивной маршрутизации пуст",
+    "COGNITIVE_CIRCUIT_BROKEN": "Сработал автоматический выключатель когнитивной маршрутизации: {reason}",
+    "COGNITIVE_NO_CANDIDATE": "Для когнитивной маршрутизации не найдено доступных возможностей",
+    "COGNITIVE_EXECUTION_MODE_INVALID": "Недопустимый режим выполнения когнитивной маршрутизации",
+    "COGNITIVE_PROMPT_REJECTED": "Когнитивный запрос отклонён",
     "COMMON_INTERNAL": "Внутренняя ошибка",
     "COMMON_INVALID_INPUT": "Недопустимый ввод",
     "COMMON_TIMEOUT": "Превышено время ожидания операции",
@@ -2184,6 +2186,7 @@
     "WORKFLOW_REFLECTION_REFLECT_FAILED": "Ошибка рефлексии рабочего процесса",
     "WORKFLOW_REFLECTION_SUGGEST_FAILED": "Ошибка предложения рефлексии рабочего процесса",
     "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "Недопустимый шаблон рефлексии рабочего процесса",
+    "WORKFLOW_SYSTEM_TEMPLATE_PROTECTED": "Системный шаблон защищён: изменение, удаление или копирование недоступны",
     "WORKFLOW_VERSION_NOT_FOUND": "Версия рабочего процесса не найдена",
     "VOICE_TICKET_INVALID": "Билет голосовой сессии недействителен или истёк",
     "VOICE_MODEL_NOT_FOUND": "Голосовая модель не найдена или не поддерживается",
@@ -2264,7 +2267,41 @@
     "DEVICE_SYNC_PASSWORD_EMPTY": "Пароль шифрования не может быть пустым",
     "DEVICE_SYNC_SALT_REQUIRED": "Для расшифровки требуется соль",
     "DEVICE_SYNC_STORAGE_OPERATION_FAILED": "Операция хранилища не удалась",
-    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "Операция политики не удалась"
+    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "Операция политики не удалась",
+    "CAPABILITY_REGISTER_FAILED": "Регистрация возможности не удалась",
+    "CAPABILITY_DISCOVER_FAILED": "Обнаружение возможности не удалось",
+    "CAPABILITY_NOT_FOUND": "Возможность не найдена",
+    "CAPABILITY_INDEX_FAILED": "Индексирование возможности не удалось",
+    "CAPABILITY_EMBEDDING_FAILED": "Генерация эмбеддинга не удалась",
+    "CAPABILITY_VECTOR_STORE_FAILED": "Операция векторного хранилища не удалась",
+    "CAPABILITY_INVALID_PASSPORT": "Неверный паспорт возможности",
+    "CAPABILITY_LIST_FAILED": "Не удалось получить список возможностей",
+    "CAPABILITY_STATS_FAILED": "Не удалось получить статистику возможностей",
+    "CAPABILITY_METADATA_RESTORE_FAILED": "Восстановление метаданных не удалось",
+    "AGENT_INPUT_CHANNEL_CLOSED": "Канал ввода пользователя закрыт",
+    "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "Превышено время ожидания ответа пользователя (5 минут)",
+    "AGENT_INPUT_NO_PROVIDER": "Нет доступного провайдера/модели: включите провайдера в настройках",
+    "AGENT_ROLE_BUILTIN_NOT_DELETABLE": "Встроенные роли нельзя удалить",
+    "BACKUP_CLOUD_KEY_TRAVERSAL": "Обнаружен обход пути: cloud_key указывает за пределы каталога резервных копий",
+    "STREAMING_REQUEST_IN_PROGRESS": "Запрос уже выполняется, дождитесь его завершения",
+    "DYNAMIC_UI_BUILTIN_NOT_MODIFIABLE": "Встроенные схемы нельзя изменить",
+    "DYNAMIC_UI_BUILTIN_NOT_DELETABLE": "Встроенные схемы нельзя удалить",
+    "DYNAMIC_UI_SCHEMA_NOT_FOUND": "Схема DynamicUI не существует",
+    "DYNAMIC_UI_BUILTIN_NOT_ROLLBACK": "Встроенные схемы нельзя откатить",
+    "DYNAMIC_UI_EDIT_PROMPT_EMPTY": "Инструкция по редактированию не может быть пустой",
+    "DYNAMIC_UI_SCHEMA_MISSING_FIELD": "В схеме ИИ отсутствуют обязательные поля (type/id)",
+    "DYNAMIC_UI_GENERATE_PROMPT_EMPTY": "Инструкция по генерации не может быть пустой",
+    "EVOLUTION_INSUFFICIENT_TRAJECTORY": "Недостаточно данных траектории для эволюции",
+    "EVOLUTION_INITIAL_FEEDBACK_EMPTY": "Начальный отзыв не может быть пустым",
+    "NL_TO_CRON_DESCRIPTION_EMPTY": "Введите описание запланированной задачи",
+    "RESEARCH_NOT_ENOUGH_MESSAGES": "Недостаточно сообщений диалога для создания отчета",
+    "RESEARCH_TOPIC_EMPTY": "Тема исследования не может быть пустой",
+    "SESSION_SHARE_INVALID_CODE": "Неверный код приглашения",
+    "SESSION_SHARE_ALREADY_FULL": "Сессия заполнена, невозможно присоединиться",
+    "SESSION_SHARE_NOT_FOUND": "Сессия не существует",
+    "WORK_ENGINE_EXECUTION_NOT_FOUND": "Неверный execution_id или рабочий процесс не зарегистрирован",
+    "TRAJECTORY_NOT_FOUND": "Траектория не найдена",
+    "UNKNOWN_PRESET": "Неизвестная предустановка"
   },
   "errorBoundary": {
     "copied": "Скопировано",
@@ -4901,7 +4938,8 @@
     "workflow": {
       "createNew": "Создать новый шаблон",
       "marketplace": "Маркетплейс",
-      "myWorkflows": "Мои рабочие процессы"
+      "myWorkflows": "Мои рабочие процессы",
+      "systemTemplates": "Системные шаблоны"
     },
     "zhipu": "Zhipu",
     "groupVoice": "Голос",
@@ -8033,6 +8071,15 @@
       "community": "Сообщество",
       "recommended": "Рекомендуемые",
       "all": "Все"
+    },
+    "systemTemplateList": {
+      "edit": "Изменить",
+      "hint": "Системные шаблоны (когнитивный оркестратор и т. д.) управляют глобальной маршрутизацией. Доступны для просмотра/редактирования, но запрещены для удаления, копирования и экспорта",
+      "moreActions": "Дополнительные действия",
+      "noDescription": "Без описания",
+      "noTemplates": "Нет системных шаблонов",
+      "systemTag": "Система",
+      "view": "Просмотр"
     },
     "templateName": "Название шаблона",
     "templateSaved": "Шаблон сохранён",

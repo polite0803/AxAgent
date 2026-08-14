@@ -314,6 +314,7 @@ pub async fn apply_quick_start_preset(
             })
         },
 
-        _ => Err(ErrorResponse::new("UNKNOWN_PRESET").with_detail(format!("未知预设: {}", preset))),
+        _ => Err(ErrorResponse::new(onboarding_err::UNKNOWN_PRESET)
+            .with_detail(format!("未知预设: {}", preset))),
     }
 }
