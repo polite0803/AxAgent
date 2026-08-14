@@ -92,6 +92,8 @@ interface WorkflowTemplate {
   is_preset: boolean;
   is_editable: boolean;
   is_public: boolean;
+  /** 是否为系统模板（认知编排器等），include_system=true 时才能读到 */
+  is_system?: boolean;
   trigger_config: Record<string, unknown>;
   nodes: unknown[];
   edges: unknown[];
@@ -1618,6 +1620,115 @@ export async function handleCommand<T>(
     }
     case "list_agency_experts": {
       return [] as T;
+    }
+    case "cognitive_query": {
+      const req = (args as {
+        request?: {
+          conversationId?: string;
+          input?: string;
+          options?: { requirePlanApproval?: boolean };
+        };
+      } | undefined)?.request;
+      const conversationId = req?.conversationId ?? `mock-${genId()}`;
+      // P0-2：计划确认闸门开启时，模拟后端判定为复杂任务并弹出计划草稿等待用户确认
+      if (req?.options?.requirePlanApproval) {
+        emitBrowserEvent("agent-plan-ready-for-approval", {
+          conversationId,
+          plan: JSON.stringify({
+            task_preview: (req.input ?? "").slice(0, 200),
+            selected_engine: "ReactEngine",
+            features: {
+              node_count: 3,
+              estimated_tool_rounds: 2,
+              requires_verification: true,
+              has_branches: false,
+              has_conditions: false,
+            },
+            note: i18n.t("browserMock.complexTaskNote"),
+          }),
+        });
+        const decision = await waitForPlanDecision(conversationId);
+        if (decision !== "approve") {
+          // 拒绝：返回 rejected 状态，前端据此移除占位消息并提示
+          return {
+            routePath: "general/chat",
+            domain: "general",
+            cluster: "chat",
+            capabilityId: "",
+            confidence: 0.5,
+            isLlmFallback: true,
+            circuitBroken: false,
+            circuitBreakReason: null,
+            fallbackPath: null,
+            candidates: [],
+            executionMode: "ask",
+            stageRecords: [],
+            totalElapsedMs: 0,
+            execution: {
+              kind: "agent",
+              conversationId,
+              assistantMessageId: "",
+              status: "rejected",
+            },
+          } as T;
+        }
+        // 批准：模拟流式完成，使前端 eventPromise 正常 resolve
+        const approvedId = genId();
+        emitBrowserEvent("agent-message-id", {
+          conversationId,
+          assistantMessageId: approvedId,
+        });
+        emitBrowserEvent("agent-done", {
+          conversationId,
+          assistantMessageId: approvedId,
+          text: i18n.t("browserMock.planCompleted"),
+          thinking: "",
+          usage: { input_tokens: 1, output_tokens: 1 },
+        });
+        return {
+          routePath: "general/chat",
+          domain: "general",
+          cluster: "chat",
+          capabilityId: "",
+          confidence: 0.5,
+          isLlmFallback: true,
+          circuitBroken: false,
+          circuitBreakReason: null,
+          fallbackPath: null,
+          candidates: [],
+          executionMode: "ask",
+          stageRecords: [],
+          totalElapsedMs: 0,
+          execution: { kind: "agent", conversationId, assistantMessageId: approvedId },
+        } as T;
+      }
+      // 模拟认知编排器：路由决策为 ask 模式并交给 agent 执行。
+      // 先发 assistantMessageId，再发 agent-done，使前端 eventPromise 正常 resolve。
+      const assistantId = genId();
+      emitBrowserEvent("agent-message-id", { conversationId, assistantMessageId: assistantId });
+      emitBrowserEvent("agent-done", {
+        conversationId,
+        assistantMessageId: assistantId,
+        text: i18n.t("browserMock.planCompleted"),
+        thinking: "",
+        usage: { input_tokens: 1, output_tokens: 1 },
+      });
+      return {
+        routePath: "general/chat",
+        domain: "general",
+        cluster: "chat",
+        capabilityId: "",
+        confidence: 0.5,
+        isLlmFallback: true,
+        circuitBroken: false,
+        circuitBreakReason: null,
+        fallbackPath: null,
+        candidates: [],
+        executionMode: "ask",
+        stageRecords: [],
+        totalElapsedMs: 0,
+        execution: { kind: "agent", conversationId, assistantMessageId: assistantId },
+      } as T;
     }
     case "agent_query": {
       const req = (args as {
@@ -3817,9 +3928,14 @@ export async function handleCommand<T>(
     }
     case "list_workflow_templates": {
       const is_preset = (args as { is_preset?: boolean })?.is_preset;
+      const include_system = (args as { include_system?: boolean })?.include_system;
       let templates = getStore<WorkflowTemplate[]>("workflow_templates", []);
       if (is_preset !== undefined) {
         templates = templates.filter((t) => t.is_preset === is_preset);
+      }
+      // 默认过滤系统模板（认知编排器等）；include_system=true 时返回
+      if (!include_system) {
+        templates = templates.filter((t) => !t.is_system);
       }
       return templates as T;
     }
@@ -3831,8 +3947,14 @@ export async function handleCommand<T>(
     // ── Workflow Templates ────────────────────────────────────────────
     case "get_workflow_template": {
       const id = (args as { id?: string })?.id;
+      const include_system = (args as { include_system?: boolean })?.include_system;
       const templates = getStore<WorkflowTemplate[]>("workflow_templates", []);
-      return (templates.find((t) => t.id === id) || null) as T;
+      const found = templates.find((t) => t.id === id);
+      // 系统模板默认不可见；include_system=true 时才可读取
+      if (!found || (!include_system && found.is_system)) {
+        return null as T;
+      }
+      return found as T;
     }
     case "create_workflow_template": {
       const input = (args as { input?: CreateWorkflowTemplateInput }).input ?? {};

@@ -4,6 +4,7 @@
 //!
 //! 流程：手动启动 → 选题策划 → 内容创作 → 优化打磨 → 多平台发布 → IP打造 → 完成
 
+use axagent_harness::capability::Visibility;
 use axagent_harness::workflow_types::{
     AgentNode, AgentNodeConfig, EdgeType, EndNode, EndNodeConfig, OutputMode, ToolDef,
     TriggerConfig, TriggerNode, TriggerType, WorkflowEdge, WorkflowNode, WorkflowTemplateData,
@@ -194,6 +195,7 @@ pub async fn seed_industry_content_media_workflow_template(
         is_preset: true,
         is_editable: true,
         is_public: false,
+        visibility: Visibility::Public,
         trigger_config: Some(TriggerConfig {
             trigger_type: TriggerType::Manual,
             config: serde_json::json!({}),

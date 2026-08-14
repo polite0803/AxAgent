@@ -515,12 +515,6 @@ macro_rules! register_all_commands {
             commands::agent_insight::insight_get_by_category,
             commands::agent_insight::insight_report,
             commands::memory::memory_flush,
-            commands::memory::promote_user_memory_item,
-            commands::memory::demote_user_memory_item,
-            commands::memory::record_user_memory_access,
-            commands::memory::apply_user_memory_decay_tick,
-            commands::memory::confirm_memory_item,
-            commands::memory::export_memories_to_project,
             commands::agent_analytics::record_feedback,
             // Proactive commands
             commands::proactive::proactive_list_suggestions,
@@ -1219,7 +1213,7 @@ macro_rules! register_all_commands {
             commands::device_sync::update_device_permissions,
             commands::device_sync::list_all_permissions,
 
-            // ── AxInvest 业务域命令（stock_analysis/opc/quant/market_sim 等）──
+             // ── AxInvest 业务域命令（stock_analysis/opc/quant/market_sim 等）──
 // backtest_validation
 commands::backtest_validation::compute_validation_report,
 commands::backtest_validation::list_decision_validations,
@@ -1609,6 +1603,16 @@ commands::analyst_evolution::evolve_analyst_command,
 commands::analyst_evolution::evolve_node_command,
 commands::analyst_evolution::get_analyst_evolution_status_command,
 commands::analyst_evolution::get_node_evolution_status_command,
+            // Capability discovery commands
+            commands::capability::capability_register_passport,
+            commands::capability::capability_register_batch,
+            commands::capability::capability_discover,
+            commands::capability::capability_list_passports,
+            commands::capability::capability_remove_passport,
+            commands::capability::capability_get_stats,
+            commands::cognitive::cognitive_query,
+            commands::cognitive::cognitive_route_l1,
+            commands::cognitive::cognitive_list_execution_modes,
         ]
     };
 }

@@ -80,6 +80,7 @@ function makeMockTemplate(
     is_preset: false,
     is_editable: true,
     is_public: false,
+    is_system: false,
     trigger_config: undefined,
     nodes: [],
     edges: [],

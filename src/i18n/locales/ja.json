@@ -890,6 +890,13 @@
       "searching": "メモリを検索中..."
     },
     "messageArea": "メッセージエリア",
+    "mode": {
+      "action": "実行",
+      "ask": "質問",
+      "auto": "自動",
+      "plan": "計画",
+      "title": "実行モード"
+    },
     "moveToWorkspace": "ワークスペースに移動",
     "multiModel": {
       "selectTitle": "同時に回答するモデルを選択",
@@ -1155,13 +1162,10 @@
       },
       "completedDesc": "\"{{name}}\" は全て完了しました。合計 {{total}} ステップ、{{completed}} 成功。",
       "completedTitle": "ワークフロー実行完了",
-      "conversationMode": "会話モード",
-      "conversationModeDesc": "固定フローのない自由会話",
       "dagHint": "DAG を可視化するには Mermaid レンダラーにこのコードを貼り付けてください",
       "dagView": "DAG ビュー",
       "dagVisualization": "DAG 可視化",
       "dependsOn": "依存",
-      "dismiss": "無視",
       "docGen": {
         "description": "コードからドキュメントを自動生成",
         "name": "ドキュメント生成"
@@ -1190,12 +1194,10 @@
       },
       "result": "結果",
       "retries": "再試行回数",
-      "searchPlaceholder": "ワークフローを検索...",
       "security": {
         "description": "コードのセキュリティ脆弱性をスキャン",
         "name": "セキュリティ監査"
       },
-      "selectHint": "ワークフローを選択",
       "status": {
         "completed": "完了",
         "failed": "失敗",
@@ -1207,16 +1209,10 @@
         "skipped": "スキップ"
       },
       "stepStatus": "ステップステータス",
-      "suggestionDesc": "あなたの要件がワークフロー \"{{name}}\" と類似していることを検出しました",
-      "suggestionHint": "ヒント",
-      "suggestionReason": "ワークフローを使用すると、より構造化されたマルチステップ実行が可能になります",
-      "switchToWorkflow": "このワークフローに切り替え",
       "testGen": {
         "description": "コードのテストケースを自動生成",
         "name": "テスト生成"
       },
-      "title": "ワークフローテンプレート",
-      "unnamed": "ワークフロー",
       "viewDetails": "ステップ詳細を表示",
       "viewOutput": "最終出力",
       "workflowStatus": {
@@ -2356,6 +2352,12 @@
     "CLOUD_UNKNOWN_CONFLICT": "不明な同期競合タイプです",
     "CLOUD_UNKNOWN_STORAGE": "不明なストレージタイプです",
     "CLOUD_UNKNOWN_STRATEGY": "不明な同期戦略です",
+    "COGNITIVE_ROUTE_FAILED": "認知ルーティングの実行に失敗しました",
+    "COGNITIVE_EMPTY_INPUT": "認知ルーティングの入力が空です",
+    "COGNITIVE_CIRCUIT_BROKEN": "認知ルーティングのサーキットブレーカーが作動しました：{reason}",
+    "COGNITIVE_NO_CANDIDATE": "認知ルーティングに利用可能な能力が見つかりません",
+    "COGNITIVE_EXECUTION_MODE_INVALID": "認知ルーティングの実行モードが無効です",
+    "COGNITIVE_PROMPT_REJECTED": "認知プロンプトが拒否されました",
     "COMMON_INTERNAL": "内部エラー",
     "COMMON_INVALID_INPUT": "無効な入力です",
     "COMMON_TIMEOUT": "操作がタイムアウトしました",
@@ -2576,6 +2578,7 @@
     "WORKFLOW_REFLECTION_REFLECT_FAILED": "ワークフローリフレクションに失敗しました",
     "WORKFLOW_REFLECTION_SUGGEST_FAILED": "ワークフローリフレクションの提案に失敗しました",
     "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "無効なワークフローリフレクションテンプレートです",
+    "WORKFLOW_SYSTEM_TEMPLATE_PROTECTED": "システムテンプレートは保護されており、変更・削除・複製はできません",
     "WORKFLOW_VERSION_NOT_FOUND": "ワークフローバージョンが見つかりません",
     "VOICE_TICKET_INVALID": "音声セッションチケットが無効または期限切れです",
     "VOICE_MODEL_NOT_FOUND": "音声モデルが見つからないかサポートされていません",
@@ -2653,7 +2656,41 @@
     "DEVICE_SYNC_PASSWORD_EMPTY": "暗号化パスワードは空にできません",
     "DEVICE_SYNC_SALT_REQUIRED": "復号にはソルトが必要です",
     "DEVICE_SYNC_STORAGE_OPERATION_FAILED": "ストレージ操作に失敗しました",
-    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "ポリシー操作に失敗しました"
+    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "ポリシー操作に失敗しました",
+    "CAPABILITY_REGISTER_FAILED": "能力の登録に失敗しました",
+    "CAPABILITY_DISCOVER_FAILED": "能力の検出に失敗しました",
+    "CAPABILITY_NOT_FOUND": "能力が見つかりません",
+    "CAPABILITY_INDEX_FAILED": "能力のインデックス作成に失敗しました",
+    "CAPABILITY_EMBEDDING_FAILED": "埋め込みの生成に失敗しました",
+    "CAPABILITY_VECTOR_STORE_FAILED": "ベクトルストア操作に失敗しました",
+    "CAPABILITY_INVALID_PASSPORT": "無効な能力パスポート",
+    "CAPABILITY_LIST_FAILED": "能力のリスト取得に失敗しました",
+    "CAPABILITY_STATS_FAILED": "能力統計の取得に失敗しました",
+    "CAPABILITY_METADATA_RESTORE_FAILED": "メタデータの復元に失敗しました",
+    "AGENT_INPUT_CHANNEL_CLOSED": "ユーザー入力チャネルが閉じられています",
+    "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "ユーザーの返信待ちがタイムアウトしました（5分）",
+    "AGENT_INPUT_NO_PROVIDER": "利用可能なプロバイダー/モデルがありません：設定でプロバイダーを有効にしてください",
+    "AGENT_ROLE_BUILTIN_NOT_DELETABLE": "組み込みロールは削除できません",
+    "BACKUP_CLOUD_KEY_TRAVERSAL": "パストラバーサルが検出されました：cloud_key がバックアップディレクトリ外を指しています",
+    "STREAMING_REQUEST_IN_PROGRESS": "リクエストが進行中です。完了するまでお待ちください",
+    "DYNAMIC_UI_BUILTIN_NOT_MODIFIABLE": "組み込みスキーマは変更できません",
+    "DYNAMIC_UI_BUILTIN_NOT_DELETABLE": "組み込みスキーマは削除できません",
+    "DYNAMIC_UI_SCHEMA_NOT_FOUND": "DynamicUI スキーマが存在しません",
+    "DYNAMIC_UI_BUILTIN_NOT_ROLLBACK": "組み込みスキーマはロールバックできません",
+    "DYNAMIC_UI_EDIT_PROMPT_EMPTY": "編集指示を空にすることはできません",
+    "DYNAMIC_UI_SCHEMA_MISSING_FIELD": "AI が返したスキーマに必須フィールド（type/id）がありません",
+    "DYNAMIC_UI_GENERATE_PROMPT_EMPTY": "生成指示を空にすることはできません",
+    "EVOLUTION_INSUFFICIENT_TRAJECTORY": "進化に十分な軌跡データがありません",
+    "EVOLUTION_INITIAL_FEEDBACK_EMPTY": "初期フィードバックを空にすることはできません",
+    "NL_TO_CRON_DESCRIPTION_EMPTY": "スケジュールタスクの説明を入力してください",
+    "RESEARCH_NOT_ENOUGH_MESSAGES": "レポートを生成するのに十分な会話メッセージがありません",
+    "RESEARCH_TOPIC_EMPTY": "研究トピックを空にすることはできません",
+    "SESSION_SHARE_INVALID_CODE": "無効な招待コードです",
+    "SESSION_SHARE_ALREADY_FULL": "セッションが満員のため参加できません",
+    "SESSION_SHARE_NOT_FOUND": "セッションが存在しません",
+    "WORK_ENGINE_EXECUTION_NOT_FOUND": "execution_id が無効、またはワークフローが登録されていません",
+    "TRAJECTORY_NOT_FOUND": "軌跡が見つかりません",
+    "UNKNOWN_PRESET": "不明なプリセット"
   },
   "errorBoundary": {
     "copied": "コピーしました",
@@ -2779,6 +2816,14 @@
     "general": "全般",
     "security": "セキュリティ",
     "writing": "執筆"
+  },
+  "expertPreset": {
+    "generalAssistant": {
+      "name": "汎用アシスタント",
+      "desc": "日常的な会話や一般的な質問に対応する汎用 AI アシスタント",
+      "systemPrompt": "あなたはインテリジェントな AI アシスタントです。ユーザーの質問に正確で役立つ回答を提供してください。",
+      "tags": ["汎用", "アシスタント", "会話"]
+    }
   },
   "expertSelector": {
     "added": "追加しました",
@@ -8322,7 +8367,8 @@
     "workflow": {
       "createNew": "新規テンプレート作成",
       "marketplace": "マーケットプレイス",
-      "myWorkflows": "マイワークフロー"
+      "myWorkflows": "マイワークフロー",
+      "systemTemplates": "システムテンプレート"
     },
     "zhipu": "Zhipu",
     "groupVoice": "音声",
@@ -11830,6 +11876,15 @@
       "community": "コミュニティ",
       "recommended": "推奨",
       "all": "すべて"
+    },
+    "systemTemplateList": {
+      "edit": "編集",
+      "hint": "システムテンプレート（認知オーケストレーター等）はグローバルルーティングを駆動します。表示・編集可、削除・複製・エクスポートは不可",
+      "moreActions": "その他の操作",
+      "noDescription": "説明なし",
+      "noTemplates": "システムテンプレートはありません",
+      "systemTag": "システム",
+      "view": "表示"
     },
     "templateName": "テンプレート名",
     "templateSaved": "テンプレートを保存しました",

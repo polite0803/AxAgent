@@ -10,6 +10,7 @@
 // lib.rs 无需再声明 #[link(test-manifest)]（本地旧方案已删除）。
 
 mod android_utils;
+mod capability_embedding;
 mod commands;
 mod context_manager;
 mod index_queue;

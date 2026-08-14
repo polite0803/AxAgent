@@ -541,3 +541,57 @@ pub trait InputSanitizer: Send + Sync + std::fmt::Debug {
 }
 
 // 默认输入脱敏器已提取至 `output_sanitizer` 模块。
+
+// ── ToolInfo: CapabilityPassport 实现 ──────────────────
+
+impl crate::capability::CapabilityPassport for ToolInfo {
+    fn capability_id(&self) -> String {
+        format!("tool:{}", self.name)
+    }
+
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn description(&self) -> &str {
+        &self.description
+    }
+
+    fn kind(&self) -> crate::capability::CapabilityKind {
+        crate::capability::CapabilityKind::Tool
+    }
+
+    fn domain(&self) -> crate::capability::CapabilityDomain {
+        self.domain.into()
+    }
+
+    fn input_schema(&self) -> Option<serde_json::Value> {
+        Some(self.input_schema.clone())
+    }
+
+    fn tags(&self) -> Vec<String> {
+        // category 名 + aliases 作为 tags
+        let mut tags = vec![self.category.as_str().to_string()];
+        tags.extend(self.aliases.iter().cloned());
+        tags
+    }
+
+    fn security_level(&self) -> crate::capability::SecurityLevel {
+        if self.is_destructive {
+            crate::capability::SecurityLevel::Restricted
+        } else if !self.is_read_only {
+            crate::capability::SecurityLevel::Sensitive
+        } else {
+            crate::capability::SecurityLevel::Public
+        }
+    }
+
+    fn planning_complexity(&self) -> crate::capability::PlanningComplexity {
+        // 简单工具单步执行，复杂工具可后续扩展
+        crate::capability::PlanningComplexity::Simple
+    }
+
+    fn is_enabled(&self) -> bool {
+        self.enabled
+    }
+}

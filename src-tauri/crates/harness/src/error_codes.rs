@@ -380,3 +380,19 @@ pub mod reading_list {
     /// 阅读条目未找到
     pub const ITEM_NOT_FOUND: &str = "READING_LIST_ITEM_NOT_FOUND";
 }
+
+/// 认知路由相关错误码
+pub mod cognitive {
+    /// 认知路由执行失败
+    pub const ROUTE_FAILED: &str = "COGNITIVE_ROUTE_FAILED";
+    /// 认知路由输入为空
+    pub const EMPTY_INPUT: &str = "COGNITIVE_EMPTY_INPUT";
+    /// 认知路由已熔断
+    pub const CIRCUIT_BROKEN: &str = "COGNITIVE_CIRCUIT_BROKEN";
+    /// 认知路由未找到可用能力
+    pub const NO_CANDIDATE: &str = "COGNITIVE_NO_CANDIDATE";
+    /// 认知路由执行模式无效
+    pub const EXECUTION_MODE_INVALID: &str = "COGNITIVE_EXECUTION_MODE_INVALID";
+    /// 安全拦截：检测到注入/越狱，拒绝执行并记录安全日志
+    pub const PROMPT_REJECTED: &str = "COGNITIVE_PROMPT_REJECTED";
+}

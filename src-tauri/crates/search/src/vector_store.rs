@@ -1031,6 +1031,89 @@ impl VectorStore {
         Ok(())
     }
 
+    /// 插入仅包含元数据的行（不写入向量，用于存储自定义元信息）
+    pub async fn insert_metadata_only_chunk(
+        &self,
+        collection_id: &str,
+        document_id: &str,
+        chunk_id: &str,
+        content: &str,
+    ) -> Result<()> {
+        validate_collection_name(collection_id)?;
+        let name = Self::validated_collection_name(collection_id)?;
+        let meta_table = format!("{name}_meta");
+
+        if !self.table_exists(&meta_table).await? {
+            return Err(AxAgentError::NotFound("Collection not found".into()));
+        }
+
+        let max_rid = self
+            .db
+            .query_one_raw(Statement::from_string(
+                self.be(),
+                format!("SELECT COALESCE(MAX(rowid), 0) AS max_rid FROM {meta_table}"),
+            ))
+            .await
+            .map_err(Self::wrap)?
+            .and_then(|r| r.try_get::<i64>("", "max_rid").ok())
+            .unwrap_or(0);
+
+        let new_rid = max_rid + 1;
+
+        self.db
+            .execute_raw(Statement::from_sql_and_values(
+                self.be(),
+                format!(
+                    "INSERT INTO {meta_table} (rowid, id, document_id, chunk_index, content) \
+                     VALUES ($1, $2, $3, 0, $4)"
+                ),
+                vec![
+                    new_rid.into(),
+                    chunk_id.to_string().into(),
+                    document_id.to_string().into(),
+                    content.to_string().into(),
+                ],
+            ))
+            .await
+            .map_err(Self::wrap)?;
+
+        Ok(())
+    }
+
+    /// 列出所有元数据行（包含 document_id），用于元数据恢复
+    pub async fn list_all_metadata_rows(
+        &self,
+        collection_id: &str,
+    ) -> Result<Vec<(i64, String, String, String)>> {
+        validate_collection_name(collection_id)?;
+        let name = Self::validated_collection_name(collection_id)?;
+        let meta_table = format!("{name}_meta");
+
+        if !self.table_exists(&meta_table).await? {
+            return Ok(vec![]);
+        }
+
+        let rows = self
+            .db
+            .query_all_raw(Statement::from_string(
+                self.be(),
+                format!("SELECT rowid, id, document_id, content FROM {meta_table} ORDER BY rowid"),
+            ))
+            .await
+            .map_err(Self::wrap)?;
+
+        let mut result = Vec::new();
+        for row in rows {
+            let rowid = row.try_get::<i64>("", "rowid").unwrap_or(0);
+            let id = row.try_get::<String>("", "id").unwrap_or_default();
+            let doc_id = row.try_get::<String>("", "document_id").unwrap_or_default();
+            let content = row.try_get::<String>("", "content").unwrap_or_default();
+            result.push((rowid, id, doc_id, content));
+        }
+
+        Ok(result)
+    }
+
     /// Drop both tables for a knowledge base.
     pub async fn delete_collection(&self, knowledge_base_id: &str) -> Result<()> {
         validate_collection_name(knowledge_base_id)?;
@@ -1377,6 +1460,113 @@ impl VectorStore {
         if exists {
             let rebuild_sql = format!("INSERT INTO {fts_table}({fts_table}) VALUES('rebuild')");
             let _ = self.exec(&rebuild_sql).await;
+        }
+    }
+
+    /// 基于 FTS5（SQLite）或 content_tsv（PostgreSQL）的关键词检索
+    ///
+    /// 返回 `VectorSearchResult`，其中 `score` 语义为"越小越匹配"（与向量检索的 distance 一致）：
+    /// - SQLite FTS5：`bm25()` 返回负数，越负越匹配，直接使用
+    /// - PostgreSQL：`ts_rank()` 返回正数（越大越匹配），取负数统一为"越小越匹配"
+    ///
+    /// 当 FTS 索引不存在或后端不支持时返回空 Vec（调用方可降级为 keyword_score=0.0）。
+    pub async fn fts_search(
+        &self,
+        collection_id: &str,
+        query: &str,
+        top_k: usize,
+    ) -> Result<Vec<VectorSearchResult>> {
+        validate_collection_name(collection_id)?;
+        let name = Self::validated_collection_name(collection_id)?;
+        let meta_table = format!("{name}_meta");
+
+        if !self.table_exists(&meta_table).await? {
+            return Ok(vec![]);
+        }
+
+        let query = query.trim();
+        if query.is_empty() {
+            return Ok(vec![]);
+        }
+
+        if self.is_pg() {
+            // PostgreSQL：用 content_tsv 生成列 + ts_rank 排序
+            let sql = format!(
+                "SELECT m.id, m.document_id, m.chunk_index, m.content, \
+                 -ts_rank(m.content_tsv, plainto_tsquery('simple', $1)) AS distance \
+                 FROM {meta_table} m \
+                 WHERE m.content_tsv @@ plainto_tsquery('simple', $1) \
+                 ORDER BY distance LIMIT $2"
+            );
+            let rows = self
+                .db
+                .query_all_raw(Statement::from_sql_and_values(
+                    self.be(),
+                    sql,
+                    vec![query.to_string().into(), (top_k as i64).into()],
+                ))
+                .await
+                .map_err(Self::wrap)?;
+
+            let mut results = Vec::with_capacity(rows.len());
+            for row in &rows {
+                results.push(VectorSearchResult {
+                    id: row.try_get("", "id").map_err(Self::wrap)?,
+                    document_id: row.try_get("", "document_id").map_err(Self::wrap)?,
+                    chunk_index: row.try_get("", "chunk_index").map_err(Self::wrap)?,
+                    content: row.try_get("", "content").map_err(Self::wrap)?,
+                    score: row
+                        .try_get::<f64>("", "distance")
+                        .map(|v| v as f32)
+                        .map_err(Self::wrap)?,
+                    has_embedding: true,
+                });
+            }
+            Ok(results)
+        } else {
+            // SQLite：用 FTS5 虚拟表 + bm25() 排序
+            let fts_table = format!("{meta_table}_fts");
+            if !self.table_exists(&fts_table).await? {
+                // FTS 索引不存在，尝试创建一次
+                let _ = self.ensure_fts5_index(collection_id).await;
+                if !self.table_exists(&fts_table).await? {
+                    return Ok(vec![]);
+                }
+            }
+
+            let sql = format!(
+                "SELECT m.id, m.document_id, m.chunk_index, m.content, \
+                 bm25({fts_table}) AS distance \
+                 FROM {fts_table} \
+                 JOIN {meta_table} m ON m.rowid = {fts_table}.rowid \
+                 WHERE {fts_table} MATCH $1 \
+                 ORDER BY distance LIMIT $2"
+            );
+            let rows = self
+                .db
+                .query_all_raw(Statement::from_sql_and_values(
+                    self.be(),
+                    sql,
+                    vec![query.to_string().into(), (top_k as i64).into()],
+                ))
+                .await
+                .map_err(Self::wrap)?;
+
+            let mut results = Vec::with_capacity(rows.len());
+            for row in &rows {
+                results.push(VectorSearchResult {
+                    id: row.try_get("", "id").map_err(Self::wrap)?,
+                    document_id: row.try_get("", "document_id").map_err(Self::wrap)?,
+                    chunk_index: row.try_get("", "chunk_index").map_err(Self::wrap)?,
+                    content: row.try_get("", "content").map_err(Self::wrap)?,
+                    score: row
+                        .try_get::<f64>("", "distance")
+                        .map(|v| v as f32)
+                        .map_err(Self::wrap)?,
+                    has_embedding: true,
+                });
+            }
+            Ok(results)
         }
     }
 

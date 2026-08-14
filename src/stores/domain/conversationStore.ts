@@ -5,6 +5,7 @@ import { mergeOlderPages, mergePreservedMessages, MESSAGE_PAGE_SIZE } from "@/li
 import { useProviderStore } from "@/stores/feature/providerStore";
 import type {
   AttachmentInput,
+  CognitiveClarification,
   CompareResponsesResult,
   Conversation,
   ConversationBranch,
@@ -126,7 +127,7 @@ import {
   mergeConversationCollections,
 } from "./conversationPreferences";
 import { createEventMethods } from "./conversationStoreEvents";
-import { createSendMethods } from "./conversationStoreSend";
+import { createSendMethods, type SendModeHint } from "./conversationStoreSend";
 import { useMultiModelStore } from "./multiModelStore";
 import {
   _activeMessageLoadSeq,
@@ -212,20 +213,11 @@ export interface ConversationState {
     attachments?: AttachmentInput[],
     searchProviderId?: string | null,
     quotedMessageId?: string | null,
+    modeHint?: SendModeHint,
   ) => Promise<void>;
-  /** Send a message in agent mode (non-streaming MVP) */
-  sendAgentMessage: (
-    content: string,
-    attachments?: AttachmentInput[],
-    searchProviderId?: string | null,
-    disabledTools?: string[],
-  ) => Promise<void>;
-  /** Send a message in plan mode: generates plan first, awaits approval, then executes */
-  sendPlanMessage: (
-    content: string,
-    attachments?: AttachmentInput[],
-    searchProviderId?: string | null,
-  ) => Promise<void>;
+  /** 认知编排澄清候选（Clarify 分支）待用户选择；null 表示无待选 */
+  pendingClarification: CognitiveClarification | null;
+  setPendingClarification: (c: CognitiveClarification | null) => void;
   regenerateMessage: (targetMessageId?: string) => Promise<void>;
   regenerateWithModel: (
     targetMessageId: string,
@@ -319,6 +311,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   oldestLoadedMessageId: null,
   error: null,
   streamingMessageId: null,
+  pendingClarification: null,
+  setPendingClarification: (c) => set({ pendingClarification: c }),
   sidebarAutoSelectSuppressed: false,
   sidebarSuppressTimer: null,
   titleGeneratingConversationId: null,

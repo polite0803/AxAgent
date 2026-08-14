@@ -2,6 +2,8 @@
 
 use crate::AppState;
 use crate::app_state::{ShareParticipant, SharePermissions, ShareSessionRecord};
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::session_share as session_share_err;
 use agent_macro::agent_command;
 use serde::Serialize;
 use tauri::State;
@@ -95,15 +97,15 @@ pub async fn join_share_session(
         let found = sessions.iter().find(|(_, s)| s.invite_code.eq_ignore_ascii_case(&invite_code));
         match found {
             Some((cid, _)) => cid.clone(),
-            None => return Err("无效的邀请码".to_string()),
+            None => return Err(ErrorResponse::err(session_share_err::INVALID_CODE)),
         }
     };
 
-    let session = sessions.get_mut(&conv_id).ok_or("会话不存在")?;
+    let session = sessions.get_mut(&conv_id).ok_or(session_share_err::NOT_FOUND)?;
 
     // 检查是否已达到最大参与人数
     if session.participants.len() >= session.permissions.max_participants as usize {
-        return Err("会话已满，无法加入".to_string());
+        return Err(ErrorResponse::err(session_share_err::ALREADY_FULL));
     }
 
     // 添加参与者

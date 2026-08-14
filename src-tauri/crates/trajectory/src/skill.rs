@@ -769,6 +769,46 @@ impl SkillCreator {
     }
 }
 
+// ── Skill: CapabilityPassport 实现 ─────────────────────
+
+impl axagent_harness::capability::CapabilityPassport for Skill {
+    fn capability_id(&self) -> String {
+        format!("skill:{}", self.id)
+    }
+
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn description(&self) -> &str {
+        &self.description
+    }
+
+    fn kind(&self) -> axagent_harness::capability::CapabilityKind {
+        axagent_harness::capability::CapabilityKind::Skill
+    }
+
+    fn domain(&self) -> axagent_harness::capability::CapabilityDomain {
+        // Skill 无显式枚举域，降级为 General
+        axagent_harness::capability::CapabilityDomain::General
+    }
+
+    fn tags(&self) -> Vec<String> {
+        // 合并 skill.tags 与 hermes.tags
+        let mut tags = self.tags.clone();
+        tags.extend(self.metadata.hermes.tags.iter().cloned());
+        tags
+    }
+
+    fn avg_duration_seconds(&self) -> Option<f64> {
+        Some(self.avg_execution_time_ms as f64 / 1000.0)
+    }
+
+    fn is_enabled(&self) -> bool {
+        true
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

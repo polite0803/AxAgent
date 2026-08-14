@@ -1399,6 +1399,8 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
     let _ = workflow_template::Entity::delete_by_id(TEMPLATE_ID).exec(db).await;
     workflow_template::ActiveModel {
         id: Set(TEMPLATE_ID.to_string()),
+        cluster_id: Set(None),
+        route_path: Set(None),
         name: Set("趋势智选".to_string()),
         description: Set(Some(
             "多策略趋势分析引擎：从市场数据中识别产业链瓶颈/政策驱动/业绩驱动/资金面驱动信号，自动筛选候选标的".to_string(),

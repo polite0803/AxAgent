@@ -88,6 +88,13 @@ impl std::fmt::Display for SubTaskStatus {
     }
 }
 
+impl SubTaskStatus {
+    /// 是否为终态（Completed / Failed / Skipped）—— 终态禁止回退到非终态（P1-4）
+    pub fn is_terminal(&self) -> bool {
+        matches!(self, SubTaskStatus::Completed | SubTaskStatus::Failed | SubTaskStatus::Skipped)
+    }
+}
+
 // ── SubTask ───────────────────────────────────────────────────────────
 
 /// 从高层任务分解出的单个子任务
@@ -211,12 +218,12 @@ impl DecompositionPlan {
         }
     }
 
-    /// 返回所有依赖已满足且状态为 Pending 的子任务
+    /// 返回所有依赖已满足且可派发的子任务（Pending 等待依赖 / Ready 依赖已满足待派发，P1-1）
     pub fn ready_sub_tasks(&self) -> Vec<&SubTask> {
         self.sub_tasks
             .iter()
             .filter(|st| {
-                st.status == SubTaskStatus::Pending
+                matches!(st.status, SubTaskStatus::Pending | SubTaskStatus::Ready)
                     && st.dependencies.iter().all(|dep_id| {
                         self.sub_tasks
                             .iter()

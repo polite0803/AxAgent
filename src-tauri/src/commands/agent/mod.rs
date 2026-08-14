@@ -3,6 +3,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::agent as agent_err;
+use crate::commands::error_code::agent_input as agent_input_err;
 use crate::commands::error_code::agent_status as agent_status_err;
 use crate::commands::error_code::steer as steer_err;
 use crate::commands::spawn_guard::catch_unwind_logged;
@@ -49,8 +50,8 @@ use pricing::{check_token_budget, estimate_cost_usd};
 
 pub mod skill_execution;
 use skill_execution::{
-    SkillExecutionContext, build_agent_system_prompt, check_and_suggest_workflow_match,
-    execute_skill_sync, load_enabled_skill_contents, load_skill_tools,
+    SkillExecutionContext, build_agent_system_prompt, execute_skill_sync,
+    load_enabled_skill_contents, load_skill_tools,
 };
 
 pub mod command_bridge;
@@ -157,13 +158,13 @@ impl axagent_harness::AskUserBridge for AppAskUserBridge {
                         // sender 被丢弃，清理 ask_senders
                         let mut senders = ask_senders_cleanup.lock().await;
                         senders.remove(&ask_id_cleanup);
-                        Err("用户提问通道已关闭".to_string())
+                        Err(ErrorResponse::err(agent_input_err::CHANNEL_CLOSED))
                     },
                     Err(_) => {
                         // 超时，清理 ask_senders
                         let mut senders = ask_senders_cleanup.lock().await;
                         senders.remove(&ask_id_cleanup);
-                        Err("等待用户回复超时（5 分钟）".to_string())
+                        Err(ErrorResponse::err(agent_input_err::WAIT_REPLY_TIMEOUT))
                     },
                 }
             })
@@ -2226,18 +2227,6 @@ pub async fn agent_query(
                 }
             }
 
-            // Semantic workflow matching for conversation-type sessions:
-            // After the first agent response, check if user input matches any preset template
-            if conversation.session_type == "conversation" {
-                let _ = check_and_suggest_workflow_match(
-                    app_state.harness.db(),
-                    &app,
-                    &conversation_id,
-                    &request.input,
-                )
-                .await;
-            }
-
             // P4: Record trajectory for closed-loop learning
             // Build a Trajectory from the turn summary and save to TrajectoryStorage.
             // This is the critical data pipeline that feeds ClosedLoopService.tick().
@@ -3375,7 +3364,7 @@ async fn resolve_simple_completion_target(
             return Ok((p.id, m.model_id));
         }
     }
-    Err("没有可用的 provider/model：请先在设置中启用提供商".to_string())
+    Err(ErrorResponse::err(agent_input_err::NO_PROVIDER))
 }
 
 #[agent_command(domain = agent, safety = Safe, call_mode = StateInput, description = "轻量级一次性文本补全请求")]

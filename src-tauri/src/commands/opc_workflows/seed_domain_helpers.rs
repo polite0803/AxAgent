@@ -5,6 +5,7 @@
 //! 提供构建 WorkflowNode/Edge 的辅助函数，与行业 seed 文件模式一致。
 //! 各领域 seed 文件通过本模块函数完成种子化。
 
+use axagent_harness::capability::Visibility;
 use axagent_harness::workflow_types::{
     AgentNode, AgentNodeConfig, EdgeType, EndNode, EndNodeConfig, ErrorConfig, OnFailureAction,
     OutputMode, ToolDef, TriggerConfig, TriggerNode, TriggerType, WorkflowEdge, WorkflowNode,
@@ -143,6 +144,7 @@ pub fn build_domain_template(
         is_preset: true,
         is_editable: true,
         is_public: false,
+        visibility: Visibility::Public,
         trigger_config: Some(TriggerConfig {
             trigger_type: TriggerType::Manual,
             config: serde_json::json!({}),

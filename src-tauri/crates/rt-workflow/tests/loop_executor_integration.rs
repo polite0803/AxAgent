@@ -106,6 +106,7 @@ fn make_state(execution_id: &str) -> ExecutionState {
         tool_handlers: HashMap::new(),
         tool_fallback: None,
         subworkflow: None,
+        system_capability: None,
         loop_body_dispatch: None,
         loop_checkpoint: None,
         debate_body_dispatch: None,

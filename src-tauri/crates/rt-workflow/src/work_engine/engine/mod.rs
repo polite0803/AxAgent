@@ -111,6 +111,9 @@ pub struct RunOptions {
     pub dry_run: bool,
     /// Plan 模式回调：审批 + 步骤进度事件（通过 ExecutionState 传递给 AgentExecutor）
     pub plan_callbacks: Option<PlanCallbacks>,
+    /// 系统能力回调：SubWorkflow 节点引用 `system_*` 前缀 ID 时执行。
+    /// 由命令侧（认知编排器 cognitive_query）注入，走系统能力而非查 workflow_templates 表。
+    pub system_capability_callback: Option<SubWorkflowCallback>,
     pub parent_execution_id: Option<String>,
     pub execution_id: Option<String>,
     pub parent_cancel_token: Option<CancellationToken>,
@@ -199,6 +202,7 @@ impl Default for RunOptions {
             variables: None,
             dry_run: false,
             plan_callbacks: None,
+            system_capability_callback: None,
             parent_execution_id: None,
             execution_id: None,
             parent_cancel_token: None,
@@ -257,6 +261,16 @@ impl RunOptions {
     /// 注入超时预警回调
     pub fn with_timeout_warning_callback(mut self, cb: TimeoutWarningCallback) -> Self {
         self.timeout_warning_callback = Some(cb);
+        self
+    }
+    /// 注入工作流输入参数（会经过 input_schema 校验）
+    pub fn with_input(mut self, input: serde_json::Value) -> Self {
+        self.input = Some(input);
+        self
+    }
+    /// 注入系统能力回调：SubWorkflow 节点引用 `system_*` 前缀 ID 时执行
+    pub fn with_system_capability_callback(mut self, cb: Option<SubWorkflowCallback>) -> Self {
+        self.system_capability_callback = cb;
         self
     }
 }
@@ -2270,6 +2284,7 @@ impl WorkEngine {
                         tool_fallback: tool_fallback.clone(),
                         trigger_manager: None,
                         subworkflow: None,
+                        system_capability: options.system_capability_callback.clone(),
                         loop_body_dispatch: None,
                         loop_checkpoint: None,
                         debate_body_dispatch: None,
@@ -2282,6 +2297,9 @@ impl WorkEngine {
                     let sub_cancel_token = cancel_token.clone();
                     let sub_progress_cb = progress_cb.clone();
                     let sub_dry_run = options.dry_run;
+                    // h3-r4-2：透传系统能力回调到子工作流 RunOptions，
+                    // 使孙级 `system_*` 节点（如 L3 内的 system_rar_retriever）也能命中。
+                    let sub_system_capability_cb = options.system_capability_callback.clone();
 
                     let sub_cb: SubWorkflowCallback =
                         Arc::new(
@@ -2297,6 +2315,7 @@ impl WorkEngine {
                                 let cancel_token = sub_cancel_token.clone();
                                 let progress_cb = sub_progress_cb.clone();
                                 let dry_run = sub_dry_run;
+                                let system_capability_cb = sub_system_capability_cb.clone();
                                 let child_execution_id = uuid::Uuid::new_v4().to_string();
                                 let child_eid_for_result = child_execution_id.clone();
 
@@ -2345,12 +2364,31 @@ impl WorkEngine {
                                                 let mut opts = RunOptions {
                                                     execution_id: Some(child_execution_id),
                                                     input: Some(input_value),
+                                                    // 将 input_mapping 的 (target_var → value) 展开为
+                                                    // 子工作流顶层变量，使子工作流内节点（data_transformer
+                                                    // / llm_classifier / condition 等）可按 input_var 直接
+                                                    // 引用（如 `user_input`）。否则这些值仅被打包进 `input`
+                                                    // 对象，子工作流内部解析顶层变量会失败。
+                                                    variables: Some(
+                                                        input_vars
+                                                            .iter()
+                                                            .map(|(k, v)| Variable {
+                                                                name: k.clone(),
+                                                                var_type: "any".to_string(),
+                                                                value: v.clone(),
+                                                                description: None,
+                                                                is_secret: false,
+                                                            })
+                                                            .collect(),
+                                                    ),
                                                     dry_run,
                                                     parent_execution_id: Some(parent_execution_id),
                                                     model_id,
                                                     provider_id,
                                                     step_timeout: sub_step_timeout,
                                                     parent_cancel_token: Some(cancel_token),
+                                                    system_capability_callback:
+                                                        system_capability_cb,
                                                     ..Default::default()
                                                 };
                                                 if let Some(cb) = progress_cb {
@@ -2384,6 +2422,7 @@ impl WorkEngine {
                         tool_handlers,
                         tool_fallback,
                         subworkflow: Some(sub_cb),
+                        system_capability: options.system_capability_callback.clone(),
                         loop_body_dispatch: Some(build_loop_body_dispatch(
                             self.clone(),
                             execution_id.clone(),
@@ -3407,6 +3446,7 @@ impl WorkEngine {
                                     tool_handlers,
                                     tool_fallback,
                                     subworkflow: None,
+                                    system_capability: options.system_capability_callback.clone(),
                                     loop_body_dispatch: Some(build_loop_body_dispatch(
                                         self.clone(),
                                         execution_id.clone(),

@@ -1916,6 +1916,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             confidence_threshold: None,
             fallback_label: None,
             consistency_check: None,
+            categories_var: None,
         },
     }));
     edges.push(edge("e-t-risk-cls-risk", "t-risk", "cls-risk-level"));
@@ -3313,6 +3314,8 @@ let score = (tech * w_tech + fund * w_fund + sent * w_sent + flow * w_flow + pol
     let _ = workflow_template::Entity::delete_by_id(TEMPLATE_ID).exec(db).await;
     workflow_template::ActiveModel {
         id: Set(TEMPLATE_ID.to_string()),
+        cluster_id: Set(None),
+        route_path: Set(None),
         name: Set("A股多维度分析".to_string()),
         description: Set(Some(
             "10 维度分析师 → LLM 智能辩论 → 价值投资（巴菲特框架）→ 3 风险维度 → Rhai 评分 → 交易方案 → 投资决策"

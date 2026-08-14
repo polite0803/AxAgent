@@ -14,6 +14,7 @@
 
 use axagent_entities::workflow_template;
 use axagent_harness::hallucination_guard::HallucinationGuardConfig;
+use axagent_harness::capability::Visibility;
 use axagent_harness::workflow_types::{
     AgentNode, AgentNodeConfig, BackoffType, Branch, CodeNode, CodeNodeConfig, EdgeType, EndNode,
     EndNodeConfig, JsonSchema, JsonSchemaProperty, MergeStrategy, OutputMode, ParallelNode,
@@ -533,6 +534,7 @@ pub async fn seed_stock_pipeline_template(db: &sea_orm::DatabaseConnection) -> R
         is_preset: true,
         is_editable: true,
         is_public: false,
+        visibility: Visibility::Public,
         trigger_config: Some(TriggerConfig {
             trigger_type: TriggerType::Manual,
             config: serde_json::json!({}),
@@ -573,6 +575,8 @@ async fn upsert_template(
 
     let am = workflow_template::ActiveModel {
         id: Set(data.id.clone()),
+        cluster_id: Set(None),
+        route_path: Set(None),
         name: Set(data.name),
         description: Set(data.description),
         icon: Set(data.icon),

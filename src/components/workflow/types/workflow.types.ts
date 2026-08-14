@@ -548,10 +548,16 @@ export interface StorageNode extends WorkflowNodeBase {
 
 export interface LlmClassifierNodeConfig {
   categories: string[];
+  /** 动态分类目录注入口：从工作流 variables 读取类别列表的变量名，优先于静态 categories */
+  categories_var?: string;
   prompt: string;
   model?: string;
   input_var: string;
   output_var: string;
+  /** 置信度阈值（0.0-1.0）：LLM 返回置信度低于阈值时使用 fallback_label 降级 */
+  confidence_threshold?: number;
+  /** 置信度不足时的降级标签（可选） */
+  fallback_label?: string;
 }
 export interface LlmClassifierNode extends WorkflowNodeBase {
   type: "llmClassifier";
@@ -744,6 +750,8 @@ export interface WorkflowTemplateResponse {
   is_preset: boolean;
   is_editable: boolean;
   is_public: boolean;
+  /** 是否为系统模板（认知编排器等），由后端按 is_preset + cognitive_router 标签权威判定 */
+  is_system: boolean;
   trigger_config?: TriggerConfig;
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];

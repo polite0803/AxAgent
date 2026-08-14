@@ -1060,6 +1060,89 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         Some(runner)
     };
 
+    // ── 能力发现系统初始化 ──────────────────────────────────────
+    // 创建能力发现的嵌入提供者（真实嵌入服务，未配置时回退 Mock）
+    let embedding_provider: Arc<dyn axagent_harness::rag_provider::EmbeddingProvider> =
+        crate::capability_embedding::create_capability_embedding_provider(
+            &sea_db,
+            &master_key,
+            &harness,
+        )
+        .await;
+
+    // 创建能力索引器（具体实现）
+    let capability_indexer_impl = Arc::new(axagent_tools::CapabilityIndexerImpl::new(
+        vector_store_arc.clone(),
+        embedding_provider.clone(),
+    ));
+
+    // 从 VectorStore 恢复元数据索引（确保重启后已注册能力不丢失）
+    if let Err(e) = capability_indexer_impl.restore_metadata_from_store().await {
+        tracing::warn!("[capability] 元数据恢复失败（将以空索引启动）: {}", e);
+    }
+
+    // 转为 trait 对象供 Retriever 使用
+    let capability_indexer_trait: Arc<dyn axagent_harness::CapabilityIndexer> =
+        capability_indexer_impl.clone();
+
+    // 创建能力检索器（依赖 trait 而非具体实现）
+    let capability_retriever = Arc::new(axagent_tools::CapabilityRetrieverImpl::new(
+        vector_store_arc.clone(),
+        embedding_provider.clone(),
+        capability_indexer_trait.clone(),
+    ));
+
+    // 创建能力路由器（全链路编排）
+    let capability_router = Arc::new(axagent_tools::capability_router_impl::build_default_router(
+        capability_retriever.clone(),
+    ));
+
+    let capability_indexer = capability_indexer_impl;
+
+    tracing::info!("[capability] 能力发现系统初始化完成");
+
+    // 自动注册所有能力护照（工具/工作流/知识库/技能）
+    register_all_capabilities(&capability_indexer, &local_tool_registry, &sea_db, &skill_state)
+        .await;
+
+    // ── 认知编排器初始化（主工作流 + L1/L2/L3 子工作流模板） ──────────────────────
+    // 认知编排器由 4 个工作流模板组成，存储在 workflow_templates 表中，
+    // 通过 is_preset=true + 标签 "cognitive_router" 与业务工作流隔离。
+    if let Err(e) = crate::init::ensure_cognitive_router_templates(&sea_db).await {
+        tracing::error!("[cognitive] 认知编排器初始化失败: {}", e);
+    } else {
+        tracing::info!("[cognitive] 认知编排器初始化完成");
+    }
+
+    // ── 认知编排器初始化（三层路由树协调器） ──────────────────────
+    // 全局用户消息唯一入口：L1 域路由 → L2 簇路由 → L3 RAR+图谱路由 → 执行模式决策。
+    // L1/L2 用生产版规则实现；RAR 复用能力索引（与 capability_router 同源）；
+    // 图谱初始为空，后续由能力注册/工作流模板同步填充。
+    let domain_router: Arc<dyn axagent_harness::DomainRouter> =
+        Arc::new(axagent_harness::DomainRouterImpl::new());
+    let cluster_router: Arc<dyn axagent_harness::ClusterRouter> =
+        Arc::new(axagent_harness::ClusterRouterImpl::new());
+    let rar_router: Arc<dyn axagent_harness::RarRouter> = Arc::new(
+        axagent_harness::DefaultRarRouter::new(
+            embedding_provider.clone(),
+            capability_indexer_trait.clone(),
+        )
+        .with_retriever(
+            capability_retriever.clone() as Arc<dyn axagent_harness::CapabilityRetriever>
+        ),
+    );
+    let workflow_graph: Arc<axagent_harness::WorkflowGraph> =
+        Arc::new(axagent_harness::WorkflowGraph::new());
+    let cognitive_router: Arc<dyn axagent_harness::CognitiveRouter> =
+        Arc::new(axagent_harness::DefaultCognitiveRouter::new(
+            domain_router,
+            cluster_router,
+            rar_router,
+            workflow_graph,
+        ));
+
+    tracing::info!("[cognitive] 认知编排器初始化完成");
+
     Ok(AppState {
         harness,
         gateway: gateway_server,
@@ -1173,6 +1256,11 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         telemetry_sink,
         persistent_runner,
         event_bus,
+        // 能力发现系统
+        capability_router,
+        capability_indexer,
+        // 认知编排器
+        cognitive_router,
         // Phase 3 P1 Task 3.1: domain decomposition
         infra: infra_state,
         gateway_state,
@@ -1191,6 +1279,200 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
             crate::commands::memory::load_pending_memory_writes(),
         )),
     })
+}
+
+/// 自动收集并注册所有能力护照（工具/工作流/知识库/技能）
+///
+/// 在应用启动时调用，将已注册的工具、工作流模板、知识库、技能的能力护照
+/// 批量索引到能力发现系统。
+async fn register_all_capabilities(
+    indexer: &Arc<axagent_tools::CapabilityIndexerImpl>,
+    tool_registry: &Arc<tokio::sync::Mutex<axagent_tools::registry::UnifiedToolRegistry>>,
+    db: &sea_orm::DatabaseConnection,
+    skill_state: &crate::state::SkillState,
+) {
+    use axagent_harness::{CapabilityIndexer, CapabilityPassport};
+
+    let mut passports = Vec::new();
+
+    // 1. 从工具注册表收集所有 ToolInfo 的护照
+    {
+        let registry = tool_registry.lock().await;
+        for tool_info in registry.tools.list_all() {
+            passports.push(tool_info.to_passport_dto());
+        }
+    }
+
+    // 2. 从工作流模板仓库收集
+    match axagent_dao::repo::workflow_template::list_workflow_templates(db, None).await {
+        Ok(templates) => {
+            for model in &templates {
+                let data = axagent_dao::repo::workflow_template::template_model_to_data(model);
+                let passport = data.to_passport_dto();
+                // 跳过系统预置模板（认知编排器等）：SystemOnly 护照禁止进入业务能力索引，
+                // 避免被 RAR 检索 / 能力发现命中（结构隔离而非依赖熔断黑名单）。
+                if passport.visibility.is_system_only() {
+                    continue;
+                }
+                passports.push(passport);
+            }
+        },
+        Err(e) => {
+            tracing::warn!("[capability] 收集工作流模板护照失败: {}", e);
+        },
+    }
+
+    // 3. 从知识库收集
+    match axagent_dao::repo::knowledge::list_knowledge_bases(db).await {
+        Ok(kbs) => {
+            for kb in &kbs {
+                passports.push(kb.to_passport_dto());
+            }
+        },
+        Err(e) => {
+            tracing::warn!("[capability] 收集知识库护照失败: {}", e);
+        },
+    }
+
+    // 4. 技能：从 SkillState 缓存的 PluginManager 收集技能护照
+    //    通过 plugin_registry_report() 容错加载（单个 SKILL.md 损坏不影响整体），
+    //    技能归入 Core 域 + skill 集群，与工具/工作流并行参与 RAR 检索。
+    {
+        use axagent_harness::{
+            CapabilityDomain, CapabilityKind, CapabilityPassportDto, PlanningComplexity,
+            SecurityLevel, Visibility,
+        };
+        let plugin_manager = skill_state.plugin_manager.read().await;
+        if let Ok(report) = plugin_manager.plugin_registry_report() {
+            for f in report.failures() {
+                tracing::debug!("[capability] 技能加载失败（跳过护照注册）: {f}");
+            }
+            let plugins = report.into_registry_allowing_failures();
+            for p in plugins.summaries() {
+                let meta = &p.metadata;
+                passports.push(CapabilityPassportDto {
+                    capability_id: format!("skill:{}", meta.name),
+                    name: meta.name.clone(),
+                    description: meta.description.clone(),
+                    kind: CapabilityKind::Skill,
+                    domain: CapabilityDomain::Core,
+                    sub_category: "skill".to_string(),
+                    visibility: Visibility::Public,
+                    caller_permissions: Default::default(),
+                    input_schema: None,
+                    tags: vec!["skill".to_string(), meta.source.clone()],
+                    negative_scenarios: vec![],
+                    security_level: SecurityLevel::Public,
+                    modality_support: Default::default(),
+                    output_capabilities: Default::default(),
+                    estimated_cost_usd: None,
+                    avg_duration_seconds: None,
+                    planning_complexity: PlanningComplexity::Simple,
+                    model_iq_requirement: 0,
+                    experiment_group: None,
+                    stats: Default::default(),
+                    enabled: true,
+                });
+            }
+        }
+    }
+
+    if passports.is_empty() {
+        tracing::warn!("[capability] 未发现任何能力护照，能力发现系统将以空索引启动");
+        return;
+    }
+
+    let total = passports.len();
+    let results = indexer.index_batch(&passports).await;
+    let success = results.iter().filter(|r| r.success).count();
+    tracing::info!("[capability] 自动注册 {} 个能力护照，成功 {}", total, success);
+
+    // 5. 注册系统级能力（CognitiveRouter 编排器等）
+    register_system_capabilities(indexer).await;
+}
+
+/// 注册系统级能力到系统注册表
+///
+/// 系统能力具有以下特征：
+/// - visibility 为 SystemOnly，不可被用户发现
+/// - domain 为 System，属于系统域
+/// - 用于内部编排和基础设施服务
+async fn register_system_capabilities(indexer: &Arc<axagent_tools::CapabilityIndexerImpl>) {
+    use axagent_harness::{
+        CallerPermissions, CapabilityDomain, CapabilityIndexer, CapabilityKind,
+        CapabilityPassportDto, OutputCapabilities, PlanningComplexity, SecurityLevel, Visibility,
+    };
+
+    let system_passports = vec![
+        // CognitiveRouter — 三层路由编排器
+        CapabilityPassportDto {
+            capability_id: "system_cognitive_router".to_string(),
+            name: "认知路由编排器".to_string(),
+            description: "三层路由编排器（L1域→L2簇→L3能力），负责将用户查询路由到正确的能力"
+                .to_string(),
+            kind: CapabilityKind::Workflow,
+            domain: CapabilityDomain::System,
+            sub_category: "cognitive_routing".to_string(),
+            visibility: Visibility::SystemOnly,
+            caller_permissions: CallerPermissions::new(),
+            input_schema: None,
+            tags: vec![
+                "system".to_string(),
+                "router".to_string(),
+                "cognitive".to_string(),
+                "layered".to_string(),
+            ],
+            negative_scenarios: vec![],
+            security_level: SecurityLevel::Public,
+            modality_support: Default::default(),
+            output_capabilities: OutputCapabilities::default(),
+            estimated_cost_usd: Some(0.0),
+            avg_duration_seconds: Some(0.1),
+            planning_complexity: PlanningComplexity::Complex,
+            model_iq_requirement: 85,
+            experiment_group: None,
+            stats: Default::default(),
+            enabled: true,
+        },
+        // LayeredPromptEngine — 分层 Prompt 引擎
+        CapabilityPassportDto {
+            capability_id: "system_layered_prompt_engine".to_string(),
+            name: "分层Prompt引擎".to_string(),
+            description: "按Domain/Cluster/Capability/Context四层注入Prompt片段，支持Token预算管理"
+                .to_string(),
+            kind: CapabilityKind::Tool,
+            domain: CapabilityDomain::System,
+            sub_category: "prompt_engine".to_string(),
+            visibility: Visibility::SystemOnly,
+            caller_permissions: CallerPermissions::new(),
+            input_schema: None,
+            tags: vec![
+                "system".to_string(),
+                "prompt".to_string(),
+                "engine".to_string(),
+                "layered".to_string(),
+            ],
+            negative_scenarios: vec![],
+            security_level: SecurityLevel::Public,
+            modality_support: Default::default(),
+            output_capabilities: OutputCapabilities::default(),
+            estimated_cost_usd: Some(0.0),
+            avg_duration_seconds: Some(0.05),
+            planning_complexity: PlanningComplexity::Simple,
+            model_iq_requirement: 0,
+            experiment_group: None,
+            stats: Default::default(),
+            enabled: true,
+        },
+    ];
+
+    let results = indexer.index_batch(&system_passports).await;
+    let success = results.iter().filter(|r| r.success).count();
+    tracing::info!(
+        "[system_registry] 注册 {} 个系统能力，成功 {}",
+        system_passports.len(),
+        success
+    );
 }
 
 async fn create_sync_engine(

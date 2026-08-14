@@ -66,7 +66,7 @@ export function AgentMiniPanel() {
   const loading = useConversationStore((s) => s.loading);
   const createConversation = useConversationStore((s) => s.createConversation);
   const setActiveConversation = useConversationStore((s) => s.setActiveConversation);
-  const sendAgentMessage = useConversationStore((s) => s.sendAgentMessage);
+  const sendMessage = useConversationStore((s) => s.sendMessage);
   const fetchMessages = useConversationStore((s) => s.fetchMessages);
   const providers = useProviderStore((s) => s.providers);
   const settings = useSettingsStore((s) => s.settings);
@@ -206,13 +206,13 @@ export function AgentMiniPanel() {
     setSending(true);
     setInput("");
     try {
-      await sendAgentMessage(text);
+      await sendMessage(text);
     } catch {
       messageApi.error(t("common.failed"));
     } finally {
       setSending(false);
     }
-  }, [input, activeConversationId, sendAgentMessage, messageApi, t]);
+  }, [input, activeConversationId, sendMessage, messageApi, t]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {

@@ -4,6 +4,7 @@
 //!
 //! 流程：手动启动 → 产品UI设计 → 品牌视觉设计 → 设计系统构建 → 完成
 
+use axagent_harness::capability::Visibility;
 use axagent_harness::workflow_types::{
     AgentNode, AgentNodeConfig, EdgeType, EndNode, EndNodeConfig, OutputMode, ToolDef,
     TriggerConfig, TriggerNode, TriggerType, WorkflowEdge, WorkflowNode, WorkflowTemplateData,
@@ -146,6 +147,7 @@ pub async fn seed_industry_design_workflow_template(db: &DatabaseConnection) -> 
         is_preset: true,
         is_editable: true,
         is_public: false,
+        visibility: Visibility::Public,
         trigger_config: Some(TriggerConfig {
             trigger_type: TriggerType::Manual,
             config: serde_json::json!({}),

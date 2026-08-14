@@ -13,6 +13,7 @@
 //! 行业级版本号取代全局 OPC_TEMPLATE_VERSION，行业间互不影响。
 
 use axagent_harness::util_fns::now_ts;
+use axagent_harness::capability::Visibility;
 use axagent_harness::workflow_types::*;
 use sea_orm::DatabaseConnection;
 use serde::Deserialize;
@@ -479,6 +480,7 @@ pub fn build_workflow_from_pack(w: &IndustryWorkflow, version: i32) -> WorkflowT
             is_preset: true,
             is_editable: true,
             is_public: false,
+            visibility: Visibility::Public,
             trigger_config: Some(TriggerConfig {
                 trigger_type: TriggerType::Manual,
                 config: serde_json::json!({}),
@@ -567,6 +569,7 @@ pub fn build_workflow_from_pack(w: &IndustryWorkflow, version: i32) -> WorkflowT
         is_preset: true,
         is_editable: true,
         is_public: false,
+        visibility: Visibility::Public,
         trigger_config: Some(TriggerConfig {
             trigger_type: TriggerType::Manual,
             config: serde_json::json!({}),
@@ -962,6 +965,7 @@ pub async fn export_industry_workflows_json(
             is_preset: t.is_preset,
             is_editable: t.is_editable,
             is_public: t.is_public,
+            visibility: Visibility::Public,
             trigger_config: t.trigger_config.as_ref().and_then(|j| serde_json::from_str(j).ok()),
             nodes,
             edges,

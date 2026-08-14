@@ -37,6 +37,11 @@ pub fn workflow_template_response_from_model(
     let error_config: Option<ErrorConfig> =
         model.error_config.as_ref().and_then(|e| serde_json::from_str(e).ok());
 
+    // 系统模板判定复用 harness 权威方法（is_preset + cognitive_router 标签），
+    // 前端据此区分系统模板页与业务模板页。
+    let is_system =
+        crate::repo::workflow_template::template_model_to_data(&model).is_system_template();
+
     WorkflowTemplateResponse {
         id: model.id,
         name: model.name,
@@ -47,6 +52,7 @@ pub fn workflow_template_response_from_model(
         is_preset: model.is_preset,
         is_editable: model.is_editable,
         is_public: model.is_public,
+        is_system,
         trigger_config,
         nodes,
         edges,

@@ -4,6 +4,7 @@
 //!
 //! 流程：手动启动 → 爆品挖掘 → 竞品监控 → 营销策划 → 完成
 
+use axagent_harness::capability::Visibility;
 use axagent_harness::workflow_types::{
     AgentNode, AgentNodeConfig, EdgeType, EndNode, EndNodeConfig, OutputMode, ToolDef,
     TriggerConfig, TriggerNode, TriggerType, WorkflowEdge, WorkflowNode, WorkflowTemplateData,
@@ -152,6 +153,7 @@ pub async fn seed_industry_ecommerce_workflow_template(
         is_preset: true,
         is_editable: true,
         is_public: false,
+        visibility: Visibility::Public,
         trigger_config: Some(TriggerConfig {
             trigger_type: TriggerType::Manual,
             config: serde_json::json!({}),

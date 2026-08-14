@@ -877,6 +877,13 @@
       "searching": "Searching memory..."
     },
     "messageArea": "Message Area",
+    "mode": {
+      "action": "Act",
+      "ask": "Ask",
+      "auto": "Auto",
+      "plan": "Plan",
+      "title": "Execution Mode"
+    },
     "moveToWorkspace": "Move to Workspace",
     "multiModel": {
       "selectTitle": "Select models to respond simultaneously",
@@ -1146,13 +1153,10 @@
       },
       "completedDesc": "\"{{name}}\" completed, {{total}} steps, {{completed}} succeeded.",
       "completedTitle": "Workflow Completed",
-      "conversationMode": "Conversation Mode",
-      "conversationModeDesc": "Free conversation, no fixed workflow",
       "dagHint": "Paste this Mermaid code in a Mermaid renderer to visualize the DAG.",
       "dagView": "DAG",
       "dagVisualization": "DAG Visualization",
       "dependsOn": "Depends on:",
-      "dismiss": "Dismiss",
       "docGen": {
         "description": "Generate comprehensive documentation for code, APIs, and projects.",
         "name": "Documentation Generator"
@@ -1181,12 +1185,10 @@
       },
       "result": "Result:",
       "retries": "Retries:",
-      "searchPlaceholder": "Search templates...",
       "security": {
         "description": "Perform comprehensive security vulnerability scan and risk assessment.",
         "name": "Security Audit"
       },
-      "selectHint": "Select Workflow",
       "status": {
         "completed": "Completed",
         "failed": "Failed",
@@ -1198,16 +1200,10 @@
         "skipped": "Skipped"
       },
       "stepStatus": "Status:",
-      "suggestionDesc": "Detected your need is similar to workflow \"{{name}}\"",
-      "suggestionHint": "Hint",
-      "suggestionReason": "Using a workflow provides more structured multi-step execution",
-      "switchToWorkflow": "Switch to Workflow",
       "testGen": {
         "description": "Generate comprehensive test suites with unit, integration, and edge case tests.",
         "name": "Test Generator"
       },
-      "title": "Agent Workflow Templates",
-      "unnamed": "Workflow",
       "viewDetails": "View Details",
       "viewOutput": "Final Output",
       "workflowStatus": {
@@ -2356,6 +2352,12 @@
     "CLOUD_UNKNOWN_CONFLICT": "Unknown sync conflict type",
     "CLOUD_UNKNOWN_STORAGE": "Unknown storage type",
     "CLOUD_UNKNOWN_STRATEGY": "Unknown sync strategy",
+    "COGNITIVE_ROUTE_FAILED": "Cognitive route execution failed",
+    "COGNITIVE_EMPTY_INPUT": "Cognitive route input is empty",
+    "COGNITIVE_CIRCUIT_BROKEN": "Cognitive route circuit breaker tripped: {reason}",
+    "COGNITIVE_NO_CANDIDATE": "No available capability found for cognitive route",
+    "COGNITIVE_EXECUTION_MODE_INVALID": "Invalid cognitive route execution mode",
+    "COGNITIVE_PROMPT_REJECTED": "Cognitive prompt rejected",
     "COMMON_INTERNAL": "Internal error",
     "COMMON_INVALID_INPUT": "Invalid input",
     "COMMON_TIMEOUT": "Operation timed out",
@@ -2576,6 +2578,7 @@
     "WORKFLOW_REFLECTION_REFLECT_FAILED": "Workflow reflection failed",
     "WORKFLOW_REFLECTION_SUGGEST_FAILED": "Workflow reflection suggestion failed",
     "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "Invalid workflow reflection template",
+    "WORKFLOW_SYSTEM_TEMPLATE_PROTECTED": "System template is protected and cannot be modified, deleted, or duplicated",
     "WORKFLOW_VERSION_NOT_FOUND": "Workflow version not found",
     "network": "Network connection failed",
     "providerNotConfigured": "Please configure a provider first",
@@ -2653,7 +2656,41 @@
     "DEVICE_SYNC_PASSWORD_EMPTY": "Encryption password cannot be empty",
     "DEVICE_SYNC_SALT_REQUIRED": "Salt is required for decryption",
     "DEVICE_SYNC_STORAGE_OPERATION_FAILED": "Storage operation failed",
-    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "Policy operation failed"
+    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "Policy operation failed",
+    "CAPABILITY_REGISTER_FAILED": "Capability registration failed",
+    "CAPABILITY_DISCOVER_FAILED": "Capability discovery failed",
+    "CAPABILITY_NOT_FOUND": "Capability not found",
+    "CAPABILITY_INDEX_FAILED": "Capability indexing failed",
+    "CAPABILITY_EMBEDDING_FAILED": "Embedding generation failed",
+    "CAPABILITY_VECTOR_STORE_FAILED": "Vector store operation failed",
+    "CAPABILITY_INVALID_PASSPORT": "Invalid capability passport",
+    "CAPABILITY_LIST_FAILED": "Failed to list capabilities",
+    "CAPABILITY_STATS_FAILED": "Failed to get capability stats",
+    "CAPABILITY_METADATA_RESTORE_FAILED": "Metadata restoration failed",
+    "AGENT_INPUT_CHANNEL_CLOSED": "The user input channel is closed",
+    "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "Timed out waiting for user reply (5 minutes)",
+    "AGENT_INPUT_NO_PROVIDER": "No available provider/model: please enable a provider in settings",
+    "AGENT_ROLE_BUILTIN_NOT_DELETABLE": "Built-in roles cannot be deleted",
+    "BACKUP_CLOUD_KEY_TRAVERSAL": "Path traversal detected: cloud_key points outside the backup directory",
+    "STREAMING_REQUEST_IN_PROGRESS": "A request is already in progress, please wait for it to finish",
+    "DYNAMIC_UI_BUILTIN_NOT_MODIFIABLE": "Built-in schemas cannot be modified",
+    "DYNAMIC_UI_BUILTIN_NOT_DELETABLE": "Built-in schemas cannot be deleted",
+    "DYNAMIC_UI_SCHEMA_NOT_FOUND": "DynamicUI schema does not exist",
+    "DYNAMIC_UI_BUILTIN_NOT_ROLLBACK": "Built-in schemas cannot be rolled back",
+    "DYNAMIC_UI_EDIT_PROMPT_EMPTY": "Edit instruction cannot be empty",
+    "DYNAMIC_UI_SCHEMA_MISSING_FIELD": "AI-returned schema is missing required fields (type/id)",
+    "DYNAMIC_UI_GENERATE_PROMPT_EMPTY": "Generation instruction cannot be empty",
+    "EVOLUTION_INSUFFICIENT_TRAJECTORY": "Not enough trajectory data for evolution",
+    "EVOLUTION_INITIAL_FEEDBACK_EMPTY": "Initial feedback cannot be empty",
+    "NL_TO_CRON_DESCRIPTION_EMPTY": "Please enter a scheduled task description",
+    "RESEARCH_NOT_ENOUGH_MESSAGES": "Not enough conversation messages to generate a report",
+    "RESEARCH_TOPIC_EMPTY": "Research topic cannot be empty",
+    "SESSION_SHARE_INVALID_CODE": "Invalid invite code",
+    "SESSION_SHARE_ALREADY_FULL": "Session is full, unable to join",
+    "SESSION_SHARE_NOT_FOUND": "Session does not exist",
+    "WORK_ENGINE_EXECUTION_NOT_FOUND": "Invalid execution_id or workflow not registered",
+    "TRAJECTORY_NOT_FOUND": "Trajectory not found",
+    "UNKNOWN_PRESET": "Unknown preset"
   },
   "errorBoundary": {
     "copied": "Copied",
@@ -2779,6 +2816,14 @@
     "general": "General",
     "security": "Security",
     "writing": "Writing"
+  },
+  "expertPreset": {
+    "generalAssistant": {
+      "name": "General Assistant",
+      "desc": "A general-purpose AI assistant for everyday conversations and general questions.",
+      "systemPrompt": "You are an intelligent AI assistant. Provide accurate and helpful answers based on the user's questions.",
+      "tags": ["General", "Assistant", "Chat"]
+    }
   },
   "expertSelector": {
     "added": "Added",
@@ -8322,7 +8367,8 @@
     "workflow": {
       "createNew": "Create New Template",
       "marketplace": "Marketplace",
-      "myWorkflows": "My Workflows"
+      "myWorkflows": "My Workflows",
+      "systemTemplates": "System Templates"
     },
     "zhipu": "Zhipu",
     "groupVoice": "Voice",
@@ -11838,6 +11884,15 @@
       "community": "Community",
       "recommended": "Recommended",
       "all": "All"
+    },
+    "systemTemplateList": {
+      "edit": "Edit",
+      "hint": "System templates (cognitive orchestrator, etc.) drive global routing. Viewable/editable but cannot be deleted, duplicated, or exported",
+      "moreActions": "More actions",
+      "noDescription": "No description",
+      "noTemplates": "No system templates",
+      "systemTag": "System",
+      "view": "View"
     },
     "templateName": "Template Name",
     "templateSaved": "Template saved",

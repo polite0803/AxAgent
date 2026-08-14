@@ -201,6 +201,7 @@ fn model_to_response(m: workflow_template::Model) -> Result<WorkflowTemplateResp
         serde_json::from_str(&m.edges).map_err(|e| format!("解析 edges: {e}"))?;
     let tags: Vec<String> =
         m.tags.as_deref().and_then(|s| serde_json::from_str(s).ok()).unwrap_or_default();
+    let is_system = m.is_preset && tags.iter().any(|t| t == "cognitive_router");
     let variables: Vec<axagent_harness::workflow_types::Variable> =
         m.variables.as_deref().and_then(|s| serde_json::from_str(s).ok()).unwrap_or_default();
     let tool_defs: Option<Vec<axagent_harness::workflow_types::RhaiToolDef>> =
@@ -224,6 +225,7 @@ fn model_to_response(m: workflow_template::Model) -> Result<WorkflowTemplateResp
         is_preset: m.is_preset,
         is_editable: m.is_editable,
         is_public: m.is_public,
+        is_system,
         trigger_config,
         nodes,
         edges,

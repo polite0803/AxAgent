@@ -5,6 +5,7 @@
 //! 流程：手动启动 → 市场分析 → 行业研究 → 资产配置 → 交易执行 → 回顾复盘 → 完成
 //! requires_approval = true
 
+use axagent_harness::capability::Visibility;
 use axagent_harness::workflow_types::{
     AgentNode, AgentNodeConfig, EdgeType, EndNode, EndNodeConfig, OutputMode, ToolDef,
     TriggerConfig, TriggerNode, TriggerType, WorkflowEdge, WorkflowNode, WorkflowTemplateData,
@@ -180,6 +181,7 @@ pub async fn seed_industry_finance_invest_workflow_template(
         is_preset: true,
         is_editable: true,
         is_public: false,
+        visibility: Visibility::Public,
         trigger_config: Some(TriggerConfig {
             trigger_type: TriggerType::Manual,
             config: serde_json::json!({}),

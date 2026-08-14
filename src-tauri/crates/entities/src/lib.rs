@@ -62,6 +62,9 @@ pub mod workflow_template;
 
 pub mod workflow_template_version;
 
+// 能力路由相关实体
+pub mod capability_clusters;
+
 pub mod prompt_template;
 pub mod prompt_template_version;
 

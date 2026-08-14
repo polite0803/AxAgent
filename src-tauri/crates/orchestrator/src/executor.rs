@@ -319,7 +319,10 @@ impl OrchestratorExecutor {
 
                 plan.sub_tasks
                     .iter()
-                    .filter(|st| st.status == SubTaskStatus::Pending)
+                    .filter(|st| {
+                        // P1-1：Pending（等待依赖）与 Ready（依赖已满足待派发）均纳入派发
+                        matches!(st.status, SubTaskStatus::Pending | SubTaskStatus::Ready)
+                    })
                     .filter(|st| {
                         // 依赖全部 Completed
                         st.dependencies.iter().all(|dep_id| {
@@ -357,10 +360,29 @@ impl OrchestratorExecutor {
                 .await;
             }
 
-            // 批量派发（dispatcher 内部可并行）
-            let results = dispatcher.dispatch_batch(ready_tasks).await.map_err(|e| {
-                OrchestrationError::DispatchFailed(format!("batch dispatch failed: {e}"))
-            })?;
+            // 批量派发（dispatcher 内部可并行）—— P1-4：增加派发超时保护
+            // 超时后返回 DispatchFailed 错误，防止派发器挂起导致编排僵尸等待；
+            // 调用方可据此触发降级/重试（任务已标记 Running，不会重复派发）。
+            let dispatch_timeout = std::time::Duration::from_secs(300);
+            let results = match tokio::time::timeout(
+                dispatch_timeout,
+                dispatcher.dispatch_batch(ready_tasks),
+            )
+            .await
+            {
+                Ok(Ok(results)) => results,
+                Ok(Err(e)) => {
+                    return Err(OrchestrationError::DispatchFailed(format!(
+                        "batch dispatch failed: {e}"
+                    )));
+                },
+                Err(_) => {
+                    tracing::error!("dispatch_batch 超时（>300s），编排终止以避免僵尸等待");
+                    return Err(OrchestrationError::DispatchFailed(
+                        "batch dispatch timed out after 300s".to_string(),
+                    ));
+                },
+            };
 
             // 处理结果：直接更新状态，避免循环内反复触发 monitor_and_maybe_replan
             // （monitor 会在循环结束后统一调用，完成 terminal/replan/Completed 转换）
@@ -740,6 +762,21 @@ impl OrchestratorExecutor {
             .iter_mut()
             .find(|st| st.id == sub_task_id)
             .ok_or_else(|| OrchestrationError::SubTaskNotFound(sub_task_id.to_string()))?;
+
+        // P1-4：终态保护——终态（Completed/Failed/Skipped）禁止回退到非终态。
+        // 处理"晚到结果"：超时/重试后迟到的事件不得覆盖已确认的终态。
+        let current = sub_task.status;
+        if current.is_terminal() && !new_status.is_terminal() {
+            tracing::warn!(
+                sub_task_id,
+                current = %current,
+                attempted = %new_status,
+                "🛡️ 忽略终态回退：子任务已处于 {} 终态，拒绝回退到 {}",
+                current,
+                new_status
+            );
+            return Ok(());
+        }
 
         sub_task.status = new_status;
         Ok(())

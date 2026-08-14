@@ -8,6 +8,11 @@ pub mod agent_def_loader;
 pub mod agent_def_types;
 pub mod audit;
 pub mod bash;
+pub mod capability_filter_impl;
+pub mod capability_indexer_impl;
+pub mod capability_ranker_impl;
+pub mod capability_retriever_impl;
+pub mod capability_router_impl;
 pub mod cjk_font;
 pub mod context_keys;
 pub mod global_state;
@@ -20,6 +25,7 @@ pub mod math;
 pub mod mcp;
 pub mod mcp_manager;
 pub mod mermaid;
+pub mod mock_embedding;
 pub mod orchestration;
 pub mod permissions;
 pub mod plugin_sdk;
@@ -33,7 +39,13 @@ pub mod templates;
 pub mod tools;
 pub mod utils;
 
+pub use capability_filter_impl::CapabilityFilterImpl;
+pub use capability_indexer_impl::CapabilityIndexerImpl;
+pub use capability_ranker_impl::CapabilityRankerImpl;
+pub use capability_retriever_impl::CapabilityRetrieverImpl;
+pub use capability_router_impl::{build_default_router, build_router, discover};
 pub use global_state::{get_db_path, get_sea_db, set_db_path, set_sea_db};
+pub use mock_embedding::MockEmbeddingProvider;
 pub use plugin_sdk::{
     AxAgentPlugin, PluginBuilder, PluginCategory, PluginContext, PluginManifest, PluginPermission,
     PluginToolDef, PluginToolResult,

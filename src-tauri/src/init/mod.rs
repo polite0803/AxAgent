@@ -2,6 +2,7 @@
 
 pub mod axinvest_decorators;
 pub mod browser_fetcher;
+pub mod cognitive_router_init;
 pub mod cron_delivery_sink;
 pub mod database;
 pub mod llm_providers;
@@ -15,6 +16,11 @@ pub mod state;
 pub mod trigger_recovery;
 pub mod workflow_injections;
 
+pub use cognitive_router_init::{
+    COGNITIVE_L1_DOMAIN_ROUTER_ID, COGNITIVE_L2_CLUSTER_ROUTER_ID,
+    COGNITIVE_L3_CAPABILITY_ROUTER_ID, COGNITIVE_ROUTER_MAIN_ID, COGNITIVE_ROUTER_TAG,
+    ensure_cognitive_router_templates,
+};
 pub use database::init_database_with_dir;
 pub use plugins::register_plugins;
 pub use state::create_app_state;

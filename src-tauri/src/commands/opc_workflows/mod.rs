@@ -402,6 +402,8 @@ pub(crate) async fn upsert_template(
 
     let am = workflow_template::ActiveModel {
         id: Set(data.id.clone()),
+        cluster_id: Set(None),
+        route_path: Set(None),
         name: Set(data.name),
         description: Set(data.description),
         icon: Set(data.icon),

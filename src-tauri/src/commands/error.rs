@@ -206,33 +206,3 @@ impl std::fmt::Display for ErrorResponse {
 // SECURITY (C9): 实现 std::error::Error trait，使 ErrorResponse 可用于 anyhow::Result
 // 和 `?` 操作符的错误链传播。
 impl std::error::Error for ErrorResponse {}
-
-/// 脱敏错误信息：阻止常见的内部路径泄露到前端。
-/// 使用 `map_err(sanitize_error)` 包装 `.map_err(|e| String::from(crate::commands::error::ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)))` 调用。
-///
-/// 注：当前调用点尚未完成迁移，暂用 `#[allow(dead_code)]` 保留；待后续
-/// 统一切换到脱敏管线时移除该属性。
-#[allow(dead_code)]
-pub fn sanitize_error(msg: String) -> String {
-    // 防止 Windows 路径泄露（简单检测 `C:\`、`D:\` 等）
-    for drive in [
-        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',
-        'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-    ] {
-        let prefix = format!("{}:\\", drive);
-        if let Some(start) = msg.find(&prefix) {
-            // 用占位符替换从路径开头到第一个冒号/空格/换行之间的内容
-            let after_prefix = &msg[start + 3..];
-            let path_end =
-                after_prefix.find([':', ' ', '\n', ')']).unwrap_or(after_prefix.len().min(60));
-            return format!("{}[REDACTED]{}", &msg[..start], &after_prefix[path_end..]);
-        }
-    }
-    // 防止 Unix 路径泄露（/开头的绝对路径）
-    if let Some(stripped) = msg.strip_prefix('/') {
-        if let Some(end) = stripped.find([':', ' ', '\n']) {
-            return format!("[REDACTED]{}", &stripped[end + 1..]);
-        }
-    }
-    msg
-}

@@ -1586,3 +1586,32 @@ pub use crate::rag_config::RAGPipelineConfig;
 pub use crate::rag_config::RerankConfig;
 pub use crate::rag_config::SelfRagConfig;
 pub use crate::rag_config::{Note, NoteSearchResult};
+
+// ── KnowledgeBase: CapabilityPassport 实现 ─────────────
+
+impl crate::capability::CapabilityPassport for KnowledgeBase {
+    fn capability_id(&self) -> String {
+        format!("knowledge_base:{}", self.id)
+    }
+
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn description(&self) -> &str {
+        self.description.as_deref().unwrap_or("")
+    }
+
+    fn kind(&self) -> crate::capability::CapabilityKind {
+        crate::capability::CapabilityKind::KnowledgeBase
+    }
+
+    fn domain(&self) -> crate::capability::CapabilityDomain {
+        // KnowledgeBase 无显式 domain 字段，降级为 General
+        crate::capability::CapabilityDomain::General
+    }
+
+    fn is_enabled(&self) -> bool {
+        self.enabled
+    }
+}

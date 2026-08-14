@@ -1064,6 +1064,8 @@ pub(crate) async fn seed_opc_workflow_template(db: &DatabaseConnection) -> Resul
     // ── 写入数据库 ──
     workflow_template::ActiveModel {
         id: Set(TEMPLATE_ID.to_string()),
+        cluster_id: Set(None),
+        route_path: Set(None),
         name: Set("OPC 需求发现".to_string()),
         description: Set(Some(
             "多角色并行分析（营销/产品/技术/财务/运营）→ CEO 综合决策 → 通知相关方".to_string(),

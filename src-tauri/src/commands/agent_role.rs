@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::agent_role as agent_role_err;
 use agent_macro::agent_command;
 use axagent_dao::repo::agent_role;
 use axagent_harness::types::AgentRoleDef;
@@ -153,7 +155,7 @@ pub async fn delete_agent_role(app_state: State<'_, AppState>, id: String) -> Re
         .ok_or_else(|| format!("Role {} not found", id))?;
 
     if role.source == "builtin" {
-        return Err("内置角色不可删除".to_string());
+        return Err(ErrorResponse::err(agent_role_err::BUILTIN_NOT_DELETABLE));
     }
 
     agent_role::delete_agent_role(app_state.harness.db(), &id).await.map_err(|e| {

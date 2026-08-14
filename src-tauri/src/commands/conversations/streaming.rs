@@ -1313,7 +1313,7 @@ pub async fn send_message(
     let user_msg_id = user_message.id.clone();
     let cancel_flag = Arc::new(AtomicBool::new(false));
     if state.stream_cancel_flags.contains_key(&conversation_id) {
-        return Err("已有正在进行的请求，请等待完成后再发送".to_string());
+        return Err(ErrorResponse::err(error_code::streaming::REQUEST_IN_PROGRESS));
     }
     state.stream_cancel_flags.insert(conversation_id.clone(), cancel_flag.clone());
     spawn_stream_task(
@@ -1767,7 +1767,7 @@ pub async fn regenerate_message(
 
     let cancel_flag = Arc::new(AtomicBool::new(false));
     if state.stream_cancel_flags.contains_key(&conversation_id) {
-        return Err("已有正在进行的请求，请等待完成后再发送".to_string());
+        return Err(ErrorResponse::err(error_code::streaming::REQUEST_IN_PROGRESS));
     }
     state.stream_cancel_flags.insert(conversation_id.clone(), cancel_flag.clone());
     spawn_stream_task(

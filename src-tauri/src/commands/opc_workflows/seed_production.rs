@@ -8,6 +8,7 @@
 
 use axagent_harness::hallucination_guard::HallucinationGuardConfig;
 use axagent_harness::util_fns::now_ts;
+use axagent_harness::capability::Visibility;
 use axagent_harness::workflow_types::*;
 use sea_orm::DatabaseConnection;
 
@@ -238,6 +239,7 @@ pub async fn seed_landing_page_workflow(db: &DatabaseConnection) -> Result<(), S
         icon: "🚀".into(),
         tags: vec!["landing-page".into(),"marketing".into(),"web".into()],
         version: OPC_TEMPLATE_VERSION, is_preset: true, is_editable: true, is_public: false,
+        visibility: Visibility::Public,
         trigger_config: Some(TriggerConfig { trigger_type: TriggerType::Manual, config: serde_json::json!({}) }),
         nodes, edges, input_schema: None, output_schema: None, variables: vec![],
         error_config: Some(ErrorConfig {
@@ -438,6 +440,7 @@ pub async fn seed_startup_mvp_workflow(db: &DatabaseConnection) -> Result<(), St
         icon: "🏗️".into(),
         tags: vec!["startup".into(),"mvp".into(),"product".into()],
         version: OPC_TEMPLATE_VERSION, is_preset: true, is_editable: true, is_public: false,
+        visibility: Visibility::Public,
         trigger_config: Some(TriggerConfig { trigger_type: TriggerType::Manual, config: serde_json::json!({}) }),
         nodes, edges, input_schema: None, output_schema: None, variables: vec![],
         error_config: Some(ErrorConfig {

@@ -877,6 +877,13 @@
       "searching": "正在检索记忆..."
     },
     "messageArea": "消息区域",
+    "mode": {
+      "action": "执行",
+      "ask": "提问",
+      "auto": "自动",
+      "plan": "计划",
+      "title": "执行模式"
+    },
     "moveToWorkspace": "移到工作区",
     "multiModel": {
       "selectTitle": "选择同时回答的模型",
@@ -1146,13 +1153,10 @@
       },
       "completedDesc": "\"{{name}}\" 已全部完成，共 {{total}} 个步骤，{{completed}} 个成功。",
       "completedTitle": "工作流执行完成",
-      "conversationMode": "对话模式",
-      "conversationModeDesc": "自由对话，无固定流程",
       "dagHint": "以有向无环图方式查看工作流执行",
       "dagView": "DAG 视图",
       "dagVisualization": "DAG 可视化",
       "dependsOn": "依赖",
-      "dismiss": "忽略",
       "docGen": {
         "description": "从代码自动生成文档",
         "name": "文档生成"
@@ -1181,12 +1185,10 @@
       },
       "result": "结果",
       "retries": "重试次数",
-      "searchPlaceholder": "搜索工作流...",
       "security": {
         "description": "扫描代码安全漏洞",
         "name": "安全审计"
       },
-      "selectHint": "选择工作流",
       "status": {
         "completed": "已完成",
         "failed": "已失败",
@@ -1198,16 +1200,10 @@
         "skipped": "已跳过"
       },
       "stepStatus": "步骤状态",
-      "suggestionDesc": "检测到你的需求与工作流 \"{{name}}\" 相似",
-      "suggestionHint": "提示",
-      "suggestionReason": "使用工作流可以获得更结构化的多步骤执行",
-      "switchToWorkflow": "切换到此工作流",
       "testGen": {
         "description": "为代码自动生成测试用例",
         "name": "测试生成"
       },
-      "title": "工作流模板",
-      "unnamed": "工作流",
       "viewDetails": "查看步骤详情",
       "viewOutput": "最终输出",
       "workflowStatus": {
@@ -2356,6 +2352,12 @@
     "CLOUD_UNKNOWN_CONFLICT": "未知的同步冲突类型",
     "CLOUD_UNKNOWN_STORAGE": "未知的存储类型",
     "CLOUD_UNKNOWN_STRATEGY": "未知的同步策略",
+    "COGNITIVE_ROUTE_FAILED": "认知路由执行失败",
+    "COGNITIVE_EMPTY_INPUT": "认知路由输入为空",
+    "COGNITIVE_CIRCUIT_BROKEN": "认知路由已熔断：{reason}",
+    "COGNITIVE_NO_CANDIDATE": "认知路由未找到可用能力",
+    "COGNITIVE_EXECUTION_MODE_INVALID": "认知路由执行模式无效",
+    "COGNITIVE_PROMPT_REJECTED": "认知提示被拒绝",
     "COMMON_INTERNAL": "内部错误",
     "COMMON_INVALID_INPUT": "无效的输入",
     "COMMON_TIMEOUT": "操作超时",
@@ -2576,6 +2578,7 @@
     "WORKFLOW_REFLECTION_REFLECT_FAILED": "工作流反思失败",
     "WORKFLOW_REFLECTION_SUGGEST_FAILED": "工作流反思建议失败",
     "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "无效的工作流反思模板",
+    "WORKFLOW_SYSTEM_TEMPLATE_PROTECTED": "系统模板受保护，禁止修改、删除或复制",
     "WORKFLOW_VERSION_NOT_FOUND": "工作流版本未找到",
     "network": "网络连接失败",
     "providerNotConfigured": "请先配置服务提供商",
@@ -2653,7 +2656,41 @@
     "DEVICE_SYNC_PASSWORD_EMPTY": "加密密码不能为空",
     "DEVICE_SYNC_SALT_REQUIRED": "解密需要提供盐值",
     "DEVICE_SYNC_STORAGE_OPERATION_FAILED": "存储操作失败",
-    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "策略操作失败"
+    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "策略操作失败",
+    "CAPABILITY_REGISTER_FAILED": "能力注册失败",
+    "CAPABILITY_DISCOVER_FAILED": "能力发现失败",
+    "CAPABILITY_NOT_FOUND": "能力未找到",
+    "CAPABILITY_INDEX_FAILED": "能力索引失败",
+    "CAPABILITY_EMBEDDING_FAILED": "嵌入生成失败",
+    "CAPABILITY_VECTOR_STORE_FAILED": "向量存储操作失败",
+    "CAPABILITY_INVALID_PASSPORT": "无效的能力护照",
+    "CAPABILITY_LIST_FAILED": "能力列表获取失败",
+    "CAPABILITY_STATS_FAILED": "能力统计获取失败",
+    "CAPABILITY_METADATA_RESTORE_FAILED": "元数据恢复失败",
+    "AGENT_INPUT_CHANNEL_CLOSED": "用户提问通道已关闭",
+    "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "等待用户回复超时（5 分钟）",
+    "AGENT_INPUT_NO_PROVIDER": "没有可用的 provider/model：请先在设置中启用提供商",
+    "AGENT_ROLE_BUILTIN_NOT_DELETABLE": "内置角色不可删除",
+    "BACKUP_CLOUD_KEY_TRAVERSAL": "路径穿越检测失败：cloud_key 指向了备份目录之外的位置",
+    "STREAMING_REQUEST_IN_PROGRESS": "已有正在进行的请求，请等待完成后再发送",
+    "DYNAMIC_UI_BUILTIN_NOT_MODIFIABLE": "内置 Schema 不允许修改",
+    "DYNAMIC_UI_BUILTIN_NOT_DELETABLE": "内置 Schema 不允许删除",
+    "DYNAMIC_UI_SCHEMA_NOT_FOUND": "DynamicUI Schema 不存在",
+    "DYNAMIC_UI_BUILTIN_NOT_ROLLBACK": "内置 Schema 不允许回滚",
+    "DYNAMIC_UI_EDIT_PROMPT_EMPTY": "编辑指令不能为空",
+    "DYNAMIC_UI_SCHEMA_MISSING_FIELD": "AI 返回的 Schema 缺少必要字段 (type/id)",
+    "DYNAMIC_UI_GENERATE_PROMPT_EMPTY": "生成指令不能为空",
+    "EVOLUTION_INSUFFICIENT_TRAJECTORY": "没有足够的轨迹数据用于进化",
+    "EVOLUTION_INITIAL_FEEDBACK_EMPTY": "初始反馈不能为空",
+    "NL_TO_CRON_DESCRIPTION_EMPTY": "请输入定时任务描述",
+    "RESEARCH_NOT_ENOUGH_MESSAGES": "对话消息不足，无法生成报告",
+    "RESEARCH_TOPIC_EMPTY": "研究主题不能为空",
+    "SESSION_SHARE_INVALID_CODE": "无效的邀请码",
+    "SESSION_SHARE_ALREADY_FULL": "会话已满，无法加入",
+    "SESSION_SHARE_NOT_FOUND": "会话不存在",
+    "WORK_ENGINE_EXECUTION_NOT_FOUND": "execution_id 无效或工作流未注册",
+    "TRAJECTORY_NOT_FOUND": "轨迹未找到",
+    "UNKNOWN_PRESET": "未知的预设"
   },
   "errorBoundary": {
     "copied": "已复制",
@@ -2779,6 +2816,14 @@
     "general": "通用",
     "security": "安全",
     "writing": "写作"
+  },
+  "expertPreset": {
+    "generalAssistant": {
+      "name": "通用助手",
+      "desc": "通用的 AI 助手，适用于日常对话和通用问题解答",
+      "systemPrompt": "你是一个智能 AI 助手，请根据用户的问题提供准确、有帮助的回答。",
+      "tags": ["通用", "助手", "对话"]
+    }
   },
   "expertSelector": {
     "added": "已添加",
@@ -8322,7 +8367,8 @@
     "workflow": {
       "createNew": "创建新模板",
       "marketplace": "市场",
-      "myWorkflows": "我的工作流"
+      "myWorkflows": "我的工作流",
+      "systemTemplates": "系统模板"
     },
     "zhipu": "智谱",
     "groupVoice": "语音",
@@ -11838,6 +11884,15 @@
       "community": "社区",
       "recommended": "推荐",
       "all": "全部"
+    },
+    "systemTemplateList": {
+      "edit": "编辑",
+      "hint": "系统模板（认知编排器等）驱动全局路由，可查看/编辑但禁止删除/复制/导出",
+      "moreActions": "更多操作",
+      "noDescription": "暂无描述",
+      "noTemplates": "暂无系统模板",
+      "systemTag": "系统模板",
+      "view": "查看"
     },
     "templateName": "模板名称",
     "templateSaved": "模板已保存",

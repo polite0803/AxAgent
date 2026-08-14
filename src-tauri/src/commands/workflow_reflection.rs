@@ -181,6 +181,7 @@ mod tests {
             is_preset: false,
             is_editable: true,
             is_public: false,
+            visibility: Default::default(),
             trigger_config: None,
             nodes: Vec::new(),
             edges: Vec::new(),

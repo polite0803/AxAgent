@@ -2,6 +2,7 @@
 
 use crate::AppState;
 use crate::commands::error::{CommandError, ErrorCategory};
+use crate::commands::error_code::agent as agent_err;
 use agent_macro::agent_command;
 use axagent_trajectory::TrajectoryQuery;
 use tauri::State;
@@ -46,7 +47,7 @@ pub async fn get_trajectory_detail(
         .await
         .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))?
         .ok_or_else(|| {
-            CommandError::new("TRAJECTORY_NOT_FOUND")
+            CommandError::new(agent_err::TRAJECTORY_NOT_FOUND)
                 .with_category(ErrorCategory::Validation)
                 .with_detail(format!("Trajectory {} not found", trajectory_id))
         })?;

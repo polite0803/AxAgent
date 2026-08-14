@@ -282,6 +282,6 @@ type AntdListItemComponent =
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const _listItem = Object.assign(AntdListItem, { Meta: ListItemMeta }) as AntdListItemComponent;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const _list = Object.assign(AntdList, { Item: _listItem }) as any;
+const _list = Object.assign(AntdList, { Item: _listItem }) as ListComponent;
 export const List: ListComponent = _list;
 export const ListItem = _listItem;

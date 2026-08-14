@@ -1,13 +1,12 @@
 [target.x86_64-pc-windows-msvc]
-# mold 2.41.0 已安装但 MSVC 兼容性问题，暂用 lld-link
-# 如需启用 mold：将下方 linker 改为 D:\OneManager\AxAgent\tools\mold\mold.exe
-linker = "C:\\Program Files\\LLVM\\bin\\lld-link.exe"
+# 使用 rustc 默认的 MSVC link.exe（通过环境变量自动定位），不再覆盖 linker
+# 说明：原配置引用 C:\Program Files\LLVM\bin\lld-link.exe 但 LLVM 未安装；mold 存在但 MSVC 兼容性不佳
+# 如需恢复 mold：将下方 linker 改为 D:\OneManager\AxAgent\tools\mold\mold.exe
+# linker = "C:\\Program Files (x86)\\Microsoft Visual Studio\\18\\BuildTools\\VC\\Tools\\MSVC\\14.51.36231\\bin\\Hostx64\\x64\\link.exe"
 rustflags = ["-C", "target-feature=+crt-static"]
 
 [env]
 __TAURI_WORKSPACE__ = "true"
-RUSTC_WRAPPER = "sccache"
-SCCACHE_CACHE_SIZE = "50G"
 
 [build]
 # 16 核全利用：原 jobs=8 只用了一半核心

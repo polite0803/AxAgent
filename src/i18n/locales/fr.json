@@ -890,6 +890,13 @@
       "searching": "Recherche dans la mémoire…"
     },
     "messageArea": "Zone de messages",
+    "mode": {
+      "action": "Exécuter",
+      "ask": "Demander",
+      "auto": "Auto",
+      "plan": "Plan",
+      "title": "Mode d'exécution"
+    },
     "moveToWorkspace": "Déplacer vers l'espace de travail",
     "multiModel": {
       "selectTitle": "Sélectionner les modèles pour répondre simultanément",
@@ -1155,13 +1162,10 @@
       },
       "completedDesc": "« {{name}} » terminé, {{total}} étapes, {{completed}} réussies.",
       "completedTitle": "Workflow terminé",
-      "conversationMode": "Mode conversation",
-      "conversationModeDesc": "Conversation libre, aucun flux de travail fixe",
       "dagHint": "Collez ce code Mermaid dans un rendeur Mermaid pour visualiser le DAG.",
       "dagView": "Vue DAG",
       "dagVisualization": "Visualisation DAG",
       "dependsOn": "Dépend de :",
-      "dismiss": "Ignorer",
       "docGen": {
         "description": "Générer une documentation complète pour le code, les API et les projets.",
         "name": "Générateur de documentation"
@@ -1190,12 +1194,10 @@
       },
       "result": "Résultat",
       "retries": "Tentatives :",
-      "searchPlaceholder": "Rechercher des modèles...",
       "security": {
         "description": "Effectuer une analyse complète des vulnérabilités de sécurité et une évaluation des risques.",
         "name": "Audit de sécurité"
       },
-      "selectHint": "Sélectionner un flux de travail",
       "status": {
         "completed": "Terminé",
         "failed": "Échoué",
@@ -1207,16 +1209,10 @@
         "skipped": "Ignoré"
       },
       "stepStatus": "Statut :",
-      "suggestionDesc": "Votre besoin est similaire au flux de travail « {{name}} »",
-      "suggestionHint": "Conseil",
-      "suggestionReason": "Utiliser un flux de travail permet une exécution multi-étapes plus structurée",
-      "switchToWorkflow": "Passer au flux de travail",
       "testGen": {
         "description": "Générer des suites de tests complètes avec des tests unitaires, d'intégration et de cas limites.",
         "name": "Générateur de tests"
       },
-      "title": "Modèles de workflow d'agent",
-      "unnamed": "Flux de travail",
       "viewDetails": "Voir les détails",
       "viewOutput": "Sortie finale",
       "workflowStatus": {
@@ -2356,6 +2352,12 @@
     "CLOUD_UNKNOWN_CONFLICT": "Type de conflit de synchronisation inconnu",
     "CLOUD_UNKNOWN_STORAGE": "Type de stockage inconnu",
     "CLOUD_UNKNOWN_STRATEGY": "Stratégie de synchronisation inconnue",
+    "COGNITIVE_ROUTE_FAILED": "Échec de l'exécution du routage cognitif",
+    "COGNITIVE_EMPTY_INPUT": "L'entrée du routage cognitif est vide",
+    "COGNITIVE_CIRCUIT_BROKEN": "Le disjoncteur du routage cognitif s'est déclenché : {reason}",
+    "COGNITIVE_NO_CANDIDATE": "Aucune capacité disponible trouvée pour le routage cognitif",
+    "COGNITIVE_EXECUTION_MODE_INVALID": "Mode d'exécution du routage cognitif invalide",
+    "COGNITIVE_PROMPT_REJECTED": "Invite cognitive rejetée",
     "COMMON_INTERNAL": "Erreur interne",
     "COMMON_INVALID_INPUT": "Entrée invalide",
     "COMMON_TIMEOUT": "Délai d'opération dépassé",
@@ -2576,6 +2578,7 @@
     "WORKFLOW_REFLECTION_REFLECT_FAILED": "Échec de la réflexion du workflow",
     "WORKFLOW_REFLECTION_SUGGEST_FAILED": "Échec de la suggestion de réflexion du workflow",
     "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "Modèle de réflexion de workflow invalide",
+    "WORKFLOW_SYSTEM_TEMPLATE_PROTECTED": "Le modèle système est protégé et ne peut pas être modifié, supprimé ou dupliqué",
     "WORKFLOW_VERSION_NOT_FOUND": "Version de workflow introuvable",
     "VOICE_TICKET_INVALID": "Le ticket de session vocale est invalide ou expiré",
     "VOICE_MODEL_NOT_FOUND": "Modèle vocal introuvable ou non pris en charge",
@@ -2653,7 +2656,41 @@
     "DEVICE_SYNC_PASSWORD_EMPTY": "Le mot de passe de chiffrement ne peut pas être vide",
     "DEVICE_SYNC_SALT_REQUIRED": "Le sel est requis pour le déchiffrement",
     "DEVICE_SYNC_STORAGE_OPERATION_FAILED": "Échec de l'opération de stockage",
-    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "Échec de l'opération de stratégie"
+    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "Échec de l'opération de stratégie",
+    "CAPABILITY_REGISTER_FAILED": "Échec de l'enregistrement des capacités",
+    "CAPABILITY_DISCOVER_FAILED": "Échec de la découverte des capacités",
+    "CAPABILITY_NOT_FOUND": "Capacité non trouvée",
+    "CAPABILITY_INDEX_FAILED": "Échec de l'indexation des capacités",
+    "CAPABILITY_EMBEDDING_FAILED": "Échec de la génération de l'embedding",
+    "CAPABILITY_VECTOR_STORE_FAILED": "Échec de l'opération du vecteur store",
+    "CAPABILITY_INVALID_PASSPORT": "Passeport de capacité invalide",
+    "CAPABILITY_LIST_FAILED": "Échec de la liste des capacités",
+    "CAPABILITY_STATS_FAILED": "Échec de la récupération des statistiques",
+    "CAPABILITY_METADATA_RESTORE_FAILED": "Échec de la restauration des métadonnées",
+    "AGENT_INPUT_CHANNEL_CLOSED": "Le canal de saisie utilisateur est fermé",
+    "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "Délai d'attente dépassé pour la réponse de l'utilisateur (5 minutes)",
+    "AGENT_INPUT_NO_PROVIDER": "Aucun fournisseur/modèle disponible : activez un fournisseur dans les paramètres",
+    "AGENT_ROLE_BUILTIN_NOT_DELETABLE": "Les rôles intégrés ne peuvent pas être supprimés",
+    "BACKUP_CLOUD_KEY_TRAVERSAL": "Traversée de chemin détectée : cloud_key pointe en dehors du répertoire de sauvegarde",
+    "STREAMING_REQUEST_IN_PROGRESS": "Une requête est déjà en cours, veuillez attendre sa fin",
+    "DYNAMIC_UI_BUILTIN_NOT_MODIFIABLE": "Les schémas intégrés ne peuvent pas être modifiés",
+    "DYNAMIC_UI_BUILTIN_NOT_DELETABLE": "Les schémas intégrés ne peuvent pas être supprimés",
+    "DYNAMIC_UI_SCHEMA_NOT_FOUND": "Le schéma DynamicUI n'existe pas",
+    "DYNAMIC_UI_BUILTIN_NOT_ROLLBACK": "Les schémas intégrés ne peuvent pas être rétablis",
+    "DYNAMIC_UI_EDIT_PROMPT_EMPTY": "L'instruction d'édition ne peut pas être vide",
+    "DYNAMIC_UI_SCHEMA_MISSING_FIELD": "Le schéma renvoyé par l'IA n'a pas de champs obligatoires (type/id)",
+    "DYNAMIC_UI_GENERATE_PROMPT_EMPTY": "L'instruction de génération ne peut pas être vide",
+    "EVOLUTION_INSUFFICIENT_TRAJECTORY": "Pas assez de données de trajectoire pour l'évolution",
+    "EVOLUTION_INITIAL_FEEDBACK_EMPTY": "Le retour initial ne peut pas être vide",
+    "NL_TO_CRON_DESCRIPTION_EMPTY": "Veuillez saisir une description de la tâche planifiée",
+    "RESEARCH_NOT_ENOUGH_MESSAGES": "Pas assez de messages de conversation pour générer un rapport",
+    "RESEARCH_TOPIC_EMPTY": "Le sujet de recherche ne peut pas être vide",
+    "SESSION_SHARE_INVALID_CODE": "Code d'invitation invalide",
+    "SESSION_SHARE_ALREADY_FULL": "Session pleine, impossible de rejoindre",
+    "SESSION_SHARE_NOT_FOUND": "La session n'existe pas",
+    "WORK_ENGINE_EXECUTION_NOT_FOUND": "execution_id invalide ou workflow non enregistré",
+    "TRAJECTORY_NOT_FOUND": "Trajectoire introuvable",
+    "UNKNOWN_PRESET": "Préréglage inconnu"
   },
   "errorBoundary": {
     "copied": "Copié",
@@ -2779,6 +2816,14 @@
     "general": "Général",
     "security": "Sécurité",
     "writing": "Rédaction"
+  },
+  "expertPreset": {
+    "generalAssistant": {
+      "name": "Assistant Général",
+      "desc": "Un assistant IA polyvalent pour les conversations quotidiennes et les questions générales.",
+      "systemPrompt": "Vous êtes un assistant IA intelligent. Fournissez des réponses précises et utiles aux questions de l'utilisateur.",
+      "tags": ["Général", "Assistant", "Dialogue"]
+    }
   },
   "expertSelector": {
     "added": "Ajouté",
@@ -8322,7 +8367,8 @@
     "workflow": {
       "createNew": "Créer un nouveau modèle",
       "marketplace": "Marketplace",
-      "myWorkflows": "Mes flux de travail"
+      "myWorkflows": "Mes flux de travail",
+      "systemTemplates": "Modèles système"
     },
     "zhipu": "Zhipu",
     "groupVoice": "Voix",
@@ -11832,6 +11878,15 @@
       "community": "Communauté",
       "recommended": "Recommandé",
       "all": "Tous"
+    },
+    "systemTemplateList": {
+      "edit": "Modifier",
+      "hint": "Les modèles système (orchestrateur cognitif, etc.) pilotent le routage global. Consultables/modifiables mais non supprimables, duplicables ou exportables",
+      "moreActions": "Plus d'actions",
+      "noDescription": "Aucune description",
+      "noTemplates": "Aucun modèle système",
+      "systemTag": "Système",
+      "view": "Voir"
     },
     "templateName": "Nom du modèle",
     "templateSaved": "Modèle enregistré",

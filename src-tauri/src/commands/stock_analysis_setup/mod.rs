@@ -1654,6 +1654,8 @@ async fn seed_reflection_workflow_template(db: &sea_orm::DatabaseConnection) -> 
     let _ = workflow_template::Entity::delete_by_id("stock-reflection").exec(db).await;
     workflow_template::ActiveModel {
         id: Set("stock-reflection".to_string()),
+        cluster_id: Set(None),
+        route_path: Set(None),
         name: Set("A股反思复盘".to_string()),
         description: Set(Some(
             "嵌套 stock-analysis 子工作流的 as-of 重放，注入实际走势结果后反思".to_string(),
@@ -1953,6 +1955,8 @@ async fn seed_event_triggered_decision_template(
     let _ = workflow_template::Entity::delete_by_id(spec.template_id).exec(db).await;
     workflow_template::ActiveModel {
         id: Set(spec.template_id.to_string()),
+        cluster_id: Set(None),
+        route_path: Set(None),
         name: Set(spec.name.to_string()),
         description: Set(Some(spec.description.to_string())),
         icon: Set(spec.icon.into()),

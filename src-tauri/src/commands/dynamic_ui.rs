@@ -26,6 +26,8 @@ use tracing;
 use uuid::Uuid;
 
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::dynamic_ui as dynamic_ui_err;
 
 // ── DTOs ──
 
@@ -324,7 +326,7 @@ pub async fn update_dynamic_ui_schema(
         .ok_or_else(|| "DynamicUI Schema 不存在".to_string())?;
 
     if model.is_builtin != 0 {
-        return Err("内置Schema不允许修改".to_string());
+        return Err(ErrorResponse::err(dynamic_ui_err::BUILTIN_NOT_MODIFIABLE));
     }
 
     // ── 版本更替逻辑 ──
@@ -400,7 +402,7 @@ pub async fn delete_dynamic_ui_schema(
         .ok_or_else(|| "DynamicUI Schema 不存在".to_string())?;
 
     if model.is_builtin != 0 {
-        return Err("内置Schema不允许删除".to_string());
+        return Err(ErrorResponse::err(dynamic_ui_err::BUILTIN_NOT_DELETABLE));
     }
 
     // 级联删除关联的表单数据
@@ -423,7 +425,7 @@ pub async fn delete_dynamic_ui_schema(
         .map_err(|e| format!("删除Schema失败: {e}"))?;
 
     if res.rows_affected == 0 {
-        return Err("DynamicUI Schema 不存在".to_string());
+        return Err(ErrorResponse::err(dynamic_ui_err::SCHEMA_NOT_FOUND));
     }
     tracing::info!(id = %id, "删除 DynamicUI Schema 及其版本历史");
     Ok(())
@@ -497,7 +499,7 @@ pub async fn restore_dynamic_ui_schema_version(
         .ok_or_else(|| "DynamicUI Schema 不存在".to_string())?;
 
     if schema.is_builtin != 0 {
-        return Err("内置Schema不允许回滚".to_string());
+        return Err(ErrorResponse::err(dynamic_ui_err::BUILTIN_NOT_ROLLBACK));
     }
 
     let version = VersionEntity::find_by_id(version_id)
@@ -682,7 +684,7 @@ pub async fn edit_dynamic_ui_schema_nl(
     prompt: String,
 ) -> Result<EditSchemaNlResult, String> {
     if prompt.trim().is_empty() {
-        return Err("编辑指令不能为空".to_string());
+        return Err(ErrorResponse::err(dynamic_ui_err::EDIT_PROMPT_EMPTY));
     }
 
     // 1. 解析现有 schema，确保输入合法
@@ -726,7 +728,7 @@ pub async fn edit_dynamic_ui_schema_nl(
 
     // 基本结构校验
     if schema_value.get("type").is_none() || schema_value.get("id").is_none() {
-        return Err("AI 返回的 Schema 缺少必要字段 (type/id)".to_string());
+        return Err(ErrorResponse::err(dynamic_ui_err::SCHEMA_MISSING_FIELD));
     }
 
     let schema_str = serde_json::to_string(&schema_value).map_err(|e| {
@@ -798,7 +800,7 @@ pub async fn generate_dynamic_ui_schema_nl(
     prompt: String,
 ) -> Result<GenerateSchemaNlResult, String> {
     if prompt.trim().is_empty() {
-        return Err("生成指令不能为空".to_string());
+        return Err(ErrorResponse::err(dynamic_ui_err::GENERATE_PROMPT_EMPTY));
     }
 
     // 1. 获取 LLM bridge（首个启用的 provider）
@@ -828,7 +830,7 @@ pub async fn generate_dynamic_ui_schema_nl(
 
     // 基本结构校验
     if schema_value.get("type").is_none() || schema_value.get("id").is_none() {
-        return Err("AI 返回的 Schema 缺少必要字段 (type/id)".to_string());
+        return Err(ErrorResponse::err(dynamic_ui_err::SCHEMA_MISSING_FIELD));
     }
 
     let schema_str = serde_json::to_string(&schema_value).map_err(|e| {

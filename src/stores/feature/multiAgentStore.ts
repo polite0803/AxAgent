@@ -14,12 +14,7 @@
  */
 
 import { invoke } from "@/lib/invoke";
-import type {
-  DelegateTaskInput,
-  DelegateTaskResult,
-  DelegationHistoryEntry,
-  MultiAgentRoleInfo,
-} from "@/types/multi-agent";
+import type { DelegateTaskInput, DelegateTaskResult, DelegationHistoryEntry, MultiAgentRoleInfo } from "@/types";
 import { create } from "zustand";
 
 const MAX_HISTORY = 50;

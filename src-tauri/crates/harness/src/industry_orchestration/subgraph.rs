@@ -218,8 +218,17 @@ impl DynamicSubGraph {
                     prev_id = Some(&st.id);
                 }
             },
-            OrchestrationStrategy::FanOut | OrchestrationStrategy::Race => {
-                // 所有节点独立，不添加隐式边
+            OrchestrationStrategy::FanOut => {
+                // 全并行：无隐式边
+            },
+            OrchestrationStrategy::Race => {
+                // 全并行启动；首个完成即收敛（其余候选由 worker/dispatcher 层取消）。
+                // DAG 层面不引入额外边，避免错误串行化破坏竞争语义。
+                tracing::debug!(
+                    strategy = ?plan.strategy,
+                    node_count = plan.sub_tasks.len(),
+                    "Race 策略：节点全并行，首个完成收敛"
+                );
             },
             OrchestrationStrategy::Debate => {
                 if plan.sub_tasks.len() >= 2 {

@@ -70,6 +70,10 @@ pub struct ExecutionContextCallbacks {
     /// 旧版全局回调（fallback，tool_handlers 未命中时使用）
     pub tool_fallback: Option<ToolCallback>,
     pub subworkflow: Option<SubWorkflowCallback>,
+    /// 系统能力回调：SubWorkflow 节点引用 `system_*` 前缀 ID 时执行。
+    /// 与 subworkflow 互斥：system_* 前缀走系统能力（如认知编排器的 L1/L2/RAR/图谱），
+    /// 不回退查询 workflow_templates 表。签名复用 SubWorkflowCallback。
+    pub system_capability: Option<SubWorkflowCallback>,
     /// Loop 节点内部驱动 body_steps 迭代时使用的调度回调。
     /// 接收 (body_step_node_id, mutable_context) 返回该 step 的 NodeOutput。
     /// 与 SubWorkflowCallback 同样的注入模式：引擎在构造 exec_ctx 时填入。
@@ -93,6 +97,7 @@ impl std::fmt::Debug for ExecutionContextCallbacks {
             .field("tool_handlers", &self.tool_handlers.len())
             .field("tool_fallback", &self.tool_fallback.is_some())
             .field("subworkflow", &self.subworkflow.is_some())
+            .field("system_capability", &self.system_capability.is_some())
             .field("loop_body_dispatch", &self.loop_body_dispatch.is_some())
             .field("loop_checkpoint", &self.loop_checkpoint.is_some())
             .field("debate_body_dispatch", &self.debate_body_dispatch.is_some())

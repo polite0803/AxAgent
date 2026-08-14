@@ -493,6 +493,8 @@ pub async fn confirm_decomposition(
         composite_source: Set(composite_source),
         tool_defs: Set(None),
         mission_hash: Set(None),
+        cluster_id: Set(None),
+        route_path: Set(None),
         created_at: Set(now),
         updated_at: Set(now),
     };

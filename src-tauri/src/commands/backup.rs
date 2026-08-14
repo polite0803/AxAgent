@@ -2,6 +2,7 @@
 
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
+use crate::commands::error_code;
 use crate::commands::error_code::backup as backup_err;
 use crate::commands::spawn_guard::panic_message;
 use agent_macro::agent_command;
@@ -466,7 +467,7 @@ pub async fn download_cloud_backup(
     let canonical = local_path.canonicalize().map_err(|e| format!("路径解析失败: {}", e))?;
     if !canonical.starts_with(&backup_canonical) {
         let _ = std::fs::remove_file(&local_path);
-        return Err("路径穿越检测失败：cloud_key 指向了备份目录之外的位置".to_string());
+        return Err(ErrorResponse::err(error_code::backup_security::CLOUD_KEY_TRAVERSAL));
     }
 
     std::fs::write(&local_path, &obj.data).map_err(|e| format!("写入备份文件失败: {}", e))?;

@@ -31,6 +31,12 @@ pub struct Model {
     /// 当此模板由 mission 编译生成时填充；手动创建的模板该字段为 NULL。
     #[sea_orm(column_name = "mission_hash")]
     pub mission_hash: Option<String>,
+    /// L2 集群 ID（三层路由第二层，对应 CapabilityCluster::cluster_id）
+    #[sea_orm(column_name = "cluster_id")]
+    pub cluster_id: Option<String>,
+    /// 路由路径（三层路由地址，格式 /{domain}/{cluster}/{capability}）
+    #[sea_orm(column_name = "route_path")]
+    pub route_path: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }

@@ -314,25 +314,25 @@ export const useTracerStore = create<TracerState>((set, get) => ({
       console.warn("[tracerStore] getBottlenecks failed, using mock", e);
       return {
         timeDistribution: [
-          { name: "LLM 推理", value: 45, color: "#1890ff" },
-          { name: "工具调用", value: 25, color: "#fa8c16" },
-          { name: "等待权限", value: 15, color: "#fadb14" },
-          { name: "网络延迟", value: 10, color: "#722ed1" },
-          { name: "其他", value: 5, color: "#d9d9d9" },
+          { name: "LLM Inference", value: 45, color: "#1890ff" },
+          { name: "Tool Calls", value: 25, color: "#fa8c16" },
+          { name: "Awaiting Permission", value: 15, color: "#fadb14" },
+          { name: "Network Latency", value: 10, color: "#722ed1" },
+          { name: "Other", value: 5, color: "#d9d9d9" },
         ],
         tokenDistribution: [
-          { name: "系统提示词", tokens: 1200 },
-          { name: "工具定义", tokens: 800 },
-          { name: "对话历史", tokens: 3200 },
-          { name: "工具结果", tokens: 1500 },
-          { name: "用户输入", tokens: 400 },
+          { name: "System Prompt", tokens: 1200 },
+          { name: "Tool Definitions", tokens: 800 },
+          { name: "Conversation History", tokens: 3200 },
+          { name: "Tool Results", tokens: 1500 },
+          { name: "User Input", tokens: 400 },
         ],
         failureModes: [
-          { reason: "工具执行超时", count: 12, pct: 40 },
-          { reason: "权限不足", count: 8, pct: 26.7 },
-          { reason: "参数格式错误", count: 5, pct: 16.7 },
-          { reason: "网络错误", count: 3, pct: 10 },
-          { reason: "LLM 输出解析失败", count: 2, pct: 6.6 },
+          { reason: "Tool Execution Timeout", count: 12, pct: 40 },
+          { reason: "Insufficient Permission", count: 8, pct: 26.7 },
+          { reason: "Invalid Parameter Format", count: 5, pct: 16.7 },
+          { reason: "Network Error", count: 3, pct: 10 },
+          { reason: "LLM Output Parse Failure", count: 2, pct: 6.6 },
         ],
       };
     }
@@ -348,21 +348,21 @@ export const useTracerStore = create<TracerState>((set, get) => ({
       return [
         {
           id: "sug_001",
-          problem: "工具调用 `search_file` 和 `read_file` 本可并行执行，但实际串行执行。",
-          suggestion: "将无依赖的工具调用标记为可并行，Agent 应自动识别独立操作并合并到同一批执行。",
-          expectedImprovement: "预计减少 25% 总执行时间",
+          problem: "Tool calls `search_file` and `read_file` could run in parallel but ran sequentially.",
+          suggestion: "Mark independent tool calls as parallel; the agent should auto-detect and batch them.",
+          expectedImprovement: "Expected ~25% reduction in total execution time",
         },
         {
           id: "sug_002",
-          problem: "系统提示词包含大量冗余工具定义。",
-          suggestion: "根据会话上下文动态裁剪工具列表，仅加载当前任务可能用到的工具定义。",
-          expectedImprovement: "每次会话节省约 800 Token",
+          problem: "System prompt includes many redundant tool definitions.",
+          suggestion: "Dynamically trim the tool list based on conversation context.",
+          expectedImprovement: "Saves ~800 tokens per session",
         },
         {
           id: "sug_003",
-          problem: "错误处理策略过于保守：遇到权限错误后直接终止。",
-          suggestion: "在技能配置中添加 fallback 路径列表。",
-          expectedImprovement: "预计将错误率从 8% 降至 3%",
+          problem: "Error handling is too conservative: it aborts on permission errors.",
+          suggestion: "Add a fallback path list in the skill configuration.",
+          expectedImprovement: "Expected error rate drop from 8% to 3%",
         },
       ];
     }

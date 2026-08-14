@@ -332,6 +332,8 @@ pub async fn seed_screenshot_portfolio_diagnosis_template(
     let _ = workflow_template::Entity::delete_by_id(TEMPLATE_ID).exec(db).await;
     workflow_template::ActiveModel {
         id: Set(TEMPLATE_ID.into()),
+        cluster_id: Set(None),
+        route_path: Set(None),
         name: Set("截图持仓诊断".into()),
         description: Set(Some(
             "上传券商 App 持仓截图，自动 OCR + 结构化解析 + 7 项风险指标 + LLM 中文诊断说明，可一键转为模拟观察组合（G2 联动）".into(),

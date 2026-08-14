@@ -4,6 +4,7 @@
 //!
 //! 流程：手动启动 → 概念设计 → 原型开发 → 内容生产 → 测试优化 → 上线运营 → 完成
 
+use axagent_harness::capability::Visibility;
 use axagent_harness::workflow_types::{
     AgentNode, AgentNodeConfig, EdgeType, EndNode, EndNodeConfig, OutputMode, ToolDef,
     TriggerConfig, TriggerNode, TriggerType, WorkflowEdge, WorkflowNode, WorkflowTemplateData,
@@ -179,6 +180,7 @@ pub async fn seed_industry_game_dev_workflow_template(
         is_preset: true,
         is_editable: true,
         is_public: false,
+        visibility: Visibility::Public,
         trigger_config: Some(TriggerConfig {
             trigger_type: TriggerType::Manual,
             config: serde_json::json!({}),

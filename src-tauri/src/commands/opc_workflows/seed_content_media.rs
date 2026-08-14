@@ -9,6 +9,7 @@
 //! - workflow-cm-literary-creation  文字创作：创作元认知 → 大纲拆章 → 逐章创作 → 评审
 
 use axagent_entities::workflow_template;
+use axagent_harness::capability::Visibility;
 use axagent_harness::workflow_types::*;
 use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 
@@ -125,6 +126,7 @@ pub async fn seed_content_media_workflows(
             is_preset: true,
             is_editable: true,
             is_public: true,
+            visibility: Visibility::Public,
             trigger_config: Some(TriggerConfig {
                 trigger_type: TriggerType::Manual,
                 config: serde_json::json!({}),
@@ -176,6 +178,8 @@ async fn upsert_template_safe(
 
     let am = workflow_template::ActiveModel {
         id: Set(data.id.clone()),
+        cluster_id: Set(None),
+        route_path: Set(None),
         name: Set(data.name),
         description: Set(data.description),
         icon: Set(data.icon),

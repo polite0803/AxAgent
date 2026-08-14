@@ -257,12 +257,12 @@ export const useEvaluatorStore = create<EvaluatorState>((set, get) => ({
         versionB: "v13",
         winner: "B",
         metrics: [
-          { name: "成功率", valueA: 82.3, valueB: 91.5, unit: "%" },
-          { name: "平均 Token 消耗", valueA: 3200, valueB: 2800, unit: "tokens" },
-          { name: "平均执行时间", valueA: 4.2, valueB: 3.8, unit: "秒" },
-          { name: "用户满意度", valueA: 3.8, valueB: 4.5, unit: "/5" },
+          { name: "Success Rate", valueA: 82.3, valueB: 91.5, unit: "%" },
+          { name: "Avg Token Usage", valueA: 3200, valueB: 2800, unit: "tokens" },
+          { name: "Avg Execution Time", valueA: 4.2, valueB: 3.8, unit: "s" },
+          { name: "User Satisfaction", valueA: 3.8, valueB: 4.5, unit: "/5" },
         ],
-        conclusion: "版本 B (v13) 在所有指标上均优于版本 A，推荐全面切换。",
+        conclusion: "Version B (v13) outperforms version A on all metrics; recommend full switch.",
       };
     }
   },

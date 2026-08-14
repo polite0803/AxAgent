@@ -9,6 +9,8 @@
 //! 替代旧版的纯内存模拟。
 
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::evolution_engine as evolution_engine_err;
 use agent_macro::agent_command;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -454,7 +456,7 @@ pub async fn run_skill_evolution_generation(
         .map_err(|e| format!("获取轨迹数据失败: {}", e))?;
 
     if trajectories.is_empty() {
-        return Err("没有足够的轨迹数据用于进化".to_string());
+        return Err(ErrorResponse::err(evolution_engine_err::INSUFFICIENT_TRAJECTORY));
     }
 
     let traj_refs: Vec<&axagent_trajectory::Trajectory> = trajectories.iter().collect();
@@ -505,7 +507,7 @@ pub async fn run_text_grad_optimize(
     prompt_content: Option<String>,
 ) -> Result<serde_json::Value, String> {
     if initial_feedback.trim().is_empty() {
-        return Err("初始反馈不能为空".to_string());
+        return Err(ErrorResponse::err(evolution_engine_err::INITIAL_FEEDBACK_EMPTY));
     }
 
     let mut engine = state.text_grad_engine.lock().await;

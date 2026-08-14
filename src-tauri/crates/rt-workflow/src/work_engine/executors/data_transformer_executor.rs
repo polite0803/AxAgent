@@ -90,6 +90,57 @@ fn dynamic_to_json(value: rhai::Dynamic) -> serde_json::Value {
     }
 }
 
+/// 判断字符串是否为合法的 Rhai 标识符（字母/数字/下划线，且不以数字开头）。
+fn is_valid_rhai_ident(name: &str) -> bool {
+    let mut chars = name.chars();
+    match chars.next() {
+        Some(c) if c.is_ascii_alphabetic() || c == '_' => {
+            chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
+        },
+        _ => false,
+    }
+}
+
+/// Rhai 保留关键字集合 —— 命中则不注入 scope，避免表达式求值时语义冲突。
+fn is_rhai_keyword(name: &str) -> bool {
+    matches!(
+        name,
+        "if" | "else"
+            | "let"
+            | "const"
+            | "fn"
+            | "loop"
+            | "while"
+            | "for"
+            | "in"
+            | "break"
+            | "continue"
+            | "return"
+            | "throw"
+            | "try"
+            | "catch"
+            | "switch"
+            | "case"
+            | "default"
+            | "import"
+            | "export"
+            | "true"
+            | "false"
+            | "null"
+            | "this"
+            | "type"
+            | "private"
+            | "public"
+            | "shared"
+            | "do"
+            | "spawn"
+            | "thread"
+            | "async"
+            | "await"
+            | "yield"
+    )
+}
+
 #[async_trait]
 impl NodeExecutorTrait for DataTransformerExecutor {
     fn node_type(&self) -> &'static str {
@@ -124,11 +175,21 @@ impl NodeExecutorTrait for DataTransformerExecutor {
         };
         scope.push("input", json_to_dynamic(&input_value));
 
-        // Also inject as the var name itself if it's a simple identifier
-        if !c.input_var.is_empty()
-            && c.input_var.chars().all(|ch| ch.is_alphanumeric() || ch == '_')
-        {
-            scope.push(c.input_var.clone(), json_to_dynamic(&input_value));
+        // Inject the remaining execution variables into scope so expressions can
+        // reference multiple vars (e.g. L2 rule matching reads `l1_domain` +
+        // `user_input`). Only valid Rhai identifiers and non-reserved keywords are
+        // injected; `input`/input_var take precedence to preserve prior behavior.
+        let mut push_scoped = |name: &str, value: &serde_json::Value| {
+            if !is_valid_rhai_ident(name) || is_rhai_keyword(name) {
+                return;
+            }
+            scope.push_dynamic(name.to_string(), json_to_dynamic(value));
+        };
+        push_scoped(&c.input_var, &input_value);
+        for (k, v) in &ctx.variables {
+            if k != &c.input_var {
+                push_scoped(k, v);
+            }
         }
 
         let result = engine

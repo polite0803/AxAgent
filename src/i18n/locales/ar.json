@@ -890,6 +890,13 @@
       "searching": "جارٍ البحث في الذاكرة..."
     },
     "messageArea": "منطقة الرسائل",
+    "mode": {
+      "action": "تنفيذ",
+      "ask": "اسأل",
+      "auto": "تلقائي",
+      "plan": "خطة",
+      "title": "وضع التنفيذ"
+    },
     "moveToWorkspace": "نقل إلى مساحة العمل",
     "multiModel": {
       "selectTitle": "اختر النماذج للرد في آنٍ واحد",
@@ -1155,13 +1162,10 @@
       },
       "completedDesc": "\"{{name}}\" اكتمل، {{total}} خطوة، {{completed}} ناجحة.",
       "completedTitle": "اكتمل سير العمل",
-      "conversationMode": "وضع المحادثة",
-      "conversationModeDesc": "محادثة حرة، بدون سير عمل ثابت",
       "dagHint": "الصق كود Mermaid هذا في عارض Mermaid لتصور DAG.",
       "dagView": "عرض DAG",
       "dagVisualization": "تصور DAG",
       "dependsOn": "يعتمد على:",
-      "dismiss": "إغلاق",
       "docGen": {
         "description": "إنشاء توثيق شامل للكود وواجهات برمجة التطبيقات والمشاريع.",
         "name": "مولد التوثيق"
@@ -1190,12 +1194,10 @@
       },
       "result": "النتيجة",
       "retries": "المحاولات:",
-      "searchPlaceholder": "البحث في القوالب...",
       "security": {
         "description": "إجراء فحص شامل للثغرات الأمنية وتقييم المخاطر.",
         "name": "تدقيق الأمان"
       },
-      "selectHint": "اختار سير العمل",
       "status": {
         "completed": "مكتمل",
         "failed": "فشل",
@@ -1207,16 +1209,10 @@
         "skipped": "تم التخطي"
       },
       "stepStatus": "الحالة:",
-      "suggestionDesc": "تم اكتشاف أن حاجتك مشابهة لسير العمل \"{{name}}\"",
-      "suggestionHint": "تلميح",
-      "suggestionReason": "يوفر استخدام سير العمل تنفيذًا متعدد الخطوات أكثر تنظيمًا",
-      "switchToWorkflow": "التبديل إلى سير العمل",
       "testGen": {
         "description": "إنشاء مجموعات اختبارات شاملة مع اختبارات الوحدة والتكامل والحالات الحدية.",
         "name": "مولد الاختبارات"
       },
-      "title": "قوالب سير عمل الوكيل",
-      "unnamed": "سير العمل",
       "viewDetails": "عرض التفاصيل",
       "viewOutput": "الإخراج النهائي",
       "workflowStatus": {
@@ -2356,6 +2352,12 @@
     "CLOUD_UNKNOWN_CONFLICT": "نوع تعارض مزامنة غير معروف",
     "CLOUD_UNKNOWN_STORAGE": "نوع تخزين غير معروف",
     "CLOUD_UNKNOWN_STRATEGY": "استراتيجية مزامنة غير معروفة",
+    "COGNITIVE_ROUTE_FAILED": "فشل تنفيذ التوجيه المعرفي",
+    "COGNITIVE_EMPTY_INPUT": "إدخال التوجيه المعرفي فارغ",
+    "COGNITIVE_CIRCUIT_BROKEN": "تم كسر دائرة التوجيه المعرفي: {reason}",
+    "COGNITIVE_NO_CANDIDATE": "لم يتم العثور على قدرة متاحة للتوجيه المعرفي",
+    "COGNITIVE_EXECUTION_MODE_INVALID": "وضع تنفيذ التوجيه المعرفي غير صالح",
+    "COGNITIVE_PROMPT_REJECTED": "تم رفض الطلب المعرفي",
     "COMMON_INTERNAL": "خطأ داخلي",
     "COMMON_INVALID_INPUT": "إدخال غير صالح",
     "COMMON_TIMEOUT": "انتهت مهلة العملية",
@@ -2576,6 +2578,7 @@
     "WORKFLOW_REFLECTION_REFLECT_FAILED": "فشل انعكاس سير العمل",
     "WORKFLOW_REFLECTION_SUGGEST_FAILED": "فشل اقتراح انعكاس سير العمل",
     "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "قالب انعكاس سير عمل غير صالح",
+    "WORKFLOW_SYSTEM_TEMPLATE_PROTECTED": "قالب النظام محمي ولا يمكن تعديله أو حذفه أو تكراره",
     "WORKFLOW_VERSION_NOT_FOUND": "إصدار سير العمل غير موجود",
     "VOICE_TICKET_INVALID": "تذكرة الجلسة الصوتية غير صالحة أو منتهية الصلاحية",
     "VOICE_MODEL_NOT_FOUND": "نموذج الصوت غير موجود أو غير مدعوم",
@@ -2653,7 +2656,41 @@
     "DEVICE_SYNC_PASSWORD_EMPTY": "لا يمكن أن تكون كلمة مرور التشفير فارغة",
     "DEVICE_SYNC_SALT_REQUIRED": "الملح مطلوب لفك التشفير",
     "DEVICE_SYNC_STORAGE_OPERATION_FAILED": "فشلت عملية التخزين",
-    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "فشلت عملية السياسة"
+    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "فشلت عملية السياسة",
+    "CAPABILITY_REGISTER_FAILED": "فشل تسجيل القدرة",
+    "CAPABILITY_DISCOVER_FAILED": "فشل اكتشاف القدرة",
+    "CAPABILITY_NOT_FOUND": "القدرة غير موجودة",
+    "CAPABILITY_INDEX_FAILED": "فشل فهرسة القدرة",
+    "CAPABILITY_EMBEDDING_FAILED": "فشل إنشاء التضمين",
+    "CAPABILITY_VECTOR_STORE_FAILED": "فشل عملية تخزين المتجهات",
+    "CAPABILITY_INVALID_PASSPORT": "جواز قدرة غير صالح",
+    "CAPABILITY_LIST_FAILED": "فشل في سرد القدرات",
+    "CAPABILITY_STATS_FAILED": "فشل في الحصول على إحصاءات القدرة",
+    "CAPABILITY_METADATA_RESTORE_FAILED": "فشل استعادة البيانات الوصفية",
+    "AGENT_INPUT_CHANNEL_CLOSED": "قناة إدخال المستخدم مغلقة",
+    "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "انتهت مهلة انتظار رد المستخدم (5 دقائق)",
+    "AGENT_INPUT_NO_PROVIDER": "لا يوجد مزود/نموذج متاح: يرجى تفعيل مزود في الإعدادات",
+    "AGENT_ROLE_BUILTIN_NOT_DELETABLE": "لا يمكن حذف الأدوار المدمجة",
+    "BACKUP_CLOUD_KEY_TRAVERSAL": "تم اكتشاف اجتياز للمسار: cloud_key يشير خارج دليل النسخ الاحتياطي",
+    "STREAMING_REQUEST_IN_PROGRESS": "يوجد طلب قيد التنفيذ بالفعل، يرجى الانتظار حتى اكتماله",
+    "DYNAMIC_UI_BUILTIN_NOT_MODIFIABLE": "لا يمكن تعديل المخططات المدمجة",
+    "DYNAMIC_UI_BUILTIN_NOT_DELETABLE": "لا يمكن حذف المخططات المدمجة",
+    "DYNAMIC_UI_SCHEMA_NOT_FOUND": "مخطط DynamicUI غير موجود",
+    "DYNAMIC_UI_BUILTIN_NOT_ROLLBACK": "لا يمكن التراجع عن المخططات المدمجة",
+    "DYNAMIC_UI_EDIT_PROMPT_EMPTY": "لا يمكن أن يكون تعليم التحرير فارغًا",
+    "DYNAMIC_UI_SCHEMA_MISSING_FIELD": "المخطط الذي أعاده الذكاء الاصطناعي يفتقد لحقول إلزامية (type/id)",
+    "DYNAMIC_UI_GENERATE_PROMPT_EMPTY": "لا يمكن أن يكون تعليم الإنشاء فارغًا",
+    "EVOLUTION_INSUFFICIENT_TRAJECTORY": "لا توجد بيانات مسار كافية للتطور",
+    "EVOLUTION_INITIAL_FEEDBACK_EMPTY": "لا يمكن أن تكون الملاحظات الأولية فارغة",
+    "NL_TO_CRON_DESCRIPTION_EMPTY": "يرجى إدخال وصف المهمة المجدولة",
+    "RESEARCH_NOT_ENOUGH_MESSAGES": "لا توجد رسائل حوار كافية لإنشاء التقرير",
+    "RESEARCH_TOPIC_EMPTY": "لا يمكن أن يكون موضوع البحث فارغًا",
+    "SESSION_SHARE_INVALID_CODE": "رمز دعوة غير صالح",
+    "SESSION_SHARE_ALREADY_FULL": "الجلسة ممتلئة، لا يمكن الانضمام",
+    "SESSION_SHARE_NOT_FOUND": "الجلسة غير موجودة",
+    "WORK_ENGINE_EXECUTION_NOT_FOUND": "execution_id غير صالح أو سير العمل غير مسجل",
+    "TRAJECTORY_NOT_FOUND": "لم يتم العثور على المسار",
+    "UNKNOWN_PRESET": "إعداد مسبق غير معروف"
   },
   "errorBoundary": {
     "copied": "تم النسخ",
@@ -2779,6 +2816,14 @@
     "general": "عام",
     "security": "الأمان",
     "writing": "كتابة"
+  },
+  "expertPreset": {
+    "generalAssistant": {
+      "name": "المساعد العام",
+      "desc": "مساعد ذكاء اصطناعي متعدد الأغراض للمحادثات اليومية والأسئلة العامة",
+      "systemPrompt": "أنت مساعد ذكاء اصطناعي ذكي. قدم إجابات دقيقة ومفيدة بناءً على أسئلة المستخدم.",
+      "tags": ["عام", "مساعد", "محادثة"]
+    }
   },
   "expertSelector": {
     "added": "تمت الإضافة",
@@ -8322,7 +8367,8 @@
     "workflow": {
       "createNew": "إنشاء قالب جديد",
       "marketplace": "سوق",
-      "myWorkflows": "مهامي"
+      "myWorkflows": "مهامي",
+      "systemTemplates": "القوالب النظامية"
     },
     "zhipu": "زيبو",
     "groupVoice": "الصوت",
@@ -11832,6 +11878,15 @@
       "community": "المجتمع",
       "recommended": "موصى به",
       "all": "الكل"
+    },
+    "systemTemplateList": {
+      "edit": "تعديل",
+      "hint": "القوالب النظامية (المنسق المعرفي إلخ) تقود التوجيه العام، يمكن عرضها/تحريرها لكن يُمنع حذفها أو نسخها أو تصديرها",
+      "moreActions": "المزيد من الإجراءات",
+      "noDescription": "لا يوجد وصف",
+      "noTemplates": "لا توجد قوالب نظامية",
+      "systemTag": "نظامي",
+      "view": "عرض"
     },
     "templateName": "اسم القالب",
     "templateSaved": "تم حفظ القالب",

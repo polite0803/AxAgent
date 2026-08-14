@@ -6,6 +6,7 @@
 
 use std::collections::HashMap;
 
+use axagent_harness::capability::Visibility;
 use axagent_harness::workflow_types::{
     AgentNode, AgentNodeConfig, ApprovalNode, ApprovalNodeConfig, CodeNodeConfig, ConditionNode,
     ConditionNodeConfig, DataTransformerNode, DataTransformerNodeConfig, EdgeType, EndNode,
@@ -413,6 +414,7 @@ pub fn generate_industry_template_data(
         is_preset: true,
         is_editable: true,
         is_public: false,
+        visibility: Visibility::Public,
         trigger_config: Some(TriggerConfig {
             trigger_type: axagent_harness::workflow_types::TriggerType::Manual,
             config: serde_json::json!({}),

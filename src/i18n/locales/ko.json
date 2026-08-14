@@ -890,6 +890,13 @@
       "searching": "메모리 검색 중..."
     },
     "messageArea": "메시지 영역",
+    "mode": {
+      "action": "실행",
+      "ask": "질문",
+      "auto": "자동",
+      "plan": "계획",
+      "title": "실행 모드"
+    },
     "moveToWorkspace": "작업 영역으로 이동",
     "multiModel": {
       "selectTitle": "동시에 응답할 모델 선택",
@@ -1155,13 +1162,10 @@
       },
       "completedDesc": "\"{{name}}\" 완료, 총 {{total}}단계 중 {{completed}}성공",
       "completedTitle": "워크플로우 완료",
-      "conversationMode": "대화 모드",
-      "conversationModeDesc": "자유 대화, 고정 워크플로 없음",
       "dagHint": "이 Mermaid 코드를 Mermaid 렌더러에 붙여넣어 DAG를 시각화하세요.",
       "dagView": "DAG 뷰",
       "dagVisualization": "DAG 시각화",
       "dependsOn": "의존:",
-      "dismiss": "닫기",
       "docGen": {
         "description": "코드, API 및 프로젝트에 대한 포괄적인 문서를 생성합니다.",
         "name": "문서 생성기"
@@ -1190,12 +1194,10 @@
       },
       "result": "결과",
       "retries": "재시도:",
-      "searchPlaceholder": "템플릿 검색...",
       "security": {
         "description": "포괄적인 보안 취약점 스캔 및 위험 평가를 수행합니다.",
         "name": "보안 감사"
       },
-      "selectHint": "워크플로 선택",
       "status": {
         "completed": "완료됨",
         "failed": "실패함",
@@ -1207,16 +1209,10 @@
         "skipped": "건너뜀"
       },
       "stepStatus": "상태:",
-      "suggestionDesc": "요구사항이 워크플로 \"{{name}}\"과 유사한 것으로 감지되었습니다",
-      "suggestionHint": "힌트",
-      "suggestionReason": "워크플로를 사용하면 더 구조화된 다단계 실행이 가능합니다",
-      "switchToWorkflow": "워크플로로 전환",
       "testGen": {
         "description": "단위, 통합 및 엣지 케이스 테스트를 포함한 포괄적인 테스트 스위트를 생성합니다.",
         "name": "테스트 생성기"
       },
-      "title": "에이전트 워크플로우 템플릿",
-      "unnamed": "워크플로우",
       "viewDetails": "상세 보기",
       "viewOutput": "최종 출력",
       "workflowStatus": {
@@ -2356,6 +2352,12 @@
     "CLOUD_UNKNOWN_CONFLICT": "알 수 없는 동기화 충돌 유형입니다",
     "CLOUD_UNKNOWN_STORAGE": "알 수 없는 스토리지 유형입니다",
     "CLOUD_UNKNOWN_STRATEGY": "알 수 없는 동기화 전략입니다",
+    "COGNITIVE_ROUTE_FAILED": "인지 라우팅 실행 실패",
+    "COGNITIVE_EMPTY_INPUT": "인지 라우팅 입력이 비어 있습니다",
+    "COGNITIVE_CIRCUIT_BROKEN": "인지 라우팅 회로 차단기가 작동했습니다: {reason}",
+    "COGNITIVE_NO_CANDIDATE": "인지 라우팅에 사용 가능한 능력을 찾지 못했습니다",
+    "COGNITIVE_EXECUTION_MODE_INVALID": "인지 라우팅 실행 모드가 잘못되었습니다",
+    "COGNITIVE_PROMPT_REJECTED": "인지 프롬프트가 거부되었습니다",
     "COMMON_INTERNAL": "내부 오류",
     "COMMON_INVALID_INPUT": "유효하지 않은 입력입니다",
     "COMMON_TIMEOUT": "작업 시간이 초과되었습니다",
@@ -2576,6 +2578,7 @@
     "WORKFLOW_REFLECTION_REFLECT_FAILED": "워크플로우 반영에 실패했습니다",
     "WORKFLOW_REFLECTION_SUGGEST_FAILED": "워크플로우 반영 제안에 실패했습니다",
     "WORKFLOW_REFLECTION_TEMPLATE_INVALID": "유효하지 않은 워크플로우 반영 템플릿입니다",
+    "WORKFLOW_SYSTEM_TEMPLATE_PROTECTED": "시스템 템플릿은 보호되어 수정, 삭제 또는 복제할 수 없습니다",
     "WORKFLOW_VERSION_NOT_FOUND": "워크플로우 버전을 찾을 수 없습니다",
     "VOICE_TICKET_INVALID": "음성 세션 티켓이 유효하지 않거나 만료되었습니다",
     "VOICE_MODEL_NOT_FOUND": "음성 모델을 찾을 수 없거나 지원되지 않습니다",
@@ -2653,7 +2656,41 @@
     "DEVICE_SYNC_PASSWORD_EMPTY": "암호화 비밀번호는 비워둘 수 없습니다",
     "DEVICE_SYNC_SALT_REQUIRED": "복호화에는 솔트가 필요합니다",
     "DEVICE_SYNC_STORAGE_OPERATION_FAILED": "저장소 작업 실패",
-    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "정책 작업 실패"
+    "DEVICE_SYNC_POLICY_OPERATION_FAILED": "정책 작업 실패",
+    "CAPABILITY_REGISTER_FAILED": "능력 등록 실패",
+    "CAPABILITY_DISCOVER_FAILED": "능력 탐색 실패",
+    "CAPABILITY_NOT_FOUND": "능력을 찾을 수 없습니다",
+    "CAPABILITY_INDEX_FAILED": "능력 인덱싱 실패",
+    "CAPABILITY_EMBEDDING_FAILED": "임베딩 생성 실패",
+    "CAPABILITY_VECTOR_STORE_FAILED": "벡터 저장소 작업 실패",
+    "CAPABILITY_INVALID_PASSPORT": "잘못된 능력 여권",
+    "CAPABILITY_LIST_FAILED": "능력 목록 가져오기 실패",
+    "CAPABILITY_STATS_FAILED": "능력 통계 가져오기 실패",
+    "CAPABILITY_METADATA_RESTORE_FAILED": "메타데이터 복원 실패",
+    "AGENT_INPUT_CHANNEL_CLOSED": "사용자 입력 채널이 닫혀 있습니다",
+    "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "사용자 응답 대기 시간이 초과되었습니다(5분)",
+    "AGENT_INPUT_NO_PROVIDER": "사용 가능한 provider/model이 없습니다: 설정에서 공급자를 활성화하세요",
+    "AGENT_ROLE_BUILTIN_NOT_DELETABLE": "내장 역할은 삭제할 수 없습니다",
+    "BACKUP_CLOUD_KEY_TRAVERSAL": "경로 탐색이 감지되었습니다: cloud_key가 백업 디렉터리 밖을 가리킵니다",
+    "STREAMING_REQUEST_IN_PROGRESS": "이미 진행 중인 요청이 있습니다. 완료될 때까지 기다려 주세요",
+    "DYNAMIC_UI_BUILTIN_NOT_MODIFIABLE": "내장 스키마는 수정할 수 없습니다",
+    "DYNAMIC_UI_BUILTIN_NOT_DELETABLE": "내장 스키마는 삭제할 수 없습니다",
+    "DYNAMIC_UI_SCHEMA_NOT_FOUND": "DynamicUI 스키마가 존재하지 않습니다",
+    "DYNAMIC_UI_BUILTIN_NOT_ROLLBACK": "내장 스키마는 롤백할 수 없습니다",
+    "DYNAMIC_UI_EDIT_PROMPT_EMPTY": "편집 지시는 비워 둘 수 없습니다",
+    "DYNAMIC_UI_SCHEMA_MISSING_FIELD": "AI가 반환한 스키마에 필수 필드(type/id)가 없습니다",
+    "DYNAMIC_UI_GENERATE_PROMPT_EMPTY": "생성 지시는 비워 둘 수 없습니다",
+    "EVOLUTION_INSUFFICIENT_TRAJECTORY": "진화에 충분한 궤적 데이터가 없습니다",
+    "EVOLUTION_INITIAL_FEEDBACK_EMPTY": "초기 피드백은 비워 둘 수 없습니다",
+    "NL_TO_CRON_DESCRIPTION_EMPTY": "예약 작업 설명을 입력하세요",
+    "RESEARCH_NOT_ENOUGH_MESSAGES": "보고서를 생성할 만큼 대화 메시지가 충분하지 않습니다",
+    "RESEARCH_TOPIC_EMPTY": "연구 주제는 비워 둘 수 없습니다",
+    "SESSION_SHARE_INVALID_CODE": "유효하지 않은 초대 코드입니다",
+    "SESSION_SHARE_ALREADY_FULL": "세션이 가득 차서 참여할 수 없습니다",
+    "SESSION_SHARE_NOT_FOUND": "세션이 존재하지 않습니다",
+    "WORK_ENGINE_EXECUTION_NOT_FOUND": "execution_id가 유효하지 않거나 워크플로가 등록되지 않았습니다",
+    "TRAJECTORY_NOT_FOUND": "궤적을 찾을 수 없습니다",
+    "UNKNOWN_PRESET": "알 수 없는 프리셋"
   },
   "errorBoundary": {
     "copied": "복사됨",
@@ -2779,6 +2816,14 @@
     "general": "일반",
     "security": "보안",
     "writing": "작성"
+  },
+  "expertPreset": {
+    "generalAssistant": {
+      "name": "범용 어시스턴트",
+      "desc": "일상 대화와 일반적인 질문을 위한 범용 AI 어시스턴트",
+      "systemPrompt": "당신은 지능형 AI 어시스턴트입니다. 사용자의 질문에 정확하고 유용한 답변을 제공하세요.",
+      "tags": ["범용", "어시스턴트", "대화"]
+    }
   },
   "expertSelector": {
     "added": "추가됨",
@@ -8322,7 +8367,8 @@
     "workflow": {
       "createNew": "새 템플릿 만들기",
       "marketplace": "마켓플레이스",
-      "myWorkflows": "내 워크플로우"
+      "myWorkflows": "내 워크플로우",
+      "systemTemplates": "시스템 템플릿"
     },
     "zhipu": "지푸",
     "groupVoice": "음성",
@@ -11832,6 +11878,15 @@
       "community": "커뮤니티",
       "recommended": "추천",
       "all": "전체"
+    },
+    "systemTemplateList": {
+      "edit": "편집",
+      "hint": "시스템 템플릿(인지 오케스트레이터 등)은 전역 라우팅을 구동합니다. 보기/편집 가능하지만 삭제/복사/내보내기는 금지됩니다",
+      "moreActions": "더 많은 작업",
+      "noDescription": "설명 없음",
+      "noTemplates": "시스템 템플릿이 없습니다",
+      "systemTag": "시스템",
+      "view": "보기"
     },
     "templateName": "템플릿 이름",
     "templateSaved": "템플릿 저장됨",

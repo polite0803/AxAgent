@@ -7,6 +7,8 @@
 //! 2. `deep_research_topic`  — 多轮 Web 搜索 + 差距分析 + 交叉验证的深度研究
 
 use crate::AppState;
+use crate::commands::error::ErrorResponse;
+use crate::commands::error_code::research as research_err;
 use agent_macro::agent_command;
 use axagent_agent::deep_research::{DeepResearchConfig, DeepResearcher};
 use axagent_agent::ingest_pipeline::IngestPipeline;
@@ -174,7 +176,7 @@ pub async fn generate_research_report(
         .map_err(|e| format!("加载消息失败: {}", e))?;
 
     if messages.len() < 2 {
-        return Err("对话消息不足，无法生成报告".to_string());
+        return Err(ErrorResponse::err(research_err::NOT_ENOUGH_MESSAGES));
     }
 
     // 2. 获取 LLM 提供商和密钥
@@ -361,7 +363,7 @@ pub async fn deep_research_topic(
     max_rounds: Option<usize>,
 ) -> Result<serde_json::Value, String> {
     if topic.trim().is_empty() {
-        return Err("研究主题不能为空".to_string());
+        return Err(ErrorResponse::err(research_err::TOPIC_EMPTY));
     }
 
     // 1. 构建 DeepResearch 配置

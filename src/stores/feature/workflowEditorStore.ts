@@ -171,8 +171,8 @@ interface WorkflowEditorState {
   loadNarrativeStructure: (id: string) => Promise<void>;
   deleteNarrativeStructure: (id: string) => Promise<void>;
 
-  loadTemplates: () => Promise<void>;
-  loadTemplate: (id: string) => Promise<void>;
+  loadTemplates: (includeSystem?: boolean) => Promise<void>;
+  loadTemplate: (id: string, includeSystem?: boolean) => Promise<void>;
   createTemplate: (input: WorkflowTemplateInput) => Promise<string | null>;
   updateTemplate: (
     id: string,
@@ -401,6 +401,7 @@ const createEmptyTemplate = (): Omit<
   is_preset: false,
   is_editable: true,
   is_public: false,
+  is_system: false,
   trigger_config: { type: "manual", config: {} },
   nodes: [],
   edges: [],
@@ -774,7 +775,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       });
     },
 
-    loadTemplates: async () => {
+    loadTemplates: async (includeSystem?: boolean) => {
       set((state) => {
         state.isLoading = true;
         state.error = null;
@@ -782,7 +783,10 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       try {
         const filter = get().filter;
         const is_preset = filter.is_preset;
-        const params = is_preset !== undefined ? { is_preset } : {};
+        const params: Record<string, unknown> = {};
+        if (is_preset !== undefined) { params.is_preset = is_preset; }
+        // includeSystem=true（系统模板页）时返回认知编排器等系统模板
+        if (includeSystem) { params.include_system = includeSystem; }
         const templates = await invoke<WorkflowTemplateResponse[]>(
           "list_workflow_templates",
           params,
@@ -799,7 +803,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       }
     },
 
-    loadTemplate: async (id: string) => {
+    loadTemplate: async (id: string, includeSystem?: boolean) => {
       set((state) => {
         state.isLoading = true;
         state.error = null;
@@ -811,9 +815,12 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       });
 
       try {
+        const params: Record<string, unknown> = { id };
+        // includeSystem=true（系统模板页）时允许读取系统模板
+        if (includeSystem) { params.include_system = includeSystem; }
         const template = await invoke<WorkflowTemplateResponse>(
           "get_workflow_template",
-          { id },
+          params,
         );
         // 如果在等待期间有新的 loadTemplate 调用，放弃本次结果
         if (get()._loadRequestId !== requestId) { return; }
