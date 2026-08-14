@@ -33,12 +33,6 @@ mod tray;
 #[cfg(not(mobile))]
 mod window_state;
 
-#[cfg(mobile)]
-mod tray {
-    #[tauri::command]
-    pub fn set_tray_labels(_app: tauri::AppHandle, _show_label: String, _quit_label: String) {}
-}
-
 #[cfg(target_os = "windows")]
 mod windows_utils;
 
