@@ -6,9 +6,9 @@
 //! 1. Landing Page Sprint — 4 agent 协作，1 天发出落地页
 //! 2. Startup MVP — 7 agent 协作，4 周出 MVP
 
+use axagent_harness::capability::Visibility;
 use axagent_harness::hallucination_guard::HallucinationGuardConfig;
 use axagent_harness::util_fns::now_ts;
-use axagent_harness::capability::Visibility;
 use axagent_harness::workflow_types::*;
 use sea_orm::DatabaseConnection;
 

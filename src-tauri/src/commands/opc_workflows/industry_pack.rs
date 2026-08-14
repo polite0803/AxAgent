@@ -12,8 +12,8 @@
 //! 启动扫描注册到 `opc_industries` 表，支持单独启用/禁用/导出/导入。
 //! 行业级版本号取代全局 OPC_TEMPLATE_VERSION，行业间互不影响。
 
-use axagent_harness::util_fns::now_ts;
 use axagent_harness::capability::Visibility;
+use axagent_harness::util_fns::now_ts;
 use axagent_harness::workflow_types::*;
 use sea_orm::DatabaseConnection;
 use serde::Deserialize;

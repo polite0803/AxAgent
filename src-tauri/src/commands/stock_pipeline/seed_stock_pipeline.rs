@@ -13,8 +13,8 @@
 //! 8. 结束
 
 use axagent_entities::workflow_template;
-use axagent_harness::hallucination_guard::HallucinationGuardConfig;
 use axagent_harness::capability::Visibility;
+use axagent_harness::hallucination_guard::HallucinationGuardConfig;
 use axagent_harness::workflow_types::{
     AgentNode, AgentNodeConfig, BackoffType, Branch, CodeNode, CodeNodeConfig, EdgeType, EndNode,
     EndNodeConfig, JsonSchema, JsonSchemaProperty, MergeStrategy, OutputMode, ParallelNode,
