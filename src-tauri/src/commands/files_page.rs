@@ -49,7 +49,7 @@ fn resolve_storage_path(storage_path: &str) -> Result<String, String> {
     let resolved = if storage_path.is_absolute() {
         storage_path.to_path_buf()
     } else {
-        axagent_storage::storage_paths::resolve_documents_path(&storage_path.to_string_lossy())
+        axagent_storage::storage_paths::resolve_documents_path(&storage_path.to_string_lossy())?
     };
 
     // 路径安全：canonicalize 后必须落在 documents 根目录之内。

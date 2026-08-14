@@ -76,16 +76,21 @@ class ComponentRegistry {
     const fullKey = namespace ? `${namespace}:${type}` : type;
     const entry = this.registry.get(fullKey);
     if (entry) {
-      // Remove from reverse index if no other entry uses the same bare type
-      let hasDup = false;
-      for (const [key, e] of this.registry) {
-        if (key !== fullKey && e.type === entry.type) {
-          hasDup = true;
-          break;
+      // FE-I3 修复：若 reverse index 正指向即将被删的 fullKey，需重映射到
+      // 同 bare type 的其他注册项，否则索引悬空（裸类型解析失效）。
+      if (this.typeIndex.get(entry.type) === fullKey) {
+        let replacement: string | undefined;
+        for (const [key, e] of this.registry) {
+          if (key !== fullKey && e.type === entry.type) {
+            replacement = key;
+            break;
+          }
         }
-      }
-      if (!hasDup) {
-        this.typeIndex.delete(entry.type);
+        if (replacement) {
+          this.typeIndex.set(entry.type, replacement);
+        } else {
+          this.typeIndex.delete(entry.type);
+        }
       }
     }
     this.registry.delete(fullKey);

@@ -195,8 +195,8 @@ pub struct AgentOptions {
     /// 这些工具不会传给 LLM 也不会被执行。
     #[serde(rename = "disabledTools")]
     pub disabled_tools: Option<Vec<String>>,
-    /// 活跃功能域列表（例如 ["Core", "General"]），
-    /// 仅该域内的工具会传给 LLM。默认 ["Core", "General"]。
+    /// 活跃功能域列表（例如 ["General"]），
+    /// 仅该域内的工具会传给 LLM。默认 ["General"]。
     #[serde(rename = "activeDomains")]
     pub active_domains: Option<Vec<String>>,
 }

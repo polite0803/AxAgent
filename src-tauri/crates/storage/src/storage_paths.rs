@@ -82,8 +82,11 @@ pub fn file_type_bucket(mime_type: &str) -> &'static str {
 }
 
 /// Resolves a relative storage path to absolute under documents root.
-pub fn resolve_documents_path(relative_path: &str) -> PathBuf {
-    documents_root().join(relative_path)
+///
+/// 内联校验相对路径，防止 `..` 或绝对路径越界。
+pub fn resolve_documents_path(relative_path: &str) -> Result<PathBuf, String> {
+    validate_relative_path(relative_path)?;
+    Ok(documents_root().join(relative_path))
 }
 
 /// Generates a storage-ready relative path for a new file.
@@ -219,14 +222,14 @@ mod tests {
 
     #[test]
     fn resolve_joins_correctly() {
-        let resolved = resolve_documents_path("images/abc123.jpg");
+        let resolved = resolve_documents_path("images/abc123.jpg").unwrap();
         let root = documents_root();
         assert_eq!(resolved, root.join("images").join("abc123.jpg"));
     }
 
     #[test]
     fn resolve_single_file() {
-        let resolved = resolve_documents_path("readme.txt");
+        let resolved = resolve_documents_path("readme.txt").unwrap();
         let root = documents_root();
         assert_eq!(resolved, root.join("readme.txt"));
     }

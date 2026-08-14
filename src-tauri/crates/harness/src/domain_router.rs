@@ -665,11 +665,11 @@ pub fn default_domain_rules() -> Vec<DomainRoutingRule> {
         )
         .with_priority(72)
         .with_description("AI媒体相关关键词"),
-        // ── 投资域 ──
+        // ── 金融域（业务标签 axinvest）──
         DomainRoutingRule::new(
-            "rule_invest_keywords",
-            "投资-关键词匹配",
-            CapabilityDomain::Invest,
+            "rule_finance_keywords",
+            "金融-关键词匹配",
+            CapabilityDomain::Finance,
             DomainRuleType::Keyword,
             vec![
                 "股票",
@@ -693,12 +693,12 @@ pub fn default_domain_rules() -> Vec<DomainRoutingRule> {
             ],
         )
         .with_priority(78)
-        .with_description("投资相关关键词"),
-        // ── OPC 域 ──
+        .with_description("金融相关关键词"),
+        // ── 自动化域（业务标签 axopc）──
         DomainRoutingRule::new(
-            "rule_opc_keywords",
-            "OPC-关键词匹配",
-            CapabilityDomain::Opc,
+            "rule_automation_keywords",
+            "自动化-关键词匹配",
+            CapabilityDomain::Automation,
             DomainRuleType::Keyword,
             vec![
                 "客户",

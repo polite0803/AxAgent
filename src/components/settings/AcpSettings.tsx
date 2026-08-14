@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { logIpcError } from "@/lib/invoke";
 import { message } from "@/lib/toast";
 import { type Session, useAxAgent } from "@/sdk";
 import { useSettingsStore } from "@/stores";
@@ -52,8 +53,8 @@ export function AcpSettings() {
     setBaseUrl(val);
     localStorage.setItem(STORAGE_KEY, val);
     setConnected(null);
-    // 异步保存到后端 settings，失败仅提示不影响 UI
-    void saveSettings({ acp_base_url: val }).catch(() => {});
+    // 异步保存到后端 settings，失败仅打日志不影响 UI
+    void saveSettings({ acp_base_url: val }).catch(logIpcError("acp.saveSettings"));
     lastSyncedRef.current = val;
   }, [saveSettings]);
 

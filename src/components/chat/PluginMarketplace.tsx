@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { message } from "@/lib/toast";
-import { usePluginStore } from "@/stores";
+import { useCapabilityStore, usePluginStore } from "@/stores";
 import type { PluginManifestDto } from "@/types";
 import { Badge, Button, Card, Descriptions, Input, Modal, Space, Tag, Typography } from "antd";
-import { CheckCircle, Code2, Loader2, PackageSearch, XCircle } from "lucide-react";
+import { Boxes, CheckCircle, Code2, Loader2, PackageSearch, XCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -25,15 +25,28 @@ export function PluginMarketplace() {
   const disablePlugin = usePluginStore((s) => s.disablePlugin);
   const uninstallPlugin = usePluginStore((s) => s.uninstallPlugin);
 
+  // 能力注册表（capability_registry_dump，缺陷 #6：前端消费后端检视命令）
+  const registry = useCapabilityStore((s) => s.registry);
+  const registryLoading = useCapabilityStore((s) => s.isLoading);
+  const loadRegistry = useCapabilityStore((s) => s.loadRegistry);
+
   // 组件本地 UI 状态（不适合放入全局 Store 的交互状态）
   const [installInput, setInstallInput] = useState("");
   const [confirmManifest, setConfirmManifest] = useState<PluginManifestDto | null>(null);
   const [confirmSource, setConfirmSource] = useState("");
+  const [registryQuery, setRegistryQuery] = useState("");
 
-  // 初始化加载插件列表
+  // 初始化加载插件列表 + 能力注册表
   useEffect(() => {
     loadPlugins();
-  }, [loadPlugins]);
+    loadRegistry();
+  }, [loadPlugins, loadRegistry]);
+
+  const filteredRegistry = registry.filter(
+    (r) =>
+      r.id.toLowerCase().includes(registryQuery.toLowerCase())
+      || (r.pluginId ?? "").toLowerCase().includes(registryQuery.toLowerCase()),
+  );
 
   const handleRefresh = useCallback(() => {
     loadPlugins();
@@ -196,6 +209,77 @@ export function PluginMarketplace() {
                 </div>
               )}
             </Card>
+          ))}
+        </div>
+      </Card>
+
+      <Card size="small" className="mt-3">
+        <div className="flex items-center justify-between mb-3 gap-2">
+          <Space>
+            <Boxes size={16} className="text-teal-500" />
+            <Title level={5} className="mb-0">
+              {t("chat.plugins.marketplace.registryTitle")}
+            </Title>
+            <Badge count={registry.length} size="small" />
+          </Space>
+          <Input.Search
+            size="small"
+            placeholder={t("chat.plugins.marketplace.registrySearchPlaceholder")}
+            value={registryQuery}
+            onChange={(e) => setRegistryQuery(e.target.value)}
+            allowClear
+            className="w-56"
+          />
+        </div>
+
+        {registryLoading && registry.length === 0 && (
+          <div className="flex items-center gap-2 py-4 text-sm text-zinc-500">
+            <Loader2 size={14} className="animate-spin" />
+            <span>{t("chat.plugins.marketplace.registryLoading")}</span>
+          </div>
+        )}
+
+        {!registryLoading && registry.length === 0 && (
+          <Text type="secondary" className="text-xs">
+            {t("chat.plugins.marketplace.registryEmpty")}
+          </Text>
+        )}
+
+        <div className="space-y-2 max-h-96 overflow-auto">
+          {filteredRegistry.map((r) => (
+            <div
+              key={r.id}
+              className="flex items-start justify-between gap-2 border border-zinc-200 rounded-md px-2 py-1.5"
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <Text strong className="text-xs" ellipsis>
+                    {r.id}
+                  </Text>
+                  <Tag
+                    color={r.origin === "builtin" ? "green" : "purple"}
+                    className="text-xs shrink-0"
+                  >
+                    {r.origin === "builtin"
+                      ? t("chat.plugins.marketplace.registryBuiltin")
+                      : t("chat.plugins.marketplace.registryExternal")}
+                  </Tag>
+                </div>
+                <Text type="secondary" className="text-xs block truncate">
+                  {r.contract}
+                </Text>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {r.pluginId && (
+                  <Tag color="geekblue" className="text-xs">
+                    {t("chat.plugins.marketplace.registryPlugin")} · {r.pluginId}
+                  </Tag>
+                )}
+                <Tag className="text-xs">
+                  {t("chat.plugins.marketplace.registryVersion")}: {r.version}
+                </Tag>
+              </div>
+            </div>
           ))}
         </div>
       </Card>

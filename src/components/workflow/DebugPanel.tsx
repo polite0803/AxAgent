@@ -684,7 +684,14 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
   >({});
   const [subAnalyzing, setSubAnalyzing] = useState(false);
 
+  // FE-I2 修复：组件卸载标志，拦截卸载后的异步 setState。
+  const mountedRef = useRef(true);
+  useEffect(() => () => {
+    mountedRef.current = false;
+  }, []);
+
   const analyzeSubWorkflows = useCallback(async () => {
+    if (!mountedRef.current) { return; }
     setSubAnalyzing(true);
     const subNodes =
       (nodes as unknown as { type?: string; data?: Record<string, unknown>; config?: Record<string, unknown> }[]) // SAFE: nodes cast to shape with type/data/config for runtime property access
@@ -694,6 +701,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
         });
     const result: Record<string, unknown> = {};
     if (subNodes.length === 0) {
+      if (!mountedRef.current) { return; }
       setSubAnalyzing(false);
       return;
     }
@@ -794,6 +802,8 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
     if (result) {
       (result as Record<string, unknown>)["_recursionErrors"] = recursionErrors;
     }
+    // FE-I2 修复：await 之后、setState 前检查组件是否已卸载。
+    if (!mountedRef.current) { return; }
     // SAFE: IPC response typed as generic record; cast to expected sub-diagnostic shape
     setSubDiags(
       result as unknown as Record<
@@ -815,6 +825,8 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
   const analyzeVersionRef = useRef(0);
 
   useEffect(() => {
+    // FE-I2 修复：mounted 标志 + 保存 timer 句柄，卸载后不再 setState、不泄漏。
+    let mounted = true;
     const subNodes =
       (nodes as unknown as { type?: string; data?: Record<string, unknown>; config?: Record<string, unknown> }[]) // SAFE: nodes cast to shape with type/data/config for runtime property access
         .filter((n) => {
@@ -822,17 +834,26 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
           return t === "subWorkflow";
         });
     if (subNodes.length === 0) {
-      setTimeout(() => setSubDiags({}), 0);
-      return;
+      const clearTimer = setTimeout(() => {
+        if (!mounted) { return; }
+        setSubDiags({});
+      }, 0);
+      return () => {
+        mounted = false;
+        clearTimeout(clearTimer);
+      };
     }
     const currentVersion = ++analyzeVersionRef.current;
     const timer = setTimeout(() => {
       analyzeSubWorkflows().then(() => {
         // 如果在分析期间有新的分析被触发，丢弃当前结果
-        if (analyzeVersionRef.current !== currentVersion) { return; }
+        if (!mounted || analyzeVersionRef.current !== currentVersion) { return; }
       });
     }, 500);
-    return () => clearTimeout(timer);
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+    };
   }, [nodes, analyzeSubWorkflows]);
 
   const runValidation = useCallback(async () => {

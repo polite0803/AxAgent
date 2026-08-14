@@ -62,7 +62,7 @@ impl Default for RarRecallResult {
 /// ```text
 /// 以下是推荐能力(按相似度排序),优先从中选择,若无匹配可自行判断:
 /// 1. /core/file_ops/read_file (相似度 0.92)
-/// 2. /invest/market_data/get_quote (相似度 0.85)
+/// 2. /finance/market_data/get_quote (相似度 0.85)
 /// ...
 /// ```
 ///

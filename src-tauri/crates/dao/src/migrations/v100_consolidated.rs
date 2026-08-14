@@ -96,8 +96,10 @@ pub const ADDITIONAL_COLUMNS: &[(&str, &str, &str)] = &[
     ("agency_experts", "success_rate", "DOUBLE PRECISION"),
     ("agency_experts", "avg_latency_ms", "BIGINT"),
     ("agency_experts", "avg_token_cost", "BIGINT"),
-    // ── workflow_templates 任务哈希（PHASE 9） ──
+    // ── workflow_templates 路由列（v100 能力路由） ──
     ("workflow_templates", "mission_hash", "TEXT"),
+    ("workflow_templates", "cluster_id", "TEXT"),
+    ("workflow_templates", "route_path", "TEXT"),
 ];
 
 pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
@@ -489,6 +491,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             is_public BOOLEAN NOT NULL DEFAULT FALSE, trigger_config TEXT, \
             nodes TEXT NOT NULL, edges TEXT NOT NULL, input_schema TEXT, output_schema TEXT, \
             variables TEXT, error_config TEXT, composite_source TEXT, tool_defs TEXT, \
+            mission_hash TEXT, cluster_id TEXT, route_path TEXT, \
             created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)",
         "CREATE TABLE IF NOT EXISTS workflow_template_versions (\
             id TEXT NOT NULL PRIMARY KEY, template_id TEXT NOT NULL, name TEXT NOT NULL, \

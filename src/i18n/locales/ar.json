@@ -945,7 +945,17 @@
         "title": "سوق الإضافات",
         "tools": "الأدوات",
         "validateFailed": "فشل التحقق: {{error}}",
-        "version": "الإصدار"
+        "version": "الإصدار",
+        "registryTitle": "سجل القدرات",
+        "registryLoading": "جارٍ تحميل السجل...",
+        "registryEmpty": "لا توجد وصلات قدرات مسجلة",
+        "registryBuiltin": "مدمج",
+        "registryExternal": "إضافة خارجية",
+        "registryContract": "العقد",
+        "registryVersion": "الإصدار",
+        "registryPlugin": "إضافة",
+        "registrySearchPlaceholder": "ابحث حسب معرّف الوصلة / الإضافة",
+        "registrySeam": "وصلة"
       }
     },
     "preferences": "التفضيلات",
@@ -1471,6 +1481,35 @@
     "switchAgentModeNoConversationInfo": "Switched to Agent mode. Send a message to create an Agent conversation.",
     "clearHistoryDone": "Conversation cleared"
   },
+  "capabilityDomain": {
+    "general": "عام",
+    "devops": "ديف أوبس",
+    "ai_media": "وسائط الذكاء الاصطناعي",
+    "data_analysis": "تحليل البيانات",
+    "content_creation": "إنشاء المحتوى",
+    "communication": "الاتصالات",
+    "finance": "المالية",
+    "automation": "الأتمتة",
+    "system": "النظام"
+  },
+  "capabilityPanel": {
+    "statsTitle": "إحصائيات الفهرس",
+    "totalCapabilities": "إجمالي القدرات",
+    "totalVectors": "إجمالي المتجهات",
+    "positiveVectors": "متجهات موجبة",
+    "negativeVectors": "متجهات سالبة",
+    "discoverTitle": "اكتشاف القدرات",
+    "discoverPlaceholder": "صف مهمة، مثل «تحليل الاتجاهات»",
+    "discoverButton": "اكتشاف",
+    "discoverResult": "النتيجة",
+    "score": "النتيجة",
+    "ambiguous": "مطابقة غامضة",
+    "noMatch": "لا توجد قدرة مطابقة",
+    "passportsTitle": "جوازات سفر مسجلة",
+    "noPassports": "لا توجد قدرات مسجلة",
+    "enabled": "مفعّل",
+    "disabled": "معطّل"
+  },
   "chatMarkdown": {
     "inputParams": "معلمات الإدخال",
     "outputResult": "نتيجة المخرجات",
@@ -1523,7 +1562,18 @@
     "contextPrediction": "上下文预测",
     "steerInput": "引导",
     "showExtras": "更多面板",
-    "hideExtras": "收起"
+    "hideExtras": "收起",
+    "cognitiveRoute": "المسار",
+    "capability": "القدرة"
+  },
+  "cite": {
+    "chunkLabel": "مقطع #{{n}}",
+    "sourceType": {
+      "knowledge": "قاعدة المعرفة",
+      "memory": "الذاكرة",
+      "unknown": "غير معروف",
+      "wiki": "ويكي"
+    }
   },
   "citationManager": {
     "addCitation": "إضافة اقتباس",
@@ -1864,6 +1914,29 @@
       "zhTW": "الصينية التقليدية"
     }
   },
+  "cognitive": {
+    "clarifyTitle": "اختر إمكانية للتنفيذ",
+    "clarifyPrompt": "تطابق طلبك مع عدة مرشحين. اختر واحدًا:",
+    "candidateWorkflow": "سير العمل",
+    "candidateAgent": "وكيل",
+    "clarifyExecuting": "جارٍ تنفيذ الإمكانية المحددة...",
+    "clarifyHint": "اختر مرشحًا للمتابعة"
+  },
+  "cognitiveRoute": {
+    "empty": "لا توجد ملاحظات مسار",
+    "noRoute": "لم يتم تحديد مسار",
+    "domain": "المجال",
+    "cluster": "المجموعة",
+    "executionMode": "الوضع",
+    "confidence": "الثقة",
+    "circuitBroken": "انقطاع الدائرة",
+    "circuitClosed": "طبيعي",
+    "llmFallback": "احتياطي LLM",
+    "fallbackPath": "مسار احتياطي",
+    "candidates": "المرشحون",
+    "stageRecords": "مراحل المسار",
+    "recordedAt": "سُجل في"
+  },
   "continuation": {
     "continueFromHere": "المتابعة من هنا",
     "continueMsg": "续写",
@@ -1962,7 +2035,8 @@
     "agentDataNotFound": "البيانات التي أنشأها الوكيل \"{{generationId}}\" غير موجودة في مخزن التنفيذ",
     "apiRequestFailed": "فشل طلب API: {{statusText}}",
     "storeNotRegistered": "المخزن \"{{storeName}}\" غير مسجل",
-    "unknownSourceType": "نوع مصدر بيانات غير معروف: {{type}}"
+    "unknownSourceType": "نوع مصدر بيانات غير معروف: {{type}}",
+    "apiEndpointForbidden": "نقطة نهاية API \"{{endpoint}}\" غير مسموح بها وتم حظرها"
   },
   "datasetManager": {
     "action": "إجراء",
@@ -2352,12 +2426,14 @@
     "CLOUD_UNKNOWN_CONFLICT": "نوع تعارض مزامنة غير معروف",
     "CLOUD_UNKNOWN_STORAGE": "نوع تخزين غير معروف",
     "CLOUD_UNKNOWN_STRATEGY": "استراتيجية مزامنة غير معروفة",
+    "CAPABILITY_EMBEDDING_FAILED": "فشل إنشاء التضمين",
     "COGNITIVE_ROUTE_FAILED": "فشل تنفيذ التوجيه المعرفي",
     "COGNITIVE_EMPTY_INPUT": "إدخال التوجيه المعرفي فارغ",
     "COGNITIVE_CIRCUIT_BROKEN": "تم كسر دائرة التوجيه المعرفي: {reason}",
     "COGNITIVE_NO_CANDIDATE": "لم يتم العثور على قدرة متاحة للتوجيه المعرفي",
     "COGNITIVE_EXECUTION_MODE_INVALID": "وضع تنفيذ التوجيه المعرفي غير صالح",
     "COGNITIVE_PROMPT_REJECTED": "تم رفض الطلب المعرفي",
+    "COGNITIVE_RAR_RETRIEVE_FAILED": "فشل استرجاع مرشحات التوجيه المعرفي: {{detail}}",
     "COMMON_INTERNAL": "خطأ داخلي",
     "COMMON_INVALID_INPUT": "إدخال غير صالح",
     "COMMON_TIMEOUT": "انتهت مهلة العملية",
@@ -2396,6 +2472,7 @@
     "DASHBOARD_NO_MANIFEST": "بيان لوحة المعلومات غير موجود",
     "DESKTOP_CONNECTION_TIMEOUT": "انتهت مهلة اتصال سطح المكتب",
     "DESKTOP_NATIVE_NOTIFICATION_FAILED": "فشل إرسال إشعار سطح المكتب",
+    "FINE_TUNE_DELETE_FAILED": "فشل حذف مهمة الضبط الدقيق",
     "EXPERT_DELETE_FAILED": "فشل حذف الخبير",
     "EXPERT_JSON_PARSE_FAILED": "فشل تحليل JSON الخبير",
     "EXPERT_KEY_DECRYPT_FAILED": "فشل فك تشفير مفتاح الخبير: {{error}}",
@@ -2476,6 +2553,9 @@
     "PLATFORM_TELEGRAM_NOT_ENABLED": "منصة Telegram غير مفعلة",
     "PLATFORM_UNSUPPORTED": "منصة غير مدعومة",
     "PLATFORM_WEBHOOK_NOT_CONFIGURED": "Webhook غير مهيأ",
+    "PLUGIN_PROFILE_NOT_FOUND": "ملف تعريف مجموعة الإضافات غير موجود",
+    "PLUGIN_PROFILE_DUPLICATE_NAME": "اسم ملف تعريف مجموعة الإضافات موجود بالفعل",
+    "PLUGIN_PROFILE_IO_FAILED": "فشل حفظ ملف تعريف مجموعة الإضافات",
     "PROVIDER_ADAPTER_NOT_FOUND": "محول الموفر غير موجود",
     "PROVIDER_CREATE_FAILED": "فشل إنشاء الموفر",
     "PROVIDER_DELETE_FAILED": "فشل حذف الموفر",
@@ -2633,6 +2713,17 @@
     "LOCAL_MODEL_INSTALL_IN_PROGRESS": "جارٍ تثبيت llama.cpp",
     "LOCAL_MODEL_DOWNLOAD_FAILED": "فشل التنزيل",
     "LOCAL_MODEL_PORT_IN_USE": "المنفذ {{port}} مستخدم بالفعل. يرجى تغيير المنفذ أو إيقاف العملية التي تستخدمه",
+    "LLM_CALL_FAILED": "فشل استدعاء نموذج اللغة: {{detail}}",
+    "FLEET_NOT_FOUND": "لم يتم العثور على المكتب",
+    "FLEET_NAME_REQUIRED": "اسم المكتب مطلوب",
+    "FLEET_NO_MEMBERS": "لا يوجد أعضاء في هذا المكتب بعد",
+    "FLEET_ALL_MEMBERS_UNAVAILABLE": "جميع الأعضاء غير متاحين (إيقاف مؤقت/خطأ/غير متصل)",
+    "FLEET_MEMBER_NOT_FOUND": "لم يتم العثور على العضو",
+    "FLEET_NO_PROVIDER": "لا يوجد مزود نماذج متاح. قم بتكوينه في الإعدادات أولاً",
+    "FLEET_ROUTING_FAILED": "فشل استدعاء التوجيه الذكي",
+    "FLEET_EXECUTION_FAILED": "فشل العضو في تنفيذ المهمة",
+    "FLEET_TARGET_NOT_IN_FLEET": "العضو المستهدف غير موجود في هذا المكتب",
+    "FLEET_SLUG_EXISTS": "يوجد عضو بهذا المعرف بالفعل في هذا المكتب",
     "DEVICE_SYNC_DEVICE_NOT_INITIALIZED": "الجهاز غير مهيأ",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "الجهاز غير موجود",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "الجهاز مقترن بالفعل",
@@ -2661,7 +2752,6 @@
     "CAPABILITY_DISCOVER_FAILED": "فشل اكتشاف القدرة",
     "CAPABILITY_NOT_FOUND": "القدرة غير موجودة",
     "CAPABILITY_INDEX_FAILED": "فشل فهرسة القدرة",
-    "CAPABILITY_EMBEDDING_FAILED": "فشل إنشاء التضمين",
     "CAPABILITY_VECTOR_STORE_FAILED": "فشل عملية تخزين المتجهات",
     "CAPABILITY_INVALID_PASSPORT": "جواز قدرة غير صالح",
     "CAPABILITY_LIST_FAILED": "فشل في سرد القدرات",
@@ -2822,7 +2912,11 @@
       "name": "المساعد العام",
       "desc": "مساعد ذكاء اصطناعي متعدد الأغراض للمحادثات اليومية والأسئلة العامة",
       "systemPrompt": "أنت مساعد ذكاء اصطناعي ذكي. قدم إجابات دقيقة ومفيدة بناءً على أسئلة المستخدم.",
-      "tags": ["عام", "مساعد", "محادثة"]
+      "tags": [
+        "عام",
+        "مساعد",
+        "محادثة"
+      ]
     }
   },
   "expertSelector": {
@@ -12371,8 +12465,9 @@
     "fileEditDesc": "Edit file via exact string replacement. Uses old_string/new_string to search and replace.",
     "deleteFileDesc": "Delete the file at the specified path. This operation is irreversible.",
     "bashDesc": "Execute shell commands. Suitable for: running tests, builds, git operations. Dangerous commands require permission confirmation.",
-    "fleetMessageReceived": "{{name}} 收到: {{message}}",
-    "fleetNoMembers": "办公室暂无成员，无法派遣任务"
+    "fleetNoMembers": "The office has no members yet",
+    "fleetMessageReceived": "[Browser Mock] {{name}} received message: {{message}}",
+    "capabilityAmbiguous": "تم العثور على عدة قدرات متطابقة. يرجى التوضيح للتأكيد."
   },
   "searchUtils": {
     "highCredibility": "مصداقية عالية",

@@ -533,34 +533,47 @@ jobs:
 
       - name: Limit Gradle memory (prevent runner OOM)
         run: |
-          if [ -f src-tauri/gen/android/gradle.properties ]; then
-            grep -q '^org.gradle.jvmargs=' src-tauri/gen/android/gradle.properties \
-              || echo 'org.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=1024m -XX:+UseParallelGC' \
-              >> src-tauri/gen/android/gradle.properties
+          GP=src-tauri/gen/android/gradle.properties
+          if [ ! -f "$GP" ]; then
+            echo "gradle.properties not found, skip memory tuning"
+            exit 0
           fi
-          # 显示当前磁盘空间
-          df -h /
+          if [ "${{ matrix.abi }}" = "armeabi-v7a" ]; then
+            # armv7 32 位构建内存峰值最高：tauri android init 生成的默认配置
+            # Gradle daemon 2GB + Kotlin daemon 2GB，在 7GB runner 上叠加 cargo-ndk
+            # 全量编译极易 OOM → runner 失联（步骤被 cancel、日志不落盘）。
+            # 此前该步骤用 grep 判断 jvmargs 已存在即跳过，导致限制从未生效。
+            # 强制覆盖并收紧并行，降低峰值内存。
+            sed -i '/^org.gradle.jvmargs=/d; /^kotlin.daemon.jvm.options=/d; /^org.gradle.parallel=/d; /^org.gradle.workers.max=/d' "$GP"
+            printf '%s\n' \
+              'org.gradle.jvmargs=-Xmx2560m -XX:MaxMetaspaceSize=1024m -XX:+UseParallelGC' \
+              'kotlin.daemon.jvm.options=-Xmx1024m' \
+              'org.gradle.parallel=false' \
+              'org.gradle.workers.max=2' >> "$GP"
+          else
+            grep -q '^org.gradle.jvmargs=' "$GP" \
+              || echo 'org.gradle.jvmargs=-Xmx2560m -XX:MaxMetaspaceSize=1024m -XX:+UseParallelGC' >> "$GP"
+          fi
+          echo "--- gradle.properties ---"
+          cat "$GP"
 
       # 注：APK 与 AAB 在同一次 `tauri android build` 中产出（--apk --aab），
       # 避免为 AAB 单独再启动一次完整的 gradle 构建。
       # --target 参数接受: aarch64, armv7, i686, x86_64
       - name: Build Android APK + AAB
+        timeout-minutes: 120
         run: |
           cd src-tauri
-          echo "Building for ABI: ${{ matrix.abi }}"
-          echo "Target: ${{ matrix.abi == 'arm64-v8a' && 'aarch64' || matrix.abi == 'armeabi-v7a' && 'armv7' || 'x86_64' }}"
-          df -h /
-          case "${{ matrix.abi }}" in
-            arm64-v8a)
-              npx tauri android build --target aarch64 --apk --aab -v
-              ;;
-            armeabi-v7a)
-              npx tauri android build --target armv7 --apk -v
-              ;;
-            x86_64)
-              npx tauri android build --target x86_64 --apk -v
-              ;;
-          esac
+TARGET=${{ matrix.abi == 'arm64-v8a' && 'aarch64' || matrix.abi == 'armeabi-v7a' && 'armv7' || 'x86_64' }}
+          # armv7 全量编译内存峰值最高，限制 Rust 并行编译降低 OOM 风险
+          if [ "${{ matrix.abi }}" = "armeabi-v7a" ]; then
+            export CARGO_BUILD_JOBS=2
+          fi
+          if [[ "${{ matrix.abi }}" == "arm64-v8a" ]]; then
+            npx tauri android build --target "$TARGET" --apk --aab
+          else
+            npx tauri android build --target "$TARGET" --apk
+          fi
         env:
           NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}

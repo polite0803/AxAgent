@@ -76,7 +76,7 @@ pub enum ProposedChange {
 /// - `workflow_ai_diagnose`:LLM 单次推理,冷启动/手动诊断
 /// - 本 trait:基于历史反思的持续优化建议,自动触发
 #[async_trait]
-pub trait WorkflowOptimizer: Send + Sync {
+pub trait WorkflowOptimizer: Send + Sync + std::any::Any {
     /// 基于单次反思生成优化建议。
     async fn suggest(
         &self,

@@ -133,13 +133,14 @@ import {
   _activeMessageLoadSeq,
   _isMultiModelActive,
   _pendingConversationRefresh,
-  _streamBuffer,
   deletePendingConversationRefresh,
+  getSession,
   getStreamingMessageId,
   incrementActiveMessageLoadSeq,
   isConversationStreaming as isConvStreaming,
   rebuildMessageIndex,
   registerConversationStoreRef,
+  removeSession,
   setStreamBuffer,
   // Setter functions
   setUserManuallySelectedVersion,
@@ -214,7 +215,14 @@ export interface ConversationState {
     searchProviderId?: string | null,
     quotedMessageId?: string | null,
     modeHint?: SendModeHint,
+    disabledTools?: string[],
+    resumeClarify?: {
+      capabilityId: string;
+      userMessageId: string;
+    },
   ) => Promise<void>;
+  /** Clarify 二次执行：用户选中候选后携带 capabilityId 重新调用 cognitive_query */
+  executeClarify: (capabilityId: string) => Promise<void>;
   /** 认知编排澄清候选（Clarify 分支）待用户选择；null 表示无待选 */
   pendingClarification: CognitiveClarification | null;
   setPendingClarification: (c: CognitiveClarification | null) => void;
@@ -661,13 +669,17 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         ) {
           return;
         }
+        // FE-I11 修复：使用会话级 streamBuffer（getSession）替代全局 _streamBuffer，
+        // 避免跨会话切换时 global buffer 被其他会话的流劫持导致串扰。
+        const session = getSession(id);
+        const sessionBuffer = session?.streamBuffer ?? null;
         // If there's an active stream for this conversation, inject buffered content
         if (
-          _streamBuffer
-          && _streamBuffer.conversationId === id
+          sessionBuffer
+          && sessionBuffer.conversationId === id
           && isConvStreaming(useStreamStore.getState().activeStreams, id)
         ) {
-          const realId = _streamBuffer.resolvedId ?? _streamBuffer.messageId;
+          const realId = sessionBuffer.resolvedId ?? sessionBuffer.messageId;
           set((s) => {
             const exists = s.messages.some((m) => m.id === realId);
             if (exists) {
@@ -678,8 +690,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
                   m.id === realId
                     ? {
                       ...m,
-                      content: _streamBuffer!.content,
-                      thinking: _streamBuffer!.thinking || null,
+                      content: sessionBuffer!.content,
+                      thinking: sessionBuffer!.thinking || null,
                     }
                     : m
                 ),
@@ -690,12 +702,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
               id: realId,
               conversation_id: id,
               role: "assistant",
-              content: _streamBuffer!.content,
+              content: sessionBuffer!.content,
               provider_id: null,
               model_id: null,
               token_count: null,
               attachments: [],
-              thinking: _streamBuffer!.thinking || null,
+              thinking: sessionBuffer!.thinking || null,
               tool_calls_json: null,
               tool_call_id: null,
               created_at: Date.now(),
@@ -710,14 +722,14 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
             };
           });
         } else if (
-          _streamBuffer
-          && _streamBuffer.conversationId === id
+          sessionBuffer
+          && sessionBuffer.conversationId === id
           && needsRefreshAfterStreamDone
         ) {
           // Stream completed while user was away — buffer still has final content.
           // fetchMessages already loaded the completed message from DB, but inject
           // buffer content in case the DB response is slightly behind.
-          const realId = _streamBuffer.resolvedId ?? _streamBuffer.messageId;
+          const realId = sessionBuffer.resolvedId ?? sessionBuffer.messageId;
           set((s) => {
             const exists = s.messages.some((m) => m.id === realId);
             if (exists) {
@@ -726,8 +738,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
                   m.id === realId
                     ? {
                       ...m,
-                      content: _streamBuffer!.content,
-                      thinking: _streamBuffer!.thinking || null,
+                      content: sessionBuffer!.content,
+                      thinking: sessionBuffer!.thinking || null,
                     }
                     : m
                 ),
@@ -882,10 +894,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       usePlanStore.getState().clearActivePlan(id);
       useTrajectoryStore.getState().clearConversation(id);
       // dreamStore is global, no per-conversation cleanup needed
-      // Clean up stream buffer and pending refresh if they reference this conversation
-      if (_streamBuffer?.conversationId === id) {
-        setStreamBuffer(null);
-      }
+      // FE-I11 修复：删除会话时同步清理其流式 session（含 buffer 与 flush timer）
+      removeSession(id);
       deletePendingConversationRefresh(id);
       const state = get();
       // 清理关联的 tab，防止会话删除后 tab 残留

@@ -969,8 +969,8 @@ pub async fn opc_match_lead_capabilities(
 
     // 复用上游能力发现管线（RAR 语义匹配），以需求描述为查询输入
     let user_input = format!("{} {}", result.title, result.description);
-    let mut query = axagent_harness::CapabilityQuery::default();
-    query.user_input = user_input.clone();
+    let query =
+        axagent_harness::CapabilityQuery { user_input: user_input.clone(), ..Default::default() };
     let discovery_request = axagent_harness::CapabilityDiscoveryRequest {
         user_input,
         filter_context: axagent_harness::FilterContext::default(),
@@ -1333,8 +1333,8 @@ pub async fn opc_analyze_capability_gaps(
         }
     }
 
-    // 按频率排序
-    missing_keywords.sort_by(|a, b| b.1.cmp(&a.1));
+    // 按频率排序（降序）
+    missing_keywords.sort_by_key(|a| std::cmp::Reverse(a.1));
 
     // 4) 基于配置的领域关键词分析覆盖情况
     let domain_queries = extract_domain_queries(db).await?;
@@ -1393,7 +1393,7 @@ pub async fn opc_analyze_capability_gaps(
             .insert(db)
             .await;
 
-            if let Ok(_) = result {
+            if result.is_ok() {
                 created.push(keyword.clone());
             }
         }

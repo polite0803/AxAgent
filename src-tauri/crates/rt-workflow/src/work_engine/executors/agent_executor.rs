@@ -404,8 +404,14 @@ impl NodeExecutorTrait for AgentExecutor {
             let guard = lock_or_recover(self.engine.lock());
             guard.as_ref().cloned()
         };
-        if let Some(engine) = engine_clone
-            && let Some(runner) = engine.get_agent_turn_runner()
+        // P1 缺陷修复：agent-loop 接缝消费改为「注册表优先、字段回退」——
+        // 先查全局能力注册表里的 agent.loop（外部组件经 register_external_agent_loop
+        // 可替换内置核心，运行时生效），查不到再回退 WorkEngine 字段注入的 runner
+        // （兼容未接入注册表的场景）。两者通常指向同一内置实例，无行为差异。
+        let runner = axagent_harness::get_capability_registry()
+            .get_agent_turn_runner()
+            .or_else(|| engine_clone.as_ref().and_then(|e| e.get_agent_turn_runner()));
+        if let Some(runner) = runner
             && runner.is_available()
         {
             match self.try_delegate_to_turn_runner(&runner, node, an, context).await {

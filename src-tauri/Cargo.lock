@@ -1190,6 +1190,7 @@ dependencies = [
 name = "axagent-harness"
 version = "2.9.4"
 dependencies = [
+ "anyhow",
  "async-trait",
  "chrono",
  "futures",

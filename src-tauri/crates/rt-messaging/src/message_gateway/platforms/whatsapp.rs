@@ -6,7 +6,7 @@ use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 
 use crate::message_gateway::platform_config::PlatformConfig;
-use crate::message_gateway::platforms::PlatformAdapter;
+use axagent_harness::MessagePlatformAdapter;
 
 pub struct WhatsAppAdapter {
     connected: Arc<AtomicBool>,
@@ -31,7 +31,7 @@ impl Default for WhatsAppAdapter {
 }
 
 #[async_trait::async_trait]
-impl PlatformAdapter for WhatsAppAdapter {
+impl MessagePlatformAdapter for WhatsAppAdapter {
     fn name(&self) -> &'static str {
         "whatsapp"
     }

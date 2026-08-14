@@ -21,9 +21,12 @@ use super::node_executor_trait::{
     NodeError, NodeExecutorTrait, NodeOutput, error_code, node_type_name,
 };
 
-/// P0-2: 全部改用 `tokio::sync::RwLock`,并删除 `#[allow(clippy::await_holding_lock)]` 标记。
-/// `register_arc`/`register`/`get_executor`/`registered_types` 改 async,调用方通过
-/// `WorkEngine::init_dispatcher` 在 tokio runtime 内完成初始化。
+/// 节点分派器。
+///
+/// 锁策略（对齐 engine/mod.rs 的 BE-S1 统一约定）：
+/// - `executors` 为异步访问状态 → `tokio::sync::RwLock`，可在 async 上下文 await。
+/// - `hook_sink` / `permission_checker` 为同步注入态（setter 非 async、读取时
+///   先 clone Arc 再释放 guard、不跨 await）→ `std::sync::Mutex`。
 pub struct NodeDispatcher {
     executors: Arc<tokio::sync::RwLock<HashMap<&'static str, Arc<dyn NodeExecutorTrait>>>>,
     /// 工作流 Hook 接收端(可选)。注入后,节点执行前后会触发对应 HookEvent。

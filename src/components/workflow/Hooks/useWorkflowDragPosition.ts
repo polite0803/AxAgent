@@ -2,7 +2,7 @@
 
 import { type NodePositionLike, toAbsolutePosition } from "@/lib/workflowLayout";
 import { useWorkflowEditorStore } from "@/stores";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { WorkflowNode } from "../types";
 
 /**
@@ -42,6 +42,18 @@ export function useWorkflowDragPosition(): DragPositionController {
   const pendingPositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   // RAF 句柄
   const rafIdRef = useRef<number | null>(null);
+
+  // FE-I1 修复：hook 自身卸载时清理待写 RAF 与位置队列，
+  // 防止卸载后仍有回调写入已卸载 store。
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+      pendingPositionsRef.current.clear();
+    };
+  }, []);
 
   const flush = useCallback(() => {
     rafIdRef.current = null;

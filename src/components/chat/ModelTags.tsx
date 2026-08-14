@@ -65,7 +65,7 @@ export function ModelTags({
     const doneIdSet = new Set(multiModelDoneMessageIds);
     for (const cm of pendingCompanionModels) {
       if (modelGroups.has(cm.model_id)) {
-        const versions = modelGroups.get(cm.model_id)!;
+        const versions = modelGroups.get(cm.model_id) ?? [];
         const isDone = versions.some((v) => doneIdSet.has(v.id));
         if (!isDone) {
           ids.add(cm.model_id);

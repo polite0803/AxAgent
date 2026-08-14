@@ -119,7 +119,7 @@ pub struct AgentToolCallRecord {
 /// - **权限询问**:遇到 `tool_permissions.ask` 类工具时,通过 `PermissionPrompter` 询问用户
 /// - **压缩**:实现方按 `auto_compaction_threshold` 自动压缩上下文
 #[async_trait]
-pub trait AgentTurnRunner: Send + Sync {
+pub trait AgentTurnRunner: Send + Sync + std::any::Any {
     /// 执行一轮 Agent ReAct 循环。
     ///
     /// 输入:`AgentTurnRequest`(含 system_prompt / user_input / tools / model 等)

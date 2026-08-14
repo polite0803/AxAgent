@@ -932,7 +932,17 @@
         "title": "插件市场",
         "tools": "工具",
         "validateFailed": "验证失败: {{error}}",
-        "version": "版本"
+        "version": "版本",
+        "registryTitle": "能力注册表",
+        "registryLoading": "加载注册表...",
+        "registryEmpty": "暂无已注册的能力接缝",
+        "registryBuiltin": "内置",
+        "registryExternal": "外部插件",
+        "registryContract": "契约",
+        "registryVersion": "版本",
+        "registryPlugin": "插件",
+        "registrySearchPlaceholder": "按接缝 ID / 插件 ID 搜索",
+        "registrySeam": "接缝"
       }
     },
     "preferences": "偏好",
@@ -1471,6 +1481,35 @@
     },
     "workspaceLocked": "工作区已锁定"
   },
+  "capabilityDomain": {
+    "general": "通用",
+    "devops": "运维",
+    "ai_media": "AI 媒体",
+    "data_analysis": "数据分析",
+    "content_creation": "内容创作",
+    "communication": "通信",
+    "finance": "金融",
+    "automation": "自动化",
+    "system": "系统"
+  },
+  "capabilityPanel": {
+    "statsTitle": "索引统计",
+    "totalCapabilities": "能力总数",
+    "totalVectors": "向量总数",
+    "positiveVectors": "正向向量",
+    "negativeVectors": "负向向量",
+    "discoverTitle": "能力发现",
+    "discoverPlaceholder": "输入任务描述，如「分析股票走势」",
+    "discoverButton": "开始发现",
+    "discoverResult": "发现结果",
+    "score": "得分",
+    "ambiguous": "匹配模糊，需要进一步澄清",
+    "noMatch": "未找到匹配能力",
+    "passportsTitle": "已注册护照",
+    "noPassports": "暂无已注册能力",
+    "enabled": "启用",
+    "disabled": "停用"
+  },
   "chatMarkdown": {
     "inputParams": "输入参数",
     "outputResult": "输出结果",
@@ -1523,7 +1562,18 @@
     "contextPrediction": "上下文预测",
     "steerInput": "引导",
     "showExtras": "更多面板",
-    "hideExtras": "收起"
+    "hideExtras": "收起",
+    "cognitiveRoute": "路由观测",
+    "capability": "能力"
+  },
+  "cite": {
+    "chunkLabel": "区块 #{{n}}",
+    "sourceType": {
+      "knowledge": "知识库",
+      "memory": "记忆",
+      "unknown": "未知",
+      "wiki": "Wiki"
+    }
   },
   "citationManager": {
     "addCitation": "添加引用",
@@ -1864,6 +1914,29 @@
       "zhTW": "繁体中文"
     }
   },
+  "cognitive": {
+    "clarifyTitle": "请选择要执行的能力",
+    "clarifyPrompt": "您的请求命中了多个候选能力，请选择您想执行的一项：",
+    "candidateWorkflow": "工作流",
+    "candidateAgent": "智能体",
+    "clarifyExecuting": "正在执行所选能力...",
+    "clarifyHint": "选择候选后将继续执行"
+  },
+  "cognitiveRoute": {
+    "empty": "暂无路由观测数据",
+    "noRoute": "未确定路由",
+    "domain": "域",
+    "cluster": "集群",
+    "executionMode": "执行模式",
+    "confidence": "置信度",
+    "circuitBroken": "熔断",
+    "circuitClosed": "正常",
+    "llmFallback": "LLM 兜底",
+    "fallbackPath": "备选路径",
+    "candidates": "候选能力",
+    "stageRecords": "路由阶段",
+    "recordedAt": "观测时间"
+  },
   "continuation": {
     "continueFromHere": "从此处继续",
     "continueMsg": "续写",
@@ -1962,7 +2035,8 @@
     "agentDataNotFound": "Agent 生成数据 \"{{generationId}}\" 在执行存储中未找到",
     "apiRequestFailed": "API 请求失败：{{statusText}}",
     "storeNotRegistered": "Store \"{{storeName}}\" 未注册",
-    "unknownSourceType": "未知数据源类型：{{type}}"
+    "unknownSourceType": "未知数据源类型：{{type}}",
+    "apiEndpointForbidden": "API 端点 \"{{endpoint}}\" 不在白名单内，已阻止调用"
   },
   "datasetManager": {
     "action": "操作",
@@ -2352,12 +2426,14 @@
     "CLOUD_UNKNOWN_CONFLICT": "未知的同步冲突类型",
     "CLOUD_UNKNOWN_STORAGE": "未知的存储类型",
     "CLOUD_UNKNOWN_STRATEGY": "未知的同步策略",
+    "CAPABILITY_EMBEDDING_FAILED": "嵌入生成失败",
     "COGNITIVE_ROUTE_FAILED": "认知路由执行失败",
     "COGNITIVE_EMPTY_INPUT": "认知路由输入为空",
     "COGNITIVE_CIRCUIT_BROKEN": "认知路由已熔断：{reason}",
     "COGNITIVE_NO_CANDIDATE": "认知路由未找到可用能力",
     "COGNITIVE_EXECUTION_MODE_INVALID": "认知路由执行模式无效",
     "COGNITIVE_PROMPT_REJECTED": "认知提示被拒绝",
+    "COGNITIVE_RAR_RETRIEVE_FAILED": "认知路由候选检索失败：{{detail}}",
     "COMMON_INTERNAL": "内部错误",
     "COMMON_INVALID_INPUT": "无效的输入",
     "COMMON_TIMEOUT": "操作超时",
@@ -2396,6 +2472,7 @@
     "DASHBOARD_NO_MANIFEST": "仪表盘缺少清单文件",
     "DESKTOP_CONNECTION_TIMEOUT": "桌面连接超时",
     "DESKTOP_NATIVE_NOTIFICATION_FAILED": "桌面通知发送失败",
+    "FINE_TUNE_DELETE_FAILED": "删除微调任务失败",
     "EXPERT_DELETE_FAILED": "删除专家失败",
     "EXPERT_JSON_PARSE_FAILED": "专家 JSON 解析失败",
     "EXPERT_KEY_DECRYPT_FAILED": "专家密钥解密失败：{{error}}",
@@ -2476,6 +2553,9 @@
     "PLATFORM_TELEGRAM_NOT_ENABLED": "Telegram 平台未启用",
     "PLATFORM_UNSUPPORTED": "不支持的平台",
     "PLATFORM_WEBHOOK_NOT_CONFIGURED": "Webhook 未配置",
+    "PLUGIN_PROFILE_NOT_FOUND": "插件组合 Profile 未找到",
+    "PLUGIN_PROFILE_DUPLICATE_NAME": "插件组合 Profile 名称已存在",
+    "PLUGIN_PROFILE_IO_FAILED": "插件组合 Profile 持久化失败",
     "PROVIDER_ADAPTER_NOT_FOUND": "提供商适配器未找到",
     "PROVIDER_CREATE_FAILED": "创建提供商失败",
     "PROVIDER_DELETE_FAILED": "删除提供商失败",
@@ -2633,6 +2713,17 @@
     "LOCAL_MODEL_INSTALL_IN_PROGRESS": "llama.cpp 安装进行中",
     "LOCAL_MODEL_DOWNLOAD_FAILED": "下载失败",
     "LOCAL_MODEL_PORT_IN_USE": "端口 {{port}} 已被占用，请更换端口或停止占用进程",
+    "LLM_CALL_FAILED": "LLM 调用失败：{{detail}}",
+    "FLEET_NOT_FOUND": "办公室未找到",
+    "FLEET_NAME_REQUIRED": "办公室名称不能为空",
+    "FLEET_NO_MEMBERS": "该办公室还没有任何成员",
+    "FLEET_ALL_MEMBERS_UNAVAILABLE": "办公室所有成员均不可用（已暂停/错误/离线）",
+    "FLEET_MEMBER_NOT_FOUND": "成员未找到",
+    "FLEET_NO_PROVIDER": "没有可用的模型提供商，请先在设置中配置",
+    "FLEET_ROUTING_FAILED": "智能路由调用失败",
+    "FLEET_EXECUTION_FAILED": "成员执行任务失败",
+    "FLEET_TARGET_NOT_IN_FLEET": "目标成员不存在于该办公室",
+    "FLEET_SLUG_EXISTS": "该办公室已存在同名 slug 的成员",
     "DEVICE_SYNC_DEVICE_NOT_INITIALIZED": "设备未初始化",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "设备未找到",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "设备已配对",
@@ -2661,7 +2752,6 @@
     "CAPABILITY_DISCOVER_FAILED": "能力发现失败",
     "CAPABILITY_NOT_FOUND": "能力未找到",
     "CAPABILITY_INDEX_FAILED": "能力索引失败",
-    "CAPABILITY_EMBEDDING_FAILED": "嵌入生成失败",
     "CAPABILITY_VECTOR_STORE_FAILED": "向量存储操作失败",
     "CAPABILITY_INVALID_PASSPORT": "无效的能力护照",
     "CAPABILITY_LIST_FAILED": "能力列表获取失败",
@@ -2822,7 +2912,11 @@
       "name": "通用助手",
       "desc": "通用的 AI 助手，适用于日常对话和通用问题解答",
       "systemPrompt": "你是一个智能 AI 助手，请根据用户的问题提供准确、有帮助的回答。",
-      "tags": ["通用", "助手", "对话"]
+      "tags": [
+        "通用",
+        "助手",
+        "对话"
+      ]
     }
   },
   "expertSelector": {
@@ -12368,8 +12462,9 @@
     "fileEditDesc": "精确编辑文件（字符串替换）。通过 old_string/new_string 搜索替换。",
     "deleteFileDesc": "删除指定路径的文件。此操作不可逆。",
     "bashDesc": "执行 shell 命令。适用：运行测试、构建、git 操作。危险命令需权限确认。",
-    "fleetMessageReceived": "{{name}} 收到: {{message}}",
-    "fleetNoMembers": "办公室暂无成员，无法派遣任务"
+    "fleetNoMembers": "该办公室还没有任何成员",
+    "fleetMessageReceived": "[浏览器模拟] {{name}} 收到消息：{{message}}",
+    "capabilityAmbiguous": "存在多个高匹配能力，请补充澄清后再确认。"
   },
   "cancel": "取消",
   "searchUtils": {

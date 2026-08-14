@@ -5,6 +5,7 @@ import type {
   CapabilityDiscoveryResult,
   CapabilityIndexStats,
   CapabilityPassportDto,
+  CapabilityRegistrationDetailDto,
   DiscoverRequestPayload,
   IndexResult,
 } from "@/types";
@@ -36,6 +37,8 @@ interface CapabilityState {
   passports: CapabilityPassportDto[];
   discoveryResult: CapabilityDiscoveryResult | null;
   stats: CapabilityIndexStats | null;
+  /** 能力注册表检视结果（capability_registry_dump） */
+  registry: CapabilityRegistrationDetailDto[];
   isLoading: boolean;
   isDiscovering: boolean;
   error: string | null;
@@ -49,6 +52,7 @@ interface CapabilityState {
   removePassport: (capabilityId: string) => Promise<void>;
   listPassports: () => Promise<void>;
   getStats: () => Promise<void>;
+  loadRegistry: () => Promise<void>;
   discover: (
     payload: DiscoverRequestPayload,
   ) => Promise<CapabilityDiscoveryResult>;
@@ -60,6 +64,7 @@ export const useCapabilityStore = create<CapabilityState>((set) => ({
   passports: [],
   discoveryResult: null,
   stats: null,
+  registry: [],
   isLoading: false,
   isDiscovering: false,
   error: null,
@@ -139,6 +144,21 @@ export const useCapabilityStore = create<CapabilityState>((set) => ({
         "capability_get_stats",
       );
       set({ stats });
+    } catch (e) {
+      const msg = translateCapabilityError(e);
+      set({ error: msg });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  loadRegistry: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const registry = await invoke<CapabilityRegistrationDetailDto[]>(
+        "capability_registry_dump",
+      );
+      set({ registry });
     } catch (e) {
       const msg = translateCapabilityError(e);
       set({ error: msg });

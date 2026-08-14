@@ -677,14 +677,15 @@ export function useChatViewMessages({
       return next;
     });
   }, [streamingMessageId]);
-  const [contentRendererMessageIds] = useState<Set<string>>(() => new Set());
+  // FE-I10 修复：命令式标记集合改用 useRef（引用稳定，内容变化不触发渲染）。
+  const contentRendererMessageIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!streaming || !streamingMessageId) {
       return;
     }
-    contentRendererMessageIds.add(streamingMessageId);
-  }, [streaming, streamingMessageId, contentRendererMessageIds]);
+    contentRendererMessageIds.current.add(streamingMessageId);
+  }, [streaming, streamingMessageId]);
 
   const activeMessages = useMemo(
     () => messages.filter((msg) => msg.is_active !== false),
@@ -725,14 +726,15 @@ export function useChatViewMessages({
     return result;
   }, [messages]);
 
-  const [multiModelVersions] = useState<Map<string, Message[]>>(() => new Map());
+  // FE-I10 修复：multi-version 缓存改用 useRef（命令式缓存，引用稳定）。
+  const multiModelVersions = useRef<Map<string, Message[]>>(new Map());
   const prevConvIdRef = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (prevConvIdRef.current !== undefined && prevConvIdRef.current !== activeConversationId) {
-      multiModelVersions.clear();
+      multiModelVersions.current.clear();
     }
     prevConvIdRef.current = activeConversationId ?? undefined;
-  }, [activeConversationId, multiModelVersions]);
+  }, [activeConversationId]);
 
   const [displayModeOverrides, setDisplayModeOverrides] = useState<
     Map<string, MultiModelDisplayMode>
@@ -749,12 +751,12 @@ export function useChatViewMessages({
   );
   const handleMultiModelDetected = useCallback(
     (parentMsgId: string, versions: Message[]) => {
-      const hadCached = multiModelVersions.has(parentMsgId);
+      const hadCached = multiModelVersions.current.has(parentMsgId);
       const stillMultiModel = hasMultipleModelVersions(versions);
       if (stillMultiModel) {
-        multiModelVersions.set(parentMsgId, versions);
+        multiModelVersions.current.set(parentMsgId, versions);
       } else {
-        multiModelVersions.delete(parentMsgId);
+        multiModelVersions.current.delete(parentMsgId);
       }
       // 只在缓存状态真正变化时才更新 displayModeOverrides，
       // 且仅当需要移除已存在的 override 时才创建新 Map，避免引用变化触发循环
@@ -770,7 +772,7 @@ export function useChatViewMessages({
         });
       }
     },
-    [multiModelResponseParents, multiModelVersions],
+    [multiModelResponseParents],
   );
 
   const userSearchContentById = useMemo(() => {
@@ -783,11 +785,13 @@ export function useChatViewMessages({
     return next;
   }, [activeMessages]);
 
-  const [bubbleItemCache] = useState<
+  // FE-I9 修复：bubble 缓存改用 useRef，useMemo 内重建后整体替换引用，
+  // 避免渲染期原位 mutate useState 的 Map（引用不变导致下游不重算）。
+  const bubbleItemCache = useRef<
     Map<string, { signature: string; item: BubbleItemType }>
-  >(() => new Map());
+  >(new Map());
   const bubbleItems: BubbleItemType[] = useMemo(() => {
-    const cache = bubbleItemCache;
+    const cache = bubbleItemCache.current;
     const nextCache = new Map<
       string,
       { signature: string; item: BubbleItemType }
@@ -893,12 +897,10 @@ export function useChatViewMessages({
       nextItems.push(item);
     }
 
-    cache.clear();
-    for (const [key, value] of nextCache) {
-      cache.set(key, value);
-    }
+    // FE-I9 修复：整体替换缓存引用，替代原位 clear/set。
+    bubbleItemCache.current = nextCache;
     return nextItems;
-  }, [activeMessages, thinkingActiveMessageIds, userSearchContentById, bubbleItemCache]);
+  }, [activeMessages, thinkingActiveMessageIds, userSearchContentById]);
 
   const [expertSwitchBubble, setExpertSwitchBubble] = useState<BubbleItemType | null>(null);
   const expertSwitchCounterRef = useRef(0);
@@ -992,11 +994,12 @@ export function useChatViewMessages({
 
   const hiddenEarlierCount = 0;
 
-  const [aiContentNodesCache] = useState<
+  // FE-I9 修复：AI 内容解析缓存改用 useRef（命令式缓存，引用稳定）。
+  const aiContentNodesCache = useRef<
     Map<string, { content: string; nodes: ChatMarkdownNode[] }>
-  >(() => new Map());
+  >(new Map());
   const aiContentNodesById = useMemo(() => {
-    const cache = aiContentNodesCache;
+    const cache = aiContentNodesCache.current;
     const next = new Map<string, ChatMarkdownNode[]>();
     for (const item of bubbleItems) {
       if (item.role !== "ai" || typeof item.content !== "string") {
@@ -1009,7 +1012,7 @@ export function useChatViewMessages({
       }
       const shouldRenderFromContent = shouldRenderAssistantMarkdownFromContent(
         streaming && msg?.id === streamingMessageId,
-        Boolean(msg?.id && contentRendererMessageIds.has(msg.id)),
+        Boolean(msg?.id && contentRendererMessageIds.current.has(msg.id)),
       );
       if (shouldRenderFromContent) {
         continue;
@@ -1042,8 +1045,6 @@ export function useChatViewMessages({
     messageById,
     streaming,
     streamingMessageId,
-    aiContentNodesCache,
-    contentRendererMessageIds,
   ]);
 
   const formatTime = useCallback((ts: number) => {
@@ -1417,7 +1418,7 @@ export function useChatViewMessages({
       const isStreaming = streaming && msg?.id === streamingMessageId;
       const shouldRenderFromContent = shouldRenderAssistantMarkdownFromContent(
         isStreaming,
-        Boolean(msg?.id && contentRendererMessageIds.has(msg.id)),
+        Boolean(msg?.id && contentRendererMessageIds.current.has(msg.id)),
       );
       const assistantCopyText = stripAxAgentTags(
         msg?.content
@@ -1437,7 +1438,7 @@ export function useChatViewMessages({
       const parentId = msg?.parent_message_id;
       const hasMultiModels = !!parentId
         && (multiModelResponseParents.has(parentId)
-          || multiModelVersions.has(parentId));
+          || multiModelVersions.current.has(parentId));
       const effectiveDisplayMode: MultiModelDisplayMode = hasMultiModels
         ? (displayModeOverrides.get(parentId)
           ?? settings.multi_model_display_mode
@@ -1502,7 +1503,7 @@ export function useChatViewMessages({
           }
 
           if (isNonTabsMultiModel && parentId && activeConversationId) {
-            const refVersions = multiModelVersions.get(parentId);
+            const refVersions = multiModelVersions.current.get(parentId);
             const storeVersions = messages.filter(
               (m) => m.parent_message_id === parentId && m.role === "assistant",
             );
@@ -1833,7 +1834,6 @@ export function useChatViewMessages({
       codeBlockLightTheme,
       codeBlockThemes,
       collapsedAiIds,
-      contentRendererMessageIds,
       deleteMessage,
       displayModeOverrides,
       formatTime,
@@ -1850,7 +1850,6 @@ export function useChatViewMessages({
       multiModelDoneMessageIds,
       multiModelParentId,
       multiModelResponseParents,
-      multiModelVersions,
       renderConvIconForChat,
       settings,
       setCollapsedAiIds,

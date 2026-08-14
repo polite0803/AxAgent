@@ -946,7 +946,17 @@
         "title": "插件市場",
         "tools": "工具",
         "validateFailed": "驗證失敗: {{error}}",
-        "version": "版本"
+        "version": "版本",
+        "registryTitle": "能力註冊表",
+        "registryLoading": "載入註冊表...",
+        "registryEmpty": "暫無已註冊的能力接縫",
+        "registryBuiltin": "內建",
+        "registryExternal": "外部外掛",
+        "registryContract": "合約",
+        "registryVersion": "版本",
+        "registryPlugin": "外掛",
+        "registrySearchPlaceholder": "依接縫 ID / 外掛 ID 搜尋",
+        "registrySeam": "接縫"
       }
     },
     "preferences": "偏好設定",
@@ -1471,6 +1481,35 @@
     "switchAgentModeNoConversationInfo": "Switched to Agent mode. Send a message to create an Agent conversation.",
     "clearHistoryDone": "Conversation cleared"
   },
+  "capabilityDomain": {
+    "general": "通用",
+    "devops": "維運",
+    "ai_media": "AI 媒體",
+    "data_analysis": "數據分析",
+    "content_creation": "內容創作",
+    "communication": "通訊",
+    "finance": "金融",
+    "automation": "自動化",
+    "system": "系統"
+  },
+  "capabilityPanel": {
+    "statsTitle": "索引統計",
+    "totalCapabilities": "能力總數",
+    "totalVectors": "向量總數",
+    "positiveVectors": "正向向量",
+    "negativeVectors": "負向向量",
+    "discoverTitle": "能力發現",
+    "discoverPlaceholder": "輸入任務描述，如「分析股票走勢」",
+    "discoverButton": "開始發現",
+    "discoverResult": "發現結果",
+    "score": "得分",
+    "ambiguous": "匹配模糊，需要進一步澄清",
+    "noMatch": "未找到匹配能力",
+    "passportsTitle": "已註冊護照",
+    "noPassports": "暫無已註冊能力",
+    "enabled": "啟用",
+    "disabled": "停用"
+  },
   "chatMarkdown": {
     "inputParams": "輸入參數",
     "outputResult": "輸出結果",
@@ -1523,7 +1562,18 @@
     "contextPrediction": "上下文預測",
     "steerInput": "引導",
     "showExtras": "更多面板",
-    "hideExtras": "收起"
+    "hideExtras": "收起",
+    "cognitiveRoute": "路由觀測",
+    "capability": "能力"
+  },
+  "cite": {
+    "chunkLabel": "區塊 #{{n}}",
+    "sourceType": {
+      "knowledge": "知識庫",
+      "memory": "記憶",
+      "unknown": "未知",
+      "wiki": "Wiki"
+    }
   },
   "citationManager": {
     "addCitation": "新載引用",
@@ -1864,6 +1914,29 @@
       "zhTW": "繁體中文"
     }
   },
+  "cognitive": {
+    "clarifyTitle": "請選擇要執行的能力",
+    "clarifyPrompt": "您的請求命中了多個候選能力，請選擇您想執行的一項：",
+    "candidateWorkflow": "工作流",
+    "candidateAgent": "智能體",
+    "clarifyExecuting": "正在執行所選能力...",
+    "clarifyHint": "選擇候選後將繼續執行"
+  },
+  "cognitiveRoute": {
+    "empty": "暫無路由觀測數據",
+    "noRoute": "未確定路由",
+    "domain": "域",
+    "cluster": "集群",
+    "executionMode": "執行模式",
+    "confidence": "置信度",
+    "circuitBroken": "熔斷",
+    "circuitClosed": "正常",
+    "llmFallback": "LLM 兜底",
+    "fallbackPath": "備選路徑",
+    "candidates": "候選能力",
+    "stageRecords": "路由階段",
+    "recordedAt": "觀測時間"
+  },
   "continuation": {
     "continueFromHere": "從此處繼續",
     "continueMsg": "續寫",
@@ -1962,7 +2035,8 @@
     "agentDataNotFound": "在執行儲存區中找不到代理產生的資料「{{generationId}}」",
     "apiRequestFailed": "API 請求失敗：{{statusText}}",
     "storeNotRegistered": "儲存區「{{storeName}}」未註冊",
-    "unknownSourceType": "未知的資料來源類型：{{type}}"
+    "unknownSourceType": "未知的資料來源類型：{{type}}",
+    "apiEndpointForbidden": "API 端點「{{endpoint}}」不在白名單內，已阻止呼叫"
   },
   "datasetManager": {
     "action": "動作",
@@ -2352,12 +2426,14 @@
     "CLOUD_UNKNOWN_CONFLICT": "未知的同步衝突類型",
     "CLOUD_UNKNOWN_STORAGE": "未知的儲存類型",
     "CLOUD_UNKNOWN_STRATEGY": "未知同步策略",
+    "CAPABILITY_EMBEDDING_FAILED": "嵌入生成失敗",
     "COGNITIVE_ROUTE_FAILED": "認知路由執行失敗",
     "COGNITIVE_EMPTY_INPUT": "認知路由輸入為空",
     "COGNITIVE_CIRCUIT_BROKEN": "認知路由已熔斷：{reason}",
     "COGNITIVE_NO_CANDIDATE": "認知路由未找到可用能力",
     "COGNITIVE_EXECUTION_MODE_INVALID": "認知路由執行模式無效",
     "COGNITIVE_PROMPT_REJECTED": "認知提示被拒絕",
+    "COGNITIVE_RAR_RETRIEVE_FAILED": "認知路由候選檢索失敗：{{detail}}",
     "COMMON_INTERNAL": "內部錯誤",
     "COMMON_INVALID_INPUT": "無效的輸入",
     "COMMON_TIMEOUT": "操作逾時",
@@ -2396,6 +2472,7 @@
     "DASHBOARD_NO_MANIFEST": "儀表板缺少清單檔案",
     "DESKTOP_CONNECTION_TIMEOUT": "桌面連線逾時",
     "DESKTOP_NATIVE_NOTIFICATION_FAILED": "桌面通知傳送失敗",
+    "FINE_TUNE_DELETE_FAILED": "刪除微調任務失敗",
     "EXPERT_DELETE_FAILED": "刪除專家失敗",
     "EXPERT_JSON_PARSE_FAILED": "專家 JSON 解析失敗",
     "EXPERT_KEY_DECRYPT_FAILED": "專家金鑰解密失敗：{{error}}",
@@ -2476,6 +2553,9 @@
     "PLATFORM_TELEGRAM_NOT_ENABLED": "Telegram 平台未啟用",
     "PLATFORM_UNSUPPORTED": "不支援的平台",
     "PLATFORM_WEBHOOK_NOT_CONFIGURED": "Webhook 未設定",
+    "PLUGIN_PROFILE_NOT_FOUND": "外掛組合 Profile 未找到",
+    "PLUGIN_PROFILE_DUPLICATE_NAME": "外掛組合 Profile 名稱已存在",
+    "PLUGIN_PROFILE_IO_FAILED": "外掛組合 Profile 持久化失敗",
     "PROVIDER_ADAPTER_NOT_FOUND": "提供者適配器未找到",
     "PROVIDER_CREATE_FAILED": "建立提供者失敗",
     "PROVIDER_DELETE_FAILED": "刪除提供者失敗",
@@ -2633,6 +2713,17 @@
     "LOCAL_MODEL_INSTALL_IN_PROGRESS": "llama.cpp 安裝進行中",
     "LOCAL_MODEL_DOWNLOAD_FAILED": "下載失敗",
     "LOCAL_MODEL_PORT_IN_USE": "連接埠 {{port}} 已被佔用，請更換連接埠或停止佔用程序",
+    "LLM_CALL_FAILED": "LLM 調用失敗：{{detail}}",
+    "FLEET_NOT_FOUND": "辦公室未找到",
+    "FLEET_NAME_REQUIRED": "辦公室名稱不能為空",
+    "FLEET_NO_MEMBERS": "該辦公室還沒有任何成員",
+    "FLEET_ALL_MEMBERS_UNAVAILABLE": "辦公室所有成員均不可用（已暫停/錯誤/離線）",
+    "FLEET_MEMBER_NOT_FOUND": "成員未找到",
+    "FLEET_NO_PROVIDER": "沒有可用的模型提供商，請先在設定中設定",
+    "FLEET_ROUTING_FAILED": "智慧路由呼叫失敗",
+    "FLEET_EXECUTION_FAILED": "成員執行任務失敗",
+    "FLEET_TARGET_NOT_IN_FLEET": "目標成員不存在於該辦公室",
+    "FLEET_SLUG_EXISTS": "該辦公室已存在同名 slug 的成員",
     "DEVICE_SYNC_DEVICE_NOT_INITIALIZED": "裝置未初始化",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "裝置未找到",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "裝置已配對",
@@ -2661,7 +2752,6 @@
     "CAPABILITY_DISCOVER_FAILED": "能力發現失敗",
     "CAPABILITY_NOT_FOUND": "能力未找到",
     "CAPABILITY_INDEX_FAILED": "能力索引失敗",
-    "CAPABILITY_EMBEDDING_FAILED": "嵌入生成失敗",
     "CAPABILITY_VECTOR_STORE_FAILED": "向量存儲操作失敗",
     "CAPABILITY_INVALID_PASSPORT": "無效的能力護照",
     "CAPABILITY_LIST_FAILED": "能力列表獲取失敗",
@@ -2822,7 +2912,11 @@
       "name": "通用助手",
       "desc": "通用的 AI 助手，適用於日常對話與一般問題解答",
       "systemPrompt": "你是一個智慧 AI 助手，請根據使用者的問題提供準確且有幫助的回答。",
-      "tags": ["通用", "助手", "對話"]
+      "tags": [
+        "通用",
+        "助手",
+        "對話"
+      ]
     }
   },
   "expertSelector": {
@@ -12370,8 +12464,9 @@
     "fileEditDesc": "精確編輯檔案（字串取代）。透過 old_string/new_string 搜尋取代。",
     "deleteFileDesc": "刪除指定路徑的檔案。此操作不可逆。",
     "bashDesc": "執行 shell 命令。適用：執行測試、建構、git 操作。危險命令需權限確認。",
-    "fleetMessageReceived": "{{name}} 收到: {{message}}",
-    "fleetNoMembers": "办公室暂无成员，无法派遣任务"
+    "fleetNoMembers": "該辦公室還沒有任何成員",
+    "fleetMessageReceived": "[瀏覽器模擬] {{name}} 收到訊息：{{message}}",
+    "capabilityAmbiguous": "存在多個高匹配能力，請補充澄清後再確認。"
   },
   "cancel": "取消",
   "searchUtils": {

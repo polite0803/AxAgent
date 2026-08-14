@@ -19,7 +19,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use axagent_harness::platform_config::PlatformConfig;
 use axagent_harness::{AlertPayload, AlertSeverity, NotificationChannel, ReportPayload};
-use axagent_rt_messaging::message_gateway::platforms::PlatformAdapter;
+use axagent_rt_messaging::message_gateway::platforms::MessagePlatformAdapter;
 
 /// IM 平台推送适配器
 ///
@@ -30,7 +30,7 @@ pub struct PlatformNotificationChannel {
     /// 显示名称（如 "Telegram"、"飞书"）
     display_name: String,
     /// 上游平台适配器
-    adapter: Arc<dyn PlatformAdapter>,
+    adapter: Arc<dyn MessagePlatformAdapter>,
     /// 平台配置快照
     config: PlatformConfig,
     /// 推送目标 chat_id（如 Telegram chat_id、飞书 open_id）
@@ -41,7 +41,7 @@ impl PlatformNotificationChannel {
     pub fn new(
         platform_name: impl Into<String>,
         display_name: impl Into<String>,
-        adapter: Arc<dyn PlatformAdapter>,
+        adapter: Arc<dyn MessagePlatformAdapter>,
         config: PlatformConfig,
         chat_id: impl Into<String>,
     ) -> Self {
@@ -147,7 +147,7 @@ mod tests {
     }
 
     #[async_trait]
-    impl PlatformAdapter for MockPlatformAdapter {
+    impl MessagePlatformAdapter for MockPlatformAdapter {
         fn name(&self) -> &'static str {
             "mock"
         }

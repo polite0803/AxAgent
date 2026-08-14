@@ -1857,6 +1857,12 @@ export interface PluginManifestDto {
   tools: { name: string; description: string }[];
   mcp_servers: { name: string; command: string }[];
   skills: { name: string; path: string }[];
+  capabilities: {
+    seam: string;
+    capability_type: string;
+    version: string;
+    description: string;
+  }[];
 }
 
 export interface InstallOutcomeDto {

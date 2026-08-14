@@ -98,10 +98,24 @@ describe("DataBindingEngine", () => {
 
         const result = await resolveDataSource({
           type: "api",
-          config: { endpoint: "get_data", method: "invoke", params: { id: 1 } },
+          config: { endpoint: "dynamic_ui_get_schema", method: "invoke", params: { id: 1 } },
         });
-        expect(invoke).toHaveBeenCalledWith("get_data", { id: 1 });
+        expect(invoke).toHaveBeenCalledWith("dynamic_ui_get_schema", { id: 1 });
         expect(result).toEqual({ ok: true });
+      });
+
+      it("invoke 方法应阻止白名单外的端点", async () => {
+        const { invoke } = await import("@/lib/invoke");
+        vi.mocked(invoke).mockClear();
+        vi.mocked(invoke).mockResolvedValue({ ok: true });
+
+        await expect(
+          resolveDataSource({
+            type: "api",
+            config: { endpoint: "get_data", method: "invoke", params: { id: 1 } },
+          }),
+        ).rejects.toThrow();
+        expect(invoke).not.toHaveBeenCalled();
       });
 
       it("fetch 方法成功时应返回 JSON", async () => {

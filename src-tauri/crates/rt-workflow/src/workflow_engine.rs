@@ -20,7 +20,14 @@ impl From<crate::work_engine::engine::WorkEngineError> for WorkflowError {
     /// 在 `run_workflow` 返回 `Result<Workflow, WorkflowError>` 路径上需要 `?` 隐式转换时使用。
     /// 保留原始 Display 文本以便排查,统一映射到 `SerializationError`(最接近"运行态序列化失败"语义)。
     fn from(e: crate::work_engine::engine::WorkEngineError) -> Self {
-        Self::SerializationError(e.to_string())
+        match e {
+            crate::work_engine::engine::WorkEngineError::InvalidStateTransition {
+                node_id,
+                from,
+                to,
+            } => Self::InvalidStateTransition(format!("{node_id}: {from} → {to}")),
+            other => Self::SerializationError(other.to_string()),
+        }
     }
 }
 

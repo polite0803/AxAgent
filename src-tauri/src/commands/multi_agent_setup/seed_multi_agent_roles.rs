@@ -201,7 +201,7 @@ pub async fn seed_multi_agent_roles(db: &DatabaseConnection) -> Result<(), Strin
             Some(role.description),
             role.system_prompt,
             &[] as &[String],
-            &["core".to_string(), "general".to_string()], // 通用协作骨架，激活 core + general 工具域
+            &["general".to_string()], // 通用协作骨架，激活 general 工具域（历史 core 已并入 general）
             role.max_concurrent,
             role.timeout_seconds,
             "builtin-multi-agent", // 区别于 stock-analysis / agency / builtin(executor)

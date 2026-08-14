@@ -17,17 +17,17 @@ export type CapabilityKind =
   | "agent"
   | "skill";
 
-/** 能力所属业务域（对应后端 CapabilityDomain） */
+/** 能力所属业务域（对应后端 CapabilityDomain，snake_case 新值） */
 export type CapabilityDomain =
-  | "core"
   | "general"
   | "devops"
   | "ai_media"
-  | "invest"
-  | "opc"
   | "data_analysis"
   | "content_creation"
-  | "communication";
+  | "communication"
+  | "finance"
+  | "automation"
+  | "system";
 
 /** 安全等级（对应后端 SecurityLevel） */
 export type SecurityLevel =
@@ -261,6 +261,32 @@ export interface CapabilityIndexStats {
   last_indexed_at?: number | null;
 }
 
+// ── 能力注册表（capability_registry_dump） ──────────
+//
+// 对应后端 capability.rs 的 CapabilityRegistrationDetailDto（`#[serde(rename_all =
+// "camelCase")]`），即 `capability_registry_dump` 命令的返回类型。它检视的是
+// 「一切皆插件」能力注册表（harness capability_registry）里已注册的能力接缝，
+// 与上面的「能力护照」体系（capability_passport）是两套独立机制。
+
+/** 能力来源（对应后端 harness CapabilityOrigin，snake_case） */
+export type CapabilityOrigin = "builtin" | "external_plugin";
+
+/** 能力注册表条目（对应后端 CapabilityRegistrationDetailDto，camelCase 字段） */
+export interface CapabilityRegistrationDetailDto {
+  /** 能力接缝 ID，如 "model.provider.openai"、"agent.loop" */
+  id: string;
+  /** 接缝契约版本 */
+  version: string;
+  /** 接缝契约类型（trait 全名），如 "axagent_harness::ProviderAdapter" */
+  contract: string;
+  /** 接缝描述 */
+  description: string;
+  /** 来源：内置（builtin）或外部插件（external_plugin） */
+  origin: CapabilityOrigin;
+  /** 声明该能力的插件 ID（内置能力为 null） */
+  pluginId?: string | null;
+}
+
 // ── Store 载荷 ─────────────────────────────────────
 
 /**
@@ -316,7 +342,7 @@ export interface CognitiveCandidateSummary {
 }
 
 /** 认知编排澄清待选状态（Clarify 分支）：模糊命中（0.60 ≤ 置信度 ≤ 0.90），
- *  返回 Top2 候选交用户选择，选中后携带 capability_id 二次执行。 */
+ *  返回 Top2 候选交用户选择，选中后携带 forcedCapabilityId 二次执行。 */
 export interface CognitiveClarification {
   /** 候选能力（Top2，含名称/描述/置信度） */
   candidates: CognitiveCandidateSummary[];
@@ -324,6 +350,8 @@ export interface CognitiveClarification {
   originalInput: string;
   /** 所属会话 */
   conversationId: string;
+  /** 澄清时乐观创建的用户消息 ID（二次执行时复用，避免重复插入用户消息） */
+  userMessageId: string;
 }
 
 /** 认知编排统一入口请求（对应后端 CognitiveQueryRequest，camelCase） */
@@ -332,6 +360,8 @@ export interface CognitiveQueryRequestPayload {
   input: string;
   /** 目标会话 ID（执行必需） */
   conversationId?: string;
+  /** 强制路由到指定能力（Clarify 二次执行）：跳过三层路由，直接按能力类型分发执行 */
+  forcedCapabilityId?: string;
   /** 用户意图提示（auto/ask/plan/act），仅显式覆盖时传入，缺省 auto 由路由自动决策 */
   modeHint?: CognitiveModeHint;
   /** 提供商 ID */

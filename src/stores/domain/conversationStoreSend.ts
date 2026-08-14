@@ -39,6 +39,7 @@ import type {
   WorkflowEvent,
 } from "@/types";
 import { useAgentStore } from "../feature/agentStore";
+import { useCognitiveRouteStore } from "../feature/cognitiveRouteStore";
 import { useExecutionStore } from "../feature/executionStore";
 import { useAgentPanelStore } from "../shared/agentPanelStore";
 import { useMultiModelStore } from "./multiModelStore";
@@ -72,7 +73,17 @@ export interface SendMethods {
     searchProviderId?: string | null,
     quotedMessageId?: string | null,
     modeHint?: SendModeHint,
+    disabledTools?: string[],
+    resumeClarify?: {
+      /** Clarify 二次执行：强制路由到该能力（跳过三层路由） */
+      capabilityId: string;
+      /** 澄清时乐观创建的用户消息 ID（复用现有用户消息，避免重复插入） */
+      userMessageId: string;
+    },
   ) => Promise<void>;
+  /** Clarify 二次执行：用户选中候选后携带 capabilityId 重新调用 cognitive_query。
+   *  复用澄清时的用户消息与当前会话，避免重复插入用户消息。 */
+  executeClarify: (capabilityId: string) => Promise<void>;
   regenerateMessage: (targetMessageId?: string) => Promise<void>;
   regenerateWithModel: (
     targetMessageId: string,
@@ -103,6 +114,10 @@ export function createSendMethods(
       quotedMessageId: string | null = null,
       modeHint: SendModeHint = "auto",
       disabledTools?: string[],
+      resumeClarify?: {
+        capabilityId: string;
+        userMessageId: string;
+      },
     ) => {
       const conversationId = get().activeConversationId;
       if (!conversationId) {
@@ -114,6 +129,17 @@ export function createSendMethods(
       );
       if (!conversation) {
         throw new Error("Conversation not found");
+      }
+
+      // Clarify 二次执行：复用澄清时乐观创建的用户消息，不重复插入用户消息
+      const isResumeClarify = !!resumeClarify;
+      let resumeUserMessage: Message | null = null;
+      if (isResumeClarify) {
+        resumeUserMessage = get().messages.find((m) => m.id === resumeClarify!.userMessageId)
+          ?? null;
+        if (!resumeUserMessage) {
+          throw new Error("Clarify user message not found");
+        }
       }
 
       // 自动重置已完成的工作流会话，以支持重新执行
@@ -157,34 +183,36 @@ export function createSendMethods(
       const providerId = conversation.provider_id;
       const model_id = conversation.model_id;
 
-      // Optimistic user message
-      const optimisticUserMsg: Message = {
-        id: tempId("temp-user-"),
-        conversation_id: conversationId,
-        role: "user",
-        content,
-        provider_id: null,
-        model_id: null,
-        token_count: null,
-        attachments: attachments.map((a) => ({
-          id: tempId("temp-att-"),
-          file_name: a.file_name,
-          file_type: a.file_type,
-          file_path: "",
-          file_size: a.file_size,
-          data: a.data,
-        })),
-        thinking: null,
-        tool_calls_json: null,
-        tool_call_id: null,
-        created_at: Date.now(),
-        parent_message_id: null,
-        version_index: 0,
-        is_active: true,
-        status: "complete",
-        // 引用回复：乐观更新时携带 quoted_message_id，确保 UI 立即显示引用块
-        quoted_message_id: quotedMessageId,
-      };
+      // Optimistic user message（Clarify 二次执行时复用现有用户消息，不新建）
+      const optimisticUserMsg: Message = isResumeClarify
+        ? resumeUserMessage!
+        : {
+          id: tempId("temp-user-"),
+          conversation_id: conversationId,
+          role: "user",
+          content,
+          provider_id: null,
+          model_id: null,
+          token_count: null,
+          attachments: attachments.map((a) => ({
+            id: tempId("temp-att-"),
+            file_name: a.file_name,
+            file_type: a.file_type,
+            file_path: "",
+            file_size: a.file_size,
+            data: a.data,
+          })),
+          thinking: null,
+          tool_calls_json: null,
+          tool_call_id: null,
+          created_at: Date.now(),
+          parent_message_id: null,
+          version_index: 0,
+          is_active: true,
+          status: "complete",
+          // 引用回复：乐观更新时携带 quoted_message_id，确保 UI 立即显示引用块
+          quoted_message_id: quotedMessageId,
+        };
 
       // Placeholder assistant message
       let currentMsgId = `temp-agent-${Date.now()}`;
@@ -208,7 +236,10 @@ export function createSendMethods(
       };
 
       set((s) => ({
-        messages: [...s.messages, optimisticUserMsg, placeholderAssistant],
+        messages: isResumeClarify
+          // Clarify 二次执行：用户消息已在消息流中，只追加占位 assistant 消息
+          ? [...s.messages, placeholderAssistant]
+          : [...s.messages, optimisticUserMsg, placeholderAssistant],
       }));
       useStreamStore.setState((s) => ({
         ...startConversationStream(
@@ -773,6 +804,10 @@ export function createSendMethods(
                 conversationId,
                 providerId,
                 model_id,
+                // Clarify 二次执行：强制路由到用户选中的能力
+                forcedCapabilityId: isResumeClarify
+                  ? resumeClarify!.capabilityId
+                  : undefined,
                 agentProfileId: conversation.agent_profile_id ?? undefined,
                 systemPrompt: conversation.system_prompt ?? undefined,
                 searchProviderId: searchProviderId ?? undefined,
@@ -794,6 +829,13 @@ export function createSendMethods(
 
         // ── 认知编排执行分支分发 ──
         const execKind = cognitiveResult?.execution?.kind;
+        // 记录路由观测：仅记录走认知路由的结果（legacy workflow 会话 cognitiveResult 为 null）
+        if (cognitiveResult) {
+          useCognitiveRouteStore.getState().recordObservation(
+            conversationId,
+            cognitiveResult,
+          );
+        }
         if (execKind === "workflow") {
           // 后端已执行 WorkEngine，前端只需按工作流事件流呈现（保留步骤事件，不做覆盖重建）。
           isWorkflowDriven = true;
@@ -826,6 +868,7 @@ export function createSendMethods(
             candidates,
             originalInput: content,
             conversationId,
+            userMessageId: optimisticUserMsg.id,
           });
           cleanup();
           window.setTimeout(() => {
@@ -957,6 +1000,29 @@ export function createSendMethods(
           void get().fetchMessages(conversationId, [optimisticUserMsg.id]);
         }, 120);
       }
+    },
+
+    executeClarify: async (capabilityId: string) => {
+      const pending = get().pendingClarification;
+      if (!pending) {
+        return;
+      }
+      if (pending.conversationId !== get().activeConversationId) {
+        // 会话已切换：清空过期的澄清状态，避免误执行
+        get().setPendingClarification(null);
+        return;
+      }
+      // 清空澄清状态，交由 sendMessage 二次执行
+      get().setPendingClarification(null);
+      await get().sendMessage(
+        pending.originalInput,
+        [],
+        null,
+        null,
+        "auto",
+        undefined,
+        { capabilityId, userMessageId: pending.userMessageId },
+      );
     },
 
     regenerateMessage: async (targetMessageId?: string) => {

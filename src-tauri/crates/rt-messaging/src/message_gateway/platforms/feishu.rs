@@ -7,7 +7,7 @@ use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 
 use crate::message_gateway::platform_config::PlatformConfig;
-use crate::message_gateway::platforms::PlatformAdapter;
+use axagent_harness::MessagePlatformAdapter;
 
 pub struct FeishuAdapter {
     connected: Arc<AtomicBool>,
@@ -26,7 +26,7 @@ impl FeishuAdapter {
 }
 
 #[async_trait::async_trait]
-impl PlatformAdapter for FeishuAdapter {
+impl MessagePlatformAdapter for FeishuAdapter {
     fn name(&self) -> &'static str {
         "feishu"
     }

@@ -2,7 +2,7 @@
 //! L2 能力集群清单 — 三层路由树中的第二层
 //!
 //! # 三层路由树架构
-//! - L1: 域层(`CapabilityDomain` 硬划分,9 个域)
+//! - L1: 域层(`CapabilityDomain` 硬划分,8 个业务域 + 1 个内部系统域)
 //! - L2: 集群层(Domain 内功能集群,本模块定义,手动维护)
 //! - L3: 具体能力层(来自索引)
 //!
@@ -12,7 +12,7 @@
 //! 3. RAR 软引导 Prompt 的结构化输出
 //!
 //! # 集群 ID 约定
-//! 格式: `{domain_as_str}_{path_segment}`,如 `core_file_ops`、`invest_market_data`。
+//! 格式: `{domain_as_str}_{path_segment}`,如 `general_file_ops`、`finance_market_data`。
 //! 与 `CapabilityDomain::as_str()` + `path_segment` 拼接一致,保证确定性。
 //!
 //! # 数据排列
@@ -29,7 +29,7 @@ use crate::capability::CapabilityDomain;
 /// 零堆分配,符合 harness foundation 层零运行时开销原则。
 #[derive(Debug, Clone, Copy)]
 pub struct CapabilityCluster {
-    /// 集群唯一 ID,格式 `{domain}_{cluster}`,如 `"core_file_ops"`
+    /// 集群唯一 ID,格式 `{domain}_{cluster}`,如 `"general_file_ops"`
     pub cluster_id: &'static str,
     /// 所属业务域
     pub domain: CapabilityDomain,
@@ -92,40 +92,40 @@ impl<'de> serde::Deserialize<'de> for CapabilityCluster {
 
 // ── 全量集群清单(手动维护) ────────────────────────
 
-/// 全部 L2 集群清单(9 域 × 平均 3-4 个 = 27 个集群)
+/// 全部 L2 集群清单(8 业务域 × 平均 3-4 个 = 27 个集群,不含内部 System 域)
 ///
 /// **排列约定**:集群按 `CapabilityDomain` 枚举顺序连续排列,
 /// `clusters_by_domain` 依赖此约定直接切片返回。
 pub fn all_clusters() -> &'static [CapabilityCluster] {
     static CLUSTERS: &[CapabilityCluster] = &[
-        // ── Core 域 ──
+        // ── General 域（通用兜底，含原 Core 的必备工具集群）──
         CapabilityCluster {
-            cluster_id: "core_file_ops",
-            domain: CapabilityDomain::Core,
+            cluster_id: "general_file_ops",
+            domain: CapabilityDomain::General,
             cluster_name: "文件操作",
             description: "文件读写、目录遍历、文件搜索等基础文件系统操作",
             path_segment: "file_ops",
             keywords: &["file", "read", "write", "glob", "grep", "list", "目录", "文件"],
         },
         CapabilityCluster {
-            cluster_id: "core_text_ops",
-            domain: CapabilityDomain::Core,
+            cluster_id: "general_text_ops",
+            domain: CapabilityDomain::General,
             cluster_name: "文本处理",
             description: "字符串处理、文本编辑、正则匹配等文本操作",
             path_segment: "text_ops",
             keywords: &["text", "string", "字符串", "文本", "编辑", "正则", "regex"],
         },
         CapabilityCluster {
-            cluster_id: "core_system_ops",
-            domain: CapabilityDomain::Core,
+            cluster_id: "general_system_ops",
+            domain: CapabilityDomain::General,
             cluster_name: "系统操作",
             description: "进程管理、系统信息、环境变量等系统级操作",
             path_segment: "system_ops",
             keywords: &["system", "process", "进程", "系统", "env", "环境变量", "shell"],
         },
         CapabilityCluster {
-            cluster_id: "core_config_ops",
-            domain: CapabilityDomain::Core,
+            cluster_id: "general_config_ops",
+            domain: CapabilityDomain::General,
             cluster_name: "配置管理",
             description: "配置读写、设置管理、偏好存储",
             path_segment: "config_ops",
@@ -206,51 +206,51 @@ pub fn all_clusters() -> &'static [CapabilityCluster] {
             path_segment: "audio_gen",
             keywords: &["audio", "音频", "语音", "tts", "speech", "声音", "music", "音乐"],
         },
-        // ── Invest 域 ──
+        // ── Finance 域（业务标签 axinvest）──
         CapabilityCluster {
-            cluster_id: "invest_market_data",
-            domain: CapabilityDomain::Invest,
+            cluster_id: "finance_market_data",
+            domain: CapabilityDomain::Finance,
             cluster_name: "行情数据",
             description: "股票行情、市场数据、实时报价",
             path_segment: "market_data",
             keywords: &["market", "quote", "行情", "市场", "股价", "price", "ticker", "kline"],
         },
         CapabilityCluster {
-            cluster_id: "invest_trading",
-            domain: CapabilityDomain::Invest,
+            cluster_id: "finance_trading",
+            domain: CapabilityDomain::Finance,
             cluster_name: "交易",
             description: "下单、撤单、交易执行",
             path_segment: "trading",
             keywords: &["trade", "trading", "交易", "下单", "order", "buy", "sell", "委托"],
         },
         CapabilityCluster {
-            cluster_id: "invest_risk_control",
-            domain: CapabilityDomain::Invest,
+            cluster_id: "finance_risk_control",
+            domain: CapabilityDomain::Finance,
             cluster_name: "风控",
             description: "风险评估、仓位控制、止损止盈",
             path_segment: "risk_control",
             keywords: &["risk", "风控", "风险", "止损", "止盈", "exposure", "敞口"],
         },
         CapabilityCluster {
-            cluster_id: "invest_portfolio",
-            domain: CapabilityDomain::Invest,
+            cluster_id: "finance_portfolio",
+            domain: CapabilityDomain::Finance,
             cluster_name: "组合管理",
             description: "持仓管理、投资组合、仓位分析",
             path_segment: "portfolio",
             keywords: &["portfolio", "持仓", "组合", "仓位", "position", "holding", "资产配置"],
         },
-        // ── Opc 域 ──
+        // ── Automation 域（业务标签 axopc）──
         CapabilityCluster {
-            cluster_id: "opc_automation",
-            domain: CapabilityDomain::Opc,
-            cluster_name: "自动化",
+            cluster_id: "automation_workflow",
+            domain: CapabilityDomain::Automation,
+            cluster_name: "工作流自动化",
             description: "工作流自动化、RPA、任务编排",
-            path_segment: "automation",
+            path_segment: "workflow",
             keywords: &["automation", "自动化", "workflow", "工作流", "rpa", "机器人"],
         },
         CapabilityCluster {
-            cluster_id: "opc_schedule",
-            domain: CapabilityDomain::Opc,
+            cluster_id: "automation_schedule",
+            domain: CapabilityDomain::Automation,
             cluster_name: "定时任务",
             description: "定时调度、Cron 任务、周期执行",
             path_segment: "schedule",
@@ -339,7 +339,7 @@ pub fn clusters_by_domain(domain: CapabilityDomain) -> &'static [CapabilityClust
     let end = all.iter().rposition(|c| c.domain == domain);
     match (start, end) {
         (Some(s), Some(e)) => &all[s..=e],
-        // 理论上不会发生(9 个域均有集群定义),防御性返回空切片
+        // 理论上不会发生(8 个业务域均有集群定义;System 域无集群,返回空切片),防御性返回空切片
         _ => &[],
     }
 }
@@ -436,4 +436,73 @@ pub(crate) fn best_cluster_by_keywords(
     }
 
     best_match
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::capability::CapabilityDomain;
+
+    const BUSINESS_DOMAINS: [CapabilityDomain; 8] = [
+        CapabilityDomain::General,
+        CapabilityDomain::Devops,
+        CapabilityDomain::AiMedia,
+        CapabilityDomain::DataAnalysis,
+        CapabilityDomain::ContentCreation,
+        CapabilityDomain::Communication,
+        CapabilityDomain::Finance,
+        CapabilityDomain::Automation,
+    ];
+
+    #[test]
+    fn test_every_business_domain_has_clusters() {
+        for domain in BUSINESS_DOMAINS {
+            let clusters = clusters_by_domain(domain);
+            assert!(!clusters.is_empty(), "业务域 {} 必须至少有一个集群", domain.as_str());
+        }
+        // System 域为内部域,不应有可发现集群
+        assert!(clusters_by_domain(CapabilityDomain::System).is_empty());
+    }
+
+    #[test]
+    fn test_cluster_id_prefix_matches_domain() {
+        for cluster in all_clusters() {
+            let prefix = format!("{}_", cluster.domain.as_str());
+            assert!(
+                cluster.cluster_id.starts_with(&prefix),
+                "集群 {} 的 ID 前缀必须等于其域 {} 的 as_str()",
+                cluster.cluster_id,
+                cluster.domain.as_str()
+            );
+        }
+    }
+
+    #[test]
+    fn test_same_domain_clusters_are_contiguous() {
+        let all = all_clusters();
+        for domain in BUSINESS_DOMAINS {
+            let positions: Vec<usize> = all
+                .iter()
+                .enumerate()
+                .filter(|(_, c)| c.domain == domain)
+                .map(|(i, _)| i)
+                .collect();
+            // 同域集群必须连续(允许该域仅一个集群)
+            for w in positions.windows(2) {
+                assert_eq!(
+                    w[1],
+                    w[0] + 1,
+                    "域 {} 的集群必须连续排列,位置 {} 与 {} 不连续",
+                    domain.as_str(),
+                    w[0],
+                    w[1]
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_cluster_count() {
+        assert_eq!(all_clusters().len(), 27);
+    }
 }

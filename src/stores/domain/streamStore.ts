@@ -154,15 +154,6 @@ export const _pendingConversationRefresh = new Set<string>();
 export const STREAM_UI_FLUSH_INTERVAL_MS = 50;
 export const STREAM_MAX_CHUNK_SIZE = 500;
 
-let _flushTimer: ReturnType<typeof setTimeout> | null = null;
-
-export function cancelScheduledFlush() {
-  if (_flushTimer !== null) {
-    clearTimeout(_flushTimer);
-    _flushTimer = null;
-  }
-}
-
 export interface PendingUiChunk {
   messageId: string;
   conversationId: string;
@@ -218,6 +209,11 @@ export function getOrCreateSession(conversationId: string): StreamSessionState {
     _streamSessions.set(conversationId, session);
   }
   return session;
+}
+
+/** 只读获取某会话的流式状态；不存在时返回 null（不会隐式创建会话）。 */
+export function getSession(conversationId: string): StreamSessionState | null {
+  return _streamSessions.get(conversationId) ?? null;
 }
 
 export function removeSession(conversationId: string): void {
@@ -503,7 +499,6 @@ export function resetStreamRuntime() {
   _streamBuffer = null;
   _streamPrefix = "";
   _pendingConversationRefresh.clear();
-  cancelScheduledFlush();
   _pendingUiChunk = null;
   if (_streamUiFlushTimer !== null) {
     clearTimeout(_streamUiFlushTimer);
@@ -544,15 +539,22 @@ function scheduleFlush(
   get: GenericGet<unknown>,
   conversationId?: string,
 ) {
-  if (_flushTimer === null) {
-    _flushTimer = setTimeout(() => {
-      _flushTimer = null;
+  // FE-C4 修复：flush 调度并入会话级定时器（streamUiFlushTimer），
+  // 每会话独立，避免多会话并发时全局定时器互相取消/覆盖。
+  const key = resolveSessionKey(conversationId);
+  const session = _streamSessions.get(key);
+  if (!session) {
+    return;
+  }
+  if (session.streamUiFlushTimer === null) {
+    session.streamUiFlushTimer = setTimeout(() => {
+      session.streamUiFlushTimer = null;
       flushPendingStreamChunk(
         set as GenericSet<ConversationStoreLike>,
         get as GenericGet<ConversationStoreLike>,
         conversationId,
       );
-    }, 0);
+    }, STREAM_UI_FLUSH_INTERVAL_MS);
   }
 }
 
@@ -655,16 +657,13 @@ export function appendStreamChunk<T extends ConversationStoreLike>(
   const contentLength = session.pendingUiChunk.content.length;
   if (contentLength >= STREAM_MAX_CHUNK_SIZE) {
     flushPendingStreamChunk(set, get, conversationId);
-  } else if (session.streamUiFlushTimer === null) {
-    session.streamUiFlushTimer = setTimeout(() => {
-      session.streamUiFlushTimer = null;
-      scheduleFlush(
-        set as GenericSet<unknown>,
-        get as GenericGet<unknown>,
-        conversationId,
-      );
-    }, STREAM_UI_FLUSH_INTERVAL_MS);
-    _streamUiFlushTimer = session.streamUiFlushTimer;
+  } else {
+    // FE-C4 修复：统一走会话级 scheduleFlush，由每会话独立定时器调度
+    scheduleFlush(
+      set as GenericSet<unknown>,
+      get as GenericGet<unknown>,
+      conversationId,
+    );
   }
 }
 
@@ -683,7 +682,6 @@ export function flushPendingStreamChunk<T extends ConversationStoreLike>(
     clearTimeout(session.streamUiFlushTimer);
     session.streamUiFlushTimer = null;
   }
-  cancelScheduledFlush();
 
   const pending = session.pendingUiChunk;
   session.pendingUiChunk = null;

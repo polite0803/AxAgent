@@ -4,6 +4,7 @@ import i18n from "@/i18n";
 import { invoke } from "@/lib/invoke";
 import { useExecutionStore } from "@/stores/feature/executionStore";
 import type { DataSourceConfig } from "@/types";
+import { isAllowedFetchUrl, isAllowedInvokeEndpoint } from "./dataSourceSecurity";
 import { getNestedValue } from "./utils";
 
 /**
@@ -54,9 +55,15 @@ export async function resolveDataSource(
         params?: unknown;
       };
       if (method === "invoke") {
+        if (typeof endpoint !== "string" || !isAllowedInvokeEndpoint(endpoint)) {
+          throw new Error(i18n.t("dataBinding.apiEndpointForbidden", { endpoint: String(endpoint) }));
+        }
         return invoke<unknown>(endpoint, params as Record<string, unknown>);
       }
-      // fetch 模式
+      // fetch 模式：仅放行受控协议的 http/https URL，防止 SSRF / file:// 等
+      if (typeof endpoint !== "string" || !isAllowedFetchUrl(endpoint)) {
+        throw new Error(i18n.t("dataBinding.apiEndpointForbidden", { endpoint: String(endpoint) }));
+      }
       const response = await fetch(endpoint, params as RequestInit);
       if (!response.ok) {
         throw new Error(i18n.t("dataBinding.apiRequestFailed", { statusText: response.statusText }));

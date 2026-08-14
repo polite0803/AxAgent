@@ -161,14 +161,8 @@ impl SkillIndex {
                         version = "1.0.0".to_string();
                     }
 
-                    let domain_enum = match domain.as_str() {
-                        "invest" => ToolDomain::Invest,
-                        "devops" => ToolDomain::Devops,
-                        "ai_media" => ToolDomain::AiMedia,
-                        "opc" => ToolDomain::Opc,
-                        "core" => ToolDomain::Core,
-                        _ => ToolDomain::General,
-                    };
+                    // 兼容历史旧值 core/invest/opc;未知值兜底 General
+                    let domain_enum = domain.parse().unwrap_or(ToolDomain::General);
 
                     let candidate = SkillIndexEntry {
                         name,

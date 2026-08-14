@@ -90,6 +90,7 @@ pub mod personality;
 pub mod plan;
 pub mod platform_integration;
 pub mod plugin;
+pub mod plugin_profile;
 pub mod proactive;
 pub mod profile;
 pub mod prompt_templates;

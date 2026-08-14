@@ -165,17 +165,19 @@ pub async fn execute_llm(
             })
             .await
             .map_err(|e| {
-                let err = format!("LLM 调用失败（重试耗尽）: {e}");
-                tracing::error!("[execute_llm] {}", &err);
-                record_failure_audit(config, &err, start);
-                err
+                let detail = format!("LLM 调用失败（重试耗尽）: {e}");
+                tracing::error!("[execute_llm] {}", &detail);
+                record_failure_audit(config, &detail, start);
+                // BE-I1 修复：返回携带错误码的结构化错误，前端可按 error.LLM_CALL_FAILED 翻译
+                crate::error_codes::error_json(crate::error_codes::llm::CALL_FAILED, detail)
             })?
     } else {
         adapter.chat(ctx, Arc::new(request.clone())).await.map_err(|e| {
-            let err = format!("LLM 调用失败: {e}");
-            tracing::error!("[execute_llm] {}", &err);
-            record_failure_audit(config, &err, start);
-            err
+            let detail = format!("LLM 调用失败: {e}");
+            tracing::error!("[execute_llm] {}", &detail);
+            record_failure_audit(config, &detail, start);
+            // BE-I1 修复：返回携带错误码的结构化错误，前端可按 error.LLM_CALL_FAILED 翻译
+            crate::error_codes::error_json(crate::error_codes::llm::CALL_FAILED, detail)
         })?
     };
 
@@ -265,6 +267,26 @@ pub async fn execute_llm_stream(
 ) -> Result<Pin<Box<dyn Stream<Item = Result<ChatStreamChunk, String>> + Send>>, String> {
     let prepared = prepare_llm_call(request, config)?;
 
+    // ── 会话日志不变量（Model-visible means logged，缺陷 #3 05 项）──
+    // 统一漏斗：凡是进入模型的最终请求（含 PromptGuard/脱敏/截断后的消息）
+    // 都被记录到会话日志，并在 debug 构建下做可重建断言。经能力注册表
+    // session.log.invariant 接缝取回；未注册时优雅跳过（如单元测试）。
+    if let Some(session_log) = crate::get_capability_registry().get_session_log_invariant() {
+        let session_id =
+            prepared.request.conversation.clone().unwrap_or_else(|| prepared.request.model.clone());
+        for msg in &prepared.request.messages {
+            session_log.record_model_visible(
+                &session_id,
+                crate::ModelVisibleContent::from_chat_message(msg),
+            );
+        }
+        if cfg!(debug_assertions)
+            && let Err(violation) = session_log.assert_replayable(&session_id)
+        {
+            tracing::error!("{violation}");
+        }
+    }
+
     // ── 缓存命中短路：合成一个 content + done 流 ──
     if let Some(ref cache) = config.cache
         && let Some(ref key) = prepared.cache_key
@@ -296,7 +318,13 @@ pub async fn execute_llm_stream(
     }
 
     let inner = Box::pin(
-        adapter.chat_stream(ctx, prepared.request.clone(), cancel_token).map_err(|e| e.to_string()),
+        // BE-I1 修复：流式 LLM 调用失败返回携带错误码的结构化错误
+        adapter.chat_stream(ctx, prepared.request.clone(), cancel_token).map_err(|e| {
+            crate::error_codes::error_json(
+                crate::error_codes::llm::CALL_FAILED,
+                format!("LLM 流式调用失败: {e}"),
+            )
+        }),
     );
 
     let wrapped = ExecuteLlmStream {

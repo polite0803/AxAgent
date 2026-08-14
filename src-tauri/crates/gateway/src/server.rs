@@ -51,7 +51,7 @@ pub struct GatewayAppState {
     /// 5 失败 → 60s 冷却（参见 spec 2.3）。
     pub key_verify_limiter: Arc<KeyVerifyLimiter>,
     /// P1-7: 客户端 IP 提取策略（trusted_proxies）。
-    /// 默认 trust_all 保留向后兼容；生产环境应通过环境变量 `TRUSTED_PROXIES=...` 显式收紧。
+    /// 默认不信任任何代理（trust_none）；生产环境应通过环境变量 `TRUSTED_PROXIES=...` 显式配置可信代理以启用 XFF 解析。
     pub client_ip_policy: Arc<ClientIpPolicy>,
     /// 智能路由策略（从 `AXAGENT_GATEWAY_ROUTING_STRATEGY` 解析，默认 failover）。
     /// 仅在 bare model name 且多 provider 同时支持时生效。
@@ -104,7 +104,7 @@ pub struct GatewayStartConfig {
 /// 格式：逗号分隔的 IP 字面量，例如 `TRUSTED_PROXIES=10.0.0.1,192.168.1.5`。
 /// 支持 IPv4 和 IPv6 单地址；CIDR 形式暂不支持（避免引入额外依赖 + CIDR 展开边界 bug）。
 ///
-/// 未设置或解析为空时回退到 `ClientIpPolicy::trust_all()`，并打印一次 warn。
+/// 未设置或解析为空时回退到安全默认（不信任任何代理），并打印一次 warn。
 pub(crate) fn client_ip_policy_from_env_or_default() -> ClientIpPolicy {
     let raw = std::env::var("TRUSTED_PROXIES")
         .ok()

@@ -279,8 +279,9 @@ function computeDagLayout(steps: StepLike[], token: GlobalToken): {
   const layerCache = new Map<string, number>();
 
   function getLayer(id: string): number {
-    if (layerCache.has(id)) {
-      return layerCache.get(id)!;
+    const cached = layerCache.get(id);
+    if (cached !== undefined) {
+      return cached;
     }
     const step = stepMap.get(id);
     if (!step || step.needs.length === 0) {
@@ -299,18 +300,18 @@ function computeDagLayout(steps: StepLike[], token: GlobalToken): {
 
   const layerGroups = new Map<number, StepLike[]>();
   for (const step of steps) {
-    const layer = layerCache.get(step.id)!;
+    const layer = layerCache.get(step.id) ?? 0;
     if (!layerGroups.has(layer)) {
       layerGroups.set(layer, []);
     }
-    layerGroups.get(layer)!.push(step);
+    layerGroups.get(layer)?.push(step);
   }
 
   const sortedLayers = [...layerGroups.keys()].toSorted((a, b) => a - b);
   const nodes: Node[] = [];
 
   for (const layer of sortedLayers) {
-    const group = layerGroups.get(layer)!;
+    const group = layerGroups.get(layer) ?? [];
     const totalWidth = group.length * NODE_WIDTH + (group.length - 1) * H_GAP;
     const startX = -totalWidth / 2;
 

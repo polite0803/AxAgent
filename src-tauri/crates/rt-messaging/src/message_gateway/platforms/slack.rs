@@ -8,7 +8,7 @@ use tokio::task::JoinHandle;
 use tokio_tungstenite::tungstenite::Message;
 
 use crate::message_gateway::platform_config::PlatformConfig;
-use crate::message_gateway::platforms::PlatformAdapter;
+use axagent_harness::MessagePlatformAdapter;
 
 pub struct SlackAdapter {
     connected: Arc<AtomicBool>,
@@ -33,7 +33,7 @@ impl Default for SlackAdapter {
 }
 
 #[async_trait::async_trait]
-impl PlatformAdapter for SlackAdapter {
+impl MessagePlatformAdapter for SlackAdapter {
     fn name(&self) -> &'static str {
         "slack"
     }

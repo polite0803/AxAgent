@@ -15,34 +15,15 @@ use tracing::warn;
 
 /// 工具所处功能域 — 用于按需加载工具 schema 给 LLM
 ///
-/// - `Core`：文件/Shell/网络/Agent 等绝对必备工具，永远随请求发送
-/// - `General`：常用开发工具（Git/浏览器/文档），默认启用，非必要场景可跳过
-/// - `Devops`：CI/CD、安全审计、打包分析等运维工具
-/// - `AiMedia`：图片生成、媒体投递等 AI 媒体工具
-/// - `Invest`：投资分析业务工具（AxInvest）
-/// - `Opc`：一人公司业务工具（AxOPC）
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum ToolDomain {
-    Core,
-    General,
-    Devops,
-    AiMedia,
-    Invest,
-    Opc,
-}
-
-impl ToolDomain {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            ToolDomain::Core => "core",
-            ToolDomain::General => "general",
-            ToolDomain::Devops => "devops",
-            ToolDomain::AiMedia => "ai_media",
-            ToolDomain::Invest => "invest",
-            ToolDomain::Opc => "opc",
-        }
-    }
-}
+/// 标准化：`ToolDomain` 收敛为 [`CapabilityDomain`] 的类型别名（唯一权威分类轴），
+/// 本文件仅保留“按需加载分组”的语义说明：
+/// - `General`：文件/Shell/网络/Agent 等必备工具，永远随请求发送
+/// - 其余功能域（Devops/AiMedia/DataAnalysis/ContentCreation/Communication/Finance/Automation）：
+///   按需启用，非必要场景可跳过
+///
+/// 历史 `Core`（必备）已并入 `General`；`Invest`→`Finance`、`Opc`→`Automation`。
+/// 业务线通过工具护照 `tags` 表达，不再占域轴。
+pub use crate::capability::CapabilityDomain as ToolDomain;
 
 /// 工具所属类别
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -428,9 +409,9 @@ pub trait Tool: Send + Sync {
         true
     }
 
-    /// 工具所属功能域（默认 Core，业务工具应覆盖此方法）
+    /// 工具所属功能域（默认 General，业务工具应覆盖此方法）
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Core
+        ToolDomain::General
     }
 
     /// 核心执行逻辑
@@ -562,7 +543,7 @@ impl crate::capability::CapabilityPassport for ToolInfo {
     }
 
     fn domain(&self) -> crate::capability::CapabilityDomain {
-        self.domain.into()
+        self.domain
     }
 
     fn input_schema(&self) -> Option<serde_json::Value> {

@@ -945,7 +945,17 @@
         "title": "Place de marché des plugins",
         "tools": "Outils",
         "validateFailed": "Échec de la validation : {{error}}",
-        "version": "Version"
+        "version": "Version",
+        "registryTitle": "Registre de capacités",
+        "registryLoading": "Chargement du registre...",
+        "registryEmpty": "Aucun connecteur de capacité enregistré",
+        "registryBuiltin": "Intégré",
+        "registryExternal": "Extension externe",
+        "registryContract": "Contrat",
+        "registryVersion": "Version",
+        "registryPlugin": "Extension",
+        "registrySearchPlaceholder": "Rechercher par ID de connecteur / extension",
+        "registrySeam": "Connecteur"
       }
     },
     "preferences": "Préférences",
@@ -1471,6 +1481,35 @@
     "switchAgentModeNoConversationInfo": "Switched to Agent mode. Send a message to create an Agent conversation.",
     "clearHistoryDone": "Conversation cleared"
   },
+  "capabilityDomain": {
+    "general": "Général",
+    "devops": "DevOps",
+    "ai_media": "Médias IA",
+    "data_analysis": "Analyse de données",
+    "content_creation": "Création de contenu",
+    "communication": "Communication",
+    "finance": "Finance",
+    "automation": "Automatisation",
+    "system": "Système"
+  },
+  "capabilityPanel": {
+    "statsTitle": "Statistiques d'index",
+    "totalCapabilities": "Capacités totales",
+    "totalVectors": "Vecteurs totaux",
+    "positiveVectors": "Vecteurs positifs",
+    "negativeVectors": "Vecteurs négatifs",
+    "discoverTitle": "Découverte",
+    "discoverPlaceholder": "Décrivez une tâche, ex. « analyser les cours »",
+    "discoverButton": "Découvrir",
+    "discoverResult": "Résultat",
+    "score": "Score",
+    "ambiguous": "Correspondance ambiguë",
+    "noMatch": "Aucune capacité correspondante",
+    "passportsTitle": "Passeports enregistrés",
+    "noPassports": "Aucune capacité enregistrée",
+    "enabled": "Activé",
+    "disabled": "Désactivé"
+  },
   "chatMarkdown": {
     "inputParams": "Paramètres d'entrée",
     "outputResult": "Résultat de sortie",
@@ -1523,7 +1562,18 @@
     "contextPrediction": "上下文预测",
     "steerInput": "引导",
     "showExtras": "更多面板",
-    "hideExtras": "收起"
+    "hideExtras": "收起",
+    "cognitiveRoute": "Route",
+    "capability": "Capacité"
+  },
+  "cite": {
+    "chunkLabel": "Fragment #{{n}}",
+    "sourceType": {
+      "knowledge": "Base de connaissances",
+      "memory": "Mémoire",
+      "unknown": "Inconnu",
+      "wiki": "Wiki"
+    }
   },
   "citationManager": {
     "addCitation": "Ajouter une citation",
@@ -1864,6 +1914,29 @@
       "zhTW": "Chinois traditionnel"
     }
   },
+  "cognitive": {
+    "clarifyTitle": "Choisissez une capacité",
+    "clarifyPrompt": "Votre requête correspond à plusieurs candidats. Choisissez-en un :",
+    "candidateWorkflow": "Workflow",
+    "candidateAgent": "Agent",
+    "clarifyExecuting": "Exécution de la capacité sélectionnée...",
+    "clarifyHint": "Sélectionnez un candidat pour continuer"
+  },
+  "cognitiveRoute": {
+    "empty": "Aucune observation de route",
+    "noRoute": "Aucune route déterminée",
+    "domain": "Domaine",
+    "cluster": "Cluster",
+    "executionMode": "Mode",
+    "confidence": "Confiance",
+    "circuitBroken": "Circuit ouvert",
+    "circuitClosed": "Normal",
+    "llmFallback": "Repli LLM",
+    "fallbackPath": "Chemin de repli",
+    "candidates": "Candidats",
+    "stageRecords": "Étapes de route",
+    "recordedAt": "Enregistré à"
+  },
   "continuation": {
     "continueFromHere": "Continuer à partir d'ici",
     "continueMsg": "续写",
@@ -1962,7 +2035,8 @@
     "agentDataNotFound": "Données générées par l'agent \"{{generationId}}\" introuvables dans le magasin d'exécution",
     "apiRequestFailed": "La requête API a échoué : {{statusText}}",
     "storeNotRegistered": "Le magasin \"{{storeName}}\" n'est pas enregistré",
-    "unknownSourceType": "Type de source de données inconnu : {{type}}"
+    "unknownSourceType": "Type de source de données inconnu : {{type}}",
+    "apiEndpointForbidden": "Le point d'accès API \"{{endpoint}}\" n'est pas autorisé et a été bloqué"
   },
   "datasetManager": {
     "action": "Action",
@@ -2352,12 +2426,14 @@
     "CLOUD_UNKNOWN_CONFLICT": "Type de conflit de synchronisation inconnu",
     "CLOUD_UNKNOWN_STORAGE": "Type de stockage inconnu",
     "CLOUD_UNKNOWN_STRATEGY": "Stratégie de synchronisation inconnue",
+    "CAPABILITY_EMBEDDING_FAILED": "Échec de la génération de l'embedding",
     "COGNITIVE_ROUTE_FAILED": "Échec de l'exécution du routage cognitif",
     "COGNITIVE_EMPTY_INPUT": "L'entrée du routage cognitif est vide",
     "COGNITIVE_CIRCUIT_BROKEN": "Le disjoncteur du routage cognitif s'est déclenché : {reason}",
     "COGNITIVE_NO_CANDIDATE": "Aucune capacité disponible trouvée pour le routage cognitif",
     "COGNITIVE_EXECUTION_MODE_INVALID": "Mode d'exécution du routage cognitif invalide",
     "COGNITIVE_PROMPT_REJECTED": "Invite cognitive rejetée",
+    "COGNITIVE_RAR_RETRIEVE_FAILED": "Échec de la récupération des candidats du routage cognitif : {{detail}}",
     "COMMON_INTERNAL": "Erreur interne",
     "COMMON_INVALID_INPUT": "Entrée invalide",
     "COMMON_TIMEOUT": "Délai d'opération dépassé",
@@ -2396,6 +2472,7 @@
     "DASHBOARD_NO_MANIFEST": "Manifeste du tableau de bord introuvable",
     "DESKTOP_CONNECTION_TIMEOUT": "Délai de connexion au bureau dépassé",
     "DESKTOP_NATIVE_NOTIFICATION_FAILED": "Échec de l'envoi de la notification de bureau",
+    "FINE_TUNE_DELETE_FAILED": "Échec de la suppression du job de fine-tuning",
     "EXPERT_DELETE_FAILED": "Échec de la suppression de l'expert",
     "EXPERT_JSON_PARSE_FAILED": "Échec de l'analyse du JSON de l'expert",
     "EXPERT_KEY_DECRYPT_FAILED": "Échec du déchiffrement de la clé de l'expert : {{error}}",
@@ -2476,6 +2553,9 @@
     "PLATFORM_TELEGRAM_NOT_ENABLED": "Plateforme Telegram non activée",
     "PLATFORM_UNSUPPORTED": "Plateforme non prise en charge",
     "PLATFORM_WEBHOOK_NOT_CONFIGURED": "Webhook non configuré",
+    "PLUGIN_PROFILE_NOT_FOUND": "Profil de bundle de plugins introuvable",
+    "PLUGIN_PROFILE_DUPLICATE_NAME": "Le nom du profil de bundle de plugins existe déjà",
+    "PLUGIN_PROFILE_IO_FAILED": "Impossible de persister le profil de bundle de plugins",
     "PROVIDER_ADAPTER_NOT_FOUND": "Adaptateur de fournisseur introuvable",
     "PROVIDER_CREATE_FAILED": "Échec de la création du fournisseur",
     "PROVIDER_DELETE_FAILED": "Échec de la suppression du fournisseur",
@@ -2633,6 +2713,17 @@
     "LOCAL_MODEL_INSTALL_IN_PROGRESS": "Installation de llama.cpp en cours",
     "LOCAL_MODEL_DOWNLOAD_FAILED": "Échec du téléchargement",
     "LOCAL_MODEL_PORT_IN_USE": "Le port {{port}} est déjà utilisé. Veuillez changer le port ou arrêter le processus qui l'occupe",
+    "LLM_CALL_FAILED": "Échec de l'appel LLM : {{detail}}",
+    "FLEET_NOT_FOUND": "Bureau introuvable",
+    "FLEET_NAME_REQUIRED": "Le nom du bureau est requis",
+    "FLEET_NO_MEMBERS": "Ce bureau n'a pas encore de membres",
+    "FLEET_ALL_MEMBERS_UNAVAILABLE": "Tous les membres sont indisponibles (en pause/erreur/hors ligne)",
+    "FLEET_MEMBER_NOT_FOUND": "Membre introuvable",
+    "FLEET_NO_PROVIDER": "Aucun fournisseur de modèle disponible. Configurez-en un dans les paramètres",
+    "FLEET_ROUTING_FAILED": "Échec de l'appel de routage intelligent",
+    "FLEET_EXECUTION_FAILED": "Le membre n'a pas pu exécuter la tâche",
+    "FLEET_TARGET_NOT_IN_FLEET": "Le membre cible n'existe pas dans ce bureau",
+    "FLEET_SLUG_EXISTS": "Un membre portant ce slug existe déjà dans ce bureau",
     "DEVICE_SYNC_DEVICE_NOT_INITIALIZED": "Appareil non initialisé",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "Appareil non trouvé",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "Appareil déjà jumelé",
@@ -2661,7 +2752,6 @@
     "CAPABILITY_DISCOVER_FAILED": "Échec de la découverte des capacités",
     "CAPABILITY_NOT_FOUND": "Capacité non trouvée",
     "CAPABILITY_INDEX_FAILED": "Échec de l'indexation des capacités",
-    "CAPABILITY_EMBEDDING_FAILED": "Échec de la génération de l'embedding",
     "CAPABILITY_VECTOR_STORE_FAILED": "Échec de l'opération du vecteur store",
     "CAPABILITY_INVALID_PASSPORT": "Passeport de capacité invalide",
     "CAPABILITY_LIST_FAILED": "Échec de la liste des capacités",
@@ -2822,7 +2912,11 @@
       "name": "Assistant Général",
       "desc": "Un assistant IA polyvalent pour les conversations quotidiennes et les questions générales.",
       "systemPrompt": "Vous êtes un assistant IA intelligent. Fournissez des réponses précises et utiles aux questions de l'utilisateur.",
-      "tags": ["Général", "Assistant", "Dialogue"]
+      "tags": [
+        "Général",
+        "Assistant",
+        "Dialogue"
+      ]
     }
   },
   "expertSelector": {
@@ -12371,8 +12465,9 @@
     "fileEditDesc": "Edit file via exact string replacement. Uses old_string/new_string to search and replace.",
     "deleteFileDesc": "Delete the file at the specified path. This operation is irreversible.",
     "bashDesc": "Execute shell commands. Suitable for: running tests, builds, git operations. Dangerous commands require permission confirmation.",
-    "fleetMessageReceived": "{{name}} 收到: {{message}}",
-    "fleetNoMembers": "办公室暂无成员，无法派遣任务"
+    "fleetNoMembers": "The office has no members yet",
+    "fleetMessageReceived": "[Browser Mock] {{name}} received message: {{message}}",
+    "capabilityAmbiguous": "Plusieurs capacités très pertinentes trouvées. Veuillez préciser pour confirmer."
   },
   "searchUtils": {
     "highCredibility": "Haute crédibilité",

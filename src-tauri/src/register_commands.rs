@@ -1033,6 +1033,14 @@ macro_rules! register_all_commands {
             commands::plugin::plugin_disable,
             commands::plugin::plugin_uninstall,
             commands::plugin::plugin_update,
+            // 插件组合 Profile（缺陷 #9：agent 预设上升为可 dump/patch 的组合机制）
+            commands::plugin_profile::plugin_profile_list,
+            commands::plugin_profile::plugin_profile_create,
+            commands::plugin_profile::plugin_profile_delete,
+            commands::plugin_profile::plugin_profile_dump,
+            commands::plugin_profile::plugin_profile_patch,
+            // 运行时能力注册表检视（P3：外部插件注册的可查询闭环）
+            commands::capability::capability_registry_dump,
             // PTY
             #[cfg(not(mobile))]
             commands::pty::pty_create_session,
@@ -1327,6 +1335,9 @@ commands::demand_discovery::opc_list_capability_gaps,
 commands::demand_discovery::opc_close_capability_gap,
 commands::demand_discovery::opc_mark_lead_status,
 commands::demand_discovery::opc_test_platform_connection,
+commands::demand_discovery::opc_proactive_discover_leads,
+commands::demand_discovery::opc_proactive_evaluate_and_save_leads,
+commands::demand_discovery::opc_analyze_capability_gaps,
 
 // opc_workflows — 领域工作流
 commands::opc_workflows::domain_workflows::opc_list_domain_workflows,

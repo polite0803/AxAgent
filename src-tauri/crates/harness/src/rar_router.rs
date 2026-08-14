@@ -481,21 +481,9 @@ impl RarRecaller for DefaultRarRouter {
     }
 }
 
-/// 将域字符串解析为 `CapabilityDomain`（与 routing_path 解析规则一致）
+/// 将域字符串解析为 `CapabilityDomain`（兼容历史旧值 core/invest/opc）
 fn parse_capability_domain(s: &str) -> Option<CapabilityDomain> {
-    Some(match s {
-        "core" => CapabilityDomain::Core,
-        "general" => CapabilityDomain::General,
-        "devops" => CapabilityDomain::Devops,
-        "ai_media" => CapabilityDomain::AiMedia,
-        "invest" => CapabilityDomain::Invest,
-        "opc" => CapabilityDomain::Opc,
-        "data_analysis" => CapabilityDomain::DataAnalysis,
-        "content_creation" => CapabilityDomain::ContentCreation,
-        "communication" => CapabilityDomain::Communication,
-        "system" => CapabilityDomain::System,
-        _ => return None,
-    })
+    s.parse().ok()
 }
 
 #[async_trait]
@@ -1189,9 +1177,9 @@ mod tests {
             name: "股票技术分析".to_string(),
             description: "分析股票技术面".to_string(),
             input_schema: None,
-            tags: vec!["invest".to_string(), "stock".to_string()],
+            tags: vec!["finance".to_string(), "stock".to_string()],
             score: 0.92,
-            domain: "invest".to_string(),
+            domain: "finance".to_string(),
             cluster: Some("stock_analysis".to_string()),
             negative_scenarios: vec![],
             kind: CapabilityKind::Tool,
@@ -1216,7 +1204,7 @@ mod tests {
             })),
             tags: vec!["tech".to_string()],
             score: 0.95,
-            domain: "invest".to_string(),
+            domain: "finance".to_string(),
             cluster: None,
             negative_scenarios: vec![],
             kind: CapabilityKind::Workflow,
@@ -1295,7 +1283,7 @@ mod tests {
             name: "股票技术分析".to_string(),
             description: "分析股票的技术面走势".to_string(),
             kind: crate::capability::CapabilityKind::Tool,
-            domain: crate::capability::CapabilityDomain::Invest,
+            domain: crate::capability::CapabilityDomain::Finance,
             sub_category: "stock_analysis".to_string(),
             visibility: Visibility::Public,
             caller_permissions: crate::capability::CallerPermissions::new(),

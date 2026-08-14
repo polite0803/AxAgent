@@ -52,7 +52,13 @@ impl EmbeddingProvider for CapabilityEmbeddingProvider {
             Some(self.dimensions),
         )
         .await
-        .map_err(|e| e.to_string())?;
+        // BE-I1 修复：嵌入失败返回携带错误码的结构化错误，前端可 i18n。
+        .map_err(|e| {
+            axagent_harness::error_codes::error_json(
+                axagent_harness::error_codes::capability::EMBEDDING_FAILED,
+                format!("能力嵌入失败: {e}"),
+            )
+        })?;
         Ok(resp.embeddings.into_iter().next().unwrap_or_default())
     }
 
@@ -66,7 +72,13 @@ impl EmbeddingProvider for CapabilityEmbeddingProvider {
             Some(self.dimensions),
         )
         .await
-        .map_err(|e| e.to_string())?;
+        // BE-I1 修复：嵌入失败返回携带错误码的结构化错误，前端可 i18n。
+        .map_err(|e| {
+            axagent_harness::error_codes::error_json(
+                axagent_harness::error_codes::capability::EMBEDDING_FAILED,
+                format!("能力嵌入失败: {e}"),
+            )
+        })?;
         Ok(resp.embeddings)
     }
 
@@ -121,7 +133,15 @@ async fn discover_system_embedding_provider(
     master_key: &[u8; 32],
     provider_registry: &Arc<dyn ProviderRegistry>,
 ) -> Option<(String, usize)> {
-    let providers = axagent_dao::repo::provider::list_providers_merged(db).await.ok()?;
+    // BE-S2 修复：查询 provider 列表失败时记录日志而非 `.ok()?` 静默吞错，
+    // 避免整个能力向量库空缺却无告警。
+    let providers = match axagent_dao::repo::provider::list_providers_merged(db).await {
+        Ok(p) => p,
+        Err(e) => {
+            tracing::warn!("[capability] 查询 embedding provider 列表失败: {e}");
+            return None;
+        },
+    };
 
     for provider in &providers {
         if !provider.enabled {

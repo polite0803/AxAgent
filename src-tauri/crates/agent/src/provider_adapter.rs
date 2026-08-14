@@ -422,7 +422,7 @@ impl ApiClient for AxAgentApiClient {
         all_conv_messages.extend_from_slice(&request.messages);
         let chat_messages = Self::convert_messages(&all_conv_messages, &self.image_urls);
 
-        let chat_request = ChatRequest {
+        let mut chat_request = ChatRequest {
             model: self.model.clone(),
             messages: chat_messages,
             temperature: self.temperature,
@@ -451,14 +451,60 @@ impl ApiClient for AxAgentApiClient {
         let on_event = self.on_event.clone();
 
         let process_stream = async move {
+            // ── agent/request 瀑布拦截（P2 事件化，缺陷 #3）──
+            // 经能力注册表 event.dispatch 接缝取回类型化事件派发总线，对即将
+            // 发送给 LLM 的 ChatRequest 做瀑布派发：订阅者可改写 payload
+            // （如插入安全/合规 prompt）或拒绝请求（中断后续）。
+            if let Some(bus) = axagent_harness::get_capability_registry().get_event_dispatcher() {
+                let mut event = axagent_harness::DomainEvent::new(
+                    axagent_harness::EventCategory::Agent,
+                    "agent/request",
+                    serde_json::to_value(&chat_request)
+                        .map_err(|e| RuntimeError::new(e.to_string()))?,
+                    "agent",
+                );
+                let outcome =
+                    bus.dispatch(&mut event, axagent_harness::DispatchMode::Waterfall).await;
+                if outcome.rejected {
+                    return Err(RuntimeError::new("请求被事件订阅者拒绝 (agent/request)"));
+                }
+                if let Some(payload) = outcome.rewritten {
+                    chat_request = serde_json::from_value(payload)
+                        .map_err(|e| RuntimeError::new(e.to_string()))?;
+                }
+            }
+
             let mut stream =
                 execute_llm_stream(adapter.as_ref(), &ctx, chat_request, &llm_config, cancel)
                     .await
                     .map_err(RuntimeError::new)?;
             let mut events = Vec::new();
+            // llm/stream 流式观测总线（P2 事件化，缺陷 #3）：拉取一次，逐 chunk 复用。
+            let stream_bus = axagent_harness::get_capability_registry().get_event_dispatcher();
             while let Some(result) = stream.next().await {
                 match result {
                     Ok(chunk) => {
+                        // ── llm/stream 流式观测 ──
+                        // 订阅者以只读方式实时观测每个流式 chunk（emit 广播）。
+                        // 用 would_dispatch 廉价短路：无匹配订阅者时跳过序列化，
+                        // 避免在热路径上为每个 chunk 做 JSON 序列化。
+                        if let Some(ref bus) = stream_bus {
+                            let mut observe = axagent_harness::DomainEvent::new(
+                                axagent_harness::EventCategory::Agent,
+                                "llm/stream",
+                                serde_json::Value::Null,
+                                "agent",
+                            );
+                            if bus.would_dispatch(&observe)
+                                && let Ok(payload) = serde_json::to_value(&chunk)
+                            {
+                                observe.payload = payload;
+                                let _ = bus
+                                    .dispatch(&mut observe, axagent_harness::DispatchMode::Emit)
+                                    .await;
+                            }
+                        }
+
                         if let Some(ref text) = chunk.content
                             && !text.is_empty()
                         {

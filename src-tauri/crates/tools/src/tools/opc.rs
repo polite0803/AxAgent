@@ -5,7 +5,7 @@
 //! 将 opc-dao 的数据操作暴露为 Agent Tool，
 //! 使 AI Agent 能够直接管理发票、客户、项目等 OPC 业务数据。
 //!
-//! 所有工具使用 `ToolDomain::Opc` 分类，
+//! 所有工具使用 `ToolDomain::Automation` 分类，
 //! 可通过域过滤仅暴露给 OPC 角色的 Agent。
 
 use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
@@ -74,7 +74,7 @@ impl Tool for OpcListInvoicesTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
     fn is_concurrency_safe(&self) -> bool {
         true
@@ -175,7 +175,7 @@ impl Tool for OpcCreateInvoiceTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
     fn is_destructive(&self) -> bool {
         false
@@ -267,7 +267,7 @@ impl Tool for OpcTransitionInvoiceTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -331,7 +331,7 @@ impl Tool for OpcListCustomersTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
     fn is_concurrency_safe(&self) -> bool {
         true
@@ -421,7 +421,7 @@ impl Tool for OpcCreateCustomerTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -505,7 +505,7 @@ impl Tool for OpcListProjectsTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
     fn is_concurrency_safe(&self) -> bool {
         true
@@ -604,7 +604,7 @@ impl Tool for OpcCreateProjectTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -671,7 +671,7 @@ impl Tool for OpcAddMilestoneTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -735,7 +735,7 @@ impl Tool for OpcGetDashboardTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
     fn is_concurrency_safe(&self) -> bool {
         true
@@ -850,7 +850,7 @@ impl Tool for OpcListLandingPagesTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
     fn is_concurrency_safe(&self) -> bool {
         true
@@ -916,7 +916,7 @@ impl Tool for OpcListBlogPostsTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
     fn is_concurrency_safe(&self) -> bool {
         true
@@ -982,7 +982,7 @@ impl Tool for OpcListContactsTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
     fn is_concurrency_safe(&self) -> bool {
         true
@@ -1051,7 +1051,7 @@ impl Tool for OpcCreateLandingPageTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -1126,7 +1126,7 @@ impl Tool for OpcCreateBlogPostTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -1214,7 +1214,7 @@ impl Tool for OpcSendNotificationTool {
         ToolCategory::Communication
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -1267,7 +1267,7 @@ impl Tool for OpcRecordKpiTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -1308,7 +1308,7 @@ impl Tool for OpcListKpisTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
     fn is_concurrency_safe(&self) -> bool {
         true
@@ -1363,7 +1363,7 @@ impl Tool for OpcSearchWikiTool {
         ToolCategory::Knowledge
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
     fn is_read_only(&self) -> bool {
         true
@@ -1450,7 +1450,7 @@ impl Tool for OpcGetFinancialReportTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
     fn is_read_only(&self) -> bool {
         true
@@ -1551,7 +1551,7 @@ impl Tool for OpcCreateContentAssetTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -1615,7 +1615,7 @@ impl Tool for OpcListContentAssetsTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
     fn is_concurrency_safe(&self) -> bool {
         true
@@ -1702,7 +1702,7 @@ impl Tool for OpcUpdateContentAssetTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -1762,7 +1762,7 @@ impl Tool for OpcDeleteContentAssetTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -1817,7 +1817,7 @@ impl Tool for OpcCreatePublishScheduleTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -1878,7 +1878,7 @@ impl Tool for OpcListPublishSchedulesTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
     fn is_concurrency_safe(&self) -> bool {
         true
@@ -1961,7 +1961,7 @@ impl Tool for OpcCancelPublishScheduleTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
@@ -1999,7 +1999,7 @@ impl Tool for OpcProcessDueSchedulesTool {
         ToolCategory::Integration
     }
     fn domain(&self) -> ToolDomain {
-        ToolDomain::Opc
+        ToolDomain::Automation
     }
 
     async fn call(&self, _input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {

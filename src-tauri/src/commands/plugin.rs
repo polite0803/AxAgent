@@ -104,6 +104,16 @@ pub async fn plugin_validate_source(
                 .iter()
                 .map(|s| SkillDto { name: s.name.clone(), path: s.path.clone() })
                 .collect(),
+            capabilities: manifest
+                .capabilities
+                .iter()
+                .map(|c| PluginCapabilityDto {
+                    seam: c.seam.clone(),
+                    capability_type: c.capability_type.clone(),
+                    version: c.version.clone(),
+                    description: c.description.clone(),
+                })
+                .collect(),
         })
     })
     .await
@@ -250,6 +260,15 @@ pub struct PluginManifestDto {
     pub tools: Vec<ToolDto>,
     pub mcp_servers: Vec<McpServerDto>,
     pub skills: Vec<SkillDto>,
+    pub capabilities: Vec<PluginCapabilityDto>,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct PluginCapabilityDto {
+    pub seam: String,
+    pub capability_type: String,
+    pub version: String,
+    pub description: String,
 }
 
 #[derive(Debug, serde::Serialize)]
