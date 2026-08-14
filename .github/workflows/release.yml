@@ -570,7 +570,7 @@ jobs:
         timeout-minutes: 120
         run: |
           cd src-tauri
-TARGET=${{ matrix.abi == 'arm64-v8a' && 'aarch64' || matrix.abi == 'armeabi-v7a' && 'armv7' || 'x86_64' }}
+          TARGET=${{ matrix.abi == 'arm64-v8a' && 'aarch64' || matrix.abi == 'armeabi-v7a' && 'armv7' || 'x86_64' }}
           # armv7 全量编译内存峰值最高，限制 Rust 并行编译降低 OOM 风险
           if [ "${{ matrix.abi }}" = "armeabi-v7a" ]; then
             export CARGO_BUILD_JOBS=2
