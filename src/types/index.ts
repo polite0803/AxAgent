@@ -780,6 +780,15 @@ export interface GatewayLinkActivity {
 
 // === UI State ===
 export type BuiltinPageKey =
+  // 能力域聚合入口（对应 domainMeta.ts 的 8 个业务域，System 不进入前端导航）
+  | "general"
+  | "finance"
+  | "automation"
+  | "devops"
+  | "data_analysis"
+  | "content_creation"
+  | "ai_media"
+  | "communication"
   | "chat"
   | "dashboard"
   | "knowledge"

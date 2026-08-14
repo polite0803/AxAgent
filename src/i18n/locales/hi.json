@@ -1,4 +1,16 @@
 {
+  "domain": {
+    "general": "सामान्य",
+    "finance": "वित्त",
+    "automation": "स्वचालन",
+    "devops": "डेवऑप्स",
+    "dataAnalysis": "डेटा विश्लेषण",
+    "contentCreation": "सामग्री निर्माण",
+    "aiMedia": "AI मीडिया",
+    "communication": "संचार",
+    "description": "इस डोमेन के अंतर्गत एकत्रित सभी क्षमता प्रविष्टियाँ",
+    "empty": "इस डोमेन में अभी कोई क्षमता प्रविष्टि उपलब्ध नहीं है"
+  },
   "acp": {
     "activeSessions": "सक्रिय सत्र",
     "activeTasks": "सक्रिय कार्य",
@@ -891,11 +903,10 @@
     },
     "messageArea": "संदेश क्षेत्र",
     "mode": {
-      "action": "निष्पादित करें",
-      "ask": "पूछें",
-      "auto": "स्वचालित",
-      "plan": "योजना",
-      "title": "निष्पादन मोड"
+      "title": "Switch Mode",
+      "ask": "Ask",
+      "plan": "Plan",
+      "action": "Action"
     },
     "moveToWorkspace": "कार्यक्षेत्र में ले जाएं",
     "multiModel": {
@@ -1307,12 +1318,6 @@
     "sources": {
       "title": "Knowledge Sources",
       "empty": "No sources available. Please add one in settings first"
-    },
-    "mode": {
-      "title": "Switch Mode",
-      "ask": "Ask",
-      "plan": "Plan",
-      "action": "Action"
     },
     "connector": {
       "title": "Connector",
@@ -2714,16 +2719,6 @@
     "LOCAL_MODEL_DOWNLOAD_FAILED": "डाउनलोड विफल",
     "LOCAL_MODEL_PORT_IN_USE": "पोर्ट {{port}} पहले से उपयोग में है। कृपया पोर्ट बदलें या उसे占用 करने वाली प्रोसेस को रोकें",
     "LLM_CALL_FAILED": "LLM कॉल विफल: {{detail}}",
-    "FLEET_NOT_FOUND": "ऑफिस नहीं मिला",
-    "FLEET_NAME_REQUIRED": "ऑफिस का नाम आवश्यक है",
-    "FLEET_NO_MEMBERS": "इस ऑफिस में अभी कोई सदस्य नहीं है",
-    "FLEET_ALL_MEMBERS_UNAVAILABLE": "सभी सदस्य अनुपलब्ध हैं (रोका/त्रुटि/ऑफ़लाइन)",
-    "FLEET_MEMBER_NOT_FOUND": "सदस्य नहीं मिला",
-    "FLEET_NO_PROVIDER": "कोई मॉडल प्रदाता उपलब्ध नहीं है। पहले सेटिंग्स में कॉन्फ़िगर करें",
-    "FLEET_ROUTING_FAILED": "स्मार्ट रूटिंग कॉल विफल रही",
-    "FLEET_EXECUTION_FAILED": "सदस्य कार्य निष्पादित करने में विफल रहा",
-    "FLEET_TARGET_NOT_IN_FLEET": "लक्ष्य सदस्य इस ऑफिस में मौजूद नहीं है",
-    "FLEET_SLUG_EXISTS": "इस ऑफिस में इस slug वाला सदस्य पहले से मौजूद है",
     "DEVICE_SYNC_DEVICE_NOT_INITIALIZED": "डिवाइस इनिशियलाइज़ नहीं हुआ",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "डिवाइस नहीं मिला",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "डिवाइस पहले से पेयर है",
@@ -10013,8 +10008,8 @@
     "cancel": "रद्द करें",
     "chunks": "खंड",
     "close": "बंद करें",
-    "collapseAll": "सभी को संक्षिप्त करें",
-    "expandAll": "सभी को विस्तृत करें",
+    "collapseAll": "सभी सिकोड़ें",
+    "expandAll": "सभी विस्तारित करें",
     "common": {
       "actions": "कार्रवाई",
       "close": "बंद करें",
@@ -10367,8 +10362,6 @@
     "wikiMeta": {
       "rootPath": "根路径"
     },
-    "collapseAll": "सभी सिकोड़ें",
-    "expandAll": "सभी विस्तारित करें",
     "noteLoadFailed": "नोट लोड करने में विफल",
     "entityNodeInfo": "एंटिटी नोड",
     "entityNodeDesc": "यह एक ज्ञान ग्राफ़ एंटिटी है जिससे कोई नोट जुड़ा नहीं है। ग्राफ़ व्यू के माध्यम से इसके संबंध देखें।"
@@ -15675,15 +15668,6 @@
       "symbols": "प्रतीक (अल्पविराम से अलग)",
       "score": "शक्ति 0-100",
       "persistence": "दृढ़ता"
-    }
-  },
-  "cite": {
-    "chunkLabel": "खंड #{{n}}",
-    "sourceType": {
-      "knowledge": "ज्ञान आधार",
-      "memory": "स्मृति",
-      "unknown": "अज्ञात",
-      "wiki": "विकि"
     }
   },
   "paper": {

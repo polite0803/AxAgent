@@ -1,4 +1,16 @@
 {
+  "domain": {
+    "general": "일반",
+    "finance": "금융",
+    "automation": "자동화",
+    "devops": "데브옵스",
+    "dataAnalysis": "데이터 분석",
+    "contentCreation": "콘텐츠 제작",
+    "aiMedia": "AI 미디어",
+    "communication": "커뮤니케이션",
+    "description": "이 능력 도메인에 집계된 모든 기능 진입점",
+    "empty": "이 도메인에는 아직 사용 가능한 기능 진입점이 없습니다"
+  },
   "acp": {
     "activeSessions": "활성 세션",
     "activeTasks": "활성 작업",
@@ -891,11 +903,10 @@
     },
     "messageArea": "메시지 영역",
     "mode": {
-      "action": "실행",
-      "ask": "질문",
-      "auto": "자동",
-      "plan": "계획",
-      "title": "실행 모드"
+      "title": "Switch Mode",
+      "ask": "Ask",
+      "plan": "Plan",
+      "action": "Action"
     },
     "moveToWorkspace": "작업 영역으로 이동",
     "multiModel": {
@@ -1307,12 +1318,6 @@
     "sources": {
       "title": "Knowledge Sources",
       "empty": "No sources available. Please add one in settings first"
-    },
-    "mode": {
-      "title": "Switch Mode",
-      "ask": "Ask",
-      "plan": "Plan",
-      "action": "Action"
     },
     "connector": {
       "title": "Connector",
@@ -2714,16 +2719,6 @@
     "LOCAL_MODEL_DOWNLOAD_FAILED": "다운로드에 실패했습니다",
     "LOCAL_MODEL_PORT_IN_USE": "포트 {{port}}가 이미 사용 중입니다. 포트를 변경하거나 점유 프로세스를 중지해 주세요",
     "LLM_CALL_FAILED": "LLM 호출 실패: {{detail}}",
-    "FLEET_NOT_FOUND": "오피스를 찾을 수 없습니다",
-    "FLEET_NAME_REQUIRED": "오피스 이름은 필수입니다",
-    "FLEET_NO_MEMBERS": "이 오피스에는 아직 구성원이 없습니다",
-    "FLEET_ALL_MEMBERS_UNAVAILABLE": "모든 구성원을 사용할 수 없습니다 (일시정지/오류/오프라인)",
-    "FLEET_MEMBER_NOT_FOUND": "구성원을 찾을 수 없습니다",
-    "FLEET_NO_PROVIDER": "사용 가능한 모델 공급자가 없습니다. 설정에서 구성하세요",
-    "FLEET_ROUTING_FAILED": "스마트 라우팅 호출에 실패했습니다",
-    "FLEET_EXECUTION_FAILED": "구성원이 작업 실행에 실패했습니다",
-    "FLEET_TARGET_NOT_IN_FLEET": "대상 구성원이 이 오피스에 존재하지 않습니다",
-    "FLEET_SLUG_EXISTS": "이 오피스에 동일한 slug의 구성원이 이미 있습니다",
     "DEVICE_SYNC_DEVICE_NOT_INITIALIZED": "기기가 초기화되지 않았습니다",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "장치를 찾을 수 없습니다",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "장치가 이미 페어링되었습니다",
@@ -10367,8 +10362,6 @@
     "wikiMeta": {
       "rootPath": "根路径"
     },
-    "collapseAll": "모두 접기",
-    "expandAll": "모두 펼치기",
     "noteLoadFailed": "노트를 불러오지 못했습니다",
     "entityNodeInfo": "엔티티 노드",
     "entityNodeDesc": "이것은 지식 그래프 엔티티로, 연결된 노트가 없습니다. 그래프 뷰에서 관계를 확인하세요."
@@ -15675,15 +15668,6 @@
       "symbols": "심볼 (쉼표로 구분)",
       "score": "강도 0-100",
       "persistence": "지속성"
-    }
-  },
-  "cite": {
-    "chunkLabel": "청크 #{{n}}",
-    "sourceType": {
-      "knowledge": "지식 베이스",
-      "memory": "메모리",
-      "unknown": "알 수 없음",
-      "wiki": "위키"
     }
   },
   "paper": {

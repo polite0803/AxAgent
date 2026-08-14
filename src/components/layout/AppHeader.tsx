@@ -3,6 +3,7 @@
 import { Tooltip } from "@/components/layout/Tooltip";
 import { PageTimeAnchor } from "@/components/time-travel/PageTimeAnchor";
 import { FEATURE_FLAGS } from "@/constants/featureFlags";
+import { CAPABILITY_DOMAIN_META } from "@/lib/domainMeta";
 import { useAgentPanelStore, useOnboardingStore } from "@/stores";
 import { theme } from "antd";
 import { ArrowLeft, Bot, HelpCircle } from "lucide-react";
@@ -26,6 +27,13 @@ const PAGE_LABELS: Record<string, string> = {
 function resolvePageLabel(pathname: string): string | null {
   if (PAGE_LABELS[pathname]) {
     return PAGE_LABELS[pathname];
+  }
+  // 能力域聚合入口（/general、/finance、/automation 等）— 显示域名
+  const domain = CAPABILITY_DOMAIN_META.find(
+    (d) => pathname === d.path || pathname.startsWith(`${d.path}/`),
+  );
+  if (domain) {
+    return domain.labelKey;
   }
   if (pathname.startsWith("/settings")) {
     return "nav.settings";

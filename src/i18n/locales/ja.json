@@ -1,4 +1,16 @@
 {
+  "domain": {
+    "general": "汎用",
+    "finance": "金融",
+    "automation": "自動化",
+    "devops": "DevOps",
+    "dataAnalysis": "データ分析",
+    "contentCreation": "コンテンツ制作",
+    "aiMedia": "AIメディア",
+    "communication": "コミュニケーション",
+    "description": "この能力ドメインに集約されたすべての機能エントリ",
+    "empty": "このドメインにはまだ利用可能な機能エントリがありません"
+  },
   "acp": {
     "activeSessions": "アクティブセッション",
     "activeTasks": "アクティブなタスク",
@@ -891,11 +903,10 @@
     },
     "messageArea": "メッセージエリア",
     "mode": {
-      "action": "実行",
-      "ask": "質問",
-      "auto": "自動",
-      "plan": "計画",
-      "title": "実行モード"
+      "title": "Switch Mode",
+      "ask": "Ask",
+      "plan": "Plan",
+      "action": "Action"
     },
     "moveToWorkspace": "ワークスペースに移動",
     "multiModel": {
@@ -1307,12 +1318,6 @@
     "sources": {
       "title": "Knowledge Sources",
       "empty": "No sources available. Please add one in settings first"
-    },
-    "mode": {
-      "title": "Switch Mode",
-      "ask": "Ask",
-      "plan": "Plan",
-      "action": "Action"
     },
     "connector": {
       "title": "Connector",
@@ -2714,16 +2719,6 @@
     "LOCAL_MODEL_DOWNLOAD_FAILED": "ダウンロードに失敗しました",
     "LOCAL_MODEL_PORT_IN_USE": "ポート {{port}} は既に使用されています。ポートを変更するか、占用プロセスを停止してください",
     "LLM_CALL_FAILED": "LLM 呼び出しに失敗しました：{{detail}}",
-    "FLEET_NOT_FOUND": "オフィスが見つかりません",
-    "FLEET_NAME_REQUIRED": "オフィス名は必須です",
-    "FLEET_NO_MEMBERS": "このオフィスにはまだメンバーがいません",
-    "FLEET_ALL_MEMBERS_UNAVAILABLE": "すべてのメンバーが利用不可です（一時停止/エラー/オフライン）",
-    "FLEET_MEMBER_NOT_FOUND": "メンバーが見つかりません",
-    "FLEET_NO_PROVIDER": "利用可能なモデルプロバイダーがありません。設定で構成してください",
-    "FLEET_ROUTING_FAILED": "スマートルーティング呼び出しに失敗しました",
-    "FLEET_EXECUTION_FAILED": "メンバーのタスク実行に失敗しました",
-    "FLEET_TARGET_NOT_IN_FLEET": "対象メンバーがこのオフィスに存在しません",
-    "FLEET_SLUG_EXISTS": "このオフィスに同じ slug のメンバーが既に存在します",
     "DEVICE_SYNC_DEVICE_NOT_INITIALIZED": "デバイスが初期化されていません",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "デバイスが見つかりません",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "デバイスは既にペアリングされています",
@@ -15673,15 +15668,6 @@
       "symbols": "銘柄（カンマ区切り）",
       "score": "強度 0-100",
       "persistence": "持続性"
-    }
-  },
-  "cite": {
-    "chunkLabel": "チャンク #{{n}}",
-    "sourceType": {
-      "knowledge": "ナレッジベース",
-      "memory": "メモリ",
-      "unknown": "不明",
-      "wiki": "Wiki"
     }
   },
   "paper": {

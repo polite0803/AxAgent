@@ -1,4 +1,16 @@
 {
+  "domain": {
+    "general": "General",
+    "finance": "Finance",
+    "automation": "Automation",
+    "devops": "DevOps",
+    "dataAnalysis": "Data Analysis",
+    "contentCreation": "Content Creation",
+    "aiMedia": "AI Media",
+    "communication": "Communication",
+    "description": "All capability entries aggregated under this domain",
+    "empty": "No capability entries available in this domain yet"
+  },
   "acp": {
     "activeSessions": "Active Sessions",
     "activeTasks": "Active Tasks",
@@ -878,11 +890,10 @@
     },
     "messageArea": "Message Area",
     "mode": {
-      "action": "Act",
       "ask": "Ask",
-      "auto": "Auto",
       "plan": "Plan",
-      "title": "Execution Mode"
+      "action": "Action",
+      "title": "Switch Mode"
     },
     "moveToWorkspace": "Move to Workspace",
     "multiModel": {
@@ -1362,12 +1373,6 @@
       "current": "Current",
       "unknownModel": "Unknown Model",
       "selectVersion": "Select Version"
-    },
-    "mode": {
-      "ask": "Ask",
-      "plan": "Plan",
-      "action": "Action",
-      "title": "Switch Mode"
     },
     "connector": {
       "title": "Connector",
@@ -2714,16 +2719,6 @@
     "LOCAL_MODEL_DOWNLOAD_FAILED": "Download failed",
     "LOCAL_MODEL_PORT_IN_USE": "Port {{port}} is already in use. Please change the port or stop the occupying process",
     "LLM_CALL_FAILED": "LLM call failed: {{detail}}",
-    "FLEET_NOT_FOUND": "Office not found",
-    "FLEET_NAME_REQUIRED": "Office name is required",
-    "FLEET_NO_MEMBERS": "This office has no members yet",
-    "FLEET_ALL_MEMBERS_UNAVAILABLE": "All members are unavailable (paused/error/offline)",
-    "FLEET_MEMBER_NOT_FOUND": "Member not found",
-    "FLEET_NO_PROVIDER": "No model provider available. Configure one in Settings first",
-    "FLEET_ROUTING_FAILED": "Smart routing call failed",
-    "FLEET_EXECUTION_FAILED": "Member failed to execute the task",
-    "FLEET_TARGET_NOT_IN_FLEET": "Target member does not exist in this office",
-    "FLEET_SLUG_EXISTS": "A member with this slug already exists in this office",
     "DEVICE_SYNC_DEVICE_NOT_INITIALIZED": "Device not initialized",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "Device not found",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "Device already paired",
@@ -15673,15 +15668,6 @@
       "symbols": "Symbols (comma-separated)",
       "score": "Strength 0-100",
       "persistence": "Persistence"
-    }
-  },
-  "cite": {
-    "chunkLabel": "Chunk #{{n}}",
-    "sourceType": {
-      "knowledge": "Knowledge",
-      "memory": "Memory",
-      "unknown": "Unknown",
-      "wiki": "Wiki"
     }
   },
   "paper": {

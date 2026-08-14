@@ -4,7 +4,9 @@ import { Icon } from "@/components/common/Icon";
 import { Tooltip } from "@/components/layout/Tooltip";
 import { FEATURE_FLAGS } from "@/constants/featureFlags";
 import { useResolvedAvatarSrc } from "@/hooks/useResolvedAvatarSrc";
+import { CAPABILITY_DOMAIN_META } from "@/lib/domainMeta";
 import { invoke, logIpcError } from "@/lib/invoke";
+import { type NavItem, navItemsByDomain } from "@/lib/navRegistry";
 import { BUILTIN_PAGE_PATH } from "@/lib/pageRegistry";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
 import type { ShortcutAction } from "@/lib/shortcuts";
@@ -19,31 +21,7 @@ import {
 import type { AppSettings, PageKey } from "@/types";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { Avatar } from "antd";
-import {
-  Building2,
-  Code,
-  Cpu,
-  DollarSign,
-  Globe,
-  GraduationCap,
-  LineChart,
-  MapPin,
-  MessageSquare,
-  Moon,
-  Palette,
-  PieChart,
-  Pin,
-  PinOff,
-  Rocket,
-  RotateCcw,
-  Shield,
-  ShoppingBag,
-  Sun,
-  Target,
-  TrendingUp,
-  User,
-  Users,
-} from "lucide-react";
+import { Globe, LineChart, Moon, Pin, PinOff, RotateCcw, Sun, User } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -71,143 +49,13 @@ function pathToPageKey(path: string): PageKey {
   return "chat";
 }
 
-interface NavItem {
-  key: string;
-  icon: React.ReactNode;
-  labelKey: string;
-  path: string;
-  isPlugin: boolean;
-  pluginName?: string;
-}
-
-const builtinNavItems: NavItem[] = [
-  {
-    key: "chat",
-    icon: <Icon icon="fluent:chat-20-filled" size={17} />,
-    labelKey: "nav.chat",
-    path: BUILTIN_PAGE_PATH.chat,
-    isPlugin: false,
-  },
-  {
-    key: "invest",
-    icon: <LineChart size={17} />,
-    labelKey: "nav.invest",
-    path: BUILTIN_PAGE_PATH.invest,
-    isPlugin: false,
-  },
-  // OPC 一人公司管理 — 统一入口（内部 Tab 切换：仪表盘/发票/客户/项目等）
-  {
-    key: "opc",
-    icon: <Building2 size={17} />,
-    labelKey: "nav.opc",
-    path: BUILTIN_PAGE_PATH.opc,
-    isPlugin: false,
-  },
-  // OPC 一人公司管理 — 9 大垂直行业入口
-  {
-    key: "opc-industry-ai-research",
-    icon: <Cpu size={17} />,
-    labelKey: "opc.industries.ai_research",
-    path: BUILTIN_PAGE_PATH.opcIndustryAiResearch,
-    isPlugin: false,
-  },
-  {
-    key: "opc-industry-software-dev",
-    icon: <Code size={17} />,
-    labelKey: "opc.industries.software_dev",
-    path: BUILTIN_PAGE_PATH.opcIndustrySoftwareDev,
-    isPlugin: false,
-  },
-  {
-    key: "opc-industry-finance-invest",
-    icon: <TrendingUp size={17} />,
-    labelKey: "opc.industries.finance_invest",
-    path: BUILTIN_PAGE_PATH.opcIndustryFinanceInvest,
-    isPlugin: false,
-  },
-  {
-    key: "opc-industry-sales-growth",
-    icon: <DollarSign size={17} />,
-    labelKey: "opc.industries.sales_growth",
-    path: BUILTIN_PAGE_PATH.opcIndustrySalesGrowth,
-    isPlugin: false,
-  },
-  {
-    key: "opc-industry-content-media",
-    icon: <MessageSquare size={17} />,
-    labelKey: "opc.industries.content_media",
-    path: BUILTIN_PAGE_PATH.opcIndustryContentMedia,
-    isPlugin: false,
-  },
-  {
-    key: "opc-industry-industry-consulting",
-    icon: <Users size={17} />,
-    labelKey: "opc.industries.industry_consulting",
-    path: BUILTIN_PAGE_PATH.opcIndustryIndustryConsulting,
-    isPlugin: false,
-  },
-  {
-    key: "opc-industry-accounting",
-    icon: <PieChart size={17} />,
-    labelKey: "opc.industries.accounting",
-    path: BUILTIN_PAGE_PATH.opcIndustryAccounting,
-    isPlugin: false,
-  },
-  {
-    key: "opc-industry-ecommerce",
-    icon: <ShoppingBag size={17} />,
-    labelKey: "opc.industries.ecommerce",
-    path: BUILTIN_PAGE_PATH.opcIndustryEcommerce,
-    isPlugin: false,
-  },
-  {
-    key: "opc-industry-education",
-    icon: <GraduationCap size={17} />,
-    labelKey: "opc.industries.education",
-    path: BUILTIN_PAGE_PATH.opcIndustryEducation,
-    isPlugin: false,
-  },
-  // OPC 新增 6 个行业入口
-  {
-    key: "opc-industry-design",
-    icon: <Palette size={17} />,
-    labelKey: "opc.industries.design",
-    path: BUILTIN_PAGE_PATH.opcIndustryDesign,
-    isPlugin: false,
-  },
-  {
-    key: "opc-industry-project-management",
-    icon: <Target size={17} />,
-    labelKey: "opc.industries.project_management",
-    path: BUILTIN_PAGE_PATH.opcIndustryProjectManagement,
-    isPlugin: false,
-  },
-  {
-    key: "opc-industry-security",
-    icon: <Shield size={17} />,
-    labelKey: "opc.industries.security",
-    path: BUILTIN_PAGE_PATH.opcIndustrySecurity,
-    isPlugin: false,
-  },
-  {
-    key: "opc-industry-geospatial",
-    icon: <MapPin size={17} />,
-    labelKey: "opc.industries.geospatial",
-    path: BUILTIN_PAGE_PATH.opcIndustryGeospatial,
-    isPlugin: false,
-  },
-  {
-    key: "opc-industry-game-dev",
-    icon: <Rocket size={17} />,
-    labelKey: "opc.industries.game_dev",
-    path: BUILTIN_PAGE_PATH.opcIndustryGameDev,
-    isPlugin: false,
-  },
-];
-
 interface SidebarSection {
   key: string;
   labelKey: string;
+  /** 域主题色（用于分组标题高亮点） */
+  color?: string;
+  /** 域聚合入口路径（点击分组标题跳转），无则不可点击 */
+  domainPath?: string;
   items: NavItem[];
 }
 
@@ -428,29 +276,23 @@ export function Sidebar() {
   const sections = useMemo<SidebarSection[]>(() => {
     const sections: SidebarSection[] = [];
 
-    // 工作台：对话页作为核心枢纽（内含仪表盘/工作流/终端/知识源/开发工具 Tab，见 WorkspaceHub）
-    // creation/knowledge/development 分组已废弃——这些功能合并到 /chat 的 Tab，不再单独出现在侧栏
-    sections.push({
-      key: "workspace",
-      labelKey: "sidebar.sectionWorkspace",
-      items: builtinNavItems.filter((n) => n.key === "chat"),
-    });
+    // 侧栏以「能力域」为组织轴：8 个业务域分组，域内导航项按业务本质归域。
+    // 每个域分组标题可点击，跳转到该域的聚合入口页（DomainHub）。
+    for (const domain of CAPABILITY_DOMAIN_META) {
+      const items = navItemsByDomain(domain.id);
+      if (items.length === 0) {
+        continue;
+      }
+      sections.push({
+        key: domain.id,
+        labelKey: domain.labelKey,
+        color: domain.color,
+        domainPath: domain.path,
+        items,
+      });
+    }
 
-    // 投资分组：7 个股票业务页面合并为 /invest 统一入口（InvestHub 内部 Tab 切换）
-    sections.push({
-      key: "invest",
-      labelKey: "sidebar.sectionInvest",
-      items: builtinNavItems.filter((n) => n.key === "invest"),
-    });
-
-    // OPC 一人公司管理
-    sections.push({
-      key: "opc",
-      labelKey: "nav.opc",
-      items: builtinNavItems.filter((n) => n.key === "opc" || n.key.startsWith("opc-")),
-    });
-
-    return sections.filter((s) => s.items.length > 0);
+    return sections;
   }, []);
 
   // 动态固定页面已移至设置/扩展分组管理，不再在侧栏加载和渲染
@@ -472,9 +314,44 @@ export function Sidebar() {
       {sections.map((section) => (
         <div key={section.key}>
           {!sidebarCollapsed && (
-            <div className="ax-sidebar-section-header">
-              {t(section.labelKey)}
-            </div>
+            <button
+              type="button"
+              className="ax-sidebar-section-header"
+              onClick={() => section.domainPath && navigate(section.domainPath)}
+              aria-label={t(section.labelKey)}
+              style={{
+                width: "100%",
+                textAlign: "left",
+                background: "none",
+                border: "none",
+                cursor: section.domainPath ? "pointer" : "default",
+                padding: "2px 8px",
+                fontSize: 11,
+                fontWeight: 600,
+                letterSpacing: "0.03em",
+                color: "var(--muted)",
+                borderRadius: 4,
+              }}
+              onMouseEnter={(e) => {
+                if (section.domainPath) { e.currentTarget.style.backgroundColor = "var(--accent-bg)"; }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
+              }}
+            >
+              <span
+                style={{
+                  display: "inline-block",
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  backgroundColor: section.color,
+                  marginRight: 6,
+                  verticalAlign: "middle",
+                }}
+              />
+              <span style={{ verticalAlign: "middle" }}>{t(section.labelKey)}</span>
+            </button>
           )}
           {section.items.map((item) => {
             const label = item.isPlugin ? item.labelKey : t(item.labelKey);

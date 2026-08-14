@@ -1,4 +1,16 @@
 {
+  "domain": {
+    "general": "通用",
+    "finance": "金融",
+    "automation": "自动化",
+    "devops": "运维",
+    "dataAnalysis": "数据分析",
+    "contentCreation": "内容创作",
+    "aiMedia": "AI 媒体",
+    "communication": "通信",
+    "description": "该能力域下聚合的所有功能入口",
+    "empty": "该域下暂无可用功能入口"
+  },
   "acp": {
     "activeSessions": "活跃会话",
     "activeTasks": "活跃任务",
@@ -880,9 +892,8 @@
     "mode": {
       "action": "执行",
       "ask": "提问",
-      "auto": "自动",
-      "plan": "计划",
-      "title": "执行模式"
+      "plan": "规划",
+      "title": "模式"
     },
     "moveToWorkspace": "移到工作区",
     "multiModel": {
@@ -1465,12 +1476,6 @@
       "title": "连接器"
     },
     "conversationNotFound": "对话未找到",
-    "mode": {
-      "action": "执行",
-      "ask": "提问",
-      "plan": "规划",
-      "title": "模式"
-    },
     "sources": {
       "empty": "暂无来源",
       "title": "来源"
@@ -2714,16 +2719,6 @@
     "LOCAL_MODEL_DOWNLOAD_FAILED": "下载失败",
     "LOCAL_MODEL_PORT_IN_USE": "端口 {{port}} 已被占用，请更换端口或停止占用进程",
     "LLM_CALL_FAILED": "LLM 调用失败：{{detail}}",
-    "FLEET_NOT_FOUND": "办公室未找到",
-    "FLEET_NAME_REQUIRED": "办公室名称不能为空",
-    "FLEET_NO_MEMBERS": "该办公室还没有任何成员",
-    "FLEET_ALL_MEMBERS_UNAVAILABLE": "办公室所有成员均不可用（已暂停/错误/离线）",
-    "FLEET_MEMBER_NOT_FOUND": "成员未找到",
-    "FLEET_NO_PROVIDER": "没有可用的模型提供商，请先在设置中配置",
-    "FLEET_ROUTING_FAILED": "智能路由调用失败",
-    "FLEET_EXECUTION_FAILED": "成员执行任务失败",
-    "FLEET_TARGET_NOT_IN_FLEET": "目标成员不存在于该办公室",
-    "FLEET_SLUG_EXISTS": "该办公室已存在同名 slug 的成员",
     "DEVICE_SYNC_DEVICE_NOT_INITIALIZED": "设备未初始化",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "设备未找到",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "设备已配对",
@@ -15673,15 +15668,6 @@
       "symbols": "代表标的（逗号分隔）",
       "score": "强度 0-100",
       "persistence": "持续性"
-    }
-  },
-  "cite": {
-    "chunkLabel": "区块 #{{n}}",
-    "sourceType": {
-      "knowledge": "知识库",
-      "memory": "记忆",
-      "unknown": "未知",
-      "wiki": "Wiki"
     }
   },
   "paper": {

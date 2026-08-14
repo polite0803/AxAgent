@@ -1,4 +1,16 @@
 {
+  "domain": {
+    "general": "Общий",
+    "finance": "Финансы",
+    "automation": "Автоматизация",
+    "devops": "DevOps",
+    "dataAnalysis": "Анализ данных",
+    "contentCreation": "Создание контента",
+    "aiMedia": "AI-медиа",
+    "communication": "Коммуникации",
+    "description": "Все функциональные записи, агрегированные в этом домене",
+    "empty": "В этом домене пока нет доступных функциональных записей"
+  },
   "acp": {
     "activeSessions": "Активные сессии",
     "activeTasks": "Активные задачи",
@@ -891,11 +903,10 @@
     },
     "messageArea": "Область сообщений",
     "mode": {
-      "action": "Выполнить",
-      "ask": "Спросить",
-      "auto": "Авто",
-      "plan": "План",
-      "title": "Режим выполнения"
+      "title": "Switch Mode",
+      "ask": "Ask",
+      "plan": "Plan",
+      "action": "Action"
     },
     "moveToWorkspace": "Переместить в рабочую область",
     "multiModel": {
@@ -1307,12 +1318,6 @@
     "sources": {
       "title": "Knowledge Sources",
       "empty": "No sources available. Please add one in settings first"
-    },
-    "mode": {
-      "title": "Switch Mode",
-      "ask": "Ask",
-      "plan": "Plan",
-      "action": "Action"
     },
     "connector": {
       "title": "Connector",
@@ -2714,16 +2719,6 @@
     "LOCAL_MODEL_DOWNLOAD_FAILED": "Скачивание не удалось",
     "LOCAL_MODEL_PORT_IN_USE": "Порт {{port}} уже занят. Пожалуйста, смените порт или остановите процесс, который его занимает",
     "LLM_CALL_FAILED": "Не удалось выполнить вызов LLM: {{detail}}",
-    "FLEET_NOT_FOUND": "Офис не найден",
-    "FLEET_NAME_REQUIRED": "Требуется название офиса",
-    "FLEET_NO_MEMBERS": "В этом офисе пока нет участников",
-    "FLEET_ALL_MEMBERS_UNAVAILABLE": "Все участники недоступны (пауза/ошибка/офлайн)",
-    "FLEET_MEMBER_NOT_FOUND": "Участник не найден",
-    "FLEET_NO_PROVIDER": "Нет доступного поставщика моделей. Сначала настройте его в параметрах",
-    "FLEET_ROUTING_FAILED": "Не удалось выполнить вызов умной маршрутизации",
-    "FLEET_EXECUTION_FAILED": "Участнику не удалось выполнить задачу",
-    "FLEET_TARGET_NOT_IN_FLEET": "Целевой участник не существует в этом офисе",
-    "FLEET_SLUG_EXISTS": "Участник с таким slug уже существует в этом офисе",
     "DEVICE_SYNC_DEVICE_NOT_INITIALIZED": "Устройство не инициализировано",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "Устройство не найдено",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "Устройство уже сопряжено",
@@ -10367,8 +10362,6 @@
     "wikiMeta": {
       "rootPath": "根路径"
     },
-    "collapseAll": "Свернуть все",
-    "expandAll": "Развернуть все",
     "noteLoadFailed": "Не удалось загрузить заметку",
     "entityNodeInfo": "Узел сущности",
     "entityNodeDesc": "Это сущность графика знаний без связанной заметки. Посмотрите ее связи через представление графика."
@@ -15675,15 +15668,6 @@
       "symbols": "Символы (через запятую)",
       "score": "Сила 0-100",
       "persistence": "Постоянство"
-    }
-  },
-  "cite": {
-    "chunkLabel": "Фрагмент #{{n}}",
-    "sourceType": {
-      "knowledge": "База знаний",
-      "memory": "Память",
-      "unknown": "Неизвестно",
-      "wiki": "Wiki"
     }
   },
   "paper": {

@@ -1,4 +1,16 @@
 {
+  "domain": {
+    "general": "Général",
+    "finance": "Finance",
+    "automation": "Automatisation",
+    "devops": "DevOps",
+    "dataAnalysis": "Analyse de données",
+    "contentCreation": "Création de contenu",
+    "aiMedia": "Média IA",
+    "communication": "Communication",
+    "description": "Toutes les entrées de fonctionnalités agrégées sous ce domaine",
+    "empty": "Aucune entrée de fonctionnalité disponible dans ce domaine pour l'instant"
+  },
   "acp": {
     "activeSessions": "Sessions actives",
     "activeTasks": "Tâches actives",
@@ -891,11 +903,10 @@
     },
     "messageArea": "Zone de messages",
     "mode": {
-      "action": "Exécuter",
-      "ask": "Demander",
-      "auto": "Auto",
+      "title": "Switch Mode",
+      "ask": "Ask",
       "plan": "Plan",
-      "title": "Mode d'exécution"
+      "action": "Action"
     },
     "moveToWorkspace": "Déplacer vers l'espace de travail",
     "multiModel": {
@@ -1307,12 +1318,6 @@
     "sources": {
       "title": "Knowledge Sources",
       "empty": "No sources available. Please add one in settings first"
-    },
-    "mode": {
-      "title": "Switch Mode",
-      "ask": "Ask",
-      "plan": "Plan",
-      "action": "Action"
     },
     "connector": {
       "title": "Connector",
@@ -2714,16 +2719,6 @@
     "LOCAL_MODEL_DOWNLOAD_FAILED": "Échec du téléchargement",
     "LOCAL_MODEL_PORT_IN_USE": "Le port {{port}} est déjà utilisé. Veuillez changer le port ou arrêter le processus qui l'occupe",
     "LLM_CALL_FAILED": "Échec de l'appel LLM : {{detail}}",
-    "FLEET_NOT_FOUND": "Bureau introuvable",
-    "FLEET_NAME_REQUIRED": "Le nom du bureau est requis",
-    "FLEET_NO_MEMBERS": "Ce bureau n'a pas encore de membres",
-    "FLEET_ALL_MEMBERS_UNAVAILABLE": "Tous les membres sont indisponibles (en pause/erreur/hors ligne)",
-    "FLEET_MEMBER_NOT_FOUND": "Membre introuvable",
-    "FLEET_NO_PROVIDER": "Aucun fournisseur de modèle disponible. Configurez-en un dans les paramètres",
-    "FLEET_ROUTING_FAILED": "Échec de l'appel de routage intelligent",
-    "FLEET_EXECUTION_FAILED": "Le membre n'a pas pu exécuter la tâche",
-    "FLEET_TARGET_NOT_IN_FLEET": "Le membre cible n'existe pas dans ce bureau",
-    "FLEET_SLUG_EXISTS": "Un membre portant ce slug existe déjà dans ce bureau",
     "DEVICE_SYNC_DEVICE_NOT_INITIALIZED": "Appareil non initialisé",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "Appareil non trouvé",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "Appareil déjà jumelé",
@@ -10013,8 +10008,8 @@
     "cancel": "Annuler",
     "chunks": "Segments",
     "close": "Fermer",
-    "collapseAll": "Tout réduire",
-    "expandAll": "Tout développer",
+    "collapseAll": "Réduire tout",
+    "expandAll": "Développer tout",
     "common": {
       "actions": "Actions",
       "close": "Fermer",
@@ -10367,8 +10362,6 @@
     "wikiMeta": {
       "rootPath": "根路径"
     },
-    "collapseAll": "Réduire tout",
-    "expandAll": "Développer tout",
     "noteLoadFailed": "Échec du chargement de la note",
     "entityNodeInfo": "Nœud d'entité",
     "entityNodeDesc": "Il s'agit d'une entité de graphe de connaissances sans note associée. Affichez ses relations via la vue graphe."
@@ -15675,15 +15668,6 @@
       "symbols": "Symboles (séparés par des virgules)",
       "score": "Force 0-100",
       "persistence": "Persistance"
-    }
-  },
-  "cite": {
-    "chunkLabel": "Fragment #{{n}}",
-    "sourceType": {
-      "knowledge": "Base de connaissances",
-      "memory": "Mémoire",
-      "unknown": "Inconnu",
-      "wiki": "Wiki"
     }
   },
   "paper": {

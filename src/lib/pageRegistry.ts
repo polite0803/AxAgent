@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { CAPABILITY_DOMAIN_META } from "@/lib/domainMeta";
+
 /**
  * Unified page registry — 内置路由路径的单一真相源（single source of truth）。
  *
@@ -22,6 +24,8 @@ export const DEFAULT_HOME = "/chat";
  * key→path 映射，覆盖所有内置页面（含未进入导航栏的 link/marketplace 等）。
  */
 export const BUILTIN_PAGE_PATH: Record<string, string> = {
+  // 能力域聚合入口路径（8 个业务域，路径来源 domainMeta 单一真相源）
+  ...Object.fromEntries(CAPABILITY_DOMAIN_META.map((d) => [d.id, d.path])),
   chat: "/chat",
   dashboard: "/dashboard",
   knowledge: "/knowledge",

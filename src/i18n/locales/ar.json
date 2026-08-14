@@ -1,4 +1,16 @@
 {
+  "domain": {
+    "general": "عام",
+    "finance": "التمويل",
+    "automation": "الأتمتة",
+    "devops": "ديف أوبس",
+    "dataAnalysis": "تحليل البيانات",
+    "contentCreation": "إنشاء المحتوى",
+    "aiMedia": "وسائط الذكاء الاصطناعي",
+    "communication": "الاتصالات",
+    "description": "جميع إدخالات القدرات المجمعة تحت هذا المجال",
+    "empty": "لا توجد إدخالات قدرات متاحة في هذا المجال بعد"
+  },
   "acp": {
     "activeSessions": "جلسات نشطة",
     "activeTasks": "المهام النشطة",
@@ -891,11 +903,10 @@
     },
     "messageArea": "منطقة الرسائل",
     "mode": {
-      "action": "تنفيذ",
-      "ask": "اسأل",
-      "auto": "تلقائي",
-      "plan": "خطة",
-      "title": "وضع التنفيذ"
+      "title": "Switch Mode",
+      "ask": "Ask",
+      "plan": "Plan",
+      "action": "Action"
     },
     "moveToWorkspace": "نقل إلى مساحة العمل",
     "multiModel": {
@@ -1307,12 +1318,6 @@
     "sources": {
       "title": "Knowledge Sources",
       "empty": "No sources available. Please add one in settings first"
-    },
-    "mode": {
-      "title": "Switch Mode",
-      "ask": "Ask",
-      "plan": "Plan",
-      "action": "Action"
     },
     "connector": {
       "title": "Connector",
@@ -2714,16 +2719,6 @@
     "LOCAL_MODEL_DOWNLOAD_FAILED": "فشل التنزيل",
     "LOCAL_MODEL_PORT_IN_USE": "المنفذ {{port}} مستخدم بالفعل. يرجى تغيير المنفذ أو إيقاف العملية التي تستخدمه",
     "LLM_CALL_FAILED": "فشل استدعاء نموذج اللغة: {{detail}}",
-    "FLEET_NOT_FOUND": "لم يتم العثور على المكتب",
-    "FLEET_NAME_REQUIRED": "اسم المكتب مطلوب",
-    "FLEET_NO_MEMBERS": "لا يوجد أعضاء في هذا المكتب بعد",
-    "FLEET_ALL_MEMBERS_UNAVAILABLE": "جميع الأعضاء غير متاحين (إيقاف مؤقت/خطأ/غير متصل)",
-    "FLEET_MEMBER_NOT_FOUND": "لم يتم العثور على العضو",
-    "FLEET_NO_PROVIDER": "لا يوجد مزود نماذج متاح. قم بتكوينه في الإعدادات أولاً",
-    "FLEET_ROUTING_FAILED": "فشل استدعاء التوجيه الذكي",
-    "FLEET_EXECUTION_FAILED": "فشل العضو في تنفيذ المهمة",
-    "FLEET_TARGET_NOT_IN_FLEET": "العضو المستهدف غير موجود في هذا المكتب",
-    "FLEET_SLUG_EXISTS": "يوجد عضو بهذا المعرف بالفعل في هذا المكتب",
     "DEVICE_SYNC_DEVICE_NOT_INITIALIZED": "الجهاز غير مهيأ",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "الجهاز غير موجود",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "الجهاز مقترن بالفعل",
@@ -10367,8 +10362,6 @@
     "wikiMeta": {
       "rootPath": "根路径"
     },
-    "collapseAll": "طي الكل",
-    "expandAll": "توسيع الكل",
     "noteLoadFailed": "فشل تحميل الملاحظة",
     "entityNodeInfo": "عقدة كيان",
     "entityNodeDesc": "هذا كيان في رسم المعرفة ليس له ملاحظة مرتبطة. عرض علاقاته من خلال عرض الرسم."
@@ -15675,15 +15668,6 @@
       "symbols": "الرموز (مفصولة بفواصل)",
       "score": "القوة 0-100",
       "persistence": "الاستمرارية"
-    }
-  },
-  "cite": {
-    "chunkLabel": "مقطع #{{n}}",
-    "sourceType": {
-      "knowledge": "قاعدة المعرفة",
-      "memory": "الذاكرة",
-      "unknown": "غير معروف",
-      "wiki": "ويكي"
     }
   },
   "paper": {

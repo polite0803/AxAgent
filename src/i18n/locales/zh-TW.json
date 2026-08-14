@@ -1,4 +1,16 @@
 {
+  "domain": {
+    "general": "通用",
+    "finance": "金融",
+    "automation": "自動化",
+    "devops": "維運",
+    "dataAnalysis": "數據分析",
+    "contentCreation": "內容創作",
+    "aiMedia": "AI 媒體",
+    "communication": "通訊",
+    "description": "該能力域下聚合的所有功能入口",
+    "empty": "該域下暫無可用功能入口"
+  },
   "acp": {
     "activeSessions": "活躍會話",
     "activeTasks": "活躍任務",
@@ -892,11 +904,10 @@
     },
     "messageArea": "消息區域",
     "mode": {
-      "action": "執行",
-      "ask": "提問",
-      "auto": "自動",
-      "plan": "計畫",
-      "title": "執行模式"
+      "ask": "Ask",
+      "plan": "Plan",
+      "action": "Action",
+      "title": "Switch Mode"
     },
     "moveToWorkspace": "移到工作區",
     "multiModel": {
@@ -1452,12 +1463,6 @@
     "sources": {
       "title": "Knowledge Sources",
       "empty": "No sources available. Please add one in settings first"
-    },
-    "mode": {
-      "ask": "Ask",
-      "plan": "Plan",
-      "action": "Action",
-      "title": "Switch Mode"
     },
     "connector": {
       "title": "Connector",
@@ -2714,16 +2719,6 @@
     "LOCAL_MODEL_DOWNLOAD_FAILED": "下載失敗",
     "LOCAL_MODEL_PORT_IN_USE": "連接埠 {{port}} 已被佔用，請更換連接埠或停止佔用程序",
     "LLM_CALL_FAILED": "LLM 調用失敗：{{detail}}",
-    "FLEET_NOT_FOUND": "辦公室未找到",
-    "FLEET_NAME_REQUIRED": "辦公室名稱不能為空",
-    "FLEET_NO_MEMBERS": "該辦公室還沒有任何成員",
-    "FLEET_ALL_MEMBERS_UNAVAILABLE": "辦公室所有成員均不可用（已暫停/錯誤/離線）",
-    "FLEET_MEMBER_NOT_FOUND": "成員未找到",
-    "FLEET_NO_PROVIDER": "沒有可用的模型提供商，請先在設定中設定",
-    "FLEET_ROUTING_FAILED": "智慧路由呼叫失敗",
-    "FLEET_EXECUTION_FAILED": "成員執行任務失敗",
-    "FLEET_TARGET_NOT_IN_FLEET": "目標成員不存在於該辦公室",
-    "FLEET_SLUG_EXISTS": "該辦公室已存在同名 slug 的成員",
     "DEVICE_SYNC_DEVICE_NOT_INITIALIZED": "裝置未初始化",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "裝置未找到",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "裝置已配對",
@@ -10013,7 +10008,7 @@
     "cancel": "取消",
     "chunks": "分塊",
     "close": "關閉",
-    "collapseAll": "全部收疊",
+    "collapseAll": "全部摺疊",
     "expandAll": "全部展開",
     "common": {
       "actions": "動作",
@@ -10367,8 +10362,6 @@
     "wikiMeta": {
       "rootPath": "根路徑"
     },
-    "collapseAll": "全部摺疊",
-    "expandAll": "全部展開",
     "noteLoadFailed": "筆記載入失敗",
     "entityNodeInfo": "實體節點",
     "entityNodeDesc": "這是一個知識圖譜實體，沒有關聯的筆記。可通過圖譜視圖查看其關係。"
@@ -15675,15 +15668,6 @@
       "symbols": "代表標的（逗號分隔）",
       "score": "強度 0-100",
       "persistence": "持續性"
-    }
-  },
-  "cite": {
-    "chunkLabel": "區塊 #{{n}}",
-    "sourceType": {
-      "knowledge": "知識庫",
-      "memory": "記憶",
-      "unknown": "未知",
-      "wiki": "Wiki"
     }
   },
   "paper": {

@@ -5,6 +5,7 @@ import { IpcReconnectBanner } from "@/components/layout/IpcReconnectBanner";
 import { PageErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { PageContextProvider } from "@/components/shared/PageContextProvider";
 import { useIpcHealth } from "@/hooks/useIpcHealth";
+import { CAPABILITY_DOMAIN_META } from "@/lib/domainMeta";
 import { BUILTIN_PAGE_PATH, DEFAULT_HOME } from "@/lib/pageRegistry";
 
 import { Button, Result, Spin } from "antd";
@@ -81,6 +82,7 @@ const LazyIndustryNavigatorPage = lazy(() =>
   import("@/pages/opc/industries/IndustryNavigator").then((m) => ({ default: m.IndustryNavigatorPage }))
 );
 const LazyOpcSubPage = lazy(() => import("@/pages/OpcPage").then((m) => ({ default: m.OpcSubPage })));
+const LazyDomainHubPage = lazy(() => import("@/pages/DomainHubPage").then((m) => ({ default: m.DomainHubPage })));
 
 function PageLoader() {
   return (
@@ -224,6 +226,18 @@ export const ContentArea = memo(function ContentArea() {
       >
         <Routes>
           <Route path="/" element={<Navigate to={DEFAULT_HOME} replace />} />
+          {/* 能力域聚合入口（8 个业务域，见 domainMeta）— 每个域路径渲染 DomainHub */}
+          {CAPABILITY_DOMAIN_META.map((domain) => (
+            <Route
+              key={domain.id}
+              path={domain.path}
+              element={
+                <PageContextProvider page={domain.id}>
+                  <SafeLazyPage Page={LazyDomainHubPage} />
+                </PageContextProvider>
+              }
+            />
+          ))}
           {/* 工作台 Hub：对话页作为核心，内含仪表盘/工作流/终端/知识源 Tab */}
           <Route
             path={BUILTIN_PAGE_PATH.chat}

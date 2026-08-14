@@ -32,6 +32,17 @@ describe("pageRegistry", () => {
       expect(BUILTIN_PAGE_PATH.devtoolsFineTune).toBe("/devtools/fine-tune");
     });
 
+    it("应包含 8 个能力域聚合入口路径（对应 domainMeta）", () => {
+      expect(BUILTIN_PAGE_PATH.general).toBe("/general");
+      expect(BUILTIN_PAGE_PATH.finance).toBe("/finance");
+      expect(BUILTIN_PAGE_PATH.automation).toBe("/automation");
+      expect(BUILTIN_PAGE_PATH.devops).toBe("/devops");
+      expect(BUILTIN_PAGE_PATH.data_analysis).toBe("/data-analysis");
+      expect(BUILTIN_PAGE_PATH.content_creation).toBe("/content-creation");
+      expect(BUILTIN_PAGE_PATH.ai_media).toBe("/ai-media");
+      expect(BUILTIN_PAGE_PATH.communication).toBe("/communication");
+    });
+
     it("所有路径应以 / 开头", () => {
       for (const path of Object.values(BUILTIN_PAGE_PATH)) {
         expect(path).toMatch(/^\//);

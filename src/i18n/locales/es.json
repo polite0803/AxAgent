@@ -1,4 +1,16 @@
 {
+  "domain": {
+    "general": "General",
+    "finance": "Finanzas",
+    "automation": "Automatización",
+    "devops": "DevOps",
+    "dataAnalysis": "Análisis de datos",
+    "contentCreation": "Creación de contenido",
+    "aiMedia": "Medios IA",
+    "communication": "Comunicación",
+    "description": "Todas las entradas de funcionalidades agregadas bajo este dominio",
+    "empty": "Aún no hay entradas de funcionalidades disponibles en este dominio"
+  },
   "acp": {
     "activeSessions": "Sesiones activas",
     "activeTasks": "Tareas activas",
@@ -891,11 +903,10 @@
     },
     "messageArea": "Área de mensajes",
     "mode": {
-      "action": "Ejecutar",
-      "ask": "Preguntar",
-      "auto": "Auto",
+      "title": "Switch Mode",
+      "ask": "Ask",
       "plan": "Plan",
-      "title": "Modo de ejecución"
+      "action": "Action"
     },
     "moveToWorkspace": "Mover al espacio de trabajo",
     "multiModel": {
@@ -1307,12 +1318,6 @@
     "sources": {
       "title": "Knowledge Sources",
       "empty": "No sources available. Please add one in settings first"
-    },
-    "mode": {
-      "title": "Switch Mode",
-      "ask": "Ask",
-      "plan": "Plan",
-      "action": "Action"
     },
     "connector": {
       "title": "Connector",
@@ -2714,16 +2719,6 @@
     "LOCAL_MODEL_DOWNLOAD_FAILED": "Descarga fallida",
     "LOCAL_MODEL_PORT_IN_USE": "El puerto {{port}} ya está en uso. Cambie el puerto o detenga el proceso que lo ocupa",
     "LLM_CALL_FAILED": "Fallo en la llamada LLM: {{detail}}",
-    "FLEET_NOT_FOUND": "Oficina no encontrada",
-    "FLEET_NAME_REQUIRED": "El nombre de la oficina es obligatorio",
-    "FLEET_NO_MEMBERS": "Esta oficina aún no tiene miembros",
-    "FLEET_ALL_MEMBERS_UNAVAILABLE": "Todos los miembros no están disponibles (pausado/error/offline)",
-    "FLEET_MEMBER_NOT_FOUND": "Miembro no encontrado",
-    "FLEET_NO_PROVIDER": "No hay proveedor de modelos disponible. Configúralo primero en Ajustes",
-    "FLEET_ROUTING_FAILED": "Falló la llamada de enrutamiento inteligente",
-    "FLEET_EXECUTION_FAILED": "El miembro no pudo ejecutar la tarea",
-    "FLEET_TARGET_NOT_IN_FLEET": "El miembro objetivo no existe en esta oficina",
-    "FLEET_SLUG_EXISTS": "Ya existe un miembro con este slug en esta oficina",
     "DEVICE_SYNC_DEVICE_NOT_INITIALIZED": "Dispositivo no inicializado",
     "DEVICE_SYNC_DEVICE_NOT_FOUND": "Dispositivo no encontrado",
     "DEVICE_SYNC_DEVICE_ALREADY_PAIRED": "Dispositivo ya emparejado",
@@ -10367,8 +10362,6 @@
     "wikiMeta": {
       "rootPath": "根路径"
     },
-    "collapseAll": "Contraer todo",
-    "expandAll": "Expandir todo",
     "noteLoadFailed": "No se pudo cargar la nota",
     "entityNodeInfo": "Nodo de entidad",
     "entityNodeDesc": "Esta es una entidad del gráfico de conocimiento sin nota asociada. Ver sus relaciones a través de la vista de gráfico."
@@ -15675,15 +15668,6 @@
       "symbols": "Símbolos (separados por comas)",
       "score": "Fuerza 0-100",
       "persistence": "Persistencia"
-    }
-  },
-  "cite": {
-    "chunkLabel": "Fragmento #{{n}}",
-    "sourceType": {
-      "knowledge": "Base de conocimiento",
-      "memory": "Memoria",
-      "unknown": "Desconocido",
-      "wiki": "Wiki"
     }
   },
   "paper": {
