@@ -539,7 +539,7 @@ impl crate::capability::CapabilityPassport for ToolInfo {
     }
 
     fn domain(&self) -> crate::capability::CapabilityDomain {
-        self.domain.into()
+        self.domain
     }
 
     fn input_schema(&self) -> Option<serde_json::Value> {

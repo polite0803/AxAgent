@@ -14,7 +14,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};
 
 use agent_macro::agent_command;
@@ -23,7 +23,7 @@ use tauri::State;
 
 use crate::app_state::AppState;
 use crate::commands::capability::CapabilityRegistrationDetailDto;
-use crate::commands::error::{CommandError, ErrorCategory, ErrorResponse};
+use crate::commands::error::{CommandError, ErrorCategory};
 use crate::commands::error_code;
 
 /// 插件组合中的单条插件选择。
@@ -140,7 +140,7 @@ impl PluginProfileStore {
 
 static STORE: OnceLock<Arc<PluginProfileStore>> = OnceLock::new();
 
-fn store_for(app_data_dir: &PathBuf) -> Arc<PluginProfileStore> {
+fn store_for(app_data_dir: &Path) -> Arc<PluginProfileStore> {
     STORE
         .get_or_init(|| {
             Arc::new(PluginProfileStore::new(app_data_dir.join("plugin_profiles.json")))

@@ -186,10 +186,10 @@ impl ServiceDefinition {
     /// 预置 platform-adapter 接缝（消息平台适配器，按平台名注册多实例）。
     pub fn platform_adapter(platform_name: &str) -> Self {
         Self::new(
-            &format!("platform.adapter.{platform_name}"),
+            format!("platform.adapter.{platform_name}"),
             "1.0",
             "axagent_harness::MessagePlatformAdapter",
-            &format!("消息平台适配器：实现 MessagePlatformAdapter，接入 {platform_name} 平台"),
+            format!("消息平台适配器：实现 MessagePlatformAdapter，接入 {platform_name} 平台"),
         )
     }
 }

@@ -280,10 +280,10 @@ pub async fn execute_llm_stream(
                 crate::ModelVisibleContent::from_chat_message(msg),
             );
         }
-        if cfg!(debug_assertions) {
-            if let Err(violation) = session_log.assert_replayable(&session_id) {
-                tracing::error!("{violation}");
-            }
+        if cfg!(debug_assertions)
+            && let Err(violation) = session_log.assert_replayable(&session_id)
+        {
+            tracing::error!("{violation}");
         }
     }
 

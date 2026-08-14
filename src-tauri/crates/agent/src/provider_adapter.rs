@@ -495,13 +495,13 @@ impl ApiClient for AxAgentApiClient {
                                 serde_json::Value::Null,
                                 "agent",
                             );
-                            if bus.would_dispatch(&observe) {
-                                if let Ok(payload) = serde_json::to_value(&chunk) {
-                                    observe.payload = payload;
-                                    let _ = bus
-                                        .dispatch(&mut observe, axagent_harness::DispatchMode::Emit)
-                                        .await;
-                                }
+                            if bus.would_dispatch(&observe)
+                                && let Ok(payload) = serde_json::to_value(&chunk)
+                            {
+                                observe.payload = payload;
+                                let _ = bus
+                                    .dispatch(&mut observe, axagent_harness::DispatchMode::Emit)
+                                    .await;
                             }
                         }
 

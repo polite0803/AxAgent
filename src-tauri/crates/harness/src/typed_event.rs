@@ -83,15 +83,15 @@ impl EventMatcher {
 
     /// 判断事件是否匹配本订阅过滤器。
     pub fn matches(&self, event: &DomainEvent) -> bool {
-        if let Some(c) = self.category {
-            if c != event.category {
-                return false;
-            }
+        if let Some(c) = self.category
+            && c != event.category
+        {
+            return false;
         }
-        if let Some(k) = &self.kind {
-            if *k != event.kind {
-                return false;
-            }
+        if let Some(k) = &self.kind
+            && *k != event.kind
+        {
+            return false;
         }
         true
     }
@@ -328,7 +328,7 @@ mod tests {
             bus.subscribe(EventMatcher::kind("agent/request"), sub(SubscriberVerdict::Continue));
         assert!(bus.would_dispatch(&event()));
         // llm/stream 事件仍应匹配（订阅了 llm/stream）
-        let mut llm =
+        let llm =
             DomainEvent::new(EventCategory::Agent, "llm/stream", serde_json::json!({}), "agent");
         assert!(bus.would_dispatch(&llm));
     }
@@ -408,10 +408,10 @@ mod tests {
         async fn handle(&self, event: &DomainEvent) -> SubscriberVerdict {
             let mut req: crate::types::ChatRequest =
                 serde_json::from_value(event.payload.clone()).unwrap();
-            if let Some(last) = req.messages.last_mut() {
-                if let ChatContent::Text(t) = &mut last.content {
-                    t.push_str("\n【合规声明】本回复仅用于合法用途。");
-                }
+            if let Some(last) = req.messages.last_mut()
+                && let ChatContent::Text(t) = &mut last.content
+            {
+                t.push_str("\n【合规声明】本回复仅用于合法用途。");
             }
             SubscriberVerdict::Rewrite(serde_json::to_value(req).unwrap())
         }
