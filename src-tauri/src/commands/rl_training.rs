@@ -167,7 +167,7 @@ async fn compute_real_metrics(state: &AppState, step: u64) -> Result<TrainingMet
 // ── Commands ──
 
 /// 启动 RL 训练会话。
-#[agent_command(domain = "rl_training", safety = Caution, call_mode = StateInput, description = "启动强化训练会话")]
+#[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "启动强化训练会话")]
 #[command]
 pub async fn start_rl_training(
     _state: State<'_, AppState>,
@@ -211,7 +211,7 @@ pub async fn start_rl_training(
 }
 
 /// 停止 RL 训练会话。
-#[agent_command(domain = "rl_training", safety = Caution, call_mode = StateInput, description = "停止强化训练会话")]
+#[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "停止强化训练会话")]
 #[command]
 pub async fn stop_rl_training(
     _state: State<'_, AppState>,
@@ -230,7 +230,7 @@ pub async fn stop_rl_training(
 }
 
 /// 获取训练指标（对接真实 RLEngine + TrajectoryStorage）。
-#[agent_command(domain = "rl_training", safety = Safe, call_mode = StateInput, description = "获取训练指标")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateInput, description = "获取训练指标")]
 #[command]
 pub async fn get_training_metrics(
     state: State<'_, AppState>,
@@ -250,7 +250,7 @@ pub async fn get_training_metrics(
 }
 
 /// 保存训练检查点。
-#[agent_command(domain = "rl_training", safety = Caution, call_mode = StateInput, description = "保存训练检查点")]
+#[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "保存训练检查点")]
 #[command]
 pub async fn save_checkpoint(
     state: State<'_, AppState>,
@@ -295,7 +295,7 @@ pub async fn save_checkpoint(
 }
 
 /// 加载训练检查点。
-#[agent_command(domain = "rl_training", safety = Safe, call_mode = StateInput, description = "加载训练检查点")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateInput, description = "加载训练检查点")]
 #[command]
 pub async fn load_checkpoint(
     state: State<'_, AppState>,
@@ -330,7 +330,7 @@ pub async fn load_checkpoint(
 }
 
 /// 列出所有检查点。
-#[agent_command(domain = "rl_training", safety = Safe, call_mode = StateOnly, description = "列出所有检查点")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description = "列出所有检查点")]
 #[command]
 pub async fn list_checkpoints(state: State<'_, AppState>) -> Result<Vec<CheckpointInfo>, String> {
     let mut all = Vec::new();
@@ -367,7 +367,7 @@ pub async fn list_checkpoints(state: State<'_, AppState>) -> Result<Vec<Checkpoi
 /// 删除训练检查点（P1 修复：补齐前端调用的后端命令）。
 ///
 /// 同时清理训练运行时内存和持久化存储（trajectory_patterns 表）中的记录。
-#[agent_command(domain = "rl_training", safety = Dangerous, call_mode = StateInput, description = "删除训练检查点")]
+#[agent_command(domain = "general", safety = Dangerous, call_mode = StateInput, description = "删除训练检查点")]
 #[command]
 pub async fn delete_checkpoint(
     state: State<'_, AppState>,
@@ -416,7 +416,7 @@ pub async fn delete_checkpoint(
 ///
 /// 从 TrajectoryStorage 采集最近的轨迹数据，计算奖励信号，
 /// 并更新奖励权重向量。返回训练后的指标摘要。
-#[agent_command(domain = "rl_training", safety = Caution, call_mode = StateOnly, description = "运行一轮强化训练步骤")]
+#[agent_command(domain = "general", safety = Caution, call_mode = StateOnly, description = "运行一轮强化训练步骤")]
 #[command]
 pub async fn run_rl_training_step(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     // 1. 获取最近的轨迹数据

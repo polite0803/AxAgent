@@ -71,7 +71,7 @@ pub struct GetNodeFeedbacksRequest {
 
 /// 保存节点质量反馈（通用版）
 #[tauri::command]
-#[agent_command(domain = "stock_analysis", safety = Safe, call_mode = StateInput, description = "保存节点质量反馈数据，用于自我进化")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateInput, description = "保存节点质量反馈数据，用于自我进化")]
 pub async fn save_node_feedback(
     state: State<'_, AppState>,
     req: SaveNodeFeedbackRequest,
@@ -108,7 +108,7 @@ pub async fn save_node_feedback(
 
 /// 保存分析师反馈（向后兼容包装）
 #[tauri::command]
-#[agent_command(domain = "stock_analysis", safety = Safe, call_mode = StateInput, description = "保存分析师质量反馈数据（向后兼容）")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateInput, description = "保存分析师质量反馈数据（向后兼容）")]
 pub async fn save_analyst_feedback(
     state: State<'_, AppState>,
     req: SaveAnalystFeedbackRequest,
@@ -164,7 +164,7 @@ pub struct SaveAnalystFeedbackRequest {
 
 /// 获取节点反馈历史（通用版）
 #[tauri::command]
-#[agent_command(domain = "stock_analysis", safety = Safe, call_mode = StateOnly, description = "获取指定节点的质量反馈历史")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateOnly, description = "获取指定节点的质量反馈历史")]
 pub async fn get_node_feedbacks(
     state: State<'_, AppState>,
     req: GetNodeFeedbacksRequest,
@@ -222,7 +222,7 @@ pub struct GetAnalystFeedbacksRequest {
 }
 
 #[tauri::command]
-#[agent_command(domain = "stock_analysis", safety = Safe, call_mode = StateOnly, description = "获取指定分析师的质量反馈历史（向后兼容）")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateOnly, description = "获取指定分析师的质量反馈历史（向后兼容）")]
 pub async fn get_analyst_feedbacks(
     state: State<'_, AppState>,
     req: GetAnalystFeedbacksRequest,
@@ -254,7 +254,7 @@ pub struct NodeFeedbackStats {
 
 /// 获取节点反馈统计（通用版）
 #[tauri::command]
-#[agent_command(domain = "stock_analysis", safety = Safe, call_mode = StateOnly, description = "获取节点的反馈统计数据，判断是否需要触发进化")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateOnly, description = "获取节点的反馈统计数据，判断是否需要触发进化")]
 pub async fn get_node_feedback_stats(
     state: State<'_, AppState>,
     node_type: String,
@@ -347,7 +347,7 @@ fn parse_node_type(type_str: &str) -> axagent_analysis_engine::NodeType {
 
 /// 获取分析师反馈统计（向后兼容）
 #[tauri::command]
-#[agent_command(domain = "stock_analysis", safety = Safe, call_mode = StateOnly, description = "获取分析师的反馈统计数据（向后兼容）")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateOnly, description = "获取分析师的反馈统计数据（向后兼容）")]
 pub async fn get_analyst_feedback_stats(
     state: State<'_, AppState>,
     analyst_id: String,

@@ -126,10 +126,26 @@ impl std::str::FromStr for CapabilityDomain {
             "finance" => CapabilityDomain::Finance,
             "automation" => CapabilityDomain::Automation,
             "system" => CapabilityDomain::System,
-            // 历史别名（兼容存量数据）
+            // 历史别名（兼容存量数据，单向收敛到标准域，不构成独立域定义）
             "core" => CapabilityDomain::General,
             "invest" => CapabilityDomain::Finance,
             "opc" => CapabilityDomain::Automation,
+            // 历史命令域值别名（命令桥统一前的存量标注，收敛到标准域）
+            "quant" => CapabilityDomain::Finance,
+            "portfolio" => CapabilityDomain::Finance,
+            "stock_analysis" => CapabilityDomain::Finance,
+            "device" => CapabilityDomain::General,
+            "dynamic_ui" => CapabilityDomain::General,
+            "fine_tune" => CapabilityDomain::General,
+            "cloud" => CapabilityDomain::General,
+            "pty" => CapabilityDomain::Devops,
+            "rl_training" => CapabilityDomain::General,
+            "context" => CapabilityDomain::General,
+            "db_config" => CapabilityDomain::Devops,
+            "conversation" => CapabilityDomain::General,
+            "orchestrator" => CapabilityDomain::System,
+            "agent" => CapabilityDomain::System,
+            "workflow" => CapabilityDomain::Automation,
             _ => return Err(()),
         })
     }

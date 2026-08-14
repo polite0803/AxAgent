@@ -16,7 +16,7 @@ pub struct RecoHistoryItem {
     pub created_at: String,
 }
 
-#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description =  "列出荐股历史记录")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateOnly, description =  "列出荐股历史记录")]
 #[tauri::command]
 pub async fn list_reco_history(
     state: State<'_, AppState>,
@@ -185,7 +185,7 @@ pub struct RecoDetailItem {
     pub created_at: String,
 }
 
-#[agent_command(domain = "invest", safety = Safe, call_mode = StateOnly, description =  "获取荐股详情")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateOnly, description =  "获取荐股详情")]
 #[tauri::command]
 pub async fn get_reco_detail(
     state: State<'_, AppState>,
@@ -242,7 +242,7 @@ pub async fn get_reco_detail(
 }
 
 /// 批量删除荐股记录（按 generated_at 删除整轮推荐）
-#[agent_command(domain = "invest", safety = Caution, call_mode = StateOnly, description =  "批量删除荐股记录")]
+#[agent_command(domain = "finance", safety = Caution, call_mode = StateOnly, description =  "批量删除荐股记录")]
 #[tauri::command]
 pub async fn batch_delete_reco_history(
     state: State<'_, AppState>,
@@ -265,7 +265,7 @@ pub async fn batch_delete_reco_history(
 }
 
 /// 删除一条 Serenity 候选记录（回馈闭环中的删除操作）
-#[agent_command(domain = "invest", safety = Caution, call_mode = StateOnly, description =  "删除Serenity候选记录")]
+#[agent_command(domain = "finance", safety = Caution, call_mode = StateOnly, description =  "删除Serenity候选记录")]
 #[tauri::command]
 pub async fn delete_serenity_pick(state: State<'_, AppState>, id: String) -> Result<(), String> {
     use crate::commands::error::ErrorResponse;

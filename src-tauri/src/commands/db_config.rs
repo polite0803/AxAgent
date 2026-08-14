@@ -33,7 +33,7 @@ fn load_master_key() -> Result<[u8; 32], String> {
     crate::init::database::load_or_create_master_key(&key_path, &app_dir)
 }
 
-#[agent_command(domain = "db_config", safety = Safe, call_mode = StateOnly, description = "获取数据库配置")]
+#[agent_command(domain = "devops", safety = Safe, call_mode = StateOnly, description = "获取数据库配置")]
 #[command]
 pub fn get_db_config() -> Result<DbConfig, String> {
     let path = db_config_path();
@@ -63,7 +63,7 @@ pub fn get_db_config() -> Result<DbConfig, String> {
     Ok(cfg)
 }
 
-#[agent_command(domain = "db_config", safety = Caution, call_mode = StateInput, description = "保存数据库配置")]
+#[agent_command(domain = "devops", safety = Caution, call_mode = StateInput, description = "保存数据库配置")]
 #[command]
 pub fn save_db_config(config: DbConfig) -> Result<(), String> {
     let path = db_config_path();
@@ -110,7 +110,7 @@ pub fn save_db_config(config: DbConfig) -> Result<(), String> {
 ///
 /// 直接用传入的 DbConfig 构建连接 URL 并打开一个最小连接，执行 `SELECT 1`
 /// 验证连通性与凭据正确性。PostgreSQL 走 `build_db_url` 的密码解密逻辑。
-#[agent_command(domain = "db_config", safety = Safe, call_mode = StateInput, description = "测试数据库连接")]
+#[agent_command(domain = "devops", safety = Safe, call_mode = StateInput, description = "测试数据库连接")]
 #[command]
 pub async fn test_db_connection(config: DbConfig) -> Result<String, String> {
     let app_dir = crate::paths::axagent_home();
@@ -132,7 +132,7 @@ pub async fn test_db_connection(config: DbConfig) -> Result<String, String> {
 ///
 /// 返回已应用版本、最新版本、pending 数量和已应用迁移列表，
 /// 供前端诊断「schema 滞后」类问题（如启动后迁移未跑完导致表缺失）。
-#[agent_command(domain = "db_config", safety = Safe, call_mode = StateOnly, description = "获取数据库架构迁移状态")]
+#[agent_command(domain = "devops", safety = Safe, call_mode = StateOnly, description = "获取数据库架构迁移状态")]
 #[command]
 pub async fn get_schema_status(
     state: State<'_, AppState>,
@@ -148,7 +148,7 @@ pub async fn get_schema_status(
 
 /// 修复数据库架构：无条件检查所有已知后加列，缺一补一。
 /// 不影响运行中的会话数据，仅补全缺失的表结构。
-#[agent_command(domain = "db_config", safety = Caution, call_mode = StateOnly, description = "修复数据库架构缺失列")]
+#[agent_command(domain = "devops", safety = Caution, call_mode = StateOnly, description = "修复数据库架构缺失列")]
 #[command]
 pub async fn repair_schema(state: State<'_, AppState>) -> Result<String, String> {
     let db = state.harness.db();

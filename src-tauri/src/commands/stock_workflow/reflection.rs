@@ -745,7 +745,7 @@ pub async fn run_reflection_workflow(
         },
     }
 }
-#[agent_command(domain = "invest", safety = Caution, call_mode = StateOnly, description =  "批量处理持仓到期反思")]
+#[agent_command(domain = "finance", safety = Caution, call_mode = StateOnly, description =  "批量处理持仓到期反思")]
 #[tauri::command]
 pub async fn run_batch_reflection(
     state: State<'_, AppState>,
@@ -1273,7 +1273,7 @@ pub async fn run_lesson_validation(
 /// 内部核心函数 `run_lesson_validation` 已通过 `start_lesson_validation` 后台
 /// 定时任务自动调度，但未暴露为 Tauri 命令，导致前端无法手动触发校证。
 /// 此包装函数补齐该缺口，便于调试和紧急校证场景。
-#[agent_command(domain = "invest", safety = Caution, call_mode = StateOnly, description =  "运行教训规则验证")]
+#[agent_command(domain = "finance", safety = Caution, call_mode = StateOnly, description =  "运行教训规则验证")]
 #[tauri::command]
 pub async fn run_lesson_validation_command(
     state: State<'_, AppState>,
@@ -1679,7 +1679,7 @@ fn build_sub_analysis_from_snapshot(
 /// - 进化成功则更新 reflection_lessons.rule_pattern 字段
 ///
 /// `analysis_id` 同时作为 trace_id，保证同一反思的多次评分会被 Orchestrator 去重。
-#[agent_command(domain = "invest", safety = Caution, call_mode = StateOnly, description =  "提交反思反馈评分")]
+#[agent_command(domain = "finance", safety = Caution, call_mode = StateOnly, description =  "提交反思反馈评分")]
 #[tauri::command]
 pub async fn submit_reflection_feedback(
     state: State<'_, AppState>,

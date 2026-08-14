@@ -2057,7 +2057,7 @@ pub fn get_workflow_config(industry_id: &str, workflow_id: &str) -> Option<Indus
 // ── Tauri 命令 ──────────────────────────────────────────────────
 
 /// 获取所有行业列表（简要信息）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取所有行业列表")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "获取所有行业列表")]
 #[tauri::command]
 pub async fn opc_list_industries() -> Result<serde_json::Value, String> {
     let configs = get_all_industry_configs();
@@ -2083,7 +2083,7 @@ pub async fn opc_list_industries() -> Result<serde_json::Value, String> {
 }
 
 /// 获取行业完整配置（含操作和工作流）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取行业完整配置")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "获取行业完整配置")]
 #[tauri::command]
 pub async fn opc_get_industry_config(industry_id: String) -> Result<serde_json::Value, String> {
     let config =
@@ -2097,7 +2097,7 @@ pub async fn opc_get_industry_config(industry_id: String) -> Result<serde_json::
 }
 
 /// 获取行业包（manifest 基本信息）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取行业包 manifest")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "获取行业包 manifest")]
 #[tauri::command]
 pub async fn opc_get_industry_pack(industry_id: String) -> Result<serde_json::Value, String> {
     let config =
@@ -2121,7 +2121,7 @@ pub async fn opc_get_industry_pack(industry_id: String) -> Result<serde_json::Va
 }
 
 /// 获取行业操作的执行配置（用于前端调用）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取行业操作配置")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "获取行业操作配置")]
 #[tauri::command]
 pub async fn opc_get_action_config(
     industry_id: String,
@@ -2138,7 +2138,7 @@ pub async fn opc_get_action_config(
 }
 
 /// 获取行业工作流配置
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取行业工作流配置")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "获取行业工作流配置")]
 #[tauri::command]
 pub async fn opc_get_workflow_config(
     industry_id: String,
@@ -2156,7 +2156,7 @@ pub async fn opc_get_workflow_config(
 
 /// 构建带行业上下文的对话 prompt
 /// 返回 system_prompt 和初始 user_prompt，供前端使用
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "构建行业上下文对话prompt")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "构建行业上下文对话prompt")]
 #[tauri::command]
 pub async fn opc_build_industry_prompt(
     industry_id: String,
@@ -2183,7 +2183,7 @@ pub async fn opc_build_industry_prompt(
 }
 
 /// 获取行业所有操作列表
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "列出行业所有操作")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "列出行业所有操作")]
 #[tauri::command]
 pub async fn opc_list_industry_actions(industry_id: String) -> Result<serde_json::Value, String> {
     let config =
@@ -2211,7 +2211,7 @@ pub async fn opc_list_industry_actions(industry_id: String) -> Result<serde_json
 }
 
 /// 获取行业所有工作流列表
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "列出行业所有工作流")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "列出行业所有工作流")]
 #[tauri::command]
 pub async fn opc_list_industry_workflows(industry_id: String) -> Result<serde_json::Value, String> {
     let config =
@@ -2240,7 +2240,7 @@ pub async fn opc_list_industry_workflows(industry_id: String) -> Result<serde_js
 // ── 行业分析引擎命令 ──────────────────────────────────────────
 
 /// 执行行业分析（使用新的分析引擎）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "执行行业分析")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "执行行业分析")]
 #[tauri::command]
 pub async fn opc_execute_analysis(
     app_state: State<'_, AppState>,
@@ -2424,7 +2424,7 @@ pub(crate) async fn run_template_via_engine(
 /// 三级查找：① 传入的 template_id（前端 wf-* / config 映射）→ ② 行业 harness 模板
 /// （{industry_id}_harness_workflow，seed 时写入 DB）→ ③ 从 adapter 一次性种子化到 DB
 /// （用户之后可在工作流编辑器修改）再执行。全部走 rt-workflow 引擎，不再运行时动态生成 DAG。
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "执行行业工作流")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "执行行业工作流")]
 #[tauri::command]
 pub async fn opc_execute_workflow(
     app_state: State<'_, AppState>,
@@ -2525,7 +2525,7 @@ pub async fn opc_execute_workflow(
 }
 
 /// 查询行业学习指标
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "查询行业学习指标")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "查询行业学习指标")]
 #[tauri::command]
 pub async fn opc_get_learning_metrics(
     _app_state: State<'_, AppState>,
@@ -2843,7 +2843,7 @@ pub fn get_all_industry_learning_configs(
 /// 获取行业学习配置
 ///
 /// 当配置文件不存在时返回默认配置，确保系统可以正常运行
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取行业学习配置")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "获取行业学习配置")]
 #[tauri::command]
 pub async fn opc_get_learning_config(
     state: State<'_, AppState>,
@@ -2865,7 +2865,7 @@ pub async fn opc_get_learning_config(
 }
 
 /// 获取所有行业学习配置
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取所有行业学习配置")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "获取所有行业学习配置")]
 #[tauri::command]
 pub async fn opc_list_learning_configs(
     state: State<'_, AppState>,
@@ -2880,7 +2880,7 @@ pub async fn opc_list_learning_configs(
 }
 
 /// 触发工作流反思
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "触发工作流反思")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "触发工作流反思")]
 #[tauri::command]
 pub async fn opc_reflect_on_workflow(
     state: State<'_, AppState>,
@@ -2929,7 +2929,7 @@ pub async fn opc_reflect_on_workflow(
 }
 
 /// 触发工作流进化
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "触发工作流进化")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "触发工作流进化")]
 #[tauri::command]
 pub async fn opc_evolve_workflow(
     state: State<'_, AppState>,
@@ -2977,7 +2977,7 @@ pub async fn opc_evolve_workflow(
 }
 
 /// 执行自我改进
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "执行自我改进")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "执行自我改进")]
 #[tauri::command]
 pub async fn opc_run_self_improvement(
     state: State<'_, AppState>,
@@ -3018,7 +3018,7 @@ pub async fn opc_run_self_improvement(
 ///
 /// 根据行业配置自动触发反思、进化和自我改进。
 /// 通常在工作流执行完成后调用，实现 "执行 → 反思 → 进化 → 改进" 的闭环。
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "触发行业学习闭环")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "触发行业学习闭环")]
 #[tauri::command]
 pub async fn opc_trigger_industry_learning(
     state: State<'_, AppState>,
@@ -3240,7 +3240,7 @@ pub(crate) fn load_rl_config(
 
 /// 获取经验池统计信息
 /// P2-7：支持按行业过滤（industry_id 可选；此前参数被静默忽略）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取经验池统计信息")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "获取经验池统计信息")]
 #[tauri::command]
 pub async fn opc_get_rl_stats(
     state: State<'_, AppState>,
@@ -3260,7 +3260,7 @@ pub async fn opc_get_rl_stats(
 }
 
 /// 手动触发 RL 策略优化
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "手动触发RL策略优化")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "手动触发RL策略优化")]
 #[tauri::command]
 pub async fn opc_trigger_rl_optimization(
     state: State<'_, AppState>,
@@ -3290,7 +3290,7 @@ pub async fn opc_trigger_rl_optimization(
 }
 
 /// 手动记录一条工作流执行经验
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "手动记录工作流经验")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "手动记录工作流经验")]
 #[tauri::command]
 pub async fn opc_record_rl_experience(
     state: State<'_, AppState>,

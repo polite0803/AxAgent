@@ -998,7 +998,7 @@ fn execute_list_skills(arguments: &Value) -> Result<String, String> {
 // ── Tauri 命令层（前端可直接调用，不经过 MCP 协议） ───────────────────────
 
 /// 执行 DojoSDK 工具（前端 IPC 入口）
-#[agent_command(domain = "core", safety = Safe, call_mode = StateOnly, description =  "执行DojoSDK工具")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description =  "执行DojoSDK工具")]
 #[tauri::command]
 pub async fn dojo_sdk_execute_tool(
     state: State<'_, AppState>,
@@ -1015,7 +1015,7 @@ pub async fn dojo_sdk_execute_tool(
 }
 
 /// 列出所有 DojoSDK 工具的元数据
-#[agent_command(domain = "core", safety = Safe, call_mode = StateOnly, description =  "列出DojoSDK工具元数据")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description =  "列出DojoSDK工具元数据")]
 #[tauri::command]
 pub async fn dojo_sdk_list_tools() -> Result<Vec<Value>, String> {
     let all_tools = axagent_astock_data::mcp_tools::stock_mcp_tools();
@@ -1032,7 +1032,7 @@ pub async fn dojo_sdk_list_tools() -> Result<Vec<Value>, String> {
 }
 
 /// 检查 DojoSdkExecutor 是否已注册
-#[agent_command(domain = "core", safety = Safe, call_mode = StateOnly, description =  "检查DojoSDK执行器状态")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description =  "检查DojoSDK执行器状态")]
 #[tauri::command]
 pub async fn dojo_sdk_is_ready() -> Result<bool, String> {
     Ok(axagent_astock_data::mcp_tools::has_dojo_sdk_executor())

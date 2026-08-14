@@ -36,7 +36,7 @@ pub struct GetNodeEvolutionStatusRequest {
 ///
 /// 基于历史数据质量反馈，分析节点的"常见病"，
 /// 生成优化建议，并返回当前的进化状态。
-#[agent_command(domain = "stock_analysis", safety = Safe, call_mode = StateInput, description = "触发节点自我进化：基于历史反馈优化 Prompt/配置")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateInput, description = "触发节点自我进化：基于历史反馈优化 Prompt/配置")]
 #[tauri::command]
 pub async fn evolve_node_command(
     state: State<'_, AppState>,
@@ -51,7 +51,7 @@ pub async fn evolve_node_command(
 }
 
 /// 获取节点的进化状态（不触发进化，通用版）
-#[agent_command(domain = "stock_analysis", safety = Safe, call_mode = StateOnly, description = "获取节点的进化状态和建议")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateOnly, description = "获取节点的进化状态和建议")]
 #[tauri::command]
 pub async fn get_node_evolution_status_command(
     state: State<'_, AppState>,
@@ -82,7 +82,7 @@ pub struct GetAnalystEvolutionStatusRequest {
 }
 
 /// 触发分析师自我进化（向后兼容）
-#[agent_command(domain = "stock_analysis", safety = Safe, call_mode = StateInput, description = "触发分析师自我进化（向后兼容）")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateInput, description = "触发分析师自我进化（向后兼容）")]
 #[tauri::command]
 pub async fn evolve_analyst_command(
     state: State<'_, AppState>,
@@ -99,7 +99,7 @@ pub async fn evolve_analyst_command(
 }
 
 /// 获取分析师的进化状态（向后兼容）
-#[agent_command(domain = "stock_analysis", safety = Safe, call_mode = StateOnly, description = "获取分析师的进化状态（向后兼容）")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateOnly, description = "获取分析师的进化状态（向后兼容）")]
 #[tauri::command]
 pub async fn get_analyst_evolution_status_command(
     state: State<'_, AppState>,

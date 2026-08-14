@@ -31,7 +31,7 @@ pub struct CreateConditionalOrderRequest {
 
 /// 创建条件单
 #[tauri::command]
-#[agent_command(domain = "stock_analysis", safety = Safe, call_mode = StateInput, description = "创建条件单，设置触发条件和动作")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateInput, description = "创建条件单，设置触发条件和动作")]
 pub async fn create_conditional_order(
     _state: State<'_, AppState>,
     req: CreateConditionalOrderRequest,
@@ -102,7 +102,7 @@ pub struct ConditionalOrderItem {
 
 /// 查询条件单列表（从内存引擎获取）
 #[tauri::command]
-#[agent_command(domain = "stock_analysis", safety = Safe, call_mode = StateOnly, description = "查询条件单列表")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateOnly, description = "查询条件单列表")]
 pub async fn list_conditional_orders(
     state: State<'_, AppState>,
 ) -> Result<Vec<ConditionalOrderItem>, String> {
@@ -134,7 +134,7 @@ pub async fn list_conditional_orders(
 
 /// 停用条件单
 #[tauri::command]
-#[agent_command(domain = "stock_analysis", safety = Safe, call_mode = StateInput, description = "停用指定条件单")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateInput, description = "停用指定条件单")]
 pub async fn disable_conditional_order(
     state: State<'_, AppState>,
     order_id: String,
@@ -163,7 +163,7 @@ pub async fn disable_conditional_order(
 
 /// 手动触发条件单评估（调试用）
 #[tauri::command]
-#[agent_command(domain = "stock_analysis", safety = Caution, call_mode = Manual, description = "手动触发条件单评估，测试风控链路")]
+#[agent_command(domain = "finance", safety = Caution, call_mode = Manual, description = "手动触发条件单评估，测试风控链路")]
 pub async fn manual_evaluate_conditions(
     state: State<'_, AppState>,
     stock_code: Option<String>,

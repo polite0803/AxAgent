@@ -264,7 +264,7 @@ async fn llm_generate_narrative(
 
 /// 截图诊断完整流程：上传截图 → OCR + 结构化 → 风险诊断 → 持久化
 #[cfg(not(mobile))]
-#[agent_command(domain = "core", safety = Safe, call_mode = StateOnly, description =  "截图上传自动诊断")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description =  "截图上传自动诊断")]
 #[tauri::command]
 pub async fn screenshot_diagnosis_create_from_image(
     state: State<'_, AppState>,
@@ -354,7 +354,7 @@ pub async fn screenshot_diagnosis_create_from_image(
 }
 
 /// 直接传入 positions 创建诊断（前端预填时用，不调 LLM）
-#[agent_command(domain = "core", safety = Safe, call_mode = StateOnly, description =  "直接创建截图诊断")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description =  "直接创建截图诊断")]
 #[tauri::command]
 pub async fn screenshot_diagnosis_create(
     state: State<'_, AppState>,
@@ -369,7 +369,7 @@ pub async fn screenshot_diagnosis_create(
 }
 
 /// 按 ID 获取诊断
-#[agent_command(domain = "core", safety = Safe, call_mode = StateOnly, description =  "获取截图诊断详情")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description =  "获取截图诊断详情")]
 #[tauri::command]
 pub async fn screenshot_diagnosis_get(
     state: State<'_, AppState>,
@@ -384,7 +384,7 @@ pub async fn screenshot_diagnosis_get(
 }
 
 /// 列出最近 N 条诊断（按 created_at 降序）
-#[agent_command(domain = "core", safety = Safe, call_mode = StateOnly, description =  "列出最近截图诊断")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description =  "列出最近截图诊断")]
 #[tauri::command]
 pub async fn screenshot_diagnosis_list_recent(
     state: State<'_, AppState>,
@@ -400,7 +400,7 @@ pub async fn screenshot_diagnosis_list_recent(
 }
 
 /// 按状态过滤
-#[agent_command(domain = "core", safety = Safe, call_mode = StateOnly, description =  "按状态筛选截图诊断")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description =  "按状态筛选截图诊断")]
 #[tauri::command]
 pub async fn screenshot_diagnosis_list_by_status(
     state: State<'_, AppState>,
@@ -415,7 +415,7 @@ pub async fn screenshot_diagnosis_list_by_status(
 }
 
 /// 归档诊断
-#[agent_command(domain = "core", safety = Safe, call_mode = StateOnly, description =  "归档截图诊断")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description =  "归档截图诊断")]
 #[tauri::command]
 pub async fn screenshot_diagnosis_archive(
     state: State<'_, AppState>,
@@ -430,7 +430,7 @@ pub async fn screenshot_diagnosis_archive(
 }
 
 /// 更新诊断字段（narrative / recommended_actions / status / error_message）
-#[agent_command(domain = "core", safety = Safe, call_mode = StateOnly, description =  "更新截图诊断字段")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description =  "更新截图诊断字段")]
 #[tauri::command]
 pub async fn screenshot_diagnosis_update(
     state: State<'_, AppState>,
@@ -445,7 +445,7 @@ pub async fn screenshot_diagnosis_update(
 }
 
 /// 一键转为模拟观察组合（调 paper_portfolio::create_portfolio_from_screenshot_diagnosis）
-#[agent_command(domain = "core", safety = Safe, call_mode = StateOnly, description =  "截图诊断转模拟组合")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description =  "截图诊断转模拟组合")]
 #[tauri::command]
 pub async fn screenshot_diagnosis_to_paper_portfolio(
     state: State<'_, AppState>,

@@ -290,7 +290,7 @@ fn run_des_simulation(
 // ── Tauri 命令 ────────────────────────────────────────────────────────────────
 
 /// 运行 Walk-Forward + DES 对比
-#[agent_command(domain = "workflow", safety = Safe, call_mode = StateOnly, description =  "运行Walk-Forward与DES对比")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateOnly, description =  "运行Walk-Forward与DES对比")]
 #[tauri::command]
 pub fn wf_des_integration(request: WfDesRequest) -> Result<WfDesReport, String> {
     if request.klines.is_empty() {

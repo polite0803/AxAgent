@@ -138,21 +138,21 @@ impl From<&TrainingJob> for TrainingJobInfo {
     }
 }
 
-#[agent_command(domain = "fine_tune", safety = Safe, call_mode = StateOnly, description = "列出所有微调数据集")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description = "列出所有微调数据集")]
 #[command]
 pub fn list_datasets() -> Result<Vec<DatasetInfo>, String> {
     let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
     Ok(s.datasets.values().cloned().collect())
 }
 
-#[agent_command(domain = "fine_tune", safety = Safe, call_mode = StateInput, description = "获取指定数据集")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateInput, description = "获取指定数据集")]
 #[command]
 pub fn get_dataset(dataset_id: String) -> Result<DatasetInfo, String> {
     let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
     s.datasets.get(&dataset_id).cloned().ok_or_else(|| "Dataset not found".to_string())
 }
 
-#[agent_command(domain = "fine_tune", safety = Caution, call_mode = StateInput, description = "创建微调数据集")]
+#[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "创建微调数据集")]
 #[command]
 pub fn create_dataset(name: String, description: String) -> Result<DatasetInfo, String> {
     let mut s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
@@ -169,7 +169,7 @@ pub fn create_dataset(name: String, description: String) -> Result<DatasetInfo, 
     Ok(dataset)
 }
 
-#[agent_command(domain = "fine_tune", safety = Caution, call_mode = StateInput, description = "向数据集添加样本")]
+#[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "向数据集添加样本")]
 #[command]
 pub fn add_sample(
     dataset_id: String,
@@ -188,7 +188,7 @@ pub fn add_sample(
     Ok(())
 }
 
-#[agent_command(domain = "fine_tune", safety = Dangerous, call_mode = StateInput, description = "删除微调数据集")]
+#[agent_command(domain = "general", safety = Dangerous, call_mode = StateInput, description = "删除微调数据集")]
 #[command]
 pub fn delete_dataset(dataset_id: String) -> Result<(), String> {
     let mut s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
@@ -198,14 +198,14 @@ pub fn delete_dataset(dataset_id: String) -> Result<(), String> {
     Ok(())
 }
 
-#[agent_command(domain = "fine_tune", safety = Safe, call_mode = StateOnly, description = "列出所有训练任务")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description = "列出所有训练任务")]
 #[command]
 pub fn list_training_jobs() -> Result<Vec<TrainingJobInfo>, String> {
     let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
     Ok(s.trainer.list_jobs().iter().map(|j| TrainingJobInfo::from(*j)).collect())
 }
 
-#[agent_command(domain = "fine_tune", safety = Safe, call_mode = StateInput, description = "获取指定训练任务")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateInput, description = "获取指定训练任务")]
 #[command]
 pub fn get_training_job(job_id: String) -> Result<TrainingJobInfo, String> {
     let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
@@ -215,7 +215,7 @@ pub fn get_training_job(job_id: String) -> Result<TrainingJobInfo, String> {
         .ok_or_else(|| "Training job not found".to_string())
 }
 
-#[agent_command(domain = "fine_tune", safety = Caution, call_mode = StateInput, description = "创建微调训练任务")]
+#[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "创建微调训练任务")]
 #[command]
 pub fn create_training_job(
     dataset_id: String,
@@ -240,7 +240,7 @@ pub fn create_training_job(
     Ok(TrainingJobInfo::from(&job))
 }
 
-#[agent_command(domain = "fine_tune", safety = Caution, call_mode = StateInput, description = "启动微调训练任务")]
+#[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "启动微调训练任务")]
 #[command]
 pub async fn start_training_job(
     app_state: tauri::State<'_, crate::AppState>,
@@ -462,7 +462,7 @@ async fn try_compute_embeddings_internal(
     Ok(Some((input_response.embeddings, target_response.embeddings, input_dim)))
 }
 
-#[agent_command(domain = "fine_tune", safety = Caution, call_mode = StateInput, description = "取消微调训练任务")]
+#[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "取消微调训练任务")]
 #[command]
 pub fn cancel_training_job(job_id: String) -> Result<(), String> {
     let mut s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
@@ -474,7 +474,7 @@ pub fn cancel_training_job(job_id: String) -> Result<(), String> {
     Ok(())
 }
 
-#[agent_command(domain = "fine_tune", safety = Dangerous, call_mode = StateInput, description = "删除微调训练任务")]
+#[agent_command(domain = "general", safety = Dangerous, call_mode = StateInput, description = "删除微调训练任务")]
 #[command]
 pub fn delete_training_job(job_id: String) -> Result<(), String> {
     let mut s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
@@ -487,28 +487,28 @@ pub fn delete_training_job(job_id: String) -> Result<(), String> {
     Ok(())
 }
 
-#[agent_command(domain = "fine_tune", safety = Safe, call_mode = StateOnly, description = "获取训练统计信息")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description = "获取训练统计信息")]
 #[command]
 pub fn get_training_stats() -> Result<TrainingStats, String> {
     let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
     Ok(s.trainer.get_training_stats())
 }
 
-#[agent_command(domain = "fine_tune", safety = Safe, call_mode = StateOnly, description = "列出所有基础模型")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description = "列出所有基础模型")]
 #[command]
 pub fn list_base_models() -> Result<Vec<BaseModelInfo>, String> {
     let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
     Ok(s.model_manager.get_base_models().iter().cloned().cloned().collect())
 }
 
-#[agent_command(domain = "fine_tune", safety = Safe, call_mode = StateOnly, description = "列出所有 LoRA 适配器")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description = "列出所有 LoRA 适配器")]
 #[command]
 pub fn list_lora_adapters() -> Result<Vec<LoRAAdapterInfo>, String> {
     let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
     Ok(s.model_manager.get_lora_adapters().iter().cloned().cloned().collect())
 }
 
-#[agent_command(domain = "fine_tune", safety = Caution, call_mode = StateInput, description = "设置活跃模型配置")]
+#[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "设置活跃模型配置")]
 #[command]
 pub fn set_active_model(base_model: String, adapter_ids: Vec<String>) -> Result<(), String> {
     let mut s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
@@ -521,7 +521,7 @@ pub fn set_active_model(base_model: String, adapter_ids: Vec<String>) -> Result<
     Ok(())
 }
 
-#[agent_command(domain = "fine_tune", safety = Safe, call_mode = StateOnly, description = "获取当前活跃模型")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description = "获取当前活跃模型")]
 #[command]
 pub fn get_active_model() -> Result<Option<ActiveModelConfig>, String> {
     let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;

@@ -92,7 +92,7 @@ async fn record_opc_failure(
 
 // ── Invoice Commands ──────────────────────────────────────────────
 
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "创建发票")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "创建发票")]
 #[tauri::command]
 pub async fn opc_create_invoice(
     state: State<'_, AppState>,
@@ -117,7 +117,7 @@ pub async fn opc_create_invoice(
     result
 }
 
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取发票")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "获取发票")]
 #[tauri::command]
 pub async fn opc_get_invoice(state: State<'_, AppState>, id: String) -> Result<Invoice, String> {
     let svc = DefaultInvoiceService::new(state.harness.db().clone());
@@ -129,7 +129,7 @@ pub async fn opc_get_invoice(state: State<'_, AppState>, id: String) -> Result<I
     })
 }
 
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "列出发票")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "列出发票")]
 #[tauri::command]
 pub async fn opc_list_invoices(
     state: State<'_, AppState>,
@@ -144,7 +144,7 @@ pub async fn opc_list_invoices(
     })
 }
 
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "更新发票")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "更新发票")]
 #[tauri::command]
 pub async fn opc_update_invoice(
     state: State<'_, AppState>,
@@ -160,7 +160,7 @@ pub async fn opc_update_invoice(
     })
 }
 
-#[agent_command(domain = "opc", safety = Dangerous, call_mode = StateInput, description = "删除发票")]
+#[agent_command(domain = "automation", safety = Dangerous, call_mode = StateInput, description = "删除发票")]
 #[tauri::command]
 pub async fn opc_delete_invoice(state: State<'_, AppState>, id: String) -> Result<(), String> {
     let svc = DefaultInvoiceService::new(state.harness.db().clone());
@@ -172,7 +172,7 @@ pub async fn opc_delete_invoice(state: State<'_, AppState>, id: String) -> Resul
     })
 }
 
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "转换发票状态")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "转换发票状态")]
 #[tauri::command]
 pub async fn opc_transition_invoice(
     state: State<'_, AppState>,
@@ -202,7 +202,7 @@ pub async fn opc_transition_invoice(
 
 // ── Customer Commands ─────────────────────────────────────────────
 
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "创建客户")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "创建客户")]
 #[tauri::command]
 pub async fn opc_create_customer(
     state: State<'_, AppState>,
@@ -227,7 +227,7 @@ pub async fn opc_create_customer(
     result
 }
 
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取客户")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "获取客户")]
 #[tauri::command]
 pub async fn opc_get_customer(state: State<'_, AppState>, id: String) -> Result<Customer, String> {
     let svc = DefaultCustomerService::new(state.harness.db().clone());
@@ -239,7 +239,7 @@ pub async fn opc_get_customer(state: State<'_, AppState>, id: String) -> Result<
     })
 }
 
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "列出客户")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "列出客户")]
 #[tauri::command]
 pub async fn opc_list_customers(
     state: State<'_, AppState>,
@@ -254,7 +254,7 @@ pub async fn opc_list_customers(
     })
 }
 
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "更新客户")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "更新客户")]
 #[tauri::command]
 pub async fn opc_update_customer(
     state: State<'_, AppState>,
@@ -270,7 +270,7 @@ pub async fn opc_update_customer(
     })
 }
 
-#[agent_command(domain = "opc", safety = Dangerous, call_mode = StateInput, description = "删除客户")]
+#[agent_command(domain = "automation", safety = Dangerous, call_mode = StateInput, description = "删除客户")]
 #[tauri::command]
 pub async fn opc_delete_customer(state: State<'_, AppState>, id: String) -> Result<(), String> {
     let svc = DefaultCustomerService::new(state.harness.db().clone());
@@ -282,7 +282,7 @@ pub async fn opc_delete_customer(state: State<'_, AppState>, id: String) -> Resu
     })
 }
 
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "按邮箱查找客户")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "按邮箱查找客户")]
 #[tauri::command]
 pub async fn opc_find_customer_by_email(
     state: State<'_, AppState>,
@@ -299,7 +299,7 @@ pub async fn opc_find_customer_by_email(
 
 // ── Project Commands ──────────────────────────────────────────────
 
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "创建项目")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "创建项目")]
 #[tauri::command]
 pub async fn opc_create_project(
     state: State<'_, AppState>,
@@ -324,7 +324,7 @@ pub async fn opc_create_project(
     result
 }
 
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取项目")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "获取项目")]
 #[tauri::command]
 pub async fn opc_get_project(state: State<'_, AppState>, id: String) -> Result<Project, String> {
     let svc = DefaultProjectService::new(state.harness.db().clone());
@@ -336,7 +336,7 @@ pub async fn opc_get_project(state: State<'_, AppState>, id: String) -> Result<P
     })
 }
 
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "列出项目")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "列出项目")]
 #[tauri::command]
 pub async fn opc_list_projects(
     state: State<'_, AppState>,
@@ -351,7 +351,7 @@ pub async fn opc_list_projects(
     })
 }
 
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "更新项目")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "更新项目")]
 #[tauri::command]
 pub async fn opc_update_project(
     state: State<'_, AppState>,
@@ -367,7 +367,7 @@ pub async fn opc_update_project(
     })
 }
 
-#[agent_command(domain = "opc", safety = Dangerous, call_mode = StateInput, description = "删除项目")]
+#[agent_command(domain = "automation", safety = Dangerous, call_mode = StateInput, description = "删除项目")]
 #[tauri::command]
 pub async fn opc_delete_project(state: State<'_, AppState>, id: String) -> Result<(), String> {
     let svc = DefaultProjectService::new(state.harness.db().clone());
@@ -379,7 +379,7 @@ pub async fn opc_delete_project(state: State<'_, AppState>, id: String) -> Resul
     })
 }
 
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "添加项目里程碑")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "添加项目里程碑")]
 #[tauri::command]
 pub async fn opc_add_milestone(
     state: State<'_, AppState>,
@@ -395,7 +395,7 @@ pub async fn opc_add_milestone(
     })
 }
 
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "完成项目里程碑")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "完成项目里程碑")]
 #[tauri::command]
 pub async fn opc_complete_milestone(
     state: State<'_, AppState>,
@@ -413,7 +413,7 @@ pub async fn opc_complete_milestone(
 
 // ── Site / Landing Page Commands ────────────────────────────────────
 
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "创建着陆页")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "创建着陆页")]
 #[tauri::command]
 pub async fn opc_create_landing_page(
     state: State<'_, AppState>,
@@ -428,7 +428,7 @@ pub async fn opc_create_landing_page(
     })
 }
 
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "列出着陆页")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "列出着陆页")]
 #[tauri::command]
 pub async fn opc_list_landing_pages(
     state: State<'_, AppState>,
@@ -442,7 +442,7 @@ pub async fn opc_list_landing_pages(
     })
 }
 
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "发布着陆页")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "发布着陆页")]
 #[tauri::command]
 pub async fn opc_publish_landing_page(
     state: State<'_, AppState>,
@@ -459,7 +459,7 @@ pub async fn opc_publish_landing_page(
 
 // ── Blog Post Commands ──────────────────────────────────────────────
 
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "创建博客文章")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "创建博客文章")]
 #[tauri::command]
 pub async fn opc_create_blog_post(
     state: State<'_, AppState>,
@@ -474,7 +474,7 @@ pub async fn opc_create_blog_post(
     })
 }
 
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "列出博客文章")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "列出博客文章")]
 #[tauri::command]
 pub async fn opc_list_blog_posts(state: State<'_, AppState>) -> Result<Vec<BlogPost>, String> {
     let svc = DefaultSiteService::new(state.harness.db().clone());
@@ -486,7 +486,7 @@ pub async fn opc_list_blog_posts(state: State<'_, AppState>) -> Result<Vec<BlogP
     })
 }
 
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "发布博客文章")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "发布博客文章")]
 #[tauri::command]
 pub async fn opc_publish_blog_post(
     state: State<'_, AppState>,
@@ -503,7 +503,7 @@ pub async fn opc_publish_blog_post(
 
 // ── Contact Commands ────────────────────────────────────────────────
 
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "列出联系提交")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "列出联系提交")]
 #[tauri::command]
 pub async fn opc_list_contacts(
     state: State<'_, AppState>,
@@ -517,7 +517,7 @@ pub async fn opc_list_contacts(
     })
 }
 
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "标记联系已读")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "标记联系已读")]
 #[tauri::command]
 pub async fn opc_mark_contact_read(state: State<'_, AppState>, id: String) -> Result<(), String> {
     let svc = DefaultSiteService::new(state.harness.db().clone());
@@ -531,7 +531,7 @@ pub async fn opc_mark_contact_read(state: State<'_, AppState>, id: String) -> Re
 
 // ── Analytics Commands ──────────────────────────────────────────────
 
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "记录 KPI")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "记录 KPI")]
 #[tauri::command]
 pub async fn opc_record_kpi(
     state: State<'_, AppState>,
@@ -546,7 +546,7 @@ pub async fn opc_record_kpi(
     })
 }
 
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "列出 KPI 记录")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "列出 KPI 记录")]
 #[tauri::command]
 pub async fn opc_list_kpis(
     state: State<'_, AppState>,
@@ -562,7 +562,7 @@ pub async fn opc_list_kpis(
     })
 }
 
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "列出收入记录")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "列出收入记录")]
 #[tauri::command]
 pub async fn opc_list_revenue(
     state: State<'_, AppState>,
@@ -578,7 +578,7 @@ pub async fn opc_list_revenue(
     })
 }
 
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取看板摘要")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "获取看板摘要")]
 #[tauri::command]
 pub async fn opc_get_dashboard_summary(
     state: State<'_, AppState>,
@@ -594,7 +594,7 @@ pub async fn opc_get_dashboard_summary(
 
 // ── Finance Commands ────────────────────────────────────────────────
 
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取财务报告")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "获取财务报告")]
 #[tauri::command]
 pub async fn opc_get_financial_report(
     state: State<'_, AppState>,
@@ -609,7 +609,7 @@ pub async fn opc_get_financial_report(
     })
 }
 
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取投资建议")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "获取投资建议")]
 #[tauri::command]
 pub async fn opc_get_investment_advice(
     state: State<'_, AppState>,
@@ -629,7 +629,7 @@ pub async fn opc_get_investment_advice(
 
 /// 导出行业包为 .opcip 归档（打包 manifest + workflows）。
 /// out_dir 为前端选择的保存目录（通过对话框）。
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "导出行业包")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "导出行业包")]
 #[tauri::command]
 pub async fn opc_export_industry_pack(
     state: State<'_, AppState>,
@@ -645,7 +645,7 @@ pub async fn opc_export_industry_pack(
 
 /// 导入 .opcip 行业包：解包到 app_dir/config/opc/industries/ 并注册 seed。
 /// archive_path 为前端选择的 .opcip 文件路径。
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "导入行业包")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "导入行业包")]
 #[tauri::command]
 pub async fn opc_import_industry_pack(
     state: State<'_, AppState>,
@@ -665,7 +665,7 @@ pub async fn opc_import_industry_pack(
 
 /// 创建工作项（修复 P0-2：此前 opc_work_items 无生产创建入口，看板/自改进/质量门全无数据源）。
 /// id 强制 `wi-` 前缀（与 self_improving::OpcWorkItemRound 的 task 契约一致）。
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "创建工作项")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "创建工作项")]
 #[tauri::command]
 pub async fn opc_create_work_item(
     state: State<'_, AppState>,
@@ -700,7 +700,7 @@ pub async fn opc_create_work_item(
 }
 
 /// 删除落地页（修复 P0-5：前端 SitesTab 调用但后端缺失）。
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "删除落地页")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "删除落地页")]
 #[tauri::command]
 pub async fn opc_delete_landing_page(state: State<'_, AppState>, id: String) -> Result<(), String> {
     use axagent_entities::opc_landing_pages;
@@ -716,7 +716,7 @@ pub async fn opc_delete_landing_page(state: State<'_, AppState>, id: String) -> 
 }
 
 /// 删除博客文章（修复 P0-5）。
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "删除博客文章")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "删除博客文章")]
 #[tauri::command]
 pub async fn opc_delete_blog_post(state: State<'_, AppState>, id: String) -> Result<(), String> {
     use axagent_entities::opc_blog_posts;
@@ -733,7 +733,7 @@ pub async fn opc_delete_blog_post(state: State<'_, AppState>, id: String) -> Res
 
 // ── Content Asset Commands ──────────────────────────────────────────
 
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "创建内容资产")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "创建内容资产")]
 #[tauri::command]
 pub async fn opc_create_content_asset(
     state: State<'_, AppState>,
@@ -748,7 +748,7 @@ pub async fn opc_create_content_asset(
     })
 }
 
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "列出内容资产")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "列出内容资产")]
 #[tauri::command]
 pub async fn opc_list_content_assets(
     state: State<'_, AppState>,
@@ -762,7 +762,7 @@ pub async fn opc_list_content_assets(
     })
 }
 
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取内容资产详情")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "获取内容资产详情")]
 #[tauri::command]
 pub async fn opc_get_content_asset(
     state: State<'_, AppState>,
@@ -777,7 +777,7 @@ pub async fn opc_get_content_asset(
     })
 }
 
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "更新内容资产")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "更新内容资产")]
 #[tauri::command]
 pub async fn opc_update_content_asset(
     state: State<'_, AppState>,
@@ -793,7 +793,7 @@ pub async fn opc_update_content_asset(
     })
 }
 
-#[agent_command(domain = "opc", safety = Dangerous, call_mode = StateInput, description = "删除内容资产")]
+#[agent_command(domain = "automation", safety = Dangerous, call_mode = StateInput, description = "删除内容资产")]
 #[tauri::command]
 pub async fn opc_delete_content_asset(
     state: State<'_, AppState>,
@@ -810,7 +810,7 @@ pub async fn opc_delete_content_asset(
 
 /// 看板投影：按 phase 列聚合 work items（Kanban）。
 /// 返回 {列名: [item...]}，列为 待办/进行中/阻塞/评审/已完成/终止。
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取看板块")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "获取看板块")]
 #[tauri::command]
 pub async fn opc_kanban_board(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     use axagent_company_runtime::WorkItemService;
@@ -853,7 +853,7 @@ pub async fn opc_kanban_board(state: State<'_, AppState>) -> Result<serde_json::
 }
 
 /// 认领 work item（Start）。
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "认领工作项")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "认领工作项")]
 #[tauri::command]
 pub async fn opc_work_item_start(
     state: State<'_, AppState>,
@@ -881,7 +881,7 @@ pub async fn opc_work_item_start(
 /// 流程：执行一轮 OpcWorkItemRound → 5 维规则评估 → 评估经 QualityGateService
 /// 落经验（归因+信号）→ score >= 0.80 才 apply(SubmitForReview)；未达标返回
 /// 缺口清单（前端展示原因），产出无法进入评审流。
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "提交工作项评审")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "提交工作项评审")]
 #[tauri::command]
 pub async fn opc_work_item_review(
     state: State<'_, AppState>,
@@ -946,7 +946,7 @@ pub async fn opc_work_item_review(
 }
 
 /// 阻塞升级链：置 BLOCKED + 记录 last_error（原因），通知 manager。
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "升级阻塞工作项")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "升级阻塞工作项")]
 #[tauri::command]
 pub async fn opc_escalate_work_item(
     state: State<'_, AppState>,
@@ -994,7 +994,7 @@ pub async fn opc_escalate_work_item(
 }
 
 /// 解除阻塞（Unblock）。
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "解除工作项阻塞")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "解除工作项阻塞")]
 #[tauri::command]
 pub async fn opc_work_item_unblock(
     state: State<'_, AppState>,
@@ -1023,7 +1023,7 @@ pub async fn opc_work_item_unblock(
 /// 导入人才库：扫描 agency-agents-src 目录 → 填充 opc_talent_templates。
 /// 每个专家 md 生成一条 talent template（分类 = 目录名）。
 /// 幂等：已存在的 template id 跳过。
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "导入人才库")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "导入人才库")]
 #[tauri::command]
 pub async fn opc_import_talent_library(
     state: State<'_, AppState>,
@@ -1156,7 +1156,7 @@ fn parse_frontmatter_brief(content: &str, fallback_stem: &str) -> (String, Strin
 
 /// 市场包列表：扫描内置行业包目录 + app_dir 已装状态。
 /// 返回 [{id, name, icon, version, installed, path}]
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "列出市场行业包")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "列出市场行业包")]
 #[tauri::command]
 pub async fn opc_market_list(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     let app_dir = &state.app_data_dir;
@@ -1202,7 +1202,7 @@ pub async fn opc_market_list(state: State<'_, AppState>) -> Result<serde_json::V
 /// 自改进 WorkItem 循环：OPC 领域实现 OpcWorkItemRound（company-runtime）
 /// 通过上游 harness::SelfImprovingRound trait + agent::SelfImprovementExecutor
 /// 跑"执行 → 自评估 → 收敛/改进"回合制闭环。返回最终产出 + 评估分 + 轮次。
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "自改进 OPC 工作项循环")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "自改进 OPC 工作项循环")]
 #[tauri::command]
 pub async fn run_self_improving_opc_work_item(
     state: State<'_, AppState>,
@@ -1240,7 +1240,7 @@ pub async fn run_self_improving_opc_work_item(
 /// 同步 OPC 员工为舰队成员（幂等）：扫描 opc_org_employees(active) →
 /// 注册/更新到 Fleet，成员状态由该角色最新 work item phase 驱动。
 /// 办公室（Fleet 视图）从此显示真实角色状态，与看板形成"人/事"互补。
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "同步员工到舰队")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "同步员工到舰队")]
 #[tauri::command]
 pub async fn opc_sync_fleet(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     use axagent_entities::opc_org_employees;
@@ -1419,7 +1419,7 @@ async fn opc_batch_role_status(
 // ── 发布计划 Tauri 命令 ─────────────────────────────────────────
 
 /// 创建发布计划
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "创建发布计划")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "创建发布计划")]
 #[tauri::command]
 pub async fn opc_create_publish_schedule(
     state: State<'_, AppState>,
@@ -1435,7 +1435,7 @@ pub async fn opc_create_publish_schedule(
 }
 
 /// 列出所有发布计划
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateOnly, description = "列出发布计划")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateOnly, description = "列出发布计划")]
 #[tauri::command]
 pub async fn opc_list_publish_schedules(
     state: State<'_, AppState>,
@@ -1450,7 +1450,7 @@ pub async fn opc_list_publish_schedules(
 }
 
 /// 获取单个发布计划
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateOnly, description = "获取发布计划详情")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateOnly, description = "获取发布计划详情")]
 #[tauri::command]
 pub async fn opc_get_publish_schedule(
     state: State<'_, AppState>,
@@ -1466,7 +1466,7 @@ pub async fn opc_get_publish_schedule(
 }
 
 /// 更新发布计划
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "更新发布计划")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "更新发布计划")]
 #[tauri::command]
 pub async fn opc_update_publish_schedule(
     state: State<'_, AppState>,
@@ -1483,7 +1483,7 @@ pub async fn opc_update_publish_schedule(
 }
 
 /// 删除发布计划
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "删除发布计划")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "删除发布计划")]
 #[tauri::command]
 pub async fn opc_delete_publish_schedule(
     state: State<'_, AppState>,
@@ -1499,7 +1499,7 @@ pub async fn opc_delete_publish_schedule(
 }
 
 /// 处理到期的发布计划
-#[agent_command(domain = "opc", safety = Caution, call_mode = Manual, description = "处理到期发布计划")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = Manual, description = "处理到期发布计划")]
 #[tauri::command]
 pub async fn opc_process_due_schedules(
     state: State<'_, AppState>,

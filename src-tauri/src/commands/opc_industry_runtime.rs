@@ -163,7 +163,7 @@ pub fn has_industry(industry_id: &str) -> bool {
 // ── Tauri 命令（签名保持前端契约；app_state 由 Tauri 自动注入） ──
 
 /// 验证行业实体（Tauri 命令）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "验证行业实体")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "验证行业实体")]
 #[tauri::command]
 pub async fn opc_validate_entity(
     app_state: State<'_, AppState>,
@@ -182,7 +182,7 @@ pub async fn opc_validate_entity(
 }
 
 /// 计算行业 KPI（Tauri 命令）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "计算行业KPI")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "计算行业KPI")]
 #[tauri::command]
 pub async fn opc_compute_kpis(
     app_state: State<'_, AppState>,
@@ -202,7 +202,7 @@ pub async fn opc_compute_kpis(
 }
 
 /// 运行行业自动化规则（Tauri 命令）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "运行行业自动化规则")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "运行行业自动化规则")]
 #[tauri::command]
 pub async fn opc_run_automation_rules(
     app_state: State<'_, AppState>,
@@ -237,7 +237,7 @@ pub async fn opc_run_automation_rules(
 }
 
 /// 获取行业仪表盘（Tauri 命令）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取行业仪表盘")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "获取行业仪表盘")]
 #[tauri::command]
 pub async fn opc_get_industry_dashboard(
     app_state: State<'_, AppState>,
@@ -257,7 +257,7 @@ pub async fn opc_get_industry_dashboard(
 }
 
 /// 列出全部行业包（Tauri 命令）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateOnly, description = "列出全部行业包")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateOnly, description = "列出全部行业包")]
 #[tauri::command]
 pub async fn opc_list_runtime_industries(
     _app_state: State<'_, AppState>,
@@ -272,7 +272,7 @@ pub async fn opc_list_runtime_industries(
 }
 
 /// 获取行业工作流步骤（Tauri 命令）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取行业工作流步骤")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "获取行业工作流步骤")]
 #[tauri::command]
 pub async fn opc_get_industry_workflow_steps(
     _app_state: State<'_, AppState>,
@@ -298,7 +298,7 @@ pub async fn opc_get_industry_workflow_steps(
 }
 
 /// 获取行业自动化规则（Tauri 命令）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取行业自动化规则")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "获取行业自动化规则")]
 #[tauri::command]
 pub async fn opc_get_industry_automation_rules(
     _app_state: State<'_, AppState>,
@@ -312,7 +312,7 @@ pub async fn opc_get_industry_automation_rules(
 }
 
 /// 批量验证行业实体（Tauri 命令）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "批量验证行业实体")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "批量验证行业实体")]
 #[tauri::command]
 pub async fn opc_batch_validate_entities(
     app_state: State<'_, AppState>,
@@ -338,7 +338,7 @@ pub async fn opc_batch_validate_entities(
 }
 
 /// 获取行业 KPI 定义（Tauri 命令）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取行业KPI定义")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "获取行业KPI定义")]
 #[tauri::command]
 pub async fn opc_get_kpi_definitions(
     _app_state: State<'_, AppState>,
@@ -352,7 +352,7 @@ pub async fn opc_get_kpi_definitions(
 }
 
 /// 检查行业包是否存在（Tauri 命令）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "检查行业包是否存在")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "检查行业包是否存在")]
 #[tauri::command]
 pub async fn opc_has_industry(
     _app_state: State<'_, AppState>,
@@ -395,7 +395,7 @@ fn build_data_client(app_state: &AppState, industry_id: &str) -> Result<OpIndust
 }
 
 /// 获取行业数据（Phase 1：按 analysis.yaml data_sources 路由 + 降级）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取行业数据")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "获取行业数据")]
 #[tauri::command]
 pub async fn opc_get_industry_data(
     app_state: State<'_, AppState>,
@@ -422,7 +422,7 @@ pub async fn opc_get_industry_data(
 }
 
 /// 获取行业数据质量预检（Phase 1：quality_precheck 源清单探测）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取行业数据质量预检")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "获取行业数据质量预检")]
 #[tauri::command]
 pub async fn opc_get_industry_precheck(
     app_state: State<'_, AppState>,
@@ -437,7 +437,7 @@ pub async fn opc_get_industry_precheck(
 }
 
 /// 获取行业数据源健康状态（Phase 1：vendor 降级可观测）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取行业数据源健康状态")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "获取行业数据源健康状态")]
 #[tauri::command]
 pub async fn opc_get_industry_health(
     app_state: State<'_, AppState>,
@@ -455,7 +455,7 @@ pub async fn opc_get_industry_health(
 ///
 /// 新架构下所有工作流均通过种子化到 DB → WorkEngine 执行，
 /// 此函数将旧的动态执行请求转发到标准执行通道。
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "动态工作流执行（兼容旧接口）")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "动态工作流执行（兼容旧接口）")]
 #[tauri::command]
 pub async fn opc_execute_dynamic_workflow(
     app_state: State<'_, AppState>,

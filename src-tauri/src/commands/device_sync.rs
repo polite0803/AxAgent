@@ -164,7 +164,7 @@ async fn check_device_permission(
 // ─── 设备管理命令 ───────────────────────────────────────────────────────────
 
 /// 注册当前设备
-#[agent_command(domain = "device", safety = Caution, call_mode = StateInput, description = "注册当前设备")]
+#[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "注册当前设备")]
 #[tauri::command]
 pub async fn register_device(
     state: State<'_, AppState>,
@@ -183,7 +183,7 @@ pub async fn register_device(
 }
 
 /// 获取本地设备信息
-#[agent_command(domain = "device", safety = Safe, call_mode = StateOnly, description = "获取本地设备信息")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description = "获取本地设备信息")]
 #[tauri::command]
 pub async fn get_local_device(state: State<'_, AppState>) -> Result<DeviceInfo, ErrorResponse> {
     let sync_state = state.device_sync_state.read().await;
@@ -202,7 +202,7 @@ pub async fn get_local_device(state: State<'_, AppState>) -> Result<DeviceInfo, 
 }
 
 /// 列出所有设备
-#[agent_command(domain = "device", safety = Safe, call_mode = StateOnly, description = "列出所有设备")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description = "列出所有设备")]
 #[tauri::command]
 pub async fn list_devices(state: State<'_, AppState>) -> Result<Vec<DeviceInfo>, ErrorResponse> {
     let sync_state = state.device_sync_state.read().await;
@@ -214,7 +214,7 @@ pub async fn list_devices(state: State<'_, AppState>) -> Result<Vec<DeviceInfo>,
 }
 
 /// 生成配对码
-#[agent_command(domain = "device", safety = Caution, call_mode = StateOnly, description = "生成设备配对码")]
+#[agent_command(domain = "general", safety = Caution, call_mode = StateOnly, description = "生成设备配对码")]
 #[tauri::command]
 pub async fn generate_pairing_code(
     state: State<'_, AppState>,
@@ -228,7 +228,7 @@ pub async fn generate_pairing_code(
 }
 
 /// 验证配对码并返回配对请求
-#[agent_command(domain = "device", safety = Safe, call_mode = StateInput, description = "验证设备配对码")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateInput, description = "验证设备配对码")]
 #[tauri::command]
 pub async fn verify_pairing_code(
     state: State<'_, AppState>,
@@ -243,7 +243,7 @@ pub async fn verify_pairing_code(
 }
 
 /// 接受设备配对请求
-#[agent_command(domain = "device", safety = Caution, call_mode = StateInput, description = "接受设备配对请求")]
+#[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "接受设备配对请求")]
 #[tauri::command]
 pub async fn accept_pairing(
     state: State<'_, AppState>,
@@ -265,7 +265,7 @@ pub async fn accept_pairing(
 }
 
 /// 撤销设备配对
-#[agent_command(domain = "device", safety = Dangerous, call_mode = StateInput, description = "撤销设备配对")]
+#[agent_command(domain = "general", safety = Dangerous, call_mode = StateInput, description = "撤销设备配对")]
 #[tauri::command]
 pub async fn unpair_device(
     state: State<'_, AppState>,
@@ -282,7 +282,7 @@ pub async fn unpair_device(
 // ─── 同步命令 ───────────────────────────────────────────────────────────────
 
 /// 执行全量同步
-#[agent_command(domain = "device", safety = Caution, call_mode = StateInput, description = "执行全量设备同步")]
+#[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "执行全量设备同步")]
 #[tauri::command]
 pub async fn full_sync(
     state: State<'_, AppState>,
@@ -300,7 +300,7 @@ pub async fn full_sync(
 }
 
 /// 执行增量同步
-#[agent_command(domain = "device", safety = Caution, call_mode = StateInput, description = "执行增量设备同步")]
+#[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "执行增量设备同步")]
 #[tauri::command]
 pub async fn incremental_sync(
     state: State<'_, AppState>,
@@ -318,7 +318,7 @@ pub async fn incremental_sync(
 }
 
 /// 推送变更日志
-#[agent_command(domain = "device", safety = Caution, call_mode = StateInput, description = "推送设备变更日志")]
+#[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "推送设备变更日志")]
 #[tauri::command]
 pub async fn push_changes(
     state: State<'_, AppState>,
@@ -337,7 +337,7 @@ pub async fn push_changes(
 }
 
 /// 拉取变更日志
-#[agent_command(domain = "device", safety = Safe, call_mode = StateInput, description = "拉取设备变更日志")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateInput, description = "拉取设备变更日志")]
 #[tauri::command]
 pub async fn pull_changes(
     state: State<'_, AppState>,
@@ -356,7 +356,7 @@ pub async fn pull_changes(
 }
 
 /// 解决冲突
-#[agent_command(domain = "device", safety = Caution, call_mode = StateInput, description = "解决设备同步冲突")]
+#[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "解决设备同步冲突")]
 #[tauri::command]
 pub async fn resolve_conflict(
     state: State<'_, AppState>,
@@ -394,7 +394,7 @@ pub async fn resolve_conflict(
 }
 
 /// 获取设备同步状态
-#[agent_command(domain = "device", safety = Safe, call_mode = StateInput, description = "获取设备同步状态")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateInput, description = "获取设备同步状态")]
 #[tauri::command]
 pub async fn get_sync_status(
     state: State<'_, AppState>,
@@ -409,7 +409,7 @@ pub async fn get_sync_status(
 }
 
 /// 记录本地变更
-#[agent_command(domain = "device", safety = Caution, call_mode = StateInput, description = "记录本地变更")]
+#[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "记录本地变更")]
 #[tauri::command]
 pub async fn record_change(
     state: State<'_, AppState>,
@@ -443,7 +443,7 @@ pub async fn record_change(
 // ─── 加密命令 ───────────────────────────────────────────────────────────────
 
 /// 加密同步数据
-#[agent_command(domain = "device", safety = Caution, call_mode = Manual, description = "加密设备同步数据")]
+#[agent_command(domain = "general", safety = Caution, call_mode = Manual, description = "加密设备同步数据")]
 #[tauri::command]
 pub async fn encrypt_sync_data(
     data: String,
@@ -470,7 +470,7 @@ pub async fn encrypt_sync_data(
 }
 
 /// 解密同步数据
-#[agent_command(domain = "device", safety = Caution, call_mode = Manual, description = "解密设备同步数据")]
+#[agent_command(domain = "general", safety = Caution, call_mode = Manual, description = "解密设备同步数据")]
 #[tauri::command]
 pub async fn decrypt_sync_data(
     data: EncryptedSyncData,
@@ -501,7 +501,7 @@ pub async fn decrypt_sync_data(
 // ─── P2: 同步策略命令 ───────────────────────────────────────────────────────
 
 /// 获取当前活动策略
-#[agent_command(domain = "device", safety = Safe, call_mode = StateOnly, description = "获取当前同步策略")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description = "获取当前同步策略")]
 #[tauri::command]
 pub async fn get_sync_policy(
     state: State<'_, AppState>,
@@ -511,7 +511,7 @@ pub async fn get_sync_policy(
 }
 
 /// 列出所有策略
-#[agent_command(domain = "device", safety = Safe, call_mode = StateOnly, description = "列出所有同步策略")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description = "列出所有同步策略")]
 #[tauri::command]
 pub async fn list_sync_policies(
     state: State<'_, AppState>,
@@ -521,7 +521,7 @@ pub async fn list_sync_policies(
 }
 
 /// 创建策略
-#[agent_command(domain = "device", safety = Caution, call_mode = StateInput, description = "创建同步策略")]
+#[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "创建同步策略")]
 #[tauri::command]
 pub async fn create_sync_policy(
     state: State<'_, AppState>,
@@ -532,7 +532,7 @@ pub async fn create_sync_policy(
 }
 
 /// 更新策略
-#[agent_command(domain = "device", safety = Caution, call_mode = StateInput, description = "更新同步策略")]
+#[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "更新同步策略")]
 #[tauri::command]
 pub async fn update_sync_policy(
     state: State<'_, AppState>,
@@ -562,7 +562,7 @@ pub async fn update_sync_policy(
 }
 
 /// 删除策略
-#[agent_command(domain = "device", safety = Dangerous, call_mode = StateInput, description = "删除同步策略")]
+#[agent_command(domain = "general", safety = Dangerous, call_mode = StateInput, description = "删除同步策略")]
 #[tauri::command]
 pub async fn delete_sync_policy(
     state: State<'_, AppState>,
@@ -579,7 +579,7 @@ pub async fn delete_sync_policy(
 // ─── P2: 同步历史记录命令 ───────────────────────────────────────────────────
 
 /// 获取同步历史记录
-#[agent_command(domain = "device", safety = Safe, call_mode = StateInput, description = "获取同步历史记录")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateInput, description = "获取同步历史记录")]
 #[tauri::command]
 pub async fn get_sync_history(
     state: State<'_, AppState>,
@@ -590,7 +590,7 @@ pub async fn get_sync_history(
 }
 
 /// 获取审计日志
-#[agent_command(domain = "device", safety = Safe, call_mode = StateInput, description = "获取审计日志")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateInput, description = "获取审计日志")]
 #[tauri::command]
 pub async fn get_audit_logs(
     state: State<'_, AppState>,
@@ -603,7 +603,7 @@ pub async fn get_audit_logs(
 // ─── P2: 设备权限命令 ───────────────────────────────────────────────────────
 
 /// 获取设备权限
-#[agent_command(domain = "device", safety = Safe, call_mode = StateInput, description = "获取设备权限")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateInput, description = "获取设备权限")]
 #[tauri::command]
 pub async fn get_device_permissions(
     state: State<'_, AppState>,
@@ -620,7 +620,7 @@ pub async fn get_device_permissions(
 }
 
 /// 更新设备权限
-#[agent_command(domain = "device", safety = Caution, call_mode = StateInput, description = "更新设备权限")]
+#[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "更新设备权限")]
 #[tauri::command]
 pub async fn update_device_permissions(
     state: State<'_, AppState>,
@@ -636,7 +636,7 @@ pub async fn update_device_permissions(
 }
 
 /// 列出所有设备权限
-#[agent_command(domain = "device", safety = Safe, call_mode = StateOnly, description = "列出所有设备权限")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description = "列出所有设备权限")]
 #[tauri::command]
 pub async fn list_all_permissions(
     state: State<'_, AppState>,

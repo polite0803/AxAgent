@@ -23,7 +23,7 @@ use axagent_analysis_engine::paper_portfolio::{
 use tauri::State;
 
 /// 创建模拟组合
-#[agent_command(domain = "portfolio", safety = Caution, call_mode = StateInput, description = "创建模拟组合")]
+#[agent_command(domain = "finance", safety = Caution, call_mode = StateInput, description = "创建模拟组合")]
 #[tauri::command]
 pub async fn paper_portfolio_create(
     state: State<'_, AppState>,
@@ -38,7 +38,7 @@ pub async fn paper_portfolio_create(
 }
 
 /// 列出所有组合（按状态过滤，None = 全部）
-#[agent_command(domain = "portfolio", safety = Safe, call_mode = StateInput, description = "列出所有模拟组合")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateInput, description = "列出所有模拟组合")]
 #[tauri::command]
 pub async fn paper_portfolio_list(
     state: State<'_, AppState>,
@@ -53,7 +53,7 @@ pub async fn paper_portfolio_list(
 }
 
 /// 获取单个组合详情（含持仓 + 实时盈亏）
-#[agent_command(domain = "portfolio", safety = Safe, call_mode = StateInput, description = "获取模拟组合详情")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateInput, description = "获取模拟组合详情")]
 #[tauri::command]
 pub async fn paper_portfolio_get(
     state: State<'_, AppState>,
@@ -70,7 +70,7 @@ pub async fn paper_portfolio_get(
 }
 
 /// 关闭组合（status=closed）
-#[agent_command(domain = "portfolio", safety = Caution, call_mode = StateInput, description = "关闭模拟组合")]
+#[agent_command(domain = "finance", safety = Caution, call_mode = StateInput, description = "关闭模拟组合")]
 #[tauri::command]
 pub async fn paper_portfolio_close(
     state: State<'_, AppState>,
@@ -85,7 +85,7 @@ pub async fn paper_portfolio_close(
 }
 
 /// 归档组合（status=archived）
-#[agent_command(domain = "portfolio", safety = Caution, call_mode = StateInput, description = "归档模拟组合")]
+#[agent_command(domain = "finance", safety = Caution, call_mode = StateInput, description = "归档模拟组合")]
 #[tauri::command]
 pub async fn paper_portfolio_archive(
     state: State<'_, AppState>,
@@ -100,7 +100,7 @@ pub async fn paper_portfolio_archive(
 }
 
 /// 添加虚拟持仓
-#[agent_command(domain = "portfolio", safety = Caution, call_mode = StateInput, description = "添加虚拟持仓")]
+#[agent_command(domain = "finance", safety = Caution, call_mode = StateInput, description = "添加虚拟持仓")]
 #[tauri::command]
 pub async fn paper_portfolio_add_position(
     state: State<'_, AppState>,
@@ -115,7 +115,7 @@ pub async fn paper_portfolio_add_position(
 }
 
 /// 平仓单个持仓
-#[agent_command(domain = "portfolio", safety = Caution, call_mode = StateInput, description = "平仓单个持仓")]
+#[agent_command(domain = "finance", safety = Caution, call_mode = StateInput, description = "平仓单个持仓")]
 #[tauri::command]
 pub async fn paper_portfolio_close_position(
     state: State<'_, AppState>,
@@ -130,7 +130,7 @@ pub async fn paper_portfolio_close_position(
 }
 
 /// 批量平仓（按 portfolio_id 平仓所有 open 持仓）
-#[agent_command(domain = "portfolio", safety = Caution, call_mode = StateInput, description = "批量平仓所有持仓")]
+#[agent_command(domain = "finance", safety = Caution, call_mode = StateInput, description = "批量平仓所有持仓")]
 #[tauri::command]
 pub async fn paper_portfolio_close_all_positions(
     state: State<'_, AppState>,
@@ -149,7 +149,7 @@ pub async fn paper_portfolio_close_all_positions(
 }
 
 /// 列出所有 active 组合的详情（前端 Dashboard 用）
-#[agent_command(domain = "portfolio", safety = Safe, call_mode = StateInput, description = "列出活跃组合详情")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateInput, description = "列出活跃组合详情")]
 #[tauri::command]
 pub async fn paper_portfolio_list_active_details(
     state: State<'_, AppState>,

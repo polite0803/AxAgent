@@ -70,7 +70,7 @@ impl ExecutionBridgeState {
 }
 
 /// 提交信号到执行管道
-#[agent_command(domain = "invest", safety = Dangerous, call_mode = StateInput, description = "提交信号到执行管道")]
+#[agent_command(domain = "finance", safety = Dangerous, call_mode = StateInput, description = "提交信号到执行管道")]
 #[tauri::command]
 pub async fn execution_submit_signal(
     state: State<'_, AppState>,
@@ -161,7 +161,7 @@ pub async fn execution_submit_signal(
 }
 
 /// 确认待执行
-#[agent_command(domain = "invest", safety = Dangerous, call_mode = StateInput, description = "确认待执行交易")]
+#[agent_command(domain = "finance", safety = Dangerous, call_mode = StateInput, description = "确认待执行交易")]
 #[tauri::command]
 pub async fn execution_confirm(
     state: State<'_, AppState>,
@@ -203,7 +203,7 @@ pub async fn execution_confirm(
 }
 
 /// 驳回待执行
-#[agent_command(domain = "invest", safety = Dangerous, call_mode = StateInput, description = "驳回待执行交易")]
+#[agent_command(domain = "finance", safety = Dangerous, call_mode = StateInput, description = "驳回待执行交易")]
 #[tauri::command]
 pub async fn execution_reject(
     state: State<'_, AppState>,
@@ -223,7 +223,7 @@ pub async fn execution_reject(
 }
 
 /// 列出待执行
-#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "列出待执行记录")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateInput, description = "列出待执行记录")]
 #[tauri::command]
 pub async fn execution_list_pending(
     state: State<'_, AppState>,
@@ -236,7 +236,7 @@ pub async fn execution_list_pending(
 }
 
 /// 设置执行模式
-#[agent_command(domain = "invest", safety = Caution, call_mode = StateInput, description = "设置执行模式")]
+#[agent_command(domain = "finance", safety = Caution, call_mode = StateInput, description = "设置执行模式")]
 #[tauri::command]
 pub async fn execution_set_mode(state: State<'_, AppState>, mode: String) -> Result<(), String> {
     let exec_mode = match mode.as_str() {
@@ -250,7 +250,7 @@ pub async fn execution_set_mode(state: State<'_, AppState>, mode: String) -> Res
 }
 
 /// 获取当前执行模式
-#[agent_command(domain = "invest", safety = Safe, call_mode = StateInput, description = "获取当前执行模式")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateInput, description = "获取当前执行模式")]
 #[tauri::command]
 pub async fn execution_get_mode(state: State<'_, AppState>) -> Result<String, String> {
     let mode = state.execution_bridge.mode.read().await;

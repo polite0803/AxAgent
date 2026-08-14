@@ -41,7 +41,7 @@ impl PtySessionInfo {
     }
 }
 
-#[agent_command(domain = "pty", safety = Caution, call_mode = StateInput, description = "创建伪终端会话")]
+#[agent_command(domain = "devops", safety = Caution, call_mode = StateInput, description = "创建伪终端会话")]
 #[command]
 pub async fn pty_create_session(
     app: tauri::AppHandle,
@@ -60,21 +60,21 @@ pub async fn pty_create_session(
     Ok(session_id)
 }
 
-#[agent_command(domain = "pty", safety = Caution, call_mode = StateInput, description = "终止伪终端会话")]
+#[agent_command(domain = "devops", safety = Caution, call_mode = StateInput, description = "终止伪终端会话")]
 #[command]
 pub async fn pty_kill_session(app: tauri::AppHandle, id: String) -> Result<(), String> {
     let state = app.state::<AppState>();
     state.pty_manager.kill_session(&id).await
 }
 
-#[agent_command(domain = "pty", safety = Dangerous, call_mode = StateInput, description = "移除伪终端会话")]
+#[agent_command(domain = "devops", safety = Dangerous, call_mode = StateInput, description = "移除伪终端会话")]
 #[command]
 pub async fn pty_remove_session(app: tauri::AppHandle, id: String) -> Result<(), String> {
     let state = app.state::<AppState>();
     state.pty_manager.remove_session(&id).await
 }
 
-#[agent_command(domain = "pty", safety = Caution, call_mode = StateInput, description = "向伪终端写入数据")]
+#[agent_command(domain = "devops", safety = Caution, call_mode = StateInput, description = "向伪终端写入数据")]
 #[command]
 pub async fn pty_write(app: tauri::AppHandle, id: String, data: String) -> Result<(), String> {
     let state = app.state::<AppState>();
@@ -84,7 +84,7 @@ pub async fn pty_write(app: tauri::AppHandle, id: String, data: String) -> Resul
     }
 }
 
-#[agent_command(domain = "pty", safety = Caution, call_mode = StateInput, description = "调整伪终端尺寸")]
+#[agent_command(domain = "devops", safety = Caution, call_mode = StateInput, description = "调整伪终端尺寸")]
 #[command]
 pub async fn pty_resize(
     app: tauri::AppHandle,
@@ -99,7 +99,7 @@ pub async fn pty_resize(
     }
 }
 
-#[agent_command(domain = "pty", safety = Safe, call_mode = StateOnly, description = "列出所有伪终端会话")]
+#[agent_command(domain = "devops", safety = Safe, call_mode = StateOnly, description = "列出所有伪终端会话")]
 #[command]
 pub async fn pty_list_sessions(app: tauri::AppHandle) -> Result<Vec<PtySessionInfo>, String> {
     let state = app.state::<AppState>();
@@ -107,7 +107,7 @@ pub async fn pty_list_sessions(app: tauri::AppHandle) -> Result<Vec<PtySessionIn
     Ok(sessions.into_iter().map(|(id, status)| PtySessionInfo::from_status(id, status)).collect())
 }
 
-#[agent_command(domain = "pty", safety = Safe, call_mode = StateInput, description = "分析伪终端输出")]
+#[agent_command(domain = "devops", safety = Safe, call_mode = StateInput, description = "分析伪终端输出")]
 #[command]
 pub async fn pty_analyze_output(
     _app: tauri::AppHandle,
@@ -123,7 +123,7 @@ pub async fn pty_analyze_output(
     }))
 }
 
-#[agent_command(domain = "pty", safety = Safe, call_mode = StateInput, description = "获取伪终端建议")]
+#[agent_command(domain = "devops", safety = Safe, call_mode = StateInput, description = "获取伪终端建议")]
 #[command]
 pub async fn pty_get_suggestions(
     _app: tauri::AppHandle,

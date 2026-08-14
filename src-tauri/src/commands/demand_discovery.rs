@@ -18,7 +18,7 @@ use crate::commands::error::ErrorResponse;
 /// 复用上游能力发现索引（`capability_indexer`）的能力护照，按能力类型分组组装
 /// `CapabilityInventory`。不再重复扫描注册表并落库到 `opc_capability` 表，
 /// 避免与上游 `register_all_capabilities` 的能力基座重复收集。
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateOnly, description = "扫描系统能力清单")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateOnly, description = "扫描系统能力清单")]
 #[tauri::command]
 pub async fn opc_scan_capabilities(
     state: State<'_, AppState>,
@@ -151,7 +151,7 @@ async fn extract_domain_queries(db: &sea_orm::DatabaseConnection) -> Result<Vec<
 ///
 /// 无需用户输入关键词，系统自动从配置中提取 domain_* 关键词，
 /// 依次扫描各平台，聚合所有发现的需求线索。
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateOnly, description = "主动需求发现")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateOnly, description = "主动需求发现")]
 #[tauri::command]
 pub async fn opc_proactive_discover_leads(
     state: State<'_, AppState>,
@@ -234,7 +234,7 @@ pub async fn opc_proactive_discover_leads(
 }
 
 /// 按关键词搜索市场平台需求线索（闲鱼、猪八戒等）—— 保留用于精确检索场景
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "搜索市场需求线索")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "搜索市场需求线索")]
 #[tauri::command]
 pub async fn opc_discover_leads(
     state: State<'_, AppState>,
@@ -287,7 +287,7 @@ pub async fn opc_discover_leads(
 ///
 /// 扫描多平台需求线索，自动进行价值评估（规则引擎 + 可选 LLM），
 /// 将评估结果直接写入 opc_demand_lead 表。
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "扫描并评估需求线索")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "扫描并评估需求线索")]
 #[tauri::command]
 pub async fn opc_discover_and_evaluate_leads(
     state: State<'_, AppState>,
@@ -406,7 +406,7 @@ pub async fn opc_discover_and_evaluate_leads(
 ///
 /// 无需用户输入关键词，系统自动从配置中提取 domain_* 关键词，
 /// 对每个领域执行「扫描 + 评估 + 入库」完整流水线。
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateOnly, description = "主动评估并入库需求")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateOnly, description = "主动评估并入库需求")]
 #[tauri::command]
 pub async fn opc_proactive_evaluate_and_save_leads(
     state: State<'_, AppState>,
@@ -764,7 +764,7 @@ async fn send_high_value_notification(
 // ── 需求线索 CRUD ──────────────────────────────────────────────
 
 /// 创建需求线索（手动补录或从平台线索转化）
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "创建需求线索")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "创建需求线索")]
 #[tauri::command]
 pub async fn opc_create_lead(
     state: State<'_, AppState>,
@@ -876,7 +876,7 @@ pub async fn opc_create_lead(
 }
 
 /// 列出所有需求线索（支持按状态/平台过滤）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "列出需求线索")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "列出需求线索")]
 #[tauri::command]
 pub async fn opc_list_leads(
     state: State<'_, AppState>,
@@ -909,7 +909,7 @@ pub async fn opc_list_leads(
 }
 
 /// 确认需求线索（标记为 qualified，进入执行管道）
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "确认需求线索")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "确认需求线索")]
 #[tauri::command]
 pub async fn opc_confirm_lead(
     state: State<'_, AppState>,
@@ -946,7 +946,7 @@ pub async fn opc_confirm_lead(
 }
 
 /// 为需求线索匹配能力（调用 AnalysisEngine 进行匹配）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "为需求匹配能力")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "为需求匹配能力")]
 #[tauri::command]
 pub async fn opc_match_lead_capabilities(
     state: State<'_, AppState>,
@@ -1057,7 +1057,7 @@ pub async fn opc_match_lead_capabilities(
 // ── 平台配置 CRUD ──────────────────────────────────────────────
 
 /// 列出所有平台连接器配置（自动确保预置平台存在）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateOnly, description = "列出市场平台配置")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateOnly, description = "列出市场平台配置")]
 #[tauri::command]
 pub async fn opc_list_platforms(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     use axagent_entities::opc_market_platform;
@@ -1090,7 +1090,7 @@ pub async fn opc_list_platforms(state: State<'_, AppState>) -> Result<serde_json
 }
 
 /// 保存（新增或更新）平台连接器配置
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "保存平台配置")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "保存平台配置")]
 #[tauri::command]
 pub async fn opc_save_platform(
     state: State<'_, AppState>,
@@ -1164,7 +1164,7 @@ pub async fn opc_save_platform(
 }
 
 /// 删除平台连接器配置
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "删除平台配置")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "删除平台配置")]
 #[tauri::command]
 pub async fn opc_delete_platform(
     state: State<'_, AppState>,
@@ -1197,7 +1197,7 @@ pub async fn opc_delete_platform(
 // ── 能力缺口 ──────────────────────────────────────────────────
 
 /// 列出能力缺口记录（可按状态过滤）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateOnly, description = "列出能力缺口")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateOnly, description = "列出能力缺口")]
 #[tauri::command]
 pub async fn opc_list_capability_gaps(
     state: State<'_, AppState>,
@@ -1225,7 +1225,7 @@ pub async fn opc_list_capability_gaps(
 }
 
 /// 关闭能力缺口（能力建设完成后标记 resolved）
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "关闭能力缺口")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "关闭能力缺口")]
 #[tauri::command]
 pub async fn opc_close_capability_gap(
     state: State<'_, AppState>,
@@ -1268,7 +1268,7 @@ pub async fn opc_close_capability_gap(
 /// 1. 统计高价值需求中未匹配能力的高频关键词
 /// 2. 分析领域需求趋势与现有能力库的覆盖差距
 /// 3. 基于配置的领域关键词对比能力库覆盖
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateOnly, description = "主动分析能力缺口")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateOnly, description = "主动分析能力缺口")]
 #[tauri::command]
 pub async fn opc_analyze_capability_gaps(
     state: State<'_, AppState>,
@@ -1427,7 +1427,7 @@ pub async fn opc_analyze_capability_gaps(
 // ── 状态标记 ──────────────────────────────────────────────────
 
 /// 标记需求线索状态（expired 过期 / claimed 他人承接 / cancelled 取消等）
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "标记需求线索状态")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "标记需求线索状态")]
 #[tauri::command]
 pub async fn opc_mark_lead_status(
     state: State<'_, AppState>,
@@ -1468,7 +1468,7 @@ pub async fn opc_mark_lead_status(
 }
 
 /// 执行需求交付工作流（为 confirmed 需求创建交付记录并触发工作流）
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "执行需求交付")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "执行需求交付")]
 #[tauri::command]
 pub async fn opc_execute_demand_workflow(
     state: State<'_, AppState>,
@@ -1658,7 +1658,7 @@ pub async fn opc_execute_demand_workflow(
 }
 
 /// 列出交付记录（支持按状态/线索ID过滤）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "列出交付记录")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "列出交付记录")]
 #[tauri::command]
 pub async fn opc_list_deliveries(
     state: State<'_, AppState>,
@@ -1690,7 +1690,7 @@ pub async fn opc_list_deliveries(
 }
 
 /// 获取单个交付详情
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "获取交付详情")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "获取交付详情")]
 #[tauri::command]
 pub async fn opc_get_delivery(
     state: State<'_, AppState>,
@@ -1716,7 +1716,7 @@ pub async fn opc_get_delivery(
 }
 
 /// 更新交付状态（工作流执行完成后回调）
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "更新交付状态")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "更新交付状态")]
 #[tauri::command]
 pub async fn opc_update_delivery(
     state: State<'_, AppState>,
@@ -1792,7 +1792,7 @@ pub async fn opc_update_delivery(
 }
 
 /// 重试失败的交付任务
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "重试交付任务")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "重试交付任务")]
 #[tauri::command]
 pub async fn opc_retry_delivery(
     state: State<'_, AppState>,
@@ -1833,7 +1833,7 @@ pub async fn opc_retry_delivery(
 }
 
 /// 取消进行中的交付任务
-#[agent_command(domain = "opc", safety = Caution, call_mode = StateInput, description = "取消交付任务")]
+#[agent_command(domain = "automation", safety = Caution, call_mode = StateInput, description = "取消交付任务")]
 #[tauri::command]
 pub async fn opc_cancel_delivery(
     state: State<'_, AppState>,
@@ -1886,7 +1886,7 @@ pub async fn opc_cancel_delivery(
 }
 
 /// 测试平台连接器连接（验证 API Token 和认证是否有效）
-#[agent_command(domain = "opc", safety = Safe, call_mode = StateInput, description = "测试平台连接")]
+#[agent_command(domain = "automation", safety = Safe, call_mode = StateInput, description = "测试平台连接")]
 #[tauri::command]
 pub async fn opc_test_platform_connection(
     state: State<'_, AppState>,

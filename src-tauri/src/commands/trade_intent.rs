@@ -21,7 +21,7 @@ use tauri::State;
 
 /// 查询待审核交易意图列表
 #[tauri::command]
-#[agent_command(domain = "stock_analysis", safety = Safe, call_mode = StateOnly, description = "查询待审核的交易意图列表")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateOnly, description = "查询待审核的交易意图列表")]
 pub async fn list_pending_trade_intents(
     state: State<'_, AppState>,
     limit: Option<u64>,
@@ -32,7 +32,7 @@ pub async fn list_pending_trade_intents(
 
 /// 查询指定股票的交易意图历史
 #[tauri::command]
-#[agent_command(domain = "stock_analysis", safety = Safe, call_mode = StateOnly, description = "查询指定股票的交易意图历史记录")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateOnly, description = "查询指定股票的交易意图历史记录")]
 pub async fn list_trade_intents_by_stock(
     state: State<'_, AppState>,
     stock_code: String,
@@ -44,7 +44,7 @@ pub async fn list_trade_intents_by_stock(
 
 /// 审核通过交易意图
 #[tauri::command]
-#[agent_command(domain = "stock_analysis", safety = Safe, call_mode = StateInput, description = "审核通过交易意图，状态变更为 reviewed")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateInput, description = "审核通过交易意图，状态变更为 reviewed")]
 pub async fn approve_trade_intent(
     state: State<'_, AppState>,
     req: ReviewTradeIntentRequest,
@@ -55,7 +55,7 @@ pub async fn approve_trade_intent(
 
 /// 驳回交易意图
 #[tauri::command]
-#[agent_command(domain = "stock_analysis", safety = Safe, call_mode = StateInput, description = "驳回交易意图，状态变更为 rejected")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateInput, description = "驳回交易意图，状态变更为 rejected")]
 pub async fn reject_trade_intent(
     state: State<'_, AppState>,
     req: ReviewTradeIntentRequest,
@@ -66,7 +66,7 @@ pub async fn reject_trade_intent(
 
 /// 关联实际交易（标记为已执行）
 #[tauri::command]
-#[agent_command(domain = "stock_analysis", safety = Safe, call_mode = StateInput, description = "关联交易意图与实际交易记录，状态变更为 executed")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateInput, description = "关联交易意图与实际交易记录，状态变更为 executed")]
 pub async fn link_trade_intent_to_trade(
     state: State<'_, AppState>,
     analysis_id: String,
@@ -82,7 +82,7 @@ pub async fn link_trade_intent_to_trade(
 /// 在分析引擎完成决策后调用，将决策字段自动标记为"待审核"状态。
 /// 如果分析结果为中性（持有/观望），则不生成交易意图。
 #[tauri::command]
-#[agent_command(domain = "stock_analysis", safety = Safe, call_mode = StateInput, description = "分析完成后自动记录交易意图（待审核状态）")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateInput, description = "分析完成后自动记录交易意图（待审核状态）")]
 pub async fn record_analysis_trade_intent(
     state: State<'_, AppState>,
     analysis_id: String,
@@ -107,7 +107,7 @@ pub async fn record_analysis_trade_intent(
 
 /// 批量过期处理（将超时的 pending 标记为 expired）
 #[tauri::command]
-#[agent_command(domain = "stock_analysis", safety = Safe, call_mode = StateInput, description = "批量过期处理超时的待审核交易意图")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateInput, description = "批量过期处理超时的待审核交易意图")]
 pub async fn expire_old_trade_intents(
     state: State<'_, AppState>,
     max_age_hours: Option<i64>,
@@ -130,7 +130,7 @@ pub struct TradeIntentStats {
 
 /// 获取交易意图统计
 #[tauri::command]
-#[agent_command(domain = "stock_analysis", safety = Safe, call_mode = StateOnly, description = "获取交易意图各状态的统计数量")]
+#[agent_command(domain = "finance", safety = Safe, call_mode = StateOnly, description = "获取交易意图各状态的统计数量")]
 pub async fn get_trade_intent_stats(
     state: State<'_, AppState>,
 ) -> Result<TradeIntentStats, String> {

@@ -6,7 +6,7 @@ use crate::AppState;
 use axagent_harness::types::*;
 use tauri::State;
 
-#[agent_command(domain = "context", safety = Safe, call_mode = StateInput, description = "列出会话的上下文来源")]
+#[agent_command(domain = "general", safety = Safe, call_mode = StateInput, description = "列出会话的上下文来源")]
 #[tauri::command]
 pub async fn list_context_sources(
     state: State<'_, AppState>,
@@ -22,7 +22,7 @@ pub async fn list_context_sources(
         })
 }
 
-#[agent_command(domain = "context", safety = Caution, call_mode = StateInput, description = "添加上下文来源")]
+#[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "添加上下文来源")]
 #[tauri::command]
 pub async fn add_context_source(
     state: State<'_, AppState>,
@@ -38,7 +38,7 @@ pub async fn add_context_source(
     )
 }
 
-#[agent_command(domain = "context", safety = Dangerous, call_mode = StateInput, description = "移除上下文来源")]
+#[agent_command(domain = "general", safety = Dangerous, call_mode = StateInput, description = "移除上下文来源")]
 #[tauri::command]
 pub async fn remove_context_source(state: State<'_, AppState>, id: String) -> Result<(), String> {
     axagent_dao::repo::context_source::remove_context_source(state.harness.db(), &id).await.map_err(
@@ -51,7 +51,7 @@ pub async fn remove_context_source(state: State<'_, AppState>, id: String) -> Re
     )
 }
 
-#[agent_command(domain = "context", safety = Caution, call_mode = StateInput, description = "切换上下文来源启用状态")]
+#[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "切换上下文来源启用状态")]
 #[tauri::command]
 pub async fn toggle_context_source(
     state: State<'_, AppState>,
@@ -69,7 +69,7 @@ pub async fn toggle_context_source(
 
 /// 多文档协同：根据 (conversation_id, source_type, ref_id) 定位 context_source 行，
 /// 更新其 doc_ids 字段。前端用户在 ContextSourcePicker 中勾选/取消勾选文档时调用。
-#[agent_command(domain = "context", safety = Caution, call_mode = StateInput, description = "设置上下文来源的文档ID列表")]
+#[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "设置上下文来源的文档ID列表")]
 #[tauri::command]
 pub async fn set_context_source_doc_ids(
     state: State<'_, AppState>,

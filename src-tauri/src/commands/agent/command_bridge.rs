@@ -14,6 +14,7 @@
 //! - 完善安全分级校验逻辑
 
 use agent_command_types;
+use axagent_harness::CapabilityDomain;
 use axagent_harness::path_vars::PathEncoder;
 use axagent_harness::types::{ChatTool, ChatToolFunction};
 use axagent_tools::registry::SkillToolHandler;
@@ -96,79 +97,10 @@ pub struct CommandMetadata {
     pub name: &'static str,
     /// 一行描述
     pub description: &'static str,
-    /// 所属功能域
-    pub domain: CommandDomain,
+    /// 所属功能域（统一使用 harness 标准域定义，避免多套域概念冲突）
+    pub domain: CapabilityDomain,
     /// 安全级别
     pub safety: CommandSafety,
-}
-
-/// 功能域枚举
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum CommandDomain {
-    Core,
-    Knowledge,
-    Workflow,
-    Provider,
-    Gateway,
-    Mcp,
-    Skill,
-    Conversation,
-    Message,
-    Memory,
-    Settings,
-    // ── AxInvest 特有业务域 ──
-    Invest,    // 投资分析
-    Opc,       // 一人公司运营
-    Quant,     // 量化回测
-    MarketSim, // 市场模拟
-    Portfolio, // 投资组合
-}
-
-impl CommandDomain {
-    pub fn as_str(&self) -> &str {
-        match self {
-            CommandDomain::Core => "core",
-            CommandDomain::Knowledge => "knowledge",
-            CommandDomain::Workflow => "workflow",
-            CommandDomain::Provider => "provider",
-            CommandDomain::Gateway => "gateway",
-            CommandDomain::Mcp => "mcp",
-            CommandDomain::Skill => "skill",
-            CommandDomain::Conversation => "conversation",
-            CommandDomain::Message => "message",
-            CommandDomain::Memory => "memory",
-            CommandDomain::Settings => "settings",
-            // AxInvest 业务域
-            CommandDomain::Invest => "invest",
-            CommandDomain::Opc => "opc",
-            CommandDomain::Quant => "quant",
-            CommandDomain::MarketSim => "market_sim",
-            CommandDomain::Portfolio => "portfolio",
-        }
-    }
-
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "core" => Some(CommandDomain::Core),
-            "knowledge" => Some(CommandDomain::Knowledge),
-            "workflow" => Some(CommandDomain::Workflow),
-            "provider" => Some(CommandDomain::Provider),
-            "gateway" => Some(CommandDomain::Gateway),
-            "mcp" => Some(CommandDomain::Mcp),
-            "skill" => Some(CommandDomain::Skill),
-            "conversation" => Some(CommandDomain::Conversation),
-            "message" => Some(CommandDomain::Message),
-            "memory" => Some(CommandDomain::Memory),
-            "settings" => Some(CommandDomain::Settings),
-            // AxInvest 业务域
-            "invest" => Some(CommandDomain::Invest),
-            "opc" => Some(CommandDomain::Opc),
-            "quant" => Some(CommandDomain::Quant),
-            "market_sim" => Some(CommandDomain::MarketSim),
-            "portfolio" => Some(CommandDomain::Portfolio),
-            _ => None,
-        }
-    }
 }
 
 // ── Command Registry (Phase 3) ──────────────────────────────────────────
@@ -209,26 +141,9 @@ impl CommandRegistry {
         Self { commands, name_index }
     }
 
-    fn map_domain(domain_str: &str) -> CommandDomain {
-        match domain_str {
-            "knowledge" => CommandDomain::Knowledge,
-            "workflow" => CommandDomain::Workflow,
-            "provider" => CommandDomain::Provider,
-            "gateway" => CommandDomain::Gateway,
-            "mcp" => CommandDomain::Mcp,
-            "skill" => CommandDomain::Skill,
-            "conversation" => CommandDomain::Conversation,
-            "message" => CommandDomain::Message,
-            "memory" => CommandDomain::Memory,
-            "settings" => CommandDomain::Settings,
-            // AxInvest 业务域
-            "invest" => CommandDomain::Invest,
-            "opc" => CommandDomain::Opc,
-            "quant" => CommandDomain::Quant,
-            "market_sim" => CommandDomain::MarketSim,
-            "portfolio" => CommandDomain::Portfolio,
-            _ => CommandDomain::Core,
-        }
+    fn map_domain(domain_str: &str) -> CapabilityDomain {
+        // 统一使用 harness 标准域解析（含历史旧值别名收敛），未知值兜底 General
+        domain_str.parse().unwrap_or(CapabilityDomain::General)
     }
 
     fn map_safety(s: agent_command_types::CommandSafety) -> CommandSafety {
@@ -245,12 +160,12 @@ impl CommandRegistry {
     }
 
     /// 按域查找命令
-    pub fn find_by_domain(&self, domain: &CommandDomain) -> Vec<&CommandMetadata> {
+    pub fn find_by_domain(&self, domain: &CapabilityDomain) -> Vec<&CommandMetadata> {
         self.commands.iter().filter(|cmd| cmd.domain == *domain).collect()
     }
 
     /// 获取指定域列表内的命令
-    pub fn get_commands_for_domains(&self, domains: &[CommandDomain]) -> Vec<&CommandMetadata> {
+    pub fn get_commands_for_domains(&self, domains: &[CapabilityDomain]) -> Vec<&CommandMetadata> {
         self.commands.iter().filter(|cmd| domains.contains(&cmd.domain)).collect()
     }
 
@@ -275,21 +190,21 @@ impl CommandRegistry {
     }
 
     /// 构建命令索引字符串（用于系统提示注入）
-    pub fn build_index_string(&self, visible_domains: &[CommandDomain]) -> String {
+    pub fn build_index_string(&self, visible_domains: &[CapabilityDomain]) -> String {
         let mut index = String::new();
         index.push_str("可用后端命令（通过 execute_tauri_command 调用）：\n");
 
-        let mut current_domain: Option<CommandDomain> = None;
+        let mut current_domain: Option<CapabilityDomain> = None;
         let filtered = self.get_commands_for_domains(visible_domains);
 
         for cmd in filtered {
             // 域分组标题
-            if current_domain != Some(cmd.domain.clone()) {
+            if current_domain != Some(cmd.domain) {
                 if current_domain.is_some() {
                     index.push('\n');
                 }
                 index.push_str(&format!("\n[{}]\n", cmd.domain.as_str()));
-                current_domain = Some(cmd.domain.clone());
+                current_domain = Some(cmd.domain);
             }
 
             // 命令条目，包含安全级别标识
@@ -341,7 +256,7 @@ impl CommandCache {
     }
 
     /// 生成缓存键（基于域列表）
-    fn make_key(domains: &[CommandDomain]) -> String {
+    fn make_key(domains: &[CapabilityDomain]) -> String {
         let mut domain_names: Vec<String> =
             domains.iter().map(|d| d.as_str().to_string()).collect();
         domain_names.sort();
@@ -349,7 +264,7 @@ impl CommandCache {
     }
 
     /// 获取缓存的索引字符串
-    pub fn get(&mut self, domains: &[CommandDomain], registry: &CommandRegistry) -> String {
+    pub fn get(&mut self, domains: &[CapabilityDomain], registry: &CommandRegistry) -> String {
         let key = Self::make_key(domains);
 
         if let Some(cached) = self.cache.get(&key) {
@@ -404,7 +319,7 @@ impl Default for CommandCache {
 /// 构建命令索引字符串（用于注入系统提示）
 ///
 /// 这是一个便捷函数，内部使用 CommandRegistry 来构建索引
-pub fn build_command_index_string(visible_domains: &[CommandDomain]) -> String {
+pub fn build_command_index_string(visible_domains: &[CapabilityDomain]) -> String {
     let registry = CommandRegistry::default();
     registry.build_index_string(visible_domains)
 }
@@ -412,7 +327,7 @@ pub fn build_command_index_string(visible_domains: &[CommandDomain]) -> String {
 /// 预加载缓存并返回命中率
 ///
 /// 用于在启动时预热缓存
-pub fn preload_command_cache(domains: &[CommandDomain]) -> (String, f64) {
+pub fn preload_command_cache(domains: &[CapabilityDomain]) -> (String, f64) {
     let registry = CommandRegistry::default();
     let mut cache = CommandCache::default();
     let _first_load = cache.get(domains, &registry);
@@ -433,7 +348,7 @@ pub struct DomainMapping {
     /// 工具域（来自 axagent_harness::ToolDomain 的字符串表示）
     pub tool_domain: String,
     /// 映射到的命令域列表
-    pub command_domains: Vec<CommandDomain>,
+    pub command_domains: Vec<CapabilityDomain>,
 }
 
 /// 领域映射配置集合
@@ -442,89 +357,60 @@ pub struct DomainMappingConfig {
     /// 映射规则列表
     pub mappings: Vec<DomainMapping>,
     /// 无论任何场景都默认暴露的命令域
-    pub default_domains: Vec<CommandDomain>,
+    pub default_domains: Vec<CapabilityDomain>,
 }
 
 impl Default for DomainMappingConfig {
     fn default() -> Self {
         Self {
             mappings: vec![
-                // General → 基础命令域（历史 Core 域已并入 General）
+                // 各业务域激活时暴露其自身命令域 + 通用基础域（General）
                 DomainMapping {
                     tool_domain: "general".to_string(),
-                    command_domains: vec![
-                        CommandDomain::Core,
-                        CommandDomain::Settings,
-                        CommandDomain::Conversation,
-                        CommandDomain::Message,
-                        CommandDomain::Memory,
-                        CommandDomain::Knowledge,
-                        CommandDomain::Provider,
-                    ],
+                    command_domains: vec![CapabilityDomain::General],
                 },
-                // Devops → 运维全套
                 DomainMapping {
                     tool_domain: "devops".to_string(),
-                    command_domains: vec![
-                        CommandDomain::Gateway,
-                        CommandDomain::Mcp,
-                        CommandDomain::Skill,
-                        CommandDomain::Workflow,
-                    ],
+                    command_domains: vec![CapabilityDomain::Devops, CapabilityDomain::General],
                 },
-                // AiMedia → 基础 + 技能
                 DomainMapping {
                     tool_domain: "ai_media".to_string(),
-                    command_domains: vec![CommandDomain::Core, CommandDomain::Skill],
+                    command_domains: vec![CapabilityDomain::AiMedia, CapabilityDomain::General],
                 },
-                // Invest → 投资分析全套（含量化回测和市场模拟）
                 DomainMapping {
-                    tool_domain: "invest".to_string(),
+                    tool_domain: "data_analysis".to_string(),
                     command_domains: vec![
-                        CommandDomain::Core,
-                        CommandDomain::Knowledge,
-                        CommandDomain::Invest,
-                        CommandDomain::Quant,
-                        CommandDomain::MarketSim,
-                        CommandDomain::Portfolio,
+                        CapabilityDomain::DataAnalysis,
+                        CapabilityDomain::General,
                     ],
                 },
-                // Opc → 一人公司运营全套
                 DomainMapping {
-                    tool_domain: "opc".to_string(),
+                    tool_domain: "content_creation".to_string(),
                     command_domains: vec![
-                        CommandDomain::Core,
-                        CommandDomain::Workflow,
-                        CommandDomain::Opc,
+                        CapabilityDomain::ContentCreation,
+                        CapabilityDomain::General,
                     ],
                 },
-                // Quant → 量化回测专用
                 DomainMapping {
-                    tool_domain: "quant".to_string(),
+                    tool_domain: "communication".to_string(),
                     command_domains: vec![
-                        CommandDomain::Quant,
-                        CommandDomain::MarketSim,
-                        CommandDomain::Portfolio,
+                        CapabilityDomain::Communication,
+                        CapabilityDomain::General,
                     ],
                 },
-                // Portfolio → 投资组合管理专用
-                DomainMapping {
-                    tool_domain: "portfolio".to_string(),
-                    command_domains: vec![CommandDomain::Portfolio, CommandDomain::Invest],
-                },
-                // Finance → 基础 + 知识库
+                // Finance → 投资/量化/组合分析全套（历史 invest/quant/portfolio 归并）
                 DomainMapping {
                     tool_domain: "finance".to_string(),
-                    command_domains: vec![CommandDomain::Core, CommandDomain::Knowledge],
+                    command_domains: vec![CapabilityDomain::Finance, CapabilityDomain::General],
                 },
-                // Automation → 基础 + 工作流
+                // Automation → 一人公司运营 + 工作流（历史 opc 归并）
                 DomainMapping {
                     tool_domain: "automation".to_string(),
-                    command_domains: vec![CommandDomain::Core, CommandDomain::Workflow],
+                    command_domains: vec![CapabilityDomain::Automation, CapabilityDomain::General],
                 },
             ],
-            // 默认暴露核心域
-            default_domains: vec![CommandDomain::Core],
+            // 默认暴露通用基础域
+            default_domains: vec![CapabilityDomain::General],
         }
     }
 }
@@ -540,19 +426,19 @@ impl DomainMappingConfig {
     pub fn resolve_command_domains(
         &self,
         active_tool_domains: &HashSet<String>,
-    ) -> Vec<CommandDomain> {
+    ) -> Vec<CapabilityDomain> {
         let mut result = HashSet::new();
 
         // 先加入默认域
         for domain in &self.default_domains {
-            result.insert(domain.clone());
+            result.insert(*domain);
         }
 
         // 根据映射规则加入匹配的命令域
         for mapping in &self.mappings {
             if active_tool_domains.contains(&mapping.tool_domain) {
                 for domain in &mapping.command_domains {
-                    result.insert(domain.clone());
+                    result.insert(*domain);
                 }
             }
         }
@@ -564,7 +450,7 @@ impl DomainMappingConfig {
 /// 根据激活的工具域名称解析可见命令域
 ///
 /// 便捷函数，使用默认配置
-pub fn resolve_command_domains(active_tool_domains: &HashSet<String>) -> Vec<CommandDomain> {
+pub fn resolve_command_domains(active_tool_domains: &HashSet<String>) -> Vec<CapabilityDomain> {
     let config = DomainMappingConfig::default();
     config.resolve_command_domains(active_tool_domains)
 }
@@ -1096,7 +982,7 @@ async fn dispatch_command(
             let registry = CommandRegistry::default();
 
             let domain_commands: Vec<&CommandMetadata> = if let Some(domain_str) = domain_filter {
-                if let Some(domain) = CommandDomain::from_str(domain_str) {
+                if let Ok(domain) = domain_str.parse::<CapabilityDomain>() {
                     registry.find_by_domain(&domain)
                 } else {
                     warn!("Invalid domain filter: {}", domain_str);
@@ -2677,108 +2563,92 @@ mod tests {
     use super::*;
     use std::collections::HashSet;
 
-    /// 测试 CommandDomain 枚举的 as_str 方法
+    /// 测试 CapabilityDomain 标准域的 as_str 方法
     #[test]
     fn test_domain_as_str() {
-        assert_eq!(CommandDomain::Invest.as_str(), "invest");
-        assert_eq!(CommandDomain::Opc.as_str(), "opc");
-        assert_eq!(CommandDomain::Quant.as_str(), "quant");
-        assert_eq!(CommandDomain::MarketSim.as_str(), "market_sim");
-        assert_eq!(CommandDomain::Portfolio.as_str(), "portfolio");
+        assert_eq!(CapabilityDomain::Finance.as_str(), "finance");
+        assert_eq!(CapabilityDomain::Automation.as_str(), "automation");
+        assert_eq!(CapabilityDomain::General.as_str(), "general");
+        assert_eq!(CapabilityDomain::Devops.as_str(), "devops");
+        assert_eq!(CapabilityDomain::System.as_str(), "system");
     }
 
-    /// 测试 CommandDomain 枚举的 from_str 方法
+    /// 测试 CapabilityDomain 的 from_str（含历史别名收敛）
     #[test]
     fn test_domain_from_str() {
-        assert_eq!(CommandDomain::from_str("invest"), Some(CommandDomain::Invest));
-        assert_eq!(CommandDomain::from_str("opc"), Some(CommandDomain::Opc));
-        assert_eq!(CommandDomain::from_str("quant"), Some(CommandDomain::Quant));
-        assert_eq!(CommandDomain::from_str("market_sim"), Some(CommandDomain::MarketSim));
-        assert_eq!(CommandDomain::from_str("portfolio"), Some(CommandDomain::Portfolio));
-        assert_eq!(CommandDomain::from_str("unknown"), None);
+        let finance: CapabilityDomain = "finance".parse().unwrap();
+        assert_eq!(finance, CapabilityDomain::Finance);
+        let automation: CapabilityDomain = "automation".parse().unwrap();
+        assert_eq!(automation, CapabilityDomain::Automation);
+        // 历史别名收敛到标准域
+        let invest: CapabilityDomain = "invest".parse().unwrap();
+        assert_eq!(invest, CapabilityDomain::Finance);
+        let opc: CapabilityDomain = "opc".parse().unwrap();
+        assert_eq!(opc, CapabilityDomain::Automation);
+        let quant: CapabilityDomain = "quant".parse().unwrap();
+        assert_eq!(quant, CapabilityDomain::Finance);
+        assert!("unknown".parse::<CapabilityDomain>().is_err());
     }
 
-    /// 测试 DomainMappingConfig 默认配置包含 AxInvest 域映射
+    /// 测试 DomainMappingConfig 默认配置：Finance 域映射
     #[test]
-    fn test_default_domain_mapping_contains_axinvest() {
+    fn test_default_domain_mapping_finance() {
         let config = DomainMappingConfig::default();
 
-        // 检查是否包含 invest 工具域映射
-        let invest_mapping = config.mappings.iter().find(|m| m.tool_domain == "invest");
-        assert!(invest_mapping.is_some(), "应该包含 invest 工具域映射");
+        let finance_mapping = config.mappings.iter().find(|m| m.tool_domain == "finance");
+        assert!(finance_mapping.is_some(), "应该包含 finance 工具域映射");
 
-        let invest_mapping = invest_mapping.unwrap();
+        let finance_mapping = finance_mapping.unwrap();
         assert!(
-            invest_mapping.command_domains.contains(&CommandDomain::Invest),
-            "invest 映射应包含 Invest 域"
+            finance_mapping.command_domains.contains(&CapabilityDomain::Finance),
+            "finance 映射应包含 Finance 域"
         );
         assert!(
-            invest_mapping.command_domains.contains(&CommandDomain::Quant),
-            "invest 映射应包含 Quant 域"
-        );
-        assert!(
-            invest_mapping.command_domains.contains(&CommandDomain::MarketSim),
-            "invest 映射应包含 MarketSim 域"
-        );
-        assert!(
-            invest_mapping.command_domains.contains(&CommandDomain::Portfolio),
-            "invest 映射应包含 Portfolio 域"
+            finance_mapping.command_domains.contains(&CapabilityDomain::General),
+            "finance 映射应包含 General 兜底域"
         );
     }
 
-    /// 测试 DomainMappingConfig 包含 opc 工具域映射
+    /// 测试 DomainMappingConfig 包含 automation 工具域映射
     #[test]
-    fn test_default_domain_mapping_contains_opc() {
+    fn test_default_domain_mapping_automation() {
         let config = DomainMappingConfig::default();
 
-        let opc_mapping = config.mappings.iter().find(|m| m.tool_domain == "opc");
-        assert!(opc_mapping.is_some(), "应该包含 opc 工具域映射");
+        let automation_mapping = config.mappings.iter().find(|m| m.tool_domain == "automation");
+        assert!(automation_mapping.is_some(), "应该包含 automation 工具域映射");
 
-        let opc_mapping = opc_mapping.unwrap();
-        assert!(opc_mapping.command_domains.contains(&CommandDomain::Opc), "opc 映射应包含 Opc 域");
+        let automation_mapping = automation_mapping.unwrap();
+        assert!(
+            automation_mapping.command_domains.contains(&CapabilityDomain::Automation),
+            "automation 映射应包含 Automation 域"
+        );
     }
 
-    /// 测试 DomainMappingConfig 包含 quant 和 portfolio 独立工具域映射
+    /// 测试 resolve_command_domains 方法正确解析 finance 工具域
     #[test]
-    fn test_default_domain_mapping_contains_quant_portfolio() {
-        let config = DomainMappingConfig::default();
-
-        let quant_mapping = config.mappings.iter().find(|m| m.tool_domain == "quant");
-        assert!(quant_mapping.is_some(), "应该包含 quant 工具域映射");
-
-        let portfolio_mapping = config.mappings.iter().find(|m| m.tool_domain == "portfolio");
-        assert!(portfolio_mapping.is_some(), "应该包含 portfolio 工具域映射");
-    }
-
-    /// 测试 resolve_command_domains 方法正确解析 invest 工具域
-    #[test]
-    fn test_resolve_domains_for_invest() {
+    fn test_resolve_domains_for_finance() {
         let config = DomainMappingConfig::default();
         let mut active_domains = HashSet::new();
-        active_domains.insert("invest".to_string());
+        active_domains.insert("finance".to_string());
 
         let resolved = config.resolve_command_domains(&active_domains);
 
         // 应该包含默认域
-        assert!(resolved.contains(&CommandDomain::Core), "应该包含 Core 默认域");
-
-        // 应该包含 invest 映射的业务域
-        assert!(resolved.contains(&CommandDomain::Invest), "应该包含 Invest 域");
-        assert!(resolved.contains(&CommandDomain::Quant), "应该包含 Quant 域");
-        assert!(resolved.contains(&CommandDomain::MarketSim), "应该包含 MarketSim 域");
-        assert!(resolved.contains(&CommandDomain::Portfolio), "应该包含 Portfolio 域");
+        assert!(resolved.contains(&CapabilityDomain::General), "应该包含 General 默认域");
+        // 应该包含 finance 映射的业务域
+        assert!(resolved.contains(&CapabilityDomain::Finance), "应该包含 Finance 域");
     }
 
-    /// 测试 resolve_command_domains 方法正确解析 opc 工具域
+    /// 测试 resolve_command_domains 方法正确解析 automation 工具域
     #[test]
-    fn test_resolve_domains_for_opc() {
+    fn test_resolve_domains_for_automation() {
         let config = DomainMappingConfig::default();
         let mut active_domains = HashSet::new();
-        active_domains.insert("opc".to_string());
+        active_domains.insert("automation".to_string());
 
         let resolved = config.resolve_command_domains(&active_domains);
 
-        assert!(resolved.contains(&CommandDomain::Opc), "应该包含 Opc 域");
+        assert!(resolved.contains(&CapabilityDomain::Automation), "应该包含 Automation 域");
     }
 
     /// 测试 resolve_command_domains 方法处理空输入
@@ -2790,7 +2660,7 @@ mod tests {
         let resolved = config.resolve_command_domains(&active_domains);
 
         // 空输入应该返回默认域
-        assert!(resolved.contains(&CommandDomain::Core), "空输入应返回 Core 默认域");
+        assert!(resolved.contains(&CapabilityDomain::General), "空输入应返回 General 默认域");
     }
 
     /// 测试 CommandRegistry 可以创建和查询
@@ -2811,21 +2681,21 @@ mod tests {
         let registry = CommandRegistry::from_registry();
 
         // 按域查找命令
-        let invest_commands = registry.find_by_domain(&CommandDomain::Invest);
-        let opc_commands = registry.find_by_domain(&CommandDomain::Opc);
-        let quant_commands = registry.find_by_domain(&CommandDomain::Quant);
+        let finance_commands = registry.find_by_domain(&CapabilityDomain::Finance);
+        let automation_commands = registry.find_by_domain(&CapabilityDomain::Automation);
+        let system_commands = registry.find_by_domain(&CapabilityDomain::System);
 
         // 验证查找结果（可能为空，取决于编译时是否有命令注册）
-        let _ = invest_commands;
-        let _ = opc_commands;
-        let _ = quant_commands;
+        let _ = finance_commands;
+        let _ = automation_commands;
+        let _ = system_commands;
     }
 
     /// 测试 build_index_string 方法生成正确格式的索引
     #[test]
     fn test_build_index_string_format() {
         let registry = CommandRegistry::from_registry();
-        let domains = vec![CommandDomain::Invest, CommandDomain::Quant];
+        let domains = vec![CapabilityDomain::Finance, CapabilityDomain::Automation];
 
         let index_string = registry.build_index_string(&domains);
 
@@ -2839,7 +2709,7 @@ mod tests {
     fn test_command_cache_basic_operations() {
         let mut cache = CommandCache::new(10);
         let registry = CommandRegistry::from_registry();
-        let domains = vec![CommandDomain::Invest];
+        let domains = vec![CapabilityDomain::Finance];
 
         // 第一次获取（缓存未命中）
         let index1 = cache.get(&domains, &registry);
@@ -2864,8 +2734,8 @@ mod tests {
     /// 测试 CommandCache 缓存键生成
     #[test]
     fn test_command_cache_key_generation() {
-        let domains1 = vec![CommandDomain::Invest, CommandDomain::Quant];
-        let domains2 = vec![CommandDomain::Quant, CommandDomain::Invest]; // 顺序不同
+        let domains1 = vec![CapabilityDomain::Finance, CapabilityDomain::Automation];
+        let domains2 = vec![CapabilityDomain::Automation, CapabilityDomain::Finance]; // 顺序不同
 
         let key1 = CommandCache::make_key(&domains1);
         let key2 = CommandCache::make_key(&domains2);
@@ -2910,16 +2780,16 @@ mod tests {
     #[test]
     fn test_resolve_command_domains_convenience() {
         let mut active_domains = HashSet::new();
-        active_domains.insert("invest".to_string());
+        active_domains.insert("finance".to_string());
 
         let resolved = resolve_command_domains(&active_domains);
-        assert!(resolved.contains(&CommandDomain::Invest));
+        assert!(resolved.contains(&CapabilityDomain::Finance));
     }
 
     /// 测试 preload_command_cache 函数
     #[test]
     fn test_preload_command_cache() {
-        let domains = vec![CommandDomain::Core];
+        let domains = vec![CapabilityDomain::General];
         let (index, hit_rate) = preload_command_cache(&domains);
 
         // 验证返回值
@@ -2930,7 +2800,7 @@ mod tests {
     /// 测试 build_command_index_string 便捷函数
     #[test]
     fn test_build_command_index_string_convenience() {
-        let domains = vec![CommandDomain::Invest];
+        let domains = vec![CapabilityDomain::Finance];
         let index = build_command_index_string(&domains);
 
         assert!(index.contains("可用后端命令"));
