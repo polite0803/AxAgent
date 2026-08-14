@@ -224,7 +224,9 @@ fn validate_and_fix_verdict_schema(verdict_data, analyst_name) {
     let issues = [];
     let fixed_data = verdict_data; // 准备进行修改的副本
 
-    if type_of(verdict_data) != "map" { return { "data": fixed_data, "issues": issues }; }
+    if type_of(verdict_data) != "map" {
+        return #{ "data": fixed_data, "issues": issues };
+    }
 
     // 1. bull_score + bear_score 自洽性检查与修复
     let bs = extract_bull_score(verdict_data);
@@ -261,8 +263,16 @@ fn validate_and_fix_verdict_schema(verdict_data, analyst_name) {
         let is_bear = v.contains("看空") || v.contains("看跌") || v.contains("偏空");
         
         // 如果评分被修复，使用修复后的分数进行判断
-        let effective_bs = present(fixed_data["bull_score"]) ? fixed_data["bull_score"].to_float() : bs;
-        let effective_bes = present(fixed_data["bear_score"]) ? fixed_data["bear_score"].to_float() : bes;
+        let effective_bs = if present(fixed_data["bull_score"]) {
+            fixed_data["bull_score"].to_float()
+        } else {
+            bs
+        };
+        let effective_bes = if present(fixed_data["bear_score"]) {
+            fixed_data["bear_score"].to_float()
+        } else {
+            bes
+        };
 
         if is_bull && effective_bs <= effective_bes {
             issues.push(`[${analyst_name}] 逻辑矛盾: verdict='${v}' 但 bull_score(${effective_bs}) <= bear_score(${effective_bes})`);
@@ -286,7 +296,7 @@ fn validate_and_fix_verdict_schema(verdict_data, analyst_name) {
         }
     }
 
-    { "data": fixed_data, "issues": issues }
+    #{ "data": fixed_data, "issues": issues }
 }
 
 // 保留旧接口以兼容
