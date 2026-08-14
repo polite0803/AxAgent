@@ -185,13 +185,15 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     };
 
     // ── 初始化 Harness 容器（统一管理核心基础设施注入） ──
+    let provider_registry = axagent_providers::registry::ProviderRegistry::create_default();
+    // Director 注册：把内置适配器一次性注册进全局能力注册表（幂等，缺陷 #10）。
+    // create_default 为纯构造，不再自带全局副作用，注册统一收敛到此处。
+    provider_registry.register_builtins_into_capability_registry();
     let harness =
         axagent_runtime::harness::RuntimeHarness::new(axagent_runtime::harness::HarnessDeps {
             persistence: Arc::new(db_handle) as axagent_harness::SharedPersistence,
             master_key,
-            provider_registry: Arc::new(
-                axagent_providers::registry::ProviderRegistry::create_default(),
-            )
+            provider_registry: Arc::new(provider_registry)
                 as Arc<dyn axagent_harness::registry::ProviderRegistry>,
         });
     let harness_registry = harness.provider_registry().clone();
@@ -237,6 +239,65 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
 
     platform_manager.set_message_callback(platform_bridge.clone()).await;
 
+    // ── P2 rt-messaging 接缝：接入能力注册表 ──────────────────────────────
+    // message.callback（PlatformMessageCallback）与 webhook.dispatch（WebhookDispatch）
+    // 的权威定义均在 harness。wiring 层在注入 PlatformManager / PlatformBridge 的
+    // 同时注册进注册表，使外部插件可经 register_external_* 替换同一接缝
+    // （内置与插件平权）。webhook.dispatch 仅在 dispatcher 存在时注册
+    // （无 webhook 订阅管理 = 无派发需求，与未注入等价）。
+    {
+        let capability_registry = axagent_harness::get_capability_registry();
+        let bridge_dyn: Arc<dyn axagent_harness::PlatformMessageCallback> = platform_bridge.clone();
+        match capability_registry.register_message_callback(bridge_dyn) {
+            Ok(_) => tracing::info!("message.callback 接缝已注册 (BuiltIn)"),
+            Err(e) => tracing::warn!("message.callback 注册失败: {e}"),
+        }
+        if let Some(dispatcher) = webhook_dispatch_trait.clone() {
+            match capability_registry.register_webhook_dispatch(dispatcher) {
+                Ok(_) => tracing::info!("webhook.dispatch 接缝已注册 (BuiltIn)"),
+                Err(e) => tracing::warn!("webhook.dispatch 注册失败: {e}"),
+            }
+        }
+
+        // ── event.dispatch 接缝：注册内置类型化事件派发总线（P2 事件化） ──
+        // 组件/插件经 get_event_dispatcher() 拿到总线，再 subscribe 挂装
+        // 四派发模式（emit/waterfall/parallel/serial）的订阅者。
+        let event_dispatch_bus = Arc::new(axagent_harness::EventDispatchBus::new());
+        match capability_registry.register_event_dispatcher(event_dispatch_bus) {
+            Ok(_) => tracing::info!("event.dispatch 接缝已注册 (BuiltIn)"),
+            Err(e) => tracing::warn!("event.dispatch 注册失败: {e}"),
+        }
+
+        // ── session.log.invariant 接缝：注册内置会话日志不变量（P2 缺陷#3 05 项） ──
+        // 记录模型可见内容并支持可重建校验（Model-visible means logged）。
+        // 默认落盘实现，按 session 持久化为 JSONL 到 app_dir/session_logs，进程重启后可回放；
+        // 外部插件可经 register_external_* 替换实现。
+        let session_log_invariant: Arc<dyn axagent_harness::SessionLogInvariant> =
+            match axagent_harness::DiskSessionLog::new(app_dir.join("session_logs")) {
+                Ok(log) => Arc::new(log),
+                Err(e) => {
+                    tracing::warn!("会话日志落盘初始化失败，回退内存实现: {e}");
+                    Arc::new(axagent_harness::InMemorySessionLog::new())
+                },
+            };
+        match capability_registry.register_session_log_invariant(session_log_invariant) {
+            Ok(_) => tracing::info!("session.log.invariant 接缝已注册 (BuiltIn, 落盘)"),
+            Err(e) => tracing::warn!("session.log.invariant 注册失败: {e}"),
+        }
+
+        // ── platform.adapter 接缝：注册 8 个内置消息平台适配器 ──
+        // 适配器由 PlatformManager 统一管理（reconcile / 生命周期），
+        // 同时注册到能力注册表，供外部插件与消费者按平台名查询/替换。
+        let adapters = platform_manager.list_all_adapters().await;
+        for (name, adapter) in adapters {
+            let adapter_dyn: Arc<dyn axagent_harness::MessagePlatformAdapter> = adapter;
+            match capability_registry.register_platform_adapter(&name, adapter_dyn) {
+                Ok(_) => tracing::info!("platform.adapter.{name} 已注册 (BuiltIn)"),
+                Err(e) => tracing::warn!("platform.adapter.{name} 注册失败: {e}"),
+            }
+        }
+    }
+
     let sync_engine = create_sync_engine(&sea_db, &app_settings).await;
 
     // ── 设备同步状态初始化 ──
@@ -262,7 +323,9 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     plugin_config.external_dirs = axagent_kit::skill_dirs::all_skills_dirs();
     let npm_registry = Arc::new(axagent_npm::NpmRegistry::new());
     let plugin_manager = Arc::new(tokio::sync::RwLock::new(
-        PluginManager::new(plugin_config).with_npm_registry(npm_registry),
+        PluginManager::new(plugin_config)
+            .with_npm_registry(npm_registry)
+            .with_capability_registry(axagent_harness::get_capability_registry()),
     ));
 
     // ── Extract every AppState field into a local so that the same values
@@ -486,16 +549,19 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     // P2-8:注入带有限试运行的沙箱(静态校验 + 模拟执行,始终注入)
     // 比 ReachabilityWorkflowSandbox 更强:额外做节点级配置合理性、累积超时上限、
     // 环检测,并用 tokio::time::timeout 做硬超时保护(5 秒)。
+    // P1 平权:同一实例同时注册进能力注册表(workflow.sandbox 接缝,BuiltIn),
+    // 供外部插件经 register_external_sandbox 可逆替换。
     {
-        let sandbox = super::workflow_injections::DryRunWorkflowSandbox::new();
-        if let Err(e) = workflow_evolver
-            .set_sandbox(std::sync::Arc::new(sandbox)
-                as std::sync::Arc<dyn axagent_harness::WorkflowSandbox>)
-            .await
-        {
+        let dry_run_sandbox: std::sync::Arc<dyn axagent_harness::WorkflowSandbox> =
+            std::sync::Arc::new(super::workflow_injections::DryRunWorkflowSandbox::new());
+        if let Err(e) = workflow_evolver.set_sandbox(dry_run_sandbox.clone()).await {
             tracing::warn!("[Evolver] set_sandbox failed: {e}");
         } else {
             tracing::info!("[Evolver] DryRun sandbox injected (static + simulate + hard timeout)");
+        }
+        match axagent_harness::get_capability_registry().register_sandbox(dry_run_sandbox) {
+            Ok(_) => tracing::info!("workflow.sandbox 接缝已注册 (BuiltIn)"),
+            Err(e) => tracing::warn!("workflow.sandbox 注册失败: {e}"),
         }
     }
 
@@ -547,6 +613,62 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
             engine.set_db(sea_db.clone());
             engine
         };
+
+    // ── P1 agent-loop 接缝：注入 SessionManager 适配器 ─────────────────────
+    // wiring 层把 `WorkflowAgentTurnRunner` 同时：
+    //   1. 注册进全局能力注册表（`agent.loop` 接缝，CapabilityOrigin::BuiltIn）
+    //   2. 注入 `WorkEngine`（set_agent_turn_runner，AgentExecutor 执行前探测）
+    // 使内置 Agent 主循环与外部插件平权——外部插件可经 register_external_agent_loop
+    // 替换同一接缝。注入失败仅告警，不阻断启动（AgentExecutor 回退 inline ReAct）。
+    {
+        let agent_loop_runner: Arc<dyn axagent_harness::AgentTurnRunner> =
+            Arc::new(super::agent_turn_adapter::WorkflowAgentTurnRunner::new(
+                Arc::clone(&agent_session_manager),
+                Arc::new(harness.clone()),
+                Arc::clone(&agent_prompters),
+            ));
+        match axagent_harness::get_capability_registry()
+            .register_agent_loop(agent_loop_runner.clone())
+        {
+            Ok(_handle) => {
+                tracing::info!("agent-loop 接缝已注册 (agent.loop, BuiltIn)");
+                work_engine.set_agent_turn_runner(agent_loop_runner);
+            },
+            Err(e) => tracing::warn!("agent-loop 注册失败,回退 inline ReAct: {e}"),
+        }
+    }
+
+    // ── P2 workflow 反射/进化/优化 + 业务规则接缝：接入能力注册表 ──────────
+    // 四个 trait（WorkflowReflector/Evolver/Optimizer/BusinessRuleEvaluator）的
+    // 权威定义均在 harness，内置实现由 trajectory / rt-workflow 提供。wiring 层
+    // 在注入 WorkEngine 的同时注册进注册表，使外部插件可经 register_external_*
+    // 替换同一接缝（内置与插件平权）。business_rule 默认以空规则实现注入
+    // （无规则 = 不拦截，与未注入等价）。
+    {
+        let capability_registry = axagent_harness::get_capability_registry();
+        match capability_registry.register_workflow_reflector(workflow_reflector.clone()) {
+            Ok(_) => tracing::info!("workflow.reflector 接缝已注册 (BuiltIn)"),
+            Err(e) => tracing::warn!("workflow.reflector 注册失败: {e}"),
+        }
+        match capability_registry.register_workflow_evolver(workflow_evolver.clone()) {
+            Ok(_) => tracing::info!("workflow.evolver 接缝已注册 (BuiltIn)"),
+            Err(e) => tracing::warn!("workflow.evolver 注册失败: {e}"),
+        }
+        match capability_registry.register_workflow_optimizer(workflow_optimizer.clone()) {
+            Ok(_) => tracing::info!("workflow.optimizer 接缝已注册 (BuiltIn)"),
+            Err(e) => tracing::warn!("workflow.optimizer 注册失败: {e}"),
+        }
+        let br_engine =
+            Arc::new(axagent_rt_workflow::business_rules::BusinessRuleEngine::new(Vec::new()));
+        let br_engine_dyn: Arc<dyn axagent_harness::BusinessRuleEvaluator> = br_engine.clone();
+        match capability_registry.register_business_rule(br_engine_dyn) {
+            Ok(_) => {
+                tracing::info!("workflow.business_rule 接缝已注册 (BuiltIn)");
+                work_engine.set_business_rule_engine(br_engine).await;
+            },
+            Err(e) => tracing::warn!("workflow.business_rule 注册失败: {e}"),
+        }
+    }
 
     // ── 统一事件总线实例化与注入 ──────────────────────────────────────────
     // 同一份 `Arc<dyn EventBus>` 注入到 agent / rt-workflow / orchestrator 三方,
@@ -1228,7 +1350,7 @@ async fn register_all_capabilities(
                     name: meta.name.clone(),
                     description: meta.description.clone(),
                     kind: CapabilityKind::Skill,
-                    domain: CapabilityDomain::Core,
+                    domain: CapabilityDomain::General,
                     sub_category: "skill".to_string(),
                     visibility: Visibility::Public,
                     caller_permissions: Default::default(),

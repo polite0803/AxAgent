@@ -42,6 +42,7 @@ import {
 } from "./ChatMarkdownNodes";
 import { ChatMinimap, MinimapScrollProvider } from "./ChatMinimap";
 import { ChatScrollIndicator } from "./ChatScrollIndicator";
+import { ClarifyCard } from "./ClarifyCard";
 import { CodeBlockPreviewModal } from "./CodeBlockPreviewModal";
 import { ContextBar, estimateConversationTokens } from "./ContextBar";
 import { ContextGraphPanel } from "./ContextGraphPanel";
@@ -65,6 +66,29 @@ const MemoizedStreamingStyles = React.memo(StreamingStyles);
 const LAZY_BUBBLE_ROOT_MARGIN = "300px";
 const LAZY_BUBBLE_MIN_HEIGHT = 60;
 
+// 共享单例 IntersectionObserver + 回调注册表，避免每条消息各建一个 observer
+const lazyBubbleObserver:
+  | { observer: IntersectionObserver; callbacks: WeakMap<Element, () => void> }
+  | null = typeof IntersectionObserver === "undefined"
+    ? null
+    : (() => {
+      const callbacks = new WeakMap<Element, () => void>();
+      const observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              const cb = callbacks.get(entry.target);
+              callbacks.delete(entry.target);
+              observer.unobserve(entry.target);
+              cb?.();
+            }
+          }
+        },
+        { rootMargin: LAZY_BUBBLE_ROOT_MARGIN },
+      );
+      return { observer, callbacks };
+    })();
+
 const LazyBubble = React.memo(function LazyBubble({
   children,
 }: {
@@ -75,21 +99,17 @@ const LazyBubble = React.memo(function LazyBubble({
 
   useEffect(() => {
     const el = ref.current;
-    if (!el || typeof IntersectionObserver === "undefined") {
+    if (!el || !lazyBubbleObserver) {
       setVisible(true);
       return;
     }
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: LAZY_BUBBLE_ROOT_MARGIN },
-    );
+    const { observer, callbacks } = lazyBubbleObserver;
+    callbacks.set(el, () => setVisible(true));
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => {
+      callbacks.delete(el);
+      observer.unobserve(el);
+    };
   }, []);
 
   return (
@@ -351,11 +371,16 @@ function ChatViewInner({
     [messages],
   );
 
-  const tokenUsed = activeMessages.length > 0
-    ? estimateConversationTokens(
-      activeMessages.map((m) => ({ role: m.role, content: m.content })),
-    )
-    : 0;
+  // FE-I8 修复：tokenUsed 用 useMemo 缓存，避免流式每 50ms 重渲染时全量重算。
+  const tokenUsed = useMemo(
+    () =>
+      activeMessages.length > 0
+        ? estimateConversationTokens(
+          activeMessages.map((m) => ({ role: m.role, content: m.content })),
+        )
+        : 0,
+    [activeMessages],
+  );
 
   return (
     <div className="ax-cyber-grid flex flex-col h-full min-h-0">
@@ -548,6 +573,7 @@ function ChatViewInner({
                     }}
                   />
                 )}
+                <ClarifyCard />
               </div>
               <ChatScrollIndicator />
               <MinimapScrollProvider

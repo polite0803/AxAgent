@@ -9,7 +9,7 @@
 //!
 //! 示例:
 //! - `/core/file_ops/read_file`
-//! - `/invest/trading/execute_order`
+//! - `/finance/trading/execute_order`
 //! - `/ai_media/image_gen/text_to_image`
 //!
 //! # 路由图
@@ -108,20 +108,9 @@ impl RoutingPath {
     }
 }
 
-/// 将字符串解析为 `CapabilityDomain`
+/// 将字符串解析为 `CapabilityDomain`（兼容历史旧值 core/invest/opc）
 pub(crate) fn parse_domain(s: &str) -> Option<CapabilityDomain> {
-    let all = [
-        CapabilityDomain::Core,
-        CapabilityDomain::General,
-        CapabilityDomain::Devops,
-        CapabilityDomain::AiMedia,
-        CapabilityDomain::Invest,
-        CapabilityDomain::Opc,
-        CapabilityDomain::DataAnalysis,
-        CapabilityDomain::ContentCreation,
-        CapabilityDomain::Communication,
-    ];
-    all.iter().copied().find(|d| d.as_str() == s)
+    s.parse().ok()
 }
 
 // ── 路由图(L1 → L2 → L3 DAG 邻接表) ────────────────
@@ -129,10 +118,10 @@ pub(crate) fn parse_domain(s: &str) -> Option<CapabilityDomain> {
 /// 路由图 — L1 → L2 → L3 的有向无环图邻接表
 ///
 /// 设计期全局路径规划使用,可生成邻接表文本注入 System Prompt。
-/// 节点规模:L1(9) + L2(~27) + L3(N) ≈ 200 节点上限。
+/// 节点规模:L1(8 业务域 + 1 系统域) + L2(~27) + L3(N) ≈ 200 节点上限。
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct RoutingGraph {
-    /// L1 → L2 邻接:domain → 该域下所有集群 ID(如 `"core_file_ops"`)
+    /// L1 → L2 邻接:domain → 该域下所有集群 ID(如 `"general_file_ops"`)
     #[serde(default)]
     pub domain_to_clusters: HashMap<CapabilityDomain, Vec<String>>,
     /// L2 → L3 邻接:cluster_id → 该集群下所有能力 ID(如 `"tool:read_file"`)
@@ -165,7 +154,7 @@ impl RoutingGraph {
     ///
     /// # 参数
     /// - `domain`: 能力所属域
-    /// - `cluster`: 集群 ID(如 `"core_file_ops"`),若不在 L2 清单中也会注册到 L1→L2 边
+    /// - `cluster`: 集群 ID(如 `"general_file_ops"`),若不在 L2 清单中也会注册到 L1→L2 边
     /// - `capability_id`: 完整能力 ID(如 `"tool:read_file"`)
     pub fn add_capability(&mut self, domain: CapabilityDomain, cluster: &str, capability_id: &str) {
         // L1 → L2 边(去重)
@@ -203,7 +192,7 @@ impl RoutingGraph {
     /// ```text
     /// core: file_ops, text_ops, system_ops, config_ops
     /// general: search, summary, translation
-    /// invest: market_data, trading, risk_control, portfolio
+    /// finance: market_data, trading, risk_control, portfolio
     /// ...
     /// ```
     ///

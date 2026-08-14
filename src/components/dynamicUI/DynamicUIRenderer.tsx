@@ -56,6 +56,24 @@ function genRendererId(): string {
   return `dui-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+/** 原型污染危险键：禁止平铺到外部 context，防止污染 Object.prototype。 */
+const POLLUTION_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
+/**
+ * 将 dataSource 解析结果以安全方式平铺到 context 顶层。
+ *
+ * 仅复制对象自身的可枚举「安全」自有键，跳过 `__proto__` / `constructor` / `prototype`
+ * 等危险键，避免原型污染；同时不覆盖已有的 `schema.id` 挂载点。
+ */
+function flattenSafe(base: Record<string, unknown>, source: Record<string, unknown>): void {
+  for (const key of Object.keys(source)) {
+    if (POLLUTION_KEYS.has(key) || key in base) {
+      continue;
+    }
+    base[key] = source[key];
+  }
+}
+
 function deepCloneSchema(schema: UISchema): UISchema {
   if (typeof structuredClone === "function") {
     try {
@@ -67,37 +85,43 @@ function deepCloneSchema(schema: UISchema): UISchema {
   return JSON.parse(JSON.stringify(schema));
 }
 
+interface SchemaUpdateResult {
+  schema: UISchema;
+  changed: boolean;
+}
+
 function updateSchemaAtPath(
   root: UISchema,
   schemaId: string,
   operation: SchemaUpdateEventDetail["operation"],
   _path: string | undefined,
   newSchema: UISchema | undefined,
-): UISchema | null {
-  const cloned = deepCloneSchema(root);
-
-  function findAndUpdate(node: UISchema): UISchema | null {
+): SchemaUpdateResult {
+  function findAndUpdate(node: UISchema): { node: UISchema | null; changed: boolean } {
     if (node.id === schemaId) {
       switch (operation) {
         case "replace":
-          return newSchema ? deepCloneSchema(newSchema) : node;
+          return { node: newSchema ? deepCloneSchema(newSchema) : node, changed: true };
         case "append":
           if (newSchema) {
             return {
-              ...node,
-              children: [...(node.children || []), deepCloneSchema(newSchema)],
+              node: {
+                ...node,
+                children: [...(node.children || []), deepCloneSchema(newSchema)],
+              },
+              changed: true,
             };
           }
-          return node;
+          return { node, changed: false };
         case "remove":
-          return null;
+          return { node: null, changed: true };
       }
     }
     if (node.children) {
       const newChildren: UISchema[] = [];
       let changed = false;
       for (const child of node.children) {
-        const updated = findAndUpdate(child);
+        const { node: updated, changed: childChanged } = findAndUpdate(child);
         if (updated === null) {
           changed = true;
           continue;
@@ -106,15 +130,20 @@ function updateSchemaAtPath(
           changed = true;
         }
         newChildren.push(updated);
+        if (childChanged) {
+          changed = true;
+        }
       }
       if (changed) {
-        return { ...node, children: newChildren };
+        return { node: { ...node, children: newChildren }, changed: true };
       }
     }
-    return node;
+    return { node, changed: false };
   }
 
-  return findAndUpdate(cloned);
+  // FE-I5 修复：schemaId 未命中时返回原树 + changed:false，避免无谓深克隆与整树重渲染。
+  const { node, changed } = findAndUpdate(root);
+  return { schema: changed && node !== null ? node : root, changed: changed && node !== null };
 }
 
 interface SchemaNodeRendererProps {
@@ -206,10 +235,11 @@ const SchemaNodeRenderer = React.memo(function SchemaNodeRenderer({
     const base = { ...externalContext };
     if (resolvedData !== null && resolvedData !== undefined) {
       // 将解析结果挂到 dataContext[schema.id]，供数据组件通过 schema.id 读取
-      // （见 resolveDynamicArray）；非数组对象保持平铺到顶层以兼容旧逻辑
+      // （见 resolveDynamicArray）。非数组对象以安全方式平铺到顶层以兼容旧逻辑
+      // （表单字段按 name 读取等），跳过危险键防原型污染、跳过已有键防兄弟节点覆盖。
       base[schema.id] = resolvedData;
       if (typeof resolvedData === "object" && !Array.isArray(resolvedData)) {
-        Object.assign(base, resolvedData as Record<string, unknown>);
+        flattenSafe(base, resolvedData as Record<string, unknown>);
       }
     }
     return base;
@@ -453,14 +483,16 @@ export const DynamicUIRenderer: React.FC<DynamicUIProps> = React.memo(
           return;
         }
         const currentSchema = schemaRef.current;
-        const updated = updateSchemaAtPath(
+        const { schema: updated, changed } = updateSchemaAtPath(
           currentSchema,
           detail.schemaId,
           detail.operation,
           detail.path,
           detail.newSchema,
         );
-        if (updated) {
+        // FE-I5 修复：仅当 schemaId 命中且有实质变更时才 setSchema，
+        // 避免对无关 schema-id 的广播事件频繁整树重渲染。
+        if (changed) {
           setSchema(updated);
         }
       };

@@ -478,7 +478,12 @@ pub fn cancel_training_job(job_id: String) -> Result<(), String> {
 #[command]
 pub fn delete_training_job(job_id: String) -> Result<(), String> {
     let mut s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
-    s.trainer.delete_job(&job_id).map_err(|e| format!("Delete failed: {:?}", e))?;
+    s.trainer.delete_job(&job_id).map_err(|e| {
+        crate::commands::error::ErrorResponse::err_with_detail(
+            crate::commands::error_code::fine_tune::DELETE_FAILED,
+            format!("{e:?}"),
+        )
+    })?;
     Ok(())
 }
 

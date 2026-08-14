@@ -40,7 +40,7 @@ pub struct ListResult {
 // ─── Storage Backend Trait ────────────────────────────────────────────
 
 #[async_trait]
-pub trait StorageBackend: Send + Sync {
+pub trait StorageBackend: Send + Sync + std::any::Any {
     async fn get(&self, key: &str) -> Result<StorageObject>;
     async fn put(&self, key: &str, data: &[u8], content_type: &str) -> Result<StorageObjectMeta>;
     async fn delete(&self, key: &str) -> Result<()>;

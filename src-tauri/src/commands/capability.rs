@@ -6,12 +6,25 @@
 
 use crate::AppState;
 use crate::commands::error::{CommandError, ErrorCategory, ErrorResponse};
+use agent_macro::agent_command;
 use axagent_harness::{
     CapabilityDiscoveryRequest, CapabilityDiscoveryResult, CapabilityIndexer,
     CapabilityPassportDto, CapabilityQuery, DiscoveryWeights, FilterContext, SessionBudget,
 };
 use serde::{Deserialize, Serialize};
 use tauri::State;
+
+/// 运行时能力注册表检视 DTO（P3：外部插件注册的可查询闭环）。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CapabilityRegistrationDetailDto {
+    pub id: String,
+    pub version: String,
+    pub contract: String,
+    pub description: String,
+    pub origin: String,
+    pub plugin_id: Option<String>,
+}
 
 // ── DTO 类型 ──────────────────────────────────────
 
@@ -52,6 +65,7 @@ fn default_false() -> bool {
 // ── Tauri 命令 ────────────────────────────────────
 
 /// 注册一个能力护照到索引
+#[agent_command(domain = capability, safety = Caution, call_mode = StateInput, description = "注册能力护照")]
 #[tauri::command]
 pub async fn capability_register_passport(
     state: State<'_, AppState>,
@@ -67,6 +81,7 @@ pub async fn capability_register_passport(
 }
 
 /// 批量注册能力护照
+#[agent_command(domain = capability, safety = Caution, call_mode = StateInput, description = "批量注册能力护照")]
 #[tauri::command]
 pub async fn capability_register_batch(
     state: State<'_, AppState>,
@@ -76,6 +91,7 @@ pub async fn capability_register_batch(
 }
 
 /// 执行能力发现管线
+#[agent_command(domain = capability, safety = Safe, call_mode = StateInput, description = "执行能力发现管线")]
 #[tauri::command]
 pub async fn capability_discover(
     state: State<'_, AppState>,
@@ -117,6 +133,7 @@ pub async fn capability_discover(
 }
 
 /// 列出已注册的能力
+#[agent_command(domain = capability, safety = Safe, call_mode = StateOnly, description = "列出已注册的能力")]
 #[tauri::command]
 pub async fn capability_list_passports(
     state: State<'_, AppState>,
@@ -132,6 +149,7 @@ pub async fn capability_list_passports(
 }
 
 /// 删除一个能力
+#[agent_command(domain = capability, safety = Dangerous, call_mode = StateInput, description = "删除能力护照")]
 #[tauri::command]
 pub async fn capability_remove_passport(
     state: State<'_, AppState>,
@@ -147,6 +165,7 @@ pub async fn capability_remove_passport(
 }
 
 /// 获取索引统计信息
+#[agent_command(domain = capability, safety = Safe, call_mode = StateOnly, description = "获取能力索引统计信息")]
 #[tauri::command]
 pub async fn capability_get_stats(
     state: State<'_, AppState>,
@@ -158,4 +177,25 @@ pub async fn capability_get_stats(
             ErrorCategory::Retryable,
         )
     })
+}
+
+/// 列出运行时能力注册表（P3：内置与外部插件平权的可查询检视闭环）。
+///
+/// 返回全部已注册能力及其来源；外部插件注册的能力额外标注来源插件 ID。
+#[agent_command(domain = plugin, safety = Safe, call_mode = StateOnly, description = "列出运行时能力注册表")]
+#[tauri::command]
+pub async fn capability_registry_dump()
+-> Result<Vec<CapabilityRegistrationDetailDto>, ErrorResponse> {
+    Ok(axagent_harness::get_capability_registry()
+        .list_with_details()
+        .into_iter()
+        .map(|d| CapabilityRegistrationDetailDto {
+            id: d.definition.id,
+            version: d.definition.version,
+            contract: d.definition.contract,
+            description: d.definition.description,
+            origin: d.origin.as_str().to_string(),
+            plugin_id: d.plugin_id,
+        })
+        .collect())
 }

@@ -237,6 +237,22 @@ pub struct WorkEngine {
     compiled_rhai_scripts: Arc<tokio::sync::RwLock<HashMap<String, RhaiScriptCache>>>,
     /// Rhai 引擎适配器（可选注入，优先使用；未设置时降级为 compiled_rhai_scripts）
     rhai_engine: Option<Arc<dyn RhaiEngineAdapter>>,
+    // ─────────────────────────────────────────────────────────────────────────
+    // 锁使用策略（BE-S1 统一，杜绝 std/tokio 混用导致的策略不一致）
+    //
+    // 1. 异步状态（跨 await 访问的共享状态，如 workflows / execution_workflows /
+    //    compiled_* / dispatcher / cancel_tokens / in_flight_nodes / agent 缓存 /
+    //    tool_handlers / breakpoints / loop_* 等）→ 一律使用 `tokio::sync::{Mutex,RwLock}`，
+    //    可在 async 上下文安全 await。
+    // 2. 同步注入态（setup/init 阶段同步写入、读取频率极低或读取时先 clone Arc
+    //    再释放锁的字段，如 domain_constraints / business_rule_engine /
+    //    workflow_reflector / workflow_evolver / workflow_optimizer / tool_registry /
+    //    audit_recorder / db / event_bus / agent_turn_runner 等）→ 使用
+    //    `std::sync::{Mutex,RwLock}`，避免无谓的 async 锁开销。
+    // 3. 铁律：std guard 一律不得跨 `.await` 持有 —— `std::sync::RwLock` guard 跨
+    //    await 是 UB，`std::sync::Mutex` panic 会毒化。所有 std 锁读取点必须先取
+    //    Arc clone 再释放 guard，再执行异步逻辑。
+    // ─────────────────────────────────────────────────────────────────────────
     /// Plan 模式：PlannerAdapter（由外部注入，None = 未启用 Plan 模式）
     planner: Option<Arc<std::sync::Mutex<dyn axagent_harness::PlannerAdapter>>>,
     /// 按 `execution_id` 索引的取消令牌（修复：原本按 `workflow_id` 索引，
@@ -322,6 +338,13 @@ pub struct WorkEngine {
     /// `interrupt_signal.notified().await`，调用方通过 `resume_loop_iteration`
     /// 触发 `notify_waiters()` 唤醒。
     loop_interrupt_signals: Arc<Mutex<HashMap<String, std::sync::Arc<tokio::sync::Notify>>>>,
+    /// BE-C2 修复：按 execution_id 维护的跨批次「在途节点」集合。
+    ///
+    /// `active_nodes` 仅覆盖单批次调度去重；当节点因重试被置回 Ready 时，若其
+    /// 上一轮 spawn 任务仍在途（例如超时包装未真正 abort 底层副作用），该节点
+    /// 可能被再次 spawn 造成对带外部副作用节点（HttpRequest/DatabaseQuery）的
+    /// 重复执行。这里用 execution_id 粒度维护在途集合，调度前排重，杜绝重复调度。
+    in_flight_nodes: Arc<tokio::sync::Mutex<HashMap<String, HashSet<String>>>>,
     /// 数据库连接（用于 ApprovalOps 回调持久化审批记录等）。
     db: Arc<std::sync::Mutex<Option<sea_orm::DatabaseConnection>>>,
     /// 统一事件总线（可选，由 wiring 层注入）。
@@ -798,6 +821,7 @@ impl WorkEngine {
             tool_registry: Arc::new(std::sync::Mutex::new(None)),
             loop_partial_txs: Arc::new(Mutex::new(HashMap::new())),
             loop_interrupt_signals: Arc::new(Mutex::new(HashMap::new())),
+            in_flight_nodes: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             db: Arc::new(std::sync::Mutex::new(None)),
             event_bus: Arc::new(std::sync::RwLock::new(None)),
             agent_turn_runner: Arc::new(std::sync::RwLock::new(None)),
@@ -1109,7 +1133,13 @@ impl WorkEngine {
         let mut workflows = self.workflows.write().await;
         let workflow = workflows.get_mut(workflow_id).ok_or(WorkflowError::WorkflowNotFound)?;
 
-        Self::apply_node_status_update(workflow, node_id, status, result, error, output_var);
+        Self::apply_node_status_update(workflow, node_id, status, result, error, output_var)
+            .map_err(|e| match e {
+                WorkEngineError::InvalidStateTransition { node_id, from, to } => {
+                    WorkflowError::InvalidStateTransition(format!("{node_id}: {from} → {to}"))
+                },
+                other => WorkflowError::InvalidStateTransition(other.to_string()),
+            })?;
         Ok(())
     }
 
@@ -1129,14 +1159,14 @@ impl WorkEngine {
             .get_mut(execution_id)
             .ok_or_else(|| WorkEngineError::NotFound(execution_id.to_string()))?;
 
-        Self::apply_node_status_update(workflow, node_id, status, result, error, output_var);
+        Self::apply_node_status_update(workflow, node_id, status, result, error, output_var)?;
         Ok(())
     }
 
     /// 节点状态变更的核心逻辑（从 `update_node_status` 抽取，供两个入口共用）。
     ///
-    /// 包含状态机合法性校验：非法迁移（如终态→非终态）会被拒绝并记录警告日志，
-    /// 防止并发执行或异常路径导致的状态机混乱。
+    /// 包含状态机合法性校验：非法迁移（如终态→非终态）会被拒绝并返回错误，
+    /// 防止并发执行或异常路径导致的状态机混乱。调用方须传播该错误，而非 `.ok()` 吞掉。
     fn apply_node_status_update(
         workflow: &mut Workflow,
         node_id: &str,
@@ -1144,10 +1174,10 @@ impl WorkEngine {
         result: Option<serde_json::Value>,
         error: Option<String>,
         output_var: Option<&str>,
-    ) {
+    ) -> Result<(), WorkEngineError> {
         let state = match workflow.node_states.get_mut(node_id) {
             Some(s) => s,
-            None => return,
+            None => return Err(WorkEngineError::NotFound(node_id.to_string())),
         };
 
         // ── 状态机合法性校验 ──
@@ -1160,7 +1190,11 @@ impl WorkEngine {
                 status,
                 workflow.id
             );
-            return;
+            return Err(WorkEngineError::InvalidStateTransition {
+                node_id: node_id.to_string(),
+                from: format!("{current_status:?}"),
+                to: format!("{status:?}"),
+            });
         }
 
         state.status = status;
@@ -1254,6 +1288,35 @@ impl WorkEngine {
             workflow.status = WorkflowStatus::Failed;
             workflow.completed_at = Some(current_timestamp());
         }
+
+        Ok(())
+    }
+
+    /// 重试重置：将执行实例中的节点状态直接置回 Ready，供下一轮调度重新执行。
+    ///
+    /// 重试是显式业务操作，允许 `Running → Ready`，因此绕过常规状态机迁移校验
+    /// （BE-C1 修复：原直接 `update_node_status_for_execution(..., Ready, ...)` 因
+    /// `Running → Ready` 非法被静默拦截，重试形同虚设）。同时递增 attempts 反映
+    /// 失败次数，并清理 error 与时间戳，避免遗留上次失败状态。
+    async fn reset_node_for_retry(
+        &self,
+        execution_id: &str,
+        node_id: &str,
+    ) -> Result<(), WorkEngineError> {
+        let mut execution_workflows = self.execution_workflows.write().await;
+        let wf = execution_workflows
+            .get_mut(execution_id)
+            .ok_or_else(|| WorkEngineError::NotFound(execution_id.to_string()))?;
+        let state = wf
+            .node_states
+            .get_mut(node_id)
+            .ok_or_else(|| WorkEngineError::NotFound(node_id.to_string()))?;
+        state.status = NodeStatus::Ready;
+        state.started_at = None;
+        state.completed_at = None;
+        state.error = None;
+        state.attempts += 1;
+        Ok(())
     }
 
     pub async fn get_workflow(&self, workflow_id: &str) -> Result<Option<Workflow>, WorkflowError> {
@@ -1297,19 +1360,36 @@ impl WorkEngine {
                 .ok();
         }
 
-        let mut workflows = self.workflows.write().await;
-        let workflow = workflows.get_mut(workflow_id).ok_or(WorkflowError::WorkflowNotFound)?;
-
-        for state in workflow.node_states.values_mut() {
-            if matches!(state.status, NodeStatus::Pending | NodeStatus::Ready | NodeStatus::Running)
-            {
-                state.status = NodeStatus::Skipped;
+        // BE-I3 修复：只更新各 execution 实例为 Cancelled，不修改共享模板 self.workflows，
+        // 避免同模板并发执行互相污染、执行状态不同步。
+        let mut updated: Option<Workflow> = None;
+        {
+            let mut exec_wfs = self.execution_workflows.write().await;
+            for exec_id in &running_exec_ids {
+                if let Some(wf) = exec_wfs.get_mut(exec_id) {
+                    for state in wf.node_states.values_mut() {
+                        if matches!(
+                            state.status,
+                            NodeStatus::Pending | NodeStatus::Ready | NodeStatus::Running
+                        ) {
+                            state.status = NodeStatus::Skipped;
+                        }
+                    }
+                    wf.status = WorkflowStatus::Cancelled;
+                    wf.completed_at = Some(current_timestamp());
+                    updated = Some(wf.clone());
+                }
             }
         }
-        workflow.status = WorkflowStatus::Cancelled;
-        workflow.completed_at = Some(current_timestamp());
 
-        Ok(workflow.clone())
+        // 无关联执行实例时返回模板（兼容旧调用方），但不修改其状态
+        if let Some(wf) = updated {
+            return Ok(wf);
+        }
+        {
+            let workflows = self.workflows.read().await;
+            workflows.get(workflow_id).cloned().ok_or(WorkflowError::WorkflowNotFound)
+        }
     }
 
     pub async fn serialize_workflow(&self, workflow_id: &str) -> Result<String, WorkflowError> {
@@ -1882,9 +1962,20 @@ impl WorkEngine {
                 .unwrap_or_default()
             };
 
+            // BE-C2 修复：读取该执行的在途节点集合，跨批次排重，防止同一节点
+            // 在上一轮任务仍在途时被再次 spawn（重复副作用）。
+            let in_flight = {
+                let set = self.in_flight_nodes.lock().await;
+                set.get(&execution_id).cloned().unwrap_or_default()
+            };
+
             let batch: Vec<String> = ready_nodes
                 .into_iter()
                 .filter(|nid| {
+                    // 已在途 → 跳过，避免重复调度
+                    if in_flight.contains(nid) {
+                        return false;
+                    }
                     if type_limits.is_empty() {
                         return true;
                     }
@@ -1906,6 +1997,14 @@ impl WorkEngine {
                 .collect();
 
             active_nodes.extend(batch.iter().cloned());
+
+            // BE-C2 修复：把本批节点登记为在途（已在本批次内去重，但登记到
+            // 全局在途集以覆盖跨批次重试场景）。
+            if !batch.is_empty() {
+                let mut in_flight_map = self.in_flight_nodes.lock().await;
+                let set = in_flight_map.entry(execution_id.clone()).or_default();
+                set.extend(batch.iter().cloned());
+            }
 
             let mut join_set: tokio::task::JoinSet<NodeResult> = tokio::task::JoinSet::new();
 
@@ -2289,6 +2388,18 @@ impl WorkEngine {
                     Err(_) => continue,
                 };
 
+                // BE-C2 修复：节点任务已结束（完成/失败/超时/跳过），从在途集合移除，
+                // 允许后续批次（如重试）重新调度。
+                {
+                    let mut in_flight_map = self.in_flight_nodes.lock().await;
+                    if let Some(set) = in_flight_map.get_mut(&execution_id) {
+                        set.remove(&nr.node_id);
+                        if set.is_empty() {
+                            in_flight_map.remove(&execution_id);
+                        }
+                    }
+                }
+
                 match nr.dispatch_result {
                     Ok(Ok(output)) => {
                         tracing::info!(
@@ -2603,16 +2714,7 @@ impl WorkEngine {
                                 break;
                             }
 
-                            self.update_node_status_for_execution(
-                                &execution_id,
-                                &nr.node_id,
-                                NodeStatus::Ready,
-                                None,
-                                Some(err_msg.clone()),
-                                None,
-                            )
-                            .await
-                            .ok();
+                            self.reset_node_for_retry(&execution_id, &nr.node_id).await?;
                         } else {
                             self.update_node_status_for_execution(
                                 &execution_id,
@@ -2622,8 +2724,7 @@ impl WorkEngine {
                                 Some(err_msg.clone()),
                                 None,
                             )
-                            .await
-                            .ok();
+                            .await?;
                         }
 
                         self.record_node_execution(
@@ -3031,7 +3132,27 @@ impl WorkEngine {
                         if active_nodes.contains(&nid) {
                             continue;
                         }
+                        // BE-C2 修复：抢先调度路径同样检查全局在途集合，防止与
+                        // 主批次已登记在途的节点重复 spawn。
+                        {
+                            let in_flight_map = self.in_flight_nodes.lock().await;
+                            if in_flight_map
+                                .get(&execution_id)
+                                .map(|s| s.contains(&nid))
+                                .unwrap_or(false)
+                            {
+                                continue;
+                            }
+                        }
                         active_nodes.insert(nid.clone());
+                        // BE-C2 修复：登记在途（join_next 处理结果时会移除）。
+                        {
+                            let mut in_flight_map = self.in_flight_nodes.lock().await;
+                            in_flight_map
+                                .entry(execution_id.clone())
+                                .or_default()
+                                .insert(nid.clone());
+                        }
 
                         let node = {
                             let workflows = self.execution_workflows.read().await;
@@ -3175,7 +3296,7 @@ impl WorkEngine {
         };
 
         if let Some(ref mut wf) = result {
-            let end_output = extract_end_output(&wf.nodes, &wf.results);
+            let end_output = extract_end_output(&wf.nodes, &wf.edges, &wf.results);
             wf.output =
                 build_workflow_output(&wf.results, end_output, options.output_schema.as_ref());
 
@@ -4043,6 +4164,7 @@ pub enum WorkEngineError {
     ToolError { name: String, message: String },
     Execution(String),
     SerializationError(String),
+    InvalidStateTransition { node_id: String, from: String, to: String },
 }
 
 impl std::fmt::Display for WorkEngineError {
@@ -4055,6 +4177,9 @@ impl std::fmt::Display for WorkEngineError {
             Self::ToolError { name, message } => write!(f, "工具执行错误 [{name}]: {message}"),
             Self::Execution(e) => write!(f, "执行错误: {e}"),
             Self::SerializationError(e) => write!(f, "序列化错误: {e}"),
+            Self::InvalidStateTransition { node_id, from, to } => {
+                write!(f, "非法状态迁移: node={node_id}, {from} → {to}")
+            },
         }
     }
 }

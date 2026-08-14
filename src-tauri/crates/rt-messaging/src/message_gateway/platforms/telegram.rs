@@ -5,7 +5,7 @@ use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 
 use crate::message_gateway::platform_config::PlatformConfig;
-use crate::message_gateway::platforms::PlatformAdapter;
+use axagent_harness::MessagePlatformAdapter;
 
 pub struct TelegramAdapter {
     connected: Arc<AtomicBool>,
@@ -26,7 +26,7 @@ impl TelegramAdapter {
 use std::sync::Arc;
 
 #[async_trait::async_trait]
-impl PlatformAdapter for TelegramAdapter {
+impl MessagePlatformAdapter for TelegramAdapter {
     fn name(&self) -> &'static str {
         "telegram"
     }

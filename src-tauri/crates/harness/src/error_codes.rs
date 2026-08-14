@@ -367,6 +367,35 @@ pub mod voice {
     pub const SESSION_CREATE_REQUIRED: &str = "VOICE_SESSION_CREATE_REQUIRED";
 }
 
+/// LLM 调用相关错误码
+pub mod llm {
+    /// LLM 调用失败（含重试耗尽）
+    pub const CALL_FAILED: &str = "LLM_CALL_FAILED";
+}
+
+/// 能力发现相关错误码
+pub mod capability {
+    /// 能力嵌入向量生成失败
+    pub const EMBEDDING_FAILED: &str = "CAPABILITY_EMBEDDING_FAILED";
+}
+
+/// 构造携带错误码的结构化错误字符串。
+///
+/// BE-I1 修复：crate 层函数（如 `execute_llm`、认知 RAR 检索、能力嵌入）返回
+/// `Result<_, String>` 历史上是裸字符串，前端无法按 `error.${code}` 做 i18n。
+/// 本函数把错误编码为前端 `translateBackendError` 可解析的 JSON
+/// `{ code, category, detail, params }`，命中 `error.${code}` 翻译键，未命中回退 detail。
+pub fn error_json(code: &str, detail: impl Into<String>) -> String {
+    let detail = detail.into();
+    serde_json::json!({
+        "code": code,
+        "category": "retryable",
+        "detail": detail,
+        "params": { "detail": detail }
+    })
+    .to_string()
+}
+
 /// 论文/文献相关错误码
 pub mod paper {
     /// 论文概览未找到
@@ -395,4 +424,6 @@ pub mod cognitive {
     pub const EXECUTION_MODE_INVALID: &str = "COGNITIVE_EXECUTION_MODE_INVALID";
     /// 安全拦截：检测到注入/越狱，拒绝执行并记录安全日志
     pub const PROMPT_REJECTED: &str = "COGNITIVE_PROMPT_REJECTED";
+    /// RAR 向量检索失败（BE-I1）
+    pub const RAR_RETRIEVE_FAILED: &str = "COGNITIVE_RAR_RETRIEVE_FAILED";
 }

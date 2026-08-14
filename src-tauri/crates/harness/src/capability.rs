@@ -43,42 +43,58 @@ impl CapabilityKind {
     }
 }
 
-// ── 能力域（复用 ToolDomain + 拓展） ────────────────
+// ── 能力域（唯一权威分类轴） ───────────────────────
 
-/// 能力所属业务域
+/// 能力所属功能域
 ///
-/// 扩展自 `ToolDomain`，新增数据分析/内容创作/通信等业务域。
+/// **标准化约束**（消除历史歧义，2026-08 重构）：
+/// - 唯一权威分类轴，全部按业务常识的功能语义划分，禁止引入自定义/产品线概念。
+/// - 业务线（AxInvest/AxOPC）通过护照 `tags`（`axinvest`/`axopc`）表达，不占域轴。
+/// - `General` 是唯一兜底域：任何不专属于下述功能域的能力归入此处。
+///   （历史 `Core` 域已合并进 `General`，避免“核心/通用”双兜底边界模糊。）
+/// - 各功能域互斥，以“该域的专业操作”为判据。
+/// - `System` 为内部域，仅配合 `Visibility::SystemOnly` 使用，永不进入检索结果。
+///
+/// # 历史字符串兼容
+/// 反序列化与 `FromStr` 接受旧值别名：`core`→General、`invest`→Finance、`opc`→Automation，
+/// 保证存量数据库（如 `active_domains`、路由路径）不受损；`as_str()`/`Display` 只输出新值。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CapabilityDomain {
-    Core,
+    /// 通用：文件/Shell/文本/网络/搜索/文档/配置等兜底通用能力
+    #[serde(alias = "core")]
     General,
+    /// 运维：CI/CD、部署、监控告警、安全审计、容器编排
     Devops,
+    /// AI 媒体：图像/视频/音频的生成与处理
     AiMedia,
-    Invest,
-    Opc,
-    /// 数据分析域
+    /// 数据分析：SQL 查询、数据可视化、ETL/数据清洗
     DataAnalysis,
-    /// 内容创作域
+    /// 内容创作：写作、设计、排版
     ContentCreation,
-    /// 通信域
+    /// 通信：IM、邮件、推送通知
     Communication,
-    /// 系统域（编排器、降级控制器等内部能力，不可被用户发现）
+    /// 金融：行情、交易、风控、组合管理（业务标签 axinvest）
+    #[serde(alias = "invest")]
+    Finance,
+    /// 自动化：RPA、定时任务、工作流编排（业务标签 axopc）
+    #[serde(alias = "opc")]
+    Automation,
+    /// 系统域（编排器、降级控制器等内部能力，仅配合 SystemOnly，不可被用户发现）
     System,
 }
 
 impl CapabilityDomain {
     pub fn as_str(&self) -> &'static str {
         match self {
-            CapabilityDomain::Core => "core",
             CapabilityDomain::General => "general",
             CapabilityDomain::Devops => "devops",
             CapabilityDomain::AiMedia => "ai_media",
-            CapabilityDomain::Invest => "invest",
-            CapabilityDomain::Opc => "opc",
             CapabilityDomain::DataAnalysis => "data_analysis",
             CapabilityDomain::ContentCreation => "content_creation",
             CapabilityDomain::Communication => "communication",
+            CapabilityDomain::Finance => "finance",
+            CapabilityDomain::Automation => "automation",
             CapabilityDomain::System => "system",
         }
     }
@@ -89,16 +105,33 @@ impl CapabilityDomain {
     }
 }
 
-impl From<super::tool::ToolDomain> for CapabilityDomain {
-    fn from(d: super::tool::ToolDomain) -> Self {
-        match d {
-            super::tool::ToolDomain::Core => CapabilityDomain::Core,
-            super::tool::ToolDomain::General => CapabilityDomain::General,
-            super::tool::ToolDomain::Devops => CapabilityDomain::Devops,
-            super::tool::ToolDomain::AiMedia => CapabilityDomain::AiMedia,
-            super::tool::ToolDomain::Invest => CapabilityDomain::Invest,
-            super::tool::ToolDomain::Opc => CapabilityDomain::Opc,
-        }
+impl std::fmt::Display for CapabilityDomain {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl std::str::FromStr for CapabilityDomain {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s.to_lowercase().as_str() {
+            // 新值
+            "general" => CapabilityDomain::General,
+            "devops" => CapabilityDomain::Devops,
+            "ai_media" => CapabilityDomain::AiMedia,
+            "data_analysis" => CapabilityDomain::DataAnalysis,
+            "content_creation" => CapabilityDomain::ContentCreation,
+            "communication" => CapabilityDomain::Communication,
+            "finance" => CapabilityDomain::Finance,
+            "automation" => CapabilityDomain::Automation,
+            "system" => CapabilityDomain::System,
+            // 历史别名（兼容存量数据）
+            "core" => CapabilityDomain::General,
+            "invest" => CapabilityDomain::Finance,
+            "opc" => CapabilityDomain::Automation,
+            _ => return Err(()),
+        })
     }
 }
 
@@ -360,12 +393,12 @@ pub trait CapabilityPassport: Send + Sync {
 
     /// 所属业务域
     fn domain(&self) -> CapabilityDomain {
-        CapabilityDomain::Core
+        CapabilityDomain::General
     }
 
     /// 子分类（L2 集群标识，用于三层路由的第二层）
     ///
-    /// 返回 `CapabilityCluster::cluster_id`，如 `"core_file_ops"`。
+    /// 返回 `CapabilityCluster::cluster_id`，如 `"general_file_ops"`。
     /// 空字符串表示未分类。
     fn sub_category(&self) -> String {
         String::new()
@@ -534,7 +567,7 @@ impl Default for CapabilityPassportDto {
             name: String::new(),
             description: String::new(),
             kind: CapabilityKind::Tool,
-            domain: CapabilityDomain::Core,
+            domain: CapabilityDomain::General,
             sub_category: String::new(),
             visibility: Visibility::Public,
             caller_permissions: CallerPermissions::new(),

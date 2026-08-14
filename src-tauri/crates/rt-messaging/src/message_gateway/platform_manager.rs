@@ -5,27 +5,15 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use crate::message_gateway::platforms;
-use crate::message_gateway::platforms::PlatformAdapter;
 use crate::message_gateway::session_router::SessionRouter;
+use axagent_harness::MessagePlatformAdapter;
 use axagent_harness::platform_config::PlatformConfig;
 
-#[async_trait::async_trait]
-pub trait PlatformMessageCallback: Send + Sync {
-    async fn on_message(
-        &self,
-        platform: &str,
-        user_id: &str,
-        username: Option<&str>,
-        chat_id: &str,
-        text: &str,
-    ) -> Option<String>;
-
-    /// 保存平台消息去重游标（适配器每次处理后调用）
-    async fn save_cursor(&self, platform: &str, cursor: i64);
-}
+/// 消息平台入站回调 — 权威定义在 harness（`message.callback` 接缝契约）。
+pub use axagent_harness::PlatformMessageCallback;
 
 pub struct PlatformManager {
-    adapters: RwLock<HashMap<String, Arc<dyn PlatformAdapter>>>,
+    adapters: RwLock<HashMap<String, Arc<dyn MessagePlatformAdapter>>>,
     session_router: RwLock<SessionRouter>,
     running_adapters: RwLock<Vec<String>>,
 }
@@ -38,7 +26,7 @@ impl Default for PlatformManager {
 
 impl PlatformManager {
     pub fn new() -> Self {
-        let mut adapters: HashMap<String, Arc<dyn PlatformAdapter>> = HashMap::new();
+        let mut adapters: HashMap<String, Arc<dyn MessagePlatformAdapter>> = HashMap::new();
 
         adapters
             .insert("telegram".to_string(), Arc::new(platforms::telegram::TelegramAdapter::new()));
@@ -113,13 +101,19 @@ impl PlatformManager {
         Ok(())
     }
 
-    pub async fn get_adapter(&self, name: &str) -> Option<Arc<dyn PlatformAdapter>> {
+    pub async fn get_adapter(&self, name: &str) -> Option<Arc<dyn MessagePlatformAdapter>> {
         let adapters = self.adapters.read().await;
         adapters.get(name).cloned()
     }
 
     pub async fn get_running_adapters(&self) -> Vec<String> {
         self.running_adapters.read().await.clone()
+    }
+
+    /// 列出所有已注册的平台适配器 (name, adapter) 对 — 供 wiring 层批量注册到能力注册表。
+    pub async fn list_all_adapters(&self) -> Vec<(String, Arc<dyn MessagePlatformAdapter>)> {
+        let adapters = self.adapters.read().await;
+        adapters.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
     }
 
     pub async fn set_message_callback(&self, callback: Arc<dyn PlatformMessageCallback>) {
@@ -205,7 +199,7 @@ impl PlatformManager {
             name: String,
             enabled: bool,
             in_running: bool,
-            adapter: Arc<dyn PlatformAdapter>,
+            adapter: Arc<dyn MessagePlatformAdapter>,
             active_sessions: i32,
         }
 

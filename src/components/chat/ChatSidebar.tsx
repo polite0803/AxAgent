@@ -244,11 +244,9 @@ export function ChatSidebar({
       return;
     }
     const active = conversations.find((c) => c.id === activeConversationId);
-    if (
-      active?.parent_conversation_id
-      && !expandedParentIdsRef.current.has(active.parent_conversation_id)
-    ) {
-      setExpandedParentIds((prev) => new Set(prev).add(active.parent_conversation_id!));
+    const parentId = active?.parent_conversation_id;
+    if (parentId && !expandedParentIdsRef.current.has(parentId)) {
+      setExpandedParentIds((prev) => new Set(prev).add(parentId));
     }
   }, [activeConversationId, conversations]);
 
@@ -389,13 +387,13 @@ export function ChatSidebar({
         filtered = filtered.filter((c: Conversation) => c.title.toLowerCase().includes(query));
       }
     }
-    filtered.sort((a, b) => {
+    // 复制后再排序，避免原地修改 store 持有的数组
+    return [...filtered].sort((a, b) => {
       if (a.is_pinned !== b.is_pinned) {
         return a.is_pinned ? -1 : 1;
       }
       return b.updated_at - a.updated_at;
     });
-    return filtered;
   }, [conversations, searchText, fts5ResultIds]);
 
   const toggleSelect = useCallback((id: string) => {
@@ -886,8 +884,10 @@ export function ChatSidebar({
     ) => {
       items.push(buildConvItem(conv, group, depth));
       if (hasChildren(conv.id) && isExpanded(conv.id)) {
-        const children = childrenMap.get(conv.id)!;
-        children.forEach((child) => pushConvWithChildren(child, group, depth + 1));
+        const children = childrenMap.get(conv.id);
+        if (children) {
+          children.forEach((child) => pushConvWithChildren(child, group, depth + 1));
+        }
       }
     };
 
@@ -895,7 +895,7 @@ export function ChatSidebar({
     Array.from(convsByWorkspaceDir.keys())
       .sort()
       .forEach((wsDir) => {
-        const wsConvs = convsByWorkspaceDir.get(wsDir)!;
+        const wsConvs = convsByWorkspaceDir.get(wsDir) ?? [];
         wsConvs.forEach((conv) => pushConvWithChildren(conv, `ws:${wsDir}`));
       });
 

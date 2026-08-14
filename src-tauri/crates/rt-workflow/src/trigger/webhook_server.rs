@@ -113,30 +113,37 @@ async fn handle_request(
         },
     };
 
-    // P0-6: HMAC 签名校验（如果 route 配置了 secret，则必须校验通过）
-    if let Some(secret) = route.secret.as_deref() {
-        let sig = request
-            .headers()
-            .iter()
-            .find(|h| h.field.equiv("X-Webhook-Signature"))
-            .map(|h| h.value.as_str().to_string());
-        let sig = match sig {
-            Some(s) => s,
-            None => {
-                let response = tiny_http::Response::from_string(
-                    "401 Unauthorized: missing X-Webhook-Signature",
-                )
-                .with_status_code(401);
-                let _ = request.respond(response);
-                return;
-            },
-        };
-        if !verify_hmac(secret, &body_bytes, &sig) {
-            let response = tiny_http::Response::from_string("401 Unauthorized: invalid signature")
-                .with_status_code(401);
+    // P0-6: HMAC 签名校验（secret 必填，缺失即拒绝，防止无鉴权触发工作流）
+    let secret = match route.secret.as_deref() {
+        Some(s) => s,
+        None => {
+            let response =
+                tiny_http::Response::from_string("401 Unauthorized: webhook requires secret")
+                    .with_status_code(401);
             let _ = request.respond(response);
             return;
-        }
+        },
+    };
+    let sig = request
+        .headers()
+        .iter()
+        .find(|h| h.field.equiv("X-Webhook-Signature"))
+        .map(|h| h.value.as_str().to_string());
+    let sig = match sig {
+        Some(s) => s,
+        None => {
+            let response =
+                tiny_http::Response::from_string("401 Unauthorized: missing X-Webhook-Signature")
+                    .with_status_code(401);
+            let _ = request.respond(response);
+            return;
+        },
+    };
+    if !verify_hmac(secret, &body_bytes, &sig) {
+        let response = tiny_http::Response::from_string("401 Unauthorized: invalid signature")
+            .with_status_code(401);
+        let _ = request.respond(response);
+        return;
     }
 
     let input = body_opt;

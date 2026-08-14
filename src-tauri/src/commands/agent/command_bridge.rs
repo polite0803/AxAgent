@@ -425,19 +425,7 @@ impl Default for DomainMappingConfig {
     fn default() -> Self {
         Self {
             mappings: vec![
-                // Core / General → 基础命令域
-                DomainMapping {
-                    tool_domain: "core".to_string(),
-                    command_domains: vec![
-                        CommandDomain::Core,
-                        CommandDomain::Settings,
-                        CommandDomain::Conversation,
-                        CommandDomain::Message,
-                        CommandDomain::Memory,
-                        CommandDomain::Knowledge,
-                        CommandDomain::Provider,
-                    ],
-                },
+                // General → 基础命令域（历史 Core 域已并入 General）
                 DomainMapping {
                     tool_domain: "general".to_string(),
                     command_domains: vec![
@@ -465,14 +453,14 @@ impl Default for DomainMappingConfig {
                     tool_domain: "ai_media".to_string(),
                     command_domains: vec![CommandDomain::Core, CommandDomain::Skill],
                 },
-                // Invest → 基础 + 知识库
+                // Finance → 基础 + 知识库
                 DomainMapping {
-                    tool_domain: "invest".to_string(),
+                    tool_domain: "finance".to_string(),
                     command_domains: vec![CommandDomain::Core, CommandDomain::Knowledge],
                 },
-                // Opc → 基础 + 工作流
+                // Automation → 基础 + 工作流
                 DomainMapping {
-                    tool_domain: "opc".to_string(),
+                    tool_domain: "automation".to_string(),
                     command_domains: vec![CommandDomain::Core, CommandDomain::Workflow],
                 },
             ],
@@ -732,8 +720,12 @@ fn execute_command(
     // 安全地获取或创建 runtime 执行异步操作
     match tokio::runtime::Handle::try_current() {
         Ok(handle) => {
-            // 已在 tokio runtime 中，直接 block_on
-            handle.block_on(async { dispatch_command(&name, input, &db, &app).await })
+            // 已在 tokio runtime 中，外包 block_in_place 阻塞当前线程，
+            // 避免在 runtime worker 上直接 block_on 触发
+            // "Cannot block the current thread from within a runtime" panic
+            tokio::task::block_in_place(move || {
+                handle.block_on(async { dispatch_command(&name, input, &db, &app).await })
+            })
         },
         Err(_) => {
             // 不在 runtime 中，创建临时 runtime

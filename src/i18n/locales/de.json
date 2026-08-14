@@ -882,7 +882,17 @@
         "title": "Plugin-Marktplatz",
         "tools": "Werkzeuge",
         "validateFailed": "Validierung fehlgeschlagen: {{error}}",
-        "version": "Version"
+        "version": "Version",
+        "registryTitle": "Fähigkeitsregister",
+        "registryLoading": "Registrierung wird geladen...",
+        "registryEmpty": "Keine registrierten Fähigkeits-Schnittstellen",
+        "registryBuiltin": "Eingebaut",
+        "registryExternal": "Externes Plugin",
+        "registryContract": "Vertrag",
+        "registryVersion": "Version",
+        "registryPlugin": "Plugin",
+        "registrySearchPlaceholder": "Nach Schnittstellen-/Plugin-ID suchen",
+        "registrySeam": "Schnittstelle"
       }
     },
     "preferences": "Präferenzen",
@@ -1167,6 +1177,35 @@
     "createConversationFailed": "Fehler beim Erstellen der Konversation",
     "chatinspectorapproval0": "chat.inspector.approval{{0}}"
   },
+  "capabilityDomain": {
+    "general": "Allgemein",
+    "devops": "DevOps",
+    "ai_media": "KI-Medien",
+    "data_analysis": "Datenanalyse",
+    "content_creation": "Inhaltserstellung",
+    "communication": "Kommunikation",
+    "finance": "Finanzen",
+    "automation": "Automatisierung",
+    "system": "System"
+  },
+  "capabilityPanel": {
+    "statsTitle": "Index-Statistik",
+    "totalCapabilities": "Fähigkeiten gesamt",
+    "totalVectors": "Vektoren gesamt",
+    "positiveVectors": "Positive Vektoren",
+    "negativeVectors": "Negative Vektoren",
+    "discoverTitle": "Entdecken",
+    "discoverPlaceholder": "Aufgabe beschreiben, z. B. \"Aktienkurs analysieren\"",
+    "discoverButton": "Entdecken",
+    "discoverResult": "Ergebnis",
+    "score": "Punktzahl",
+    "ambiguous": "Mehrdeutige Übereinstimmung",
+    "noMatch": "Keine passende Fähigkeit",
+    "passportsTitle": "Registrierte Pässe",
+    "noPassports": "Keine Fähigkeiten registriert",
+    "enabled": "Aktiviert",
+    "disabled": "Deaktiviert"
+  },
   "chatMarkdown": {
     "inputParams": "Eingabeparameter",
     "outputResult": "Ausgabeergebnis",
@@ -1200,7 +1239,9 @@
     "task": "Aufgaben",
     "teammate": "Team",
     "title": "Assistent",
-    "visionAnalysis": "Vision"
+    "visionAnalysis": "Vision",
+    "cognitiveRoute": "Route",
+    "capability": "Fähigkeit"
   },
   "cite": {
     "chunkLabel": "Abschnitt #{{n}}",
@@ -1516,6 +1557,29 @@
       "zhTW": "Traditionelles Chinesisch"
     }
   },
+  "cognitive": {
+    "clarifyTitle": "Wählen Sie eine Fähigkeit aus",
+    "clarifyPrompt": "Ihre Anfrage passte auf mehrere Kandidaten. Wählen Sie eine aus:",
+    "candidateWorkflow": "Workflow",
+    "candidateAgent": "Agent",
+    "clarifyExecuting": "Ausgewählte Fähigkeit wird ausgeführt...",
+    "clarifyHint": "Wählen Sie einen Kandidaten zum Fortfahren"
+  },
+  "cognitiveRoute": {
+    "empty": "Noch keine Routenbeobachtung",
+    "noRoute": "Keine Route bestimmt",
+    "domain": "Domäne",
+    "cluster": "Cluster",
+    "executionMode": "Modus",
+    "confidence": "Konfidenz",
+    "circuitBroken": "Unterbrechung",
+    "circuitClosed": "Normal",
+    "llmFallback": "LLM-Fallback",
+    "fallbackPath": "Fallback-Pfad",
+    "candidates": "Kandidaten",
+    "stageRecords": "Routenphasen",
+    "recordedAt": "Aufgezeichnet um"
+  },
   "continuation": {
     "continueFromHere": "Von hier fortfahren"
   },
@@ -1604,7 +1668,8 @@
     "agentDataNotFound": "Vom Agenten generierte Daten \"{{generationId}}\" nicht im Ausführungsspeicher gefunden",
     "apiRequestFailed": "API-Anfrage fehlgeschlagen: {{statusText}}",
     "storeNotRegistered": "Store \"{{storeName}}\" nicht registriert",
-    "unknownSourceType": "Unbekannter Datenquellentyp: {{type}}"
+    "unknownSourceType": "Unbekannter Datenquellentyp: {{type}}",
+    "apiEndpointForbidden": "API-Endpunkt \"{{endpoint}}\" ist nicht erlaubt und wurde blockiert"
   },
   "datasetManager": {
     "action": "Aktion",
@@ -1614,6 +1679,7 @@
     "created": "Erstellt",
     "createdSuccess": "Dataset created",
     "deleteFailed": "Löschen des Datensatzes fehlgeschlagen",
+    "FINE_TUNE_DELETE_FAILED": "Löschen des Feintuning-Auftrags fehlgeschlagen",
     "deletedSuccess": "Datensatz gelöscht",
     "description": "Beschreibung",
     "name": "Name",
@@ -1971,12 +2037,14 @@
     "CLOUD_UNKNOWN_CONFLICT": "Unbekannter Synchronisationskonflikttyp",
     "CLOUD_UNKNOWN_STORAGE": "Unbekannter Speichertyp",
     "CLOUD_UNKNOWN_STRATEGY": "Unbekannte Synchronisationsstrategie",
+    "CAPABILITY_EMBEDDING_FAILED": "Einbettungserzeugung fehlgeschlagen",
     "COGNITIVE_ROUTE_FAILED": "Cognitive-Routing-Ausführung fehlgeschlagen",
     "COGNITIVE_EMPTY_INPUT": "Cognitive-Routing-Eingabe ist leer",
     "COGNITIVE_CIRCUIT_BROKEN": "Cognitive-Routing-Unterbrechung ausgelöst: {reason}",
     "COGNITIVE_NO_CANDIDATE": "Keine verfügbare Fähigkeit für Cognitive-Routing gefunden",
     "COGNITIVE_EXECUTION_MODE_INVALID": "Ungültiger Cognitive-Routing-Ausführungsmodus",
     "COGNITIVE_PROMPT_REJECTED": "Kognitiver Prompt abgelehnt",
+    "COGNITIVE_RAR_RETRIEVE_FAILED": "Kandidatenabruf des kognitiven Routings fehlgeschlagen: {{detail}}",
     "COMMON_INTERNAL": "Interner Fehler",
     "COMMON_INVALID_INPUT": "Ungültige Eingabe",
     "COMMON_TIMEOUT": "Zeitüberschreitung bei Vorgang",
@@ -2084,6 +2152,9 @@
     "PLATFORM_TELEGRAM_NOT_ENABLED": "Telegram-Plattform nicht aktiviert",
     "PLATFORM_UNSUPPORTED": "Nicht unterstützte Plattform",
     "PLATFORM_WEBHOOK_NOT_CONFIGURED": "Webhook nicht konfiguriert",
+    "PLUGIN_PROFILE_NOT_FOUND": "Plugin-Bundle-Profil nicht gefunden",
+    "PLUGIN_PROFILE_DUPLICATE_NAME": "Name des Plugin-Bundle-Profils existiert bereits",
+    "PLUGIN_PROFILE_IO_FAILED": "Plugin-Bundle-Profil konnte nicht gespeichert werden",
     "PROVIDER_ADAPTER_NOT_FOUND": "Anbieter-Adapter nicht gefunden",
     "PROVIDER_CREATE_FAILED": "Erstellen des Anbieters fehlgeschlagen",
     "PROVIDER_DELETE_FAILED": "Löschen des Anbieters fehlgeschlagen",
@@ -2234,6 +2305,7 @@
     "LOCAL_MODEL_INSTALL_IN_PROGRESS": "llama.cpp-Installation in Bearbeitung",
     "LOCAL_MODEL_DOWNLOAD_FAILED": "Herunterladen fehlgeschlagen",
     "LOCAL_MODEL_PORT_IN_USE": "Port {{port}} wird bereits verwendet. Bitte ändern Sie den Port oder stoppen Sie den belegenden Prozess",
+    "LLM_CALL_FAILED": "LLM-Aufruf fehlgeschlagen: {{detail}}",
     "FLEET_NOT_FOUND": "Büro nicht gefunden",
     "FLEET_NAME_REQUIRED": "Büroname ist erforderlich",
     "FLEET_NO_MEMBERS": "Dieses Büro hat noch keine Mitglieder",
@@ -2272,7 +2344,6 @@
     "CAPABILITY_DISCOVER_FAILED": "Funktionserkennung fehlgeschlagen",
     "CAPABILITY_NOT_FOUND": "Funktion nicht gefunden",
     "CAPABILITY_INDEX_FAILED": "Funktionsindizierung fehlgeschlagen",
-    "CAPABILITY_EMBEDDING_FAILED": "Einbettungserzeugung fehlgeschlagen",
     "CAPABILITY_VECTOR_STORE_FAILED": "Vektor-Store-Vorgang fehlgeschlagen",
     "CAPABILITY_INVALID_PASSPORT": "Ungültiger Funktionspass",
     "CAPABILITY_LIST_FAILED": "Funktionsliste fehlgeschlagen",
@@ -2393,7 +2464,11 @@
       "name": "Allgemeiner Assistent",
       "desc": "Ein vielseitiger KI-Assistent für alltägliche Gespräche und allgemeine Fragen.",
       "systemPrompt": "Sie sind ein intelligenter KI-Assistent. Geben Sie genaue und hilfreiche Antworten auf die Fragen des Benutzers.",
-      "tags": ["Allgemein", "Assistent", "Gespräch"]
+      "tags": [
+        "Allgemein",
+        "Assistent",
+        "Gespräch"
+      ]
     }
   },
   "expertSelector": {
@@ -8583,7 +8658,8 @@
     "deleteFileDesc": "Delete the file at the specified path. This operation is irreversible.",
     "bashDesc": "Execute shell commands. Suitable for: running tests, builds, git operations. Dangerous commands require permission confirmation.",
     "fleetNoMembers": "The office has no members yet",
-    "fleetMessageReceived": "[Browser Mock] {{name}} received message: {{message}}"
+    "fleetMessageReceived": "[Browser Mock] {{name}} received message: {{message}}",
+    "capabilityAmbiguous": "Mehrere stark passende Fähigkeiten gefunden. Bitte zur Bestätigung präzisieren."
   },
   "cancel": "Abbrechen",
   "searchUtils": {

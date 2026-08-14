@@ -32,10 +32,11 @@ use crate::AppState;
 use crate::commands::agent::{AgentContextPayload, AgentOptions, AgentQueryRequest};
 use crate::commands::error::{CommandError, ErrorCategory, ErrorResponse};
 use crate::init::COGNITIVE_ROUTER_MAIN_ID;
+use agent_macro::agent_command;
 use axagent_harness::workflow_types::Variable;
 use axagent_harness::{
-    CandidateSummary, CapabilityDomain, ExecutionMode, ModeHint, PatternPromptGuard, PromptGuard,
-    RouteStageRecord, RoutingDecisionV2,
+    CandidateSummary, CapabilityDomain, CapabilityKind, ExecutionMode, ModeHint,
+    PatternPromptGuard, PromptGuard, RouteStageRecord, RoutingDecisionV2,
 };
 use axagent_runtime::work_engine::{RunOptions, SubWorkflowCallback};
 use serde::{Deserialize, Serialize};
@@ -85,6 +86,10 @@ pub struct CognitiveQueryRequest {
     /// 前端手动选择的模式降级为意图提示，路由决策优先尊重但可被自动决策覆盖。
     #[serde(rename = "modeHint")]
     pub mode_hint: Option<String>,
+    /// 强制目标能力 ID（Clarify 二次执行）：用户从澄清候选中选择后，跳过三层路由，
+    /// 直接执行该能力（Workflow 类型 → WorkEngine；Agent 类型 → agent_query）。
+    #[serde(rename = "forcedCapabilityId")]
+    pub forced_capability_id: Option<String>,
 }
 
 /// 认知编排执行结果视图 — 路由决策落地的执行分支句柄
@@ -222,6 +227,7 @@ fn executor_error(e: String, fallback_code: &'static str) -> CommandError {
 ///   （`capability_id` 即工作流模板 ID，`SubWorkflowExecutor` 支持嵌套）
 /// - `Delegate` / `Ask` / `Plan` / `Act`：调用 `agent_query`，交给通用 agent
 ///   （Ask/Plan/Act 对应 agent 引擎原有的三种执行模式，由认知编排器自动决策）
+#[agent_command(domain = cognitive, safety = Caution, call_mode = StateInput, description = "认知编排统一入口（三层路由决策并按执行模式分发）")]
 #[tauri::command]
 pub async fn cognitive_query(
     app: tauri::AppHandle,
@@ -296,6 +302,110 @@ pub async fn cognitive_query(
                 }),
             });
         }
+    }
+
+    // ── 前置 3：Clarify 二次执行（forcedCapabilityId 快速路径）──
+    // 用户在 Clarify 候选中选定能力后，携带 forcedCapabilityId 重新调用本命令：
+    // 跳过三层路由，按能力类型直接分发给对应执行器（Workflow → WorkEngine；Agent → agent_query）。
+    if let Some(forced_id) = request.forced_capability_id.as_deref().filter(|s| !s.is_empty()) {
+        let forced_id = forced_id.to_string();
+        let forced_kind = state
+            .capability_indexer
+            .get_passport(&forced_id)
+            .await
+            .map(|p| p.kind)
+            .unwrap_or(CapabilityKind::Workflow);
+        let execution = match forced_kind {
+            CapabilityKind::Workflow => {
+                let execution_id = crate::commands::workflows::workflow_execute(
+                    app.clone(),
+                    state,
+                    forced_id.clone(),
+                    request.model_id.clone(),
+                    request.provider_id.clone(),
+                    None,
+                    request.max_concurrent,
+                    request.conversation_id.clone(),
+                    Some(serde_json::Value::String(input.clone())),
+                )
+                .await
+                .map_err(|e| {
+                    executor_error(e, axagent_harness::error_codes::cognitive::ROUTE_FAILED)
+                })?;
+                CognitiveExecutionView::Workflow { workflow_id: forced_id.clone(), execution_id }
+            },
+            CapabilityKind::Agent => {
+                let conversation_id = request.conversation_id.clone().ok_or_else(|| {
+                    CommandError::new(axagent_harness::error_codes::cognitive::ROUTE_FAILED)
+                        .with_category(ErrorCategory::Validation)
+                        .with_param("field", "conversation_id")
+                })?;
+                let agent_request = AgentQueryRequest {
+                    conversation_id,
+                    input,
+                    provider_id: request.provider_id.clone().unwrap_or_default(),
+                    model_id: request.model_id.clone().unwrap_or_default(),
+                    enabled_mcp_server_ids: None,
+                    enabled_knowledge_base_ids: None,
+                    enabled_memory_namespace_ids: None,
+                    enabled_wiki_ids: None,
+                    system_prompt: request.system_prompt.clone(),
+                    thinking_budget: None,
+                    search_provider_id: request.search_provider_id.clone(),
+                    attachments: None,
+                    options: request.options.clone(),
+                    agent_profile_id: request.agent_profile_id.clone(),
+                    agent_context: request.agent_context.clone(),
+                };
+                let agent_resp = crate::commands::agent::agent_query(app, state, agent_request)
+                    .await
+                    .map_err(|e| {
+                        executor_error(e, axagent_harness::error_codes::cognitive::ROUTE_FAILED)
+                    })?;
+                CognitiveExecutionView::Agent {
+                    conversation_id: agent_resp.conversation_id,
+                    assistant_message_id: agent_resp.assistant_message_id,
+                    status: agent_resp.status,
+                }
+            },
+            // 其余能力类型（Tool / KnowledgeBase / Skill）当前无可执行执行器，
+            // 按 Workflow 语义回退（绝大多数 Clarify 候选来自工作流检索）
+            _ => {
+                let execution_id = crate::commands::workflows::workflow_execute(
+                    app.clone(),
+                    state,
+                    forced_id.clone(),
+                    request.model_id.clone(),
+                    request.provider_id.clone(),
+                    None,
+                    request.max_concurrent,
+                    request.conversation_id.clone(),
+                    Some(serde_json::Value::String(input.clone())),
+                )
+                .await
+                .map_err(|e| {
+                    executor_error(e, axagent_harness::error_codes::cognitive::ROUTE_FAILED)
+                })?;
+                CognitiveExecutionView::Workflow { workflow_id: forced_id.clone(), execution_id }
+            },
+        };
+        return Ok(CognitiveQueryResponse {
+            route_path: format!("forced:{}", forced_kind.as_str()),
+            domain: String::new(),
+            cluster: String::new(),
+            capability_id: forced_id,
+            confidence: 1.0,
+            is_llm_fallback: false,
+            circuit_broken: false,
+            circuit_break_reason: None,
+            fallback_path: None,
+            candidates: Vec::new(),
+            candidate_details: Vec::new(),
+            execution_mode: ExecutionMode::ParameterExtract.as_str().to_string(),
+            stage_records: Vec::new(),
+            total_elapsed_ms: 0,
+            execution: Some(execution),
+        });
     }
 
     // ── 三层路由决策：主 DAG 驱动（WorkEngine 同步执行认知编排器）──
@@ -622,6 +732,7 @@ fn extract_json_object(input: &str) -> Option<serde_json::Value> {
 }
 
 /// 快速路径 — 仅执行 L1 域路由（供调试与展示）
+#[agent_command(domain = cognitive, safety = Safe, call_mode = StateInput, description = "认知编排 L1 域路由")]
 #[tauri::command]
 pub async fn cognitive_route_l1(
     state: State<'_, AppState>,
@@ -636,6 +747,7 @@ pub async fn cognitive_route_l1(
 }
 
 /// 查询执行模式说明（供前端展示/调试）
+#[agent_command(domain = cognitive, safety = Safe, call_mode = StateOnly, description = "查询认知编排执行模式列表")]
 #[tauri::command]
 pub async fn cognitive_list_execution_modes() -> Result<Vec<&'static str>, CommandError> {
     Ok(vec![

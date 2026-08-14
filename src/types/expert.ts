@@ -75,7 +75,7 @@ export interface ExpertRole {
 
   /** 推荐的工具名称列表（导入时自动解析匹配） */
   recommendedTools?: string[];
-  /** 活跃工具域列表（例如 ["core", "invest"]） */
+  /** 活跃工具域列表（例如 ["general", "finance"]） */
   activeDomains?: string[];
   /** 推荐的工作流模板 ID 列表（导入时自动解析并创建） */
   recommendedWorkflows?: string[];

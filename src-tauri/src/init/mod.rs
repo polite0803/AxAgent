@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+pub mod agent_turn_adapter;
 pub mod cognitive_router_init;
 pub mod database;
 pub mod llm_providers;

@@ -882,7 +882,17 @@
         "title": "Магазин плагинов",
         "tools": "Инструменты",
         "validateFailed": "Ошибка проверки: {{error}}",
-        "version": "Версия"
+        "version": "Версия",
+        "registryTitle": "Реестр способностей",
+        "registryLoading": "Загрузка реестра...",
+        "registryEmpty": "Нет зарегистрированных стыков способностей",
+        "registryBuiltin": "Встроенный",
+        "registryExternal": "Внешний плагин",
+        "registryContract": "Контракт",
+        "registryVersion": "Версия",
+        "registryPlugin": "Плагин",
+        "registrySearchPlaceholder": "Поиск по ID стыка / плагина",
+        "registrySeam": "Стык"
       }
     },
     "preferences": "Предпочтения",
@@ -1167,6 +1177,35 @@
     "createConversationFailed": "Не удалось создать диалог",
     "chatinspectorapproval0": "чат.инспектор.одобрение{{0}}"
   },
+  "capabilityDomain": {
+    "general": "Общий",
+    "devops": "DevOps",
+    "ai_media": "ИИ-медиа",
+    "data_analysis": "Анализ данных",
+    "content_creation": "Создание контента",
+    "communication": "Коммуникация",
+    "finance": "Финансы",
+    "automation": "Автоматизация",
+    "system": "Система"
+  },
+  "capabilityPanel": {
+    "statsTitle": "Статистика индекса",
+    "totalCapabilities": "Всего способностей",
+    "totalVectors": "Всего векторов",
+    "positiveVectors": "Положительные векторы",
+    "negativeVectors": "Отрицательные векторы",
+    "discoverTitle": "Поиск",
+    "discoverPlaceholder": "Опишите задачу, напр. «проанализировать тренды»",
+    "discoverButton": "Найти",
+    "discoverResult": "Результат",
+    "score": "Оценка",
+    "ambiguous": "Неоднозначное совпадение",
+    "noMatch": "Совпадений не найдено",
+    "passportsTitle": "Зарегистрированные паспорта",
+    "noPassports": "Способности не зарегистрированы",
+    "enabled": "Включено",
+    "disabled": "Отключено"
+  },
   "chatMarkdown": {
     "inputParams": "Входные параметры",
     "outputResult": "Результат вывода",
@@ -1200,7 +1239,9 @@
     "task": "Задачи",
     "teammate": "Команда",
     "title": "Панель",
-    "visionAnalysis": "Зрение"
+    "visionAnalysis": "Зрение",
+    "cognitiveRoute": "Маршрут",
+    "capability": "Способность"
   },
   "cite": {
     "chunkLabel": "Фрагмент #{{n}}",
@@ -1516,6 +1557,29 @@
       "zhTW": "Традиционный китайский"
     }
   },
+  "cognitive": {
+    "clarifyTitle": "Выберите способность",
+    "clarifyPrompt": "Ваш запрос совпал с несколькими кандидатами. Выберите один:",
+    "candidateWorkflow": "Рабочий процесс",
+    "candidateAgent": "Агент",
+    "clarifyExecuting": "Выполняется выбранная способность...",
+    "clarifyHint": "Выберите кандидата, чтобы продолжить"
+  },
+  "cognitiveRoute": {
+    "empty": "Нет данных о маршруте",
+    "noRoute": "Маршрут не определён",
+    "domain": "Домен",
+    "cluster": "Кластер",
+    "executionMode": "Режим",
+    "confidence": "Уверенность",
+    "circuitBroken": "Разрыв цепи",
+    "circuitClosed": "Нормально",
+    "llmFallback": "Запасной LLM",
+    "fallbackPath": "Запасной путь",
+    "candidates": "Кандидаты",
+    "stageRecords": "Этапы маршрута",
+    "recordedAt": "Записано в"
+  },
   "continuation": {
     "continueFromHere": "Продолжить отсюда"
   },
@@ -1604,7 +1668,8 @@
     "agentDataNotFound": "Данные агента \"{{generationId}}\" не найдены в хранилище выполнения",
     "apiRequestFailed": "Запрос API не удался: {{statusText}}",
     "storeNotRegistered": "Хранилище \"{{storeName}}\" не зарегистрировано",
-    "unknownSourceType": "Неизвестный тип источника данных: {{type}}"
+    "unknownSourceType": "Неизвестный тип источника данных: {{type}}",
+    "apiEndpointForbidden": "Конечная точка API \"{{endpoint}}\" не разрешена и была заблокирована"
   },
   "datasetManager": {
     "action": "Действие",
@@ -1614,6 +1679,7 @@
     "created": "Создано",
     "createdSuccess": "Dataset created",
     "deleteFailed": "Не удалось удалить датасет",
+    "FINE_TUNE_DELETE_FAILED": "Не удалось удалить задачу тонкой настройки",
     "deletedSuccess": "Набор данных удален",
     "description": "Описание",
     "name": "Имя",
@@ -1971,12 +2037,14 @@
     "CLOUD_UNKNOWN_CONFLICT": "Неизвестный тип конфликта синхронизации",
     "CLOUD_UNKNOWN_STORAGE": "Неизвестный тип хранилища",
     "CLOUD_UNKNOWN_STRATEGY": "Неизвестная стратегия синхронизации",
+    "CAPABILITY_EMBEDDING_FAILED": "Генерация эмбеддинга не удалась",
     "COGNITIVE_ROUTE_FAILED": "Сбой выполнения когнитивной маршрутизации",
     "COGNITIVE_EMPTY_INPUT": "Ввод когнитивной маршрутизации пуст",
     "COGNITIVE_CIRCUIT_BROKEN": "Сработал автоматический выключатель когнитивной маршрутизации: {reason}",
     "COGNITIVE_NO_CANDIDATE": "Для когнитивной маршрутизации не найдено доступных возможностей",
     "COGNITIVE_EXECUTION_MODE_INVALID": "Недопустимый режим выполнения когнитивной маршрутизации",
     "COGNITIVE_PROMPT_REJECTED": "Когнитивный запрос отклонён",
+    "COGNITIVE_RAR_RETRIEVE_FAILED": "Не удалось получить кандидатов когнитивной маршрутизации: {{detail}}",
     "COMMON_INTERNAL": "Внутренняя ошибка",
     "COMMON_INVALID_INPUT": "Недопустимый ввод",
     "COMMON_TIMEOUT": "Превышено время ожидания операции",
@@ -2084,6 +2152,9 @@
     "PLATFORM_TELEGRAM_NOT_ENABLED": "Платформа Telegram не включена",
     "PLATFORM_UNSUPPORTED": "Неподдерживаемая платформа",
     "PLATFORM_WEBHOOK_NOT_CONFIGURED": "Webhook не настроен",
+    "PLUGIN_PROFILE_NOT_FOUND": "Профиль связки плагинов не найден",
+    "PLUGIN_PROFILE_DUPLICATE_NAME": "Имя профиля связки плагинов уже существует",
+    "PLUGIN_PROFILE_IO_FAILED": "Не удалось сохранить профиль связки плагинов",
     "PROVIDER_ADAPTER_NOT_FOUND": "Адаптер поставщика не найден",
     "PROVIDER_CREATE_FAILED": "Не удалось создать поставщика",
     "PROVIDER_DELETE_FAILED": "Не удалось удалить поставщика",
@@ -2234,6 +2305,7 @@
     "LOCAL_MODEL_INSTALL_IN_PROGRESS": "Установка llama.cpp выполняется",
     "LOCAL_MODEL_DOWNLOAD_FAILED": "Скачивание не удалось",
     "LOCAL_MODEL_PORT_IN_USE": "Порт {{port}} уже занят. Пожалуйста, смените порт или остановите процесс, который его занимает",
+    "LLM_CALL_FAILED": "Не удалось выполнить вызов LLM: {{detail}}",
     "FLEET_NOT_FOUND": "Офис не найден",
     "FLEET_NAME_REQUIRED": "Требуется название офиса",
     "FLEET_NO_MEMBERS": "В этом офисе пока нет участников",
@@ -2272,7 +2344,6 @@
     "CAPABILITY_DISCOVER_FAILED": "Обнаружение возможности не удалось",
     "CAPABILITY_NOT_FOUND": "Возможность не найдена",
     "CAPABILITY_INDEX_FAILED": "Индексирование возможности не удалось",
-    "CAPABILITY_EMBEDDING_FAILED": "Генерация эмбеддинга не удалась",
     "CAPABILITY_VECTOR_STORE_FAILED": "Операция векторного хранилища не удалась",
     "CAPABILITY_INVALID_PASSPORT": "Неверный паспорт возможности",
     "CAPABILITY_LIST_FAILED": "Не удалось получить список возможностей",
@@ -2393,7 +2464,11 @@
       "name": "Универсальный помощник",
       "desc": "Универсальный ИИ-ассистент для повседневных разговоров и общих вопросов.",
       "systemPrompt": "Вы — интеллектуальный ИИ-ассистент. Давайте точные и полезные ответы на вопросы пользователя.",
-      "tags": ["Универсальный", "Помощник", "Диалог"]
+      "tags": [
+        "Универсальный",
+        "Помощник",
+        "Диалог"
+      ]
     }
   },
   "expertSelector": {
@@ -8583,7 +8658,8 @@
     "deleteFileDesc": "Delete the file at the specified path. This operation is irreversible.",
     "bashDesc": "Execute shell commands. Suitable for: running tests, builds, git operations. Dangerous commands require permission confirmation.",
     "fleetNoMembers": "The office has no members yet",
-    "fleetMessageReceived": "[Browser Mock] {{name}} received message: {{message}}"
+    "fleetMessageReceived": "[Browser Mock] {{name}} received message: {{message}}",
+    "capabilityAmbiguous": "Найдено несколько высокорелевантных способностей. Уточните запрос для подтверждения."
   },
   "cancel": "Отмена",
   "searchUtils": {

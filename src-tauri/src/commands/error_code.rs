@@ -36,6 +36,12 @@ pub mod conversation {
     pub const DELETE_FAILED: &str = "CONVERSATION_DELETE_FAILED";
 }
 
+/// 微调训练相关错误码
+pub mod fine_tune {
+    /// 删除训练任务失败
+    pub const DELETE_FAILED: &str = "FINE_TUNE_DELETE_FAILED";
+}
+
 /// 工具执行相关错误码
 pub mod tool {
     /// 工具未找到
@@ -740,4 +746,14 @@ pub mod session_share {
 pub mod work_engine {
     /// execution_id 无效或工作流未注册
     pub const EXECUTION_NOT_FOUND: &str = "WORK_ENGINE_EXECUTION_NOT_FOUND";
+}
+
+/// 插件组合 Profile（缺陷 #9：agent 预设上升为可 dump/patch 的组合机制）
+pub mod plugin_profile {
+    /// 插件组合 Profile 不存在
+    pub const NOT_FOUND: &str = "PLUGIN_PROFILE_NOT_FOUND";
+    /// 插件组合 Profile 名称重复
+    pub const DUPLICATE_NAME: &str = "PLUGIN_PROFILE_DUPLICATE_NAME";
+    /// 插件组合 Profile 持久化 I/O 失败
+    pub const IO_FAILED: &str = "PLUGIN_PROFILE_IO_FAILED";
 }

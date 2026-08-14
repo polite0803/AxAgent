@@ -12,8 +12,10 @@ pub mod whatsapp;
 use std::sync::Arc;
 use std::sync::OnceLock;
 
-use crate::message_gateway::platform_config::PlatformConfig;
-use crate::message_gateway::platform_manager::PlatformMessageCallback;
+use axagent_harness::PlatformMessageCallback;
+
+/// 消息平台适配器 — 权威定义在 harness（platform.adapter 接缝契约）。
+pub use axagent_harness::MessagePlatformAdapter;
 
 static MESSAGE_CALLBACK: OnceLock<Arc<dyn PlatformMessageCallback>> = OnceLock::new();
 
@@ -23,41 +25,4 @@ pub fn set_message_callback(callback: Arc<dyn PlatformMessageCallback>) {
 
 pub fn get_message_callback() -> Option<Arc<dyn PlatformMessageCallback>> {
     MESSAGE_CALLBACK.get().cloned()
-}
-
-#[async_trait::async_trait]
-pub trait PlatformAdapter: Send + Sync {
-    fn name(&self) -> &'static str;
-
-    fn is_enabled(&self, config: &PlatformConfig) -> bool;
-
-    async fn start(&self, config: &PlatformConfig) -> anyhow::Result<()>;
-
-    async fn stop(&self) -> anyhow::Result<()>;
-
-    async fn is_connected(&self) -> bool;
-
-    async fn send_message(
-        &self,
-        config: &PlatformConfig,
-        chat_id: &str,
-        text: &str,
-        parse_mode: Option<&str>,
-    ) -> anyhow::Result<()>;
-
-    async fn send_media(
-        &self,
-        _config: &PlatformConfig,
-        _chat_id: &str,
-        _attachment: &crate::message_gateway::media_types::MediaAttachment,
-    ) -> anyhow::Result<()> {
-        tracing::info!(
-            "[{}] send_media: path={} type={} mode={} (not yet implemented)",
-            self.name(),
-            _attachment.path,
-            _attachment.media_type.as_str(),
-            _attachment.delivery_mode.as_str()
-        );
-        Ok(())
-    }
 }

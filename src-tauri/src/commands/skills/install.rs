@@ -1254,7 +1254,21 @@ fn read_skill_domain_from_frontmatter(skill_root: Option<&std::path::Path>) -> O
 pub async fn skill_set_domain(name: String, domain: String) -> Result<String, ErrorResponse> {
     // Validate domain value
     let domain = domain.to_lowercase();
-    let valid_domains = ["core", "general", "devops", "ai_media", "invest", "opc"];
+    // 与 CapabilityDomain 枚举对齐（新值 + 历史别名兼容存量技能）
+    let valid_domains = [
+        "general",
+        "devops",
+        "ai_media",
+        "data_analysis",
+        "content_creation",
+        "communication",
+        "finance",
+        "automation",
+        // 历史别名（core→general, invest→finance, opc→automation）
+        "core",
+        "invest",
+        "opc",
+    ];
     if !valid_domains.contains(&domain.as_str()) {
         return Err(ErrorResponse::new(format!(
             "Invalid domain '{}'. Must be one of: {}",

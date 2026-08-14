@@ -882,7 +882,17 @@
         "title": "플러그인 마켓플레이스",
         "tools": "도구",
         "validateFailed": "검증 실패: {{error}}",
-        "version": "버전"
+        "version": "버전",
+        "registryTitle": "능력 레지스트리",
+        "registryLoading": "레지스트리 불러오는 중...",
+        "registryEmpty": "등록된 능력 시임이 없습니다",
+        "registryBuiltin": "내장",
+        "registryExternal": "외부 플러그인",
+        "registryContract": "계약",
+        "registryVersion": "버전",
+        "registryPlugin": "플러그인",
+        "registrySearchPlaceholder": "시임 ID / 플러그인 ID로 검색",
+        "registrySeam": "시임"
       }
     },
     "preferences": "환경설정",
@@ -1167,6 +1177,35 @@
     "createConversationFailed": "대화 생성에 실패했습니다",
     "chatinspectorapproval0": "chat.inspector.approval{{0}}"
   },
+  "capabilityDomain": {
+    "general": "일반",
+    "devops": "데브옵스",
+    "ai_media": "AI 미디어",
+    "data_analysis": "데이터 분석",
+    "content_creation": "콘텐츠 제작",
+    "communication": "커뮤니케이션",
+    "finance": "금융",
+    "automation": "자동화",
+    "system": "시스템"
+  },
+  "capabilityPanel": {
+    "statsTitle": "인덱스 통계",
+    "totalCapabilities": "총 능력 수",
+    "totalVectors": "총 벡터 수",
+    "positiveVectors": "양성 벡터",
+    "negativeVectors": "음성 벡터",
+    "discoverTitle": "능력 발견",
+    "discoverPlaceholder": "작업을 설명하세요 (예: «주가 추세 분석»)",
+    "discoverButton": "발견 시작",
+    "discoverResult": "발견 결과",
+    "score": "점수",
+    "ambiguous": "모호한 일치, 확인 필요",
+    "noMatch": "일치하는 능력 없음",
+    "passportsTitle": "등록된 패스포트",
+    "noPassports": "등록된 능력이 없습니다",
+    "enabled": "활성화",
+    "disabled": "비활성화"
+  },
   "chatMarkdown": {
     "inputParams": "입력 매개변수",
     "outputResult": "출력 결과",
@@ -1200,7 +1239,9 @@
     "task": "태스크",
     "teammate": "팀",
     "title": "어시스턴트",
-    "visionAnalysis": "비전"
+    "visionAnalysis": "비전",
+    "cognitiveRoute": "라우트 관측",
+    "capability": "능력"
   },
   "cite": {
     "chunkLabel": "청크 #{{n}}",
@@ -1516,6 +1557,29 @@
       "zhTW": "번체 중국어"
     }
   },
+  "cognitive": {
+    "clarifyTitle": "실행할 기능을 선택하세요",
+    "clarifyPrompt": "요청이 여러 후보 기능과 일치합니다. 실행할 하나를 선택하세요:",
+    "candidateWorkflow": "워크플로우",
+    "candidateAgent": "에이전트",
+    "clarifyExecuting": "선택한 기능을 실행 중...",
+    "clarifyHint": "후보를 선택하면 계속됩니다"
+  },
+  "cognitiveRoute": {
+    "empty": "라우트 관측 데이터가 없습니다",
+    "noRoute": "라우트 미확정",
+    "domain": "도메인",
+    "cluster": "클러스터",
+    "executionMode": "실행 모드",
+    "confidence": "신뢰도",
+    "circuitBroken": "회로 차단",
+    "circuitClosed": "정상",
+    "llmFallback": "LLM 폴백",
+    "fallbackPath": "대체 경로",
+    "candidates": "후보",
+    "stageRecords": "라우트 단계",
+    "recordedAt": "기록 시간"
+  },
   "continuation": {
     "continueFromHere": "여기서 계속"
   },
@@ -1604,7 +1668,8 @@
     "agentDataNotFound": "에이전트 생성 데이터 \"{{generationId}}\"를 실행 저장소에서 찾을 수 없음",
     "apiRequestFailed": "API 요청 실패: {{statusText}}",
     "storeNotRegistered": "저장소 \"{{storeName}}\"가 등록되지 않음",
-    "unknownSourceType": "알 수 없는 데이터 소스 유형: {{type}}"
+    "unknownSourceType": "알 수 없는 데이터 소스 유형: {{type}}",
+    "apiEndpointForbidden": "API 엔드포인트 \"{{endpoint}}\"은(는) 허용되지 않아 차단되었습니다"
   },
   "datasetManager": {
     "action": "작업",
@@ -1614,6 +1679,7 @@
     "created": "생성됨",
     "createdSuccess": "Dataset created",
     "deleteFailed": "데이터셋 삭제 실패",
+    "FINE_TUNE_DELETE_FAILED": "파인튜닝 작업 삭제 실패",
     "deletedSuccess": "데이터셋 삭제됨",
     "description": "설명",
     "name": "이름",
@@ -1971,12 +2037,14 @@
     "CLOUD_UNKNOWN_CONFLICT": "알 수 없는 동기화 충돌 유형입니다",
     "CLOUD_UNKNOWN_STORAGE": "알 수 없는 스토리지 유형입니다",
     "CLOUD_UNKNOWN_STRATEGY": "알 수 없는 동기화 전략입니다",
+    "CAPABILITY_EMBEDDING_FAILED": "임베딩 생성 실패",
     "COGNITIVE_ROUTE_FAILED": "인지 라우팅 실행 실패",
     "COGNITIVE_EMPTY_INPUT": "인지 라우팅 입력이 비어 있습니다",
     "COGNITIVE_CIRCUIT_BROKEN": "인지 라우팅 회로 차단기가 작동했습니다: {reason}",
     "COGNITIVE_NO_CANDIDATE": "인지 라우팅에 사용 가능한 능력을 찾지 못했습니다",
     "COGNITIVE_EXECUTION_MODE_INVALID": "인지 라우팅 실행 모드가 잘못되었습니다",
     "COGNITIVE_PROMPT_REJECTED": "인지 프롬프트가 거부되었습니다",
+    "COGNITIVE_RAR_RETRIEVE_FAILED": "인지 라우팅 후보 검색 실패: {{detail}}",
     "COMMON_INTERNAL": "내부 오류",
     "COMMON_INVALID_INPUT": "유효하지 않은 입력입니다",
     "COMMON_TIMEOUT": "작업 시간이 초과되었습니다",
@@ -2084,6 +2152,9 @@
     "PLATFORM_TELEGRAM_NOT_ENABLED": "Telegram 플랫폼이 활성화되지 않았습니다",
     "PLATFORM_UNSUPPORTED": "지원되지 않는 플랫폼입니다",
     "PLATFORM_WEBHOOK_NOT_CONFIGURED": "웹후크가 구성되지 않았습니다",
+    "PLUGIN_PROFILE_NOT_FOUND": "플러그인 번들 프로필을 찾을 수 없습니다",
+    "PLUGIN_PROFILE_DUPLICATE_NAME": "플러그인 번들 프로필 이름이 이미 존재합니다",
+    "PLUGIN_PROFILE_IO_FAILED": "플러그인 번들 프로필 저장에 실패했습니다",
     "PROVIDER_ADAPTER_NOT_FOUND": "제공자 어댑터를 찾을 수 없습니다",
     "PROVIDER_CREATE_FAILED": "제공자 생성에 실패했습니다",
     "PROVIDER_DELETE_FAILED": "제공자 삭제에 실패했습니다",
@@ -2234,6 +2305,7 @@
     "LOCAL_MODEL_INSTALL_IN_PROGRESS": "llama.cpp 설치 중입니다",
     "LOCAL_MODEL_DOWNLOAD_FAILED": "다운로드에 실패했습니다",
     "LOCAL_MODEL_PORT_IN_USE": "포트 {{port}}가 이미 사용 중입니다. 포트를 변경하거나 점유 프로세스를 중지해 주세요",
+    "LLM_CALL_FAILED": "LLM 호출 실패: {{detail}}",
     "FLEET_NOT_FOUND": "오피스를 찾을 수 없습니다",
     "FLEET_NAME_REQUIRED": "오피스 이름은 필수입니다",
     "FLEET_NO_MEMBERS": "이 오피스에는 아직 구성원이 없습니다",
@@ -2272,7 +2344,6 @@
     "CAPABILITY_DISCOVER_FAILED": "능력 탐색 실패",
     "CAPABILITY_NOT_FOUND": "능력을 찾을 수 없습니다",
     "CAPABILITY_INDEX_FAILED": "능력 인덱싱 실패",
-    "CAPABILITY_EMBEDDING_FAILED": "임베딩 생성 실패",
     "CAPABILITY_VECTOR_STORE_FAILED": "벡터 저장소 작업 실패",
     "CAPABILITY_INVALID_PASSPORT": "잘못된 능력 여권",
     "CAPABILITY_LIST_FAILED": "능력 목록 가져오기 실패",
@@ -2393,7 +2464,11 @@
       "name": "범용 어시스턴트",
       "desc": "일상 대화와 일반적인 질문을 위한 범용 AI 어시스턴트",
       "systemPrompt": "당신은 지능형 AI 어시스턴트입니다. 사용자의 질문에 정확하고 유용한 답변을 제공하세요.",
-      "tags": ["범용", "어시스턴트", "대화"]
+      "tags": [
+        "범용",
+        "어시스턴트",
+        "대화"
+      ]
     }
   },
   "expertSelector": {
@@ -8583,7 +8658,8 @@
     "deleteFileDesc": "Delete the file at the specified path. This operation is irreversible.",
     "bashDesc": "Execute shell commands. Suitable for: running tests, builds, git operations. Dangerous commands require permission confirmation.",
     "fleetNoMembers": "The office has no members yet",
-    "fleetMessageReceived": "[Browser Mock] {{name}} received message: {{message}}"
+    "fleetMessageReceived": "[Browser Mock] {{name}} received message: {{message}}",
+    "capabilityAmbiguous": "일치도가 높은 능력이 여러 개 있습니다. 확인을 위해 추가 설명이 필요합니다."
   },
   "cancel": "취소",
   "searchUtils": {

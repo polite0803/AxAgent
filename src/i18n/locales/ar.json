@@ -882,7 +882,17 @@
         "title": "سوق الإضافات",
         "tools": "الأدوات",
         "validateFailed": "فشل التحقق: {{error}}",
-        "version": "الإصدار"
+        "version": "الإصدار",
+        "registryTitle": "سجل القدرات",
+        "registryLoading": "جارٍ تحميل السجل...",
+        "registryEmpty": "لا توجد وصلات قدرات مسجلة",
+        "registryBuiltin": "مدمج",
+        "registryExternal": "إضافة خارجية",
+        "registryContract": "العقد",
+        "registryVersion": "الإصدار",
+        "registryPlugin": "إضافة",
+        "registrySearchPlaceholder": "ابحث حسب معرّف الوصلة / الإضافة",
+        "registrySeam": "وصلة"
       }
     },
     "preferences": "التفضيلات",
@@ -1167,6 +1177,35 @@
     "createConversationFailed": "فشل إنشاء المحادثة",
     "chatinspectorapproval0": "chat.inspector.approval{{0}}"
   },
+  "capabilityDomain": {
+    "general": "عام",
+    "devops": "ديف أوبس",
+    "ai_media": "وسائط الذكاء الاصطناعي",
+    "data_analysis": "تحليل البيانات",
+    "content_creation": "إنشاء المحتوى",
+    "communication": "الاتصالات",
+    "finance": "المالية",
+    "automation": "الأتمتة",
+    "system": "النظام"
+  },
+  "capabilityPanel": {
+    "statsTitle": "إحصائيات الفهرس",
+    "totalCapabilities": "إجمالي القدرات",
+    "totalVectors": "إجمالي المتجهات",
+    "positiveVectors": "متجهات موجبة",
+    "negativeVectors": "متجهات سالبة",
+    "discoverTitle": "اكتشاف القدرات",
+    "discoverPlaceholder": "صف مهمة، مثل «تحليل الاتجاهات»",
+    "discoverButton": "اكتشاف",
+    "discoverResult": "النتيجة",
+    "score": "النتيجة",
+    "ambiguous": "مطابقة غامضة",
+    "noMatch": "لا توجد قدرة مطابقة",
+    "passportsTitle": "جوازات سفر مسجلة",
+    "noPassports": "لا توجد قدرات مسجلة",
+    "enabled": "مفعّل",
+    "disabled": "معطّل"
+  },
   "chatMarkdown": {
     "inputParams": "معلمات الإدخال",
     "outputResult": "نتيجة المخرجات",
@@ -1200,7 +1239,9 @@
     "task": "مهام",
     "teammate": "فريق",
     "title": "المساعد",
-    "visionAnalysis": "رؤية"
+    "visionAnalysis": "رؤية",
+    "cognitiveRoute": "المسار",
+    "capability": "القدرة"
   },
   "cite": {
     "chunkLabel": "مقطع #{{n}}",
@@ -1516,6 +1557,29 @@
       "zhTW": "الصينية التقليدية"
     }
   },
+  "cognitive": {
+    "clarifyTitle": "اختر إمكانية للتنفيذ",
+    "clarifyPrompt": "تطابق طلبك مع عدة مرشحين. اختر واحدًا:",
+    "candidateWorkflow": "سير العمل",
+    "candidateAgent": "وكيل",
+    "clarifyExecuting": "جارٍ تنفيذ الإمكانية المحددة...",
+    "clarifyHint": "اختر مرشحًا للمتابعة"
+  },
+  "cognitiveRoute": {
+    "empty": "لا توجد ملاحظات مسار",
+    "noRoute": "لم يتم تحديد مسار",
+    "domain": "المجال",
+    "cluster": "المجموعة",
+    "executionMode": "الوضع",
+    "confidence": "الثقة",
+    "circuitBroken": "انقطاع الدائرة",
+    "circuitClosed": "طبيعي",
+    "llmFallback": "احتياطي LLM",
+    "fallbackPath": "مسار احتياطي",
+    "candidates": "المرشحون",
+    "stageRecords": "مراحل المسار",
+    "recordedAt": "سُجل في"
+  },
   "continuation": {
     "continueFromHere": "المتابعة من هنا"
   },
@@ -1604,7 +1668,8 @@
     "agentDataNotFound": "البيانات التي أنشأها الوكيل \"{{generationId}}\" غير موجودة في مخزن التنفيذ",
     "apiRequestFailed": "فشل طلب API: {{statusText}}",
     "storeNotRegistered": "المخزن \"{{storeName}}\" غير مسجل",
-    "unknownSourceType": "نوع مصدر بيانات غير معروف: {{type}}"
+    "unknownSourceType": "نوع مصدر بيانات غير معروف: {{type}}",
+    "apiEndpointForbidden": "نقطة نهاية API \"{{endpoint}}\" غير مسموح بها وتم حظرها"
   },
   "datasetManager": {
     "action": "إجراء",
@@ -1614,6 +1679,7 @@
     "created": "تم الإنشاء",
     "createdSuccess": "Dataset created",
     "deleteFailed": "فشل حذف مجموعة البيانات",
+    "FINE_TUNE_DELETE_FAILED": "فشل حذف مهمة الضبط الدقيق",
     "deletedSuccess": "تم حذف مجموعة البيانات",
     "description": "الوصف",
     "name": "الاسم",
@@ -1971,12 +2037,14 @@
     "CLOUD_UNKNOWN_CONFLICT": "نوع تعارض مزامنة غير معروف",
     "CLOUD_UNKNOWN_STORAGE": "نوع تخزين غير معروف",
     "CLOUD_UNKNOWN_STRATEGY": "استراتيجية مزامنة غير معروفة",
+    "CAPABILITY_EMBEDDING_FAILED": "فشل إنشاء التضمين",
     "COGNITIVE_ROUTE_FAILED": "فشل تنفيذ التوجيه المعرفي",
     "COGNITIVE_EMPTY_INPUT": "إدخال التوجيه المعرفي فارغ",
     "COGNITIVE_CIRCUIT_BROKEN": "تم كسر دائرة التوجيه المعرفي: {reason}",
     "COGNITIVE_NO_CANDIDATE": "لم يتم العثور على قدرة متاحة للتوجيه المعرفي",
     "COGNITIVE_EXECUTION_MODE_INVALID": "وضع تنفيذ التوجيه المعرفي غير صالح",
     "COGNITIVE_PROMPT_REJECTED": "تم رفض الطلب المعرفي",
+    "COGNITIVE_RAR_RETRIEVE_FAILED": "فشل استرجاع مرشحات التوجيه المعرفي: {{detail}}",
     "COMMON_INTERNAL": "خطأ داخلي",
     "COMMON_INVALID_INPUT": "إدخال غير صالح",
     "COMMON_TIMEOUT": "انتهت مهلة العملية",
@@ -2084,6 +2152,9 @@
     "PLATFORM_TELEGRAM_NOT_ENABLED": "منصة Telegram غير مفعلة",
     "PLATFORM_UNSUPPORTED": "منصة غير مدعومة",
     "PLATFORM_WEBHOOK_NOT_CONFIGURED": "Webhook غير مهيأ",
+    "PLUGIN_PROFILE_NOT_FOUND": "ملف تعريف مجموعة الإضافات غير موجود",
+    "PLUGIN_PROFILE_DUPLICATE_NAME": "اسم ملف تعريف مجموعة الإضافات موجود بالفعل",
+    "PLUGIN_PROFILE_IO_FAILED": "فشل حفظ ملف تعريف مجموعة الإضافات",
     "PROVIDER_ADAPTER_NOT_FOUND": "محول الموفر غير موجود",
     "PROVIDER_CREATE_FAILED": "فشل إنشاء الموفر",
     "PROVIDER_DELETE_FAILED": "فشل حذف الموفر",
@@ -2234,6 +2305,7 @@
     "LOCAL_MODEL_INSTALL_IN_PROGRESS": "جارٍ تثبيت llama.cpp",
     "LOCAL_MODEL_DOWNLOAD_FAILED": "فشل التنزيل",
     "LOCAL_MODEL_PORT_IN_USE": "المنفذ {{port}} مستخدم بالفعل. يرجى تغيير المنفذ أو إيقاف العملية التي تستخدمه",
+    "LLM_CALL_FAILED": "فشل استدعاء نموذج اللغة: {{detail}}",
     "FLEET_NOT_FOUND": "لم يتم العثور على المكتب",
     "FLEET_NAME_REQUIRED": "اسم المكتب مطلوب",
     "FLEET_NO_MEMBERS": "لا يوجد أعضاء في هذا المكتب بعد",
@@ -2272,7 +2344,6 @@
     "CAPABILITY_DISCOVER_FAILED": "فشل اكتشاف القدرة",
     "CAPABILITY_NOT_FOUND": "القدرة غير موجودة",
     "CAPABILITY_INDEX_FAILED": "فشل فهرسة القدرة",
-    "CAPABILITY_EMBEDDING_FAILED": "فشل إنشاء التضمين",
     "CAPABILITY_VECTOR_STORE_FAILED": "فشل عملية تخزين المتجهات",
     "CAPABILITY_INVALID_PASSPORT": "جواز قدرة غير صالح",
     "CAPABILITY_LIST_FAILED": "فشل في سرد القدرات",
@@ -2393,7 +2464,11 @@
       "name": "المساعد العام",
       "desc": "مساعد ذكاء اصطناعي متعدد الأغراض للمحادثات اليومية والأسئلة العامة",
       "systemPrompt": "أنت مساعد ذكاء اصطناعي ذكي. قدم إجابات دقيقة ومفيدة بناءً على أسئلة المستخدم.",
-      "tags": ["عام", "مساعد", "محادثة"]
+      "tags": [
+        "عام",
+        "مساعد",
+        "محادثة"
+      ]
     }
   },
   "expertSelector": {
@@ -8583,7 +8658,8 @@
     "deleteFileDesc": "Delete the file at the specified path. This operation is irreversible.",
     "bashDesc": "Execute shell commands. Suitable for: running tests, builds, git operations. Dangerous commands require permission confirmation.",
     "fleetNoMembers": "The office has no members yet",
-    "fleetMessageReceived": "[Browser Mock] {{name}} received message: {{message}}"
+    "fleetMessageReceived": "[Browser Mock] {{name}} received message: {{message}}",
+    "capabilityAmbiguous": "تم العثور على عدة قدرات متطابقة. يرجى التوضيح للتأكيد."
   },
   "cancel": "إلغاء",
   "searchUtils": {

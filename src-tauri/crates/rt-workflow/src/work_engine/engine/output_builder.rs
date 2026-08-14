@@ -2,21 +2,27 @@
 
 //! Workflow output construction: end-node extraction, schema filtering, validation.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-use axagent_harness::workflow_types::{JsonSchema, WorkflowNode};
+use axagent_harness::workflow_types::{JsonSchema, WorkflowEdge, WorkflowNode};
 
 // ── 辅助函数（run_workflow 尾部使用）──
 
 /// 扫描所有 EndNode，提取其 output_var 指向的节点输出作为聚合结果。
+///
+/// BE-I2 修复：当某个 EndNode 的 `output_var` 未写入任何结果时（例如 LLM 生成
+/// 缺 EndNode 后由 helpers.rs 自动补充的 EndNode 指向 `final_output`，但没有任何
+/// 节点把输出写入该变量），退化为聚合所有叶子节点（无出边的非 End 节点）的输出，
+/// 保证聚合精简能力不失效。
 pub(crate) fn extract_end_output(
     nodes: &[WorkflowNode],
+    edges: &[WorkflowEdge],
     results: &HashMap<String, serde_json::Value>,
 ) -> Option<serde_json::Value> {
     let end_nodes: Vec<_> = nodes
         .iter()
         .filter_map(|n| match n {
-            WorkflowNode::End(en) => Some(&en.config),
+            WorkflowNode::End(en) => Some(en),
             _ => None,
         })
         .collect();
@@ -25,13 +31,31 @@ pub(crate) fn extract_end_output(
         return None;
     }
 
+    // 收集所有作为边 source 的节点 id（有出边 ⇒ 非叶子）
+    let source_ids: HashSet<String> = edges.iter().map(|e| e.source.clone()).collect();
+
     // 收集所有 EndNode 的输出
     let mut outputs = serde_json::Map::new();
-    for cfg in &end_nodes {
+    for en in &end_nodes {
+        let cfg = &en.config;
         if let Some(ref var) = cfg.output_var
             && let Some(val) = results.get(var)
         {
             outputs.insert(var.clone(), val.clone());
+            continue;
+        }
+        // 输出变量缺失 → 聚合叶子节点输出（按节点 id 为键）
+        for n in nodes {
+            if matches!(n, WorkflowNode::End(_)) {
+                continue;
+            }
+            let id = n.base_id().to_string();
+            if source_ids.contains(&id) {
+                continue;
+            }
+            if let Some(val) = results.get(&id) {
+                outputs.insert(id, val.clone());
+            }
         }
     }
 

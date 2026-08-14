@@ -57,9 +57,8 @@ export function Timeline({ spans }: TimelineProps) {
     const sTime = sortedSpans[0]?.start_time
       ? new Date(sortedSpans[0].start_time).getTime()
       : 0;
-    const eTime = sortedSpans[sortedSpans.length - 1]?.end_time
-      ? new Date(sortedSpans[sortedSpans.length - 1].end_time!).getTime()
-      : sTime;
+    const lastSpanEnd = sortedSpans[sortedSpans.length - 1]?.end_time;
+    const eTime = lastSpanEnd ? new Date(lastSpanEnd).getTime() : sTime;
     const duration = eTime - sTime || 1;
     const metrics = new Map<string, { spanStart: number; spanEnd: number; left: number; width: number }>();
     for (const span of sortedSpans) {

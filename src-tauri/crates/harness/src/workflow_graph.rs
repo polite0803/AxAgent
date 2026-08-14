@@ -70,7 +70,7 @@ impl EdgeType {
 /// 工作流图谱节点
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkflowGraphNode {
-    /// 路径标识（确定性 ID），如 "invest/stock_analysis"
+    /// 路径标识（确定性 ID），如 "finance/stock_analysis"
     pub path: String,
     /// 显示名称
     pub display_name: String,
@@ -367,7 +367,7 @@ impl WorkflowGraph {
     ///
     /// # 格式
     /// ```text
-    /// 当前节点：invest/stock_analysis。下游可达节点：invest/stock_analysis/tech、invest/stock_analysis/fundamental。
+    /// 当前节点：finance/stock_analysis。下游可达节点：finance/stock_analysis/tech、finance/stock_analysis/fundamental。
     /// ```
     pub fn to_adjacency_summary(&self, current_path: &str) -> String {
         let neighbors = self.get_neighbors(current_path);
@@ -394,12 +394,12 @@ impl WorkflowGraph {
     /// # 输出格式
     /// ```text
     /// ## 工作流图谱
-    /// 当前节点：invest/stock_analysis
+    /// 当前节点：finance/stock_analysis
     ///
     /// ### 下游可达节点
-    /// 1. invest/stock_analysis/tech — 技术面分析
-    /// 2. invest/stock_analysis/fundamental — 基本面分析
-    /// 3. invest/stock_analysis/news — 舆情分析
+    /// 1. finance/stock_analysis/tech — 技术面分析
+    /// 2. finance/stock_analysis/fundamental — 基本面分析
+    /// 3. finance/stock_analysis/news — 舆情分析
     /// ```
     pub fn to_graph_summary(&self, current_path: &str) -> String {
         let mut summary = String::new();
@@ -595,11 +595,11 @@ impl WorkflowGraphRouter {
     /// 你是一个工作流路由器。根据当前节点和下游可达节点，选择最佳路径。
     ///
     /// ## 当前节点
-    /// invest/stock_analysis
+    /// finance/stock_analysis
     ///
     /// ## 下游可达节点
-    /// 1. invest/stock_analysis/tech — 技术面分析
-    /// 2. invest/stock_analysis/fundamental — 基本面分析
+    /// 1. finance/stock_analysis/tech — 技术面分析
+    /// 2. finance/stock_analysis/fundamental — 基本面分析
     /// ...
     ///
     /// ## 用户输入
@@ -607,7 +607,7 @@ impl WorkflowGraphRouter {
     ///
     /// ## 输出格式（只能输出路径地址）
     /// {
-    ///   "path": "invest/stock_analysis/tech",
+    ///   "path": "finance/stock_analysis/tech",
     ///   "confidence": 0.98
     /// }
     /// ```
@@ -639,7 +639,7 @@ impl WorkflowGraphRouter {
         prompt.push_str(user_input);
         prompt.push_str("\n\n## 输出格式（只能输出路径地址）\n");
         prompt
-            .push_str("{\n  \"path\": \"invest/stock_analysis/tech\",\n  \"confidence\": 0.98\n}");
+            .push_str("{\n  \"path\": \"finance/stock_analysis/tech\",\n  \"confidence\": 0.98\n}");
 
         prompt
     }
@@ -798,19 +798,19 @@ mod tests {
         let mut graph = WorkflowGraph::new();
 
         // 添加节点
-        graph.add_node(WorkflowGraphNode::domain_node("invest", "金融投资"));
-        graph.add_node(WorkflowGraphNode::cluster_node("invest", "stock_analysis", "股票分析"));
+        graph.add_node(WorkflowGraphNode::domain_node("finance", "金融投资"));
+        graph.add_node(WorkflowGraphNode::cluster_node("finance", "stock_analysis", "股票分析"));
         graph.add_node(WorkflowGraphNode::workflow_node(
-            "invest",
+            "finance",
             "stock_analysis",
             "tech",
             "技术面分析",
         ));
 
         assert_eq!(graph.node_count(), 3);
-        assert!(graph.path_exists("invest"));
-        assert!(graph.path_exists("invest/stock_analysis"));
-        assert!(graph.path_exists("invest/stock_analysis/tech"));
+        assert!(graph.path_exists("finance"));
+        assert!(graph.path_exists("finance/stock_analysis"));
+        assert!(graph.path_exists("finance/stock_analysis/tech"));
     }
 
     #[test]
@@ -818,10 +818,10 @@ mod tests {
         let mut graph = WorkflowGraph::new();
 
         // 添加节点
-        graph.add_node(WorkflowGraphNode::domain_node("invest", "金融投资"));
-        graph.add_node(WorkflowGraphNode::cluster_node("invest", "stock_analysis", "股票分析"));
+        graph.add_node(WorkflowGraphNode::domain_node("finance", "金融投资"));
+        graph.add_node(WorkflowGraphNode::cluster_node("finance", "stock_analysis", "股票分析"));
         graph.add_node(WorkflowGraphNode::workflow_node(
-            "invest",
+            "finance",
             "stock_analysis",
             "tech",
             "技术面分析",
@@ -830,17 +830,17 @@ mod tests {
         // 自动构建层级边
         graph.add_hierarchy_edges();
 
-        assert!(graph.has_edge("invest", "invest/stock_analysis", Some(&EdgeType::Hierarchy)));
+        assert!(graph.has_edge("finance", "finance/stock_analysis", Some(&EdgeType::Hierarchy)));
         assert!(graph.has_edge(
-            "invest/stock_analysis",
-            "invest/stock_analysis/tech",
+            "finance/stock_analysis",
+            "finance/stock_analysis/tech",
             Some(&EdgeType::Hierarchy)
         ));
 
         // 检查邻接表
-        let neighbors = graph.get_neighbors("invest");
+        let neighbors = graph.get_neighbors("finance");
         assert_eq!(neighbors.len(), 1);
-        assert_eq!(neighbors[0].path, "invest/stock_analysis");
+        assert_eq!(neighbors[0].path, "finance/stock_analysis");
     }
 
     #[test]
@@ -848,13 +848,13 @@ mod tests {
         let mut graph = WorkflowGraph::new();
 
         graph.add_node(WorkflowGraphNode::workflow_node(
-            "invest",
+            "finance",
             "stock_analysis",
             "tech",
             "技术面分析",
         ));
         graph.add_node(WorkflowGraphNode::workflow_node(
-            "invest",
+            "finance",
             "stock_analysis",
             "fundamental",
             "基本面分析",
@@ -862,81 +862,81 @@ mod tests {
 
         // 添加兜底边
         graph.add_edge(WorkflowGraphEdge::new(
-            "invest/stock_analysis/tech",
-            "invest/stock_analysis/fundamental",
+            "finance/stock_analysis/tech",
+            "finance/stock_analysis/fundamental",
             EdgeType::Fallback,
         ));
 
         let neighbors =
-            graph.get_neighbors_by_type("invest/stock_analysis/tech", &EdgeType::Fallback);
+            graph.get_neighbors_by_type("finance/stock_analysis/tech", &EdgeType::Fallback);
         assert_eq!(neighbors.len(), 1);
-        assert_eq!(neighbors[0].path, "invest/stock_analysis/fundamental");
+        assert_eq!(neighbors[0].path, "finance/stock_analysis/fundamental");
     }
 
     #[test]
     fn test_adjacency_summary() {
         let mut graph = WorkflowGraph::new();
 
-        graph.add_node(WorkflowGraphNode::cluster_node("invest", "stock_analysis", "股票分析"));
+        graph.add_node(WorkflowGraphNode::cluster_node("finance", "stock_analysis", "股票分析"));
         graph.add_node(WorkflowGraphNode::workflow_node(
-            "invest",
+            "finance",
             "stock_analysis",
             "tech",
             "技术面分析",
         ));
         graph.add_node(WorkflowGraphNode::workflow_node(
-            "invest",
+            "finance",
             "stock_analysis",
             "fundamental",
             "基本面分析",
         ));
 
         graph.add_edge(WorkflowGraphEdge::new(
-            "invest/stock_analysis",
-            "invest/stock_analysis/tech",
+            "finance/stock_analysis",
+            "finance/stock_analysis/tech",
             EdgeType::Hierarchy,
         ));
         graph.add_edge(WorkflowGraphEdge::new(
-            "invest/stock_analysis",
-            "invest/stock_analysis/fundamental",
+            "finance/stock_analysis",
+            "finance/stock_analysis/fundamental",
             EdgeType::Hierarchy,
         ));
 
-        let summary = graph.to_adjacency_summary("invest/stock_analysis");
-        assert!(summary.contains("invest/stock_analysis"));
-        assert!(summary.contains("invest/stock_analysis/tech"));
-        assert!(summary.contains("invest/stock_analysis/fundamental"));
+        let summary = graph.to_adjacency_summary("finance/stock_analysis");
+        assert!(summary.contains("finance/stock_analysis"));
+        assert!(summary.contains("finance/stock_analysis/tech"));
+        assert!(summary.contains("finance/stock_analysis/fundamental"));
     }
 
     #[test]
     fn test_graph_summary_for_prompt() {
         let mut graph = WorkflowGraph::new();
 
-        graph.add_node(WorkflowGraphNode::cluster_node("invest", "stock_analysis", "股票分析"));
+        graph.add_node(WorkflowGraphNode::cluster_node("finance", "stock_analysis", "股票分析"));
         graph.add_node(WorkflowGraphNode::workflow_node(
-            "invest",
+            "finance",
             "stock_analysis",
             "tech",
             "技术面分析",
         ));
 
         graph.add_edge(WorkflowGraphEdge::new(
-            "invest/stock_analysis",
-            "invest/stock_analysis/tech",
+            "finance/stock_analysis",
+            "finance/stock_analysis/tech",
             EdgeType::Hierarchy,
         ));
 
-        let summary = graph.to_graph_summary("invest/stock_analysis");
+        let summary = graph.to_graph_summary("finance/stock_analysis");
         assert!(summary.contains("## 工作流图谱"));
-        assert!(summary.contains("invest/stock_analysis"));
-        assert!(summary.contains("1. invest/stock_analysis/tech — 技术面分析"));
+        assert!(summary.contains("finance/stock_analysis"));
+        assert!(summary.contains("1. finance/stock_analysis/tech — 技术面分析"));
     }
 
     #[test]
     fn test_path_validation() {
         // 系统路径应该被拒绝
         assert!(WorkflowGraphRouter::validate_path("system_cognitive_router").is_err());
-        assert!(WorkflowGraphRouter::validate_path("invest/stock_analysis/tech").is_ok());
+        assert!(WorkflowGraphRouter::validate_path("finance/stock_analysis/tech").is_ok());
     }
 
     #[test]
@@ -945,21 +945,21 @@ mod tests {
 
         WorkflowGraphSync::sync_workflow(
             &mut graph,
-            "invest",
+            "finance",
             "stock_analysis",
             "wf_tech",
             "技术面分析",
         );
 
-        assert!(graph.path_exists("invest"));
-        assert!(graph.path_exists("invest/stock_analysis"));
-        assert!(graph.path_exists("invest/stock_analysis/wf_tech"));
+        assert!(graph.path_exists("finance"));
+        assert!(graph.path_exists("finance/stock_analysis"));
+        assert!(graph.path_exists("finance/stock_analysis/wf_tech"));
 
         // 检查层级边
-        assert!(graph.has_edge("invest", "invest/stock_analysis", Some(&EdgeType::Hierarchy)));
+        assert!(graph.has_edge("finance", "finance/stock_analysis", Some(&EdgeType::Hierarchy)));
         assert!(graph.has_edge(
-            "invest/stock_analysis",
-            "invest/stock_analysis/wf_tech",
+            "finance/stock_analysis",
+            "finance/stock_analysis/wf_tech",
             Some(&EdgeType::Hierarchy)
         ));
     }
@@ -969,30 +969,30 @@ mod tests {
         let mut graph = WorkflowGraph::new();
 
         let workflows = vec![
-            ("invest", "stock", "wf_tech", "技术面分析"),
-            ("invest", "stock", "wf_fundamental", "基本面分析"),
-            ("invest", "fund", "wf_compare", "基金对比"),
+            ("finance", "stock", "wf_tech", "技术面分析"),
+            ("finance", "stock", "wf_fundamental", "基本面分析"),
+            ("finance", "fund", "wf_compare", "基金对比"),
         ];
 
         WorkflowGraphSync::sync_batch(&mut graph, &workflows);
 
-        assert!(graph.path_exists("invest"));
-        assert!(graph.path_exists("invest/stock"));
-        assert!(graph.path_exists("invest/fund"));
-        assert!(graph.path_exists("invest/stock/wf_tech"));
-        assert!(graph.path_exists("invest/stock/wf_fundamental"));
-        assert!(graph.path_exists("invest/fund/wf_compare"));
+        assert!(graph.path_exists("finance"));
+        assert!(graph.path_exists("finance/stock"));
+        assert!(graph.path_exists("finance/fund"));
+        assert!(graph.path_exists("finance/stock/wf_tech"));
+        assert!(graph.path_exists("finance/stock/wf_fundamental"));
+        assert!(graph.path_exists("finance/fund/wf_compare"));
     }
 
     #[test]
     fn test_bfs_reachable() {
         let mut graph = WorkflowGraph::new();
 
-        graph.add_node(WorkflowGraphNode::domain_node("invest", "投资"));
-        graph.add_node(WorkflowGraphNode::cluster_node("invest", "stock", "股票"));
-        graph.add_node(WorkflowGraphNode::workflow_node("invest", "stock", "tech", "技术分析"));
+        graph.add_node(WorkflowGraphNode::domain_node("finance", "投资"));
+        graph.add_node(WorkflowGraphNode::cluster_node("finance", "stock", "股票"));
+        graph.add_node(WorkflowGraphNode::workflow_node("finance", "stock", "tech", "技术分析"));
         graph.add_node(WorkflowGraphNode::workflow_node(
-            "invest",
+            "finance",
             "stock",
             "fundamental",
             "基本面分析",
@@ -1000,50 +1000,50 @@ mod tests {
 
         graph.add_hierarchy_edges();
 
-        let reachable = graph.bfs_reachable("invest");
-        assert!(reachable.contains(&"invest".to_string()));
-        assert!(reachable.contains(&"invest/stock".to_string()));
-        assert!(reachable.contains(&"invest/stock/tech".to_string()));
-        assert!(reachable.contains(&"invest/stock/fundamental".to_string()));
+        let reachable = graph.bfs_reachable("finance");
+        assert!(reachable.contains(&"finance".to_string()));
+        assert!(reachable.contains(&"finance/stock".to_string()));
+        assert!(reachable.contains(&"finance/stock/tech".to_string()));
+        assert!(reachable.contains(&"finance/stock/fundamental".to_string()));
     }
 
     #[test]
     fn test_build_route_prompt() {
         let mut graph = WorkflowGraph::new();
 
-        graph.add_node(WorkflowGraphNode::cluster_node("invest", "stock_analysis", "股票分析"));
+        graph.add_node(WorkflowGraphNode::cluster_node("finance", "stock_analysis", "股票分析"));
         graph.add_node(WorkflowGraphNode::workflow_node(
-            "invest",
+            "finance",
             "stock_analysis",
             "tech",
             "技术面分析",
         ));
 
         graph.add_edge(WorkflowGraphEdge::new(
-            "invest/stock_analysis",
-            "invest/stock_analysis/tech",
+            "finance/stock_analysis",
+            "finance/stock_analysis/tech",
             EdgeType::Hierarchy,
         ));
 
         let prompt = WorkflowGraphRouter::build_route_prompt(
             &graph,
-            "invest/stock_analysis",
+            "finance/stock_analysis",
             "分析301302股票",
         );
 
         assert!(prompt.contains("你是一个工作流路由器"));
-        assert!(prompt.contains("invest/stock_analysis"));
-        assert!(prompt.contains("invest/stock_analysis/tech"));
+        assert!(prompt.contains("finance/stock_analysis"));
+        assert!(prompt.contains("finance/stock_analysis/tech"));
         assert!(prompt.contains("技术面分析"));
         assert!(prompt.contains("分析301302股票"));
     }
 
     #[test]
     fn test_parse_route_result() {
-        let json = r#"{"path":"invest/stock_analysis/tech","confidence":0.95}"#;
+        let json = r#"{"path":"finance/stock_analysis/tech","confidence":0.95}"#;
         let result = WorkflowGraphRouter::parse_route_result(json).unwrap();
 
-        assert_eq!(result.selected_path, "invest/stock_analysis/tech");
+        assert_eq!(result.selected_path, "finance/stock_analysis/tech");
         assert!(result.confidence > 0.9);
     }
 
@@ -1057,27 +1057,27 @@ mod tests {
     fn test_remove_node() {
         let mut graph = WorkflowGraph::new();
 
-        graph.add_node(WorkflowGraphNode::domain_node("invest", "投资"));
-        graph.add_node(WorkflowGraphNode::cluster_node("invest", "stock", "股票"));
+        graph.add_node(WorkflowGraphNode::domain_node("finance", "投资"));
+        graph.add_node(WorkflowGraphNode::cluster_node("finance", "stock", "股票"));
 
         graph.add_hierarchy_edges();
 
         assert_eq!(graph.node_count(), 2);
         assert_eq!(graph.edge_count(), 1);
 
-        graph.remove_node("invest/stock");
+        graph.remove_node("finance/stock");
 
         assert_eq!(graph.node_count(), 1);
         assert_eq!(graph.edge_count(), 0);
-        assert!(!graph.path_exists("invest/stock"));
+        assert!(!graph.path_exists("finance/stock"));
     }
 
     #[test]
     fn test_is_system_path() {
         assert!(WorkflowGraph::is_system_path("system_cognitive_router"));
-        assert!(WorkflowGraph::is_system_path("invest/orchestrator"));
-        assert!(WorkflowGraph::is_system_path("invest/cognitive_router"));
-        assert!(!WorkflowGraph::is_system_path("invest/stock_analysis"));
-        assert!(!WorkflowGraph::is_system_path("invest/stock_analysis/tech"));
+        assert!(WorkflowGraph::is_system_path("finance/orchestrator"));
+        assert!(WorkflowGraph::is_system_path("finance/cognitive_router"));
+        assert!(!WorkflowGraph::is_system_path("finance/stock_analysis"));
+        assert!(!WorkflowGraph::is_system_path("finance/stock_analysis/tech"));
     }
 }

@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use tracing;
 
-use axagent_harness::{NpmRegistryService, parse_npm_package_spec};
+use axagent_harness::{EffectHandle, NpmRegistryService, parse_npm_package_spec};
 
 const EXTERNAL_MARKETPLACE: &str = "external";
 const BUILTIN_MARKETPLACE: &str = "builtin";
@@ -65,6 +65,11 @@ pub struct PluginManager {
     mcp_launcher: McpLauncher,
     skill_installer: SkillInstaller,
     npm_registry: Option<Arc<dyn NpmRegistryService>>,
+    /// 运行时能力注册表（P3 外部插件注册入口）。启用插件时把声明能力注册进去，
+    /// 禁用 / 卸载时经 `EffectHandle` 可逆回滚。
+    capability_registry: Option<Arc<axagent_harness::CapabilityRegistry>>,
+    /// 各插件已注册能力的可逆句柄（键 = 插件 ID，值 = 撤销句柄列表）。
+    active_capability_handles: HashMap<String, Vec<EffectHandle>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -221,13 +226,36 @@ impl PluginManager {
     #[must_use]
     pub fn new(config: PluginManagerConfig) -> Self {
         let skill_installer = SkillInstaller::new(config.config_home.join("skills"));
-        Self { config, mcp_launcher: McpLauncher::new(), skill_installer, npm_registry: None }
+        Self {
+            config,
+            mcp_launcher: McpLauncher::new(),
+            skill_installer,
+            npm_registry: None,
+            capability_registry: None,
+            active_capability_handles: HashMap::new(),
+        }
     }
 
     /// 注入 NPM Registry 服务（用于下载 npm 包）
     #[must_use]
     pub fn with_npm_registry(mut self, registry: Arc<dyn NpmRegistryService>) -> Self {
         self.npm_registry = Some(registry);
+        self
+    }
+
+    /// 注入运行时能力注册表（P3 外部插件注册）。
+    ///
+    /// 启用插件时，插件声明的能力将以 `CapabilityOrigin::ExternalPlugin`
+    /// 注册进注册表；禁用 / 卸载插件时经可逆句柄回滚。
+    ///
+    /// 接收 `&CapabilityRegistry` 并做一次浅克隆（共享底层存储），
+    /// 便于 wiring 层直接传入全局能力注册表单例引用。
+    #[must_use]
+    pub fn with_capability_registry(
+        mut self,
+        registry: &axagent_harness::CapabilityRegistry,
+    ) -> Self {
+        self.capability_registry = Some(Arc::new(registry.clone()));
         self
     }
 
@@ -464,13 +492,79 @@ impl PluginManager {
         if !manifest.agents.is_empty() {
             crate::agent_provider::register_plugin_agents_sync(plugin_id, &manifest.agents);
         }
+        if !manifest.capabilities.is_empty() {
+            let errors = self.register_plugin_capabilities(plugin_id, manifest);
+            if !errors.is_empty() {
+                tracing::warn!(
+                    "Plugin `{plugin_id}` had capability registration errors: {}",
+                    errors.join("; ")
+                );
+            }
+        }
         Ok(())
+    }
+
+    /// 把插件声明的能力注册进能力注册表（P3 外部插件注册）。
+    ///
+    /// 以 `CapabilityOrigin::ExternalPlugin` 来源注册，返回失败的能力接缝列表
+    /// （不中断插件启用）；成功句柄存入 `active_capability_handles`，
+    /// 供禁用 / 卸载时回滚。
+    fn register_plugin_capabilities(
+        &mut self,
+        plugin_id: &str,
+        manifest: &crate::types::PluginManifest,
+    ) -> Vec<String> {
+        let Some(registry) = self.capability_registry.clone() else {
+            return Vec::new();
+        };
+        let mut errors = Vec::new();
+        for decl in &manifest.capabilities {
+            let descriptor = axagent_harness::PluginCapabilityDescriptor::new(
+                &decl.seam,
+                plugin_id,
+                &decl.capability_type,
+                &decl.version,
+                &decl.description,
+            );
+            match registry.register_plugin_capability(descriptor) {
+                Ok(handle) => {
+                    self.active_capability_handles
+                        .entry(plugin_id.to_string())
+                        .or_default()
+                        .push(handle);
+                    tracing::info!(
+                        "Registered plugin capability `{}` from `{plugin_id}`",
+                        decl.seam
+                    );
+                },
+                Err(e) => {
+                    tracing::warn!(
+                        "Failed to register plugin capability `{}` from `{plugin_id}`: {e}",
+                        decl.seam
+                    );
+                    errors.push(format!("{}: {e}", decl.seam));
+                },
+            }
+        }
+        errors
+    }
+
+    /// 回滚插件注册的全部能力（P3 外部插件注册：禁用 / 卸载时调用）。
+    fn unregister_plugin_capabilities(&mut self, plugin_id: &str) {
+        if let Some(handles) = self.active_capability_handles.remove(plugin_id) {
+            let count = handles.len();
+            for handle in handles {
+                handle.undo();
+            }
+            tracing::info!("Rolled back {count} plugin capability(ies) from `{plugin_id}`");
+        }
     }
 
     pub fn disable(&mut self, plugin_id: &str) -> Result<(), PluginError> {
         self.mcp_launcher.stop_plugin_mcps(plugin_id);
         crate::agent_provider::unregister_plugin_agents_sync(plugin_id);
         self.skill_installer.remove_plugin_skills(plugin_id).ok();
+        self.unregister_plugin_capabilities(plugin_id);
         self.ensure_known_plugin(plugin_id)?;
         self.write_enabled_state(plugin_id, Some(false))?;
         self.config.enabled_plugins.insert(plugin_id.to_string(), false);
@@ -531,6 +625,7 @@ impl PluginManager {
             self.mcp_launcher.stop_plugin_mcps(&plugin_id);
             crate::agent_provider::unregister_plugin_agents_sync(&plugin_id);
             self.skill_installer.remove_plugin_skills(&plugin_id).ok();
+            self.unregister_plugin_capabilities(&plugin_id);
             tracing::info!("Stopped plugin: {plugin_id}");
         }
     }
@@ -569,6 +664,7 @@ impl PluginManager {
         self.mcp_launcher.stop_plugin_mcps(plugin_id);
         crate::agent_provider::unregister_plugin_agents_sync(plugin_id);
         self.skill_installer.remove_plugin_skills(plugin_id).ok();
+        self.unregister_plugin_capabilities(plugin_id);
         if record.install_path.exists() {
             remove_dir_all_with_retry(&record.install_path)?;
         }
@@ -622,6 +718,21 @@ impl PluginManager {
         copy_dir_all(&staged_source, &record.install_path)?;
         if cleanup_source {
             let _ = fs::remove_dir_all(&staged_source);
+        }
+
+        // P3 缺陷修复：若插件处于启用状态，update 后需回滚旧版本已注册的能力，
+        // 再用新 manifest 重新注册，避免旧描述残留、新能力不生效。
+        // 放在 updated_record 构造之前执行，此时 manifest 字段尚未被 move。
+        let enabled = self.config.enabled_plugins.get(plugin_id).copied().unwrap_or(false);
+        if enabled {
+            self.unregister_plugin_capabilities(plugin_id);
+            let errors = self.register_plugin_capabilities(plugin_id, &manifest);
+            if !errors.is_empty() {
+                tracing::warn!(
+                    "[plugin_update] plugin `{plugin_id}` capability re-registration had errors: {}",
+                    errors.join("; ")
+                );
+            }
         }
 
         let updated_record = InstalledPluginRecord {
@@ -1126,6 +1237,7 @@ fn load_manifest_from_skill_md(
         dashboard_panels: Vec::new(),
         dependencies: Vec::new(),
         integrity: None,
+        capabilities: Vec::new(),
     };
     Ok(manifest)
 }
@@ -1382,6 +1494,7 @@ fn build_plugin_manifest(
         dashboard_panels: raw.dashboard_panels,
         dependencies: raw.dependencies,
         integrity: raw.integrity,
+        capabilities: raw.capabilities,
     })
 }
 
@@ -2155,4 +2268,79 @@ fn collect_files_recursive(dir: &Path, files: &mut Vec<PathBuf>) -> Result<(), P
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use axagent_harness::CapabilityRegistry;
+
+    fn temp_dir(label: &str) -> PathBuf {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("time should be after epoch")
+            .as_nanos();
+        std::env::temp_dir().join(format!("plugins-{label}-{nanos}"))
+    }
+
+    fn demo_manifest_with_capabilities() -> PluginManifest {
+        PluginManifest {
+            name: "demo".into(),
+            version: "1.0.0".into(),
+            description: "demo".into(),
+            permissions: Vec::new(),
+            default_enabled: true,
+            hooks: PluginHooks::default(),
+            lifecycle: PluginLifecycle::default(),
+            tools: Vec::new(),
+            commands: Vec::new(),
+            scenarios: Vec::new(),
+            mcp_servers: Vec::new(),
+            skills: Vec::new(),
+            agents: Vec::new(),
+            dashboard_panels: Vec::new(),
+            dependencies: Vec::new(),
+            integrity: None,
+            capabilities: vec![PluginCapabilityDecl {
+                seam: "platform.adapter.telegram".into(),
+                capability_type: "platform_adapter".into(),
+                version: "1.0".into(),
+                description: "demo telegram adapter".into(),
+            }],
+        }
+    }
+
+    #[test]
+    fn plugin_capabilities_register_and_rollback() {
+        let registry = CapabilityRegistry::new();
+        let config = PluginManagerConfig::new(temp_dir("p3cap"));
+        let mut manager = PluginManager::new(config).with_capability_registry(&registry);
+        let manifest = demo_manifest_with_capabilities();
+
+        let errors = manager.register_plugin_capabilities("external:demo", &manifest);
+        assert!(errors.is_empty(), "注册不应失败: {errors:?}");
+        assert!(registry.contains("platform.adapter.telegram"));
+        assert_eq!(registry.len(), 1);
+        assert_eq!(
+            registry.list_origins(),
+            vec![(
+                "platform.adapter.telegram".to_string(),
+                axagent_harness::CapabilityOrigin::ExternalPlugin
+            )]
+        );
+
+        // 回滚后能力被移除
+        manager.unregister_plugin_capabilities("external:demo");
+        assert!(!registry.contains("platform.adapter.telegram"));
+        assert!(registry.is_empty());
+    }
+
+    #[test]
+    fn plugin_capabilities_without_registry_is_noop() {
+        let config = PluginManagerConfig::new(temp_dir("p3noop"));
+        let mut manager = PluginManager::new(config);
+        let manifest = demo_manifest_with_capabilities();
+
+        let errors = manager.register_plugin_capabilities("external:noop", &manifest);
+        assert!(errors.is_empty());
+        // 未注入 registry 时不报错、不崩溃
+        manager.unregister_plugin_capabilities("external:noop");
+    }
+}

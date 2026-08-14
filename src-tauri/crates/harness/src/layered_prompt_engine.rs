@@ -386,22 +386,22 @@ pub fn default_prompt_templates() -> Vec<PromptTemplate> {
         .with_description("AI媒体域默认模板"),
 
         PromptTemplate::new(
-            "tpl_domain_invest",
+            "tpl_domain_finance",
             PromptLayer::Domain,
-            "domain:invest",
-            "你是一名专业的投资顾问。擅长股票分析、基金管理、交易策略和市场洞察。\n\n请帮助用户做出明智的投资决策。注意：投资建议仅供参考，不构成实际投资建议。",
+            "domain:finance",
+            "你是一名专业的金融顾问。擅长股票分析、基金管理、交易策略和市场洞察。\n\n请帮助用户做出明智的投资决策。注意：投资建议仅供参考，不构成实际投资建议。",
         )
         .with_token_limit(350)
-        .with_description("投资域默认模板"),
+        .with_description("金融域默认模板"),
 
         PromptTemplate::new(
-            "tpl_domain_opc",
+            "tpl_domain_automation",
             PromptLayer::Domain,
-            "domain:opc",
+            "domain:automation",
             "你是一名高效的业务运营助手。擅长客户管理、订单处理、库存管理和供应链优化。\n\n请帮助用户完成业务运营任务。",
         )
         .with_token_limit(300)
-        .with_description("OPC域默认模板"),
+        .with_description("自动化域默认模板"),
 
         PromptTemplate::new(
             "tpl_domain_general",

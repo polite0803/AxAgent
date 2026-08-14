@@ -882,7 +882,17 @@
         "title": "Plugin Marketplace",
         "tools": "Tools",
         "validateFailed": "Validation failed: {{error}}",
-        "version": "Version"
+        "version": "Version",
+        "registryTitle": "Capability Registry",
+        "registryLoading": "Loading registry...",
+        "registryEmpty": "No registered capability seams",
+        "registryBuiltin": "Built-in",
+        "registryExternal": "External plugin",
+        "registryContract": "Contract",
+        "registryVersion": "Version",
+        "registryPlugin": "Plugin",
+        "registrySearchPlaceholder": "Search by seam ID / plugin ID",
+        "registrySeam": "Seam"
       }
     },
     "preferences": "Preferences",
@@ -1167,6 +1177,35 @@
     "createConversationFailed": "Failed to create conversation",
     "chatinspectorapproval0": "chat.inspector.approval{{0}}"
   },
+  "capabilityDomain": {
+    "general": "General",
+    "devops": "DevOps",
+    "ai_media": "AI Media",
+    "data_analysis": "Data Analysis",
+    "content_creation": "Content Creation",
+    "communication": "Communication",
+    "finance": "Finance",
+    "automation": "Automation",
+    "system": "System"
+  },
+  "capabilityPanel": {
+    "statsTitle": "Index Stats",
+    "totalCapabilities": "Total capabilities",
+    "totalVectors": "Total vectors",
+    "positiveVectors": "Positive vectors",
+    "negativeVectors": "Negative vectors",
+    "discoverTitle": "Discover",
+    "discoverPlaceholder": "Describe a task, e.g. \"analyze stock trends\"",
+    "discoverButton": "Discover",
+    "discoverResult": "Result",
+    "score": "Score",
+    "ambiguous": "Ambiguous match, needs clarification",
+    "noMatch": "No matching capability",
+    "passportsTitle": "Registered passports",
+    "noPassports": "No capabilities registered",
+    "enabled": "Enabled",
+    "disabled": "Disabled"
+  },
   "chatMarkdown": {
     "inputParams": "Input Params",
     "outputResult": "Output Result",
@@ -1200,7 +1239,9 @@
     "task": "Tasks",
     "teammate": "Team",
     "title": "Assistant Panel",
-    "visionAnalysis": "Vision"
+    "visionAnalysis": "Vision",
+    "cognitiveRoute": "Route",
+    "capability": "Capability"
   },
   "cite": {
     "chunkLabel": "Chunk #{{n}}",
@@ -1516,6 +1557,29 @@
       "zhTW": "Traditional Chinese"
     }
   },
+  "cognitive": {
+    "clarifyTitle": "Choose a capability to run",
+    "clarifyPrompt": "Your request matched several candidate capabilities. Choose one to run:",
+    "candidateWorkflow": "Workflow",
+    "candidateAgent": "Agent",
+    "clarifyExecuting": "Executing selected capability...",
+    "clarifyHint": "Pick a candidate to continue"
+  },
+  "cognitiveRoute": {
+    "empty": "No route observation yet",
+    "noRoute": "No route determined",
+    "domain": "Domain",
+    "cluster": "Cluster",
+    "executionMode": "Mode",
+    "confidence": "Confidence",
+    "circuitBroken": "Circuit broken",
+    "circuitClosed": "Normal",
+    "llmFallback": "LLM fallback",
+    "fallbackPath": "Fallback path",
+    "candidates": "Candidates",
+    "stageRecords": "Route stages",
+    "recordedAt": "Recorded at"
+  },
   "continuation": {
     "continueFromHere": "Continue from here"
   },
@@ -1604,7 +1668,8 @@
     "agentDataNotFound": "Agent generated data \"{{generationId}}\" not found in execution store",
     "apiRequestFailed": "API request failed: {{statusText}}",
     "storeNotRegistered": "Store \"{{storeName}}\" not registered",
-    "unknownSourceType": "Unknown data source type: {{type}}"
+    "unknownSourceType": "Unknown data source type: {{type}}",
+    "apiEndpointForbidden": "API endpoint \"{{endpoint}}\" is not allowed and was blocked"
   },
   "datasetManager": {
     "action": "Action",
@@ -1614,6 +1679,7 @@
     "created": "Created",
     "createdSuccess": "Dataset created successfully",
     "deleteFailed": "Failed to delete dataset",
+    "FINE_TUNE_DELETE_FAILED": "Failed to delete fine-tuning job",
     "deletedSuccess": "Dataset deleted",
     "description": "Description",
     "name": "Name",
@@ -1971,12 +2037,14 @@
     "CLOUD_UNKNOWN_CONFLICT": "Unknown sync conflict type",
     "CLOUD_UNKNOWN_STORAGE": "Unknown storage type",
     "CLOUD_UNKNOWN_STRATEGY": "Unknown sync strategy",
+    "CAPABILITY_EMBEDDING_FAILED": "Embedding generation failed",
     "COGNITIVE_ROUTE_FAILED": "Cognitive route execution failed",
     "COGNITIVE_EMPTY_INPUT": "Cognitive route input is empty",
     "COGNITIVE_CIRCUIT_BROKEN": "Cognitive route circuit breaker tripped: {reason}",
     "COGNITIVE_NO_CANDIDATE": "No available capability found for cognitive route",
     "COGNITIVE_EXECUTION_MODE_INVALID": "Invalid cognitive route execution mode",
     "COGNITIVE_PROMPT_REJECTED": "Cognitive prompt rejected",
+    "COGNITIVE_RAR_RETRIEVE_FAILED": "Cognitive routing candidate retrieval failed: {{detail}}",
     "COMMON_INTERNAL": "Internal error",
     "COMMON_INVALID_INPUT": "Invalid input",
     "COMMON_TIMEOUT": "Operation timed out",
@@ -2084,6 +2152,9 @@
     "PLATFORM_TELEGRAM_NOT_ENABLED": "Telegram platform not enabled",
     "PLATFORM_UNSUPPORTED": "Unsupported platform",
     "PLATFORM_WEBHOOK_NOT_CONFIGURED": "Webhook not configured",
+    "PLUGIN_PROFILE_NOT_FOUND": "Plugin bundle profile not found",
+    "PLUGIN_PROFILE_DUPLICATE_NAME": "Plugin bundle profile name already exists",
+    "PLUGIN_PROFILE_IO_FAILED": "Failed to persist plugin bundle profile",
     "PROVIDER_ADAPTER_NOT_FOUND": "Provider adapter not found",
     "PROVIDER_CREATE_FAILED": "Failed to create provider",
     "PROVIDER_DELETE_FAILED": "Failed to delete provider",
@@ -2234,6 +2305,7 @@
     "LOCAL_MODEL_INSTALL_IN_PROGRESS": "llama.cpp installation in progress",
     "LOCAL_MODEL_DOWNLOAD_FAILED": "Download failed",
     "LOCAL_MODEL_PORT_IN_USE": "Port {{port}} is already in use. Please change the port or stop the occupying process",
+    "LLM_CALL_FAILED": "LLM call failed: {{detail}}",
     "FLEET_NOT_FOUND": "Office not found",
     "FLEET_NAME_REQUIRED": "Office name is required",
     "FLEET_NO_MEMBERS": "This office has no members yet",
@@ -2272,7 +2344,6 @@
     "CAPABILITY_DISCOVER_FAILED": "Capability discovery failed",
     "CAPABILITY_NOT_FOUND": "Capability not found",
     "CAPABILITY_INDEX_FAILED": "Capability indexing failed",
-    "CAPABILITY_EMBEDDING_FAILED": "Embedding generation failed",
     "CAPABILITY_VECTOR_STORE_FAILED": "Vector store operation failed",
     "CAPABILITY_INVALID_PASSPORT": "Invalid capability passport",
     "CAPABILITY_LIST_FAILED": "Failed to list capabilities",
@@ -2393,7 +2464,11 @@
       "name": "General Assistant",
       "desc": "A general-purpose AI assistant for everyday conversations and general questions.",
       "systemPrompt": "You are an intelligent AI assistant. Provide accurate and helpful answers based on the user's questions.",
-      "tags": ["General", "Assistant", "Chat"]
+      "tags": [
+        "General",
+        "Assistant",
+        "Chat"
+      ]
     }
   },
   "expertSelector": {
@@ -8583,7 +8658,8 @@
     "deleteFileDesc": "Delete the file at the specified path. This operation is irreversible.",
     "bashDesc": "Execute shell commands. Suitable for: running tests, builds, git operations. Dangerous commands require permission confirmation.",
     "fleetNoMembers": "The office has no members yet",
-    "fleetMessageReceived": "[Browser Mock] {{name}} received message: {{message}}"
+    "fleetMessageReceived": "[Browser Mock] {{name}} received message: {{message}}",
+    "capabilityAmbiguous": "Multiple high-match capabilities found. Please clarify to confirm."
   },
   "cancel": "Cancel",
   "searchUtils": {

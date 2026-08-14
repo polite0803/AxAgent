@@ -882,7 +882,17 @@
         "title": "Mercado de plugins",
         "tools": "Herramientas",
         "validateFailed": "Validación fallida: {{error}}",
-        "version": "Versión"
+        "version": "Versión",
+        "registryTitle": "Registro de capacidades",
+        "registryLoading": "Cargando registro...",
+        "registryEmpty": "No hay conectores de capacidad registrados",
+        "registryBuiltin": "Integrado",
+        "registryExternal": "Complemento externo",
+        "registryContract": "Contrato",
+        "registryVersion": "Versión",
+        "registryPlugin": "Complemento",
+        "registrySearchPlaceholder": "Buscar por ID de conector / complemento",
+        "registrySeam": "Conector"
       }
     },
     "preferences": "Preferencias",
@@ -1167,6 +1177,35 @@
     "createConversationFailed": "Error al crear la conversación",
     "chatinspectorapproval0": "chat.inspector.aprobación{{0}}"
   },
+  "capabilityDomain": {
+    "general": "General",
+    "devops": "DevOps",
+    "ai_media": "Medios IA",
+    "data_analysis": "Análisis de datos",
+    "content_creation": "Creación de contenido",
+    "communication": "Comunicación",
+    "finance": "Finanzas",
+    "automation": "Automatización",
+    "system": "Sistema"
+  },
+  "capabilityPanel": {
+    "statsTitle": "Estadísticas del índice",
+    "totalCapabilities": "Capacidades totales",
+    "totalVectors": "Vectores totales",
+    "positiveVectors": "Vectores positivos",
+    "negativeVectors": "Vectores negativos",
+    "discoverTitle": "Descubrir",
+    "discoverPlaceholder": "Describa una tarea, p. ej. «analizar tendencias»",
+    "discoverButton": "Descubrir",
+    "discoverResult": "Resultado",
+    "score": "Puntuación",
+    "ambiguous": "Coincidencia ambigua",
+    "noMatch": "Sin capacidad coincidente",
+    "passportsTitle": "Pasaportes registrados",
+    "noPassports": "Sin capacidades registradas",
+    "enabled": "Activado",
+    "disabled": "Desactivado"
+  },
   "chatMarkdown": {
     "inputParams": "Parámetros de entrada",
     "outputResult": "Resultado de salida",
@@ -1200,7 +1239,9 @@
     "task": "Tareas",
     "teammate": "Equipo",
     "title": "Asistente",
-    "visionAnalysis": "Visión"
+    "visionAnalysis": "Visión",
+    "cognitiveRoute": "Ruta",
+    "capability": "Capacidad"
   },
   "cite": {
     "chunkLabel": "Fragmento #{{n}}",
@@ -1516,6 +1557,29 @@
       "zhTW": "Chino tradicional"
     }
   },
+  "cognitive": {
+    "clarifyTitle": "Elija una capacidad",
+    "clarifyPrompt": "Su solicitud coincidió con varios candidatos. Elija uno:",
+    "candidateWorkflow": "Flujo de trabajo",
+    "candidateAgent": "Agente",
+    "clarifyExecuting": "Ejecutando la capacidad seleccionada...",
+    "clarifyHint": "Seleccione un candidato para continuar"
+  },
+  "cognitiveRoute": {
+    "empty": "Sin observaciones de ruta",
+    "noRoute": "Sin ruta determinada",
+    "domain": "Dominio",
+    "cluster": "Clúster",
+    "executionMode": "Modo",
+    "confidence": "Confianza",
+    "circuitBroken": "Circuito abierto",
+    "circuitClosed": "Normal",
+    "llmFallback": "Respaldo LLM",
+    "fallbackPath": "Ruta de respaldo",
+    "candidates": "Candidatos",
+    "stageRecords": "Etapas de ruta",
+    "recordedAt": "Registrado a las"
+  },
   "continuation": {
     "continueFromHere": "Continuar desde aquí"
   },
@@ -1604,7 +1668,8 @@
     "agentDataNotFound": "Datos generados por el agente \"{{generationId}}\" no encontrados en el almacén de ejecución",
     "apiRequestFailed": "Solicitud API fallida: {{statusText}}",
     "storeNotRegistered": "Almacén \"{{storeName}}\" no registrado",
-    "unknownSourceType": "Tipo de fuente de datos desconocido: {{type}}"
+    "unknownSourceType": "Tipo de fuente de datos desconocido: {{type}}",
+    "apiEndpointForbidden": "El endpoint de API \"{{endpoint}}\" no está permitido y se ha bloqueado"
   },
   "datasetManager": {
     "action": "Acción",
@@ -1614,6 +1679,7 @@
     "created": "Creado",
     "createdSuccess": "Dataset created",
     "deleteFailed": "Error al eliminar el dataset",
+    "FINE_TUNE_DELETE_FAILED": "Error al eliminar el trabajo de fine-tuning",
     "deletedSuccess": "Conjunto de datos eliminado",
     "description": "Descripción",
     "name": "Nombre",
@@ -1971,12 +2037,14 @@
     "CLOUD_UNKNOWN_CONFLICT": "Tipo de conflicto de sincronización desconocido",
     "CLOUD_UNKNOWN_STORAGE": "Tipo de almacenamiento desconocido",
     "CLOUD_UNKNOWN_STRATEGY": "Estrategia de sincronización desconocida",
+    "CAPABILITY_EMBEDDING_FAILED": "Generación de incrustación fallida",
     "COGNITIVE_ROUTE_FAILED": "Error en la ejecución del enrutamiento cognitivo",
     "COGNITIVE_EMPTY_INPUT": "La entrada del enrutamiento cognitivo está vacía",
     "COGNITIVE_CIRCUIT_BROKEN": "El disyuntor del enrutamiento cognitivo se ha disparado: {reason}",
     "COGNITIVE_NO_CANDIDATE": "No se encontró ninguna capacidad disponible para el enrutamiento cognitivo",
     "COGNITIVE_EXECUTION_MODE_INVALID": "Modo de ejecución del enrutamiento cognitivo no válido",
     "COGNITIVE_PROMPT_REJECTED": "Solicitud cognitiva rechazada",
+    "COGNITIVE_RAR_RETRIEVE_FAILED": "Fallo en la recuperación de candidatos del enrutamiento cognitivo: {{detail}}",
     "COMMON_INTERNAL": "Error interno",
     "COMMON_INVALID_INPUT": "Entrada no válida",
     "COMMON_TIMEOUT": "Tiempo de espera de operación agotado",
@@ -2084,6 +2152,9 @@
     "PLATFORM_TELEGRAM_NOT_ENABLED": "Plataforma Telegram no habilitada",
     "PLATFORM_UNSUPPORTED": "Plataforma no compatible",
     "PLATFORM_WEBHOOK_NOT_CONFIGURED": "Webhook no configurado",
+    "PLUGIN_PROFILE_NOT_FOUND": "Perfil de paquete de plugins no encontrado",
+    "PLUGIN_PROFILE_DUPLICATE_NAME": "Ya existe un perfil de paquete de plugins con ese nombre",
+    "PLUGIN_PROFILE_IO_FAILED": "No se pudo guardar el perfil de paquete de plugins",
     "PROVIDER_ADAPTER_NOT_FOUND": "Adaptador de proveedor no encontrado",
     "PROVIDER_CREATE_FAILED": "Error al crear el proveedor",
     "PROVIDER_DELETE_FAILED": "Error al eliminar el proveedor",
@@ -2234,6 +2305,7 @@
     "LOCAL_MODEL_INSTALL_IN_PROGRESS": "Instalación de llama.cpp en curso",
     "LOCAL_MODEL_DOWNLOAD_FAILED": "Descarga fallida",
     "LOCAL_MODEL_PORT_IN_USE": "El puerto {{port}} ya está en uso. Cambie el puerto o detenga el proceso que lo ocupa",
+    "LLM_CALL_FAILED": "Fallo en la llamada LLM: {{detail}}",
     "FLEET_NOT_FOUND": "Oficina no encontrada",
     "FLEET_NAME_REQUIRED": "El nombre de la oficina es obligatorio",
     "FLEET_NO_MEMBERS": "Esta oficina aún no tiene miembros",
@@ -2272,7 +2344,6 @@
     "CAPABILITY_DISCOVER_FAILED": "Descubrimiento de capacidad fallido",
     "CAPABILITY_NOT_FOUND": "Capacidad no encontrada",
     "CAPABILITY_INDEX_FAILED": "Indexación de capacidad fallida",
-    "CAPABILITY_EMBEDDING_FAILED": "Generación de incrustación fallida",
     "CAPABILITY_VECTOR_STORE_FAILED": "Operación de almacenamiento vectorial fallida",
     "CAPABILITY_INVALID_PASSPORT": "Pasaporte de capacidad inválido",
     "CAPABILITY_LIST_FAILED": "Listado de capacidades fallido",
@@ -2393,7 +2464,11 @@
       "name": "Asistente General",
       "desc": "Un asistente de IA versátil para conversaciones cotidianas y preguntas generales.",
       "systemPrompt": "Eres un asistente de IA inteligente. Proporciona respuestas precisas y útiles según las preguntas del usuario.",
-      "tags": ["General", "Asistente", "Diálogo"]
+      "tags": [
+        "General",
+        "Asistente",
+        "Diálogo"
+      ]
     }
   },
   "expertSelector": {
@@ -8583,7 +8658,8 @@
     "deleteFileDesc": "Delete the file at the specified path. This operation is irreversible.",
     "bashDesc": "Execute shell commands. Suitable for: running tests, builds, git operations. Dangerous commands require permission confirmation.",
     "fleetNoMembers": "The office has no members yet",
-    "fleetMessageReceived": "[Browser Mock] {{name}} received message: {{message}}"
+    "fleetMessageReceived": "[Browser Mock] {{name}} received message: {{message}}",
+    "capabilityAmbiguous": "Se encontraron varias capacidades muy coincidentes. Aclare para confirmar."
   },
   "cancel": "Cancelar",
   "searchUtils": {

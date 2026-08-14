@@ -149,7 +149,7 @@ pub struct WebhookSubscriptionInfo {
 /// 由 `axagent-rt-messaging::PlatformBridge` 消费。
 /// 放在 harness（foundation 层）避免 implementor 与 hybrid 互相依赖。
 #[async_trait::async_trait]
-pub trait WebhookDispatch: Send + Sync {
+pub trait WebhookDispatch: Send + Sync + std::any::Any {
     /// 派发事件，返回每个订阅端点的投递结果。
     async fn dispatch(
         &self,

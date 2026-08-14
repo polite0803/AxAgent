@@ -398,22 +398,21 @@ fn build_main_router_nodes() -> Vec<WorkflowNode> {
             "L1 LLM 兜底分类",
             Position { x: 100.0, y: 380.0 },
             vec![
-                "core",
                 "general",
                 "devops",
                 "ai_media",
-                "invest",
-                "opc",
+                "finance",
+                "automation",
                 "data_analysis",
                 "content_creation",
                 "communication",
             ],
             Some("__l1_categories"),
-            "你是一个业务域分类器。根据用户输入，将其归类到最合适的业务域。\n\n业务域列表：\n- core: 核心功能（文件读写、配置管理、订单退款、系统设置等）\n- general: 通用域（知识管理、学习、记忆、日常助手等）\n- devops: 开发运维（部署、监控、CI/CD、代码管理等）\n- ai_media: AI 媒体（图像、视频、音频生成等）\n- invest: 投资交易（股票、期货、行情分析等）\n- opc: 工业自动化（设备控制、生产调度等）\n- data_analysis: 数据分析（报表、图表、统计、公式等）\n- content_creation: 内容创作（写作、翻译、润色、文档生成等）\n- communication: 通信（消息、邮件、通知等）\n\n用户输入：{user_input}\n\n请返回 JSON 格式：{\"label\": \"xxx\", \"confidence\": 0.xx}",
+            "你是一个业务域分类器。根据用户输入，将其归类到最合适的业务域。\n\n业务域列表：\n- general: 通用能力（文件读写、Shell、文本、网络、搜索、文档、配置等兜底通用能力）\n- devops: 运维（CI/CD、部署、监控告警、安全审计、容器编排）\n- ai_media: AI 媒体（图像、视频、音频的生成与处理）\n- finance: 金融（行情、交易、风控、组合管理）\n- automation: 自动化（RPA、定时任务、工作流编排）\n- data_analysis: 数据分析（SQL 查询、可视化、ETL/数据清洗）\n- content_creation: 内容创作（写作、设计、排版）\n- communication: 通信（IM、邮件、推送通知）\n\n用户输入：{user_input}\n\n请返回 JSON 格式：{\"label\": \"xxx\", \"confidence\": 0.xx}",
             "user_input",
             "l1_result",
             Some(0.6),
-            Some("core"),
+            Some("general"),
         ),
         // 5. L2 子工作流调用（l1_domain 取 l1_result.category；透传动态目录 __l2_categories）
         sub_workflow_node(
@@ -556,17 +555,17 @@ fn build_main_router_edges() -> Vec<WorkflowEdge> {
 /// L1 规则匹配 Rhai 表达式 —— 仅依赖 `input`（user_input），命中返回 `{hit, category}`。
 ///
 /// 分类目录与 `CapabilityDomain` 枚举及 `list_l1_categories` 动态目录保持命名一致：
-/// 订单/退款等电商操作归入 `core`（核心功能域），知识库/学习/记忆归入 `general`（通用域），
+/// 订单/退款等电商操作归入 `automation`（自动化域），知识库/学习/记忆归入 `general`（通用域），
 /// 否则规则命中的域不在动态目录内会导致 L2 分类目录为空。
 const L1_RULE_EXPRESSION: &str = r#"
 if input.contains("股票") || input.contains("基金") || input.contains("投资") || input.contains("行情") {
-    #{ "hit": true, "category": "invest" }
+    #{ "hit": true, "category": "finance" }
 } else if input.contains("订单") || input.contains("退款") || input.contains("发货") || input.contains("物流") {
-    #{ "hit": true, "category": "core" }
+    #{ "hit": true, "category": "automation" }
 } else if input.contains("写") || input.contains("翻译") || input.contains("润色") || input.contains("生成") {
     #{ "hit": true, "category": "content_creation" }
 } else if input.contains("文件") || input.contains("目录") || input.contains("读写") {
-    #{ "hit": true, "category": "core" }
+    #{ "hit": true, "category": "general" }
 } else if input.contains("部署") || input.contains("监控") || input.contains("CI/CD") || input.contains("Docker") {
     #{ "hit": true, "category": "devops" }
 } else if input.contains("知识库") || input.contains("学习") || input.contains("记忆") {
@@ -621,22 +620,21 @@ fn build_l1_router_nodes() -> Vec<WorkflowNode> {
             "L1 LLM 分类",
             Position { x: 100.0, y: 320.0 },
             vec![
-                "core",
                 "general",
                 "devops",
                 "ai_media",
-                "invest",
-                "opc",
+                "finance",
+                "automation",
                 "data_analysis",
                 "content_creation",
                 "communication",
             ],
             Some("__l1_categories"),
-            "你是一个业务域分类器。根据用户输入，将其归类到最合适的业务域。\n\n业务域列表：\n- core: 核心功能（文件读写、配置管理、订单退款、系统设置等）\n- general: 通用域（知识管理、学习、记忆、日常助手等）\n- devops: 开发运维（部署、监控、CI/CD、代码管理等）\n- ai_media: AI 媒体（图像、视频、音频生成等）\n- invest: 投资交易（股票、期货、行情分析等）\n- opc: 工业自动化（设备控制、生产调度等）\n- data_analysis: 数据分析（报表、图表、统计、公式等）\n- content_creation: 内容创作（写作、翻译、润色、文档生成等）\n- communication: 通信（消息、邮件、通知等）\n\n用户输入：{user_input}\n\n返回 JSON：{\"label\": \"业务域\", \"confidence\": 0.xx}",
+            "你是一个业务域分类器。根据用户输入，将其归类到最合适的业务域。\n\n业务域列表：\n- general: 通用能力（文件读写、Shell、文本、网络、搜索、文档、配置等兜底通用能力）\n- devops: 运维（CI/CD、部署、监控告警、安全审计、容器编排）\n- ai_media: AI 媒体（图像、视频、音频的生成与处理）\n- finance: 金融（行情、交易、风控、组合管理）\n- automation: 自动化（RPA、定时任务、工作流编排）\n- data_analysis: 数据分析（SQL 查询、可视化、ETL/数据清洗）\n- content_creation: 内容创作（写作、设计、排版）\n- communication: 通信（IM、邮件、推送通知）\n\n用户输入：{user_input}\n\n返回 JSON：{\"label\": \"业务域\", \"confidence\": 0.xx}",
             "user_input",
             "l1_llm_result",
             Some(0.6),
-            Some("core"),
+            Some("general"),
         ),
         // 6. LLM 结果置信度检查
         condition_node(
@@ -680,15 +678,15 @@ fn build_l1_router_edges() -> Vec<WorkflowEdge> {
 
 /// L2 规则匹配 Rhai 表达式 —— 依赖 `input`（user_input）+ `l1_domain`。
 const L2_RULE_EXPRESSION: &str = r#"
-if l1_domain == "invest" && (input.contains("技术面") || input.contains("K线") || input.contains("均线")) {
+if l1_domain == "finance" && (input.contains("技术面") || input.contains("K线") || input.contains("均线")) {
     #{ "hit": true, "category": "stock_tech" }
-} else if l1_domain == "invest" && (input.contains("基本面") || input.contains("PE") || input.contains("ROE")) {
+} else if l1_domain == "finance" && (input.contains("基本面") || input.contains("PE") || input.contains("ROE")) {
     #{ "hit": true, "category": "stock_fundamental" }
-} else if l1_domain == "invest" && (input.contains("新闻") || input.contains("舆情") || input.contains("公告")) {
+} else if l1_domain == "finance" && (input.contains("新闻") || input.contains("舆情") || input.contains("公告")) {
     #{ "hit": true, "category": "stock_news" }
-} else if l1_domain == "core" && (input.contains("退款") || input.contains("退货")) {
+} else if l1_domain == "automation" && (input.contains("退款") || input.contains("退货")) {
     #{ "hit": true, "category": "refund_processing" }
-} else if l1_domain == "core" && (input.contains("订单") || input.contains("修改")) {
+} else if l1_domain == "automation" && (input.contains("订单") || input.contains("修改")) {
     #{ "hit": true, "category": "order_modify" }
 } else if l1_domain == "devops" && (input.contains("部署") || input.contains("上线")) {
     #{ "hit": true, "category": "deployment" }

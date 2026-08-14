@@ -230,17 +230,9 @@ fn emit_status(
     );
 }
 
-/// 将字符串形式的 domain 名解析为 ToolDomain 枚举值
+/// 将字符串形式的 domain 名解析为 ToolDomain 枚举值（兼容历史旧值 core/invest/opc）
 fn parse_domain_str(s: &str) -> Option<ToolDomain> {
-    match s.to_lowercase().as_str() {
-        "core" => Some(ToolDomain::Core),
-        "general" => Some(ToolDomain::General),
-        "devops" => Some(ToolDomain::Devops),
-        "ai_media" => Some(ToolDomain::AiMedia),
-        "invest" => Some(ToolDomain::Invest),
-        "opc" => Some(ToolDomain::Opc),
-        _ => None,
-    }
+    s.parse().ok()
 }
 
 /// AgentProfile 解析后的工具上下文。
@@ -249,7 +241,7 @@ fn parse_domain_str(s: &str) -> Option<ToolDomain> {
 /// `get_tool_count` 共享，保证筛选语义一致（禁区 12：禁止重复定义）。
 #[derive(Default)]
 pub(crate) struct ProfileToolContext {
-    /// 角色 + 专家合并的工具域（不含默认兜底的 Core/General）
+    /// 角色 + 专家合并的工具域（不含默认兜底的 General）
     pub active_domains: HashSet<ToolDomain>,
     /// 岗位（AgentRole）的 system_prompt
     pub role_system_prompt: Option<String>,
@@ -1008,14 +1000,13 @@ pub async fn agent_query(
         domains.iter().filter_map(|s| parse_domain_str(s)).collect()
     } else if !profile_active_domains.is_empty() {
         // ② 角色/专家组合（role.active_domains ∪ expert.active_domains）
-        // 确保 Core 始终存在
+        // 确保 General 始终存在（历史 Core 已并入 General）
         let mut d = profile_active_domains;
-        d.insert(ToolDomain::Core);
+        d.insert(ToolDomain::General);
         d
     } else {
         // ③ 默认（自由对话无任何关联）
         let mut d = std::collections::HashSet::new();
-        d.insert(ToolDomain::Core);
         d.insert(ToolDomain::General);
         d
     };

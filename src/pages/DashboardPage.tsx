@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { OfficeTab } from "@/components/office/OfficeTab";
-import { invoke } from "@/lib/invoke";
+import { invoke, logIpcError } from "@/lib/invoke";
 import {
   initGatewayStatusListener,
   useConversationStore,
@@ -299,10 +299,10 @@ function OverviewTab() {
         invoke<CostByProvider[]>("get_cost_by_provider").catch(() => []),
       ]);
       // 独立加载 store 数据，不阻塞主数据渲染
-      fetchGatewayStatus().catch(() => {});
-      fetchGatewayMetrics().catch(() => {});
-      fetchProviders().catch(() => {});
-      fetchConversations().catch(() => {});
+      fetchGatewayStatus().catch(logIpcError("dashboard.gatewayStatus"));
+      fetchGatewayMetrics().catch(logIpcError("dashboard.gatewayMetrics"));
+      fetchProviders().catch(logIpcError("dashboard.providers"));
+      fetchConversations().catch(logIpcError("dashboard.conversations"));
       setBackendStats(stats);
       setDailyUsage(usage);
       setCostByProvider(cost);

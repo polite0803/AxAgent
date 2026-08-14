@@ -11,7 +11,7 @@
   </a>
 </p>
 
-**AxAgent** 是一款基于 Tauri 2 的跨平台 AI 助手桌面客户端（Windows / macOS / Linux / Android / iOS）。它集成了 ReAct 智能体引擎、可视化工作流编排、本地 RAG 知识库、MCP 协议扩展、多模型统一网关、浏览器自动化与计算机控制等能力，定位为 AI 驱动的日常开发、研究、知识管理和自动化工作台。
+**AxAgent** 是一款基于 Tauri 2 的跨平台 AI 桌面客户端（Windows / macOS / Linux / Android / iOS），定位为 AI 驱动的日常开发、研究、知识管理与自动化工作台。它内置 ReAct 智能体引擎、认知路由（三级分层路由 + 检索增强路由 RAR）、可视化工作流编排、本地 RAG 知识库、MCP 协议扩展、多模型统一网关、浏览器自动化与计算机控制等能力，让 AI 从"对话"走向"执行"。
 
 > **语言版本**: [English](./README-EN.md) | [繁體中文](./README-ZH-TW.md) | [日本語](./README-JA.md) | [한국어](./README-KO.md) | [Français](./README-FR.md) | [Deutsch](./README-DE.md) | [Español](./README-ES.md) | [Русский](./README-RU.md) | [हिन्दी](./README-HI.md) | [العربية](./README-AR.md)
 
@@ -21,24 +21,36 @@
 
 AxAgent 解决三个核心问题：
 
-1. **多模型统一接入与智能调度** — 单一界面同时使用 OpenAI、Anthropic Claude、Google Gemini、Ollama 本地模型及任意 OpenAI 兼容 API，支持多 Key 配额自动轮换、按任务类型智能路由、流式对比
-2. **AI 从对话到执行的闭环** — 47+ 内置工具 + 可视化工作流 + MCP 扩展 + 浏览器/计算机控制，AI 可操作文件、运行代码、管理 Git、调度任务
+1. **多模型统一接入与智能调度** — 单一界面同时使用 OpenAI、Anthropic Claude、Google Gemini、DeepSeek、Qwen、GLM、Kimi、文心、Ollama 本地模型及任意 OpenAI 兼容 API，支持多 Key 配额自动轮换、按任务类型智能路由、流式对比
+2. **AI 从对话到执行的闭环** — 163+ 内置工具 + 可视化工作流 + MCP 扩展 + 浏览器/计算机控制，AI 可操作文件、运行代码、管理 Git、调度任务
 3. **本地优先的数据主权** — 对话记录、知识库、记忆、配置均存储于本地 SQLite 数据库，API Key 使用 AES-256-GCM 加密，无需第三方云服务即可运行核心功能
 
 ---
 
 ## 核心能力
 
+### 认知路由系统（Cognitive Router）
+
+AxAgent 以 `cognitive_query` 作为所有对话的统一入口，通过**三级分层路由**将用户意图映射到具体能力：
+
+- **L1 领域路由** (`domain_router`): 规则 + LLM 兜底，识别 9 大业务领域（数据分析 / 内容创作 / 沟通 / 运维 / AI 媒体 / 金融 / 自动化 / 通用等）
+- **L2 集群路由** (`cluster_router`): 领域内定位能力集群（27 个集群，覆盖 8 大业务领域）
+- **L3 能力路由**: **检索增强路由（RAR）** — 从能力向量库召回 Top-K 相似工作流注入 Prompt，结合工作流 DAG 图寻径，输出路径地址（如 `/finance/stock_analysis/tech`）与执行模式
+- **执行模式**: `Ask / Plan / Act / Workflow / Direct / Delegate / ParameterExtract / Clarify`，按置信度自动选择
+- **能力系统**: 统一注册表（`CapabilityRegistry`）+ 向量索引（`CapabilityIndexer`）+ 混合检索（`CapabilityRetriever`，向量 + BM25 + 标签硬匹配 + 负样本排除）
+- **系统能力隔离**: 认知编排器与业务工作流物理隔离，系统能力带 `SYSTEM_ONLY` 可见性标记，路由层内置自引用熔断，防止自我指涉悖论
+- **三级路由以工作流 DAG 实现**: 4 个预设路由工作流模板（主编排 ~20 节点 + L1/L2/L3 子路由），由 `rt-workflow` 引擎执行
+
 ### 多模型引擎
 
-- **9 种提供商适配器**: OpenAI (Chat Completions + Responses + Realtime)、Anthropic Claude、Google Gemini、Ollama (含 GGUF 本地模型管理)、OpenClaw、Hermes，以及所有 OpenAI 兼容 API
+- **13 种提供商适配器**: OpenAI（Chat Completions + Responses + Realtime）、Anthropic Claude、Google Gemini、DeepSeek、Qwen、GLM、Kimi、文心一言、Ollama、Llama.cpp（GGUF 本地模型）、OpenClaw、Hermes，以及所有 OpenAI 兼容 API
 - **多 Key 轮换**: 同一提供商多 API Key，按配额自动轮换，单 Key 限流自动切换
 - **智能路由**: 按任务类型（代码审查 / 摘要 / 翻译 / 通用）自动选择最优模型，支持自定义规则
 - **提供商健康监控**: 实时追踪成功率、延迟、可用状态，支持分级自动降级
-- **AI 图像生成**: DALL-E 3 和 Flux (Replicate) 多尺寸预设
+- **AI 图像生成**: DALL-E 3 和 Flux 多尺寸预设
 - **实时语音**: 基于 OpenAI Realtime API 的 WebSocket 语音对话，支持打断和流式转写
 
-### 智能体系统 (ReAct 引擎)
+### 智能体系统（ReAct 引擎）
 
 - **层级规划器** (`hierarchical_planner`): 复杂任务分解为 Phase → Task 结构化计划，编译为 DAG 拓扑执行
 - **深度研究** (`deep_research`): 多源搜索编排，含搜索计划、搜索执行、内容综合、引用追踪
@@ -78,12 +90,12 @@ AxAgent 解决三个核心问题：
 
 基于 ReactFlow 12 的拖放式 DAG 工作流编辑器：
 
-- **17 种节点类型**: 触发器、智能体、LLM 调用、条件分支、并行分叉、循环、合并、延迟、工具调用、代码执行、子工作流、向量检索、文档解析、验证、结束、业务规则、Agent 角色
+- **32 种节点类型**: 触发器、智能体、LLM 调用、条件分支、并行分叉、循环、合并、延迟、工具调用、代码执行、子工作流、向量检索、文档解析、验证、结束、HTTP 请求、Switch、数据库查询、通知、审批、文件操作、数据转换、Webhook 发送、日志、LLM 分类器、聚合器、邮件、辩论、Swarm、多智能体、存储、业务规则
 - **Kahn 拓扑排序执行**: 自动检测循环依赖，并行流水线调度
 - **内置模板**: 代码审查、Bug 修复、文档生成、测试、重构、探索、性能分析、安全审查、功能开发
 - **YAML 序列化**: 工作流定义导入导出
 - **版本管理**: 模板版本控制
-- **AI 辅助设计**: AI 辅助工作流设计和节点推荐
+- **AI 辅助设计**: AI 辅助工作流设计、节点推荐与诊断
 
 ### 知识管理
 
@@ -115,6 +127,7 @@ AxAgent 解决三个核心问题：
 - **SSL/TLS**: 内置自签名证书（`rcgen`），支持自定义证书
 - **外部链接**: 一键集成 Claude CLI、OpenCode 等外部工具，自动同步 API Key
 - **实时门票**: 基于 HMAC 的临时认证票据，用于 WebSocket 连接安全传递
+- **Server 模式**: 可选 `axagent-server` 二进制，将桌面应用能力以服务形式对外提供
 
 ### 消息平台集成
 
@@ -122,30 +135,31 @@ AxAgent 解决三个核心问题：
 
 ### 工具系统
 
-47+ 内置工具，统一通过 `Tool` trait 注册：
+**163+ 内置工具**，统一通过 `Tool` trait 注册，覆盖 15 大类别：
 
-| 类别       | 工具                                                                                                                                                                                                       |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 文件操作   | `file_read`, `file_write`, `file_edit`, `file_system`                                                                                                                                                      |
-| 代码执行   | `bash`, `repl`                                                                                                                                                                                             |
-| 搜索       | `grep`, `glob`                                                                                                                                                                                             |
-| 浏览器     | `browser` (CDP)                                                                                                                                                                                            |
-| 计算机控制 | `computer_use` (鼠标/键盘/截图)                                                                                                                                                                            |
-| Web        | `web_search`, `web_fetch`                                                                                                                                                                                  |
-| 知识库     | `knowledge`, `document`                                                                                                                                                                                    |
-| Git        | `git` (commit/push/branch/diff)                                                                                                                                                                            |
-| 开发工具   | `lsp`, `workspace`                                                                                                                                                                                         |
-| 任务管理   | `plan`, `task_system`, `todo_write`, `cron`                                                                                                                                                                |
-| 消息推送   | `push_notification`, `messaging`                                                                                                                                                                           |
-| 数据库     | `database`                                                                                                                                                                                                 |
-| 存储       | `storage`                                                                                                                                                                                                  |
-| 其他       | `agent`, `agent_memory`, `context`, `export`, `integration`, `media`, `media_delivery`, `migration_tool`, `monitor`, `obsidian`, `ocr`, `personality`, `shared_path`, `system_info`, `testing`, `worktree` |
+| 类别       | 工具示例                                                                                                                                                             |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 文件操作   | `file_read`, `file_write`, `file_edit`, `glob`, `grep`, 目录/删除/移动等 11 个                                                                                       |
+| Shell/Web  | `bash`, `web_fetch`, `web_search`                                                                                                                                    |
+| 网络       | `http_request`, `ping`, `dns_lookup`, `json_api`, `rss_reader`, `graphql`, `websocket`                                                                               |
+| 浏览器     | `browser_navigate`, `browser_click`, `browser_fill`, `browser_screenshot` 等 10 个（CDP）                                                                            |
+| 计算机控制 | `computer_use`（鼠标/键盘/截图）                                                                                                                                     |
+| Git        | `git_status`, `git_diff`, `git_commit`, `git_log`, `git_branch`, `git_review`                                                                                        |
+| 知识库     | `list_knowledge_bases`, `search_knowledge`, `add_knowledge_document` 等 6 个                                                                                         |
+| 任务管理   | `todo_write`, `task_*`（6 个）, `cron_*`（3 个）, `plan` 相关                                                                                                        |
+| 消息推送   | `push_notification`, `send_message`, 团队协作工具                                                                                                                    |
+| 数据库     | `database_query`, `database_list_tables`, `database_migration_status`                                                                                                |
+| 存储       | `get_storage_info`, `upload_storage_file`, `download_storage_file` 等 5 个                                                                                           |
+| 导出/格式  | `export_word`, `export_pdf`, `export_xlsx`, `export_pptx`, `render_markdown` 等 9 个                                                                                 |
+| OCR        | `ocr_image`, `ocr_detect_langs`                                                                                                                                      |
+| Obsidian   | `obsidian_search`, `obsidian_read`, `obsidian_backlinks` 等 9 个                                                                                                     |
+| 其他       | `agent`, `delegate_task`, `skills_*`, `lsp`, `repl`, `monitor`, `workspace_*`, `session_search`, `generate_image`, `sequential_thinking`, CI/CD、DevOps、RPC、测试等 |
 
 ### MCP 协议
 
 基于 `rmcp` 的完整 MCP (Model Context Protocol) 实现：
 
-- **传输层**: stdio 子进程 + Streamable HTTP + WebSocket
+- **传输层**: stdio 子进程 + Streamable HTTP + SSE
 - **OAuth 认证**: 支持 MCP 服务器的 OAuth 授权流程
 - **工具发现**: 自动发现和注册 MCP 服务器暴露的工具
 - **MCP 管理器**: 服务器生命周期管理、健康检查、自动重连
@@ -158,6 +172,19 @@ OpenClaw 兼容的三级插件架构（内置/捆绑/外部）：
 - 插件 manifest 定义、权限声明、沙箱隔离执行
 - 自定义工具注册、Agent 提供者、Hook 拦截
 - 技能安装器：从插件包安装技能到技能系统
+
+### 动态 UI 引擎
+
+- **Schema 驱动**: 通过 JSON Schema 声明式构建界面，无需写代码
+- **31 个内置组件**: 容器（7）/ 数据展示（6）/ 表单（9）/ 媒体（4）/ 其他（5）
+- **数据绑定**: 声明式数据源绑定与条件渲染
+- **NL2UI**: 自然语言直接生成动态 UI 界面
+
+### ACP 客户端 SDK
+
+- **ACP（Agent Client Protocol）**: 双语言 SDK（TypeScript + Python），零第三方依赖
+- 会话管理、Prompt 发送、工具调用记录、WebSocket 事件流
+- 通过 `/acp/v1/*` 端点与 AxAgent 服务通信
 
 ### 安全防护
 
@@ -183,12 +210,11 @@ OpenClaw 兼容的三级插件架构（内置/捆绑/外部）：
 
 - **响应式布局**: CSS 断点自适应桌面/平板/手机（3 级设备布局：`desktop` / `tablet` / `mobile`）
 - **11 种语言**: 简体中文、繁体中文、英语、日语、韩语、法语、德语、西班牙语、俄语、印地语、阿拉伯语
-- **主题引擎** (`rt-theme`): 深色/浅色主题 + 多个预设（含 21th 等宽字体主题），Ant Design 6 深度定制
+- **主题引擎** (`rt-theme`): 深色/浅色主题 + 多个预设，Ant Design 6 深度定制
 - **Monaco 编辑器**: 语法高亮、差异预览、多语言支持
 - **xterm.js 终端**: WebLinks、Unicode 11、搜索
 - **虚拟滚动**: @tanstack/react-virtual + react-virtuoso
-- **图表渲染**: D2 + Mermaid + Recharts
-- **Global Copy Menu**: 自定义文本选择复制菜单，阻止系统原生右键菜单
+- **图表渲染**: D2 + Mermaid + Recharts + Sigma（图谱）
 - **Command Palette**: Ctrl+K 全局命令面板
 - **系统托盘 + 全局快捷键 + 开机自启**: 无干扰后台运行
 - **自动更新**: 可配置间隔的 GitHub Releases 版本检测
@@ -219,7 +245,7 @@ OpenClaw 兼容的三级插件架构（内置/捆绑/外部）：
 | 代码编辑器    | Monaco Editor                            | 0.55 |
 | 终端          | xterm.js                                 | 6    |
 | 工作流编辑器  | ReactFlow                                | 12   |
-| 图表          | D2 + Mermaid + Recharts                  |      |
+| 图表          | D2 + Mermaid + Recharts + Sigma          |      |
 | 动画          | Framer Motion                            | 12   |
 | 虚拟滚动      | @tanstack/react-virtual + react-virtuoso |      |
 | 拖拽          | @dnd-kit                                 | 6    |
@@ -232,12 +258,12 @@ OpenClaw 兼容的三级插件架构（内置/捆绑/外部）：
 
 ### 后端架构: Harness 依赖注入模式
 
-采用 Rust workspace 架构，包含 **32 个 crate**，遵循 **Harness 依赖注入架构**：
+采用 Rust workspace 架构，包含 **37 个成员**（主 crate + 35 个库 crate + schema-gen），遵循 **Harness 依赖注入架构**：
 
 > 所有 crate 通过 axagent-harness 定义的 trait 接口解耦，运行时由 axagent-runtime 装配和注入依赖。
 > 依赖方向：`具体实现 → harness ← 调用方`
 
-**harness** 是架构基石 — 零业务逻辑、零具体实现，仅含 trait 定义、纯数据 DTO、常量和统一错误类型。被所有其他 crate 依赖，自身不依赖任何 axagent-* crate（200+ trait 定义，涵盖 Agent/Provider/Tool/RAG/存储/MCP/插件/安全/可观测性/记忆/学习/浏览器/消息等）。
+**harness** 是架构基石 — 零业务逻辑、零具体实现，仅含 trait 定义、纯数据 DTO、常量和统一错误类型。被所有其他 crate 依赖，自身不依赖任何 axagent-* crate（200+ trait 定义，涵盖 Agent/Provider/Tool/RAG/存储/MCP/插件/安全/可观测性/记忆/学习/浏览器/消息/认知路由等）。
 
 ```
 src-tauri/crates/
@@ -254,7 +280,7 @@ src-tauri/crates/
 ├── document-parser/  # 文档文本提取（PDF/DOCX/XLSX/PPTX）
 ├── kit/              # 通用工具集（路径/编码/哈希/日期）
 ├── runtime-core/     # 运行时公共类型、配置常量
-├── runtime/          # 运行时服务编排 — 装配全部 30+ crate 的 DI 容器
+├── runtime/          # 运行时服务编排 — 装配全部 crate 的 DI 容器
 ├── rt-workflow/      # 工作流引擎 — DAG 编排、节点执行器、YAML 序列化
 ├── rt-messaging/     # 消息平台网关 — 钉钉/飞书/QQ/Slack/微信/WhatsApp/Telegram/Discord
 ├── rt-webhook/       # 通用 Webhook 服务器
@@ -265,15 +291,20 @@ src-tauri/crates/
 │                     #   自验证/错误恢复/RL优化/LoRA微调/评估/工具推荐/A/B测试/
 │                     #   协调器/黑板/视觉管线/Web搜索/学术搜索/Wiki编译等
 ├── orchestrator/     # 智能体编排 — 多智能体调度、DAG 分解、动态子图执行
-├── providers/        # 模型提供商适配器
-├── tools/            # 工具体系 — Tool trait/注册表/编排/流式/沙箱/47+内置工具
+├── providers/        # 模型提供商适配器（13 种）
+├── tools/            # 工具体系 — Tool trait/注册表/编排/流式/沙箱/163+内置工具
 ├── gateway/          # API 网关 — axum HTTP/WS 服务器、OAuth、速率限制、Prometheus
-├── mcp/              # MCP 协议 — stdio + Streamable HTTP，基于 rmcp
+├── mcp/              # MCP 协议 — stdio + Streamable HTTP + SSE，基于 rmcp
 ├── trajectory/       # 学习系统 — 记忆/技能进化/用户画像/梦境整合
 ├── plugins/          # 插件系统 — OpenClaw 兼容、npm 包安装、市场
 ├── telemetry/        # 可观测性 — OpenTelemetry、结构化日志、运行时指标
 ├── prompt-guard/     # 提示词注入防护 — L1-L4 多级检测管线
 ├── npm/              # npm 注册表客户端
+├── crdt/             # 协同编辑数据结构
+├── device/           # 设备管理
+├── axagent-mobile/   # 移动端适配层
+├── agent-macro/      # 智能体宏
+├── agent-command-types/ # 智能体命令类型
 └── schema-gen/       # 数据库 Schema 生成工具
 ```
 
@@ -281,7 +312,7 @@ src-tauri/crates/
 
 ```
 src/
-├── pages/            # 页面（含子页面 23+）
+├── pages/            # 页面（24 个）
 │   ├── ChatPage           # 对话主界面 — 侧边栏/消息流/Agent 面板/多 Tab
 │   ├── DashboardPage      # 数据仪表盘 — 用量统计/模型分布/趋势图表
 │   ├── WorkflowPage       # 工作流编辑器 — ReactFlow DAG 可视化
@@ -302,19 +333,16 @@ src/
 │   ├── DevTools/          # TraceExplorer / BenchmarkRunner / ToolRecommender
 │   └── Workflow/          # WorkflowListPage
 │
-├── components/       # 28 个模块，450+ 组件
+├── components/       # 33 个模块，500+ 组件
 │   ├── chat/         # 对话（消息流/输入/ChatView/TabBar/RightPanel/附件/工具调用渲染）
-│   ├── layout/       # 布局 — 17 个组件
-│   │                 #   AppInitializer / Sidebar / ContentArea / TitleBar /
+│   ├── layout/       # 布局 — AppInitializer / Sidebar / ContentArea / TitleBar /
 │   │                 #   CommandPalette / GlobalCopyMenu / GlobalErrorBoundary /
-│   │                 #   GlobalStatusBar / ErrorNotificationToast / AppHeader /
-│   │                 #   BackendStatusIndicator / IpcReconnectBanner /
-│   │                 #   ModuleErrorBoundary / NotificationBell / UserProfileModal 等
+│   │                 #   GlobalStatusBar / ErrorNotificationToast / AppHeader 等
 │   ├── agent/        # Agent 面板/入口/迷你面板
 │   ├── workflow/     # 工作流编辑器（节点/连线/面板/模板/AI辅助）
 │   ├── settings/     # 设置面板（40+ 子组件）
 │   ├── skill/        # 技能编辑器/渲染器/浮动面板
-│   ├── dynamicUI/    # 动态 UI 组件注册表（26 个内置组件）
+│   ├── dynamicUI/    # 动态 UI 组件（31 个内置组件）
 │   ├── gateway/      # API 网关管理
 │   ├── files/        # 文件管理
 │   ├── terminal/     # 终端组件
@@ -336,9 +364,10 @@ src/
 │   ├── shared/       # 共享组件（ErrorBoundary / PageContextProvider）
 │   └── common/       # 通用组件（Icon 等）
 │
-├── stores/           # Zustand 状态管理
-│   ├── domain/       # 10 个核心业务 store（对话/流/压缩/偏好/多模型等）
-│   ├── feature/      # 48 个功能模块 store（智能体/工作流/知识库/技能/网关/记忆/终端等）
+├── stores/           # Zustand 状态管理（82 个 store）
+│   ├── domain/       # 9 个核心业务 store（对话/流/压缩/偏好/多模型等）
+│   ├── feature/      # 61 个功能模块 store（智能体/工作流/知识库/技能/网关/记忆/终端等）
+│   ├── shared/       # 8 个跨组件共享 store（UI/标签页/工作区/后端状态等）
 │   └── devtools/     # 4 个开发者工具 store
 │
 ├── hooks/            # React Hooks（快捷键/命令面板/响应式/滚动条/主题/Avatar 等）
@@ -348,7 +377,7 @@ src/
 ├── theme/            # Shadcn 主题引擎
 ├── i18n/             # 11 语言翻译文件（zh-CN/zh-TW/en-US/ja/ko/fr/de/es/ru/hi/ar）
 ├── constants/        # 常量与功能开关
-└── sdk/              # 外部集成 SDK
+└── sdk/              # ACP 客户端 SDK（TypeScript + Python）
 ```
 
 ### 功能开关
@@ -364,18 +393,17 @@ src/
 
 ### Tauri 插件
 
-| 插件                | 用途                       |
-| ------------------- | -------------------------- |
-| `autostart`         | 开机自启                   |
-| `clipboard-manager` | 剪贴板读写                 |
-| `dialog`            | 文件选择对话框             |
-| `fs`                | 文件系统访问               |
-| `global-shortcut`   | 全局快捷键注册             |
-| `notification`      | 系统通知                   |
-| `opener`            | 外部链接/文件打开          |
-| `process`           | 进程管理                   |
-| `updater`           | 自动更新                   |
-| `mcp-bridge`        | MCP 协议桥接（非 Android） |
+| 插件                | 用途              |
+| ------------------- | ----------------- |
+| `autostart`         | 开机自启          |
+| `clipboard-manager` | 剪贴板读写        |
+| `dialog`            | 文件选择对话框    |
+| `fs`                | 文件系统访问      |
+| `global-shortcut`   | 全局快捷键注册    |
+| `notification`      | 系统通知          |
+| `opener`            | 外部链接/文件打开 |
+| `process`           | 进程管理          |
+| `updater`           | 自动更新          |
 
 ---
 
@@ -435,7 +463,6 @@ npm run test:run       # 前端单元测试（单次运行）
 npm run test:e2e       # E2E 测试（Playwright）
 
 # Rust 后端测试
-cd src-tauri && cargo nextest run
 cd src-tauri && cargo test
 
 # 类型检查 & Lint

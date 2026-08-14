@@ -2050,6 +2050,7 @@ pub enum WorkflowError {
     SerializationError(String),
     InputValidationFailed { errors: Vec<String> },
     OutputValidationFailed { errors: Vec<String> },
+    InvalidStateTransition(String),
 }
 
 impl std::fmt::Display for WorkflowError {
@@ -2069,6 +2070,7 @@ impl std::fmt::Display for WorkflowError {
             Self::OutputValidationFailed { errors } => {
                 write!(f, "Output validation failed: {}", errors.join("; "))
             },
+            Self::InvalidStateTransition(msg) => write!(f, "非法状态迁移: {msg}"),
         }
     }
 }

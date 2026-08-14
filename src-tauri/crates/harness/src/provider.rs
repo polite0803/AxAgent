@@ -22,7 +22,7 @@ pub use crate::types::ProviderProxyConfig;
 /// 每个 LLM 提供商（OpenAI、Anthropic、Gemini 等）都必须实现此 trait。
 /// `ctx` 提供 API key、base URL、代理等调用上下文信息。
 #[async_trait]
-pub trait ProviderAdapter: Send + Sync {
+pub trait ProviderAdapter: Send + Sync + std::any::Any {
     async fn chat(
         &self,
         ctx: &ProviderRequestContext,

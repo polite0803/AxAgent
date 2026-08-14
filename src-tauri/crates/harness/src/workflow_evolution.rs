@@ -163,7 +163,7 @@ pub struct SandboxValidationResult {
 ///
 /// 执行方式:异步(`tokio::spawn`),进化完成后通过事件/回调通知。
 #[async_trait]
-pub trait WorkflowEvolver: Send + Sync {
+pub trait WorkflowEvolver: Send + Sync + std::any::Any {
     /// 初始化种群(从模板生成初始基因组)。
     async fn initialize(&self, template_id: &str) -> Result<EvolutionPopulation, String>;
 
@@ -254,7 +254,7 @@ pub trait WorkflowLlmMutator: Send + Sync {
 /// 实现方可委托 `trajectory::sandbox_executor::SkillSandboxExecutor`,
 /// 将工作流模板转换为技能 steps 后执行。
 #[async_trait]
-pub trait WorkflowSandbox: Send + Sync {
+pub trait WorkflowSandbox: Send + Sync + std::any::Any {
     async fn execute(
         &self,
         genome: &WorkflowGenome,

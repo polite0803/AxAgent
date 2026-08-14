@@ -882,7 +882,17 @@
         "title": "प्लगइन मार्केटप्लेस",
         "tools": "उपकरण",
         "validateFailed": "सत्यापन विफल: {{error}}",
-        "version": "संस्करण"
+        "version": "संस्करण",
+        "registryTitle": "क्षमता रजिस्ट्री",
+        "registryLoading": "रजिस्ट्री लोड हो रही है...",
+        "registryEmpty": "कोई पंजीकृत क्षमता सीम नहीं",
+        "registryBuiltin": "अंतर्निहित",
+        "registryExternal": "बाहरी प्लगइन",
+        "registryContract": "अनुबंध",
+        "registryVersion": "संस्करण",
+        "registryPlugin": "प्लगइन",
+        "registrySearchPlaceholder": "सीम ID / प्लगइन ID द्वारा खोजें",
+        "registrySeam": "सीम"
       }
     },
     "preferences": "प्राथमिकताएँ",
@@ -1167,6 +1177,35 @@
     "createConversationFailed": "बातचीत बनाने में विफल",
     "chatinspectorapproval0": "चैट.निरीक्षक.अनुमोदन{{0}}"
   },
+  "capabilityDomain": {
+    "general": "सामान्य",
+    "devops": "डेवऑप्स",
+    "ai_media": "एआई मीडिया",
+    "data_analysis": "डेटा विश्लेषण",
+    "content_creation": "सामग्री निर्माण",
+    "communication": "संचार",
+    "finance": "वित्त",
+    "automation": "स्वचालन",
+    "system": "सिस्टम"
+  },
+  "capabilityPanel": {
+    "statsTitle": "इंडेक्स आँकड़े",
+    "totalCapabilities": "कुल क्षमताएँ",
+    "totalVectors": "कुल वेक्टर",
+    "positiveVectors": "सकारात्मक वेक्टर",
+    "negativeVectors": "नकारात्मक वेक्टर",
+    "discoverTitle": "क्षमता खोजें",
+    "discoverPlaceholder": "कार्य बताएं, जैसे «स्टॉक ट्रेंड विश्लेषण»",
+    "discoverButton": "खोजें",
+    "discoverResult": "परिणाम",
+    "score": "स्कोर",
+    "ambiguous": "अस्पष्ट मिलान",
+    "noMatch": "कोई मिलान नहीं",
+    "passportsTitle": "पंजीकृत पासपोर्ट",
+    "noPassports": "कोई क्षमता पंजीकृत नहीं",
+    "enabled": "सक्षम",
+    "disabled": "अक्षम"
+  },
   "chatMarkdown": {
     "inputParams": "इनपुट पैरामीटर",
     "outputResult": "आउटपुट परिणाम",
@@ -1200,7 +1239,9 @@
     "task": "कार्य",
     "teammate": "टीम",
     "title": "सहायक",
-    "visionAnalysis": "विज़न"
+    "visionAnalysis": "विज़न",
+    "cognitiveRoute": "रूट",
+    "capability": "क्षमता"
   },
   "cite": {
     "chunkLabel": "खंड #{{n}}",
@@ -1516,6 +1557,29 @@
       "zhTW": "पारंपरिक चीनी"
     }
   },
+  "cognitive": {
+    "clarifyTitle": "निष्पादित करने के लिए क्षमता चुनें",
+    "clarifyPrompt": "आपका अनुरोध कई उम्मीदवार क्षमताओं से मेल खाता है। एक चुनें:",
+    "candidateWorkflow": "वर्कफ़्लो",
+    "candidateAgent": "एजेंट",
+    "clarifyExecuting": "चयनित क्षमता निष्पादित हो रही है...",
+    "clarifyHint": "जारी रखने के लिए एक उम्मीदवार चुनें"
+  },
+  "cognitiveRoute": {
+    "empty": "कोई रूट अवलोकन नहीं",
+    "noRoute": "कोई रूट निर्धारित नहीं",
+    "domain": "डोमेन",
+    "cluster": "क्लस्टर",
+    "executionMode": "मोड",
+    "confidence": "विश्वास",
+    "circuitBroken": "सर्किट टूटा",
+    "circuitClosed": "सामान्य",
+    "llmFallback": "LLM फ़ॉलबैक",
+    "fallbackPath": "फ़ॉलबैक पथ",
+    "candidates": "उम्मीदवार",
+    "stageRecords": "रूट चरण",
+    "recordedAt": "दर्ज समय"
+  },
   "continuation": {
     "continueFromHere": "यहाँ से जारी रखें"
   },
@@ -1604,7 +1668,8 @@
     "agentDataNotFound": "एजेंट द्वारा उत्पन्न डेटा \"{{generationId}}\" निष्पादन स्टोर में नहीं मिला",
     "apiRequestFailed": "API अनुरोध विफल: {{statusText}}",
     "storeNotRegistered": "स्टोर \"{{storeName}}\" पंजीकृत नहीं है",
-    "unknownSourceType": "अज्ञात डेटा स्रोत प्रकार: {{type}}"
+    "unknownSourceType": "अज्ञात डेटा स्रोत प्रकार: {{type}}",
+    "apiEndpointForbidden": "API एंडपॉइंट \"{{endpoint}}\" की अनुमति नहीं है और इसे ब्लॉक किया गया"
   },
   "datasetManager": {
     "action": "कार्रवाई",
@@ -1614,6 +1679,7 @@
     "created": "बनाया गया",
     "createdSuccess": "Dataset created",
     "deleteFailed": "डेटासेट हटाना विफल",
+    "FINE_TUNE_DELETE_FAILED": "फाइन-ट्यूनिंग कार्य हटाना विफल रहा",
     "deletedSuccess": "डेटासेट हटा दिया गया",
     "description": "विवरण",
     "name": "नाम",
@@ -1971,12 +2037,14 @@
     "CLOUD_UNKNOWN_CONFLICT": "अज्ञात सिंक विरोध प्रकार",
     "CLOUD_UNKNOWN_STORAGE": "अज्ञात भंडारण प्रकार",
     "CLOUD_UNKNOWN_STRATEGY": "अज्ञात सिंक रणनीति",
+    "CAPABILITY_EMBEDDING_FAILED": "एम्बेडिंग निर्माण विफल",
     "COGNITIVE_ROUTE_FAILED": "संज्ञानात्मक रूटिंग निष्पादन विफल",
     "COGNITIVE_EMPTY_INPUT": "संज्ञानात्मक रूटिंग इनपुट खाली है",
     "COGNITIVE_CIRCUIT_BROKEN": "संज्ञानात्मक रूटिंग सर्किट ब्रेकर ट्रिप हो गया: {reason}",
     "COGNITIVE_NO_CANDIDATE": "संज्ञानात्मक रूटिंग के लिए कोई उपलब्ध क्षमता नहीं मिली",
     "COGNITIVE_EXECUTION_MODE_INVALID": "अमान्य संज्ञानात्मक रूटिंग निष्पादन मोड",
     "COGNITIVE_PROMPT_REJECTED": "संज्ञानात्मक प्रॉम्प्ट अस्वीकृत",
+    "COGNITIVE_RAR_RETRIEVE_FAILED": "संज्ञानात्मक रूटिंग उम्मीदवार पुनर्प्राप्ति विफल: {{detail}}",
     "COMMON_INTERNAL": "आंतरिक त्रुटि",
     "COMMON_INVALID_INPUT": "अमान्य इनपुट",
     "COMMON_TIMEOUT": "संचालन का समय समाप्त",
@@ -2084,6 +2152,9 @@
     "PLATFORM_TELEGRAM_NOT_ENABLED": "Telegram प्लेटफ़ॉर्म सक्षम नहीं",
     "PLATFORM_UNSUPPORTED": "असमर्थित प्लेटफ़ॉर्म",
     "PLATFORM_WEBHOOK_NOT_CONFIGURED": "Webhook कॉन्फ़िगर नहीं",
+    "PLUGIN_PROFILE_NOT_FOUND": "प्लगइन बंडल प्रोफ़ाइल नहीं मिली",
+    "PLUGIN_PROFILE_DUPLICATE_NAME": "प्लगइन बंडल प्रोफ़ाइल नाम पहले से मौजूद है",
+    "PLUGIN_PROFILE_IO_FAILED": "प्लगइन बंडल प्रोफ़ाइल सहेजने में विफल",
     "PROVIDER_ADAPTER_NOT_FOUND": "प्रदाता एडाप्टर नहीं मिला",
     "PROVIDER_CREATE_FAILED": "प्रदाता बनाने में विफल",
     "PROVIDER_DELETE_FAILED": "प्रदाता हटाने में विफल",
@@ -2234,6 +2305,7 @@
     "LOCAL_MODEL_INSTALL_IN_PROGRESS": "llama.cpp स्थापना चल रही है",
     "LOCAL_MODEL_DOWNLOAD_FAILED": "डाउनलोड विफल",
     "LOCAL_MODEL_PORT_IN_USE": "पोर्ट {{port}} पहले से उपयोग में है। कृपया पोर्ट बदलें या उसे占用 करने वाली प्रोसेस को रोकें",
+    "LLM_CALL_FAILED": "LLM कॉल विफल: {{detail}}",
     "FLEET_NOT_FOUND": "ऑफिस नहीं मिला",
     "FLEET_NAME_REQUIRED": "ऑफिस का नाम आवश्यक है",
     "FLEET_NO_MEMBERS": "इस ऑफिस में अभी कोई सदस्य नहीं है",
@@ -2272,7 +2344,6 @@
     "CAPABILITY_DISCOVER_FAILED": "क्षमता खोज विफल",
     "CAPABILITY_NOT_FOUND": "क्षमता नहीं मिली",
     "CAPABILITY_INDEX_FAILED": "क्षमता अनुक्रमण विफल",
-    "CAPABILITY_EMBEDDING_FAILED": "एम्बेडिंग निर्माण विफल",
     "CAPABILITY_VECTOR_STORE_FAILED": "वेक्टर स्टोर ऑपरेशन विफल",
     "CAPABILITY_INVALID_PASSPORT": "अमान्य क्षमता पासपोर्ट",
     "CAPABILITY_LIST_FAILED": "क्षमता सूची प्राप्त करने में विफल",
@@ -2393,7 +2464,11 @@
       "name": "सामान्य सहायक",
       "desc": "दैनिक बातचीत और सामान्य प्रश्नों के लिए एक सामान्य-उद्देश्यीय AI सहायक",
       "systemPrompt": "आप एक बुद्धिमान AI सहायक हैं। उपयोगकर्ता के प्रश्नों के अनुसार सटीक और सहायक उत्तर प्रदान करें।",
-      "tags": ["सामान्य", "सहायक", "बातचीत"]
+      "tags": [
+        "सामान्य",
+        "सहायक",
+        "बातचीत"
+      ]
     }
   },
   "expertSelector": {
@@ -8583,7 +8658,8 @@
     "deleteFileDesc": "Delete the file at the specified path. This operation is irreversible.",
     "bashDesc": "Execute shell commands. Suitable for: running tests, builds, git operations. Dangerous commands require permission confirmation.",
     "fleetNoMembers": "The office has no members yet",
-    "fleetMessageReceived": "[Browser Mock] {{name}} received message: {{message}}"
+    "fleetMessageReceived": "[Browser Mock] {{name}} received message: {{message}}",
+    "capabilityAmbiguous": "कई उच्च-मिलान क्षमताएँ मिलीं। पुष्टि के लिए स्पष्ट करें।"
   },
   "cancel": "रद्द करें",
   "searchUtils": {

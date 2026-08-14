@@ -10,8 +10,6 @@ import {
   _isMultiModelActive,
   _multiModelDoneResolve,
   _multiModelTotalRemaining,
-  _streamBuffer,
-  _streamPrefix,
   _streamUiFlushTimer,
   addPendingConversationRefresh,
   appendStreamChunk,
@@ -19,6 +17,7 @@ import {
   decrementMultiModelTotalRemaining,
   flushPendingStreamChunk,
   getListenerGen,
+  getSession,
   getStreamingMessageId,
   getUnlisten,
   incrementListenerGen,
@@ -92,7 +91,7 @@ export function createEventMethods(
                   evt_provider_id,
                 );
               }
-              flushPendingStreamChunk(set, get);
+              flushPendingStreamChunk(set, get, conversation_id);
               // Clear thinking state — this iteration is done
               if (
                 useStreamStore
@@ -111,7 +110,7 @@ export function createEventMethods(
             // Unified multi-model handler: applies to ALL models (first + companions)
             if (_isMultiModelActive) {
               decrementMultiModelTotalRemaining();
-              flushPendingStreamChunk(set, get);
+              flushPendingStreamChunk(set, get, conversation_id);
               setStreamBuffer(null);
 
               // Clear streamingMessageId and mark completed message as 'complete'
@@ -173,7 +172,7 @@ export function createEventMethods(
             }
 
             const placeholderMessageId = useStreamStore.getState().streamingMessageId;
-            flushPendingStreamChunk(set, get);
+            flushPendingStreamChunk(set, get, conversation_id);
             const flushedMessageId = useStreamStore.getState().streamingMessageId ?? message_id;
             // Only preserve real backend IDs — temp placeholders (temp-assistant-*)
             // must NOT be preserved alongside the DB message, otherwise both the
@@ -331,7 +330,7 @@ export function createEventMethods(
             error: errMsg,
           } = event.payload;
 
-          flushPendingStreamChunk(set, get);
+          flushPendingStreamChunk(set, get, conversation_id);
           setStreamBuffer(null); // Clear buffer on error
 
           // Multi-model: treat error as stream completion for this model
@@ -489,34 +488,36 @@ export function createEventMethods(
             return content;
           };
 
-          if (
-            _streamBuffer
-            && _streamBuffer.conversationId === conversation_id
-          ) {
-            const buf = _streamBuffer;
-            setStreamBuffer({
-              ...buf,
-              content: replaceTag(
-                replaceTag(
-                  replaceTag(buf.content, kbSearching, kbDone),
-                  memSearching,
-                  memDone,
+          const session = getSession(conversation_id);
+          if (session?.streamBuffer && session.streamBuffer.conversationId === conversation_id) {
+            const buf = session.streamBuffer;
+            setStreamBuffer(
+              {
+                ...buf,
+                content: replaceTag(
+                  replaceTag(
+                    replaceTag(buf.content, kbSearching, kbDone),
+                    memSearching,
+                    memDone,
+                  ),
+                  wikiSearching,
+                  wikiDone,
                 ),
-                wikiSearching,
-                wikiDone,
-              ),
-            });
+              },
+              conversation_id,
+            );
           } else {
             setStreamPrefix(
               replaceTag(
                 replaceTag(
-                  replaceTag(_streamPrefix, kbSearching, kbDone),
+                  replaceTag(session?.streamPrefix ?? "", kbSearching, kbDone),
                   memSearching,
                   memDone,
                 ),
                 wikiSearching,
                 wikiDone,
               ),
+              conversation_id,
             );
           }
 
@@ -570,7 +571,11 @@ export function createEventMethods(
     },
 
     cancelCurrentStream: () => {
-      flushPendingStreamChunk(set, get);
+      flushPendingStreamChunk(
+        set,
+        get,
+        useStreamStore.getState().streamingConversationId ?? undefined,
+      );
       setPendingUiChunk(null);
       setStreamBuffer(null);
       clearPendingConversationRefresh();

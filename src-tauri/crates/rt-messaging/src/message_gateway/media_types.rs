@@ -1,51 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum DeliveryMode {
-    Native,
-    Voice,
-    Document,
-}
-
-impl DeliveryMode {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            DeliveryMode::Native => "native",
-            DeliveryMode::Voice => "voice",
-            DeliveryMode::Document => "document",
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum MediaType {
-    Image,
-    Audio,
-    Video,
-    Document,
-}
-
-impl MediaType {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            MediaType::Image => "image",
-            MediaType::Audio => "audio",
-            MediaType::Video => "video",
-            MediaType::Document => "document",
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MediaAttachment {
-    pub path: String,
-    pub media_type: MediaType,
-    pub delivery_mode: DeliveryMode,
-}
+// ── 媒体 DTO — 权威定义已上沉 harness（platform.adapter 接缝），此处 re-export ──
+pub use axagent_harness::{DeliveryMode, MediaAttachment, MediaType};
 
 fn detect_media_type(ext: &str) -> Option<MediaType> {
     match ext.to_lowercase().as_str() {

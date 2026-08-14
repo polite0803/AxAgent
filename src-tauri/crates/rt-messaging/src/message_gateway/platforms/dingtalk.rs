@@ -6,7 +6,7 @@ use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 
 use crate::message_gateway::platform_config::PlatformConfig;
-use crate::message_gateway::platforms::PlatformAdapter;
+use axagent_harness::MessagePlatformAdapter;
 
 pub struct DingtalkAdapter {
     connected: Arc<AtomicBool>,
@@ -25,7 +25,7 @@ impl DingtalkAdapter {
 }
 
 #[async_trait::async_trait]
-impl PlatformAdapter for DingtalkAdapter {
+impl MessagePlatformAdapter for DingtalkAdapter {
     fn name(&self) -> &'static str {
         "dingtalk"
     }

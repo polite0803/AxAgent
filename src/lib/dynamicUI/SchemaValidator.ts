@@ -8,6 +8,7 @@ import {
   type UISchema,
   VALID_DYNAMIC_COMPONENT_TYPES,
 } from "@/types";
+import { isAllowedFetchUrl, isAllowedInvokeEndpoint } from "./dataSourceSecurity";
 
 const VALID_IMPORTANCE = ["low", "medium", "high", "critical"];
 const VALID_STATUS = ["pending", "ready", "error", "loading"];
@@ -202,6 +203,33 @@ function validateDataSource(
       path: `${path}.config`,
       message: "dataSource.config must be an object type",
     });
+    return;
+  }
+
+  // api 类型安全校验：endpoint 必须通过白名单（防任意 IPC / SSRF）
+  if (obj.type === "api") {
+    const cfg = obj.config as Record<string, unknown>;
+    const method = cfg.method as string | undefined;
+    const endpoint = cfg.endpoint;
+    if (method !== "invoke" && method !== "fetch") {
+      errors.push({
+        path: `${path}.config.method`,
+        message: `dataSource.config.method must be "invoke" or "fetch", got "${String(method)}"`,
+      });
+    } else if (typeof endpoint !== "string" || endpoint.length === 0) {
+      errors.push({
+        path: `${path}.config.endpoint`,
+        message: "dataSource.config.endpoint must be a non-empty string",
+      });
+    } else if (
+      (method === "invoke" && !isAllowedInvokeEndpoint(endpoint))
+      || (method === "fetch" && !isAllowedFetchUrl(endpoint))
+    ) {
+      errors.push({
+        path: `${path}.config.endpoint`,
+        message: `dataSource.config.endpoint "${endpoint}" is not allowed (blocked for security)`,
+      });
+    }
   }
 }
 

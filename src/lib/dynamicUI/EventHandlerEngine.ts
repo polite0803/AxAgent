@@ -118,15 +118,22 @@ export function handleEvents(
 ): Record<string, (...args: unknown[]) => void> {
   const bindings: Record<string, (...args: unknown[]) => void> = {};
 
+  // 按 trigger 分组聚合 actions，避免同一 trigger 的多个 handler 相互覆盖丢失
+  const grouped = new Map<string, DynamicAction[]>();
   for (const handler of handlers) {
     const trigger = handler.trigger;
     if (trigger === "onMount" || trigger === "onUnmount") {
       continue;
     }
+    const list = grouped.get(trigger) ?? [];
+    list.push(...handler.actions);
+    grouped.set(trigger, list);
+  }
 
+  for (const [trigger, actions] of grouped) {
     bindings[trigger] = (...args: unknown[]) => {
       const eventContext = { ...context, _eventArgs: args };
-      void executeActions([...handler.actions], { context: eventContext, onAction, scope, navigate });
+      void executeActions(actions, { context: eventContext, onAction, scope, navigate });
     };
   }
 

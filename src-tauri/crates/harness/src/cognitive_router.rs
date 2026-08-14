@@ -19,8 +19,8 @@
 //!     │
 //!     ▼
 //! RoutingDecisionV2 {
-//!     route_path: "invest/stock_analysis/tech",
-//!     domain: "invest",
+//!     route_path: "finance/stock_analysis/tech",
+//!     domain: "finance",
 //!     cluster: "stock_analysis",
 //!     capability_id: "wf_tech",
 //!     confidence: 0.98,
@@ -308,7 +308,7 @@ pub struct RouteStageRecord {
 /// V2 路由决策结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RoutingDecisionV2 {
-    /// 三层路由地址（确定性路径），如 "invest/stock_analysis/tech"
+    /// 三层路由地址（确定性路径），如 "finance/stock_analysis/tech"
     pub route_path: String,
     /// 业务域
     pub domain: String,
@@ -635,7 +635,13 @@ impl DefaultCognitiveRouter {
             .rar_router
             .search_top_k(&user_input, &l1_domain, l2_cluster.as_deref(), self.config.rar_top_k)
             .await
-            .map_err(|e| e.to_string())?;
+            // BE-I1 修复：RAR 检索失败返回携带错误码的结构化错误，前端可 i18n。
+            .map_err(|e| {
+                crate::error_codes::error_json(
+                    crate::error_codes::cognitive::RAR_RETRIEVE_FAILED,
+                    format!("RAR 检索失败: {e}"),
+                )
+            })?;
 
         // 候选对象使用 id 字段（L3 LlmClassifier 动态目录优先取 id）
         let candidates: Vec<Value> = result
@@ -1111,16 +1117,15 @@ impl CognitiveRouter for DefaultCognitiveRouter {
             }
         }
         // 全量业务域枚举兜底（排除 System 域，保证 LLM 分类候选完整）
-        const BUSINESS_DOMAINS: [CapabilityDomain; 9] = [
-            CapabilityDomain::Core,
+        const BUSINESS_DOMAINS: [CapabilityDomain; 8] = [
             CapabilityDomain::General,
             CapabilityDomain::Devops,
             CapabilityDomain::AiMedia,
-            CapabilityDomain::Invest,
-            CapabilityDomain::Opc,
             CapabilityDomain::DataAnalysis,
             CapabilityDomain::ContentCreation,
             CapabilityDomain::Communication,
+            CapabilityDomain::Finance,
+            CapabilityDomain::Automation,
         ];
         for d in BUSINESS_DOMAINS {
             let s = d.as_str().to_string();
@@ -1398,7 +1403,7 @@ mod tests {
                 candidates: self.candidates.clone(),
                 raw_count: self.candidates.len(),
                 filtered_reasons: Vec::new(),
-                domain: "invest".to_string(),
+                domain: "finance".to_string(),
                 cluster: Some("stock_analysis".to_string()),
             })
         }
@@ -1411,11 +1416,11 @@ mod tests {
     /// 创建测试用 DomainRoutingResult
     fn create_test_l1_result() -> DomainRoutingResult {
         DomainRoutingResult::rule_hit(
-            CapabilityDomain::Invest,
+            CapabilityDomain::Finance,
             DomainRoutingRule::new(
                 "test",
                 "测试",
-                CapabilityDomain::Invest,
+                CapabilityDomain::Finance,
                 DomainRuleType::Keyword,
                 ["股票"],
             ),
@@ -1425,14 +1430,14 @@ mod tests {
 
     /// 创建测试用 ClusterRoutingResult
     fn create_test_l2_result() -> ClusterRoutingResult {
-        // 使用 clusters_by_domain 获取 Invest 域的第一个集群
-        let cluster = crate::capability_clusters::clusters_by_domain(CapabilityDomain::Invest)
+        // 使用 clusters_by_domain 获取 Finance 域的第一个集群
+        let cluster = crate::capability_clusters::clusters_by_domain(CapabilityDomain::Finance)
             .first()
             .copied()
             .unwrap_or_else(|| crate::capability_clusters::all_clusters()[0]);
 
         ClusterRoutingResult {
-            domain: CapabilityDomain::Invest,
+            domain: CapabilityDomain::Finance,
             cluster: Some(cluster),
             matched_rule: None,
             is_keyword_derived: false,
@@ -1450,7 +1455,7 @@ mod tests {
             input_schema: None,
             tags: vec!["stock".to_string()],
             score: 0.92,
-            domain: "invest".to_string(),
+            domain: "finance".to_string(),
             cluster: Some("stock_analysis".to_string()),
             negative_scenarios: vec![],
             kind: crate::capability::CapabilityKind::Workflow,
@@ -1460,8 +1465,8 @@ mod tests {
 
     fn create_test_decision() -> RoutingDecisionV2 {
         RoutingDecisionV2 {
-            route_path: "invest/stock_analysis/tech".to_string(),
-            domain: "invest".to_string(),
+            route_path: "finance/stock_analysis/tech".to_string(),
+            domain: "finance".to_string(),
             cluster: "stock_analysis".to_string(),
             capability_id: "wf_tech".to_string(),
             confidence: 0.95,
@@ -1478,7 +1483,7 @@ mod tests {
                 description: "K线、均线".to_string(),
                 score: 0.95,
                 kind: crate::capability::CapabilityKind::Workflow,
-                domain: "invest".to_string(),
+                domain: "finance".to_string(),
                 cluster: Some("stock_analysis".to_string()),
             }],
             execution_mode: ExecutionMode::Workflow,
@@ -1487,25 +1492,25 @@ mod tests {
 
     #[test]
     fn test_build_route_path() {
-        assert_eq!(build_route_path("invest", Some("stock"), Some("tech")), "invest/stock/tech");
-        assert_eq!(build_route_path("invest", Some("stock"), None), "invest/stock");
-        assert_eq!(build_route_path("invest", None, None), "invest");
+        assert_eq!(build_route_path("finance", Some("stock"), Some("tech")), "finance/stock/tech");
+        assert_eq!(build_route_path("finance", Some("stock"), None), "finance/stock");
+        assert_eq!(build_route_path("finance", None, None), "finance");
     }
 
     #[test]
     fn test_parse_route_path() {
-        let (domain, cluster, capability) = parse_route_path("invest/stock/tech");
-        assert_eq!(domain, "invest");
+        let (domain, cluster, capability) = parse_route_path("finance/stock/tech");
+        assert_eq!(domain, "finance");
         assert_eq!(cluster, Some("stock".to_string()));
         assert_eq!(capability, Some("tech".to_string()));
 
-        let (domain, cluster, capability) = parse_route_path("invest/stock");
-        assert_eq!(domain, "invest");
+        let (domain, cluster, capability) = parse_route_path("finance/stock");
+        assert_eq!(domain, "finance");
         assert_eq!(cluster, Some("stock".to_string()));
         assert_eq!(capability, None);
 
-        let (domain, cluster, capability) = parse_route_path("invest");
-        assert_eq!(domain, "invest");
+        let (domain, cluster, capability) = parse_route_path("finance");
+        assert_eq!(domain, "finance");
         assert_eq!(cluster, None);
         assert_eq!(capability, None);
     }
@@ -1514,8 +1519,8 @@ mod tests {
     fn test_routing_decision_valid() {
         let decision = create_test_decision();
         assert!(decision.is_valid());
-        assert_eq!(decision.route_path, "invest/stock_analysis/tech");
-        assert_eq!(decision.domain, "invest");
+        assert_eq!(decision.route_path, "finance/stock_analysis/tech");
+        assert_eq!(decision.domain, "finance");
         assert_eq!(decision.cluster, "stock_analysis");
         assert_eq!(decision.capability_id, "wf_tech");
         assert!(decision.confidence > 0.9);
@@ -1548,7 +1553,7 @@ mod tests {
             success: true,
             confidence: 1.0,
             elapsed_ms: 10,
-            summary: "域=invest, 规则命中".to_string(),
+            summary: "域=finance, 规则命中".to_string(),
         };
 
         assert_eq!(record.stage.as_str(), "L1_domain");
@@ -1699,7 +1704,7 @@ mod tests {
 
     #[test]
     fn test_decision_build_path() {
-        let path = RoutingDecisionV2::build_path("invest", "stock", "tech");
-        assert_eq!(path, "invest/stock/tech");
+        let path = RoutingDecisionV2::build_path("finance", "stock", "tech");
+        assert_eq!(path, "finance/stock/tech");
     }
 }

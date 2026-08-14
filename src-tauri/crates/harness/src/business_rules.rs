@@ -66,6 +66,6 @@ pub enum RuleEvaluationOutcome {
 /// 业务规则评估器 trait — 由 rt-workflow 中的 BusinessRuleEngine 实现。
 ///
 /// 拦截器等组件通过此 trait 解耦，无需直接依赖具体实现类型。
-pub trait BusinessRuleEvaluator: std::fmt::Debug + Send + Sync {
+pub trait BusinessRuleEvaluator: std::fmt::Debug + Send + Sync + std::any::Any {
     fn evaluate(&self, node_type: &str, node_input: &serde_json::Value) -> RuleEvaluationOutcome;
 }

@@ -7,199 +7,225 @@
 
 <p align="center">
   <a href="./media/poster-axagent.svg">
-    <img src="./media/poster-axagent.svg" alt="AxAgent ポスター" width="80%" />
+    <img src="./media/poster-axagent.svg" alt="AxAgent Poster" width="80%" />
   </a>
 </p>
 
-**AxAgent** は、Tauri 2 ベースのクロスプラットフォーム AI アシスタントデスクトップクライアントです（Windows / macOS / Linux / Android / iOS）。ReAct エージェントエンジン、ビジュアルワークフローオーケストレーション、ローカル RAG ナレッジベース、MCP プロトコル拡張、統合マルチモデルゲートウェイ、ブラウザ自動化、コンピューター制御を統合し、日常の開発・研究・知識管理・自動化のための AI ワークステーションです。
+**AxAgent** は Tauri 2 をベースにしたクロスプラットフォームの AI デスクトップクライアント（Windows / macOS / Linux / Android / iOS）であり、AI 駆動の日常開発・研究・ナレッジ管理・自動化ワークベンチとして位置づけられています。ReAct エージェントエンジン、認知ルーティング（3 段階の階層ルーティング + 検索拡張ルーティング RAR）、ビジュアルワークフローオーケストレーション、ローカル RAG ナレッジベース、MCP プロトコル拡張、マルチモデル統一ゲートウェイ、ブラウザ自動化、コンピュータ制御などの機能を内蔵し、AI を「対話」から「実行」へと導きます。
 
-> **言語**: [简体中文](./README.md) | [English](./README-EN.md) | [繁體中文](./README-ZH-TW.md) | [日本語](./README-JA.md) | [한국어](./README-KO.md) | [Français](./README-FR.md) | [Deutsch](./README-DE.md) | [Español](./README-ES.md) | [Русский](./README-RU.md) | [हिन्दी](./README-HI.md) | [العربية](./README-AR.md)
+> **言語バージョン**: [简体中文](./README.md) | [English](./README-EN.md) | [繁體中文](./README-ZH-TW.md) | [日本語](./README-JA.md) | [한국어](./README-KO.md) | [Français](./README-FR.md) | [Deutsch](./README-DE.md) | [Español](./README-ES.md) | [Русский](./README-RU.md) | [हिन्दी](./README-HI.md) | [العربية](./README-AR.md)
 
 ---
 
-## プロジェクトの位置付け
+## プロジェクトの位置づけ
 
-AxAgent は3つの核心的な問題を解決します：
+AxAgent は 3 つの核心的な課題を解決します：
 
-1. **統合マルチモデルアクセスとインテリジェントルーティング** — 単一インターフェースで OpenAI、Anthropic Claude、Google Gemini、Ollama ローカルモデル、および任意の OpenAI 互換 API を使用し、マルチキー割り当て自動ローテーション、タスクタイプ別インテリジェントルーティング、ストリーミング比較に対応
-2. **AI の対話から実行へのクローズドループ** — 47+ 内蔵ツール + ビジュアルワークフロー + MCP 拡張 + ブラウザ/コンピューター制御、AI がファイル操作、コード実行、Git 管理、タスクスケジューリングを実現
-3. **ローカルファーストのデータ主権** — 会話、ナレッジベース、メモリ、設定はすべてローカル SQLite データベースに保存され、APIキーは AES-256-GCM で暗号化。サードパーティクラウドサービスなしでコア機能が動作
+1. **マルチモデル統一アクセスとスマートスケジューリング** — 単一のインターフェースで OpenAI、Anthropic Claude、Google Gemini、DeepSeek、Qwen、GLM、Kimi、文心、Ollama ローカルモデル、および任意の OpenAI 互換 API を同時に利用可能。複数 Key のクォータ自動ローテーション、タスク種別に応じたスマートルーティング、ストリーミング比較をサポート
+2. **AI の対話から実行へのクローズドループ** — 163+ の内蔵ツール + ビジュアルワークフロー + MCP 拡張 + ブラウザ/コンピュータ制御により、AI はファイル操作、コード実行、Git 管理、タスクスケジューリングを実行可能
+3. **ローカルファーストのデータ主権** — 会話履歴、ナレッジベース、メモリ、設定はすべてローカルの SQLite データベースに保存され、API Key は AES-256-GCM で暗号化。サードパーティのクラウドサービスなしでコア機能を実行可能
 
 ---
 
 ## コア機能
 
+### 認知ルーティングシステム（Cognitive Router）
+
+AxAgent は `cognitive_query` をすべての会話の統一エントリポイントとし、**3 段階の階層ルーティング**によってユーザーの意図を具体的な能力にマッピングします：
+
+- **L1 ドメインルーティング** (`domain_router`): ルール + LLM フォールバックにより、9 大業務ドメイン（データ分析 / コンテンツ制作 / コミュニケーション / 運用保守 / AI メディア / 金融 / 自動化 / 汎用など）を識別
+- **L2 クラスタールーティング** (`cluster_router`): ドメイン内で能力クラスタを特定（27 個のクラスタ、8 大業務ドメインをカバー）
+- **L3 能力ルーティング**: **検索拡張ルーティング（RAR）** — 能力ベクトルライブラリから Top-K の類似ワークフローをリコールして Prompt に注入し、ワークフロー DAG グラフの経路探索と組み合わせて、パスアドレス（例：`/finance/stock_analysis/tech`）と実行モードを出力
+- **実行モード**: `Ask / Plan / Act / Workflow / Direct / Delegate / ParameterExtract / Clarify` を信頼度に応じて自動選択
+- **能力システム**: 統一レジストリ（`CapabilityRegistry`）+ ベクトルインデックス（`CapabilityIndexer`）+ ハイブリッド検索（`CapabilityRetriever`、ベクトル + BM25 + タグ完全一致 + 負サンプル除外）
+- **システム能力の分離**: 認知オーケストレーターと業務ワークフローを物理的に分離し、システム能力には `SYSTEM_ONLY` 可視性マークを付与。ルーティング層に自己参照サーキットブレーカーを内蔵し、自己言及のパラドックスを防止
+- **3 段階ルーティングはワークフロー DAG で実装**: 4 つのプリセットルーティングワークフローテンプレート（メインオーケストレーション約 20 ノード + L1/L2/L3 サブルーティング）を `rt-workflow` エンジンで実行
+
 ### マルチモデルエンジン
 
-- **9つのプロバイダーアダプター**: OpenAI (Chat Completions + Responses + Realtime)、Anthropic Claude、Google Gemini、Ollama (GGUF ローカルモデル管理含む)、OpenClaw、Hermes、およびすべての OpenAI 互換 API
-- **マルチキーローテーション**: 同一プロバイダーの複数 API キー、割り当てベースの自動ローテーション、単一キー制限時の自動フェイルオーバー
-- **インテリジェントルーティング**: タスクタイプ（コードレビュー / 要約 / 翻訳 / 一般）に応じた自動モデル選択、カスタムルール対応
-- **プロバイダーヘルスモニタリング**: 成功率、レイテンシ、可用性のリアルタイム追跡、段階的自動フォールバック
-- **AI 画像生成**: DALL-E 3 および Flux (Replicate) マルチサイズプリセット
-- **リアルタイム音声**: OpenAI Realtime API ベースの WebSocket 音声会話、割り込みおよびストリーミング文字起こし対応
+- **13 種のプロバイダーアダプター**: OpenAI（Chat Completions + Responses + Realtime）、Anthropic Claude、Google Gemini、DeepSeek、Qwen、GLM、Kimi、文心一言、Ollama、Llama.cpp（GGUF ローカルモデル）、OpenClaw、Hermes、およびすべての OpenAI 互換 API
+- **複数 Key のローテーション**: 同一プロバイダーの複数 API Key をクォータに応じて自動ローテーションし、単一 Key のレート制限時は自動的に切り替え
+- **スマートルーティング**: タスク種別（コードレビュー / 要約 / 翻訳 / 汎用）に応じて最適なモデルを自動選択し、カスタムルールをサポート
+- **プロバイダーヘルスモニタリング**: 成功率、レイテンシ、可用状態をリアルタイムで追跡し、段階的な自動デグレードをサポート
+- **AI 画像生成**: DALL-E 3 と Flux の複数サイズプリセット
+- **リアルタイム音声**: OpenAI Realtime API ベースの WebSocket 音声対話。割り込みとストリーミング文字起こしをサポート
 
-### エージェントシステム (ReAct エンジン)
+### エージェントシステム（ReAct エンジン）
 
-- **階層型プランナー** (`hierarchical_planner`): 複雑なタスクを Phase → Task の構造化プランに分解し、DAG トポロジカル実行にコンパイル
-- **深層リサーチ** (`deep_research`): マルチソース検索オーケストレーション（検索計画、実行、コンテンツ統合、引用追跡）
-- **ファクトチェッカー** (`fact_checker`): AI 駆動の事実検証、ソース分類器と信頼性評価を含む
-- **思考の木** (`tree_of_thoughts`): 複数経路の推論探索、分岐評価とバックトラッキング
-- **リフレクター** (`reflector`): 実行後の自己評価と改善提案
-- **自己検証** (`self_verifier`): 推論結果の自動検証、循環検出付き
-- **エラーリカバリー** (`error_recovery_engine`): エラータイプ分類 → リカバリー戦略選択 → 自動リトライまたは計画調整、指数バックオフ対応
+- **階層プランナー** (`hierarchical_planner`): 複雑なタスクを Phase → Task の構造化プランに分解し、DAG トポロジーにコンパイルして実行
+- **ディープリサーチ** (`deep_research`): 複数ソースの検索オーケストレーション。検索プラン、検索実行、コンテンツ統合、引用追跡を含む
+- **ファクトチェック** (`fact_checker`): AI 駆動の事実検証。ソース分類器、信頼性評価を含む
+- **思考の木** (`tree_of_thoughts`): 複数パスの推論探索。分岐評価とバックトラック
+- **リフレクター** (`reflector`): タスク実行後の自己評価と改善提案
+- **自己検証** (`self_verifier`): 推論結果の自動検証。循環検出を含む
+- **エラーリカバリ** (`error_recovery_engine`): エラータイプの分類 → リカバリ戦略の選択 → 自動リトライまたはプラン調整。指数バックオフをサポート
 - **A/B テスト** (`ab_testing`): 異なる推論戦略の比較評価
-- **評価システム** (`evaluator`): 組み込みベンチマークフレームワーク
-- **LoRA ファインチューニング** (`fine_tune`): 組み込みトレーニングパイプライン、LoRA アダプター管理
-- **RL オプティマイザー** (`rl_optimizer`): 経験フィードバックに基づくポリシー強化学習
+- **評価システム** (`evaluator`): 内蔵ベンチマークテストフレームワーク
+- **LoRA ファインチューニング** (`fine_tune`): 内蔵トレーニングパイプライン。LoRA アダプター管理をサポート
+- **RL オプティマイザー** (`rl_optimizer`): 経験フィードバックに基づく方策強化学習
 
 **マルチエージェント協調**:
 
-- マスター-スレーブ協調アーキテクチャ、サブエージェント並列実行、依存関係認識スケジューリング
-- エージェント間の情報交換のための共有ブラックボード
-- 敵対的ディベートモード（Pro/Con ラウンドと論点強度スコアリング）
-- マルチプロセスエージェントクラスターの Swarm モード
-- プロアクティブモード：エージェントが自発的に提案と操作を開始可能
+- マスター・スレーブ調整アーキテクチャ。子エージェントを並列実行し、依存関係を考慮したスケジューリング
+- エージェント間の情報交換に共有ブラックボードを使用
+- 対抗的ディベートモード（Pro/Con ラウンドと論点強度スコアリング）
+- Swarm クラスターモード。マルチプロセスエージェントクラスター
+- プロアクティブモード：エージェントが自発的に提案や操作を開始可能
 
-**コンピューター制御**: AI 駆動のマウスクリック、キーボード入力、画面スクロール。3段階の権限（デフォルト/編集受付/フルアクセス）、サンドボックスパス分離
+**コンピュータ制御**: AI によるマウスクリック、キーボード入力、画面スクロール。3 段階の権限（デフォルト / 編集を許可 / フルアクセス）とサンドボックスパス分離
 
-**ブラウザ自動化**: CDP プロトコルによるブラウザ制御、ナビゲーション、スクリーンショット、クリック、フォーム入力、テキスト抽出に対応
+**ブラウザ自動化**: CDP プロトコルでブラウザを制御。ナビゲーション、スクリーンショット、クリック、フォーム入力、テキスト抽出をサポート
 
 ### スキルシステム
 
-- **スキルマーケットプレイス**: コミュニティスキルの閲覧とインストール
-- **AI 支援作成**: 自然言語提案からスキル構造を自動生成 (`skill:create`)
-- **スキル進化** (`evolution_engine`): 実行フィードバックに基づくスキルの自動分析と改善
-- **セマンティックマッチング**: コンテキストに応じたセマンティックスキル推薦
-- **スキル分解** (`skill_decomposition`): 複雑なタスクを原子的スキルの組み合わせに自動分解
-- **生成ツール**: AI が生成して登録する新しいツール
-- **サンドボックス実行**: スキルは隔離されたサンドボックスで安全に実行
+- **スキルマーケット**: コミュニティスキルの閲覧とインストール
+- **AI 支援による作成**: 自然言語の提案からスキル構造を自動生成 (`skill:create`)
+- **スキル進化** (`evolution_engine`): 実行フィードバックに基づいてスキルを自動分析・改善
+- **セマンティックマッチング**: 会話コンテキストの意味に基づいて関連スキルを自動推薦
+- **スキル分解** (`skill_decomposition`): 複雑なタスクを原子的なスキルの組み合わせに自動分解
+- **ツール生成**: AI が新しいツールを生成して登録
+- **サンドボックス実行**: スキルを隔離されたサンドボックス内で安全に実行
 
 ### ビジュアルワークフロー
 
-ReactFlow 12 ベースのドラッグ＆ドロップ DAG ワークフローエディター：
+ReactFlow 12 ベースのドラッグ＆ドロップ式 DAG ワークフローエディター：
 
-- **17種類のノード**: トリガー、エージェント、LLM 呼び出し、条件分岐、並列フォーク、ループ、マージ、遅延、ツール呼び出し、コード実行、サブワークフロー、ベクトル検索、ドキュメント解析、検証、終了、ビジネスルール、エージェントロール
-- **Kahn トポロジカルソート実行**: 自動循環依存検出、並列パイプラインスケジューリング
-- **組み込みテンプレート**: コードレビュー、バグ修正、ドキュメント、テスト、リファクタリング、探索、パフォーマンス分析、セキュリティ監査、機能開発
-- **YAML シリアライゼーション**: ワークフロー定義のインポート/エクスポート
-- **バージョン管理**: テンプレートバージョン管理
-- **AI 支援設計**: AI 支援のワークフロー設計とノード推薦
+- **32 種のノードタイプ**: トリガー、エージェント、LLM 呼び出し、条件分岐、並列フォーク、ループ、マージ、遅延、ツール呼び出し、コード実行、サブワークフロー、ベクトル検索、ドキュメント解析、検証、終了、HTTP リクエスト、Switch、データベースクエリ、通知、承認、ファイル操作、データ変換、Webhook 送信、ログ、LLM 分類器、アグリゲーター、メール、ディベート、Swarm、マルチエージェント、ストレージ、ビジネスルール
+- **Kahn トポロジカルソート実行**: 循環依存を自動検出し、並列パイプラインをスケジューリング
+- **内蔵テンプレート**: コードレビュー、バグ修正、ドキュメント生成、テスト、リファクタリング、探索、パフォーマンス分析、セキュリティレビュー、機能開発
+- **YAML シリアライズ**: ワークフロー定義のインポート/エクスポート
+- **バージョン管理**: テンプレートのバージョン管理
+- **AI 支援設計**: AI によるワークフロー設計支援、ノード推薦と診断
 
 ### ナレッジ管理
 
-- **マルチナレッジベース RAG**: ドキュメントアップロード → 自動解析（PDF/DOCX/XLSX/PPTX/TXT）→ チャンキング → ベクトルインデックス
-- **ハイブリッド検索**: ベクトル類似度（sqlite-vec + candle ローカル埋め込み）+ BM25 全文検索（FTS5）、ハイブリッドランキング
+- **マルチナレッジベース RAG**: ドキュメントアップロード → 自動解析（PDF/DOCX/XLSX/PPTX/TXT）→ チャンク分割 → ベクトルインデックス
+- **ハイブリッド検索**: ベクトル類似度（sqlite-vec + candle ローカル埋め込み）+ BM25 全文検索（FTS5）によるハイブリッドランキング
 - **Self-RAG**: 検索結果の自動リフレクションと検証
-- **リランキング**: Cross-encoder による結果リランキング
-- **ナレッジグラフ**: エンティティ抽出 → 関係構築 → ビジュアルグラフ
-- **ファイル監視**: `notify` ベースのリアルタイムファイル変更監視、自動増分インデックス
-- **LLM Wiki**: AI 支援 Wiki コンパイラとバリデーター
+- **リランキング**: Cross-encoder による結果の再ランキング
+- **ナレッジグラフ**: エンティティ抽出 → 関係構築 → 可視化グラフ
+- **ファイル監視**: `notify` ベースのリアルタイムファイル変更監視による自動インクリメンタルインデックス
+- **LLM Wiki**: AI 支援の Wiki コンパイラとバリデーター
 
 ### メモリシステム
 
-- **マルチ名前空間メモリ**: プロジェクト/トピック分離、手動入力と AI 自動抽出に対応
-- **永続化統合**: Honcho および Mem0 クローズドループメモリ
-- **ユーザープロファイル**: コーディングスタイル、技術スタックの好み、コミュニケーションスタイルの自動学習
-- **スタイル転送**: コードスタイル特徴の抽出 → AI 生成コードへの適用
-- **ドリーム統合**: メモリ断片と行動パターンのバックグラウンド自動統合、構造化知識の生成
-- **プロジェクトメモリ**: プロジェクト単位のコンテキスト永続化
+- **マルチネームスペースメモリ**: プロジェクト/トピックごとに分離し、手動入力と AI 自動抽出をサポート
+- **永続化統合**: Honcho と Mem0 によるクローズドループメモリ
+- **ユーザープロファイル**: コードスタイル、技術スタックの好み、コミュニケーションスタイルを自動学習
+- **スタイル転移**: コードスタイルの特徴を抽出 → AI 生成コードに適用
+- **ドリーム統合**: バックグラウンドで記憶の断片と行動パターンを自動統合し、構造化された知識を生成
+- **プロジェクトメモリ**: プロジェクト単位でのコンテキスト永続化
 
 ### API ゲートウェイ
 
 `axum` ベースの HTTP + WebSocket ゲートウェイを内蔵：
 
 - **互換エンドポイント**: OpenAI `/v1/chat/completions`、Claude Messages API、Gemini API、および OpenAI Responses と Realtime WebSocket
-- **キー管理**: アクセスキーの生成、失効、有効/無効切り替え、有効期限対応
-- **使用量追跡**: キー/プロバイダー/日付別のリクエスト数とトークン消費統計、Prometheus メトリクスエクスポート
+- **Key 管理**: アクセスキーの生成、失効、有効/無効化。有効期限をサポート
+- **使用量トラッキング**: Key/プロバイダー/日付ごとのリクエスト数とトークン消費量を集計し、Prometheus メトリクスをエクスポート
 - **レート制限**: `governor` ベースのトークンバケットアルゴリズム
-- **SSL/TLS**: 組み込み自己署名証明書（`rcgen`）、カスタム証明書対応
-- **外部リンク**: Claude CLI、OpenCode などの外部ツールとワンクリック統合、API キー自動同期
-- **リアルタイムチケット**: HMAC ベースの一時認証チケット、WebSocket 接続の安全な引き渡し
+- **SSL/TLS**: 内蔵の自己署名証明書（`rcgen`）。カスタム証明書をサポート
+- **外部連携**: Claude CLI、OpenCode などの外部ツールをワンクリックで統合し、API Key を自動同期
+- **リアルタイムチケット**: HMAC ベースの一時認証チケット。WebSocket 接続の安全な受け渡しに使用
+- **Server モード**: オプションの `axagent-server` バイナリにより、デスクトップアプリの機能をサービスとして外部に提供
 
-### メッセージングプラットフォーム統合
+### メッセージプラットフォーム統合
 
-`rt-messaging` によるマルチプラットフォームゲートウェイ。**DingTalk、Feishu、QQ、Slack、WeChat、WhatsApp、Telegram、Discord** のメッセージ受信、コマンド解析、AI 自動返信に対応。
+`rt-messaging` によるマルチプラットフォームゲートウェイを実装し、**DingTalk、Feishu、QQ、Slack、WeChat、WhatsApp、Telegram、Discord** のメッセージ受信、コマンド解析、AI 自動応答をサポート。
 
 ### ツールシステム
 
-47+ の内蔵ツール、`Tool` trait で統一的に登録：
+**163+ の内蔵ツール**。すべて `Tool` trait を介して登録され、15 大カテゴリをカバー：
 
-| カテゴリ           | ツール                                                                                                                                                                                                     |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ファイル操作       | `file_read`, `file_write`, `file_edit`, `file_system`                                                                                                                                                      |
-| コード実行         | `bash`, `repl`                                                                                                                                                                                             |
-| 検索               | `grep`, `glob`                                                                                                                                                                                             |
-| ブラウザ           | `browser` (CDP)                                                                                                                                                                                            |
-| コンピューター制御 | `computer_use` (マウス/キーボード/スクリーンショット)                                                                                                                                                      |
-| Web                | `web_search`, `web_fetch`                                                                                                                                                                                  |
-| ナレッジベース     | `knowledge`, `document`                                                                                                                                                                                    |
-| Git                | `git` (commit/push/branch/diff)                                                                                                                                                                            |
-| 開発ツール         | `lsp`, `workspace`                                                                                                                                                                                         |
-| タスク管理         | `plan`, `task_system`, `todo_write`, `cron`                                                                                                                                                                |
-| メッセージング     | `push_notification`, `messaging`                                                                                                                                                                           |
-| データベース       | `database`                                                                                                                                                                                                 |
-| ストレージ         | `storage`                                                                                                                                                                                                  |
-| その他             | `agent`, `agent_memory`, `context`, `export`, `integration`, `media`, `media_delivery`, `migration_tool`, `monitor`, `obsidian`, `ocr`, `personality`, `shared_path`, `system_info`, `testing`, `worktree` |
+| カテゴリ          | ツール例                                                                                                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ファイル操作      | `file_read`, `file_write`, `file_edit`, `glob`, `grep`, ディレクトリ/削除/移動など 11 個                                                                                 |
+| Shell/Web         | `bash`, `web_fetch`, `web_search`                                                                                                                                        |
+| ネットワーク      | `http_request`, `ping`, `dns_lookup`, `json_api`, `rss_reader`, `graphql`, `websocket`                                                                                   |
+| ブラウザ          | `browser_navigate`, `browser_click`, `browser_fill`, `browser_screenshot` など 10 個（CDP）                                                                              |
+| コンピュータ制御  | `computer_use`（マウス/キーボード/スクリーンショット）                                                                                                                   |
+| Git               | `git_status`, `git_diff`, `git_commit`, `git_log`, `git_branch`, `git_review`                                                                                            |
+| ナレッジベース    | `list_knowledge_bases`, `search_knowledge`, `add_knowledge_document` など 6 個                                                                                           |
+| タスク管理        | `todo_write`, `task_*`（6 個）, `cron_*`（3 個）, `plan` 関連                                                                                                            |
+| メッセージ通知    | `push_notification`, `send_message`, チームコラボレーションツール                                                                                                        |
+| データベース      | `database_query`, `database_list_tables`, `database_migration_status`                                                                                                    |
+| ストレージ        | `get_storage_info`, `upload_storage_file`, `download_storage_file` など 5 個                                                                                             |
+| エクスポート/形式 | `export_word`, `export_pdf`, `export_xlsx`, `export_pptx`, `render_markdown` など 9 個                                                                                   |
+| OCR               | `ocr_image`, `ocr_detect_langs`                                                                                                                                          |
+| Obsidian          | `obsidian_search`, `obsidian_read`, `obsidian_backlinks` など 9 個                                                                                                       |
+| その他            | `agent`, `delegate_task`, `skills_*`, `lsp`, `repl`, `monitor`, `workspace_*`, `session_search`, `generate_image`, `sequential_thinking`, CI/CD、DevOps、RPC、テストなど |
 
 ### MCP プロトコル
 
-`rmcp` ベースの完全な MCP (Model Context Protocol) 実装：
+`rmcp` ベースの完全な MCP（Model Context Protocol）実装：
 
-- **トランスポート**: stdio サブプロセス + Streamable HTTP + WebSocket
-- **OAuth 認証**: MCP サーバーの OAuth 認可フロー対応
-- **ツールディスカバリー**: MCP サーバーが公開するツールの自動検出と登録
-- **MCP マネージャー**: サーバーライフサイクル管理、ヘルスチェック、自動再接続
+- **トランスポート層**: stdio 子プロセス + Streamable HTTP + SSE
+- **OAuth 認証**: MCP サーバーの OAuth 認可フローをサポート
+- **ツールディスカバリー**: MCP サーバーが公開するツールを自動検出して登録
+- **MCP マネージャー**: サーバーのライフサイクル管理、ヘルスチェック、自動再接続
 
 ### プラグインシステム
 
-OpenClaw 互換の3層プラグインアーキテクチャ（内蔵/バンドル/外部）：
+OpenClaw 互換の 3 段階プラグインアーキテクチャ（内蔵 / バンドル / 外部）：
 
-- npm パッケージインストール、マーケットプレイス UI による検索とインストール
-- プラグインマニフェスト定義、権限宣言、サンドボックス分離実行
-- カスタムツール登録、エージェントプロバイダー、Hook インターセプト
+- npm パッケージでインストール。内蔵マーケット UI で検索とインストール
+- プラグイン manifest の定義、権限宣言、サンドボックス分離実行
+- カスタムツール登録、Agent プロバイダー、Hook インターセプト
 - スキルインストーラー：プラグインパッケージからスキルをスキルシステムにインストール
+
+### ダイナミック UI エンジン
+
+- **Schema 駆動**: JSON Schema で宣言的に UI を構築。コードを書く必要なし
+- **31 個の内蔵コンポーネント**: コンテナ（7）/ データ表示（6）/ フォーム（9）/ メディア（4）/ その他（5）
+- **データバインディング**: 宣言的なデータソースバインドと条件付きレンダリング
+- **NL2UI**: 自然言語からダイナミック UI を直接生成
+
+### ACP クライアント SDK
+
+- **ACP（Agent Client Protocol）**: 2 言語対応 SDK（TypeScript + Python）。サードパーティ依存ゼロ
+- セッション管理、Prompt 送信、ツール呼び出し記録、WebSocket イベントストリーム
+- `/acp/v1/*` エンドポイント経由で AxAgent サービスと通信
 
 ### セキュリティ
 
-- **AES-256-GCM 暗号化**: API キーと機密設定のローカル暗号化ストレージ（`crypto` crate）
-- **プロンプトインジェクション防御**: 4段階防御パイプライン（`prompt-guard`）— パターン検出 → デリミタエスケープ → XML ラッパー → 信頼ラベル、会話/プロンプト構築/Git/RAG の全チェーンに統合
-- **SSRF 防御**: URL 安全性チェック、内部ネットワークアドレスへのリクエストをブロック
-- **コンテンツフィルタリング**: マルチタイプコンテンツ安全性フィルタリング
+- **AES-256-GCM 暗号化**: API Key と機密設定をローカルで暗号化して保存（`crypto` crate）
+- **プロンプトインジェクション対策**: 4 段階の防御パイプライン（`prompt-guard`）— パターン検出 → 区切り文字エスケープ → XML ラッパー → 信頼タグ。セッション、プロンプト構築、Git、RAG の全経路に統合
+- **SSRF 対策**: URL のセキュリティチェックにより、内部ネットワークアドレスへのリクエストをブロック
+- **コンテンツフィルタリング**: 複数タイプのコンテンツ安全フィルタリング
 - **レート制限**: ツール呼び出しと API リクエストのトークンバケット制限
-- **サーキットブレーカー**: 連続失敗時の自動サーキットブレーク
+- **サーキットブレーカー**: 連続失敗時に自動的に遮断
 - **アクセス制御**: ポリシーベースのツールアクセス権限制御
-- **サンドボックス分離**: エージェントとスキルの実行環境分離
+- **サンドボックス分離**: エージェントとスキルの実行環境を分離
 
 ### 開発者ツール
 
-- **分散トレーシング** (`telemetry`): OpenTelemetry 統合、Span/Trace 可視化
+- **分散トレーシング** (`telemetry`): OpenTelemetry 統合。Span/Trace の可視化
 - **構造化ログ**: tracing-subscriber + chrono タイムスタンプ
-- **リプレイデバッグ**: エージェント実行軌跡の記録（`trajectory_recorder`）と再生
-- **DevTools パネル**: Trace Explorer タイムラインビューアー、Benchmark Runner、Tool Recommender
+- **リプレイデバッグ**: エージェント実行トレースの記録（`trajectory_recorder`）とリプレイ
+- **DevTools パネル**: Trace Explorer タイムラインビューア、Benchmark Runner、Tool Recommender
 - **ベンチマーク**: Criterion benchmarks（tool_exec / llm_call / search）
-- **CI チェック**: `npm run ci:check` 型チェック、lint、フォーマット検証の統合
+- **CI チェック**: `npm run ci:check` で型チェック、lint、フォーマット検証を統合
 
-### デスクトップとモバイル体験
+### デスクトップ・モバイル体験
 
-- **レスポンシブレイアウト**: CSS ブレークポイントによるデスクトップ/タブレット/モバイル適応（3段階：`desktop` / `tablet` / `mobile`）
-- **11言語**: 簡体字中国語、繁体字中国語、英語、日本語、韓国語、フランス語、ドイツ語、スペイン語、ロシア語、ヒンディー語、アラビア語
-- **テーマエンジン** (`rt-theme`): ダーク/ライトテーマ + 複数プリセット（21th 等幅フォントテーマ含む）、Ant Design 6 深層カスタマイズ
-- **Monaco エディター**: シンタックスハイライト、差分プレビュー、多言語対応
+- **レスポンシブレイアウト**: CSS ブレークポイントでデスクトップ/タブレット/スマートフォンに適応（3 段階のデバイスレイアウト：`desktop` / `tablet` / `mobile`）
+- **11 言語**: 簡体字中国語、繁体字中国語、英語、日本語、韓国語、フランス語、ドイツ語、スペイン語、ロシア語、ヒンディー語、アラビア語
+- **テーマエンジン** (`rt-theme`): ダーク/ライトテーマ + 複数のプリセット。Ant Design 6 を深くカスタマイズ
+- **Monaco エディター**: シンタックスハイライト、差分プレビュー、多言語サポート
 - **xterm.js ターミナル**: WebLinks、Unicode 11、検索
 - **仮想スクロール**: @tanstack/react-virtual + react-virtuoso
-- **チャートレンダリング**: D2 + Mermaid + Recharts
-- **Global Copy Menu**: カスタムテキスト選択コピーメニュー、ネイティブコンテキストメニュー抑制
-- **Command Palette**: Ctrl+K グローバルコマンドパレット
-- **システムトレイ + グローバルショートカット + 自動起動**: 非侵襲的なバックグラウンド動作
-- **自動更新**: 設定可能間隔の GitHub Releases バージョンチェック
-- **プロキシ対応**: HTTP / SOCKS5 プロキシ設定
-- **クラウドワークスペース**: S3 および WebDAV ストレージ同期、競合検出と双方向同期
+- **チャート描画**: D2 + Mermaid + Recharts + Sigma（グラフ）
+- **コマンドパレット**: Ctrl+K のグローバルコマンドパネル
+- **システムトレイ + グローバルショートカット + 自動起動**: 邪魔にならないバックグラウンド実行
+- **自動アップデート**: 設定可能な間隔での GitHub Releases バージョン検出
+- **プロキシサポート**: HTTP / SOCKS5 プロキシ設定
+- **クラウドワークスペース**: S3 と WebDAV ストレージ同期。競合検出と双方向同期
 
 ### モバイル
 
 - Android APK/AAB（arm64-v8a, armeabi-v7a, x86_64）
 - iOS IPA（arm64）
-- モバイル専用対応：セーフエリアインセット、ボトムナビゲーション、ドロワーナビゲーション
+- モバイル専用の最適化：セーフエリア対応、ボトムナビゲーション、Drawer ナビゲーション
 
 ---
 
@@ -219,187 +245,188 @@ OpenClaw 互換の3層プラグインアーキテクチャ（内蔵/バンドル
 | コードエディター             | Monaco Editor                            | 0.55       |
 | ターミナル                   | xterm.js                                 | 6          |
 | ワークフローエディター       | ReactFlow                                | 12         |
-| チャート                     | D2 + Mermaid + Recharts                  |            |
+| チャート                     | D2 + Mermaid + Recharts + Sigma          |            |
 | アニメーション               | Framer Motion                            | 12         |
 | 仮想スクロール               | @tanstack/react-virtual + react-virtuoso |            |
 | ドラッグ＆ドロップ           | @dnd-kit                                 | 6          |
 | Markdown レンダリング        | markstream-react + stream-markdown       |            |
-| i18n                         | i18next + react-i18next                  |            |
+| 国際化                       | i18next + react-i18next                  |            |
 | ビルドツール                 | Vite                                     | 8          |
 | テスト                       | Vitest + Playwright                      |            |
-| フォーマット                 | dprint（TS/JSON/Markdown/TOML）+ rustfmt |            |
+| フォーマッター               | dprint（TS/JSON/Markdown/TOML）+ rustfmt |            |
 | Lint                         | ESLint + Oxlint + Clippy                 |            |
 
-### バックエンドアーキテクチャ: Harness 依存性注入
+### バックエンドアーキテクチャ: Harness 依存性注入パターン
 
-Rust workspace アーキテクチャ、**32 crate**、**Harness DI パターン**に準拠：
+Rust workspace アーキテクチャを採用し、**37 のメンバー**（メイン crate + 35 のライブラリ crate + schema-gen）で構成。**Harness 依存性注入アーキテクチャ**に従います：
 
-> すべての crate は axagent-harness が定義する trait インターフェースを通じて疎結合され、実行時に axagent-runtime が依存関係を組み立てて注入。
-> 依存方向：`具象実装 → harness ← 呼び出し元`
+> すべての crate は axagent-harness で定義された trait インターフェースによって疎結合され、実行時に axagent-runtime が依存関係を組み立てて注入します。
+> 依存方向：`具体実装 → harness ← 呼び出し側`
 
-**harness** はアーキテクチャの基盤 — ゼロビジネスロジック、ゼロ具象実装、trait 定義、純粋データ DTO、定数、統一エラータイプのみを含む。他のすべての crate から依存され、自身はどの axagent-* crate にも依存しない（200+ trait 定義、Agent/Provider/Tool/RAG/Storage/MCP/Plugins/Security/Observability/Memory/Learning/Browser/Messaging などをカバー）。
+**harness** はアーキテクチャの基盤です — ビジネスロジックゼロ、具体実装ゼロで、trait 定義、純粋なデータ DTO、定数、統一エラータイプのみを含みます。他のすべての crate から依存され、自身はどの axagent-* crate にも依存しません（200+ の trait 定義。Agent/Provider/Tool/RAG/ストレージ/MCP/プラグイン/セキュリティ/可観測性/メモリ/学習/ブラウザ/メッセージ/認知ルーティングなどをカバー）。
 
 ```
 src-tauri/crates/
-├── harness/          # アーキテクチャ基盤 — trait インターフェース、DTO、エラータイプ、DI 契約
-├── entities/         # SeaORM エンティティモデル
-├── dao/              # データアクセス層（CRUD）
-├── migration/        # データベースマイグレーション
-├── crypto/           # AES-256-GCM 暗号化/復号と鍵管理
-├── credential/       # 認証情報の安全な保存
-├── storage/          # ファイルストレージ抽象化（ローカル/S3/WebDAV）、ZIP 読み書き
-├── cache/            # インメモリキャッシュ層
-├── disk-cache/       # ディスクファイルキャッシュ
-├── search/           # 検索エンジン（FTS5 + sqlite-vec + candle ローカル埋め込み）
-├── document-parser/  # ドキュメントテキスト抽出（PDF/DOCX/XLSX/PPTX）
-├── kit/              # 汎用ユーティリティ（パス/エンコーディング/ハッシュ/日付）
-├── runtime-core/     # ランタイム共通型、設定定数
-├── runtime/          # ランタイムサービスオーケストレーション — 全 30+ crate を組み立てる DI コンテナ
-├── rt-workflow/      # ワークフローエンジン — DAG オーケストレーション、ノード実行器、YAML シリアライゼーション
-├── rt-messaging/     # メッセージングプラットフォームゲートウェイ — DingTalk/Feishu/QQ/Slack/WeChat/WhatsApp/Telegram/Discord
-├── rt-webhook/       # 汎用 Webhook サーバー
-├── rt-dashboard/     # ダッシュボードプラグインフレームワーク
-├── rt-theme/         # テーマエンジン
-├── agent/            # AI エージェントコア — 80+ モジュール
-│                     #   ReActエンジン/階層型計画/深層リサーチ/ファクトチェック/思考の木/
-│                     #   リフレクション/自己検証/エラーリカバリー/RL最適化/LoRAファインチューニング/
-│                     #   評価/ツール推薦/A/Bテスト/コーディネーター/ブラックボード/ビジョンパイプライン/
-│                     #   Web検索/学術検索/Wikiコンパイルなど
-├── orchestrator/     # エージェントオーケストレーション — マルチエージェントスケジューリング、DAG 分解、動的サブグラフ実行
-├── providers/        # モデルプロバイダーアダプター
-├── tools/            # ツールシステム — Tool trait/レジストリ/オーケストレーション/ストリーミング/サンドボックス/47+内蔵ツール
-├── gateway/          # API ゲートウェイ — axum HTTP/WS サーバー、OAuth、レート制限、Prometheus
-├── mcp/              # MCP プロトコル — stdio + Streamable HTTP、rmcp ベース
-├── trajectory/       # 学習システム — メモリ/スキル進化/ユーザープロファイル/ドリーム統合
-├── plugins/          # プラグインシステム — OpenClaw 互換、npm パッケージインストール、マーケットプレイス
-├── telemetry/        # オブザーバビリティ — OpenTelemetry、構造化ログ、ランタイムメトリクス
-├── prompt-guard/     # プロンプトインジェクション防御 — L1-L4 多段検出パイプライン
-├── npm/              # npm レジストリクライアント
-└── schema-gen/       # データベーススキーマ生成ツール
+├── harness/          # 架构基石 — trait 接口、DTO、错误类型、DI 契约
+├── entities/         # SeaORM 实体模型
+├── dao/              # 数据访问层（CRUD）
+├── migration/        # 数据库迁移
+├── crypto/           # AES-256-GCM 加解密与密钥管理
+├── credential/       # 凭据安全存储
+├── storage/          # 文件存储抽象（本地/S3/WebDAV），ZIP 读写
+├── cache/            # 内存缓存层
+├── disk-cache/       # 磁盘文件级缓存
+├── search/           # 检索引擎（FTS5 + sqlite-vec + candle 本地嵌入）
+├── document-parser/  # 文档文本提取（PDF/DOCX/XLSX/PPTX）
+├── kit/              # 通用工具集（路径/编码/哈希/日期）
+├── runtime-core/     # 运行时公共类型、配置常量
+├── runtime/          # 运行时服务编排 — 装配全部 crate 的 DI 容器
+├── rt-workflow/      # 工作流引擎 — DAG 编排、节点执行器、YAML 序列化
+├── rt-messaging/     # 消息平台网关 — 钉钉/飞书/QQ/Slack/微信/WhatsApp/Telegram/Discord
+├── rt-webhook/       # 通用 Webhook 服务器
+├── rt-dashboard/     # 仪表盘插件框架
+├── rt-theme/         # 主题引擎
+├── agent/            # AI 智能体核心 — 80+ 模块
+│                     #   ReAct引擎/层级规划/深度研究/事实核查/思维树/反思/
+│                     #   自验证/错误恢复/RL优化/LoRA微调/评估/工具推荐/A/B测试/
+│                     #   协调器/黑板/视觉管线/Web搜索/学术搜索/Wiki编译等
+├── orchestrator/     # 智能体编排 — 多智能体调度、DAG 分解、动态子图执行
+├── providers/        # 模型提供商适配器（13 种）
+├── tools/            # 工具体系 — Tool trait/注册表/编排/流式/沙箱/163+内置工具
+├── gateway/          # API 网关 — axum HTTP/WS 服务器、OAuth、速率限制、Prometheus
+├── mcp/              # MCP 协议 — stdio + Streamable HTTP + SSE，基于 rmcp
+├── trajectory/       # 学习系统 — 记忆/技能进化/用户画像/梦境整合
+├── plugins/          # 插件系统 — OpenClaw 兼容、npm 包安装、市场
+├── telemetry/        # 可观测性 — OpenTelemetry、结构化日志、运行时指标
+├── prompt-guard/     # 提示词注入防护 — L1-L4 多级检测管线
+├── npm/              # npm 注册表客户端
+├── crdt/             # 协同编辑数据结构
+├── device/           # 设备管理
+├── axagent-mobile/   # 移动端适配层
+├── agent-macro/      # 智能体宏
+├── agent-command-types/ # 智能体命令类型
+└── schema-gen/       # 数据库 Schema 生成工具
 ```
 
 ### フロントエンドアーキテクチャ
 
 ```
 src/
-├── pages/            # ページ（サブページ含む 23+）
-│   ├── ChatPage           # チャットインターフェース — サイドバー/メッセージストリーム/Agent パネル/マルチタブ
-│   ├── DashboardPage      # ダッシュボード — 使用統計/モデル分布/トレンドチャート
-│   ├── WorkflowPage       # ワークフローエディター — ReactFlow DAG ビジュアライゼーション
-│   ├── KnowledgeHubPage   # ナレッジベース管理 — ドキュメントアップロード/インデックス/検索
-│   ├── MemoryPage         # メモリ管理
-│   ├── SkillsPage         # スキルマーケットプレイス
-│   ├── SettingsPage       # 設定パネル — 40+ 設定項目
-│   ├── TerminalPage       # 内蔵ターミナル — xterm.js
-│   ├── FilesPage          # ファイル管理
-│   ├── GatewayLinkPage    # API ゲートウェイと外部リンク管理
-│   ├── QuickBarPage       # クイックバー（独立ウィンドウ）
-│   ├── DynamicUIManagerPage / DynamicPageViewer  # 動的 UI エンジン
+├── pages/            # 页面（24 个）
+│   ├── ChatPage           # 对话主界面 — 侧边栏/消息流/Agent 面板/多 Tab
+│   ├── DashboardPage      # 数据仪表盘 — 用量统计/模型分布/趋势图表
+│   ├── WorkflowPage       # 工作流编辑器 — ReactFlow DAG 可视化
+│   ├── KnowledgeHubPage   # 知识库管理 — 文档上传/索引/检索
+│   ├── MemoryPage         # 记忆管理
+│   ├── SkillsPage         # 技能市场
+│   ├── SettingsPage       # 设置面板 — 40+ 配置项
+│   ├── TerminalPage       # 内置终端 — xterm.js
+│   ├── FilesPage          # 文件管理
+│   ├── GatewayLinkPage    # API 网关与外部链接管理
+│   ├── QuickBarPage       # 快捷栏（独立窗口）
+│   ├── DynamicUIManagerPage / DynamicPageViewer  # 动态 UI 引擎
 │   ├── WikiGraphPage / WikiEditPage / IngestPage # LLM Wiki
-│   ├── LearningGraphPage  # 学習グラフ
-│   ├── FineTunePage       # LoRA ファインチューニング
-│   ├── PersonaPage        # ペルソナ管理
-│   ├── WorkflowMarketplace # ワークフローマーケットプレイス
+│   ├── LearningGraphPage  # 学习图谱
+│   ├── FineTunePage       # LoRA 微调
+│   ├── PersonaPage        # 角色管理
+│   ├── WorkflowMarketplace # 工作流市场
 │   ├── DevTools/          # TraceExplorer / BenchmarkRunner / ToolRecommender
 │   └── Workflow/          # WorkflowListPage
 │
-├── components/       # 28 モジュール、450+ コンポーネント
-│   ├── chat/         # チャット（メッセージストリーム/入力/ChatView/TabBar/RightPanel/添付ファイル/ツール呼び出し表示）
-│   ├── layout/       # レイアウト — 17 コンポーネント
-│   │                 #   AppInitializer / Sidebar / ContentArea / TitleBar /
+├── components/       # 33 个模块，500+ 组件
+│   ├── chat/         # 对话（消息流/输入/ChatView/TabBar/RightPanel/附件/工具调用渲染）
+│   ├── layout/       # 布局 — AppInitializer / Sidebar / ContentArea / TitleBar /
 │   │                 #   CommandPalette / GlobalCopyMenu / GlobalErrorBoundary /
-│   │                 #   GlobalStatusBar / ErrorNotificationToast / AppHeader /
-│   │                 #   BackendStatusIndicator / IpcReconnectBanner /
-│   │                 #   ModuleErrorBoundary / NotificationBell / UserProfileModal など
-│   ├── agent/        # Agent パネル/エントリ/ミニパネル
-│   ├── workflow/     # ワークフローエディター（ノード/エッジ/パネル/テンプレート/AIアシスト）
-│   ├── settings/     # 設定パネル（40+ サブコンポーネント）
-│   ├── skill/        # スキルエディター/レンダラー/フローティングパネル
-│   ├── dynamicUI/    # 動的 UI コンポーネントレジストリ（26 内蔵コンポーネント）
-│   ├── gateway/      # API ゲートウェイ管理
-│   ├── files/        # ファイル管理
-│   ├── terminal/     # ターミナルコンポーネント
-│   ├── search/       # 検索インターフェース
-│   ├── benchmark/    # ベンチマークパネル
-│   ├── decomposition/# スキル分解とツール生成
-│   ├── devtools/     # Trace/Span タイムライン + RL Training パネル
-│   ├── approval/     # 承認ワークフロー UI
-│   ├── recommendation/ # ツール/モデル推薦
+│   │                 #   GlobalStatusBar / ErrorNotificationToast / AppHeader 等
+│   ├── agent/        # Agent 面板/入口/迷你面板
+│   ├── workflow/     # 工作流编辑器（节点/连线/面板/模板/AI辅助）
+│   ├── settings/     # 设置面板（40+ 子组件）
+│   ├── skill/        # 技能编辑器/渲染器/浮动面板
+│   ├── dynamicUI/    # 动态 UI 组件（31 个内置组件）
+│   ├── gateway/      # API 网关管理
+│   ├── files/        # 文件管理
+│   ├── terminal/     # 终端组件
+│   ├── search/       # 搜索界面
+│   ├── benchmark/    # 基准测试面板
+│   ├── decomposition/# 技能分解与工具生成
+│   ├── devtools/     # Trace/Span 时间线 + RL Training 面板
+│   ├── approval/     # 审批流程界面
+│   ├── recommendation/ # 工具/模型推荐
 │   ├── onboarding/   # WelcomeWizard / InteractiveTutorial
-│   ├── help/         # ヘルプパネル
-│   ├── notification/ # 通知コンポーネント
-│   ├── proactive/    # プロアクティブ提案
-│   ├── llm-wiki/     # LLM Wiki コンポーネント
-│   ├── wiki/         # Wiki コンポーネント
-│   ├── fine-tune/    # ファインチューニング UI
-│   ├── trace/        # Trace コンポーネント
-│   ├── style/        # スタイル/テーマ
-│   ├── shared/       # 共有コンポーネント（ErrorBoundary / PageContextProvider）
-│   └── common/       # 共通コンポーネント（Icon など）
+│   ├── help/         # 帮助面板
+│   ├── notification/ # 通知组件
+│   ├── proactive/    # 主动建议
+│   ├── llm-wiki/     # LLM Wiki 组件
+│   ├── wiki/         # Wiki 组件
+│   ├── fine-tune/    # 微调界面
+│   ├── trace/        # Trace 组件
+│   ├── style/        # 样式/主题
+│   ├── shared/       # 共享组件（ErrorBoundary / PageContextProvider）
+│   └── common/       # 通用组件（Icon 等）
 │
-├── stores/           # Zustand 状態管理
-│   ├── domain/       # 10 コアビジネスストア（会話/ストリーム/圧縮/設定/マルチモデルなど）
-│   ├── feature/      # 48 機能モジュールストア（エージェント/ワークフロー/ナレッジ/スキル/ゲートウェイ/メモリ/ターミナルなど）
-│   └── devtools/     # 4 開発者ツールストア
+├── stores/           # Zustand 状态管理（82 个 store）
+│   ├── domain/       # 9 个核心业务 store（对话/流/压缩/偏好/多模型等）
+│   ├── feature/      # 61 个功能模块 store（智能体/工作流/知识库/技能/网关/记忆/终端等）
+│   ├── shared/       # 8 个跨组件共享 store（UI/标签页/工作区/后端状态等）
+│   └── devtools/     # 4 个开发者工具 store
 │
-├── hooks/            # React Hooks（ショートカット/コマンドパレット/レスポンシブ/スクロールバー/テーマ/アバターなど）
-├── lib/              # ユーティリティライブラリ（invoke/pageRegistry/shortcuts/skillLifecycle/
-│                     #   chartGenerator/codeExecutor/tokenEstimator/workflowLayout など 45+ モジュール）
-├── types/            # TypeScript 型定義
-├── theme/            # Shadcn テーマエンジン
-├── i18n/             # 11言語翻訳ファイル（zh-CN/zh-TW/en-US/ja/ko/fr/de/es/ru/hi/ar）
-├── constants/        # 定数と機能フラグ
-└── sdk/              # 外部統合 SDK
+├── hooks/            # React Hooks（快捷键/命令面板/响应式/滚动条/主题/Avatar 等）
+├── lib/              # 工具函数库（invoke/pageRegistry/shortcuts/skillLifecycle/
+│                     #   chartGenerator/codeExecutor/tokenEstimator/workflowLayout 等 45+ 模块）
+├── types/            # TypeScript 类型定义
+├── theme/            # Shadcn 主题引擎
+├── i18n/             # 11 语言翻译文件（zh-CN/zh-TW/en-US/ja/ko/fr/de/es/ru/hi/ar）
+├── constants/        # 常量与功能开关
+└── sdk/              # ACP 客户端 SDK（TypeScript + Python）
 ```
 
 ### 機能フラグ
 
-プロジェクトは `featureFlags.ts` でプログレッシブ機能ロールアウトを管理：
+プロジェクトは `featureFlags.ts` で段階的な機能リリースを管理します：
 
-| フラグ              | 状態 | 説明                                            |
-| ------------------- | ---- | ----------------------------------------------- |
-| `AGENT_IN_THE_LOOP` | ✅   | グローバル Agent Panel + ページコンテキスト注入 |
-| `DYNAMIC_UI`        | ✅   | 動的 UI ビルダーエンジン                        |
-| `SELF_EVOLUTION_UI` | ❌   | 自己進化フロントエンド制御パネル                |
-| `NL_EXTENSION`      | ❌   | 自然言語駆動の動的ビジネス拡張                  |
+| フラグ              | 状態 | 説明                                             |
+| ------------------- | ---- | ------------------------------------------------ |
+| `AGENT_IN_THE_LOOP` | ✅   | グローバル Agent パネル + ページコンテキスト注入 |
+| `DYNAMIC_UI`        | ✅   | ダイナミック UI 構築エンジン                     |
+| `SELF_EVOLUTION_UI` | ❌   | 自己進化のフロントエンドコントロールパネル       |
+| `NL_EXTENSION`      | ❌   | 自然言語駆動のダイナミックビジネス拡張           |
 
 ### Tauri プラグイン
 
-| プラグイン          | 用途                                 |
-| ------------------- | ------------------------------------ |
-| `autostart`         | 起動時自動起動                       |
-| `clipboard-manager` | クリップボード読み書き               |
-| `dialog`            | ファイル選択ダイアログ               |
-| `fs`                | ファイルシステムアクセス             |
-| `global-shortcut`   | グローバルショートカット登録         |
-| `notification`      | システム通知                         |
-| `opener`            | 外部リンク/ファイルオープン          |
-| `process`           | プロセス管理                         |
-| `updater`           | 自動更新                             |
-| `mcp-bridge`        | MCP プロトコルブリッジ（非 Android） |
+| プラグイン          | 用途                         |
+| ------------------- | ---------------------------- |
+| `autostart`         | 自動起動                     |
+| `clipboard-manager` | クリップボードの読み書き     |
+| `dialog`            | ファイル選択ダイアログ       |
+| `fs`                | ファイルシステムアクセス     |
+| `global-shortcut`   | グローバルショートカット登録 |
+| `notification`      | システム通知                 |
+| `opener`            | 外部リンク/ファイルを開く    |
+| `process`           | プロセス管理                 |
+| `updater`           | 自動アップデート             |
 
 ---
 
 ## データディレクトリ
 
 ```
-~/.axagent/                    # アプリケーション設定
-├── axagent.db                 # SQLite メインデータベース (SeaORM)
-├── master.key                 # AES-256 マスターキー
-├── vector_db/                 # sqlite-vec ベクトルインデックス
-└── ssl/                       # 自己署名 SSL 証明書
+~/.axagent/                    # 应用配置
+├── axagent.db                 # SQLite 主数据库 (SeaORM)
+├── master.key                 # AES-256 主密钥
+├── vector_db/                 # sqlite-vec 向量索引
+└── ssl/                       # 自签名 SSL 证书
 
-~/Documents/axagent/          # ユーザーファイル
-├── images/                   # 画像添付
-├── files/                    # ファイル添付
-└── backups/                  # 自動バックアップ
+~/Documents/axagent/          # 用户文件
+├── images/                   # 图片附件
+├── files/                    # 文件附件
+└── backups/                  # 自动备份
 ```
 
 ---
 
 ## クイックスタート
 
-### 前提条件
+### 環境要件
 
 - [Node.js](https://nodejs.org/) 20+
 - [Rust](https://www.rust-lang.org/) 1.75+（edition 2024）
@@ -414,55 +441,54 @@ src/
 git clone https://github.com/polite0803/AxAgent.git
 cd AxAgent
 npm install
-npm run tauri dev      # 開発モード（Vite HMR + Tauri ウィンドウ）
+npm run tauri dev      # 开发模式（前端 Vite HMR + Tauri 窗口）
 ```
 
 ### ビルド
 
 ```bash
-npm run tauri build    # デスクトッププロダクションビルド
+npm run tauri build    # 桌面端生产构建
 
-npm run tauri:android:build   # Android ビルド
-npm run tauri:ios:build       # iOS ビルド
+npm run tauri:android:build   # Android 构建
+npm run tauri:ios:build       # iOS 构建
 ```
 
-デスクトップビルド成果物は `src-tauri/target/release/` にあります。
+デスクトップ版のビルド成果物は `src-tauri/target/release/` に出力されます。
 
 ### テスト
 
 ```bash
-npm run test           # フロントエンドユニットテスト（Vitest watch）
-npm run test:run       # フロントエンドユニットテスト（単一実行）
-npm run test:e2e       # E2E テスト（Playwright）
+npm run test           # 前端单元测试（Vitest watch）
+npm run test:run       # 前端单元测试（单次运行）
+npm run test:e2e       # E2E 测试（Playwright）
 
-# Rust バックエンドテスト
-cd src-tauri && cargo nextest run
+# Rust 后端测试
 cd src-tauri && cargo test
 
-# 型チェック & Lint
+# 类型检查 & Lint
 npm run typecheck
 cd src-tauri && cargo clippy -- -D warnings
-npm run format         # dprint フォーマット
-npm run lint:eslint    # ESLint チェック
-npm run contracts      # API 契約チェック
+npm run format         # dprint 格式化
+npm run lint:eslint    # ESLint 检查
+npm run contracts      # API 契约检查
 
-# 完全 CI チェック
+# CI 全量检查
 npm run ci:check
 ```
 
-### スクリプト
+### よく使うスクリプト
 
-| コマンド                 | 用途                             |
-| ------------------------ | -------------------------------- |
-| `npm run bump`           | インタラクティブバージョンアップ |
-| `npm run docs`           | TypeDoc ドキュメント生成         |
-| `npm run skill:create`   | 新規スキルスキャフォールド作成   |
-| `npm run skill:validate` | スキル定義の検証                 |
-| `npm run check:types`    | 型一貫性チェック                 |
+| コマンド                 | 用途                                     |
+| ------------------------ | ---------------------------------------- |
+| `npm run bump`           | バージョン番号のアップグレード（対話式） |
+| `npm run docs`           | TypeDoc ドキュメントの生成               |
+| `npm run skill:create`   | 新しいスキルのスキャフォールド作成       |
+| `npm run skill:validate` | スキル定義の検証                         |
+| `npm run check:types`    | 型の整合性チェック                       |
 
 ---
 
-## プラットフォームサポート
+## 対応プラットフォーム
 
 | プラットフォーム | アーキテクチャ                        |
 | ---------------- | ------------------------------------- |
@@ -474,15 +500,15 @@ npm run ci:check
 
 ---
 
-## ライセンス
+## オープンソースライセンス
 
-本プロジェクトは [AGPL-3.0-only](LICENSE) ライセンスの下でオープンソース公開されています。
+本プロジェクトは [AGPL-3.0-only](LICENSE) ライセンスの下でオープンソースとして公開されています。
 
 ---
 
 ## 謝辞
 
-AxAgent は多くの優れたオープンソースプロジェクトの上に構築されています：
+AxAgent は数多くの優れたオープンソースプロジェクトの上に構築されています：
 
 - [Tauri](https://tauri.app/) — クロスプラットフォームデスクトップフレームワーク
 - [React](https://react.dev/) + [Ant Design](https://ant.design/) — フロントエンド UI

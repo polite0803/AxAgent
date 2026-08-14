@@ -39,6 +39,14 @@ import type {
   SaveDynamicUIFormDataParams,
   UpdateDynamicUISchemaParams,
 } from "@/types";
+import type {
+  CapabilityDiscoveryResult,
+  CapabilityIndexStats,
+  CapabilityPassportDto,
+  CapabilityStats,
+  IndexResult,
+  RankedCapability,
+} from "@/types";
 import { emitBrowserEvent } from "./browserEvents";
 
 interface Fleet {
@@ -176,6 +184,204 @@ function setStore<T>(key: string, value: T): void {
   } catch (e) {
     console.warn(`Failed to write localStorage key: axagent_${key}`, e);
   }
+}
+
+// ── Capability System (能力发现系统) ──────────────────────────────
+
+const CAPABILITY_STORAGE_KEY = "mock.capabilities";
+
+function capabilityStats(): CapabilityStats {
+  return {
+    total_calls: 0,
+    success_count: 0,
+    avg_duration_seconds: 0,
+    recent_success_rate: 0,
+    circuit_state: "closed",
+  };
+}
+
+function mockPassport(
+  capabilityId: string,
+  name: string,
+  kind: CapabilityPassportDto["kind"],
+  domain: CapabilityPassportDto["domain"],
+  description: string,
+  tags: string[],
+): CapabilityPassportDto {
+  return {
+    capability_id: capabilityId,
+    name,
+    description,
+    kind,
+    domain,
+    input_schema: null,
+    tags,
+    negative_scenarios: [],
+    security_level: "public",
+    modality_support: {
+      supports_text: true,
+      supports_image: false,
+      supports_audio: false,
+      supports_video: false,
+      supports_file: false,
+    },
+    output_capabilities: {
+      supports_text: true,
+      supports_table: false,
+      supports_chart: false,
+      supports_image: false,
+      supports_interactive: false,
+    },
+    estimated_cost_usd: 0,
+    avg_duration_seconds: 0,
+    planning_complexity: "simple",
+    model_iq_requirement: 60,
+    experiment_group: null,
+    stats: capabilityStats(),
+    enabled: true,
+  };
+}
+
+function defaultMockPassports(): CapabilityPassportDto[] {
+  return [
+    mockPassport(
+      "cap.workflow.stock_analysis",
+      "股票走势分析工作流",
+      "workflow",
+      "finance",
+      "综合分析股票走势、均线与成交量，输出趋势判断。",
+      ["股票", "走势", "K线", "分析"],
+    ),
+    mockPassport(
+      "cap.workflow.image_generation",
+      "图像生成工作流",
+      "workflow",
+      "ai_media",
+      "根据文字描述生成图像。",
+      ["图像", "生成", "AI绘画"],
+    ),
+    mockPassport(
+      "cap.tool.web_search",
+      "网络搜索工具",
+      "tool",
+      "general",
+      "执行网络搜索并返回结果摘要。",
+      ["搜索", "网络", "查询"],
+    ),
+    mockPassport(
+      "cap.tool.code_execution",
+      "代码执行工具",
+      "tool",
+      "devops",
+      "在沙箱中执行代码并返回输出。",
+      ["代码", "执行", "Python", "JS"],
+    ),
+    mockPassport(
+      "cap.agent.data_analyst",
+      "数据分析智能体",
+      "agent",
+      "data_analysis",
+      "执行数据分析任务并生成报告。",
+      ["数据分析", "统计", "报告"],
+    ),
+    mockPassport(
+      "cap.kb.product_docs",
+      "产品文档知识库",
+      "knowledge_base",
+      "general",
+      "检索产品使用文档。",
+      ["文档", "知识库", "产品"],
+    ),
+  ];
+}
+
+function readCapabilityPassports(): CapabilityPassportDto[] {
+  return getStore<CapabilityPassportDto[]>(CAPABILITY_STORAGE_KEY, []).length
+    ? getStore<CapabilityPassportDto[]>(CAPABILITY_STORAGE_KEY, [])
+    : defaultMockPassports();
+}
+
+function writeCapabilityPassports(passports: CapabilityPassportDto[]): void {
+  setStore(CAPABILITY_STORAGE_KEY, passports);
+}
+
+function capabilityStatsFrom(
+  passports: CapabilityPassportDto[],
+): CapabilityIndexStats {
+  const totalVectors = passports.reduce(
+    (sum, p) => sum + p.tags.length + 2,
+    0,
+  );
+  return {
+    total_capabilities: passports.length,
+    total_vectors: totalVectors,
+    positive_vectors: passports.length * 2,
+    negative_vectors: totalVectors - passports.length * 2,
+    last_indexed_at: nowTs(),
+  };
+}
+
+function indexResultFor(
+  passport: CapabilityPassportDto,
+  success: boolean,
+  error?: string | null,
+): IndexResult {
+  return {
+    capability_id: passport.capability_id,
+    success,
+    vector_dimensions: 768,
+    indexed_at_ms: nowTs(),
+    error: error ?? null,
+  };
+}
+
+function rankCapabilityFor(
+  passport: CapabilityPassportDto,
+  userInput: string,
+  baseScore: number,
+): RankedCapability {
+  const input = userInput.toLowerCase();
+  const tagHit = passport.tags.some((tag) => input.includes(tag.toLowerCase()));
+  const score = Math.min(0.99, baseScore + (tagHit ? 0.15 : 0));
+  return {
+    passport,
+    semantic_score: baseScore,
+    history_score: 0.5,
+    speed_score: 0.8,
+    cost_score: 0.8,
+    personalization_boost: 0,
+    exploration_boost: 0,
+    final_score: score,
+    reasons: tagHit ? ["关键词命中"] : ["语义相似"],
+  };
+}
+
+function mockDiscover(userInput: string): CapabilityDiscoveryResult {
+  const passports = readCapabilityPassports();
+  const candidates: RankedCapability[] = passports
+    .map((p, idx) => rankCapabilityFor(p, userInput, 0.7 - idx * 0.08))
+    .sort((a, b) => b.final_score - a.final_score);
+
+  const primary = candidates[0] ?? null;
+  const next = candidates[1] ?? null;
+  const ambiguous = !!primary && !!next && next.final_score >= 0.85;
+
+  return {
+    primary_match: primary,
+    alternatives: candidates.slice(1, 3),
+    ambiguous,
+    clarification_prompt: ambiguous
+      ? i18n.t("browserMock.capabilityAmbiguous")
+      : null,
+    suggestions: [],
+    circuit_info: null,
+    total_elapsed_ms: 12,
+    phase_timings: [
+      { phase: "retrieval", elapsed_ms: 5 },
+      { phase: "filter", elapsed_ms: 3 },
+      { phase: "rank", elapsed_ms: 4 },
+    ],
+  };
 }
 
 function generateBrowserResponse(userContent: string): string {
@@ -4488,6 +4694,89 @@ export async function handleCommand<T>(
       return { weights: {} } as T;
     case "rl_update_policy_weights":
       return { success: true } as T;
+
+    // ── Capability System (能力发现系统) ────────────────────────────
+    case "capability_register_passport": {
+      const passport = (args as { request?: { passport?: CapabilityPassportDto } })
+        ?.request?.passport;
+      if (!passport) {
+        return {
+          capability_id: "",
+          success: false,
+          vector_dimensions: 0,
+          indexed_at_ms: 0,
+          error: "missing passport",
+        } as T;
+      }
+      const passports = readCapabilityPassports();
+      const idx = passports.findIndex((p) => p.capability_id === passport.capability_id);
+      if (idx >= 0) {
+        passports[idx] = passport;
+      } else {
+        passports.push(passport);
+      }
+      writeCapabilityPassports(passports);
+      return indexResultFor(passport, true) as T;
+    }
+    case "capability_register_batch": {
+      const batch = (args as { passports?: CapabilityPassportDto[] })?.passports ?? [];
+      const passports = readCapabilityPassports();
+      for (const passport of batch) {
+        const idx = passports.findIndex((p) => p.capability_id === passport.capability_id);
+        if (idx >= 0) {
+          passports[idx] = passport;
+        } else {
+          passports.push(passport);
+        }
+      }
+      writeCapabilityPassports(passports);
+      return batch.map((p) => indexResultFor(p, true)) as T;
+    }
+    case "capability_remove_passport": {
+      const capabilityId = (args as { capabilityId?: string })?.capabilityId ?? "";
+      const passports = readCapabilityPassports();
+      writeCapabilityPassports(
+        passports.filter((p) => p.capability_id !== capabilityId),
+      );
+      return { success: true } as T;
+    }
+    case "capability_list_passports":
+      return readCapabilityPassports() as T;
+    case "capability_get_stats":
+      return capabilityStatsFrom(readCapabilityPassports()) as T;
+    case "capability_discover": {
+      const userInput = (args as { request?: { userInput?: string } })?.request
+        ?.userInput ?? "";
+      return mockDiscover(userInput) as T;
+    }
+    case "capability_registry_dump":
+      // 浏览器模式 mock 能力注册表检视（缺陷 #6：前端插件页消费该命令）
+      return [
+        {
+          id: "agent.loop",
+          version: "1.0",
+          contract: "axagent_harness::AgentTurnRunner",
+          description: "Agent 主循环接缝",
+          origin: "builtin",
+          pluginId: null,
+        },
+        {
+          id: "model.provider.openai",
+          version: "1.0",
+          contract: "axagent_harness::ProviderAdapter",
+          description: "内置 LLM 提供商适配器：openai",
+          origin: "builtin",
+          pluginId: null,
+        },
+        {
+          id: "session.log.invariant",
+          version: "1.0",
+          contract: "axagent_harness::SessionLogInvariant",
+          description: "会话日志不变量接缝",
+          origin: "builtin",
+          pluginId: null,
+        },
+      ] as T;
 
     // ── Trajectory System (轨迹系统) ───────────────────────────────
     case "trajectory_record_start":

@@ -152,12 +152,39 @@ pub struct PluginManifest {
     pub dependencies: Vec<PluginDependency>,
     #[serde(default)]
     pub integrity: Option<PluginIntegrity>,
+    /// 插件声明的能力（P3 外部插件注册：启用时注册到能力注册表，禁用/卸载时可逆回滚）。
+    #[serde(default)]
+    pub capabilities: Vec<PluginCapabilityDecl>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PluginDependency {
     pub plugin_name: String,
     pub min_version: Option<String>,
+}
+
+/// 插件声明的能力（P3 外部插件注册）。
+///
+/// 脚本插件无法跨进程提供 Rust trait 对象，因此以「声明」形式描述插件
+/// 提供的能力接缝；`PluginManager` 在启用插件时将这些声明以
+/// `CapabilityOrigin::ExternalPlugin` 注册进能力注册表，禁用 / 卸载时可逆回滚。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PluginCapabilityDecl {
+    /// 能力接缝 ID（如 `"platform.adapter.telegram"`、`"tool.set.myplugin"`）。
+    pub seam: String,
+    /// 能力类型标识（如 `"platform_adapter"`、`"tool_set"`）。
+    #[serde(default)]
+    pub capability_type: String,
+    /// 契约版本（默认 `"1.0"`）。
+    #[serde(default = "default_capability_version")]
+    pub version: String,
+    /// 人类可读描述。
+    #[serde(default)]
+    pub description: String,
+}
+
+fn default_capability_version() -> String {
+    "1.0".to_string()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -391,6 +418,8 @@ pub(crate) struct RawPluginManifest {
     pub dependencies: Vec<PluginDependency>,
     #[serde(default)]
     pub integrity: Option<PluginIntegrity>,
+    #[serde(default)]
+    pub capabilities: Vec<PluginCapabilityDecl>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

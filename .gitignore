@@ -1,5 +1,6 @@
 # NPM cache
 .npm-cache/
+.npm-cache-tmp/
 _npx/
 
 # Windows specific

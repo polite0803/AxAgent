@@ -223,8 +223,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   const skipPositionWriteRef = layoutCtrl.skipPositionWriteRef;
   const isDraggingRef = dragCtrl.isDraggingRef;
   const suppressRebuildRef = dragCtrl.suppressRebuildRef;
-  const pendingPositionsRef = { current: new Map<string, { x: number; y: number }>() };
-  const posRafRef = { current: null as number | null };
   const autoSaveTimerRef = { current: null as ReturnType<typeof setTimeout> | null };
   const leftPanelCollapsed = panelCtrl.leftPanelCollapsed;
   const rightPanelCollapsed = panelCtrl.rightPanelCollapsed;
@@ -515,13 +513,14 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       );
       if (wouldCycle) {
         // loopBack 边天然就是环（Loop 节点的回边），不应拒绝。
-        // 非 loopBack 的环才给出警告。
+        // 非 loopBack 的环直接拒绝加边，避免前端状态与后端引擎不一致。
         if (sourceHandle !== "loopBack") {
           message.warning(
             t("workflow.cycleDetectedOnConnect", {
               defaultValue: "This edge creates a cycle without a loopBack marker — the workflow engine may reject it.",
             }),
           );
+          return;
         }
       }
       // Determine edge type based on sourceHandle
@@ -547,6 +546,9 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         edge_type: edgeType,
       };
       storeAddEdge(newEdge);
+      // FE-I4 修复：连边后立即同步 edgesRef，避免连续快速连边时
+      // 重复边检测基于陈旧引用（该 ref 在 effect 中延迟同步）。
+      edgesRef.current = [...edgesRef.current, newEdge];
     },
     [storeAddEdge, t, nodes],
   );
@@ -1139,6 +1141,11 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       if (container && container.parentNode) {
         container.parentNode.removeChild(container);
       }
+      // FE-S2 修复：移除导出期间注入的全局 style，避免常驻 DOM。
+      const exportedStyle = document.getElementById("workflow-export-hide-styles");
+      if (exportedStyle && exportedStyle.parentNode) {
+        exportedStyle.parentNode.removeChild(exportedStyle);
+      }
     }
   }, [reactFlowInstance, currentTemplate, t]);
 
@@ -1231,7 +1238,6 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   useEffect(() => () => {
     if (autoSaveTimerRef.current) { clearTimeout(autoSaveTimerRef.current); }
     if (autoLayoutTimerRef.current) { clearTimeout(autoLayoutTimerRef.current); }
-    if (posRafRef.current != null) { cancelAnimationFrame(posRafRef.current); }
     dragCtrl.clearPending();
     // 确保 autoSaveCtrl 的 timer 也被清理
     autoSaveCtrl.resetRetryCount();
@@ -1271,25 +1277,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           change.type === "position" && change.position && currentTemplate && !isDraggingRef.current
           && !skipPositionWriteRef.current
         ) {
-          const storePos = toAbsolutePosition(
-            change.id,
-            change.position,
-            parentRefs,
-            useWorkflowEditorStore.getState().nodes as NodePositionLike[],
-          );
-          pendingPositionsRef.current.set(change.id, storePos);
-          if (posRafRef.current == null) {
-            posRafRef.current = requestAnimationFrame(() => {
-              posRafRef.current = null;
-              if (isDraggingRef.current) {
-                return;
-              }
-              pendingPositionsRef.current.forEach((pos, nodeId) => {
-                updateNode(nodeId, { position: pos } as Partial<WorkflowNode>);
-              });
-              pendingPositionsRef.current.clear();
-            });
-          }
+          // FE-I1 修复：统一走 dragCtrl.queuePositionUpdate() 的 RAF 批处理，
+          // 删除本地 pendingPositionsRef/posRafRef 双机制（本地机制无卸载清理，
+          // 卸载后仍会对已卸载 store 写入）。hook 内部 clearPending 负责 cancel。
+          dragCtrl.queuePositionUpdate(change.id, change.position);
         }
         if (change.type === "remove" && change.id) {
           // Collect remove IDs first, then delete only non-cascaded nodes

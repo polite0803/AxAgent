@@ -181,7 +181,7 @@ pub enum ProposedChange {
 ///
 /// 执行方式:异步(`tokio::spawn`),不阻塞主流程。
 #[async_trait]
-pub trait WorkflowReflector: Send + Sync {
+pub trait WorkflowReflector: Send + Sync + std::any::Any {
     /// 工作流整体执行完成后的反思。
     ///
     /// 返回的 `Reflection` 中:

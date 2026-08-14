@@ -250,9 +250,10 @@ export function ConversationSettingsModal({
             <div style={{ marginBottom: 6 }}>
               <Tag color="blue" style={{ fontSize: 12 }}>
                 {(() => {
-                  const profile = useAgentStore
-                    .getState()
-                    .getProfileById(conversation.agent_profile_id!);
+                  const profileId = conversation.agent_profile_id;
+                  const profile = profileId
+                    ? useAgentStore.getState().getProfileById(profileId)
+                    : undefined;
                   return profile
                     ? `${profile.icon} ${profile.name}`
                     : conversation.agent_profile_id;

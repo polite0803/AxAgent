@@ -882,7 +882,17 @@
         "title": "プラグインマーケット",
         "tools": "ツール",
         "validateFailed": "検証に失敗しました: {{error}}",
-        "version": "バージョン"
+        "version": "バージョン",
+        "registryTitle": "能力登録表",
+        "registryLoading": "登録表を読み込み中...",
+        "registryEmpty": "登録された能力シームはありません",
+        "registryBuiltin": "組み込み",
+        "registryExternal": "外部プラグイン",
+        "registryContract": "コントラクト",
+        "registryVersion": "バージョン",
+        "registryPlugin": "プラグイン",
+        "registrySearchPlaceholder": "シーム ID / プラグイン ID で検索",
+        "registrySeam": "シーム"
       }
     },
     "preferences": "設定",
@@ -1167,6 +1177,35 @@
     "createConversationFailed": "会話の作成に失敗しました",
     "chatinspectorapproval0": "chat.inspector.approval{{0}}"
   },
+  "capabilityDomain": {
+    "general": "汎用",
+    "devops": "運用",
+    "ai_media": "AIメディア",
+    "data_analysis": "データ分析",
+    "content_creation": "コンテンツ制作",
+    "communication": "コミュニケーション",
+    "finance": "金融",
+    "automation": "自動化",
+    "system": "システム"
+  },
+  "capabilityPanel": {
+    "statsTitle": "インデックス統計",
+    "totalCapabilities": "能力総数",
+    "totalVectors": "ベクトル総数",
+    "positiveVectors": "正のベクトル",
+    "negativeVectors": "負のベクトル",
+    "discoverTitle": "能力発見",
+    "discoverPlaceholder": "タスクを記述（例：「株価トレンドを分析」）",
+    "discoverButton": "発見開始",
+    "discoverResult": "発見結果",
+    "score": "スコア",
+    "ambiguous": "あいまいな一致、要確認",
+    "noMatch": "一致する能力が見つかりません",
+    "passportsTitle": "登録済みパスポート",
+    "noPassports": "登録された能力はありません",
+    "enabled": "有効",
+    "disabled": "無効"
+  },
   "chatMarkdown": {
     "inputParams": "入力パラメータ",
     "outputResult": "出力結果",
@@ -1200,7 +1239,9 @@
     "task": "タスク",
     "teammate": "チーム",
     "title": "アシスタント",
-    "visionAnalysis": "視覚分析"
+    "visionAnalysis": "視覚分析",
+    "cognitiveRoute": "ルート観測",
+    "capability": "能力"
   },
   "cite": {
     "chunkLabel": "チャンク #{{n}}",
@@ -1516,6 +1557,29 @@
       "zhTW": "繁体字中国語"
     }
   },
+  "cognitive": {
+    "clarifyTitle": "実行する機能を選択",
+    "clarifyPrompt": "リクエストが複数の候補機能に一致しました。実行するものを選択してください：",
+    "candidateWorkflow": "ワークフロー",
+    "candidateAgent": "エージェント",
+    "clarifyExecuting": "選択した機能を実行中...",
+    "clarifyHint": "候補を選択すると続行します"
+  },
+  "cognitiveRoute": {
+    "empty": "ルート観測データはありません",
+    "noRoute": "ルート未確定",
+    "domain": "ドメイン",
+    "cluster": "クラスター",
+    "executionMode": "実行モード",
+    "confidence": "信頼度",
+    "circuitBroken": "サーキットブレーカー作動",
+    "circuitClosed": "正常",
+    "llmFallback": "LLMフォールバック",
+    "fallbackPath": "フォールバック経路",
+    "candidates": "候補",
+    "stageRecords": "ルート段階",
+    "recordedAt": "記録時刻"
+  },
   "continuation": {
     "continueFromHere": "ここから続ける"
   },
@@ -1604,7 +1668,8 @@
     "agentDataNotFound": "エージェント生成データ \"{{generationId}}\" が実行ストアに見つかりません",
     "apiRequestFailed": "APIリクエスト失敗: {{statusText}}",
     "storeNotRegistered": "ストア \"{{storeName}}\" は登録されていません",
-    "unknownSourceType": "不明なデータソースタイプ: {{type}}"
+    "unknownSourceType": "不明なデータソースタイプ: {{type}}",
+    "apiEndpointForbidden": "API エンドポイント \"{{endpoint}}\" は許可されておらず、呼び出しをブロックしました"
   },
   "datasetManager": {
     "action": "アクション",
@@ -1614,6 +1679,7 @@
     "created": "作成済み",
     "createdSuccess": "データセットを作成しました",
     "deleteFailed": "データセットの削除に失敗しました",
+    "FINE_TUNE_DELETE_FAILED": "ファインチューニングタスクの削除に失敗しました",
     "deletedSuccess": "データセットを削除しました",
     "description": "説明",
     "name": "名前",
@@ -1971,12 +2037,14 @@
     "CLOUD_UNKNOWN_CONFLICT": "不明な同期競合タイプです",
     "CLOUD_UNKNOWN_STORAGE": "不明なストレージタイプです",
     "CLOUD_UNKNOWN_STRATEGY": "不明な同期戦略です",
+    "CAPABILITY_EMBEDDING_FAILED": "埋め込みの生成に失敗しました",
     "COGNITIVE_ROUTE_FAILED": "認知ルーティングの実行に失敗しました",
     "COGNITIVE_EMPTY_INPUT": "認知ルーティングの入力が空です",
     "COGNITIVE_CIRCUIT_BROKEN": "認知ルーティングのサーキットブレーカーが作動しました：{reason}",
     "COGNITIVE_NO_CANDIDATE": "認知ルーティングに利用可能な能力が見つかりません",
     "COGNITIVE_EXECUTION_MODE_INVALID": "認知ルーティングの実行モードが無効です",
     "COGNITIVE_PROMPT_REJECTED": "認知プロンプトが拒否されました",
+    "COGNITIVE_RAR_RETRIEVE_FAILED": "認知ルーティングの候補検索に失敗しました：{{detail}}",
     "COMMON_INTERNAL": "内部エラー",
     "COMMON_INVALID_INPUT": "無効な入力です",
     "COMMON_TIMEOUT": "操作がタイムアウトしました",
@@ -2084,6 +2152,9 @@
     "PLATFORM_TELEGRAM_NOT_ENABLED": "Telegramプラットフォームが有効化されていません",
     "PLATFORM_UNSUPPORTED": "サポートされていないプラットフォームです",
     "PLATFORM_WEBHOOK_NOT_CONFIGURED": "Webhookが設定されていません",
+    "PLUGIN_PROFILE_NOT_FOUND": "プラグインバンドルプロファイルが見つかりません",
+    "PLUGIN_PROFILE_DUPLICATE_NAME": "プラグインバンドルプロファイル名は既に存在します",
+    "PLUGIN_PROFILE_IO_FAILED": "プラグインバンドルプロファイルの永続化に失敗しました",
     "PROVIDER_ADAPTER_NOT_FOUND": "プロバイダーアダプターが見つかりません",
     "PROVIDER_CREATE_FAILED": "プロバイダーの作成に失敗しました",
     "PROVIDER_DELETE_FAILED": "プロバイダーの削除に失敗しました",
@@ -2234,6 +2305,7 @@
     "LOCAL_MODEL_INSTALL_IN_PROGRESS": "llama.cpp のインストール中です",
     "LOCAL_MODEL_DOWNLOAD_FAILED": "ダウンロードに失敗しました",
     "LOCAL_MODEL_PORT_IN_USE": "ポート {{port}} は既に使用されています。ポートを変更するか、占用プロセスを停止してください",
+    "LLM_CALL_FAILED": "LLM 呼び出しに失敗しました：{{detail}}",
     "FLEET_NOT_FOUND": "オフィスが見つかりません",
     "FLEET_NAME_REQUIRED": "オフィス名は必須です",
     "FLEET_NO_MEMBERS": "このオフィスにはまだメンバーがいません",
@@ -2272,7 +2344,6 @@
     "CAPABILITY_DISCOVER_FAILED": "能力の検出に失敗しました",
     "CAPABILITY_NOT_FOUND": "能力が見つかりません",
     "CAPABILITY_INDEX_FAILED": "能力のインデックス作成に失敗しました",
-    "CAPABILITY_EMBEDDING_FAILED": "埋め込みの生成に失敗しました",
     "CAPABILITY_VECTOR_STORE_FAILED": "ベクトルストア操作に失敗しました",
     "CAPABILITY_INVALID_PASSPORT": "無効な能力パスポート",
     "CAPABILITY_LIST_FAILED": "能力のリスト取得に失敗しました",
@@ -2393,7 +2464,11 @@
       "name": "汎用アシスタント",
       "desc": "日常的な会話や一般的な質問に対応する汎用 AI アシスタント",
       "systemPrompt": "あなたはインテリジェントな AI アシスタントです。ユーザーの質問に正確で役立つ回答を提供してください。",
-      "tags": ["汎用", "アシスタント", "会話"]
+      "tags": [
+        "汎用",
+        "アシスタント",
+        "会話"
+      ]
     }
   },
   "expertSelector": {
@@ -8583,7 +8658,8 @@
     "deleteFileDesc": "Delete the file at the specified path. This operation is irreversible.",
     "bashDesc": "Execute shell commands. Suitable for: running tests, builds, git operations. Dangerous commands require permission confirmation.",
     "fleetNoMembers": "The office has no members yet",
-    "fleetMessageReceived": "[Browser Mock] {{name}} received message: {{message}}"
+    "fleetMessageReceived": "[Browser Mock] {{name}} received message: {{message}}",
+    "capabilityAmbiguous": "高マッチの能力が複数あります。確認のため追加説明が必要です。"
   },
   "cancel": "キャンセル",
   "searchUtils": {

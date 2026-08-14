@@ -134,7 +134,7 @@ pub struct FileRoleDefinition {
     /// 允许的工具列表
     #[serde(default)]
     pub allowed_tools: Vec<String>,
-    /// 该角色自动激活的工具功能域（如 ["core", "general", "invest"]）
+    /// 该角色自动激活的工具功能域（如 ["general", "finance", "automation"]）
     #[serde(default)]
     pub active_domains: Vec<String>,
     /// 最大并发数

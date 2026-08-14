@@ -74,7 +74,8 @@ export function WorkflowExecutor({ workflow, open, onClose }: WorkflowExecutorPr
     onClose();
   }, [form, onClose]);
 
-  const variableEntries = Object.entries(workflow.variables);
+  // FE-I6 修复：variables 可能为 undefined，与项目其他处 `... || []` 兜底保持一致。
+  const variableEntries = Object.entries(workflow.variables ?? {});
 
   return (
     <Modal

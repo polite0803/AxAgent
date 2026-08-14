@@ -44,6 +44,7 @@ export type { BuddyInfo, BuddyMessage, BuddyMood } from "./feature/buddyStore";
 export { useCacheStore } from "./feature/cacheStore";
 export { useCapabilityStore } from "./feature/capabilityStore";
 export { useCategoryStore } from "./feature/categoryStore";
+export { useCognitiveRouteStore } from "./feature/cognitiveRouteStore";
 export { useContextSourceStore } from "./feature/contextSourceStore";
 export { formatCny, useCurrencyStore, useFormatCny } from "./feature/currencyStore";
 export { useDeviceSyncStore } from "./feature/deviceSyncStore";

@@ -232,10 +232,27 @@ pub mod prompt_guard;
 pub mod provider;
 pub mod registry;
 pub mod rhai_engine;
+
+// ── 可逆效果原语（一切皆插件：注册即记录、卸载即回滚）──
+pub mod reversible_effect;
+pub use reversible_effect::{EffectHandle, EffectScope, NamedEffect, ReversibleEffect};
+
+// ── 运行时能力注册表（内置与外部插件平权的统一接缝，Capability Seam 三件套）──
+pub mod capability_registry;
+pub use capability_registry::{
+    CapabilityError, CapabilityOrigin, CapabilityRegistrationDetail, CapabilityRegistry,
+    HasCapabilityRegistry, PluginCapabilityDescriptor, ServiceDefinition, get_capability_registry,
+};
 pub mod session_tracer;
 pub mod storage_backend;
 pub mod test_support;
 pub mod trajectory_service;
+// ── 会话日志不变量（Model-visible means logged，缺陷 #3 05 项）──
+pub mod session_log_invariant;
+pub use session_log_invariant::{
+    DiskSessionLog, InMemorySessionLog, InvariantViolation, ModelVisibleContent,
+    SessionLogInvariant, fingerprint,
+};
 // ── Webhook 契约 ──
 pub mod webhook_subscription;
 /// 关键 Webhook 类型重导出 — struct/enum 级
@@ -247,6 +264,14 @@ pub use webhook_subscription::{
 // ── 消息平台 Webhook 契约 ──
 pub mod messaging_webhook;
 pub use messaging_webhook::{WeChatWebhookHandler, WhatsAppWebhookHandler};
+
+// ── 消息平台回调契约（message.callback 接缝） ──
+pub mod platform_callback;
+pub use platform_callback::PlatformMessageCallback;
+
+// ── 消息平台适配器契约（platform.adapter 接缝） ──
+pub mod message_adapter;
+pub use message_adapter::{DeliveryMode, MediaAttachment, MediaType, MessagePlatformAdapter};
 
 // ── 迁移相关 ──
 pub mod migration_types;
@@ -688,6 +713,13 @@ pub use compact_session::{
 // 保留各自原有 event_bus,统一总线作为额外发布通道。
 pub mod event_bus;
 pub use event_bus::{DomainEvent, EventBus, EventBusSubscription, EventCategory};
+
+// P2 类型化事件派发总线（四派发模式 + 订阅裁决，见 typed_event.rs）。
+pub mod typed_event;
+pub use typed_event::{
+    DispatchMode, DispatchOutcome, EventDispatchBus, EventMatcher, EventSubscriber,
+    SubscriberVerdict,
+};
 
 // ── Fleet 多办公室 AI 团队契约 ──
 pub mod fleet;

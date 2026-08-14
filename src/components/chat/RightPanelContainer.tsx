@@ -63,10 +63,12 @@ import { AgentHierarchyTree } from "./AgentHierarchyTree";
 import { ArtifactPanel } from "./ArtifactPanel";
 import { BrowserAutomationPanel } from "./BrowserAutomationPanel";
 import { CacheIndicator } from "./CacheIndicator";
+import { CapabilityDiscoveryPanel } from "./CapabilityDiscoveryPanel";
 import { ChartInterpreter } from "./ChartInterpreter";
 import { ChatInspector } from "./ChatInspector";
 import { getChatCodeThemes } from "./ChatMarkdownNodes";
 import { CitationManager, CitationStats } from "./CitationManager";
+import { CognitiveRoutePanel } from "./CognitiveRoutePanel";
 import { ComputerControlPanel } from "./ComputerControlPanel";
 import { EvolutionSidebar } from "./EvolutionSidebar";
 import { ImageAnalysisPanel } from "./ImageAnalysisPanel";
@@ -233,6 +235,14 @@ export function RightPanelContainer({
         shouldRender: isAgent,
         render: () => <TeammatePanel conversationId={conversationId} />,
       },
+      {
+        key: "cognitiveRoute",
+        icon: <GitBranch size={ICON} />,
+        labelKey: "chatRightPanel.cognitiveRoute",
+        category: "agent",
+        shouldRender: isAgent,
+        render: () => <CognitiveRoutePanel />,
+      },
 
       // ═══ 扩展面板（默认折叠） ═══
       {
@@ -332,6 +342,14 @@ export function RightPanelContainer({
         category: "extra",
         shouldRender: panelResearchSources.length > 0,
         render: () => <ResearchSources sources={panelResearchSources} />,
+      },
+      {
+        key: "capability",
+        icon: <Zap size={ICON} />,
+        labelKey: "chatRightPanel.capability",
+        category: "extra",
+        shouldRender: true,
+        render: () => <CapabilityDiscoveryPanel />,
       },
     ];
 
