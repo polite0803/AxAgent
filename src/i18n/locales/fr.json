@@ -2388,6 +2388,14 @@
     "security": "Sécurité",
     "writing": "Rédaction"
   },
+  "expertPreset": {
+    "generalAssistant": {
+      "name": "Assistant Général",
+      "desc": "Un assistant IA polyvalent pour les conversations quotidiennes et les questions générales.",
+      "systemPrompt": "Vous êtes un assistant IA intelligent. Fournissez des réponses précises et utiles aux questions de l'utilisateur.",
+      "tags": ["Général", "Assistant", "Dialogue"]
+    }
+  },
   "expertSelector": {
     "added": "Ajouté",
     "category": "Catégorie",

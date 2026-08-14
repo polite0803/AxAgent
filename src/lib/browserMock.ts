@@ -1381,9 +1381,85 @@ export async function handleCommand<T>(
     }
     case "cognitive_query": {
       const req = (args as {
-        request?: { conversationId?: string };
+        request?: {
+          conversationId?: string;
+          input?: string;
+          options?: { requirePlanApproval?: boolean };
+        };
       } | undefined)?.request;
       const conversationId = req?.conversationId ?? `mock-${genId()}`;
+      // P0-2：计划确认闸门开启时，模拟后端判定为复杂任务并弹出计划草稿等待用户确认
+      if (req?.options?.requirePlanApproval) {
+        emitBrowserEvent("agent-plan-ready-for-approval", {
+          conversationId,
+          plan: JSON.stringify({
+            task_preview: (req.input ?? "").slice(0, 200),
+            selected_engine: "ReactEngine",
+            features: {
+              node_count: 3,
+              estimated_tool_rounds: 2,
+              requires_verification: true,
+              has_branches: false,
+              has_conditions: false,
+            },
+            note: i18n.t("browserMock.complexTaskNote"),
+          }),
+        });
+        const decision = await waitForPlanDecision(conversationId);
+        if (decision !== "approve") {
+          // 拒绝：返回 rejected 状态，前端据此移除占位消息并提示
+          return {
+            routePath: "general/chat",
+            domain: "general",
+            cluster: "chat",
+            capabilityId: "",
+            confidence: 0.5,
+            isLlmFallback: true,
+            circuitBroken: false,
+            circuitBreakReason: null,
+            fallbackPath: null,
+            candidates: [],
+            executionMode: "ask",
+            stageRecords: [],
+            totalElapsedMs: 0,
+            execution: {
+              kind: "agent",
+              conversationId,
+              assistantMessageId: "",
+              status: "rejected",
+            },
+          } as T;
+        }
+        // 批准：模拟流式完成，使前端 eventPromise 正常 resolve
+        const approvedId = genId();
+        emitBrowserEvent("agent-message-id", {
+          conversationId,
+          assistantMessageId: approvedId,
+        });
+        emitBrowserEvent("agent-done", {
+          conversationId,
+          assistantMessageId: approvedId,
+          text: i18n.t("browserMock.planCompleted"),
+          thinking: "",
+          usage: { input_tokens: 1, output_tokens: 1 },
+        });
+        return {
+          routePath: "general/chat",
+          domain: "general",
+          cluster: "chat",
+          capabilityId: "",
+          confidence: 0.5,
+          isLlmFallback: true,
+          circuitBroken: false,
+          circuitBreakReason: null,
+          fallbackPath: null,
+          candidates: [],
+          executionMode: "ask",
+          stageRecords: [],
+          totalElapsedMs: 0,
+          execution: { kind: "agent", conversationId, assistantMessageId: approvedId },
+        } as T;
+      }
       // 模拟认知编排器：路由决策为 ask 模式并交给 agent 执行。
       // 先发 assistantMessageId，再发 agent-done，使前端 eventPromise 正常 resolve。
       const assistantId = genId();

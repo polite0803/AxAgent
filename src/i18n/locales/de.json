@@ -2388,6 +2388,14 @@
     "security": "Sicherheit",
     "writing": "Schreiben"
   },
+  "expertPreset": {
+    "generalAssistant": {
+      "name": "Allgemeiner Assistent",
+      "desc": "Ein vielseitiger KI-Assistent für alltägliche Gespräche und allgemeine Fragen.",
+      "systemPrompt": "Sie sind ein intelligenter KI-Assistent. Geben Sie genaue und hilfreiche Antworten auf die Fragen des Benutzers.",
+      "tags": ["Allgemein", "Assistent", "Gespräch"]
+    }
+  },
   "expertSelector": {
     "added": "Hinzugefügt",
     "category": "Kategorie",

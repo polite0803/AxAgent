@@ -2388,6 +2388,14 @@
     "security": "Seguridad",
     "writing": "Escritura"
   },
+  "expertPreset": {
+    "generalAssistant": {
+      "name": "Asistente General",
+      "desc": "Un asistente de IA versátil para conversaciones cotidianas y preguntas generales.",
+      "systemPrompt": "Eres un asistente de IA inteligente. Proporciona respuestas precisas y útiles según las preguntas del usuario.",
+      "tags": ["General", "Asistente", "Diálogo"]
+    }
+  },
   "expertSelector": {
     "added": "Añadido",
     "category": "Categoría",

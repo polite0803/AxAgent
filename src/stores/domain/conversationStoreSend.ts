@@ -149,52 +149,10 @@ export function createSendMethods(
         return;
       }
 
-      // Agent 模式仅在 Tauri 桌面端可用，浏览器模式不支持
-      if (!isTauri()) {
-        set((s) => ({
-          error: i18n.t("agentMode.requiresTauri"),
-          messages: [
-            ...s.messages,
-            {
-              id: tempId("temp-user-"),
-              conversation_id: conversationId,
-              role: "user",
-              content,
-              provider_id: null,
-              model_id: null,
-              token_count: null,
-              attachments: [],
-              thinking: null,
-              tool_calls_json: null,
-              tool_call_id: null,
-              created_at: Date.now(),
-              parent_message_id: null,
-              version_index: 0,
-              is_active: true,
-              status: "complete",
-            },
-            {
-              id: tempId("temp-agent-error-"),
-              conversation_id: conversationId,
-              role: "assistant",
-              content: i18n.t("agentMode.requiresTauriDetail"),
-              provider_id: null,
-              model_id: null,
-              token_count: null,
-              attachments: [],
-              thinking: null,
-              tool_calls_json: null,
-              tool_call_id: null,
-              created_at: Date.now(),
-              parent_message_id: null,
-              version_index: 0,
-              is_active: true,
-              status: "error" as const,
-            },
-          ],
-        }));
-        return;
-      }
+      // 注：浏览器 mock 模式（npm run dev / E2E）下 sendMessage 不再短路——
+      // 统一走 cognitive_query，由 browserMock 模拟后端（含 P0-2 计划确认闸门）。
+      // isTauri 专属的 Agent 分支守卫已由 cognitive_query 路由内部的
+      // executionMode 判断承担，这里移除 2e9af1be 引入的误提短路。
 
       const providerId = conversation.provider_id;
       const model_id = conversation.model_id;
@@ -803,9 +761,14 @@ export function createSendMethods(
                 systemPrompt: conversation.system_prompt ?? undefined,
                 searchProviderId: searchProviderId ?? undefined,
                 agentContext: agentContextPayload,
-                options: effectiveDisabledTools.length > 0
-                  ? { disabledTools: effectiveDisabledTools }
-                  : undefined,
+                options: {
+                  disabledTools: effectiveDisabledTools.length > 0
+                    ? effectiveDisabledTools
+                    : undefined,
+                  // P0-2 计划确认闸门：开关开启时要求后端对复杂任务先出计划草稿等待批准
+                  requirePlanApproval: useAgentStore.getState().planApprovalEnabled
+                    || undefined,
+                },
                 // 用户意图提示：仅在显式选择时传入，缺省 auto 由路由自动决策
                 modeHint: modeHint !== "auto" ? modeHint : undefined,
               },

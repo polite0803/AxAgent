@@ -2388,6 +2388,14 @@
     "security": "セキュリティ",
     "writing": "執筆"
   },
+  "expertPreset": {
+    "generalAssistant": {
+      "name": "汎用アシスタント",
+      "desc": "日常的な会話や一般的な質問に対応する汎用 AI アシスタント",
+      "systemPrompt": "あなたはインテリジェントな AI アシスタントです。ユーザーの質問に正確で役立つ回答を提供してください。",
+      "tags": ["汎用", "アシスタント", "会話"]
+    }
+  },
   "expertSelector": {
     "added": "追加しました",
     "category": "カテゴリ",

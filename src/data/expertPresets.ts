@@ -6,9 +6,11 @@ export interface BuiltinExpertPreset {
   name: string;
   descKey: string;
   description: string;
+  systemPromptKey: string;
+  systemPrompt: string;
+  tagsKey: string;
   category: string;
   icon: string;
-  systemPrompt: string;
   source: string;
   agentRole: null;
   tags: string[];
@@ -27,16 +29,18 @@ const NOW = Date.now();
 export const BUILTIN_EXPERT_PRESETS: BuiltinExpertPreset[] = [
   {
     id: "general-assistant",
-    nameKey: "",
-    name: "通用助手",
-    descKey: "",
-    description: "通用的 AI 助手，适用于日常对话和通用问题解答",
+    nameKey: "expertPreset.generalAssistant.name",
+    name: "",
+    descKey: "expertPreset.generalAssistant.desc",
+    description: "",
+    systemPromptKey: "expertPreset.generalAssistant.systemPrompt",
+    systemPrompt: "",
+    tagsKey: "expertPreset.generalAssistant.tags",
     category: "general",
     icon: "🤖",
-    systemPrompt: "你是一个智能 AI 助手，请根据用户的问题提供准确、有帮助的回答。",
     source: "builtin",
     agentRole: null,
-    tags: ["通用", "助手", "对话"],
+    tags: [],
     sortOrder: 0,
     isEnabled: true,
     createdAt: NOW,

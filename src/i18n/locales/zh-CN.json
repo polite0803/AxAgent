@@ -2388,6 +2388,14 @@
     "security": "安全",
     "writing": "写作"
   },
+  "expertPreset": {
+    "generalAssistant": {
+      "name": "通用助手",
+      "desc": "通用的 AI 助手，适用于日常对话和通用问题解答",
+      "systemPrompt": "你是一个智能 AI 助手，请根据用户的问题提供准确、有帮助的回答。",
+      "tags": ["通用", "助手", "对话"]
+    }
+  },
   "expertSelector": {
     "added": "已添加",
     "category": "分类",

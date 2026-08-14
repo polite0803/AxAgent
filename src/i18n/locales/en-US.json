@@ -2388,6 +2388,14 @@
     "security": "Security",
     "writing": "Writing"
   },
+  "expertPreset": {
+    "generalAssistant": {
+      "name": "General Assistant",
+      "desc": "A general-purpose AI assistant for everyday conversations and general questions.",
+      "systemPrompt": "You are an intelligent AI assistant. Provide accurate and helpful answers based on the user's questions.",
+      "tags": ["General", "Assistant", "Chat"]
+    }
+  },
   "expertSelector": {
     "added": "Added",
     "category": "Category",

@@ -407,6 +407,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
           <Button
             type="primary"
             icon={<Plus size={14} />}
+            data-testid="workflow-create-new-btn"
             onClick={onCreateNew}
             style={{ flex: 1 }}
             size="small"

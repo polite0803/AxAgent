@@ -2388,6 +2388,14 @@
     "security": "보안",
     "writing": "작성"
   },
+  "expertPreset": {
+    "generalAssistant": {
+      "name": "범용 어시스턴트",
+      "desc": "일상 대화와 일반적인 질문을 위한 범용 AI 어시스턴트",
+      "systemPrompt": "당신은 지능형 AI 어시스턴트입니다. 사용자의 질문에 정확하고 유용한 답변을 제공하세요.",
+      "tags": ["범용", "어시스턴트", "대화"]
+    }
+  },
   "expertSelector": {
     "added": "추가됨",
     "category": "카테고리",

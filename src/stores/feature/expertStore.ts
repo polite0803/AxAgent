@@ -9,18 +9,25 @@ import { create } from "zustand";
 
 const CUSTOM_ROLES_KEY = "axagent_custom_expert_roles";
 
-/** 将内置预设中的 nameKey/descKey 解析为 name/description */
+/** 将内置预设中的 nameKey/descKey 等 key 解析为实际文案 */
 function resolvePreset(
   preset: BuiltinExpertPreset,
 ): AgentProfile {
   // i18n 模块可能因打包顺序尚未初始化，安全访问 .t()
-  const _i18n = i18n as { t?: (key: string) => string } | undefined;
-  const name = preset.nameKey && _i18n?.t ? _i18n.t(preset.nameKey) : preset.name;
-  const desc = preset.descKey && _i18n?.t ? _i18n.t(preset.descKey) : undefined;
+  const _i18n = i18n as { t?: (key: string, options?: Record<string, unknown>) => string } | undefined;
+  const t = _i18n?.t;
+  const name = preset.nameKey && t ? t(preset.nameKey) : preset.name;
+  const desc = preset.descKey && t ? t(preset.descKey) : undefined;
+  const systemPrompt = preset.systemPromptKey && t ? t(preset.systemPromptKey) : preset.systemPrompt;
+  const tags = preset.tagsKey && t
+    ? (t(preset.tagsKey, { returnObjects: true }) as unknown as string[])
+    : preset.tags;
   return {
     ...preset,
     name,
     description: desc || preset.description || null,
+    systemPrompt,
+    tags,
     nameKey: preset.nameKey,
     descKey: preset.descKey,
   } as AgentProfile;

@@ -355,6 +355,8 @@ export interface CognitiveQueryRequestPayload {
     disabledTools?: string[];
     /** 活跃功能域列表 */
     activeDomains?: string[];
+    /** P0-2 计划确认闸门：开启时后端判定复杂任务后先弹计划草稿等待用户批准 */
+    requirePlanApproval?: boolean;
   };
   /** 工作流最大并发节点数（Workflow 模式透传） */
   maxConcurrent?: number;
