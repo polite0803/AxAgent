@@ -24,23 +24,23 @@ pub fn axagent_home() -> PathBuf {
             let candidates: Vec<(&str, fn() -> PathBuf)> = vec![
                 // 1. 外部 files dir（Android/data/<pkg>/files/）——无需额外权限
                 ("external_files", || {
-                    PathBuf::from(
-                        "/storage/emulated/0/Android/data/top.axagent.desktop/files/.axagent",
-                    )
+                    PathBuf::from(format!(
+                        "/storage/emulated/0/Android/data/{ANDROID_PKG}/files/.axagent"
+                    ))
                 }),
                 ("sdcard_files", || {
-                    PathBuf::from("/sdcard/Android/data/top.axagent.desktop/files/.axagent")
+                    PathBuf::from(format!("/sdcard/Android/data/{ANDROID_PKG}/files/.axagent"))
                 }),
                 // 2. 内部 data dir（通过 dirs crate）
                 ("data_dir", || {
                     dirs::data_dir()
-                        .unwrap_or_else(|| PathBuf::from("/data/data/top.axagent.desktop"))
+                        .unwrap_or_else(|| PathBuf::from(format!("/data/data/{ANDROID_PKG}")))
                         .join(".axagent")
                 }),
                 // 3. 内部 cache dir
                 ("cache_dir", || {
                     dirs::cache_dir()
-                        .unwrap_or_else(|| PathBuf::from("/data/data/top.axagent.desktop/cache"))
+                        .unwrap_or_else(|| PathBuf::from(format!("/data/data/{ANDROID_PKG}/cache")))
                         .join(".axagent")
                 }),
                 // 4. Download 目录（最低优先级，用户可见）

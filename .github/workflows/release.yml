@@ -538,6 +538,12 @@ jobs:
             echo "gradle.properties not found, skip memory tuning"
             exit 0
           fi
+          # tauri android init 生成的 gradle.properties 末行（如 android.nonFinalResIds=false）
+          # 没有结尾换行符。若不先补上，后续 append 的配置会与末行合并到同一行，
+          # 导致 Gradle 解析失败：Cannot parse project property ... as boolean.
+          if [ -s "$GP" ] && [ -n "$(tail -c 1 "$GP")" ]; then
+            echo "" >> "$GP"
+          fi
           if [ "${{ matrix.abi }}" = "armeabi-v7a" ]; then
             # armv7 32 位构建内存峰值最高：tauri android init 生成的默认配置
             # Gradle daemon 2GB + Kotlin daemon 2GB，在 7GB runner 上叠加 cargo-ndk
