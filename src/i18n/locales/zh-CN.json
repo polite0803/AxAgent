@@ -6167,7 +6167,6 @@
       "config": "工作流配置",
       "settings": {
         "group": {
-          "matcher": "匹配算法",
           "domainKeywords": "领域关键词",
           "budget": "预算区间",
           "capability": "能力匹配",
@@ -6185,11 +6184,6 @@
         "saveConfig": "保存配置"
       },
       "configDescriptions": {
-        "matchTitleWeight": "标题匹配权重",
-        "matchDescriptionWeight": "描述匹配权重",
-        "matchKeywordWeight": "关键词匹配权重",
-        "matchMinScore": "最低匹配分数",
-        "matchMaxResults": "最大匹配结果数",
         "domainTech": "科技领域关键词（逗号分隔）",
         "domainDesign": "设计领域关键词（逗号分隔）",
         "domainMarketing": "营销领域关键词（逗号分隔）",
@@ -6313,7 +6307,6 @@
       "resetToDefaults": "恢复默认值",
       "saveConfig": "保存配置",
       "group": {
-        "matcher": "匹配算法",
         "domainKeywords": "领域关键词",
         "budget": "预算区间",
         "capability": "能力匹配",
@@ -6326,11 +6319,6 @@
       }
     },
     "configDescriptions": {
-      "matchTitleWeight": "标题匹配权重（0-1）",
-      "matchDescriptionWeight": "描述匹配权重（0-1）",
-      "matchKeywordWeight": "关键词匹配权重（0-1）",
-      "matchMinScore": "最小匹配分数阈值（0-1）",
-      "matchMaxResults": "最大匹配结果数",
       "domainTech": "科技/AI 领域关键词",
       "domainDesign": "设计/UI/UX 领域关键词",
       "domainMarketing": "营销/推广领域关键词",

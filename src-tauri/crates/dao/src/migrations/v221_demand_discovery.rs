@@ -2,32 +2,17 @@
 
 //! v221: OPC 需求发现相关表
 //!
-//! - `opc_capability`：能力清单快照（扫描 tools/skills/MCP/workflows 的归一化结果）
 //! - `opc_demand_lead`：需求线索（平台来源 / 内容 / 预算 / 状态流转）
 //! - `opc_delivery`：交付记录（关联 project + 产出路径 + 通知状态）
 //! - `opc_market_platform`：市场平台连接器配置（闲鱼/猪八戒等，控制启停与抓取参数）
 //! - `opc_capability_gap`：能力缺口记录（需求匹配时的热门/高价值需求若能力集不满足则落档）
+//!
+//! 注：`opc_capability` 能力清单快照表已移除。能力基座复用上游能力发现索引
+//! （`capability_indexer` 的能力护照），不再本地冗余落库。
 
 use sea_orm::{ConnectionTrait, DbErr};
 
 pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
-    let create_capability = r#"
-CREATE TABLE IF NOT EXISTS opc_capability (
-    id TEXT NOT NULL PRIMARY KEY,
-    source_type TEXT NOT NULL,
-    source_id TEXT NOT NULL,
-    name TEXT NOT NULL,
-    description TEXT NOT NULL DEFAULT '',
-    capability_type TEXT NOT NULL DEFAULT 'tool',
-    applicable_scenarios_json TEXT NOT NULL DEFAULT '[]',
-    example_deliverables_json TEXT NOT NULL DEFAULT '[]',
-    metadata_json TEXT NOT NULL DEFAULT '{}',
-    is_active INTEGER NOT NULL DEFAULT 1,
-    scanned_at BIGINT NOT NULL,
-    created_at BIGINT NOT NULL,
-    updated_at BIGINT NOT NULL
-)"#;
-
     let create_demand_lead = r#"
 CREATE TABLE IF NOT EXISTS opc_demand_lead (
     id TEXT NOT NULL PRIMARY KEY,
@@ -109,9 +94,6 @@ CREATE TABLE IF NOT EXISTS opc_capability_gap (
 )"#;
 
     let indices = [
-        "CREATE INDEX IF NOT EXISTS idx_opc_capability_source ON opc_capability(source_type)",
-        "CREATE INDEX IF NOT EXISTS idx_opc_capability_type ON opc_capability(capability_type)",
-        "CREATE INDEX IF NOT EXISTS idx_opc_capability_active ON opc_capability(is_active)",
         "CREATE INDEX IF NOT EXISTS idx_opc_demand_lead_platform ON opc_demand_lead(platform)",
         "CREATE INDEX IF NOT EXISTS idx_opc_demand_lead_status ON opc_demand_lead(status)",
         "CREATE INDEX IF NOT EXISTS idx_opc_demand_lead_created ON opc_demand_lead(created_at)",
@@ -123,7 +105,6 @@ CREATE TABLE IF NOT EXISTS opc_capability_gap (
         "CREATE INDEX IF NOT EXISTS idx_opc_gap_status ON opc_capability_gap(status)",
     ];
 
-    db.execute_unprepared(create_capability).await?;
     db.execute_unprepared(create_demand_lead).await?;
     db.execute_unprepared(create_delivery).await?;
     db.execute_unprepared(create_market_platform).await?;

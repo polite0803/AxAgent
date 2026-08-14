@@ -6131,7 +6131,6 @@
       "config": "Настройки рабочего процесса",
       "settings": {
         "group": {
-          "matcher": "Алгоритм сопоставления",
           "domainKeywords": "Ключевые слова домена",
           "budget": "Диапазоны бюджета",
           "capability": "Сопоставление возможностей",
@@ -6149,11 +6148,6 @@
         "saveConfig": "Сохранить настройки"
       },
       "configDescriptions": {
-        "matchTitleWeight": "Вес сопоставления заголовка",
-        "matchDescriptionWeight": "Вес сопоставления описания",
-        "matchKeywordWeight": "Вес сопоставления ключевых слов",
-        "matchMinScore": "Минимальный балл сопоставления",
-        "matchMaxResults": "Максимальное количество результатов",
         "domainTech": "Ключевые слова технологического домена (через запятую)",
         "domainDesign": "Ключевые слова домена дизайна (через запятую)",
         "domainMarketing": "Ключевые слова маркетингового домена (через запятую)",
@@ -6313,7 +6307,6 @@
       "resetToDefaults": "Reset to defaults",
       "saveConfig": "Save Configuration",
       "group": {
-        "matcher": "Matching Algorithm",
         "domainKeywords": "Domain Keywords",
         "budget": "Budget Ranges",
         "capability": "Capability Matching",
@@ -6326,11 +6319,6 @@
       }
     },
     "configDescriptions": {
-      "matchTitleWeight": "Title match weight (0-1)",
-      "matchDescriptionWeight": "Description match weight (0-1)",
-      "matchKeywordWeight": "Keyword match weight (0-1)",
-      "matchMinScore": "Minimum match score threshold (0-1)",
-      "matchMaxResults": "Maximum match results",
       "domainTech": "Tech/AI domain keywords",
       "domainDesign": "Design/UI/UX domain keywords",
       "domainMarketing": "Marketing/promotion domain keywords",

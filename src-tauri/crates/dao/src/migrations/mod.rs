@@ -320,7 +320,7 @@ const MIGRATIONS: &[Migration] = &[
     },
     Migration {
         version: 221,
-        description: "v221_demand_discovery: 新增 OPC 需求发现相关表（opc_capability / opc_demand_lead / opc_delivery）",
+        description: "v221_demand_discovery: 新增 OPC 需求发现相关表（opc_demand_lead / opc_delivery / opc_market_platform / opc_capability_gap）",
         up: |db| Box::pin(v221_demand_discovery::up(db)),
     },
     Migration {
@@ -475,9 +475,6 @@ pub async fn repair_schema(db: &sea_orm::DatabaseConnection) -> Result<(usize, u
     // 修复时间戳列类型：从 INTEGER(INT4) 改为 BIGINT(INT8)
     // 修复 SeaORM 实体 i64 与数据库 INT4 类型不匹配的问题
     let fix_timestamp_columns = [
-        "ALTER TABLE opc_capability ALTER COLUMN scanned_at TYPE BIGINT",
-        "ALTER TABLE opc_capability ALTER COLUMN created_at TYPE BIGINT",
-        "ALTER TABLE opc_capability ALTER COLUMN updated_at TYPE BIGINT",
         "ALTER TABLE opc_market_platform ALTER COLUMN created_at TYPE BIGINT",
         "ALTER TABLE opc_market_platform ALTER COLUMN updated_at TYPE BIGINT",
         "ALTER TABLE opc_market_platform ALTER COLUMN last_sync_at TYPE BIGINT",

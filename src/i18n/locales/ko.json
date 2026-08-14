@@ -6131,7 +6131,6 @@
       "config": "워크플로우 설정",
       "settings": {
         "group": {
-          "matcher": "매칭 알고리즘",
           "domainKeywords": "도메인 키워드",
           "budget": "예산 범위",
           "capability": "기능 매칭",
@@ -6149,11 +6148,6 @@
         "saveConfig": "설정 저장"
       },
       "configDescriptions": {
-        "matchTitleWeight": "제목 매칭 가중치",
-        "matchDescriptionWeight": "설명 매칭 가중치",
-        "matchKeywordWeight": "키워드 매칭 가중치",
-        "matchMinScore": "최소 매칭 점수",
-        "matchMaxResults": "최대 매칭 결과 수",
         "domainTech": "기술 도메인 키워드 (쉼표로 구분)",
         "domainDesign": "디자인 도메인 키워드 (쉼표로 구분)",
         "domainMarketing": "마케팅 도메인 키워드 (쉼표로 구분)",
@@ -6313,7 +6307,6 @@
       "resetToDefaults": "Reset to defaults",
       "saveConfig": "Save Configuration",
       "group": {
-        "matcher": "Matching Algorithm",
         "domainKeywords": "Domain Keywords",
         "budget": "Budget Ranges",
         "capability": "Capability Matching",
@@ -6326,11 +6319,6 @@
       }
     },
     "configDescriptions": {
-      "matchTitleWeight": "Title match weight (0-1)",
-      "matchDescriptionWeight": "Description match weight (0-1)",
-      "matchKeywordWeight": "Keyword match weight (0-1)",
-      "matchMinScore": "Minimum match score threshold (0-1)",
-      "matchMaxResults": "Maximum match results",
       "domainTech": "Tech/AI domain keywords",
       "domainDesign": "Design/UI/UX domain keywords",
       "domainMarketing": "Marketing/promotion domain keywords",

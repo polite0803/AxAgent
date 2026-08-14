@@ -18,13 +18,6 @@ function getDefaultVariables(): Variable[] {
   const b = (name: string, val: unknown, desc: string, type: string) =>
     vars.push({ name, var_type: type, value: val, description: desc, is_secret: false });
 
-  // ── 匹配算法参数 ──
-  b("match_title_weight", 0.4, "demandDiscovery.configDescriptions.matchTitleWeight", "number");
-  b("match_description_weight", 0.3, "demandDiscovery.configDescriptions.matchDescriptionWeight", "number");
-  b("match_keyword_weight", 0.3, "demandDiscovery.configDescriptions.matchKeywordWeight", "number");
-  b("match_min_score", 0.5, "demandDiscovery.configDescriptions.matchMinScore", "number");
-  b("match_max_results", 10, "demandDiscovery.configDescriptions.matchMaxResults", "number");
-
   // ── 领域关键词匹配 ──
   b("domain_tech", "科技/AI/软件/编程/算法", "demandDiscovery.configDescriptions.domainTech", "string");
   b("domain_design", "设计/UI/UX/Logo/品牌/视觉", "demandDiscovery.configDescriptions.domainDesign", "string");
@@ -258,17 +251,6 @@ export function DemandDiscoveryConfigPanel(_props: Props) {
     const resolve = (names: string[]) => names.map((n) => varMap[n]).filter(Boolean);
 
     return [
-      {
-        tool: "matcher",
-        label: t("demandDiscovery.settings.group.matcher"),
-        vars: resolve([
-          "match_title_weight",
-          "match_description_weight",
-          "match_keyword_weight",
-          "match_min_score",
-          "match_max_results",
-        ]),
-      },
       {
         tool: "domain_keywords",
         label: t("demandDiscovery.settings.group.domainKeywords"),

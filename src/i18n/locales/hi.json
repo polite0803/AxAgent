@@ -6131,7 +6131,6 @@
       "config": "वर्कफ्लो सेटिंग्स",
       "settings": {
         "group": {
-          "matcher": "मिलान एल्गोरिथ्म",
           "domainKeywords": "डोमेन कीवर्ड",
           "budget": "बजट रेंज",
           "capability": "क्षमता मिलान",
@@ -6149,11 +6148,6 @@
         "saveConfig": "सेटिंग्स सहेजें"
       },
       "configDescriptions": {
-        "matchTitleWeight": "शीर्षक मिलान वजन",
-        "matchDescriptionWeight": "विवरण मिलान वजन",
-        "matchKeywordWeight": "कीवर्ड मिलान वजन",
-        "matchMinScore": "न्यूनतम मिलान स्कोर",
-        "matchMaxResults": "अधिकतम मिलान परिणाम",
         "domainTech": "टेक डोमेन कीवर्ड (कमा से अलग)",
         "domainDesign": "डिज़ाइन डोमेन कीवर्ड (कमा से अलग)",
         "domainMarketing": "मार्केटिंग डोमेन कीवर्ड (कमा से अलग)",
@@ -6313,7 +6307,6 @@
       "resetToDefaults": "Reset to defaults",
       "saveConfig": "Save Configuration",
       "group": {
-        "matcher": "Matching Algorithm",
         "domainKeywords": "Domain Keywords",
         "budget": "Budget Ranges",
         "capability": "Capability Matching",
@@ -6326,11 +6319,6 @@
       }
     },
     "configDescriptions": {
-      "matchTitleWeight": "Title match weight (0-1)",
-      "matchDescriptionWeight": "Description match weight (0-1)",
-      "matchKeywordWeight": "Keyword match weight (0-1)",
-      "matchMinScore": "Minimum match score threshold (0-1)",
-      "matchMaxResults": "Maximum match results",
       "domainTech": "Tech/AI domain keywords",
       "domainDesign": "Design/UI/UX domain keywords",
       "domainMarketing": "Marketing/promotion domain keywords",

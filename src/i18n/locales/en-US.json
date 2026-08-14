@@ -6167,7 +6167,6 @@
       "config": "Workflow Settings",
       "settings": {
         "group": {
-          "matcher": "Matching Algorithm",
           "domainKeywords": "Domain Keywords",
           "budget": "Budget Ranges",
           "capability": "Capability Matching",
@@ -6185,11 +6184,6 @@
         "saveConfig": "Save Settings"
       },
       "configDescriptions": {
-        "matchTitleWeight": "Title match weight",
-        "matchDescriptionWeight": "Description match weight",
-        "matchKeywordWeight": "Keyword match weight",
-        "matchMinScore": "Minimum match score",
-        "matchMaxResults": "Maximum match results",
         "domainTech": "Tech domain keywords (comma separated)",
         "domainDesign": "Design domain keywords (comma separated)",
         "domainMarketing": "Marketing domain keywords (comma separated)",
@@ -6313,7 +6307,6 @@
       "resetToDefaults": "Reset to defaults",
       "saveConfig": "Save Configuration",
       "group": {
-        "matcher": "Matching Algorithm",
         "domainKeywords": "Domain Keywords",
         "budget": "Budget Ranges",
         "capability": "Capability Matching",
@@ -6326,11 +6319,6 @@
       }
     },
     "configDescriptions": {
-      "matchTitleWeight": "Title match weight (0-1)",
-      "matchDescriptionWeight": "Description match weight (0-1)",
-      "matchKeywordWeight": "Keyword match weight (0-1)",
-      "matchMinScore": "Minimum match score threshold (0-1)",
-      "matchMaxResults": "Maximum match results",
       "domainTech": "Tech/AI domain keywords",
       "domainDesign": "Design/UI/UX domain keywords",
       "domainMarketing": "Marketing/promotion domain keywords",

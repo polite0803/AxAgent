@@ -170,7 +170,6 @@ pub mod reading_lists;
 // OPC 业务领域实体（opc-entities 并入共享 entities，与股票业务同架构）
 pub mod opc_automation_rules;
 pub mod opc_blog_posts;
-pub mod opc_capability;
 pub mod opc_capability_gap;
 pub mod opc_contact_submissions;
 pub mod opc_content_assets;

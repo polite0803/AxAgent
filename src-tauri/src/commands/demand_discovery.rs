@@ -13,7 +13,11 @@ use crate::commands::error::ErrorResponse;
 
 // ── 能力扫描 ──────────────────────────────────────────────────
 
-/// 扫描系统当前可用的能力清单（工具/技能/MCP/工作流）并落库到 opc_capability
+/// 扫描系统当前可用的能力清单（工具/技能/MCP/工作流）
+///
+/// 复用上游能力发现索引（`capability_indexer`）的能力护照，按能力类型分组组装
+/// `CapabilityInventory`。不再重复扫描注册表并落库到 `opc_capability` 表，
+/// 避免与上游 `register_all_capabilities` 的能力基座重复收集。
 #[agent_command(domain = "opc", safety = Safe, call_mode = StateOnly, description = "扫描系统能力清单")]
 #[tauri::command]
 pub async fn opc_scan_capabilities(
@@ -22,90 +26,53 @@ pub async fn opc_scan_capabilities(
     use axagent_analysis_engine::opc::capability::{
         CapabilityEntry, CapabilityInventory, CapabilitySource,
     };
-    use axagent_entities::opc_capability;
-    use sea_orm::*;
+    use axagent_harness::CapabilityKind;
 
-    let db = state.harness.db();
     let now = chrono::Utc::now().timestamp();
 
-    // 1) 工具 + MCP 工具（来自 UnifiedToolRegistry）
+    // 从上游能力索引读取全部护照，按类型分组（来源与 kind 保持一致）
     let mut tools: Vec<CapabilityEntry> = Vec::new();
-    let mut mcp_tools: Vec<CapabilityEntry> = Vec::new();
-    {
-        let registry = state.local_tool_registry.lock().await;
-        for info in registry.tools.list_all() {
-            tools.push(CapabilityEntry {
-                id: format!("tool:{}", info.name),
-                name: info.name.clone(),
-                description: info.description.clone(),
-                source: CapabilitySource::Tool,
-                source_id: info.name.clone(),
-                capability_type: format!("{:?}", info.category).to_lowercase(),
-                applicable_scenarios: Vec::new(),
-                example_deliverables: Vec::new(),
-                metadata: serde_json::json!({
-                    "enabled": info.enabled,
-                    "domain": format!("{:?}", info.domain),
-                }),
-            });
-        }
-        for (key, cfg) in registry.mcp.mcp_tools.iter() {
-            let desc = cfg.description.as_deref().unwrap_or("").to_string();
-            mcp_tools.push(CapabilityEntry {
-                id: format!("mcp:{}", key),
-                name: cfg.tool_name.clone(),
-                description: desc,
-                source: CapabilitySource::McpTool,
-                source_id: key.clone(),
-                capability_type: "mcp_tool".to_string(),
-                applicable_scenarios: Vec::new(),
-                example_deliverables: Vec::new(),
-                metadata: serde_json::json!({
-                    "server_id": cfg.server_id,
-                    "server_name": cfg.server_name,
-                }),
-            });
-        }
-    }
-
-    // 2) 已启用技能（skill_states 表）
     let mut skills: Vec<CapabilityEntry> = Vec::new();
-    if let Ok(enabled) = axagent_dao::repo::skill::get_enabled_skills(db).await {
-        for name in enabled {
-            skills.push(CapabilityEntry {
-                id: format!("skill:{}", name),
-                name: name.clone(),
-                description: format!("技能: {name}（已启用）"),
-                source: CapabilitySource::Skill,
-                source_id: name,
-                capability_type: "skill".to_string(),
-                applicable_scenarios: Vec::new(),
-                example_deliverables: Vec::new(),
-                metadata: serde_json::json!({}),
-            });
-        }
-    }
-
-    // 3) 工作流模板（workflow_template 表）
+    let mut mcp_tools: Vec<CapabilityEntry> = Vec::new();
     let mut workflows: Vec<CapabilityEntry> = Vec::new();
-    if let Ok(templates) =
-        axagent_dao::repo::workflow_template::list_workflow_templates(db, None).await
-    {
-        for tmpl in templates {
-            workflows.push(CapabilityEntry {
-                id: format!("workflow:{}", tmpl.id),
-                name: tmpl.name.clone(),
-                description: tmpl.description.unwrap_or_default(),
-                source: CapabilitySource::Workflow,
-                source_id: tmpl.id.clone(),
-                capability_type: "workflow".to_string(),
+
+    let ids = state.capability_indexer.list_capability_ids().await;
+    for id in ids {
+        if let Some(p) = state.capability_indexer.get_passport(&id).await {
+            // 系统专用护照（如认知编排器）不进入业务能力清单
+            if p.visibility.is_system_only() {
+                continue;
+            }
+            let source = match p.kind {
+                CapabilityKind::Skill => CapabilitySource::Skill,
+                CapabilityKind::Workflow => CapabilitySource::Workflow,
+                CapabilityKind::Tool if p.capability_id.starts_with("mcp:") => {
+                    CapabilitySource::McpTool
+                },
+                CapabilityKind::Tool => CapabilitySource::Tool,
+                _ => continue,
+            };
+            let entry = CapabilityEntry {
+                id: p.capability_id.clone(),
+                name: p.name.clone(),
+                description: p.description.clone(),
+                source: source.clone(),
+                source_id: p.capability_id.clone(),
+                capability_type: p.kind.as_str().to_string(),
                 applicable_scenarios: Vec::new(),
                 example_deliverables: Vec::new(),
                 metadata: serde_json::json!({
-                    "version": tmpl.version,
-                    "is_preset": tmpl.is_preset,
+                    "enabled": p.enabled,
+                    "domain": p.domain.as_str(),
+                    "sub_category": p.sub_category,
                 }),
-            });
+            };
+            match source {
+                CapabilitySource::Tool => tools.push(entry),
+                CapabilitySource::Skill => skills.push(entry),
+                CapabilitySource::McpTool => mcp_tools.push(entry),
+                CapabilitySource::Workflow => workflows.push(entry),
+            }
         }
     }
 
@@ -118,36 +85,6 @@ pub async fn opc_scan_capabilities(
         total_count: 0,
     };
     inv.recalc_count();
-
-    // 4) 落库到 opc_capability（先软删旧快照，再写入新快照）
-    let _ = opc_capability::Entity::update_many()
-        .col_expr(opc_capability::Column::IsActive, Expr::value(0))
-        .exec(db)
-        .await;
-
-    for entry in inv.all_entries() {
-        let _ = opc_capability::ActiveModel {
-            id: Set(entry.id.clone()),
-            source_type: Set(entry.source.as_str().to_string()),
-            source_id: Set(entry.source_id.clone()),
-            name: Set(entry.name.clone()),
-            description: Set(entry.description.clone()),
-            capability_type: Set(entry.capability_type.clone()),
-            applicable_scenarios_json: Set(
-                serde_json::to_string(&entry.applicable_scenarios).unwrap_or_default()
-            ),
-            example_deliverables_json: Set(
-                serde_json::to_string(&entry.example_deliverables).unwrap_or_default()
-            ),
-            metadata_json: Set(serde_json::to_string(&entry.metadata).unwrap_or_default()),
-            is_active: Set(1),
-            scanned_at: Set(now),
-            created_at: Set(now),
-            updated_at: Set(now),
-        }
-        .insert(db)
-        .await;
-    }
 
     serde_json::to_value(&inv).map_err(|e| {
         ErrorResponse::from_error(e, crate::commands::error::ErrorCategory::Unrecoverable)
@@ -1030,87 +967,55 @@ pub async fn opc_match_lead_capabilities(
         })?
         .ok_or_else(|| format!("需求线索不存在: {id}"))?;
 
-    let inv =
-        axagent_analysis_engine::opc::capability::CapabilityService::scan_capabilities().await;
+    // 复用上游能力发现管线（RAR 语义匹配），以需求描述为查询输入
+    let user_input = format!("{} {}", result.title, result.description);
+    let mut query = axagent_harness::CapabilityQuery::default();
+    query.user_input = user_input.clone();
+    let discovery_request = axagent_harness::CapabilityDiscoveryRequest {
+        user_input,
+        filter_context: axagent_harness::FilterContext::default(),
+        query,
+        weights: axagent_harness::DiscoveryWeights::default(),
+        budget: axagent_harness::SessionBudget::default(),
+        enable_completion: false,
+        enable_circuit_breaker: true,
+        enable_rar: true,
+        rar_top_k: 10,
+    };
 
-    // 优先使用落库的能力快照（opc_capability 表），避免扫描空实现
-    let mut pool: Vec<axagent_analysis_engine::opc::capability::CapabilityEntry> = Vec::new();
-    if let Ok(rows) = axagent_entities::opc_capability::Entity::find()
-        .filter(axagent_entities::opc_capability::Column::IsActive.eq(1))
-        .all(db)
-        .await
-    {
-        for row in rows {
-            pool.push(axagent_analysis_engine::opc::capability::CapabilityEntry {
-                id: row.id.clone(),
-                name: row.name.clone(),
-                description: row.description.clone(),
-                source: match row.source_type.as_str() {
-                    "skill" => axagent_analysis_engine::opc::capability::CapabilitySource::Skill,
-                    "mcp_tool" => {
-                        axagent_analysis_engine::opc::capability::CapabilitySource::McpTool
-                    },
-                    "workflow" => {
-                        axagent_analysis_engine::opc::capability::CapabilitySource::Workflow
-                    },
-                    _ => axagent_analysis_engine::opc::capability::CapabilitySource::Tool,
-                },
-                source_id: row.source_id.clone(),
-                capability_type: row.capability_type.clone(),
-                applicable_scenarios: Vec::new(),
-                example_deliverables: Vec::new(),
-                metadata: serde_json::from_str(&row.metadata_json).unwrap_or(serde_json::json!({})),
-            });
-        }
-    }
-    if pool.is_empty() {
-        pool = inv.all_entries().into_iter().cloned().collect();
-    }
+    let discovery_result = axagent_harness::CapabilityRouter::discover(
+        state.capability_router.as_ref(),
+        &discovery_request,
+    )
+    .await
+    .map_err(|e| format!("能力匹配失败: {e}"))?;
 
-    let description_lower = result.description.to_lowercase();
-    let title_lower = result.title.to_lowercase();
-
+    // 将上游排序结果映射为前端期望的 {id, name, source, score}
     let mut matched: Vec<serde_json::Value> = Vec::new();
-    let mut score_sum: f64 = 0.0;
-    let mut hit_count: usize = 0;
-
-    for entry in &pool {
-        let entry_text = format!("{} {} {}", entry.name, entry.description, entry.capability_type)
-            .to_lowercase();
-        let mut score: f64 = 0.0;
-
-        for word in description_lower.split_whitespace().chain(title_lower.split_whitespace()) {
-            if word.len() >= 2 && entry_text.contains(word) {
-                score += 0.1;
-            }
-        }
-
-        if score > 0.0 {
-            score = (score).min(1.0);
-            matched.push(serde_json::json!({
-                "id": entry.id,
-                "name": entry.name,
-                "source": entry.source.as_str(),
-                "score": score,
-            }));
-            score_sum += score;
-            hit_count += 1;
-        }
+    if let Some(primary) = &discovery_result.primary_match {
+        matched.push(serde_json::json!({
+            "id": primary.passport.capability_id,
+            "name": primary.passport.name,
+            "source": primary.passport.kind.as_str(),
+            "score": primary.final_score,
+        }));
+    }
+    for alt in &discovery_result.alternatives {
+        matched.push(serde_json::json!({
+            "id": alt.passport.capability_id,
+            "name": alt.passport.name,
+            "source": alt.passport.kind.as_str(),
+            "score": alt.final_score,
+        }));
     }
 
+    let hit_count = matched.len();
+    let score_sum: f64 = matched.iter().filter_map(|m| m["score"].as_f64()).sum();
     let confidence = if hit_count > 0 {
         (score_sum / hit_count as f64).min(1.0)
     } else {
         0.0
     };
-
-    matched.sort_by(|a, b| {
-        b["score"]
-            .as_f64()
-            .unwrap_or(0.0)
-            .partial_cmp(&a["score"].as_f64().unwrap_or(0.0))
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
 
     // 能力缺口落库：热门/高价值需求但匹配能力不足时，记录缺口
     if hit_count == 0 {
@@ -1376,17 +1281,20 @@ pub async fn opc_analyze_capability_gaps(
     let db = state.harness.db();
     let now = chrono::Utc::now().timestamp();
 
-    // 1) 扫描现有能力库（从 opc_capability 表）
+    // 1) 扫描现有能力库（复用上游能力索引的能力护照）
     let capability_keywords: Vec<String> = {
-        let rows = axagent_entities::opc_capability::Entity::find()
-            .filter(axagent_entities::opc_capability::Column::IsActive.eq(1))
-            .all(db)
-            .await
-            .map_err(|e| format!("读取能力库失败: {e}"))?;
-
-        rows.iter()
-            .map(|r| format!("{} {} {}", r.name, r.description, r.capability_type).to_lowercase())
-            .collect()
+        let mut keywords: Vec<String> = Vec::new();
+        for id in state.capability_indexer.list_capability_ids().await {
+            if let Some(p) = state.capability_indexer.get_passport(&id).await {
+                if p.visibility.is_system_only() {
+                    continue;
+                }
+                keywords.push(
+                    format!("{} {} {}", p.name, p.description, p.kind.as_str()).to_lowercase(),
+                );
+            }
+        }
+        keywords
     };
 
     // 2) 统计高价值需求中的高频关键词

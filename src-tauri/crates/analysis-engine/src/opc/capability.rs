@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! 能力集扫描模块
+//! 能力集清单 DTO
 //!
-//! 自动聚合四类能力来源：工具 Tools、技能 Skills、MCP 服务器/工具、工作流模板。
-//! 结果归一化为 `CapabilityInventory`，供 Agent 节点作为 context_source 注入。
+//! 定义需求发现工作流使用的能力清单聚合结构（`CapabilityInventory` /
+//! `CapabilityEntry` / `CapabilitySource`）。能力来源统一复用上游能力发现索引
+//! （`capability_indexer` 的能力护照），由命令层在 wiring 层读取组装，不再本地扫描落库。
 
 use serde::{Deserialize, Serialize};
 
@@ -87,27 +88,5 @@ impl CapabilityInventory {
 impl Default for CapabilityInventory {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-// ── 扫描服务 ──────────────────────────────────────────────────
-
-/// 能力扫描服务
-pub struct CapabilityService;
-
-impl CapabilityService {
-    /// 扫描当前系统全部可用能力
-    ///
-    /// 从四个来源聚合：
-    /// - `axagent-tools::registry` —— 已注册的工具描述
-    /// - skill 状态存储 —— 已启用的技能
-    /// - MCP 服务器/工具注册表 —— 通过 mcp_manager
-    /// - workflow_template 表 —— 已保存的工作流模板
-    ///
-    /// 当前版本返回空清单（占位），后续在 wiring 层注入实际注册表。
-    pub async fn scan_capabilities() -> CapabilityInventory {
-        let inv = CapabilityInventory::new();
-        // TODO: 接入实际注册表（tools::registry、skill_states、mcp、workflow_template）
-        inv
     }
 }

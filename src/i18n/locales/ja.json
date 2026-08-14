@@ -6131,7 +6131,6 @@
       "config": "ワークフロー設定",
       "settings": {
         "group": {
-          "matcher": "マッチングアルゴリズム",
           "domainKeywords": "ドメインキーワード",
           "budget": "予算範囲",
           "capability": "機能マッチング",
@@ -6149,11 +6148,6 @@
         "saveConfig": "設定を保存"
       },
       "configDescriptions": {
-        "matchTitleWeight": "タイトルマッチング重み",
-        "matchDescriptionWeight": "説明マッチング重み",
-        "matchKeywordWeight": "キーワードマッチング重み",
-        "matchMinScore": "最低マッチングスコア",
-        "matchMaxResults": "最大マッチング結果数",
         "domainTech": "テックドメインキーワード（カンマ区切り）",
         "domainDesign": "デザインドメインキーワード（カンマ区切り）",
         "domainMarketing": "マーケティングドメインキーワード（カンマ区切り）",
@@ -6313,7 +6307,6 @@
       "resetToDefaults": "Reset to defaults",
       "saveConfig": "Save Configuration",
       "group": {
-        "matcher": "Matching Algorithm",
         "domainKeywords": "Domain Keywords",
         "budget": "Budget Ranges",
         "capability": "Capability Matching",
@@ -6326,11 +6319,6 @@
       }
     },
     "configDescriptions": {
-      "matchTitleWeight": "Title match weight (0-1)",
-      "matchDescriptionWeight": "Description match weight (0-1)",
-      "matchKeywordWeight": "Keyword match weight (0-1)",
-      "matchMinScore": "Minimum match score threshold (0-1)",
-      "matchMaxResults": "Maximum match results",
       "domainTech": "Tech/AI domain keywords",
       "domainDesign": "Design/UI/UX domain keywords",
       "domainMarketing": "Marketing/promotion domain keywords",
