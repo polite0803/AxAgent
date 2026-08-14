@@ -14,6 +14,7 @@
 //! - 完善安全分级校验逻辑
 
 use agent_command_types;
+use axagent_harness::CapabilityDomain;
 use axagent_harness::path_vars::PathEncoder;
 use axagent_harness::types::{ChatTool, ChatToolFunction};
 use axagent_tools::registry::SkillToolHandler;
@@ -96,61 +97,10 @@ pub struct CommandMetadata {
     pub name: &'static str,
     /// 一行描述
     pub description: &'static str,
-    /// 所属功能域
-    pub domain: CommandDomain,
+    /// 所属功能域（统一使用 harness 标准域定义，避免多套域概念冲突）
+    pub domain: CapabilityDomain,
     /// 安全级别
     pub safety: CommandSafety,
-}
-
-/// 功能域枚举
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum CommandDomain {
-    Core,
-    Knowledge,
-    Workflow,
-    Provider,
-    Gateway,
-    Mcp,
-    Skill,
-    Conversation,
-    Message,
-    Memory,
-    Settings,
-}
-
-impl CommandDomain {
-    pub fn as_str(&self) -> &str {
-        match self {
-            CommandDomain::Core => "core",
-            CommandDomain::Knowledge => "knowledge",
-            CommandDomain::Workflow => "workflow",
-            CommandDomain::Provider => "provider",
-            CommandDomain::Gateway => "gateway",
-            CommandDomain::Mcp => "mcp",
-            CommandDomain::Skill => "skill",
-            CommandDomain::Conversation => "conversation",
-            CommandDomain::Message => "message",
-            CommandDomain::Memory => "memory",
-            CommandDomain::Settings => "settings",
-        }
-    }
-
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "core" => Some(CommandDomain::Core),
-            "knowledge" => Some(CommandDomain::Knowledge),
-            "workflow" => Some(CommandDomain::Workflow),
-            "provider" => Some(CommandDomain::Provider),
-            "gateway" => Some(CommandDomain::Gateway),
-            "mcp" => Some(CommandDomain::Mcp),
-            "skill" => Some(CommandDomain::Skill),
-            "conversation" => Some(CommandDomain::Conversation),
-            "message" => Some(CommandDomain::Message),
-            "memory" => Some(CommandDomain::Memory),
-            "settings" => Some(CommandDomain::Settings),
-            _ => None,
-        }
-    }
 }
 
 // ── Command Registry (Phase 3) ──────────────────────────────────────────
@@ -191,20 +141,9 @@ impl CommandRegistry {
         Self { commands, name_index }
     }
 
-    fn map_domain(domain_str: &str) -> CommandDomain {
-        match domain_str {
-            "knowledge" => CommandDomain::Knowledge,
-            "workflow" => CommandDomain::Workflow,
-            "provider" => CommandDomain::Provider,
-            "gateway" => CommandDomain::Gateway,
-            "mcp" => CommandDomain::Mcp,
-            "skill" => CommandDomain::Skill,
-            "conversation" => CommandDomain::Conversation,
-            "message" => CommandDomain::Message,
-            "memory" => CommandDomain::Memory,
-            "settings" => CommandDomain::Settings,
-            _ => CommandDomain::Core,
-        }
+    fn map_domain(domain_str: &str) -> CapabilityDomain {
+        // 统一使用 harness 标准域解析（含历史旧值别名收敛），未知值兜底 General
+        domain_str.parse().unwrap_or(CapabilityDomain::General)
     }
 
     fn map_safety(s: agent_command_types::CommandSafety) -> CommandSafety {
@@ -221,12 +160,12 @@ impl CommandRegistry {
     }
 
     /// 按域查找命令
-    pub fn find_by_domain(&self, domain: &CommandDomain) -> Vec<&CommandMetadata> {
+    pub fn find_by_domain(&self, domain: &CapabilityDomain) -> Vec<&CommandMetadata> {
         self.commands.iter().filter(|cmd| cmd.domain == *domain).collect()
     }
 
     /// 获取指定域列表内的命令
-    pub fn get_commands_for_domains(&self, domains: &[CommandDomain]) -> Vec<&CommandMetadata> {
+    pub fn get_commands_for_domains(&self, domains: &[CapabilityDomain]) -> Vec<&CommandMetadata> {
         self.commands.iter().filter(|cmd| domains.contains(&cmd.domain)).collect()
     }
 
@@ -251,21 +190,21 @@ impl CommandRegistry {
     }
 
     /// 构建命令索引字符串（用于系统提示注入）
-    pub fn build_index_string(&self, visible_domains: &[CommandDomain]) -> String {
+    pub fn build_index_string(&self, visible_domains: &[CapabilityDomain]) -> String {
         let mut index = String::new();
         index.push_str("可用后端命令（通过 execute_tauri_command 调用）：\n");
 
-        let mut current_domain: Option<CommandDomain> = None;
+        let mut current_domain: Option<CapabilityDomain> = None;
         let filtered = self.get_commands_for_domains(visible_domains);
 
         for cmd in filtered {
             // 域分组标题
-            if current_domain != Some(cmd.domain.clone()) {
+            if current_domain != Some(cmd.domain) {
                 if current_domain.is_some() {
                     index.push('\n');
                 }
                 index.push_str(&format!("\n[{}]\n", cmd.domain.as_str()));
-                current_domain = Some(cmd.domain.clone());
+                current_domain = Some(cmd.domain);
             }
 
             // 命令条目，包含安全级别标识
@@ -317,7 +256,7 @@ impl CommandCache {
     }
 
     /// 生成缓存键（基于域列表）
-    fn make_key(domains: &[CommandDomain]) -> String {
+    fn make_key(domains: &[CapabilityDomain]) -> String {
         let mut domain_names: Vec<String> =
             domains.iter().map(|d| d.as_str().to_string()).collect();
         domain_names.sort();
@@ -325,7 +264,7 @@ impl CommandCache {
     }
 
     /// 获取缓存的索引字符串
-    pub fn get(&mut self, domains: &[CommandDomain], registry: &CommandRegistry) -> String {
+    pub fn get(&mut self, domains: &[CapabilityDomain], registry: &CommandRegistry) -> String {
         let key = Self::make_key(domains);
 
         if let Some(cached) = self.cache.get(&key) {
@@ -380,7 +319,7 @@ impl Default for CommandCache {
 /// 构建命令索引字符串（用于注入系统提示）
 ///
 /// 这是一个便捷函数，内部使用 CommandRegistry 来构建索引
-pub fn build_command_index_string(visible_domains: &[CommandDomain]) -> String {
+pub fn build_command_index_string(visible_domains: &[CapabilityDomain]) -> String {
     let registry = CommandRegistry::default();
     registry.build_index_string(visible_domains)
 }
@@ -388,7 +327,7 @@ pub fn build_command_index_string(visible_domains: &[CommandDomain]) -> String {
 /// 预加载缓存并返回命中率
 ///
 /// 用于在启动时预热缓存
-pub fn preload_command_cache(domains: &[CommandDomain]) -> (String, f64) {
+pub fn preload_command_cache(domains: &[CapabilityDomain]) -> (String, f64) {
     let registry = CommandRegistry::default();
     let mut cache = CommandCache::default();
     let _first_load = cache.get(domains, &registry);
@@ -409,7 +348,7 @@ pub struct DomainMapping {
     /// 工具域（来自 axagent_harness::ToolDomain 的字符串表示）
     pub tool_domain: String,
     /// 映射到的命令域列表
-    pub command_domains: Vec<CommandDomain>,
+    pub command_domains: Vec<CapabilityDomain>,
 }
 
 /// 领域映射配置集合
@@ -418,54 +357,60 @@ pub struct DomainMappingConfig {
     /// 映射规则列表
     pub mappings: Vec<DomainMapping>,
     /// 无论任何场景都默认暴露的命令域
-    pub default_domains: Vec<CommandDomain>,
+    pub default_domains: Vec<CapabilityDomain>,
 }
 
 impl Default for DomainMappingConfig {
     fn default() -> Self {
         Self {
             mappings: vec![
-                // General → 基础命令域（历史 Core 域已并入 General）
+                // 各业务域激活时暴露其自身命令域 + 通用基础域（General）
                 DomainMapping {
                     tool_domain: "general".to_string(),
-                    command_domains: vec![
-                        CommandDomain::Core,
-                        CommandDomain::Settings,
-                        CommandDomain::Conversation,
-                        CommandDomain::Message,
-                        CommandDomain::Memory,
-                        CommandDomain::Knowledge,
-                        CommandDomain::Provider,
-                    ],
+                    command_domains: vec![CapabilityDomain::General],
                 },
-                // Devops → 运维全套
                 DomainMapping {
                     tool_domain: "devops".to_string(),
-                    command_domains: vec![
-                        CommandDomain::Gateway,
-                        CommandDomain::Mcp,
-                        CommandDomain::Skill,
-                        CommandDomain::Workflow,
-                    ],
+                    command_domains: vec![CapabilityDomain::Devops, CapabilityDomain::General],
                 },
-                // AiMedia → 基础 + 技能
                 DomainMapping {
                     tool_domain: "ai_media".to_string(),
-                    command_domains: vec![CommandDomain::Core, CommandDomain::Skill],
+                    command_domains: vec![CapabilityDomain::AiMedia, CapabilityDomain::General],
                 },
-                // Finance → 基础 + 知识库
+                DomainMapping {
+                    tool_domain: "data_analysis".to_string(),
+                    command_domains: vec![
+                        CapabilityDomain::DataAnalysis,
+                        CapabilityDomain::General,
+                    ],
+                },
+                DomainMapping {
+                    tool_domain: "content_creation".to_string(),
+                    command_domains: vec![
+                        CapabilityDomain::ContentCreation,
+                        CapabilityDomain::General,
+                    ],
+                },
+                DomainMapping {
+                    tool_domain: "communication".to_string(),
+                    command_domains: vec![
+                        CapabilityDomain::Communication,
+                        CapabilityDomain::General,
+                    ],
+                },
+                // Finance → 投资/量化/组合分析全套（历史 invest/quant/portfolio 归并）
                 DomainMapping {
                     tool_domain: "finance".to_string(),
-                    command_domains: vec![CommandDomain::Core, CommandDomain::Knowledge],
+                    command_domains: vec![CapabilityDomain::Finance, CapabilityDomain::General],
                 },
-                // Automation → 基础 + 工作流
+                // Automation → 一人公司运营 + 工作流（历史 opc 归并）
                 DomainMapping {
                     tool_domain: "automation".to_string(),
-                    command_domains: vec![CommandDomain::Core, CommandDomain::Workflow],
+                    command_domains: vec![CapabilityDomain::Automation, CapabilityDomain::General],
                 },
             ],
-            // 默认暴露核心域
-            default_domains: vec![CommandDomain::Core],
+            // 默认暴露通用基础域
+            default_domains: vec![CapabilityDomain::General],
         }
     }
 }
@@ -481,19 +426,19 @@ impl DomainMappingConfig {
     pub fn resolve_command_domains(
         &self,
         active_tool_domains: &HashSet<String>,
-    ) -> Vec<CommandDomain> {
+    ) -> Vec<CapabilityDomain> {
         let mut result = HashSet::new();
 
         // 先加入默认域
         for domain in &self.default_domains {
-            result.insert(domain.clone());
+            result.insert(*domain);
         }
 
         // 根据映射规则加入匹配的命令域
         for mapping in &self.mappings {
             if active_tool_domains.contains(&mapping.tool_domain) {
                 for domain in &mapping.command_domains {
-                    result.insert(domain.clone());
+                    result.insert(*domain);
                 }
             }
         }
@@ -505,7 +450,7 @@ impl DomainMappingConfig {
 /// 根据激活的工具域名称解析可见命令域
 ///
 /// 便捷函数，使用默认配置
-pub fn resolve_command_domains(active_tool_domains: &HashSet<String>) -> Vec<CommandDomain> {
+pub fn resolve_command_domains(active_tool_domains: &HashSet<String>) -> Vec<CapabilityDomain> {
     let config = DomainMappingConfig::default();
     config.resolve_command_domains(active_tool_domains)
 }
@@ -1037,7 +982,7 @@ async fn dispatch_command(
             let registry = CommandRegistry::default();
 
             let domain_commands: Vec<&CommandMetadata> = if let Some(domain_str) = domain_filter {
-                if let Some(domain) = CommandDomain::from_str(domain_str) {
+                if let Ok(domain) = domain_str.parse::<CapabilityDomain>() {
                     registry.find_by_domain(&domain)
                 } else {
                     warn!("Invalid domain filter: {}", domain_str);

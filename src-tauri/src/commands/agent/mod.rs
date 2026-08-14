@@ -1675,7 +1675,7 @@ pub async fn agent_query(
 
     // ── 注入 Tauri 命令索引到系统提示 ──
     // 使用配置化的领域映射解析可见命令域
-    let command_domains: Vec<command_bridge::CommandDomain> = {
+    let command_domains: Vec<axagent_harness::CapabilityDomain> = {
         // 将 ToolDomain 集合转换为字符串集合
         let tool_domain_set: std::collections::HashSet<String> =
             active_domains.iter().map(|d| d.as_str().to_string()).collect();

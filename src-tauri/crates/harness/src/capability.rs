@@ -130,6 +130,7 @@ impl std::str::FromStr for CapabilityDomain {
             "core" => CapabilityDomain::General,
             "invest" => CapabilityDomain::Finance,
             "opc" => CapabilityDomain::Automation,
+            "quant" => CapabilityDomain::Finance,
             _ => return Err(()),
         })
     }
