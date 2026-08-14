@@ -116,6 +116,9 @@ function scanFile(f, rel) {
   }
   // 测试文件已在收集阶段排除（collect / diff-only 过滤），此处双保险直接跳过。
   if (/\/__tests__\/|\.test\.|\.spec\./.test(rel)) { return []; }
+  // i18n-exempt：文件内标记为豁免的数据文件（mock / NLP / 技术字符串，非用户可见 UI 文案），
+  // 恢复 bash 旧脚本支持的文件级豁免惯例（如 browserMock.ts / chartGenerator.ts / searchUtils.ts）。
+  if (content.includes("i18n-exempt")) { return []; }
   // 仅检测纯代码：注释已在下方 stripComments 中剥离，不参与任何规则匹配。
   const cleaned = stripComments(content.split("\n"));
   const out = [];
