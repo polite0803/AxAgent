@@ -982,13 +982,13 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     // ── 零拷贝初始化：使用 Float64Array + Transfer List ──
     const workerConfig: PhysicsConfig = {
       theta: 0.5,
-      repulsion: 6000,
-      gravity: 0.01,
-      damping: 0.92,
-      dt: 0.25,
-      springForce: 0.04,
+      repulsion: 18000,
+      gravity: 0.003,
+      damping: 0.82,
+      dt: 0.35,
+      springForce: 0.08,
       springDamping: 0.85,
-      maxVelocity: 4,
+      maxVelocity: 8,
     };
 
     // ── 零拷贝初始化：使用 Float64Array + Int32Array + Transfer List ──
@@ -1389,13 +1389,13 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       if (aggActive) {
         const config: PhysicsConfig = {
           theta: 0.5,
-          repulsion: 6000,
-          gravity: 0.01,
-          damping: 0.92,
-          dt: 0.25,
-          springForce: 0.04,
+          repulsion: 18000,
+          gravity: 0.003,
+          damping: 0.82,
+          dt: 0.35,
+          springForce: 0.08,
           springDamping: 0.85,
-          maxVelocity: 4,
+          maxVelocity: 8,
         };
         // 规模保护：聚合物理节点过多（社区粒度极细）时放弃力导向，仅静态显示聚合节点，
         // 聚合节点坐标保持质心，避免主线程每帧 O(n log n) 力导向导致完全不响应。
@@ -1445,13 +1445,13 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
           if (!pendingStepRef.current && !hasDrag && (hasInteraction || frameCounterRef.current % 12 === 0)) {
             const workerConfig: PhysicsConfig = {
               theta: 0.5,
-              repulsion: 6000,
-              gravity: 0.01,
-              damping: 0.92,
-              dt: 0.25,
-              springForce: 0.04,
+              repulsion: 18000,
+              gravity: 0.003,
+              damping: 0.82,
+              dt: 0.35,
+              springForce: 0.08,
               springDamping: 0.85,
-              maxVelocity: 4,
+              maxVelocity: 8,
             };
             const centroids = clusterModeRef.current && effCommunities
               ? computeCommunityCentroids(nodes, effCommunities)
@@ -1544,13 +1544,13 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         if (!pendingStepRef.current && !hasDrag && (hasInteraction || frameCounterRef.current % 12 === 0)) {
           const config: PhysicsConfig = {
             theta: 0.5,
-            repulsion: 6000,
-            gravity: 0.01,
-            damping: 0.92,
-            dt: 0.25,
-            springForce: 0.04,
+            repulsion: 18000,
+            gravity: 0.003,
+            damping: 0.82,
+            dt: 0.35,
+            springForce: 0.08,
             springDamping: 0.85,
-            maxVelocity: 4,
+            maxVelocity: 8,
             clusterForce: enableClusters ? 0.15 : undefined,
           };
           const centroids = enableClusters
@@ -1648,13 +1648,13 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
           }
           const config: PhysicsConfig = {
             theta: 0.5,
-            repulsion: 6000,
-            gravity: 0.01,
-            damping: 0.92,
-            dt: 0.25,
-            springForce: 0.04,
+            repulsion: 18000,
+            gravity: 0.003,
+            damping: 0.82,
+            dt: 0.35,
+            springForce: 0.08,
             springDamping: 0.85,
-            maxVelocity: 4,
+            maxVelocity: 8,
             clusterForce: enableClusters ? 0.15 : undefined,
           };
           stepPhysics(
@@ -4026,13 +4026,13 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     else if (nodes.length <= 8000) {
       const config: PhysicsConfig = {
         theta: 0.5,
-        repulsion: 6000,
-        gravity: 0.01,
-        damping: 0.92,
-        dt: 0.25,
-        springForce: 0.04,
+        repulsion: 18000,
+        gravity: 0.003,
+        damping: 0.82,
+        dt: 0.35,
+        springForce: 0.08,
         springDamping: 0.85,
-        maxVelocity: 4,
+        maxVelocity: 8,
         clusterForce: enableClusters ? 0.15 : undefined,
       };
       for (let i = 0; i < 30; i++) {

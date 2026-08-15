@@ -241,12 +241,12 @@ export interface PhysicsConfig {
 
 export const DEFAULT_PHYSICS_CONFIG: PhysicsConfig = {
   theta: 0.5,
-  repulsion: 8000,
-  gravity: 0.005,
-  damping: 0.85,
-  dt: 0.4,
-  springForce: 0.05,
-  springDamping: 0.9,
+  repulsion: 18000,
+  gravity: 0.003,
+  damping: 0.82,
+  dt: 0.35,
+  springForce: 0.08,
+  springDamping: 0.85,
   maxVelocity: 8,
 };
 
@@ -489,16 +489,16 @@ export function stepPhysics(
 export function initializePositions(nodes: PhysicsNode[], width: number, height: number): void {
   const cx = 0;
   const cy = 0;
-  const radius = Math.min(width, height) * 0.3;
+  const radius = Math.min(width, height) * 0.5;
   const angleStep = (Math.PI * 2) / Math.max(nodes.length, 1);
 
   for (let i = 0; i < nodes.length; i++) {
-    const r = radius * (0.3 + Math.random() * 0.7);
-    const angle = i * angleStep + Math.random() * 0.5;
+    const r = radius * (0.15 + Math.random() * 0.85);
+    const angle = i * angleStep + Math.random() * 1.0;
     nodes[i].x = cx + r * Math.cos(angle);
     nodes[i].y = cy + r * Math.sin(angle);
-    nodes[i].vx = 0;
-    nodes[i].vy = 0;
+    nodes[i].vx = (Math.random() - 0.5) * 3;
+    nodes[i].vy = (Math.random() - 0.5) * 3;
     nodes[i].fx = 0;
     nodes[i].fy = 0;
     nodes[i].idx = i;
