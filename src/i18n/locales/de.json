@@ -379,7 +379,9 @@
     "newSkillProposal": "Neuer Fähigkeitsvorschlag: {name}",
     "title": "Intelligenter Arbeitsbereich",
     "quickBar": "Schnellleiste",
-    "description": "智能工作助手"
+    "description": "智能工作助手",
+    "title": "Agenten-Workstation",
+    "quickBar": "Schnellleiste"
   },
   "appHeader": {
     "closeAgentPanel": "Agent-Panel schließen",

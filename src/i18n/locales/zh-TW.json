@@ -379,7 +379,9 @@
     "newSkillProposal": "發現新的技能建議: {name}",
     "title": "智慧聊天助手",
     "quickBar": "快速工具列",
-    "description": "智能工作助手"
+    "description": "智能工作助手",
+    "title": "智能體工作站",
+    "quickBar": "快速工具列"
   },
   "appHeader": {
     "closeAgentPanel": "關閉 Agent 面板",

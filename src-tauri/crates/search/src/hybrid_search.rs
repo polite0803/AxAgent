@@ -211,6 +211,18 @@ impl HybridSearcher {
         top_k: usize,
         doc_ids: Option<&[String]>,
     ) -> Result<Vec<Bm25Result>> {
+        // 集合表不存在（如记忆命名空间尚未写入任何条目）时优雅返回空结果，
+        // 避免对缺失的 _meta 表执行 SQL 导致查询报错。
+        let safe_name_early = sanitize_name_for_table(collection_id);
+        let meta_exists = self
+            .vector_store
+            .table_exists(&format!("vec_{safe_name_early}_meta"))
+            .await
+            .unwrap_or(false);
+        if !meta_exists {
+            return Ok(vec![]);
+        }
+
         if self.db.get_database_backend() == DbBackend::Postgres {
             return self.bm25_search_pg_with_filter(collection_id, query, top_k, doc_ids).await;
         }

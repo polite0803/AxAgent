@@ -379,7 +379,9 @@
     "newSkillProposal": "Новое предложение навыка: {name}",
     "title": "Умное рабочее пространство",
     "quickBar": "QuickBar",
-    "description": "智能工作助手"
+    "description": "智能工作助手",
+    "title": "Рабочая станция агентов",
+    "quickBar": "QuickBar"
   },
   "appHeader": {
     "closeAgentPanel": "Закрыть панель агента",

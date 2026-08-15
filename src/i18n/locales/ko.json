@@ -379,7 +379,9 @@
     "newSkillProposal": "새 스킬 제안: {name}",
     "title": "스마트 워크스페이스",
     "quickBar": "퀵바",
-    "description": "智能工作助手"
+    "description": "智能工作助手",
+    "title": "에이전트 워크스테이션",
+    "quickBar": "퀵바"
   },
   "appHeader": {
     "closeAgentPanel": "에이전트 패널 닫기",

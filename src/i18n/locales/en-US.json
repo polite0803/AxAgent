@@ -379,7 +379,9 @@
     "newSkillProposal": "New Skill Proposal Found: {name}",
     "title": "Smart Chat Assistant",
     "quickBar": "QuickBar",
-    "description": "AI-Powered Work Assistant"
+    "description": "AI-Powered Work Assistant",
+    "title": "Agent Workstation",
+    "quickBar": "QuickBar"
   },
   "appHeader": {
     "closeAgentPanel": "Close Agent Panel",

@@ -114,11 +114,26 @@ pub async fn create_source(
     let db = state.harness.db();
 
     // 如果未提供 embedding_provider，回退到系统默认 provider
-    let embedding_provider = if input.embedding_provider.is_some() {
+    let mut embedding_provider = if input.embedding_provider.is_some() {
         input.embedding_provider
     } else {
         axagent_dao::repo::settings::get_settings(db).await.ok().and_then(|s| s.default_provider_id)
     };
+
+    // 从源头杜绝旧格式：仅 provider_id（或回退得到的 default_provider_id）时
+    // 自动补全为完整 "providerId::model_id"，避免容器存入不完整的嵌入配置
+    // （运行时 indexing::resolve_embedding_provider 仍会兜底，但每次补全都有 WARN 提示）。
+    // 补全失败时保留原值不阻断创建流程，由运行时兜底。
+    if let Some(p) = embedding_provider.clone() {
+        if !p.contains("::") {
+            match crate::indexing::resolve_embedding_provider(db, &p).await {
+                Ok((resolved, _)) => embedding_provider = Some(resolved),
+                Err(e) => {
+                    tracing::warn!("[sources] 嵌入配置自动补全失败，保留原值 '{p}'：{e}");
+                },
+            }
+        }
+    }
 
     match input.source_type.as_str() {
         "knowledge" => {

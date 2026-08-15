@@ -379,7 +379,9 @@
     "newSkillProposal": "New skill suggestion: {name}",
     "title": "स्मार्ट वर्कस्पेस",
     "quickBar": "त्वरित पट्टी",
-    "description": "智能工作助手"
+    "description": "智能工作助手",
+    "title": "एजेंट वर्कस्टेशन",
+    "quickBar": "त्वरित पट्टी"
   },
   "appHeader": {
     "closeAgentPanel": "एजेंट पैनल बंद करें",

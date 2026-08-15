@@ -379,7 +379,9 @@
     "newSkillProposal": "Nouvelle suggestion de compétence: {name}",
     "title": "Espace de Travail Intelligent",
     "quickBar": "Barre rapide",
-    "description": "智能工作助手"
+    "description": "智能工作助手",
+    "title": "Station de Travail d'Agents",
+    "quickBar": "Barre rapide"
   },
   "appHeader": {
     "closeAgentPanel": "Fermer le panneau d'agent",

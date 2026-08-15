@@ -130,12 +130,30 @@ pub async fn create_memory_namespace(
     state: State<'_, AppState>,
     input: CreateMemoryNamespaceInput,
 ) -> Result<MemoryNamespace, String> {
-    axagent_dao::repo::memory::create_namespace(state.harness.db(), input).await.map_err(|e| {
-        String::from(crate::commands::error::ErrorResponse::from_error(
-            e,
-            crate::commands::error::ErrorCategory::Unrecoverable,
-        ))
-    })
+    let ns = axagent_dao::repo::memory::create_namespace(state.harness.db(), input).await.map_err(
+        |e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        },
+    )?;
+
+    // 命名空间创建后立即初始化向量集合表（vec_mem_{id}_meta），
+    // 避免在尚未写入任何条目时 RAG 搜索因集合表缺失而报错。
+    // 仅当维度已知（写入过条目或显式配置）时才初始化，避免维度不匹配。
+    if let Some(dim) = ns.embedding_dimensions.map(|v| v as usize) {
+        let collection_id = format!("mem_{}", ns.id);
+        if let Err(e) = state.vector_store.ensure_collection(&collection_id, dim).await {
+            tracing::warn!(
+                "初始化记忆命名空间向量集合 {} 失败：{}（将在首次索引时重试）",
+                collection_id,
+                e
+            );
+        }
+    }
+
+    Ok(ns)
 }
 
 #[agent_command(domain = memory, safety = Dangerous, call_mode = StateOnly, description = "删除记忆命名空间")]

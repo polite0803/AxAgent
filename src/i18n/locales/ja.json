@@ -379,7 +379,9 @@
     "newSkillProposal": "新しいスキル提案: {name}",
     "title": "スマートワークスペース",
     "quickBar": "クイックバー",
-    "description": "智能工作助手"
+    "description": "智能工作助手",
+    "title": "エージェントワークステーション",
+    "quickBar": "クイックバー"
   },
   "appHeader": {
     "closeAgentPanel": "エージェントパネルを閉じる",

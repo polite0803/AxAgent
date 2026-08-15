@@ -1,8 +1,9 @@
 [target.x86_64-pc-windows-msvc]
-# 使用 rustc 默认的 MSVC link.exe（通过环境变量自动定位），不再覆盖 linker
-# 说明：原配置引用 C:\Program Files\LLVM\bin\lld-link.exe 但 LLVM 未安装；mold 存在但 MSVC 兼容性不佳
-# 如需恢复 mold：将下方 linker 改为 D:\OneManager\AxAgent\tools\mold\mold.exe
-# linker = "C:\\Program Files (x86)\\Microsoft Visual Studio\\18\\BuildTools\\VC\\Tools\\MSVC\\14.51.36231\\bin\\Hostx64\\x64\\link.exe"
+# 使用 rustc 自带的 rust-lld 作为 MSVC 链接器（Rust 1.71+ 原生支持，自动按 msvc flavor 调用）。
+# 相比 MSVC link.exe，链接速度提升数倍，直击"3200+ crate 全量链接"这一核心瓶颈（主 bin 每次改动都要全量 relink）。
+# 已用临时 crate 以 `-C linker=rust-lld -C target-feature=+crt-static` 验证可正常链接出 exe。
+# 如需回退 link.exe，删除下面 linker 一行并恢复 rustflags 即可。
+linker = "rust-lld"
 rustflags = ["-C", "target-feature=+crt-static"]
 
 [env]

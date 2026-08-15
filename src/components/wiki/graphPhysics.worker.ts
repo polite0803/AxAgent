@@ -49,6 +49,11 @@ interface InitPayload {
   }[];
   config: PhysicsConfig;
   communities?: Record<string, number>;
+  // 预热迭代：init 装载数据后，在 Worker 内先行跑 N 步物理，完成初始布局收敛，
+  // 避免主线程同步跑 Barnes-Hut 冻结 UI（几万节点同步迭代会卡死数秒）。
+  // 预热完成后 Worker 再回 ready，剩余收敛交由渲染循环的持续 STEP 完成。
+  warmupIterations?: number;
+  warmupConfig?: PhysicsConfig;
   // 压缩格式：主线程用 Float64Array/Int32Array/Uint8Array 零拷贝传输
   // nodeBuffer: [x, y, vx, vy, fx, fy, mass, fixed, kind(enum), idx] 每节点 10 个值
   // edgeBuffer: [sIdx, tIdx, restLength, stiffness, damping] 每边 5 个值
@@ -66,8 +71,6 @@ interface InitPayload {
 
 interface StepPayload {
   config: PhysicsConfig;
-  communities?: Record<string, number>;
-  centroids?: Record<number, { cx: number; cy: number; count: number }>;
 }
 
 // 节点索引 → 社区 ID 映射（-1 表示无社区）
@@ -124,6 +127,12 @@ let neighborEdgesCount = 0;
 
 let tick = 0;
 let initialized = false;
+
+// P8: 社区质心在 Worker 内部维护，主线程不再每 12 帧 O(N) 重算 + 序列化传输。
+// 基于 init 时构建的 nodeIdxToCommunity（Int32Array）计算，
+// 每 CENTROID_RECOMPUTE_INTERVAL 步重算一次（Worker 线程内 O(N) 开销可忽略）。
+let communityCentroids: Map<number, { cx: number; cy: number; count: number }> | undefined = undefined;
+const CENTROID_RECOMPUTE_INTERVAL = 30;
 
 // ── 紧凑格式数据布局常量（与主线程 GraphView.tsx 中 NODE_STRIDE/EDGE_STRIDE 对齐） ──
 // 节点数据布局：[x, y, vx, vy, fx, fy, mass, fixed, kind(kind->idx映射), idx]
@@ -281,6 +290,30 @@ function barnesHutForce(nIdx: number, root: QuadNode, theta: number, repulsion: 
 }
 
 // ── 物理步进（Worker 内部实现） ──
+
+/**
+ * 基于 nodeIdxToCommunity + nodePositions 计算各社区质心。
+ * 供预热迭代使用（预热阶段需要聚类力把同社区节点拉拢）。
+ */
+function computeCommunityCentroidsFromArrays(): Map<number, { cx: number; cy: number; count: number }> | undefined {
+  if (!nodePositions || !nodeIdxToCommunity) { return undefined; }
+  const n = nodePositions.length / 2;
+  const centroids = new Map<number, { cx: number; cy: number; count: number }>();
+  for (let i = 0; i < n; i++) {
+    const cid = nodeIdxToCommunity[i];
+    if (cid < 0) { continue; }
+    const entry = centroids.get(cid) ?? { cx: 0, cy: 0, count: 0 };
+    entry.cx += nodePositions[i * 2];
+    entry.cy += nodePositions[i * 2 + 1];
+    entry.count++;
+    centroids.set(cid, entry);
+  }
+  for (const entry of centroids.values()) {
+    entry.cx /= entry.count;
+    entry.cy /= entry.count;
+  }
+  return centroids;
+}
 
 function stepPhysicsInternal(
   config: PhysicsConfig,
@@ -518,6 +551,34 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
         tick = 0;
         initialized = true;
 
+        // P8: init 时基于 nodeIdxToCommunity 初始化社区质心（供后续 step 使用）
+        if (nodeIdxToCommunity) {
+          communityCentroids = computeCommunityCentroidsFromArrays();
+        }
+
+        // ── 预热迭代：在 Worker 内完成初始布局收敛 ──
+        // 此前主线程在 Worker 创建前同步跑 40~80 次 Barnes-Hut，几万节点会冻结 UI 数秒。
+        // 现在把预热搬到 Worker 后台执行，主线程保持响应；
+        // 迭代数降为 20~30 次（Worker 单步更快），保证 ready 快速返回，剩余收敛由持续 STEP 完成。
+        const warmupIters = msg.payload.warmupIterations ?? 0;
+        if (warmupIters > 0 && nodePositions) {
+          const wN = nodePositions.length / 2;
+          const warmupConfig = msg.payload.warmupConfig ?? msg.payload.config;
+          for (let iter = 0; iter < warmupIters; iter++) {
+            stepPhysicsInternal(warmupConfig, communityCentroids);
+            if (nodeIdxToCommunity && iter % 10 === 0) {
+              communityCentroids = computeCommunityCentroidsFromArrays();
+            }
+          }
+          // 预热完成后清零速度，让节点平滑衔接后续 STEP
+          for (let i = 0; i < wN; i++) {
+            if (!nodeFixed[i]) {
+              nodeVelocities[i * 2] = 0;
+              nodeVelocities[i * 2 + 1] = 0;
+            }
+          }
+        }
+
         (globalThis as unknown as Worker).postMessage({ type: "ready" } as WorkerResponse);
       } catch (err) {
         (globalThis as unknown as Worker).postMessage({ type: "error", message: String(err) } as WorkerResponse);
@@ -539,16 +600,14 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
         // step 时不再反序列化（避免 Number("note:xxx") → NaN 的键查询失败）
         // compact 路径下 nodeIdxToCommunity 由主线程预构建并零拷贝传输，无需热更新
 
-        // centroids 反序列化（键是数字字符串，转 number 安全）
-        let centroids: Map<number, { cx: number; cy: number; count: number }> | undefined;
-        if (msg.payload.centroids) {
-          centroids = new Map();
-          for (const [k, v] of Object.entries(msg.payload.centroids)) {
-            centroids.set(Number(k), v);
-          }
+        // P8: 社区质心由 Worker 内部维护（基于 init 时的 nodeIdxToCommunity），
+        // 主线程不再每 12 帧 O(N) 重算 + Object.fromEntries 序列化传输。
+        // 每 CENTROID_RECOMPUTE_INTERVAL 步重算一次，跟踪节点收敛位移。
+        if (nodeIdxToCommunity && (communityCentroids === undefined || tick % CENTROID_RECOMPUTE_INTERVAL === 0)) {
+          communityCentroids = computeCommunityCentroidsFromArrays();
         }
 
-        const stable = stepPhysicsInternal(config, centroids);
+        const stable = stepPhysicsInternal(config, communityCentroids);
         tick++;
 
         const positionsCopy = new Float64Array(nodePositions!);
@@ -592,6 +651,10 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
         nodeFixed[i] = 0;
       }
       tick = 0;
+      // P8: reset 后节点坐标全量变更，立即重算社区质心
+      if (nodeIdxToCommunity) {
+        communityCentroids = computeCommunityCentroidsFromArrays();
+      }
       // 同步主线程：重置后返回当前坐标，并让渲染循环立刻衔接新布局
       const positionsCopy = new Float64Array(nodePositions);
       const velocitiesCopy = new Float64Array(nodeVelocities!);
@@ -613,6 +676,7 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
       nodeMass = null;
       nodeFixed = null;
       nodeIdxToCommunity = null;
+      communityCentroids = undefined;
       neighborMap = new Map();
       initialized = false;
       break;

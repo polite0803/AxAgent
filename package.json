@@ -58,6 +58,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:build": "node scripts/tauri-build.mjs",
+    "build:clean": "node scripts/sccache-clean-build.mjs",
     "tauri:android:init": "tauri android init",
     "tauri:android:dev": "tauri android dev",
     "tauri:android:build": "tauri android build",

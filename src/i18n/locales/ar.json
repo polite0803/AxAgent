@@ -379,7 +379,9 @@
     "newSkillProposal": "New skill suggestion: {name}",
     "title": "مساحة العمل الذكية",
     "quickBar": "شريط سريع",
-    "description": "智能工作助手"
+    "description": "智能工作助手",
+    "title": "محطة عمل الوكلاء",
+    "quickBar": "شريط سريع"
   },
   "appHeader": {
     "closeAgentPanel": "إغلاق لوحة الوكيل",
