@@ -14,9 +14,6 @@ export function InputAreaTextarea(props: {
   userMinHeight: number;
   ABSOLUTE_MAX_HEIGHT: number;
   streaming: boolean;
-  activeConversation:
-    | { session_type?: string; workflow_status?: string | null }
-    | undefined;
   token: GlobalToken;
   onInput: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
@@ -37,7 +34,6 @@ export function InputAreaTextarea(props: {
     userMinHeight,
     ABSOLUTE_MAX_HEIGHT,
     streaming,
-    activeConversation,
     token,
     onInput,
     onKeyDown,
@@ -112,13 +108,9 @@ export function InputAreaTextarea(props: {
             aria-label={t("chat.sendMessage")}
             icon={<ArrowUp size={16} />}
             onClick={onSend}
-            disabled={!value.trim() || streaming
-              || (activeConversation?.session_type === "workflow"
-                && activeConversation?.workflow_status === "completed")}
+            disabled={!value.trim() || streaming}
             style={{ flexShrink: 0, alignSelf: "flex-end", width: 36, height: 36 }}
             className={value.trim() && !streaming
-                && !(activeConversation?.session_type === "workflow"
-                  && activeConversation?.workflow_status === "completed")
               ? "ax-glow-shadow"
               : ""}
           />

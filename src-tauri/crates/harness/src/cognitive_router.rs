@@ -284,6 +284,9 @@ pub struct CandidateSummary {
     pub domain: String,
     /// 所属集群
     pub cluster: Option<String>,
+    /// 推荐执行专家（AgentProfile ID）。认知编排 Agent 执行路径据此自动选择专家。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent_profile_id: Option<String>,
 }
 
 // ── 路由阶段记录 ──────────────────────────────────
@@ -656,6 +659,7 @@ impl DefaultCognitiveRouter {
                     "kind": c.kind.as_str(),
                     "domain": c.domain,
                     "cluster": c.cluster,
+                    "agent_profile_id": c.agent_profile_id,
                 })
             })
             .collect();
@@ -673,6 +677,35 @@ impl DefaultCognitiveRouter {
             "candidates": candidates,
             "raw_count": result.raw_count,
         }))
+    }
+
+    /// 统一执行模式决策：按置信度分级（单一权威阈值表）
+    ///
+    /// 供两处共用，保证行为一致：
+    /// - L3 图谱路由（`system_workflow_graph_router`，主 DAG 实际运行路径）
+    /// - 程序化路由 `route_with_hint`（非 DAG 调用方）
+    ///
+    /// 置信度档位需与主 DAG `execution_mode` SwitchNode cases 对齐：
+    /// - > 0.90 → `Workflow`（精准命中，直发工作流）
+    /// - ≥ 0.75 → `Direct`（高置信，直接执行）
+    /// - ≥ 0.60 → `Clarify`（模糊命中，Top2 候选交用户澄清）
+    /// - ≥ 0.40 → `Plan`（域明确但无高置信工作流，先规划再执行）
+    /// - ≥ 0.20 → `Act`（行动模式，交给 agent 执行）
+    /// - 其余   → `Delegate`（委派给 agent 处理）
+    fn execution_mode_from_confidence(confidence: f64) -> ExecutionMode {
+        if confidence > 0.90 {
+            ExecutionMode::Workflow
+        } else if confidence >= 0.75 {
+            ExecutionMode::Direct
+        } else if confidence >= 0.60 {
+            ExecutionMode::Clarify
+        } else if confidence >= 0.40 {
+            ExecutionMode::Plan
+        } else if confidence >= 0.20 {
+            ExecutionMode::Act
+        } else {
+            ExecutionMode::Delegate
+        }
     }
 
     /// 系统能力 `system_workflow_graph_router`：图谱路径规划
@@ -751,19 +784,12 @@ impl DefaultCognitiveRouter {
             (fallback_path.clone(), selected_capability.clone(), 0.5)
         };
 
-        // 5. 执行模式决策：按置信度分级（与主 DAG Switch cases 对齐）
-        let execution_mode = if confidence > 0.90 {
-            "workflow"
-        } else if confidence >= 0.75 {
-            "direct"
-        } else if confidence >= 0.60 {
-            "clarify"
-        } else if confidence >= 0.40 {
-            "plan"
-        } else if confidence >= 0.20 {
-            "act"
+        // 5. 执行模式决策：无能力实体（selected_capability 为空）视为自由问答 → Ask；
+        //    否则按置信度分级（统一走公共决策函数，与主 DAG Switch cases 对齐）
+        let execution_mode = if selected_capability.trim().is_empty() {
+            "ask"
         } else {
-            "delegate"
+            Self::execution_mode_from_confidence(confidence).as_str()
         };
 
         tracing::info!(
@@ -971,6 +997,7 @@ impl CognitiveRouter for DefaultCognitiveRouter {
                 kind: c.kind,
                 domain: c.domain.clone(),
                 cluster: c.cluster.clone(),
+                agent_profile_id: c.agent_profile_id.clone(),
             })
             .collect();
 
@@ -1008,18 +1035,10 @@ impl CognitiveRouter for DefaultCognitiveRouter {
             None
         };
 
-        let (final_path, capability_id, confidence, selected_kind) = if let Some(graph_decision) =
-            graph_result
-        {
+        let (final_path, capability_id, confidence) = if let Some(graph_decision) = graph_result {
             // 使用图谱路由结果
             let cap_id = graph_decision.selected_path.rsplit('/').next().unwrap_or("").to_string();
-            let kind = rar_search_result
-                .candidates
-                .iter()
-                .find(|c| c.workflow_id == cap_id)
-                .map(|c| c.kind)
-                .unwrap_or(CapabilityKind::Workflow);
-            (graph_decision.selected_path.clone(), cap_id, graph_decision.confidence, kind)
+            (graph_decision.selected_path.clone(), cap_id, graph_decision.confidence)
         } else {
             // 降级：直接使用第一个候选
             let selected_candidate = rar_search_result.candidates.first();
@@ -1029,9 +1048,9 @@ impl CognitiveRouter for DefaultCognitiveRouter {
                     &cluster_str,
                     &candidate.workflow_id,
                 );
-                (path, candidate.workflow_id.clone(), candidate.score, candidate.kind)
+                (path, candidate.workflow_id.clone(), candidate.score)
             } else {
-                (String::new(), String::new(), 0.0, CapabilityKind::Tool)
+                (String::new(), String::new(), 0.0)
             }
         };
 
@@ -1062,8 +1081,20 @@ impl CognitiveRouter for DefaultCognitiveRouter {
         decision.capability_id = capability_id;
         decision.confidence = confidence;
         decision.is_llm_fallback = l1_result.is_llm_fallback;
-        // 决策执行模式：结合置信度分级 + 用户意图提示（ModeHint）
-        decision.execution_mode = Self::decide_execution_mode(selected_kind, &decision, mode_hint);
+        // 决策执行模式：统一走执行模式决策（mode_hint 显式覆盖优先；
+        // 无能力实体时视为自由问答 → Ask，否则按置信度分级）
+        decision.execution_mode = match mode_hint {
+            ModeHint::Ask => ExecutionMode::Ask,
+            ModeHint::Plan => ExecutionMode::Plan,
+            ModeHint::Act => ExecutionMode::Act,
+            ModeHint::Auto => {
+                if decision.capability_id.is_empty() {
+                    ExecutionMode::Ask
+                } else {
+                    Self::execution_mode_from_confidence(decision.confidence)
+                }
+            },
+        };
 
         // P0-2：max_total_ms 真正生效——超时则降低置信度并标记为降级结果
         let total_elapsed = total_start.elapsed().as_millis() as u64;
@@ -1175,66 +1206,6 @@ impl CognitiveRouter for DefaultCognitiveRouter {
                 self.execute_system_workflow_graph_router(input).await
             },
             other => Err(format!("未知系统能力: {}", other)),
-        }
-    }
-}
-
-// ── 执行模式决策 ──────────────────────────────────
-
-impl DefaultCognitiveRouter {
-    /// 根据候选能力类型、决策有效性与用户意图提示，决策路由结果的执行模式
-    ///
-    /// # 决策规则
-    /// 1. 有效决策（有路径且未熔断）：
-    ///    - 用户显式覆盖（mode_hint ≠ Auto）→ 优先尊重用户模式（Ask/Plan/Act）
-    ///    - 置信度 > 0.90 且命中 Workflow → `ParameterExtract`（精准命中，跳过澄清直发参数抽取）
-    ///    - 置信度 0.60 ~ 0.90 → `Clarify`（模糊命中，Top2 候选交用户澄清）
-    ///    - 其余 → 命中 Workflow → `Workflow`；命中 Tool/Skill/KnowledgeBase/Agent → `Delegate`
-    /// 2. 无有效决策（无候选/降级/熔断）：
-    ///    - 用户显式覆盖 → 尊重用户模式（Ask/Plan/Act）
-    ///    - 域为 General 或置信度为 0 → `Ask`（自由对话）
-    ///    - 其余 → `Plan`（域明确但无具体工作流，先规划再执行）
-    fn decide_execution_mode(
-        kind: CapabilityKind,
-        decision: &RoutingDecisionV2,
-        mode_hint: ModeHint,
-    ) -> ExecutionMode {
-        // 用户显式覆盖：优先尊重用户意图（无论是否命中确定性能力）
-        if mode_hint != ModeHint::Auto {
-            return match mode_hint {
-                ModeHint::Ask => ExecutionMode::Ask,
-                ModeHint::Plan => ExecutionMode::Plan,
-                ModeHint::Act => ExecutionMode::Act,
-                ModeHint::Auto => ExecutionMode::Ask, // 不可达，防御性兜底
-            };
-        }
-
-        if decision.is_valid() {
-            // 精准命中（> 0.90）：跳过澄清，直接参数抽取后执行目标工作流
-            if decision.confidence > 0.90 {
-                return match kind {
-                    CapabilityKind::Workflow => ExecutionMode::ParameterExtract,
-                    // 非工作流能力仍按类型委派
-                    _ => ExecutionMode::Delegate,
-                };
-            }
-            // 模糊命中（0.60 ~ 0.90）：触发澄清分支，Top2 候选交用户选择
-            if decision.confidence >= 0.60 {
-                return ExecutionMode::Clarify;
-            }
-            // 命中但置信度低：按能力类型执行
-            return match kind {
-                CapabilityKind::Workflow => ExecutionMode::Workflow,
-                // 工具/技能/知识库/Agent 均委派给 agent 加载执行
-                _ => ExecutionMode::Delegate,
-            };
-        }
-
-        // 无有效决策：按域与置信度决定交给 agent 的执行模式
-        if decision.domain == CapabilityDomain::General.as_str() || decision.confidence <= 0.0 {
-            ExecutionMode::Ask
-        } else {
-            ExecutionMode::Plan
         }
     }
 }
@@ -1460,6 +1431,7 @@ mod tests {
             negative_scenarios: vec![],
             kind: crate::capability::CapabilityKind::Workflow,
             visibility: crate::capability::Visibility::Public,
+            agent_profile_id: None,
         }]
     }
 
@@ -1485,6 +1457,7 @@ mod tests {
                 kind: crate::capability::CapabilityKind::Workflow,
                 domain: "finance".to_string(),
                 cluster: Some("stock_analysis".to_string()),
+                agent_profile_id: None,
             }],
             execution_mode: ExecutionMode::Workflow,
         }
@@ -1626,6 +1599,7 @@ mod tests {
                 negative_scenarios: vec![],
                 kind: crate::capability::CapabilityKind::Tool,
                 visibility: crate::capability::Visibility::SystemOnly,
+                agent_profile_id: None,
             }],
         });
 

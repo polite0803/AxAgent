@@ -906,7 +906,13 @@
       "title": "Switch Mode",
       "ask": "Ask",
       "plan": "Plan",
-      "action": "Action"
+      "action": "Action",
+      "action": "تنفيذ",
+      "ask": "اسأل",
+      "auto": "تلقائي",
+      "plan": "خطة",
+      "title": "وضع التنفيذ",
+      "gateway": "بوابة"
     },
     "moveToWorkspace": "نقل إلى مساحة العمل",
     "multiModel": {
@@ -1940,7 +1946,23 @@
     "fallbackPath": "مسار احتياطي",
     "candidates": "المرشحون",
     "stageRecords": "مراحل المسار",
-    "recordedAt": "سُجل في"
+    "recordedAt": "سُجل في",
+    "branch": "فرع القرار",
+    "workflowName": "سير العمل المحدد",
+    "agentProfile": "وكيل التنفيذ",
+    "role": "الدور",
+    "expert": "الخبير",
+    "noDecision": "لم يتم العثور على سير عمل/وكيل محدد، تنفيذ افتراضي",
+    "executionModeMap": {
+      "ask": "سؤال",
+      "plan": "تفكيك الخطة",
+      "act": "تنفيذ الإجراء",
+      "workflow": "تشغيل سير العمل",
+      "direct": "مباشر",
+      "delegate": "تفويض للوكيل",
+      "parameter_extract": "استخراج المعلمات",
+      "clarify": "في انتظار التوضيح"
+    }
   },
   "continuation": {
     "continueFromHere": "المتابعة من هنا",

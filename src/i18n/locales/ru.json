@@ -906,7 +906,13 @@
       "title": "Switch Mode",
       "ask": "Ask",
       "plan": "Plan",
-      "action": "Action"
+      "action": "Action",
+      "action": "Выполнить",
+      "ask": "Спросить",
+      "auto": "Авто",
+      "plan": "План",
+      "title": "Режим выполнения",
+      "gateway": "Шлюз"
     },
     "moveToWorkspace": "Переместить в рабочую область",
     "multiModel": {
@@ -1940,7 +1946,23 @@
     "fallbackPath": "Запасной путь",
     "candidates": "Кандидаты",
     "stageRecords": "Этапы маршрута",
-    "recordedAt": "Записано в"
+    "recordedAt": "Записано в",
+    "branch": "Ветвь решения",
+    "workflowName": "Выбранный рабочий процесс",
+    "agentProfile": "Исполняющий агент",
+    "role": "Роль",
+    "expert": "Эксперт",
+    "noDecision": "Конкретный рабочий процесс/агент не найден, выполнение по умолчанию",
+    "executionModeMap": {
+      "ask": "Вопрос",
+      "plan": "Разбиение плана",
+      "act": "Выполнение действия",
+      "workflow": "Запуск рабочего процесса",
+      "direct": "Напрямую",
+      "delegate": "Делегировать агенту",
+      "parameter_extract": "Извлечение параметров",
+      "clarify": "Ожидание уточнения"
+    }
   },
   "continuation": {
     "continueFromHere": "Продолжить отсюда",

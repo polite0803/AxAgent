@@ -10,7 +10,7 @@ import { useTranslation } from "react-i18next";
 
 import { ModuleErrorBoundary } from "@/components/layout/ModuleErrorBoundary";
 import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
-import { invoke, logIpcError } from "@/lib/invoke";
+import { logIpcError } from "@/lib/invoke";
 import {
   setupAgentEventListeners,
   setupDreamEventListeners,
@@ -19,7 +19,6 @@ import {
   useCacheStore,
   useCompressStore,
   useConversationStore,
-  useExpertStore,
   usePlanStore,
   useProviderStore,
   useSettingsStore,
@@ -46,14 +45,12 @@ import { ClarifyCard } from "./ClarifyCard";
 import { CodeBlockPreviewModal } from "./CodeBlockPreviewModal";
 import { ContextBar, estimateConversationTokens } from "./ContextBar";
 import { ContextGraphPanel } from "./ContextGraphPanel";
-import { ExpertSelector } from "./ExpertSelector";
 import { ExtractMemoriesModal } from "./ExtractMemoriesModal";
 import { InputArea } from "./InputArea";
 import { PermissionModal } from "./PermissionModal";
 import { PlanApprovalModal } from "./PlanApprovalModal";
 import { PlanCard } from "./PlanCard";
 // QuickCommandBar removed: /clear, /compact, /model are covered by bottom toolbar & header ModelSelector
-import { WorkflowEndMarker } from "./WorkflowEndMarker";
 import { WorkflowProgressPanel } from "./WorkflowProgressPanel";
 
 import { useChatViewMessages } from "./ChatViewMessages";
@@ -160,9 +157,6 @@ function ChatViewInner({
   const providers = useProviderStore((s) => s.providers);
   const isDarkMode = useResolvedDarkMode(settings.theme_mode);
   const storeError = useConversationStore((s) => s.error);
-  const updateConversation = useConversationStore((s) => s.updateConversation);
-  const fetchConversation = useConversationStore((s) => s.fetchConversations);
-  const toggleArchive = useConversationStore((s) => s.toggleArchive);
   const loadOlderMessages = useConversationStore((s) => s.loadOlderMessages);
   const streamingMessageId = useStreamStore((s) => s.streamingMessageId);
   const cacheValid = useCacheStore((s) => s.cacheValid);
@@ -406,7 +400,6 @@ function ChatViewInner({
         handleStatsOpenChange={actions.handleStatsOpenChange}
         exportMenuItems={actions.exportMenuItems}
         setExtractMemoriesOpen={actions.setExtractMemoriesOpen}
-        setExpertOpen={actions.setExpertOpen}
         streamingMessageId={streamingMessageId}
         token={token}
       />
@@ -560,19 +553,6 @@ function ChatViewInner({
                   }
                   return bubbleNode;
                 })}
-                {activeConversation?.session_type === "workflow"
-                  && activeConversation?.workflow_status === "completed" && (
-                  <WorkflowEndMarker
-                    workflowName={activeConversation.workflow_template_id
-                      ?? t("chat.workflowLabel")}
-                    stepCount={0}
-                    completedCount={0}
-                    durationSeconds={0}
-                    onArchive={() => {
-                      void toggleArchive(activeConversation.id);
-                    }}
-                  />
-                )}
                 <ClarifyCard />
               </div>
               <ChatScrollIndicator />
@@ -665,57 +645,6 @@ function ChatViewInner({
           reason={filePermRequest.reason}
         />
       )}
-      <ExpertSelector
-        open={actions.expertOpen}
-        onClose={() => actions.setExpertOpen(false)}
-        selectedRoleId={activeConversation?.agent_profile_id ?? null}
-        onSelect={async (roleId) => {
-          if (!activeConversationId) {
-            return;
-          }
-          const expertStore = useExpertStore.getState();
-          const role = expertStore.getRoleById(roleId);
-          if (!role) {
-            return;
-          }
-
-          // 确保 AgentProfile 在 DB 中存在
-          await invoke("ensure_agent_profile", {
-            id: roleId,
-            name: role.name,
-            expertId: role.source === "agency" ? roleId : (role.expertId ?? null),
-            agentRole: role.agentRole ?? null,
-          });
-
-          await updateConversation(activeConversationId, {
-            agent_profile_id: roleId,
-          });
-          expertStore.recordSwitch(activeConversationId, roleId);
-
-          if (role.suggestedProviderId && role.suggestedModelId) {
-            await updateConversation(activeConversationId, {
-              provider_id: role.suggestedProviderId,
-              model_id: role.suggestedModelId,
-            });
-          }
-          if (role.suggestedTemperature != null) {
-            await updateConversation(activeConversationId, {
-              temperature: role.suggestedTemperature,
-            });
-          }
-
-          if (role.recommendPermissionMode) {
-            const { updatePermissionMode } = useAgentStore.getState();
-            updatePermissionMode(
-              activeConversationId,
-              role.recommendPermissionMode,
-            );
-          }
-
-          fetchConversation();
-          actions.setExpertOpen(false);
-        }}
-      />
       <Modal
         title={t("chat.compressionSummary")}
         open={msgState.summaryModalOpen}

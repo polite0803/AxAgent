@@ -33,8 +33,8 @@ pub async fn get_workflow_template(
     Ok(template)
 }
 
-pub async fn insert_workflow_template(
-    db: &DatabaseConnection,
+pub async fn insert_workflow_template<C: ConnectionTrait>(
+    db: &C,
     template: workflow_template::ActiveModel,
 ) -> Result<()> {
     template.clone().insert(db).await?;

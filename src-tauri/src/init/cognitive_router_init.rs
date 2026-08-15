@@ -23,9 +23,8 @@ use axagent_harness::workflow_types::{
     BackoffType, CompareOperator, Condition, ConditionNode, ConditionNodeConfig,
     DataTransformerNode, DataTransformerNodeConfig, EndNode, EndNodeConfig, LlmClassifierNode,
     LlmClassifierNodeConfig, LogicalOperator, Position, RetryConfig, SubWorkflowNode,
-    SubWorkflowNodeConfig, SwitchCase, SwitchNode, SwitchNodeConfig, ValidationAssertion,
-    ValidationNode, ValidationNodeConfig, WorkflowEdge, WorkflowNode, WorkflowNodeBase,
-    WorkflowTemplateData,
+    SubWorkflowNodeConfig, ValidationAssertion, ValidationNode, ValidationNodeConfig, WorkflowEdge,
+    WorkflowNode, WorkflowNodeBase, WorkflowTemplateData,
 };
 
 /// 认知编排器模板 ID 常量
@@ -498,33 +497,9 @@ fn build_main_router_nodes() -> Vec<WorkflowNode> {
             Position { x: 700.0, y: 880.0 },
             Some("l3_result"),
         ),
-        // 12. 执行模式决策
-        WorkflowNode::Switch(SwitchNode {
-            base: simple_base("execution_mode", "执行模式决策", Position { x: 250.0, y: 1000.0 }),
-            config: SwitchNodeConfig {
-                input_var: "l3_result.execution_mode".to_string(),
-                cases: vec![
-                    SwitchCase { value: "direct".to_string(), label: "直接执行".to_string() },
-                    SwitchCase {
-                        value: "workflow".to_string(), label: "工作流执行".to_string()
-                    },
-                    SwitchCase { value: "delegate".to_string(), label: "代理执行".to_string() },
-                    SwitchCase { value: "ask".to_string(), label: "问答模式".to_string() },
-                    SwitchCase { value: "plan".to_string(), label: "计划模式".to_string() },
-                    SwitchCase { value: "act".to_string(), label: "行动模式".to_string() },
-                    SwitchCase { value: "clarify".to_string(), label: "澄清选择".to_string() },
-                ],
-                default_case: Some("ask".to_string()),
-                match_mode: "exact".to_string(),
-                use_llm: None,
-                llm_prompt: None,
-                llm_model: None,
-                // 执行模式决策仅用于分支跳转，最终决策由 EndNode 以 l3_result 输出；
-                // output_var 留空避免产生未被消费的 final_decision 死变量。
-                output_var: String::new(),
-            },
-        }),
-        // 13. 最终结束节点（输出 l3_result，作为主 DAG 的最终路由决策）
+        // 12. 最终结束节点（输出 l3_result，作为主 DAG 的最终路由决策）
+        // 执行模式决策内嵌于 l3_result.execution_mode（由 L3 图谱路由产出），
+        // 经 EndNode 原样透传，无需主 DAG 再做分支。
         end_node_with_var("end", "路由完成", Position { x: 250.0, y: 1120.0 }, Some("l3_result")),
     ]
 }
@@ -543,8 +518,7 @@ fn build_main_router_edges() -> Vec<WorkflowEdge> {
         direct_edge("e10", "l2_fallback", "call_l3"),
         direct_edge("e11", "call_l3", "circuit_breaker"),
         branch_edge("e12", "circuit_breaker", "circuit_broken_end", true, "熔断触发"),
-        branch_edge("e13", "circuit_breaker", "execution_mode", false, "正常"),
-        direct_edge("e14", "execution_mode", "end"),
+        direct_edge("e13", "circuit_breaker", "end"),
     ]
 }
 

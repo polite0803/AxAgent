@@ -893,7 +893,9 @@
       "ask": "Ask",
       "plan": "Plan",
       "action": "Action",
-      "title": "Switch Mode"
+      "title": "Switch Mode",
+      "title": "Execution Mode",
+      "gateway": "Gateway"
     },
     "moveToWorkspace": "Move to Workspace",
     "multiModel": {
@@ -1940,7 +1942,23 @@
     "fallbackPath": "Fallback path",
     "candidates": "Candidates",
     "stageRecords": "Route stages",
-    "recordedAt": "Recorded at"
+    "recordedAt": "Recorded at",
+    "branch": "Decision branch",
+    "workflowName": "Selected workflow",
+    "agentProfile": "Executing agent",
+    "role": "Role",
+    "expert": "Expert",
+    "noDecision": "No specific workflow/agent matched; using default execution",
+    "executionModeMap": {
+      "ask": "Ask",
+      "plan": "Plan",
+      "act": "Act",
+      "workflow": "Run workflow",
+      "direct": "Direct",
+      "delegate": "Delegate to agent",
+      "parameter_extract": "Parameter extraction",
+      "clarify": "Await clarification"
+    }
   },
   "continuation": {
     "continueFromHere": "Continue from here",

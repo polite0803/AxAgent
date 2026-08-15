@@ -9,7 +9,7 @@ use axagent_dao::repo::workflow_template as db_repo;
 use axagent_dao::workflow_conversions::workflow_template_response_from_model;
 use axagent_harness::workflow_types::*;
 use axagent_runtime::work_engine::node_executor_trait::node_type_name;
-use sea_orm::{DatabaseConnection, EntityTrait, Set};
+use sea_orm::{ConnectionTrait, DatabaseConnection, EntityTrait, Set, TransactionTrait};
 use serde::Deserialize;
 use tauri::State;
 
@@ -943,19 +943,542 @@ pub async fn export_workflow_template(
     })
 }
 
-/// 检测是否为 n8n 格式（存在 n8n-nodes-base 类型节点）
+/// 判断节点类型是否属于 n8n 家族（内置 n8n-nodes-base、LangChain @n8n 节点、社区 n8n-nodes-*）
+fn is_n8n_node_type(t: &str) -> bool {
+    t.starts_with("n8n-nodes-base.") || t.starts_with("n8n-nodes-") || t.starts_with("@n8n/")
+}
+
+/// 检测是否为 n8n 格式（存在 n8n 家族类型节点）
 fn is_n8n_format(json: &serde_json::Value) -> bool {
     json.get("nodes")
         .and_then(|n| n.as_array())
         .map(|nodes| {
             nodes.iter().any(|n| {
-                n.get("type")
-                    .and_then(|t| t.as_str())
-                    .map(|t| t.starts_with("n8n-nodes-base."))
-                    .unwrap_or(false)
+                n.get("type").and_then(|t| t.as_str()).map(is_n8n_node_type).unwrap_or(false)
             })
         })
         .unwrap_or(false)
+}
+
+/// 解析 n8n 节点 position —— n8n 官方导出为 `[x, y]` 数组，部分格式为 `{x, y}` 对象，两者兼容
+fn parse_n8n_position(v: &serde_json::Value) -> Position {
+    if let Some(arr) = v.as_array() {
+        Position {
+            x: arr.first().and_then(|e| e.as_f64()).unwrap_or(0.0),
+            y: arr.get(1).and_then(|e| e.as_f64()).unwrap_or(0.0),
+        }
+    } else {
+        Position {
+            x: v.get("x").and_then(|e| e.as_f64()).unwrap_or(0.0),
+            y: v.get("y").and_then(|e| e.as_f64()).unwrap_or(0.0),
+        }
+    }
+}
+
+/// n8n 触发器类型集合（作为工作流入口节点）
+fn is_n8n_trigger_type(t: &str) -> bool {
+    matches!(
+        t,
+        "n8n-nodes-base.webhook"
+            | "n8n-nodes-base.scheduleTrigger"
+            | "n8n-nodes-base.cronTrigger"
+            | "n8n-nodes-base.intervalTrigger"
+            | "n8n-nodes-base.manualTrigger"
+            | "n8n-nodes-base.chatTrigger"
+            | "n8n-nodes-base.formTrigger"
+            | "n8n-nodes-base.emailTrigger"
+            | "n8n-nodes-base.gmailTrigger"
+            | "n8n-nodes-base.executeWorkflowTrigger"
+            | "n8n-nodes-base.errorTrigger"
+    )
+}
+
+/// 将 n8n 触发器类型映射为 AxAgent TriggerType
+fn map_n8n_trigger_type(t: &str) -> TriggerType {
+    match t {
+        "n8n-nodes-base.webhook" => TriggerType::Webhook,
+        "n8n-nodes-base.scheduleTrigger"
+        | "n8n-nodes-base.cronTrigger"
+        | "n8n-nodes-base.intervalTrigger" => TriggerType::Schedule,
+        _ => TriggerType::Manual,
+    }
+}
+
+/// 去掉 n8n 表达式包装 `={{ $json.foo }}` → `$json.foo`；无包装时原样返回
+fn unwrap_n8n_expression(s: &str) -> String {
+    let s = s.trim();
+    if let Some(inner) = s.strip_prefix("={{") {
+        inner.trim().trim_end_matches("}}").trim().to_string()
+    } else if let Some(inner) = s.strip_prefix("{{") {
+        inner.trim().trim_end_matches("}}").trim().to_string()
+    } else {
+        s.to_string()
+    }
+}
+
+/// n8n IF 操作符 → AxAgent CompareOperator
+fn n8n_operator_to_compare(op: &str) -> CompareOperator {
+    match op {
+        "equals" => CompareOperator::Eq,
+        "notEquals" => CompareOperator::Ne,
+        "gt" => CompareOperator::Gt,
+        "lt" => CompareOperator::Lt,
+        "gte" => CompareOperator::Gte,
+        "lte" => CompareOperator::Lte,
+        "contains" => CompareOperator::Contains,
+        "notContains" => CompareOperator::NotContains,
+        "startsWith" => CompareOperator::StartsWith,
+        "endsWith" => CompareOperator::EndsWith,
+        "regex" => CompareOperator::RegexMatch,
+        "isEmpty" => CompareOperator::IsEmpty,
+        "isNotEmpty" => CompareOperator::IsNotEmpty,
+        _ => CompareOperator::Eq,
+    }
+}
+
+/// 解析 n8n IF 节点的 conditions → AxAgent Condition 列表
+/// 解析失败（conditions 为空）时由调用方启用 LLM 路由兜底，避免分支静默失效
+fn parse_n8n_if_conditions(
+    params: Option<&serde_json::Value>,
+) -> (Vec<Condition>, LogicalOperator) {
+    let mut conditions: Vec<Condition> = Vec::new();
+    let mut logical_op = LogicalOperator::And;
+    if let Some(p) = params
+        && let Some(conds_obj) = p.get("conditions")
+    {
+        if conds_obj.get("combinator").and_then(|v| v.as_str()) == Some("or") {
+            logical_op = LogicalOperator::Or;
+        }
+        if let Some(arr) = conds_obj.get("conditions").and_then(|v| v.as_array()) {
+            for c in arr {
+                let left = c.get("leftValue").and_then(|v| v.as_str()).unwrap_or("");
+                let right = c.get("rightValue").and_then(|v| v.as_str()).unwrap_or("");
+                let op = c
+                    .get("operator")
+                    .and_then(|o| o.get("operation"))
+                    .and_then(|v| v.as_str())
+                    .or_else(|| c.get("operator").and_then(|v| v.as_str()))
+                    .unwrap_or("equals");
+                // 左侧表达式去壳为变量路径；右侧保留原值（字面量或变量表达式）
+                let var_path = unwrap_n8n_expression(left);
+                let value = serde_json::Value::String(right.to_string());
+                conditions.push(Condition {
+                    var_path,
+                    operator: n8n_operator_to_compare(op),
+                    value,
+                });
+            }
+        }
+    }
+    (conditions, logical_op)
+}
+
+/// n8n 节点 kind —— 决定源端口（handle）的语义
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum N8nNodeKind {
+    /// 触发器入口
+    Trigger,
+    /// IF 条件节点（true/false 两端口）
+    Condition,
+    /// Switch 多分支节点（branch-N 端口）
+    Switch,
+    /// 普通单/多输出节点
+    Other,
+}
+
+/// 由 n8n 节点类型推导其端口语义（用于 edges 的 source_handle 映射）
+fn n8n_node_kind(n8n_type: &str) -> N8nNodeKind {
+    if is_n8n_trigger_type(n8n_type) {
+        N8nNodeKind::Trigger
+    } else if n8n_type == "n8n-nodes-base.if" {
+        N8nNodeKind::Condition
+    } else if n8n_type == "n8n-nodes-base.switch" {
+        N8nNodeKind::Switch
+    } else {
+        N8nNodeKind::Other
+    }
+}
+
+/// n8n 连接 main 组索引 → AxAgent 源端口（source_handle + edge_type）。
+/// n8n 中 main 数组的每个元素即源节点的一个输出端口：
+/// - IF 节点：索引 0 = true 分支、1 = false 分支
+/// - Switch 节点：索引 N = 第 N 个分支
+/// - 其他节点：仅主输出（默认端口，不填 handle）
+fn n8n_source_handle(kind: N8nNodeKind, main_index: usize) -> (Option<String>, EdgeType) {
+    match kind {
+        N8nNodeKind::Condition => match main_index {
+            0 => (Some("true".to_string()), EdgeType::ConditionTrue),
+            1 => (Some("false".to_string()), EdgeType::ConditionFalse),
+            _ => (Some(format!("branch-{}", main_index)), EdgeType::ParallelBranch),
+        },
+        N8nNodeKind::Switch => (Some(format!("branch-{}", main_index)), EdgeType::ParallelBranch),
+        _ => (None, EdgeType::Direct),
+    }
+}
+
+/// n8n 节点 → AxAgent 节点变体（精确 type 匹配）。
+/// 无法精确映射的节点返回 None，由调用方走 Agent 兜底。
+fn map_n8n_node(
+    base: WorkflowNodeBase,
+    n8n_node: &serde_json::Value,
+    n8n_type: &str,
+) -> Option<WorkflowNode> {
+    use axagent_harness::workflow_types::*;
+    let node_id = base.id.clone();
+    let params = n8n_node.get("parameters");
+
+    // ── 触发器 ──
+    if is_n8n_trigger_type(n8n_type) {
+        let config = params.cloned().unwrap_or(serde_json::Value::Null);
+        return Some(WorkflowNode::Trigger(TriggerNode {
+            base,
+            config: TriggerConfig { trigger_type: map_n8n_trigger_type(n8n_type), config },
+        }));
+    }
+
+    // ── IF 条件 ──
+    if n8n_type == "n8n-nodes-base.if" {
+        let (conditions, logical_op) = parse_n8n_if_conditions(params);
+        // 静态条件解析失败时退化为 LLM 路由，保证分支语义不静默失效
+        let judge_by_llm = if conditions.is_empty() {
+            Some(true)
+        } else {
+            None
+        };
+        let routing_prompt = judge_by_llm
+            .map(|_| format!("按节点语义判断进入 true 还是 false 分支：{}", base.title));
+        return Some(WorkflowNode::Condition(ConditionNode {
+            base,
+            config: ConditionNodeConfig {
+                conditions,
+                logical_op,
+                judge_by_llm,
+                routing_prompt,
+                routing_model: None,
+                confidence_threshold: None,
+            },
+        }));
+    }
+
+    // ── Switch 多分支 ──
+    if n8n_type == "n8n-nodes-base.switch" {
+        let input_var = params
+            .and_then(|p| p.get("input1"))
+            .and_then(|v| v.as_str())
+            .map(unwrap_n8n_expression)
+            .or_else(|| {
+                params
+                    .and_then(|p| p.get("inputValue"))
+                    .and_then(|v| v.as_str())
+                    .map(unwrap_n8n_expression)
+            })
+            .unwrap_or_default();
+        let mut cases: Vec<SwitchCase> = Vec::new();
+        let mut default_case: Option<String> = None;
+        if let Some(rules) = params.and_then(|p| p.get("rules")) {
+            if let Some(values) = rules.get("values").and_then(|v| v.as_array()) {
+                let mut by_index: std::collections::BTreeMap<usize, String> =
+                    std::collections::BTreeMap::new();
+                for r in values {
+                    let idx = r.get("outputIndex").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
+                    let val = r.get("value").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                    by_index.insert(idx, val);
+                }
+                cases = by_index
+                    .into_values()
+                    .map(|v| SwitchCase { value: v.clone(), label: v })
+                    .collect();
+            }
+            if let Some(fb) = rules.get("fallbackOutputIndex").and_then(|v| v.as_u64()) {
+                default_case =
+                    cases.iter().find(|c| c.value == fb.to_string()).map(|c| c.value.clone());
+                // 兜底端口未在 cases 中时，用占位表达式标记（前端可编辑）
+                if default_case.is_none() {
+                    default_case = Some(format!("__default_{}", fb));
+                }
+            }
+        }
+        return Some(WorkflowNode::Switch(SwitchNode {
+            base,
+            config: SwitchNodeConfig {
+                input_var,
+                cases,
+                default_case,
+                match_mode: "exact".to_string(),
+                use_llm: None,
+                llm_prompt: None,
+                llm_model: None,
+                output_var: format!("{}_output", node_id),
+            },
+        }));
+    }
+
+    // ── Merge 合并 ──
+    if n8n_type == "n8n-nodes-base.merge" {
+        let merge_type = match params.and_then(|p| p.get("mode")).and_then(|v| v.as_str()) {
+            Some(m)
+                if m.contains("combineByKey")
+                    || m.contains("combineByPosition")
+                    || m.contains("combine") =>
+            {
+                MergeStrategy::All
+            },
+            Some(m) if m.contains("append") => MergeStrategy::All,
+            _ => MergeStrategy::All,
+        };
+        return Some(WorkflowNode::Merge(MergeNode {
+            base,
+            config: MergeNodeConfig {
+                merge_type,
+                inputs: Vec::new(),
+                auto_inputs_from_branches: true,
+            },
+        }));
+    }
+
+    // ── Wait 延时 ──
+    if n8n_type == "n8n-nodes-base.wait" {
+        let amount = params.and_then(|p| p.get("amount")).and_then(|v| v.as_u64()).unwrap_or(0);
+        let seconds = match params.and_then(|p| p.get("unit")).and_then(|v| v.as_str()) {
+            Some("minutes") => amount * 60,
+            Some("hours") => amount * 3600,
+            Some("days") => amount * 86400,
+            _ => amount,
+        };
+        return Some(WorkflowNode::Delay(DelayNode {
+            base,
+            config: DelayNodeConfig { delay_type: "seconds".to_string(), seconds, until: None },
+        }));
+    }
+
+    // ── 循环（分批/遍历）──
+    if n8n_type == "n8n-nodes-base.splitInBatches" || n8n_type == "n8n-nodes-base.loopOverItems" {
+        return Some(WorkflowNode::Loop(LoopNode {
+            base,
+            config: LoopNodeConfig {
+                loop_type: LoopType::ForEach,
+                items_var: None,
+                iter_input_var: None,
+                iteratee_var: Some("item".to_string()),
+                iter_output_var: None,
+                partial_result_var: None,
+                max_iterations: Some(1000),
+                continue_condition: None,
+                continue_on_error: false,
+                body_steps: Vec::new(),
+                interrupt_after_each: false,
+                interrupt_nodes: Vec::new(),
+                sub_graph: None,
+            },
+        }));
+    }
+
+    // ── noOp：分支结束占位 → 透传空操作 Code 节点以保持拓扑 ──
+    if n8n_type == "n8n-nodes-base.noOp" {
+        return Some(WorkflowNode::Code(CodeNode {
+            base,
+            config: CodeNodeConfig {
+                language: "javascript".to_string(),
+                code: "// no-op: 保持 n8n 分支拓扑的透传节点".to_string(),
+                output_var: format!("{}_output", node_id),
+                tool_name: None,
+                execute_directly: true,
+                input_mapping: std::collections::HashMap::new(),
+            },
+        }));
+    }
+
+    // ── HTTP Request ──
+    if n8n_type == "n8n-nodes-base.httpRequest" {
+        let mut headers: std::collections::HashMap<String, String> =
+            std::collections::HashMap::new();
+        if params.and_then(|p| p.get("sendHeaders")).and_then(|v| v.as_bool()).unwrap_or(false) {
+            if let Some(hp) = params
+                .and_then(|p| p.get("headerParameters"))
+                .and_then(|v| v.get("parameters"))
+                .and_then(|v| v.as_array())
+            {
+                for h in hp {
+                    if let (Some(k), Some(v)) = (
+                        h.get("name").and_then(|x| x.as_str()),
+                        h.get("value").and_then(|x| x.as_str()),
+                    ) {
+                        headers.insert(k.to_string(), v.to_string());
+                    }
+                }
+            }
+        }
+        let mut body: Option<String> = None;
+        if params.and_then(|p| p.get("sendBody")).and_then(|v| v.as_bool()).unwrap_or(false) {
+            if let Some(jb) = params.and_then(|p| p.get("jsonBody")).and_then(|v| v.as_str()) {
+                body = Some(jb.to_string());
+            } else if let Some(bp) = params
+                .and_then(|p| p.get("bodyParameters"))
+                .and_then(|v| v.get("parameters"))
+                .and_then(|v| v.as_array())
+            {
+                let parts: Vec<String> = bp
+                    .iter()
+                    .filter_map(|x| {
+                        let n = x.get("name").and_then(|v| v.as_str())?;
+                        let v = x.get("value").and_then(|v| v.as_str()).unwrap_or("");
+                        Some(format!("{}={}", n, v))
+                    })
+                    .collect();
+                if !parts.is_empty() {
+                    body = Some(parts.join("&"));
+                }
+            }
+        }
+        return Some(WorkflowNode::HttpRequest(HttpRequestNode {
+            base,
+            config: HttpRequestNodeConfig {
+                url: params
+                    .and_then(|p| p.get("url"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
+                method: params
+                    .and_then(|p| p.get("method"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("GET")
+                    .to_uppercase(),
+                headers,
+                body,
+                body_type: "json".to_string(),
+                timeout_secs: 30,
+                output_var: format!("{}_output", node_id),
+                credential_id: None,
+            },
+        }));
+    }
+
+    // ── Code / 函数 ──
+    if n8n_type == "n8n-nodes-base.code"
+        || n8n_type == "n8n-nodes-base.function"
+        || n8n_type == "n8n-nodes-base.functionItem"
+    {
+        let code = params
+            .and_then(|p| p.get("jsCode"))
+            .or_else(|| params.and_then(|p| p.get("code")))
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        return Some(WorkflowNode::Code(CodeNode {
+            base,
+            config: CodeNodeConfig {
+                language: "javascript".to_string(),
+                code,
+                output_var: format!("{}_output", node_id),
+                tool_name: None,
+                execute_directly: true,
+                input_mapping: std::collections::HashMap::new(),
+            },
+        }));
+    }
+
+    // ── 数据库 ──
+    if matches!(
+        n8n_type,
+        "n8n-nodes-base.postgres"
+            | "n8n-nodes-base.mysql"
+            | "n8n-nodes-base.sqlite"
+            | "n8n-nodes-base.mssql"
+            | "n8n-nodes-base.mongoDb"
+            | "n8n-nodes-base.redis"
+            | "n8n-nodes-base.snowflake"
+            | "n8n-nodes-base.oracle"
+    ) {
+        let operation = params
+            .and_then(|p| p.get("operation"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("executeQuery");
+        let query = params
+            .and_then(|p| p.get("query"))
+            .and_then(|v| v.as_str())
+            .filter(|q| !q.is_empty())
+            .map(|q| q.to_string())
+            .unwrap_or_else(|| format!("-- n8n 节点原操作: {}", operation));
+        return Some(WorkflowNode::DatabaseQuery(DatabaseQueryNode {
+            base,
+            config: DatabaseQueryNodeConfig {
+                query,
+                params: Vec::new(),
+                connection_name: None,
+                timeout_secs: 30,
+                output_var: format!("{}_output", node_id),
+                credential_id: None,
+            },
+        }));
+    }
+
+    // ── 邮件 ──
+    if n8n_type == "n8n-nodes-base.emailSend" {
+        let to: Vec<String> = params
+            .and_then(|p| p.get("toEmail"))
+            .and_then(|v| v.as_str())
+            .map(|s| s.split(',').map(|x| x.trim().to_string()).collect())
+            .unwrap_or_default();
+        let subject = params
+            .and_then(|p| p.get("subject"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let body = params
+            .and_then(|p| p.get("text"))
+            .or_else(|| params.and_then(|p| p.get("body")))
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        return Some(WorkflowNode::Email(EmailNode {
+            base,
+            config: EmailNodeConfig {
+                to,
+                subject,
+                body,
+                smtp_host: None,
+                smtp_port: None,
+                smtp_user: None,
+                smtp_pass: None,
+                output_var: format!("{}_output", node_id),
+                credential_id: None,
+            },
+        }));
+    }
+
+    // ── Set / 字段编辑 → 数据转换 ──
+    if n8n_type == "n8n-nodes-base.set" || n8n_type == "n8n-nodes-base.editFields" {
+        let mut parts: Vec<String> = Vec::new();
+        if let Some(assign) = params
+            .and_then(|p| p.get("assignments"))
+            .and_then(|v| v.get("assignments"))
+            .and_then(|v| v.as_array())
+        {
+            for a in assign {
+                if let (Some(name), Some(value)) = (
+                    a.get("name").and_then(|v| v.as_str()),
+                    a.get("value").and_then(|v| v.as_str()),
+                ) {
+                    parts.push(format!("{}={}", name, value));
+                }
+            }
+        }
+        let expression = if parts.is_empty() {
+            "({ json }) => json".to_string()
+        } else {
+            parts.join(";")
+        };
+        return Some(WorkflowNode::DataTransformer(DataTransformerNode {
+            base,
+            config: DataTransformerNodeConfig {
+                input_var: "input".to_string(),
+                expression,
+                output_var: format!("{}_output", node_id),
+            },
+        }));
+    }
+
+    None
 }
 
 /// n8n 节点类型 → (agent_profile_id, agent_role, expert_id, expert_system_prompt)
@@ -1131,7 +1654,7 @@ fn infer_agent_from_n8n(
 }
 
 /// 确保 AgentRole 存在，不存在则创建
-async fn ensure_agent_role(db: &DatabaseConnection, role_name: &str) -> Result<(), String> {
+async fn ensure_agent_role<C: ConnectionTrait>(db: &C, role_name: &str) -> Result<(), String> {
     use axagent_entities::agent_roles;
     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
@@ -1174,17 +1697,20 @@ async fn ensure_agent_role(db: &DatabaseConnection, role_name: &str) -> Result<(
     Ok(())
 }
 
-/// 从 n8n 导入时创建 Expert（技能）+ AgentRole（岗位）+ AgentProfile（组装体）
-async fn ensure_agent_profile(
-    db: &DatabaseConnection,
+/// 从 n8n 导入时创建 Expert（技能）+ AgentRole（岗位）+ AgentProfile（组装体）。
+/// profile 名称收敛为 `n8n-{role}` 固定格式（而非节点名），避免同名节点产生冗余技能。
+async fn ensure_agent_profile<C: ConnectionTrait>(
+    db: &C,
     profile_id: &str,
-    profile_name: &str,
     agent_role: &str,
     expert_id: &str,
     expert_prompt: &str,
 ) -> Result<(), String> {
     use axagent_entities::{agency_experts, agent_profiles};
     use sea_orm::Set;
+
+    // profile 名称按角色收敛为稳定格式，重复导入不会产生新技能记录
+    let profile_name = format!("n8n-{}", agent_role);
 
     let now = chrono::Utc::now().timestamp_millis();
 
@@ -1600,8 +2126,8 @@ fn extract_config_from_n8n(n8n_node: &serde_json::Value, node_id: &str) -> Agent
 }
 
 /// 将 n8n JSON 转换为 AxAgent Workflow — 两阶段：先 DB 准备，再组装
-async fn convert_n8n_to_axagent(
-    db: &DatabaseConnection,
+async fn convert_n8n_to_axagent<C: ConnectionTrait>(
+    db: &C,
     json: &serde_json::Value,
 ) -> Result<axagent_harness::workflow_types::WorkflowTemplateData, String> {
     use axagent_harness::workflow_types::*;
@@ -1621,26 +2147,46 @@ async fn convert_n8n_to_axagent(
     let mut edge_id_counter = 0u32;
     let mut name_to_id: std::collections::HashMap<String, String> =
         std::collections::HashMap::new();
+    // 节点 id → 端口语义（供 edges 的 source_handle 映射）
+    let mut node_kinds: std::collections::HashMap<String, N8nNodeKind> =
+        std::collections::HashMap::new();
+    // 已 ensure 过的 profile_id —— 同一工作流内多个节点映射到同一 profile 时避免重复查库
+    let mut ensured_profiles: std::collections::HashSet<String> = std::collections::HashSet::new();
 
-    let trigger_node = WorkflowNode::Trigger(TriggerNode {
-        base: WorkflowNodeBase {
-            continue_on_fail: false,
-            compensation: None,
-            id: "trigger_imported".to_string(),
-            title: "Trigger".to_string(),
-            description: Some("Auto-created trigger from n8n import".to_string()),
-            position: Position { x: 0.0, y: 0.0 },
-            retry: RetryConfig::default(),
-            timeout: None,
-            enabled: true,
-            parent_id: None,
-        },
-        config: TriggerConfig {
-            trigger_type: TriggerType::Manual,
-            config: serde_json::Value::Null,
-        },
+    // 入口节点：n8n 自带触发器（webhook/schedule 等）时以其为入口，避免叠加固定 Trigger 造成
+    // 双入口歧义；否则补充一个固定的 Manual 入口。
+    let native_trigger_id: Option<String> = n8n_nodes.iter().find_map(|n| {
+        let is_trigger =
+            n.get("type").and_then(|t| t.as_str()).map(is_n8n_trigger_type).unwrap_or(false);
+        is_trigger.then(|| {
+            n.get("id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| uuid::Uuid::new_v4().to_string())
+        })
     });
-    ax_nodes.push(trigger_node);
+    let entry_node_id = native_trigger_id.unwrap_or_else(|| {
+        let trigger_node = WorkflowNode::Trigger(TriggerNode {
+            base: WorkflowNodeBase {
+                continue_on_fail: false,
+                compensation: None,
+                id: "trigger_imported".to_string(),
+                title: "Trigger".to_string(),
+                description: Some("Auto-created trigger from n8n import".to_string()),
+                position: Position { x: 0.0, y: 0.0 },
+                retry: RetryConfig::default(),
+                timeout: None,
+                enabled: true,
+                parent_id: None,
+            },
+            config: TriggerConfig {
+                trigger_type: TriggerType::Manual,
+                config: serde_json::Value::Null,
+            },
+        });
+        ax_nodes.push(trigger_node);
+        "trigger_imported".to_string()
+    });
 
     for n8n_node in n8n_nodes {
         let node_id = n8n_node
@@ -1657,15 +2203,11 @@ async fn convert_n8n_to_axagent(
 
         name_to_id.insert(node_name.clone(), node_id.clone());
 
-        let n8n_type_lower = n8n_type.to_lowercase();
+        let kind = n8n_node_kind(&n8n_type);
 
-        let position = n8n_node
-            .get("position")
-            .map(|p| Position {
-                x: p.get("x").and_then(|v| v.as_f64()).unwrap_or(0.0),
-                y: p.get("y").and_then(|v| v.as_f64()).unwrap_or(0.0),
-            })
-            .unwrap_or(Position { x: 0.0, y: 0.0 });
+        // n8n 官方导出 position 为 `[x, y]` 数组（部分为 `{x, y}` 对象），统一解析
+        let position =
+            n8n_node.get("position").map(parse_n8n_position).unwrap_or(Position { x: 0.0, y: 0.0 });
 
         let base = WorkflowNodeBase {
             continue_on_fail: false,
@@ -1680,62 +2222,22 @@ async fn convert_n8n_to_axagent(
             parent_id: None,
         };
 
-        if n8n_type_lower.contains("if") || n8n_type_lower.contains("switch") {
-            let condition_node = WorkflowNode::Condition(ConditionNode {
-                base,
-                config: ConditionNodeConfig {
-                    conditions: Vec::new(),
-                    logical_op: LogicalOperator::And,
-                    judge_by_llm: None,
-                    routing_prompt: None,
-                    routing_model: None,
-                    confidence_threshold: None,
-                },
-            });
-            ax_nodes.push(condition_node);
+        // 优先精确映射为对应节点类型（HTTP/Code/Database/IF/Switch/Merge 等）
+        if let Some(mapped) = map_n8n_node(base, n8n_node, &n8n_type) {
+            node_kinds.insert(node_id.clone(), kind);
+            ax_nodes.push(mapped);
             continue;
         }
 
-        if n8n_type_lower.contains("merge") {
-            let merge_node = WorkflowNode::Merge(MergeNode {
-                base,
-                config: MergeNodeConfig {
-                    merge_type: MergeStrategy::All,
-                    inputs: Vec::new(),
-                    auto_inputs_from_branches: false,
-                },
-            });
-            ax_nodes.push(merge_node);
-            continue;
-        }
-
-        if n8n_type_lower.contains("wait") {
-            let delay_node = WorkflowNode::Delay(DelayNode {
-                base,
-                config: DelayNodeConfig {
-                    delay_type: "seconds".to_string(),
-                    seconds: 5,
-                    until: None,
-                },
-            });
-            ax_nodes.push(delay_node);
-            continue;
-        }
-
+        // 无法精确映射 → Agent 兜底：按节点名称/类型推断角色与专家，生成配置
         let (agent_profile_id, agent_role, expert_id, expert_prompt) =
             infer_agent_from_n8n(&n8n_type, &node_name);
 
-        ensure_agent_role(db, agent_role).await?;
-
-        ensure_agent_profile(
-            db,
-            agent_profile_id,
-            &format!("n8n: {}", node_name),
-            agent_role,
-            expert_id,
-            expert_prompt,
-        )
-        .await?;
+        // 收敛 Profile 生成：同一工作流内相同 profile 只 ensure 一次，避免重复查库
+        if ensured_profiles.insert(agent_profile_id.to_string()) {
+            ensure_agent_profile(db, agent_profile_id, agent_role, expert_id, expert_prompt)
+                .await?;
+        }
 
         let goal = extract_goal_from_n8n(n8n_node);
 
@@ -1759,6 +2261,7 @@ async fn convert_n8n_to_axagent(
 
         let agent_node = WorkflowNode::Agent(AgentNode { base, config: agent_config });
 
+        node_kinds.insert(node_id.clone(), N8nNodeKind::Other);
         ax_nodes.push(agent_node);
     }
 
@@ -1819,6 +2322,9 @@ async fn convert_n8n_to_axagent(
     ax_nodes.push(end_node);
 
     // Convert n8n connections → edges
+    // n8n 连接 `main` 数组的每个元素即源节点的第 N 个输出端口：
+    // IF 节点 main[0]=true / main[1]=false；Switch 节点 main[N]=第 N 分支。
+    // 这里据此映射 source_handle + edge_type，还原分支拓扑。
     if let Some(connections) = n8n_connections {
         if let Some(conn_map) = connections.as_object() {
             for (source_name, conn_val) in conn_map {
@@ -1826,8 +2332,9 @@ async fn convert_n8n_to_axagent(
                     Some(id) => id.clone(),
                     None => continue,
                 };
+                let source_kind = node_kinds.get(&source_id).copied().unwrap_or(N8nNodeKind::Other);
                 if let Some(main_arr) = conn_val.get("main").and_then(|v| v.as_array()) {
-                    for main_group in main_arr {
+                    for (main_index, main_group) in main_arr.iter().enumerate() {
                         if let Some(entries) = main_group.as_array() {
                             for entry in entries {
                                 let target_name = entry.get("node").and_then(|v| v.as_str());
@@ -1835,13 +2342,16 @@ async fn convert_n8n_to_axagent(
                                     Some(id) => id.clone(),
                                     None => continue,
                                 };
+                                let (source_handle, edge_type) =
+                                    n8n_source_handle(source_kind, main_index);
                                 ax_edges.push(WorkflowEdge {
                                     id: format!("edge_{}", edge_id_counter),
                                     source: source_id.clone(),
-                                    source_handle: None,
+                                    source_handle,
                                     target: target_id,
+                                    // 目标输入端口索引（Merge 多输入等），普通节点用默认输入端口
                                     target_handle: None,
-                                    edge_type: EdgeType::Direct,
+                                    edge_type,
                                     label: None,
                                 });
                                 edge_id_counter += 1;
@@ -1872,13 +2382,11 @@ async fn convert_n8n_to_axagent(
             ax_edges.iter().map(|e| e.target.clone()).collect();
         for node in &ax_nodes {
             let nid = node.base_id();
-            if nid != "trigger_imported"
-                && nid != "end_imported"
-                && !targets_with_incoming.contains(nid)
+            if nid != entry_node_id && nid != "end_imported" && !targets_with_incoming.contains(nid)
             {
                 ax_edges.push(WorkflowEdge {
                     id: format!("edge_{}", edge_id_counter),
-                    source: "trigger_imported".to_string(),
+                    source: entry_node_id.clone(),
                     source_handle: None,
                     target: nid.to_string(),
                     target_handle: None,
@@ -1892,9 +2400,7 @@ async fn convert_n8n_to_axagent(
             ax_edges.iter().map(|e| e.source.clone()).collect();
         for node in &ax_nodes {
             let nid = node.base_id();
-            if nid != "trigger_imported"
-                && nid != "end_imported"
-                && !sources_with_outgoing.contains(nid)
+            if nid != entry_node_id && nid != "end_imported" && !sources_with_outgoing.contains(nid)
             {
                 ax_edges.push(WorkflowEdge {
                     id: format!("edge_{}", edge_id_counter),
@@ -1947,8 +2453,14 @@ async fn do_import_workflow(
     let workflow_name =
         raw_json.get("name").and_then(|v| v.as_str()).unwrap_or("Imported Workflow").to_string();
 
+    // n8n 转换会写 AgentRole/Expert/Profile 等副作用，须与模板插入同事务，失败整体回滚
+    let mut tx_holder: Option<sea_orm::DatabaseTransaction> = None;
+
     let mut new_template = if is_n8n_format(&raw_json) {
-        convert_n8n_to_axagent(db, &raw_json).await?
+        let tx = db.begin().await.map_err(|e| format!("Begin transaction: {}", e))?;
+        let t = convert_n8n_to_axagent(&tx, &raw_json).await?;
+        tx_holder = Some(tx);
+        t
     } else {
         let template: WorkflowTemplateResponse = serde_json::from_value(raw_json)
             .map_err(|e| format!("Invalid AxAgent format: {}", e))?;
@@ -2005,12 +2517,23 @@ async fn do_import_workflow(
     }
 
     let active_model = model_to_active_model(&new_template);
-    db_repo::insert_workflow_template(db, active_model).await.map_err(|e| {
-        String::from(crate::commands::error::ErrorResponse::from_error(
-            e,
-            crate::commands::error::ErrorCategory::Unrecoverable,
-        ))
-    })?;
+    if let Some(tx) = tx_holder.take() {
+        db_repo::insert_workflow_template(&tx, active_model).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+        // n8n 分支：Role/Expert/Profile + 模板 整体提交，任一失败即回滚
+        tx.commit().await.map_err(|e| format!("Commit transaction: {}", e))?;
+    } else {
+        db_repo::insert_workflow_template(db, active_model).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+    }
 
     let mut errors: Vec<String> = Vec::new();
 
@@ -2102,8 +2625,14 @@ pub async fn import_n8n_directory(
     collect_json_files(dir, &mut json_files);
 
     for file_path in json_files {
-        let content = fs::read_to_string(&file_path)
-            .map_err(|e| format!("{}: {}", file_path.display(), e))?;
+        // 单个文件读取失败只记录错误，不中断整个批量导入
+        let content = match fs::read_to_string(&file_path) {
+            Ok(c) => c,
+            Err(e) => {
+                errors.push(format!("{}: read error: {}", file_path.display(), e));
+                continue;
+            },
+        };
         let raw_json: serde_json::Value = match serde_json::from_str(&content) {
             Ok(v) => v,
             Err(e) => {
@@ -2180,8 +2709,14 @@ pub async fn import_workflow_directory(
     collect_json_files(dir, &mut json_files);
 
     for file_path in json_files {
-        let content = fs::read_to_string(&file_path)
-            .map_err(|e| format!("{}: {}", file_path.display(), e))?;
+        // 单个文件读取失败只记录错误，不中断整个批量导入
+        let content = match fs::read_to_string(&file_path) {
+            Ok(c) => c,
+            Err(e) => {
+                errors.push(format!("{}: read error: {}", file_path.display(), e));
+                continue;
+            },
+        };
         if serde_json::from_str::<serde_json::Value>(&content).is_err() {
             errors.push(format!("{}: Invalid JSON format", file_path.display()));
             continue;
@@ -2432,5 +2967,164 @@ mod tests {
         // 无任何字段时返回 "Unnamed ()"
         assert!(!goal.is_empty());
         assert!(goal.starts_with("Unnamed"));
+    }
+
+    // ── n8n_node_kind / n8n_source_handle ──────────────────
+
+    #[test]
+    fn test_n8n_node_kind_classification() {
+        assert_eq!(n8n_node_kind("n8n-nodes-base.webhook"), N8nNodeKind::Trigger);
+        assert_eq!(n8n_node_kind("n8n-nodes-base.if"), N8nNodeKind::Condition);
+        assert_eq!(n8n_node_kind("n8n-nodes-base.switch"), N8nNodeKind::Switch);
+        assert_eq!(n8n_node_kind("n8n-nodes-base.httpRequest"), N8nNodeKind::Other);
+    }
+
+    #[test]
+    fn test_n8n_source_handle_if_true_false() {
+        // IF 节点：main[0]=true / main[1]=false
+        let (h0, t0) = n8n_source_handle(N8nNodeKind::Condition, 0);
+        assert_eq!(h0.as_deref(), Some("true"));
+        assert!(matches!(t0, EdgeType::ConditionTrue));
+        let (h1, t1) = n8n_source_handle(N8nNodeKind::Condition, 1);
+        assert_eq!(h1.as_deref(), Some("false"));
+        assert!(matches!(t1, EdgeType::ConditionFalse));
+    }
+
+    #[test]
+    fn test_n8n_source_handle_switch_branch() {
+        let (h, t) = n8n_source_handle(N8nNodeKind::Switch, 2);
+        assert_eq!(h.as_deref(), Some("branch-2"));
+        assert!(matches!(t, EdgeType::ParallelBranch));
+    }
+
+    #[test]
+    fn test_n8n_source_handle_other_none() {
+        let (h, t) = n8n_source_handle(N8nNodeKind::Other, 0);
+        assert!(h.is_none());
+        assert!(matches!(t, EdgeType::Direct));
+    }
+
+    // ── parse_n8n_position ─────────────────────────────────
+
+    #[test]
+    fn test_parse_n8n_position_array() {
+        let pos = json!([120.0, 340.0]);
+        let p = parse_n8n_position(&pos);
+        assert_eq!(p.x, 120.0);
+        assert_eq!(p.y, 340.0);
+    }
+
+    #[test]
+    fn test_parse_n8n_position_object() {
+        let pos = json!({ "x": 12.0, "y": 34.0 });
+        let p = parse_n8n_position(&pos);
+        assert_eq!(p.x, 12.0);
+        assert_eq!(p.y, 34.0);
+    }
+
+    // ── map_n8n_node 精确映射 ─────────────────────────────
+
+    fn test_base(id: &str) -> WorkflowNodeBase {
+        WorkflowNodeBase {
+            continue_on_fail: false,
+            compensation: None,
+            id: id.to_string(),
+            title: id.to_string(),
+            description: None,
+            position: Position { x: 0.0, y: 0.0 },
+            retry: RetryConfig::default(),
+            timeout: None,
+            enabled: true,
+            parent_id: None,
+        }
+    }
+
+    #[test]
+    fn test_map_n8n_http_request() {
+        let node = json!({
+            "type": "n8n-nodes-base.httpRequest",
+            "parameters": {
+                "url": "https://api.example.com/data",
+                "method": "POST",
+                "sendHeaders": true,
+                "headerParameters": { "parameters": [ { "name": "Authorization", "value": "Bearer x" } ] }
+            }
+        });
+        let mapped = map_n8n_node(test_base("n1"), &node, "n8n-nodes-base.httpRequest").unwrap();
+        match mapped {
+            WorkflowNode::HttpRequest(t) => {
+                assert_eq!(t.config.url, "https://api.example.com/data");
+                assert_eq!(t.config.method, "POST");
+                assert_eq!(
+                    t.config.headers.get("Authorization").map(String::as_str),
+                    Some("Bearer x")
+                );
+            },
+            _ => panic!("expected HttpRequest"),
+        }
+    }
+
+    #[test]
+    fn test_map_n8n_if_conditions() {
+        let node = json!({
+            "type": "n8n-nodes-base.if",
+            "parameters": {
+                "conditions": {
+                    "combinator": "and",
+                    "conditions": [
+                        {
+                            "leftValue": "={{ $json.status }}",
+                            "rightValue": "active",
+                            "operator": { "type": "string", "operation": "equals" }
+                        }
+                    ]
+                }
+            }
+        });
+        let mapped = map_n8n_node(test_base("n1"), &node, "n8n-nodes-base.if").unwrap();
+        match mapped {
+            WorkflowNode::Condition(t) => {
+                assert_eq!(t.config.conditions.len(), 1);
+                assert_eq!(t.config.conditions[0].var_path, "$json.status");
+                assert_eq!(
+                    t.config.conditions[0].value,
+                    serde_json::Value::String("active".to_string())
+                );
+                assert!(matches!(t.config.conditions[0].operator, CompareOperator::Eq));
+            },
+            _ => panic!("expected Condition"),
+        }
+    }
+
+    #[test]
+    fn test_map_n8n_switch_cases() {
+        let node = json!({
+            "type": "n8n-nodes-base.switch",
+            "parameters": {
+                "input1": "={{ $json.type }}",
+                "rules": {
+                    "values": [
+                        { "outputIndex": 0, "value": "a" },
+                        { "outputIndex": 1, "value": "b" }
+                    ]
+                }
+            }
+        });
+        let mapped = map_n8n_node(test_base("n1"), &node, "n8n-nodes-base.switch").unwrap();
+        match mapped {
+            WorkflowNode::Switch(t) => {
+                assert_eq!(t.config.input_var, "$json.type");
+                assert_eq!(t.config.cases.len(), 2);
+                assert_eq!(t.config.cases[0].value, "a");
+                assert_eq!(t.config.cases[1].value, "b");
+            },
+            _ => panic!("expected Switch"),
+        }
+    }
+
+    #[test]
+    fn test_map_n8n_unknown_returns_none() {
+        let node = json!({ "type": "n8n-nodes-base.unknownNode" });
+        assert!(map_n8n_node(test_base("n1"), &node, "n8n-nodes-base.unknownNode").is_none());
     }
 }

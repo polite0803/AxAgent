@@ -893,7 +893,11 @@
       "action": "执行",
       "ask": "提问",
       "plan": "规划",
-      "title": "模式"
+      "title": "模式",
+      "auto": "自动",
+      "plan": "计划",
+      "title": "执行模式",
+      "gateway": "网关"
     },
     "moveToWorkspace": "移到工作区",
     "multiModel": {
@@ -1939,8 +1943,24 @@
     "llmFallback": "LLM 兜底",
     "fallbackPath": "备选路径",
     "candidates": "候选能力",
+    "branch": "执行分支",
+    "workflowName": "选中工作流",
+    "agentProfile": "执行专家",
+    "role": "角色",
+    "expert": "专家",
     "stageRecords": "路由阶段",
-    "recordedAt": "观测时间"
+    "recordedAt": "观测时间",
+    "noDecision": "未命中具体工作流/专家，交由默认执行",
+    "executionModeMap": {
+      "ask": "问答",
+      "plan": "计划拆解",
+      "act": "行动执行",
+      "workflow": "执行工作流",
+      "direct": "直接执行",
+      "delegate": "委派 Agent",
+      "parameter_extract": "参数抽取",
+      "clarify": "待澄清选择"
+    }
   },
   "continuation": {
     "continueFromHere": "从此处继续",

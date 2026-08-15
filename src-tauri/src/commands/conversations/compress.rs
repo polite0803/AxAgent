@@ -574,6 +574,7 @@ mod tests_conversation {
                 parts: None,
                 blocks: None,
                 quoted_message_id: None,
+                decision: None,
             };
 
             build_message_content(&file_store, &message).expect("测试应成功")
@@ -635,6 +636,7 @@ mod tests_conversation {
                 parts: None,
                 blocks: None,
                 quoted_message_id: None,
+                decision: None,
             };
 
             build_message_content(&file_store, &message).expect("测试应成功")

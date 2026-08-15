@@ -64,8 +64,6 @@ export interface UseChatViewActionsReturn {
   extractMemoriesOpen: boolean;
   setExtractMemoriesOpen: (v: boolean) => void;
   toolCount: number;
-  expertOpen: boolean;
-  setExpertOpen: (v: boolean) => void;
 }
 
 export function useChatViewActions({
@@ -109,7 +107,6 @@ export function useChatViewActions({
   const [editSaving, setEditSaving] = useState(false);
 
   const [extractMemoriesOpen, setExtractMemoriesOpen] = useState(false);
-  const [expertOpen, setExpertOpen] = useState(false);
 
   const [statsOpen, setStatsOpen] = useState(false);
   const [stats, setStats] = useState<ConversationStats | null>(null);
@@ -619,7 +616,5 @@ export function useChatViewActions({
     extractMemoriesOpen,
     setExtractMemoriesOpen,
     toolCount,
-    expertOpen,
-    setExpertOpen,
   };
 }

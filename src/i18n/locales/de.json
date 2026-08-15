@@ -906,7 +906,9 @@
       "title": "Switch Mode",
       "ask": "Ask",
       "plan": "Plan",
-      "action": "Action"
+      "action": "Action",
+      "title": "Ausführungsmodus",
+      "gateway": "Gateway"
     },
     "moveToWorkspace": "In Arbeitsbereich verschieben",
     "multiModel": {
@@ -1940,7 +1942,23 @@
     "fallbackPath": "Fallback-Pfad",
     "candidates": "Kandidaten",
     "stageRecords": "Routenphasen",
-    "recordedAt": "Aufgezeichnet um"
+    "recordedAt": "Aufgezeichnet um",
+    "branch": "Entscheidungszweig",
+    "workflowName": "Ausgewählter Workflow",
+    "agentProfile": "Ausführender Agent",
+    "role": "Rolle",
+    "expert": "Experte",
+    "noDecision": "Kein spezifischer Workflow/Agent gefunden, Standardausführung",
+    "executionModeMap": {
+      "ask": "Fragen",
+      "plan": "Plan zerlegen",
+      "act": "Aktion ausführen",
+      "workflow": "Workflow ausführen",
+      "direct": "Direkt",
+      "delegate": "An Agent delegieren",
+      "parameter_extract": "Parameter extrahieren",
+      "clarify": "Auf Klärung warten"
+    }
   },
   "continuation": {
     "continueFromHere": "Von hier fortfahren",

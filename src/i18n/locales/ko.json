@@ -906,7 +906,13 @@
       "title": "Switch Mode",
       "ask": "Ask",
       "plan": "Plan",
-      "action": "Action"
+      "action": "Action",
+      "action": "실행",
+      "ask": "질문",
+      "auto": "자동",
+      "plan": "계획",
+      "title": "실행 모드",
+      "gateway": "게이트웨이"
     },
     "moveToWorkspace": "작업 영역으로 이동",
     "multiModel": {
@@ -1940,7 +1946,23 @@
     "fallbackPath": "대체 경로",
     "candidates": "후보",
     "stageRecords": "라우트 단계",
-    "recordedAt": "기록 시간"
+    "recordedAt": "기록 시간",
+    "branch": "실행 분기",
+    "workflowName": "선택한 워크플로우",
+    "agentProfile": "실행 에이전트",
+    "role": "역할",
+    "expert": "전문가",
+    "noDecision": "특정 워크플로우/전문가가 일치하지 않아 기본 실행",
+    "executionModeMap": {
+      "ask": "질문",
+      "plan": "계획 분해",
+      "act": "행동 실행",
+      "workflow": "워크플로우 실행",
+      "direct": "직접 실행",
+      "delegate": "에이전트 위임",
+      "parameter_extract": "파라미터 추출",
+      "clarify": "확인 대기"
+    }
   },
   "continuation": {
     "continueFromHere": "여기서 계속",

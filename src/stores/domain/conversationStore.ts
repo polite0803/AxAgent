@@ -983,24 +983,15 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   archivedConversations: [],
 
-  toggleArchive: async (id, feedback?: string) => {
+  toggleArchive: async (id: string) => {
     try {
       // If the conversation is currently streaming, cancel it first
       if (isConvStreaming(useStreamStore.getState().activeStreams, id)) {
         useStreamStore.getState().cancelCurrentStream(id);
       }
-      const conv = get().conversations.find((c) => c.id === id)
-        ?? get().archivedConversations.find((c) => c.id === id);
 
-      const isAlreadyArchived = conv?.is_archived ?? false;
-      const isWorkflow = conv?.session_type === "workflow";
-
-      const command = isWorkflow && !isAlreadyArchived
-        ? "archive_workflow_session"
-        : "toggle_archive_conversation";
-      const params = isWorkflow && !isAlreadyArchived
-        ? { conversationId: id, feedback }
-        : { id };
+      const command = "toggle_archive_conversation";
+      const params = { id };
 
       const updated = await invoke<Conversation>(command, params);
       // Clean up other stores when archiving
@@ -1108,12 +1099,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     // 并行归档所有对话（无依赖关系）
     const results = await Promise.allSettled(
       ids.map(async (id) => {
-        const conv = get().conversations.find((c) => c.id === id);
-        const command = conv?.session_type === "workflow"
-          ? "archive_workflow_session"
-          : "toggle_archive_conversation";
-        const params = conv?.session_type === "workflow" ? { conversationId: id } : { id };
-        return invoke<Conversation>(command, params);
+        return invoke<Conversation>("toggle_archive_conversation", { id });
       }),
     );
     const archived: Conversation[] = [];

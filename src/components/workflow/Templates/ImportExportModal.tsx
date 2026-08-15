@@ -412,12 +412,19 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
     }
     setIsImporting(true);
     try {
-      // 前端合规校验：解析 import 数据中的 nodes/edges
+      // 前端合规校验：仅对 AxAgent 格式校验，n8n 格式交由后端转换（避免误跑 AxAgent 校验）
       try {
         const parsed = JSON.parse(importData.trim());
+        const isN8n = (parsed.nodes || []).some(
+          (n: { type?: string }) =>
+            typeof n.type === "string"
+            && (n.type.startsWith("n8n-nodes-base.")
+              || n.type.startsWith("n8n-nodes-")
+              || n.type.startsWith("@n8n/")),
+        );
         const importNodes = parsed.nodes || parsed.workflow?.nodes || [];
         const importEdges = parsed.edges || parsed.workflow?.edges || [];
-        if (importNodes.length > 0) {
+        if (importNodes.length > 0 && !isN8n) {
           const feResult = validate_workflow(importNodes, importEdges, t);
           const feErrors = feResult.issues.filter((i) => i.severity === "error");
           const feWarnings = feResult.issues.filter((i) => i.severity === "warning");

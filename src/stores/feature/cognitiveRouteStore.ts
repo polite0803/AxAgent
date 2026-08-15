@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import type { CognitiveExecutionMode, CognitiveQueryResponse, CognitiveRouteStageView } from "@/types";
+import type {
+  CognitiveExecutionMode,
+  CognitiveQueryResponse,
+  CognitiveRouteStageView,
+  CognitiveSelectedAgentProfile,
+} from "@/types";
 import { create } from "zustand";
 
 /**
@@ -35,6 +40,10 @@ export interface CognitiveRouteObservation {
   candidates: string[];
   /** 执行模式 */
   executionMode: CognitiveExecutionMode;
+  /** 选中工作流的可读名称（未命中工作流时为 null） */
+  selectedWorkflowName: string | null;
+  /** 选中的执行专家（Agent 执行路径；未走 Agent 路径时为 null） */
+  selectedAgentProfile: CognitiveSelectedAgentProfile | null;
   /** 各阶段执行记录 */
   stageRecords: CognitiveRouteStageView[];
   /** 总耗时（毫秒） */
@@ -73,6 +82,8 @@ export const useCognitiveRouteStore = create<CognitiveRouteState>((set) => ({
         fallbackPath: response.fallbackPath ?? null,
         candidates: response.candidates ?? [],
         executionMode: response.executionMode,
+        selectedWorkflowName: response.selectedWorkflowName ?? null,
+        selectedAgentProfile: response.selectedAgentProfile ?? null,
         stageRecords: response.stageRecords ?? [],
         totalElapsedMs: response.totalElapsedMs,
         recordedAt: Date.now(),

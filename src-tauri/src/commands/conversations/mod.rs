@@ -1255,115 +1255,6 @@ pub async fn list_archived_conversations(
     )
 }
 
-/// 工作流型会话归档：将执行结果写回原始工作流模板
-#[agent_command(domain = conversation, safety = Caution, call_mode = StateInput, description = "归档工作流会话")]
-#[tauri::command]
-pub async fn archive_workflow_session(
-    state: State<'_, AppState>,
-    conversation_id: String,
-    feedback: Option<String>,
-) -> Result<Conversation, String> {
-    use axagent_entities::{conversations, workflow_template};
-    use sea_orm::{ActiveModelTrait, EntityTrait, Set};
-
-    let db = state.harness.db();
-
-    let conv = conversations::Entity::find_by_id(&conversation_id)
-        .one(db)
-        .await
-        .map_err(|e| {
-            String::from(crate::commands::error::ErrorResponse::from_error(
-                e,
-                crate::commands::error::ErrorCategory::Unrecoverable,
-            ))
-        })?
-        .ok_or_else(|| format!("Conversation {} not found", conversation_id))?;
-
-    use crate::commands::error::ErrorResponse;
-    use crate::commands::error_code::conversation as conv_err;
-
-    if conv.session_type != "workflow" {
-        return Err(ErrorResponse::err_with_detail(
-            conv_err::NOT_WORKFLOW,
-            "此会话不是工作流类型，请使用普通归档",
-        ));
-    }
-
-    if conv.is_archived != 0 {
-        return Err(ErrorResponse::new(conv_err::ALREADY_ARCHIVED)
-            .with_detail(format!("会话 {} 已经归档，请勿重复操作", conversation_id))
-            .to_string());
-    }
-
-    // 如果有绑定的工作流模板，将执行数据写回模板
-    if let Some(ref template_id) = conv.workflow_template_id {
-        if workflow_template::Entity::find_by_id(template_id)
-            .one(db)
-            .await
-            .map_err(|e| {
-                String::from(crate::commands::error::ErrorResponse::from_error(
-                    e,
-                    crate::commands::error::ErrorCategory::Unrecoverable,
-                ))
-            })?
-            .is_some()
-        {
-            let messages = axagent_dao::repo::message::list_messages(db, &conversation_id)
-                .await
-                .map_err(|e| {
-                    String::from(crate::commands::error::ErrorResponse::from_error(
-                        e,
-                        crate::commands::error::ErrorCategory::Unrecoverable,
-                    ))
-                })?;
-
-            let execution = axagent_entities::workflow_executions::ActiveModel {
-                id: Set(uuid::Uuid::new_v4().to_string()),
-                workflow_id: Set(template_id.clone()),
-                status: Set(conv
-                    .workflow_status
-                    .clone()
-                    .unwrap_or_else(|| "completed".to_string())),
-                input_params: Set(None),
-                output_result: Set(feedback.clone()),
-                node_executions: Set(Some(
-                    serde_json::json!({
-                        "conversation_id": conversation_id,
-                        "message_count": messages.len(),
-                    })
-                    .to_string(),
-                )),
-                execution_state_json: Set(None),
-                paused_at: Set(None),
-                total_time_ms: Set(None),
-                created_at: Set(axagent_kit::utils::now_ts()),
-                updated_at: Set(axagent_kit::utils::now_ts()),
-            };
-            execution.insert(db).await.map_err(|e| {
-                String::from(crate::commands::error::ErrorResponse::from_error(
-                    e,
-                    crate::commands::error::ErrorCategory::Unrecoverable,
-                ))
-            })?;
-        }
-    }
-
-    // 标记会话为已归档
-    let now = chrono::Utc::now().timestamp_millis();
-    let mut am: conversations::ActiveModel = conv.into();
-    am.is_archived = Set(1);
-    am.updated_at = Set(now);
-    let updated = am.update(db).await.map_err(|e| {
-        String::from(crate::commands::error::ErrorResponse::from_error(
-            e,
-            crate::commands::error::ErrorCategory::Unrecoverable,
-        ))
-    })?;
-
-    let conv = axagent_dao::repo::conversation::conversation_from_entity(updated);
-    Ok(conv)
-}
-
 pub(crate) async fn consume_stream(
     app: &tauri::AppHandle,
     stream: &mut std::pin::Pin<
@@ -2843,6 +2734,7 @@ pub(crate) fn build_message_content_turns_images_into_multipart_data_urls() {
             parts: None,
             blocks: None,
             quoted_message_id: None,
+            decision: None,
         };
 
         build_message_content(&file_store, &message).expect("测试应成功")
@@ -2904,6 +2796,7 @@ pub(crate) fn build_message_content_uses_inline_attachment_data_when_file_path_i
             parts: None,
             blocks: None,
             quoted_message_id: None,
+            decision: None,
         };
 
         build_message_content(&file_store, &message).expect("测试应成功")

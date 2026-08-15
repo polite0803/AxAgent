@@ -123,6 +123,7 @@ fn spawn_stream_task(
                     cache_creation_tokens: Set(None),
                     cache_read_tokens: Set(None),
                     quoted_message_id: Set(None),
+                    decision: Set(None),
                 })
                 .insert(&db)
                 .await
@@ -2240,6 +2241,7 @@ pub async fn regenerate_with_model(
             cache_creation_tokens: Set(None),
             cache_read_tokens: Set(None),
             quoted_message_id: Set(None),
+            decision: Set(None),
         })
         .insert(state.harness.db())
         .await

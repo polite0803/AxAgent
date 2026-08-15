@@ -425,6 +425,18 @@ export interface CognitiveRouteStageView {
   summary: string;
 }
 
+/** 选中的执行专家（Agent 执行路径）视图（对应后端 SelectedAgentProfileView，camelCase） */
+export interface CognitiveSelectedAgentProfile {
+  /** AgentProfile ID */
+  id: string;
+  /** 专家名称 */
+  name: string;
+  /** 角色名（agent_role，可空） */
+  role?: string | null;
+  /** 关联专家（expert_id → agency_experts.name，可空） */
+  expert?: string | null;
+}
+
 /** 认知编排统一入口响应（对应后端 CognitiveQueryResponse，camelCase） */
 export interface CognitiveQueryResponse {
   /** 三层路由地址（确定性路径），如 "invest/stock_analysis/tech" */
@@ -451,6 +463,10 @@ export interface CognitiveQueryResponse {
   candidateDetails?: CognitiveCandidateSummary[] | null;
   /** 执行模式（ask / plan / act / workflow / delegate） */
   executionMode: CognitiveExecutionMode;
+  /** 选中工作流的可读名称（未命中工作流时为 null） */
+  selectedWorkflowName?: string | null;
+  /** 选中的执行专家（Agent 执行路径；未走 Agent 路径时为 null） */
+  selectedAgentProfile?: CognitiveSelectedAgentProfile | null;
   /** 各阶段执行记录 */
   stageRecords: CognitiveRouteStageView[];
   /** 总耗时（毫秒） */

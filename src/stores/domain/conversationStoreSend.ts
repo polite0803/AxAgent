@@ -142,32 +142,6 @@ export function createSendMethods(
         }
       }
 
-      // 自动重置已完成的工作流会话，以支持重新执行
-      // 根因：session_type === "workflow" 且 workflow_status === "completed" 时，
-      // 后端不会重新发射工作流流式步骤事件，导致前端消息区域空白
-      if (
-        conversation.session_type === "workflow"
-        && conversation.workflow_status === "completed"
-      ) {
-        try {
-          await get().updateConversation(conversationId, {
-            session_type: "conversation",
-            workflow_template_id: null,
-            workflow_status: null,
-          });
-          // 刷新本地会话列表，确保 ChatViewToolbar 拿到最新 session_type
-          await get().fetchConversations();
-          const refreshed = get().conversations.find(
-            (c) => c.id === conversationId,
-          );
-          if (refreshed) {
-            conversation = refreshed;
-          }
-        } catch (e) {
-          logIpcError("Failed to reset workflow session")(e);
-        }
-      }
-
       // Guard: prevent duplicate sends while a stream is already active for this conversation
       if (
         isConvStreaming(useStreamStore.getState().activeStreams, conversationId)
@@ -784,52 +758,42 @@ export function createSendMethods(
         // - Delegate / Ask / Act → agent_query 已执行（前端监听 agent-done 呈现）
         // - Plan → plan_generate 已触发（planStore 监听 plan-generated 渲染 PlanCard）
         // - Clarify → 返回 Top2 候选，前端渲染候选卡片供用户选择后二次执行
-        //
-        // legacy workflow 会话（历史手动绑定，localStorage 持有 workflow-id）：
-        // 保留 workflow_execute 的确定性执行，不做认知路由。
-        const storedWorkflowId = localStorage.getItem(
-          `axagent:workflow-id:${conversationId}`,
-        );
-        const isLegacyWorkflowSession = conversation.session_type === "workflow"
-          && !!storedWorkflowId;
-        let isWorkflowDriven = isLegacyWorkflowSession;
+        let isWorkflowDriven = false;
 
-        const cognitiveResult = isLegacyWorkflowSession
-          ? null
-          : await invoke<CognitiveQueryResponse>(
-            "cognitive_query",
-            {
-              request: {
-                input: content,
-                conversationId,
-                providerId,
-                model_id,
-                // Clarify 二次执行：强制路由到用户选中的能力
-                forcedCapabilityId: isResumeClarify
-                  ? resumeClarify!.capabilityId
+        const cognitiveResult = await invoke<CognitiveQueryResponse>(
+          "cognitive_query",
+          {
+            request: {
+              input: content,
+              conversationId,
+              providerId,
+              model_id,
+              // Clarify 二次执行：强制路由到用户选中的能力
+              forcedCapabilityId: isResumeClarify
+                ? resumeClarify!.capabilityId
+                : undefined,
+              agentProfileId: conversation.agent_profile_id ?? undefined,
+              systemPrompt: conversation.system_prompt ?? undefined,
+              searchProviderId: searchProviderId ?? undefined,
+              agentContext: agentContextPayload,
+              options: {
+                disabledTools: effectiveDisabledTools.length > 0
+                  ? effectiveDisabledTools
                   : undefined,
-                agentProfileId: conversation.agent_profile_id ?? undefined,
-                systemPrompt: conversation.system_prompt ?? undefined,
-                searchProviderId: searchProviderId ?? undefined,
-                agentContext: agentContextPayload,
-                options: {
-                  disabledTools: effectiveDisabledTools.length > 0
-                    ? effectiveDisabledTools
-                    : undefined,
-                  // P0-2 计划确认闸门：开关开启时要求后端对复杂任务先出计划草稿等待批准
-                  requirePlanApproval: useAgentStore.getState().planApprovalEnabled
-                    || undefined,
-                },
-                // 用户意图提示：仅在显式选择时传入，缺省 auto 由路由自动决策
-                modeHint: modeHint !== "auto" ? modeHint : undefined,
+                // P0-2 计划确认闸门：开关开启时要求后端对复杂任务先出计划草稿等待批准
+                requirePlanApproval: useAgentStore.getState().planApprovalEnabled
+                  || undefined,
               },
+              // 用户意图提示：仅在显式选择时传入，缺省 auto 由路由自动决策
+              modeHint: modeHint !== "auto" ? modeHint : undefined,
             },
-            0,
-          );
+          },
+          0,
+        );
 
         // ── 认知编排执行分支分发 ──
         const execKind = cognitiveResult?.execution?.kind;
-        // 记录路由观测：仅记录走认知路由的结果（legacy workflow 会话 cognitiveResult 为 null）
+        // 记录路由观测
         if (cognitiveResult) {
           useCognitiveRouteStore.getState().recordObservation(
             conversationId,
@@ -904,25 +868,7 @@ export function createSendMethods(
           return;
         }
 
-        // legacy workflow 会话：未走认知路由，需要前端手动触发 workflow_execute。
-        // 认知路由命中的 Workflow 分支由后端执行，前端不再重复触发。
-        if (isLegacyWorkflowSession) {
-          await invoke<{
-            status?: string;
-            conversationId: string;
-            assistantMessageId: string;
-          }>(
-            "workflow_execute",
-            {
-              workflowId: storedWorkflowId,
-              conversationId,
-              input: content,
-              providerId: providerId ?? undefined,
-              modelId: model_id ?? undefined,
-            },
-            0,
-          );
-        }
+        // 认知路由命中的 Workflow 分支由后端执行，前端无需重复触发。
 
         // 计划确认被用户拒绝（P0-2）：后端直接返回 rejected，不会发 agent-done/agent-error。
         // cognitive_query 的 Agent 执行分支透传 agent_query 的 status。

@@ -46,6 +46,8 @@ fn message_from_entity(m: messages::Model) -> Result<Message> {
         .parts
         .as_ref()
         .and_then(|p| serde_json::from_str::<Vec<axagent_harness::types::ContentBlock>>(p).ok());
+    let decision =
+        m.decision.as_ref().and_then(|d| serde_json::from_str::<serde_json::Value>(d).ok());
     Ok(Message {
         id: m.id,
         conversation_id: m.conversation_id,
@@ -72,6 +74,7 @@ fn message_from_entity(m: messages::Model) -> Result<Message> {
         parts: m.parts,
         blocks,
         quoted_message_id: m.quoted_message_id,
+        decision,
     })
 }
 
@@ -254,6 +257,24 @@ pub async fn update_message_usage(
     if let (Some(pt), Some(ct)) = (prompt_tokens, completion_tokens) {
         am.token_count = Set(Some(pt + ct));
     }
+    am.update(db).await?;
+    Ok(())
+}
+
+/// 更新消息的认知编排决策标签（JSON 文本）。
+/// `decision` 传入 `None` 时清除该字段。
+pub async fn update_message_decision(
+    db: &DatabaseConnection,
+    id: &str,
+    decision: Option<&serde_json::Value>,
+) -> Result<()> {
+    let row = messages::Entity::find_by_id(id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AxAgentError::NotFound(format!("Message {}", id)))?;
+
+    let mut am: messages::ActiveModel = row.into();
+    am.decision = Set(decision.map(|d| d.to_string()));
     am.update(db).await?;
     Ok(())
 }
@@ -573,6 +594,7 @@ pub async fn create_tool_result_message(
         cache_read_tokens: Set(None),
         parts: Set(None),
         quoted_message_id: Set(None),
+        decision: Set(None),
     }
     .insert(db)
     .await?;
@@ -618,6 +640,7 @@ pub async fn create_assistant_tool_call_message(
         cache_read_tokens: Set(None),
         parts: Set(None),
         quoted_message_id: Set(None),
+        decision: Set(None),
     }
     .insert(db)
     .await?;

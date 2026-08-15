@@ -2,7 +2,17 @@
 
 import { useCognitiveRouteStore } from "@/stores";
 import { Empty, Tag, theme, Typography } from "antd";
-import { AlertTriangle, CheckCircle2, CircleDot, Clock, GitCommitHorizontal, Route, Shuffle } from "lucide-react";
+import {
+  AlertTriangle,
+  Bot,
+  CheckCircle2,
+  CircleDot,
+  Clock,
+  GitBranch,
+  GitCommitHorizontal,
+  Route,
+  Shuffle,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
@@ -67,7 +77,7 @@ export function CognitiveRoutePanel() {
           <Tag
             color={EXECUTION_MODE_COLORS[observation.executionMode] ?? "default"}
           >
-            {t("cognitiveRoute.executionMode")}: {observation.executionMode}
+            {t("cognitiveRoute.executionMode")}: {t(`cognitiveRoute.executionModeMap.${observation.executionMode}`)}
           </Tag>
           <Tag color={confidencePct >= 80 ? "green" : confidencePct >= 60 ? "orange" : "red"}>
             {t("cognitiveRoute.confidence")}: {confidencePct}%
@@ -106,6 +116,60 @@ export function CognitiveRoutePanel() {
           )}
         </div>
       </div>
+
+      {/* 执行决策：命中的工作流 / 选中的执行专家（模式中文映射） */}
+      {(observation.selectedWorkflowName || observation.selectedAgentProfile) && (
+        <div style={{ marginTop: 12 }}>
+          <Text strong style={{ fontSize: 13, display: "block", marginBottom: 6 }}>
+            {t("cognitiveRoute.branch")}
+          </Text>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {observation.selectedWorkflowName && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 10px",
+                  borderRadius: 6,
+                  border: `1px solid ${token.colorBorderSecondary}`,
+                  backgroundColor: token.colorBgLayout,
+                }}
+              >
+                <GitBranch size={14} style={{ color: token.colorSuccess, flexShrink: 0 }} />
+                <Text style={{ fontSize: 12.5, wordBreak: "break-all" }}>
+                  {t("cognitiveRoute.workflowName")}: {observation.selectedWorkflowName}
+                </Text>
+              </div>
+            )}
+            {observation.selectedAgentProfile && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 10px",
+                  borderRadius: 6,
+                  border: `1px solid ${token.colorBorderSecondary}`,
+                  backgroundColor: token.colorBgLayout,
+                  flexWrap: "wrap",
+                }}
+              >
+                <Bot size={14} style={{ color: token.colorPrimary, flexShrink: 0 }} />
+                <Text style={{ fontSize: 12.5, wordBreak: "break-all" }}>
+                  {t("cognitiveRoute.agentProfile")}: {observation.selectedAgentProfile.name}
+                </Text>
+                {observation.selectedAgentProfile.role && (
+                  <Tag>{t("cognitiveRoute.role")}: {observation.selectedAgentProfile.role}</Tag>
+                )}
+                {observation.selectedAgentProfile.expert && (
+                  <Tag>{t("cognitiveRoute.expert")}: {observation.selectedAgentProfile.expert}</Tag>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 候选能力 */}
       {observation.candidates.length > 0 && (

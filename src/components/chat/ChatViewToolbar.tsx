@@ -25,14 +25,12 @@ import {
 import React from "react";
 import { useTranslation } from "react-i18next";
 
-import { useCompressStore, useConversationStore } from "@/stores";
+import { useCompressStore } from "@/stores";
 import type { ConversationStats } from "@/types";
 
 import { type DropdownItem, DropdownMenu } from "@/components/layout/DropdownMenu";
 import { Tooltip } from "@/components/layout/Tooltip";
 import { formatDuration, formatSpeed, formatTokenCount } from "../gateway/tokenFormat";
-import { ExpertBadge } from "./ExpertBadge";
-import { AgentProfileSelect } from "./InputArea";
 import { ModelSelector } from "./ModelSelector";
 
 function StatsPopoverContent({
@@ -257,7 +255,6 @@ export interface ChatViewToolbarProps {
   handleStatsOpenChange: (open: boolean) => void;
   exportMenuItems: Record<string, unknown>["items"];
   setExtractMemoriesOpen: (v: boolean) => void;
-  setExpertOpen: (v: boolean) => void;
   streamingMessageId: string | null;
   token: GlobalToken;
 }
@@ -295,13 +292,10 @@ export function ChatViewToolbar({
   handleStatsOpenChange,
   exportMenuItems,
   setExtractMemoriesOpen,
-  setExpertOpen,
   streamingMessageId,
   token,
 }: ChatViewToolbarProps) {
   const { t } = useTranslation();
-  const updateConversation = useConversationStore((s) => s.updateConversation);
-  const fetchConversation = useConversationStore((s) => s.fetchConversations);
   const compressing = useCompressStore((s) => s.compressing);
   const compressContext = useCompressStore((s) => s.compressContext);
 
@@ -353,26 +347,6 @@ export function ChatViewToolbar({
                 </div>
               )}
 
-            {activeConversation?.mode === "agent"
-              && (
-                <>
-                  <ExpertBadge
-                    agentProfileId={activeConversation.agent_profile_id ?? null}
-                    onClick={() => setExpertOpen(true)}
-                  />
-                  <AgentProfileSelect
-                    value={activeConversation.agent_profile_id ?? ""}
-                    onChange={async (profileId) => {
-                      await updateConversation(activeConversation.id, {
-                        agent_profile_id: profileId || null,
-                        session_type: "conversation",
-                        workflow_template_id: null,
-                      });
-                      fetchConversation();
-                    }}
-                  />
-                </>
-              )}
             <div className="flex-1" />
 
             <Tooltip

@@ -101,6 +101,8 @@ pub async fn workflow_execute(
     max_concurrent: Option<usize>,
     conversation_id: Option<String>,
     input: Option<serde_json::Value>,
+    // 认知编排决策标签（JSON 对象）：由 cognitive_query 透传，持久化到本次执行的 assistant 消息
+    decision: Option<serde_json::Value>,
 ) -> Result<String, String> {
     // 验证工作流存在，并预构建节点元信息（node_id → (title, node_type)）。
     // 供 progress_callback 组装步骤事件使用；回调内不再访问 engine 锁，
@@ -294,6 +296,13 @@ pub async fn workflow_execute(
         } else {
             None
         };
+
+        // 持久化认知编排决策标签到本次执行的 assistant 消息（若存在）
+        if let (Some(msg_id), Some(decision)) = (&assistant_message_id, &decision) {
+            if let Err(e) = message::update_message_decision(&db, msg_id, Some(decision)).await {
+                tracing::warn!("[workflow_run] 写入决策标签失败: {}", e);
+            }
+        }
 
         if let (Some(conv), Some(msg_id)) = (&conversation_id, &assistant_message_id) {
             let cb_app = app_for_emit.clone();
