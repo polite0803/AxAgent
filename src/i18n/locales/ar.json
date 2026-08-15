@@ -1519,7 +1519,15 @@
     "passportsTitle": "جوازات سفر مسجلة",
     "noPassports": "لا توجد قدرات مسجلة",
     "enabled": "مفعّل",
-    "disabled": "معطّل"
+    "disabled": "معطّل",
+    "kind": {
+      "tool": "أداة",
+      "workflow": "سير العمل",
+      "knowledge_base": "قاعدة المعرفة",
+      "skill": "مهارة",
+      "agent_role": "دور",
+      "agent_profile": "خبير"
+    }
   },
   "chatMarkdown": {
     "inputParams": "معلمات الإدخال",

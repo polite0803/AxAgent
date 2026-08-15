@@ -1517,7 +1517,15 @@
     "passportsTitle": "已注册护照",
     "noPassports": "暂无已注册能力",
     "enabled": "启用",
-    "disabled": "停用"
+    "disabled": "停用",
+    "kind": {
+      "tool": "工具",
+      "workflow": "工作流",
+      "knowledge_base": "知识库",
+      "skill": "技能",
+      "agent_role": "角色",
+      "agent_profile": "专家"
+    }
   },
   "chatMarkdown": {
     "inputParams": "输入参数",

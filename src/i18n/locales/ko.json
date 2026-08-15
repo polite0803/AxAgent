@@ -1519,7 +1519,15 @@
     "passportsTitle": "등록된 패스포트",
     "noPassports": "등록된 능력이 없습니다",
     "enabled": "활성화",
-    "disabled": "비활성화"
+    "disabled": "비활성화",
+    "kind": {
+      "tool": "도구",
+      "workflow": "워크플로",
+      "knowledge_base": "지식 베이스",
+      "skill": "스킬",
+      "agent_role": "역할",
+      "agent_profile": "전문가"
+    }
   },
   "chatMarkdown": {
     "inputParams": "입력 매개변수",

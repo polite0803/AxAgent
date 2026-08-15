@@ -1515,7 +1515,15 @@
     "passportsTitle": "Registrierte Pässe",
     "noPassports": "Keine Fähigkeiten registriert",
     "enabled": "Aktiviert",
-    "disabled": "Deaktiviert"
+    "disabled": "Deaktiviert",
+    "kind": {
+      "tool": "Werkzeug",
+      "workflow": "Workflow",
+      "knowledge_base": "Wissensbasis",
+      "skill": "Fähigkeit",
+      "agent_role": "Rolle",
+      "agent_profile": "Experte"
+    }
   },
   "chatMarkdown": {
     "inputParams": "Eingabeparameter",

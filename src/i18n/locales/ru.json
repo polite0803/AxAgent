@@ -1519,7 +1519,15 @@
     "passportsTitle": "Зарегистрированные паспорта",
     "noPassports": "Способности не зарегистрированы",
     "enabled": "Включено",
-    "disabled": "Отключено"
+    "disabled": "Отключено",
+    "kind": {
+      "tool": "Инструмент",
+      "workflow": "Рабочий процесс",
+      "knowledge_base": "База знаний",
+      "skill": "Навык",
+      "agent_role": "Роль",
+      "agent_profile": "Эксперт"
+    }
   },
   "chatMarkdown": {
     "inputParams": "Входные параметры",

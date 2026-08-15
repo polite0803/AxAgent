@@ -1519,7 +1519,15 @@
     "passportsTitle": "已註冊護照",
     "noPassports": "暫無已註冊能力",
     "enabled": "啟用",
-    "disabled": "停用"
+    "disabled": "停用",
+    "kind": {
+      "tool": "工具",
+      "workflow": "工作流",
+      "knowledge_base": "知識庫",
+      "skill": "技能",
+      "agent_role": "角色",
+      "agent_profile": "專家"
+    }
   },
   "chatMarkdown": {
     "inputParams": "輸入參數",

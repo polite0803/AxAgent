@@ -1519,7 +1519,15 @@
     "passportsTitle": "登録済みパスポート",
     "noPassports": "登録された能力はありません",
     "enabled": "有効",
-    "disabled": "無効"
+    "disabled": "無効",
+    "kind": {
+      "tool": "ツール",
+      "workflow": "ワークフロー",
+      "knowledge_base": "ナレッジベース",
+      "skill": "スキル",
+      "agent_role": "ロール",
+      "agent_profile": "エキスパート"
+    }
   },
   "chatMarkdown": {
     "inputParams": "入力パラメータ",

@@ -440,6 +440,7 @@ function mockPassport(
   domain: CapabilityPassportDto["domain"],
   description: string,
   tags: string[],
+  subCategory?: string,
 ): CapabilityPassportDto {
   return {
     capability_id: capabilityId,
@@ -447,6 +448,7 @@ function mockPassport(
     description,
     kind,
     domain,
+    sub_category: subCategory,
     input_schema: null,
     tags,
     negative_scenarios: [],
@@ -516,6 +518,16 @@ function defaultMockPassports(): CapabilityPassportDto[] {
       "data_analysis",
       "执行数据分析任务并生成报告。",
       ["数据分析", "统计", "报告"],
+      "agent_profile",
+    ),
+    mockPassport(
+      "cap.agent_role.analyst",
+      "分析师协作角色",
+      "agent",
+      "data_analysis",
+      "分析师协作角色，负责数据洞察与决策建议。",
+      ["分析师", "协作", "决策"],
+      "agent_role",
     ),
     mockPassport(
       "cap.kb.product_docs",
