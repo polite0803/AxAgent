@@ -1205,7 +1205,15 @@
     "passportsTitle": "Passeports enregistrés",
     "noPassports": "Aucune capacité enregistrée",
     "enabled": "Activé",
-    "disabled": "Désactivé"
+    "disabled": "Désactivé",
+    "kind": {
+      "tool": "Outil",
+      "workflow": "Workflow",
+      "knowledge_base": "Base de connaissances",
+      "skill": "Compétence",
+      "agent_role": "Rôle",
+      "agent_profile": "Expert"
+    }
   },
   "chatMarkdown": {
     "inputParams": "Paramètres d'entrée",

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { useCapabilityStore } from "@/stores";
+import type { CapabilityPassportDto } from "@/types";
 import { Button, Card, Collapse, Empty, Input, Skeleton, Space, Tag, theme, Typography } from "antd";
 import { Database, RefreshCw, Search, ShieldCheck, Tag as TagIcon, Zap } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -8,12 +9,20 @@ import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
+/** 能力护照 → 展示分类 key（agent 按 sub_category 细分为角色/专家） */
+function passportKindKey(p: CapabilityPassportDto): string {
+  return p.kind === "agent"
+    ? p.sub_category === "agent_role" ? "agent_role" : "agent_profile"
+    : p.kind;
+}
+
 const KIND_COLORS: Record<string, string> = {
   tool: "blue",
   workflow: "green",
   knowledge_base: "purple",
-  agent: "geekblue",
   skill: "orange",
+  agent_role: "cyan",
+  agent_profile: "geekblue",
 };
 
 /** 能力发现面板：展示能力索引统计、已注册护照，并支持输入查询触发能力发现 */
@@ -52,10 +61,17 @@ export function CapabilityDiscoveryPanel() {
   const kindCount = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const p of passports) {
-      counts[p.kind] = (counts[p.kind] ?? 0) + 1;
+      const key = passportKindKey(p);
+      counts[key] = (counts[key] ?? 0) + 1;
     }
     return counts;
   }, [passports]);
+
+  /** 分类 key → 友好名称（未命中翻译时回退为原始 key） */
+  const kindLabel = (key: string): string => {
+    const label = t(`capabilityPanel.kind.${key}`);
+    return label === `capabilityPanel.kind.${key}` ? key : label;
+  };
 
   return (
     <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
@@ -172,10 +188,10 @@ export function CapabilityDiscoveryPanel() {
                   </Text>
                   <Space size={4} style={{ marginTop: 4 }} wrap>
                     <Tag
-                      color={KIND_COLORS[discoveryResult.primary_match.passport.kind]}
+                      color={KIND_COLORS[passportKindKey(discoveryResult.primary_match.passport)]}
                       style={{ fontSize: 11 }}
                     >
-                      {discoveryResult.primary_match.passport.kind}
+                      {kindLabel(passportKindKey(discoveryResult.primary_match.passport))}
                     </Tag>
                     <Tag style={{ fontSize: 11 }}>
                       {t("capabilityPanel.score")}: {Math.round(discoveryResult.primary_match.final_score * 100)}%
@@ -261,7 +277,7 @@ export function CapabilityDiscoveryPanel() {
                   }}
                 >
                   <Tag color={KIND_COLORS[kind] ?? "default"} style={{ marginInlineEnd: 0 }}>
-                    {kind}
+                    {kindLabel(kind)}
                   </Tag>
                   <Text strong style={{ fontSize: 12 }}>{count}</Text>
                 </div>
@@ -293,8 +309,8 @@ export function CapabilityDiscoveryPanel() {
                     </Text>
                   )}
                   <Space size={4} wrap style={{ marginTop: 2 }}>
-                    <Tag color={KIND_COLORS[p.kind] ?? "default"} style={{ fontSize: 11 }}>
-                      {p.kind}
+                    <Tag color={KIND_COLORS[passportKindKey(p)] ?? "default"} style={{ fontSize: 11 }}>
+                      {kindLabel(passportKindKey(p))}
                     </Tag>
                     {p.domain && <Tag style={{ fontSize: 11 }}>{p.domain}</Tag>}
                     <Tag color={p.enabled ? "success" : "default"} style={{ fontSize: 11 }}>

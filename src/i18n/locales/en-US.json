@@ -1205,7 +1205,15 @@
     "passportsTitle": "Registered passports",
     "noPassports": "No capabilities registered",
     "enabled": "Enabled",
-    "disabled": "Disabled"
+    "disabled": "Disabled",
+    "kind": {
+      "tool": "Tool",
+      "workflow": "Workflow",
+      "knowledge_base": "Knowledge base",
+      "skill": "Skill",
+      "agent_role": "Role",
+      "agent_profile": "Expert"
+    }
   },
   "chatMarkdown": {
     "inputParams": "Input Params",

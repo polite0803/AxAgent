@@ -81,6 +81,8 @@ export interface CapabilityPassportDto {
   description: string;
   kind: CapabilityKind;
   domain: CapabilityDomain;
+  /** L2 子分类（集群 ID）。kind=agent 时用于区分专家(agent_profile)与角色(agent_role) */
+  sub_category?: string;
   input_schema?: Record<string, unknown> | null;
   tags: string[];
   negative_scenarios: string[];

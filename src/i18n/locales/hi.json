@@ -1205,7 +1205,15 @@
     "passportsTitle": "पंजीकृत पासपोर्ट",
     "noPassports": "कोई क्षमता पंजीकृत नहीं",
     "enabled": "सक्षम",
-    "disabled": "अक्षम"
+    "disabled": "अक्षम",
+    "kind": {
+      "tool": "टूल",
+      "workflow": "वर्कफ़्लो",
+      "knowledge_base": "नॉलेज बेस",
+      "skill": "कौशल",
+      "agent_role": "भूमिका",
+      "agent_profile": "विशेषज्ञ"
+    }
   },
   "chatMarkdown": {
     "inputParams": "इनपुट पैरामीटर",
