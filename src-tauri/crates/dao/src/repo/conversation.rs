@@ -1000,22 +1000,38 @@ pub async fn search_conversations(
 }
 
 pub async fn increment_message_count(db: &DatabaseConnection, conversation_id: &str) -> Result<()> {
-    db.execute_raw(Statement::from_sql_and_values(
-        db.get_database_backend(),
-        "UPDATE conversations SET message_count = message_count + 1, updated_at = ? WHERE id = ?",
-        vec![now_ts().into(), conversation_id.into()],
-    ))
-    .await?;
+    let (backend, sql, values) = if db.get_database_backend() == DbBackend::Postgres {
+        (
+            DbBackend::Postgres,
+            "UPDATE conversations SET message_count = message_count + 1, updated_at = $1 WHERE id = $2",
+            vec![now_ts().into(), conversation_id.into()],
+        )
+    } else {
+        (
+            DbBackend::Sqlite,
+            "UPDATE conversations SET message_count = message_count + 1, updated_at = ? WHERE id = ?",
+            vec![now_ts().into(), conversation_id.into()],
+        )
+    };
+    db.execute_raw(Statement::from_sql_and_values(backend, sql, values)).await?;
     Ok(())
 }
 
 pub async fn decrement_message_count(db: &DatabaseConnection, conversation_id: &str) -> Result<()> {
-    db.execute_raw(Statement::from_sql_and_values(
-        db.get_database_backend(),
-        "UPDATE conversations SET message_count = MAX(0, message_count - 1), updated_at = ? WHERE id = ?",
-        vec![now_ts().into(), conversation_id.into()],
-    ))
-    .await?;
+    let (backend, sql, values) = if db.get_database_backend() == DbBackend::Postgres {
+        (
+            DbBackend::Postgres,
+            "UPDATE conversations SET message_count = GREATEST(0, message_count - 1), updated_at = $1 WHERE id = $2",
+            vec![now_ts().into(), conversation_id.into()],
+        )
+    } else {
+        (
+            DbBackend::Sqlite,
+            "UPDATE conversations SET message_count = MAX(0, message_count - 1), updated_at = ? WHERE id = ?",
+            vec![now_ts().into(), conversation_id.into()],
+        )
+    };
+    db.execute_raw(Statement::from_sql_and_values(backend, sql, values)).await?;
     Ok(())
 }
 
@@ -1099,12 +1115,21 @@ pub async fn set_message_count<C: sea_orm::ConnectionTrait>(
     conversation_id: &str,
     count: i32,
 ) -> Result<()> {
-    db.execute_raw(Statement::from_sql_and_values(
-        sea_orm::ConnectionTrait::get_database_backend(db),
-        "UPDATE conversations SET message_count = ?, updated_at = ? WHERE id = ?",
-        vec![count.into(), now_ts().into(), conversation_id.into()],
-    ))
-    .await?;
+    let (backend, sql, values) =
+        if sea_orm::ConnectionTrait::get_database_backend(db) == DbBackend::Postgres {
+            (
+                DbBackend::Postgres,
+                "UPDATE conversations SET message_count = $1, updated_at = $2 WHERE id = $3",
+                vec![count.into(), now_ts().into(), conversation_id.into()],
+            )
+        } else {
+            (
+                DbBackend::Sqlite,
+                "UPDATE conversations SET message_count = ?, updated_at = ? WHERE id = ?",
+                vec![count.into(), now_ts().into(), conversation_id.into()],
+            )
+        };
+    db.execute_raw(Statement::from_sql_and_values(backend, sql, values)).await?;
     Ok(())
 }
 
@@ -1116,12 +1141,20 @@ pub async fn decrement_message_count_by(
     let by_val: sea_orm::Value = by.into();
     let now_val: sea_orm::Value = now_ts().into();
     let id_val: sea_orm::Value = conversation_id.into();
-    db.execute_raw(Statement::from_sql_and_values(
-        db.get_database_backend(),
-        "UPDATE conversations SET message_count = MAX(0, message_count - ?), updated_at = ? WHERE id = ?",
-        vec![by_val, now_val, id_val],
-    ))
-    .await?;
+    let (backend, sql, values) = if db.get_database_backend() == DbBackend::Postgres {
+        (
+            DbBackend::Postgres,
+            "UPDATE conversations SET message_count = GREATEST(0, message_count - $1), updated_at = $2 WHERE id = $3",
+            vec![by_val, now_val, id_val],
+        )
+    } else {
+        (
+            DbBackend::Sqlite,
+            "UPDATE conversations SET message_count = MAX(0, message_count - ?), updated_at = ? WHERE id = ?",
+            vec![by_val, now_val, id_val],
+        )
+    };
+    db.execute_raw(Statement::from_sql_and_values(backend, sql, values)).await?;
     Ok(())
 }
 
@@ -1131,12 +1164,22 @@ pub async fn decrement_message_count_in_txn(
 ) -> Result<()> {
     let now_val: sea_orm::Value = now_ts().into();
     let id_val: sea_orm::Value = conversation_id.into();
-    txn.execute_raw(Statement::from_sql_and_values(
-        sea_orm::ConnectionTrait::get_database_backend(txn),
-        "UPDATE conversations SET message_count = MAX(0, message_count - 1), updated_at = ? WHERE id = ?",
-        vec![now_val, id_val],
-    ))
-    .await?;
+    let (backend, sql, values) = if sea_orm::ConnectionTrait::get_database_backend(txn)
+        == DbBackend::Postgres
+    {
+        (
+            DbBackend::Postgres,
+            "UPDATE conversations SET message_count = GREATEST(0, message_count - 1), updated_at = $1 WHERE id = $2",
+            vec![now_val, id_val],
+        )
+    } else {
+        (
+            DbBackend::Sqlite,
+            "UPDATE conversations SET message_count = MAX(0, message_count - 1), updated_at = ? WHERE id = ?",
+            vec![now_val, id_val],
+        )
+    };
+    txn.execute_raw(Statement::from_sql_and_values(backend, sql, values)).await?;
     Ok(())
 }
 
