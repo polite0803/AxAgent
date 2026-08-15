@@ -331,7 +331,7 @@
   "app": {
     "name": "AxAgent",
     "newSkillProposal": "New skill suggestion: {name}",
-    "title": "स्मार्ट वर्कस्पेस",
+    "title": "एजेंट वर्कस्टेशन",
     "quickBar": "त्वरित पट्टी"
   },
   "appHeader": {

@@ -331,7 +331,7 @@
   "app": {
     "name": "AxAgent",
     "newSkillProposal": "Новое предложение навыка: {name}",
-    "title": "Умное рабочее пространство",
+    "title": "Рабочая станция агентов",
     "quickBar": "QuickBar"
   },
   "appHeader": {

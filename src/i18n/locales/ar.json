@@ -331,7 +331,7 @@
   "app": {
     "name": "AxAgent",
     "newSkillProposal": "New skill suggestion: {name}",
-    "title": "مساحة العمل الذكية",
+    "title": "محطة عمل الوكلاء",
     "quickBar": "شريط سريع"
   },
   "appHeader": {

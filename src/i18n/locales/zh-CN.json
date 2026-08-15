@@ -331,7 +331,7 @@
   "app": {
     "name": "AxAgent",
     "newSkillProposal": "发现新的技能建议: {name}",
-    "title": "智聊助手",
+    "title": "智能体工作站",
     "quickBar": "快速栏"
   },
   "appHeader": {

@@ -331,7 +331,7 @@
   "app": {
     "name": "AxAgent",
     "newSkillProposal": "New Skill Proposal Found: {name}",
-    "title": "Smart Chat Assistant",
+    "title": "Agent Workstation",
     "quickBar": "QuickBar"
   },
   "appHeader": {

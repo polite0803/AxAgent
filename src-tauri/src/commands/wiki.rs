@@ -14,8 +14,21 @@ use axagent_search::hybrid_search::{FusionAlgorithm, HybridSearchOptions, Hybrid
 use axagent_search::rag::{RAGSource, WikiVaultRAG, collection_id};
 use sea_orm::ConnectionTrait;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::PathBuf;
+use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter, State};
+
+/// 实体融合短 TTL 缓存：30 秒内存缓存，避免每次请求都全量查询知识图谱实体。
+/// 知识图谱实体变更后最多 30 秒最终一致，无需跨模块失效机制注入。
+/// 缓存键为 wiki_id，值 = (存入时间戳, 融合后的完整 GraphData)。
+fn get_entity_cache() -> &'static tokio::sync::Mutex<HashMap<String, (Instant, GraphData)>> {
+    static CACHE: std::sync::OnceLock<tokio::sync::Mutex<HashMap<String, (Instant, GraphData)>>> =
+        std::sync::OnceLock::new();
+    CACHE.get_or_init(|| tokio::sync::Mutex::new(HashMap::new()))
+}
+
+const ENTITY_CACHE_TTL: Duration = Duration::from_secs(30);
 
 /// 校验容器 ID（vault_id / note_id 等）格式，防止 SQL 注入和路径穿越。
 /// 规则：1-128 字符，仅允许字母数字、连字符、下划线。
@@ -975,8 +988,14 @@ pub async fn wiki_graph_communities(
         ))
     })?;
 
-    let link_graph = LinkGraph::from_graph_data(graph_data);
-    let result = louvain::detect_communities(link_graph);
+    // Louvain 为 CPU 密集型同步计算（大图数秒），必须放到阻塞线程池，
+    // 避免占死 tokio worker 导致同线程其他命令/事件全部延迟
+    let result = tokio::task::spawn_blocking(move || {
+        let link_graph = LinkGraph::from_graph_data(graph_data);
+        louvain::detect_communities(link_graph)
+    })
+    .await
+    .map_err(|e| e.to_string())?;
     Ok(result)
 }
 
@@ -1035,32 +1054,56 @@ pub async fn get_wiki_graph_cached(
         .and_then(|w| w.knowledge_base_id)
         .unwrap_or_else(|| wiki_id.clone());
 
-    // 3. 融合知识图谱实体关系（实时获取，实体数量通常 < 10000）
-    let mut entity_nodes = Vec::new();
-    let mut reference_edges = Vec::new();
+    // 3. 融合知识图谱实体关系
+    // 知识图谱实体写路径分散（命令层 + 后台索引任务），无法可靠逐点失效；
+    // 采用 30 秒短 TTL 内存缓存：既避免每次打开图谱都全量查询实体，
+    // 又保证实体变更后最多 30 秒最终一致。mapping 边在下方基于最新笔记实时重建。
+    let now = Instant::now();
+    let cached_fusion = {
+        let guard = get_entity_cache().lock().await;
+        guard.get(&kb_id).and_then(|(at, graph)| {
+            if now.duration_since(*at) < ENTITY_CACHE_TTL {
+                Some(graph.clone())
+            } else {
+                None
+            }
+        })
+    };
 
-    // 获取实体节点（ID 加 "entity:" 前缀避免与笔记 ID 冲突）
-    let raw_nodes =
-        axagent_dao::repo::knowledge_graph::get_knowledge_graph_nodes_for_wiki(db, &kb_id)
-            .await
-            .unwrap_or_default();
+    let (entity_nodes, reference_edges) = if let Some(fused) = cached_fusion {
+        // 命中缓存：复用实体节点与实体关系边
+        (fused.nodes, fused.edges)
+    } else {
+        // 未命中：实时查询实体并写缓存（仅缓存实体部分，不含笔记与 mapping）
+        let mut entity_nodes = Vec::new();
 
-    for mut node in raw_nodes {
-        node.id = format!("entity:{}", node.id);
-        entity_nodes.push(node);
-    }
+        // 获取实体节点（ID 加 "entity:" 前缀避免与笔记 ID 冲突）
+        let raw_nodes =
+            axagent_dao::repo::knowledge_graph::get_knowledge_graph_nodes_for_wiki(db, &kb_id)
+                .await
+                .unwrap_or_default();
+        for mut node in raw_nodes {
+            node.id = format!("entity:{}", node.id);
+            entity_nodes.push(node);
+        }
 
-    // 获取实体关系边
-    let raw_edges =
-        axagent_dao::repo::knowledge_graph::get_knowledge_graph_edges_for_wiki(db, &kb_id)
-            .await
-            .unwrap_or_default();
+        // 获取实体关系边
+        let mut reference_edges = Vec::new();
+        let raw_edges =
+            axagent_dao::repo::knowledge_graph::get_knowledge_graph_edges_for_wiki(db, &kb_id)
+                .await
+                .unwrap_or_default();
+        for mut edge in raw_edges {
+            edge.source = format!("entity:{}", edge.source);
+            edge.target = format!("entity:{}", edge.target);
+            reference_edges.push(edge);
+        }
 
-    for mut edge in raw_edges {
-        edge.source = format!("entity:{}", edge.source);
-        edge.target = format!("entity:{}", edge.target);
-        reference_edges.push(edge);
-    }
+        let fused = GraphData { nodes: entity_nodes.clone(), edges: reference_edges.clone() };
+        get_entity_cache().lock().await.insert(kb_id.clone(), (Instant::now(), fused));
+
+        (entity_nodes, reference_edges)
+    };
 
     // 4. 建立实体节点与 Wiki 笔记节点的映射边（v118：消除孤岛）
     let mut mapping_edges = Vec::new();
@@ -1112,8 +1155,13 @@ pub async fn wiki_graph_communities_cached(
             return Ok(communities);
         }
         // graph_data 已缓存但 communities 未算：用缓存 graph_data 跑 Louvain
-        let link_graph = LinkGraph::from_graph_data(entry.graph_data);
-        let result = louvain::detect_communities(link_graph);
+        // CPU 密集计算放阻塞线程池，避免阻塞 tokio worker
+        let result = tokio::task::spawn_blocking(move || {
+            let link_graph = LinkGraph::from_graph_data(entry.graph_data);
+            louvain::detect_communities(link_graph)
+        })
+        .await
+        .map_err(|e| e.to_string())?;
         axagent_dao::repo::wiki_graph_cache::save_cached_communities(db, &wiki_id, &result)
             .await
             .map_err(|e| {

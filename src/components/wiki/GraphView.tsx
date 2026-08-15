@@ -48,9 +48,21 @@ import {
   type PhysicsEdge,
   type PhysicsNode,
   stepPhysics,
-  warmupPhysics,
 } from "./graphPhysics";
 import type { WorkerMessage, WorkerResponse } from "./graphPhysics.worker";
+
+// ── 预热物理配置：随 init 消息传给 Worker，在 Worker 内完成初始布局收敛 ──
+// 之前在主线程同步执行 warmupPhysics，几万节点时冻结 UI 数秒；现移入 Worker。
+const WARMUP_PHYSICS_CONFIG: PhysicsConfig = {
+  theta: 0.6,
+  repulsion: 30000,
+  gravity: 0.002,
+  damping: 0.85,
+  dt: 0.4,
+  springForce: 0.06,
+  springDamping: 0.9,
+  maxVelocity: 10,
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 公共类型（保持向后兼容）
@@ -110,6 +122,19 @@ export interface GraphViewHandle {
 type TokenType = ReturnType<typeof theme.useToken>["token"];
 
 const EMPTY_SET: ReadonlySet<string> = new Set<string>();
+
+/**
+ * requestIdleCallback 安全封装：macOS WKWebView（Safari 引擎）不支持该 API，
+ * 裸调用会抛 ReferenceError 导致 LOD 更新 / 聚合几何刷新 / 位图缓存重建全部中断。
+ * 不支持时降级为 setTimeout(0)（立即在下一事件循环执行）。
+ */
+function scheduleIdle(callback: () => void, timeout: number): void {
+  if (typeof requestIdleCallback === "function") {
+    requestIdleCallback(callback, { timeout });
+  } else {
+    setTimeout(callback, 0);
+  }
+}
 
 const communityPalette = [
   "#5B8FF9",
@@ -364,6 +389,15 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 }, ref) => {
   const { token } = theme.useToken();
   const { t } = useTranslation();
+
+  // token 的实时引用：渲染循环/数据 effect 通过 ref 读取最新 token，
+  // 主题切换无需重建物理世界，只需重算颜色缓存（见 token 主题 effect）。
+  const tokenRef = useRef(token);
+  tokenRef.current = token;
+
+  // 原始图数据/社区引用：供主题 effect 重算颜色缓存（数据 effect 不再依赖 token）
+  const dataRef = useRef<GraphData | null>(null);
+  const rawCommunitiesRef = useRef<Map<string, number> | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -776,10 +810,14 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   useEffect(() => {
     if (!data || data.nodes.length === 0) { return; }
 
+    // 供主题 effect 重算颜色缓存（数据 effect 不依赖 token，主题切换不重建图）
+    dataRef.current = data;
+    rawCommunitiesRef.current = communities ?? null;
+
     // 清空 minimap 包围盒缓存（节点集已变化，旧缓存失效）
     minimapBBoxRef.current = null;
 
-    const colorCache = buildNodeColorCache(data.nodes, communities, token);
+    const colorCache = buildNodeColorCache(data.nodes, communities, tokenRef.current);
     nodeColorRef.current = colorCache;
     buildNodeSpriteCache();
 
@@ -825,22 +863,15 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     physNodesRef.current = pNodes;
     physEdgesRef.current = pEdges;
 
-    // ── 预热迭代：在 Worker 启动前同步运行物理预热，确保节点充分扩散 ──
-    // 这是解决"节点堆成一团彩球"的关键：在首次渲染前就完成布局收敛
+    // ── 预热迭代：移交给 Worker 在 init 时后台执行 ──
+    // 此前在主线程同步跑 40~80 次 Barnes-Hut，几万节点首开会冻结 UI 数秒（
+    // 见下方"不在主线程同步跑 stepPhysics"的说明）。现在只计算预热参数，
+    // 随 Worker init 消息传入，由 Worker 完成初始布局收敛，主线程保持响应。
+    // 预热迭代数降为 20~30 次（Worker 单步更快），保证 ready 快速返回，
+    // 剩余收敛由渲染循环的持续 STEP 完成。
+    let warmupIters = 0;
     if (!layoutApplied) {
-      const warmupIters = pNodes.length > 5000 ? 40 : 80;
-      const warmupConfig: PhysicsConfig = {
-        theta: 0.6,
-        repulsion: 30000,
-        gravity: 0.002,
-        damping: 0.85,
-        dt: 0.4,
-        springForce: 0.06,
-        springDamping: 0.9,
-        maxVelocity: 10,
-      };
-      const warmupCommunities = effectiveCommunitiesRef.current ?? communities;
-      warmupPhysics(pNodes, pEdges, warmupIters, warmupConfig, warmupCommunities);
+      warmupIters = pNodes.length > 5000 ? 20 : 30;
     }
 
     // 构建渲染缓存：posMap (O(N) 一次性) + 邻居集合 (O(E) 一次性)
@@ -882,7 +913,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     nodeSizeRef.current = sizeMap;
 
     // 边元数据（用于渲染），直接存储 sourceIdx/targetIdx 避免渲染循环中的 Map 查找
-    const edgeStyles = getEdgeTypeStylesMap(token);
+    const edgeStyles = getEdgeTypeStylesMap(tokenRef.current);
     const idToIdx = new Map<string, number>();
     for (let i = 0; i < pNodes.length; i++) {
       idToIdx.set(pNodes[i].id, i);
@@ -1073,6 +1104,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         edges: [],
         config: workerConfig,
         communities: undefined, // 已通过 nodeIdxToCommunity 传递，不再需要
+        // 预热参数：Worker init 时在后台完成初始布局收敛（避免主线程同步冻结）
+        warmupIterations: warmupIters,
+        warmupConfig: warmupIters > 0 ? WARMUP_PHYSICS_CONFIG : undefined,
         compact: {
           nodeBuffer,
           edgeBuffer,
@@ -1165,7 +1199,46 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         workerInitializedRef.current = false;
       }
     };
-  }, [data, communities, token]);
+    // 依赖不含 token：主题切换不再触发物理世界重建（布局保留），
+    // 颜色更新由下方"主题 effect"单独处理。
+  }, [data, communities]);
+
+  // ── 主题 effect：token 变化时只重算颜色缓存，不重建物理世界 ──
+  // 数据 effect 已不依赖 token；此处保证明暗主题切换后节点/边/粒子/背景颜色即时更新，
+  // 同时保留当前布局与相机状态，避免此前"切换主题导致布局重置"的问题。
+  useEffect(() => {
+    const d = dataRef.current;
+    if (!d || d.nodes.length === 0) { return; }
+
+    // 节点颜色（社区色 palette 为常量，类型色随主题更新）
+    nodeColorRef.current = buildNodeColorCache(d.nodes, rawCommunitiesRef.current ?? undefined, token);
+
+    // 边样式颜色/宽度
+    const edgeStyles = getEdgeTypeStylesMap(token);
+    const meta = edgeMetaRef.current;
+    if (meta) {
+      for (const m of meta) {
+        const style = edgeStyles[m.type] || edgeStyles.link;
+        m.color = style.color;
+        m.width = style.width;
+        m.animated = style.animated;
+      }
+    }
+
+    // 粒子颜色跟随边颜色
+    const particles = particlesRef.current;
+    if (particles) {
+      for (const p of particles) {
+        const em = meta[p.edgeIndex];
+        if (em) { p.color = em.color; }
+      }
+    }
+
+    // 重建节点精灵缓存 + 清空背景渐变缓存（颜色来自 token）
+    buildNodeSpriteCache();
+    bgCacheRef.current = null;
+    minimapBBoxRef.current = null;
+  }, [token]);
 
   // 主动画循环
   useEffect(() => {
@@ -1392,11 +1465,11 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
             // LOD 变化导致折叠集合改变 → 重建聚合物理集
             if (newCollapsed.size !== prevCollapsedSize) {
               // 放到 requestIdleCallback 中：避免阻塞下一帧渲染
-              requestIdleCallback(() => {
+              scheduleIdle(() => {
                 refreshClusterGeom();
                 buildAggregatePhysics();
                 setClusterCollapseVersion((v) => v + 1);
-              }, { timeout: 500 });
+              }, 500);
             }
           }
         }
@@ -1687,7 +1760,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
           );
           // gridIndex 重建改为异步（主线程 fallback 模式，节点数 <= 1500，影响较小）
           if (frameCounterRef.current % 3 === 0) {
-            requestIdleCallback(() => {
+            scheduleIdle(() => {
               const gridIndex = new Map<string, string[]>();
               for (const n of nodes) {
                 const gx = Math.floor(n.x / GRID_CELL_SIZE);
@@ -1701,7 +1774,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
                 }
               }
               gridIndexRef.current = gridIndex;
-            }, { timeout: 100 });
+            }, 100);
           }
         }
       }
@@ -1771,6 +1844,11 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
               : null,
           });
         }
+
+        // 主渲染路径本帧绘制的节点数：
+        // -1 = 已通过其他方式绘制（聚类标记 / 位图 / 矢量 fallback），安全阀无需介入
+        // >=0 = drawExpandedCommunity 实际绘制的节点数，为 0 时安全阀兜底
+        let expandedNodesDrawn = -1;
 
         if (shouldUseClusterRender) {
           // ── 聚类模式：极简渲染策略 ──
@@ -2002,8 +2080,10 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         }
 
         // ── 终极安全阀：auto force cluster 模式下直接绘制节点 ──
-        // 防止任何社区过滤/聚类逻辑导致节点不可见
-        if (isAutoForceClusterRef.current && nodes.length > 0) {
+        // 仅在主渲染路径（drawExpandedCommunity）本帧实际绘制 0 个节点时兜底，
+        // 防止社区过滤/聚类逻辑导致节点不可见；正常帧不再叠加绘制，
+        // 避免双重绘制导致的亮度失真与 hover/selected 高亮被覆盖。
+        if (isAutoForceClusterRef.current && nodes.length > 0 && expandedNodesDrawn === 0) {
           const maxDraw = 3000;
           let drawn = 0;
           ctx.save();
@@ -2369,7 +2449,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       }
     }
 
-    if (expandedNodeIds.size === 0) { return; }
+    if (expandedNodeIds.size === 0) { return 0; }
 
     // 降采样：大图只画部分节点（使用确定性采样避免闪烁）
     const nodeSampleRate = isLargeGraph ? 0.5 : 1.0;
@@ -2405,15 +2485,20 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       ctx.save();
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
+      // 字号处于世界坐标系，必须除以 zoom 换算，保证任何缩放级别下屏幕字号恒定（10~12px）。
+      // 修复前直接用屏幕像素值：zoom=0.4 时屏幕仅 3.6px 不可读，zoom=5 时 60px 巨大。
+      const screenFontSize = zoom >= 1 ? 12 : zoom >= 0.6 ? 11 : 10;
+      const fontSize = screenFontSize / zoom;
+      // 标签与节点的间距同样换算为世界坐标
+      const labelOffset = 3 / zoom;
+      ctx.font = `${fontSize.toFixed(1)}px Inter, system-ui, sans-serif`;
       for (const node of visibleNodes) {
         const meta = nodeMetaRef.current.get(node.id);
         if (!meta) { continue; }
         const title = meta.title.length > 18 ? meta.title.slice(0, 16) + "…" : meta.title;
-        const fontSize = Math.max(9, Math.min(12, Math.round(10 * zoom + 2)));
-        ctx.font = `${fontSize}px Inter, system-ui, sans-serif`;
         ctx.globalAlpha = 0.85;
         ctx.fillStyle = token.colorText;
-        ctx.fillText(title, node.x, node.y + node.size + 3);
+        ctx.fillText(title, node.x, node.y + node.size + labelOffset);
       }
       ctx.globalAlpha = 1;
       ctx.restore();
@@ -2479,6 +2564,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       ctx.globalAlpha = 1;
       ctx.restore();
     }
+
+    return visibleNodes.length;
   }
 
   function drawEdgesOptimized(

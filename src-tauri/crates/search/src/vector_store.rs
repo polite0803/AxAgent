@@ -886,7 +886,9 @@ impl VectorStore {
         let name = Self::validated_collection_name(knowledge_base_id)?;
 
         if !self.table_exists(&format!("{name}_meta")).await? {
-            tracing::warn!("Vector store: table {name}_meta does not exist, returning empty");
+            // 集合尚无任何索引数据（如新建且未写入条目的命名空间），属正常业务场景，
+            // 降级为 debug 避免每次会话搜索刷屏
+            tracing::debug!("Vector store: table {name}_meta does not exist, returning empty");
             return Ok(vec![]);
         }
 
@@ -1725,7 +1727,7 @@ impl VectorStore {
     }
 
     /// Check whether a regular table exists in the database.
-    async fn table_exists(&self, table_name: &str) -> Result<bool> {
+    pub(crate) async fn table_exists(&self, table_name: &str) -> Result<bool> {
         let row = if self.is_pg() {
             self.db
                 .query_one_raw(Statement::from_sql_and_values(

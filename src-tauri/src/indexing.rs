@@ -96,6 +96,116 @@ pub fn parse_embedding_provider(embedding_provider: &str) -> Result<(String, Str
     Ok((parts[0].to_string(), parts[1].to_string()))
 }
 
+/// 旧格式 embedding_provider 解析结果缓存。
+///
+/// `generate_embeddings` 在索引分批 / 每次搜索时都会调用解析逻辑，
+/// 不缓存会导致每个批次重复查询 DB（get_provider 含 3 条 SQL）并刷屏 WARN。
+/// key 为原始字符串，value 为补全后的完整格式；解析失败不缓存，
+/// 保证用户修复配置后可以立即重试成功（配置正确后字符串变为完整格式，走快速路径）。
+static RESOLVED_EMBEDDING_PROVIDER_CACHE: std::sync::LazyLock<
+    tokio::sync::RwLock<std::collections::HashMap<String, String>>,
+> = std::sync::LazyLock::new(|| tokio::sync::RwLock::new(std::collections::HashMap::new()));
+
+/// Resolve an embedding_provider string that may be in legacy format (only `provider_id`)
+/// into a canonical `"providerId::model_id"` string.
+///
+/// 旧格式兼容：早期版本在 knowledge base / memory namespace 中只存了 provider_id，
+/// 未存 model_id。此处自动补全该 provider 下第一个启用的 Embedding 类型模型，
+/// 拼成完整格式，避免嵌入链路因格式不完整而失败。
+///
+/// 兜底策略（与 capability_embedding 的跨 provider 扫描一致）：
+/// - 目标 provider 下无启用的 Embedding 模型时，跨 provider 扫描第一个启用的
+///   Embedding 模型作为兜底，保证嵌入链路仍可用（语义质量由配置决定）。
+///
+/// 返回 `(resolved_string, was_legacy)`，`was_legacy=false` 表示输入已是完整格式。
+pub async fn resolve_embedding_provider(
+    db: &DatabaseConnection,
+    embedding_provider: &str,
+) -> Result<(String, bool)> {
+    if embedding_provider.contains("::") {
+        return Ok((embedding_provider.to_string(), false));
+    }
+
+    // 命中缓存：跳过 DB 查询与重复 WARN
+    if let Some(resolved) =
+        RESOLVED_EMBEDDING_PROVIDER_CACHE.read().await.get(embedding_provider).cloned()
+    {
+        return Ok((resolved, true));
+    }
+
+    let provider_id = embedding_provider.trim();
+    if provider_id.is_empty() {
+        tracing::warn!("[indexing] embedding_provider 为空，尝试跨 provider 扫描可用的嵌入模型");
+    } else {
+        tracing::warn!(
+            "[indexing] 检测到旧格式 embedding_provider（仅 provider_id），尝试自动补全 model_id。请尽快在设置页面重新选择嵌入模型以彻底修复 embedding_provider={}",
+            provider_id
+        );
+    }
+
+    // 优先在目标 provider 下查找启用的 Embedding 模型（空 provider_id 跳过直接兜底）
+    let model_id = if provider_id.is_empty() {
+        None
+    } else {
+        axagent_dao::repo::provider::get_provider(db, provider_id)
+            .await
+            .ok()
+            .filter(|p| p.enabled)
+            .and_then(|p| {
+                p.models
+                    .into_iter()
+                    .find(|m| m.model_type == ModelType::Embedding && m.enabled)
+                    .map(|m| m.model_id)
+            })
+    };
+
+    if let Some(model_id) = model_id {
+        let resolved = format!("{}::{}", provider_id, model_id);
+        tracing::warn!("[indexing] 已自动补全嵌入模型为 {}", resolved);
+        RESOLVED_EMBEDDING_PROVIDER_CACHE
+            .write()
+            .await
+            .insert(embedding_provider.to_string(), resolved.clone());
+        return Ok((resolved, true));
+    }
+
+    // 目标 provider 无可用 Embedding 模型：跨 provider 兜底扫描
+    if !provider_id.is_empty() {
+        tracing::warn!(
+            "[indexing] provider '{}' 下未找到 Embedding 类型模型，尝试跨 provider 兜底扫描 provider_id={}",
+            provider_id,
+            provider_id
+        );
+    }
+    let providers = axagent_dao::repo::provider::list_providers_merged(db).await?;
+    for fallback in &providers {
+        if !fallback.enabled {
+            continue;
+        }
+        let Some(model) =
+            fallback.models.iter().find(|m| m.model_type == ModelType::Embedding && m.enabled)
+        else {
+            continue;
+        };
+        let resolved = format!("{}::{}", fallback.id, model.model_id);
+        tracing::warn!(
+            "[indexing] 使用跨 provider 兜底嵌入模型（{provider_id} => {resolved}），请尽快在设置页为该容器配置正确的嵌入模型 container_provider={provider_id} fallback_provider={} fallback_model={}",
+            fallback.id,
+            model.model_id
+        );
+        RESOLVED_EMBEDDING_PROVIDER_CACHE
+            .write()
+            .await
+            .insert(embedding_provider.to_string(), resolved.clone());
+        return Ok((resolved, true));
+    }
+
+    Err(AxAgentError::Provider(format!(
+        "provider '{}' 下未找到可用的 Embedding 类型模型，且系统中无其他可用的 Embedding 模型，请在设置页面配置嵌入模型",
+        provider_id
+    )))
+}
+
 /// Build a ProviderRequestContext for an embedding provider.
 pub async fn build_embed_context(
     db: &DatabaseConnection,
@@ -428,7 +538,10 @@ pub async fn generate_embeddings(
     texts: Vec<String>,
     dimensions: Option<usize>,
 ) -> Result<EmbedResponse> {
-    let (provider_id, model_id) = parse_embedding_provider(embedding_provider)?;
+    // 兼容旧格式：仅存 provider_id 时自动补全第一个启用的 Embedding 模型
+    let (resolved_provider, _was_legacy) =
+        resolve_embedding_provider(db, embedding_provider).await?;
+    let (provider_id, model_id) = parse_embedding_provider(&resolved_provider)?;
     let (ctx, provider_config) = build_embed_context(db, master_key, &provider_id).await?;
 
     let registry_key = axagent_harness::types::provider_model::provider_registry_key(

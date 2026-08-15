@@ -115,10 +115,21 @@ export const Tooltip = forwardRef<HTMLElement, TooltipProps>(
       }
     }, [isControlled]);
 
-    // 稳定的 ref 回调 - 仅设置内部 triggerRef，不转发 forwardedRef 避免循环
-    const setTriggerRef = useCallback((el: HTMLElement | null) => {
-      triggerRef.current = el;
-    }, []);
+    // 稳定的 ref 回调 - 设置内部 triggerRef 用于自身定位，同时把父组件
+    // （Popconfirm/Popover 等）传入的 forwardedRef 透传给真实 DOM 节点。
+    // 若不透传，antd 的 rc-trigger 无法通过 ref 定位触发器，弹层会落到
+    // 视口左下角并立即关闭。
+    const setTriggerRef = useCallback(
+      (el: HTMLElement | null) => {
+        triggerRef.current = el;
+        if (typeof _forwardedRef === "function") {
+          _forwardedRef(el);
+        } else if (_forwardedRef) {
+          _forwardedRef.current = el;
+        }
+      },
+      [_forwardedRef],
+    );
 
     // 清理 timeout
     useEffect(() => {

@@ -331,7 +331,7 @@
   "app": {
     "name": "AxAgent",
     "newSkillProposal": "Nueva sugerencia de habilidad: {name}",
-    "title": "Espacio de Trabajo Inteligente",
+    "title": "Estación de Trabajo de Agentes",
     "quickBar": "QuickBar"
   },
   "appHeader": {
