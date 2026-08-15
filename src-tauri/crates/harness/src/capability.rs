@@ -479,6 +479,14 @@ pub trait CapabilityPassport: Send + Sync {
         None
     }
 
+    /// 推荐执行专家（AgentProfile ID）。
+    ///
+    /// 认知编排在 Agent 执行路径（Ask/Act/Delegate）下据此自动选择专家；
+    /// 返回 `None` 时由路由决策/应用层兜底到默认专家。
+    fn default_agent_profile(&self) -> Option<String> {
+        None
+    }
+
     /// 能力统计快照（可选，运行时注入）
     fn stats(&self) -> CapabilityStats {
         CapabilityStats::default()
@@ -511,6 +519,7 @@ pub trait CapabilityPassport: Send + Sync {
             planning_complexity: self.planning_complexity(),
             model_iq_requirement: self.model_iq_requirement(),
             experiment_group: self.experiment_group(),
+            agent_profile_id: self.default_agent_profile(),
             stats: self.stats(),
             enabled: self.is_enabled(),
         }
@@ -556,6 +565,9 @@ pub struct CapabilityPassportDto {
     pub model_iq_requirement: u8,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub experiment_group: Option<String>,
+    /// 推荐执行专家（AgentProfile ID）。认知编排 Agent 执行路径据此自动选择专家。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent_profile_id: Option<String>,
     #[serde(default)]
     pub stats: CapabilityStats,
     pub enabled: bool,
@@ -583,6 +595,7 @@ impl Default for CapabilityPassportDto {
             planning_complexity: PlanningComplexity::Simple,
             model_iq_requirement: 0,
             experiment_group: None,
+            agent_profile_id: None,
             stats: CapabilityStats::default(),
             enabled: true,
         }

@@ -1365,6 +1365,7 @@ async fn register_all_capabilities(
                     planning_complexity: PlanningComplexity::Simple,
                     model_iq_requirement: 0,
                     experiment_group: None,
+                    agent_profile_id: None,
                     stats: Default::default(),
                     enabled: true,
                 });
@@ -1426,6 +1427,7 @@ async fn register_system_capabilities(indexer: &Arc<axagent_tools::CapabilityInd
             planning_complexity: PlanningComplexity::Complex,
             model_iq_requirement: 85,
             experiment_group: None,
+            agent_profile_id: None,
             stats: Default::default(),
             enabled: true,
         },
@@ -1456,6 +1458,7 @@ async fn register_system_capabilities(indexer: &Arc<axagent_tools::CapabilityInd
             planning_complexity: PlanningComplexity::Simple,
             model_iq_requirement: 0,
             experiment_group: None,
+            agent_profile_id: None,
             stats: Default::default(),
             enabled: true,
         },

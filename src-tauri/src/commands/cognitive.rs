@@ -309,12 +309,9 @@ pub async fn cognitive_query(
     // 跳过三层路由，按能力类型直接分发给对应执行器（Workflow → WorkEngine；Agent → agent_query）。
     if let Some(forced_id) = request.forced_capability_id.as_deref().filter(|s| !s.is_empty()) {
         let forced_id = forced_id.to_string();
-        let forced_kind = state
-            .capability_indexer
-            .get_passport(&forced_id)
-            .await
-            .map(|p| p.kind)
-            .unwrap_or(CapabilityKind::Workflow);
+        let forced_passport = state.capability_indexer.get_passport(&forced_id).await;
+        let forced_kind =
+            forced_passport.as_ref().map(|p| p.kind).unwrap_or(CapabilityKind::Workflow);
         let execution = match forced_kind {
             CapabilityKind::Workflow => {
                 let execution_id = crate::commands::workflows::workflow_execute(
@@ -354,7 +351,10 @@ pub async fn cognitive_query(
                     search_provider_id: request.search_provider_id.clone(),
                     attachments: None,
                     options: request.options.clone(),
-                    agent_profile_id: request.agent_profile_id.clone(),
+                    // Clarify 选中的 Agent 类型能力：用其 passport 推荐专家（用户手选已隐藏）
+                    agent_profile_id: forced_passport
+                        .as_ref()
+                        .and_then(|p| p.agent_profile_id.clone()),
                     agent_context: request.agent_context.clone(),
                 };
                 let agent_resp = crate::commands::agent::agent_query(app, state, agent_request)
@@ -529,6 +529,10 @@ pub async fn cognitive_query(
                         "kind": c.get("kind").and_then(|v| v.as_str()).unwrap_or("workflow"),
                         "domain": c.get("domain").and_then(|v| v.as_str()).unwrap_or(""),
                         "cluster": c.get("cluster").and_then(|v| v.as_str()).map(str::to_string),
+                        "agent_profile_id": c
+                            .get("agent_profile_id")
+                            .and_then(|v| v.as_str())
+                            .map(str::to_string),
                     }))
                     .ok()
                 })
@@ -537,6 +541,20 @@ pub async fn cognitive_query(
         .unwrap_or_default();
     let candidates: Vec<String> =
         candidate_details.iter().map(|c| c.capability_id.clone()).collect();
+
+    // 认知编排自动选专家：取选中能力（capability_id）候选上标注的推荐专家。
+    // 命中工作流路径时由 WorkEngine/AgentNode 自行绑定专家，此处仅服务于
+    // Ask/Act/Delegate 等 Agent 执行路径；选中能力无推荐专家时兜底为 None，
+    // 由 agent_query 落回默认专家（单专家数据约束下即为默认 profile）。
+    let route_agent_profile = candidate_details
+        .iter()
+        .find(|c| c.capability_id == capability_id)
+        .and_then(|c| c.agent_profile_id.clone());
+    tracing::debug!(
+        capability_id = %capability_id,
+        route_agent_profile = ?route_agent_profile,
+        "认知编排自动选专家（Agent 执行路径）"
+    );
 
     // 5. 熔断检查（自指/系统能力层熔断 → 可恢复错误，前端引导重试或降级）
     if l3.get("is_circuit_broken").and_then(|v| v.as_bool()).unwrap_or(false) {
@@ -677,6 +695,11 @@ pub async fn cognitive_query(
                     .with_category(ErrorCategory::Validation)
                     .with_param("field", "conversation_id")
             })?;
+            // 专家选择优先级：调用方显式指定（request.agent_profile_id）优先，
+            // 否则回退到认知编排路由自动选专家（route_agent_profile，从命中能力候选推导）。
+            // 单专家数据约束下两者通常一致；显式指定供外部调用方/未来恢复手选时覆盖。
+            let selected_agent_profile =
+                request.agent_profile_id.clone().or(route_agent_profile.clone());
             let agent_request = AgentQueryRequest {
                 conversation_id,
                 input,
@@ -691,7 +714,8 @@ pub async fn cognitive_query(
                 search_provider_id: request.search_provider_id.clone(),
                 attachments: None,
                 options: request.options.clone(),
-                agent_profile_id: request.agent_profile_id.clone(),
+                // 认知编排选专家：显式指定优先，路由自动推导兜底
+                agent_profile_id: selected_agent_profile,
                 agent_context: request.agent_context.clone(),
             };
             let agent_resp =

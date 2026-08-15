@@ -63,6 +63,9 @@ pub struct RarCandidate {
     /// 能力可见性（熔断判定的权威依据）
     #[serde(default)]
     pub visibility: Visibility,
+    /// 推荐执行专家（AgentProfile ID）。认知编排 Agent 执行路径据此自动选择专家。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent_profile_id: Option<String>,
 }
 
 impl RarCandidate {
@@ -84,6 +87,7 @@ impl RarCandidate {
             negative_scenarios: passport.negative_scenarios.clone(),
             kind: passport.kind,
             visibility: passport.visibility,
+            agent_profile_id: passport.agent_profile_id.clone(),
         }
     }
 
@@ -1151,6 +1155,7 @@ mod tests {
             negative_scenarios: vec![],
             kind: CapabilityKind::Tool,
             visibility: Visibility::Public,
+            agent_profile_id: None,
         };
 
         assert!(breaker.should_block(&system_candidate), "system_ 前缀应该被熔断");
@@ -1167,6 +1172,7 @@ mod tests {
             negative_scenarios: vec![],
             kind: CapabilityKind::Workflow,
             visibility: Visibility::Public,
+            agent_profile_id: None,
         };
 
         assert!(breaker.should_block(&orchestrator_candidate), "orchestrator 标签应该被熔断");
@@ -1184,6 +1190,7 @@ mod tests {
             negative_scenarios: vec![],
             kind: CapabilityKind::Tool,
             visibility: Visibility::Public,
+            agent_profile_id: None,
         };
 
         assert!(!breaker.should_block(&normal_candidate), "正常业务能力不应该被熔断");
@@ -1209,6 +1216,7 @@ mod tests {
             negative_scenarios: vec![],
             kind: CapabilityKind::Workflow,
             visibility: Visibility::Public,
+            agent_profile_id: None,
         }];
 
         let prompt = build_rar_few_shot_prompt(&candidates, "分析301302");
@@ -1252,6 +1260,7 @@ mod tests {
                 negative_scenarios: vec![],
                 kind: CapabilityKind::Workflow,
                 visibility: Visibility::Public,
+                agent_profile_id: None,
             },
             RarCandidate {
                 workflow_id: "system_router".to_string(),
@@ -1265,6 +1274,7 @@ mod tests {
                 negative_scenarios: vec![],
                 kind: CapabilityKind::Tool,
                 visibility: Visibility::Public,
+                agent_profile_id: None,
             },
         ];
 
@@ -1298,6 +1308,7 @@ mod tests {
             planning_complexity: crate::capability::PlanningComplexity::Simple,
             model_iq_requirement: 0,
             experiment_group: None,
+            agent_profile_id: None,
             stats: crate::capability::CapabilityStats::default(),
             enabled: true,
         };
