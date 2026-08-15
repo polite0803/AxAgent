@@ -54,6 +54,7 @@ pub const ADDITIONAL_COLUMNS: &[(&str, &str, &str)] = &[
     ("messages", "cache_creation_tokens", "BIGINT"),
     ("messages", "cache_read_tokens", "BIGINT"),
     ("messages", "quoted_message_id", "TEXT"),
+    ("messages", "decision", "TEXT"),
     // ── dynamic_ui_schemas 版本号（v007） ──
     ("dynamic_ui_schemas", "version", "TEXT NOT NULL DEFAULT '1.0.0'"),
     // ── gateway_usage 缓存 token / 成本估算（v100 v001） ──
@@ -181,7 +182,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             created_at BIGINT NOT NULL, parts TEXT, prompt_tokens BIGINT, \
             completion_tokens BIGINT, status TEXT NOT NULL DEFAULT 'complete', \
             tokens_per_second DOUBLE PRECISION, first_token_latency_ms BIGINT, \
-            quoted_message_id TEXT, \
+            quoted_message_id TEXT, decision TEXT, \
             FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE)",
     ] {
         exec_ddl(&db, is_pg, sql).await?;

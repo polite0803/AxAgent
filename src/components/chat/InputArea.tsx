@@ -2490,13 +2490,9 @@ export function InputArea() {
                 aria-label={t("chat.sendMessage")}
                 icon={<ArrowUp size={16} />}
                 onClick={handleSend}
-                disabled={!value.trim() || streaming
-                  || (activeConversation?.session_type === "workflow"
-                    && activeConversation?.workflow_status === "completed")}
+                disabled={!value.trim() || streaming}
                 style={{ flexShrink: 0, alignSelf: "flex-end", width: 36, height: 36 }}
                 className={value.trim() && !streaming
-                    && !(activeConversation?.session_type === "workflow"
-                      && activeConversation?.workflow_status === "completed")
                   ? "ax-glow-shadow"
                   : ""}
               />

@@ -118,6 +118,9 @@ pub struct Message {
     /// 引用回复：被引用消息的 ID（区别于 parent_message_id 的多版本语义）
     #[serde(default)]
     pub quoted_message_id: Option<String>,
+    /// 认知编排决策标签：该消息对应一轮执行的决策信息（ExecutionMode / 路由路径 / 命中工作流 / 专家等）
+    #[serde(default)]
+    pub decision: Option<serde_json::Value>,
 }
 
 /// A structured content block in a message (Part-based model).

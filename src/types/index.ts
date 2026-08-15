@@ -210,6 +210,28 @@ export interface Message {
   quoted_message_id?: string | null;
   /** 意图澄清状态（仅用户消息有） */
   intent_clarification?: IntentClarification | null;
+  /** 认知编排决策标签：该消息对应一轮执行的决策信息（ExecutionMode / 路由路径 / 命中工作流 / 专家等） */
+  decision?: CognitiveDecisionInfo | null;
+}
+
+// ── 认知编排决策标签 ────────────────────────────────
+/** 单条消息的认知编排决策信息，由后端 cognitive_query 写入并持久化。 */
+export interface CognitiveDecisionInfo {
+  /** 执行模式：Workflow / Direct / Delegate / Ask / Plan / Act / ParameterExtract */
+  executionMode: string;
+  /** 三层路由路径（如 /trade/refund/auto） */
+  routePath: string;
+  /** 路由置信度 */
+  confidence: number;
+  /** 命中工作流名称（Workflow 执行模式有值） */
+  selectedWorkflowName?: string | null;
+  /** 选中的专家/角色画像（Agent 执行模式有值） */
+  selectedAgentProfile?: {
+    id: string;
+    name: string;
+    role: string | null;
+    expert: string | null;
+  } | null;
 }
 
 // ── Content Block (Part-based message model, short-term) ──────────────

@@ -1579,7 +1579,23 @@
     "fallbackPath": "Chemin de repli",
     "candidates": "Candidats",
     "stageRecords": "Étapes de route",
-    "recordedAt": "Enregistré à"
+    "recordedAt": "Enregistré à",
+    "branch": "Branche de décision",
+    "workflowName": "Workflow sélectionné",
+    "agentProfile": "Agent d'exécution",
+    "role": "Rôle",
+    "expert": "Expert",
+    "noDecision": "Aucun workflow/agent spécifique trouvé, exécution par défaut",
+    "executionModeMap": {
+      "ask": "Question",
+      "plan": "Décomposition du plan",
+      "act": "Exécution d'action",
+      "workflow": "Exécuter le workflow",
+      "direct": "Direct",
+      "delegate": "Déléguer à l'agent",
+      "parameter_extract": "Extraction de paramètres",
+      "clarify": "En attente de clarification"
+    }
   },
   "continuation": {
     "continueFromHere": "Continuer à partir d'ici"

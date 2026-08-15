@@ -1579,7 +1579,23 @@
     "fallbackPath": "備選路徑",
     "candidates": "候選能力",
     "stageRecords": "路由階段",
-    "recordedAt": "觀測時間"
+    "recordedAt": "觀測時間",
+    "branch": "執行分支",
+    "workflowName": "選中工作流",
+    "agentProfile": "執行專家",
+    "role": "角色",
+    "expert": "專家",
+    "noDecision": "未命中具體工作流/專家，交由預設執行",
+    "executionModeMap": {
+      "ask": "問答",
+      "plan": "計畫拆解",
+      "act": "行動執行",
+      "workflow": "執行工作流",
+      "direct": "直接執行",
+      "delegate": "委派 Agent",
+      "parameter_extract": "參數抽取",
+      "clarify": "待澄清選擇"
+    }
   },
   "continuation": {
     "continueFromHere": "從此處繼續"

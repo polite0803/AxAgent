@@ -34,6 +34,8 @@ pub struct Model {
     pub parts: Option<String>,
     /// 引用回复：被引用消息的 ID（区别于 parent_message_id 的多版本语义）
     pub quoted_message_id: Option<String>,
+    /// 认知编排决策标签：JSON 序列化文本（存储 ExecutionMode / 路由路径 / 命中工作流 / 专家等）
+    pub decision: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

@@ -115,6 +115,7 @@ import { AskUserCard } from "./AskUserCard";
 import { AttachmentPreview } from "./AttachmentPreview";
 import { AssistantMarkdown, getChatCodeThemes, THINKING_LOADING_MARKER } from "./ChatMarkdownNodes";
 import { getStreamingLoadingState, shouldRenderAssistantMarkdownFromContent } from "./chatStreaming";
+import { CognitiveDecisionCard } from "./CognitiveDecisionCard";
 import { DeleteLastVersionPopover } from "./DeleteLastVersionPopover";
 import { ModelSelector } from "./ModelSelector";
 import { ModelTags } from "./ModelTags";
@@ -1703,6 +1704,8 @@ export function useChatViewMessages({
                   <span />
                 </div>
               )}
+              {/* 认知编排决策标签：每条（历史）消息独立展示各自决策信息 */}
+              <CognitiveDecisionCard decision={msg?.decision} />
             </>
           );
         },

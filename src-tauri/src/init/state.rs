@@ -1286,7 +1286,11 @@ async fn register_all_capabilities(
     db: &sea_orm::DatabaseConnection,
     skill_state: &crate::state::SkillState,
 ) {
-    use axagent_harness::{CapabilityIndexer, CapabilityPassport};
+    use axagent_harness::{
+        CapabilityIndexer, CapabilityPassport, CapabilityPassportDto, PlanningComplexity,
+        SecurityLevel, Visibility,
+    };
+    use std::collections::HashMap;
 
     let mut passports = Vec::new();
 
@@ -1373,6 +1377,154 @@ async fn register_all_capabilities(
         }
     }
 
+    // 5. 专家护照：让 AgentProfile 本身具备能力被发现（认知编排 Ask/Act/Delegate 可命中）。
+    //    agent_profile_id 直接指向该专家，命中后 agent_query 按此专家执行。
+    //    同时维护 role -> 默认专家 映射，供角色护照反查执行专家。
+    let mut role_default_profiles: std::collections::HashMap<String, String> = HashMap::new();
+    match axagent_dao::repo::agent_profile::list_agent_profiles(db, None).await {
+        Ok(profiles) => {
+            for p in &profiles {
+                if !p.is_enabled {
+                    continue;
+                }
+                if let Some(role) = &p.agent_role {
+                    role_default_profiles.entry(role.clone()).or_insert_with(|| p.id.clone());
+                }
+                let mut tags = p.tags.clone();
+                if !p.category.is_empty() {
+                    tags.push(p.category.clone());
+                }
+                if let Some(role) = &p.agent_role {
+                    tags.push(format!("role:{role}"));
+                }
+                if let Some(eid) = &p.expert_id {
+                    tags.push(format!("expert:{eid}"));
+                }
+                passports.push(CapabilityPassportDto {
+                    capability_id: format!("agent:{}", p.id),
+                    name: p.name.clone(),
+                    description: p.description.clone().unwrap_or_default(),
+                    kind: axagent_harness::CapabilityKind::Agent,
+                    domain: infer_profile_domain(&p.category, &p.name),
+                    sub_category: if p.category.is_empty() {
+                        "agent_profile".to_string()
+                    } else {
+                        p.category.clone()
+                    },
+                    visibility: Visibility::Public,
+                    caller_permissions: Default::default(),
+                    input_schema: None,
+                    tags,
+                    negative_scenarios: vec![],
+                    security_level: SecurityLevel::Public,
+                    modality_support: Default::default(),
+                    output_capabilities: Default::default(),
+                    estimated_cost_usd: None,
+                    avg_duration_seconds: None,
+                    planning_complexity: PlanningComplexity::Simple,
+                    model_iq_requirement: 0,
+                    experiment_group: None,
+                    agent_profile_id: Some(p.id.clone()),
+                    stats: Default::default(),
+                    enabled: true,
+                });
+            }
+        },
+        Err(e) => {
+            tracing::warn!("[capability] 收集专家护照失败: {}", e);
+        },
+    }
+
+    // 6. 角色护照：让 AgentRole 本身具备能力被发现。
+    //    角色无独立 agent_profile_id，反查其关联的默认专家（profile.agent_role = role.id）作为执行专家；
+    // 角色护照的执行载体：优先复用已关联该角色的 AgentProfile（role_default_profiles）；
+    // 角色独立存在（无任何 profile 关联）时，参照 ensure_agent_profile 先例自动补齐一个
+    // 绑定该角色（agent_role）的最小 AgentProfile，作为能力命中的执行载体（幂等，可复用）。
+    // 否则角色护照 agent_profile_id 为空，命中后 agent_query 走默认执行，角色配置会丢失。
+    match axagent_dao::repo::agent_role::list_agent_roles(db, None).await {
+        Ok(roles) => {
+            for r in &roles {
+                let mut exec_profile = role_default_profiles.get(&r.id).cloned();
+                if exec_profile.is_none() {
+                    let bridge_id = format!("role-bridge:{}", r.id);
+                    match axagent_dao::repo::agent_profile::get_agent_profile(db, &bridge_id).await
+                    {
+                        // 已存在（幂等复用）
+                        Ok(_) => {
+                            exec_profile = Some(bridge_id);
+                        },
+                        // 不存在 → 创建绑定该角色的最小执行载体
+                        Err(axagent_harness::AxAgentError::NotFound(_)) => {
+                            match axagent_dao::repo::agent_profile::create_agent_profile(
+                                db,
+                                &bridge_id,
+                                &r.name,
+                                r.description.as_deref(),
+                                "general",
+                                "👤",
+                                Some(&r.id),
+                                "role-bridge",
+                                &[],
+                            )
+                            .await
+                            {
+                                Ok(_) => {
+                                    exec_profile = Some(bridge_id);
+                                },
+                                Err(e) => {
+                                    tracing::warn!(
+                                        role = %r.id,
+                                        error = %e,
+                                        "[capability] 为角色自动补齐最小 AgentProfile 失败，角色命中后将降级默认执行"
+                                    );
+                                },
+                            }
+                        },
+                        Err(e) => {
+                            tracing::warn!(
+                                role = %r.id,
+                                error = %e,
+                                "[capability] 检查角色执行载体失败"
+                            );
+                        },
+                    }
+                }
+
+                let mut tags = vec![r.name.clone()];
+                for d in &r.active_domains {
+                    tags.push(format!("domain:{d}"));
+                }
+                passports.push(CapabilityPassportDto {
+                    capability_id: format!("agent_role:{}", r.id),
+                    name: r.name.clone(),
+                    description: r.description.clone().unwrap_or_default(),
+                    kind: axagent_harness::CapabilityKind::Agent,
+                    domain: infer_role_domain(&r.active_domains),
+                    sub_category: "agent_role".to_string(),
+                    visibility: Visibility::Public,
+                    caller_permissions: Default::default(),
+                    input_schema: None,
+                    tags,
+                    negative_scenarios: vec![],
+                    security_level: SecurityLevel::Public,
+                    modality_support: Default::default(),
+                    output_capabilities: Default::default(),
+                    estimated_cost_usd: None,
+                    avg_duration_seconds: None,
+                    planning_complexity: PlanningComplexity::Simple,
+                    model_iq_requirement: 0,
+                    experiment_group: None,
+                    agent_profile_id: exec_profile,
+                    stats: Default::default(),
+                    enabled: true,
+                });
+            }
+        },
+        Err(e) => {
+            tracing::warn!("[capability] 收集角色护照失败: {}", e);
+        },
+    }
+
     if passports.is_empty() {
         tracing::warn!("[capability] 未发现任何能力护照，能力发现系统将以空索引启动");
         return;
@@ -1385,6 +1537,59 @@ async fn register_all_capabilities(
 
     // 5. 注册系统级能力（CognitiveRouter 编排器等）
     register_system_capabilities(indexer).await;
+}
+
+/// 从字符串推断能力域。优先精确匹配 CapabilityDomain 序列化名，再做领域关键词兜底。
+fn domain_from_keyword(s: &str) -> Option<axagent_harness::CapabilityDomain> {
+    use axagent_harness::CapabilityDomain;
+    let lower = s.to_lowercase();
+    if let Ok(d) = <CapabilityDomain as std::str::FromStr>::from_str(&lower) {
+        return Some(d);
+    }
+    match lower.as_str() {
+        // 运维 / 安全 / 基础设施
+        "devops" | "infrastructure" | "security" | "engineering" | "backend" | "frontend"
+        | "sre" | "cicd" | "deployment" | "development" => Some(CapabilityDomain::Devops),
+        // 数据分析
+        "data" | "analysis" | "analytics" | "sql" | "etl" | "bi" | "statistics" => {
+            Some(CapabilityDomain::DataAnalysis)
+        },
+        // 内容创作
+        "writing" | "content" | "design" | "marketing" | "copywriting" | "ui" | "ux"
+        | "creative" | "translation" => Some(CapabilityDomain::ContentCreation),
+        // 通信
+        "communication" | "im" | "email" | "messaging" | "collaboration" => {
+            Some(CapabilityDomain::Communication)
+        },
+        // 金融
+        "finance" | "invest" | "quant" | "trading" | "banking" | "stock" => {
+            Some(CapabilityDomain::Finance)
+        },
+        // 自动化
+        "automation" | "opc" | "rpa" | "workflow" | "orchestration" => {
+            Some(CapabilityDomain::Automation)
+        },
+        // AI 媒体
+        "media" | "image" | "video" | "audio" | "sound" | "generation" => {
+            Some(CapabilityDomain::AiMedia)
+        },
+        _ => None,
+    }
+}
+
+/// 推断专家护照的域：优先 category，其次 name 关键词，兜底 General。
+fn infer_profile_domain(category: &str, name: &str) -> axagent_harness::CapabilityDomain {
+    domain_from_keyword(category)
+        .or_else(|| domain_from_keyword(name))
+        .unwrap_or(axagent_harness::CapabilityDomain::General)
+}
+
+/// 推断角色护照的域：扫描 active_domains 首个命中，兜底 General。
+fn infer_role_domain(active_domains: &[String]) -> axagent_harness::CapabilityDomain {
+    active_domains
+        .iter()
+        .find_map(|d| domain_from_keyword(d))
+        .unwrap_or(axagent_harness::CapabilityDomain::General)
 }
 
 /// 注册系统级能力到系统注册表

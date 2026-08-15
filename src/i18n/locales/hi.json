@@ -1579,7 +1579,23 @@
     "fallbackPath": "फ़ॉलबैक पथ",
     "candidates": "उम्मीदवार",
     "stageRecords": "रूट चरण",
-    "recordedAt": "दर्ज समय"
+    "recordedAt": "दर्ज समय",
+    "branch": "निर्णय शाखा",
+    "workflowName": "चयनित वर्कफ़्लो",
+    "agentProfile": "निष्पादन एजेंट",
+    "role": "भूमिका",
+    "expert": "विशेषज्ञ",
+    "noDecision": "कोई विशिष्ट वर्कफ़्लो/एजेंट नहीं मिला, डिफ़ॉल्ट निष्पादन",
+    "executionModeMap": {
+      "ask": "प्रश्न",
+      "plan": "योजना विभाजन",
+      "act": "कार्य निष्पादन",
+      "workflow": "वर्कफ़्लो चलाएँ",
+      "direct": "सीधा",
+      "delegate": "एजेंट को सौंपें",
+      "parameter_extract": "पैरामीटर निष्कर्षण",
+      "clarify": "स्पष्टीकरण प्रतीक्षा"
+    }
   },
   "continuation": {
     "continueFromHere": "यहाँ से जारी रखें"

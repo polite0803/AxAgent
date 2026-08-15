@@ -284,6 +284,7 @@ mod tests {
             cache_read_tokens: Set(None),
             parts: Set(None),
             quoted_message_id: Set(None),
+            decision: Set(None),
         };
         am.insert(db).await.expect("测试：异步操作应成功");
     }

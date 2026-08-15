@@ -51,7 +51,6 @@ import { PermissionModal } from "./PermissionModal";
 import { PlanApprovalModal } from "./PlanApprovalModal";
 import { PlanCard } from "./PlanCard";
 // QuickCommandBar removed: /clear, /compact, /model are covered by bottom toolbar & header ModelSelector
-import { WorkflowEndMarker } from "./WorkflowEndMarker";
 import { WorkflowProgressPanel } from "./WorkflowProgressPanel";
 
 import { useChatViewMessages } from "./ChatViewMessages";
@@ -158,7 +157,6 @@ function ChatViewInner({
   const providers = useProviderStore((s) => s.providers);
   const isDarkMode = useResolvedDarkMode(settings.theme_mode);
   const storeError = useConversationStore((s) => s.error);
-  const toggleArchive = useConversationStore((s) => s.toggleArchive);
   const loadOlderMessages = useConversationStore((s) => s.loadOlderMessages);
   const streamingMessageId = useStreamStore((s) => s.streamingMessageId);
   const cacheValid = useCacheStore((s) => s.cacheValid);
@@ -555,19 +553,6 @@ function ChatViewInner({
                   }
                   return bubbleNode;
                 })}
-                {activeConversation?.session_type === "workflow"
-                  && activeConversation?.workflow_status === "completed" && (
-                  <WorkflowEndMarker
-                    workflowName={activeConversation.workflow_template_id
-                      ?? t("chat.workflowLabel")}
-                    stepCount={0}
-                    completedCount={0}
-                    durationSeconds={0}
-                    onArchive={() => {
-                      void toggleArchive(activeConversation.id);
-                    }}
-                  />
-                )}
                 <ClarifyCard />
               </div>
               <ChatScrollIndicator />

@@ -1579,7 +1579,23 @@
     "fallbackPath": "フォールバック経路",
     "candidates": "候補",
     "stageRecords": "ルート段階",
-    "recordedAt": "記録時刻"
+    "recordedAt": "記録時刻",
+    "branch": "実行ブランチ",
+    "workflowName": "選択ワークフロー",
+    "agentProfile": "実行エージェント",
+    "role": "ロール",
+    "expert": "エキスパート",
+    "noDecision": "特定のワークフロー/エージェントに一致せず、デフォルトで実行",
+    "executionModeMap": {
+      "ask": "質問",
+      "plan": "計画分解",
+      "act": "行動実行",
+      "workflow": "ワークフロー実行",
+      "direct": "直接実行",
+      "delegate": "エージェント委任",
+      "parameter_extract": "パラメータ抽出",
+      "clarify": "確認待ち"
+    }
   },
   "continuation": {
     "continueFromHere": "ここから続ける"

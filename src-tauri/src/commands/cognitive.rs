@@ -39,6 +39,7 @@ use axagent_harness::{
     PatternPromptGuard, PromptGuard, RouteStageRecord, RoutingDecisionV2,
 };
 use axagent_runtime::work_engine::{RunOptions, SubWorkflowCallback};
+use sea_orm::EntityTrait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -128,6 +129,85 @@ pub enum CognitiveExecutionView {
     },
 }
 
+/// 选中的执行专家（Agent 执行路径）视图
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SelectedAgentProfileView {
+    /// AgentProfile ID
+    pub id: String,
+    /// 专家名称
+    pub name: String,
+    /// 角色名（agent_role，可空）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub role: Option<String>,
+    /// 关联专家（expert_id → agency_experts.name，可空）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expert: Option<String>,
+}
+
+/// 解析选中工作流的可读名称：优先取候选摘要中的 name，否则尝试从能力护照解析。
+/// 主流程与 Clarify 二次执行（forced_id）共用，保证两处决策分支展示一致。
+async fn resolve_selected_workflow_name(
+    state: &AppState,
+    capability_id: &str,
+    candidate_details: &[CandidateSummary],
+) -> Option<String> {
+    match candidate_details
+        .iter()
+        .find(|c| c.capability_id == capability_id)
+        .filter(|c| !c.name.is_empty())
+        .map(|c| c.name.clone())
+    {
+        Some(name) => Some(name),
+        None if !capability_id.is_empty() => state
+            .capability_indexer
+            .get_passport(capability_id)
+            .await
+            .filter(|p| !p.name.is_empty())
+            .map(|p| p.name),
+        None => None,
+    }
+}
+
+/// 解析选中的执行专家（Agent 执行路径）：profile 名称 + 角色 + 关联专家名。
+/// 主流程与 Clarify 二次执行（forced_id）共用；查询失败不阻断，仅返回 ID 供前端展示。
+async fn resolve_selected_agent_profile(
+    state: &AppState,
+    profile_id: Option<&str>,
+) -> Option<SelectedAgentProfileView> {
+    let profile_id = profile_id.filter(|s| !s.is_empty())?;
+    match axagent_dao::repo::agent_profile::get_agent_profile(state.harness.db(), profile_id).await
+    {
+        Ok(profile) => {
+            // 关联专家名称：expert_id → agency_experts.name（解析失败不阻断主流程）
+            let expert = match profile.expert_id.as_deref() {
+                Some(eid) if !eid.is_empty() => {
+                    axagent_entities::agency_experts::Entity::find_by_id(eid)
+                        .one(state.harness.db())
+                        .await
+                        .ok()
+                        .flatten()
+                        .map(|e| e.name.clone())
+                },
+                _ => None,
+            };
+            Some(SelectedAgentProfileView {
+                id: profile.id,
+                name: profile.name,
+                role: profile.agent_role.clone(),
+                expert,
+            })
+        },
+        // 查询失败不阻断：仅返回 ID，前端仍可展示
+        Err(_) => Some(SelectedAgentProfileView {
+            id: profile_id.to_string(),
+            name: profile_id.to_string(),
+            role: None,
+            expert: None,
+        }),
+    }
+}
+
 /// 单个路由阶段的对外视图
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -179,6 +259,12 @@ pub struct CognitiveQueryResponse {
     pub candidate_details: Vec<CandidateSummary>,
     /// 执行模式（ask / plan / act / workflow / delegate / parameter_extract / clarify）
     pub execution_mode: String,
+    /// 选中工作流的可读名称（从能力护照/候选解析；未命中工作流时为 None）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selected_workflow_name: Option<String>,
+    /// 选中的执行专家（Agent 执行路径自动选专家；未走 Agent 路径时为 None）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selected_agent_profile: Option<SelectedAgentProfileView>,
     /// 各阶段执行记录
     pub stage_records: Vec<RouteStageView>,
     /// 总耗时（毫秒）
@@ -202,6 +288,8 @@ impl From<RoutingDecisionV2> for CognitiveQueryResponse {
             candidates: d.candidates,
             candidate_details: d.candidate_details,
             execution_mode: d.execution_mode.as_str().to_string(),
+            selected_workflow_name: None,
+            selected_agent_profile: None,
             stage_records: d.stage_records.iter().map(RouteStageView::from).collect(),
             total_elapsed_ms: d.total_elapsed_ms,
             execution: None,
@@ -218,6 +306,53 @@ impl From<RoutingDecisionV2> for CognitiveQueryResponse {
 fn executor_error(e: String, fallback_code: &'static str) -> CommandError {
     serde_json::from_str::<ErrorResponse>(&e)
         .unwrap_or_else(|_| CommandError::new(fallback_code).with_detail(e))
+}
+
+/// 构建认知编排决策标签（JSON 对象），持久化到 assistant 消息用于每条消息独立展示。
+/// 字段与前端 `CognitiveDecisionInfo` 类型对齐：ExecutionMode / 路由路径 / 命中工作流 / 专家。
+fn build_decision_value(
+    execution_mode: &str,
+    route_path: &str,
+    confidence: f64,
+    selected_workflow_name: Option<String>,
+    selected_agent_profile: Option<&SelectedAgentProfileView>,
+) -> serde_json::Value {
+    serde_json::json!({
+        "executionMode": execution_mode,
+        "routePath": route_path,
+        "confidence": confidence,
+        "selectedWorkflowName": selected_workflow_name,
+        "selectedAgentProfile": selected_agent_profile.map(|p| serde_json::json!({
+            "id": p.id,
+            "name": p.name,
+            "role": p.role,
+            "expert": p.expert,
+        })),
+    })
+}
+
+/// 将已有响应视图转成决策标签（主流程 / Clarify 二次执行共用）。
+fn decision_from_response(response: &CognitiveQueryResponse) -> serde_json::Value {
+    build_decision_value(
+        &response.execution_mode,
+        &response.route_path,
+        response.confidence,
+        response.selected_workflow_name.clone(),
+        response.selected_agent_profile.as_ref(),
+    )
+}
+
+/// 将决策标签持久化到指定 assistant 消息；失败仅告警不阻断主流程。
+async fn persist_decision_to_message(
+    db: &sea_orm::DatabaseConnection,
+    message_id: &str,
+    decision: &serde_json::Value,
+) {
+    if let Err(e) =
+        axagent_dao::repo::message::update_message_decision(db, message_id, Some(decision)).await
+    {
+        tracing::warn!("[cognitive] 写入消息决策标签失败: {}", e);
+    }
 }
 
 /// 认知编排统一入口 — 用户消息触发，完成三层路由决策并按执行模式分发执行
@@ -266,6 +401,8 @@ pub async fn cognitive_query(
             .and_then(|v| v.as_str())
             .map(|s| s.to_string())
         {
+            let decision =
+                build_decision_value(ExecutionMode::ParameterExtract.as_str(), "", 1.0, None, None);
             let execution_id = crate::commands::workflows::workflow_execute(
                 app.clone(),
                 state,
@@ -276,6 +413,7 @@ pub async fn cognitive_query(
                 request.max_concurrent,
                 request.conversation_id.clone(),
                 Some(json_params),
+                Some(decision),
             )
             .await
             .map_err(|e| {
@@ -294,6 +432,8 @@ pub async fn cognitive_query(
                 candidates: Vec::new(),
                 candidate_details: Vec::new(),
                 execution_mode: ExecutionMode::ParameterExtract.as_str().to_string(),
+                selected_workflow_name: None,
+                selected_agent_profile: None,
                 stage_records: Vec::new(),
                 total_elapsed_ms: 0,
                 execution: Some(CognitiveExecutionView::Workflow {
@@ -312,6 +452,33 @@ pub async fn cognitive_query(
         let forced_passport = state.capability_indexer.get_passport(&forced_id).await;
         let forced_kind =
             forced_passport.as_ref().map(|p| p.kind).unwrap_or(CapabilityKind::Workflow);
+
+        // Clarify 二次执行也解析决策分支，保证前端展示与主流程一致：
+        // - 工作流名：取能力护照可读名称
+        // - 执行专家：Agent 类型能力按 passport 推荐专家解析
+        // 必须在下方 match 移动 state 之前解析（借用）。
+        let selected_workflow_name = resolve_selected_workflow_name(&state, &forced_id, &[]).await;
+        let selected_agent_profile = resolve_selected_agent_profile(
+            &state,
+            forced_passport.as_ref().and_then(|p| p.agent_profile_id.as_deref()),
+        )
+        .await;
+        // execution_mode 按能力类型定性（此路径为高置信精确命中，非参数抽取）：
+        // Workflow/其他 → workflow；Agent → delegate
+        let execution_mode = match forced_kind {
+            CapabilityKind::Agent => ExecutionMode::Delegate.as_str().to_string(),
+            _ => ExecutionMode::Workflow.as_str().to_string(),
+        };
+
+        // 决策标签：Clarify 二次执行同样持久化，与主流程展示一致
+        let decision = build_decision_value(
+            &execution_mode,
+            &format!("forced:{}", forced_kind.as_str()),
+            1.0,
+            selected_workflow_name.clone(),
+            selected_agent_profile.as_ref(),
+        );
+
         let execution = match forced_kind {
             CapabilityKind::Workflow => {
                 let execution_id = crate::commands::workflows::workflow_execute(
@@ -324,6 +491,7 @@ pub async fn cognitive_query(
                     request.max_concurrent,
                     request.conversation_id.clone(),
                     Some(serde_json::Value::String(input.clone())),
+                    Some(decision),
                 )
                 .await
                 .map_err(|e| {
@@ -357,11 +525,18 @@ pub async fn cognitive_query(
                         .and_then(|p| p.agent_profile_id.clone()),
                     agent_context: request.agent_context.clone(),
                 };
-                let agent_resp = crate::commands::agent::agent_query(app, state, agent_request)
-                    .await
-                    .map_err(|e| {
-                        executor_error(e, axagent_harness::error_codes::cognitive::ROUTE_FAILED)
-                    })?;
+                let agent_resp =
+                    crate::commands::agent::agent_query(app, state.clone(), agent_request)
+                        .await
+                        .map_err(|e| {
+                            executor_error(e, axagent_harness::error_codes::cognitive::ROUTE_FAILED)
+                        })?;
+                persist_decision_to_message(
+                    state.harness.db(),
+                    &agent_resp.assistant_message_id,
+                    &decision,
+                )
+                .await;
                 CognitiveExecutionView::Agent {
                     conversation_id: agent_resp.conversation_id,
                     assistant_message_id: agent_resp.assistant_message_id,
@@ -381,6 +556,7 @@ pub async fn cognitive_query(
                     request.max_concurrent,
                     request.conversation_id.clone(),
                     Some(serde_json::Value::String(input.clone())),
+                    Some(decision),
                 )
                 .await
                 .map_err(|e| {
@@ -389,6 +565,7 @@ pub async fn cognitive_query(
                 CognitiveExecutionView::Workflow { workflow_id: forced_id.clone(), execution_id }
             },
         };
+
         return Ok(CognitiveQueryResponse {
             route_path: format!("forced:{}", forced_kind.as_str()),
             domain: String::new(),
@@ -401,7 +578,9 @@ pub async fn cognitive_query(
             fallback_path: None,
             candidates: Vec::new(),
             candidate_details: Vec::new(),
-            execution_mode: ExecutionMode::ParameterExtract.as_str().to_string(),
+            execution_mode,
+            selected_workflow_name,
+            selected_agent_profile,
             stage_records: Vec::new(),
             total_elapsed_ms: 0,
             execution: Some(execution),
@@ -600,6 +779,14 @@ pub async fn cognitive_query(
         })
         .unwrap_or_default();
 
+    // 选中工作流的可读名称：优先取候选摘要中的 name，否则尝试从能力护照解析
+    let selected_workflow_name =
+        resolve_selected_workflow_name(&state, &capability_id, &candidate_details).await;
+
+    // 选中的执行专家（Agent 执行路径）：解析 profile 名称 + 角色 + 关联专家名
+    let selected_agent_profile =
+        resolve_selected_agent_profile(&state, route_agent_profile.as_deref()).await;
+
     let mut response: CognitiveQueryResponse = CognitiveQueryResponse {
         route_path,
         domain,
@@ -613,12 +800,17 @@ pub async fn cognitive_query(
         candidates,
         candidate_details,
         execution_mode: mode.as_str().to_string(),
+        selected_workflow_name,
+        selected_agent_profile,
         stage_records,
         total_elapsed_ms: total_start.elapsed().as_millis() as u64,
         execution: None,
     };
 
     // ── 分支执行：按执行模式复用既有执行器 ──
+    // 决策标签：为该轮执行生成，Workflow 分支透传给 workflow_execute 持久化，
+    // Agent 分支在此处直接写入 assistant 消息。
+    let decision = decision_from_response(&response);
     response.execution = Some(match mode {
         // Workflow / Direct：capability_id 即工作流模板 ID，交给 WorkEngine 执行
         ExecutionMode::Workflow | ExecutionMode::Direct => {
@@ -633,6 +825,7 @@ pub async fn cognitive_query(
                 request.max_concurrent,
                 request.conversation_id.clone(),
                 Some(serde_json::Value::String(input.clone())),
+                Some(decision),
             )
             .await
             .map_err(|e| {
@@ -654,6 +847,7 @@ pub async fn cognitive_query(
                 request.max_concurrent,
                 request.conversation_id.clone(),
                 Some(serde_json::Value::String(input.clone())),
+                Some(decision),
             )
             .await
             .map_err(|e| {
@@ -718,10 +912,17 @@ pub async fn cognitive_query(
                 agent_profile_id: selected_agent_profile,
                 agent_context: request.agent_context.clone(),
             };
-            let agent_resp =
-                crate::commands::agent::agent_query(app, state, agent_request).await.map_err(
-                    |e| executor_error(e, axagent_harness::error_codes::cognitive::ROUTE_FAILED),
-                )?;
+            let agent_resp = crate::commands::agent::agent_query(app, state.clone(), agent_request)
+                .await
+                .map_err(|e| {
+                    executor_error(e, axagent_harness::error_codes::cognitive::ROUTE_FAILED)
+                })?;
+            persist_decision_to_message(
+                state.harness.db(),
+                &agent_resp.assistant_message_id,
+                &decision,
+            )
+            .await;
             CognitiveExecutionView::Agent {
                 conversation_id: agent_resp.conversation_id,
                 assistant_message_id: agent_resp.assistant_message_id,
