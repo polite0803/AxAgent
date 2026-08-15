@@ -477,7 +477,8 @@ export function warmupPhysics(
   for (let iter = 0; iter < iterations; iter++) {
     // 预热后期逐渐降低阻尼，让节点找到最终位置
     if (iter > iterations * 0.6) {
-      const progress = (iter - iterations * 0.6) / (iter * 0.4);
+      // P10: 分母应为固定 iterations * 0.4，原式误用 iter 导致阻尼提前降到底
+      const progress = (iter - iterations * 0.6) / (iterations * 0.4);
       warmupConfig.damping = 0.88 - progress * 0.03;
     }
 

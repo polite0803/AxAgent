@@ -51,6 +51,23 @@ import {
 } from "./graphPhysics";
 import type { WorkerMessage, WorkerResponse } from "./graphPhysics.worker";
 
+// ── P7: 生产诊断日志收敛到单一 DEBUG_GRAPH 开关 ──
+// 仅开发模式 + localStorage 显式开启时输出高频诊断日志，避免生产环境 DevTools 卡顿。
+const DEBUG_GRAPH = (() => {
+  if (!import.meta.env.DEV) { return false; }
+  try {
+    return localStorage.getItem("DEBUG_GRAPH") === "true";
+  } catch {
+    return false;
+  }
+})();
+
+function debugLog(...args: unknown[]): void {
+  if (DEBUG_GRAPH) {
+    console.log(...args);
+  }
+}
+
 // ── 预热物理配置：随 init 消息传给 Worker，在 Worker 内完成初始布局收敛 ──
 // 之前在主线程同步执行 warmupPhysics，几万节点时冻结 UI 数秒；现移入 Worker。
 const WARMUP_PHYSICS_CONFIG: PhysicsConfig = {
@@ -171,6 +188,8 @@ const LAYOUT_MAX_NODES = 2000;
 interface SavedLayout {
   positions: Record<string, { x: number; y: number }>;
   savedAt: number;
+  // D7: 相机视角持久化，刷新后回到上次导航区域（仅在非默认视角时保存）
+  camera?: { x: number; y: number; zoom: number };
 }
 
 function pruneLayoutStorage(currentWikiId: string): void {
@@ -199,7 +218,11 @@ function pruneLayoutStorage(currentWikiId: string): void {
   }
 }
 
-function saveLayout(wikiId: string, nodes: PhysicsNode[]): void {
+function saveLayout(
+  wikiId: string,
+  nodes: PhysicsNode[],
+  camera?: { x: number; y: number; zoom: number },
+): void {
   // 节点数超阈值时不持久化（避免逼近 localStorage 配额）
   if (nodes.length > LAYOUT_MAX_NODES) { return; }
   try {
@@ -211,6 +234,10 @@ function saveLayout(wikiId: string, nodes: PhysicsNode[]): void {
       positions,
       savedAt: Date.now(),
     };
+    // D7: 仅在缩放偏离默认视角时持久化相机，避免默认视角的冗余存储
+    if (camera && Math.abs(camera.zoom - 1) > 0.01) {
+      layout.camera = { x: camera.x, y: camera.y, zoom: camera.zoom };
+    }
     // 写入前做 LRU 清理，确保不超过 LAYOUT_MAX_ENTRIES
     pruneLayoutStorage(wikiId);
     localStorage.setItem(LAYOUT_STORAGE_PREFIX + wikiId, JSON.stringify(layout));
@@ -514,6 +541,14 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   const [, setClusterCollapseVersion] = useState(0);
   const mouseScreenRef = useRef({ x: 0, y: 0, active: false });
   const communityCentroidsRef = useRef<Map<number, { cx: number; cy: number; count: number }>>(new Map());
+  // 聚类气泡（drawClusterRegions）稳定态缓存（P9）：节点位置/折叠集合变化或每 30 帧才重建分组与渐变，
+  // 图完全静止时直接复用缓存，避免每 5 帧全量 O(N) 分组 + 为每个社区新建 radialGradient。
+  const clusterRegionCacheRef = useRef<{
+    lastFrame: number;
+    dirty: boolean;
+    lastCollapsed: Set<number> | null;
+    regions: Map<number, { cx: number; cy: number; rx: number; ry: number; grad: CanvasGradient }>;
+  }>({ lastFrame: -9999, dirty: true, lastCollapsed: null, regions: new Map() });
   // communities prop 的 ref 镜像，供 useCallback / 事件回调读取最新值而无需将其加入依赖
   const communitiesRef = useRef<Map<string, number> | undefined>(undefined);
   useEffect(() => {
@@ -842,6 +877,12 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       const saved = loadLayout(wikiId);
       if (saved) {
         layoutApplied = applySavedLayout(pNodes, saved);
+        // D7: 仅当布局成功恢复时才恢复相机视角（布局不匹配时视角会偏移）
+        if (layoutApplied && saved.camera) {
+          cameraRef.current.x = saved.camera.x;
+          cameraRef.current.y = saved.camera.y;
+          cameraRef.current.zoom = saved.camera.zoom;
+        }
       }
     }
 
@@ -1335,6 +1376,11 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       const hasDrag = !!dragRef.current;
       const hasInteraction = mouseScreenRef.current.active || !!panRef.current;
 
+      // P9: 交互（拖拽/平移）时节点位置持续变化 → 气泡缓存置脏，下一帧重建
+      if (hasInteraction) {
+        clusterRegionCacheRef.current.dirty = true;
+      }
+
       // 预先获取聚合物理状态供 LOD 逻辑使用
       const aggPhys = aggPhysRef.current;
       const aggActive = aggPhys !== null && aggPhys.nodes.length > 0;
@@ -1456,7 +1502,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
             collapsedRef.current = newCollapsed;
 
-            console.log("[GraphView] LOD update", {
+            debugLog("[GraphView] LOD update", {
               lodLevel,
               newCollapsedSize: newCollapsed.size,
               prevCollapsedSize,
@@ -1545,15 +1591,12 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
               springDamping: 0.85,
               maxVelocity: 8,
             };
-            const centroids = clusterModeRef.current && effCommunities
-              ? computeCommunityCentroids(nodes, effCommunities)
-              : undefined;
 
+            // P8: 社区质心由 Worker 内部维护，主线程不再每 12 帧 O(N) 重算 + 序列化传输
             worker.postMessage({
               type: "step",
               payload: {
                 config: workerConfig,
-                centroids: centroids ? Object.fromEntries(centroids) : undefined,
               },
             } as WorkerMessage);
             pendingStepRef.current = true;
@@ -1565,24 +1608,24 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
             const hasNewResult = result.tick !== lastProcessedTickRef.current;
             if (hasNewResult) {
               lastProcessedTickRef.current = result.tick;
+              // P9: Worker 返回新位置 → 气泡缓存置脏，下一帧重建
+              clusterRegionCacheRef.current.dirty = true;
               const n = nodes.length;
-              const posMap = posMapRef.current;
+              // P6: posMap 存节点对象引用，位置更新经同一对象自动同步，无需再逐条回写。
+              // 折叠社区内节点不渲染，跳过其位置回写，避免每 12 帧对全量节点做无意义更新。
+              const collapsedSet = collapsedRef.current;
               for (let i = 0; i < n; i++) {
                 const node = nodes[i];
-                if (!node.fixed) {
-                  node.x = result.positions[i * 2];
-                  node.y = result.positions[i * 2 + 1];
-                  node.vx = result.velocities[i * 2];
-                  node.vy = result.velocities[i * 2 + 1];
-                  // 同步更新 posMap
-                  const pmNode = posMap.get(node.id);
-                  if (pmNode) {
-                    pmNode.x = node.x;
-                    pmNode.y = node.y;
-                  }
+                if (node.fixed) { continue; }
+                if (collapsedSet.size > 0) {
+                  const cid = effCommunities?.get(node.id);
+                  if (cid !== undefined && collapsedSet.has(cid)) { continue; }
                 }
+                node.x = result.positions[i * 2];
+                node.y = result.positions[i * 2 + 1];
+                node.vx = result.velocities[i * 2];
+                node.vy = result.velocities[i * 2 + 1];
               }
-              posMapRef.current = posMap;
 
               // 重建 gridIndex（仅在有新结果时重建）
               const gridIndex = new Map<string, string[]>();
@@ -1645,17 +1688,13 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
             maxVelocity: 8,
             clusterForce: enableClusters ? 0.15 : undefined,
           };
-          const centroids = enableClusters
-            ? computeCommunityCentroids(nodes, effCommunities!)
-            : undefined;
 
+          // P8: communities 与社区质心均由 Worker 内部维护（init 时 nodeIdxToCommunity 已零拷贝传输），
+          // 主线程不再每 12 帧 O(N) 重算质心 + Object.fromEntries 序列化
           worker.postMessage({
             type: "step",
             payload: {
               config,
-              // communities 在 init/reset 时已同步到 Worker（nodeIdxToCommunity），
-              // step 无需重复传递，避免每 12 帧一次 O(N) 序列化
-              centroids: centroids ? Object.fromEntries(centroids) : undefined,
             },
           } as WorkerMessage);
           pendingStepRef.current = true;
@@ -1669,6 +1708,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
           const hasNewResult = result.tick !== lastProcessedTickRef.current;
           if (hasNewResult) {
             lastProcessedTickRef.current = result.tick;
+            // P9: Worker 返回新位置 → 气泡缓存置脏，下一帧重建
+            clusterRegionCacheRef.current.dirty = true;
             const n = nodes.length;
             for (let i = 0; i < n; i++) {
               const node = nodes[i];
@@ -1800,10 +1841,13 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       // 聚合折叠视图下由聚合节点表达社区，跳过气泡避免视觉重叠
       // 规模保护：社区数失控（粒度极细至万级）时跳过气泡，避免为每个"社区"绘制
       // 上万 radial-gradient 气泡 + 标签 → 主线程每 5 帧一次全量绘制仍会卡死。
+      // D5: 不全折叠时才画气泡——折叠社区由聚类标记表达，不重复绘制气泡。
+      // 因此条件从 collapsedRef.current.size === 0（全局）改为 < communities.size（逐个社区判断）。
       if (
-        clusterModeRef.current && communities && collapsedRef.current.size === 0
+        clusterModeRef.current && communities
         && communities.size <= MAX_AGG_PHYS_NODES
         && frameCounterRef.current % 5 === 0
+        && collapsedRef.current.size < communities.size
       ) {
         drawClusterRegions(ctx, nodes);
       }
@@ -1826,7 +1870,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
           const camInfo = cameraRef.current;
           const vpW = camInfo.zoom > 0 ? w / camInfo.zoom : 0;
           const vpH = camInfo.zoom > 0 ? h / camInfo.zoom : 0;
-          console.log("[GraphView] render path", {
+          debugLog("[GraphView] render path", {
             forceCluster,
             aggActive,
             clusterMode: clusterModeRef.current,
@@ -1877,7 +1921,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
             const vx1Local = -camLocal.x / zoomLocal + viewW / 2;
             const vy1Local = -camLocal.y / zoomLocal + viewH / 2;
             if (frameCounterRef.current % 60 === 0) {
-              console.log("[GraphView] forceCluster render state", {
+              debugLog("[GraphView] forceCluster render state", {
                 forceCluster,
                 aggActive,
                 clusterMode: clusterModeRef.current,
@@ -1951,7 +1995,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
                 if (!collapsedRef.current.has(cid)) {
                   skippedClusters++;
                   if (skippedClusters <= 3) {
-                    console.log("[GraphView] cluster skipped (not collapsed)", { cid });
+                    debugLog("[GraphView] cluster skipped (not collapsed)", { cid });
                   }
                   continue;
                 }
@@ -1965,9 +2009,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
                 ctx.fillStyle = color;
                 ctx.fill();
                 drawnClusters++;
-                // 标签：仅在较高缩放级别显示，字号随缩放动态调整
-                // 世界坐标下字号保持约 12px，通过 zoom 换算
-                if (cam.zoom >= 0.8) {
+                // 标签：D4 修复——阈值从 0.8 降至 0.3，总览低 zoom 下聚合彩球也有标注。
+                // 字号随缩放动态调整（世界坐标保持约 12px，通过 zoom 换算），配合 measureText 截断。
+                if (cam.zoom >= 0.3) {
                   const fontSize = 12 / cam.zoom;
                   ctx.globalAlpha = 0.9;
                   ctx.font = `${fontSize.toFixed(1)}px Inter, system-ui, sans-serif`;
@@ -1993,7 +2037,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
                 }
               }
               if (frameCounterRef.current % 60 === 0) {
-                console.log("[GraphView] cluster draw stats", {
+                debugLog("[GraphView] cluster draw stats", {
                   totalGeom: geom.size,
                   drawn: drawnClusters,
                   skipped: skippedClusters,
@@ -2101,7 +2145,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
           }
           ctx.restore();
           if (frameCounterRef.current % 60 === 0) {
-            console.log("[GraphView] safety net nodes drawn", { drawn });
+            debugLog("[GraphView] safety net nodes drawn", { drawn });
           }
         }
       }
@@ -2190,49 +2234,75 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   }
 
   // ── 社区聚类区域渲染 ──
+  // D1: 质心数据在 refreshClusterGeom 中与 clusterGeom 同步回填，Worker 主路径下不再为空。
+  // D5: 部分折叠时仅折叠社区绘制气泡（展开社区显示真实节点、不画），全折叠时由聚类标记表达、不画。
+  // P9: 稳定态缓存——节点位置/折叠集合变化或每 30 帧才重建分组与渐变，静止时直接复用。
   function drawClusterRegions(ctx: CanvasRenderingContext2D, nodes: PhysicsNode[]) {
     const activeCommunities = effectiveCommunitiesRef.current ?? communities;
     if (!activeCommunities) { return; }
     const centroids = communityCentroidsRef.current;
     if (centroids.size === 0) { return; }
+    const collapsed = collapsedRef.current;
+    const cache = clusterRegionCacheRef.current;
 
-    // 按社区分组收集节点位置
-    const communityNodes = new Map<number, { sx: number; sy: number }[]>();
-    for (const node of nodes) {
-      const cid = activeCommunities.get(node.id);
-      if (cid === undefined) { continue; }
-      const list = communityNodes.get(cid) ?? [];
-      list.push({ sx: node.x, sy: node.y });
-      communityNodes.set(cid, list);
+    // 折叠集合变化（LOD / 手动切换）→ 强制重建
+    if (collapsed !== cache.lastCollapsed) {
+      cache.lastCollapsed = collapsed;
+      cache.dirty = true;
     }
 
-    // 为每个社区绘制一个半透明的"气泡"
-    for (const [cid, points] of communityNodes) {
-      if (points.length < 2) { continue; }
-      const color = communityPalette[cid % communityPalette.length];
+    // 全折叠：由聚类标记（彩球）+ 聚合边表达社区，跳过气泡避免视觉重叠
+    if (collapsed.size >= centroids.size) { return; }
 
-      // 计算该社区节点的包围盒
-      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-      for (const p of points) {
-        if (p.sx < minX) { minX = p.sx; }
-        if (p.sy < minY) { minY = p.sy; }
-        if (p.sx > maxX) { maxX = p.sx; }
-        if (p.sy > maxY) { maxY = p.sy; }
+    // 稳定态判定：非脏且距上次重建不足 30 帧 → 直接复用缓存绘制
+    const needsRebuild = cache.dirty || frameCounterRef.current - cache.lastFrame >= 30;
+    if (needsRebuild) {
+      cache.dirty = false;
+      cache.lastFrame = frameCounterRef.current;
+      cache.regions.clear();
+
+      // 按社区分组收集节点位置（D5: 部分折叠时展开社区不画气泡，直接跳过）
+      const communityNodes = new Map<number, { sx: number; sy: number }[]>();
+      for (const node of nodes) {
+        const cid = activeCommunities.get(node.id);
+        if (cid === undefined) { continue; }
+        if (collapsed.size > 0 && !collapsed.has(cid)) { continue; }
+        const list = communityNodes.get(cid) ?? [];
+        list.push({ sx: node.x, sy: node.y });
+        communityNodes.set(cid, list);
       }
-      const cx = (minX + maxX) / 2;
-      const cy = (minY + maxY) / 2;
-      const rx = (maxX - minX) / 2 + 40;
-      const ry = (maxY - minY) / 2 + 40;
 
-      // 绘制柔化的椭圆背景
+      // 为每个社区计算包围盒 + radialGradient，写入缓存
+      for (const [cid, points] of communityNodes) {
+        if (points.length < 2) { continue; }
+        const color = communityPalette[cid % communityPalette.length];
+
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const p of points) {
+          if (p.sx < minX) { minX = p.sx; }
+          if (p.sy < minY) { minY = p.sy; }
+          if (p.sx > maxX) { maxX = p.sx; }
+          if (p.sy > maxY) { maxY = p.sy; }
+        }
+        const cx = (minX + maxX) / 2;
+        const cy = (minY + maxY) / 2;
+        const rx = (maxX - minX) / 2 + 40;
+        const ry = (maxY - minY) / 2 + 40;
+
+        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(rx, ry));
+        grad.addColorStop(0, hexToRgba(color, 0.12));
+        grad.addColorStop(0.6, hexToRgba(color, 0.06));
+        grad.addColorStop(1, hexToRgba(color, 0));
+        cache.regions.set(cid, { cx, cy, rx, ry, grad });
+      }
+    }
+
+    // 用缓存绘制气泡 + 标签
+    for (const [cid, region] of cache.regions) {
       ctx.save();
-      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(rx, ry));
-      grad.addColorStop(0, hexToRgba(color, 0.12));
-      grad.addColorStop(0.6, hexToRgba(color, 0.06));
-      grad.addColorStop(1, hexToRgba(color, 0));
-      ctx.fillStyle = grad;
+      ctx.fillStyle = region.grad;
       ctx.beginPath();
-      ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+      ctx.ellipse(region.cx, region.cy, region.rx, region.ry, 0, 0, Math.PI * 2);
       ctx.fill();
 
       // 社区标签
@@ -2242,8 +2312,12 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         ctx.font = "bold 11px Inter, system-ui, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillStyle = color;
-        ctx.fillText(t("wiki.graph.clusterLabel", { id: cid }) + ` · ${centroid.count}`, cx, cy - ry + 14);
+        ctx.fillStyle = communityPalette[cid % communityPalette.length];
+        ctx.fillText(
+          t("wiki.graph.clusterLabel", { id: cid }) + ` · ${centroid.count}`,
+          region.cx,
+          region.cy - region.ry + 14,
+        );
       }
       ctx.restore();
     }
@@ -2524,16 +2598,15 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       const dynamicWidth = baseWidth * zoomScale;
 
       ctx.save();
-      const hashSeed = 54321;
       const batchPaths = new Map<string, { path: Path2D; color: string; width: number }>();
 
       for (let i = 0; i < edgeMeta.length; i++) {
         const em = edgeMeta[i];
         if (!idSet.has(em.source) || !idSet.has(em.target)) { continue; }
 
-        // 确定性降采样
+        // 确定性降采样：P11 用 source+target 稳定散列替代索引等差，避免保留边呈周期条纹
         if (edgeSampleRate < 1.0) {
-          const hash = ((i * hashSeed) % 1000) / 1000;
+          const hash = (Math.abs(hashStringToInt(em.source + em.target)) % 1000) / 1000;
           if (hash > edgeSampleRate) { continue; }
         }
 
@@ -2609,16 +2682,15 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
     const hasCommunityFilter = hasCommunityFilterRef.current;
     const batchPaths = new Map<string, { path: Path2D; color: string; width: number }>();
-    const hashSeed = 12345;
 
     for (let i = 0; i < edgeLimit; i++) {
       const em = edgeMeta[i];
 
       if (!visibleTypes.has(em.type)) { continue; }
 
-      // 降采样：使用确定性哈希，确保每帧画相同的边
+      // 降采样：用 source+target 稳定散列确保每帧画相同的边（P11 替代索引等差避免条纹）
       if (sampleRate < 1.0 && !hasActiveInteraction) {
-        const hash = ((i * hashSeed) % 1000) / 1000;
+        const hash = (Math.abs(hashStringToInt(em.source + em.target)) % 1000) / 1000;
         if (hash > sampleRate) { continue; }
       }
 
@@ -3049,7 +3121,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     const allNodes = physNodesRef.current;
     const edgeMeta = edgeMetaRef.current;
     if (!communitiesMap || collapsed.size === 0 || allNodes.length === 0) {
-      console.log("[GraphView] buildAggregatePhysics early return", {
+      debugLog("[GraphView] buildAggregatePhysics early return", {
         communitiesMapNull: communitiesMap === null,
         collapsedSize: collapsed.size,
         allNodesLength: allNodes.length,
@@ -3142,7 +3214,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       cidToNodeIdx,
       neighborMap: buildNeighborMap(aggEdges),
     };
-    console.log("[GraphView] buildAggregatePhysics success", {
+    debugLog("[GraphView] buildAggregatePhysics success", {
       aggNodes: aggNodes.length,
       aggEdges: aggEdges.length,
       cidToNodeIdx: cidToNodeIdx.size,
@@ -3157,13 +3229,15 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     const isForceCluster = nodeCount > AUTO_CLUSTER_THRESHOLD;
     if (!activeCommunities || (!clusterModeRef.current && !isForceCluster)) {
       if (frameCounterRef.current % 60 === 0) {
-        console.log("[GraphView] refreshClusterGeom early return", {
+        debugLog("[GraphView] refreshClusterGeom early return", {
           activeCommunitiesNull: activeCommunities === null,
           clusterMode: clusterModeRef.current,
           isForceCluster,
         });
       }
       clusterGeomRef.current = new Map();
+      // D1: 几何不可用时空置质心缓存，保持 drawClusterRegions 的 early return 语义一致
+      communityCentroidsRef.current = new Map();
       return;
     }
     const buckets = new Map<
@@ -3197,6 +3271,16 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       next.set(cid, { cx, cy, r, count: b.count, label });
     }
     clusterGeomRef.current = next;
+    // D1: 同步回填社区质心缓存，供 drawClusterRegions（背景气泡）使用。
+    // refreshClusterGeom 在 Worker ready 回调 / LOD 切换 / 折叠切换时都会被调用，
+    // 使 Worker 主路径下 communityCentroidsRef 不再为空，恢复气泡渲染。
+    const centroidMap = new Map<number, { cx: number; cy: number; count: number }>();
+    for (const [cid, g] of next) {
+      centroidMap.set(cid, { cx: g.cx, cy: g.cy, count: g.count });
+    }
+    communityCentroidsRef.current = centroidMap;
+    // 质心变化 → 气泡缓存置脏，下一帧重建
+    clusterRegionCacheRef.current.dirty = true;
     if (frameCounterRef.current % 60 === 0) {
       const positions = [];
       let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
@@ -3207,7 +3291,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         minY = Math.min(minY, g.cy);
         maxY = Math.max(maxY, g.cy);
       }
-      console.log("[GraphView] refreshClusterGeom success", {
+      debugLog("[GraphView] refreshClusterGeom success", {
         bucketCount: buckets.size,
         nextSize: next.size,
         bbox: { minX: minX.toFixed(0), maxX: maxX.toFixed(0), minY: minY.toFixed(0), maxY: maxY.toFixed(0) },
@@ -3468,7 +3552,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
     if (nodeId) {
       suppressAutoFocusRef.current = true;
-      const node = physNodesRef.current.find((n) => n.id === nodeId);
+      const node = posMapRef.current.get(nodeId);
       if (node) {
         node.fixed = true;
         dragRef.current = { nodeId };
@@ -3491,7 +3575,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
     if (dragRef.current) {
       const world = getScreenToWorld(sx, sy);
-      const node = physNodesRef.current.find((n) => n.id === dragRef.current!.nodeId);
+      const node = posMapRef.current.get(dragRef.current!.nodeId);
       if (node) {
         node.x = world.x;
         node.y = world.y;
@@ -3550,7 +3634,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
   const handleMouseUp = useCallback(() => {
     if (dragRef.current) {
-      const node = physNodesRef.current.find((n) => n.id === dragRef.current!.nodeId);
+      const node = posMapRef.current.get(dragRef.current!.nodeId);
       if (node) {
         node.fixed = false;
         node.fx = 0;
@@ -3575,7 +3659,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
       // 拖拽结束后保存布局到 localStorage
       if (wikiIdRef.current) {
-        saveLayout(wikiIdRef.current, physNodesRef.current);
+        saveLayout(wikiIdRef.current, physNodesRef.current, cameraRef.current);
       }
     }
     panRef.current = null;
@@ -3589,7 +3673,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     setTooltipNodeIdState(null);
     onNodeHover?.(null);
     if (dragRef.current) {
-      const node = physNodesRef.current.find((n) => n.id === dragRef.current!.nodeId);
+      const node = posMapRef.current.get(dragRef.current!.nodeId);
       if (node) {
         node.fixed = false;
         const worker = workerRef.current;
@@ -3696,7 +3780,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
       if (nodeId) {
         suppressAutoFocusRef.current = true;
-        const node = physNodesRef.current.find((n) => n.id === nodeId);
+        const node = posMapRef.current.get(nodeId);
         if (node) {
           node.fixed = true;
           dragRef.current = { nodeId };
@@ -3743,7 +3827,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
       if (dragRef.current) {
         const world = getScreenToWorld(sx, sy);
-        const node = physNodesRef.current.find((n) => n.id === dragRef.current!.nodeId);
+        const node = posMapRef.current.get(dragRef.current!.nodeId);
         if (node) {
           node.x = world.x;
           node.y = world.y;
@@ -3786,7 +3870,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
   const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
     if (dragRef.current) {
-      const node = physNodesRef.current.find((n) => n.id === dragRef.current!.nodeId);
+      const node = posMapRef.current.get(dragRef.current!.nodeId);
       if (node) {
         node.fixed = false;
         node.fx = 0;
@@ -3796,7 +3880,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
       // 拖拽结束后保存布局
       if (wikiIdRef.current) {
-        saveLayout(wikiIdRef.current, physNodesRef.current);
+        saveLayout(wikiIdRef.current, physNodesRef.current, cameraRef.current);
       }
     }
     panRef.current = null;
@@ -3873,7 +3957,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
           case "F":
             // 聚焦选中节点
             if (selectedNodeIdRef.current) {
-              const node = physNodesRef.current.find((n) => n.id === selectedNodeIdRef.current);
+              const node = posMapRef.current.get(selectedNodeIdRef.current);
               if (node) {
                 const targetZoom = Math.max(cameraRef.current.zoom, 1.5);
                 cameraRef.current.x = -node.x * targetZoom;
@@ -4174,7 +4258,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   }, [dimensions, communities]);
 
   const focusOnNode = useCallback((nodeId: string) => {
-    const node = physNodesRef.current.find((n) => n.id === nodeId);
+    const node = posMapRef.current.get(nodeId);
     if (!node) { return; }
 
     const cam = cameraRef.current;
