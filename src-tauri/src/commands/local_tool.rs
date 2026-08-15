@@ -114,8 +114,8 @@ pub async fn get_tool_count(
         return Ok(names.len() as u32);
     };
 
-    // 解析 profile 上下文（与 agent_query 一致的三源合并）
-    let Some(ctx) = resolve_profile_tool_context(&state, &profile_id).await else {
+    // 解析 profile 上下文（与 agent_query 一致的三源合并）；local_tool 无动态专家覆盖
+    let Some(ctx) = resolve_profile_tool_context(&state, &profile_id, None).await else {
         // profile 不存在或查询失败：回退到默认自由对话域 General，
         // 避免显示全局已启用数导致与实际传给 LLM 的工具数不一致。
         let mut domains = HashSet::new();

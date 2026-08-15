@@ -719,6 +719,7 @@ const SCHEMA: &[(&str, &[(&str, &str)])] = &[
             ("cache_read_tokens", "BIGINT"),
             ("parts", "TEXT"),
             ("quoted_message_id", "TEXT"),
+            ("decision", "TEXT"),
         ],
     ),
     (
