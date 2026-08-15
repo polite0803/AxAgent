@@ -832,7 +832,8 @@
       "ask": "Fragen",
       "auto": "Auto",
       "plan": "Plan",
-      "title": "Ausführungsmodus"
+      "title": "Ausführungsmodus",
+      "gateway": "Gateway"
     },
     "moveToWorkspace": "In Arbeitsbereich verschieben",
     "multiModel": {

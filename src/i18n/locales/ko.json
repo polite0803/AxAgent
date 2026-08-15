@@ -832,7 +832,8 @@
       "ask": "질문",
       "auto": "자동",
       "plan": "계획",
-      "title": "실행 모드"
+      "title": "실행 모드",
+      "gateway": "게이트웨이"
     },
     "moveToWorkspace": "작업 영역으로 이동",
     "multiModel": {

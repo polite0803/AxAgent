@@ -832,7 +832,8 @@
       "ask": "Preguntar",
       "auto": "Auto",
       "plan": "Plan",
-      "title": "Modo de ejecución"
+      "title": "Modo de ejecución",
+      "gateway": "Pasarela"
     },
     "moveToWorkspace": "Mover al espacio de trabajo",
     "multiModel": {

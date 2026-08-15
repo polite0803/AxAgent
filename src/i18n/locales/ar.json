@@ -832,7 +832,8 @@
       "ask": "اسأل",
       "auto": "تلقائي",
       "plan": "خطة",
-      "title": "وضع التنفيذ"
+      "title": "وضع التنفيذ",
+      "gateway": "بوابة"
     },
     "moveToWorkspace": "نقل إلى مساحة العمل",
     "multiModel": {

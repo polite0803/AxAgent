@@ -832,7 +832,8 @@
       "ask": "Ask",
       "auto": "Auto",
       "plan": "Plan",
-      "title": "Execution Mode"
+      "title": "Execution Mode",
+      "gateway": "Gateway"
     },
     "moveToWorkspace": "Move to Workspace",
     "multiModel": {

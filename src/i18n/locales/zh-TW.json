@@ -832,7 +832,8 @@
       "ask": "提問",
       "auto": "自動",
       "plan": "計畫",
-      "title": "執行模式"
+      "title": "執行模式",
+      "gateway": "網關"
     },
     "moveToWorkspace": "移到工作區",
     "multiModel": {

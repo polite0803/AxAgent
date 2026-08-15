@@ -29,22 +29,12 @@ import {
   useUIStore,
   useVoicePreferenceStore,
 } from "@/stores";
-import type { SendModeHint } from "@/stores/domain/conversationStoreSend";
-import { useExpertStore } from "@/stores/feature/expertStore";
 import { useGatewayStore } from "@/stores/feature/gatewayStore";
 import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
 import { useMultiAgentStore } from "@/stores/feature/multiAgentStore";
 import { usePromptTemplateStore } from "@/stores/feature/promptTemplateStore";
 import type { PromptTemplate } from "@/types";
-import {
-  type AttachmentInput,
-  type CreateMcpServerInput,
-  EXPERT_CATEGORY_LABELS,
-  type McpServer,
-  type Model,
-  type ProviderConfig,
-  type RealtimeConfig,
-} from "@/types";
+import { type AttachmentInput, type CreateMcpServerInput, type McpServer, type RealtimeConfig } from "@/types";
 import { AudioOutlined, TeamOutlined } from "@ant-design/icons";
 import { ModelIcon } from "@lobehub/icons";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -68,10 +58,8 @@ import {
 import {
   ArrowUp,
   Atom,
-  Bot,
   Check,
   CircleOff,
-  ClipboardList,
   Database,
   Eraser,
   ExternalLink,
@@ -87,7 +75,6 @@ import {
   Mic,
   Music,
   Paperclip,
-  Play,
   Plug,
   Scissors,
   Shield,
@@ -413,19 +400,24 @@ export function InputArea() {
   // Agent working directory state
   const [agentCwd, setAgentCwd] = useState<string | null>(null);
 
-  // Work strategy state (for plan mode)
-  const [workStrategy, setWorkStrategy] = useState<"direct" | "plan">("direct");
-
-  // 用户显式选择的执行模式；"auto" 表示不覆盖，交由认知编排器路由自动决策执行模式
-  const [explicitMode, setExplicitMode] = useState<
-    "auto" | "ask" | "plan" | "action"
-  >("auto");
-
   // Gateway links state
   const gatewayLinks = useGatewayLinkStore((s) => s.links);
   const [selectedGatewayId, setSelectedGatewayId] = useState<string | null>(
     null,
   );
+
+  // Gateway 链接选择（独立入口）：认知编排器模式下不再提供 act/plan/ask/auto 手动模式选择
+  const gatewayMenuItems = useMemo((): DropdownItem[] => {
+    const connectedGateways = gatewayLinks.filter(
+      (l) => l.enabled && l.status === "connected",
+    );
+    return connectedGateways.map((gw) => ({
+      key: `gateway:${gw.id}`,
+      icon: <Globe size={14} />,
+      label: gw.name,
+      onClick: () => setSelectedGatewayId(gw.id),
+    }));
+  }, [gatewayLinks]);
 
   // Knowledge base state
   const knowledgeBases = useKnowledgeStore((s) => s.bases);
@@ -481,7 +473,6 @@ export function InputArea() {
   // This allows handleSend to create a conversation in the correct mode
   // even when the user hasn't created one yet.
   const pendingModeRef = useRef<"chat" | "agent" | null>(null);
-  const pendingWorkStrategyRef = useRef<"direct" | "plan" | null>(null);
 
   const activeConversation = conversations.find(
     (c) => c.id === activeConversationId,
@@ -495,34 +486,11 @@ export function InputArea() {
   useEffect(() => {
     if (activeConversationId) {
       pendingModeRef.current = null;
-      pendingWorkStrategyRef.current = null;
     }
   }, [activeConversationId]);
 
-  // Sync work strategy from conversation (also fires on mode switch)
-  useEffect(() => {
-    const strategy = activeConversation?.work_strategy as
-      | "direct"
-      | "plan"
-      | undefined;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setWorkStrategy(strategy || "direct");
-  }, [activeConversation?.work_strategy, activeConversation?.mode]);
-
-  // 统一执行模式（用于 UI 展示）：用户显式选择优先；auto 时按会话上下文派生提示性模式
-  const unifiedMode = useMemo((): "ask" | "plan" | "action" => {
-    if (explicitMode !== "auto") { return explicitMode; }
-    if (currentMode === "chat") { return "ask"; }
-    if (currentMode === "agent" && workStrategy === "plan") { return "plan"; }
-    return "action";
-  }, [explicitMode, currentMode, workStrategy]);
-
-  // 发送给认知编排器的 modeHint："auto" 时不覆盖，后端路由自动决策执行模式
-  const sendModeHint = useMemo((): SendModeHint => {
-    if (explicitMode === "auto") { return "auto"; }
-    if (explicitMode === "action") { return "act"; }
-    return explicitMode;
-  }, [explicitMode]);
+  // 认知编排器模式下不再提供 act/plan/ask/auto 手动模式选择，
+  // 执行模式统一交由认知编排器路由自动决策（始终以 auto 下发）
 
   const navigate = useNavigate();
   const setSettingsSection = useUIStore((s) => s.setSettingsSection);
@@ -1013,152 +981,7 @@ export function InputArea() {
     [setThinkingBudget, thinkingOptions, setThinkingDropdownOpen],
   );
 
-  // Expert menu items — 专家角色选择（所有模式通用）
-  // 通过 selector 订阅 store 状态变更，确保 useMemo 响应式更新
-  const expertBuiltinRoles = useExpertStore((s) => s.builtinRoles);
-  const agencyRoles = useExpertStore((s) => s.agencyRoles);
-  const customRoles = useExpertStore((s) => s.customRoles);
-  const expertMenuItems = useMemo((): DropdownItem[] => {
-    const grouped = useExpertStore.getState().getRolesByCategory();
-    const items: DropdownItem[] = [];
-
-    for (const [category, categoryRoles] of Object.entries(grouped)) {
-      if (items.length > 0) {
-        items.push({ key: "div-1", divider: true });
-      }
-      items.push({
-        key: `category-${category}`,
-        label: t(EXPERT_CATEGORY_LABELS[category as keyof typeof EXPERT_CATEGORY_LABELS]) || category,
-        disabled: true,
-      });
-      for (const role of categoryRoles) {
-        items.push({
-          key: `expert-${role.id}`,
-          label: (
-            <span
-              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-            >
-              <span>{role.icon}</span>
-              <span>{role.name}</span>
-            </span>
-          ),
-          onClick: () => handleExpertSelect(role.id),
-        });
-      }
-    }
-    return items;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [expertBuiltinRoles, agencyRoles, customRoles, t]);
-
-  // Unified mode menu items (Auto / Ask / Plan / Action)
-  const unifiedModeMenuItems = useMemo((): DropdownItem[] => {
-    const items: DropdownItem[] = [
-      {
-        key: "auto",
-        icon: <Zap size={14} />,
-        label: (
-          <span className="flex items-center gap-2">
-            {t("chat.mode.auto")}
-            {explicitMode === "auto" && <Check size={14} style={{ color: token.colorPrimary }} />}
-          </span>
-        ),
-        onClick: () => handleUnifiedModeChange("auto"),
-      },
-      {
-        key: "ask",
-        icon: <MessageSquare size={14} />,
-        label: (
-          <span className="flex items-center gap-2">
-            {t("chat.mode.ask")}
-            {explicitMode === "ask" && <Check size={14} style={{ color: token.colorPrimary }} />}
-          </span>
-        ),
-        onClick: () => handleUnifiedModeChange("ask"),
-      },
-      {
-        key: "plan",
-        icon: <ClipboardList size={14} />,
-        label: (
-          <span className="flex items-center gap-2">
-            {t("chat.mode.plan")}
-            {explicitMode === "plan" && <Check size={14} style={{ color: token.colorPrimary }} />}
-          </span>
-        ),
-        onClick: () => handleUnifiedModeChange("plan"),
-      },
-      {
-        key: "action",
-        icon: <Play size={14} />,
-        label: (
-          <span className="flex items-center gap-2">
-            {t("chat.mode.action")}
-            {explicitMode === "action" && <Check size={14} style={{ color: token.colorPrimary }} />}
-          </span>
-        ),
-        onClick: () => handleUnifiedModeChange("action"),
-      },
-    ];
-    // Add Gateway options if connected
-    const connectedGateways = gatewayLinks.filter(
-      (l) => l.enabled && l.status === "connected",
-    );
-    if (connectedGateways.length > 0) {
-      items.push({ key: "div-gw", divider: true });
-      connectedGateways.forEach((gw) => {
-        items.push({
-          key: `gateway:${gw.id}`,
-          icon: <Globe size={14} />,
-          label: gw.name,
-          onClick: () => setSelectedGatewayId(gw.id),
-        });
-      });
-    }
-    return items;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t, explicitMode, gatewayLinks, token.colorPrimary]);
-
-  // Handle expert selection
-  const handleExpertSelect = useCallback(
-    async (roleId: string) => {
-      const role = useExpertStore.getState().getRoleById(roleId);
-      if (!role) {
-        return;
-      }
-
-      let provider: ProviderConfig | undefined;
-      let model: Model | undefined;
-      if (role.suggestedProviderId && role.suggestedModelId) {
-        provider = providers.find((p) => p.id === role.suggestedProviderId);
-        model = provider?.models.find(
-          (m: Model) => m.model_id === role.suggestedModelId,
-        );
-      }
-      if (!provider || !model) {
-        provider = providers.find(
-          (p) => p.enabled && p.models.some((m: Model) => m.enabled),
-        );
-        model = provider?.models.find((m: Model) => m.enabled);
-      }
-      if (!provider || !model) {
-        messageApi.warning(t("chat.noModelsAvailable"));
-        return;
-      }
-
-      // 确保 AgentProfile 在 DB 中存在
-      invoke("ensure_agent_profile", {
-        id: roleId,
-        name: role.name,
-        expertId: role.source === "agency" ? roleId : (role.expertId ?? null),
-        agentRole: role.agentRole ?? null,
-      }).catch(() => {/* profile 可能已存在 */});
-
-      await createConversation(role.name, model.model_id, provider.id, {
-        mode: "agent",
-        agent_profile_id: roleId,
-      });
-    },
-    [createConversation, providers, messageApi, t],
-  );
+  // 认知编排器模式下专家/角色由路由自动选择，不再提供手动专家选择
 
   // Agent permission mode menu items
   const permissionModeItems = useMemo((): DropdownItem[] => [
@@ -1262,34 +1085,7 @@ export function InputArea() {
   }, [agentPermissionMode, t]);
 
   // ── Work Strategy ──────────────────────────────────────────────────
-  const isSwitchingStrategyRef = useRef(false);
-
-  const handleWorkStrategyChange = useCallback(
-    async (strategy: "direct" | "plan") => {
-      if (!activeConversationId || !activeConversation) {
-        return;
-      }
-      if (isSwitchingStrategyRef.current) {
-        return;
-      }
-      isSwitchingStrategyRef.current = true;
-      try {
-        setWorkStrategy(strategy);
-        await updateConversation(activeConversationId, {
-          work_strategy: strategy,
-        });
-      } catch (e) {
-        logIpcError("WorkStrategy: update work strategy")(e);
-        // Revert
-        setWorkStrategy(
-          (activeConversation.work_strategy as "direct" | "plan") || "direct",
-        );
-      } finally {
-        isSwitchingStrategyRef.current = false;
-      }
-    },
-    [activeConversationId, activeConversation, updateConversation],
-  );
+  // 认知编排器模式下工作策略由路由自动决策，不再提供手动直接/计划切换
 
   // Agent CWD helpers
   const abbreviatePath = useCallback((path: string): string => {
@@ -1766,39 +1562,7 @@ export function InputArea() {
   );
 
   // ── Unified Mode (Ask / Plan / Action) ──
-  const handleUnifiedModeChange = useCallback(
-    async (mode: "auto" | "ask" | "plan" | "action") => {
-      setExplicitMode(mode);
-      if (mode === "auto") {
-        // 自动决策：执行模式交由认知编排器路由自动决定，不强制切换会话类型
-        return;
-      }
-      if (mode === "ask") {
-        await handleModeSwitch("chat");
-        if (activeConversationId) {
-          try {
-            await updateConversation(activeConversationId, {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              work_strategy: "direct" as any,
-            });
-          } catch (e) {
-            logIpcError("UnifiedMode: switch to ask")(e);
-          }
-        } else {
-          pendingModeRef.current = "chat";
-          pendingWorkStrategyRef.current = null;
-        }
-      } else {
-        await handleModeSwitch("agent");
-        const strategy = mode === "plan" ? "plan" : "direct";
-        await handleWorkStrategyChange(strategy);
-        if (!activeConversationId) {
-          pendingWorkStrategyRef.current = strategy;
-        }
-      }
-    },
-    [activeConversationId, handleModeSwitch, handleWorkStrategyChange, updateConversation],
-  );
+  // 认知编排器模式下执行模式由路由自动决策，不再提供手动 Ask / Plan / Action 选择
 
   const handleSend = useCallback(async () => {
     const trimmed = value.trim();
@@ -1844,11 +1608,9 @@ export function InputArea() {
             provider.id,
             {
               mode: pendingModeRef.current ?? undefined,
-              work_strategy: pendingWorkStrategyRef.current ?? undefined,
             },
           );
           pendingModeRef.current = null;
-          pendingWorkStrategyRef.current = null;
         }
       }
 
@@ -1885,7 +1647,7 @@ export function InputArea() {
           attachments,
           effectiveSearchProviderId,
           quotedMessageId,
-          sendModeHint,
+          "auto",
         );
       }
       // 引用回复：发送成功后清除引用状态
@@ -1922,7 +1684,6 @@ export function InputArea() {
     messageApi,
     t,
     currentMode,
-    sendModeHint,
     selectedGatewayId,
     effectiveSearchProviderId,
     quotedMessageId,
@@ -2776,13 +2537,6 @@ export function InputArea() {
                   />
                 </DropdownMenu>
               )}
-            {unifiedMode === "action" && (
-              <DropdownMenu items={expertMenuItems}>
-                <Tooltip title={t("expertBadge.selectExpert")}>
-                  <Button type="text" size="small" icon={<Bot size={14} />} />
-                </Tooltip>
-              </DropdownMenu>
-            )}
             {hasReasoning && (
               <DropdownMenu
                 items={thinkingMenuItems}
@@ -3040,21 +2794,13 @@ export function InputArea() {
                 />
               </Tooltip>
             )}
-            <DropdownMenu items={unifiedModeMenuItems}>
-              <Tooltip title={t("chat.mode.title")}>
-                <Button
-                  type="text"
-                  size="small"
-                  data-tutorial="agent-mode"
-                  icon={unifiedMode === "ask"
-                    ? <MessageSquare size={14} />
-                    : unifiedMode === "plan"
-                    ? <ClipboardList size={14} />
-                    : <Play size={14} />}
-                  style={{ display: "flex", alignItems: "center", gap: 4 }}
-                />
-              </Tooltip>
-            </DropdownMenu>
+            {gatewayMenuItems.length > 0 && (
+              <DropdownMenu items={gatewayMenuItems}>
+                <Tooltip title={t("chat.mode.gateway")}>
+                  <Button type="text" size="small" icon={<Globe size={14} />} />
+                </Tooltip>
+              </DropdownMenu>
+            )}
             {currentMode === "agent" && activeConversationId && (
               <PlanHistoryPanel conversationId={activeConversationId} />
             )}

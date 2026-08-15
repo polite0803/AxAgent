@@ -832,7 +832,8 @@
       "ask": "質問",
       "auto": "自動",
       "plan": "計画",
-      "title": "実行モード"
+      "title": "実行モード",
+      "gateway": "ゲートウェイ"
     },
     "moveToWorkspace": "ワークスペースに移動",
     "multiModel": {

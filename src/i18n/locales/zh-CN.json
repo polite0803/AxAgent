@@ -832,7 +832,8 @@
       "ask": "提问",
       "auto": "自动",
       "plan": "计划",
-      "title": "执行模式"
+      "title": "执行模式",
+      "gateway": "网关"
     },
     "moveToWorkspace": "移到工作区",
     "multiModel": {
