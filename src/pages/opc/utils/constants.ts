@@ -179,6 +179,7 @@ export interface CapabilityInventory {
   skills: CapabilityEntry[];
   mcp_tools: CapabilityEntry[];
   workflows: CapabilityEntry[];
+  agents: CapabilityEntry[];
   scanned_at: number;
   total_count: number;
 }

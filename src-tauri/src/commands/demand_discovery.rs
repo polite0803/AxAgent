@@ -35,6 +35,7 @@ pub async fn opc_scan_capabilities(
     let mut skills: Vec<CapabilityEntry> = Vec::new();
     let mut mcp_tools: Vec<CapabilityEntry> = Vec::new();
     let mut workflows: Vec<CapabilityEntry> = Vec::new();
+    let mut agents: Vec<CapabilityEntry> = Vec::new();
 
     let ids = state.capability_indexer.list_capability_ids().await;
     for id in ids {
@@ -50,6 +51,7 @@ pub async fn opc_scan_capabilities(
                     CapabilitySource::McpTool
                 },
                 CapabilityKind::Tool => CapabilitySource::Tool,
+                CapabilityKind::Agent => CapabilitySource::Agent,
                 _ => continue,
             };
             let entry = CapabilityEntry {
@@ -72,6 +74,7 @@ pub async fn opc_scan_capabilities(
                 CapabilitySource::Skill => skills.push(entry),
                 CapabilitySource::McpTool => mcp_tools.push(entry),
                 CapabilitySource::Workflow => workflows.push(entry),
+                CapabilitySource::Agent => agents.push(entry),
             }
         }
     }
@@ -81,6 +84,7 @@ pub async fn opc_scan_capabilities(
         skills,
         mcp_tools,
         workflows,
+        agents,
         scanned_at: now,
         total_count: 0,
     };

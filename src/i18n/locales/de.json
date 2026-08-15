@@ -6220,6 +6220,7 @@
       "categorySkills": "Skills",
       "categoryMcpTools": "MCP Tools",
       "categoryWorkflows": "Workflows",
+      "categoryAgents": "Agenten",
       "totalCapabilities": "{{count}} total capabilities",
       "actionViewDetail": "Details anzeigen",
       "actionRetry": "Erneut versuchen",

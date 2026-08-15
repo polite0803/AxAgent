@@ -6223,6 +6223,7 @@
       "categorySkills": "Skills",
       "categoryMcpTools": "MCP Tools",
       "categoryWorkflows": "Workflows",
+      "categoryAgents": "エージェント",
       "totalCapabilities": "{{count}} total capabilities",
       "actionViewDetail": "詳細を表示",
       "actionRetry": "再試行",

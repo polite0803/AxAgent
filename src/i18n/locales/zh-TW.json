@@ -6223,6 +6223,7 @@
       "categorySkills": "Skills",
       "categoryMcpTools": "MCP Tools",
       "categoryWorkflows": "Workflows",
+      "categoryAgents": "智能體",
       "totalCapabilities": "{{count}} total capabilities",
       "actionViewDetail": "查看詳情",
       "actionRetry": "重試",

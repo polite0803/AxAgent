@@ -6256,6 +6256,7 @@
       "categorySkills": "Skills",
       "categoryMcpTools": "MCP Tools",
       "categoryWorkflows": "Workflows",
+      "categoryAgents": "Agents",
       "totalCapabilities": "{{count}} total capabilities",
       "actionViewDetail": "View Details",
       "actionRetry": "Retry",

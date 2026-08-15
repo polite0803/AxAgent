@@ -6223,6 +6223,7 @@
       "categorySkills": "Skills",
       "categoryMcpTools": "MCP Tools",
       "categoryWorkflows": "Workflows",
+      "categoryAgents": "एजेंट",
       "totalCapabilities": "{{count}} total capabilities",
       "actionViewDetail": "विवरण देखें",
       "actionRetry": "पुनः प्रयास",

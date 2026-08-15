@@ -6223,6 +6223,7 @@
       "categorySkills": "Skills",
       "categoryMcpTools": "MCP Tools",
       "categoryWorkflows": "Workflows",
+      "categoryAgents": "에이전트",
       "totalCapabilities": "{{count}} total capabilities",
       "actionViewDetail": "세부 정보 보기",
       "actionRetry": "재시도",

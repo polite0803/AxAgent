@@ -674,6 +674,7 @@ function CapabilitiesPanel() {
           {renderTable(t("opc.demand.categorySkills"), inventory.skills)}
           {renderTable(t("opc.demand.categoryMcpTools"), inventory.mcp_tools)}
           {renderTable(t("opc.demand.categoryWorkflows"), inventory.workflows)}
+          {renderTable(t("opc.demand.categoryAgents"), inventory.agents)}
         </>
       )}
     </div>

@@ -2047,8 +2047,7 @@ impl crate::capability::CapabilityPassport for WorkflowTemplateData {
     }
 
     fn domain(&self) -> crate::capability::CapabilityDomain {
-        // WorkflowTemplateData 无显式 domain 字段，降级为 General
-        crate::capability::CapabilityDomain::General
+        infer_domain_from_tags(&self.tags)
     }
 
     fn input_schema(&self) -> Option<serde_json::Value> {
@@ -2083,6 +2082,88 @@ impl crate::capability::CapabilityPassport for WorkflowTemplateData {
     fn is_enabled(&self) -> bool {
         true
     }
+}
+
+/// 根据工作流 tags 推断所属业务域。
+///
+/// 匹配优先级：ContentCreation > Finance > Automation > Devops > AiMedia > DataAnalysis > Communication > General
+fn infer_domain_from_tags(tags: &[String]) -> crate::capability::CapabilityDomain {
+    use crate::capability::CapabilityDomain;
+
+    let tag_set: std::collections::HashSet<&str> = tags.iter().map(|s| s.as_str()).collect();
+
+    // 内容创作（文学/小说/诗歌/散文/写作/创作）
+    if [
+        "literary",
+        "novel",
+        "poetry",
+        "prose",
+        "narrative-structure",
+        "writing",
+        "creation",
+        "translation",
+        "polishing",
+        "content",
+        "design",
+        "marketing",
+        "copywriting",
+    ]
+    .iter()
+    .any(|t| tag_set.contains(t))
+    {
+        return CapabilityDomain::ContentCreation;
+    }
+
+    // 金融（股票/交易/行情/风控）
+    if ["stock", "trading", "finance", "investment", "market", "risk", "portfolio", "quant", "fund"]
+        .iter()
+        .any(|t| tag_set.contains(t))
+    {
+        return CapabilityDomain::Finance;
+    }
+
+    // 自动化（RPA/工作流/编排）
+    if ["automation", "workflow", "opc", "rpa", "orchestration", "order", "refund", "shipping"]
+        .iter()
+        .any(|t| tag_set.contains(t))
+    {
+        return CapabilityDomain::Automation;
+    }
+
+    // 运维（CI/CD/部署/监控）
+    if ["devops", "deployment", "monitoring", "cicd", "docker", "kubernetes", "security"]
+        .iter()
+        .any(|t| tag_set.contains(t))
+    {
+        return CapabilityDomain::Devops;
+    }
+
+    // AI 媒体（图像/视频/音频）
+    if ["ai_media", "image", "video", "audio", "generation", "viral-content", "ip-building"]
+        .iter()
+        .any(|t| tag_set.contains(t))
+    {
+        return CapabilityDomain::AiMedia;
+    }
+
+    // 数据分析
+    if ["data_analysis", "sql", "visualization", "etl", "analytics", "bi"]
+        .iter()
+        .any(|t| tag_set.contains(t))
+    {
+        return CapabilityDomain::DataAnalysis;
+    }
+
+    // 通信
+    if ["communication", "im", "email", "messaging", "notification", "push"]
+        .iter()
+        .any(|t| tag_set.contains(t))
+    {
+        return CapabilityDomain::Communication;
+    }
+
+    // 兜底：通用域
+    CapabilityDomain::General
 }
 
 /// 活跃执行摘要(仅内存运行态,用于可观测性 / 前端轮询)。

@@ -6257,6 +6257,7 @@
       "categorySkills": "技能",
       "categoryMcpTools": "MCP 工具",
       "categoryWorkflows": "工作流",
+      "categoryAgents": "智能体",
       "totalCapabilities": "共 {{count}} 项能力",
       "actionViewDetail": "查看详情",
       "actionRetry": "重试",

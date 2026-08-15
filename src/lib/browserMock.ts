@@ -394,6 +394,113 @@ let PRESET_MOCK_PLATFORMS: MarketPlatform[] = [
   },
 ];
 
+/**
+ * 模拟认知编排器路由匹配（L1/L2/L3）
+ * 根据用户输入推断业务域、能力簇和工作流
+ */
+function mockCognitiveRoute(input: string): {
+  domain: string;
+  cluster: string;
+  capabilityId: string;
+  routePath: string;
+  executionMode: string;
+  candidates: Array<{ id: string; name: string; description: string; score: number }>;
+} {
+  const text = input.toLowerCase();
+
+  // L1 域路由规则
+  const domainRules: Array<{ keywords: string[]; domain: string; cluster: string }> = [
+    {
+      keywords: ["小说", "诗歌", "散文", "文学", "写作", "创作", "novel", "poetry", "prose", "literary", "writing"],
+      domain: "content_creation",
+      cluster: "literary",
+    },
+    {
+      keywords: ["股票", "基金", "投资", "行情", "交易", "stock", "trading", "finance", "investment"],
+      domain: "finance",
+      cluster: "stock_analysis",
+    },
+    {
+      keywords: ["订单", "退款", "发货", "物流", "order", "refund", "shipping"],
+      domain: "automation",
+      cluster: "order_management",
+    },
+    {
+      keywords: ["部署", "监控", "ci/cd", "docker", "devops", "deployment", "monitoring"],
+      domain: "devops",
+      cluster: "deployment",
+    },
+    {
+      keywords: ["数据", "分析", "报表", "data", "analysis", "sql"],
+      domain: "data_analysis",
+      cluster: "analysis",
+    },
+    {
+      keywords: ["邮件", "通知", "email", "notification", "message"],
+      domain: "communication",
+      cluster: "messaging",
+    },
+  ];
+
+  // 查找匹配的域
+  for (const rule of domainRules) {
+    if (rule.keywords.some((kw) => text.includes(kw.toLowerCase()))) {
+      // L3 能力路由：根据域返回对应的工作流
+      const workflows: Record<string, Array<{ id: string; name: string; description: string }>> = {
+        content_creation: [
+          { id: "workflow-cm-literary-creation", name: "文字创作", description: "小说/诗歌/散文创作工作流" },
+          { id: "workflow-cm-viral-content", name: "爆款内容生成", description: "选题策划 → 内容创作 → 优化打磨" },
+          { id: "workflow-cm-multi-platform", name: "多平台适配", description: "内容创作 → 平台适配 → 分发策略" },
+        ],
+        finance: [
+          { id: "stock-analysis", name: "股票分析", description: "技术面/基本面/新闻分析" },
+          { id: "stock-trading", name: "股票交易", description: "交易执行与风控" },
+        ],
+        automation: [
+          { id: "order-fulfillment", name: "订单履约", description: "订单处理与物流" },
+        ],
+        devops: [
+          { id: "ci-cd-pipeline", name: "CI/CD 流水线", description: "持续集成与部署" },
+          { id: "monitoring", name: "监控告警", description: "系统监控与告警" },
+        ],
+        data_analysis: [
+          { id: "data-analysis", name: "数据分析", description: "数据查询与可视化" },
+        ],
+        communication: [
+          { id: "notification", name: "通知推送", description: "消息通知服务" },
+        ],
+      };
+
+      const candidates = workflows[rule.domain] || [];
+      const primaryCandidate = candidates[0];
+
+      return {
+        domain: rule.domain,
+        cluster: rule.cluster,
+        capabilityId: primaryCandidate?.id ?? "",
+        routePath: `${rule.domain}/${rule.cluster}`,
+        executionMode: primaryCandidate ? "workflow" : "ask",
+        candidates: candidates.map((c, i) => ({
+          id: c.id,
+          name: c.name,
+          description: c.description,
+          score: 0.95 - i * 0.1,
+        })),
+      };
+    }
+  }
+
+  // 默认：通用域
+  return {
+    domain: "general",
+    cluster: "chat",
+    capabilityId: "",
+    routePath: "general/chat",
+    executionMode: "ask",
+    candidates: [],
+  };
+}
+
 function genId(): string {
   return crypto.randomUUID();
 }
@@ -1920,8 +2027,9 @@ export async function handleCommand<T>(
           execution: { kind: "agent", conversationId, assistantMessageId: approvedId },
         } as T;
       }
-      // 模拟认知编排器：路由决策为 ask 模式并交给 agent 执行。
-      // 先发 assistantMessageId，再发 agent-done，使前端 eventPromise 正常 resolve。
+      // 模拟认知编排器：根据用户输入智能匹配路由
+      const userInput = req?.input ?? "";
+      const route = mockCognitiveRoute(userInput);
       const assistantId = genId();
       emitBrowserEvent("agent-message-id", { conversationId, assistantMessageId: assistantId });
       emitBrowserEvent("agent-done", {
@@ -1932,19 +2040,23 @@ export async function handleCommand<T>(
         usage: { input_tokens: 1, output_tokens: 1 },
       });
       return {
-        routePath: "general/chat",
-        domain: "general",
-        cluster: "chat",
-        capabilityId: "",
-        confidence: 0.5,
-        isLlmFallback: true,
+        routePath: route.routePath,
+        domain: route.domain,
+        cluster: route.cluster,
+        capabilityId: route.capabilityId,
+        confidence: 0.95,
+        isLlmFallback: false,
         circuitBroken: false,
         circuitBreakReason: null,
         fallbackPath: null,
-        candidates: [],
-        executionMode: "ask",
-        stageRecords: [],
-        totalElapsedMs: 0,
+        candidates: route.candidates,
+        executionMode: route.executionMode,
+        stageRecords: [
+          { stage: "l1_domain", result: route.domain, elapsedMs: 10 },
+          { stage: "l2_cluster", result: route.cluster, elapsedMs: 20 },
+          { stage: "l3_capability", result: route.capabilityId || "fallback", elapsedMs: 30 },
+        ],
+        totalElapsedMs: 60,
         execution: { kind: "agent", conversationId, assistantMessageId: assistantId },
       } as T;
     }

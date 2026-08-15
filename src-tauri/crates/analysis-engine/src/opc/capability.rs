@@ -18,6 +18,7 @@ pub enum CapabilitySource {
     Skill,
     McpTool,
     Workflow,
+    Agent,
 }
 
 impl CapabilitySource {
@@ -27,6 +28,7 @@ impl CapabilitySource {
             Self::Skill => "skill",
             Self::McpTool => "mcp_tool",
             Self::Workflow => "workflow",
+            Self::Agent => "agent",
         }
     }
 }
@@ -52,6 +54,7 @@ pub struct CapabilityInventory {
     pub skills: Vec<CapabilityEntry>,
     pub mcp_tools: Vec<CapabilityEntry>,
     pub workflows: Vec<CapabilityEntry>,
+    pub agents: Vec<CapabilityEntry>,
     pub scanned_at: i64,
     pub total_count: usize,
 }
@@ -64,14 +67,18 @@ impl CapabilityInventory {
             skills: Vec::new(),
             mcp_tools: Vec::new(),
             workflows: Vec::new(),
+            agents: Vec::new(),
             scanned_at: now,
             total_count: 0,
         }
     }
 
     pub fn recalc_count(&mut self) {
-        self.total_count =
-            self.tools.len() + self.skills.len() + self.mcp_tools.len() + self.workflows.len();
+        self.total_count = self.tools.len()
+            + self.skills.len()
+            + self.mcp_tools.len()
+            + self.workflows.len()
+            + self.agents.len();
     }
 
     /// 全部条目展平为一个列表（供 Agent 注入 context）
@@ -81,6 +88,7 @@ impl CapabilityInventory {
         v.extend(self.skills.iter());
         v.extend(self.mcp_tools.iter());
         v.extend(self.workflows.iter());
+        v.extend(self.agents.iter());
         v
     }
 }

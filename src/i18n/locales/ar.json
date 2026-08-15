@@ -6223,6 +6223,7 @@
       "categorySkills": "Skills",
       "categoryMcpTools": "MCP Tools",
       "categoryWorkflows": "Workflows",
+      "categoryAgents": "الوكلاء",
       "totalCapabilities": "{{count}} total capabilities",
       "actionViewDetail": "عرض التفاصيل",
       "actionRetry": "إعادة محاولة",
