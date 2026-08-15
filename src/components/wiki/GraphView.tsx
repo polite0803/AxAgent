@@ -233,12 +233,12 @@ function applySavedLayout(nodes: PhysicsNode[], saved: SavedLayout): boolean {
 const getEdgeTypeStylesMap = (
   token: TokenType,
 ): Record<GraphEdgeType, { color: string; width: number; animated: boolean }> => ({
-  link: { color: token.colorBorderSecondary, width: 0.6, animated: true },
-  backlink: { color: token.colorPrimary, width: 1.0, animated: true },
-  reference: { color: "#52C41A", width: 1.6, animated: true },
-  derived_from: { color: "#FA8C16", width: 1.2, animated: false },
-  contradicts: { color: token.colorError, width: 1.8, animated: false },
-  mapping: { color: "#722ED1", width: 1.0, animated: true },
+  link: { color: token.colorBorderSecondary, width: 0.4, animated: true },
+  backlink: { color: token.colorBorder, width: 0.5, animated: true },
+  reference: { color: token.colorSuccess, width: 0.5, animated: true },
+  derived_from: { color: token.colorWarning, width: 0.5, animated: false },
+  contradicts: { color: token.colorError, width: 0.6, animated: false },
+  mapping: { color: token.colorInfo, width: 0.4, animated: true },
 });
 
 const edgeTypeLabels: Record<GraphEdgeType, string> = {
@@ -1729,6 +1729,30 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         const geomReady = clusterGeomRef.current.size > 0;
         const shouldUseClusterRender = (aggActive || clusterModeRef.current || forceCluster) && geomReady;
 
+        // 关键诊断日志：每 60 帧输出一次渲染路径状态
+        if (frameCounterRef.current % 60 === 0) {
+          const camInfo = cameraRef.current;
+          const vpW = camInfo.zoom > 0 ? w / camInfo.zoom : 0;
+          const vpH = camInfo.zoom > 0 ? h / camInfo.zoom : 0;
+          console.log("[GraphView] render path", {
+            forceCluster,
+            aggActive,
+            clusterMode: clusterModeRef.current,
+            autoForce: isAutoForceClusterRef.current,
+            geomReady,
+            shouldUseClusterRender,
+            nodes: nodes.length,
+            posMapSize: posMapRef.current.size,
+            gridIndexCells: gridIndexRef.current?.size ?? 0,
+            collapsedSize: collapsedRef.current.size,
+            zoom: camInfo.zoom.toFixed(2),
+            viewport: { w: vpW.toFixed(0), h: vpH.toFixed(0) },
+            spriteCache: spriteCacheRef.current
+              ? `${spriteCacheRef.current.width}x${spriteCacheRef.current.height}`
+              : null,
+          });
+        }
+
         if (shouldUseClusterRender) {
           // ── 聚类模式：极简渲染策略 ──
           // 全折叠时只画小型聚类标记 + 聚合边
@@ -1777,24 +1801,48 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
               });
             }
             if (geom.size > 0) {
-              // 聚合边
+              // Obsidian 风格聚合边：细线条、柔和透明度、动态宽度
+              const zoom = cameraRef.current.zoom;
+              const aggBaseWidth = 0.3;
+              const aggZoomScale = zoom < 0.5 ? zoom * 1.5 : Math.min(1, zoom);
+              const aggDynamicWidth = aggBaseWidth * aggZoomScale;
+              const aggAlpha = zoom < 0.3 ? 0.12 : zoom < 0.5 ? 0.2 : 0.3;
+
               if (aggPhysLocal && aggPhysLocal.edges.length > 0) {
                 ctx.save();
                 ctx.strokeStyle = token.colorBorder;
-                ctx.lineWidth = 0.5;
-                ctx.globalAlpha = 0.5;
-                ctx.beginPath();
-                for (const e of aggPhysLocal.edges) {
+                ctx.lineWidth = aggDynamicWidth;
+                ctx.globalAlpha = aggAlpha;
+                const aggBatchPaths = new Map<string, Path2D>();
+                const aggHashSeed = 77777;
+                const aggSampleRate = zoom < 0.3 ? 0.3 : zoom < 0.5 ? 0.6 : 1.0;
+
+                for (let i = 0; i < aggPhysLocal.edges.length; i++) {
+                  // 确定性降采样
+                  if (aggSampleRate < 1.0) {
+                    const hash = ((i * aggHashSeed) % 1000) / 1000;
+                    if (hash > aggSampleRate) { continue; }
+                  }
+                  const e = aggPhysLocal.edges[i];
                   const sNode = aggPhysLocal.nodes[e.sourceIdx];
                   const tNode = aggPhysLocal.nodes[e.targetIdx];
                   if (!sNode || !tNode) { continue; }
                   if (
                     !isInView(sNode.x, sNode.y, viewWorld, 30) || !isInView(tNode.x, tNode.y, viewWorld, 30)
                   ) { continue; }
-                  ctx.moveTo(sNode.x, sNode.y);
-                  ctx.lineTo(tNode.x, tNode.y);
+                  // 聚合边统一用一种颜色和宽度
+                  let path = aggBatchPaths.get("default");
+                  if (!path) {
+                    path = new Path2D();
+                    aggBatchPaths.set("default", path);
+                  }
+                  path.moveTo(sNode.x, sNode.y);
+                  path.lineTo(tNode.x, tNode.y);
                 }
-                ctx.stroke();
+                for (const path of aggBatchPaths.values()) {
+                  ctx.stroke(path);
+                }
+                ctx.globalAlpha = 1;
                 ctx.restore();
               }
 
@@ -1931,6 +1979,30 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
             drawEdgesOptimized(ctx, nodes, fisheye, viewWorld);
             drawParticlesOptimized(ctx, nodes, fisheye, viewWorld);
             drawNodesOptimized(ctx, nodes, fisheye, viewWorld);
+          }
+        }
+
+        // ── 终极安全阀：auto force cluster 模式下直接绘制节点 ──
+        // 防止任何社区过滤/聚类逻辑导致节点不可见
+        if (isAutoForceClusterRef.current && nodes.length > 0) {
+          const maxDraw = 3000;
+          let drawn = 0;
+          ctx.save();
+          ctx.globalAlpha = 0.85;
+          for (const node of nodes) {
+            if (drawn >= maxDraw) { break; }
+            if (!isInView(node.x, node.y, viewWorld, 30)) { continue; }
+            const color = nodeColorRef.current.get(node.id) || token.colorPrimary;
+            const size = (nodeSizeRef.current.get(node.id) || 5) * 1.0;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, size, 0, Math.PI * 2);
+            ctx.fill();
+            drawn++;
+          }
+          ctx.restore();
+          if (frameCounterRef.current % 60 === 0) {
+            console.log("[GraphView] safety net nodes drawn", { drawn });
           }
         }
       }
@@ -2086,7 +2158,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     if (nodes.length === 0) { return null; }
 
     // 计算节点分布 bounding box —— 聚类模式下只计算可见节点
-    const clusterActive = clusterModeRef.current;
+    // 但 auto force cluster 模式下必须包含所有节点
+    const clusterActive = clusterModeRef.current && !isAutoForceClusterRef.current;
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     let hasVisible = false;
     for (const n of nodes) {
@@ -2171,7 +2244,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     const nodeBatches = new Map<string, Path2D>();
     const nodeSizes = nodeSizeRef.current;
     for (const n of nodes) {
-      if (clusterModeRef.current) {
+      if (clusterActive) {
         const ncid = getCommunityId(n.id);
         if (ncid !== undefined && collapsedRef.current.has(ncid)) { continue; }
       }
@@ -2328,44 +2401,61 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     }
 
     // 绘制边（只连接展开社区的节点）
+    // Obsidian 风格：更细的线宽、更柔和的透明度、动态降采样
     if (edgeMeta.length > 0 && visibleNodes.length > 1) {
       const idSet = new Set(visibleNodes.map(n => n.id));
-      const edgeSampleRate = isLargeGraph ? 0.3 : 0.7;
+      const zoom = cameraRef.current.zoom;
+
+      // 动态采样率
+      let edgeSampleRate = 1.0;
+      if (isLargeGraph) {
+        edgeSampleRate = zoom < 0.3 ? 0.15 : zoom < 0.5 ? 0.3 : 0.5;
+      } else {
+        edgeSampleRate = zoom < 0.3 ? 0.3 : zoom < 0.5 ? 0.6 : 1.0;
+      }
+
+      // 动态线宽
+      const baseWidth = 0.3;
+      const zoomScale = zoom < 0.5 ? zoom * 1.5 : Math.min(1, zoom);
+      const dynamicWidth = baseWidth * zoomScale;
 
       ctx.save();
-      ctx.strokeStyle = token.colorBorder;
-      ctx.lineWidth = 0.4;
-      ctx.globalAlpha = 0.4;
-
-      // 批量路径
-      const batchPaths = new Map<string, Path2D>();
+      const hashSeed = 54321;
+      const batchPaths = new Map<string, { path: Path2D; color: string; width: number }>();
 
       for (let i = 0; i < edgeMeta.length; i++) {
         const em = edgeMeta[i];
         if (!idSet.has(em.source) || !idSet.has(em.target)) { continue; }
-        if (edgeSampleRate < 1 && (i % Math.round(1 / edgeSampleRate)) !== 0) { continue; }
+
+        // 确定性降采样
+        if (edgeSampleRate < 1.0) {
+          const hash = ((i * hashSeed) % 1000) / 1000;
+          if (hash > edgeSampleRate) { continue; }
+        }
 
         const sNode = posMap.get(em.source);
         const tNode = posMap.get(em.target);
         if (!sNode || !tNode) { continue; }
         if (!isInView(sNode.x, sNode.y, viewWorld, 10) && !isInView(tNode.x, tNode.y, viewWorld, 10)) { continue; }
 
-        const key = `${em.color}|${em.width}`;
-        let path = batchPaths.get(key);
-        if (!path) {
-          path = new Path2D();
-          batchPaths.set(key, path);
+        const width = dynamicWidth * (em.width / 0.4);
+        const key = `${em.color}|${width.toFixed(2)}`;
+        let entry = batchPaths.get(key);
+        if (!entry) {
+          entry = { path: new Path2D(), color: em.color, width };
+          batchPaths.set(key, entry);
         }
-        path.moveTo(sNode.x, sNode.y);
-        path.lineTo(tNode.x, tNode.y);
+        entry.path.moveTo(sNode.x, sNode.y);
+        entry.path.lineTo(tNode.x, tNode.y);
       }
 
-      // 绘制批量路径
-      for (const [key, path] of batchPaths) {
-        const [color, width] = key.split("|");
-        ctx.strokeStyle = color;
-        ctx.lineWidth = parseFloat(width);
-        ctx.stroke(path);
+      // Obsidian 风格透明度
+      const normalAlpha = zoom < 0.3 ? 0.12 : zoom < 0.5 ? 0.2 : 0.3;
+      ctx.globalAlpha = normalAlpha;
+      for (const entry of batchPaths.values()) {
+        ctx.strokeStyle = entry.color;
+        ctx.lineWidth = entry.width;
+        ctx.stroke(entry.path);
       }
       ctx.globalAlpha = 1;
       ctx.restore();
@@ -2385,39 +2475,63 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     const visibleCommunitiesSet = visibleCommunitiesRef.current;
     const zoom = cameraRef.current.zoom;
 
-    // 大图边数量保护：超过 50000 条边时，限制处理数量避免主线程阻塞
-    // 交互时（hover/选中）恢复全量，确保用户能看到所有相关边
+    // Obsidian 风格连线：根据缩放级别动态调整
+    // 低缩放时降采样 + 更透明，高缩放时全量 + 更清晰
     const totalEdges = edgeMeta.length;
     const hasActiveInteraction = hovered || !!selected;
-    const edgeLimit = totalEdges > 50000 && !hasActiveInteraction ? 30000 : totalEdges;
+
+    // 降采样率：缩放越低，采样率越低
+    let sampleRate = 1.0;
+    if (zoom < 0.2) {
+      sampleRate = 0.2; // 极低缩放：只画 20% 的边
+    } else if (zoom < 0.4) {
+      sampleRate = 0.4; // 低缩放：只画 40% 的边
+    } else if (zoom < 0.6) {
+      sampleRate = 0.7; // 中低缩放：画 70% 的边
+    }
+
+    // 大图边数量保护
+    let edgeLimit = totalEdges;
+    if (totalEdges > 50000 && !hasActiveInteraction) {
+      edgeLimit = Math.floor(totalEdges * sampleRate);
+    }
+
+    // 动态线宽：根据缩放调整
+    const baseWidth = 0.3; // 基础线宽（Obsidian 风格）
+    const zoomScale = zoom < 0.5 ? zoom * 1.5 : Math.min(1, zoom);
+    const dynamicWidth = baseWidth * zoomScale;
 
     const hasCommunityFilter = hasCommunityFilterRef.current;
-
-    // 批量描边：普通边按 (颜色, 线宽) 合并到 Path2D，最后统一 stroke。
-    // 万级边场景下从「每边一次 stroke」降为「每样式一次 stroke」，是最大的性能收益。
     const batchPaths = new Map<string, { path: Path2D; color: string; width: number }>();
+    const hashSeed = 12345;
 
     for (let i = 0; i < edgeLimit; i++) {
       const em = edgeMeta[i];
 
       if (!visibleTypes.has(em.type)) { continue; }
 
-      // 直接数组访问，避免 Map 查找
+      // 降采样：使用确定性哈希，确保每帧画相同的边
+      if (sampleRate < 1.0 && !hasActiveInteraction) {
+        const hash = ((i * hashSeed) % 1000) / 1000;
+        if (hash > sampleRate) { continue; }
+      }
+
       const sNode = nodes[em.sourceIdx];
       const tNode = nodes[em.targetIdx];
       if (!sNode || !tNode) { continue; }
 
-      // 聚类折叠模式：折叠社区的成员端点接到聚合节点质心
       const sCid = getCommunityId(em.source);
       const tCid = getCommunityId(em.target);
-      const sCollapsed = clusterModeRef.current && sCid !== undefined && collapsedRef.current.has(sCid);
-      const tCollapsed = clusterModeRef.current && tCid !== undefined && collapsedRef.current.has(tCid);
+      const skipClusterCollapse = isAutoForceClusterRef.current;
+      const sCollapsed = !skipClusterCollapse && clusterModeRef.current && sCid !== undefined
+        && collapsedRef.current.has(sCid);
+      const tCollapsed = !skipClusterCollapse && clusterModeRef.current && tCid !== undefined
+        && collapsedRef.current.has(tCid);
       const sGeom = sCollapsed ? clusterGeomRef.current.get(sCid!) : undefined;
       const tGeom = tCollapsed ? clusterGeomRef.current.get(tCid!) : undefined;
       const s: { x: number; y: number } = sGeom ? { x: sGeom.cx, y: sGeom.cy } : sNode;
       const t: { x: number; y: number } = tGeom ? { x: tGeom.cx, y: tGeom.cy } : tNode;
 
-      // 视口裁剪：两端都不在视口内时跳过
       if (!isInView(s.x, s.y, viewWorld) && !isInView(t.x, t.y, viewWorld)) { continue; }
 
       if (hasCommunityFilter) {
@@ -2429,17 +2543,14 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       const isRelevant = hovered && (em.source === hovered || em.target === hovered)
         || selected && (em.source === selected || em.target === selected);
 
-      // 低缩放下简化渲染
-      if (zoom < 0.3 && !isRelevant) { continue; }
+      if (zoom < 0.15 && !isRelevant) { continue; }
 
       if (isRelevant) {
-        // 相关边（hover/选中邻居）逐条绘制：使用贝塞尔曲线 + 鱼眼线宽
         const sScale = fisheyeScale(s.x, s.y, fisheye);
         const tScale = fisheyeScale(t.x, t.y, fisheye);
         const avgScale = (sScale + tScale) / 2;
         ctx.beginPath();
         ctx.moveTo(s.x, s.y);
-        // 贝塞尔曲线：控制点为中点 + 垂直偏移
         const dx = t.x - s.x;
         const dy = t.y - s.y;
         const mx = (s.x + t.x) / 2;
@@ -2451,42 +2562,40 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         const cpY = my + ny * curveAmount;
         ctx.quadraticCurveTo(cpX, cpY, t.x, t.y);
         ctx.strokeStyle = em.color;
-        ctx.lineWidth = em.width * 1.5 * avgScale;
-        ctx.globalAlpha = 0.9;
+        ctx.lineWidth = Math.max(0.5, dynamicWidth * 2) * avgScale;
+        ctx.globalAlpha = 0.85;
         ctx.stroke();
       } else {
-        // 普通边收集到批量路径：小图用贝塞尔曲线，大图用直线
-        const key = `${em.color}|${em.width}`;
+        const width = dynamicWidth * (em.width / 0.4);
+        const key = `${em.color}|${width.toFixed(2)}`;
         let entry = batchPaths.get(key);
         if (!entry) {
-          entry = { path: new Path2D(), color: em.color, width: em.width };
+          entry = { path: new Path2D(), color: em.color, width };
           batchPaths.set(key, entry);
         }
-        if (nodes.length < 5000) {
-          // 小图：贝塞尔曲线
+        if (nodes.length < 5000 && zoom >= 0.3) {
           const dx = t.x - s.x;
           const dy = t.y - s.y;
           const mx = (s.x + t.x) / 2;
           const my = (s.y + t.y) / 2;
-          const curveAmount = Math.min(20, Math.sqrt(dx * dx + dy * dy) * 0.1);
+          const curveAmount = Math.min(20, Math.sqrt(dx * dx + dy * dy) * 0.08);
           const len = Math.sqrt(dx * dx + dy * dy) || 1;
           const cpX = mx + (-dy / len) * curveAmount;
           const cpY = my + (dx / len) * curveAmount;
           entry.path.moveTo(s.x, s.y);
           entry.path.quadraticCurveTo(cpX, cpY, t.x, t.y);
         } else {
-          // 大图：直线（性能优先）
           entry.path.moveTo(s.x, s.y);
           entry.path.lineTo(t.x, t.y);
         }
       }
     }
 
-    // 批量 stroke：普通边统一低透明度；hover/选中时非邻居边近乎消失（对齐 Obsidian 的彻底淡出）
-    // 鱼眼激活时：对批量边宽度应用 fisheye 中心处的全局 scale，
-    // 避免与逐条绘制的相关边形成明显线宽断层（性能与一致性的折中）
     if (batchPaths.size > 0) {
-      ctx.globalAlpha = (hovered || selected) ? 0.08 : 0.25;
+      // Obsidian 风格透明度：正常 0.35，hover/选中时更淡 0.1
+      const normalAlpha = zoom < 0.3 ? 0.15 : zoom < 0.5 ? 0.25 : 0.35;
+      const hoverAlpha = 0.08;
+      ctx.globalAlpha = (hovered || selected) ? hoverAlpha : normalAlpha;
       const batchFeScale = fisheye.active ? fisheyeScale(fisheye.worldX, fisheye.worldY, fisheye) : 1;
       for (const entry of batchPaths.values()) {
         ctx.strokeStyle = entry.color;
@@ -2627,7 +2736,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       if (!node) { continue; }
 
       // 聚类折叠模式：折叠社区的节点由聚合节点替代，不单独绘制
-      if (clusterModeRef.current) {
+      // 但在 auto force cluster 模式下，必须绘制所有节点
+      if (clusterModeRef.current && !isAutoForceClusterRef.current) {
         const ncid = getCommunityId(node.id);
         if (ncid !== undefined && collapsedRef.current.has(ncid)) { continue; }
       }
