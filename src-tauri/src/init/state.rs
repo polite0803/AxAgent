@@ -1130,6 +1130,17 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         tracing::info!("[cognitive] 认知编排器初始化完成");
     }
 
+    // 主 DAG 以固定模板 ID 被 run_workflow(COGNITIVE_ROUTER_MAIN_ID) 引用，
+    // 必须按该 ID 加载进 WorkEngine 内存，否则引擎找不到模板、执行空转
+    // （表现为 LLM 长时间"思考中"且无路由观测输出）。子工作流 L1/L2/L3 由
+    // SubWorkflowExecutor 运行期从 DB 懒加载，无需在此预加载。
+    if let Err(e) = work_engine.load_workflow_template(crate::init::COGNITIVE_ROUTER_MAIN_ID).await
+    {
+        tracing::error!("[cognitive] 主 DAG 加载进引擎失败: {}", e);
+    } else {
+        tracing::info!("[cognitive] 主 DAG 已加载进 WorkEngine 内存");
+    }
+
     // ── 认知编排器初始化（三层路由树协调器） ──────────────────────
     // 全局用户消息唯一入口：L1 域路由 → L2 簇路由 → L3 RAR+图谱路由 → 执行模式决策。
     // L1/L2 用生产版规则实现；RAR 复用能力索引（与 capability_router 同源）；

@@ -955,7 +955,37 @@ impl WorkEngine {
         edges: Vec<WorkflowEdge>,
     ) -> Result<Workflow, WorkflowError> {
         let workflow_id = format!("workflow_{}", uuid::Uuid::new_v4());
+        self.create_workflow_inner(&workflow_id, name, nodes, edges).await
+    }
 
+    /// 以指定 ID 将工作流模板加载进引擎内存（模板加载路径）。
+    ///
+    /// `create_workflow` 会生成随机 UUID 作为 ID，无法让 `run_workflow(template_id)`
+    /// 命中。认知编排器主 DAG 等以固定模板 ID 引用的工作流，必须用本方法按模板 ID
+    /// 注册进内存，否则 `run_workflow` 在 `self.workflows` 中找不到模板、执行空转。
+    pub async fn load_workflow_template(
+        &self,
+        template_id: &str,
+    ) -> Result<Workflow, WorkflowError> {
+        let template = workflow_template_repository()
+            .get_workflow_template(template_id)
+            .await
+            .map_err(|e| WorkflowError::SerializationError(e.to_string()))?
+            .ok_or(WorkflowError::WorkflowNotFound)?;
+        let nodes: Vec<WorkflowNode> = serde_json::from_str(&template.nodes)
+            .map_err(|e| WorkflowError::SerializationError(format!("节点解析失败: {e}")))?;
+        let edges: Vec<WorkflowEdge> = serde_json::from_str(&template.edges)
+            .map_err(|e| WorkflowError::SerializationError(format!("边解析失败: {e}")))?;
+        self.create_workflow_inner(template_id, &template.name, nodes, edges).await
+    }
+
+    async fn create_workflow_inner(
+        &self,
+        workflow_id: &str,
+        name: &str,
+        nodes: Vec<WorkflowNode>,
+        edges: Vec<WorkflowEdge>,
+    ) -> Result<Workflow, WorkflowError> {
         // 校验：无重复节点 ID
         let mut node_ids: HashSet<&str> = HashSet::new();
         for node in &nodes {
@@ -1022,12 +1052,12 @@ impl WorkEngine {
                 compiled_map.insert(an.base.id.clone(), compile_prompt(&an.config.system_prompt));
             }
         }
-        self.compiled_prompts.write().await.insert(workflow_id.clone(), compiled_map);
+        self.compiled_prompts.write().await.insert(workflow_id.to_string(), compiled_map);
 
         // Rhai 工具由 precompile_tool_defs() 单独注册，不在 create_workflow 中编译
 
         let workflow = Workflow {
-            id: workflow_id.clone(),
+            id: workflow_id.to_string(),
             name: name.to_string(),
             nodes,
             edges,
@@ -1042,7 +1072,7 @@ impl WorkEngine {
         };
 
         let mut workflows = self.workflows.write().await;
-        workflows.insert(workflow_id.clone(), workflow.clone());
+        workflows.insert(workflow_id.to_string(), workflow.clone());
 
         tracing::info!(
             workflow_id = %workflow_id,
