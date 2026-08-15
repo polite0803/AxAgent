@@ -995,7 +995,12 @@ pub async fn wiki_graph_communities(
         louvain::detect_communities(link_graph)
     })
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     Ok(result)
 }
 
@@ -1161,7 +1166,12 @@ pub async fn wiki_graph_communities_cached(
             louvain::detect_communities(link_graph)
         })
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
         axagent_dao::repo::wiki_graph_cache::save_cached_communities(db, &wiki_id, &result)
             .await
             .map_err(|e| {
