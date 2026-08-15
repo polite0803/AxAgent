@@ -385,6 +385,10 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     //   上游 v100 的 CHECK 列表没有 'stock-analysis'，AxInvest 的 stock
     //   profile 插入会失败。此阶段在 PG 下用 ALTER CONSTRAINT 替换约束。
     //
+    //   注意：v100 原约束含 'opc-company'/'opc-experts'（OPC 业务使用），
+    //   重写时必须一并保留，否则 OPC 种子插入会违反
+    //   agency_experts_category_check（见 [opc-company] Seed failed 日志）。
+    //
     //   - PG: DROP CONSTRAINT + ADD CONSTRAINT（幂等，不存在则跳过）
     //   - SQLite: CHECK 约束在 CREATE TABLE 时固定，无法 ALTER；
     //     SQLite 不强制 CHECK 约束（除非 PRAGMA writable_schema=ON），
@@ -403,7 +407,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             backend,
             "ALTER TABLE agency_experts ADD CONSTRAINT agency_experts_category_check \
              CHECK (category IN ('general','development','security','data','finance',\
-             'devops','design','writing','business','stock-analysis'))",
+             'devops','design','writing','business','opc-company','opc-experts',\
+             'stock-analysis'))",
         ))
         .await?;
 
@@ -418,7 +423,8 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             backend,
             "ALTER TABLE agent_profiles ADD CONSTRAINT agent_profiles_category_check \
              CHECK (category IN ('general','development','security','data','finance',\
-             'devops','design','writing','business','stock-analysis'))",
+             'devops','design','writing','business','opc-company','opc-experts',\
+             'stock-analysis'))",
         ))
         .await?;
     }

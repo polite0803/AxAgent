@@ -1047,6 +1047,19 @@ impl VectorStore {
             return Err(AxAgentError::NotFound("Collection not found".into()));
         }
 
+        // 幂等 upsert：先按 id 删除旧行，再分配新 rowid 插入。
+        // 同一 capability_id 在每次启动重新索引时会重复调用本方法，
+        // 若直接裸 INSERT 会违反 meta 表 id 列的唯一约束
+        // （vec_capabilities_meta_id_key / vec_*_meta_id_key）。
+        self.db
+            .execute_raw(Statement::from_sql_and_values(
+                self.be(),
+                format!("DELETE FROM {meta_table} WHERE id = $1"),
+                vec![chunk_id.to_string().into()],
+            ))
+            .await
+            .map_err(Self::wrap)?;
+
         let max_rid = self
             .db
             .query_one_raw(Statement::from_string(

@@ -719,6 +719,10 @@ async fn send_high_value_notification(
     app_handle: Option<&tauri::AppHandle>,
     high_value_leads: &[(String, f64, String)],
 ) {
+    // 移动端无桌面通知通道，app_handle 仅用于桌面端，避免 unused 警告
+    #[cfg(mobile)]
+    let _ = app_handle;
+
     if high_value_leads.is_empty() {
         return;
     }
@@ -736,7 +740,8 @@ async fn send_high_value_notification(
         format!("{} 条高价值需求: {}", count, titles.join(", "))
     };
 
-    // 发送 Tauri 桌面通知
+    // 发送 Tauri 桌面通知（仅桌面端；移动端无桌面通知通道，仅靠下方日志记录）
+    #[cfg(not(mobile))]
     if let Some(app) = app_handle {
         if let Err(e) = crate::commands::desktop::send_desktop_notification(
             app.clone(),

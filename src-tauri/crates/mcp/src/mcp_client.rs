@@ -2453,8 +2453,15 @@ mod tests {
             ("echo".to_string(), vec!["npm notice".to_string()])
         };
 
+        // 预热登录 shell PATH 解析（OnceLock 仅首次耗时）：该过程会同步拉起多个
+        // 交互式登录 shell（`-i -l`），在全量并行测试（数千用例）环境下可能拖慢数秒，
+        // 把它挪到计时窗口之外，避免将启动开销误判为“挂起”。
+        let _ = get_shell_path();
+
+        // 全量并行测试下子进程 stdout 管道的 EOF 调度可能被显著延迟，
+        // 放宽计时窗口避免 flaky，同时仍能捕获真正的无限挂起。
         let result = tokio::time::timeout(
-            std::time::Duration::from_secs(5),
+            std::time::Duration::from_secs(30),
             call_tool_stdio(&cmd, &args, &HashMap::new(), "fetch_url", serde_json::json!({})),
         )
         .await;

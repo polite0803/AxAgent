@@ -2,6 +2,11 @@
 
 use std::path::PathBuf;
 
+/// Android 应用包名（applicationId），用于推导沙箱数据目录。
+/// 与 tauri.conf.json 的 identifier（top.axagent.desktop）保持一致。
+#[cfg(target_os = "android")]
+const ANDROID_PKG: &str = "top.axagent.desktop";
+
 /// Returns the canonical AxAgent home directory and ensures it exists.
 ///
 /// - macOS / Linux: `~/.axagent/`
