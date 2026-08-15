@@ -1103,8 +1103,8 @@ fn map_n8n_node(
                     by_index.insert(idx, val);
                 }
                 cases = by_index
-                    .into_iter()
-                    .map(|(_, v)| SwitchCase { value: v.clone(), label: v })
+                    .into_values()
+                    .map(|v| SwitchCase { value: v.clone(), label: v })
                     .collect();
             }
             if let Some(fb) = rules.get("fallbackOutputIndex").and_then(|v| v.as_u64()) {
