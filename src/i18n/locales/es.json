@@ -907,6 +907,7 @@
       "ask": "Ask",
       "plan": "Plan",
       "action": "Action",
+      "auto": "Auto",
       "title": "Modo de ejecución",
       "gateway": "Pasarela"
     },

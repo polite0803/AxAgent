@@ -88,7 +88,7 @@ const startedAt = Date.now();
 if (canRunFrontend) {
   console.log(`${c.bold}[前端检查]${c.reset}`);
 
-  step("dprint 格式化检查", "npx dprint check");
+  step("dprint 格式化检查", "npx dprint check --incremental=false");
 
   // ⚠️ TS7 临时禁用：typescript-eslint 全版本 peer 上限 typescript <6.1.0，
   // 在 TS 7 下 typescript-estree 读已变更内部 API 会崩（TypeError ... 'Cjs'）。
