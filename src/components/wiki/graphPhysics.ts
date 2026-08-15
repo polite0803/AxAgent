@@ -1,18 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * 图谱物理引擎：Verlet 积分 + Barnes-Hut 近似 + 持续力模拟。
+ * 图谱物理引擎：简洁可靠的力导向布局。
  *
- * 设计要点：
- * - 连续运行的低速模拟，节点永远在做微小的"呼吸"运动
- * - 拖拽节点时，物理引擎会实时响应，松手后弹性回弹
+ * 核心设计：
+ * - 初始化时同步运行预热迭代（warmup），确保节点在首次渲染前已充分扩散
+ * - 持续运行的低速模拟，节点永远在做微小的"呼吸"运动
  * - Barnes-Hut 四叉树加速多体排斥，O(n log n)
  * - 边用弹簧力（Hooke 定律），保持拓扑结构
- *
- * 性能优化：
- * - 稳定检测 + 跳过物理：全节点速度低于阈值时跳过整个 step
- * - neighborMap / nodeMap 缓存复用：避免每帧重建
- * - 物理帧降频：稳定时每 6 帧才跑一次物理
- * - forces 用 Float64Array 存储：减少 Map 开销
+ * - 稳定检测：全节点速度低于阈值时跳过物理
  */
 
 export interface PhysicsNode {
@@ -26,7 +21,6 @@ export interface PhysicsNode {
   mass: number;
   fixed: boolean;
   kind: "note" | "concept" | "entity" | "source";
-  /** 在节点数组中的索引（快速定位，避免 Map 查找） */
   idx: number;
 }
 
@@ -36,7 +30,6 @@ export interface PhysicsEdge {
   restLength: number;
   stiffness: number;
   damping: number;
-  /** 在节点数组中的源/目标索引 */
   sourceIdx: number;
   targetIdx: number;
 }
@@ -78,9 +71,7 @@ function getSubIndex(node: QuadNode, x: number, y: number): number {
 }
 
 function insertQuad(root: QuadNode, id: string, x: number, y: number, mass: number, depth = 0): void {
-  if (depth > MAX_DEPTH) {
-    return;
-  }
+  if (depth > MAX_DEPTH) { return; }
 
   if (root.nodeId === null && root.mass === 0 && root.children.every((c) => c === null)) {
     root.nodeId = id;
@@ -113,9 +104,7 @@ function insertIntoChildren(root: QuadNode, id: string, x: number, y: number, ma
 }
 
 function getOrCreateChild(root: QuadNode, idx: number): QuadNode {
-  if (root.children[idx]) {
-    return root.children[idx]!;
-  }
+  if (root.children[idx]) { return root.children[idx]!; }
   const mx = (root.x0 + root.x1) / 2;
   const my = (root.y0 + root.y1) / 2;
   let child: QuadNode;
@@ -138,9 +127,7 @@ function getOrCreateChild(root: QuadNode, idx: number): QuadNode {
 }
 
 function computeCentroid(root: QuadNode): void {
-  if (root.nodeId !== null) {
-    return;
-  }
+  if (root.nodeId !== null) { return; }
   if (root.mass > 0) {
     let cx = 0;
     let cy = 0;
@@ -168,17 +155,13 @@ function barnesHutForce(
 
   while (stack.length > 0) {
     const current = stack.pop()!;
-    if (current.mass === 0) {
-      continue;
-    }
+    if (current.mass === 0) { continue; }
 
     const dx = node.x - current.x;
     const dy = node.y - current.y;
     const distSq = dx * dx + dy * dy;
 
-    if (distSq < 1) {
-      continue;
-    }
+    if (distSq < 1) { continue; }
 
     const size = Math.max(current.x1 - current.x0, current.y1 - current.y0);
     const dist = Math.sqrt(distSq);
@@ -193,9 +176,7 @@ function barnesHutForce(
       fy += (dy / dist) * force;
     } else {
       for (const child of current.children) {
-        if (child) {
-          stack.push(child);
-        }
+        if (child) { stack.push(child); }
       }
     }
   }
@@ -240,14 +221,14 @@ export interface PhysicsConfig {
 }
 
 export const DEFAULT_PHYSICS_CONFIG: PhysicsConfig = {
-  theta: 0.5,
-  repulsion: 18000,
-  gravity: 0.003,
-  damping: 0.82,
-  dt: 0.35,
-  springForce: 0.08,
-  springDamping: 0.85,
-  maxVelocity: 8,
+  theta: 0.6,
+  repulsion: 30000,
+  gravity: 0.002,
+  damping: 0.85,
+  dt: 0.4,
+  springForce: 0.06,
+  springDamping: 0.9,
+  maxVelocity: 10,
 };
 
 export function computeCommunityCentroids(
@@ -271,13 +252,9 @@ export function computeCommunityCentroids(
   return result;
 }
 
-/** 邻居表类型：按节点索引分组，避免 Map 查找 */
 export type NeighborMap = Map<number, { targetIdx: number; rest: number; stiffness: number; damping: number }[]>;
-
-/** 节点索引映射（供 stepPhysics 按 ID 反查 idx） */
 export type NodeMap = Map<string, number>;
 
-/** 构建节点索引映射 */
 export function buildNodeMap(nodes: PhysicsNode[]): NodeMap {
   const map: NodeMap = new Map();
   for (let i = 0; i < nodes.length; i++) {
@@ -286,18 +263,13 @@ export function buildNodeMap(nodes: PhysicsNode[]): NodeMap {
   return map;
 }
 
-/** 构建邻居表（按索引分组） */
 export function buildNeighborMap(edges: PhysicsEdge[]): NeighborMap {
   const map: NeighborMap = new Map();
   for (const edge of edges) {
     const sIdx = edge.sourceIdx;
     const tIdx = edge.targetIdx;
-    if (!map.has(sIdx)) {
-      map.set(sIdx, []);
-    }
-    if (!map.has(tIdx)) {
-      map.set(tIdx, []);
-    }
+    if (!map.has(sIdx)) { map.set(sIdx, []); }
+    if (!map.has(tIdx)) { map.set(tIdx, []); }
     map.get(sIdx)!.push({
       targetIdx: tIdx,
       rest: edge.restLength,
@@ -314,7 +286,6 @@ export function buildNeighborMap(edges: PhysicsEdge[]): NeighborMap {
   return map;
 }
 
-/** 检查系统是否稳定（所有非固定节点速度低于阈值） */
 export function isSystemStable(nodes: PhysicsNode[], threshold = 0.3): boolean {
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i];
@@ -328,9 +299,7 @@ export function isSystemStable(nodes: PhysicsNode[], threshold = 0.3): boolean {
 
 /**
  * 执行一步物理模拟。
- * - 使用索引化的节点数组，避免 Map 查找
- * - 稳定检测：如果全节点速度接近零，直接跳过
- * - 支持外部缓存的 neighborMap
+ * 使用索引化的节点数组，支持外部缓存的 neighborMap。
  */
 export function stepPhysics(
   nodes: PhysicsNode[],
@@ -341,12 +310,9 @@ export function stepPhysics(
   communityCentroids?: Map<number, { cx: number; cy: number; count: number }>,
   cachedNeighborMap?: NeighborMap,
 ): void {
-  if (nodes.length === 0) {
-    return;
-  }
+  if (nodes.length === 0) { return; }
 
   const n = nodes.length;
-
   const neighborMap = cachedNeighborMap ?? buildNeighborMap(edges);
 
   const fixedMask = new Uint8Array(n);
@@ -363,9 +329,7 @@ export function stepPhysics(
     } else {
       const vx = node.vx;
       const vy = node.vy;
-      if (!anyMoving && (vx * vx + vy * vy > 0.01)) {
-        anyMoving = true;
-      }
+      if (!anyMoving && (vx * vx + vy * vy > 0.01)) { anyMoving = true; }
     }
   }
 
@@ -485,20 +449,85 @@ export function stepPhysics(
   }
 }
 
-/** 初始化节点位置（圆形随机分布） */
+/**
+ * 预热迭代：在渲染前运行多步物理，确保节点充分扩散。
+ * 这是解决"节点堆成一团"的关键——在首次显示前就完成布局收敛。
+ */
+export function warmupPhysics(
+  nodes: PhysicsNode[],
+  edges: PhysicsEdge[],
+  iterations: number = 80,
+  config: PhysicsConfig = DEFAULT_PHYSICS_CONFIG,
+  communities?: Map<string, number>,
+): void {
+  if (nodes.length === 0) { return; }
+
+  const neighborMap = buildNeighborMap(edges);
+
+  // 预热使用更大的斥力和更少的阻尼，帮助节点快速扩散
+  const warmupConfig: PhysicsConfig = {
+    ...config,
+    repulsion: config.repulsion * 1.5,
+    damping: 0.88, // 预热时较高阻尼，快速收敛
+    maxVelocity: config.maxVelocity * 1.2,
+  };
+
+  const centroids = communities ? computeCommunityCentroids(nodes, communities) : undefined;
+
+  for (let iter = 0; iter < iterations; iter++) {
+    // 预热后期逐渐降低阻尼，让节点找到最终位置
+    if (iter > iterations * 0.6) {
+      const progress = (iter - iterations * 0.6) / (iter * 0.4);
+      warmupConfig.damping = 0.88 - progress * 0.03;
+    }
+
+    stepPhysics(
+      nodes,
+      edges,
+      warmupConfig,
+      undefined,
+      communities,
+      centroids,
+      neighborMap,
+    );
+
+    // 每 10 步更新质心
+    if (iter % 10 === 0 && communities) {
+      const newCentroids = computeCommunityCentroids(nodes, communities);
+      if (newCentroids) {
+        for (const [k, v] of newCentroids) {
+          centroids!.set(k, v);
+        }
+      }
+    }
+  }
+
+  // 预热完成，清零速度，让节点稳定
+  for (const node of nodes) {
+    if (!node.fixed) {
+      node.vx = 0;
+      node.vy = 0;
+    }
+  }
+}
+
+/** 初始化节点位置（圆形均匀分布，足够大的初始范围） */
 export function initializePositions(nodes: PhysicsNode[], width: number, height: number): void {
   const cx = 0;
   const cy = 0;
-  const radius = Math.min(width, height) * 0.5;
-  const angleStep = (Math.PI * 2) / Math.max(nodes.length, 1);
+  const minDim = Math.min(width, height);
+  const radius = Math.max(minDim * 0.6, nodes.length * 2);
 
   for (let i = 0; i < nodes.length; i++) {
-    const r = radius * (0.15 + Math.random() * 0.85);
-    const angle = i * angleStep + Math.random() * 1.0;
+    // 使用斐波那契螺旋分布，确保节点均匀填充圆盘
+    const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+    const r = radius * Math.sqrt((i + 0.5) / nodes.length);
+    const angle = i * goldenAngle + (Math.random() - 0.5) * 0.1;
+
     nodes[i].x = cx + r * Math.cos(angle);
     nodes[i].y = cy + r * Math.sin(angle);
-    nodes[i].vx = (Math.random() - 0.5) * 3;
-    nodes[i].vy = (Math.random() - 0.5) * 3;
+    nodes[i].vx = 0;
+    nodes[i].vy = 0;
     nodes[i].fx = 0;
     nodes[i].fy = 0;
     nodes[i].idx = i;
@@ -534,14 +563,14 @@ export function buildPhysicsEdges(
       const sourceDegree = adjacency.get(source)?.size ?? 1;
       const targetDegree = adjacency.get(target)?.size ?? 1;
       const degreeFactor = (sourceDegree + targetDegree) / (avgDegree * 2);
-      const restLength = 60 + degreeFactor * 40;
+      const restLength = 80 + degreeFactor * 60;
 
       edges.push({
         source,
         target,
         restLength,
-        stiffness: 0.8,
-        damping: 0.6,
+        stiffness: 0.7,
+        damping: 0.5,
         sourceIdx,
         targetIdx,
       });
@@ -551,7 +580,7 @@ export function buildPhysicsEdges(
   return edges;
 }
 
-/** 根据节点 ID 快速设置力拖拽（避免每帧 find） */
+/** 根据节点 ID 快速设置力拖拽 */
 export function setNodePositionById(nodes: PhysicsNode[], id: string, x: number, y: number, fixed: boolean): boolean {
   for (let i = 0; i < nodes.length; i++) {
     if (nodes[i].id === id) {

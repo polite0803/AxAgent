@@ -48,6 +48,7 @@ import {
   type PhysicsEdge,
   type PhysicsNode,
   stepPhysics,
+  warmupPhysics,
 } from "./graphPhysics";
 import type { WorkerMessage, WorkerResponse } from "./graphPhysics.worker";
 
@@ -823,6 +824,24 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
     physNodesRef.current = pNodes;
     physEdgesRef.current = pEdges;
+
+    // ── 预热迭代：在 Worker 启动前同步运行物理预热，确保节点充分扩散 ──
+    // 这是解决"节点堆成一团彩球"的关键：在首次渲染前就完成布局收敛
+    if (!layoutApplied) {
+      const warmupIters = pNodes.length > 5000 ? 40 : 80;
+      const warmupConfig: PhysicsConfig = {
+        theta: 0.6,
+        repulsion: 30000,
+        gravity: 0.002,
+        damping: 0.85,
+        dt: 0.4,
+        springForce: 0.06,
+        springDamping: 0.9,
+        maxVelocity: 10,
+      };
+      const warmupCommunities = effectiveCommunitiesRef.current ?? communities;
+      warmupPhysics(pNodes, pEdges, warmupIters, warmupConfig, warmupCommunities);
+    }
 
     // 构建渲染缓存：posMap (O(N) 一次性) + 邻居集合 (O(E) 一次性)
     const posMap = new Map<string, PhysicsNode>();
