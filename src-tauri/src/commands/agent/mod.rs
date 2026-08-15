@@ -273,9 +273,13 @@ pub(crate) struct ProfileToolContext {
 ///
 /// 返回 `None` 表示 profile 不存在或查询失败（调用方应回退到默认路径）。
 /// 所有失败路径均通过 `tracing::warn!` 记录（修复缺陷 4：静默吞错）。
+///
+/// `override_expert_id`：认知编排层传入的动态专家（角色护照命中共执行载体未组合专家时，
+/// 通过 RAR 检索补全）。优先于 profile 自带 expert_id，用于"角色 + 专家"运行时组合。
 pub(crate) async fn resolve_profile_tool_context(
     app_state: &AppState,
     profile_id: &str,
+    override_expert_id: Option<&str>,
 ) -> Option<ProfileToolContext> {
     let profile = match axagent_dao::repo::agent_profile::get_agent_profile(
         app_state.harness.db(),
@@ -330,7 +334,12 @@ pub(crate) async fn resolve_profile_tool_context(
     }
 
     // Layer 2: Expert domain knowledge（技能）+ active_domains
-    if let Some(ref expert_id) = profile.expert_id {
+    // 动态专家覆盖优先（认知编排层 RAR 补全），否则回退 profile 自带 expert_id。
+    let resolved_expert_id = override_expert_id
+        .map(str::to_string)
+        .filter(|s| !s.is_empty())
+        .or(profile.expert_id.clone());
+    if let Some(ref expert_id) = resolved_expert_id {
         match axagent_entities::agency_experts::Entity::find_by_id(expert_id)
             .one(app_state.harness.db())
             .await
@@ -543,7 +552,9 @@ pub async fn agent_query(
         profile_disallowed_tools,
         profile_active_domains,
     ) = if let Some(ref profile_id) = request.agent_profile_id {
-        match resolve_profile_tool_context(&app_state, profile_id).await {
+        match resolve_profile_tool_context(&app_state, profile_id, request.expert_id.as_deref())
+            .await
+        {
             Some(ctx) => (
                 ctx.role_system_prompt,
                 ctx.expert_system_prompt,

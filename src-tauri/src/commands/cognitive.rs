@@ -35,7 +35,7 @@ use crate::init::COGNITIVE_ROUTER_MAIN_ID;
 use agent_macro::agent_command;
 use axagent_harness::workflow_types::Variable;
 use axagent_harness::{
-    CandidateSummary, CapabilityDomain, CapabilityKind, ExecutionMode, ModeHint,
+    CandidateSummary, CapabilityDomain, CapabilityKind, CapabilityQuery, ExecutionMode, ModeHint,
     PatternPromptGuard, PromptGuard, RouteStageRecord, RoutingDecisionV2,
 };
 use axagent_runtime::work_engine::{RunOptions, SubWorkflowCallback};
@@ -206,6 +206,50 @@ async fn resolve_selected_agent_profile(
             expert: None,
         }),
     }
+}
+
+/// 角色命中且执行载体未组合专家时，通过 RAR 检索动态补全专家（expert_id）。
+///
+/// "角色 + 专家"默认在 AgentProfile 中两两组装；但当角色护照落到只有角色、
+/// 未组合专家的执行载体（如自动补齐的 role-bridge）时，此处按用户输入从 Agent
+/// 护照库检索最匹配的专家，实现运行时动态组合，避免外形角色命中丢失专家技能。
+///
+/// 返回 `None` 表示无需/无法补全（非角色能力、执行载体已组合专家、检索失败降级）。
+async fn resolve_dynamic_expert_for_role(
+    state: &AppState,
+    capability_id: &str,
+    input: &str,
+    exec_profile_id: Option<&str>,
+) -> Option<String> {
+    // 仅角色护照（agent_role:*）触发动态补专家；专家/工作流护照本身已组合，无需补全。
+    if !capability_id.starts_with("agent_role:") {
+        return None;
+    }
+    // 执行载体已存在且自带专家 → 组合完整，无需补全。
+    if let Some(pid) = exec_profile_id {
+        if let Ok(profile) =
+            axagent_dao::repo::agent_profile::get_agent_profile(state.harness.db(), pid).await
+        {
+            if profile.expert_id.as_deref().is_some_and(|s| !s.is_empty()) {
+                return None;
+            }
+        }
+    }
+    // RAR 检索：按用户输入从 Agent 护照召回，取专家护照（agent:*，tags 带 expert:{id}）Top1。
+    let query = CapabilityQuery {
+        user_input: input.to_string(),
+        top_k: 5,
+        kind_filter: Some(vec![CapabilityKind::Agent]),
+        ..Default::default()
+    };
+    let Ok(retrieval) = state.capability_router.retriever.retrieve(&query).await else {
+        return None;
+    };
+    retrieval
+        .candidates
+        .iter()
+        .find_map(|c| c.passport.tags.iter().find_map(|t| t.strip_prefix("expert:")))
+        .map(str::to_string)
 }
 
 /// 单个路由阶段的对外视图
@@ -505,6 +549,17 @@ pub async fn cognitive_query(
                         .with_category(ErrorCategory::Validation)
                         .with_param("field", "conversation_id")
                 })?;
+                // Clarify 选中的 Agent 类型能力：解析执行载体 profile_id
+                let forced_profile_id =
+                    forced_passport.as_ref().and_then(|p| p.agent_profile_id.clone());
+                // 角色命中且执行载体未组合专家时，动态补全专家（RAR 检索），运行时组合
+                let dynamic_expert_id = resolve_dynamic_expert_for_role(
+                    &state,
+                    &forced_id,
+                    &input,
+                    forced_profile_id.as_deref(),
+                )
+                .await;
                 let agent_request = AgentQueryRequest {
                     conversation_id,
                     input,
@@ -520,9 +575,8 @@ pub async fn cognitive_query(
                     attachments: None,
                     options: request.options.clone(),
                     // Clarify 选中的 Agent 类型能力：用其 passport 推荐专家（用户手选已隐藏）
-                    agent_profile_id: forced_passport
-                        .as_ref()
-                        .and_then(|p| p.agent_profile_id.clone()),
+                    agent_profile_id: forced_profile_id,
+                    expert_id: dynamic_expert_id,
                     agent_context: request.agent_context.clone(),
                 };
                 let agent_resp =
@@ -894,6 +948,15 @@ pub async fn cognitive_query(
             // 单专家数据约束下两者通常一致；显式指定供外部调用方/未来恢复手选时覆盖。
             let selected_agent_profile =
                 request.agent_profile_id.clone().or(route_agent_profile.clone());
+            // 角色命中且执行载体未组合专家时，动态补全专家（RAR 检索），
+            // 运行时组合"角色 + 专家"，避免角色护照落到无专家的执行载体丢失专家技能。
+            let dynamic_expert_id = resolve_dynamic_expert_for_role(
+                &state,
+                &response.capability_id,
+                &input,
+                selected_agent_profile.as_deref(),
+            )
+            .await;
             let agent_request = AgentQueryRequest {
                 conversation_id,
                 input,
@@ -908,8 +971,9 @@ pub async fn cognitive_query(
                 search_provider_id: request.search_provider_id.clone(),
                 attachments: None,
                 options: request.options.clone(),
-                // 认知编排选专家：显式指定优先，路由自动推导兜底
+                // 认知编排选专家：显式指定优先，路由自动推导兜底；角色命中时动态补专家
                 agent_profile_id: selected_agent_profile,
+                expert_id: dynamic_expert_id,
                 agent_context: request.agent_context.clone(),
             };
             let agent_resp = crate::commands::agent::agent_query(app, state.clone(), agent_request)

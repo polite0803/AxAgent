@@ -181,6 +181,11 @@ pub struct AgentQueryRequest {
     /// 和 AgentRole（岗位）的统一组装体，是 Agent 的唯一入口。
     #[serde(rename = "agentProfileId")]
     pub agent_profile_id: Option<String>,
+    /// 动态匹配的专家（expert_id → agency_experts）。当命中的执行载体（如角色护照
+    /// 落到只有角色、未组合专家的 role-bridge）时，由认知编排层通过 RAR 检索动态
+    /// 补全，使"角色 + 专家"运行时组合生效；覆盖 profile 自带 expert_id。
+    #[serde(rename = "expertId")]
+    pub expert_id: Option<String>,
     /// 前端注入的页面上下文 — 供 Agent 理解当前环境
     #[serde(rename = "agentContext")]
     pub agent_context: Option<AgentContextPayload>,
