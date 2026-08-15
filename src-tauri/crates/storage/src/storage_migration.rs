@@ -193,7 +193,8 @@ mod tests {
             cache_creation_tokens INTEGER,
             cache_read_tokens INTEGER,
             parts TEXT,
-            quoted_message_id TEXT
+            quoted_message_id TEXT,
+            decision TEXT
         )";
 
     async fn test_db() -> DatabaseConnection {
