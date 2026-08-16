@@ -1058,6 +1058,7 @@ const SCHEMA: &[(&str, &[(&str, &str)])] = &[
             ("id", "TEXT"),
             ("session_id", "TEXT"),
             ("user_id", "TEXT"),
+            ("agent_name", "TEXT"),
             ("topic", "TEXT"),
             ("summary", "TEXT"),
             ("outcome", "TEXT"),
@@ -1072,6 +1073,7 @@ const SCHEMA: &[(&str, &[(&str, &str)])] = &[
             ("created_at", "TEXT"),
             ("replay_count", "INTEGER"),
             ("last_replay_at", "TEXT"),
+            ("is_invalidated", "INTEGER"),
         ],
     ),
     (
