@@ -406,6 +406,68 @@ function generateBrowserResponse(userContent: string): string {
   return i18n.t("browserMock.receivedMessage", { userContent: truncatedContent });
 }
 
+// ── 数据格式转换工具 ────────────────────────────────────────────────────
+
+/**
+ * 将 snake_case 字符串转换为 camelCase
+ * 例如：provider_type → providerType, model_id → modelId
+ */
+function snakeToCamel(str: string): string {
+  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+/**
+ * 递归地将对象或数组中的所有 snake_case 键转换为 camelCase
+ * 用于将后端 mock 数据转换为前端期望的格式
+ */
+function convertToCamelCase<T>(obj: T): T {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map((item) => convertToCamelCase(item)) as T;
+  }
+  if (typeof obj === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      const camelKey = snakeToCamel(key);
+      result[camelKey] = convertToCamelCase(value);
+    }
+    return result as T;
+  }
+  return obj;
+}
+
+/**
+ * 将 camelCase 字符串转换为 snake_case
+ * 例如：providerType → provider_type, modelId → model_id
+ */
+function camelToSnake(str: string): string {
+  return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+}
+
+/**
+ * 递归地将对象或数组中的所有 camelCase 键转换为 snake_case
+ * 用于将前端参数转换为后端期望的格式
+ */
+function convertToSnakeCase<T>(obj: T): T {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map((item) => convertToSnakeCase(item)) as T;
+  }
+  if (typeof obj === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      const snakeKey = camelToSnake(key);
+      result[snakeKey] = convertToSnakeCase(value);
+    }
+    return result as T;
+  }
+  return obj;
+}
+
 // ── Built-in Providers ──────────────────────────────────────────────────
 
 const BUILT_IN_PROVIDERS = [
@@ -1029,6 +1091,20 @@ export async function handleCommand<T>(
 ): Promise<T> {
   await new Promise((r) => setTimeout(r, 5));
 
+  // 将前端 camelCase 参数转换为后端 snake_case 格式
+  const convertedArgs = args ? convertToSnakeCase(args) : args;
+
+  // 调用实际的命令处理逻辑
+  const result = await executeCommand<T>(cmd, convertedArgs);
+
+  // 将后端 snake_case 返回值转换为前端 camelCase 格式
+  return convertToCamelCase(result);
+}
+
+async function executeCommand<T>(
+  cmd: string,
+  args?: Record<string, unknown>,
+): Promise<T> {
   switch (cmd) {
     // ── Settings ──────────────────────────────────────────────────────
     case "get_settings":
@@ -1599,20 +1675,26 @@ export async function handleCommand<T>(
       return [] as T;
     }
     case "cognitive_query": {
+      // 兼容 camelCase 和 snake_case 参数格式
       const req = (args as {
         request?: {
           conversationId?: string;
+          conversation_id?: string;
           input?: string;
-          options?: { requirePlanApproval?: boolean };
+          options?: { requirePlanApproval?: boolean; require_plan_approval?: boolean };
         };
       } | undefined)?.request;
-      const conversationId = req?.conversationId ?? `mock-${genId()}`;
+      const conversationId = req?.conversationId ?? req?.conversation_id ?? `mock-${genId()}`;
+      // 同时支持 camelCase 和 snake_case 格式的 requirePlanApproval
+      const requirePlanApproval = req?.options?.requirePlanApproval ?? req?.options?.require_plan_approval;
       // P0-2：计划确认闸门开启时，模拟后端判定为复杂任务并弹出计划草稿等待用户确认
-      if (req?.options?.requirePlanApproval) {
+      console.log("[DEBUG cognitive_query] req:", JSON.stringify(req));
+      console.log("[DEBUG cognitive_query] requirePlanApproval:", requirePlanApproval);
+      if (requirePlanApproval) {
         emitBrowserEvent("agent-plan-ready-for-approval", {
           conversationId,
           plan: JSON.stringify({
-            task_preview: (req.input ?? "").slice(0, 200),
+            task_preview: (req?.input ?? "").slice(0, 200),
             selected_engine: "ReactEngine",
             features: {
               node_count: 3,

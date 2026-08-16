@@ -19,32 +19,33 @@ async function seedOnboarding(page: import("@playwright/test").Page) {
 }
 
 async function dismissModals(page: import("@playwright/test").Page) {
-  // 尝试多种方式关闭可能存在的模态框
-  // 1. 首先尝试点 X 关闭
-  const closeBtn = page.locator(".ant-modal-close").first();
-  if (await closeBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-    await closeBtn.click();
-    await page.waitForTimeout(300);
+  // 尝试多种方式关闭可能存在的模态框（循环3次确保完全关闭）
+  for (let i = 0; i < 3; i++) {
+    // 1. 首先尝试点 X 关闭
+    const closeBtn = page.locator(".ant-modal-close").first();
+    if (await closeBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+      await closeBtn.click({ force: true });
+      await page.waitForTimeout(200);
+    }
+
+    // 2. 欢迎引导向导（WelcomeWizard）footer 为 null，没有 .ant-modal-footer，
+    // 关闭动作在弹窗体内的"跳过"按钮上（data-testid=onboarding-skip）。
+    const skipBtn = page.getByTestId("onboarding-skip").first();
+    if (await skipBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+      await skipBtn.click({ force: true });
+      await page.waitForTimeout(300);
+    }
+
+    // 3. 尝试点击主按钮关闭
+    const okBtn = page.locator(".ant-modal-footer .ant-btn-primary").first();
+    if (await okBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+      await okBtn.click({ force: true });
+      await page.waitForTimeout(200);
+    }
   }
 
-  // 2. 欢迎引导向导（WelcomeWizard）footer 为 null，没有 .ant-modal-footer，
-  // 关闭动作在弹窗体内的"跳过"按钮上（data-testid=onboarding-skip）。
-  // 直接点 X 在部分环境下不会真正 dismiss，必须点"跳过"才能关闭，否则会遮挡画布。
-  const skipBtn = page.getByTestId("onboarding-skip").first();
-  if (await skipBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-    await skipBtn.click({ force: true });
-    await page.waitForTimeout(500);
-  }
-
-  // 3. 尝试点击主按钮关闭
-  const okBtn = page.locator(".ant-modal-footer .ant-btn-primary").first();
-  if (await okBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-    await okBtn.click();
-    await page.waitForTimeout(300);
-  }
-
-  // 4. 额外等待，确保模态框完全消失
-  await page.waitForTimeout(300);
+  // 额外等待，确保模态框完全消失
+  await page.waitForTimeout(500);
 }
 
 test.describe("Workflow Editor E2E Tests", () => {

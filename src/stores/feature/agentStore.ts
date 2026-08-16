@@ -875,6 +875,16 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   },
 }));
 
+// 监听 storage 事件，使浏览器模式下测试可以通过 page.evaluate 更新状态
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key === PLAN_APPROVAL_ENABLED_KEY) {
+      const enabled = e.newValue === "true";
+      useAgentStore.setState({ planApprovalEnabled: enabled });
+    }
+  });
+}
+
 // Rate-limit timer tracking for cleanup
 const _rateLimitTimers: Record<string, ReturnType<typeof setTimeout>> = {};
 
