@@ -4908,6 +4908,33 @@ async function executeCommand<T>(
     case "tool_warmup":
       return { success: true, warmed_up: false } as T;
 
+    // ── App Config (应用配置) ───────────────────────────────────────
+    case "get_app_config":
+      return {} as T;
+
+    // ── Onboarding (引导检测) ───────────────────────────────────────
+    case "detect_ollama_availability":
+      return { available: false, models: [], error: null } as T;
+    case "detect_api_keys":
+      return [] as T;
+
+    // ── LLM Wiki (知识库) ───────────────────────────────────────────
+    case "llm_wiki_list":
+      return [] as T;
+
+    // ── Prompt Cache (提示缓存) ────────────────────────────────────
+    case "get_prompt_cache_state":
+      return {
+        cacheValid: true,
+        hasPendingChanges: false,
+        tokensSaved: 0,
+        cacheHits: 0,
+      } as T;
+
+    // ── Tool Count (工具计数) ───────────────────────────────────────
+    case "get_tool_count":
+      return 0 as T;
+
     default: {
       console.warn(`[BrowserMock] Unhandled command: ${cmd}`, args);
       // SAFE: browser mock fallback for unhandled commands — returns empty placeholder matching generic T
