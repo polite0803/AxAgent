@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 // === 设备同步类型定义 ===
+//
+// 与后端 DTO 对齐：后端 struct 字段保持 snake_case，通过
+// `#[serde(rename_all = "camelCase")]` 输出 camelCase，前端消费 camelCase。
 
 /** 信任级别 */
 export type TrustLevel = "backup_only" | "standard" | "full";
@@ -31,93 +34,93 @@ export type ConflictResolutionStrategy =
 
 /** 设备信息 */
 export interface DeviceInfo {
-  device_id: string;
+  deviceId: string;
   name: string;
   hostname: string;
   os: string;
-  app_version: string;
-  device_type: DeviceType;
-  trust_level: TrustLevel;
-  is_paired: boolean;
-  last_active_at: string;
-  registered_at: string;
+  appVersion: string;
+  deviceType: DeviceType;
+  trustLevel: TrustLevel;
+  isPaired: boolean;
+  lastActiveAt: string;
+  registeredAt: string;
 }
 
 /** 配对码 */
 export interface PairingCode {
   code: string;
-  created_at: string;
-  expires_at: string;
-  pending_device_id: string;
+  createdAt: string;
+  expiresAt: string;
+  pendingDeviceId: string;
 }
 
 /** 配对请求 */
 export interface PairingRequest {
-  request_id: string;
+  requestId: string;
   device: DeviceInfo;
   code: string;
-  requested_at: string;
+  requestedAt: string;
 }
 
 /** 配对响应 */
 export interface PairingResponse {
   success: boolean;
   message: string;
-  assigned_trust_level: TrustLevel;
-  session_token: string | null;
-  peer_public_key: string | null;
+  assignedTrustLevel: TrustLevel;
+  sessionToken: string | null;
+  peerPublicKey: string | null;
 }
 
 /** 版本向量条目 */
 export interface VersionVectorEntry {
-  device_id: string;
+  deviceId: string;
   counter: u64;
 }
 
 /** 变更日志条目 */
 export interface ChangeLogEntry {
   id: string;
-  entity_type: EntityType;
-  entity_id: string;
+  entityType: EntityType;
+  entityId: string;
   operation: ChangeOperation;
-  device_id: string;
+  deviceId: string;
   timestamp: u64;
-  version_vector: VersionVectorEntry[];
+  versionVector: VersionVectorEntry[];
   data: string | null;
 }
 
 /** 冲突信息 */
 export interface ConflictInfo {
   id: string;
-  entity_type: EntityType;
-  entity_id: string;
-  conflicting_devices: string[];
-  local_vector: VersionVectorEntry[];
-  remote_vector: VersionVectorEntry[];
-  local_data: string | null;
-  remote_data: string | null;
-  detected_at: string;
+  entityType: EntityType;
+  entityId: string;
+  conflictingDevices: string[];
+  localVector: VersionVectorEntry[];
+  remoteVector: VersionVectorEntry[];
+  localData: string | null;
+  remoteData: string | null;
+  detectedAt: string;
 }
 
 /** 同步结果 */
 export interface SyncResult {
   success: boolean;
-  files_synced: u64;
-  files_uploaded: u64;
-  files_downloaded: u64;
-  conflicts_detected: u64;
-  error_message: string | null;
-  duration_ms: u64;
+  filesSynced: u64;
+  filesUploaded: u64;
+  filesDownloaded: u64;
+  conflictsDetected: u64;
+  errorMessage: string | null;
+  durationMs: u64;
 }
 
 /** 同步状态 */
 export interface DeviceSyncStatus {
-  local_device_id: string;
-  connected_devices: u64;
-  pending_changes: u64;
-  last_sync_at: u64 | null;
-  is_syncing: boolean;
-  sync_progress: number;
+  localDeviceId: string;
+  connectedDevices: u64;
+  pendingChanges: u64;
+  lastSyncAt: u64 | null;
+  isSyncing: boolean;
+  syncProgress: number;
 }
 
 /** 简化的 u64 类型（与后端对齐） */
@@ -148,23 +151,23 @@ export type SyncSignalResponseType =
 /** 信令消息 */
 export interface SyncSignal {
   type: SyncSignalType;
-  device_id?: string;
-  since_timestamp?: u64;
+  deviceId?: string;
+  sinceTimestamp?: u64;
   changes?: ChangeLogEntry[];
-  conflict_id?: string;
+  conflictId?: string;
   strategy?: ConflictResolutionStrategy;
 }
 
 /** 信令响应 */
 export interface SyncSignalResponse {
   type: SyncSignalResponseType;
-  device_id?: string;
+  deviceId?: string;
   timestamp?: u64;
   result?: SyncResult;
-  changes_count?: u64;
+  changesCount?: u64;
   conflicts?: ConflictInfo[];
   changes?: ChangeLogEntry[];
-  conflict_id?: string;
+  conflictId?: string;
   success?: boolean;
   code?: string;
   message?: string;
@@ -175,10 +178,10 @@ export type WebSocketStatus = "connecting" | "connected" | "disconnected" | "err
 
 /** 实时推送状态 */
 export interface RealtimePushState {
-  ws_status: WebSocketStatus;
-  ws_connection_id: string | null;
-  last_signal_at: u64 | null;
-  pending_signals: SyncSignal[];
+  wsStatus: WebSocketStatus;
+  wsConnectionId: string | null;
+  lastSignalAt: u64 | null;
+  pendingSignals: SyncSignal[];
 }
 
 // === 加密同步类型 ===
@@ -193,16 +196,16 @@ export type KeyDerivation = "pre_shared_key" | "x25519";
 export interface SyncEncryptionConfig {
   enabled: boolean;
   algorithm: EncryptionAlgorithm;
-  key_derivation: KeyDerivation;
-  key_hash: string | null;
+  keyDerivation: KeyDerivation;
+  keyHash: string | null;
 }
 
 /** 加密状态 */
 export interface EncryptionState {
   config: SyncEncryptionConfig;
-  is_encrypting: boolean;
-  last_encrypted_at: u64 | null;
-  encryption_error: string | null;
+  isEncrypting: boolean;
+  lastEncryptedAt: u64 | null;
+  encryptionError: string | null;
 }
 
 /** 加密同步数据 */
@@ -211,9 +214,9 @@ export interface EncryptedSyncData {
   algorithm: string;
   ciphertext: string;
   nonce: string;
-  source_device_id: string;
-  target_device_id: string | null;
-  encrypted_at: u64;
+  sourceDeviceId: string;
+  targetDeviceId: string | null;
+  encryptedAt: u64;
 }
 
 // === 同步策略类型（P2） ===
@@ -228,27 +231,27 @@ export type SyncType = "full" | "incremental" | "manual" | "scheduled";
 export interface SyncPolicy {
   id: string;
   name: string;
-  conflict_strategy: ConflictResolutionStrategy;
-  auto_sync_interval_secs: u64;
-  sync_scope: EntityType[];
-  auto_resolve_conflicts: boolean;
-  max_conflict_threshold: u64;
-  change_log_retention_enabled: boolean;
-  change_log_retention_days: number;
+  conflictStrategy: ConflictResolutionStrategy;
+  autoSyncIntervalSecs: u64;
+  syncScope: EntityType[];
+  autoResolveConflicts: boolean;
+  maxConflictThreshold: u64;
+  changeLogRetentionEnabled: boolean;
+  changeLogRetentionDays: number;
   enabled: boolean;
-  updated_at: string;
+  updatedAt: string;
 }
 
 /** 同步策略更新请求 */
 export interface SyncPolicyUpdate {
   name?: string;
-  conflict_strategy?: ConflictResolutionStrategy;
-  auto_sync_interval_secs?: u64;
-  sync_scope?: EntityType[];
-  auto_resolve_conflicts?: boolean;
-  max_conflict_threshold?: u64;
-  change_log_retention_enabled?: boolean;
-  change_log_retention_days?: number;
+  conflictStrategy?: ConflictResolutionStrategy;
+  autoSyncIntervalSecs?: u64;
+  syncScope?: EntityType[];
+  autoResolveConflicts?: boolean;
+  maxConflictThreshold?: u64;
+  changeLogRetentionEnabled?: boolean;
+  changeLogRetentionDays?: number;
   enabled?: boolean;
 }
 
@@ -257,40 +260,40 @@ export interface SyncPolicyUpdate {
 /** 同步历史记录条目 */
 export interface SyncHistoryEntry {
   id: string;
-  device_id: string;
+  deviceId: string;
   direction: SyncDirection;
-  sync_type: SyncType;
+  syncType: SyncType;
   result: SyncResult;
   conflicts: ConflictInfo[];
-  started_at: string;
-  completed_at: string;
-  initiated_by: string;
+  startedAt: string;
+  completedAt: string;
+  initiatedBy: string;
 }
 
 // === 设备权限类型（P2） ===
 
 /** 设备操作权限 */
 export interface DevicePermissions {
-  device_id: string;
-  trust_level: TrustLevel;
-  allow_push: boolean;
-  allow_pull: boolean;
-  allow_full_sync: boolean;
-  allow_resolve_conflicts: boolean;
-  allow_manage_devices: boolean;
-  allow_modify_policy: boolean;
-  updated_at: string;
+  deviceId: string;
+  trustLevel: TrustLevel;
+  allowPush: boolean;
+  allowPull: boolean;
+  allowFullSync: boolean;
+  allowResolveConflicts: boolean;
+  allowManageDevices: boolean;
+  allowModifyPolicy: boolean;
+  updatedAt: string;
 }
 
 /** 权限更新请求 */
 export interface PermissionUpdate {
-  trust_level?: TrustLevel;
-  allow_push?: boolean;
-  allow_pull?: boolean;
-  allow_full_sync?: boolean;
-  allow_resolve_conflicts?: boolean;
-  allow_manage_devices?: boolean;
-  allow_modify_policy?: boolean;
+  trustLevel?: TrustLevel;
+  allowPush?: boolean;
+  allowPull?: boolean;
+  allowFullSync?: boolean;
+  allowResolveConflicts?: boolean;
+  allowManageDevices?: boolean;
+  allowModifyPolicy?: boolean;
 }
 
 // === 审计日志类型（P2） ===
@@ -314,11 +317,11 @@ export type AuditAction =
 export interface AuditLogEntry {
   id: string;
   action: AuditAction;
-  entity_type: string;
-  entity_id: string;
-  device_id: string;
+  entityType: string;
+  entityId: string;
+  deviceId: string;
   details: string | null;
   success: boolean;
-  error_message: string | null;
+  errorMessage: string | null;
   timestamp: string;
 }

@@ -34,7 +34,7 @@ export function WorkspaceSwitcher() {
   const { token } = theme.useToken();
   const activeTab = useWorkspaceTabStore((s) => s.activeTab);
   const setActiveTab = useWorkspaceTabStore((s) => s.setActiveTab);
-  const showDevTools = useSettingsStore((s) => s.settings.show_developer_tools !== false);
+  const showDevTools = useSettingsStore((s) => s.settings.showDeveloperTools !== false);
   const visibleTabs = showDevTools ? TABS : TABS.filter((x) => x.key !== "devtools");
 
   return (

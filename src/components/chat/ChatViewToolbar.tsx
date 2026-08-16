@@ -65,61 +65,61 @@ function StatsPopoverContent({
     {
       icon: <MessageSquare size={14} />,
       label: t("chat.stats.totalMessages"),
-      value: stats.total_messages.toLocaleString(),
+      value: stats.totalMessages.toLocaleString(),
       sub: [
         {
           icon: <User size={12} />,
           label: t("chat.stats.userMessages"),
-          value: stats.total_user_messages.toLocaleString(),
+          value: stats.totalUserMessages.toLocaleString(),
         },
         {
           icon: <Bot size={12} />,
           label: t("chat.stats.assistantMessages"),
-          value: stats.total_assistant_messages.toLocaleString(),
+          value: stats.totalAssistantMessages.toLocaleString(),
         },
       ],
     },
     {
       icon: <Coins size={14} />,
       label: t("chat.stats.totalTokens"),
-      value: formatTokenCount(stats.total_tokens),
+      value: formatTokenCount(stats.totalTokens),
       sub: [
         {
           icon: <ArrowUpRight size={12} />,
           label: t("chat.stats.inputTokens"),
-          value: formatTokenCount(stats.total_prompt_tokens),
+          value: formatTokenCount(stats.totalPromptTokens),
         },
         {
           icon: <ArrowDownRight size={12} />,
           label: t("chat.stats.outputTokens"),
-          value: formatTokenCount(stats.total_completion_tokens),
+          value: formatTokenCount(stats.totalCompletionTokens),
         },
       ],
     },
-    ...(stats.avg_first_token_latency_ms != null
+    ...(stats.avgFirstTokenLatencyMs != null
       ? [
         {
           icon: <Zap size={14} />,
           label: t("chat.stats.avgFirstToken"),
-          value: formatDuration(stats.avg_first_token_latency_ms),
+          value: formatDuration(stats.avgFirstTokenLatencyMs),
         },
       ]
       : []),
-    ...(stats.avg_response_time_ms != null
+    ...(stats.avgResponseTimeMs != null
       ? [
         {
           icon: <Clock size={14} />,
           label: t("chat.stats.avgResponseTime"),
-          value: formatDuration(stats.avg_response_time_ms),
+          value: formatDuration(stats.avgResponseTimeMs),
         },
       ]
       : []),
-    ...(stats.avg_tokens_per_second != null
+    ...(stats.avgTokensPerSecond != null
       ? [
         {
           icon: <Timer size={14} />,
           label: t("chat.stats.avgSpeed"),
-          value: formatSpeed(stats.avg_tokens_per_second),
+          value: formatSpeed(stats.avgTokensPerSecond),
         },
       ]
       : []),

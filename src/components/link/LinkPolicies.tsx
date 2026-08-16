@@ -22,13 +22,13 @@ export function LinkPolicies({ link }: LinkPoliciesProps) {
   useEffect(() => {
     if (policy) {
       form.setFieldsValue({
-        route_strategy: policy.route_strategy,
-        model_fallback_enabled: policy.model_fallback_enabled,
-        global_rpm: policy.global_rpm,
-        per_model_rpm: policy.per_model_rpm,
-        token_limit_per_minute: policy.token_limit_per_minute,
-        key_rotation_strategy: policy.key_rotation_strategy,
-        key_failover_enabled: policy.key_failover_enabled,
+        routeStrategy: policy.routeStrategy,
+        modelFallbackEnabled: policy.modelFallbackEnabled,
+        globalRpm: policy.globalRpm,
+        perModelRpm: policy.perModelRpm,
+        tokenLimitPerMinute: policy.tokenLimitPerMinute,
+        keyRotationStrategy: policy.keyRotationStrategy,
+        keyFailoverEnabled: policy.keyFailoverEnabled,
       });
     }
   }, [policy, form]);
@@ -62,13 +62,13 @@ export function LinkPolicies({ link }: LinkPoliciesProps) {
         form={form}
         layout="vertical"
         initialValues={{
-          route_strategy: policy.route_strategy,
-          model_fallback_enabled: policy.model_fallback_enabled,
-          global_rpm: policy.global_rpm,
-          per_model_rpm: policy.per_model_rpm,
-          token_limit_per_minute: policy.token_limit_per_minute,
-          key_rotation_strategy: policy.key_rotation_strategy,
-          key_failover_enabled: policy.key_failover_enabled,
+          routeStrategy: policy.routeStrategy,
+          modelFallbackEnabled: policy.modelFallbackEnabled,
+          globalRpm: policy.globalRpm,
+          perModelRpm: policy.perModelRpm,
+          tokenLimitPerMinute: policy.tokenLimitPerMinute,
+          keyRotationStrategy: policy.keyRotationStrategy,
+          keyFailoverEnabled: policy.keyFailoverEnabled,
         }}
       >
         <Card size="small" title={t("link.routingPolicy")}>

@@ -548,13 +548,15 @@ pub async fn set_active_version(
 }
 
 pub async fn delete_message_group(db: &DatabaseConnection, user_message_id: &str) -> Result<u64> {
+    let txn = db.begin().await?;
     // Delete all assistant versions for this user message
     let ai_result = messages::Entity::delete_many()
         .filter(messages::Column::ParentMessageId.eq(user_message_id))
-        .exec(db)
+        .exec(&txn)
         .await?;
     // Delete the user message itself
-    messages::Entity::delete_by_id(user_message_id).exec(db).await?;
+    messages::Entity::delete_by_id(user_message_id).exec(&txn).await?;
+    txn.commit().await?;
     Ok(ai_result.rows_affected + 1)
 }
 

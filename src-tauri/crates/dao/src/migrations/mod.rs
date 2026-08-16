@@ -55,6 +55,9 @@ pub mod v116_create_sync_tables;
 pub mod v117_workflow_execution_resume;
 pub mod v118_wiki_kb_link;
 pub mod v119_add_note_tags;
+pub mod v120_add_trajectory_invalidated;
+pub mod v121_add_trajectory_agent_name;
+pub mod v122_evolution_execution_stats;
 pub mod v200_axinvest_stock_tables;
 pub mod v201_lesson_application_tracking;
 pub mod v202_stock_analyses_parent_version;
@@ -212,6 +215,21 @@ const MIGRATIONS: &[Migration] = &[
         version: 119,
         description: "v119_add_note_tags: 为 notes 表添加 tags 字段（PostgreSQL 用 JSONB，SQLite 用 TEXT），修复 Wiki 图谱节点标签缺失问题",
         up: |db| Box::pin(v119_add_note_tags::up(db)),
+    },
+    Migration {
+        version: 120,
+        description: "v120_add_trajectory_invalidated: 为 trajectory_trajectories 表添加 is_invalidated 字段（append-only 证据存储，软删除取代物理删除）",
+        up: |db| Box::pin(v120_add_trajectory_invalidated::up(db)),
+    },
+    Migration {
+        version: 121,
+        description: "v121_add_trajectory_agent_name: 为 trajectory_trajectories 表添加 agent_name 字段（结构化 Agent 标识，进化系统据此精准聚合每个 Agent 的证据）",
+        up: |db| Box::pin(v121_add_trajectory_agent_name::up(db)),
+    },
+    Migration {
+        version: 122,
+        description: "v122_evolution_execution_stats: 创建 evolution_execution_stats 表（复合主键 (conversation_id, tool_id)），持久化进化产物真实执行反馈，重启后真实证据不丢失（阶段四后置闭环 D3）",
+        up: |db| Box::pin(v122_evolution_execution_stats::up(db)),
     },
     Migration {
         version: 200,

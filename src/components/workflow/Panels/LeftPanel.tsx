@@ -412,7 +412,7 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
                         <span style={{ color: token.colorTextTertiary, fontSize: 12 }}>
                           {template.name}
                         </span>
-                        {template.is_preset && (
+                        {template.isPreset && (
                           <Tag color="blue" style={{ fontSize: 12, margin: 0 }}>
                             {t("workflow.preset")}
                           </Tag>

@@ -156,7 +156,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
         || template.name.toLowerCase().includes(searchText.toLowerCase())
         || template.description?.toLowerCase().includes(searchText.toLowerCase());
       const matchesTag = !filterTag || template.tags?.includes(filterTag);
-      const matchesPreset = filterPreset === undefined || template.is_preset === filterPreset;
+      const matchesPreset = filterPreset === undefined || template.isPreset === filterPreset;
       return matchesSearch && matchesTag && matchesPreset;
     });
   }, [templates, searchText, filterTag, filterPreset]);
@@ -279,7 +279,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
                   return presetI18n ? t(presetI18n.name) : template.name;
                 })()}
               </span>
-              {template.is_preset && (
+              {template.isPreset && (
                 <Tag color="gold" style={{ marginLeft: 4, fontSize: 12 }}>
                   {t("workflow.templateList.preset")}
                 </Tag>

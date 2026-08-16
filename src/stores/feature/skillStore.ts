@@ -274,7 +274,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
       description,
       content,
     });
-    if (result.can_create) {
+    if (result.canCreate) {
       await get().loadSkills();
       const { triggerOnInstall } = await import("@/lib/skillLifecycle");
       triggerOnInstall(name).catch(logIpcError("triggerOnInstall"));
@@ -319,7 +319,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
     });
     await get().loadSkills();
     set((s) => ({
-      skillProposals: s.skillProposals.filter((p) => p.suggested_name !== name),
+      skillProposals: s.skillProposals.filter((p) => p.suggestedName !== name),
     }));
     const { triggerOnInstall } = await import("@/lib/skillLifecycle");
     triggerOnInstall(name).catch(logIpcError("triggerOnInstall"));
@@ -330,7 +330,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
   addSkillProposal: (proposal: SkillProposal) => {
     set((s) => {
       // 避免重复添加
-      if (s.skillProposals.some((p) => p.suggested_name === proposal.suggested_name)) {
+      if (s.skillProposals.some((p) => p.suggestedName === proposal.suggestedName)) {
         return s;
       }
       return { skillProposals: [...s.skillProposals, proposal] };

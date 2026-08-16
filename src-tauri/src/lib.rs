@@ -413,6 +413,7 @@ pub fn run() {
                                 id: pattern.id.clone(),
                                 session_id: String::new(),
                                 user_id: String::new(),
+                                agent_name: None,
                                 topic: pattern.name.clone(),
                                 summary: pattern.description.clone(),
                                 outcome: if pattern.success_rate >= 0.5 {
@@ -535,7 +536,7 @@ pub fn run() {
                     tracing::warn!("[multi_agent_setup] 种子化 Multi-Agent 角色失败: {}", e);
                 }
             });
-            // 注入 OPC 通知发送 channel + 后台 worker（AxInvest 本地薄补丁：
+// 注入 OPC 通知发送 channel + 后台 worker（AxInvest 本地薄补丁：
             // OPC 台账工具 OpcSendNotification 经 8 渠道消息网关发送）
             {
                 let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
@@ -576,6 +577,34 @@ pub fn run() {
                 tracing::info!("[opc] Started OPC notify worker");
             }
 
+            // 重启自动加载持久化的 runtime_evolution 工具（幂等，source=runtime_evolution）
+            // 使上一会话 AutoToolCreator / 自指工具部署的产物在应用重启后自动恢复可用
+            let rt_tool_db = state.harness.db().clone();
+            let rt_tool_registry = state.local_tool_registry.clone();
+            let rt_tool_work_engine = state.work_engine.clone();
+            let rt_tool_stats = state.evolution_execution_stats.clone();
+            tauri::async_runtime::spawn(async move {
+                // D3 持久化：先加载上一会话落库的真实执行统计（重启不丢证据），
+                // 再加载运行时工具（工具的 feedback sink 会复用同一 stats Arc 继续累计）
+                if let Err(e) = crate::commands::evolution_engine::
+                    load_evolution_execution_stats_impl(&rt_tool_db, &rt_tool_stats)
+                    .await
+                {
+                    tracing::warn!(target: "evolution_engine",
+                        "启动加载持久化执行统计失败: {}", e);
+                }
+                if let Err(e) = crate::commands::evolution_engine::load_runtime_evolution_tools_impl(
+                    &rt_tool_db,
+                    &rt_tool_registry,
+                    &rt_tool_work_engine,
+                    &rt_tool_stats,
+                )
+                .await
+                {
+                    tracing::warn!(target: "evolution_engine",
+                        "启动加载持久化运行时工具失败: {}", e);
+                }
+            });
             init::services::start_background_services(app.handle(), &state, app_dir.clone(), tray_language);
 
             android_utils::mark_startup_phase("setup_complete");

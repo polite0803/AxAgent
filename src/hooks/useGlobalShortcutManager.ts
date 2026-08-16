@@ -33,7 +33,7 @@ export function useGlobalShortcutManager() {
       if (diagnostics.length > 40) {
         diagnostics.splice(0, diagnostics.length - 40);
       }
-      if (!settings.shortcut_registration_logs_enabled) {
+      if (!settings.shortcutRegistrationLogsEnabled) {
         return;
       }
       const consolePayload = {
@@ -55,7 +55,7 @@ export function useGlobalShortcutManager() {
     ) => {
       setGlobalShortcutStatus({
         ...status,
-        diagnostics: settings.shortcut_registration_logs_enabled
+        diagnostics: settings.shortcutRegistrationLogsEnabled
           ? [...diagnostics]
           : [],
       });
@@ -70,7 +70,7 @@ export function useGlobalShortcutManager() {
       updateStatus({ enabled: false, registered: [], failed: [] });
       return;
     }
-    if (!settings.global_shortcuts_enabled) {
+    if (!settings.globalShortcutsEnabled) {
       pushDiagnostic({
         phase: "env",
         level: "info",
@@ -254,7 +254,7 @@ export function useGlobalShortcutManager() {
 
     return () => {
       cancelled = true;
-      if (settings.global_shortcuts_enabled) {
+      if (settings.globalShortcutsEnabled) {
         void import("@tauri-apps/plugin-global-shortcut")
           .then(async ({ unregisterAll }) => {
             await unregisterAll();

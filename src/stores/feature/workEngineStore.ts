@@ -5,8 +5,8 @@ import { invoke, listen } from "../../lib/invoke";
 import type { ExecutionStatus, ExecutionStatusResponse, ExecutionSummary, NodeExecutionRecord } from "../../types";
 
 export interface PausedExecutionInfo {
-  execution_id: string;
-  workflow_id: string;
+  executionId: string;
+  workflowId: string;
   snapshot: Record<string, unknown>;
 }
 
@@ -257,12 +257,12 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
       { executionId },
     );
     const nodeStatusesFromRecords: Record<string, string> = {};
-    for (const r of status.node_records ?? []) {
-      nodeStatusesFromRecords[r.node_id] = r.status;
+    for (const r of status.nodeRecords ?? []) {
+      nodeStatusesFromRecords[r.nodeId] = r.status;
     }
     set((state) => ({
       status,
-      nodeRecords: status.node_records ?? [],
+      nodeRecords: status.nodeRecords ?? [],
       variables: status.variables ?? {},
       // replaceStatuses=true 时完全替换而非合并，用于查看历史执行时清除旧状态
       nodeStatuses: replaceStatuses
@@ -387,27 +387,27 @@ export const useWorkEngineStore = create<WorkEngineState>((set, get) => ({
 
         set({
           status: {
-            execution_id: payload.execution_id ?? "",
-            workflow_id: payload.workflow_id,
+            executionId: payload.execution_id ?? "",
+            workflowId: payload.workflow_id,
             status: payload.status as ExecutionStatus,
-            current_node_id: payload.current_node_id ?? null,
-            total_time_ms: payload.total_time_ms,
-            node_count: payload.node_count,
-            parent_execution_id: null,
+            currentNodeId: payload.current_node_id ?? null,
+            totalTimeMs: payload.total_time_ms,
+            nodeCount: payload.node_count,
+            parentExecutionId: null,
           } as ExecutionStatusResponse,
           nodeRecords: payload.node_records.map((r) => ({
-            node_id: r.node_id,
-            node_type: r.node_type,
-            node_name: r.node_name ?? null,
+            nodeId: r.node_id,
+            nodeType: r.node_type,
+            nodeName: r.node_name ?? null,
             status: r.status,
             input: r.input ?? null,
             output: r.output ?? null,
-            execution_time_ms: r.execution_time_ms ?? null,
+            executionTimeMs: r.execution_time_ms ?? null,
             error: r.error ?? null,
-            started_at: r.started_at,
-            completed_at: r.completed_at ?? null,
-            parent_execution_id: r.parent_execution_id ?? null,
-            sub_workflow_id: r.sub_workflow_id ?? null,
+            startedAt: r.started_at,
+            completedAt: r.completed_at ?? null,
+            parentExecutionId: r.parent_execution_id ?? null,
+            subWorkflowId: r.sub_workflow_id ?? null,
           })),
           variables: (payload.variables ?? {}) as Record<string, unknown>,
           nodeStatuses: nodeStatusesFromRecords,

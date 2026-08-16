@@ -650,7 +650,7 @@ pub async fn generate_skill_from_prompt(
     "description": "<技能用途描述>",
     "type": "{skill_type}",
     "triggers": ["<触发关键词1>", "<触发关键词2>"],
-    "prompt_template": "<技能执行时的 prompt 模板，可用 {{{{param_name}}}} 占位>",
+    "promptTemplate": "<技能执行时的 prompt 模板，可用 {{{{param_name}}}} 占位>",
     "parameters": [
       {{
         "name": "<参数名>",
@@ -673,7 +673,7 @@ pub async fn generate_skill_from_prompt(
 === 强制规则 ===
 1. skill.id 用小写英文+短横线，如 "code-review"、"data-extractor"。
 2. skill.type 必须与目标类型一致。
-3. prompt_template 使用 {{{{param}}}} 双花括号语法标记占位符。
+3. promptTemplate 使用 {{{{param}}}} 双花括号语法标记占位符。
 4. parameters 中 required 为 bool，options 仅 enum 类型需要。
 5. confidence 范围 0.0-1.0，反映对生成结果的信心。
 6. 仅输出 JSON，不要额外解释。"#,

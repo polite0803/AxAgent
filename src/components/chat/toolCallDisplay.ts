@@ -51,11 +51,11 @@ export function shouldHideAssistantBubble(
       return false;
     }
     // Also check old-format tool_calls_json during transition period
-    if (message.tool_calls_json) {
+    if (message.toolCallsJson) {
       return false;
     }
     return true;
   }
 
-  return !message.content.trim() && Boolean(message.tool_calls_json);
+  return !message.content.trim() && Boolean(message.toolCallsJson);
 }

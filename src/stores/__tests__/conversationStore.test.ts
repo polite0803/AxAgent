@@ -24,20 +24,20 @@ _injectPreferenceStore(usePreferenceStore);
 function makeMessage(index: number, conversationId = "conv-1"): Message {
   return {
     id: `msg-${index}`,
-    conversation_id: conversationId,
+    conversationId: conversationId,
     role: index % 2 === 0 ? "assistant" : "user",
     content: `message-${index}`,
-    provider_id: null,
-    model_id: null,
-    token_count: null,
+    providerId: null,
+    modelId: null,
+    tokenCount: null,
     attachments: [],
     thinking: null,
-    tool_calls_json: null,
-    tool_call_id: null,
-    created_at: index,
-    parent_message_id: null,
-    version_index: 0,
-    is_active: true,
+    toolCallsJson: null,
+    toolCallId: null,
+    createdAt: index,
+    parentMessageId: null,
+    versionIndex: 0,
+    isActive: true,
     status: "complete",
   };
 }
@@ -45,9 +45,9 @@ function makeMessage(index: number, conversationId = "conv-1"): Message {
 function makePage(messages: Message[], hasOlder: boolean): MessagePage {
   return {
     messages,
-    has_older: hasOlder,
-    oldest_message_id: messages[0]?.id ?? null,
-    total_active_count: messages.length,
+    hasOlder: hasOlder,
+    oldestMessageId: messages[0]?.id ?? null,
+    totalActiveCount: messages.length,
   };
 }
 
@@ -55,24 +55,33 @@ function makeConversation(id: string, overrides: Record<string, unknown> = {}) {
   return {
     id,
     title: `conversation-${id}`,
-    model_id: "model-1",
-    provider_id: "provider-1",
-    system_prompt: null,
+    modelId: "model-1",
+    providerId: "provider-1",
+    systemPrompt: null,
     temperature: null,
-    max_tokens: null,
-    top_p: null,
-    frequency_penalty: null,
-    search_enabled: false,
-    search_provider_id: null,
-    thinking_budget: null,
-    enabled_mcp_server_ids: [],
-    enabled_knowledge_base_ids: [],
-    enabled_memory_namespace_ids: [],
-    is_pinned: false,
-    is_archived: false,
-    message_count: 0,
-    created_at: 1,
-    updated_at: 1,
+    maxTokens: null,
+    topP: null,
+    frequencyPenalty: null,
+    searchEnabled: false,
+    searchProviderId: null,
+    thinkingBudget: null,
+    enabledMcpServerIds: [],
+    enabledKnowledgeBaseIds: [],
+    enabledMemoryNamespaceIds: [],
+    enabledWikiIds: [],
+    enabledSkillIds: [],
+    isPinned: false,
+    isArchived: false,
+    contextCompression: false,
+    categoryId: null,
+    parentConversationId: null,
+    mode: "chat" as const,
+    workStrategy: null,
+    messageCount: 0,
+    createdAt: 1,
+    updatedAt: 1,
+    scenario: null,
+    workspaceDir: null,
     ...overrides,
   };
 }
@@ -249,20 +258,20 @@ describe("conversationStore pagination", () => {
     useConversationStore.setState({
       conversations: [
         makeConversation("conv-a", {
-          search_enabled: true,
-          search_provider_id: "search-a",
-          thinking_budget: 2048,
-          enabled_mcp_server_ids: ["mcp-a"],
-          enabled_knowledge_base_ids: ["kb-a"],
-          enabled_memory_namespace_ids: ["mem-a"],
+          searchEnabled: true,
+          searchProviderId: "search-a",
+          thinkingBudget: 2048,
+          enabledMcpServerIds: ["mcp-a"],
+          enabledKnowledgeBaseIds: ["kb-a"],
+          enabledMemoryNamespaceIds: ["mem-a"],
         }),
         makeConversation("conv-b", {
-          search_enabled: false,
-          search_provider_id: null,
-          thinking_budget: null,
-          enabled_mcp_server_ids: ["mcp-b"],
-          enabled_knowledge_base_ids: [],
-          enabled_memory_namespace_ids: ["mem-b"],
+          searchEnabled: false,
+          searchProviderId: null,
+          thinkingBudget: null,
+          enabledMcpServerIds: ["mcp-b"],
+          enabledKnowledgeBaseIds: [],
+          enabledMemoryNamespaceIds: ["mem-b"],
         }),
       ] as never[],
     });
@@ -326,7 +335,7 @@ describe("conversationStore pagination", () => {
     useConversationStore.setState({
       activeConversationId: "conv-1",
       conversations: [
-        makeConversation("conv-1", { enabled_mcp_server_ids: ["mcp-a"] }),
+        makeConversation("conv-1", { enabledMcpServerIds: ["mcp-a"] }),
       ] as never[],
       enabledMcpServerIds: ["mcp-a"],
     });
@@ -453,9 +462,9 @@ describe("conversationStore pagination", () => {
           });
           return Promise.resolve(
             makeConversation("conv-template", {
-              provider_id: "template-provider",
-              model_id: "template-model",
-              system_prompt: "Category prompt",
+              providerId: "template-provider",
+              modelId: "template-model",
+              systemPrompt: "Category prompt",
             }),
           );
         }
@@ -482,14 +491,14 @@ describe("conversationStore pagination", () => {
 
           return Promise.resolve(
             makeConversation("conv-template", {
-              provider_id: "template-provider",
-              model_id: "template-model",
-              category_id: "cat-template",
-              system_prompt: "Category prompt",
+              providerId: "template-provider",
+              modelId: "template-model",
+              categoryId: "cat-template",
+              systemPrompt: "Category prompt",
               temperature: 0.2,
-              max_tokens: 8192,
-              top_p: 0.95,
-              frequency_penalty: 0.4,
+              maxTokens: 8192,
+              topP: 0.95,
+              frequencyPenalty: 0.4,
             }),
           );
         }
@@ -510,19 +519,19 @@ describe("conversationStore pagination", () => {
         {
           id: "cat-template",
           name: "Template",
-          icon_type: null,
-          icon_value: null,
-          system_prompt: "Category prompt",
-          default_provider_id: "template-provider",
-          default_model_id: "template-model",
-          default_temperature: 0.2,
-          default_max_tokens: 8192,
-          default_top_p: 0.95,
-          default_frequency_penalty: 0.4,
-          sort_order: 0,
-          is_collapsed: false,
-          created_at: 1,
-          updated_at: 1,
+          iconType: null,
+          iconValue: null,
+          systemPrompt: "Category prompt",
+          defaultProviderId: "template-provider",
+          defaultModelId: "template-model",
+          defaultTemperature: 0.2,
+          defaultMaxTokens: 8192,
+          defaultTopP: 0.95,
+          defaultFrequencyPenalty: 0.4,
+          sortOrder: 0,
+          isCollapsed: false,
+          createdAt: 1,
+          updatedAt: 1,
         },
       ] as never[],
       loading: false,
@@ -537,10 +546,10 @@ describe("conversationStore pagination", () => {
         { categoryId: "cat-template" },
       );
 
-    expect(conversation.category_id).toBe("cat-template");
-    expect(conversation.provider_id).toBe("template-provider");
-    expect(conversation.model_id).toBe("template-model");
+    expect(conversation.categoryId).toBe("cat-template");
+    expect(conversation.providerId).toBe("template-provider");
+    expect(conversation.modelId).toBe("template-model");
     expect(conversation.temperature).toBe(0.2);
-    expect(conversation.max_tokens).toBe(8192);
+    expect(conversation.maxTokens).toBe(8192);
   });
 });

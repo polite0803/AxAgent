@@ -106,7 +106,7 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
     }));
     // 缺陷 6：标题变更时同步钉入导航配置的标题，避免侧栏显示旧标题
     if (params.title) {
-      const pin = get().pins.find((p) => p.schema_id === id);
+      const pin = get().pins.find((p) => p.schemaId === id);
       if (pin && pin.title !== params.title) {
         await get().updatePin(id, { title: params.title });
       }
@@ -117,7 +117,7 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
   deleteSchema: async (id) => {
     await invoke<void>("delete_dynamic_ui_schema", { id });
     // 同步清理钉入导航配置，避免残留脏数据（缺陷 3）
-    if (get().pins.some((p) => p.schema_id === id)) {
+    if (get().pins.some((p) => p.schemaId === id)) {
       await get().unpinSchema(id);
     }
     set((state) => ({
@@ -140,13 +140,13 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
 
   pinSchema: async (params) => {
     const record = await invoke<DynamicUIPinRecord>("pin_dynamic_ui_schema", {
-      schema_id: params.schema_id,
+      schema_id: params.schemaId,
       title: params.title,
-      group_name: params.group_name,
+      group_name: params.groupName,
       position: params.position ?? null,
     });
     set((state) => {
-      const others = state.pins.filter((p) => p.schema_id !== record.schema_id);
+      const others = state.pins.filter((p) => p.schemaId !== record.schemaId);
       return { pins: [...others, record] };
     });
     return record;
@@ -155,29 +155,29 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
   unpinSchema: async (schemaId) => {
     await invoke<void>("unpin_dynamic_ui_schema", { schemaId });
     set((state) => ({
-      pins: state.pins.filter((p) => p.schema_id !== schemaId),
+      pins: state.pins.filter((p) => p.schemaId !== schemaId),
     }));
   },
 
   updatePin: async (schemaId, params) => {
-    const existing = get().pins.find((p) => p.schema_id === schemaId);
+    const existing = get().pins.find((p) => p.schemaId === schemaId);
     if (!existing) {
       return;
     }
     const merged = {
-      schema_id: schemaId,
+      schemaId: schemaId,
       title: params.title ?? existing.title,
-      group_name: params.group_name ?? existing.group_name,
+      groupName: params.groupName ?? existing.groupName,
       position: params.position ?? existing.position,
     };
     const record = await invoke<DynamicUIPinRecord>("pin_dynamic_ui_schema", {
-      schema_id: merged.schema_id,
+      schema_id: merged.schemaId,
       title: merged.title,
-      group_name: merged.group_name,
+      group_name: merged.groupName,
       position: merged.position,
     });
     set((state) => {
-      const others = state.pins.filter((p) => p.schema_id !== record.schema_id);
+      const others = state.pins.filter((p) => p.schemaId !== record.schemaId);
       return { pins: [...others, record] };
     });
   },
@@ -187,8 +187,8 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
       req: params,
     });
     try {
-      const data = JSON.parse(params.form_data_json) as Record<string, unknown>;
-      const cacheKey = formCacheKey(params.schema_id, params.instance_key);
+      const data = JSON.parse(params.formDataJson) as Record<string, unknown>;
+      const cacheKey = formCacheKey(params.schemaId, params.instanceKey);
       set((state) => {
         const newCache = new Map(state.formDataCache);
         newCache.set(cacheKey, data);
@@ -214,7 +214,7 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
       return null;
     }
     try {
-      const data = JSON.parse(record.form_data_json) as Record<string, unknown>;
+      const data = JSON.parse(record.formDataJson) as Record<string, unknown>;
       set((state) => {
         const newCache = new Map(state.formDataCache);
         newCache.set(cacheKey, data);

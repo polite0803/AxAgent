@@ -32,7 +32,7 @@ export function GatewaySettings() {
     return () => window.clearInterval(interval);
   }, [fetchSettings, fetchStatus]);
 
-  const settingsLocked = status.is_running;
+  const settingsLocked = status.isRunning;
 
   const handleSave = useCallback(async (partial: Parameters<typeof saveSettings>[0]) => {
     try {
@@ -70,8 +70,8 @@ export function GatewaySettings() {
     try {
       const result = await invoke<CertResult>("generate_self_signed_cert");
       await handleSave({
-        gateway_ssl_cert_path: result.cert_path,
-        gateway_ssl_key_path: result.key_path,
+        gatewaySslCertPath: result.cert_path,
+        gatewaySslKeyPath: result.key_path,
       });
       message.success(t("gateway.sslGenerateSuccess"));
     } catch (e) {
@@ -80,15 +80,15 @@ export function GatewaySettings() {
   };
 
   const [sslPortValue, setSslPortValue] = useState<number>(
-    settings.gateway_ssl_port ?? 8443,
+    settings.gatewaySslPort ?? 8443,
   );
   const [sslPortError, setSslPortError] = useState(false);
   const [portValue, setPortValue] = useState<number>(
-    settings.gateway_port ?? 8080,
+    settings.gatewayPort ?? 8080,
   );
   const [portError, setPortError] = useState(false);
   const [listenAddressValue, setListenAddressValue] = useState<string>(
-    settings.gateway_listen_address ?? "127.1.0.0",
+    settings.gatewayListenAddress ?? "127.1.0.0",
   );
 
   // Track port values that were blocked from saving due to a conflict so they
@@ -99,16 +99,16 @@ export function GatewaySettings() {
   // Each field syncs independently so an unsaved local edit in one field is never
   // clobbered when the other field's persisted value changes.
   useEffect(() => {
-    setTimeout(() => setPortValue(settings.gateway_port ?? 8080), 0);
-  }, [settings.gateway_port, setPortValue]);
+    setTimeout(() => setPortValue(settings.gatewayPort ?? 8080), 0);
+  }, [settings.gatewayPort, setPortValue]);
 
   useEffect(() => {
-    setTimeout(() => setSslPortValue(settings.gateway_ssl_port ?? 8443), 0);
-  }, [settings.gateway_ssl_port, setSslPortValue]);
+    setTimeout(() => setSslPortValue(settings.gatewaySslPort ?? 8443), 0);
+  }, [settings.gatewaySslPort, setSslPortValue]);
 
   useEffect(() => {
-    setTimeout(() => setListenAddressValue(settings.gateway_listen_address ?? "127.1.0.0"), 0);
-  }, [settings.gateway_listen_address, setListenAddressValue]);
+    setTimeout(() => setListenAddressValue(settings.gatewayListenAddress ?? "127.1.0.0"), 0);
+  }, [settings.gatewayListenAddress, setListenAddressValue]);
 
   const handleSaveRef = useRef(handleSave);
 
@@ -119,24 +119,24 @@ export function GatewaySettings() {
   // Recompute conflict errors whenever SSL is toggled or either local port value changes.
   // If a conflict clears for a port that had a pending (blocked) save, flush it now.
   useEffect(() => {
-    const sslEnabled = settings.gateway_ssl_enabled ?? false;
+    const sslEnabled = settings.gatewaySslEnabled ?? false;
     const newPortError = sslEnabled && portValue === sslPortValue;
     const newSslPortError = sslEnabled && sslPortValue === portValue;
 
     if (!newPortError && portPendingSave.current) {
       portPendingSave.current = false;
-      handleSaveRef.current({ gateway_port: portValue });
+      handleSaveRef.current({ gatewayPort: portValue });
     }
     if (!newSslPortError && sslPortPendingSave.current) {
       sslPortPendingSave.current = false;
-      handleSaveRef.current({ gateway_ssl_port: sslPortValue });
+      handleSaveRef.current({ gatewaySslPort: sslPortValue });
     }
 
     setTimeout(() => {
       setPortError(newPortError);
       setSslPortError(newSslPortError);
     }, 0);
-  }, [settings.gateway_ssl_enabled, portValue, sslPortValue]);
+  }, [settings.gatewaySslEnabled, portValue, sslPortValue]);
 
   const handleSslPortChange = (val: number | null) => {
     if (val == null) {
@@ -149,7 +149,7 @@ export function GatewaySettings() {
     } else {
       setSslPortError(false);
       sslPortPendingSave.current = false;
-      handleSave({ gateway_ssl_port: val });
+      handleSave({ gatewaySslPort: val });
     }
   };
 
@@ -158,20 +158,20 @@ export function GatewaySettings() {
       return;
     }
     setPortValue(val);
-    if ((settings.gateway_ssl_enabled ?? false) && val === sslPortValue) {
+    if ((settings.gatewaySslEnabled ?? false) && val === sslPortValue) {
       setPortError(true);
       portPendingSave.current = true;
     } else {
       setPortError(false);
       portPendingSave.current = false;
-      handleSave({ gateway_port: val });
+      handleSave({ gatewayPort: val });
     }
   };
 
   const handleListenAddressCommit = () => {
     const trimmed = listenAddressValue.trim();
     if (trimmed) {
-      handleSave({ gateway_listen_address: trimmed });
+      handleSave({ gatewayListenAddress: trimmed });
     }
   };
 
@@ -260,8 +260,8 @@ export function GatewaySettings() {
         >
           <span>{t("gateway.autoStart")}</span>
           <Switch
-            checked={settings.gateway_auto_start ?? false}
-            onChange={(checked) => handleSave({ gateway_auto_start: checked })}
+            checked={settings.gatewayAutoStart ?? false}
+            onChange={(checked) => handleSave({ gatewayAutoStart: checked })}
           />
         </div>
       </Card>
@@ -285,13 +285,13 @@ export function GatewaySettings() {
             </Tooltip>
           </div>
           <Switch
-            checked={settings.gateway_ssl_enabled ?? false}
-            onChange={(checked) => handleSave({ gateway_ssl_enabled: checked })}
+            checked={settings.gatewaySslEnabled ?? false}
+            onChange={(checked) => handleSave({ gatewaySslEnabled: checked })}
             disabled={settingsLocked}
           />
         </div>
 
-        {settings.gateway_ssl_enabled && (
+        {settings.gatewaySslEnabled && (
           <>
             <Divider style={{ margin: "8px 0" }} />
 
@@ -346,8 +346,8 @@ export function GatewaySettings() {
                 </Tooltip>
               </div>
               <Switch
-                checked={settings.gateway_force_ssl ?? false}
-                onChange={(checked) => handleSave({ gateway_force_ssl: checked })}
+                checked={settings.gatewayForceSsl ?? false}
+                onChange={(checked) => handleSave({ gatewayForceSsl: checked })}
                 disabled={settingsLocked}
               />
             </div>
@@ -363,8 +363,8 @@ export function GatewaySettings() {
             />
 
             <Radio.Group
-              value={settings.gateway_ssl_mode ?? "upload"}
-              onChange={(e) => handleSave({ gateway_ssl_mode: e.target.value })}
+              value={settings.gatewaySslMode ?? "upload"}
+              onChange={(e) => handleSave({ gatewaySslMode: e.target.value })}
               style={{ display: "flex", flexDirection: "column", gap: 12 }}
               disabled={settingsLocked}
             >
@@ -382,7 +382,7 @@ export function GatewaySettings() {
                   {t("gateway.sslUploadDesc")}
                 </div>
               </Radio>
-              {(settings.gateway_ssl_mode ?? "upload") === "upload" && (
+              {(settings.gatewaySslMode ?? "upload") === "upload" && (
                 <div
                   style={{
                     paddingLeft: 24,
@@ -398,7 +398,7 @@ export function GatewaySettings() {
                     <Input
                       id="gateway-settings-input-46"
                       readOnly
-                      value={settings.gateway_ssl_cert_path ?? ""}
+                      value={settings.gatewaySslCertPath ?? ""}
                       placeholder={t("gateway.sslCertFilePlaceholder")}
                       style={{ flex: 1 }}
                       disabled={settingsLocked}
@@ -418,7 +418,7 @@ export function GatewaySettings() {
                     <Input
                       id="gateway-settings-input-47"
                       readOnly
-                      value={settings.gateway_ssl_key_path ?? ""}
+                      value={settings.gatewaySslKeyPath ?? ""}
                       placeholder={t("gateway.sslKeyFilePlaceholder")}
                       style={{ flex: 1 }}
                       disabled={settingsLocked}
@@ -448,7 +448,7 @@ export function GatewaySettings() {
                   {t("gateway.sslSelfSignDesc")}
                 </div>
               </Radio>
-              {(settings.gateway_ssl_mode ?? "upload") === "selfsign" && (
+              {(settings.gatewaySslMode ?? "upload") === "selfsign" && (
                 <div style={{ paddingLeft: 24 }}>
                   <Alert
                     type="error"
@@ -463,8 +463,8 @@ export function GatewaySettings() {
                   >
                     {t("gateway.sslGenerateCert")}
                   </Button>
-                  {settings.gateway_ssl_cert_path
-                    && settings.gateway_ssl_mode === "selfsign" && (
+                  {settings.gatewaySslCertPath
+                    && settings.gatewaySslMode === "selfsign" && (
                     <div
                       style={{
                         marginTop: 8,
@@ -472,7 +472,7 @@ export function GatewaySettings() {
                         color: token.colorTextSecondary,
                       }}
                     >
-                      {t("gateway.sslCertFile")}: {settings.gateway_ssl_cert_path}
+                      {t("gateway.sslCertFile")}: {settings.gatewaySslCertPath}
                     </div>
                   )}
                 </div>

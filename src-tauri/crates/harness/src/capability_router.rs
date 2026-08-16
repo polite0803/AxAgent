@@ -74,6 +74,7 @@ impl Default for CapabilityDiscoveryRequest {
 
 /// 能力发现最终结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CapabilityDiscoveryResult {
     /// 命中的主能力（可能为 None，表示未匹配到）
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -109,6 +110,7 @@ pub struct CapabilityDiscoveryResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PhaseTiming {
     pub phase: String,
     pub elapsed_ms: u64,

@@ -12,9 +12,10 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::evolution_engine as evolution_engine_err;
 use agent_macro::agent_command;
+use axagent_harness::runtime_types::runtime_mutation::{MutationResult, RuntimeMutationAccess};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 use tauri::{State, command};
 use tokio::sync::Mutex;
 
@@ -44,6 +45,72 @@ pub struct EngineStatus {
 // 真实引擎的运行状态由 AppState 中的引擎实例自行管理。
 // 这里维护一个轻量的运行时标记（running / config / logs），
 // 用于前端 UI 展示和启停控制。
+
+/// wiring 层 `WorkflowDagExecutor` 实现（T4.3）：包装 `WorkEngine` 执行编排型进化产物。
+///
+/// 将 `WorkflowGenome` 映射为 rt-workflow 引擎可执行的 DAG：
+/// 1. 结构校验（复用 `validate_genome_basic`：node id 唯一 / edge 引用有效 / variable name 唯一）
+/// 2. `create_workflow` 注册到引擎内存
+/// 3. `run_workflow` 真正执行（节点热插拔、权限、审计、Disposer 回滚天然可用）
+/// 4. 返回 `Workflow.output`（EndNode 聚合结果）或节点结果聚合
+pub struct WorkEngineWorkflowDagExecutor {
+    engine: Arc<axagent_runtime::work_engine::WorkEngine>,
+}
+
+impl WorkEngineWorkflowDagExecutor {
+    pub fn new(engine: Arc<axagent_runtime::work_engine::WorkEngine>) -> Self {
+        Self { engine }
+    }
+}
+
+#[async_trait::async_trait]
+impl axagent_harness::workflow_evolution::WorkflowDagExecutor for WorkEngineWorkflowDagExecutor {
+    async fn execute(
+        &self,
+        genome: &axagent_harness::workflow_evolution::WorkflowGenome,
+        input: &serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        // 1. 结构校验：不通过则拒绝执行（T4.4 沙箱之外的快速防线）
+        let errors = axagent_harness::workflow_evolution::validate_genome_basic(genome);
+        if !errors.is_empty() {
+            return Err(format!("编排型产物结构校验失败: {}", errors.join("; ")));
+        }
+
+        // 2. 创建 DAG（节点 id 唯一 / 依赖有效 / 无环校验由引擎内部完成）
+        let workflow = self
+            .engine
+            .create_workflow(&genome.name, genome.nodes.clone(), genome.edges.clone())
+            .await
+            .map_err(|e| format!("创建工作流 DAG 失败: {e}"))?;
+
+        // 3. 变量转换（genome.variables 为 JSON 数组 → 引擎 Variable 列表）
+        let variables: Vec<axagent_harness::workflow_types::Variable> = genome
+            .variables
+            .iter()
+            .filter_map(|v| serde_json::from_value(v.clone()).ok())
+            .collect();
+
+        // 4. 真正执行（input 注入；variables 写入执行上下文）
+        let opts = axagent_runtime::work_engine::RunOptions::default()
+            .with_input(input.clone())
+            .with_variables(variables);
+        let result = self
+            .engine
+            .run_workflow(&workflow.id, opts)
+            .await
+            .map_err(|e| format!("工作流执行失败: {e}"))?;
+
+        // 5. 返回 output（EndNode 聚合）或节点结果
+        if let Some(out) = result.output {
+            Ok(out)
+        } else {
+            Ok(serde_json::json!({
+                "status": format!("{:?}", result.status),
+                "results": result.results,
+            }))
+        }
+    }
+}
 
 struct EngineRuntime {
     running: bool,
@@ -594,7 +661,8 @@ pub async fn run_dream_consolidation(
 ///
 /// 1. 从 TrajectoryStorage 收集最近轨迹，提取工具使用模式
 /// 2. 调用 AutoToolCreator::create_tool_from_pattern 生成工具代码
-/// 3. 返回候选工具供前端确认注册
+/// 3. 将生成的候选工具通过 `register_runtime_tool` 注册到运行时 ToolRegistry（来源 runtime_evolution）
+/// 4. 返回注册结果，供前端展示
 #[agent_command(domain = evolution, safety = Caution, call_mode = StateInput, description = "运行自动工具创建")]
 #[command]
 pub async fn run_auto_tool_create(
@@ -637,29 +705,293 @@ pub async fn run_auto_tool_create(
     let ctx = context.as_deref().unwrap_or("用户高频任务自动化");
 
     // 触发一次模式观察并尝试生成工具
-    let (tool_name, tool_code) = {
+    let (tool_name, tool_code, registered, register_error) = {
         let mut creator = state.auto_tool_creator.lock().await;
         if !top_patterns.is_empty() {
             creator.observe_pattern(&top_patterns.join("|"));
         }
         match creator.create_tool_from_pattern(&pattern_summary, ctx, vec![]).await {
-            Ok(tool) => (Some(tool.name.clone()), Some(tool.code.clone())),
-            Err(_) => (None, None),
+            Ok(tool) => {
+                // 将生成的工具注册到运行时 ToolRegistry（来源 runtime_evolution）
+                let mut registry = state.local_tool_registry.lock().await;
+                // T4.3/T4.4：注入 WorkflowDagExecutor + EvolutionArtifactValidator，实现分层执行
+                // T5A.3：注入 ExecutionFeedbackSink，把真实执行成败累计到贝叶斯证据
+                let adapter =
+                    axagent_tools::generated_tool::GeneratedToolAdapter::new(tool.clone())
+                        .with_workflow_executor(std::sync::Arc::new(
+                            WorkEngineWorkflowDagExecutor::new(state.work_engine.clone()),
+                        ))
+                        .with_sandbox_validator(std::sync::Arc::new(
+                            crate::init::workflow_injections::SelfReferenceArtifactValidator::new(),
+                        ))
+                        .with_feedback_sink(std::sync::Arc::new(
+                            crate::init::workflow_injections::EvolutionFeedbackSinkImpl::new(
+                                state.evolution_execution_stats.clone(),
+                                Some(state.harness.db().clone()),
+                            ),
+                        ));
+                let reg_result = registry.register_runtime_tool(
+                    std::sync::Arc::new(adapter),
+                    "runtime_evolution".to_string(),
+                );
+                drop(registry);
+
+                if reg_result.is_ok() {
+                    // 持久化（source=runtime_evolution），重启后自动加载
+                    let persisted = axagent_runtime::tool_generator::GeneratedTool {
+                        tool_name: tool.name.clone(),
+                        implementation:
+                            axagent_runtime::tool_generator::GeneratedToolImplementation::Script {
+                                language: "javascript".to_string(),
+                                code: tool.code.clone(),
+                            },
+                        input_schema: serde_json::json!({ "type": "object" }),
+                        output_schema: serde_json::json!({ "type": "object" }),
+                        source_info: axagent_runtime::tool_generator::GeneratedToolSourceInfo {
+                            original_name: tool.name.clone(),
+                            original_description: tool.description.clone(),
+                            generation_method: "auto_tool_creator".to_string(),
+                            agent_model: None,
+                            generated_at: chrono::Utc::now().timestamp_millis(),
+                            source: Some("runtime_evolution".to_string()),
+                        },
+                    };
+                    let persist_result =
+                        axagent_runtime::tool_generator::persist_runtime_evolution(&persisted)
+                            .await;
+                    if let Err(e) = persist_result {
+                        tracing::warn!(target: "evolution_engine", tool = %tool.name, error = %e,
+                            "Runtime evolution tool persisted failed");
+                    }
+                }
+
+                match reg_result {
+                    Ok(()) => (Some(tool.name.clone()), Some(tool.code.clone()), true, None),
+                    Err(e) => (
+                        Some(tool.name.clone()),
+                        Some(tool.code.clone()),
+                        false,
+                        Some(e.to_string()),
+                    ),
+                }
+            },
+            Err(e) => {
+                tracing::warn!(target: "evolution_engine", error = %e,
+                    "Auto tool creation failed");
+                (None, None, false, Some(e))
+            },
         }
     };
 
     Ok(serde_json::json!({
-        "success": tool_name.is_some(),
+        "success": tool_name.is_some() && registered,
         "analyzedTrajectories": trajectories.len(),
         "topPatterns": top_patterns,
         "candidateTool": tool_name,
         "candidateCode": tool_code,
-        "message": if tool_name.is_some() {
-            "已生成候选工具，请确认后注册".to_string()
+        "registered": registered,
+        "registerError": register_error,
+        "message": if tool_name.is_some() && registered {
+            "已生成并注册运行时工具，Agent 立即可调用".to_string()
+        } else if tool_name.is_some() && !registered {
+            format!("工具已生成但注册失败: {}", register_error.unwrap_or_default())
         } else {
             "未能从当前模式生成工具".to_string()
         },
     }))
+}
+
+/// 卸载一个运行时动态注册的工具（来源 runtime_evolution）。
+///
+/// 仅允许卸载经 `register_runtime_tool` 注册的工具，内置 / MCP 工具不受影响。
+#[command]
+pub async fn unregister_runtime_tool(
+    state: State<'_, AppState>,
+    tool_name: String,
+) -> Result<serde_json::Value, String> {
+    let mut registry = state.local_tool_registry.lock().await;
+    match registry.unregister_runtime_tool(&tool_name) {
+        Some(_tool) => {
+            tracing::info!(target: "evolution_engine", tool = %tool_name,
+                "Runtime tool unregistered");
+            Ok(serde_json::json!({
+                "success": true,
+                "toolName": tool_name,
+                "message": "运行时工具已卸载".to_string(),
+            }))
+        },
+        None => Err(format!(
+            "工具 '{}' 不是运行时注册的工具，无法卸载（内置工具与 MCP 工具不受影响）",
+            tool_name
+        )),
+    }
+}
+
+/// 列出当前所有运行时动态注册的工具（名称 → 来源）。
+#[command]
+pub async fn list_runtime_tools(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let registry = state.local_tool_registry.lock().await;
+    let sources = registry.runtime_tool_sources();
+    Ok(serde_json::json!({
+        "success": true,
+        "count": sources.len(),
+        "tools": sources.iter().map(|(name, source)| {
+            serde_json::json!({ "name": name, "source": source })
+        }).collect::<Vec<_>>(),
+    }))
+}
+
+/// 重启自动加载：从 DB 读取持久化的进化产物执行统计，填充到内存 HashMap。
+///
+/// D3 持久化：启动时在 `load_runtime_evolution_tools_impl` 之前调用，
+/// 保证真实执行证据在重启后不丢失。与 `EvolutionFeedbackSinkImpl`
+/// 共享同一 stats Arc，后续 `record` 继续累计。
+pub async fn load_evolution_execution_stats_impl(
+    db: &axagent_harness::DatabaseConnection,
+    stats: &std::sync::Arc<
+        tokio::sync::Mutex<
+            HashMap<
+                String,
+                HashMap<String, axagent_harness::workflow_evolution::ToolExecutionStats>,
+            >,
+        >,
+    >,
+) -> Result<(), String> {
+    let loaded = axagent_dao::repo::evolution_execution_stats::load_all_execution_stats(db)
+        .await
+        .map_err(|e| format!("加载持久化执行统计失败: {}", e))?;
+
+    let count: usize = loaded.values().map(|m| m.len()).sum();
+    if count > 0 {
+        let mut memory = stats.lock().await;
+        // 合并：已有 entry 以 DB 为准覆盖（重启后 DB 是权威来源）
+        for (conv, tools) in loaded {
+            memory.entry(conv).or_default().extend(tools);
+        }
+        drop(memory);
+        tracing::info!(target: "evolution_engine", count, "持久化执行统计已加载到内存");
+    } else {
+        tracing::debug!(target: "evolution_engine", "无持久化执行统计（空表）");
+    }
+    Ok(())
+}
+
+/// 重启自动加载：从 DB 读取 `source = "runtime_evolution"` 的持久化工具，
+/// 从 DB 加载持久化的 `runtime_evolution` 工具并注册回运行时注册表。
+///
+/// 幂等：已注册的同名工具会被跳过（不覆盖）。
+/// 供 #[command] 命令与启动时自动加载共用，避免两处重复实现。
+pub async fn load_runtime_evolution_tools_impl(
+    db: &axagent_harness::DatabaseConnection,
+    registry: &tokio::sync::Mutex<axagent_tools::registry::UnifiedToolRegistry>,
+    work_engine: &std::sync::Arc<axagent_runtime::work_engine::WorkEngine>,
+    stats: &std::sync::Arc<
+        tokio::sync::Mutex<
+            HashMap<
+                String,
+                HashMap<String, axagent_harness::workflow_evolution::ToolExecutionStats>,
+            >,
+        >,
+    >,
+) -> Result<serde_json::Value, String> {
+    let models = axagent_dao::repo::generated_tool::list_generated_tools(db)
+        .await
+        .map_err(|e| format!("读取持久化工具失败: {}", e))?;
+
+    let mut loaded = 0u32;
+    let mut skipped = 0u32;
+    let mut errors = Vec::new();
+
+    for model in models {
+        // 反序列化 source_info，仅加载 source=runtime_evolution 的工具
+        let source_info: Result<axagent_runtime::tool_generator::GeneratedToolSourceInfo, _> =
+            serde_json::from_str(&model.source_info);
+        let Ok(source_info) = source_info else { continue };
+        if source_info.source.as_deref() != Some("runtime_evolution") {
+            continue;
+        }
+
+        // 从 implementation 提取代码（Script.code / PromptTemplate.template）
+        let impl_value: serde_json::Value =
+            serde_json::from_str(&model.implementation).unwrap_or(serde_json::Value::Null);
+        let code = impl_value
+            .get("code")
+            .and_then(|v| v.as_str())
+            .or_else(|| impl_value.get("template").and_then(|v| v.as_str()))
+            .unwrap_or_default()
+            .to_string();
+
+        let artifact_kind = axagent_harness::trajectory_types::EvolutionArtifactKind::infer(&code);
+        let generated = axagent_harness::trajectory_types::GeneratedTool {
+            id: model.id.clone(),
+            name: model.tool_name.clone(),
+            code,
+            description: model.original_description.clone(),
+            test_coverage: 0.0,
+            created_at: model.created_at,
+            usage_count: 0,
+            success_rate: 0.0,
+            artifact_kind,
+        };
+
+        let mut registry = registry.lock().await;
+        // T4.3/T4.4：注入 WorkflowDagExecutor + EvolutionArtifactValidator，与 deploy 保持一致
+        // T5A.3：注入 ExecutionFeedbackSink，把真实执行成败累计到贝叶斯证据
+        let adapter = axagent_tools::generated_tool::GeneratedToolAdapter::new(generated)
+            .with_workflow_executor(std::sync::Arc::new(WorkEngineWorkflowDagExecutor::new(
+                work_engine.clone(),
+            )))
+            .with_sandbox_validator(std::sync::Arc::new(
+                crate::init::workflow_injections::SelfReferenceArtifactValidator::new(),
+            ))
+            .with_feedback_sink(std::sync::Arc::new(
+                crate::init::workflow_injections::EvolutionFeedbackSinkImpl::new(
+                    stats.clone(),
+                    Some(db.clone()),
+                ),
+            ));
+        match registry
+            .register_runtime_tool(std::sync::Arc::new(adapter), "runtime_evolution".to_string())
+        {
+            Ok(()) => loaded += 1,
+            Err(e) => {
+                // 已存在（重复）视为跳过，其余记录错误
+                if e.error_code == axagent_harness::error_codes::tool::REGISTRATION_DUPLICATE {
+                    skipped += 1;
+                } else {
+                    errors.push(format!("{}: {}", model.tool_name, e));
+                }
+            },
+        }
+        drop(registry);
+    }
+
+    tracing::info!(target: "evolution_engine", loaded, skipped, errors = errors.len(),
+        "Runtime evolution tools loaded from DB");
+    Ok(serde_json::json!({
+        "success": true,
+        "loaded": loaded,
+        "skipped": skipped,
+        "errors": errors,
+    }))
+}
+
+/// 重建 `GeneratedToolAdapter` 并注册回运行时 ToolRegistry。
+///
+/// 幂等：已注册的同名工具会被跳过（不覆盖）。
+#[command]
+pub async fn load_runtime_evolution_tools(
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    let db = state.harness.db().clone();
+    let registry = state.local_tool_registry.clone();
+    load_runtime_evolution_tools_impl(
+        &db,
+        &registry,
+        &state.work_engine,
+        &state.evolution_execution_stats,
+    )
+    .await
 }
 
 /// 运行过程奖励分析（对轨迹进行逐步奖励评估）。
@@ -997,5 +1329,190 @@ pub async fn run_sandbox_validate_step(
             "allowed": false,
             "violations": ["Sandbox unavailable on Android"],
         }))
+    }
+}
+
+// ---------------------------------------------------------------------------
+// RuntimeMutationAccess wiring 实现（T2.3）
+// ---------------------------------------------------------------------------
+//
+// 自指工具（`system_evolution_*`，tools crate 定义）通过 `RuntimeMutationAccess`
+// trait 访问运行时工具注册表。本结构体是 wiring 层实现：持有
+// `AppState.local_tool_registry` 的 Arc，实现 inspect / define / deploy / undeploy。
+// 在 `state.rs` 初始化时构造并调用 `set_mutation_access` 注入。
+
+/// `RuntimeMutationAccess` 的 wiring 实现 — 操作运行时工具注册表。
+pub struct EvolutionMutationAccess {
+    /// 运行时工具注册表（与 `AppState.local_tool_registry` 同 Arc）
+    registry: std::sync::Arc<tokio::sync::Mutex<axagent_tools::registry::UnifiedToolRegistry>>,
+    /// rt-workflow 引擎（T4.3）：编排型进化产物经 [`WorkEngineWorkflowDagExecutor`] 真正执行
+    work_engine: std::sync::Arc<axagent_runtime::work_engine::WorkEngine>,
+    /// 进化产物执行统计（T5A.3）：与 `AppState.evolution_execution_stats` 同 Arc，
+    /// deploy 时注入 `EvolutionFeedbackSink` 累计真实执行成败。
+    /// D2 会话隔离：`conversation_id → tool_id → ToolExecutionStats`。
+    stats: std::sync::Arc<
+        tokio::sync::Mutex<
+            HashMap<
+                String,
+                HashMap<String, axagent_harness::workflow_evolution::ToolExecutionStats>,
+            >,
+        >,
+    >,
+    /// 数据库连接（D3 持久化）：deploy 的进化产物执行反馈经此落库，重启后加载不丢。
+    db: axagent_harness::DatabaseConnection,
+}
+
+impl EvolutionMutationAccess {
+    /// 构造访问器（state.rs 初始化时传入 local_tool_registry / work_engine / 执行统计的 Arc 克隆）。
+    pub fn new(
+        registry: std::sync::Arc<tokio::sync::Mutex<axagent_tools::registry::UnifiedToolRegistry>>,
+        work_engine: std::sync::Arc<axagent_runtime::work_engine::WorkEngine>,
+        stats: std::sync::Arc<
+            tokio::sync::Mutex<
+                HashMap<
+                    String,
+                    HashMap<String, axagent_harness::workflow_evolution::ToolExecutionStats>,
+                >,
+            >,
+        >,
+        db: axagent_harness::DatabaseConnection,
+    ) -> Self {
+        Self { registry, work_engine, stats, db }
+    }
+}
+
+#[async_trait::async_trait]
+impl RuntimeMutationAccess for EvolutionMutationAccess {
+    async fn inspect(&self, capability_type: &str) -> Result<MutationResult, String> {
+        let registry = self.registry.lock().await;
+        let sources = registry.runtime_tool_sources();
+        let mut tools: Vec<serde_json::Value> = Vec::new();
+        for (name, source) in sources {
+            let description =
+                registry.tools.find(name).map(|t| t.description().to_string()).unwrap_or_default();
+            tools.push(serde_json::json!({
+                "name": name,
+                "source": source,
+                "description": description,
+            }));
+        }
+        Ok(MutationResult::ok(serde_json::json!({
+            "capabilityType": capability_type,
+            "count": tools.len(),
+            "runtimeTools": tools,
+        })))
+    }
+
+    async fn define(&self, spec: serde_json::Value) -> Result<MutationResult, String> {
+        // 仅生成工具定义，不注册到运行时（供 Agent 审查，确认后走 deploy）
+        let name = spec.get("name").and_then(|v| v.as_str()).unwrap_or_default();
+        let description = spec.get("description").and_then(|v| v.as_str()).unwrap_or_default();
+        let code = spec.get("code").and_then(|v| v.as_str()).unwrap_or_default();
+        let input_schema = spec.get("input_schema").cloned().unwrap_or(serde_json::Value::Null);
+
+        Ok(MutationResult::ok(serde_json::json!({
+            "status": "defined",
+            "name": name,
+            "description": description,
+            "code": code,
+            "inputSchema": input_schema,
+            "note": "工具定义已生成（未注册）。确认后调用 system_evolution_deploy 完成注册。",
+        })))
+    }
+
+    async fn deploy(&self, spec: serde_json::Value) -> Result<MutationResult, String> {
+        let name = spec
+            .get("name")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| "缺少必填参数 'name'".to_string())?;
+        let description =
+            spec.get("description").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+        let code = spec.get("code").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+        let artifact_kind = axagent_harness::trajectory_types::EvolutionArtifactKind::infer(&code);
+
+        let generated = axagent_harness::trajectory_types::GeneratedTool {
+            id: format!("runtime:{}", name),
+            name: name.to_string(),
+            code,
+            description,
+            test_coverage: 0.0,
+            created_at: chrono::Utc::now().timestamp_millis(),
+            usage_count: 0,
+            success_rate: 0.0,
+            artifact_kind,
+        };
+
+        let mut registry = self.registry.lock().await;
+        // T4.3/T4.4：注入 WorkflowDagExecutor（rt-workflow 执行编排型产物）+ EvolutionArtifactValidator
+        // （Rhai 产物执行前沙箱验证），实现分层执行。
+        // T5A.3：注入 ExecutionFeedbackSink，把真实执行成败累计到贝叶斯证据。
+        let adapter = axagent_tools::generated_tool::GeneratedToolAdapter::new(generated.clone())
+            .with_workflow_executor(std::sync::Arc::new(WorkEngineWorkflowDagExecutor::new(
+                self.work_engine.clone(),
+            )))
+            .with_sandbox_validator(std::sync::Arc::new(
+                crate::init::workflow_injections::SelfReferenceArtifactValidator::new(),
+            ))
+            .with_feedback_sink(std::sync::Arc::new(
+                crate::init::workflow_injections::EvolutionFeedbackSinkImpl::new(
+                    self.stats.clone(),
+                    Some(self.db.clone()),
+                ),
+            ));
+        match registry
+            .register_runtime_tool(std::sync::Arc::new(adapter), "runtime_evolution".to_string())
+        {
+            Ok(()) => {
+                // 持久化（source=runtime_evolution），重启后自动加载
+                let persisted = axagent_runtime::tool_generator::GeneratedTool {
+                    tool_name: generated.name.clone(),
+                    implementation:
+                        axagent_runtime::tool_generator::GeneratedToolImplementation::Script {
+                            language: "javascript".to_string(),
+                            code: generated.code.clone(),
+                        },
+                    input_schema: serde_json::json!({ "type": "object" }),
+                    output_schema: serde_json::json!({ "type": "object" }),
+                    source_info: axagent_runtime::tool_generator::GeneratedToolSourceInfo {
+                        original_name: generated.name.clone(),
+                        original_description: generated.description.clone(),
+                        generation_method: "system_evolution_deploy".to_string(),
+                        agent_model: None,
+                        generated_at: chrono::Utc::now().timestamp_millis(),
+                        source: Some("runtime_evolution".to_string()),
+                    },
+                };
+                let _ =
+                    axagent_runtime::tool_generator::persist_runtime_evolution(&persisted).await;
+
+                tracing::info!(target: "evolution_engine", tool = %generated.name,
+                    "Self-referential deploy registered runtime tool");
+                Ok(MutationResult::ok(serde_json::json!({
+                    "success": true,
+                    "name": generated.name,
+                    "message": "工具已部署到运行时注册表，Agent 立即可调用",
+                })))
+            },
+            Err(e) => Ok(MutationResult::err(format!("工具注册失败: {}", e))),
+        }
+    }
+
+    async fn undeploy(&self, name: &str) -> Result<MutationResult, String> {
+        let mut registry = self.registry.lock().await;
+        match registry.unregister_runtime_tool(name) {
+            Some(_) => {
+                tracing::info!(target: "evolution_engine", tool = name,
+                    "Self-referential undeploy unregistered runtime tool");
+                Ok(MutationResult::ok(serde_json::json!({
+                    "success": true,
+                    "name": name,
+                    "message": "运行时工具已卸载",
+                })))
+            },
+            None => Ok(MutationResult::err(format!(
+                "工具 '{}' 不是运行时注册的工具，无法卸载（内置工具与 MCP 工具不受影响）",
+                name
+            ))),
+        }
     }
 }

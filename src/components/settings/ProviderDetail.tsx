@@ -154,10 +154,10 @@ function deriveModelGroupName(model_id: string): string {
 }
 
 function getModelGroupName(
-  model: Pick<Model, "model_id" | "group_name">,
+  model: Pick<Model, "modelId" | "groupName">,
 ): string {
-  const explicitGroup = model.group_name?.trim();
-  return explicitGroup || deriveModelGroupName(model.model_id);
+  const explicitGroup = model.groupName?.trim();
+  return explicitGroup || deriveModelGroupName(model.modelId);
 }
 
 function formatTokenCount(tokens: number): string {
@@ -248,11 +248,11 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
   const [iconOverrides, setIconOverrides] = useState<Record<string, string>>(
     {},
   );
-  const [apiHostLocal, setApiHostLocal] = useState(provider?.api_host ?? "");
-  const [apiPathLocal, setApiPathLocal] = useState(provider?.api_path ?? "");
+  const [apiHostLocal, setApiHostLocal] = useState(provider?.apiHost ?? "");
+  const [apiPathLocal, setApiPathLocal] = useState(provider?.apiPath ?? "");
   const [customHeadersLocal, setCustomHeadersLocal] = useState(() => {
     try {
-      const obj = JSON.parse(provider?.custom_headers ?? "{}") as Record<
+      const obj = JSON.parse(provider?.customHeaders ?? "{}") as Record<
         string,
         string
       >;
@@ -327,7 +327,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     const filtered = pickerModels.filter(
       (m) =>
         !pickerSearch
-        || [m.name, m.model_id].some((v) => v.toLowerCase().includes(pickerSearch.toLowerCase())),
+        || [m.name, m.modelId].some((v) => v.toLowerCase().includes(pickerSearch.toLowerCase())),
     );
     const groups: Record<string, Model[]> = {};
     for (const m of filtered) {
@@ -388,17 +388,17 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       if (row.type === "group") {
         return `group-${row.group}`;
       }
-      return `model-${row.model.model_id}`;
+      return `model-${row.model.modelId}`;
     },
     overscan: 15,
   });
 
   // Sync local state when provider changes (e.g. switching providers)
   useEffect(() => {
-    setApiHostLocal(provider?.api_host ?? "");
-    setApiPathLocal(provider?.api_path ?? "");
+    setApiHostLocal(provider?.apiHost ?? "");
+    setApiPathLocal(provider?.apiPath ?? "");
     try {
-      const obj = JSON.parse(provider?.custom_headers ?? "{}") as Record<
+      const obj = JSON.parse(provider?.customHeaders ?? "{}") as Record<
         string,
         string
       >;
@@ -414,7 +414,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
 
   // Resolve actual request URLs for preview
   const resolvedUrls = useMemo(() => {
-    const providerType = provider?.provider_type ?? "openai";
+    const providerType = provider?.providerType ?? "openai";
     const host = apiHostLocal || DEFAULT_HOSTS[providerType] || "";
     const path = apiPathLocal || DEFAULT_PATHS[providerType] || "";
 
@@ -459,12 +459,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     }
 
     return { resolvedBase, chatUrl };
-  }, [apiHostLocal, apiPathLocal, provider?.provider_type]);
+  }, [apiHostLocal, apiPathLocal, provider?.providerType]);
 
   const filteredModels = useMemo(
     () =>
       (provider?.models ?? []).filter((m) =>
-        [m.name, m.model_id, getModelGroupName(m)]
+        [m.name, m.modelId, getModelGroupName(m)]
           .filter((value): value is string => Boolean(value))
           .some((value) => value.toLowerCase().includes(modelSearch.toLowerCase()))
       ),
@@ -537,21 +537,21 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       // Deduplicate by model_id (keep last occurrence)
       const seen = new Map<string, Model>();
       for (const m of models) {
-        seen.set(m.model_id, m);
+        seen.set(m.modelId, m);
       }
       const dedupedModels = Array.from(seen.values());
       const existingIds = new Set(
-        (provider?.models ?? []).map((m) => m.model_id),
+        (provider?.models ?? []).map((m) => m.modelId),
       );
       const newModels = dedupedModels.filter(
-        (m) => !existingIds.has(m.model_id),
+        (m) => !existingIds.has(m.modelId),
       );
       if (newModels.length === 0) {
         message.info(t("settings.noNewModels"));
         return;
       }
       setPickerModels(newModels);
-      setPickerSelected(new Set(newModels.map((m) => m.model_id)));
+      setPickerSelected(new Set(newModels.map((m) => m.modelId)));
       setPickerMode("append");
       setPickerSearch("");
       setPickerCollapsed(new Set());
@@ -575,7 +575,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       // Deduplicate by model_id (keep last occurrence)
       const seen = new Map<string, Model>();
       for (const m of remoteModels) {
-        seen.set(m.model_id, m);
+        seen.set(m.modelId, m);
       }
       const dedupedModels = Array.from(seen.values());
       if (dedupedModels.length === 0) {
@@ -583,7 +583,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
         return;
       }
       const existingIds = new Set(
-        (provider?.models ?? []).map((m) => m.model_id),
+        (provider?.models ?? []).map((m) => m.modelId),
       );
       setPickerModels(dedupedModels);
       setPickerSelected(new Set(existingIds));
@@ -604,7 +604,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
   }, [providerId, fetchRemoteModels, provider?.models, message, t]);
 
   const handlePickerConfirm = useCallback(async () => {
-    const selectedModels = pickerModels.filter((m) => pickerSelected.has(m.model_id));
+    const selectedModels = pickerModels.filter((m) => pickerSelected.has(m.modelId));
     if (selectedModels.length === 0) {
       setPickerOpen(false);
       return;
@@ -679,18 +679,18 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       return;
     }
     setTestResults(new Map());
-    setTestingModels(new Set(models.map((m) => m.model_id)));
+    setTestingModels(new Set(models.map((m) => m.modelId)));
     await Promise.all(
       models.map(async (model) => {
         try {
-          const latencyMs = await testModel(providerId, model.model_id);
-          setTestResults((prev) => new Map(prev).set(model.model_id, { latencyMs }));
+          const latencyMs = await testModel(providerId, model.modelId);
+          setTestResults((prev) => new Map(prev).set(model.modelId, { latencyMs }));
         } catch (e) {
-          setTestResults((prev) => new Map(prev).set(model.model_id, { error: String(e) }));
+          setTestResults((prev) => new Map(prev).set(model.modelId, { error: String(e) }));
         } finally {
           setTestingModels((prev) => {
             const next = new Set(prev);
-            next.delete(model.model_id);
+            next.delete(model.modelId);
             return next;
           });
         }
@@ -709,7 +709,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     }
 
     const duplicateExists = (provider?.models ?? []).some(
-      (model) => model.model_id === nextModelId,
+      (model) => model.modelId === nextModelId,
     );
     if (duplicateExists) {
       message.error(t("settings.duplicateModelError"));
@@ -717,15 +717,15 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     }
 
     const nextModel: Model = {
-      provider_id: providerId,
-      model_id: nextModelId,
+      providerId: providerId,
+      modelId: nextModelId,
       name: nextModelName || nextModelId,
-      group_name: manualGroupName || deriveModelGroupName(nextModelId),
-      model_type: addModelType,
+      groupName: manualGroupName || deriveModelGroupName(nextModelId),
+      modelType: addModelType,
       capabilities: getDefaultCapabilitiesForType(addModelType),
-      max_tokens: null,
+      maxTokens: null,
       enabled: true,
-      param_overrides: null,
+      paramOverrides: null,
     };
 
     try {
@@ -752,26 +752,26 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
 
   const handleOpenSettings = useCallback((model: Model) => {
     setEditingModel(model);
-    const nextModelType = model.model_type || "Chat";
+    const nextModelType = model.modelType || "Chat";
     setEditCapabilities(
       sanitizeModelCapabilities(nextModelType, model.capabilities),
     );
     setEditModelType(nextModelType);
-    setEditMaxTokens(model.max_tokens ?? 128000);
-    setEditTemperature(model.param_overrides?.temperature ?? 0.7);
-    setEditMaxTokensParam(model.param_overrides?.max_tokens ?? 4096);
-    setEditTopP(model.param_overrides?.top_p ?? 1.0);
-    setEditFreqPenalty(model.param_overrides?.frequency_penalty ?? 0.0);
+    setEditMaxTokens(model.maxTokens ?? 128000);
+    setEditTemperature(model.paramOverrides?.temperature ?? 0.7);
+    setEditMaxTokensParam(model.paramOverrides?.maxTokens ?? 4096);
+    setEditTopP(model.paramOverrides?.topP ?? 1.0);
+    setEditFreqPenalty(model.paramOverrides?.frequencyPenalty ?? 0.0);
     setEditUseMaxCompletionTokens(
-      model.param_overrides?.use_max_completion_tokens ?? false,
+      model.paramOverrides?.useMaxCompletionTokens ?? false,
     );
-    setEditNoSystemRole(model.param_overrides?.no_system_role ?? false);
-    setEditForceMaxTokens(model.param_overrides?.force_max_tokens ?? false);
+    setEditNoSystemRole(model.paramOverrides?.noSystemRole ?? false);
+    setEditForceMaxTokens(model.paramOverrides?.forceMaxTokens ?? false);
     setEditThinkingParamStyle(
-      model.param_overrides?.thinking_param_style ?? "reasoning_effort",
+      model.paramOverrides?.thinkingParamStyle ?? "reasoning_effort",
     );
-    setEditRequestDelayMs(model.param_overrides?.request_delay_ms ?? null);
-    setEditGroupName(model.group_name ?? "");
+    setEditRequestDelayMs(model.paramOverrides?.requestDelayMs ?? null);
+    setEditGroupName(model.groupName ?? "");
     setSettingsModalOpen(true);
   }, []);
 
@@ -781,33 +781,33 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
     }
     const values: ModelParamOverrides = {
       temperature: editTemperature ?? undefined,
-      max_tokens: editMaxTokensParam ?? undefined,
-      top_p: editTopP ?? undefined,
-      frequency_penalty: editFreqPenalty ?? undefined,
-      use_max_completion_tokens: editUseMaxCompletionTokens,
-      no_system_role: editNoSystemRole,
-      force_max_tokens: editForceMaxTokens,
-      thinking_param_style: editThinkingParamStyle === "reasoning_effort"
+      maxTokens: editMaxTokensParam ?? undefined,
+      topP: editTopP ?? undefined,
+      frequencyPenalty: editFreqPenalty ?? undefined,
+      useMaxCompletionTokens: editUseMaxCompletionTokens,
+      noSystemRole: editNoSystemRole,
+      forceMaxTokens: editForceMaxTokens,
+      thinkingParamStyle: editThinkingParamStyle === "reasoning_effort"
         ? undefined
         : editThinkingParamStyle,
-      request_delay_ms: editRequestDelayMs ?? undefined,
+      requestDelayMs: editRequestDelayMs ?? undefined,
     };
     const nextCapabilities = sanitizeModelCapabilities(
       editModelType,
       editCapabilities,
     );
     try {
-      await updateModelParams(providerId, editingModel.model_id, values);
+      await updateModelParams(providerId, editingModel.modelId, values);
       // Update capabilities locally via saveModels
       const updatedModels = (provider?.models ?? []).map((m) =>
-        m.model_id === editingModel.model_id
+        m.modelId === editingModel.modelId
           ? {
             ...m,
             capabilities: nextCapabilities,
-            model_type: editModelType,
-            param_overrides: values,
-            max_tokens: editMaxTokens,
-            group_name: editGroupName || null,
+            modelType: editModelType,
+            paramOverrides: values,
+            maxTokens: editMaxTokens,
+            groupName: editGroupName || null,
           }
           : m
       );
@@ -847,7 +847,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
         clearTimeout(apiHostTimerRef.current);
       }
       apiHostTimerRef.current = setTimeout(() => {
-        updateProvider(providerId, { api_host: value });
+        updateProvider(providerId, { apiHost: value });
       }, 500);
     },
     [providerId, updateProvider],
@@ -860,7 +860,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
         clearTimeout(apiPathTimerRef.current);
       }
       apiPathTimerRef.current = setTimeout(() => {
-        updateProvider(providerId, { api_path: value || null });
+        updateProvider(providerId, { apiPath: value || null });
       }, 500);
     },
     [providerId, updateProvider],
@@ -892,14 +892,14 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
   const handleBatchToggleGroup = useCallback((groupModels: Model[]) => {
     setBatchSelected((prev) => {
       const next = new Set(prev);
-      const allSelected = groupModels.every((m) => prev.has(m.model_id));
+      const allSelected = groupModels.every((m) => prev.has(m.modelId));
       if (allSelected) {
         for (const m of groupModels) {
-          next.delete(m.model_id);
+          next.delete(m.modelId);
         }
       } else {
         for (const m of groupModels) {
-          next.add(m.model_id);
+          next.add(m.modelId);
         }
       }
       return next;
@@ -911,7 +911,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       return;
     }
     const updatedModels = (provider?.models ?? []).map((m) =>
-      batchSelected.has(m.model_id) ? { ...m, enabled: true } : m
+      batchSelected.has(m.modelId) ? { ...m, enabled: true } : m
     );
     try {
       await saveModels(providerId, updatedModels);
@@ -928,7 +928,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       return;
     }
     const updatedModels = (provider?.models ?? []).map((m) =>
-      batchSelected.has(m.model_id) ? { ...m, enabled: false } : m
+      batchSelected.has(m.modelId) ? { ...m, enabled: false } : m
     );
     try {
       await saveModels(providerId, updatedModels);
@@ -945,7 +945,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       return;
     }
     const updatedModels = (provider?.models ?? []).filter(
-      (m) => !batchSelected.has(m.model_id),
+      (m) => !batchSelected.has(m.modelId),
     );
     try {
       await saveModels(providerId, updatedModels);
@@ -990,12 +990,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       return;
     }
     const updatedModels = (provider?.models ?? []).map((m) => {
-      if (!batchSelected.has(m.model_id)) {
+      if (!batchSelected.has(m.modelId)) {
         return m;
       }
       const updated = { ...m };
       if (batchModelTypeEnabled) {
-        updated.model_type = batchModelType;
+        updated.modelType = batchModelType;
         updated.capabilities = sanitizeModelCapabilities(
           batchModelType,
           batchCapabilitiesEnabled ? batchCapabilities : updated.capabilities,
@@ -1003,41 +1003,41 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       }
       if (batchCapabilitiesEnabled && !batchModelTypeEnabled) {
         updated.capabilities = sanitizeModelCapabilities(
-          updated.model_type || "Chat",
+          updated.modelType || "Chat",
           batchCapabilities,
         );
       }
       if (batchMaxTokensEnabled) {
-        updated.max_tokens = batchMaxTokens;
+        updated.maxTokens = batchMaxTokens;
       }
-      const overrides: ModelParamOverrides = { ...updated.param_overrides };
+      const overrides: ModelParamOverrides = { ...updated.paramOverrides };
       if (batchTemperatureEnabled) {
         overrides.temperature = batchTemperature;
       }
       if (batchTopPEnabled) {
-        overrides.top_p = batchTopP;
+        overrides.topP = batchTopP;
       }
       if (batchMaxTokensParamEnabled) {
-        overrides.max_tokens = batchMaxTokensParam;
+        overrides.maxTokens = batchMaxTokensParam;
       }
       if (batchFreqPenaltyEnabled) {
-        overrides.frequency_penalty = batchFreqPenalty;
+        overrides.frequencyPenalty = batchFreqPenalty;
       }
       if (batchUseMaxCompletionTokensEnabled) {
-        overrides.use_max_completion_tokens = batchUseMaxCompletionTokens;
+        overrides.useMaxCompletionTokens = batchUseMaxCompletionTokens;
       }
       if (batchNoSystemRoleEnabled) {
-        overrides.no_system_role = batchNoSystemRole;
+        overrides.noSystemRole = batchNoSystemRole;
       }
       if (batchForceMaxTokensEnabled) {
-        overrides.force_max_tokens = batchForceMaxTokens;
+        overrides.forceMaxTokens = batchForceMaxTokens;
       }
       if (batchThinkingParamStyleEnabled) {
-        overrides.thinking_param_style = batchThinkingParamStyle === "reasoning_effort"
+        overrides.thinkingParamStyle = batchThinkingParamStyle === "reasoning_effort"
           ? undefined
           : batchThinkingParamStyle;
       }
-      updated.param_overrides = overrides;
+      updated.paramOverrides = overrides;
       return updated;
     });
     try {
@@ -1162,15 +1162,15 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       if (row.type === "group") {
         return `group-${row.group}`;
       }
-      return `model-${row.model.model_id}`;
+      return `model-${row.model.modelId}`;
     },
     overscan: 10,
   });
 
   const handleRemoveModel = useCallback(
-    async (model_id: string) => {
+    async (modelId: string) => {
       const updatedModels = (provider?.models ?? []).filter(
-        (m) => m.model_id !== model_id,
+        (m) => m.modelId !== modelId,
       );
       try {
         await saveModels(providerId, updatedModels);
@@ -1224,14 +1224,14 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
               <Title level={4} className="mb-0!">
                 {provider.name}
               </Title>
-              {!provider.builtin_id && (
+              {!provider.builtinId && (
                 <Button
                   type="text"
                   size="small"
                   icon={<SquarePen size={14} />}
                   onClick={() => {
                     setEditProviderName(provider.name);
-                    setEditProviderType(provider.provider_type);
+                    setEditProviderType(provider.providerType);
                     setProviderEditModalOpen(true);
                   }}
                 />
@@ -1254,7 +1254,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
             checkedChildren={t("common.enabled")}
             unCheckedChildren={t("common.disabled")}
           />
-          {!provider.builtin_id && (
+          {!provider.builtinId && (
             <Popconfirm
               title={t("settings.deleteProviderConfirm")}
               onConfirm={async () => {
@@ -1310,7 +1310,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                       onChange={(checked) => toggleProviderKey(key.id, checked)}
                     />
                     <Key size={14} />
-                    <Text code>{key.key_prefix}••••••••</Text>
+                    <Text code>{key.keyPrefix}••••••••</Text>
                   </Space>
                   <Space size="small">
                     <CopyButton
@@ -1358,9 +1358,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       </Card>
 
       {/* 本地模型（llama.cpp）运行状态与启停管理 */}
-      {provider.provider_type === "llama_cpp" && (
-        <LocalModelPanel providerId={provider.id} apiHost={provider.api_host} />
-      )}
+      {provider.providerType === "llama_cpp" && <LocalModelPanel providerId={provider.id} apiHost={provider.apiHost} />}
 
       {/* API Host + Path */}
       <Card title={t("settings.apiHost")} size="small">
@@ -1386,14 +1384,14 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                 id="provider-detail-input-114"
                 value={apiHostLocal}
                 onChange={(e) => handleApiHostChange(e.target.value)}
-                placeholder={DEFAULT_HOSTS[provider.provider_type]}
+                placeholder={DEFAULT_HOSTS[provider.providerType]}
               />
               <Button
                 icon={<Undo2 size={16} />}
                 onClick={() => {
-                  const defaultHost = DEFAULT_HOSTS[provider.provider_type];
+                  const defaultHost = DEFAULT_HOSTS[provider.providerType];
                   setApiHostLocal(defaultHost);
-                  updateProvider(providerId, { api_host: defaultHost });
+                  updateProvider(providerId, { apiHost: defaultHost });
                 }}
               >
                 {t("settings.resetDefault")}
@@ -1423,9 +1421,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
           >
             <Input
               id="provider-detail-input-115"
-              value={apiPathLocal || DEFAULT_PATHS[provider.provider_type]}
+              value={apiPathLocal || DEFAULT_PATHS[provider.providerType]}
               onChange={(e) => handleApiPathChange(e.target.value)}
-              placeholder={DEFAULT_PATHS[provider.provider_type]}
+              placeholder={DEFAULT_PATHS[provider.providerType]}
             />
             <div
               style={{
@@ -1449,12 +1447,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
             style={{ marginBottom: 0 }}
           >
             <Select
-              value={provider?.tool_adaptation ?? "native"}
+              value={provider?.toolAdaptation ?? "native"}
               onChange={(val) => {
                 if (val === "native") {
-                  updateProvider(providerId, { tool_adaptation: null });
+                  updateProvider(providerId, { toolAdaptation: null });
                 } else {
-                  updateProvider(providerId, { tool_adaptation: val });
+                  updateProvider(providerId, { toolAdaptation: val });
                 }
               }}
               options={[
@@ -1471,15 +1469,15 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
             >
               {t("settings.toolCallingModeDesc")}
             </div>
-            {provider?.tool_adaptation === "managed" && (
+            {provider?.toolAdaptation === "managed" && (
               <div style={{ marginTop: 8 }}>
                 <Input
                   size="small"
                   placeholder={t("settings.platform.markerPrefixPlaceholder")}
-                  value={provider?.tool_adaptation_marker_prefix ?? ""}
+                  value={provider?.toolAdaptationMarkerPrefix ?? ""}
                   onChange={(e) => {
                     const val = e.target.value || null;
-                    updateProvider(providerId, { tool_adaptation_marker_prefix: val });
+                    updateProvider(providerId, { toolAdaptationMarkerPrefix: val });
                   }}
                 />
                 <div
@@ -1766,9 +1764,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                 const someEnabled = models.some((m) => m.enabled);
                 const isExpanded = expandedGroups.includes(group);
                 const batchAllSelected = batchMode
-                  && models.every((m) => batchSelected.has(m.model_id));
+                  && models.every((m) => batchSelected.has(m.modelId));
                 const batchSomeSelected = batchMode
-                  && models.some((m) => batchSelected.has(m.model_id));
+                  && models.some((m) => batchSelected.has(m.modelId));
                 return (
                   <div
                     key={`g-${group}`}
@@ -1826,7 +1824,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                       )}
                       {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                       <ModelIcon
-                        model={models[0]?.model_id ?? group}
+                        model={models[0]?.modelId ?? group}
                         size={20}
                         type="avatar"
                       />
@@ -1860,10 +1858,10 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                               size="small"
                               type="text"
                               icon={<Heart size={14} />}
-                              loading={models.some((m) => testingModels.has(m.model_id))}
+                              loading={models.some((m) => testingModels.has(m.modelId))}
                               onClick={() => {
                                 for (const m of models) {
-                                  handleTestInlineModel(m.model_id);
+                                  handleTestInlineModel(m.modelId);
                                 }
                               }}
                             />
@@ -1877,7 +1875,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                             ? { backgroundColor: token.colorWarning }
                             : undefined}
                           onChange={(checked) => {
-                            models.forEach((m) => toggleModel(providerId, m.model_id, checked));
+                            models.forEach((m) => toggleModel(providerId, m.modelId, checked));
                           }}
                         />
                         {!batchMode && (
@@ -1885,11 +1883,11 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                             title={t("settings.deleteGroupConfirm")}
                             onConfirm={async () => {
                               const modelIds = new Set(
-                                models.map((m) => m.model_id),
+                                models.map((m) => m.modelId),
                               );
                               const updatedModels = (
                                 provider?.models ?? []
-                              ).filter((m) => !modelIds.has(m.model_id));
+                              ).filter((m) => !modelIds.has(m.modelId));
                               try {
                                 await saveModels(providerId, updatedModels);
                               } catch {
@@ -1917,7 +1915,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
               const { model } = row;
               return (
                 <div
-                  key={`m-${model.model_id}`}
+                  key={`m-${model.modelId}`}
                   data-index={virtualRow.index}
                   ref={modelListVirtualizer.measureElement}
                   style={{
@@ -1938,46 +1936,46 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                       cursor: batchMode ? "pointer" : undefined,
                     }}
                     onClick={batchMode
-                      ? () => handleBatchToggleModel(model.model_id)
+                      ? () => handleBatchToggleModel(model.modelId)
                       : undefined}
                     onKeyDown={(e) => {
                       if (batchMode && (e.key === "Enter" || e.key === " ")) {
-                        handleBatchToggleModel(model.model_id);
+                        handleBatchToggleModel(model.modelId);
                       }
                     }}
                   >
                     {batchMode && (
                       <Checkbox
-                        checked={batchSelected.has(model.model_id)}
+                        checked={batchSelected.has(model.modelId)}
                         onClick={(e) => e.stopPropagation()}
-                        onChange={() => handleBatchToggleModel(model.model_id)}
+                        onChange={() => handleBatchToggleModel(model.modelId)}
                       />
                     )}
-                    {iconOverrides[model.model_id]
+                    {iconOverrides[model.modelId]
                       ? (
                         <DynamicLobeIcon
-                          iconId={iconOverrides[model.model_id]}
+                          iconId={iconOverrides[model.modelId]}
                           size={20}
                           type="avatar"
                         />
                       )
                       : (
                         <ModelIcon
-                          model={model.model_id}
+                          model={model.modelId}
                           size={20}
                           type="avatar"
                         />
                       )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1 ax-truncate">
-                        <span>{model.name || model.model_id}</span>
-                        {model.name && model.name !== model.model_id && (
+                        <span>{model.name || model.modelId}</span>
+                        {model.name && model.name !== model.modelId && (
                           <Text type="secondary" style={{ fontSize: 12 }}>
-                            ({model.model_id})
+                            ({model.modelId})
                           </Text>
                         )}
                         <Tag
-                          color={MODEL_TYPE_CONFIG[model.model_type || "Chat"].color}
+                          color={MODEL_TYPE_CONFIG[model.modelType || "Chat"].color}
                           variant="filled"
                           style={{
                             fontSize: 10,
@@ -1986,11 +1984,11 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                             margin: 0,
                           }}
                         >
-                          {MODEL_TYPE_CONFIG[model.model_type || "Chat"].icon}
+                          {MODEL_TYPE_CONFIG[model.modelType || "Chat"].icon}
                           <span style={{ marginLeft: 2 }}>
                             {t(
-                              `settings.modelType.${model.model_type || "Chat"}`,
-                              MODEL_TYPE_LABEL_KEYS[model.model_type || "Chat"],
+                              `settings.modelType.${model.modelType || "Chat"}`,
+                              MODEL_TYPE_LABEL_KEYS[model.modelType || "Chat"],
                             )}
                           </span>
                         </Tag>
@@ -2016,7 +2014,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                             </Tag>
                           </Tooltip>
                         ))}
-                        {model.max_tokens != null && model.max_tokens > 0 && (
+                        {model.maxTokens != null && model.maxTokens > 0 && (
                           <Tag
                             variant="filled"
                             color="default"
@@ -2027,7 +2025,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                               margin: 0,
                             }}
                           >
-                            {formatTokenCount(model.max_tokens)}
+                            {formatTokenCount(model.maxTokens)}
                           </Tag>
                         )}
                       </div>
@@ -2036,12 +2034,12 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                       className="flex items-center gap-1"
                       style={{ flexShrink: 0 }}
                     >
-                      {!batchMode && testingModels.has(model.model_id) && <Spin size="small" />}
+                      {!batchMode && testingModels.has(model.modelId) && <Spin size="small" />}
                       {!batchMode
-                        && !testingModels.has(model.model_id)
-                        && testResults.has(model.model_id)
+                        && !testingModels.has(model.modelId)
+                        && testResults.has(model.modelId)
                         && (() => {
-                          const result = testResults.get(model.model_id)!;
+                          const result = testResults.get(model.modelId)!;
                           if (result.latencyMs != null) {
                             return (
                               <span
@@ -2085,7 +2083,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                         id="provider-detail-switch-118"
                         size="small"
                         checked={model.enabled}
-                        onChange={(checked) => toggleModel(providerId, model.model_id, checked)}
+                        onChange={(checked) => toggleModel(providerId, model.modelId, checked)}
                       />
                       {!batchMode && (
                         <>
@@ -2100,13 +2098,13 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                               type="text"
                               size="small"
                               icon={<Heart size={14} />}
-                              loading={testingModels.has(model.model_id)}
-                              onClick={() => handleTestInlineModel(model.model_id)}
+                              loading={testingModels.has(model.modelId)}
+                              onClick={() => handleTestInlineModel(model.modelId)}
                             />
                           </Tooltip>
                           <Popconfirm
                             title={t("settings.removeModelConfirm")}
-                            onConfirm={() => handleRemoveModel(model.model_id)}
+                            onConfirm={() => handleRemoveModel(model.modelId)}
                             okText={t("common.confirm")}
                             cancelText={t("common.cancel")}
                             okButtonProps={{ danger: true }}
@@ -2155,7 +2153,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     }
                   }
                   const json = Object.keys(obj).length > 0 ? JSON.stringify(obj) : null;
-                  updateProvider(providerId, { custom_headers: json });
+                  updateProvider(providerId, { customHeaders: json });
                 }}
                 placeholder={t("settings.customHeadersPlaceholder")}
                 autoSize={{ minRows: 2, maxRows: 8 }}
@@ -2182,13 +2180,13 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                 >
                   <Select
                     id="provider-detail-select-120"
-                    value={provider.proxy_config?.proxy_type ?? "none"}
+                    value={provider.proxyConfig?.proxyType ?? "none"}
                     onChange={(val) =>
                       updateProvider(providerId, {
-                        proxy_config: {
-                          proxy_type: val === "none" ? null : val,
-                          proxy_address: provider.proxy_config?.proxy_address ?? null,
-                          proxy_port: provider.proxy_config?.proxy_port ?? null,
+                        proxyConfig: {
+                          proxyType: val === "none" ? null : val,
+                          proxyAddress: provider.proxyConfig?.proxyAddress ?? null,
+                          proxyPort: provider.proxyConfig?.proxyPort ?? null,
                         },
                       })}
                     options={[
@@ -2205,18 +2203,18 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                 >
                   <Input
                     id="provider-detail-input-121"
-                    value={provider.proxy_config?.proxy_address ?? ""}
+                    value={provider.proxyConfig?.proxyAddress ?? ""}
                     onChange={(e) =>
                       updateProvider(providerId, {
-                        proxy_config: {
-                          ...provider.proxy_config,
-                          proxy_type: provider.proxy_config?.proxy_type ?? null,
-                          proxy_address: e.target.value || null,
-                          proxy_port: provider.proxy_config?.proxy_port ?? null,
+                        proxyConfig: {
+                          ...provider.proxyConfig,
+                          proxyType: provider.proxyConfig?.proxyType ?? null,
+                          proxyAddress: e.target.value || null,
+                          proxyPort: provider.proxyConfig?.proxyPort ?? null,
                         },
                       })}
                     placeholder="127.1.0.0"
-                    disabled={provider.proxy_config?.proxy_type === "system"}
+                    disabled={provider.proxyConfig?.proxyType === "system"}
                   />
                 </Form.Item>
                 <Form.Item
@@ -2225,21 +2223,21 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                 >
                   <InputNumber
                     id="provider-detail-inputnumber-122"
-                    value={provider.proxy_config?.proxy_port}
+                    value={provider.proxyConfig?.proxyPort}
                     onChange={(val) =>
                       updateProvider(providerId, {
-                        proxy_config: {
-                          ...provider.proxy_config,
-                          proxy_type: provider.proxy_config?.proxy_type ?? null,
-                          proxy_address: provider.proxy_config?.proxy_address ?? null,
-                          proxy_port: val ?? null,
+                        proxyConfig: {
+                          ...provider.proxyConfig,
+                          proxyType: provider.proxyConfig?.proxyType ?? null,
+                          proxyAddress: provider.proxyConfig?.proxyAddress ?? null,
+                          proxyPort: val ?? null,
                         },
                       })}
                     placeholder="7890"
                     min={1}
                     max={65535}
                     style={{ width: "100%" }}
-                    disabled={provider.proxy_config?.proxy_type === "system"}
+                    disabled={provider.proxyConfig?.proxyType === "system"}
                   />
                 </Form.Item>
               </Form>
@@ -2376,9 +2374,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
               {/* Model Icon + Name + ID */}
               <div className="flex items-center gap-3">
                 <IconEditor
-                  iconType={iconOverrides[editingModel.model_id] ? "model_icon" : null}
-                  iconValue={iconOverrides[editingModel.model_id]
-                    ? `model:${iconOverrides[editingModel.model_id]}`
+                  iconType={iconOverrides[editingModel.modelId] ? "model_icon" : null}
+                  iconValue={iconOverrides[editingModel.modelId]
+                    ? `model:${iconOverrides[editingModel.modelId]}`
                     : null}
                   onChange={(type, value) => {
                     if (editingModel) {
@@ -2388,13 +2386,13 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                           : value;
                         setIconOverrides((prev) => ({
                           ...prev,
-                          [editingModel.model_id]: iconId,
+                          [editingModel.modelId]: iconId,
                         }));
                       } else {
                         // Clear override for non-model_icon types (or clear)
                         setIconOverrides((prev) => {
                           const next = { ...prev };
-                          delete next[editingModel.model_id];
+                          delete next[editingModel.modelId];
                           return next;
                         });
                       }
@@ -2402,10 +2400,10 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                   }}
                   size={32}
                   showModelIcons
-                  showClear={!!iconOverrides[editingModel.model_id]}
+                  showClear={!!iconOverrides[editingModel.modelId]}
                   defaultIcon={
                     <ModelIcon
-                      model={editingModel.model_id}
+                      model={editingModel.modelId}
                       size={32}
                       type="avatar"
                     />
@@ -2413,18 +2411,18 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                 />
                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
                   <span className="font-medium truncate">
-                    {editingModel.name || editingModel.model_id}
+                    {editingModel.name || editingModel.modelId}
                   </span>
                   {editingModel.name && (
                     <span
                       className="text-xs shrink-0"
                       style={{ color: token.colorTextSecondary }}
                     >
-                      ({editingModel.model_id})
+                      ({editingModel.modelId})
                     </span>
                   )}
                   <CopyButton
-                    text={editingModel.model_id}
+                    text={editingModel.modelId}
                     size={12}
                     successMessage={t("common.copySuccess")}
                     className="shrink-0"
@@ -3106,8 +3104,8 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
               placeholder={t("settings.selectModel")}
               optionFilterProp="label"
               options={(provider?.models ?? []).map((m) => ({
-                label: m.name || m.model_id,
-                value: m.model_id,
+                label: m.name || m.modelId,
+                value: m.modelId,
               }))}
             />
           </Form.Item>
@@ -3172,8 +3170,8 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
         {(() => {
           const { filtered } = pickerGroups;
           const allFilteredChecked = filtered.length > 0
-            && filtered.every((m) => pickerSelected.has(m.model_id));
-          const someFilteredChecked = filtered.some((m) => pickerSelected.has(m.model_id));
+            && filtered.every((m) => pickerSelected.has(m.modelId));
+          const someFilteredChecked = filtered.some((m) => pickerSelected.has(m.modelId));
           return (
             <>
               <div
@@ -3197,9 +3195,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                       const next = new Set(prev);
                       for (const m of filtered) {
                         if (e.target.checked) {
-                          next.add(m.model_id);
+                          next.add(m.modelId);
                         } else {
-                          next.delete(m.model_id);
+                          next.delete(m.modelId);
                         }
                       }
                       return next;
@@ -3277,8 +3275,8 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     }
                     if (row.type === "group") {
                       const { group, models } = row;
-                      const allChecked = models.every((m) => pickerSelected.has(m.model_id));
-                      const someChecked = models.some((m) => pickerSelected.has(m.model_id));
+                      const allChecked = models.every((m) => pickerSelected.has(m.modelId));
+                      const someChecked = models.some((m) => pickerSelected.has(m.modelId));
                       const collapsed = pickerCollapsed.has(group);
                       return (
                         <div
@@ -3345,9 +3343,9 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                                     const next = new Set(prev);
                                     for (const m of models) {
                                       if (e.target.checked) {
-                                        next.add(m.model_id);
+                                        next.add(m.modelId);
                                       } else {
-                                        next.delete(m.model_id);
+                                        next.delete(m.modelId);
                                       }
                                     }
                                     return next;
@@ -3356,7 +3354,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                               />
                             </div>
                             <ModelIcon
-                              model={models[0]?.model_id ?? group}
+                              model={models[0]?.modelId ?? group}
                               size={20}
                               type="avatar"
                             />
@@ -3379,7 +3377,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                     const { model: m } = row;
                     return (
                       <div
-                        key={`m-${m.model_id}`}
+                        key={`m-${m.modelId}`}
                         data-index={virtualRow.index}
                         ref={pickerVirtualizer.measureElement}
                         style={{
@@ -3395,30 +3393,30 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                           style={{ paddingLeft: 36 }}
                         >
                           <Checkbox
-                            checked={pickerSelected.has(m.model_id)}
+                            checked={pickerSelected.has(m.modelId)}
                             onChange={(e) => {
                               setPickerSelected((prev) => {
                                 const next = new Set(prev);
                                 if (e.target.checked) {
-                                  next.add(m.model_id);
+                                  next.add(m.modelId);
                                 } else {
-                                  next.delete(m.model_id);
+                                  next.delete(m.modelId);
                                 }
                                 return next;
                               });
                             }}
                           />
                           <ModelIcon
-                            model={m.model_id}
+                            model={m.modelId}
                             size={20}
                             type="avatar"
                           />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1 ax-truncate">
-                              <span>{m.name || m.model_id}</span>
-                              {m.name && m.name !== m.model_id && (
+                              <span>{m.name || m.modelId}</span>
+                              {m.name && m.name !== m.modelId && (
                                 <Text type="secondary" style={{ fontSize: 12 }}>
-                                  ({m.model_id})
+                                  ({m.modelId})
                                 </Text>
                               )}
                             </div>
@@ -3448,7 +3446,7 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
           if (trimmed !== provider.name) {
             updates.name = trimmed;
           }
-          if (editProviderType !== provider.provider_type) {
+          if (editProviderType !== provider.providerType) {
             updates.provider_type = editProviderType;
           }
           if (Object.keys(updates).length > 0) {

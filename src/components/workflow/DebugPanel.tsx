@@ -156,7 +156,7 @@ interface SpanTreeMiniProps {
 function SpanTreeMini({ node, depth, spanTypeColors }: SpanTreeMiniProps) {
   const [expanded, setExpanded] = useState(depth < 2);
   const hasChildren = node.children.length > 0;
-  const color = spanTypeColors[node.span_type] || "#d9d9d9";
+  const color = spanTypeColors[node.spanType] || "#d9d9d9";
 
   return (
     <div className="mb-0.5" style={{ marginLeft: depth * 16 }}>
@@ -180,9 +180,9 @@ function SpanTreeMini({ node, depth, spanTypeColors }: SpanTreeMiniProps) {
         <Text style={{ fontSize: 11, flex: 1 }} ellipsis>
           {node.name}
         </Text>
-        <Tag style={{ fontSize: 9, lineHeight: "14px", padding: "0 4px" }}>{node.span_type}</Tag>
+        <Tag style={{ fontSize: 9, lineHeight: "14px", padding: "0 4px" }}>{node.spanType}</Tag>
         {node.errors.length > 0 && <CloseCircleOutlined style={{ color: "#ff4d4f", fontSize: 10 }} />}
-        <Text type="secondary" style={{ fontSize: 10 }}>{formatTraceDuration(node.duration_ms)}</Text>
+        <Text type="secondary" style={{ fontSize: 10 }}>{formatTraceDuration(node.durationMs)}</Text>
       </div>
       {expanded
         && node.children.map((child) => (
@@ -611,13 +611,13 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
       const inputTokens = Math.ceil(inputStr.length / 4);
       const outputTokens = Math.ceil(outputStr.length / 4);
 
-      if (r.node_type === "trigger" || r.node_type === "tool") {
+      if (r.nodeType === "trigger" || r.nodeType === "tool") {
         toolTokens += inputTokens + outputTokens;
-      } else if (r.node_type === "agent") {
+      } else if (r.nodeType === "agent") {
         systemTokens += inputTokens * 0.3;
         userTokens += inputTokens * 0.4;
         assistantTokens += outputTokens;
-      } else if (r.node_type === "llm") {
+      } else if (r.nodeType === "llm") {
         userTokens += inputTokens;
         assistantTokens += outputTokens;
       } else {
@@ -877,7 +877,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
   useEffect(() => {
     if (!traceExpanded || !executionId) { return; }
     dispatchTraceLoading("LOADING");
-    loadTraces({ session_id: executionId, limit: 5 }).finally(() => dispatchTraceLoading("LOADED"));
+    loadTraces({ sessionId: executionId, limit: 5 }).finally(() => dispatchTraceLoading("LOADED"));
   }, [traceExpanded, executionId, loadTraces, dispatchTraceLoading]);
 
   const handleDebugRun = useCallback(async () => {
@@ -954,9 +954,9 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
           {r.status === "completed" && <CheckCircleOutlined style={{ color: token.colorSuccess }} />}
           {r.status === "failed" && <CloseCircleOutlined style={{ color: token.colorError }} />}
           {r.status === "skipped" && <StopOutlined style={{ color: token.colorTextQuaternary }} />}
-          <Text>{r.node_name || r.node_id}</Text>
-          {r.sub_workflow_id && (
-            <Tooltip title={`Sub-Workflow: ${r.sub_workflow_id}`}>
+          <Text>{r.nodeName || r.nodeId}</Text>
+          {r.subWorkflowId && (
+            <Tooltip title={`Sub-Workflow: ${r.subWorkflowId}`}>
               <Tag color="blue" style={{ fontSize: 10 }}>sub</Tag>
             </Tooltip>
           )}
@@ -1350,7 +1350,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
             <Card size="small">
               <Statistic
                 title={t("workflow.debug.execTime")}
-                value={formatDuration(status.total_time_ms)}
+                value={formatDuration(status.totalTimeMs)}
                 styles={{ content: { fontSize: 16 } }}
               />
             </Card>
@@ -1360,7 +1360,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
               <Statistic
                 title={t("workflow.debug.nodesExecuted")}
                 value={nodeRecords.length}
-                suffix={`/ ${status.node_count || nodes.length}`}
+                suffix={`/ ${status.nodeCount || nodes.length}`}
                 styles={{ content: { fontSize: 16 } }}
               />
             </Card>
@@ -1471,10 +1471,10 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                             </Paragraph>
                           </div>
                         )}
-                        {r.sub_workflow_id && (
+                        {r.subWorkflowId && (
                           <div className="mt-2">
                             <Tag color="blue">
-                              Sub-Workflow: {r.sub_workflow_id}
+                              Sub-Workflow: {r.subWorkflowId}
                             </Tag>
                           </div>
                         )}
@@ -1590,7 +1590,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                             onClick={() => {
                               if (!executionId) { return; }
                               dispatchTraceLoading("LOADING");
-                              loadTraces({ session_id: executionId, limit: 5 }).finally(() =>
+                              loadTraces({ sessionId: executionId, limit: 5 }).finally(() =>
                                 dispatchTraceLoading("LOADED")
                               );
                             }}
@@ -1606,17 +1606,17 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                       <div className="flex flex-wrap gap-1 mb-2">
                         {recentTraces.map((tr) => (
                           <Tag
-                            key={tr.trace_id}
-                            color={selectedTrace?.trace.trace_id === tr.trace_id ? "blue" : "default"}
+                            key={tr.traceId}
+                            color={selectedTrace?.trace.traceId === tr.traceId ? "blue" : "default"}
                             style={{ cursor: "pointer" }}
-                            onClick={() => selectTrace(tr.trace_id)}
+                            onClick={() => selectTrace(tr.traceId)}
                           >
                             <Space size={2}>
-                              {tr.trace_id.slice(0, 8)}
+                              {tr.traceId.slice(0, 8)}
                               <Text type="secondary" style={{ fontSize: 9 }}>
-                                {tr.span_count} spans
+                                {tr.spanCount} spans
                               </Text>
-                              {tr.error_count > 0 && <CloseCircleOutlined style={{ color: "#ff4d4f", fontSize: 9 }} />}
+                              {tr.errorCount > 0 && <CloseCircleOutlined style={{ color: "#ff4d4f", fontSize: 9 }} />}
                             </Space>
                           </Tag>
                         ))}
@@ -1624,13 +1624,13 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
 
                       {selectedTrace && (
                         <TraceSnapshot
-                          traceId={selectedTrace.trace.trace_id}
+                          traceId={selectedTrace.trace.traceId}
                           spans={selectedTrace.trace.spans}
                           tree={tree}
-                          totalTokens={selectedTrace.summary.total_tokens}
-                          totalCost={selectedTrace.summary.total_cost_usd}
-                          spanCount={selectedTrace.summary.span_count}
-                          errorCount={selectedTrace.summary.error_count}
+                          totalTokens={selectedTrace.summary.totalTokens}
+                          totalCost={selectedTrace.summary.totalCostUsd}
+                          spanCount={selectedTrace.summary.spanCount}
+                          errorCount={selectedTrace.summary.errorCount}
                         />
                       )}
                     </div>
@@ -1654,11 +1654,11 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                       <Space>
                         <Tag color={statusColor(item.status)}>{item.status}</Tag>
                         <Text type="secondary" className="text-xs">
-                          {new Date(item.created_at).toLocaleString()}
+                          {new Date(item.createdAt).toLocaleString()}
                         </Text>
-                        {item.total_time_ms != null && (
+                        {item.totalTimeMs != null && (
                           <Text type="secondary" className="text-xs">
-                            {formatDuration(item.total_time_ms)}
+                            {formatDuration(item.totalTimeMs)}
                           </Text>
                         )}
                       </Space>
@@ -1742,7 +1742,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
         title={
           <Space>
             <CodeOutlined />
-            {detailRecord?.node_name || detailRecord?.node_id}
+            {detailRecord?.nodeName || detailRecord?.nodeId}
             {detailRecord && <Tag color={statusColor(detailRecord.status)}>{detailRecord.status}</Tag>}
           </Space>
         }
@@ -1754,18 +1754,18 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
         {detailRecord && (
           <div>
             <Descriptions size="small" column={2} bordered className="mb-3">
-              <Descriptions.Item label={t("debugPanel.nodeId")}>{detailRecord.node_id}</Descriptions.Item>
-              <Descriptions.Item label={t("debugPanel.type")}>{detailRecord.node_type}</Descriptions.Item>
+              <Descriptions.Item label={t("debugPanel.nodeId")}>{detailRecord.nodeId}</Descriptions.Item>
+              <Descriptions.Item label={t("debugPanel.type")}>{detailRecord.nodeType}</Descriptions.Item>
               <Descriptions.Item label={t("debugPanel.status")}>
                 <Tag color={statusColor(detailRecord.status)}>{detailRecord.status}</Tag>
               </Descriptions.Item>
               <Descriptions.Item label={t("debugPanel.duration")}>
-                {formatDuration(detailRecord.execution_time_ms)}
+                {formatDuration(detailRecord.executionTimeMs)}
               </Descriptions.Item>
-              {detailRecord.sub_workflow_id && (
+              {detailRecord.subWorkflowId && (
                 <Descriptions.Item label={t("debugPanel.subWorkflow")} span={2}>
                   <Space>
-                    <Tag color="blue">{String(detailRecord.sub_workflow_id ?? "")}</Tag>
+                    <Tag color="blue">{String(detailRecord.subWorkflowId ?? "")}</Tag>
                     {!!detailRecord.output && typeof detailRecord.output === "object"
                       && "_child_execution_id" in detailRecord.output && (
                       <Button
@@ -1881,26 +1881,26 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
           <div>
             <Descriptions size="small" column={2} bordered className="mb-3">
               <Descriptions.Item label={t("debugPanel.executionId")}>
-                {subExecutionDetail.execution_id}
+                {subExecutionDetail.executionId}
               </Descriptions.Item>
-              <Descriptions.Item label={t("debugPanel.workflowId")}>{subExecutionDetail.workflow_id}</Descriptions.Item>
+              <Descriptions.Item label={t("debugPanel.workflowId")}>{subExecutionDetail.workflowId}</Descriptions.Item>
               <Descriptions.Item label={t("debugPanel.status")}>
                 <Tag color={statusColor(subExecutionDetail.status)}>{subExecutionDetail.status}</Tag>
               </Descriptions.Item>
               <Descriptions.Item label={t("debugPanel.duration")}>
-                {formatDuration(subExecutionDetail.total_time_ms)}
+                {formatDuration(subExecutionDetail.totalTimeMs)}
               </Descriptions.Item>
-              {subExecutionDetail.parent_execution_id && (
+              {subExecutionDetail.parentExecutionId && (
                 <Descriptions.Item label={t("debugPanel.parentExecution")} span={2}>
-                  <Tag color="purple">{subExecutionDetail.parent_execution_id}</Tag>
+                  <Tag color="purple">{subExecutionDetail.parentExecutionId}</Tag>
                 </Descriptions.Item>
               )}
             </Descriptions>
 
-            {subExecutionDetail.node_records.length > 0 && (
+            {subExecutionDetail.nodeRecords.length > 0 && (
               <Table
                 columns={recordColumns}
-                dataSource={subExecutionDetail.node_records}
+                dataSource={subExecutionDetail.nodeRecords}
                 rowKey="node_id"
                 size="small"
                 pagination={false}

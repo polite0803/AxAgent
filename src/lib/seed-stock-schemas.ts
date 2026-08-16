@@ -60,7 +60,7 @@ export async function seedStockSchemas(): Promise<void> {
         description: entry.description,
         category: entry.category,
         tags: entry.tags,
-        schema_json: JSON.stringify(entry.schema, null, 2),
+        schemaJson: JSON.stringify(entry.schema, null, 2),
       });
     }
   } catch (err) {

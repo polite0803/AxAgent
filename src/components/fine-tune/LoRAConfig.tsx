@@ -41,8 +41,8 @@ export function LoRAConfig() {
       const job = await createTrainingJob(values.datasetId, values.baseModel, {
         rank: values.rank,
         alpha: values.alpha,
-        learning_rate: values.learningRate,
-        batch_size: values.batchSize,
+        learningRate: values.learningRate,
+        batchSize: values.batchSize,
         epochs: values.epochs,
       });
 
@@ -86,14 +86,13 @@ export function LoRAConfig() {
             label={t("loraConfig.dataset")}
             rules={[{ required: true, message: "Please select a dataset" }]}
           >
-            <Select
-              placeholder={t("devtools.fineTune.selectDataset")}
-              options={datasets.map((dataset) => ({
-                key: dataset.id,
-                value: dataset.id,
-                label: `${dataset.name} (${dataset.num_samples} samples)`,
-              }))}
-            />
+            <Select placeholder={t("devtools.fineTune.selectDataset")}>
+              {datasets.map((dataset) => (
+                <Select.Option key={dataset.id} value={dataset.id}>
+                  {dataset.name} ({dataset.numSamples} samples)
+                </Select.Option>
+              ))}
+            </Select>
           </Form.Item>
 
           <Form.Item
@@ -101,14 +100,13 @@ export function LoRAConfig() {
             label={t("loraConfig.baseModel")}
             rules={[{ required: true, message: "Please select a base model" }]}
           >
-            <Select
-              placeholder={t("devtools.fineTune.selectBaseModel")}
-              options={baseModels.map((model) => ({
-                key: model.model_id,
-                value: model.model_id,
-                label: `${model.name} (${model.size_gb} GB)`,
-              }))}
-            />
+            <Select placeholder={t("devtools.fineTune.selectBaseModel")}>
+              {baseModels.map((model) => (
+                <Select.Option key={model.modelId} value={model.modelId}>
+                  {model.name} ({model.sizeGb} GB)
+                </Select.Option>
+              ))}
+            </Select>
           </Form.Item>
 
           <Divider>LoRA Parameters</Divider>

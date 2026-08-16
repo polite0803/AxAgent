@@ -189,6 +189,10 @@ pub struct AgentQueryRequest {
     /// 前端注入的页面上下文 — 供 Agent 理解当前环境
     #[serde(rename = "agentContext")]
     pub agent_context: Option<AgentContextPayload>,
+    /// 认知编排器决策的执行模式（ask / act / delegate 等），供 agent 运行时感知
+    /// 当前编排模式以调整行为；直连 agent（非认知编排）调用时缺省为 None。
+    #[serde(rename = "executionMode", default, skip_serializing_if = "Option::is_none")]
+    pub execution_mode: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

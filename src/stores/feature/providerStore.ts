@@ -29,16 +29,16 @@ interface ProviderState {
   saveModels: (providerId: string, models: Model[]) => Promise<void>;
   toggleModel: (
     providerId: string,
-    model_id: string,
+    modelId: string,
     enabled: boolean,
   ) => Promise<Model>;
   updateModelParams: (
     providerId: string,
-    model_id: string,
+    modelId: string,
     overrides: ModelParamOverrides,
   ) => Promise<Model>;
   fetchRemoteModels: (providerId: string) => Promise<Model[]>;
-  testModel: (providerId: string, model_id: string) => Promise<number>;
+  testModel: (providerId: string, modelId: string) => Promise<number>;
 }
 
 export const useProviderStore = create<ProviderState>((set) => ({
@@ -128,7 +128,7 @@ export const useProviderStore = create<ProviderState>((set) => ({
       set((s) => {
         const ordered = providerIds.flatMap((id, i) => {
           const p = s.providers.find((p) => p.id === id);
-          return p ? [{ ...p, sort_order: i }] : [];
+          return p ? [{ ...p, sortOrder: i }] : [];
         }) as ProviderConfig[];
         return { providers: ordered };
       });
@@ -225,11 +225,11 @@ export const useProviderStore = create<ProviderState>((set) => ({
     }
   },
 
-  toggleModel: async (providerId, model_id, enabled) => {
+  toggleModel: async (providerId, modelId, enabled) => {
     try {
       const model = await invoke<Model>("toggle_model", {
         providerId,
-        modelId: model_id,
+        modelId: modelId,
         enabled,
       });
       set((s) => ({
@@ -237,7 +237,7 @@ export const useProviderStore = create<ProviderState>((set) => ({
           p.id === providerId
             ? {
               ...p,
-              models: p.models.map((m) => m.model_id === model_id ? model : m),
+              models: p.models.map((m) => m.modelId === modelId ? model : m),
             }
             : p
         ),
@@ -250,11 +250,11 @@ export const useProviderStore = create<ProviderState>((set) => ({
     }
   },
 
-  updateModelParams: async (providerId, model_id, overrides) => {
+  updateModelParams: async (providerId, modelId, overrides) => {
     try {
       const model = await invoke<Model>("update_model_params", {
         providerId,
-        modelId: model_id,
+        modelId: modelId,
         overrides,
       });
       set((s) => ({
@@ -262,7 +262,7 @@ export const useProviderStore = create<ProviderState>((set) => ({
           p.id === providerId
             ? {
               ...p,
-              models: p.models.map((m) => m.model_id === model_id ? model : m),
+              models: p.models.map((m) => m.modelId === modelId ? model : m),
             }
             : p
         ),
@@ -284,10 +284,10 @@ export const useProviderStore = create<ProviderState>((set) => ({
     }
   },
 
-  testModel: async (providerId, model_id) => {
+  testModel: async (providerId, modelId) => {
     return await invoke<number>("test_model", {
       providerId,
-      modelId: model_id,
+      modelId: modelId,
     });
   },
 }));

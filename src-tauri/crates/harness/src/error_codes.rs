@@ -36,6 +36,8 @@ pub mod tool {
     pub const HTTP_NO_ENDPOINT: &str = "TOOL_HTTP_NO_ENDPOINT";
     pub const SSE_NO_ENDPOINT: &str = "TOOL_SSE_NO_ENDPOINT";
     pub const TRANSPORT_UNSUPPORTED: &str = "TOOL_TRANSPORT_UNSUPPORTED";
+    /// 工具重复注册（运行时动态注册时与已有工具同名）
+    pub const REGISTRATION_DUPLICATE: &str = "TOOL_REGISTRATION_DUPLICATE";
 }
 
 /// MCP 服务器相关错误码
@@ -426,4 +428,10 @@ pub mod cognitive {
     pub const PROMPT_REJECTED: &str = "COGNITIVE_PROMPT_REJECTED";
     /// RAR 向量检索失败（BE-I1）
     pub const RAR_RETRIEVE_FAILED: &str = "COGNITIVE_RAR_RETRIEVE_FAILED";
+    /// 能力补齐提议待用户确认（等待用户同意/拒绝弹窗）
+    pub const GAP_PROPOSAL_PENDING: &str = "COGNITIVE_GAP_PROPOSAL_PENDING";
+    /// 能力补齐提议已应用（用户同意后完成补齐，请重新发送请求）
+    pub const GAP_PROPOSAL_APPLIED: &str = "COGNITIVE_GAP_PROPOSAL_APPLIED";
+    /// 能力补齐提议被用户拒绝（保持原拒绝/无候选行为）
+    pub const GAP_PROPOSAL_REJECTED: &str = "COGNITIVE_GAP_PROPOSAL_REJECTED";
 }

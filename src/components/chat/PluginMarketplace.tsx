@@ -77,7 +77,7 @@ export function PluginMarketplace() {
     if (result) {
       message.success(
         t("chat.plugins.marketplace.installSuccess", {
-          id: result.plugin_id,
+          id: result.pluginId,
           version: result.version,
         }),
       );
@@ -164,10 +164,10 @@ export function PluginMarketplace() {
                     <Tag color="geekblue" className="text-xs">
                       {plugin.kind}
                     </Tag>
-                    {(plugin.mcp_servers.length > 0
+                    {(plugin.mcpServers.length > 0
                       || plugin.skills.length > 0) && (
                       <Text type="secondary" className="text-xs">
-                        MCP:{plugin.mcp_servers.length} Skills:
+                        MCP:{plugin.mcpServers.length} Skills:
                         {plugin.skills.length}
                       </Text>
                     )}
@@ -313,8 +313,8 @@ export function PluginMarketplace() {
                 : t("chat.plugins.marketplace.none")}
             </Descriptions.Item>
             <Descriptions.Item label={t("chat.plugins.marketplace.mcpServers")}>
-              {confirmManifest.mcp_servers.length > 0
-                ? confirmManifest.mcp_servers
+              {confirmManifest.mcpServers.length > 0
+                ? confirmManifest.mcpServers
                   .map((s) => `${s.name} (${s.command})`)
                   .join(", ")
                 : t("chat.plugins.marketplace.none")}

@@ -116,6 +116,7 @@ impl Span {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SpanEvent {
     pub name: String,
     pub timestamp: DateTime<Utc>,
@@ -135,6 +136,7 @@ impl SpanEvent {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SpanError {
     pub error_type: String,
     pub message: String,
@@ -160,6 +162,7 @@ impl SpanError {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TraceMetadata {
     pub user_id: String,
     pub session_id: String,

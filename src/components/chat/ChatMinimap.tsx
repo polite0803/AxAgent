@@ -24,7 +24,7 @@ interface MinimapEntry {
   msg: Message;
   role: "user" | "assistant";
   summary: string;
-  model_id?: string | null;
+  modelId?: string | null;
   providerId?: string | null;
 }
 
@@ -52,7 +52,7 @@ function useEntries(): MinimapEntry[] {
   }, [hasOlderMessages, loadingOlder]);
 
   return useMemo(() => {
-    const active = messages.filter((m) => m.is_active !== false);
+    const active = messages.filter((m) => m.isActive !== false);
     const entries: MinimapEntry[] = [];
     // Track assistant dedup: parentKey → index in entries array
     // Keep the LAST assistant per parent (matches ChatView's assistantByParentId behavior)
@@ -68,15 +68,15 @@ function useEntries(): MinimapEntry[] {
           summary: summarize(msg.content, 30),
         });
       } else if (msg.role === "assistant") {
-        const parentKey = msg.parent_message_id || msg.id;
+        const parentKey = msg.parentMessageId || msg.id;
         const existing = parentToIdx.get(parentKey);
         const entry: MinimapEntry = {
           index: existing !== undefined ? entries[existing].index : idx++,
           msg,
           role: "assistant",
           summary: summarize(msg.content, 30),
-          model_id: msg.model_id,
-          providerId: msg.provider_id,
+          modelId: msg.modelId,
+          providerId: msg.providerId,
         };
         if (existing !== undefined) {
           entries[existing] = entry;
@@ -224,12 +224,12 @@ function useActiveMessageId(entries: MinimapEntry[]): string | null {
 }
 
 function useModelName(
-  model_id?: string | null,
+  modelId?: string | null,
   providerId?: string | null,
 ): string {
   const providers = useProviderStore((s) => s.providers);
   return useMemo(() => {
-    if (!model_id) {
+    if (!modelId) {
       return "";
     }
     for (const p of providers) {
@@ -238,25 +238,25 @@ function useModelName(
       }
       if (p.models) {
         for (const m of p.models) {
-          if (m.model_id === model_id) {
-            return m.name || m.model_id;
+          if (m.modelId === modelId) {
+            return m.name || m.modelId;
           }
         }
       }
     }
-    const parts = model_id.split("/");
+    const parts = modelId.split("/");
     return parts[parts.length - 1];
-  }, [model_id, providerId, providers]);
+  }, [modelId, providerId, providers]);
 }
 
 function ModelName({
-  model_id,
+  modelId,
   providerId,
 }: {
-  model_id?: string | null;
+  modelId?: string | null;
   providerId?: string | null;
 }) {
-  const name = useModelName(model_id, providerId);
+  const name = useModelName(modelId, providerId);
   return <>{name}</>;
 }
 
@@ -440,8 +440,8 @@ function FaqItem({
       >
         {isUser
           ? <UserAvatarIcon size={14} />
-          : entry.model_id
-          ? <ModelIcon model={entry.model_id} size={12} type="avatar" />
+          : entry.modelId
+          ? <ModelIcon model={entry.modelId} size={12} type="avatar" />
           : (
             entry.index + 1
           )}
@@ -474,14 +474,14 @@ function FaqItem({
               <span
                 style={{ display: "inline-flex", alignItems: "center", gap: 3 }}
               >
-                {!isUser && entry.model_id && <ModelIcon model={entry.model_id} size={10} type="avatar" />}
+                {!isUser && entry.modelId && <ModelIcon model={entry.modelId} size={10} type="avatar" />}
                 {isUser
                   ? (
                     "Q"
                   )
                   : (
                     <ModelName
-                      model_id={entry.model_id}
+                      modelId={entry.modelId}
                       providerId={entry.providerId}
                     />
                   )}
@@ -556,7 +556,7 @@ function StickyHeader({ entries }: { entries: MinimapEntry[] }) {
         >
           {(activeIdx >= 0 ? activeIdx : 0) + 1} / {entries.length}
         </span>
-        {current.role === "assistant" && current.model_id && (
+        {current.role === "assistant" && current.modelId && (
           <span
             style={{
               display: "inline-flex",
@@ -565,9 +565,9 @@ function StickyHeader({ entries }: { entries: MinimapEntry[] }) {
               flexShrink: 0,
             }}
           >
-            <ModelIcon model={current.model_id} size={14} type="avatar" />
+            <ModelIcon model={current.modelId} size={14} type="avatar" />
             <StickyModelName
-              model_id={current.model_id}
+              modelId={current.modelId}
               providerId={current.providerId}
             />
           </span>
@@ -629,13 +629,13 @@ function StickyHeader({ entries }: { entries: MinimapEntry[] }) {
 }
 
 function StickyModelName({
-  model_id,
+  modelId,
   providerId,
 }: {
-  model_id?: string | null;
+  modelId?: string | null;
   providerId?: string | null;
 }) {
-  const name = useModelName(model_id, providerId);
+  const name = useModelName(modelId, providerId);
   const { token } = theme.useToken();
   return (
     <span style={{ fontSize: 12, color: token.colorTextSecondary }}>
@@ -706,8 +706,8 @@ function StickyDropdownItem({
       <span style={{ flexShrink: 0 }}>
         {isUser
           ? <UserAvatarIcon size={16} />
-          : entry.model_id
-          ? <ModelIcon model={entry.model_id} size={16} type="avatar" />
+          : entry.modelId
+          ? <ModelIcon model={entry.modelId} size={16} type="avatar" />
           : (
             <Avatar
               size={16}
@@ -735,8 +735,8 @@ function StickyDropdownItem({
 // ── Main Component ──
 
 export function ChatMinimap() {
-  const enabled = useSettingsStore((s) => s.settings.chat_minimap_enabled);
-  const style = useSettingsStore((s) => s.settings.chat_minimap_style ?? "faq");
+  const enabled = useSettingsStore((s) => s.settings.chatMinimapEnabled);
+  const style = useSettingsStore((s) => s.settings.chatMinimapStyle ?? "faq");
   const entries = useEntries();
 
   if (!enabled || entries.length < 2) {

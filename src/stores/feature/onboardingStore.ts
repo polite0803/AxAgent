@@ -112,15 +112,15 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
   dismissWizard: () => {
     set({ wizardDismissed: true });
     const s = useSettingsStore.getState();
-    s.saveSettings({ onboarding_wizard_dismissed: true });
+    s.saveSettings({ onboardingWizardDismissed: true });
   },
 
   completeWizard: async () => {
     set({ wizardCompleted: true });
     const s = useSettingsStore.getState();
     await s.saveSettings({
-      onboarding_completed: true,
-      onboarding_selected_preset: get().selectedPreset,
+      onboardingCompleted: true,
+      onboardingSelectedPreset: get().selectedPreset,
     });
   },
 
@@ -132,23 +132,23 @@ export const useOnboardingStore = create<OnboardingStore>((set, get) => ({
     set({ tutorialActive: false, tutorialCompleted: true });
     await useSettingsStore
       .getState()
-      .saveSettings({ onboarding_tutorial_completed: true });
+      .saveSettings({ onboardingTutorialCompleted: true });
   },
 
   completeTutorial: async () => {
     set({ tutorialActive: false, tutorialCompleted: true });
     await useSettingsStore
       .getState()
-      .saveSettings({ onboarding_tutorial_completed: true });
+      .saveSettings({ onboardingTutorialCompleted: true });
   },
 
   loadFromSettings: () => {
     const s = useSettingsStore.getState().settings;
     set({
-      wizardCompleted: s.onboarding_completed ?? false,
-      wizardDismissed: s.onboarding_wizard_dismissed ?? false,
-      tutorialCompleted: s.onboarding_tutorial_completed ?? false,
-      selectedPreset: s.onboarding_selected_preset ?? null,
+      wizardCompleted: s.onboardingCompleted ?? false,
+      wizardDismissed: s.onboardingWizardDismissed ?? false,
+      tutorialCompleted: s.onboardingTutorialCompleted ?? false,
+      selectedPreset: s.onboardingSelectedPreset ?? null,
     });
   },
 }));

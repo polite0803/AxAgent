@@ -99,7 +99,7 @@ export function resolveProviderIcon(provider: ProviderConfig): IconResult {
 
   return {
     type: "provider",
-    key: TYPE_TO_PROVIDER[provider.provider_type] || "openai",
+    key: TYPE_TO_PROVIDER[provider.providerType] || "openai",
   };
 }
 
@@ -151,7 +151,7 @@ export const SmartProviderIcon = memo(
   (prev, next) =>
     prev.provider.icon === next.provider.icon
     && prev.provider.name === next.provider.name
-    && prev.provider.provider_type === next.provider.provider_type
+    && prev.provider.providerType === next.provider.providerType
     && prev.size === next.size
     && prev.type === next.type
     && prev.shape === next.shape,

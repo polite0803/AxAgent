@@ -24,7 +24,7 @@ export function LinkSkills({ link }: LinkSkillsProps) {
 
   const handleAutoSyncChange = async (checked: boolean) => {
     try {
-      await updateSyncSettings(link.id, link.auto_sync_models, checked);
+      await updateSyncSettings(link.id, link.autoSyncModels, checked);
     } catch {
       message.error(t("link.updateSettingsFailed"));
     }
@@ -73,21 +73,21 @@ export function LinkSkills({ link }: LinkSkillsProps) {
   const columns = [
     {
       title: t("link.skillName"),
-      dataIndex: "skill_name",
-      key: "skill_name",
+      dataIndex: "skillName",
+      key: "skillName",
       ellipsis: true,
     },
     {
       title: t("link.skillVersion"),
-      dataIndex: "skill_version",
-      key: "skill_version",
+      dataIndex: "skillVersion",
+      key: "skillVersion",
       width: 100,
       render: (v: string | null) => v ?? "-",
     },
     {
       title: t("link.syncStatus"),
-      dataIndex: "sync_status",
-      key: "sync_status",
+      dataIndex: "syncStatus",
+      key: "syncStatus",
       width: 120,
       render: (status: string) => {
         const mapped = SYNC_STATUS_MAP[status] ?? {
@@ -109,11 +109,11 @@ export function LinkSkills({ link }: LinkSkillsProps) {
       key: "actions",
       width: 100,
       // GW-P0-6: 接收 record 参数,推送当前行而非全局选中行
-      render: (_: unknown, record: { skill_name: string }) => (
+      render: (_: unknown, record: { skillName: string }) => (
         <Button
           size="small"
           icon={<Upload size={14} />}
-          onClick={() => handlePushOne(record.skill_name)}
+          onClick={() => handlePushOne(record.skillName)}
           disabled={link.status !== "connected"}
         >
           {t("link.push")}
@@ -136,7 +136,7 @@ export function LinkSkills({ link }: LinkSkillsProps) {
         <div className="flex items-center gap-2">
           <Switch
             size="small"
-            checked={link.auto_sync_skills}
+            checked={link.autoSyncSkills}
             onChange={handleAutoSyncChange}
             disabled={link.status !== "connected"}
           />
@@ -179,7 +179,7 @@ export function LinkSkills({ link }: LinkSkillsProps) {
             <Table
               dataSource={skillSyncs}
               columns={columns}
-              rowKey="skill_name"
+              rowKey="skillName"
               size="small"
               pagination={false}
               rowSelection={rowSelection}

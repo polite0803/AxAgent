@@ -3,7 +3,6 @@
 import { DropdownMenu } from "@/components/layout/DropdownMenu";
 import type { DropdownItem } from "@/components/layout/DropdownMenu";
 import { Tooltip } from "@/components/layout/Tooltip";
-import { McpServerIcon } from "@/components/shared/McpServerIcon";
 import { PROVIDER_TYPE_LABELS, SearchProviderTypeIcon } from "@/components/shared/SearchProviderIcon";
 import { SkillToolbar } from "@/components/skill/SkillToolbar";
 import { useVoiceWakeup } from "@/hooks/useVoiceWakeup";
@@ -31,180 +30,54 @@ import {
 } from "@/stores";
 import { useGatewayStore } from "@/stores/feature/gatewayStore";
 import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
-import { useMultiAgentStore } from "@/stores/feature/multiAgentStore";
 import { usePromptTemplateStore } from "@/stores/feature/promptTemplateStore";
 import type { PromptTemplate } from "@/types";
-import { type AttachmentInput, type CreateMcpServerInput, type McpServer, type RealtimeConfig } from "@/types";
+import { type AttachmentInput, type RealtimeConfig } from "@/types";
 import { AudioOutlined, TeamOutlined } from "@ant-design/icons";
-import { ModelIcon } from "@lobehub/icons";
 import { open } from "@tauri-apps/plugin-dialog";
+import { App, Button, Popover, Tag, theme } from "antd";
 import {
-  App,
-  Badge,
-  Button,
-  Checkbox,
-  Form,
-  Image,
-  Input,
-  Modal,
-  Popover,
-  Segmented,
-  Select,
-  Space,
-  Tag,
-  theme,
-  Typography,
-} from "antd";
-import {
-  ArrowUp,
-  Atom,
   Check,
-  CircleOff,
-  Database,
   Eraser,
-  ExternalLink,
-  File,
   FileText,
   Film,
-  FolderOpen,
   GitCompareArrows,
   Globe,
   GripHorizontal,
   Image as ImageIcon,
-  MessageSquare,
   Mic,
-  Music,
   Paperclip,
-  Plug,
   Scissors,
-  Shield,
-  ShieldAlert,
-  ShieldCheck,
   Shrink,
-  Signal,
-  SignalHigh,
-  SignalLow,
-  SignalMedium,
   SlidersHorizontal,
-  Square,
-  Trash2,
   Upload,
-  X,
   Zap,
   ZapOff,
 } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
 import { CommandSuggest } from "./CommandSuggest";
+import { CompanionModelTags } from "./CompanionModelTags";
+import { ContextSourceMenu } from "./ContextSourceMenu";
 import { ConversationSettingsModal } from "./ConversationSettingsModal";
+import { DelegateTaskModal } from "./DelegateTaskModal";
+import { GatewayMenu } from "./GatewayMenu";
+import { InputAreaFileList } from "./InputAreaFileList";
+import { fileToAttachmentInput } from "./InputAreaUtils";
+import { McpMenu } from "./McpMenu";
 import { ModelSelector } from "./ModelSelector";
+import { PermissionMenu } from "./PermissionMenu";
 import { PlanHistoryPanel } from "./PlanHistoryPanel";
 import { PromptTemplateSelector } from "./PromptTemplateSelector";
-import { SourcePickerPanel } from "./SourcePickerPanel";
+import { QuotePreviewBar } from "./QuotePreviewBar";
+import { SendControls } from "./SendControls";
+import { ThinkingMenu } from "./ThinkingMenu";
 import { VoiceCall } from "./VoiceCall";
-
-async function fileToAttachmentInput(file: File): Promise<AttachmentInput> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = (reader.result as string).split(",")[1] || "";
-      resolve({
-        file_name: file.name,
-        file_type: file.type || "application/octet-stream",
-        file_size: file.size,
-        data: base64,
-      });
-    };
-    reader.onerror = () => {
-      reject(new Error(`Failed to read file: ${file.name}`));
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-type FileTypeCategory = "image" | "video" | "audio" | "document" | "other";
-
-function getFileTypeCategory(mimeType: string): FileTypeCategory {
-  if (mimeType.startsWith("image/")) {
-    return "image";
-  }
-  if (mimeType.startsWith("video/")) {
-    return "video";
-  }
-  if (mimeType.startsWith("audio/")) {
-    return "audio";
-  }
-  if (
-    mimeType.startsWith("text/")
-    || mimeType === "application/pdf"
-    || mimeType.includes("document")
-    || mimeType.includes("spreadsheet")
-    || mimeType.includes("presentation")
-    || mimeType.includes("word")
-  ) {
-    return "document";
-  }
-  return "other";
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) {
-    return "0 B";
-  }
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
-}
-
-function getFileIcon(category: FileTypeCategory) {
-  switch (category) {
-    case "image":
-      return <ImageIcon size={16} />;
-    case "video":
-      return <Film size={16} />;
-    case "audio":
-      return <Music size={16} />;
-    case "document":
-      return <FileText size={16} />;
-    default:
-      return <File size={16} />;
-  }
-}
+import { WorkspaceDirMenu } from "./WorkspaceDirMenu";
 
 // In-memory draft cache: persists input text per-conversation across component unmounts
 const _draftCache = new Map<string, string>();
 // Cache is module-level, conversation switch clears by key mismatch
-
-export function AgentProfileSelect({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (profileId: string) => void;
-}) {
-  const { t } = useTranslation();
-  const [profiles, setProfiles] = useState<{ id: string; name: string }[]>([]);
-
-  useEffect(() => {
-    invoke<{ id: string; name: string }[]>("list_agent_profiles")
-      .then(setProfiles)
-      .catch(logIpcError("AgentProfileSelect: load profiles"));
-  }, []);
-
-  return (
-    <Select
-      size="small"
-      style={{ minWidth: 120 }}
-      value={value || undefined}
-      onChange={(v) => onChange(v)}
-      placeholder={t("chat.workflow.agentProfileRole")}
-      options={profiles.map((p) => ({ value: p.id, label: p.name }))}
-      allowClear
-    />
-  );
-}
 
 export function InputArea() {
   const { t } = useTranslation();
@@ -248,32 +121,9 @@ export function InputArea() {
   const audioInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  // const [modelRoutingOpen, setModelRoutingOpen] = useState(false); // removed
-  const [mcpPopoverOpen, setMcpPopoverOpen] = useState(false);
-  const [connectorModalOpen, setConnectorModalOpen] = useState(false);
-  const [editingMcpServer, setEditingMcpServer] = useState<McpServer | null>(null);
-  const [mcpForm] = Form.useForm();
-
-  // 连接器 modal 打开时设置初始值
-  useEffect(() => {
-    if (connectorModalOpen) {
-      if (editingMcpServer) {
-        mcpForm.setFieldsValue({
-          name: editingMcpServer.name,
-          transport: editingMcpServer.transport,
-          command: editingMcpServer.command || "",
-          args: editingMcpServer.argsJson
-            ? editingMcpServer.argsJson.split(/\s+/).filter(Boolean).join(" ")
-            : "",
-          endpoint: editingMcpServer.endpoint || "",
-        });
-      } else {
-        mcpForm.resetFields();
-      }
-    }
-  }, [connectorModalOpen, editingMcpServer, mcpForm]);
 
   const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
+  const [delegateModalOpen, setDelegateModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const valueRef = useRef(value);
@@ -298,14 +148,13 @@ export function InputArea() {
 
   // Multi-model companion state
   const [companionModels, setCompanionModels] = useState<
-    Array<{ providerId: string; model_id: string }>
+    Array<{ providerId: string; modelId: string }>
   >([]);
   const [multiModelOpen, setMultiModelOpen] = useState(false);
   const sendMultiModelMessage = useConversationStore(
     (s) => s.sendMultiModelMessage,
   );
 
-  const multiAgentStore = useMultiAgentStore();
   const activeConversationId = useConversationStore(
     (s) => s.activeConversationId,
   );
@@ -322,7 +171,7 @@ export function InputArea() {
   const hasOlderMessages = useConversationStore((s) => s.hasOlderMessages);
   const contextCount = useMemo(() => {
     const msgs = useConversationStore.getState().messages;
-    const activeMessages = msgs.filter((m) => m.is_active !== false);
+    const activeMessages = msgs.filter((m) => m.isActive !== false);
     const lastMarkerIdx = activeMessages.reduce((maxIdx, m, i) => {
       if (
         m.content === "<!-- context-clear -->"
@@ -378,22 +227,6 @@ export function InputArea() {
     return searchEnabled ? "__ddg_fallback__" : null;
   }, [searchEnabled, searchProviderId, searchProviders]);
 
-  // MCP state
-  const mcpServers = useMcpStore((s) => s.servers);
-  const createMcpServer = useMcpStore((s) => s.createServer);
-  const updateMcpServer = useMcpStore((s) => s.updateServer);
-  const enabledMcpServerIds = useConversationStore(
-    (s) => s.enabledMcpServerIds,
-  );
-  const toggleMcpServer = useConversationStore((s) => s.toggleMcpServer);
-  const mcpMode = useConversationStore((s) => s.mcpMode);
-  const setMcpMode = useConversationStore((s) => s.setMcpMode);
-
-  // Thinking state
-  const thinkingBudget = useConversationStore((s) => s.thinkingBudget);
-  const setThinkingBudget = useConversationStore((s) => s.setThinkingBudget);
-  const [thinkingDropdownOpen, setThinkingDropdownOpen] = useState(false);
-
   // Agent permission mode state
   const [agentPermissionMode, setAgentPermissionMode] = useState<string>("default");
 
@@ -401,67 +234,12 @@ export function InputArea() {
   const [agentCwd, setAgentCwd] = useState<string | null>(null);
 
   // Gateway links state
-  const gatewayLinks = useGatewayLinkStore((s) => s.links);
   const [selectedGatewayId, setSelectedGatewayId] = useState<string | null>(
     null,
   );
 
-  // Gateway 链接选择（独立入口）：认知编排器模式下不再提供 act/plan/ask/auto 手动模式选择
-  const gatewayMenuItems = useMemo((): DropdownItem[] => {
-    const connectedGateways = gatewayLinks.filter(
-      (l) => l.enabled && l.status === "connected",
-    );
-    return connectedGateways.map((gw) => ({
-      key: `gateway:${gw.id}`,
-      icon: <Globe size={14} />,
-      label: gw.name,
-      onClick: () => setSelectedGatewayId(gw.id),
-    }));
-  }, [gatewayLinks]);
-
-  // Knowledge base state
-  const knowledgeBases = useKnowledgeStore((s) => s.bases);
-  const enabledKnowledgeBaseIds = useConversationStore(
-    (s) => s.enabledKnowledgeBaseIds,
-  );
-  const toggleKnowledgeBase = useConversationStore(
-    (s) => s.toggleKnowledgeBase,
-  );
-  const [sourceModalOpen, setSourceModalOpen] = useState(false);
-
-  // Memory state
-  const memoryNamespaces = useMemoryStore((s) => s.namespaces);
-  const activeMemoryNamespaceId = useConversationStore(
-    (s) => s.activeMemoryNamespaceId,
-  );
-  const setActiveMemoryNamespace = useConversationStore(
-    (s) => s.setActiveMemoryNamespace,
-  );
-
-  // Wiki vault state
-  const wikis = useLlmWikiStore((s) => s.wikis);
-  const enabledWikiIds = useConversationStore((s) => s.enabledWikiIds);
-  const toggleWiki = useConversationStore((s) => s.toggleWiki);
-
   // Prompt template state
   const [templatePopoverOpen, setTemplatePopoverOpen] = useState(false);
-
-  // Delegate task state
-  const [delegateModalOpen, setDelegateModalOpen] = useState(false);
-  const [delegateRole, setDelegateRole] = useState("");
-  const [delegateTask, setDelegateTask] = useState("");
-
-  // Fetch roles when delegate modal opens
-  useEffect(() => {
-    if (delegateModalOpen) {
-      if (multiAgentStore.roles.length === 0) {
-        multiAgentStore.fetchRoles();
-      }
-      if (!delegateRole && multiAgentStore.roles.length > 0) {
-        setDelegateRole(multiAgentStore.roles[0].id);
-      }
-    }
-  }, [delegateModalOpen]);
 
   // Context clear
   const insertContextClear = useConversationStore((s) => s.insertContextClear);
@@ -492,8 +270,6 @@ export function InputArea() {
   // 认知编排器模式下不再提供 act/plan/ask/auto 手动模式选择，
   // 执行模式统一交由认知编排器路由自动决策（始终以 auto 下发）
 
-  const navigate = useNavigate();
-  const setSettingsSection = useUIStore((s) => s.setSettingsSection);
   // 引用回复：当前被引用的消息 ID
   const quotedMessageId = useUIStore((s) => s.quotedMessageId);
   const quotedMessage = useMemo(() => {
@@ -549,12 +325,12 @@ export function InputArea() {
     if (
       !activeConversationId
       && currentMode === "agent"
-      && settings.default_workspace_dir
+      && settings.defaultWorkspaceDir
     ) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setAgentCwd(settings.default_workspace_dir);
+      setAgentCwd(settings.defaultWorkspaceDir);
     }
-  }, [activeConversationId, currentMode, settings.default_workspace_dir]);
+  }, [activeConversationId, currentMode, settings.defaultWorkspaceDir]);
 
   // Fetch agent permission mode on mount/conversation switch
   useEffect(() => {
@@ -563,9 +339,9 @@ export function InputArea() {
         request: { conversationId: activeConversationId },
       })
         .then((session: unknown) => {
-          const s = session as { permission_mode?: string; cwd?: string | null } | null;
+          const s = session as { permissionMode?: string; cwd?: string | null } | null;
           if (s) {
-            setAgentPermissionMode(s.permission_mode || "default");
+            setAgentPermissionMode(s.permissionMode || "default");
             setAgentCwd(s.cwd || null);
           }
         })
@@ -691,336 +467,9 @@ export function InputArea() {
     }));
   }, [searchProviders, searchEnabled, searchProviderId, setSearchEnabled, setSearchProviderId, token, t]);
 
-  // MCP popover content — mode selector + checkboxes with alias/description
-  const mcpPopoverContent = useMemo(() => {
-    const enabledServers = mcpServers.filter((s) => s.enabled);
-    if (enabledServers.length === 0) {
-      return (
-        <div style={{ padding: "8px 0", minWidth: 220 }}>
-          <div
-            style={{
-              color: token.colorTextSecondary,
-              fontSize: 12,
-              marginBottom: 8,
-            }}
-          >
-            {t("chat.connector.noServers")}
-          </div>
-          <Button
-            type="link"
-            size="small"
-            style={{ padding: 0, fontSize: 12 }}
-            onClick={() => {
-              setMcpPopoverOpen(false);
-              setSettingsSection("mcpServers");
-              navigate("/settings");
-            }}
-          >
-            {t("chat.connector.goConfig")}
-          </Button>
-        </div>
-      );
-    }
-
-    const builtinServers = enabledServers.filter((s) => s.source === "builtin");
-    const customServers = enabledServers.filter((s) => s.source === "custom");
-    const isManual = mcpMode === "manual";
-
-    const renderGroup = (title: string, servers: typeof mcpServers) => (
-      <div key={title}>
-        <div
-          style={{
-            fontSize: 12,
-            color: token.colorTextSecondary,
-            padding: "4px 0",
-            fontWeight: 600,
-          }}
-        >
-          {title}
-        </div>
-        {servers.map((server) => (
-          <div key={server.id} style={{ padding: "3px 0" }}>
-            <Checkbox
-              checked={enabledMcpServerIds.includes(server.id)}
-              disabled={!isManual}
-              onChange={() => toggleMcpServer(server.id)}
-            >
-              <span
-                style={{
-                  fontSize: 13,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <McpServerIcon server={server} size={18} />
-                <span>
-                  <span style={{ fontWeight: 500 }}>
-                    {server.alias || server.name}
-                  </span>
-                  {server.description && (
-                    <span
-                      style={{
-                        display: "block",
-                        fontSize: 12,
-                        color: token.colorTextSecondary,
-                        lineHeight: "16px",
-                      }}
-                    >
-                      {server.description}
-                    </span>
-                  )}
-                  {server.alias && (
-                    <span
-                      style={{
-                        display: "block",
-                        fontSize: 10,
-                        color: token.colorTextQuaternary,
-                        lineHeight: "14px",
-                      }}
-                    >
-                      {server.name}
-                    </span>
-                  )}
-                </span>
-              </span>
-            </Checkbox>
-          </div>
-        ))}
-      </div>
-    );
-
-    return (
-      <div
-        style={{
-          minWidth: 260,
-          maxHeight: 360,
-          overflowY: "auto",
-          padding: "4px 0",
-        }}
-      >
-        {/* Mode selector */}
-        <div
-          style={{
-            padding: "4px 0 8px",
-            borderBottom: `1px solid ${token.colorBorderSecondary}`,
-            marginBottom: 8,
-          }}
-        >
-          <div
-            style={{
-              fontSize: 12,
-              color: token.colorTextSecondary,
-              marginBottom: 6,
-            }}
-          >
-            {t("chat.mcp.mode")}
-          </div>
-          <div style={{ display: "flex", gap: 4 }}>
-            {(["auto", "manual", "disabled"] as const).map((mode) => (
-              <Button
-                key={mode}
-                size="small"
-                type={mcpMode === mode ? "primary" : "default"}
-                onClick={() => setMcpMode(mode)}
-                style={{ flex: 1, fontSize: 12 }}
-              >
-                {mode === "auto"
-                  ? t("chat.mcp.modeAuto")
-                  : mode === "manual"
-                  ? t("chat.mcp.modeManual")
-                  : t("chat.mcp.modeDisabled")}
-              </Button>
-            ))}
-          </div>
-          <div
-            style={{
-              fontSize: 10,
-              color: token.colorTextQuaternary,
-              marginTop: 4,
-            }}
-          >
-            {mcpMode === "auto"
-              ? t("chat.mcp.modeAutoDesc")
-              : mcpMode === "manual"
-              ? t("chat.mcp.modeManualDesc")
-              : t("chat.mcp.modeDisabledDesc")}
-          </div>
-        </div>
-        {builtinServers.length > 0
-          && renderGroup(t("settings.mcp.builtin"), builtinServers)}
-        {builtinServers.length > 0 && customServers.length > 0 && (
-          <div
-            style={{
-              borderTop: `1px solid ${token.colorBorderSecondary}`,
-              margin: "6px 0",
-            }}
-          />
-        )}
-        {customServers.length > 0
-          && renderGroup(t("settings.mcp.custom"), customServers)}
-        <div
-          style={{
-            marginTop: 12,
-            borderTop: `1px solid ${token.colorBorderSecondary}`,
-            paddingTop: 8,
-            display: "flex",
-            gap: 8,
-          }}
-        >
-          <Button
-            type="link"
-            size="small"
-            style={{ padding: 0, fontSize: 12 }}
-            onClick={() => {
-              setMcpPopoverOpen(false);
-              setEditingMcpServer(null);
-              setConnectorModalOpen(true);
-            }}
-          >
-            {t("chat.connector.add")}
-          </Button>
-          <Button
-            type="link"
-            size="small"
-            style={{ padding: 0, fontSize: 12 }}
-            onClick={() => {
-              setMcpPopoverOpen(false);
-              const customServer = customServers.length > 0 ? customServers[0] : null;
-              setEditingMcpServer(customServer);
-              setConnectorModalOpen(true);
-            }}
-          >
-            {t("chat.connector.custom")}
-          </Button>
-        </div>
-      </div>
-    );
-  }, [
-    mcpServers,
-    enabledMcpServerIds,
-    toggleMcpServer,
-    mcpMode,
-    setMcpMode,
-    navigate,
-    setSettingsSection,
-    token,
-    t,
-  ]);
-
-  const thinkingOptions = useMemo(
-    () => [
-      { key: "default", label: t("chat.thinking.default"), value: null },
-      { key: "none", label: t("chat.thinking.none"), value: 0 },
-      { key: "low", label: t("chat.thinking.low"), value: 1024 },
-      { key: "medium", label: t("chat.thinking.medium"), value: 4096 },
-      { key: "high", label: t("chat.thinking.high"), value: 8192 },
-      { key: "xhigh", label: t("chat.thinking.xhigh"), value: 16384 },
-    ],
-    [t],
-  );
-
-  const selectedThinkingOption = useMemo(
-    () =>
-      thinkingOptions.find((opt) => opt.value === thinkingBudget)
-        ?? thinkingOptions[0],
-    [thinkingBudget, thinkingOptions],
-  );
-
-  const thinkingIcon = useMemo(() => {
-    switch (selectedThinkingOption.key) {
-      case "none":
-        return <CircleOff size={14} />;
-      case "low":
-        return <SignalLow size={14} />;
-      case "medium":
-        return <SignalMedium size={14} />;
-      case "high":
-        return <SignalHigh size={14} />;
-      case "xhigh":
-        return <Signal size={14} />;
-      default:
-        return <Atom size={14} />;
-    }
-  }, [selectedThinkingOption.key]);
-
-  const thinkingMenuItems = useMemo((): DropdownItem[] =>
-    thinkingOptions.map((opt) => ({
-      key: opt.key,
-      label: opt.label,
-      icon: (() => {
-        switch (opt.key) {
-          case "none":
-            return <CircleOff size={14} />;
-          case "default":
-            return <Atom size={14} />;
-          case "low":
-            return <SignalLow size={14} />;
-          case "medium":
-            return <SignalMedium size={14} />;
-          case "high":
-            return <SignalHigh size={14} />;
-          case "xhigh":
-            return <Signal size={14} />;
-          default:
-            return <Atom size={14} />;
-        }
-      })(),
-      onClick: () => handleThinkingSelect(opt.key),
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    })), [thinkingOptions]);
-
-  const handleThinkingSelect = useCallback(
-    (key: string) => {
-      const selected = thinkingOptions.find((opt) => opt.key === key);
-      if (selected) {
-        setThinkingBudget(selected.value);
-        setThinkingDropdownOpen(false);
-      }
-    },
-    [setThinkingBudget, thinkingOptions, setThinkingDropdownOpen],
-  );
-
   // 认知编排器模式下专家/角色由路由自动选择，不再提供手动专家选择
 
-  // Agent permission mode menu items
-  const permissionModeItems = useMemo((): DropdownItem[] => [
-    {
-      key: "default",
-      label: (
-        <span className="flex items-center gap-2">
-          {t("common.permissionDefault")}
-          {agentPermissionMode === "default" && <Check size={14} style={{ color: token.colorPrimary }} />}
-        </span>
-      ),
-      icon: <Shield size={14} />,
-      onClick: () => handlePermissionModeChange("default"),
-    },
-    {
-      key: "accept_edits",
-      label: (
-        <span className="flex items-center gap-2">
-          {t("common.permissionAcceptEdits")}
-          {agentPermissionMode === "accept_edits" && <Check size={14} style={{ color: token.colorPrimary }} />}
-        </span>
-      ),
-      icon: <ShieldCheck size={14} style={{ color: token.colorPrimary }} />,
-      onClick: () => handlePermissionModeChange("accept_edits"),
-    },
-    {
-      key: "full_access",
-      label: (
-        <span className="flex items-center gap-2">
-          {t("common.permissionFullAccess")}
-          {agentPermissionMode === "full_access" && <Check size={14} style={{ color: token.colorError }} />}
-        </span>
-      ),
-      icon: <ShieldAlert size={14} style={{ color: token.colorError }} />,
-      onClick: () => handlePermissionModeChange("full_access"),
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [t, agentPermissionMode, token.colorPrimary, token.colorError]);
-
+  // Agent permission mode items
   const handlePermissionModeChange = useCallback(
     async (mode: string) => {
       if (!activeConversationId) {
@@ -1062,46 +511,8 @@ export function InputArea() {
     [activeConversationId, modal, t],
   );
 
-  const permissionModeIcon = useMemo(() => {
-    switch (agentPermissionMode) {
-      case "accept_edits":
-        return <ShieldCheck size={14} style={{ color: token.colorPrimary }} />;
-      case "full_access":
-        return <ShieldAlert size={14} style={{ color: token.colorError }} />;
-      default:
-        return <Shield size={14} />;
-    }
-  }, [agentPermissionMode, token.colorPrimary, token.colorError]);
-
-  const permissionModeLabel = useMemo(() => {
-    switch (agentPermissionMode) {
-      case "accept_edits":
-        return t("common.permissionAcceptEdits");
-      case "full_access":
-        return t("common.permissionFullAccess");
-      default:
-        return t("common.permissionDefault");
-    }
-  }, [agentPermissionMode, t]);
-
   // ── Work Strategy ──────────────────────────────────────────────────
   // 认知编排器模式下工作策略由路由自动决策，不再提供手动直接/计划切换
-
-  // Agent CWD helpers
-  const abbreviatePath = useCallback((path: string): string => {
-    const normalized = path.replace(/\\/g, "/");
-    const segments = normalized.split("/").filter(Boolean);
-    if (segments.length <= 3 || normalized.length <= 45) {
-      return path;
-    }
-    // 保留盘符（如 D:）+ 最后 3 段
-    const drive = segments[0].endsWith(":") ? segments[0] : null;
-    const tail = segments.slice(-3);
-    const abbreviated = drive
-      ? [drive, "…", ...tail].join("/")
-      : "…/" + tail.join("/");
-    return abbreviated;
-  }, []);
 
   const handleSelectCwd = useCallback(async () => {
     try {
@@ -1137,71 +548,6 @@ export function InputArea() {
     }
   }, [activeConversationId, t]);
 
-  const sourcePopoverContent = useMemo(() => {
-    const safeKb = knowledgeBases ?? [];
-    const safeMem = memoryNamespaces ?? [];
-    const safeWikis = wikis ?? [];
-    const totalSources = safeKb.length + safeMem.length + safeWikis.length;
-    if (totalSources === 0) {
-      return (
-        <div style={{ padding: "8px 0", minWidth: 200 }}>
-          <div
-            style={{
-              color: token.colorTextSecondary,
-              fontSize: 12,
-              marginBottom: 8,
-            }}
-          >
-            {t("chat.sources.empty")}
-          </div>
-          <Button
-            type="link"
-            size="small"
-            style={{ padding: 0, fontSize: 12 }}
-            onClick={() => {
-              setSourceModalOpen(false);
-              navigate("/knowledge");
-            }}
-          >
-            {t("chat.connector.goConfig")}
-          </Button>
-        </div>
-      );
-    }
-    return (
-      <SourcePickerPanel
-        conversationId={activeConversationId}
-        knowledgeBases={safeKb}
-        memoryNamespaces={safeMem}
-        wikis={safeWikis}
-        enabledKnowledgeBaseIds={enabledKnowledgeBaseIds}
-        activeMemoryNamespaceId={activeMemoryNamespaceId}
-        enabledWikiIds={enabledWikiIds}
-        onToggleKb={toggleKnowledgeBase}
-        onSetActiveMemory={setActiveMemoryNamespace}
-        onToggleWiki={toggleWiki}
-        onGoConfig={() => {
-          setSourceModalOpen(false);
-          navigate("/knowledge");
-        }}
-      />
-    );
-  }, [
-    knowledgeBases,
-    memoryNamespaces,
-    wikis,
-    enabledKnowledgeBaseIds,
-    activeMemoryNamespaceId,
-    enabledWikiIds,
-    toggleKnowledgeBase,
-    setActiveMemoryNamespace,
-    toggleWiki,
-    token,
-    t,
-    navigate,
-    activeConversationId,
-  ]);
-
   const incrementUsage = usePromptTemplateStore((s) => s.incrementUsage);
 
   const handleTemplateSelect = useCallback(
@@ -1222,16 +568,16 @@ export function InputArea() {
     if (activeConversation) {
       return findModelByIds(
         providers,
-        activeConversation.provider_id,
-        activeConversation.model_id,
+        activeConversation.providerId,
+        activeConversation.modelId,
       );
     }
 
-    if (settings.default_provider_id && settings.default_model_id) {
+    if (settings.defaultProviderId && settings.defaultModelId) {
       const defaultModel = findModelByIds(
         providers,
-        settings.default_provider_id,
-        settings.default_model_id,
+        settings.defaultProviderId,
+        settings.defaultModelId,
       );
       if (defaultModel?.enabled) {
         return defaultModel;
@@ -1253,8 +599,8 @@ export function InputArea() {
   }, [
     activeConversation,
     providers,
-    settings.default_provider_id,
-    settings.default_model_id,
+    settings.defaultProviderId,
+    settings.defaultModelId,
   ]);
 
   // Context token usage calculation
@@ -1264,29 +610,29 @@ export function InputArea() {
   const [summaryTokenCount, setSummaryTokenCount] = useState<number>(0);
 
   useEffect(() => {
-    if (!activeConversationId || !activeConversation?.context_compression) {
+    if (!activeConversationId || !activeConversation?.contextCompression) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSummaryTokenCount(0);
       return;
     }
     getCompressionSummary(activeConversationId).then((s) => {
-      setSummaryTokenCount(s?.token_count ?? 0);
+      setSummaryTokenCount(s?.tokenCount ?? 0);
     });
   }, [
     activeConversationId,
-    activeConversation?.context_compression,
+    activeConversation?.contextCompression,
     getCompressionSummary,
     messagesLength,
   ]);
 
   const contextTokenUsage = useMemo(() => {
-    const maxTokens = currentModel?.max_tokens;
+    const maxTokens = currentModel?.maxTokens;
     if (!maxTokens) {
       return null;
     }
 
     const msgs = useConversationStore.getState().messages;
-    const activeMessages = msgs.filter((m) => m.is_active !== false);
+    const activeMessages = msgs.filter((m) => m.isActive !== false);
     const lastMarkerIdx = activeMessages.reduce((maxIdx, m, i) => {
       if (
         m.content === "<!-- context-clear -->"
@@ -1304,8 +650,8 @@ export function InputArea() {
       0,
     );
 
-    if (activeConversation?.system_prompt) {
-      usedTokens += estimateTokens(activeConversation.system_prompt) + 4;
+    if (activeConversation?.systemPrompt) {
+      usedTokens += estimateTokens(activeConversation.systemPrompt) + 4;
     }
 
     usedTokens += summaryTokenCount;
@@ -1316,8 +662,8 @@ export function InputArea() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     messagesLength,
-    currentModel?.max_tokens,
-    activeConversation?.system_prompt,
+    currentModel?.maxTokens,
+    activeConversation?.systemPrompt,
     summaryTokenCount,
     hasOlderMessages,
   ]);
@@ -1341,17 +687,17 @@ export function InputArea() {
   const companionDisplayInfos = useMemo(() => {
     return companionModels.map((cm) => {
       const provider = providers.find((p) => p.id === cm.providerId);
-      const model = provider?.models.find((m) => m.model_id === cm.model_id);
+      const model = provider?.models.find((m) => m.modelId === cm.modelId);
       return {
         ...cm,
-        modelName: model?.name ?? cm.model_id,
+        modelName: model?.name ?? cm.modelId,
         providerName: provider?.name ?? "",
       };
     });
   }, [companionModels, providers]);
 
   const handleMultiModelSelect = useCallback(
-    (models: Array<{ providerId: string; model_id: string }>) => {
+    (models: Array<{ providerId: string; modelId: string }>) => {
       setCompanionModels(models);
       if (companionStorageKey) {
         try {
@@ -1402,13 +748,13 @@ export function InputArea() {
 
   const voiceConfig: RealtimeConfig = React.useMemo(
     () => ({
-      model_id: activeConversation?.model_id ?? "",
+      modelId: activeConversation?.modelId ?? "",
       voice: ttsVoice,
-      audio_format: { sample_rate: 24000, channels: 1, encoding: "Pcm16" },
-      stt_provider_id: sttProviderId || null,
-      tts_provider_id: ttsProviderId || null,
+      audioFormat: { sampleRate: 24000, channels: 1, encoding: "Pcm16" },
+      sttProviderId: sttProviderId || null,
+      ttsProviderId: ttsProviderId || null,
     }),
-    [activeConversation?.model_id, ttsVoice, sttProviderId, ttsProviderId],
+    [activeConversation?.modelId, ttsVoice, sttProviderId, ttsProviderId],
   );
 
   // Mutex to prevent concurrent mode switches (e.g. rapid double-clicks)
@@ -1584,13 +930,13 @@ export function InputArea() {
             messageApi.warning(t("chat.noModelsAvailable"));
             return;
           }
-          let provider = settings.default_provider_id
+          let provider = settings.defaultProviderId
             ? providers.find(
-              (p) => p.id === settings.default_provider_id && p.enabled,
+              (p) => p.id === settings.defaultProviderId && p.enabled,
             )
             : undefined;
           let model = provider?.models.find(
-            (m) => m.model_id === settings.default_model_id && m.enabled,
+            (m) => m.modelId === settings.defaultModelId && m.enabled,
           );
           if (!provider || !model) {
             provider = providers.find(
@@ -1604,7 +950,7 @@ export function InputArea() {
           }
           await createConversation(
             trimmed.slice(0, 30),
-            model.model_id,
+            model.modelId,
             provider.id,
             {
               mode: pendingModeRef.current ?? undefined,
@@ -2130,103 +1476,12 @@ export function InputArea() {
       />
 
       {/* Attachment preview */}
-      {attachedFiles.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-2">
-          {attachedFiles.map((file, idx) => {
-            const fileCategory = getFileTypeCategory(file.type);
-            const isImage = fileCategory === "image";
-            const isPreviewable = isImage
-              && file.type !== "image/gif"
-              && file.type !== "image/svg+xml";
-
-            return (
-              <div
-                key={`${file.name}-${file.size}-${file.lastModified}`}
-                className="relative group"
-                style={{
-                  backgroundColor: token.colorFillTertiary,
-                  borderRadius: token.borderRadius,
-                  border: `1px solid ${token.colorBorderSecondary}`,
-                  overflow: "hidden",
-                  maxWidth: isImage ? 120 : 200,
-                }}
-              >
-                {isImage && (
-                  <div
-                    style={{
-                      width: 120,
-                      height: 80,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: token.colorFillSecondary,
-                      overflow: "hidden",
-                    }}
-                  >
-                    {isPreviewable
-                      ? (
-                        <Image
-                          src={attachmentObjectUrls[idx]}
-                          alt={file.name}
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                          }}
-                          preview={{ mask: { blur: true }, scaleStep: 0.5 }}
-                        />
-                      )
-                      : (
-                        <img
-                          src={attachmentObjectUrls[idx]}
-                          alt={file.name}
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                          }}
-                        />
-                      )}
-                  </div>
-                )}
-                <div
-                  className={`flex items-center gap-1.5 px-2 py-1 ${isImage ? "" : ""}`}
-                  style={!isImage ? { maxWidth: 200 } : undefined}
-                >
-                  {!isImage && (
-                    <span style={{ color: token.colorPrimary, flexShrink: 0 }}>
-                      {getFileIcon(fileCategory)}
-                    </span>
-                  )}
-                  <span
-                    className="text-xs truncate"
-                    style={{
-                      color: token.colorText,
-                      flex: 1,
-                      maxWidth: isImage ? 100 : 140,
-                    }}
-                    title={file.name}
-                  >
-                    {file.name}
-                  </span>
-                  <span
-                    className="text-xs"
-                    style={{ color: token.colorTextSecondary, flexShrink: 0 }}
-                  >
-                    {formatFileSize(file.size)}
-                  </span>
-                  <Trash2
-                    size={14}
-                    className="cursor-pointer shrink-0"
-                    style={{ color: token.colorTextSecondary }}
-                    onClick={() => removeFile(idx)}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <InputAreaFileList
+        attachedFiles={attachedFiles}
+        attachmentObjectUrls={attachmentObjectUrls}
+        removeFile={removeFile}
+        token={token}
+      />
 
       {/* Main input container */}
       <div
@@ -2263,119 +1518,19 @@ export function InputArea() {
         </div>
         {/* Companion model tags */}
         {currentMode !== "agent" && companionModels.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 px-3 pt-3 pb-1">
-            <span
-              className="inline-flex items-center px-2 py-0.5 text-xs"
-              style={{ color: token.colorTextTertiary }}
-            >
-              {t("chat.multiModel.selectTitle")}:
-            </span>
-            {companionDisplayInfos.map((cm, idx) => (
-              <span
-                key={`${cm.providerId}-${cm.model_id}`}
-                className="inline-flex items-center gap-1.5 pl-1.5 pr-1 py-0.5 text-xs"
-                style={{
-                  backgroundColor: token.colorFillSecondary,
-                  borderRadius: token.borderRadiusSM,
-                  color: token.colorText,
-                }}
-              >
-                <ModelIcon model={cm.model_id} size={14} type="avatar" />
-                <span
-                  style={{
-                    maxWidth: 120,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {cm.modelName}
-                </span>
-                {cm.providerName && (
-                  <span
-                    style={{ color: token.colorTextQuaternary, fontSize: 12 }}
-                  >
-                    {cm.providerName}
-                  </span>
-                )}
-                <X
-                  size={12}
-                  className="cursor-pointer shrink-0"
-                  style={{ color: token.colorTextTertiary }}
-                  onClick={() => removeCompanionModel(idx)}
-                />
-              </span>
-            ))}
-            {/* Clear all companion models */}
-            <span
-              className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs cursor-pointer"
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  clearAllCompanionModels();
-                }
-              }}
-              style={{
-                borderRadius: token.borderRadiusSM,
-                color: token.colorTextTertiary,
-              }}
-              onClick={clearAllCompanionModels}
-            >
-              <Trash2 size={11} />
-              {t("chat.clearAll")}
-            </span>
-          </div>
+          <CompanionModelTags
+            infos={companionDisplayInfos}
+            onRemove={removeCompanionModel}
+            onClearAll={clearAllCompanionModels}
+          />
         )}
 
         {/* 引用回复预览条：显示当前被引用的消息 */}
         {quotedMessage && (
-          <div
-            className="quote-preview-bar"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "6px 10px",
-              marginBottom: 6,
-              backgroundColor: token.colorFillTertiary,
-              borderLeft: `3px solid ${token.colorPrimary}`,
-              borderRadius: token.borderRadiusSM,
-            }}
-          >
-            <MessageSquare size={14} style={{ color: token.colorPrimary, flexShrink: 0 }} />
-            <div style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
-              <Typography.Text
-                style={{ fontSize: 12, color: token.colorTextTertiary, display: "block" }}
-              >
-                {t("chat.quote.replyingTo")}
-              </Typography.Text>
-              <Typography.Text
-                style={{
-                  fontSize: 13,
-                  color: token.colorTextSecondary,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  display: "block",
-                }}
-              >
-                {quotedMessage.content.length > 100
-                  ? `${quotedMessage.content.slice(0, 100)}…`
-                  : quotedMessage.content}
-              </Typography.Text>
-            </div>
-            <Tooltip title={t("chat.quote.cancel")}>
-              <Button
-                type="text"
-                size="small"
-                icon={<X size={14} />}
-                onClick={() => useUIStore.getState().setQuotedMessageId(null)}
-                style={{ color: token.colorTextTertiary, flexShrink: 0 }}
-              />
-            </Tooltip>
-          </div>
+          <QuotePreviewBar
+            content={quotedMessage.content}
+            onCancel={() => useUIStore.getState().setQuotedMessageId(null)}
+          />
         )}
 
         {/* Textarea with command suggest */}
@@ -2469,34 +1624,12 @@ export function InputArea() {
               }
             }}
           />
-          {streaming
-            ? (
-              <Button
-                shape="circle"
-                size="small"
-                danger
-                data-testid="stop-generation-btn"
-                icon={<Square size={14} />}
-                onClick={handleCancel}
-                style={{ flexShrink: 0, alignSelf: "flex-end" }}
-              />
-            )
-            : (
-              <Button
-                type="primary"
-                shape="circle"
-                size="small"
-                data-testid="send-btn"
-                aria-label={t("chat.sendMessage")}
-                icon={<ArrowUp size={16} />}
-                onClick={handleSend}
-                disabled={!value.trim() || streaming}
-                style={{ flexShrink: 0, alignSelf: "flex-end", width: 36, height: 36 }}
-                className={value.trim() && !streaming
-                  ? "ax-glow-shadow"
-                  : ""}
-              />
-            )}
+          <SendControls
+            streaming={streaming}
+            hasContent={value.trim().length > 0}
+            onSend={handleSend}
+            onCancel={handleCancel}
+          />
         </div>
 
         {/* Bottom action bar */}
@@ -2533,26 +1666,7 @@ export function InputArea() {
                   />
                 </DropdownMenu>
               )}
-            {hasReasoning && (
-              <DropdownMenu
-                items={thinkingMenuItems}
-                open={thinkingDropdownOpen}
-                onOpenChange={setThinkingDropdownOpen}
-              >
-                <Tooltip title={t("chat.thinkingIntensity")}>
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={thinkingIcon}
-                    style={thinkingBudget === 0
-                      ? { color: token.colorError }
-                      : thinkingBudget !== null
-                      ? { color: token.colorPrimary }
-                      : undefined}
-                  />
-                </Tooltip>
-              </DropdownMenu>
-            )}
+            <ThinkingMenu hasReasoning={hasReasoning} />
             {hasVision && (
               <DropdownMenu
                 items={[
@@ -2587,58 +1701,8 @@ export function InputArea() {
                 </Tooltip>
               </DropdownMenu>
             )}
-            <Popover
-              trigger="click"
-              placement="topLeft"
-              content={mcpPopoverContent}
-              arrow={false}
-              open={mcpPopoverOpen}
-              onOpenChange={setMcpPopoverOpen}
-            >
-              <Tooltip
-                title={t("chat.connector.title")}
-                open={mcpPopoverOpen ? false : undefined}
-              >
-                <Badge
-                  count={enabledMcpServerIds.filter((id) => mcpServers.some((s) => s.id === id && s.enabled)).length}
-                  size="small"
-                  offset={[-4, 4]}
-                  color={token.colorPrimary}
-                >
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<Plug size={14} />}
-                    style={enabledMcpServerIds.some((id) => mcpServers.some((s) => s.id === id && s.enabled))
-                      ? { color: token.colorPrimary }
-                      : undefined}
-                  />
-                </Badge>
-              </Tooltip>
-            </Popover>
-            <Tooltip title={t("chat.sources.title")}>
-              <Badge
-                count={enabledKnowledgeBaseIds.length
-                  + (activeMemoryNamespaceId ? 1 : 0)
-                  + enabledWikiIds.length}
-                size="small"
-                offset={[-4, 4]}
-                color={token.colorPrimary}
-              >
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<Database size={14} />}
-                  onClick={() => setSourceModalOpen(true)}
-                  style={enabledKnowledgeBaseIds.length
-                        + (activeMemoryNamespaceId ? 1 : 0)
-                        + enabledWikiIds.length
-                      > 0
-                    ? { color: token.colorPrimary }
-                    : undefined}
-                />
-              </Badge>
-            </Tooltip>
+            <McpMenu />
+            <ContextSourceMenu />
             <Popover
               trigger="click"
               placement="topLeft"
@@ -2678,8 +1742,8 @@ export function InputArea() {
               items={[
                 {
                   key: "auto",
-                  icon: activeConversation?.context_compression ? <ZapOff size={14} /> : <Zap size={14} />,
-                  label: activeConversation?.context_compression
+                  icon: activeConversation?.contextCompression ? <ZapOff size={14} /> : <Zap size={14} />,
+                  label: activeConversation?.contextCompression
                     ? t("chat.disableAutoCompression")
                     : t("chat.enableAutoCompression"),
                   onClick: () => {
@@ -2687,7 +1751,7 @@ export function InputArea() {
                       return;
                     }
                     updateConversation(activeConversationId, {
-                      context_compression: !activeConversation.context_compression,
+                      contextCompression: !activeConversation.contextCompression,
                     });
                   },
                 },
@@ -2720,7 +1784,7 @@ export function InputArea() {
                   icon={<Zap size={14} />}
                   loading={compressing}
                   disabled={!activeConversationId}
-                  style={activeConversation?.context_compression
+                  style={activeConversation?.contextCompression
                     ? { color: token.colorPrimary }
                     : undefined}
                 />
@@ -2783,74 +1847,28 @@ export function InputArea() {
                   type="text"
                   size="small"
                   icon={<TeamOutlined style={{ fontSize: 14 }} />}
-                  onClick={() => {
-                    setDelegateTask(value);
-                    setDelegateModalOpen(true);
-                  }}
+                  onClick={() => setDelegateModalOpen(true)}
                 />
               </Tooltip>
             )}
-            {gatewayMenuItems.length > 0 && (
-              <DropdownMenu items={gatewayMenuItems}>
-                <Tooltip title={t("chat.mode.gateway")}>
-                  <Button type="text" size="small" icon={<Globe size={14} />} />
-                </Tooltip>
-              </DropdownMenu>
-            )}
+            <GatewayMenu onSelect={setSelectedGatewayId} />
             {currentMode === "agent" && activeConversationId && (
               <PlanHistoryPanel conversationId={activeConversationId} />
             )}
             {currentMode === "agent" && (
-              <Tooltip
-                title={messagesLength > 0
-                  ? t("chat.workspaceLocked")
-                  : agentCwd || t("common.workingDirectory")}
-              >
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<FolderOpen size={14} />}
-                  onClick={handleSelectCwd}
-                  disabled={messagesLength > 0}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                    maxWidth: 400,
-                  }}
-                >
-                  <span
-                    style={{
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      fontSize: 12,
-                    }}
-                  >
-                    {agentCwd
-                      ? abbreviatePath(agentCwd)
-                      : t("common.selectDirectory")}
-                  </span>
-                </Button>
-              </Tooltip>
-            )}
-            {currentMode === "agent" && agentCwd && (
-              <Tooltip title={t("common.openDirectory")}>
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<ExternalLink size={14} />}
-                  onClick={async () => {
-                    try {
-                      const { revealItemInDir } = await import("@tauri-apps/plugin-opener");
-                      await revealItemInDir(agentCwd);
-                    } catch (e) {
-                      logIpcError("open directory")(e);
-                    }
-                  }}
-                  style={{ fontSize: 12, minWidth: "auto", padding: "0 4px" }}
-                />
-              </Tooltip>
+              <WorkspaceDirMenu
+                cwd={agentCwd}
+                disabled={messagesLength > 0}
+                onSelect={handleSelectCwd}
+                onOpen={async (cwd) => {
+                  try {
+                    const { revealItemInDir } = await import("@tauri-apps/plugin-opener");
+                    await revealItemInDir(cwd);
+                  } catch (e) {
+                    logIpcError("open directory")(e);
+                  }
+                }}
+              />
             )}
             {voiceAvailable && (
               <>
@@ -2882,24 +1900,10 @@ export function InputArea() {
           </div>
           <div className="flex items-center gap-2 ml-auto">
             {currentMode === "agent" && (
-              <DropdownMenu items={permissionModeItems}>
-                <Button
-                  type="text"
-                  size="small"
-                  icon={permissionModeIcon}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                    fontSize: 12,
-                    ...(agentPermissionMode === "full_access"
-                      ? { color: token.colorError }
-                      : {}),
-                  }}
-                >
-                  {permissionModeLabel}
-                </Button>
-              </DropdownMenu>
+              <PermissionMenu
+                permissionMode={agentPermissionMode}
+                onChange={handlePermissionModeChange}
+              />
             )}
             {contextTokenUsage
               ? (() => {
@@ -2974,163 +1978,11 @@ export function InputArea() {
         onClose={() => setSettingsOpen(false)}
       />
 
-      {/* 委派任务弹窗 */}
-      <Modal
-        title={t("multiAgent.delegateTitle")}
+      <DelegateTaskModal
         open={delegateModalOpen}
-        onCancel={() => setDelegateModalOpen(false)}
-        confirmLoading={multiAgentStore.delegating}
-        onOk={async () => {
-          if (!delegateRole || !delegateTask.trim()) {
-            messageApi.warning(t("multiAgent.fillRequired"));
-            return;
-          }
-          try {
-            await multiAgentStore.delegateTask({
-              roleName: delegateRole,
-              task: delegateTask.trim(),
-              providerId: activeConversation?.provider_id || "",
-              modelId: activeConversation?.model_id || "",
-            });
-            messageApi.success(t("multiAgent.delegateSuccess"));
-            setDelegateModalOpen(false);
-          } catch (e) {
-            messageApi.error(`${t("multiAgent.delegateFailed")}: ${e}`);
-          }
-        }}
-        okText={t("multiAgent.delegateBtn")}
-        destroyOnHidden
-      >
-        <Space orientation="vertical" style={{ width: "100%" }} size="middle">
-          <div>
-            <Typography.Text type="secondary">{t("multiAgent.selectRole")}</Typography.Text>
-            <Segmented
-              block
-              value={delegateRole}
-              onChange={(v) => setDelegateRole(v as string)}
-              options={multiAgentStore.roles.map((r) => ({
-                label: r.name,
-                value: r.id,
-              }))}
-            />
-          </div>
-          <div>
-            <Typography.Text type="secondary">{t("multiAgent.taskDescription")}</Typography.Text>
-            <Input.TextArea
-              value={delegateTask}
-              onChange={(e) => setDelegateTask(e.target.value)}
-              rows={4}
-              placeholder={t("multiAgent.taskPlaceholder")}
-            />
-          </div>
-        </Space>
-      </Modal>
-
-      <Modal
-        title={editingMcpServer
-          ? t("chat.connector.custom")
-          : t("chat.connector.add")}
-        open={connectorModalOpen}
-        onCancel={() => setConnectorModalOpen(false)}
-        onOk={async () => {
-          try {
-            const values = await mcpForm.validateFields();
-            const input: CreateMcpServerInput = {
-              name: values.name,
-              transport: values.transport as "stdio" | "http" | "sse",
-              command: values.command,
-              args: values.args
-                ? values.args.split(/\s+/).filter(Boolean)
-                : undefined,
-              endpoint: values.endpoint,
-              enabled: false,
-            };
-            if (editingMcpServer) {
-              await updateMcpServer(editingMcpServer.id, input);
-              messageApi.success(t("common.saved"));
-            } else {
-              await createMcpServer(input);
-              messageApi.success(t("common.saved"));
-            }
-            mcpForm.resetFields();
-            setConnectorModalOpen(false);
-            setEditingMcpServer(null);
-          } catch {
-            // validation error, form will show errors
-          }
-        }}
-        destroyOnHidden
-      >
-        <Form
-          form={mcpForm}
-          layout="vertical"
-          size="small"
-          initialValues={{
-            transport: "stdio",
-          }}
-        >
-          <Form.Item
-            name="name"
-            label={t("common.name")}
-            rules={[{ required: true }]}
-          >
-            <Input placeholder={t("chat.connector.placeholderName")} />
-          </Form.Item>
-          <Form.Item
-            name="transport"
-            label={t("common.type")}
-            rules={[{ required: true }]}
-          >
-            <Select
-              options={[
-                { label: "stdio", value: "stdio" },
-                { label: "HTTP", value: "http" },
-                { label: "SSE", value: "sse" },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item
-            name="command"
-            label={t("chat.connector.command")}
-            rules={[{ required: true }]}
-          >
-            <Input placeholder={t("chat.connector.placeholderCommand")} />
-          </Form.Item>
-          <Form.Item name="args" label={t("chat.connector.args")}>
-            <Input placeholder={t("chat.connector.placeholderArgs")} />
-          </Form.Item>
-          <Form.Item
-            noStyle
-            shouldUpdate={(prev, cur) => prev.transport !== cur.transport}
-          >
-            {({ getFieldValue }) =>
-              getFieldValue("transport") !== "stdio" && (
-                <Form.Item
-                  name="endpoint"
-                  label={t("chat.connector.endpoint")}
-                  rules={[{ required: true }]}
-                >
-                  <Input placeholder={t("chat.connector.placeholderEndpoint")} />
-                </Form.Item>
-              )}
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      <Modal
-        title={t("chat.sources.title")}
-        open={sourceModalOpen}
-        onCancel={() => setSourceModalOpen(false)}
-        footer={
-          <Button type="primary" onClick={() => setSourceModalOpen(false)}>
-            {t("common.confirm")}
-          </Button>
-        }
-        width={420}
-        destroyOnHidden
-      >
-        {sourcePopoverContent}
-      </Modal>
+        onClose={() => setDelegateModalOpen(false)}
+        initialTask={value}
+      />
 
       {/* ModelRoutingConfigPanel removed */}
 

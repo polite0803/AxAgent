@@ -1526,7 +1526,17 @@
       "skill": "Habilidad",
       "agent_role": "Rol",
       "agent_profile": "Experto"
-    }
+    },
+    "level": {
+      "l1": "L1 · Inmaduro",
+      "l2": "L2 · Uso básico",
+      "l3": "L3 · Madurez media",
+      "l4": "L4 · Muy maduro",
+      "l5": "L5 · Nivel superior"
+    },
+    "evolve": "Evolucionar",
+    "evolveSuccess": "Evolución exitosa, nivel elevado a {{level}}",
+    "evolveFailed": "Error en la evolución, inténtalo más tarde"
   },
   "chatMarkdown": {
     "inputParams": "Parámetros de entrada",
@@ -1582,7 +1592,8 @@
     "showExtras": "更多面板",
     "hideExtras": "收起",
     "cognitiveRoute": "Ruta",
-    "capability": "Capacidad"
+    "capability": "Capacidad",
+    "evolutionEvidence": "Evidencia de evolución"
   },
   "cite": {
     "chunkLabel": "Fragmento #{{n}}",
@@ -2468,6 +2479,9 @@
     "COGNITIVE_EXECUTION_MODE_INVALID": "Modo de ejecución del enrutamiento cognitivo no válido",
     "COGNITIVE_PROMPT_REJECTED": "Solicitud cognitiva rechazada",
     "COGNITIVE_RAR_RETRIEVE_FAILED": "Fallo en la recuperación de candidatos del enrutamiento cognitivo: {{detail}}",
+    "COGNITIVE_GAP_PROPOSAL_PENDING": "Propuesta de brecha de capacidad generada, en espera de su confirmación",
+    "COGNITIVE_GAP_PROPOSAL_APPLIED": "Brecha de capacidad resuelta; reenvíe su solicitud",
+    "COGNITIVE_GAP_PROPOSAL_REJECTED": "Propuesta de brecha de capacidad rechazada",
     "COMMON_INTERNAL": "Error interno",
     "COMMON_INVALID_INPUT": "Entrada no válida",
     "COMMON_TIMEOUT": "Tiempo de espera de operación agotado",
@@ -2667,6 +2681,7 @@
     "TOOL_SSE_NO_ENDPOINT": "No se especificó ningún endpoint para el transporte SSE",
     "TOOL_STDIO_NO_COMMAND": "No se especificó ningún comando para el transporte Stdio",
     "TOOL_TRANSPORT_UNSUPPORTED": "Tipo de transporte no compatible",
+    "TOOL_REGISTRATION_DUPLICATE": "Conflicto de registro de herramienta: el nombre ya existe",
     "VECTOR_STORE_FAILED": "Error en la operación del almacén de vectores",
     "VECTOR_EMBEDDING_FAILED": "Error al generar el embedding de vectores",
     "VECTOR_SEARCH_FAILED": "Error en la búsqueda de vectores",
@@ -2781,6 +2796,7 @@
     "CAPABILITY_LIST_FAILED": "Listado de capacidades fallido",
     "CAPABILITY_STATS_FAILED": "Estadísticas de capacidad fallidas",
     "CAPABILITY_METADATA_RESTORE_FAILED": "Restauración de metadatos fallida",
+    "CAPABILITY_EVOLVE_FAILED": "Error en la evolución de la capacidad",
     "AGENT_INPUT_CHANNEL_CLOSED": "El canal de entrada del usuario está cerrado",
     "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "Tiempo de espera agotado al esperar la respuesta del usuario (5 minutos)",
     "AGENT_INPUT_NO_PROVIDER": "No hay proveedor/modelo disponible: active un proveedor en la configuración",
@@ -3018,6 +3034,27 @@
     "loadFailed": "Error al cargar experto externo: {{error}}",
     "skippedInvalidRole": "Rol inválido omitido: {{role}}",
     "updateFailed": "Error al actualizar experto externo: {{error}}"
+  },
+  "evolutionEvidence": {
+    "title": "Evidencia de evolución",
+    "empty": "Sin datos de evidencia de evolución",
+    "decision": {
+      "evolve": "Evolución sugerida",
+      "observe": "En observación",
+      "stable": "Rendimiento estable"
+    },
+    "pSuccess": "Tasa de éxito posterior {value}%",
+    "evidenceVolume": "Volumen de evidencia {value}",
+    "consumedLabels": "Consumidos {consumed}/{total} elementos de evidencia",
+    "routePaths": "Rutas de fuentes de evidencia",
+    "executionTitle": "Retroalimentación real de ejecución",
+    "noExecution": "Sin datos reales de ejecución",
+    "totalRuns": "Ejecuciones totales {value}",
+    "successRate": "Tasa de éxito {value}%",
+    "totalSuccesses": "Éxitos {value}",
+    "totalFailures": "Fallos {value}",
+    "toolCount": "Artefactos de evolución {value}",
+    "perSuccessRate": "Tasa de éxito {value}%"
   },
   "export": {
     "exportTime": "Hora de exportación",
@@ -7623,7 +7660,23 @@
       "stop": "Detener",
       "stopAll": "Detener Todo",
       "stopped": "Detenido",
-      "title": "Evolución"
+      "title": "Evolución",
+      "runtimeTools": {
+        "title": "Herramientas dinámicas de ejecución",
+        "desc": "Capacidades dinámicas registradas por la implementación de evolución del Agente (system_evolution_deploy) o por herramientas autorreferenciales (system_evolution_*). Las herramientas autorreferenciales integradas son de solo lectura; desinstalar un artefacto de evolución lo vuelve inmediatamente no disponible para el Agente.",
+        "systemChannel": "Canal de capacidad del sistema",
+        "name": "Nombre de la herramienta",
+        "source": "Origen",
+        "sourceSystem": "Integrada",
+        "sourceEvolved": "Evolucionada",
+        "action": "Acción",
+        "builtin": "Integrada",
+        "empty": "Sin herramientas dinámicas de ejecución",
+        "unload": "Desinstalar",
+        "unloadConfirm": "¿Desinstalar la herramienta \"{{name}}\"? El Agente no podrá llamarla inmediatamente después de desinstalarla.",
+        "unloadSuccess": "Herramienta \"{{name}}\" desinstalada",
+        "unloadFail": "No se pudo desinstalar la herramienta \"{{name}}\""
+      }
     },
     "exitFullscreen": "Salir de pantalla completa",
     "expandAll": "Expandir todo",
@@ -12417,6 +12470,23 @@
   },
   "reactPreview": {
     "title": "Vista previa React"
+  },
+  "evolutionConsentModal": {
+    "title": "Propuesta de complemento de capacidad / evolución",
+    "gapType": {
+      "guardRule": "Complemento de regla de protección",
+      "exemptAuthorize": "Autorización de exención",
+      "capabilityMissing": "Capacidad faltante"
+    },
+    "pendingCount": "{{count}} propuestas pendientes, actualmente #{{current}}",
+    "pendingOne": "1 propuesta pendiente",
+    "proposal": "Cambio propuesto",
+    "impact": "Impacto",
+    "rollback": "Rollback",
+    "reject": "Rechazar",
+    "approve": "Aprobar",
+    "expandDetails": "Expandir detalles brutos",
+    "collapseDetails": "Contraer detalles brutos"
   },
   "planApprovalModal": {
     "title": "Aprobación del plan",

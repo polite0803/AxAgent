@@ -450,7 +450,7 @@ function AgentsTab() {
         name: a.name,
         description: a.description || t("settings.agent.noDescription"),
         status: a.status,
-        agentType: a.metadata?.agent_type ?? "unknown",
+        agentType: a.metadata?.agentType ?? "unknown",
         tools: a.metadata?.tools ?? [],
         capabilities: a.metadata?.capabilities ?? [],
       }));

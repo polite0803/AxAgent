@@ -10,6 +10,7 @@ use crate::session::ConversationMessageExt;
 use crate::session::SessionExt;
 use axagent_harness::SessionTracer;
 use axagent_harness::prompt_provider::NoopPromptProvider;
+use axagent_harness::skill_evolution_hook::SkillEvolutionHook;
 use serde_json::{Map, Value};
 
 use crate::compact::{
@@ -208,6 +209,8 @@ pub struct ConversationRuntime<C, T> {
     thought_chain_enabled: bool,
     /// 可选的 PluginHook 链（MultiAgent 自动委派等），在 LLM 调用前后、工具调用前后执行。
     hook_chain: Option<Arc<HookChain>>,
+    /// 可选的技能侧反思钩子（T0.9）：工具执行完成后触发进化判定（经 harness trait 注入）。
+    skill_evolution_hook: Option<Arc<dyn SkillEvolutionHook>>,
 }
 
 impl<C, T> ConversationRuntime<C, T>
@@ -267,6 +270,7 @@ where
             error_recovery_enabled: feature_config.error_recovery_enabled,
             thought_chain_enabled: feature_config.thought_chain_enabled,
             hook_chain: None,
+            skill_evolution_hook: None,
         }
     }
 
@@ -349,6 +353,19 @@ where
         self
     }
 
+    /// 设置技能侧反思钩子（T0.9）：工具执行完成后触发进化判定。
+    ///
+    /// 实现方为 wiring 层（经 `SkillEvolutionHook` trait 注入），runtime-core 不直接
+    /// 依赖 trajectory 实现层。未注入时反思静默跳过，不影响工具执行主流程。
+    #[must_use]
+    pub fn with_skill_evolution_hook(
+        mut self,
+        skill_evolution_hook: Arc<dyn SkillEvolutionHook>,
+    ) -> Self {
+        self.skill_evolution_hook = Some(skill_evolution_hook);
+        self
+    }
+
     /// 准备发送给 LLM 的请求消息:先 L2 Microcompact 去重,再 L1 Snip 截断超长 ToolResult。
     ///
     /// 此方法不修改 session 自身,仅产生请求副本。
@@ -367,7 +384,12 @@ where
     where
         F: std::future::Future<Output = H>,
     {
-        tokio::task::block_in_place(|| tokio::runtime::Handle::current().block_on(f))
+        match tokio::runtime::Handle::try_current() {
+            // 生产路径：处于 tokio runtime 上下文，原地阻塞驱动 future（保持既有行为）。
+            Ok(handle) => tokio::task::block_in_place(|| handle.block_on(f)),
+            // 同步测试路径：无 runtime 上下文，直接驱动 future 完成。
+            Err(_) => futures::executor::block_on(f),
+        }
     }
 
     fn run_pre_tool_use_hook(
@@ -1131,6 +1153,21 @@ where
                             );
                         }
 
+                        // ── 技能侧反思钩子（T0.9）：工具执行完成后触发进化判定 ──
+                        // 经 harness `SkillEvolutionHook` trait 注入（wiring 层实现），
+                        // runtime-core 不直接依赖 trajectory 实现层。反思结果不阻塞主流程。
+                        if let Some(ref evo_hook) = self.skill_evolution_hook {
+                            let triggered = self.exec_sync_hook(
+                                evo_hook.on_tool_executed(&tool_name, !is_error, &output),
+                            );
+                            if triggered {
+                                tracing::debug!(
+                                    tool = %tool_name,
+                                    "🗺️ 技能反思钩子已生成进化提议，进入用户同意通道"
+                                );
+                            }
+                        }
+
                         // Update shared execution progress before the
                         // Allow arm closes (output/is_error live here).
                         if let Some(ref progress) = self.progress {
@@ -1822,6 +1859,7 @@ pub struct ConversationRuntimeFactoryArgs {
     pub system_prompt: Vec<String>,
     pub feature_config: RuntimeFeatureConfig,
     pub hook_chain: Option<Arc<HookChain>>,
+    pub skill_evolution_hook: Option<Arc<dyn SkillEvolutionHook>>,
     pub pause_state: Option<Arc<PauseState>>,
 }
 
@@ -1845,6 +1883,7 @@ impl ConversationRuntimeFactoryArgs {
             system_prompt,
             feature_config,
             hook_chain: None,
+            skill_evolution_hook: None,
             pause_state: None,
         }
     }
@@ -1858,6 +1897,15 @@ impl ConversationRuntimeFactoryArgs {
     #[must_use]
     pub fn with_hook_chain_option(mut self, hook_chain: Option<Arc<HookChain>>) -> Self {
         self.hook_chain = hook_chain;
+        self
+    }
+
+    #[must_use]
+    pub fn with_skill_evolution_hook(
+        mut self,
+        skill_evolution_hook: Arc<dyn SkillEvolutionHook>,
+    ) -> Self {
+        self.skill_evolution_hook = Some(skill_evolution_hook);
         self
     }
 
@@ -1884,6 +1932,9 @@ pub fn create_conversation_runtime(
     if let Some(hc) = args.hook_chain {
         rt = rt.with_hook_chain(hc);
     }
+    if let Some(seh) = args.skill_evolution_hook {
+        rt = rt.with_skill_evolution_hook(seh);
+    }
     if let Some(ps) = args.pause_state {
         rt = rt.with_pause_state(ps);
     }
@@ -1892,6 +1943,7 @@ pub fn create_conversation_runtime(
 
 #[cfg(test)]
 mod tests {
+    use super::SkillEvolutionHook;
     use super::{
         ApiClient, ApiRequest, AssistantEvent, AutoCompactionEvent, ConversationRuntime,
         DEFAULT_AUTO_COMPACTION_INPUT_TOKENS_THRESHOLD, PromptCacheEvent, RuntimeError,
@@ -1910,6 +1962,7 @@ mod tests {
         session_load_from_path,
     };
     use crate::usage::TokenUsage;
+    use async_trait::async_trait;
     use axagent_harness::test_support::{MemorySessionTracer, MemoryTelemetrySink, TelemetryEvent};
     use std::fs;
     use std::path::PathBuf;
@@ -2973,6 +3026,80 @@ mod tests {
 
         // then
         assert_eq!(error.to_string(), "upstream failed");
+    }
+
+    // ── T0.9 技能侧反思钩子：工具执行完成后触发进化判定（不再死代码）──
+
+    #[test]
+    fn run_turn_triggers_skill_evolution_hook_on_tool_executed() {
+        // 记录调用次数的 mock 反思钩子（模拟 wiring 层实现）
+        #[derive(Default)]
+        struct TrackingHook {
+            calls: std::sync::atomic::AtomicUsize,
+        }
+
+        #[async_trait]
+        impl SkillEvolutionHook for TrackingHook {
+            async fn on_tool_executed(
+                &self,
+                _tool_name: &str,
+                _success: bool,
+                _output: &str,
+            ) -> bool {
+                self.calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                false
+            }
+        }
+
+        // ApiClient：第一轮请求工具 echo，第二轮返回文本结束
+        struct ToolThenDoneApi {
+            call_count: usize,
+        }
+
+        impl ApiClient for ToolThenDoneApi {
+            fn stream(
+                &mut self,
+                _request: ApiRequest,
+            ) -> Result<Vec<AssistantEvent>, RuntimeError> {
+                self.call_count += 1;
+                if self.call_count == 1 {
+                    Ok(vec![
+                        AssistantEvent::ToolUse {
+                            id: "tool-1".to_string(),
+                            name: "echo".to_string(),
+                            input: "payload".to_string(),
+                        },
+                        AssistantEvent::MessageStop,
+                    ])
+                } else {
+                    Ok(vec![
+                        AssistantEvent::TextDelta("done".to_string()),
+                        AssistantEvent::MessageStop,
+                    ])
+                }
+            }
+        }
+
+        // given
+        let hook = Arc::new(TrackingHook::default());
+        let mut runtime = ConversationRuntime::new(
+            Session::new(),
+            ToolThenDoneApi { call_count: 0 },
+            StaticToolExecutor::new().register("echo", |input| Ok(input.to_string())),
+            PermissionPolicy::new(PermissionMode::DangerFullAccess),
+            vec!["system".to_string()],
+        )
+        .with_skill_evolution_hook(hook.clone());
+
+        // when
+        runtime.run_turn("call echo", None).expect("run_turn should succeed");
+
+        // then
+        assert_eq!(
+            hook.calls.load(std::sync::atomic::Ordering::SeqCst),
+            1,
+            "技能反思钩子应在工具执行完成后被调用一次"
+        );
     }
 
     // ── 3.6 P2:RecoveryCoordinator 单元测试 ──────────────────────────

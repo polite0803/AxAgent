@@ -97,7 +97,7 @@ interface WorkflowTemplate {
   icon: string;
   tags: string[];
   version: number;
-  is_preset: boolean;
+  isPreset: boolean;
   is_editable: boolean;
   is_public: boolean;
   /** 是否为系统模板（认知编排器等），include_system=true 时才能读到 */
@@ -532,11 +532,11 @@ const CAPABILITY_STORAGE_KEY = "mock.capabilities";
 
 function capabilityStats(): CapabilityStats {
   return {
-    total_calls: 0,
-    success_count: 0,
-    avg_duration_seconds: 0,
-    recent_success_rate: 0,
-    circuit_state: "closed",
+    totalCalls: 0,
+    successCount: 0,
+    avgDurationSeconds: 0,
+    recentSuccessRate: 0,
+    circuitState: "closed",
   };
 }
 
@@ -550,36 +550,37 @@ function mockPassport(
   subCategory?: string,
 ): CapabilityPassportDto {
   return {
-    capability_id: capabilityId,
+    capabilityId: capabilityId,
     name,
     description,
     kind,
     domain,
-    sub_category: subCategory,
-    input_schema: null,
+    subCategory: subCategory,
+    inputSchema: null,
     tags,
-    negative_scenarios: [],
-    security_level: "public",
-    modality_support: {
-      supports_text: true,
-      supports_image: false,
-      supports_audio: false,
-      supports_video: false,
-      supports_file: false,
+    negativeScenarios: [],
+    securityLevel: "public",
+    modalitySupport: {
+      supportsText: true,
+      supportsImage: false,
+      supportsAudio: false,
+      supportsVideo: false,
+      supportsFile: false,
     },
-    output_capabilities: {
-      supports_text: true,
-      supports_table: false,
-      supports_chart: false,
-      supports_image: false,
-      supports_interactive: false,
+    outputCapabilities: {
+      supportsText: true,
+      supportsTable: false,
+      supportsChart: false,
+      supportsImage: false,
+      supportsInteractive: false,
     },
-    estimated_cost_usd: 0,
-    avg_duration_seconds: 0,
-    planning_complexity: "simple",
-    model_iq_requirement: 60,
-    experiment_group: null,
+    estimatedCostUsd: 0,
+    avgDurationSeconds: 0,
+    planningComplexity: "simple",
+    modelIqRequirement: 60,
+    experimentGroup: null,
     stats: capabilityStats(),
+    level: "l3",
     enabled: true,
   };
 }
@@ -665,11 +666,11 @@ function capabilityStatsFrom(
     0,
   );
   return {
-    total_capabilities: passports.length,
-    total_vectors: totalVectors,
-    positive_vectors: passports.length * 2,
-    negative_vectors: totalVectors - passports.length * 2,
-    last_indexed_at: nowTs(),
+    totalCapabilities: passports.length,
+    totalVectors: totalVectors,
+    positiveVectors: passports.length * 2,
+    negativeVectors: totalVectors - passports.length * 2,
+    lastIndexedAt: nowTs(),
   };
 }
 
@@ -679,10 +680,10 @@ function indexResultFor(
   error?: string | null,
 ): IndexResult {
   return {
-    capability_id: passport.capability_id,
+    capabilityId: passport.capabilityId,
     success,
-    vector_dimensions: 768,
-    indexed_at_ms: nowTs(),
+    vectorDimensions: 768,
+    indexedAtMs: nowTs(),
     error: error ?? null,
   };
 }
@@ -697,13 +698,13 @@ function rankCapabilityFor(
   const score = Math.min(0.99, baseScore + (tagHit ? 0.15 : 0));
   return {
     passport,
-    semantic_score: baseScore,
-    history_score: 0.5,
-    speed_score: 0.8,
-    cost_score: 0.8,
-    personalization_boost: 0,
-    exploration_boost: 0,
-    final_score: score,
+    semanticScore: baseScore,
+    historyScore: 0.5,
+    speedScore: 0.8,
+    costScore: 0.8,
+    personalizationBoost: 0,
+    explorationBoost: 0,
+    finalScore: score,
     reasons: tagHit ? ["关键词命中"] : ["语义相似"],
   };
 }
@@ -712,26 +713,26 @@ function mockDiscover(userInput: string): CapabilityDiscoveryResult {
   const passports = readCapabilityPassports();
   const candidates: RankedCapability[] = passports
     .map((p, idx) => rankCapabilityFor(p, userInput, 0.7 - idx * 0.08))
-    .sort((a, b) => b.final_score - a.final_score);
+    .sort((a, b) => b.finalScore - a.finalScore);
 
   const primary = candidates[0] ?? null;
   const next = candidates[1] ?? null;
-  const ambiguous = !!primary && !!next && next.final_score >= 0.85;
+  const ambiguous = !!primary && !!next && next.finalScore >= 0.85;
 
   return {
-    primary_match: primary,
+    primaryMatch: primary,
     alternatives: candidates.slice(1, 3),
     ambiguous,
-    clarification_prompt: ambiguous
+    clarificationPrompt: ambiguous
       ? i18n.t("browserMock.capabilityAmbiguous")
       : null,
     suggestions: [],
-    circuit_info: null,
-    total_elapsed_ms: 12,
-    phase_timings: [
-      { phase: "retrieval", elapsed_ms: 5 },
-      { phase: "filter", elapsed_ms: 3 },
-      { phase: "rank", elapsed_ms: 4 },
+    circuitInfo: null,
+    totalElapsedMs: 12,
+    phaseTimings: [
+      { phase: "retrieval", elapsedMs: 5 },
+      { phase: "filter", elapsedMs: 3 },
+      { phase: "rank", elapsedMs: 4 },
     ],
   };
 }
@@ -743,6 +744,68 @@ function generateBrowserResponse(userContent: string): string {
   }
   const truncatedContent = userContent.length > 50 ? userContent.slice(0, 50) + "..." : userContent;
   return i18n.t("browserMock.receivedMessage", { userContent: truncatedContent });
+}
+
+// ── 数据格式转换工具 ────────────────────────────────────────────────────
+
+/**
+ * 将 snake_case 字符串转换为 camelCase
+ * 例如：provider_type → providerType, model_id → modelId
+ */
+function snakeToCamel(str: string): string {
+  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+/**
+ * 递归地将对象或数组中的所有 snake_case 键转换为 camelCase
+ * 用于将后端 mock 数据转换为前端期望的格式
+ */
+function convertToCamelCase<T>(obj: T): T {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map((item) => convertToCamelCase(item)) as T;
+  }
+  if (typeof obj === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      const camelKey = snakeToCamel(key);
+      result[camelKey] = convertToCamelCase(value);
+    }
+    return result as T;
+  }
+  return obj;
+}
+
+/**
+ * 将 camelCase 字符串转换为 snake_case
+ * 例如：providerType → provider_type, modelId → model_id
+ */
+function camelToSnake(str: string): string {
+  return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+}
+
+/**
+ * 递归地将对象或数组中的所有 camelCase 键转换为 snake_case
+ * 用于将前端参数转换为后端期望的格式
+ */
+function convertToSnakeCase<T>(obj: T): T {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map((item) => convertToSnakeCase(item)) as T;
+  }
+  if (typeof obj === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      const snakeKey = camelToSnake(key);
+      result[snakeKey] = convertToSnakeCase(value);
+    }
+    return result as T;
+  }
+  return obj;
 }
 
 // ── Built-in Providers ──────────────────────────────────────────────────
@@ -1371,6 +1434,20 @@ export async function handleCommand<T>(
 ): Promise<T> {
   await new Promise((r) => setTimeout(r, 5));
 
+  // 将前端 camelCase 参数转换为后端 snake_case 格式
+  const convertedArgs = args ? convertToSnakeCase(args) : args;
+
+  // 调用实际的命令处理逻辑
+  const result = await executeCommand<T>(cmd, convertedArgs);
+
+  // 将后端 snake_case 返回值转换为前端 camelCase 格式
+  return convertToCamelCase(result);
+}
+
+async function executeCommand<T>(
+  cmd: string,
+  args?: Record<string, unknown>,
+): Promise<T> {
   switch (cmd) {
     // ── Settings ──────────────────────────────────────────────────────
     case "get_settings":
@@ -1603,11 +1680,11 @@ export async function handleCommand<T>(
     // ── Conversations ─────────────────────────────────────────────────
     case "list_conversations":
       return getStore<Conversation[]>("conversations", []).filter(
-        (c) => !c.is_archived,
+        (c) => !c.isArchived,
       ) as T;
     case "list_archived_conversations":
       return getStore<Conversation[]>("conversations", []).filter(
-        (c) => c.is_archived,
+        (c) => c.isArchived,
       ) as T;
     case "create_conversation": {
       const { title, modelId, providerId, systemPrompt } = args as Record<
@@ -1652,28 +1729,28 @@ export async function handleCommand<T>(
         if (input.title !== undefined) {
           convs[idx].title = input.title;
         }
-        if (input.category_id !== undefined) {
-          convs[idx].category_id = input.category_id;
+        if (input.categoryId !== undefined) {
+          convs[idx].categoryId = input.categoryId;
         }
-        if (input.provider_id !== undefined) {
-          convs[idx].provider_id = input.provider_id;
+        if (input.providerId !== undefined) {
+          convs[idx].providerId = input.providerId;
         }
-        if (input.model_id !== undefined) {
-          convs[idx].model_id = input.model_id;
+        if (input.modelId !== undefined) {
+          convs[idx].modelId = input.modelId;
         }
         if (input.temperature !== undefined) {
           convs[idx].temperature = input.temperature;
         }
-        if (input.max_tokens !== undefined) {
-          convs[idx].max_tokens = input.max_tokens;
+        if (input.maxTokens !== undefined) {
+          convs[idx].maxTokens = input.maxTokens;
         }
-        if (input.top_p !== undefined) {
-          convs[idx].top_p = input.top_p;
+        if (input.topP !== undefined) {
+          convs[idx].topP = input.topP;
         }
-        if (input.frequency_penalty !== undefined) {
-          convs[idx].frequency_penalty = input.frequency_penalty;
+        if (input.frequencyPenalty !== undefined) {
+          convs[idx].frequencyPenalty = input.frequencyPenalty;
         }
-        convs[idx].updated_at = nowTs();
+        convs[idx].updatedAt = nowTs();
         setStore("conversations", convs);
         return convs[idx] as T;
       }
@@ -1686,7 +1763,7 @@ export async function handleCommand<T>(
       );
       setStore("conversations", convs);
       const msgs = getStore<Message[]>("messages", []).filter(
-        (m) => m.conversation_id !== id,
+        (m) => m.conversationId !== id,
       );
       setStore("messages", msgs);
       return undefined as T;
@@ -1696,8 +1773,8 @@ export async function handleCommand<T>(
       const convs = getStore<Conversation[]>("conversations", []);
       const idx = convs.findIndex((c) => c.id === id);
       if (idx !== -1) {
-        convs[idx].is_pinned = !convs[idx].is_pinned;
-        convs[idx].updated_at = nowTs();
+        convs[idx].isPinned = !convs[idx].isPinned;
+        convs[idx].updatedAt = nowTs();
         setStore("conversations", convs);
         return convs[idx] as T;
       }
@@ -1708,8 +1785,8 @@ export async function handleCommand<T>(
       const convs = getStore<Conversation[]>("conversations", []);
       const idx = convs.findIndex((c) => c.id === id);
       if (idx !== -1) {
-        convs[idx].is_archived = !convs[idx].is_archived;
-        convs[idx].updated_at = nowTs();
+        convs[idx].isArchived = !convs[idx].isArchived;
+        convs[idx].updatedAt = nowTs();
         setStore("conversations", convs);
         return convs[idx] as T;
       }
@@ -1727,25 +1804,25 @@ export async function handleCommand<T>(
         [],
       );
       const maxOrder = cats.reduce(
-        (m: number, c) => Math.max(m, c.sort_order ?? 0),
+        (m: number, c) => Math.max(m, c.sortOrder ?? 0),
         -1,
       );
       const cat: ConversationCategory = {
         id: genId(),
         name: input.name,
-        icon_type: input.icon_type ?? null,
-        icon_value: input.icon_value ?? null,
-        system_prompt: input.system_prompt ?? null,
-        default_provider_id: input.default_provider_id ?? null,
-        default_model_id: input.default_model_id ?? null,
-        default_temperature: input.default_temperature ?? null,
-        default_max_tokens: input.default_max_tokens ?? null,
-        default_top_p: input.default_top_p ?? null,
-        default_frequency_penalty: input.default_frequency_penalty ?? null,
-        sort_order: maxOrder + 1,
-        is_collapsed: true,
-        created_at: nowTs(),
-        updated_at: nowTs(),
+        iconType: input.iconType ?? null,
+        iconValue: input.iconValue ?? null,
+        systemPrompt: input.systemPrompt ?? null,
+        defaultProviderId: input.defaultProviderId ?? null,
+        defaultModelId: input.defaultModelId ?? null,
+        defaultTemperature: input.defaultTemperature ?? null,
+        defaultMaxTokens: input.defaultMaxTokens ?? null,
+        defaultTopP: input.defaultTopP ?? null,
+        defaultFrequencyPenalty: input.defaultFrequencyPenalty ?? null,
+        sortOrder: maxOrder + 1,
+        isCollapsed: false,
+        createdAt: nowTs(),
+        updatedAt: nowTs(),
       };
       cats.push(cat);
       setStore("conversation_categories", cats);
@@ -1765,34 +1842,34 @@ export async function handleCommand<T>(
         if (input.name !== undefined) {
           cats[idx].name = input.name;
         }
-        if (input.icon_type !== undefined) {
-          cats[idx].icon_type = input.icon_type;
+        if (input.iconType !== undefined) {
+          cats[idx].iconType = input.iconType;
         }
-        if (input.icon_value !== undefined) {
-          cats[idx].icon_value = input.icon_value;
+        if (input.iconValue !== undefined) {
+          cats[idx].iconValue = input.iconValue;
         }
-        if (input.system_prompt !== undefined) {
-          cats[idx].system_prompt = input.system_prompt;
+        if (input.systemPrompt !== undefined) {
+          cats[idx].systemPrompt = input.systemPrompt;
         }
-        if (input.default_provider_id !== undefined) {
-          cats[idx].default_provider_id = input.default_provider_id;
+        if (input.defaultProviderId !== undefined) {
+          cats[idx].defaultProviderId = input.defaultProviderId;
         }
-        if (input.default_model_id !== undefined) {
-          cats[idx].default_model_id = input.default_model_id;
+        if (input.defaultModelId !== undefined) {
+          cats[idx].defaultModelId = input.defaultModelId;
         }
-        if (input.default_temperature !== undefined) {
-          cats[idx].default_temperature = input.default_temperature;
+        if (input.defaultTemperature !== undefined) {
+          cats[idx].defaultTemperature = input.defaultTemperature;
         }
-        if (input.default_max_tokens !== undefined) {
-          cats[idx].default_max_tokens = input.default_max_tokens;
+        if (input.defaultMaxTokens !== undefined) {
+          cats[idx].defaultMaxTokens = input.defaultMaxTokens;
         }
-        if (input.default_top_p !== undefined) {
-          cats[idx].default_top_p = input.default_top_p;
+        if (input.defaultTopP !== undefined) {
+          cats[idx].defaultTopP = input.defaultTopP;
         }
-        if (input.default_frequency_penalty !== undefined) {
-          cats[idx].default_frequency_penalty = input.default_frequency_penalty;
+        if (input.defaultFrequencyPenalty !== undefined) {
+          cats[idx].defaultFrequencyPenalty = input.defaultFrequencyPenalty;
         }
-        cats[idx].updated_at = nowTs();
+        cats[idx].updatedAt = nowTs();
         setStore("conversation_categories", cats);
         return cats[idx] as T;
       }
@@ -1807,8 +1884,8 @@ export async function handleCommand<T>(
       setStore("conversation_categories", cats);
       const convs = getStore<Conversation[]>("conversations", []);
       convs.forEach((c) => {
-        if (c.category_id === id) {
-          c.category_id = null;
+        if (c.categoryId === id) {
+          c.categoryId = null;
         }
       });
       setStore("conversations", convs);
@@ -1824,10 +1901,10 @@ export async function handleCommand<T>(
       for (let i = 0; i < categoryIds.length; i++) {
         const c = catMap.get(categoryIds[i]);
         if (c) {
-          c.sort_order = i;
+          c.sortOrder = i;
         }
       }
-      cats.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+      cats.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
       setStore("conversation_categories", cats);
       return undefined as T;
     }
@@ -1839,8 +1916,8 @@ export async function handleCommand<T>(
       );
       const idx = cats.findIndex((c) => c.id === id);
       if (idx !== -1) {
-        cats[idx].is_collapsed = collapsed ?? false;
-        cats[idx].updated_at = nowTs();
+        cats[idx].isCollapsed = collapsed ?? false;
+        cats[idx].updatedAt = nowTs();
         setStore("conversation_categories", cats);
       }
       return undefined as T;
@@ -1947,20 +2024,26 @@ export async function handleCommand<T>(
       return [] as T;
     }
     case "cognitive_query": {
+      // 兼容 camelCase 和 snake_case 参数格式
       const req = (args as {
         request?: {
           conversationId?: string;
+          conversation_id?: string;
           input?: string;
-          options?: { requirePlanApproval?: boolean };
+          options?: { requirePlanApproval?: boolean; require_plan_approval?: boolean };
         };
       } | undefined)?.request;
-      const conversationId = req?.conversationId ?? `mock-${genId()}`;
+      const conversationId = req?.conversationId ?? req?.conversation_id ?? `mock-${genId()}`;
+      // 同时支持 camelCase 和 snake_case 格式的 requirePlanApproval
+      const requirePlanApproval = req?.options?.requirePlanApproval ?? req?.options?.require_plan_approval;
       // P0-2：计划确认闸门开启时，模拟后端判定为复杂任务并弹出计划草稿等待用户确认
-      if (req?.options?.requirePlanApproval) {
+      console.log("[DEBUG cognitive_query] req:", JSON.stringify(req));
+      console.log("[DEBUG cognitive_query] requirePlanApproval:", requirePlanApproval);
+      if (requirePlanApproval) {
         emitBrowserEvent("agent-plan-ready-for-approval", {
           conversationId,
           plan: JSON.stringify({
-            task_preview: (req.input ?? "").slice(0, 200),
+            task_preview: (req?.input ?? "").slice(0, 200),
             selected_engine: "ReactEngine",
             features: {
               node_count: 3,
@@ -2008,7 +2091,7 @@ export async function handleCommand<T>(
           assistantMessageId: approvedId,
           text: i18n.t("browserMock.planCompleted"),
           thinking: "",
-          usage: { input_tokens: 1, output_tokens: 1 },
+          usage: { inputTokens: 1, outputTokens: 1 },
         });
         return {
           routePath: "general/chat",
@@ -2037,7 +2120,7 @@ export async function handleCommand<T>(
         assistantMessageId: assistantId,
         text: i18n.t("browserMock.planCompleted"),
         thinking: "",
-        usage: { input_tokens: 1, output_tokens: 1 },
+        usage: { inputTokens: 1, outputTokens: 1 },
       });
       return {
         routePath: route.routePath,
@@ -2095,7 +2178,7 @@ export async function handleCommand<T>(
           assistantMessageId: assistantId,
           text: i18n.t("browserMock.planCompleted"),
           thinking: "",
-          usage: { input_tokens: 1, output_tokens: 1 },
+          usage: { inputTokens: 1, outputTokens: 1 },
         });
         return { conversationId, assistantMessageId: "", status: undefined } as T;
       }
@@ -2163,8 +2246,8 @@ export async function handleCommand<T>(
       const now = Date.now();
       return {
         id: planId,
-        conversation_id: conversationId,
-        user_message_id: genId(),
+        conversationId: conversationId,
+        userMessageId: genId(),
         title: content?.slice(0, 60) || "Mock Plan",
         steps: [
           {
@@ -2172,7 +2255,7 @@ export async function handleCommand<T>(
             title: i18n.t("browserMock.analyzeRequirements"),
             description: i18n.t("browserMock.understandGoal"),
             status: "pending",
-            estimated_tools: ["Read"],
+            estimatedTools: ["Read"],
             result: null,
           },
           {
@@ -2180,7 +2263,7 @@ export async function handleCommand<T>(
             title: i18n.t("browserMock.designPlan"),
             description: i18n.t("browserMock.implementSteps"),
             status: "pending",
-            estimated_tools: ["Write"],
+            estimatedTools: ["Write"],
             result: null,
           },
           {
@@ -2188,15 +2271,15 @@ export async function handleCommand<T>(
             title: i18n.t("browserMock.verifyResult"),
             description: i18n.t("browserMock.confirmCompletion"),
             status: "pending",
-            estimated_tools: ["Bash"],
+            estimatedTools: ["Bash"],
             result: null,
           },
         ],
         status: "reviewing",
-        is_active: true,
-        created_under_strategy: "plan",
-        created_at: now,
-        updated_at: now,
+        isActive: true,
+        createdUnderStrategy: "plan",
+        createdAt: now,
+        updatedAt: now,
       } as T;
     }
     case "plan_execute": {
@@ -2211,15 +2294,15 @@ export async function handleCommand<T>(
       const now = Date.now();
       return {
         id: planId,
-        conversation_id: (args as { conversationId: string }).conversationId,
-        user_message_id: genId(),
+        conversationId: (args as { conversationId: string }).conversationId,
+        userMessageId: genId(),
         title: "Restored Plan",
         steps: [],
         status: "reviewing",
-        is_active: true,
-        created_under_strategy: "plan",
-        created_at: now,
-        updated_at: now,
+        isActive: true,
+        createdUnderStrategy: "plan",
+        createdAt: now,
+        updatedAt: now,
       } as T;
     }
     case "plan_modify_step": {
@@ -2258,15 +2341,15 @@ export async function handleCommand<T>(
       const userMsgId = genId();
       const userMsg = {
         id: userMsgId,
-        conversation_id: conversationId,
+        conversationId: conversationId,
         role: "user",
         content,
         thinking: null,
         attachments: attachments || [],
-        created_at: nowTs(),
-        parent_message_id: null,
-        version_index: 0,
-        is_active: true,
+        createdAt: nowTs(),
+        parentMessageId: null,
+        versionIndex: 0,
+        isActive: true,
       };
       const msgs = getStore<Record<string, unknown>[]>("messages", []);
       msgs.push(userMsg);
@@ -2274,15 +2357,15 @@ export async function handleCommand<T>(
       // Generate a simulated AI response in browser mode
       const aiMsg = {
         id: genId(),
-        conversation_id: conversationId,
+        conversationId: conversationId,
         role: "assistant",
         content: generateBrowserResponse(content),
         thinking: null,
         attachments: [],
-        created_at: nowTs() + 1,
-        parent_message_id: userMsgId,
-        version_index: 0,
-        is_active: true,
+        createdAt: nowTs() + 1,
+        parentMessageId: userMsgId,
+        versionIndex: 0,
+        isActive: true,
       };
       msgs.push(aiMsg);
       setStore("messages", msgs);
@@ -2291,7 +2374,7 @@ export async function handleCommand<T>(
     case "list_messages": {
       const { conversationId } = args as { conversationId?: string };
       const msgs = getStore<Message[]>("messages", []).filter(
-        (m) => m.conversation_id === conversationId,
+        (m) => m.conversationId === conversationId,
       );
       return msgs as T;
     }
@@ -2306,8 +2389,8 @@ export async function handleCommand<T>(
         beforeMessageId?: string | null;
       };
       const allMessages = getStore<Message[]>("messages", [])
-        .filter((m) => m.conversation_id === conversationId)
-        .sort((a, b) => a.created_at - b.created_at);
+        .filter((m) => m.conversationId === conversationId)
+        .sort((a, b) => a.createdAt - b.createdAt);
       const cursorIndex = beforeMessageId
         ? allMessages.findIndex((m) => m.id === beforeMessageId)
         : allMessages.length;
@@ -2338,7 +2421,7 @@ export async function handleCommand<T>(
       };
       const regenMsgs = getStore<Message[]>("messages", []);
       const convMsgs = regenMsgs.filter(
-        (m) => m.conversation_id === regenConvId,
+        (m) => m.conversationId === regenConvId,
       );
       let lastUserMsg: Message | null = null;
       if (regenUserMsgId) {
@@ -2358,34 +2441,34 @@ export async function handleCommand<T>(
       }
       if (lastUserMsg) {
         const existingVersions = regenMsgs.filter(
-          (m) => m.parent_message_id === lastUserMsg!.id && m.role === "assistant",
+          (m) => m.parentMessageId === lastUserMsg!.id && m.role === "assistant",
         );
         const nextVersion = existingVersions.length;
         for (const m of regenMsgs) {
           if (
-            m.parent_message_id === lastUserMsg!.id
+            m.parentMessageId === lastUserMsg!.id
             && m.role === "assistant"
           ) {
-            m.is_active = false;
+            m.isActive = false;
           }
         }
         // Create new AI version
         const newAiMsg: Message = {
           id: genId(),
-          conversation_id: regenConvId!,
+          conversationId: regenConvId!,
           role: "assistant",
           content: generateBrowserResponse(lastUserMsg!.content),
-          provider_id: null,
-          model_id: null,
-          token_count: null,
+          providerId: null,
+          modelId: null,
+          tokenCount: null,
           thinking: null,
           attachments: [],
-          tool_calls_json: null,
-          tool_call_id: null,
-          created_at: nowTs(),
-          parent_message_id: lastUserMsg!.id,
-          version_index: nextVersion,
-          is_active: true,
+          toolCallsJson: null,
+          toolCallId: null,
+          createdAt: nowTs(),
+          parentMessageId: lastUserMsg!.id,
+          versionIndex: nextVersion,
+          isActive: true,
           status: "complete",
         };
         regenMsgs.push(newAiMsg);
@@ -2397,7 +2480,7 @@ export async function handleCommand<T>(
       const { parentMessageId } = args as { parentMessageId?: string };
       const allMsgs = getStore<Message[]>("messages", []);
       return allMsgs.filter(
-        (m) => m.parent_message_id === parentMessageId,
+        (m) => m.parentMessageId === parentMessageId,
       ) as T;
     }
     case "switch_message_version": {
@@ -2407,8 +2490,8 @@ export async function handleCommand<T>(
       };
       const switchMsgs = getStore<Message[]>("messages", []);
       for (const m of switchMsgs) {
-        if (m.parent_message_id === switchParent && m.role === "assistant") {
-          m.is_active = m.id === switchTarget;
+        if (m.parentMessageId === switchParent && m.role === "assistant") {
+          m.isActive = m.id === switchTarget;
         }
       }
       setStore("messages", switchMsgs);
@@ -2418,7 +2501,7 @@ export async function handleCommand<T>(
       const { userMessageId } = args as { userMessageId?: string };
       const delMsgs = getStore<Message[]>("messages", []);
       const filtered = delMsgs.filter(
-        (m) => m.id !== userMessageId && m.parent_message_id !== userMessageId,
+        (m) => m.id !== userMessageId && m.parentMessageId !== userMessageId,
       );
       setStore("messages", filtered);
       return undefined as T;
@@ -2432,12 +2515,12 @@ export async function handleCommand<T>(
       const key: GatewayKey = {
         id: genId(),
         name: input.name ?? "",
-        key_hash: "",
-        key_prefix: "",
+        keyHash: "",
+        keyPrefix: "",
         enabled: input.enabled ?? true,
-        created_at: nowTs(),
-        last_used_at: null,
-        has_encrypted_key: true,
+        createdAt: nowTs(),
+        lastUsedAt: null,
+        hasEncryptedKey: true,
       };
       const keys = getStore<GatewayKey[]>("gateway_keys", []);
       keys.push(key);
@@ -3859,7 +3942,7 @@ export async function handleCommand<T>(
           icon: "BookOpen",
           tags: ["docs", "api", "readme"],
           version: 1,
-          is_preset: true,
+          isPreset: true,
           is_editable: false,
           is_public: false,
           trigger_config: { trigger_type: "manual", config: {} },
@@ -3879,7 +3962,7 @@ export async function handleCommand<T>(
           icon: "TestTube",
           tags: ["testing", "tdd", "coverage"],
           version: 1,
-          is_preset: true,
+          isPreset: true,
           is_editable: false,
           is_public: false,
           trigger_config: { trigger_type: "manual", config: {} },
@@ -3899,7 +3982,7 @@ export async function handleCommand<T>(
           icon: "GitBranch",
           tags: ["refactor", "clean-code", "patterns"],
           version: 1,
-          is_preset: true,
+          isPreset: true,
           is_editable: false,
           is_public: false,
           trigger_config: { trigger_type: "manual", config: {} },
@@ -3919,7 +4002,7 @@ export async function handleCommand<T>(
           icon: "Zap",
           tags: ["performance", "optimization", "profiling"],
           version: 1,
-          is_preset: true,
+          isPreset: true,
           is_editable: true,
           is_public: false,
           trigger_config: { trigger_type: "manual", config: {} },
@@ -3939,7 +4022,7 @@ export async function handleCommand<T>(
           icon: "Ship",
           tags: ["migration", "upgrade", "compatibility"],
           version: 1,
-          is_preset: true,
+          isPreset: true,
           is_editable: true,
           is_public: false,
           trigger_config: { trigger_type: "manual", config: {} },
@@ -3959,7 +4042,7 @@ export async function handleCommand<T>(
           icon: "Cloud",
           tags: ["api", "rest", "design"],
           version: 1,
-          is_preset: true,
+          isPreset: true,
           is_editable: true,
           is_public: false,
           trigger_config: { trigger_type: "manual", config: {} },
@@ -3979,7 +4062,7 @@ export async function handleCommand<T>(
           icon: "Bug",
           tags: ["debug", "troubleshoot", "environment"],
           version: 1,
-          is_preset: true,
+          isPreset: true,
           is_editable: true,
           is_public: false,
           trigger_config: { trigger_type: "manual", config: {} },
@@ -3999,7 +4082,7 @@ export async function handleCommand<T>(
           icon: "Sparkles",
           tags: ["feature", "ai", "implementation"],
           version: 1,
-          is_preset: true,
+          isPreset: true,
           is_editable: true,
           is_public: false,
           trigger_config: { trigger_type: "manual", config: {} },
@@ -4019,7 +4102,7 @@ export async function handleCommand<T>(
           icon: "Brain",
           tags: ["knowledge", "extraction", "nlp"],
           version: 1,
-          is_preset: true,
+          isPreset: true,
           is_editable: true,
           is_public: false,
           trigger_config: { trigger_type: "manual", config: {} },
@@ -4039,7 +4122,7 @@ export async function handleCommand<T>(
           icon: "Code",
           tags: ["knowledge", "code", "generation"],
           version: 1,
-          is_preset: true,
+          isPreset: true,
           is_editable: true,
           is_public: false,
           trigger_config: { trigger_type: "manual", config: {} },
@@ -4059,7 +4142,7 @@ export async function handleCommand<T>(
           icon: "Star",
           tags: ["custom", "user"],
           version: 1,
-          is_preset: false,
+          isPreset: false,
           is_editable: true,
           is_public: false,
           trigger_config: { trigger_type: "manual", config: {} },
@@ -4257,14 +4340,14 @@ export async function handleCommand<T>(
       return presetTemplates.length as T;
     }
     case "list_workflow_templates": {
-      const is_preset = (args as { is_preset?: boolean })?.is_preset;
-      const include_system = (args as { include_system?: boolean })?.include_system;
+      const isPreset = (args as { is_preset?: boolean })?.is_preset;
+      const includeSystem = (args as { include_system?: boolean })?.include_system;
       let templates = getStore<WorkflowTemplate[]>("workflow_templates", []);
-      if (is_preset !== undefined) {
-        templates = templates.filter((t) => t.is_preset === is_preset);
+      if (isPreset !== undefined) {
+        templates = templates.filter((t) => t.isPreset === isPreset);
       }
       // 默认过滤系统模板（认知编排器等）；include_system=true 时返回
-      if (!include_system) {
+      if (!includeSystem) {
         templates = templates.filter((t) => !t.is_system);
       }
       return templates as T;
@@ -4277,11 +4360,11 @@ export async function handleCommand<T>(
     // ── Workflow Templates ────────────────────────────────────────────
     case "get_workflow_template": {
       const id = (args as { id?: string })?.id;
-      const include_system = (args as { include_system?: boolean })?.include_system;
+      const includeSystem = (args as { include_system?: boolean })?.include_system;
       const templates = getStore<WorkflowTemplate[]>("workflow_templates", []);
       const found = templates.find((t) => t.id === id);
       // 系统模板默认不可见；include_system=true 时才可读取
-      if (!found || (!include_system && found.is_system)) {
+      if (!found || (!includeSystem && found.is_system)) {
         return null as T;
       }
       return found as T;
@@ -4297,7 +4380,7 @@ export async function handleCommand<T>(
         icon: "Bot",
         tags: input.tags || [],
         version: 1,
-        is_preset: false,
+        isPreset: false,
         is_editable: true,
         is_public: false,
         trigger_config: { type: "manual", config: {} },
@@ -4360,51 +4443,51 @@ export async function handleCommand<T>(
     // Platform / Message Channel commands
     case "get_platform_config": {
       return (getStore<PlatformConfig | null>("platform_config", null) ?? {
-        telegram_enabled: false,
-        telegram_bot_token: null,
-        telegram_webhook_url: null,
-        telegram_webhook_secret: null,
-        telegram_allowed_users: null,
-        discord_enabled: false,
-        discord_bot_token: null,
-        discord_webhook_url: null,
-        discord_allowed_channels: null,
-        slack_enabled: false,
-        slack_bot_token: null,
-        slack_signing_secret: null,
-        slack_workspace_id: null,
-        slack_app_token: null,
-        whatsapp_enabled: false,
-        whatsapp_phone_number_id: null,
-        whatsapp_access_token: null,
-        whatsapp_business_account_id: null,
-        whatsapp_webhook_verify_token: null,
-        whatsapp_api_version: null,
-        wechat_enabled: false,
-        wechat_app_id: null,
-        wechat_app_secret: null,
-        wechat_token: null,
-        wechat_encoding_aes_key: null,
-        wechat_original_id: null,
-        wechat_mode: null,
-        feishu_enabled: false,
-        feishu_app_id: null,
-        feishu_app_secret: null,
-        feishu_verification_token: null,
-        feishu_encrypt_key: null,
-        qq_enabled: false,
-        qq_bot_app_id: null,
-        qq_bot_token: null,
-        qq_bot_secret: null,
-        dingtalk_enabled: false,
-        dingtalk_app_key: null,
-        dingtalk_app_secret: null,
-        dingtalk_agent_id: null,
-        dingtalk_robot_code: null,
-        api_server_enabled: false,
-        api_server_port: 8080,
-        auto_sync_messages: false,
-        max_history_per_session: 100,
+        telegramEnabled: false,
+        telegramBotToken: null,
+        telegramWebhookUrl: null,
+        telegramWebhookSecret: null,
+        telegramAllowedUsers: null,
+        discordEnabled: false,
+        discordBotToken: null,
+        discordWebhookUrl: null,
+        discordAllowedChannels: null,
+        slackEnabled: false,
+        slackBotToken: null,
+        slackSigningSecret: null,
+        slackWorkspaceId: null,
+        slackAppToken: null,
+        whatsappEnabled: false,
+        whatsappPhoneNumberId: null,
+        whatsappAccessToken: null,
+        whatsappBusinessAccountId: null,
+        whatsappWebhookVerifyToken: null,
+        whatsappApiVersion: null,
+        wechatEnabled: false,
+        wechatAppId: null,
+        wechatAppSecret: null,
+        wechatToken: null,
+        wechatEncodingAesKey: null,
+        wechatOriginalId: null,
+        wechatMode: null,
+        feishuEnabled: false,
+        feishuAppId: null,
+        feishuAppSecret: null,
+        feishuVerificationToken: null,
+        feishuEncryptKey: null,
+        qqEnabled: false,
+        qqBotAppId: null,
+        qqBotToken: null,
+        qqBotSecret: null,
+        dingtalkEnabled: false,
+        dingtalkAppKey: null,
+        dingtalkAppSecret: null,
+        dingtalkAgentId: null,
+        dingtalkRobotCode: null,
+        apiServerEnabled: false,
+        apiServerPort: 8080,
+        autoSyncMessages: false,
+        maxHistoryPerSession: 100,
       }) as T;
     }
     case "update_platform_config": {
@@ -4421,14 +4504,14 @@ export async function handleCommand<T>(
         return [] as T;
       }
       const keys: { key: keyof PlatformConfig; name: string }[] = [
-        { key: "telegram_enabled", name: "Telegram" },
-        { key: "discord_enabled", name: "Discord" },
-        { key: "slack_enabled", name: "Slack" },
-        { key: "whatsapp_enabled", name: "WhatsApp" },
-        { key: "wechat_enabled", name: "WeChat" },
-        { key: "feishu_enabled", name: "Feishu" },
-        { key: "qq_enabled", name: "QQ" },
-        { key: "dingtalk_enabled", name: "DingTalk" },
+        { key: "telegramEnabled", name: "Telegram" },
+        { key: "discordEnabled", name: "Discord" },
+        { key: "slackEnabled", name: "Slack" },
+        { key: "whatsappEnabled", name: "WhatsApp" },
+        { key: "wechatEnabled", name: "WeChat" },
+        { key: "feishuEnabled", name: "Feishu" },
+        { key: "qqEnabled", name: "QQ" },
+        { key: "dingtalkEnabled", name: "DingTalk" },
       ];
       return keys.map(({ key, name }) => ({
         name,
@@ -4448,12 +4531,12 @@ export async function handleCommand<T>(
       const input = args as { platform: string; chat_id: string };
       const sessions = getStore<PlatformSession[]>("platform_sessions", []);
       const session: PlatformSession = {
-        session_id: `mock-${input.platform}-${Date.now()}`,
+        sessionId: `mock-${input.platform}-${Date.now()}`,
         platform: input.platform,
-        user_id: input.chat_id,
+        userId: input.chat_id,
         username: null,
-        is_active: true,
-        last_activity: Date.now(),
+        isActive: true,
+        lastActivity: Date.now(),
       };
       sessions.push(session);
       setStore("platform_sessions", sessions);
@@ -4464,7 +4547,7 @@ export async function handleCommand<T>(
       const sessions = getStore<PlatformSession[]>("platform_sessions", []);
       setStore(
         "platform_sessions",
-        sessions.map((s) => s.session_id === input.sessionId ? { ...s, is_active: false } : s),
+        sessions.map((s) => s.sessionId === input.sessionId ? { ...s, isActive: false } : s),
       );
       return undefined as T;
     }
@@ -4640,13 +4723,13 @@ export async function handleCommand<T>(
         id: genId(),
         title: req.title,
         description: req.description,
-        schema_json: req.schema_json,
+        schemaJson: req.schemaJson,
         category: req.category,
         tags: req.tags,
         version: "1.0.0",
-        is_builtin: false,
-        created_at: now,
-        updated_at: now,
+        isBuiltin: false,
+        createdAt: now,
+        updatedAt: now,
       };
       const schemas = loadMockDynamicUIData<DynamicUISchemaRecord[]>("schemas", []);
       schemas.push(schema);
@@ -4655,15 +4738,15 @@ export async function handleCommand<T>(
       const versions = loadMockDynamicUIData<DynamicUISchemaVersion[]>("versions", []);
       versions.push({
         id: Date.now(),
-        schema_id: schema.id,
+        schemaId: schema.id,
         version: schema.version,
         title: schema.title,
         description: schema.description,
-        schema_json: schema.schema_json,
+        schemaJson: schema.schemaJson,
         category: schema.category,
         tags: schema.tags,
-        change_log: "initial create",
-        created_at: Date.now(),
+        changeLog: "initial create",
+        createdAt: Date.now(),
       });
       saveMockDynamicUIData("versions", versions);
       return schema as T;
@@ -4688,11 +4771,11 @@ export async function handleCommand<T>(
         ...old,
         title: req.title ?? old.title,
         description: req.description ?? old.description,
-        schema_json: req.schema_json ?? old.schema_json,
+        schemaJson: req.schemaJson ?? old.schemaJson,
         category: req.category ?? old.category,
         tags: req.tags ?? old.tags,
         version: newVersion,
-        updated_at: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
       schemas[idx] = updated;
       saveMockDynamicUIData("schemas", schemas);
@@ -4700,15 +4783,15 @@ export async function handleCommand<T>(
       const versions = loadMockDynamicUIData<DynamicUISchemaVersion[]>("versions", []);
       versions.push({
         id: Date.now(),
-        schema_id: updated.id,
+        schemaId: updated.id,
         version: updated.version,
         title: updated.title,
         description: updated.description,
-        schema_json: updated.schema_json,
+        schemaJson: updated.schemaJson,
         category: updated.category,
         tags: updated.tags,
-        change_log: req.change_log ?? "update",
-        created_at: Date.now(),
+        changeLog: req.changeLog ?? "update",
+        createdAt: Date.now(),
       });
       saveMockDynamicUIData("versions", versions);
       return updated as T;
@@ -4724,7 +4807,7 @@ export async function handleCommand<T>(
       const versions = loadMockDynamicUIData<DynamicUISchemaVersion[]>("versions", []);
       saveMockDynamicUIData(
         "versions",
-        versions.filter((v) => v.schema_id !== id),
+        versions.filter((v) => v.schemaId !== id),
       );
       return undefined as T;
     }
@@ -4735,18 +4818,18 @@ export async function handleCommand<T>(
       if (!req) {
         throw new Error("Missing req parameter");
       }
-      const instanceKey = req.instance_key ?? "__default__";
+      const instanceKey = req.instanceKey ?? "__default__";
       const records = loadMockDynamicUIData<DynamicUIFormDataRecord[]>("formData", []);
       const idx = records.findIndex(
-        (r) => r.schema_id === req.schema_id && r.instance_key === instanceKey,
+        (r) => r.schemaId === req.schemaId && r.instanceKey === instanceKey,
       );
       const now = new Date().toISOString();
       const record: DynamicUIFormDataRecord = {
         id: idx !== -1 ? records[idx].id : genId(),
-        schema_id: req.schema_id,
-        instance_key: instanceKey,
-        form_data_json: req.form_data_json,
-        updated_at: now,
+        schemaId: req.schemaId,
+        instanceKey: instanceKey,
+        formDataJson: req.formDataJson,
+        updatedAt: now,
       };
       if (idx !== -1) {
         records[idx] = record;
@@ -4764,7 +4847,7 @@ export async function handleCommand<T>(
       const instanceKey = instance_key ?? "__default__";
       const records = loadMockDynamicUIData<DynamicUIFormDataRecord[]>("formData", []);
       const record = records.find(
-        (r) => r.schema_id === schema_id && r.instance_key === instanceKey,
+        (r) => r.schemaId === schema_id && r.instanceKey === instanceKey,
       ) ?? null;
       return record as T;
     }
@@ -4778,7 +4861,7 @@ export async function handleCommand<T>(
       saveMockDynamicUIData(
         "formData",
         records.filter(
-          (r) => !(r.schema_id === schema_id && r.instance_key === instanceKey),
+          (r) => !(r.schemaId === schema_id && r.instanceKey === instanceKey),
         ),
       );
       return undefined as T;
@@ -4800,17 +4883,17 @@ export async function handleCommand<T>(
         throw new Error("Missing schema_id");
       }
       const pins = loadMockDynamicUIData<DynamicUIPinRecord[]>("pins", []);
-      const idx = pins.findIndex((p) => p.schema_id === schema_id);
+      const idx = pins.findIndex((p) => p.schemaId === schema_id);
       const now = new Date().toISOString();
       const pos = position
         ?? (pins.length > 0 ? Math.max(...pins.map((p) => p.position)) + 1 : 0);
       const record: DynamicUIPinRecord = {
-        schema_id,
+        schemaId: schema_id,
         title: title ?? "",
-        group_name: group_name ?? "",
+        groupName: group_name ?? "",
         position: pos,
-        created_at: idx !== -1 ? pins[idx].created_at : now,
-        updated_at: now,
+        createdAt: idx !== -1 ? pins[idx].createdAt : now,
+        updatedAt: now,
       };
       if (idx !== -1) {
         pins[idx] = record;
@@ -4825,7 +4908,7 @@ export async function handleCommand<T>(
       const pins = loadMockDynamicUIData<DynamicUIPinRecord[]>("pins", []);
       saveMockDynamicUIData(
         "pins",
-        pins.filter((p) => p.schema_id !== schema_id),
+        pins.filter((p) => p.schemaId !== schema_id),
       );
       return undefined as T;
     }
@@ -4834,12 +4917,12 @@ export async function handleCommand<T>(
     case "list_dynamic_ui_schema_versions": {
       const { schema_id } = args as { schema_id?: string };
       const versions = loadMockDynamicUIData<DynamicUISchemaVersion[]>("versions", []);
-      const filtered = versions.filter((v) => v.schema_id === schema_id);
+      const filtered = versions.filter((v) => v.schemaId === schema_id);
       const schemas = loadMockDynamicUIData<DynamicUISchemaRecord[]>("schemas", []);
       const schema = schemas.find((s) => s.id === schema_id);
       const response: ListVersionsResponse = {
         versions: filtered,
-        current_version: schema?.version ?? "",
+        currentVersion: schema?.version ?? "",
       };
       return response as T;
     }
@@ -4856,7 +4939,7 @@ export async function handleCommand<T>(
       };
       const versions = loadMockDynamicUIData<DynamicUISchemaVersion[]>("versions", []);
       const version = versions.find(
-        (v) => v.id === version_id && v.schema_id === schema_id,
+        (v) => v.id === version_id && v.schemaId === schema_id,
       );
       if (!version) {
         throw new Error("Version not found");
@@ -4870,13 +4953,13 @@ export async function handleCommand<T>(
         id: schemas[idx].id,
         title: version.title,
         description: version.description,
-        schema_json: version.schema_json,
+        schemaJson: version.schemaJson,
         category: version.category,
         tags: version.tags,
         version: version.version,
-        is_builtin: schemas[idx].is_builtin,
-        created_at: schemas[idx].created_at,
-        updated_at: new Date().toISOString(),
+        isBuiltin: schemas[idx].isBuiltin,
+        createdAt: schemas[idx].createdAt,
+        updatedAt: new Date().toISOString(),
       };
       schemas[idx] = restored;
       saveMockDynamicUIData("schemas", schemas);
@@ -5007,16 +5090,16 @@ export async function handleCommand<T>(
         id: "",
         name: "",
         description: "",
-        sample_count: 0,
-        created_at: 0,
+        numSamples: 0,
+        createdAt: 0,
       } as T;
     case "create_dataset":
       return {
         id: genId(),
         name: (args as { name?: string })?.name ?? "Mock Dataset",
         description: (args as { description?: string })?.description ?? "",
-        sample_count: 0,
-        created_at: nowTs(),
+        numSamples: 0,
+        createdAt: nowTs(),
       } as T;
     case "add_sample":
     case "delete_dataset":
@@ -5031,25 +5114,28 @@ export async function handleCommand<T>(
       return {
         id: "",
         status: "pending",
-        progress: 0,
-        created_at: 0,
+        datasetId: "",
+        baseModel: "",
+        progressPercent: 0,
+        currentLoss: 0,
+        outputLora: null,
       } as T;
     case "create_training_job":
       return {
         id: genId(),
-        dataset_id: (args as { dataset_id?: string })?.dataset_id ?? "",
-        base_model: (args as { base_model?: string })?.base_model ?? "",
+        datasetId: (args as { datasetId?: string })?.datasetId ?? "",
+        baseModel: (args as { baseModel?: string })?.baseModel ?? "",
         status: "pending",
-        progress: 0,
-        created_at: nowTs(),
+        progressPercent: 0,
+        currentLoss: 0,
+        outputLora: null,
       } as T;
     case "get_training_stats":
       return {
-        total_jobs: 0,
-        active_jobs: 0,
-        completed_jobs: 0,
-        failed_jobs: 0,
-        total_samples: 0,
+        totalJobs: 0,
+        completedJobs: 0,
+        runningJobs: 0,
+        failedJobs: 0,
       } as T;
     case "list_base_models":
     case "list_lora_adapters":
@@ -6428,7 +6514,7 @@ export async function handleCommand<T>(
         } as T;
       }
       const passports = readCapabilityPassports();
-      const idx = passports.findIndex((p) => p.capability_id === passport.capability_id);
+      const idx = passports.findIndex((p) => p.capabilityId === passport.capabilityId);
       if (idx >= 0) {
         passports[idx] = passport;
       } else {
@@ -6441,7 +6527,7 @@ export async function handleCommand<T>(
       const batch = (args as { passports?: CapabilityPassportDto[] })?.passports ?? [];
       const passports = readCapabilityPassports();
       for (const passport of batch) {
-        const idx = passports.findIndex((p) => p.capability_id === passport.capability_id);
+        const idx = passports.findIndex((p) => p.capabilityId === passport.capabilityId);
         if (idx >= 0) {
           passports[idx] = passport;
         } else {
@@ -6455,7 +6541,7 @@ export async function handleCommand<T>(
       const capabilityId = (args as { capabilityId?: string })?.capabilityId ?? "";
       const passports = readCapabilityPassports();
       writeCapabilityPassports(
-        passports.filter((p) => p.capability_id !== capabilityId),
+        passports.filter((p) => p.capabilityId !== capabilityId),
       );
       return { success: true } as T;
     }

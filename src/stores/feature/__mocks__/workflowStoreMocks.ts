@@ -151,7 +151,7 @@ export async function mockParseSkill(
     description: prompt.slice(0, 100),
     type: (skillType || "chat") as "chat" | "automation" | "tool" | "workflow",
     triggers: extractTriggers(prompt),
-    prompt_template: `基于以下上下文回答问题：\n{{context}}\n\n用户问题：{{query}}\n\n要求：${prompt}`,
+    promptTemplate: `基于以下上下文回答问题：\n{{context}}\n\n用户问题：{{query}}\n\n要求：${prompt}`,
     parameters: [
       { name: "query", type: "string", description: "用户输入的问题", required: true },
       { name: "context", type: "string", description: "对话上下文", required: false, default: "" },

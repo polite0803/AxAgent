@@ -60,7 +60,7 @@ export function DynamicPageViewer() {
     getSchema(schemaId)
       .then((record) => {
         if (cancelled) { return; }
-        const parsed = parseSchema(record.schema_json);
+        const parsed = parseSchema(record.schemaJson);
         if (!parsed) {
           dispatch({ type: "load_error", message: t("dynamicUIManager.invalidSchema") });
         } else {

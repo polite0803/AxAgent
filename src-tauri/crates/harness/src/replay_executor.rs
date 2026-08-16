@@ -582,6 +582,7 @@ mod tests {
             id: id.to_string(),
             session_id: "test_session".to_string(),
             user_id: "test_user".to_string(),
+            agent_name: None,
             topic: "test".to_string(),
             summary: "test trajectory".to_string(),
             outcome: TrajectoryOutcome::Success,

@@ -108,16 +108,16 @@ function MultiModelDisplayInner({
   const latestByModel = useMemo(() => {
     const modelMap = new Map<string, Message>();
     for (const v of versions) {
-      const key = v.model_id ?? "__unknown__";
+      const key = v.modelId ?? "__unknown__";
       const existing = modelMap.get(key);
-      if (!existing || v.version_index > existing.version_index) {
+      if (!existing || v.versionIndex > existing.versionIndex) {
         modelMap.set(key, v);
       }
     }
     return Array.from(modelMap.values());
   }, [versions]);
 
-  const parentMessageId = versions[0]?.parent_message_id;
+  const parentMessageId = versions[0]?.parentMessageId;
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const isSideBySide = mode === "side-by-side";
@@ -243,8 +243,8 @@ function MultiModelDisplayInner({
         const isActive = vMsg.id === activeMessageId;
         const isVersionStreaming = vMsg.id === streamingMessageId;
         const { modelName, providerName } = getModelDisplayInfo(
-          vMsg.model_id,
-          vMsg.provider_id,
+          vMsg.modelId,
+          vMsg.providerId,
         );
 
         return (
@@ -270,7 +270,7 @@ function MultiModelDisplayInner({
             >
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <ModelIcon
-                  model={vMsg.model_id ?? ""}
+                  model={vMsg.modelId ?? ""}
                   size={20}
                   type="avatar"
                 />

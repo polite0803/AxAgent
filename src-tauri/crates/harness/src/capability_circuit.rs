@@ -45,6 +45,7 @@ pub trait CapabilityCircuitBreaker: Send + Sync {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CapabilityCircuitSnapshot {
     pub capability_id: String,
     pub state: CircuitState,
@@ -94,6 +95,7 @@ pub struct ContextEntity {
 
 /// 能力补全建议
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CapabilitySuggestion {
     pub capability_id: String,
     pub name: String,

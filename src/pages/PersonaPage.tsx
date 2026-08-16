@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import {
-  type AutoLearnResult,
   invoke,
   personalityAutoLearnFromConversation,
   personalityCreateBootstrap,
@@ -11,7 +10,7 @@ import {
   personalityUpdateIdentity,
   personalityUpdateUser,
 } from "@/lib/invoke";
-import type { Conversation, Personality, PersonalityInfo } from "@/types";
+import type { AutoLearnResult, Conversation, Personality, PersonalityInfo } from "@/types";
 import {
   Alert,
   Button,
@@ -183,12 +182,12 @@ export function PersonaPage() {
       setAutoLearnResult(result);
       if (result.learned) {
         message.success(
-          t("settings.persona.autoLearn.success", { name: result.persona_name }),
+          t("settings.persona.autoLearn.success", { name: result.personaName }),
         );
         // 如果当前选中的就是被回写的 persona，刷新其 user 内容
-        if (selected && selected.name === result.persona_name) {
+        if (selected && selected.name === result.personaName) {
           try {
-            const refreshed = await personalityGet(result.persona_name);
+            const refreshed = await personalityGet(result.personaName);
             setSelected(refreshed);
           } catch {
             // 刷新失败不影响主流程
@@ -241,8 +240,8 @@ export function PersonaPage() {
               </div>
             </Space>
             <Space>
-              {p.is_active && <Tag color="blue">{t("settings.persona.activated")}</Tag>}
-              {!p.is_active && (
+              {p.isActive && <Tag color="blue">{t("settings.persona.activated")}</Tag>}
+              {!p.isActive && (
                 <Button
                   size="small"
                   type="link"
@@ -461,21 +460,21 @@ export function PersonaPage() {
               type={autoLearnResult.learned ? "success" : "warning"}
               title={autoLearnResult.learned
                 ? t("settings.persona.autoLearn.successTitle", {
-                  name: autoLearnResult.persona_name,
+                  name: autoLearnResult.personaName,
                 })
                 : t("settings.persona.autoLearn.noSamplesTitle")}
               description={
                 <div style={{ whiteSpace: "pre-wrap" }}>
                   <Paragraph style={{ marginBottom: token.marginXS }}>
-                    {autoLearnResult.style_summary}
+                    {autoLearnResult.styleSummary}
                   </Paragraph>
-                  {autoLearnResult.updated_fields.length > 0 && (
+                  {autoLearnResult.updatedFields.length > 0 && (
                     <div>
                       <Text type="secondary" style={{ fontSize: token.fontSizeSM }}>
                         {t("settings.persona.autoLearn.updatedFields")}
                       </Text>
                       <div style={{ marginTop: 4 }}>
-                        {autoLearnResult.updated_fields.map((field) => (
+                        {autoLearnResult.updatedFields.map((field) => (
                           <Tag key={field} style={{ marginBottom: 4 }}>
                             {field}
                           </Tag>

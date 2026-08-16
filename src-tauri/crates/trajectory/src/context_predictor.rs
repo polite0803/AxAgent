@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ContextFeatures {
     pub current_file: Option<String>,
     pub current_language: Option<String>,
@@ -44,6 +45,7 @@ pub enum ActivityLevel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PatternMatch {
     pub pattern_type: String,
     pub matched_text: String,
@@ -51,6 +53,7 @@ pub struct PatternMatch {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PredictionResult {
     pub predictions: Vec<ContextPrediction>,
     pub top_prediction: Option<ContextPrediction>,

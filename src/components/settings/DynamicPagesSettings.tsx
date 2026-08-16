@@ -54,10 +54,10 @@ export function DynamicPagesSettings() {
   const pinnedMap: PinnedSchemaMap = useMemo(() => {
     const m: PinnedSchemaMap = {};
     for (const p of pins) {
-      m[p.schema_id] = {
-        schemaId: p.schema_id,
+      m[p.schemaId] = {
+        schemaId: p.schemaId,
         title: p.title,
-        group: p.group_name,
+        group: p.groupName,
         position: p.position,
       };
     }
@@ -87,7 +87,7 @@ export function DynamicPagesSettings() {
   const handlePreview = (record: DynamicUISchemaRecord) => {
     setSelectedSchema(record);
     try {
-      setPreviewSchema(JSON.parse(record.schema_json) as UISchema);
+      setPreviewSchema(JSON.parse(record.schemaJson) as UISchema);
     } catch {
       setPreviewSchema(null);
     }
@@ -113,7 +113,7 @@ export function DynamicPagesSettings() {
   // 打开编辑弹窗（加载已有 schema）
   const handleOpenEdit = (record: DynamicUISchemaRecord) => {
     try {
-      const parsed = JSON.parse(record.schema_json) as UISchema;
+      const parsed = JSON.parse(record.schemaJson) as UISchema;
       setEditingRecord(record);
       setEditSchema(parsed);
       setEditJsonText(JSON.stringify(parsed, null, 2));
@@ -168,14 +168,14 @@ export function DynamicPagesSettings() {
           description: editDescription,
           category: editCategory,
           tags: editTags,
-          schema_json: editJsonText,
+          schemaJson: editJsonText,
         });
 
         if (pinToNav) {
           await pinSchema({
-            schema_id: record.id,
+            schemaId: record.id,
             title: editTitle,
-            group_name: pinGroup,
+            groupName: pinGroup,
             position: undefined,
           });
         }
@@ -186,7 +186,7 @@ export function DynamicPagesSettings() {
           description: editDescription,
           category: editCategory,
           tags: editTags,
-          schema_json: editJsonText,
+          schemaJson: editJsonText,
         });
         message.success(t("dynamicUIManager.updateSuccess"));
       }
@@ -303,9 +303,9 @@ export function DynamicPagesSettings() {
             onChange={(checked) => {
               if (checked) {
                 pinSchema({
-                  schema_id: record.id,
+                  schemaId: record.id,
                   title: record.title,
-                  group_name: "dashboard",
+                  groupName: "dashboard",
                   position: undefined,
                 });
               } else {
@@ -330,7 +330,7 @@ export function DynamicPagesSettings() {
             disabled={!cfg}
             style={{ width: 100 }}
             onChange={(g) => {
-              updatePin(record.id, { group_name: g });
+              updatePin(record.id, { groupName: g });
             }}
             options={PIN_GROUPS.map((g) => ({ label: t(g.labelKey), value: g.key }))}
           />

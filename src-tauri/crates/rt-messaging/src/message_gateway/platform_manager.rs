@@ -255,6 +255,7 @@ impl PlatformManager {
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PlatformReconcileReport {
     pub started: Vec<String>,
     pub stopped: Vec<String>,
@@ -262,6 +263,7 @@ pub struct PlatformReconcileReport {
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PlatformAdapterStatus {
     pub name: String,
     pub enabled: bool,

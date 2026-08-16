@@ -77,12 +77,12 @@ export function PlatformStatusCard() {
                     </Tag>
                   )}
               </div>
-              {s.last_activity && (
+              {s.lastActivity && (
                 <div className="flex items-center justify-between">
                   <Text type="secondary">
                     {t("settings.platform.lastActivity")}
                   </Text>
-                  <Text>{new Date(s.last_activity).toLocaleString()}</Text>
+                  <Text>{new Date(s.lastActivity).toLocaleString()}</Text>
                 </div>
               )}
               {s.enabled && (
@@ -90,7 +90,7 @@ export function PlatformStatusCard() {
                   <Text type="secondary">
                     {t("settings.platform.activeSessions")}
                   </Text>
-                  <Text>{s.active_sessions}</Text>
+                  <Text>{s.activeSessions}</Text>
                 </div>
               )}
             </div>

@@ -19,7 +19,7 @@ export function ModelTags({
   conversationId: string;
   allVersions: Message[];
   getModelDisplayInfo: (
-    model_id?: string | null,
+    modelId?: string | null,
     providerId?: string | null,
   ) => { modelName: string; providerName: string };
 }) {
@@ -36,12 +36,12 @@ export function ModelTags({
     (s) => s.multiModelDoneMessageIds,
   );
 
-  const isMultiModelTarget = msg.parent_message_id === multiModelParentId;
+  const isMultiModelTarget = msg.parentMessageId === multiModelParentId;
 
   const modelGroups = useMemo(() => {
     const groups = new Map<string, Message[]>();
     for (const v of allVersions) {
-      const key = v.model_id ?? "__unknown__";
+      const key = v.modelId ?? "__unknown__";
       if (!groups.has(key)) {
         groups.set(key, []);
       }
@@ -54,7 +54,7 @@ export function ModelTags({
     if (!isMultiModelTarget || !pendingCompanionModels.length) {
       return [];
     }
-    return pendingCompanionModels.filter((cm) => !modelGroups.has(cm.model_id));
+    return pendingCompanionModels.filter((cm) => !modelGroups.has(cm.modelId));
   }, [isMultiModelTarget, pendingCompanionModels, modelGroups]);
 
   const streamingModelIds = useMemo(() => {
@@ -64,11 +64,11 @@ export function ModelTags({
     }
     const doneIdSet = new Set(multiModelDoneMessageIds);
     for (const cm of pendingCompanionModels) {
-      if (modelGroups.has(cm.model_id)) {
-        const versions = modelGroups.get(cm.model_id) ?? [];
+      if (modelGroups.has(cm.modelId)) {
+        const versions = modelGroups.get(cm.modelId) ?? [];
         const isDone = versions.some((v) => doneIdSet.has(v.id));
         if (!isDone) {
-          ids.add(cm.model_id);
+          ids.add(cm.modelId);
         }
       }
     }
@@ -84,20 +84,20 @@ export function ModelTags({
     return null;
   }
 
-  const currentModelId = msg.model_id ?? "__unknown__";
+  const currentModelId = msg.modelId ?? "__unknown__";
 
-  const handleTagClick = (model_id: string) => {
-    if (model_id === currentModelId || !msg.parent_message_id) {
+  const handleTagClick = (modelId: string) => {
+    if (modelId === currentModelId || !msg.parentMessageId) {
       return;
     }
-    const versions = modelGroups.get(model_id);
+    const versions = modelGroups.get(modelId);
     if (!versions || versions.length === 0) {
       return;
     }
     const sorted = versions.toSorted(
-      (a, b) => b.version_index - a.version_index,
+      (a, b) => b.versionIndex - a.versionIndex,
     );
-    switchMessageVersion(conversationId, msg.parent_message_id, sorted[0].id);
+    switchMessageVersion(conversationId, msg.parentMessageId, sorted[0].id);
   };
 
   return (
@@ -109,23 +109,23 @@ export function ModelTags({
         flexWrap: "wrap",
       }}
     >
-      {Array.from(modelGroups.keys()).map((model_id) => {
-        const isActive = model_id === currentModelId;
-        const isStreaming = streamingModelIds.has(model_id);
+      {Array.from(modelGroups.keys()).map((modelId) => {
+        const isActive = modelId === currentModelId;
+        const isStreaming = streamingModelIds.has(modelId);
         const { modelName } = getModelDisplayInfo(
-          model_id,
-          modelGroups.get(model_id)?.[0]?.provider_id,
+          modelId,
+          modelGroups.get(modelId)?.[0]?.providerId,
         );
         return (
-          <Tooltip key={model_id} title={modelName} mouseEnterDelay={0.3}>
+          <Tooltip key={modelId} title={modelName} mouseEnterDelay={0.3}>
             <div
-              onClick={() => handleTagClick(model_id)}
+              onClick={() => handleTagClick(modelId)}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  handleTagClick(model_id);
+                  handleTagClick(modelId);
                 }
               }}
               className={isStreaming ? "model-tag-streaming" : undefined}
@@ -142,16 +142,16 @@ export function ModelTags({
                 flexShrink: 0,
               }}
             >
-              <ModelIcon model={model_id} size={20} type="avatar" />
+              <ModelIcon model={modelId} size={20} type="avatar" />
             </div>
           </Tooltip>
         );
       })}
       {pendingModels.map((cm) => {
-        const { modelName } = getModelDisplayInfo(cm.model_id, cm.providerId);
+        const { modelName } = getModelDisplayInfo(cm.modelId, cm.providerId);
         return (
           <Tooltip
-            key={`pending-${cm.model_id}`}
+            key={`pending-${cm.modelId}`}
             title={`${modelName} (${t("chat.waiting")})`}
             mouseEnterDelay={0.3}
           >
@@ -169,7 +169,7 @@ export function ModelTags({
                 flexShrink: 0,
               }}
             >
-              <ModelIcon model={cm.model_id} size={20} type="avatar" />
+              <ModelIcon model={cm.modelId} size={20} type="avatar" />
             </div>
           </Tooltip>
         );

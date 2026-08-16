@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { validate_workflow, type ValidateIssue } from "@/lib/workflowLayout";
+import { type ValidateIssue, validateWorkflow } from "@/lib/workflowLayout";
 import { useEffect, useRef, useState } from "react";
 import type { WorkflowEdge, WorkflowNode } from "../types";
 
@@ -29,7 +29,7 @@ export function useWorkflowValidation(
   useEffect(() => {
     if (timerRef.current) { clearTimeout(timerRef.current); }
     timerRef.current = setTimeout(() => {
-      const result = validate_workflow(nodes, edges, renderFn);
+      const result = validateWorkflow(nodes, edges, renderFn);
       setIssues(result.issues);
       const map = new Map<string, string>();
       for (const iss of result.issues) {

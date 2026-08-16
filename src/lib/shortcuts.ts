@@ -132,18 +132,18 @@ export type ShortcutConflictMap = Partial<
 >;
 
 export const SHORTCUT_SETTING_KEYS = {
-  toggleCurrentWindow: "shortcut_toggle_current_window",
-  toggleAllWindows: "shortcut_toggle_all_windows",
-  closeWindow: "shortcut_close_window",
-  newConversation: "shortcut_new_conversation",
-  openSettings: "shortcut_open_settings",
-  toggleModelSelector: "shortcut_toggle_model_selector",
-  fillLastMessage: "shortcut_fill_last_message",
-  clearContext: "shortcut_clear_context",
-  clearConversationMessages: "shortcut_clear_conversation_messages",
-  toggleGateway: "shortcut_toggle_gateway",
-  toggleMode: "shortcut_toggle_mode",
-  showQuickBar: "shortcut_show_quick_bar",
+  toggleCurrentWindow: "shortcutToggleCurrentWindow",
+  toggleAllWindows: "shortcutToggleAllWindows",
+  closeWindow: "shortcutCloseWindow",
+  newConversation: "shortcutNewConversation",
+  openSettings: "shortcutOpenSettings",
+  toggleModelSelector: "shortcutToggleModelSelector",
+  fillLastMessage: "shortcutFillLastMessage",
+  clearContext: "shortcutClearContext",
+  clearConversationMessages: "shortcutClearConversationMessages",
+  toggleGateway: "shortcutToggleGateway",
+  toggleMode: "shortcutToggleMode",
+  showQuickBar: "shortcutShowQuickBar",
 } as const satisfies Record<ShortcutAction, keyof AppSettings>;
 
 export type ShortcutSettingKey = (typeof SHORTCUT_SETTING_KEYS)[ShortcutAction];

@@ -23,7 +23,7 @@ import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "./SettingsGroup";
 
 type ShortcutSettingsUpdate = Partial<
-  Record<ShortcutSettingKey | "global_shortcut", string>
+  Record<ShortcutSettingKey | "globalShortcut", string>
 >;
 
 export function ShortcutSettings() {
@@ -80,7 +80,7 @@ export function ShortcutSettings() {
         [key]: binding,
       };
       if (action === "toggleCurrentWindow") {
-        update.global_shortcut = binding;
+        update.globalShortcut = binding;
       }
       await saveSettings(update);
     },
@@ -98,7 +98,7 @@ export function ShortcutSettings() {
       const value = DEFAULT_SHORTCUT_BINDINGS[action];
       const update: ShortcutSettingsUpdate = { [key]: value };
       if (action === "toggleCurrentWindow") {
-        update.global_shortcut = value;
+        update.globalShortcut = value;
       }
       setDraftBindings((prev) => ({ ...prev, [action]: "" }));
       setRecordingAction((prev) => (prev === action ? null : prev));
@@ -131,7 +131,7 @@ export function ShortcutSettings() {
       const key = SHORTCUT_SETTING_KEYS[action];
       update[key] = DEFAULT_SHORTCUT_BINDINGS[action];
     }
-    update.global_shortcut = DEFAULT_SHORTCUT_BINDINGS.toggleCurrentWindow;
+    update.globalShortcut = DEFAULT_SHORTCUT_BINDINGS.toggleCurrentWindow;
     setDraftBindings({});
     setRecordingAction(null);
     await saveSettings(update);
@@ -148,9 +148,9 @@ export function ShortcutSettings() {
           <span>{t("settings.enableGlobalShortcuts")}</span>
           <Switch
             id="shortcut-settings-switch-170"
-            checked={settings.global_shortcuts_enabled ?? false}
+            checked={settings.globalShortcutsEnabled ?? false}
             onChange={(checked) => {
-              void saveSettings({ global_shortcuts_enabled: checked });
+              void saveSettings({ globalShortcutsEnabled: checked });
             }}
           />
         </div>
@@ -163,10 +163,10 @@ export function ShortcutSettings() {
           <span>{t("settings.enableShortcutRegistrationLogs")}</span>
           <Switch
             id="shortcut-settings-switch-171"
-            checked={settings.shortcut_registration_logs_enabled ?? false}
+            checked={settings.shortcutRegistrationLogsEnabled ?? false}
             onChange={(checked) => {
               void saveSettings({
-                shortcut_registration_logs_enabled: checked,
+                shortcutRegistrationLogsEnabled: checked,
               });
             }}
           />
@@ -180,13 +180,13 @@ export function ShortcutSettings() {
           <span>{t("settings.enableShortcutTriggerToast")}</span>
           <Switch
             id="shortcut-settings-switch-172"
-            checked={settings.shortcut_trigger_toast_enabled ?? false}
+            checked={settings.shortcutTriggerToastEnabled ?? false}
             onChange={(checked) => {
-              void saveSettings({ shortcut_trigger_toast_enabled: checked });
+              void saveSettings({ shortcutTriggerToastEnabled: checked });
             }}
           />
         </div>
-        {settings.global_shortcuts_enabled
+        {settings.globalShortcutsEnabled
           && globalShortcutStatus.failed.length > 0 && (
           <div style={{ marginTop: 6, fontSize: 12, color: token.colorError }}>
             {t("settings.globalShortcutRegisterFailedList", {
@@ -198,8 +198,8 @@ export function ShortcutSettings() {
             })}
           </div>
         )}
-        {settings.global_shortcuts_enabled
-          && settings.shortcut_registration_logs_enabled
+        {settings.globalShortcutsEnabled
+          && settings.shortcutRegistrationLogsEnabled
           && globalShortcutStatus.diagnostics.length > 0 && (
           <div style={{ marginTop: 10, fontSize: 12 }}>
             <div style={{ fontWeight: 500, marginBottom: 6 }}>
@@ -266,7 +266,7 @@ export function ShortcutSettings() {
             const action = descriptor.action;
             const binding = valueForAction(action);
             const accelerator = toTauriAccelerator(binding);
-            const failedReason = settings.global_shortcuts_enabled && descriptor.supportsGlobal
+            const failedReason = settings.globalShortcutsEnabled && descriptor.supportsGlobal
               ? (failedGlobalShortcutReasonMap.get(accelerator)
                 ?? failedGlobalShortcutReasonMap.get("*"))
               : undefined;

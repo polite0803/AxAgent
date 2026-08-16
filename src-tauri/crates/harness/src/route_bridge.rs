@@ -35,6 +35,7 @@ use crate::types::ChatRequest;
 /// 同时作为 `AppSettings::smart_router_tier_mappings` 的持久化值类型（tier 字符串 →
 /// 本结构），前端设置界面据此收发 JSON，因此派生 `Serialize`/`Deserialize`。
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TierModelMapping {
     /// 解析出的模型 ID（如 "gpt-4o-mini" / "claude-3-sonnet"）
     #[serde(default)]

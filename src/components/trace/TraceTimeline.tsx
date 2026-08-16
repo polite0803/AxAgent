@@ -56,11 +56,11 @@ function mapSpanTypeToStepType(spanType: string, status: string): TraceStep["typ
 function spansToSteps(spans: Span[]): TraceStep[] {
   if (spans.length === 0) { return []; }
 
-  const baseTime = new Date(spans[0].start_time).getTime();
+  const baseTime = new Date(spans[0].startTime).getTime();
 
   return spans.map((span) => {
-    const startMs = new Date(span.start_time).getTime() - baseTime;
-    const durationMs = span.duration_ms ?? 0;
+    const startMs = new Date(span.startTime).getTime() - baseTime;
+    const durationMs = span.durationMs ?? 0;
     const tokenUsage = (span.attributes as Record<string, unknown> | null)?.total_tokens as number | undefined;
     const description = span.errors.length > 0
       ? span.errors.map((e) => e.message).join("; ")
@@ -69,7 +69,7 @@ function spansToSteps(spans: Span[]): TraceStep[] {
     return {
       id: span.id,
       name: span.name,
-      type: mapSpanTypeToStepType(span.span_type, span.status),
+      type: mapSpanTypeToStepType(span.spanType, span.status),
       description,
       durationMs,
       tokenUsage,

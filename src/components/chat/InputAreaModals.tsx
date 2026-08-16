@@ -32,9 +32,9 @@ export function InputAreaModals(props: {
   multiModelOpen: boolean;
   setMultiModelOpen: (v: boolean) => void;
   handleMultiModelSelect: (
-    models: Array<{ providerId: string; model_id: string }>,
+    models: Array<{ providerId: string; modelId: string }>,
   ) => void;
-  companionModels: Array<{ providerId: string; model_id: string }>;
+  companionModels: Array<{ providerId: string; modelId: string }>;
 }) {
   const { token } = theme.useToken();
   const { t } = useTranslation();

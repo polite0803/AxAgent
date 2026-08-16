@@ -38,13 +38,14 @@ use crate::capability::{CapabilityDomain, CapabilityKind};
 use crate::cluster_router::{ClusterRouter, ClusterRoutingResult};
 use crate::domain_router::{DomainRouter, DomainRoutingResult};
 use crate::rar_router::{RarCircuitBreaker, RarRouter};
-use crate::workflow_graph::{WorkflowGraph, WorkflowGraphRouter};
+use crate::workflow_graph::{WorkflowGraph, WorkflowGraphRouter, WorkflowGraphSync};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
+use tokio::sync::RwLock;
 
 // ── 系统能力 ID ──────────────────────────────────
 
@@ -56,8 +57,12 @@ pub const SYSTEM_RAR_RETRIEVER_ID: &str = "system_rar_retriever";
 
 /// 系统能力：工作流图谱路径规划（L3 子工作流中的 `system_workflow_graph_router` 节点）
 ///
-/// 输入（HashMap）：`selected_capability` / `l1_domain` / `l2_cluster` / `user_input`
+/// 输入（HashMap）：`selected_capability` / `selected_score` / `selected_kind` / `l1_domain` / `l2_cluster` / `user_input`
 /// 输出（Value）：`{ route_path, capability_id, confidence, execution_mode, circuit_broken, reason }`
+///
+/// `selected_kind`：选中候选的能力类型（workflow / agent / tool / knowledge_base / skill）。
+/// 非 Workflow 能力即使高置信命中也不会直发工作流（见 `clamp_mode_for_kind`），
+/// 而是降级委派 agent 执行，避免触发 WORKFLOW_NOT_FOUND。空串视为 Workflow。
 pub const SYSTEM_WORKFLOW_GRAPH_ROUTER_ID: &str = "system_workflow_graph_router";
 
 // ── 路由作用域枚举 ──────────────────────────────────
@@ -102,6 +107,13 @@ impl Default for SelfReferenceProtection {
                 "orchestrator".to_string(),
                 "meta_agent".to_string(),
                 "self_improvement".to_string(),
+                // 阶段二 T2.4：进化产物自指熔断。
+                // 进化/补齐产物（passport ID `evolution:workflow:*`、路由 tag `route:/evolution/*`）
+                // 属于"编排器动态生成"的能力，禁止被再次路由/执行，防止通过进化产物递归编排编排器。
+                "/evolution/".to_string(),
+                "evolution:workflow".to_string(),
+                // 自指系统工具护照（`system:self_evolution:*`）亦不可被业务路由命中
+                "self_evolution".to_string(),
             ],
             protected_tags: vec![
                 "SYSTEM_ONLY".to_string(),
@@ -503,6 +515,26 @@ pub trait CognitiveRouter: Send + Sync {
     async fn list_l2_categories(&self, _domain: &str) -> Vec<String> {
         Vec::new()
     }
+
+    /// 将进化/补齐产物同步进工作流图谱（L3 `system_workflow_graph_router` 可见）。
+    ///
+    /// 自进化闭环（通道一/二）在用户同意补齐或进化后调用：把产物工作流登记为
+    /// L3 图谱节点，使下一次用户输入的路由决策可命中该产物。默认实现为空操作；
+    /// `DefaultCognitiveRouter` 覆写为写入其内部工作流图谱。
+    ///
+    /// # 参数
+    /// - `domain`: 业务域（进化产物统一为 `general`）
+    /// - `cluster`: L2 集群（进化产物统一为 `auto_generated`）
+    /// - `workflow_id`: 产物工作流 ID（即护照 `capability_id`）
+    /// - `display_name`: 图谱节点显示名称
+    async fn sync_evolved_workflow(
+        &self,
+        _domain: &str,
+        _cluster: &str,
+        _workflow_id: &str,
+        _display_name: &str,
+    ) {
+    }
 }
 
 // ── 默认认知路由器实现 ────────────────────────────
@@ -515,8 +547,8 @@ pub struct DefaultCognitiveRouter {
     cluster_router: Arc<dyn ClusterRouter>,
     /// RAR 检索路由器
     rar_router: Arc<dyn RarRouter>,
-    /// 工作流图谱
-    workflow_graph: Arc<WorkflowGraph>,
+    /// 工作流图谱（读写锁：路由只读，自进化/能力补齐写入同步）
+    workflow_graph: Arc<RwLock<WorkflowGraph>>,
     /// 熔断保护器
     circuit_breaker: RarCircuitBreaker,
     /// 配置
@@ -529,7 +561,7 @@ impl DefaultCognitiveRouter {
         domain_router: Arc<dyn DomainRouter>,
         cluster_router: Arc<dyn ClusterRouter>,
         rar_router: Arc<dyn RarRouter>,
-        workflow_graph: Arc<WorkflowGraph>,
+        workflow_graph: Arc<RwLock<WorkflowGraph>>,
     ) -> Self {
         Self {
             domain_router,
@@ -554,9 +586,28 @@ impl DefaultCognitiveRouter {
     }
 
     /// 设置工作流图谱
-    pub fn with_workflow_graph(mut self, graph: Arc<WorkflowGraph>) -> Self {
+    pub fn with_workflow_graph(mut self, graph: Arc<RwLock<WorkflowGraph>>) -> Self {
         self.workflow_graph = graph;
         self
+    }
+
+    /// 将进化/补齐产物同步进工作流图谱（L3 `system_workflow_graph_router` 可见）。
+    ///
+    /// 自进化闭环（通道一/二）用户同意补齐/进化后调用：登记 L3 图谱节点，
+    /// 使下一次用户输入的路由决策可命中该产物。
+    pub async fn sync_evolved_workflow(
+        &self,
+        domain: &str,
+        cluster: &str,
+        workflow_id: &str,
+        display_name: &str,
+    ) {
+        let mut graph = self.workflow_graph.write().await;
+        WorkflowGraphSync::sync_workflow(&mut graph, domain, cluster, workflow_id, display_name);
+        tracing::info!(
+            path = format!("{}/{}/{}", domain, cluster, workflow_id),
+            "🗺️ 自进化产物已同步进工作流图谱"
+        );
     }
 
     // ── 物理隔离检查方法 ──────────────────────────
@@ -685,7 +736,8 @@ impl DefaultCognitiveRouter {
     /// - L3 图谱路由（`system_workflow_graph_router`，主 DAG 实际运行路径）
     /// - 程序化路由 `route_with_hint`（非 DAG 调用方）
     ///
-    /// 置信度档位需与主 DAG `execution_mode` SwitchNode cases 对齐：
+    /// 置信度档位与 `cognitive_query` 分支执行消费一致（认知编排器主 DAG 已不设
+    /// execution_mode SwitchNode，模式由 L3 图谱路由统一决策、经 EndNode 原样透传）：
     /// - > 0.90 → `Workflow`（精准命中，直发工作流）
     /// - ≥ 0.75 → `Direct`（高置信，直接执行）
     /// - ≥ 0.60 → `Clarify`（模糊命中，Top2 候选交用户澄清）
@@ -708,6 +760,23 @@ impl DefaultCognitiveRouter {
         }
     }
 
+    /// 非工作流能力高置信度保护（P5）：即使置信度达到 Workflow/Direct 阈值，
+    /// Agent / Tool / 知识库 / 技能等非 Workflow 能力也必须委派给 agent 执行，
+    /// 防止被误当工作流模板直发 `workflow_execute`（触发 WORKFLOW_NOT_FOUND）。
+    ///
+    /// `kind` 缺失或为空串（如簇级兜底路径无选中候选）时视为 Workflow，保持原行为。
+    fn clamp_mode_for_kind(mode: ExecutionMode, kind: &str) -> ExecutionMode {
+        if kind.is_empty() || kind == "workflow" {
+            return mode;
+        }
+        match mode {
+            ExecutionMode::Workflow | ExecutionMode::Direct | ExecutionMode::ParameterExtract => {
+                ExecutionMode::Delegate
+            },
+            other => other,
+        }
+    }
+
     /// 系统能力 `system_workflow_graph_router`：图谱路径规划
     ///
     /// 输入：`selected_capability` / `l1_domain` / `l2_cluster` / `user_input`
@@ -723,11 +792,20 @@ impl DefaultCognitiveRouter {
         let l1_domain = get_input_str(&input, "l1_domain");
         let l2_cluster = get_input_str(&input, "l2_cluster");
         let user_input = get_input_str(&input, "user_input");
+        // RAR 选中候选的置信度（图谱降级时保留真实分数，替代硬编码 0.5；缺失为 0 表示未提供）
+        let selected_score = get_input_f64(&input, "selected_score");
+        // RAR 选中候选的能力类型（P5 非 Workflow 能力高置信度保护；空串视为 Workflow）
+        let selected_kind = get_input_str(&input, "selected_kind");
 
         // 1. 自指熔断检查（系统能力层第一道防线）
         let self_ref = selected_capability.contains("cognitive_router")
             || selected_capability.contains("orchestrator")
-            || selected_capability.starts_with("system_");
+            || selected_capability.starts_with("system_")
+            // 阶段二 T2.4：自指护照用冒号（system:self_evolution:*），进化产物含 /evolution/ / evolution:
+            || selected_capability.starts_with("system:")
+            || selected_capability.contains("/evolution/")
+            || selected_capability.contains("evolution:workflow")
+            || selected_capability.contains("self_evolution");
         if self_ref {
             tracing::warn!(
                 capability_id = %selected_capability,
@@ -753,22 +831,26 @@ impl DefaultCognitiveRouter {
         let candidate_ids = vec![selected_capability.clone()];
 
         // 3. 图谱路由：优先按关键词匹配，其次按候选 ID 精确匹配
-        let graph_result = if self.config.enable_graph_routing {
-            WorkflowGraphRouter::select_best_path(
-                &self.workflow_graph,
-                &current_path,
-                &user_input,
-                &candidate_ids,
-            )
-            .or_else(|| {
-                WorkflowGraphRouter::select_from_candidates(
-                    &self.workflow_graph,
+        //    （图谱读写锁：此处只读；guard 在块内释放，结果 owned 传出）
+        let graph_result = {
+            let graph = self.workflow_graph.read().await;
+            if self.config.enable_graph_routing {
+                WorkflowGraphRouter::select_best_path(
+                    &graph,
                     &current_path,
+                    &user_input,
                     &candidate_ids,
                 )
-            })
-        } else {
-            None
+                .or_else(|| {
+                    WorkflowGraphRouter::select_from_candidates(
+                        &graph,
+                        &current_path,
+                        &candidate_ids,
+                    )
+                })
+            } else {
+                None
+            }
         };
 
         // 4. 组装路由结果（fallback_path 提前声明，供输出对象透传观测字段）
@@ -778,18 +860,28 @@ impl DefaultCognitiveRouter {
                 result.selected_path.rsplit('/').next().unwrap_or(&selected_capability).to_string();
             (result.selected_path, cap_id, result.confidence)
         } else {
-            // 图谱无匹配：降级为直接构造确定性路径（低置信度，交 LLM/Agent 决策）
+            // 图谱无匹配：降级为直接构造确定性路径。置信度优先保留 RAR 选中候选的真实
+            // 分数（此前硬编码 0.5 丢失候选 score，导致高置信命中被降级为 Plan/Act）；
+            // 未提供分数（无候选兜底路径）时回退 0.5。
             fallback_path =
                 RoutingDecisionV2::build_path(&l1_domain, &l2_cluster, &selected_capability);
-            (fallback_path.clone(), selected_capability.clone(), 0.5)
+            let fb_conf = if selected_score > 0.0 {
+                selected_score
+            } else {
+                0.5
+            };
+            (fallback_path.clone(), selected_capability.clone(), fb_conf)
         };
 
         // 5. 执行模式决策：无能力实体（selected_capability 为空）视为自由问答 → Ask；
-        //    否则按置信度分级（统一走公共决策函数，与主 DAG Switch cases 对齐）
+        //    否则按置信度分级（统一走公共决策函数，与主 DAG Switch cases 对齐）。
+        //    P5 保护：非 Workflow 能力（Agent/Tool/知识库/技能）即使高置信命中也不直发
+        //    工作流，强制降级委派 agent 执行，防止触发 WORKFLOW_NOT_FOUND。
         let execution_mode = if selected_capability.trim().is_empty() {
             "ask"
         } else {
-            Self::execution_mode_from_confidence(confidence).as_str()
+            let mode = Self::execution_mode_from_confidence(confidence);
+            Self::clamp_mode_for_kind(mode, &selected_kind).as_str()
         };
 
         tracing::info!(
@@ -1024,15 +1116,19 @@ impl CognitiveRouter for DefaultCognitiveRouter {
         };
 
         // 尝试使用图谱路由选择最优路径（仅当配置启用；关闭时降级为第一个候选）
-        let graph_result = if self.config.enable_graph_routing {
-            WorkflowGraphRouter::select_best_path(
-                &self.workflow_graph,
-                &current_path,
-                user_input,
-                &candidate_ids_for_graph,
-            )
-        } else {
-            None
+        //    （图谱读写锁：此处只读；guard 在块内释放，结果 owned 传出）
+        let graph_result = {
+            let graph = self.workflow_graph.read().await;
+            if self.config.enable_graph_routing {
+                WorkflowGraphRouter::select_best_path(
+                    &graph,
+                    &current_path,
+                    user_input,
+                    &candidate_ids_for_graph,
+                )
+            } else {
+                None
+            }
         };
 
         let (final_path, capability_id, confidence) = if let Some(graph_decision) = graph_result {
@@ -1091,7 +1187,13 @@ impl CognitiveRouter for DefaultCognitiveRouter {
                 if decision.capability_id.is_empty() {
                     ExecutionMode::Ask
                 } else {
-                    Self::execution_mode_from_confidence(decision.confidence)
+                    // P5 保护：按候选能力类型降级（与 L3 图谱路由一致，保证两条路径行为统一）
+                    let kind =
+                        rar_search_result.candidates.first().map(|c| c.kind.as_str()).unwrap_or("");
+                    Self::clamp_mode_for_kind(
+                        Self::execution_mode_from_confidence(decision.confidence),
+                        kind,
+                    )
                 }
             },
         };
@@ -1195,6 +1297,24 @@ impl CognitiveRouter for DefaultCognitiveRouter {
         (l1, l2)
     }
 
+    /// 将进化/补齐产物同步进工作流图谱（L3 `system_workflow_graph_router` 可见）。
+    async fn sync_evolved_workflow(
+        &self,
+        domain: &str,
+        cluster: &str,
+        workflow_id: &str,
+        display_name: &str,
+    ) {
+        DefaultCognitiveRouter::sync_evolved_workflow(
+            self,
+            domain,
+            cluster,
+            workflow_id,
+            display_name,
+        )
+        .await;
+    }
+
     async fn execute_system_capability(
         &self,
         capability_id: &str,
@@ -1246,6 +1366,11 @@ pub fn parse_route_path(path: &str) -> (String, Option<String>, Option<String>) 
 /// 从系统能力输入中提取字符串值（缺失/非字符串时回退为空串）
 fn get_input_str(input: &HashMap<String, Value>, key: &str) -> String {
     input.get(key).and_then(|v| v.as_str()).map(|s| s.to_string()).unwrap_or_default()
+}
+
+/// 从系统能力输入中提取 f64 数值（缺失/非数值时回退为 0.0）
+fn get_input_f64(input: &HashMap<String, Value>, key: &str) -> f64 {
+    input.get(key).and_then(|v| v.as_f64()).unwrap_or(0.0)
 }
 
 /// 从系统能力输入中提取可选字符串值（缺失/非字符串/空串时返回 None）
@@ -1542,7 +1667,7 @@ mod tests {
 
         let rar_router = Arc::new(MockRarRouter { candidates: create_test_candidates() });
 
-        let workflow_graph = Arc::new(WorkflowGraph::new());
+        let workflow_graph = Arc::new(RwLock::new(WorkflowGraph::new()));
 
         let router =
             DefaultCognitiveRouter::new(domain_router, cluster_router, rar_router, workflow_graph);
@@ -1559,7 +1684,7 @@ mod tests {
 
         let rar_router = Arc::new(MockRarRouter { candidates: create_test_candidates() });
 
-        let workflow_graph = Arc::new(WorkflowGraph::new());
+        let workflow_graph = Arc::new(RwLock::new(WorkflowGraph::new()));
 
         let router =
             DefaultCognitiveRouter::new(domain_router, cluster_router, rar_router, workflow_graph);
@@ -1603,7 +1728,7 @@ mod tests {
             }],
         });
 
-        let workflow_graph = Arc::new(WorkflowGraph::new());
+        let workflow_graph = Arc::new(RwLock::new(WorkflowGraph::new()));
 
         let router =
             DefaultCognitiveRouter::new(domain_router, cluster_router, rar_router, workflow_graph);

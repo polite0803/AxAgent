@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 
 /// 能力检索请求
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CapabilityQuery {
     /// 用户原始输入文本
     pub user_input: String,
@@ -44,6 +45,7 @@ fn default_top_k() -> usize {
 
 /// 命中的候选能力
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CapabilityCandidate {
     pub capability_id: String,
     pub name: String,
@@ -69,6 +71,7 @@ pub struct CapabilityCandidate {
 
 /// 检索结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CapabilityRetrievalResult {
     /// 候选列表（已按 retrieval_score 降序）
     pub candidates: Vec<CapabilityCandidate>,

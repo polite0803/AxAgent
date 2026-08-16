@@ -6,6 +6,7 @@ import { Copy, FileCode, FileImage, FileText, FileType, Globe } from "lucide-rea
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { translateBackendError } from "@/lib/errorI18n";
 import {
   copyTranscript,
   exportAsHTML,
@@ -18,15 +19,11 @@ import { invoke, logIpcError } from "@/lib/invoke";
 import { useConversationStore, useProviderStore, useSettingsStore, useTopicGroupStore } from "@/stores";
 import type { ConversationStats, Message } from "@/types";
 
-import { CHAT_SCROLL_IS_REVERSED, getScrollTopAfterPrepend } from "./chatScroll";
-
 export interface UseChatViewActionsParams {
   activeConversationId: string | null;
   activeConversation: import("@/types").Conversation | undefined;
   messages: Message[];
-  bubbleListRef: React.RefObject<any | null>; // eslint-disable-line @typescript-eslint/no-explicit-any
   messageAreaRef: React.RefObject<HTMLDivElement | null>;
-  loadOlderMessages: () => Promise<void>;
 }
 
 export interface UseChatViewActionsReturn {
@@ -52,7 +49,6 @@ export interface UseChatViewActionsReturn {
   handleEditSaveAndResend: () => void;
   resetEditing: () => void;
   setEditingContent: (v: string) => void;
-  handleLoadOlderMessages: () => Promise<void>;
   handlePromptClick: (info: {
     data: { label?: unknown; scenario?: string };
   }) => void;
@@ -70,9 +66,7 @@ export function useChatViewActions({
   activeConversationId,
   activeConversation,
   messages,
-  bubbleListRef,
   messageAreaRef,
-  loadOlderMessages,
 }: UseChatViewActionsParams): UseChatViewActionsReturn {
   const { t } = useTranslation();
   const { message: messageApi } = App.useApp();
@@ -115,7 +109,7 @@ export function useChatViewActions({
   // - 无 profile 时：返回全局已启用工具总数（兼容旧行为）
   // - 有 profile 时：返回按该 profile 工具域筛选后的工具数（与 agent_query 一致）
   // 关键：依赖 agent_profile_id，切换专家后自动刷新显示
-  const agentProfileId = activeConversation?.agent_profile_id ?? undefined;
+  const agentProfileId = activeConversation?.agentProfileId ?? undefined;
   const [toolCount, setToolCount] = useState(0);
   useEffect(() => {
     invoke<number>("get_tool_count", { agentProfileId })
@@ -169,29 +163,6 @@ export function useChatViewActions({
     await regenerateTitle(activeConversation.id);
   }, [activeConversation, isTitleGenerating, regenerateTitle]);
 
-  const handleLoadOlderMessages = useCallback(async () => {
-    const scrollContainer = bubbleListRef.current?.scrollBoxNativeElement as
-      | HTMLDivElement
-      | null
-      | undefined;
-    const previousScrollHeight = scrollContainer?.scrollHeight ?? 0;
-    const previousScrollTop = scrollContainer?.scrollTop ?? 0;
-    await loadOlderMessages();
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        if (!scrollContainer) {
-          return;
-        }
-        scrollContainer.scrollTop = getScrollTopAfterPrepend(
-          previousScrollTop,
-          previousScrollHeight,
-          scrollContainer.scrollHeight,
-          CHAT_SCROLL_IS_REVERSED,
-        );
-      });
-    });
-  }, [loadOlderMessages]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const handleEditMessage = useCallback(
     (messageId: string, content: string, role: "user" | "assistant") => {
       if (!messageId) {
@@ -224,7 +195,7 @@ export function useChatViewActions({
       setEditingMessageRole(null);
       setEditingContent("");
     } catch (e) {
-      messageApi.error(String(e));
+      messageApi.error(translateBackendError(e));
     } finally {
       setEditSaving(false);
     }
@@ -239,7 +210,7 @@ export function useChatViewActions({
       await updateMessageContent(editingMessageId, editingContent);
       const msgs = useConversationStore.getState().messages;
       const aiMsg = msgs.find(
-        (m) => m.parent_message_id === editingMessageId && m.is_active,
+        (m) => m.parentMessageId === editingMessageId && m.isActive,
       );
       setEditingMessageId(null);
       setEditingMessageRole(null);
@@ -249,11 +220,11 @@ export function useChatViewActions({
       // undefined (which triggers regenerateMessage's built-in last-user fallback).
       const targetMsgId = aiMsg?.id
         ?? msgs.find(
-          (m) => m.parent_message_id === editingMessageId && m.role === "assistant",
+          (m) => m.parentMessageId === editingMessageId && m.role === "assistant",
         )?.id;
       await regenerateMessage(targetMsgId);
     } catch (e) {
-      messageApi.error(String(e));
+      messageApi.error(translateBackendError(e));
     } finally {
       setEditSaving(false);
     }
@@ -280,13 +251,13 @@ export function useChatViewActions({
             messageApi.warning(t("chat.noModel"));
             return;
           }
-          let provider = settings.default_provider_id
+          let provider = settings.defaultProviderId
             ? providers.find(
-              (p) => p.id === settings.default_provider_id && p.enabled,
+              (p) => p.id === settings.defaultProviderId && p.enabled,
             )
             : undefined;
           let model = provider?.models.find(
-            (m) => m.model_id === settings.default_model_id && m.enabled,
+            (m) => m.modelId === settings.defaultModelId && m.enabled,
           );
           if (!provider || !model) {
             provider = providers.find(
@@ -300,7 +271,7 @@ export function useChatViewActions({
           }
           await createConversation(
             text.slice(0, 30),
-            model.model_id,
+            model.modelId,
             provider.id,
             { scenario },
           );
@@ -308,7 +279,7 @@ export function useChatViewActions({
 
         useConversationStore.getState().setPendingPromptText(text);
       } catch (e) {
-        messageApi.error(String(e));
+        messageApi.error(translateBackendError(e));
       }
     },
     [
@@ -355,235 +326,142 @@ export function useChatViewActions({
     [activeConversationId],
   );
 
-  const exportMenuItems = useMemo(
-    () => [
-      {
-        key: "copy-md",
-        label: t("chat.copyMarkdown"),
-        icon: <Copy size={14} />,
-        onClick: async () => {
-          if (messages.length === 0) {
-            messageApi.warning(t("chat.noMessages"));
-            return;
+  const exportMenuItems = useMemo<MenuProps["items"]>(
+    () => {
+      const runFormatExport = async (
+        exporter: (
+          msgs: Message[],
+          title: string,
+          opts?: { includeThinking?: boolean },
+        ) => Promise<boolean>,
+        includeThinking: boolean,
+      ) => {
+        if (messages.length === 0) {
+          messageApi.warning(t("chat.noMessages"));
+          return;
+        }
+        try {
+          const ok = await exporter(
+            messages,
+            activeConversation?.title ?? "chat",
+            includeThinking ? undefined : { includeThinking: false },
+          );
+          if (ok) {
+            messageApi.success(t("chat.exportSuccess"));
           }
-          try {
-            const ok = await copyTranscript(
-              messages,
-              activeConversation?.title ?? "chat",
-              "markdown",
-              {
-                includeThinking: false,
-              },
-            );
-            if (ok) {
-              messageApi.success(t("chat.copied"));
-            }
-          } catch {
-            messageApi.error(t("chat.exportFailed"));
-          }
+        } catch {
+          messageApi.error(t("chat.exportFailed"));
+        }
+      };
+
+      const FORMAT_TARGETS: Array<{
+        key: string;
+        noThinkingKey: string;
+        labelKey: string;
+        noThinkingLabelKey: string;
+        icon: React.ReactNode;
+        exporter: (
+          msgs: Message[],
+          title: string,
+          opts?: { includeThinking?: boolean },
+        ) => Promise<boolean>;
+      }> = [
+        {
+          key: "md",
+          noThinkingKey: "export-md-no-thinking",
+          labelKey: "chat.exportMd",
+          noThinkingLabelKey: "chat.exportMdNoThinking",
+          icon: <FileCode size={14} />,
+          exporter: exportAsMarkdown,
         },
-      },
-      {
-        key: "png",
-        label: t("chat.exportPng"),
-        icon: <FileImage size={14} />,
-        onClick: async () => {
-          try {
-            const ok = await exportAsPNG(
-              messageAreaRef.current,
-              activeConversation?.title ?? "chat",
-            );
-            if (ok) {
-              messageApi.success(t("chat.exportSuccess"));
-            }
-          } catch {
-            messageApi.error(t("chat.exportFailed"));
-          }
+        {
+          key: "txt",
+          noThinkingKey: "export-txt-no-thinking",
+          labelKey: "chat.exportTxt",
+          noThinkingLabelKey: "chat.exportTxtNoThinking",
+          icon: <FileType size={14} />,
+          exporter: exportAsText,
         },
-      },
-      {
-        key: "md",
-        label: t("chat.exportMd"),
-        icon: <FileCode size={14} />,
-        onClick: async () => {
-          if (messages.length === 0) {
-            messageApi.warning(t("chat.noMessages"));
-            return;
-          }
-          try {
-            const ok = await exportAsMarkdown(
-              messages,
-              activeConversation?.title ?? "chat",
-            );
-            if (ok) {
-              messageApi.success(t("chat.exportSuccess"));
-            }
-          } catch {
-            messageApi.error(t("chat.exportFailed"));
-          }
+        {
+          key: "json",
+          noThinkingKey: "export-json-no-thinking",
+          labelKey: "chat.exportJson",
+          noThinkingLabelKey: "chat.exportJsonNoThinking",
+          icon: <FileText size={14} />,
+          exporter: exportAsJSON,
         },
-      },
-      {
-        key: "export-md-no-thinking",
-        label: t("chat.exportMdNoThinking"),
-        icon: <FileCode size={14} />,
-        onClick: async () => {
-          if (messages.length === 0) {
-            messageApi.warning(t("chat.noMessages"));
-            return;
-          }
-          try {
-            const ok = await exportAsMarkdown(
-              messages,
-              activeConversation?.title ?? "chat",
-              {
-                includeThinking: false,
-              },
-            );
-            if (ok) {
-              messageApi.success(t("chat.exportSuccess"));
-            }
-          } catch {
-            messageApi.error(t("chat.exportFailed"));
-          }
+        {
+          key: "html",
+          noThinkingKey: "export-html-no-thinking",
+          labelKey: "chat.exportHtml",
+          noThinkingLabelKey: "chat.exportHtmlNoThinking",
+          icon: <Globe size={14} />,
+          exporter: exportAsHTML,
         },
-      },
-      {
-        key: "txt",
-        label: t("chat.exportTxt"),
-        icon: <FileType size={14} />,
-        onClick: async () => {
-          if (messages.length === 0) {
-            messageApi.warning(t("chat.noMessages"));
-            return;
-          }
-          try {
-            const ok = await exportAsText(
-              messages,
-              activeConversation?.title ?? "chat",
-            );
-            if (ok) {
-              messageApi.success(t("chat.exportSuccess"));
+      ];
+
+      // 完整的导出菜单：复制 + PNG + 各格式（含/不含思考过程）
+      return [
+        {
+          key: "copy-md",
+          label: t("chat.copyMarkdown"),
+          icon: <Copy size={14} />,
+          onClick: async () => {
+            if (messages.length === 0) {
+              messageApi.warning(t("chat.noMessages"));
+              return;
             }
-          } catch {
-            messageApi.error(t("chat.exportFailed"));
-          }
-        },
-      },
-      {
-        key: "export-txt-no-thinking",
-        label: t("chat.exportTxtNoThinking"),
-        icon: <FileType size={14} />,
-        onClick: async () => {
-          if (messages.length === 0) {
-            messageApi.warning(t("chat.noMessages"));
-            return;
-          }
-          try {
-            const ok = await exportAsText(
-              messages,
-              activeConversation?.title ?? "chat",
-              { includeThinking: false },
-            );
-            if (ok) {
-              messageApi.success(t("chat.exportSuccess"));
+            try {
+              const ok = await copyTranscript(
+                messages,
+                activeConversation?.title ?? "chat",
+                "markdown",
+                {
+                  includeThinking: false,
+                },
+              );
+              if (ok) {
+                messageApi.success(t("chat.copied"));
+              }
+            } catch {
+              messageApi.error(t("chat.exportFailed"));
             }
-          } catch {
-            messageApi.error(t("chat.exportFailed"));
-          }
+          },
         },
-      },
-      {
-        key: "json",
-        label: t("chat.exportJson"),
-        icon: <FileText size={14} />,
-        onClick: async () => {
-          if (messages.length === 0) {
-            messageApi.warning(t("chat.noMessages"));
-            return;
-          }
-          try {
-            const ok = await exportAsJSON(
-              messages,
-              activeConversation?.title ?? "chat",
-            );
-            if (ok) {
-              messageApi.success(t("chat.exportSuccess"));
+        {
+          key: "png",
+          label: t("chat.exportPng"),
+          icon: <FileImage size={14} />,
+          onClick: async () => {
+            try {
+              const ok = await exportAsPNG(
+                messageAreaRef.current,
+                activeConversation?.title ?? "chat",
+              );
+              if (ok) {
+                messageApi.success(t("chat.exportSuccess"));
+              }
+            } catch {
+              messageApi.error(t("chat.exportFailed"));
             }
-          } catch {
-            messageApi.error(t("chat.exportFailed"));
-          }
+          },
         },
-      },
-      {
-        key: "export-json-no-thinking",
-        label: t("chat.exportJsonNoThinking"),
-        icon: <FileText size={14} />,
-        onClick: async () => {
-          if (messages.length === 0) {
-            messageApi.warning(t("chat.noMessages"));
-            return;
-          }
-          try {
-            const ok = await exportAsJSON(
-              messages,
-              activeConversation?.title ?? "chat",
-              { includeThinking: false },
-            );
-            if (ok) {
-              messageApi.success(t("chat.exportSuccess"));
-            }
-          } catch {
-            messageApi.error(t("chat.exportFailed"));
-          }
-        },
-      },
-      {
-        key: "html",
-        label: t("chat.exportHtml"),
-        icon: <Globe size={14} />,
-        onClick: async () => {
-          if (messages.length === 0) {
-            messageApi.warning(t("chat.noMessages"));
-            return;
-          }
-          try {
-            const ok = await exportAsHTML(
-              messages,
-              activeConversation?.title ?? "chat",
-            );
-            if (ok) {
-              messageApi.success(t("chat.exportSuccess"));
-            }
-          } catch {
-            messageApi.error(t("chat.exportFailed"));
-          }
-        },
-      },
-      {
-        key: "export-html-no-thinking",
-        label: t("chat.exportHtmlNoThinking"),
-        icon: <Globe size={14} />,
-        onClick: async () => {
-          if (messages.length === 0) {
-            messageApi.warning(t("chat.noMessages"));
-            return;
-          }
-          try {
-            const ok = await exportAsHTML(
-              messages,
-              activeConversation?.title ?? "chat",
-              { includeThinking: false },
-            );
-            if (ok) {
-              messageApi.success(t("chat.exportSuccess"));
-            }
-          } catch {
-            messageApi.error(t("chat.exportFailed"));
-          }
-        },
-      },
-    ],
+        ...FORMAT_TARGETS.flatMap((target) => [
+          {
+            key: target.key,
+            label: t(target.labelKey),
+            icon: target.icon,
+            onClick: () => runFormatExport(target.exporter, true),
+          },
+          {
+            key: target.noThinkingKey,
+            label: t(target.noThinkingLabelKey),
+            icon: target.icon,
+            onClick: () => runFormatExport(target.exporter, false),
+          },
+        ]),
+      ];
+    },
     [messages, activeConversation, t, messageApi], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
@@ -606,7 +484,6 @@ export function useChatViewActions({
     handleEditSaveAndResend,
     resetEditing,
     setEditingContent,
-    handleLoadOlderMessages,
     handlePromptClick,
     handleTopicGroupToggle,
     handleStatsOpenChange,

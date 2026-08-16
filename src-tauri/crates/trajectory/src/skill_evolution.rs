@@ -22,6 +22,7 @@ pub use axagent_harness::trajectory_types::{
     LlmEvolutionProvider, LlmMutationFuture, LlmMutationRequest, LlmMutationResponse, ProcedureStep,
 };
 
+use crate::evidence::{EvolutionDecider, EvolutionDecision};
 use crate::skill::{Skill, SkillModification, SkillValidationResult};
 use crate::trajectory::{Trajectory, TrajectoryOutcome};
 use rand::RngExt;
@@ -49,6 +50,27 @@ pub struct EvolutionConfig {
     pub auto_trigger_min_usages: u32,
     /// 自动触发进化的成功率阈值（低于此值且达到 min_usages 即触发）
     pub auto_trigger_success_threshold: f64,
+    /// T3.2：贝叶斯进化触发低阈值（`P(success) <` 此值触发进化）。
+    #[serde(default = "default_evolve_threshold")]
+    pub evolve_threshold: f64,
+    /// T3.2：贝叶斯稳定标记高阈值（`P(success) >` 此值且证据足够 → 稳定）。
+    #[serde(default = "default_stable_threshold")]
+    pub stable_threshold: f64,
+    /// T3.2：最小（加权）证据量，低于此值视为小样本，走保守分支。
+    #[serde(default = "default_min_evidence")]
+    pub min_evidence: f64,
+}
+
+fn default_evolve_threshold() -> f64 {
+    0.4
+}
+
+fn default_stable_threshold() -> f64 {
+    0.7
+}
+
+fn default_min_evidence() -> f64 {
+    3.0
 }
 
 impl Default for EvolutionConfig {
@@ -67,6 +89,9 @@ impl Default for EvolutionConfig {
             auto_trigger_consecutive_failures: 3,
             auto_trigger_min_usages: 3,
             auto_trigger_success_threshold: 0.5,
+            evolve_threshold: 0.4,
+            stable_threshold: 0.7,
+            min_evidence: 3.0,
         }
     }
 }
@@ -808,19 +833,31 @@ impl SkillEvolutionEngine {
         self.population.is_some()
     }
 
-    /// 判断 Skill 是否需要自动进化
-    /// 条件1：连续失败次数 >= auto_trigger_consecutive_failures
-    /// 条件2：总使用次数 >= auto_trigger_min_usages 且成功率 < auto_trigger_success_threshold
+    /// 判断 Skill 是否需要自动进化（T3.2：贝叶斯后验决策，替代 if-else 启发式）。
+    ///
+    /// 用 `EvolutionDecider::from_skill` 从累计统计构建 Beta 后验，按
+    /// `evolve_threshold / stable_threshold / min_evidence` 输出决策，
+    /// 仅 `EvolutionDecision::Evolve` 返回 true。语义等价性：默认阈值
+    /// （触发 0.4 / 最小证据 3.0）与原启发式（成功率 < 0.5 且 >= 3 次使用）
+    /// 基本一致，但额外融入连续失败加权与 95% 置信下界的小样本保护。
     pub fn should_auto_evolve(&self, skill: &Skill) -> bool {
-        if skill.consecutive_failures >= self.config.auto_trigger_consecutive_failures {
-            return true;
-        }
-        if skill.total_usages >= self.config.auto_trigger_min_usages
-            && skill.success_rate < self.config.auto_trigger_success_threshold
-        {
-            return true;
-        }
-        false
+        let decider = EvolutionDecider::from_skill(skill).with_thresholds(
+            self.config.evolve_threshold,
+            self.config.stable_threshold,
+            self.config.min_evidence,
+        );
+        decider.should_evolve()
+    }
+
+    /// T3.2：返回完整的贝叶斯进化决策（`Evolve / Stable / Observe`）+ 中文原因，
+    /// 供决策标签持久化 / 日志展示。
+    pub fn evolution_decision(&self, skill: &Skill) -> (EvolutionDecision, String) {
+        let decider = EvolutionDecider::from_skill(skill).with_thresholds(
+            self.config.evolve_threshold,
+            self.config.stable_threshold,
+            self.config.min_evidence,
+        );
+        decider.describe()
     }
 }
 
@@ -913,5 +950,119 @@ mod tests {
         let engine = SkillEvolutionEngine::new();
         engine.set_llm_provider(Arc::new(DefaultLlmEvolutionProvider)).await;
         assert!(engine.llm_provider.read().await.is_some());
+    }
+
+    // ── T3.4：LLM 结构化 diff + 沙箱验证 集成测试 ──
+
+    /// 构造最小 `Skill` 测试实例（Skill 未实现 Default，需手动构造）。
+    fn test_skill() -> Skill {
+        use chrono::Utc;
+        Skill {
+            id: "skill-evolve-test".to_string(),
+            name: "测试技能".to_string(),
+            description: "测试技能 分析".to_string(),
+            version: "1.0.0".to_string(),
+            content: "1. Use execute_bash\n2. Verify output".to_string(),
+            category: "test".to_string(),
+            tags: vec![],
+            platforms: vec![],
+            scenarios: vec![],
+            quality_score: 0.3,
+            success_rate: 0.3,
+            avg_execution_time_ms: 100,
+            total_usages: 10,
+            successful_usages: 3,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            last_used_at: None,
+            consecutive_failures: 3,
+            last_failure_at: None,
+            metadata: crate::skill::SkillMetadata::default(),
+        }
+    }
+
+    fn test_trajectory(topic: &str, summary: &str, outcome: TrajectoryOutcome) -> Trajectory {
+        Trajectory::new(
+            "sess-evolve".to_string(),
+            "user-1".to_string(),
+            topic.to_string(),
+            summary.to_string(),
+            outcome,
+            1000,
+            vec![],
+        )
+    }
+
+    #[tokio::test]
+    async fn test_evolve_generation_v2_uses_llm_diff_and_sandbox() {
+        use crate::sandbox_executor::DryRunSandboxExecutor;
+
+        // 构造 > MIN_TRAJECTORIES_FOR_EVOLUTION 的轨迹，主题命中技能描述
+        let mut trajectories = Vec::new();
+        for i in 0..12 {
+            let outcome = if i % 3 == 0 {
+                TrajectoryOutcome::Success
+            } else {
+                TrajectoryOutcome::Failure
+            };
+            trajectories.push(test_trajectory("测试技能 分析", &format!("summary {i}"), outcome));
+        }
+        let refs: Vec<&Trajectory> = trajectories.iter().collect();
+
+        let mut engine = SkillEvolutionEngine::new();
+        engine.set_llm_provider(Arc::new(DefaultLlmEvolutionProvider)).await;
+        engine.set_sandbox(Arc::new(DryRunSandboxExecutor::with_default_policy())).await;
+
+        let skill = test_skill();
+        engine.initialize(&skill);
+        let before_gen = engine.population.as_ref().unwrap().generation;
+
+        let result = engine.evolve_generation_v2(&refs).await;
+        let after_gen = engine.population.as_ref().unwrap().generation;
+
+        // 进化代际推进，说明 LLM 变异 + 沙箱验证闭环被执行
+        assert!(after_gen > before_gen, "进化代际应推进");
+        let best = result.expect("应返回 best individual");
+        assert!(!best.steps.is_empty(), "best individual 应包含步骤");
+    }
+
+    #[tokio::test]
+    async fn test_evolve_generation_v2_skips_small_sample() {
+        // 轨迹数 < MIN_TRAJECTORIES_FOR_EVOLUTION → 不执行进化，返回 best
+        let trajectories =
+            vec![test_trajectory("测试技能 分析", "s", TrajectoryOutcome::Failure); 3];
+        let refs: Vec<&Trajectory> = trajectories.iter().collect();
+
+        let mut engine = SkillEvolutionEngine::new();
+        engine.initialize(&test_skill());
+        let before_gen = engine.population.as_ref().unwrap().generation;
+
+        let result = engine.evolve_generation_v2(&refs).await;
+        let after_gen = engine.population.as_ref().unwrap().generation;
+
+        assert_eq!(after_gen, before_gen, "小样本不应推进进化代际");
+        assert!(result.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_evolution_run_returns_modification() {
+        // 完整 run() 闭环：初始化 → 多代进化 → 产出 SkillModification
+        let mut trajectories = Vec::new();
+        for i in 0..12 {
+            let outcome = if i % 4 == 0 {
+                TrajectoryOutcome::Success
+            } else {
+                TrajectoryOutcome::Failure
+            };
+            trajectories.push(test_trajectory("测试技能 分析", &format!("summary {i}"), outcome));
+        }
+        let refs: Vec<&Trajectory> = trajectories.iter().collect();
+
+        let mut engine = SkillEvolutionEngine::new();
+        engine.set_llm_provider(Arc::new(DefaultLlmEvolutionProvider)).await;
+        let skill = test_skill();
+        let modification = engine.run(&skill, &refs).await;
+        // run() 至少返回 best individual 映射的修改
+        assert!(modification.is_some());
     }
 }

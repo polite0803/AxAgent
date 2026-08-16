@@ -26,6 +26,7 @@ pub fn get_active_personality() -> Option<String> {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Personality {
     pub name: String,
     #[serde(default = "default_version")]

@@ -30,7 +30,7 @@ import {
   getNarrativeStructure as apiGetNarrative,
   listNarrativeStructures as apiListNarrative,
 } from "@/lib/narrativeStructure";
-import { auto_layout } from "@/lib/workflowLayout";
+import { autoLayout } from "@/lib/workflowLayout";
 import type { ChapterMeta, NarrativeStructure, StructureAdjustmentSuggestion } from "@/types/narrative";
 
 export interface ExpandedSubWorkflowData {
@@ -398,7 +398,7 @@ const createEmptyTemplate = (): Omit<
   icon: "Bot",
   tags: [],
   version: 1,
-  is_preset: false,
+  isPreset: false,
   is_editable: true,
   is_public: false,
   is_system: false,
@@ -782,9 +782,9 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       });
       try {
         const filter = get().filter;
-        const is_preset = filter.is_preset;
+        const isPreset = filter.isPreset;
         const params: Record<string, unknown> = {};
-        if (is_preset !== undefined) { params.is_preset = is_preset; }
+        if (isPreset !== undefined) { params.is_preset = isPreset; }
         // includeSystem=true（系统模板页）时返回认知编排器等系统模板
         if (includeSystem) { params.include_system = includeSystem; }
         const templates = await invoke<WorkflowTemplateResponse[]>(
@@ -2839,9 +2839,9 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           type: n.type,
           position: n.position,
           parentId: undefined,
-          data: n as unknown as Record<string, unknown>, // SAFE: WorkflowNode → Record for auto_layout engine
+          data: n as unknown as Record<string, unknown>, // SAFE: WorkflowNode → Record for autoLayout engine
         }));
-        const layoutedAutoNodes = auto_layout(autoNodes, subEdges, {});
+        const layoutedAutoNodes = autoLayout(autoNodes, subEdges, {});
 
         const OFFSET_Y = 40;
         // SAFE: reconstructing WorkflowNode[] from layout results; runtime shape is correct
@@ -2941,8 +2941,8 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         if (tracerState.traces && tracerState.traces.length > 0) {
           const latest = tracerState.traces[tracerState.traces.length - 1];
           context += i18n.t("workflow.editor.context.recentExecution", {
-            traceId: latest.trace_id || unnamed,
-            duration: latest.duration_ms ?? "?",
+            traceId: latest.traceId || unnamed,
+            duration: latest.durationMs ?? "?",
           });
         }
       } catch { /* tracerStore not available */ }

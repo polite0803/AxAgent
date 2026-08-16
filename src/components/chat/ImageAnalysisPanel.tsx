@@ -56,8 +56,8 @@ export function ImageAnalysisPanel() {
   );
   const conversations = useConversationStore((s) => s.conversations);
   const activeConv = conversations.find((c) => c.id === activeConversationId);
-  const providerId = activeConv?.provider_id ?? "";
-  const modelId = activeConv?.model_id ?? "";
+  const providerId = activeConv?.providerId ?? "";
+  const modelId = activeConv?.modelId ?? "";
 
   const handleFileRead = (file: File) => {
     const reader = new FileReader();

@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 
 /// 能力过滤上下文（包含所有用于过滤的运行时信息）
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FilterContext {
     /// 用户输入模态（从 L1 多模态预处理器提取）
     #[serde(default)]

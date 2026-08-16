@@ -59,7 +59,7 @@ const verdictLabel = (v: string, t: (k: string) => string): string => {
  */
 export function ValuationBandChart({ data, primary = "pe", loading, height = 240 }: Props) {
   const { t } = useTranslation();
-  const themeMode = useSettingsStore((s) => s.settings.theme_mode);
+  const themeMode = useSettingsStore((s) => s.settings.themeMode);
   const elRef = useRef<HTMLDivElement | null>(null);
   const instanceRef = useRef<echarts.ECharts | null>(null);
 

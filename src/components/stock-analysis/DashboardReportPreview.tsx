@@ -64,7 +64,7 @@ function fmtNum(v?: number | null): string {
 /** 风险警报区块 */
 function RiskAlertsSection({ alerts }: { alerts: RiskAlert[] }) {
   const { t } = useTranslation();
-  const themeMode = useSettingsStore((s) => s.settings.theme_mode);
+  const themeMode = useSettingsStore((s) => s.settings.themeMode);
   const isDark = themeMode === "dark"
     || (themeMode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   if (alerts.length === 0) {
@@ -97,7 +97,7 @@ function RiskAlertsSection({ alerts }: { alerts: RiskAlert[] }) {
 /** 催化因素区块 */
 function CatalystsSection({ catalysts }: { catalysts: Catalyst[] }) {
   const { t } = useTranslation();
-  const themeMode = useSettingsStore((s) => s.settings.theme_mode);
+  const themeMode = useSettingsStore((s) => s.settings.themeMode);
   const isDark = themeMode === "dark"
     || (themeMode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   if (catalysts.length === 0) {
@@ -135,7 +135,7 @@ function CatalystsSection({ catalysts }: { catalysts: Catalyst[] }) {
 /** 操作检查清单区块 */
 function ChecklistSection({ items }: { items: ChecklistItem[] }) {
   const { t } = useTranslation();
-  const themeMode = useSettingsStore((s) => s.settings.theme_mode);
+  const themeMode = useSettingsStore((s) => s.settings.themeMode);
   const isDark = themeMode === "dark"
     || (themeMode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   if (items.length === 0) {
@@ -167,7 +167,7 @@ function ChecklistSection({ items }: { items: ChecklistItem[] }) {
 /** 决策仪表盘预览组件 */
 export function DashboardReportPreview({ report }: { report: DashboardReport }) {
   const { t } = useTranslation();
-  const themeMode = useSettingsStore((s) => s.settings.theme_mode);
+  const themeMode = useSettingsStore((s) => s.settings.themeMode);
   const isDark = themeMode === "dark"
     || (themeMode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
 

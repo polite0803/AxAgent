@@ -838,7 +838,7 @@ function DebateContentView({ content, isDark }: { content: DebateContent; isDark
 
 export function DebatePanel() {
   const { t } = useTranslation();
-  const themeMode = useSettingsStore((s) => s.settings.theme_mode);
+  const themeMode = useSettingsStore((s) => s.settings.themeMode);
   const isDark = themeMode === "dark"
     || (themeMode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   const debateRounds = useStockAnalysisStore((s) => s.debateRounds);

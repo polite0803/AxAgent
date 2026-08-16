@@ -207,10 +207,10 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
 
   // Advanced RAG config — backed by global settings
   const ragPipelineConfig = useSettingsStore(
-    (s) => s.settings.rag_pipeline_config,
+    (s) => s.settings.ragPipelineConfig,
   );
   const autoLoadModels = useSettingsStore(
-    (s) => s.settings.auto_load_models,
+    (s) => s.settings.autoLoadModels,
   );
   const saveSettings = useSettingsStore((s) => s.saveSettings);
   const setSettingsSection = useUIStore((s) => s.setSettingsSection);
@@ -239,7 +239,7 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
       const next = { ...ragAdvancedConfig, ...updates };
       setRagAdvancedConfig(next);
       saveSettings({
-        rag_pipeline_config: {
+        ragPipelineConfig: {
           queryEnhancement: {
             enabled: next.queryEnhancementEnabled,
             strategy: next.queryEnhancementStrategy,
@@ -1431,7 +1431,7 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
                     size="small"
                     checked={!!autoLoadModels}
                     onChange={(checked) => {
-                      saveSettings({ auto_load_models: checked });
+                      saveSettings({ autoLoadModels: checked });
                       invoke("set_auto_load_models", { enabled: checked }).catch(
                         logIpcError("set_auto_load_models"),
                       );

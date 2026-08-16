@@ -203,6 +203,7 @@ pub struct SkillValidationResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SkillProposal {
     pub task_description: String,
     pub suggested_name: String,

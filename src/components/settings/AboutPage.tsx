@@ -127,13 +127,13 @@ export function AboutPage() {
   const [appVersion, setAppVersion] = useState("...");
   const { checkForUpdate } = useUpdateChecker();
   const updateCheckInterval = useSettingsStore(
-    (s) => s.settings.update_check_interval ?? 60,
+    (s) => s.settings.updateCheckInterval ?? 60,
   );
   const showDeveloperTools = useSettingsStore(
-    (s) => s.settings.show_developer_tools ?? true,
+    (s) => s.settings.showDeveloperTools ?? true,
   );
   const loraFinetuneEnabled = useSettingsStore(
-    (s) => s.settings.lora_finetune_enabled ?? false,
+    (s) => s.settings.loraFinetuneEnabled ?? false,
   );
   const saveSettings = useSettingsStore((s) => s.saveSettings);
   const navigate = useNavigate();
@@ -174,8 +174,8 @@ export function AboutPage() {
 
   const handleReplayTutorial = useCallback(() => {
     useSettingsStore.getState().saveSettings({
-      onboarding_tutorial_completed: false,
-      onboarding_completed: true,
+      onboardingTutorialCompleted: false,
+      onboardingCompleted: true,
     });
     startTutorial();
     navigate("/");
@@ -237,8 +237,8 @@ export function AboutPage() {
               min={1}
               max={1440}
               value={updateCheckInterval}
-              onChange={(val) => val != null && saveSettings({ update_check_interval: val })}
-              style={{ width: "100%" }}
+              onChange={(val) => val != null && saveSettings({ updateCheckInterval: val })}
+              style={{ width: 72 }}
             />
             <Button disabled>{t("settings.minutes")}</Button>
           </Space.Compact>
@@ -253,7 +253,7 @@ export function AboutPage() {
           </div>
           <Switch
             checked={showDeveloperTools}
-            onChange={(next) => saveSettings({ show_developer_tools: next })}
+            onChange={(next) => saveSettings({ showDeveloperTools: next })}
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
@@ -266,7 +266,7 @@ export function AboutPage() {
           </div>
           <Switch
             checked={loraFinetuneEnabled}
-            onChange={(next) => saveSettings({ lora_finetune_enabled: next })}
+            onChange={(next) => saveSettings({ loraFinetuneEnabled: next })}
           />
         </div>
         {isTauri() && (

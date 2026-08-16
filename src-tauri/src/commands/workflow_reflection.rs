@@ -13,6 +13,7 @@
 
 use crate::AppState;
 use agent_macro::agent_command;
+use axagent_dao::repo::workflow_template as db_repo;
 use axagent_harness::reflection_types::Reflection;
 use axagent_harness::workflow_evolution::{EvolutionStats, WorkflowModification};
 use axagent_harness::workflow_optimization::WorkflowSuggestion;
@@ -20,6 +21,7 @@ use axagent_harness::workflow_types::WorkflowTemplateData;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
+use super::capability::register_evolution_product;
 use super::error::{ErrorCategory, ErrorResponse};
 use super::error_code::workflow_reflection as wf_reflect_err;
 
@@ -41,6 +43,26 @@ pub struct WorkflowOptimizeApplyRequest {
 pub struct WorkflowEvolveRequest {
     pub template_id: String,
     pub reflections: Vec<Reflection>,
+}
+
+/// 用户确认优化建议后落库的请求（T0.12）。
+///
+/// `template` 为用户审核时看到的原始模板（未修改），`suggestions` 为用户同意的建议，
+/// 命令内部经 `apply_suggestions` 生成新模板并持久化 + 注册护照/图谱。
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct WorkflowSuggestionConfirmRequest {
+    pub template: WorkflowTemplateData,
+    pub suggestions: Vec<WorkflowSuggestion>,
+}
+
+/// 用户拒绝优化建议的请求（T0.12）。
+///
+/// 拒绝即丢弃 + 记决策标签（拒绝即证据）。
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct WorkflowSuggestionRejectRequest {
+    pub template_id: String,
+    pub suggestion_ids: Vec<String>,
+    pub reason: Option<String>,
 }
 
 // ── 命令层错误包装辅助 ──
@@ -90,6 +112,63 @@ pub async fn workflow_optimize_apply(
         state.workflow_optimizer.apply_suggestions(&request.template, &request.suggestions).await,
         wf_reflect_err::APPLY_FAILED,
     )
+}
+
+/// 用户确认优化建议后落库（T0.12）：应用建议 → 持久化模板 → 注册护照/图谱。
+///
+/// 生产路径必须经用户显式同意（铁律），前端弹窗（T0.13 EvolutionConsentModal）
+/// 同意后调用本命令；`workflow_optimize_apply` 仅作为程序化 apply 通道保留向后兼容。
+///
+/// 落库后注册进化产物护照（T0.11），使下一轮用户输入的路由决策可命中该产物。
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "确认优化建议并落库")]
+#[tauri::command]
+pub async fn workflow_suggestion_confirm(
+    state: State<'_, AppState>,
+    request: WorkflowSuggestionConfirmRequest,
+) -> Result<WorkflowTemplateData, String> {
+    // 1. 应用建议得到新模板（纯内存，不修改原模板）
+    let new_template = wrap_err(
+        state.workflow_optimizer.apply_suggestions(&request.template, &request.suggestions).await,
+        wf_reflect_err::APPLY_FAILED,
+    )?;
+
+    // 2. 持久化新模板到 DB（upsert 按 id 更新既有模板）
+    let db = state.harness.db();
+    db_repo::upsert_workflow_template(db, db_repo::build_active_model_from_data(&new_template))
+        .await
+        .map_err(|e| ErrorResponse::from_error(e, ErrorCategory::Unrecoverable).to_string())?;
+
+    // 3. 注册进化产物护照/图谱（T0.11），使下一轮路由可命中
+    let description = new_template.description.clone().unwrap_or_else(|| new_template.name.clone());
+    register_evolution_product(&state, &new_template.id, &new_template.name, &description)
+        .await
+        .map_err(String::from)?;
+
+    tracing::info!(
+        template_id = %new_template.id,
+        suggestion_count = request.suggestions.len(),
+        "🗺️ 用户确认工作流优化建议：已落库并注册护照/图谱"
+    );
+    Ok(new_template)
+}
+
+/// 用户拒绝优化建议（T0.12）：拒绝即丢弃 + 记决策标签（拒绝即证据）。
+///
+/// 决策标签流（execution_mode / confidence / route_path）在 T3.3 完整接入，
+/// 作为贝叶斯后验（T0.10）的负证据；本命令先落 tracing 日志保证可观测。
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "拒绝优化建议")]
+#[tauri::command]
+pub async fn workflow_suggestion_reject(
+    request: WorkflowSuggestionRejectRequest,
+) -> Result<(), String> {
+    tracing::info!(
+        template_id = %request.template_id,
+        suggestion_count = request.suggestion_ids.len(),
+        reason = ?request.reason,
+        "🗺️ 用户拒绝 {} 条工作流优化建议（决策标签：拒绝即证据，T3.3 接入证据流）",
+        request.suggestion_ids.len()
+    );
+    Ok(())
 }
 
 /// 触发工作流模板进化(基于反思批量进化,返回最终修改结果)。

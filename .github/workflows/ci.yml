@@ -226,10 +226,11 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Run E2E tests (uses system Chrome, skip 165MB download)
-        env:
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
-        run: npx playwright test --project=chromium --grep-invert "(Agent|Cache|Conversation|Gateway)" --timeout=60000
+      - name: Install Playwright browsers
+        run: npx playwright install chromium
+
+      - name: Run E2E tests
+        run: npx playwright test --project=chromium --grep-invert "(Agent|Cache|Conversation|Gateway)" --timeout=120000
 
   cargo-audit:
     name: Security Audit

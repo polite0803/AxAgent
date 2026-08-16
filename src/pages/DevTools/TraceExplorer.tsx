@@ -54,7 +54,7 @@ export function TraceExplorer() {
                   label: t("traceExplorer.tab.timeline"),
                   children: (
                     <div style={{ padding: 16, flex: 1, overflow: "auto" }}>
-                      <TraceTimeline traceId={selectedTrace.trace.trace_id} />
+                      <TraceTimeline traceId={selectedTrace.trace.traceId} />
                     </div>
                   ),
                 },
@@ -63,7 +63,7 @@ export function TraceExplorer() {
                   label: t("traceExplorer.tab.bottleneck"),
                   children: (
                     <div style={{ padding: 16, flex: 1, overflow: "auto" }}>
-                      <BottleneckAnalyzer traceId={selectedTrace.trace.trace_id} />
+                      <BottleneckAnalyzer traceId={selectedTrace.trace.traceId} />
                     </div>
                   ),
                 },
@@ -72,7 +72,7 @@ export function TraceExplorer() {
                   label: t("traceExplorer.tab.suggestions"),
                   children: (
                     <div style={{ padding: 16, flex: 1, overflow: "auto" }}>
-                      <ImprovementSuggestion traceId={selectedTrace.trace.trace_id} />
+                      <ImprovementSuggestion traceId={selectedTrace.trace.traceId} />
                     </div>
                   ),
                 },
@@ -81,7 +81,7 @@ export function TraceExplorer() {
                   label: t("traceExplorer.tab.feedback"),
                   children: (
                     <div style={{ padding: 16, flex: 1, overflow: "auto" }}>
-                      <FeedbackCollector traceId={selectedTrace.trace.trace_id} />
+                      <FeedbackCollector traceId={selectedTrace.trace.traceId} />
                     </div>
                   ),
                 },

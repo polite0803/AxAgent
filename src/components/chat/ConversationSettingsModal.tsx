@@ -57,11 +57,11 @@ export function ConversationSettingsModal({
     if (open && conversation) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setTitle(conversation.title);
-      setSystemPrompt(conversation.system_prompt ?? "");
+      setSystemPrompt(conversation.systemPrompt ?? "");
       setTemperature(conversation.temperature ?? null);
-      setTopP(conversation.top_p ?? null);
-      setMaxTokens(conversation.max_tokens ?? null);
-      setFrequencyPenalty(conversation.frequency_penalty ?? null);
+      setTopP(conversation.topP ?? null);
+      setMaxTokens(conversation.maxTokens ?? null);
+      setFrequencyPenalty(conversation.frequencyPenalty ?? null);
       setDisabledTools(getConversationDisabledTools(conversation.id));
 
       try {
@@ -110,11 +110,11 @@ export function ConversationSettingsModal({
     try {
       await updateConversation(conversation.id, {
         title,
-        system_prompt: systemPrompt,
+        systemPrompt,
         temperature,
-        max_tokens: maxTokens,
-        top_p: topP,
-        frequency_penalty: frequencyPenalty,
+        maxTokens,
+        topP,
+        frequencyPenalty,
       });
       try {
         localStorage.setItem(
@@ -223,7 +223,7 @@ export function ConversationSettingsModal({
             size={64}
             defaultIcon={
               <ModelIcon
-                model={conversation.model_id}
+                model={conversation.modelId}
                 size={64}
                 type="avatar"
               />
@@ -246,17 +246,17 @@ export function ConversationSettingsModal({
         {/* System Prompt */}
         <div style={{ marginBottom: 16 }}>
           <div style={labelStyle}>{t("settings.systemPromptLabel")}</div>
-          {conversation.agent_profile_id && (
+          {conversation.agentProfileId && (
             <div style={{ marginBottom: 6 }}>
               <Tag color="blue" style={{ fontSize: 12 }}>
                 {(() => {
-                  const profileId = conversation.agent_profile_id;
+                  const profileId = conversation.agentProfileId;
                   const profile = profileId
                     ? useAgentStore.getState().getProfileById(profileId)
                     : undefined;
                   return profile
                     ? `${profile.icon} ${profile.name}`
-                    : conversation.agent_profile_id;
+                    : conversation.agentProfileId;
                 })()}
               </Tag>
               <span
@@ -349,10 +349,10 @@ export function ConversationSettingsModal({
               }
             }}
             defaults={{
-              temperature: settings.default_temperature ?? 0.7,
-              topP: settings.default_top_p ?? 1.0,
-              maxTokens: settings.default_max_tokens ?? 4096,
-              frequencyPenalty: settings.default_frequency_penalty ?? 0,
+              temperature: settings.defaultTemperature ?? 0.7,
+              topP: settings.defaultTopP ?? 1.0,
+              maxTokens: settings.defaultMaxTokens ?? 4096,
+              frequencyPenalty: settings.defaultFrequencyPenalty ?? 0,
             }}
           />
         </Card>

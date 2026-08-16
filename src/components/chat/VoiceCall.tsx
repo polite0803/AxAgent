@@ -224,7 +224,7 @@ export function VoiceCall({
 
   // 意图确认后设置执行 ID（DAG 状态由 executionStore 派生）
   useEffect(() => {
-    if (clarification?.state === "submitted" && clarification.confirmed_intent) {
+    if (clarification?.state === "submitted" && clarification.confirmedIntent) {
       setWorkflowExecutionId(`exec_${Date.now()}`);
     }
   }, [clarification, setWorkflowExecutionId]);
@@ -289,7 +289,7 @@ export function VoiceCall({
   const handleSkip = () => {
     // 跳过澄清，直接提交
     if (clarification) {
-      requestConfirmation(clarification.original_input);
+      requestConfirmation(clarification.originalInput);
     }
   };
 

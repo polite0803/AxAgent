@@ -147,7 +147,7 @@ export function GatewayLinkList({ onAdd }: { onAdd: () => void }) {
                   >
                     {link.name}
                   </span>
-                  <LinkTypeBadge type={link.link_type} />
+                  <LinkTypeBadge type={link.linkType} />
                 </div>
                 <div
                   style={{

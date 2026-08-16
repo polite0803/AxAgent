@@ -363,6 +363,11 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let agent_plan_approvals: Arc<
         Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<bool>>>,
     > = Arc::new(Mutex::new(std::collections::HashMap::new()));
+    // 能力补齐/进化改进提议的挂起审批槽：proposalId → 同意信号发送端。
+    // 认知编排器三触发点生成提议后 await；前端同意/拒绝由 capability_gap_consent 回传。
+    let evolution_consent_senders: Arc<
+        Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<bool>>>,
+    > = Arc::new(Mutex::new(std::collections::HashMap::new()));
     let agent_session_repo: Arc<dyn AgentSessionRepository> =
         Arc::new(DaoAgentSessionRepository::new(Arc::new(sea_db.clone())));
     let agent_session_manager = Arc::new(axagent_agent::SessionManager::new(agent_session_repo));
@@ -415,11 +420,37 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         #[cfg(not(target_os = "android"))]
         {
             let mut engine = axagent_trajectory::SkillEvolutionEngine::new();
+            // 阶段三 T3.4：注入沙箱执行器，进化产物先沙箱验证再落地。
             engine
                 .set_sandbox(Arc::new(
                     axagent_trajectory::SkillSandboxExecutor::with_default_policy(),
                 ))
                 .await;
+            // 阶段三 T3.4：注入 LLM 变异器（若 DB 中有启用的 provider）。
+            // ProviderLlmBridge 同时实现 LlmEvolutionProvider，可复用 LLM 生成
+            // 结构化 diff 替代随机变异；无 provider 时引擎使用内置占位变异。
+            if let Some(bridge) = axagent_runtime::llm_bridge::build_llm_bridge_from_db_with(
+                &master_key,
+                &harness_registry,
+                None,
+                None,
+            )
+            .await
+            {
+                engine
+                    .set_llm_provider(std::sync::Arc::new(bridge)
+                        as std::sync::Arc<
+                            dyn axagent_harness::trajectory_types::LlmEvolutionProvider,
+                        >)
+                    .await;
+                tracing::info!(
+                    "[SkillEvolution] LLM mutator injected (evidence-driven evolution enabled)"
+                );
+            } else {
+                tracing::info!(
+                    "[SkillEvolution] No enabled provider in DB, LLM mutation disabled (using placeholder)"
+                );
+            }
             Arc::new(tokio::sync::Mutex::new(engine))
         }
         #[cfg(target_os = "android")]
@@ -495,6 +526,22 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         } else {
             None
         };
+        // ── 阶段二 T2.3：注册自指工具（system_evolution_*）──
+        // 自指工具走 system_* 系统能力回调通道：不暴露给 LLM（注册后默认禁用，
+        // 仅系统内部按名回调执行），动态部署/卸载等高权限操作不被 Agent 直接触发。
+        // 系统注册表可见性由 register_system_capabilities 中的 SYSTEM_ONLY 护照保证。
+        for tool in axagent_tools::runtime_mutation::create_all_self_referential_tools() {
+            let name = tool.name().to_string();
+            match registry.register_runtime_tool(tool, "system_evolution") {
+                Ok(()) => {
+                    registry.groups.disabled_tools.insert(name);
+                },
+                Err(e) => {
+                    tracing::warn!(target: "evolution_engine", tool = %name, error = %e,
+                        "注册自指工具失败");
+                },
+            }
+        }
         Arc::new(tokio::sync::Mutex::new(registry))
     };
     // ── 阶段 5:工作流反思 / 进化 / 优化三层 trait 实现 ──
@@ -1264,8 +1311,8 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
             capability_retriever.clone() as Arc<dyn axagent_harness::CapabilityRetriever>
         ),
     );
-    let workflow_graph: Arc<axagent_harness::WorkflowGraph> =
-        Arc::new(axagent_harness::WorkflowGraph::new());
+    let workflow_graph: Arc<tokio::sync::RwLock<axagent_harness::WorkflowGraph>> =
+        Arc::new(tokio::sync::RwLock::new(axagent_harness::WorkflowGraph::new()));
     let cognitive_router: Arc<dyn axagent_harness::CognitiveRouter> =
         Arc::new(axagent_harness::DefaultCognitiveRouter::new(
             domain_router,
@@ -1275,6 +1322,38 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         ));
 
     tracing::info!("[cognitive] 认知编排器初始化完成");
+
+    // ── T5A.3：进化产物执行统计存储（阶段四后置闭环）──
+    // 与 EvolutionFeedbackSinkImpl 共享同一 Arc，注入 GeneratedToolAdapter 后按
+    // (conversation_id, tool_id) 累计真实执行成败（D2 会话隔离），
+    // 作为贝叶斯决策器的「真实执行证据」。
+    let evolution_execution_stats: std::sync::Arc<
+        tokio::sync::Mutex<
+            std::collections::HashMap<
+                String,
+                std::collections::HashMap<
+                    String,
+                    axagent_harness::workflow_evolution::ToolExecutionStats,
+                >,
+            >,
+        >,
+    > = std::sync::Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new()));
+
+    // ── 阶段二 T2.3 + 阶段四 T4.3：注入自指工具访问器 ──
+    // wiring 实现 EvolutionMutationAccess 持有 local_tool_registry 与 work_engine 的 Arc，
+    // 使 system_evolution_* 工具可通过 RuntimeMutationAccess trait 访问运行时注册表，
+    // 编排型进化产物在 deploy 时经 WorkEngineWorkflowDagExecutor 真正执行（分层执行）。
+    // 必须在 work_engine 创建之后注入（此处 work_engine 已就绪）。
+    // D3：一并注入数据库连接，使 deploy 生成的进化产物执行反馈可落库持久化（重启不丢）。
+    axagent_tools::runtime_mutation::set_mutation_access(std::sync::Arc::new(
+        crate::commands::evolution_engine::EvolutionMutationAccess::new(
+            local_tool_registry.clone(),
+            work_engine.clone(),
+            evolution_execution_stats.clone(),
+            harness.db().clone(),
+        ),
+    )
+        as std::sync::Arc<dyn axagent_harness::RuntimeMutationAccess>);
 
     Ok(AppState {
         harness,
@@ -1296,6 +1375,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         agent_always_allowed,
         agent_prompters,
         agent_plan_approvals,
+        evolution_consent_senders,
         agent_session_manager,
         agent_cancel_tokens,
         agent_paused,
@@ -1327,6 +1407,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         notification_dispatcher: Arc::new(axagent_notification::NotificationDispatcher::new()),
         user_profile,
         local_tool_registry,
+        evolution_execution_stats,
         work_engine,
         workflow_reflector,
         workflow_evolver,
@@ -1509,6 +1590,7 @@ async fn register_all_capabilities(
                     experiment_group: None,
                     agent_profile_id: None,
                     stats: Default::default(),
+                    level: axagent_harness::CapabilityLevel::L1,
                     enabled: true,
                 });
             }
@@ -1564,6 +1646,7 @@ async fn register_all_capabilities(
                     experiment_group: None,
                     agent_profile_id: Some(p.id.clone()),
                     stats: Default::default(),
+                    level: axagent_harness::CapabilityLevel::L1,
                     enabled: true,
                 });
             }
@@ -1654,6 +1737,7 @@ async fn register_all_capabilities(
                     experiment_group: None,
                     agent_profile_id: exec_profile,
                     stats: Default::default(),
+                    level: axagent_harness::CapabilityLevel::L1,
                     enabled: true,
                 });
             }
@@ -1742,7 +1826,7 @@ async fn register_system_capabilities(indexer: &Arc<axagent_tools::CapabilityInd
         CapabilityPassportDto, OutputCapabilities, PlanningComplexity, SecurityLevel, Visibility,
     };
 
-    let system_passports = vec![
+    let mut system_passports = vec![
         // CognitiveRouter — 三层路由编排器
         CapabilityPassportDto {
             capability_id: "system_cognitive_router".to_string(),
@@ -1772,6 +1856,7 @@ async fn register_system_capabilities(indexer: &Arc<axagent_tools::CapabilityInd
             experiment_group: None,
             agent_profile_id: None,
             stats: Default::default(),
+            level: axagent_harness::CapabilityLevel::L1,
             enabled: true,
         },
         // LayeredPromptEngine — 分层 Prompt 引擎
@@ -1803,9 +1888,54 @@ async fn register_system_capabilities(indexer: &Arc<axagent_tools::CapabilityInd
             experiment_group: None,
             agent_profile_id: None,
             stats: Default::default(),
+            level: axagent_harness::CapabilityLevel::L1,
             enabled: true,
         },
     ];
+
+    // 自指工具（阶段二 T2.3）：system_evolution_* 的 SYSTEM_ONLY 护照。
+    // 走 system_* 系统能力通道，业务能力检索（L2/RAR）不可达，自指熔断由路由层兜底。
+    let self_evolution_tools: [(&str, &str, &str); 4] = [
+        (
+            "inspect",
+            "自指检查",
+            "检查当前运行时已注册的进化能力状态（工具/工作流/技能），供系统进化流程调用",
+        ),
+        ("define", "自指定义", "定义新工具（仅生成工具定义，不注册），供系统进化流程审查"),
+        ("deploy", "自指部署", "部署（注册）工具到运行时注册表，注册后系统流程立即可调用"),
+        (
+            "undeploy",
+            "自指卸载",
+            "卸载运行时注册的工具（仅允许 runtime_tool_sources 中登记的工具）",
+        ),
+    ];
+    for (suffix, name, description) in self_evolution_tools {
+        system_passports.push(CapabilityPassportDto {
+            capability_id: format!("system:self_evolution:{suffix}"),
+            name: name.to_string(),
+            description: description.to_string(),
+            kind: CapabilityKind::Tool,
+            domain: CapabilityDomain::System,
+            sub_category: "self_evolution".to_string(),
+            visibility: Visibility::SystemOnly,
+            caller_permissions: CallerPermissions::new(),
+            input_schema: None,
+            tags: vec!["SYSTEM_ONLY".to_string(), "META".to_string(), "self_evolution".to_string()],
+            negative_scenarios: vec![],
+            security_level: SecurityLevel::Restricted,
+            modality_support: Default::default(),
+            output_capabilities: OutputCapabilities::default(),
+            estimated_cost_usd: Some(0.0),
+            avg_duration_seconds: Some(0.01),
+            planning_complexity: PlanningComplexity::Simple,
+            model_iq_requirement: 0,
+            experiment_group: None,
+            agent_profile_id: None,
+            stats: Default::default(),
+            level: axagent_harness::CapabilityLevel::L1,
+            enabled: true,
+        });
+    }
 
     let results = indexer.index_batch(&system_passports).await;
     let success = results.iter().filter(|r| r.success).count();

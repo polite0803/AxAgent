@@ -11,15 +11,15 @@ import { useTranslation } from "react-i18next";
 
 export interface CategoryEditFormData {
   name: string;
-  icon_type: string | null;
-  icon_value: string | null;
-  system_prompt: string | null;
-  default_provider_id: string | null;
-  default_model_id: string | null;
-  default_temperature: number | null;
-  default_max_tokens: number | null;
-  default_top_p: number | null;
-  default_frequency_penalty: number | null;
+  iconType: string | null;
+  iconValue: string | null;
+  systemPrompt: string | null;
+  defaultProviderId: string | null;
+  defaultModelId: string | null;
+  defaultTemperature: number | null;
+  defaultMaxTokens: number | null;
+  defaultTopP: number | null;
+  defaultFrequencyPenalty: number | null;
 }
 
 interface CategoryEditModalProps {
@@ -114,7 +114,7 @@ export function CategoryEditModal({
   const handleDefaultModelChange = useCallback((value: string | undefined) => {
     const parsed = parseModelValue(value);
     setDefaultProviderId(parsed?.providerId ?? null);
-    setDefaultModelId(parsed?.model_id ?? null);
+    setDefaultModelId(parsed?.modelId ?? null);
   }, []);
 
   const handleParamsChange = useCallback(
@@ -139,15 +139,15 @@ export function CategoryEditModal({
   const handleOk = useCallback(() => {
     onOk({
       name: name.trim(),
-      icon_type: iconType,
-      icon_value: iconValue,
-      system_prompt: systemPrompt.trim() || null,
-      default_provider_id: defaultProviderId,
-      default_model_id: defaultModelId,
-      default_temperature: defaultTemperature,
-      default_max_tokens: defaultMaxTokens,
-      default_top_p: defaultTopP,
-      default_frequency_penalty: defaultFrequencyPenalty,
+      iconType: iconType,
+      iconValue: iconValue,
+      systemPrompt: systemPrompt.trim() || null,
+      defaultProviderId: defaultProviderId,
+      defaultModelId: defaultModelId,
+      defaultTemperature: defaultTemperature,
+      defaultMaxTokens: defaultMaxTokens,
+      defaultTopP: defaultTopP,
+      defaultFrequencyPenalty: defaultFrequencyPenalty,
     });
   }, [
     name,
@@ -241,10 +241,10 @@ export function CategoryEditModal({
             }}
             onChange={handleParamsChange}
             defaults={{
-              temperature: settings.default_temperature ?? 0.7,
-              topP: settings.default_top_p ?? 1,
-              maxTokens: settings.default_max_tokens ?? 4096,
-              frequencyPenalty: settings.default_frequency_penalty ?? 0,
+              temperature: settings.defaultTemperature ?? 0.7,
+              topP: settings.defaultTopP ?? 1,
+              maxTokens: settings.defaultMaxTokens ?? 4096,
+              frequencyPenalty: settings.defaultFrequencyPenalty ?? 0,
             }}
           />
         </div>

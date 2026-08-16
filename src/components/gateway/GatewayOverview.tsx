@@ -60,7 +60,7 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
   }, [fetchStatus, fetchMetrics]);
 
   useEffect(() => {
-    if (!status.is_running) {
+    if (!status.isRunning) {
       return;
     }
 
@@ -69,17 +69,17 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [loadRecentLogs, status.is_running]);
+  }, [loadRecentLogs, status.isRunning]);
 
-  const gatewayHost = status.listen_address === "0.0.0.0"
+  const gatewayHost = status.listenAddress === "0.0.0.0"
     ? "127.1.0.0"
-    : status.listen_address === "::" || status.listen_address === "[::]"
+    : status.listenAddress === "::" || status.listenAddress === "[::]"
     ? "localhost"
-    : status.listen_address;
+    : status.listenAddress;
 
   const httpUrl = `http://${gatewayHost}:${status.port}/v1`;
-  const httpsUrl = status.https_port != null
-    ? `https://${gatewayHost}:${status.https_port}/v1`
+  const httpsUrl = status.httpsPort != null
+    ? `https://${gatewayHost}:${status.httpsPort}/v1`
     : null;
 
   const recentLogColumns: ColumnsType<GatewayRequestLog> = [
@@ -164,7 +164,7 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
 
   const handleToggle = async () => {
     try {
-      if (status.is_running) {
+      if (status.isRunning) {
         await stopGateway();
       } else {
         await startGateway();
@@ -201,12 +201,12 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
           <div className="flex items-center gap-3">
             <Router size={24} />
             <div>
-              <Tag color={status.is_running ? "green" : "default"}>
-                {status.is_running
+              <Tag color={status.isRunning ? "green" : "default"}>
+                {status.isRunning
                   ? t("gateway.running")
                   : t("gateway.stopped")}
               </Tag>
-              {status.is_running && (
+              {status.isRunning && (
                 <div className="text-xs flex flex-col gap-0.5 mt-1">
                   <div className="flex items-center gap-1">
                     <Button
@@ -228,7 +228,7 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
                       successMessage={t("gateway.copySuccess")}
                     />
                   </div>
-                  {status.ssl_enabled && httpsUrl && (
+                  {status.sslEnabled && httpsUrl && (
                     <div className="flex items-center gap-1">
                       <Button
                         type="link"
@@ -250,7 +250,7 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
                       />
                     </div>
                   )}
-                  {status.ssl_enabled && status.force_ssl && (
+                  {status.sslEnabled && status.forceSsl && (
                     <span style={{ color: token.colorWarning, fontSize: 12 }}>
                       {t("gateway.forceSslNotice")}
                     </span>
@@ -260,12 +260,12 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
             </div>
           </div>
           <Button
-            type={status.is_running ? "default" : "primary"}
-            danger={status.is_running}
-            icon={status.is_running ? <Power size={16} /> : <PlayCircle size={16} />}
+            type={status.isRunning ? "default" : "primary"}
+            danger={status.isRunning}
+            icon={status.isRunning ? <Power size={16} /> : <PlayCircle size={16} />}
             onClick={handleToggle}
           >
-            {status.is_running ? t("gateway.stop") : t("gateway.start")}
+            {status.isRunning ? t("gateway.stop") : t("gateway.start")}
           </Button>
         </div>
       </Card>
@@ -277,7 +277,7 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
             <div style={metricCardContentStyle}>
               <Statistic
                 title={t("gateway.todayRequests")}
-                value={metrics?.today_requests ?? 0}
+                value={metrics?.todayRequests ?? 0}
               />
             </div>
           </Card>
@@ -303,13 +303,13 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
-                  {formatTokenCount(metrics?.today_tokens ?? 0)}
+                  {formatTokenCount(metrics?.todayTokens ?? 0)}
                 </div>
                 <Tag icon={<ArrowUp size={12} />} color="blue">
-                  {formatTokenCount(metrics?.today_request_tokens ?? 0)}
+                  {formatTokenCount(metrics?.todayRequestTokens ?? 0)}
                 </Tag>
                 <Tag icon={<ArrowDown size={12} />} color="purple">
-                  {formatTokenCount(metrics?.today_response_tokens ?? 0)}
+                  {formatTokenCount(metrics?.todayResponseTokens ?? 0)}
                 </Tag>
               </div>
             </div>
@@ -320,7 +320,7 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
             <div style={metricCardContentStyle}>
               <Statistic
                 title={t("gateway.totalRequests")}
-                value={metrics?.total_requests ?? 0}
+                value={metrics?.totalRequests ?? 0}
               />
             </div>
           </Card>
@@ -346,13 +346,13 @@ export function GatewayOverview({ onViewMoreLogs }: GatewayOverviewProps) {
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
-                  {formatTokenCount(metrics?.total_tokens ?? 0)}
+                  {formatTokenCount(metrics?.totalTokens ?? 0)}
                 </div>
                 <Tag icon={<ArrowUp size={12} />} color="blue">
-                  {formatTokenCount(metrics?.total_request_tokens ?? 0)}
+                  {formatTokenCount(metrics?.totalRequestTokens ?? 0)}
                 </Tag>
                 <Tag icon={<ArrowDown size={12} />} color="purple">
-                  {formatTokenCount(metrics?.total_response_tokens ?? 0)}
+                  {formatTokenCount(metrics?.totalResponseTokens ?? 0)}
                 </Tag>
               </div>
             </div>

@@ -33,16 +33,20 @@ use crate::commands::agent::{AgentContextPayload, AgentOptions, AgentQueryReques
 use crate::commands::error::{CommandError, ErrorCategory, ErrorResponse};
 use crate::init::COGNITIVE_ROUTER_MAIN_ID;
 use agent_macro::agent_command;
+use axagent_harness::workflow_evolution::ToolExecutionStats;
 use axagent_harness::workflow_types::Variable;
 use axagent_harness::{
-    CandidateSummary, CapabilityDomain, CapabilityKind, CapabilityQuery, ExecutionMode, ModeHint,
-    PatternPromptGuard, PromptGuard, RouteStageRecord, RoutingDecisionV2,
+    CandidateSummary, CapabilityDomain, CapabilityGapProposal, CapabilityGapType, CapabilityKind,
+    CapabilityQuery, ExecutionMode, ModeHint, PatternPromptGuard, PromptAttackCategory,
+    PromptGuard, PromptRejection, RouteStageRecord, RoutingDecisionV2,
 };
 use axagent_runtime::work_engine::{RunOptions, SubWorkflowCallback};
 use sea_orm::EntityTrait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Duration;
+use tauri::Emitter;
 use tauri::State;
 
 // ── DTO 类型 ──────────────────────────────────────
@@ -420,18 +424,52 @@ pub async fn cognitive_query(
             .with_param("field", "input"));
     }
 
-    // ── 前置 1：安全拦截（拒绝分支）──
-    // 检测注入/越狱/敏感指令。命中即拒绝执行并记录安全日志，绝不透传给下游执行器。
+    // ── 前置 1：安全拦截（拒绝分支 → 能力补齐提议双通道，T0.3）──
+    // 检测注入/越狱/敏感指令。命中后：① 保留硬阻断（绝不透传给下游执行器，仍写安全日志）；
+    // ② 归类为结构化缺口提议征求用户同意；③ 同意则执行补齐（防护规则/有界豁免/工作流）；
+    // ④ 拒绝则保持原拒绝行为，并把拒绝记录为证据（拒绝即证据）。
     let prompt_guard = PatternPromptGuard::new();
-    let input = match prompt_guard.process_user_input(&input) {
+    let input = match prompt_guard.process_user_input_structured(&input) {
         Ok(processed) => processed,
-        Err(reason) => {
-            tracing::error!(%reason, "🛡️ 安全拦截：检测到注入/越狱，拒绝执行并记录安全日志");
-            return Err(CommandError::new(
-                axagent_harness::error_codes::cognitive::PROMPT_REJECTED,
+        Err(rejection) => {
+            tracing::error!(%rejection.reason, "🛡️ 安全拦截命中，进入能力补齐提议通道");
+            let proposal = build_capability_gap_proposal(Some(&rejection), &input);
+            // 征求用户同意（复用授权事件通道，前端 EvolutionConsentModal 弹窗）
+            if !await_user_consent(&app, &state, &proposal).await? {
+                // 用户拒绝 → 保持原拒绝行为（不透传）+ 拒绝即证据
+                persist_decision_to_message(
+                    state.harness.db(),
+                    request.conversation_id.as_deref().unwrap_or_default(),
+                    &build_rejection_decision(&rejection),
+                )
+                .await;
+                return Err(CommandError::new(
+                    axagent_harness::error_codes::cognitive::PROMPT_REJECTED,
+                )
+                .with_category(ErrorCategory::Unrecoverable)
+                .with_detail(rejection.reason));
+            }
+            // 用户同意 → 执行补齐（挂 disposer 可回滚）
+            apply_capability_gap_proposal(&state, &proposal).await?;
+            persist_decision_to_message(
+                state.harness.db(),
+                request.conversation_id.as_deref().unwrap_or_default(),
+                &build_gap_decision(&proposal),
             )
-            .with_category(ErrorCategory::Unrecoverable)
-            .with_detail(reason));
+            .await;
+            // 补齐后输入按安全化语义继续：
+            // - 误伤豁免（ExemptAuthorize）→ 放行原始输入（有界豁免已生效），继续走三层路由
+            // - 其余（GuardRule / CapabilityMissing）→ 提示重新发送，避免绕过防护
+            if proposal.gap_type == CapabilityGapType::ExemptAuthorize {
+                tracing::info!(%rejection.pattern, "🛡️ 用户同意有界豁免，放行该合法诉求");
+                input
+            } else {
+                return Err(CommandError::new(
+                    axagent_harness::error_codes::cognitive::GAP_PROPOSAL_APPLIED,
+                )
+                .with_category(ErrorCategory::General)
+                .with_detail("已按用户同意补齐能力，请重新发送请求".to_string()));
+            }
         },
     };
 
@@ -543,13 +581,17 @@ pub async fn cognitive_query(
                 })?;
                 CognitiveExecutionView::Workflow { workflow_id: forced_id.clone(), execution_id }
             },
-            CapabilityKind::Agent => {
+            // 其余能力类型（Agent / Tool / KnowledgeBase / Skill）统一委派给 agent 执行，
+            // 与主流程 Delegate 分支语义一致：Agent 用 passport 推荐专家，Tool/知识库/技能
+            // 由 agent 内部工具系统加载执行；passport 无推荐专家时落回默认专家。
+            // （修复：原先 Tool 等能力被误当 Workflow 执行，查无模板报 WORKFLOW_NOT_FOUND）
+            _ => {
                 let conversation_id = request.conversation_id.clone().ok_or_else(|| {
                     CommandError::new(axagent_harness::error_codes::cognitive::ROUTE_FAILED)
                         .with_category(ErrorCategory::Validation)
                         .with_param("field", "conversation_id")
                 })?;
-                // Clarify 选中的 Agent 类型能力：解析执行载体 profile_id
+                // Clarify 选中的能力：解析 passport 推荐执行载体 profile_id
                 let forced_profile_id =
                     forced_passport.as_ref().and_then(|p| p.agent_profile_id.clone());
                 // 角色命中且执行载体未组合专家时，动态补全专家（RAR 检索），运行时组合
@@ -574,10 +616,14 @@ pub async fn cognitive_query(
                     search_provider_id: request.search_provider_id.clone(),
                     attachments: None,
                     options: request.options.clone(),
-                    // Clarify 选中的 Agent 类型能力：用其 passport 推荐专家（用户手选已隐藏）
+                    // Clarify 选中的能力：用其 passport 推荐专家（用户手选已隐藏），
+                    // Tool/知识库/技能无推荐专家时落回默认专家
                     agent_profile_id: forced_profile_id,
                     expert_id: dynamic_expert_id,
                     agent_context: request.agent_context.clone(),
+                    // 透传认知编排决策模式：Clarify 二次执行按能力类型定性（Agent→delegate，
+                    // 其余→workflow），让 agent 运行时感知当前编排模式
+                    execution_mode: Some(execution_mode.clone()),
                 };
                 let agent_resp =
                     crate::commands::agent::agent_query(app, state.clone(), agent_request)
@@ -596,27 +642,6 @@ pub async fn cognitive_query(
                     assistant_message_id: agent_resp.assistant_message_id,
                     status: agent_resp.status,
                 }
-            },
-            // 其余能力类型（Tool / KnowledgeBase / Skill）当前无可执行执行器，
-            // 按 Workflow 语义回退（绝大多数 Clarify 候选来自工作流检索）
-            _ => {
-                let execution_id = crate::commands::workflows::workflow_execute(
-                    app.clone(),
-                    state,
-                    forced_id.clone(),
-                    request.model_id.clone(),
-                    request.provider_id.clone(),
-                    None,
-                    request.max_concurrent,
-                    request.conversation_id.clone(),
-                    Some(serde_json::Value::String(input.clone())),
-                    Some(decision),
-                )
-                .await
-                .map_err(|e| {
-                    executor_error(e, axagent_harness::error_codes::cognitive::ROUTE_FAILED)
-                })?;
-                CognitiveExecutionView::Workflow { workflow_id: forced_id.clone(), execution_id }
             },
         };
 
@@ -725,11 +750,25 @@ pub async fn cognitive_query(
         })?;
 
     // 4. 解析 l3_result（主 DAG EndNode 输出）
-    let l3_value = workflow.output.ok_or_else(|| {
-        CommandError::new(axagent_harness::error_codes::cognitive::NO_CANDIDATE)
-            .with_category(ErrorCategory::Retryable)
-            .with_detail("认知编排器主 DAG 未产出路由决策".to_string())
-    })?;
+    // 主 DAG 无产出时不再静默报错：进入能力补齐提议通道（T0.4），用户同意后补齐
+    // 能力并提示重发；拒绝则保持原 NO_CANDIDATE 可恢复错误。
+    let l3_value = match workflow.output {
+        Some(v) => v,
+        None => {
+            let proposal = build_capability_gap_proposal(None, &input);
+            if await_user_consent(&app, &state, &proposal).await? {
+                apply_capability_gap_proposal(&state, &proposal).await?;
+                return Err(CommandError::new(
+                    axagent_harness::error_codes::cognitive::GAP_PROPOSAL_APPLIED,
+                )
+                .with_category(ErrorCategory::General)
+                .with_detail("已按用户同意补齐能力，请重新发送请求".to_string()));
+            }
+            return Err(CommandError::new(axagent_harness::error_codes::cognitive::NO_CANDIDATE)
+                .with_category(ErrorCategory::Retryable)
+                .with_detail("认知编排器主 DAG 未产出路由决策".to_string()));
+        },
+    };
     let l3 = l3_value.as_object().cloned().unwrap_or_default();
     let get_str = |key: &str, default: &str| {
         l3.get(key).and_then(|v| v.as_str()).unwrap_or(default).to_string()
@@ -865,6 +904,24 @@ pub async fn cognitive_query(
     // 决策标签：为该轮执行生成，Workflow 分支透传给 workflow_execute 持久化，
     // Agent 分支在此处直接写入 assistant 消息。
     let decision = decision_from_response(&response);
+
+    // ── Clarify 兜底无候选 → 能力补齐提议通道（T0.5）──
+    // 主 DAG 决策为 Clarify（置信度模糊）但候选为空（RAR/图谱兜底无命中）时，
+    // 不进入空候选展示，而是生成 capability_missing 提议征求用户同意；
+    // 拒绝则保持原 Clarify 空候选行为（返回空候选，前端自行兜底）。
+    if mode == ExecutionMode::Clarify && response.candidate_details.is_empty() {
+        let proposal = build_capability_gap_proposal(None, &input);
+        if await_user_consent(&app, &state, &proposal).await? {
+            apply_capability_gap_proposal(&state, &proposal).await?;
+            return Err(CommandError::new(
+                axagent_harness::error_codes::cognitive::GAP_PROPOSAL_APPLIED,
+            )
+            .with_category(ErrorCategory::General)
+            .with_detail("已按用户同意补齐能力，请重新发送请求".to_string()));
+        }
+        tracing::info!("🧭 Clarify 兜底无候选且用户拒绝补齐，返回空候选（前端自行兜底）");
+    }
+
     response.execution = Some(match mode {
         // Workflow / Direct：capability_id 即工作流模板 ID，交给 WorkEngine 执行
         ExecutionMode::Workflow | ExecutionMode::Direct => {
@@ -975,6 +1032,8 @@ pub async fn cognitive_query(
                 agent_profile_id: selected_agent_profile,
                 expert_id: dynamic_expert_id,
                 agent_context: request.agent_context.clone(),
+                // 透传认知编排决策模式（Ask/Act/Delegate），让 agent 运行时感知当前编排模式
+                execution_mode: Some(mode.as_str().to_string()),
             };
             let agent_resp = crate::commands::agent::agent_query(app, state.clone(), agent_request)
                 .await
@@ -1049,4 +1108,638 @@ pub async fn cognitive_list_execution_modes() -> Result<Vec<&'static str>, Comma
         ExecutionMode::ParameterExtract.as_str(),
         ExecutionMode::Clarify.as_str(),
     ])
+}
+
+// ── 双通道闭环：能力补齐（T0.6 / T0.7）────────────────
+
+/// 能力补齐提议的归类分析器（通道一：能力补齐）。
+///
+/// 输入：`PromptRejection`（安全拦截命中）或无候选信号（主 DAG / Clarify 兜底），
+/// 输出：结构化的 [`CapabilityGapProposal`]，供前端弹窗征求用户同意后执行补齐。
+///
+/// # 归类规则
+/// | 场景 | gap_type | 提议内容 |
+/// |------|----------|----------|
+/// | 攻击手法不在静态防护列表 | `GuardRule` | 新增防护正则（挂 Disposer 可回滚） |
+/// | 本地 IDE 合法诉求误伤（developer mode 等） | `ExemptAuthorize` | 按命中模式 + 作用域有界授权 |
+/// | 用户请求系统当前无能力安全处理 / 主 DAG 无候选 / Clarify 兜底无命中 | `CapabilityMissing` | 生成补齐工作流 + 护照 + 图谱 |
+fn build_capability_gap_proposal(
+    rejection: Option<&PromptRejection>,
+    input: &str,
+) -> CapabilityGapProposal {
+    let now = chrono::Utc::now();
+    let id = format!("gap:{}", now.timestamp_millis());
+
+    let Some(rejection) = rejection else {
+        // 无候选信号（主 DAG 无产出 / Clarify 兜底无命中）→ 能力缺失补齐
+        return CapabilityGapProposal {
+            id,
+            gap_type: CapabilityGapType::CapabilityMissing,
+            category: None,
+            title: "能力补齐提议：当前无能力处理该请求".to_string(),
+            proposal: format!(
+                "为请求「{input}」生成补齐工作流模板，并注册能力护照与工作流图谱，使其可被三层路由发现。"
+            ),
+            reason: "认知编排器三层路由未产出候选（主 DAG 无候选 / Clarify 兜底无命中）。"
+                .to_string(),
+            impact: "补齐后该请求可被路由命中并执行；未补齐前保持无候选行为。".to_string(),
+            rollback: "可逆：注销能力护照索引 + 从图谱移除节点（挂 Disposer，可随时回滚）。"
+                .to_string(),
+            created_at: now,
+        };
+    };
+
+    // 安全拦截命中 → 按攻击类别归类。
+    // 误伤豁免：developer mode 等本地 IDE 合法诉求被静态规则命中 → 有界授权（不开放全量）。
+    let (gap_type, title, proposal) = match rejection.category {
+        PromptAttackCategory::RoleOverride
+            if rejection.pattern.to_lowercase().contains("developer mode") =>
+        {
+            (
+                CapabilityGapType::ExemptAuthorize,
+                "误伤豁免提议：本地 IDE 合法诉求".to_string(),
+                format!(
+                    "按命中的具体模式「{}」+ 作用域授权有界豁免（不开放全量），允许该合法诉求通过。",
+                    rejection.pattern
+                ),
+            )
+        },
+        _ => (
+            CapabilityGapType::GuardRule,
+            "防护规则补齐提议".to_string(),
+            format!(
+                "为攻击类别「{:?}」新增防护正则，覆盖未在静态防护列表中的攻击手法。",
+                rejection.category
+            ),
+        ),
+    };
+
+    CapabilityGapProposal {
+        id,
+        gap_type,
+        category: Some(rejection.category),
+        title,
+        proposal,
+        reason: rejection.reason.clone(),
+        impact: "补齐后该类攻击将被精确拦截 / 合法诉求正常放行，降低误伤。".to_string(),
+        rollback: "可逆：防护规则挂 Disposer，可随时回滚。".to_string(),
+        created_at: now,
+    }
+}
+
+/// 能力补齐提议的执行器（通道一落地）。
+///
+/// 用户同意后调用：
+/// - `CapabilityMissing`：生成补齐工作流的能力护照（`evolution:workflow:{id}`，
+///   `auto_evolved` 标签 + `/evolution/` 前缀），注册进能力索引（L2 混合检索可见），
+///   并同步进工作流图谱（L3 `system_workflow_graph_router` 可见）。
+/// - `GuardRule` / `ExemptAuthorize`：动态防护规则 / 有界豁免的注入属阶段二
+///   （副作用栈 + Disposer），此处先记录决策标签，不改变安全底线。
+///
+/// 所有补齐动作必须经用户显式同意（铁律），调用方负责先征求同意再调用本函数。
+async fn apply_capability_gap_proposal(
+    state: &AppState,
+    proposal: &CapabilityGapProposal,
+) -> Result<(), CommandError> {
+    match proposal.gap_type {
+        CapabilityGapType::CapabilityMissing => {
+            // 复用 T0.11 统一注册：生成能力护照（auto_evolved 标签 + /evolution/ 前缀，
+            // L2 混合检索可见）并同步进工作流图谱（L3 图谱路由可见）。
+            let workflow_id = format!("auto_generated:{}", proposal.id);
+            let display_name = proposal.title.trim();
+            crate::commands::capability::register_evolution_product(
+                state,
+                &workflow_id,
+                display_name,
+                &proposal.proposal,
+            )
+            .await?;
+            tracing::info!(
+                workflow_id = %workflow_id,
+                "🗺️ 能力补齐：工作流护照已注册并同步进工作流图谱"
+            );
+        },
+        CapabilityGapType::GuardRule | CapabilityGapType::ExemptAuthorize => {
+            // 阶段二注入动态防护规则 / 有界豁免（挂 Disposer）；阶段零仅记录决策标签
+            tracing::info!(
+                gap_type = ?proposal.gap_type,
+                category = ?proposal.category,
+                "🔒 能力补齐：防护类提议已记录（动态注入见阶段二副作用栈）"
+            );
+        },
+    }
+    Ok(())
+}
+
+/// 用户同意等待超时（秒）。超时视为拒绝，保持原安全行为。
+const CONSENT_TIMEOUT: Duration = Duration::from_secs(180);
+/// 前端同意弹窗事件名（T0.13 EvolutionConsentModal 监听）。
+const EVOLUTION_CONSENT_EVENT: &str = "evolution-consent-request";
+
+/// 征求用户同意：通过事件通道下发提议，阻塞等待前端弹窗回传（T0.13 配套）。
+///
+/// 复用 `agent_plan_approvals` 同款挂起审批槽模式：
+/// 1. 插入 `oneshot` sender 到 `evolution_consent_senders`（proposalId → sender）
+/// 2. emit `evolution-consent-request` 事件（携带 camelCase 提议）
+/// 3. await receiver（180s 超时，超时视为拒绝）
+/// 4. 前端弹窗由 `capability_gap_consent` 命令回传结果
+///
+/// 返回 `true` = 用户同意；`false` = 用户拒绝 / 超时 / 前端无监听。
+async fn await_user_consent(
+    app: &tauri::AppHandle,
+    state: &AppState,
+    proposal: &CapabilityGapProposal,
+) -> Result<bool, CommandError> {
+    let (tx, rx) = tokio::sync::oneshot::channel::<bool>();
+    state.evolution_consent_senders.lock().await.insert(proposal.id.clone(), tx);
+    // 事件下发失败不阻断：视为拒绝（保持原安全行为），并清理挂起槽
+    if let Err(e) = app.emit(EVOLUTION_CONSENT_EVENT, proposal) {
+        tracing::warn!(%e, "🧭 能力补齐提议事件下发失败，视为用户拒绝");
+        state.evolution_consent_senders.lock().await.remove(&proposal.id);
+        return Ok(false);
+    }
+    tracing::info!(proposal_id = %proposal.id, "🧭 能力补齐提议已下发，等待用户同意/拒绝");
+    let approved = match tokio::time::timeout(CONSENT_TIMEOUT, rx).await {
+        Ok(Ok(approved)) => approved,
+        // sender 被 drop（前端从未回传）或超时 → 视为拒绝
+        Ok(Err(_)) | Err(_) => false,
+    };
+    // 清理残留挂起槽（前端可能从未回传）
+    state.evolution_consent_senders.lock().await.remove(&proposal.id);
+    tracing::info!(proposal_id = %proposal.id, approved = %approved, "🧭 能力补齐提议审批结果");
+    Ok(approved)
+}
+
+/// 能力补齐提议的用户审批回传请求
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CapabilityGapConsentRequest {
+    /// 提议 ID（与 `CapabilityGapProposal.id` 对应）
+    #[serde(rename = "proposalId")]
+    pub proposal_id: String,
+    /// 用户是否同意补齐
+    pub approved: bool,
+}
+
+/// 能力补齐提议的用户审批回传 — 前端 EvolutionConsentModal 同意/拒绝后调用。
+///
+/// 从挂起审批槽取出对应 sender 回传结果，唤醒认知编排器中阻塞的 `await_user_consent`。
+#[agent_command(domain = cognitive, safety = Caution, call_mode = StateInput, description = "回传能力补齐提议的用户同意/拒绝结果")]
+#[tauri::command]
+pub async fn capability_gap_consent(
+    state: State<'_, AppState>,
+    request: CapabilityGapConsentRequest,
+) -> Result<(), CommandError> {
+    let mut senders = state.evolution_consent_senders.lock().await;
+    if let Some(sender) = senders.remove(&request.proposal_id) {
+        let _ = sender.send(request.approved);
+        tracing::info!(
+            proposal_id = %request.proposal_id,
+            approved = %request.approved,
+            "🧭 能力补齐提议审批回传"
+        );
+    } else {
+        tracing::warn!(
+            proposal_id = %request.proposal_id,
+            "🧭 能力补齐提议审批回传：无挂起的提议（可能已超时）"
+        );
+    }
+    Ok(())
+}
+
+/// 拒绝即证据：安全拦截拒绝的结构化决策标签（T0.3 用户拒绝分支持久化用）。
+fn build_rejection_decision(rejection: &PromptRejection) -> serde_json::Value {
+    serde_json::json!({
+        "executionMode": "rejected",
+        "routePath": "security:rejected",
+        "confidence": 0.0,
+        "rejection": {
+            "category": serde_json::to_value(rejection.category).unwrap_or_default(),
+            "pattern": rejection.pattern,
+            "reason": rejection.reason,
+            "suggestion": rejection.suggestion,
+        },
+    })
+}
+
+/// 补齐产物决策标签（T0.3/T0.4/T0.5 用户同意补齐后持久化用，
+/// 供阶段三贝叶斯后验消费：记录补齐原因 + 缺口类型）。
+fn build_gap_decision(proposal: &CapabilityGapProposal) -> serde_json::Value {
+    serde_json::json!({
+        "executionMode": "gap_proposal",
+        "routePath": "evolution:gap_proposal",
+        "confidence": 0.0,
+        "gapProposal": {
+            "id": proposal.id,
+            "gapType": serde_json::to_value(proposal.gap_type).unwrap_or_default(),
+            "category": proposal.category.map(|c| serde_json::to_value(c).unwrap_or_default()),
+            "title": proposal.title,
+            "proposal": proposal.proposal,
+            "reason": proposal.reason,
+            "impact": proposal.impact,
+            "rollback": proposal.rollback,
+        },
+    })
+}
+
+// ── 阶段三 T3.3：决策标签作为证据源 ─────────────────
+
+/// 进化产物真实执行反馈对照明细（按 tool_id，T5A.4）。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolExecutionDetail {
+    /// 进化产物标识（`GeneratedTool.id`）。
+    pub tool_id: String,
+    /// 真实执行次数。
+    pub usage_count: u32,
+    /// 真实成功次数。
+    pub successes: u32,
+    /// 真实失败次数。
+    pub failures: u32,
+}
+
+/// 进化产物真实执行反馈汇总（T5A.4 决策视图的真实证据对照）。
+///
+/// 与决策标签流（按 executionMode 推断成败）对照展示，
+/// 真实执行结果由 wiring 层 `EvolutionFeedbackSinkImpl` 累计。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecutionFeedbackView {
+    /// 有真实执行反馈的进化产物数。
+    pub tool_count: usize,
+    /// 真实执行总次数。
+    pub total_runs: u32,
+    /// 真实成功总次数。
+    pub total_successes: u32,
+    /// 真实失败总次数。
+    pub total_failures: u32,
+    /// 真实成功率（0~1，无执行时 0）。
+    pub success_rate: f64,
+    /// 按产物的明细（按 tool_id 排序）。
+    pub details: Vec<ToolExecutionDetail>,
+}
+
+/// 会话决策标签流的贝叶斯进化评估结果。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EvolutionEvidenceView {
+    /// 进化决策（evolve / stable / observe）。
+    pub decision: String,
+    /// 决策原因（中文）。
+    pub reason: String,
+    /// 贝叶斯后验 `P(success)`（决策标签流 + 真实执行反馈融合后）。
+    pub p_success: f64,
+    /// 已积累的（置信度加权）证据量（含真实执行反馈）。
+    pub evidence_volume: f64,
+    /// 消费的证据条数（有效决策标签，排除 clarify/ask 中立）。
+    pub consumed_labels: usize,
+    /// 决策标签总数。
+    pub total_labels: usize,
+    /// 证据来源的路由路径（去重），供用户查看命中能力。
+    pub route_paths: Vec<String>,
+    /// 进化产物真实执行反馈汇总（真实成败证据，与决策标签推断对照）。
+    pub execution_feedback: ExecutionFeedbackView,
+}
+
+/// T3.3：将「决策标签流」作为证据源接入贝叶斯后验，输出进化决策。
+///
+/// 读取指定会话内所有 assistant 消息已持久化的 `decision` 字段
+/// （每条含 `executionMode` / `routePath` / `confidence` / 选中能力），
+/// 逐条经 `axagent_trajectory::EvolutionDecider` 消费：
+/// - `workflow`/`direct`/`parameter_extract`/`agent`/`plan` → 成功证据
+/// - `rejected`/`gap_proposal` → 失败证据（安全拦截拒绝、补齐提议）
+/// - `clarify`/`ask` → 中立，不污染后验
+///
+/// 低于 `evolve_threshold` 且证据足够 → 输出 `evolve`（进入用户同意通道）。
+#[agent_command(
+    domain = cognitive,
+    safety = Safe,
+    call_mode = StateOnly,
+    description = "将会话决策标签流接入贝叶斯后验，评估进化决策"
+)]
+#[tauri::command]
+pub async fn cognitive_evolution_decision(
+    state: State<'_, AppState>,
+    conversation_id: String,
+) -> Result<EvolutionEvidenceView, CommandError> {
+    let conversation_id = conversation_id.trim().to_string();
+    if conversation_id.is_empty() {
+        return Err(CommandError::new(axagent_harness::error_codes::cognitive::EMPTY_INPUT)
+            .with_category(ErrorCategory::Validation));
+    }
+    // T5A.4：读取进化产物真实执行统计快照（wiring 层累计），融合进决策视图
+    let execution_stats = state.evolution_execution_stats.lock().await.clone();
+    evaluate_evolution_evidence(state.harness.db(), &conversation_id, &execution_stats)
+        .await
+        .map_err(|e| CommandError::from_error(e, ErrorCategory::Unrecoverable))
+}
+
+/// T3.3：决策标签流 → 贝叶斯后验 → 进化视图 的纯执行逻辑。
+///
+/// 抽成独立函数便于单元测试（无需构造完整 AppState，仅依赖数据库连接）。
+/// T5A.4 起额外接收进化产物真实执行统计快照，与决策标签流融合为双证据后验。
+/// D2 起统计快照按会话维度组织（`conversation_id → tool_id → stats`），
+/// 本函数只消费当前会话产物的真实反馈，避免跨会话污染决策。
+pub(crate) async fn evaluate_evolution_evidence(
+    db: &axagent_harness::DatabaseConnection,
+    conversation_id: &str,
+    execution_stats: &HashMap<String, HashMap<String, ToolExecutionStats>>,
+) -> Result<EvolutionEvidenceView, axagent_harness::core_error::AxAgentError> {
+    // 读取会话内消息的决策标签流（每条 assistant 消息的 decision 字段）
+    let messages = axagent_dao::repo::message::list_messages(db, conversation_id).await?;
+
+    let labels: Vec<serde_json::Value> =
+        messages.iter().filter_map(|m| m.decision.clone()).collect();
+    let total_labels = labels.len();
+
+    // D2 会话隔离：仅取本会话产物的真实执行反馈（空会话 → 空表，退化为冷启动推断）
+    let empty: HashMap<String, ToolExecutionStats> = HashMap::new();
+    let session_stats: &HashMap<String, ToolExecutionStats> =
+        execution_stats.get(conversation_id).unwrap_or(&empty);
+
+    // 逐条消费为贝叶斯证据（决策标签流：按 executionMode 推断成败）
+    let mut decider = axagent_trajectory::EvolutionDecider::new();
+    let consumed_labels = decider.consume_decision_labels(&labels);
+
+    // T5A.4：融合真实执行反馈（进化产物真实成败，校正「按模式推断」的偏差）。
+    // D1 真实优先：decide() 在存在真实反馈时仅以真实后验判定，推断证据不稀释。
+    for stats in session_stats.values() {
+        decider.consume_execution_stats(stats);
+    }
+
+    // T5A.4：真实执行反馈汇总视图（供前端对照展示，仅含本会话产物）
+    let mut details: Vec<ToolExecutionDetail> = session_stats
+        .iter()
+        .map(|(tool_id, s)| ToolExecutionDetail {
+            tool_id: tool_id.clone(),
+            usage_count: s.usage_count,
+            successes: s.successes,
+            failures: s.failures,
+        })
+        .collect();
+    details.sort_by(|a, b| a.tool_id.cmp(&b.tool_id));
+    let total_runs: u32 = session_stats.values().map(|s| s.usage_count).sum();
+    let total_successes: u32 = session_stats.values().map(|s| s.successes).sum();
+    let total_failures: u32 = session_stats.values().map(|s| s.failures).sum();
+
+    let (decision, reason) = decider.describe();
+
+    // 证据来源路由路径（去重）
+    let mut route_paths: Vec<String> = labels
+        .iter()
+        .map(axagent_trajectory::DecisionEvidence::from_json)
+        .filter(|e| e.is_evidential())
+        .map(|e| e.route_path)
+        .filter(|p| !p.is_empty())
+        .collect();
+    route_paths.sort();
+    route_paths.dedup();
+
+    Ok(EvolutionEvidenceView {
+        decision: match decision {
+            axagent_trajectory::EvolutionDecision::Evolve => "evolve".to_string(),
+            axagent_trajectory::EvolutionDecision::Stable => "stable".to_string(),
+            axagent_trajectory::EvolutionDecision::Observe => "observe".to_string(),
+        },
+        reason,
+        p_success: decider.p_success(),
+        evidence_volume: decider.evidence_volume(),
+        consumed_labels,
+        total_labels,
+        route_paths,
+        execution_feedback: ExecutionFeedbackView {
+            tool_count: session_stats.len(),
+            total_runs,
+            total_successes,
+            total_failures,
+            success_rate: if total_runs > 0 {
+                total_successes as f64 / total_runs as f64
+            } else {
+                0.0
+            },
+            details,
+        },
+    })
+}
+
+// ── 阶段三 T3.5：决策标签流 → 贝叶斯后验 的集成测试 ─────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axagent_harness::types::MessageRole;
+    use serde_json::json;
+
+    /// 创建一条 assistant 消息并写入决策标签（T3.3 证据源）。
+    ///
+    /// 消息表对会话存在外键约束，需先创建会话（`create_test_pool` 开启了
+    /// `PRAGMA foreign_keys=ON`），否则插入消息会报 FOREIGN KEY constraint failed。
+    async fn create_message_with_decision(
+        db: &axagent_harness::DatabaseConnection,
+        conversation_id: &str,
+        decision: &serde_json::Value,
+    ) -> String {
+        let msg = axagent_dao::repo::message::create_message(
+            db,
+            conversation_id,
+            MessageRole::Assistant,
+            "test",
+            &[],
+            None,
+            0,
+        )
+        .await
+        .expect("测试：创建消息应成功");
+        axagent_dao::repo::message::update_message_decision(db, &msg.id, Some(decision))
+            .await
+            .expect("测试：写入决策标签应成功");
+        msg.id
+    }
+
+    /// 创建测试会话（消息外键依赖）。
+    async fn create_test_conversation(
+        db: &axagent_harness::DatabaseConnection,
+        title: &str,
+    ) -> String {
+        axagent_dao::repo::conversation::create_conversation(
+            db,
+            title,
+            "model-1",
+            "provider-1",
+            None,
+        )
+        .await
+        .expect("测试：创建会话应成功")
+        .id
+    }
+
+    /// 强成功流：5 次高置信成功（0.9+0.95+0.8+0.9+0.85=4.4）+ 1 次安全拦截拒绝（1.0）。
+    /// 后验 P(success)=5.4/7.4≈0.729 > 0.7 → stable；routePath 去重。
+    #[tokio::test]
+    async fn evolution_evidence_stable_on_strong_success_stream() {
+        let db = axagent_dao::db::create_test_pool().await.expect("测试：创建连接池应成功").conn;
+        let conversation_id = create_test_conversation(&db, "Evolution stable").await;
+
+        for (i, (mode, confidence)) in [
+            ("workflow", 0.9),
+            ("workflow", 0.95),
+            ("direct", 0.8),
+            ("parameter_extract", 0.9),
+            ("agent", 0.85),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let label = json!({
+                "executionMode": mode,
+                "routePath": format!("/trade/refund/auto{}", if i == 3 { "x" } else { "" }),
+                "confidence": confidence,
+                "selectedWorkflowName": "refund-auto",
+            });
+            create_message_with_decision(&db, &conversation_id, &label).await;
+        }
+        // 1 条 rejected（routePath 与前重复，验证去重）
+        create_message_with_decision(
+            &db,
+            &conversation_id,
+            &json!({
+                "executionMode": "rejected",
+                "routePath": "/trade/refund/auto",
+                "confidence": 1.0,
+            }),
+        )
+        .await;
+
+        let view = evaluate_evolution_evidence(&db, &conversation_id, &HashMap::new())
+            .await
+            .expect("测试：进化评估应成功");
+
+        assert_eq!(view.total_labels, 6);
+        assert_eq!(view.consumed_labels, 6);
+        assert_eq!(view.decision, "stable");
+        assert!((view.p_success - 5.4 / 7.4).abs() < 1e-9, "p_success={}", view.p_success);
+        assert!(view.evidence_volume >= 3.0);
+        assert_eq!(view.route_paths, vec!["/trade/refund/auto", "/trade/refund/autox"]);
+    }
+
+    /// 失败流：4 条安全拦截拒绝（0.9×4）。后验 P(success)=1/5.6≈0.179 < 0.4 → evolve。
+    #[tokio::test]
+    async fn evolution_evidence_evolves_on_rejection_stream() {
+        let db = axagent_dao::db::create_test_pool().await.expect("测试：创建连接池应成功").conn;
+        let conversation_id = create_test_conversation(&db, "Evolution evolve").await;
+
+        for i in 0..4 {
+            create_message_with_decision(
+                &db,
+                &conversation_id,
+                &json!({
+                    "executionMode": "rejected",
+                    "routePath": format!("/gate/guard/{i}"),
+                    "confidence": 0.9,
+                }),
+            )
+            .await;
+        }
+
+        let view = evaluate_evolution_evidence(&db, &conversation_id, &HashMap::new())
+            .await
+            .expect("测试：进化评估应成功");
+
+        assert_eq!(view.total_labels, 4);
+        assert_eq!(view.consumed_labels, 4);
+        assert_eq!(view.decision, "evolve");
+        assert!(view.p_success < 0.4, "p_success={}", view.p_success);
+        assert!(view.evidence_volume >= 3.0);
+        assert_eq!(view.route_paths.len(), 4);
+    }
+
+    /// 中立流：仅 clarify/ask 决策标签 → 不贡献证据 → observe。
+    #[tokio::test]
+    async fn evolution_evidence_ignores_neutral_labels() {
+        let db = axagent_dao::db::create_test_pool().await.expect("测试：创建连接池应成功").conn;
+        let conversation_id = create_test_conversation(&db, "Evolution neutral").await;
+
+        for mode in ["clarify", "ask"] {
+            create_message_with_decision(
+                &db,
+                &conversation_id,
+                &json!({ "executionMode": mode, "confidence": 0.7 }),
+            )
+            .await;
+        }
+
+        let view = evaluate_evolution_evidence(&db, &conversation_id, &HashMap::new())
+            .await
+            .expect("测试：进化评估应成功");
+
+        assert_eq!(view.total_labels, 2);
+        assert_eq!(view.consumed_labels, 0);
+        assert_eq!(view.decision, "observe");
+        assert_eq!(view.route_paths, Vec::<String>::new());
+    }
+
+    /// 空会话：无决策标签 → 证据量 0 → observe。
+    #[tokio::test]
+    async fn evolution_evidence_empty_conversation_observes() {
+        let db = axagent_dao::db::create_test_pool().await.expect("测试：创建连接池应成功").conn;
+
+        let view = evaluate_evolution_evidence(&db, "conv-evolution-empty", &HashMap::new())
+            .await
+            .expect("测试：进化评估应成功");
+
+        assert_eq!(view.total_labels, 0);
+        assert_eq!(view.consumed_labels, 0);
+        assert_eq!(view.decision, "observe");
+        // T5A.4：无真实执行反馈时汇总为空
+        assert_eq!(view.execution_feedback.tool_count, 0);
+        assert_eq!(view.execution_feedback.total_runs, 0);
+        assert_eq!(view.execution_feedback.success_rate, 0.0);
+    }
+
+    /// T5A.4：真实执行反馈融合 — 决策标签流推断为 stable，真实执行反馈（全失败）
+    /// 在 D1 真实优先下不稀释：真实后验 P=0 → 触发 evolve。
+    #[tokio::test]
+    async fn evolution_evidence_fuses_real_execution_feedback() {
+        let db = axagent_dao::db::create_test_pool().await.expect("测试：创建连接池应成功").conn;
+        let conversation_id = create_test_conversation(&db, "Evolution fuse").await;
+
+        // 决策标签流：5 次高置信执行成功 → 单看标签流推断为 stable
+        for _ in 0..5 {
+            create_message_with_decision(
+                &db,
+                &conversation_id,
+                &json!({ "executionMode": "workflow", "confidence": 1.0 }),
+            )
+            .await;
+        }
+
+        // D2 会话隔离：按 (conversation_id → tool_id → stats) 嵌套组织
+        // 真实执行反馈：tool-a 真实 3 次全失败 → D1 真实优先，推断成功不稀释 → evolve
+        let mut execution_stats: HashMap<String, HashMap<String, ToolExecutionStats>> =
+            HashMap::new();
+        execution_stats.insert(
+            conversation_id.clone(),
+            HashMap::from([(
+                "tool-a".to_string(),
+                ToolExecutionStats { usage_count: 3, successes: 0, failures: 3 },
+            )]),
+        );
+
+        let view = evaluate_evolution_evidence(&db, &conversation_id, &execution_stats)
+            .await
+            .expect("测试：进化评估应成功");
+
+        // D1 真实优先：真实后验 P(success)=0/3=0 < 0.4 → evolve
+        assert_eq!(view.decision, "evolve");
+        assert!((view.p_success - 0.0).abs() < 1e-9, "p_success={}", view.p_success);
+        // 真实反馈对照视图
+        assert_eq!(view.execution_feedback.tool_count, 1);
+        assert_eq!(view.execution_feedback.total_runs, 3);
+        assert_eq!(view.execution_feedback.total_successes, 0);
+        assert_eq!(view.execution_feedback.total_failures, 3);
+        assert_eq!(view.execution_feedback.success_rate, 0.0);
+        assert_eq!(view.execution_feedback.details.len(), 1);
+        assert_eq!(view.execution_feedback.details[0].tool_id, "tool-a");
+        assert_eq!(view.execution_feedback.details[0].failures, 3);
+    }
 }

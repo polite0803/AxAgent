@@ -246,7 +246,7 @@ export function ChatSidebar({
       return;
     }
     const active = conversations.find((c) => c.id === activeConversationId);
-    const parentId = active?.parent_conversation_id;
+    const parentId = active?.parentConversationId;
     if (parentId && !expandedParentIdsRef.current.has(parentId)) {
       setExpandedParentIds((prev) => new Set(prev).add(parentId));
     }
@@ -267,16 +267,16 @@ export function ChatSidebar({
     }
     if (!activeConversationId && conversations.length > 0 && !settingsLoading) {
       // 直接从 store 读取最新 settings，避免依赖 settings.last_selected_conversation_id 导致循环
-      const lastId = useSettingsStore.getState().settings.last_selected_conversation_id;
+      const lastId = useSettingsStore.getState().settings.lastSelectedConversationId;
       const lastConv = lastId
         ? conversations.find((c) => c.id === lastId)
         : null;
       const targetId = lastConv?.id ?? (() => {
         const sorted = conversations.toSorted((a, b) => {
-          if (a.is_pinned !== b.is_pinned) {
-            return a.is_pinned ? -1 : 1;
+          if (a.isPinned !== b.isPinned) {
+            return a.isPinned ? -1 : 1;
           }
-          return b.updated_at - a.updated_at;
+          return b.updatedAt - a.updatedAt;
         });
         return sorted[0]?.id ?? null;
       })();
@@ -300,7 +300,7 @@ export function ChatSidebar({
       lastSavedIdRef.current = activeConversationId;
       void useSettingsStore
         .getState()
-        .saveSettings({ last_selected_conversation_id: activeConversationId });
+        .saveSettings({ lastSelectedConversationId: activeConversationId });
     }
   }, [activeConversationId]);
 
@@ -308,12 +308,12 @@ export function ChatSidebar({
     let provider: (typeof providers)[0] | undefined;
     let model: (typeof providers)[0]["models"][0] | undefined;
 
-    if (settings.default_provider_id && settings.default_model_id) {
+    if (settings.defaultProviderId && settings.defaultModelId) {
       provider = providers.find(
-        (p) => p.id === settings.default_provider_id && p.enabled,
+        (p) => p.id === settings.defaultProviderId && p.enabled,
       );
       model = provider?.models.find(
-        (m) => m.model_id === settings.default_model_id && m.enabled,
+        (m) => m.modelId === settings.defaultModelId && m.enabled,
       );
     }
 
@@ -321,12 +321,12 @@ export function ChatSidebar({
       const activeConv = conversations.find(
         (c) => c.id === activeConversationId,
       );
-      if (activeConv?.provider_id && activeConv?.model_id) {
+      if (activeConv?.providerId && activeConv?.modelId) {
         provider = providers.find(
-          (p) => p.id === activeConv.provider_id && p.enabled,
+          (p) => p.id === activeConv.providerId && p.enabled,
         );
         model = provider?.models.find(
-          (m) => m.model_id === activeConv.model_id && m.enabled,
+          (m) => m.modelId === activeConv.modelId && m.enabled,
         );
       }
     }
@@ -345,7 +345,7 @@ export function ChatSidebar({
 
     await createConversation(
       t("chat.newConversation"),
-      model.model_id,
+      model.modelId,
       provider.id,
     );
   }, [
@@ -391,10 +391,10 @@ export function ChatSidebar({
     }
     // 复制后再排序，避免原地修改 store 持有的数组
     return [...filtered].sort((a, b) => {
-      if (a.is_pinned !== b.is_pinned) {
-        return a.is_pinned ? -1 : 1;
+      if (a.isPinned !== b.isPinned) {
+        return a.isPinned ? -1 : 1;
       }
-      return b.updated_at - a.updated_at;
+      return b.updatedAt - a.updatedAt;
     });
   }, [conversations, searchText, fts5ResultIds]);
 
@@ -662,8 +662,8 @@ export function ChatSidebar({
             style={{ backgroundColor: token.colorPrimaryBg, color: token.colorPrimary }}
           />
         );
-      } else if (conv.model_id) {
-        icon = <ModelIcon model={conv.model_id} size={20} type="avatar" />;
+      } else if (conv.modelId) {
+        icon = <ModelIcon model={conv.modelId} size={20} type="avatar" />;
       } else {
         icon = (
           <Avatar
@@ -715,10 +715,10 @@ export function ChatSidebar({
     const childrenMap = new Map<string, Conversation[]>();
     const topLevel: Conversation[] = [];
     filteredConversations.forEach((conv) => {
-      if (conv.parent_conversation_id) {
-        const arr = childrenMap.get(conv.parent_conversation_id) ?? [];
+      if (conv.parentConversationId) {
+        const arr = childrenMap.get(conv.parentConversationId) ?? [];
         arr.push(conv);
-        childrenMap.set(conv.parent_conversation_id, arr);
+        childrenMap.set(conv.parentConversationId, arr);
       } else {
         topLevel.push(conv);
       }
@@ -728,10 +728,10 @@ export function ChatSidebar({
     const convsByWorkspaceDir = new Map<string, Conversation[]>();
     const uncategorizedConvs: Conversation[] = [];
     topLevel.forEach((conv) => {
-      if (conv.workspace_dir) {
-        const arr = convsByWorkspaceDir.get(conv.workspace_dir) ?? [];
+      if (conv.workspaceDir) {
+        const arr = convsByWorkspaceDir.get(conv.workspaceDir) ?? [];
         arr.push(conv);
-        convsByWorkspaceDir.set(conv.workspace_dir, arr);
+        convsByWorkspaceDir.set(conv.workspaceDir, arr);
       } else {
         uncategorizedConvs.push(conv);
       }
@@ -751,7 +751,7 @@ export function ChatSidebar({
 
       const isTitleGen = titleGeneratingConversationId === conv.id;
       let label: React.ReactNode;
-      if (conv.is_pinned && depth === 0) {
+      if (conv.isPinned && depth === 0) {
         label = (
           <span className="flex items-center gap-1">
             <span className="truncate">{conv.title}</span>
@@ -903,7 +903,7 @@ export function ChatSidebar({
 
     // Add uncategorized conversations (no workspace_dir) by date groups
     uncategorizedConvs.forEach((conv) => {
-      const group = conv.is_pinned ? "pinned" : getDateGroup(conv.updated_at);
+      const group = conv.isPinned ? "pinned" : getDateGroup(conv.updatedAt);
       pushConvWithChildren(conv, group);
     });
 
@@ -975,8 +975,8 @@ export function ChatSidebar({
   const wsCountMap = useMemo(() => {
     const map = new Map<string, number>();
     conversations.forEach((c) => {
-      if (c.workspace_dir && !c.parent_conversation_id) {
-        map.set(c.workspace_dir, (map.get(c.workspace_dir) ?? 0) + 1);
+      if (c.workspaceDir && !c.parentConversationId) {
+        map.set(c.workspaceDir, (map.get(c.workspaceDir) ?? 0) + 1);
       }
     });
     return map;
@@ -1260,8 +1260,8 @@ export function ChatSidebar({
   const wsDirs = useMemo(() => {
     const dirs = new Set<string>();
     conversations.forEach((c) => {
-      if (c.workspace_dir) {
-        dirs.add(c.workspace_dir);
+      if (c.workspaceDir) {
+        dirs.add(c.workspaceDir);
       }
     });
     return Array.from(dirs).sort();
@@ -1276,14 +1276,14 @@ export function ChatSidebar({
       if (!conv) {
         return { items: [] };
       }
-      const isPinned = conv.is_pinned ?? false;
+      const isPinned = conv.isPinned ?? false;
       const title = conv.title ?? "";
-      const hasParent = !!conv.parent_conversation_id;
-      const parentId = conv.parent_conversation_id;
+      const hasParent = !!conv.parentConversationId;
+      const parentId = conv.parentConversationId;
 
       // Build "move to workspace" submenu
       const wsChildren = wsDirs.flatMap((d) =>
-        d !== conv.workspace_dir
+        d !== conv.workspaceDir
           ? [
             {
               key: `move-ws:${d}`,
@@ -1301,7 +1301,7 @@ export function ChatSidebar({
           ]
           : []
       );
-      if (conv.workspace_dir) {
+      if (conv.workspaceDir) {
         wsChildren.unshift({
           key: "remove-ws",
           label: (
@@ -1487,7 +1487,7 @@ export function ChatSidebar({
             return;
           }
           if (menuInfo.key === "detach-parent") {
-            void updateConversation(conv.id, { parent_conversation_id: null });
+            void updateConversation(conv.id, { parentConversationId: null });
             return;
           }
           if (menuInfo.key === "go-parent" && parentId) {
@@ -1552,13 +1552,13 @@ export function ChatSidebar({
     if (!conv) {
       return { items: [] as MenuProps["items"] };
     }
-    const isPinned = conv.is_pinned ?? false;
+    const isPinned = conv.isPinned ?? false;
     const title = conv.title ?? "";
-    const hasParent = !!conv.parent_conversation_id;
-    const parentId = conv.parent_conversation_id;
+    const hasParent = !!conv.parentConversationId;
+    const parentId = conv.parentConversationId;
 
     const wsChildren = wsDirs.flatMap((d) =>
-      d !== conv.workspace_dir
+      d !== conv.workspaceDir
         ? [
           {
             key: `move-ws:${d}`,
@@ -1574,7 +1574,7 @@ export function ChatSidebar({
         ]
         : []
     );
-    if (conv.workspace_dir) {
+    if (conv.workspaceDir) {
       wsChildren.unshift({
         key: "remove-ws",
         label: (
@@ -1749,7 +1749,7 @@ export function ChatSidebar({
           return;
         }
         if (menuInfo.key === "detach-parent") {
-          void updateConversation(conv.id, { parent_conversation_id: null });
+          void updateConversation(conv.id, { parentConversationId: null });
           return;
         }
         if (menuInfo.key === "go-parent" && parentId) {

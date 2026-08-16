@@ -16,7 +16,7 @@ export function ProxySettings() {
   const [testing, setTesting] = useState(false);
 
   const handleTestProxy = async () => {
-    const { proxy_type, proxy_address, proxy_port } = settings;
+    const { proxyType: proxy_type, proxyAddress: proxy_address, proxyPort: proxy_port } = settings;
 
     if (!proxy_address) {
       message.warning(t("settings.proxyAddressRequired"));
@@ -51,8 +51,8 @@ export function ProxySettings() {
 
   const rowStyle = { padding: "4px 0" };
 
-  const isSystemProxy = settings.proxy_type === "system";
-  const needsAddress = !!settings.proxy_type && !isSystemProxy;
+  const isSystemProxy = settings.proxyType === "system";
+  const needsAddress = !!settings.proxyType && !isSystemProxy;
 
   return (
     <div className="p-6 pb-12">
@@ -60,8 +60,8 @@ export function ProxySettings() {
         <div style={rowStyle} className="flex items-center justify-between" data-search-key="proxy:proxyType">
           <span>{t("settings.proxyType")}</span>
           <SettingsSelect
-            value={settings.proxy_type ?? "none"}
-            onChange={(val) => saveSettings({ proxy_type: val === "none" ? null : val })}
+            value={settings.proxyType ?? "none"}
+            onChange={(val) => saveSettings({ proxyType: val === "none" ? null : val })}
             options={[
               { label: t("settings.proxyNone"), value: "none" },
               { label: t("settings.proxySystem"), value: "system" },
@@ -81,8 +81,8 @@ export function ProxySettings() {
           <span>{t("settings.proxyAddress")}</span>
           <Input
             id="proxy-settings-input-148"
-            value={settings.proxy_address ?? ""}
-            onChange={(e) => saveSettings({ proxy_address: e.target.value || null })}
+            value={settings.proxyAddress ?? ""}
+            onChange={(e) => saveSettings({ proxyAddress: e.target.value || null })}
             placeholder="127.1.0.0"
             disabled={!needsAddress}
             style={{ width: 280 }}
@@ -99,8 +99,8 @@ export function ProxySettings() {
           <span>{t("settings.proxyPort")}</span>
           <InputNumber
             id="proxy-settings-inputnumber-149"
-            value={settings.proxy_port}
-            onChange={(val) => saveSettings({ proxy_port: val ?? null })}
+            value={settings.proxyPort}
+            onChange={(val) => saveSettings({ proxyPort: val ?? null })}
             placeholder="7890"
             disabled={!needsAddress}
             min={1}

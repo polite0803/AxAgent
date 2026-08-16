@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PrefetchResult {
     pub prefetch_type: PrefetchType,
     pub resource_id: String,
@@ -26,6 +27,7 @@ pub enum PrefetchType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PrefetchResults {
     pub results: Vec<PrefetchResult>,
     pub total_estimated_time_ms: u32,
@@ -64,6 +66,7 @@ pub struct TaskPrefetcher {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PrefetcherConfig {
     pub enabled: bool,
     pub max_cache_size: usize,

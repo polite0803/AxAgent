@@ -50,22 +50,22 @@ function formatDuration(ms?: number): string {
 export function Timeline({ spans }: TimelineProps) {
   const { t } = useTranslation();
   const sortedSpans = spans.toSorted(
-    (a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime(),
+    (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
   );
 
   const { startTime, endTime, spanMetrics } = useMemo(() => {
-    const sTime = sortedSpans[0]?.start_time
-      ? new Date(sortedSpans[0].start_time).getTime()
+    const sTime = sortedSpans[0]?.startTime
+      ? new Date(sortedSpans[0].startTime).getTime()
       : 0;
-    const lastSpanEnd = sortedSpans[sortedSpans.length - 1]?.end_time;
+    const lastSpanEnd = sortedSpans[sortedSpans.length - 1]?.endTime;
     const eTime = lastSpanEnd ? new Date(lastSpanEnd).getTime() : sTime;
     const duration = eTime - sTime || 1;
     const metrics = new Map<string, { spanStart: number; spanEnd: number; left: number; width: number }>();
     for (const span of sortedSpans) {
-      const spanStart = new Date(span.start_time).getTime();
-      const spanEnd = span.end_time
-        ? new Date(span.end_time).getTime()
-        : spanStart + (span.duration_ms || 0);
+      const spanStart = new Date(span.startTime).getTime();
+      const spanEnd = span.endTime
+        ? new Date(span.endTime).getTime()
+        : spanStart + (span.durationMs || 0);
       metrics.set(span.id, {
         spanStart,
         spanEnd,
@@ -80,9 +80,9 @@ export function Timeline({ spans }: TimelineProps) {
     let depth = 0;
     let current = span;
     const spanMap = new Map(spans.map((s) => [s.id, s]));
-    while (current.parent_span_id) {
+    while (current.parentSpanId) {
       depth++;
-      current = spanMap.get(current.parent_span_id) || current;
+      current = spanMap.get(current.parentSpanId) || current;
       if (depth > 20) {
         break;
       }
@@ -115,9 +115,9 @@ export function Timeline({ spans }: TimelineProps) {
                   <div>
                     <div>{span.name}</div>
                     <div>
-                      Start: {dayjs(span.start_time).format("HH:mm:ss.SSS")}
+                      Start: {dayjs(span.startTime).format("HH:mm:ss.SSS")}
                     </div>
-                    <div>Duration: {formatDuration(span.duration_ms)}</div>
+                    <div>Duration: {formatDuration(span.durationMs)}</div>
                     {span.errors.length > 0 && (
                       <div className="text-red-400">
                         Errors: {span.errors.map((e) => e.message).join(", ")}
@@ -131,7 +131,7 @@ export function Timeline({ spans }: TimelineProps) {
                   style={{
                     marginLeft: `${left}%`,
                     width: `${Math.max(width, 1)}%`,
-                    backgroundColor: getSpanTypeColor(span.span_type),
+                    backgroundColor: getSpanTypeColor(span.spanType),
                     opacity: span.status === "error" ? 0.7 : 1,
                   }}
                 >
@@ -139,7 +139,7 @@ export function Timeline({ spans }: TimelineProps) {
                     {span.name}
                   </span>
                   <span className="ml-auto pr-2 text-white text-xs">
-                    {formatDuration(span.duration_ms)}
+                    {formatDuration(span.durationMs)}
                   </span>
                 </div>
               </Tooltip>

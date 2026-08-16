@@ -28,7 +28,7 @@ interface SpanDetailProps {
 export function SpanDetail({ span }: SpanDetailProps) {
   const { t } = useTranslation();
   const errorColumns = [
-    { title: "Type", dataIndex: "error_type", key: "error_type" },
+    { title: "Type", dataIndex: "errorType", key: "errorType" },
     { title: "Message", dataIndex: "message", key: "message" },
   ];
 
@@ -57,13 +57,13 @@ export function SpanDetail({ span }: SpanDetailProps) {
           </Descriptions.Item>
           <Descriptions.Item label={t("devtools.traceId")}>
             <Text code copyable className="text-xs">
-              {span.trace_id}
+              {span.traceId}
             </Text>
           </Descriptions.Item>
-          {span.parent_span_id && (
+          {span.parentSpanId && (
             <Descriptions.Item label={t("spanDetail.parentSpan")}>
               <Text code copyable className="text-xs">
-                {span.parent_span_id}
+                {span.parentSpanId}
               </Text>
             </Descriptions.Item>
           )}
@@ -71,7 +71,7 @@ export function SpanDetail({ span }: SpanDetailProps) {
             {span.name}
           </Descriptions.Item>
           <Descriptions.Item label={t("devtools.type")}>
-            <Tag>{span.span_type.replace("_", " ")}</Tag>
+            <Tag>{span.spanType.replace("_", " ")}</Tag>
           </Descriptions.Item>
           <Descriptions.Item label={t("devtools.statusLabel")}>
             <Tag color={span.status === "ok" ? "green" : "red"}>
@@ -79,24 +79,24 @@ export function SpanDetail({ span }: SpanDetailProps) {
             </Tag>
           </Descriptions.Item>
           <Descriptions.Item label={t("devtools.duration")}>
-            {formatDuration(span.duration_ms)}
+            {formatDuration(span.durationMs)}
           </Descriptions.Item>
           <Descriptions.Item label={t("devtools.startedAt")}>
-            {formatTimestamp(span.start_time)}
+            {formatTimestamp(span.startTime)}
           </Descriptions.Item>
-          {span.end_time && (
+          {span.endTime && (
             <Descriptions.Item label={t("devtools.endTime")}>
-              {formatTimestamp(span.end_time)}
+              {formatTimestamp(span.endTime)}
             </Descriptions.Item>
           )}
         </Descriptions>
       </Card>
 
-      {span.service_name && (
+      {span.serviceName && (
         <Card size="small" className="mb-3">
           <Descriptions column={1} size="small">
             <Descriptions.Item label={t("devtools.service")}>
-              {span.service_name}
+              {span.serviceName}
             </Descriptions.Item>
           </Descriptions>
         </Card>

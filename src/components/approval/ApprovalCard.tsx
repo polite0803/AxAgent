@@ -21,17 +21,17 @@ export function ApprovalCard({ approval, onApproved, onRejected, note }: Approva
   const { resumeApproval, cancelApproval, loading } = useApprovalStore();
 
   const handleApprove = async () => {
-    const ok = await resumeApproval(approval.execution_id, approval.id, "approved", undefined, note);
+    const ok = await resumeApproval(approval.executionId, approval.id, "approved", undefined, note);
     if (ok) { onApproved?.(approval.id); }
   };
 
   const handleReject = async () => {
-    const ok = await resumeApproval(approval.execution_id, approval.id, "rejected", undefined, note);
+    const ok = await resumeApproval(approval.executionId, approval.id, "rejected", undefined, note);
     if (ok) { onRejected?.(approval.id); }
   };
 
   const handleCancel = async () => {
-    await cancelApproval(approval.execution_id, approval.id);
+    await cancelApproval(approval.executionId, approval.id);
   };
 
   const statusColor = approval.status === "pending"
@@ -42,7 +42,7 @@ export function ApprovalCard({ approval, onApproved, onRejected, note }: Approva
     ? "red"
     : "default";
 
-  const expiresSoon = approval.status === "pending" && approval.expires_at * 1000 < Date.now() + 5 * 60 * 1000;
+  const expiresSoon = approval.status === "pending" && approval.expiresAt * 1000 < Date.now() + 5 * 60 * 1000;
 
   return (
     <Card
@@ -54,7 +54,7 @@ export function ApprovalCard({ approval, onApproved, onRejected, note }: Approva
         <div className="flex items-center justify-between">
           <Tag color={statusColor}>{t(`approval.status.${approval.status}`)}</Tag>
           <Text type="secondary" className="text-xs">
-            {new Date(approval.created_at * 1000).toLocaleString()}
+            {new Date(approval.createdAt * 1000).toLocaleString()}
           </Text>
         </div>
 

@@ -187,7 +187,7 @@ function MobileActions() {
   const { t } = useTranslation();
   const settings = useSettingsStore((s) => s.settings);
   const saveSettings = useSettingsStore((s) => s.saveSettings);
-  const [pinned, setPinned] = useState(settings.always_on_top ?? false);
+  const [pinned, setPinned] = useState(settings.alwaysOnTop ?? false);
 
   const deviceLayout = useUIStore((s) => s.deviceLayout);
   if (deviceLayout !== "mobile") { return null; }
@@ -197,18 +197,18 @@ function MobileActions() {
     setPinned(next);
     try {
       await invoke("set_always_on_top", { enabled: next });
-      saveSettings({ always_on_top: next });
+      saveSettings({ alwaysOnTop: next });
     } catch {
       setPinned(!next);
     }
   };
 
   const cycleTheme = () => {
-    const next = settings.theme_mode === "dark" ? "system" : settings.theme_mode === "system" ? "light" : "dark";
-    saveSettings({ theme_mode: next }).catch(logIpcError("Sidebar: saveSettings(theme_mode)"));
+    const next = settings.themeMode === "dark" ? "system" : settings.themeMode === "system" ? "light" : "dark";
+    saveSettings({ themeMode: next }).catch(logIpcError("Sidebar: saveSettings(themeMode)"));
   };
 
-  const ThemeIcon = settings.theme_mode === "dark" ? Moon : settings.theme_mode === "light" ? Sun : Globe;
+  const ThemeIcon = settings.themeMode === "dark" ? Moon : settings.themeMode === "light" ? Sun : Globe;
   const btnBase: React.CSSProperties = {
     display: "flex",
     alignItems: "center",

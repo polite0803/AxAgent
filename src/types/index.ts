@@ -16,61 +16,61 @@ export type ProviderType =
 export interface ProviderConfig {
   id: string;
   name: string;
-  provider_type: ProviderType;
-  api_host: string;
-  api_path: string | null;
+  providerType: ProviderType;
+  apiHost: string;
+  apiPath: string | null;
   enabled: boolean;
   models: Model[];
   keys: ProviderKey[];
-  proxy_config: ProviderProxyConfig | null;
-  tool_adaptation: string | null;
-  tool_adaptation_marker_prefix: string | null;
-  custom_headers: string | null;
+  proxyConfig: ProviderProxyConfig | null;
+  toolAdaptation: string | null;
+  toolAdaptationMarkerPrefix: string | null;
+  customHeaders: string | null;
   icon: string | null;
-  builtin_id: string | null;
-  sort_order: number;
-  created_at: number;
-  updated_at: number;
+  builtinId: string | null;
+  sortOrder: number;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface ProviderKey {
   id: string;
-  provider_id: string;
-  key_encrypted: string;
-  key_prefix: string;
+  providerId: string;
+  keyEncrypted: string;
+  keyPrefix: string;
   enabled: boolean;
-  last_validated_at: number | null;
-  last_error: string | null;
-  rotation_index: number;
-  created_at: number;
+  lastValidatedAt: number | null;
+  lastError: string | null;
+  rotationIndex: number;
+  createdAt: number;
 }
 
 export interface ProviderProxyConfig {
-  proxy_type: string | null;
-  proxy_address: string | null;
-  proxy_port: number | null;
+  proxyType: string | null;
+  proxyAddress: string | null;
+  proxyPort: number | null;
 }
 
 export interface CreateProviderInput {
   name: string;
-  provider_type: ProviderType;
-  api_host: string;
-  api_path?: string | null;
+  providerType: ProviderType;
+  apiHost: string;
+  apiPath?: string | null;
   enabled: boolean;
 }
 
 export interface UpdateProviderInput {
   name?: string;
-  provider_type?: ProviderType;
-  api_host?: string;
-  api_path?: string | null;
+  providerType?: ProviderType;
+  apiHost?: string;
+  apiPath?: string | null;
   enabled?: boolean;
-  proxy_config?: ProviderProxyConfig;
-  tool_adaptation?: string | null;
-  tool_adaptation_marker_prefix?: string | null;
-  custom_headers?: string | null;
+  proxyConfig?: ProviderProxyConfig;
+  toolAdaptation?: string | null;
+  toolAdaptationMarkerPrefix?: string | null;
+  customHeaders?: string | null;
   icon?: string | null;
-  sort_order?: number;
+  sortOrder?: number;
 }
 
 // === Model System ===
@@ -83,31 +83,31 @@ export type ModelCapability =
 export type ModelType = "Chat" | "Voice" | "Embedding";
 
 export interface Model {
-  provider_id: string;
-  model_id: string;
+  providerId: string;
+  modelId: string;
   name: string;
-  group_name?: string | null;
-  model_type: ModelType;
+  groupName?: string | null;
+  modelType: ModelType;
   capabilities: ModelCapability[];
-  max_tokens: number | null;
+  maxTokens: number | null;
   enabled: boolean;
-  param_overrides: ModelParamOverrides | null;
+  paramOverrides: ModelParamOverrides | null;
   /** Input price per million tokens (USD). From provider sync or user settings. */
-  input_price_per_mtok?: number | null;
+  inputPricePerMtok?: number | null;
   /** Output price per million tokens (USD). From provider sync or user settings. */
-  output_price_per_mtok?: number | null;
+  outputPricePerMtok?: number | null;
 }
 
 export interface ModelParamOverrides {
   temperature?: number;
-  max_tokens?: number;
-  top_p?: number;
-  frequency_penalty?: number;
-  use_max_completion_tokens?: boolean;
-  no_system_role?: boolean;
-  force_max_tokens?: boolean;
-  thinking_param_style?: string;
-  request_delay_ms?: number;
+  maxTokens?: number;
+  topP?: number;
+  frequencyPenalty?: number;
+  useMaxCompletionTokens?: boolean;
+  noSystemRole?: boolean;
+  forceMaxTokens?: boolean;
+  thinkingParamStyle?: string;
+  requestDelayMs?: number;
 }
 
 // === Conversation & Message ===
@@ -118,60 +118,60 @@ export type MessageStatus = "complete" | "partial" | "error" | "cancelled";
 export interface ConversationCategory {
   id: string;
   name: string;
-  icon_type: string | null;
-  icon_value: string | null;
-  system_prompt: string | null;
-  default_provider_id: string | null;
-  default_model_id: string | null;
-  default_temperature: number | null;
-  default_max_tokens: number | null;
-  default_top_p: number | null;
-  default_frequency_penalty: number | null;
-  sort_order: number;
-  is_collapsed: boolean;
-  created_at: number;
-  updated_at: number;
+  iconType: string | null;
+  iconValue: string | null;
+  systemPrompt: string | null;
+  defaultProviderId: string | null;
+  defaultModelId: string | null;
+  defaultTemperature: number | null;
+  defaultMaxTokens: number | null;
+  defaultTopP: number | null;
+  defaultFrequencyPenalty: number | null;
+  sortOrder: number;
+  isCollapsed: boolean;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface Conversation {
   id: string;
   title: string;
-  model_id: string;
-  provider_id: string;
-  system_prompt: string | null;
+  modelId: string;
+  providerId: string;
+  systemPrompt: string | null;
   temperature: number | null;
-  max_tokens: number | null;
-  top_p: number | null;
-  frequency_penalty: number | null;
-  search_enabled: boolean;
-  search_provider_id: string | null;
-  thinking_budget: number | null;
-  enabled_mcp_server_ids: string[];
-  enabled_knowledge_base_ids: string[];
-  enabled_memory_namespace_ids: string[];
-  enabled_wiki_ids: string[];
-  is_pinned: boolean;
-  is_archived: boolean;
-  context_compression: boolean;
-  category_id: string | null;
-  parent_conversation_id: string | null;
+  maxTokens: number | null;
+  topP: number | null;
+  frequencyPenalty: number | null;
+  searchEnabled: boolean;
+  searchProviderId: string | null;
+  thinkingBudget: number | null;
+  enabledMcpServerIds: string[];
+  enabledKnowledgeBaseIds: string[];
+  enabledMemoryNamespaceIds: string[];
+  enabledWikiIds: string[];
+  isPinned: boolean;
+  isArchived: boolean;
+  contextCompression: boolean;
+  categoryId: string | null;
+  parentConversationId: string | null;
   mode: "chat" | "agent" | "gateway";
   /** Agent work strategy: "direct" = execute immediately, "plan" = generate plan first, await approval, then execute */
-  work_strategy?: "direct" | "plan" | null;
-  message_count: number;
-  created_at: number;
-  updated_at: number;
+  workStrategy?: "direct" | "plan" | null;
+  messageCount: number;
+  createdAt: number;
+  updatedAt: number;
   scenario?: string | null;
-  workspace_dir?: string | null;
-  enabled_skill_ids: string[];
+  workspaceDir?: string | null;
+  enabledSkillIds: string[];
   /** Agent profile identifier, references AgentProfile.id */
-  agent_profile_id?: string | null;
+  agentProfileId?: string | null;
   /** Workflow template ID bound to this conversation */
-  workflow_template_id?: string | null;
+  workflowTemplateId?: string | null;
   /** Session type: "conversation" = free dialog, "workflow" = bound to workflow template */
-  session_type: "conversation" | "workflow";
+  sessionType: "conversation" | "workflow";
   /** Workflow execution status: running / completed / failed / cancelled */
-  workflow_status?: string | null;
+  workflowStatus?: string | null;
 }
 
 export interface ToolCall {
@@ -185,33 +185,33 @@ export interface ToolCall {
 
 export interface Message {
   id: string;
-  conversation_id: string;
+  conversationId: string;
   role: MessageRole;
   content: string;
-  provider_id: string | null;
-  model_id: string | null;
-  token_count: number | null;
-  prompt_tokens?: number | null;
-  completion_tokens?: number | null;
+  providerId: string | null;
+  modelId: string | null;
+  tokenCount: number | null;
+  promptTokens?: number | null;
+  completionTokens?: number | null;
   attachments: Attachment[];
   thinking: string | null;
-  tool_calls_json: string | null;
-  tool_call_id: string | null;
-  created_at: number;
-  parent_message_id: string | null;
-  version_index: number;
-  is_active: boolean;
+  toolCallsJson: string | null;
+  toolCallId: string | null;
+  createdAt: number;
+  parentMessageId: string | null;
+  versionIndex: number;
+  isActive: boolean;
   status: MessageStatus;
-  tokens_per_second?: number | null;
-  first_token_latency_ms?: number | null;
+  tokensPerSecond?: number | null;
+  firstTokenLatencyMs?: number | null;
   /** Structured content blocks (from agent session ContentBlock). */
   blocks?: ContentBlock[];
   /** Additional metadata for extensibility */
   meta?: Record<string, unknown>;
   /** 引用回复：被引用消息的 ID（区别于 parent_message_id） */
-  quoted_message_id?: string | null;
+  quotedMessageId?: string | null;
   /** 意图澄清状态（仅用户消息有） */
-  intent_clarification?: IntentClarification | null;
+  intentClarification?: IntentClarification | null;
   /** 认知编排决策标签：该消息对应一轮执行的决策信息（ExecutionMode / 路由路径 / 命中工作流 / 专家等） */
   decision?: CognitiveDecisionInfo | null;
 }
@@ -242,72 +242,72 @@ export type ContentBlock =
   | { type: "tool_use"; id: string; name: string; input: string }
   | {
     type: "tool_result";
-    tool_use_id: string;
-    tool_name: string;
+    toolUseId: string;
+    toolName: string;
     output: string;
-    is_error: boolean;
+    isError: boolean;
   };
 
 export interface MessagePage {
   messages: Message[];
-  has_older: boolean;
-  oldest_message_id: string | null;
-  total_active_count: number;
+  hasOlder: boolean;
+  oldestMessageId: string | null;
+  totalActiveCount: number;
 }
 
 export interface ConversationStats {
-  total_messages: number;
-  total_user_messages: number;
-  total_assistant_messages: number;
-  total_prompt_tokens: number;
-  total_completion_tokens: number;
-  total_tokens: number;
-  avg_tokens_per_second: number | null;
-  avg_first_token_latency_ms: number | null;
-  avg_response_time_ms: number | null;
+  totalMessages: number;
+  totalUserMessages: number;
+  totalAssistantMessages: number;
+  totalPromptTokens: number;
+  totalCompletionTokens: number;
+  totalTokens: number;
+  avgTokensPerSecond: number | null;
+  avgFirstTokenLatencyMs: number | null;
+  avgResponseTimeMs: number | null;
 }
 
 export interface DailyUsage {
   date: string;
-  message_count: number;
-  total_prompt_tokens: number;
-  total_completion_tokens: number;
-  total_tokens: number;
-  total_cost_usd: number;
+  messageCount: number;
+  totalPromptTokens: number;
+  totalCompletionTokens: number;
+  totalTokens: number;
+  totalCostUsd: number;
 }
 
 export interface CostByProvider {
-  provider_id: string;
-  request_count: number;
-  token_count: number;
-  cost_usd: number;
+  providerId: string;
+  requestCount: number;
+  tokenCount: number;
+  costUsd: number;
 }
 
 export interface Attachment {
   id: string;
-  file_type: string;
-  file_name: string;
-  file_path: string;
-  file_size: number;
+  fileType: string;
+  fileName: string;
+  filePath: string;
+  fileSize: number;
   data?: string;
 }
 
 export interface AttachmentInput {
-  file_name: string;
-  file_type: string;
-  file_size: number;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
   data: string;
 }
 
 export interface ConversationSearchResult {
   conversation: Conversation;
-  matched_message_preview: string | null;
+  matchedMessagePreview: string | null;
 }
 
 // P2: Cross-session FTS5 search result
 export interface SessionSearchResult {
-  conversation_id: string;
-  conversation_title: string;
+  conversationId: string;
+  conversationTitle: string;
   role: string;
   snippet: string;
   rank: number;
@@ -315,304 +315,304 @@ export interface SessionSearchResult {
 
 export interface ConversationSummary {
   id: string;
-  conversation_id: string;
-  summary_text: string;
-  compressed_until_message_id: string | null;
-  token_count: number | null;
-  model_used: string | null;
-  created_at: number;
-  updated_at: number;
+  conversationId: string;
+  summaryText: string;
+  compressedUntilMessageId: string | null;
+  tokenCount: number | null;
+  modelUsed: string | null;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface UpdateConversationInput {
   title?: string;
-  provider_id?: string;
-  model_id?: string;
-  is_pinned?: boolean;
-  is_archived?: boolean;
-  system_prompt?: string;
+  providerId?: string;
+  modelId?: string;
+  isPinned?: boolean;
+  isArchived?: boolean;
+  systemPrompt?: string;
   temperature?: number | null;
-  max_tokens?: number | null;
-  top_p?: number | null;
-  frequency_penalty?: number | null;
-  search_enabled?: boolean;
-  search_provider_id?: string | null;
-  thinking_budget?: number | null;
-  enabled_mcp_server_ids?: string[];
-  enabled_knowledge_base_ids?: string[];
-  enabled_memory_namespace_ids?: string[];
-  enabled_wiki_ids?: string[];
-  context_compression?: boolean;
-  category_id?: string | null;
-  parent_conversation_id?: string | null;
+  maxTokens?: number | null;
+  topP?: number | null;
+  frequencyPenalty?: number | null;
+  searchEnabled?: boolean;
+  searchProviderId?: string | null;
+  thinkingBudget?: number | null;
+  enabledMcpServerIds?: string[];
+  enabledKnowledgeBaseIds?: string[];
+  enabledMemoryNamespaceIds?: string[];
+  enabledWikiIds?: string[];
+  contextCompression?: boolean;
+  categoryId?: string | null;
+  parentConversationId?: string | null;
   mode?: "chat" | "agent" | "gateway";
-  work_strategy?: "direct" | "plan" | null;
+  workStrategy?: "direct" | "plan" | null;
   scenario?: string | null;
-  enabled_skill_ids?: string[];
-  agent_profile_id?: string | null;
-  workflow_template_id?: string | null;
-  session_type?: "conversation" | "workflow";
-  workflow_status?: string | null;
+  enabledSkillIds?: string[];
+  agentProfileId?: string | null;
+  workflowTemplateId?: string | null;
+  sessionType?: "conversation" | "workflow";
+  workflowStatus?: string | null;
 }
 
 // === Gateway System ===
 export interface GatewayStatus {
-  is_running: boolean;
-  listen_address: string;
+  isRunning: boolean;
+  listenAddress: string;
   port: number;
-  ssl_enabled: boolean;
-  started_at: number | null;
+  sslEnabled: boolean;
+  startedAt: number | null;
   /** HTTPS listener port; `null` when SSL is disabled or not yet started. */
-  https_port: number | null;
+  httpsPort: number | null;
   /** When `true` the gateway redirects all HTTP traffic to HTTPS. */
-  force_ssl: boolean;
+  forceSsl: boolean;
 }
 
 export interface GatewayKey {
   id: string;
   name: string;
-  key_hash: string;
-  key_prefix: string;
+  keyHash: string;
+  keyPrefix: string;
   enabled: boolean;
-  created_at: number;
-  last_used_at: number | null;
-  has_encrypted_key: boolean;
+  createdAt: number;
+  lastUsedAt: number | null;
+  hasEncryptedKey: boolean;
 }
 
 export interface CreateGatewayKeyResult {
-  gateway_key: GatewayKey;
-  plain_key: string;
+  gatewayKey: GatewayKey;
+  plainKey: string;
 }
 
 export interface GatewayMetrics {
-  total_requests: number;
-  total_tokens: number;
-  total_request_tokens: number;
-  total_response_tokens: number;
-  active_connections: number;
-  today_requests: number;
-  today_tokens: number;
-  today_request_tokens: number;
-  today_response_tokens: number;
-  total_cost_usd: number;
-  today_cost_usd: number;
+  totalRequests: number;
+  totalTokens: number;
+  totalRequestTokens: number;
+  totalResponseTokens: number;
+  activeConnections: number;
+  todayRequests: number;
+  todayTokens: number;
+  todayRequestTokens: number;
+  todayResponseTokens: number;
+  totalCostUsd: number;
+  todayCostUsd: number;
 }
 
 export interface UsageByKey {
-  key_id: string;
-  key_name: string;
-  request_count: number;
-  token_count: number;
-  request_tokens: number;
-  response_tokens: number;
+  keyId: string;
+  keyName: string;
+  requestCount: number;
+  tokenCount: number;
+  requestTokens: number;
+  responseTokens: number;
 }
 
 export interface UsageByProvider {
-  provider_id: string;
-  provider_name: string;
-  request_count: number;
-  token_count: number;
-  request_tokens: number;
-  response_tokens: number;
+  providerId: string;
+  providerName: string;
+  requestCount: number;
+  tokenCount: number;
+  requestTokens: number;
+  responseTokens: number;
 }
 
 export interface UsageByDay {
   date: string;
-  request_count: number;
-  token_count: number;
-  request_tokens: number;
-  response_tokens: number;
+  requestCount: number;
+  tokenCount: number;
+  requestTokens: number;
+  responseTokens: number;
 }
 
 export interface ConnectedProgram {
-  key_id: string;
-  key_name: string;
-  key_prefix: string;
-  today_requests: number;
-  today_tokens: number;
-  today_request_tokens: number;
-  today_response_tokens: number;
-  last_active_at: number | null;
-  is_active: boolean;
+  keyId: string;
+  keyName: string;
+  keyPrefix: string;
+  todayRequests: number;
+  todayTokens: number;
+  todayRequestTokens: number;
+  todayResponseTokens: number;
+  lastActiveAt: number | null;
+  isActive: boolean;
 }
 
 export interface GatewayStats {
-  total_requests: number;
-  active_connections: number;
-  uptime_seconds: number;
-  requests_per_minute: number;
+  totalRequests: number;
+  activeConnections: number;
+  uptimeSeconds: number;
+  requestsPerMinute: number;
 }
 
 export interface GatewaySettings {
-  listen_address: string;
+  listenAddress: string;
   port: number;
-  load_balance_strategy: "round_robin";
+  loadBalanceStrategy: "round_robin";
 }
 
 // === Settings ===
 export interface AppSettings {
   language: string;
-  theme_mode: string;
-  theme_preset: string;
-  primary_color: string;
-  border_radius: number;
-  auto_start: boolean;
-  show_on_start: boolean;
-  minimize_to_tray: boolean;
-  font_size: number;
-  font_weight: number;
-  font_family: string;
-  code_font_family: string;
-  bubble_style: string;
-  code_theme: string;
-  code_theme_light: string;
-  default_provider_id: string | null;
-  default_model_id: string | null;
-  default_temperature: number | null;
-  default_max_tokens: number | null;
-  default_top_p: number | null;
-  default_frequency_penalty: number | null;
-  default_context_count: number | null;
-  title_summary_provider_id: string | null;
-  title_summary_model_id: string | null;
-  title_summary_temperature: number | null;
-  title_summary_max_tokens: number | null;
-  title_summary_top_p: number | null;
-  title_summary_frequency_penalty: number | null;
-  title_summary_context_count: number | null;
-  title_summary_prompt: string | null;
-  compression_provider_id: string | null;
-  compression_model_id: string | null;
-  compression_temperature: number | null;
-  compression_max_tokens: number | null;
-  compression_top_p: number | null;
-  compression_frequency_penalty: number | null;
-  compression_prompt: string | null;
-  proxy_type: string | null;
-  proxy_address: string | null;
-  proxy_port: number | null;
-  global_shortcut: string;
-  shortcut_toggle_current_window: string;
-  shortcut_toggle_all_windows: string;
-  shortcut_close_window: string;
-  shortcut_new_conversation: string;
-  shortcut_open_settings: string;
-  shortcut_toggle_model_selector: string;
-  shortcut_fill_last_message: string;
-  shortcut_clear_context: string;
-  shortcut_clear_conversation_messages: string;
-  shortcut_toggle_gateway: string;
-  shortcut_toggle_mode: string;
-  shortcut_show_quick_bar: string;
-  gateway_auto_start: boolean;
-  gateway_listen_address: string;
-  gateway_port: number;
-  gateway_ssl_enabled: boolean;
-  gateway_ssl_mode: string;
-  gateway_ssl_cert_path: string | null;
-  gateway_ssl_key_path: string | null;
-  gateway_ssl_port: number;
-  gateway_force_ssl: boolean;
+  themeMode: string;
+  themePreset: string;
+  primaryColor: string;
+  borderRadius: number;
+  autoStart: boolean;
+  showOnStart: boolean;
+  minimizeToTray: boolean;
+  fontSize: number;
+  fontWeight: number;
+  fontFamily: string;
+  codeFontFamily: string;
+  bubbleStyle: string;
+  codeTheme: string;
+  codeThemeLight: string;
+  defaultProviderId: string | null;
+  defaultModelId: string | null;
+  defaultTemperature: number | null;
+  defaultMaxTokens: number | null;
+  defaultTopP: number | null;
+  defaultFrequencyPenalty: number | null;
+  defaultContextCount: number | null;
+  titleSummaryProviderId: string | null;
+  titleSummaryModelId: string | null;
+  titleSummaryTemperature: number | null;
+  titleSummaryMaxTokens: number | null;
+  titleSummaryTopP: number | null;
+  titleSummaryFrequencyPenalty: number | null;
+  titleSummaryContextCount: number | null;
+  titleSummaryPrompt: string | null;
+  compressionProviderId: string | null;
+  compressionModelId: string | null;
+  compressionTemperature: number | null;
+  compressionMaxTokens: number | null;
+  compressionTopP: number | null;
+  compressionFrequencyPenalty: number | null;
+  compressionPrompt: string | null;
+  proxyType: string | null;
+  proxyAddress: string | null;
+  proxyPort: number | null;
+  globalShortcut: string;
+  shortcutToggleCurrentWindow: string;
+  shortcutToggleAllWindows: string;
+  shortcutCloseWindow: string;
+  shortcutNewConversation: string;
+  shortcutOpenSettings: string;
+  shortcutToggleModelSelector: string;
+  shortcutFillLastMessage: string;
+  shortcutClearContext: string;
+  shortcutClearConversationMessages: string;
+  shortcutToggleGateway: string;
+  shortcutToggleMode: string;
+  shortcutShowQuickBar: string;
+  gatewayAutoStart: boolean;
+  gatewayListenAddress: string;
+  gatewayPort: number;
+  gatewaySslEnabled: boolean;
+  gatewaySslMode: string;
+  gatewaySslCertPath: string | null;
+  gatewaySslKeyPath: string | null;
+  gatewaySslPort: number;
+  gatewayForceSsl: boolean;
   // Desktop integration
-  always_on_top?: boolean;
-  tray_enabled?: boolean;
-  global_shortcuts_enabled?: boolean;
-  shortcut_registration_logs_enabled?: boolean;
-  shortcut_trigger_toast_enabled?: boolean;
-  notifications_enabled?: boolean;
-  mini_window_enabled?: boolean;
-  start_minimized?: boolean;
-  close_to_tray?: boolean;
-  notify_backup?: boolean;
-  notify_import?: boolean;
-  notify_errors?: boolean;
+  alwaysOnTop?: boolean;
+  trayEnabled?: boolean;
+  globalShortcutsEnabled?: boolean;
+  shortcutRegistrationLogsEnabled?: boolean;
+  shortcutTriggerToastEnabled?: boolean;
+  notificationsEnabled?: boolean;
+  miniWindowEnabled?: boolean;
+  startMinimized?: boolean;
+  closeToTray?: boolean;
+  notifyBackup?: boolean;
+  notifyImport?: boolean;
+  notifyErrors?: boolean;
   // Auto-backup settings
-  backup_dir?: string | null;
-  auto_backup_enabled?: boolean;
-  auto_backup_interval_hours?: number;
-  auto_backup_max_count?: number;
+  backupDir?: string | null;
+  autoBackupEnabled?: boolean;
+  autoBackupIntervalHours?: number;
+  autoBackupMaxCount?: number;
   // WebDAV sync settings
-  webdav_host?: string | null;
-  webdav_username?: string | null;
-  webdav_path?: string | null;
-  webdav_accept_invalid_certs?: boolean;
-  webdav_sync_enabled?: boolean;
-  webdav_sync_interval_minutes?: number;
-  webdav_max_remote_backups?: number;
-  webdav_include_documents?: boolean;
+  webdavHost?: string | null;
+  webdavUsername?: string | null;
+  webdavPath?: string | null;
+  webdavAcceptInvalidCerts?: boolean;
+  webdavSyncEnabled?: boolean;
+  webdavSyncIntervalMinutes?: number;
+  webdavMaxRemoteBackups?: number;
+  webdavIncludeDocuments?: boolean;
   // S3 sync settings
-  s3_endpoint?: string | null;
-  s3_region?: string | null;
-  s3_bucket?: string | null;
-  s3_access_key_id?: string | null;
-  s3_root?: string | null;
-  s3_use_path_style?: boolean;
-  s3_sync_enabled?: boolean;
-  s3_sync_interval_minutes?: number;
-  s3_max_remote_backups?: number;
-  s3_include_documents?: boolean;
+  s3Endpoint?: string | null;
+  s3Region?: string | null;
+  s3Bucket?: string | null;
+  s3AccessKeyId?: string | null;
+  s3Root?: string | null;
+  s3UsePathStyle?: boolean;
+  s3SyncEnabled?: boolean;
+  s3SyncIntervalMinutes?: number;
+  s3MaxRemoteBackups?: number;
+  s3IncludeDocuments?: boolean;
   /** Closed-loop nudge scheduler enabled */
-  closed_loop_enabled?: boolean;
+  closedLoopEnabled?: boolean;
   /** Closed-loop nudge interval in minutes (default 5) */
-  closed_loop_interval_minutes?: number;
-  last_selected_conversation_id?: string | null;
+  closedLoopIntervalMinutes?: number;
+  lastSelectedConversationId?: string | null;
   /** Custom documents root override (overrides ~/Documents/axagent/) */
-  documents_root_override?: string | null;
+  documentsRootOverride?: string | null;
   /** Auto update check interval in minutes (default 60, min 1) */
-  update_check_interval?: number;
+  updateCheckInterval?: number;
   /** Global system prompt fallback — used when a conversation has no custom system prompt */
-  default_system_prompt?: string | null;
+  defaultSystemPrompt?: string | null;
   /** Chat minimap / navigation overlay */
-  chat_minimap_enabled?: boolean;
-  chat_minimap_style?: "faq" | "sticky";
+  chatMinimapEnabled?: boolean;
+  chatMinimapStyle?: "faq" | "sticky";
   /** Agent execution panel — show right-side panel during agent mode */
-  agent_panel_enabled?: boolean;
+  agentPanelEnabled?: boolean;
   /** Agent execution panel — use compact (simplified) view by default */
-  agent_panel_compact?: boolean;
+  agentPanelCompact?: boolean;
   /** Onboarding — welcome wizard completed */
-  onboarding_completed?: boolean;
+  onboardingCompleted?: boolean;
   /** Onboarding — wizard dismissed (user skipped) */
-  onboarding_wizard_dismissed?: boolean;
+  onboardingWizardDismissed?: boolean;
   /** Onboarding — interactive tutorial completed */
-  onboarding_tutorial_completed?: boolean;
+  onboardingTutorialCompleted?: boolean;
   /** Onboarding — selected quick-start preset */
-  onboarding_selected_preset?: string | null;
+  onboardingSelectedPreset?: string | null;
   /** Multi-model response display mode */
-  multi_model_display_mode?: "tabs" | "side-by-side" | "stacked";
+  multiModelDisplayMode?: "tabs" | "side-by-side" | "stacked";
   /** Render user messages as Markdown (like AI messages). Default: false */
-  render_user_markdown?: boolean;
+  renderUserMarkdown?: boolean;
   /** Default workspace directory for new sessions when not manually set */
-  default_workspace_dir?: string | null;
+  defaultWorkspaceDir?: string | null;
   /** Enable screen perception and vision-based UI control */
-  screen_perception_enabled?: boolean;
+  screenPerceptionEnabled?: boolean;
   /** Enable RL optimizer for tool selection and task strategies */
-  rl_optimizer_enabled?: boolean;
+  rlOptimizerEnabled?: boolean;
   /** Enable LoRA fine-tuning for custom model adaptation */
-  lora_finetune_enabled?: boolean;
+  loraFinetuneEnabled?: boolean;
   /** Enable proactive nudge suggestions based on context */
-  proactive_nudge_enabled?: boolean;
+  proactiveNudgeEnabled?: boolean;
   /** Enable thought chain visualization for reasoning */
-  thought_chain_enabled?: boolean;
+  thoughtChainEnabled?: boolean;
   /** Enable automatic error recovery suggestions */
-  error_recovery_enabled?: boolean;
+  errorRecoveryEnabled?: boolean;
   /** Enable Tree of Thoughts multi-path reasoning (expensive) */
-  tot_enabled?: boolean;
+  totEnabled?: boolean;
   /** Show the developer tools section (Trace/Benchmark/Fine-Tune/RL) in the sidebar */
-  show_developer_tools?: boolean;
+  showDeveloperTools?: boolean;
   /** Cloud workspace URI (supports s3://, webdav://, local://) */
-  workspace_uri?: string | null;
+  workspaceUri?: string | null;
   /** Cloud backend type: "s3" | "webdav" | null */
-  cloud_backend?: string | null;
+  cloudBackend?: string | null;
   /** S3 provider preset key (e.g., "Aws", "TencentCos", "Custom") */
-  s3_provider_preset?: string | null;
+  s3ProviderPreset?: string | null;
   /** S3 secret access key */
-  s3_secret_access_key?: string | null;
+  s3SecretAccessKey?: string | null;
   /** WebDAV password */
-  webdav_password?: string | null;
+  webdavPassword?: string | null;
   /** Cloud sync enabled flag */
-  cloud_sync_enabled?: boolean;
+  cloudSyncEnabled?: boolean;
   /** RAG 高级管线配置（查询增强、重排序、自省式质检） */
-  rag_pipeline_config?: RAGPipelineConfig;
+  ragPipelineConfig?: RAGPipelineConfig;
   /**
    * 2.7 P1:遥测级别三级开关 — "off" | "minimal" | "full"。
    *
@@ -623,55 +623,55 @@ export interface AppSettings {
    * 后端 `FilteringSink` 装饰器在运行时通过共享 `Arc<RwLock<TelemetryLevel>>`
    * 引用此设置,`save_settings` 命令保存后立即生效。
    */
-  telemetry_level?: "off" | "minimal" | "full";
+  telemetryLevel?: "off" | "minimal" | "full";
   /** Smart Router 智能路由总开关。开启后按任务复杂度自动选择模型 tier。 */
-  smart_router_enabled?: boolean;
+  smartRouterEnabled?: boolean;
   /** tier(budget/balanced/premium) → provider/model 映射表。 */
-  smart_router_tier_mappings?: Record<string, SmartRouterTierMapping>;
+  smartRouterTierMappings?: Record<string, SmartRouterTierMapping>;
   /** Auto-load downloaded GGUF models into memory when RAG pipeline is active. */
-  auto_load_models?: boolean;
+  autoLoadModels?: boolean;
   /** P2-8: ACP (Agent Client Protocol) 服务端 base URL。null 时使用默认值。 */
-  acp_base_url?: string | null;
+  acpBaseUrl?: string | null;
 }
 
 /** Smart Router tier → provider/model 映射项（对应后端 harness TierModelMapping）。 */
 export interface SmartRouterTierMapping {
   /** 目标模型 ID（如 "gpt-4o-mini"） */
-  model_id?: string;
+  modelId?: string;
   /** 目标 provider ID（如 "openai"） */
-  provider_id?: string;
+  providerId?: string;
   /** 可选的 base URL 覆盖（自建端点 / 代理） */
-  base_url_override?: string | null;
+  baseUrlOverride?: string | null;
 }
 
 // === Streaming ===
 export interface ChatStreamChunk {
   content: string | null;
   thinking: string | null;
-  tool_calls: ToolCall[] | null;
+  toolCalls: ToolCall[] | null;
   done: boolean;
-  is_final?: boolean | null;
+  isFinal?: boolean | null;
   usage: TokenUsage | null;
 }
 
 export interface ChatStreamEvent {
-  conversation_id: string;
-  message_id: string;
-  model_id?: string;
-  provider_id?: string;
+  conversationId: string;
+  messageId: string;
+  modelId?: string;
+  providerId?: string;
   chunk: ChatStreamChunk;
 }
 
 export interface ChatStreamErrorEvent {
-  conversation_id: string;
-  message_id: string;
+  conversationId: string;
+  messageId: string;
   error: string;
 }
 
 export interface TokenUsage {
-  prompt_tokens: number;
-  completion_tokens: number;
-  total_tokens: number;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
 }
 
 // === Voice ===
@@ -695,39 +695,39 @@ export type IntentState =
 export interface IntentClarification {
   state: IntentState;
   /** 用户原始输入（语音/文本） */
-  original_input: string;
+  originalInput: string;
   /** AI 理解的意图描述 */
-  intent_summary?: string;
+  intentSummary?: string;
   /** 澄清问题列表 */
-  clarification_questions: string[];
+  clarificationQuestions: string[];
   /** 用户对澄清问题的回答 */
-  clarification_answers: Record<string, string>;
+  clarificationAnswers: Record<string, string>;
   /** 确认候选方案 */
-  confirmation_options?: string[];
+  confirmationOptions?: string[];
   /** 最终确认的意图 */
-  confirmed_intent?: string;
+  confirmedIntent?: string;
   /** 关联的 DAG 执行 ID */
-  workflow_execution_id?: string;
+  workflowExecutionId?: string;
   /** 创建时间戳 */
-  created_at: number;
+  createdAt: number;
   /** 更新时间戳 */
-  updated_at: number;
+  updatedAt: number;
 }
 
 export type AudioEncoding = "Pcm16" | "Opus";
 
 export interface AudioFormat {
-  sample_rate: number;
+  sampleRate: number;
   channels: number;
   encoding: AudioEncoding;
 }
 
 export interface RealtimeConfig {
-  model_id: string;
+  modelId: string;
   voice: string | null;
-  audio_format: AudioFormat;
-  stt_provider_id?: string | null;
-  tts_provider_id?: string | null;
+  audioFormat: AudioFormat;
+  sttProviderId?: string | null;
+  ttsProviderId?: string | null;
 }
 
 // === Gateway Link (Client-side Gateway Connection) ===
@@ -741,63 +741,63 @@ export type GatewayLinkStatus =
 export interface GatewayLink {
   id: string;
   name: string;
-  link_type: GatewayLinkType;
+  linkType: GatewayLinkType;
   endpoint: string;
-  api_key_id: string | null;
+  apiKeyId: string | null;
   enabled: boolean;
   status: GatewayLinkStatus;
-  error_message: string | null;
-  auto_sync_models: boolean;
-  auto_sync_skills: boolean;
-  last_sync_at: number | null;
-  latency_ms: number | null;
+  errorMessage: string | null;
+  autoSyncModels: boolean;
+  autoSyncSkills: boolean;
+  lastSyncAt: number | null;
+  latencyMs: number | null;
   version: string | null;
-  created_at: number;
-  updated_at: number;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface GatewayLinkModelSync {
-  model_id: string;
-  provider_name: string;
-  sync_status: "synced" | "pending" | "failed" | "not_selected";
-  last_sync_at: number | null;
+  modelId: string;
+  providerName: string;
+  syncStatus: "synced" | "pending" | "failed" | "not_selected";
+  lastSyncAt: number | null;
 }
 
 export interface GatewayLinkSkillSync {
-  skill_name: string;
-  skill_version: string | null;
-  sync_status: "synced" | "pending" | "failed" | "not_selected";
-  last_sync_at: number | null;
+  skillName: string;
+  skillVersion: string | null;
+  syncStatus: "synced" | "pending" | "failed" | "not_selected";
+  lastSyncAt: number | null;
 }
 
 export interface GatewayLinkPolicy {
   id: string;
-  link_id: string;
-  route_strategy: "round_robin" | "least_latency" | "weighted";
-  model_fallback_enabled: boolean;
-  global_rpm: number | null;
-  per_model_rpm: number | null;
-  token_limit_per_minute: number | null;
-  key_rotation_strategy: "sequential" | "random";
-  key_failover_enabled: boolean;
+  linkId: string;
+  routeStrategy: "round_robin" | "least_latency" | "weighted";
+  modelFallbackEnabled: boolean;
+  globalRpm: number | null;
+  perModelRpm: number | null;
+  tokenLimitPerMinute: number | null;
+  keyRotationStrategy: "sequential" | "random";
+  keyFailoverEnabled: boolean;
 }
 
 export interface CreateGatewayLinkInput {
   name: string;
-  link_type: GatewayLinkType;
+  linkType: GatewayLinkType;
   endpoint: string;
-  api_key_id?: string | null;
-  api_key?: string | null;
-  auto_sync_models?: boolean;
-  auto_sync_skills?: boolean;
+  apiKeyId?: string | null;
+  apiKey?: string | null;
+  autoSyncModels?: boolean;
+  autoSyncSkills?: boolean;
 }
 
 export interface GatewayLinkActivity {
   id: string;
-  link_id: string;
-  activity_type: string;
+  linkId: string;
+  activityType: string;
   description: string | null;
-  created_at: number;
+  createdAt: number;
 }
 
 // === UI State ===
@@ -1147,18 +1147,18 @@ export interface SkillUpdateInfo {
 }
 
 export interface SkillProposal {
-  task_description: string;
-  suggested_name: string;
-  suggested_content: string;
+  taskDescription: string;
+  suggestedName: string;
+  suggestedContent: string;
   confidence: number;
-  trigger_event: string;
-  similar_skills: string[];
+  triggerEvent: string;
+  similarSkills: string[];
 }
 
 export interface SkillCreateCheckResult {
-  has_similar: boolean;
-  similar_skills: SkillSimilarInfo[];
-  can_create: boolean;
+  hasSimilar: boolean;
+  similarSkills: SkillSimilarInfo[];
+  canCreate: boolean;
   message: string;
 }
 
@@ -1168,8 +1168,8 @@ export interface SkillSimilarInfo {
   description: string;
   version: string;
   scenarios: string[];
-  success_rate: number;
-  similarity_score: number;
+  successRate: number;
+  similarityScore: number;
 }
 
 // ── Learning Graph Types ──
@@ -1440,6 +1440,7 @@ export * from "./artifact";
 export * from "./backup";
 export * from "./citation";
 export * from "./evaluator";
+export * from "./evolution";
 export * from "./expert";
 export * from "./knowledge";
 export * from "./llmWiki";
@@ -1579,7 +1580,7 @@ export type ContextOverrideInput = {
 export type CreateConversationInput = {
   title: string;
   providerId: string;
-  model_id: string;
+  modelId: string;
   systemPrompt?: string;
   temperature?: number;
   maxTokens?: number;
@@ -1591,7 +1592,7 @@ export type CreateConversationInput = {
 export type WorkspaceUpdateInput = {
   title?: string;
   providerId?: string;
-  model_id?: string;
+  modelId?: string;
   workspaceSnapshot?: ConversationWorkspaceSnapshot;
   activeBranchId?: string | null;
   activeArtifactId?: string | null;
@@ -1619,24 +1620,24 @@ export type ToolDependencyStatus =
 
 export interface ToolDependency {
   name: string;
-  tool_type: string;
+  toolType: string;
   status: ToolDependencyStatus;
-  source_info?: string;
-  install_instructions?: string;
-  config_requirements?: string;
+  sourceInfo?: string;
+  installInstructions?: string;
+  configRequirements?: string;
 }
 
 // ── Decomposition ─────────────────────────────────────────────────────
 export interface DecompositionPreview {
-  tool_dependencies: ToolDependency[];
-  workflow_nodes: unknown;
-  workflow_edges: unknown;
-  original_source: {
+  toolDependencies: ToolDependency[];
+  workflowNodes: unknown;
+  workflowEdges: unknown;
+  originalSource: {
     market: string;
     repo?: string;
     version?: string;
   };
-  cache_id: string;
+  cacheId: string;
 }
 
 // ── Work Engine ───────────────────────────────────────────────────────
@@ -1649,38 +1650,38 @@ export type ExecutionStatus =
   | "cancelled";
 
 export interface NodeExecutionRecord {
-  node_id: string;
-  node_type: string;
-  node_name: string | null;
+  nodeId: string;
+  nodeType: string;
+  nodeName: string | null;
   status: string;
   input: unknown;
   output: unknown;
-  execution_time_ms: number | null;
+  executionTimeMs: number | null;
   error: string | null;
-  started_at: number;
-  completed_at: number | null;
-  parent_execution_id: string | null;
-  sub_workflow_id: string | null;
+  startedAt: number;
+  completedAt: number | null;
+  parentExecutionId: string | null;
+  subWorkflowId: string | null;
 }
 
 export interface ExecutionStatusResponse {
-  execution_id: string;
-  workflow_id: string;
+  executionId: string;
+  workflowId: string;
   status: ExecutionStatus;
-  current_node_id: string | null;
-  total_time_ms: number;
-  node_count: number;
-  node_records: NodeExecutionRecord[];
+  currentNodeId: string | null;
+  totalTimeMs: number;
+  nodeCount: number;
+  nodeRecords: NodeExecutionRecord[];
   variables: Record<string, unknown>;
-  parent_execution_id: string | null;
+  parentExecutionId: string | null;
 }
 
 export interface ExecutionSummary {
   id: string;
-  workflow_id: string;
+  workflowId: string;
   status: string;
-  total_time_ms: number | null;
-  created_at: number;
+  totalTimeMs: number | null;
+  createdAt: number;
 }
 
 // ── Plan Mode (Agent Work Strategy) ──────────────────────────────────
@@ -1698,7 +1699,7 @@ export interface PlanStep {
   description: string;
   status: PlanStepStatus;
   /** Estimated tools that will be used for this step */
-  estimated_tools?: string[];
+  estimatedTools?: string[];
   /** Result summary after completion */
   result?: string | null;
 }
@@ -1714,17 +1715,17 @@ export type PlanStatus =
 
 export interface Plan {
   id: string;
-  conversation_id: string;
+  conversationId: string;
   /** The user message that triggered this plan generation */
-  user_message_id: string;
+  userMessageId: string;
   title: string;
   steps: PlanStep[];
   status: PlanStatus;
-  is_active: boolean;
+  isActive: boolean;
   /** The work_strategy that was active when this plan was created, for restoration context */
-  created_under_strategy?: "direct" | "plan";
-  created_at: number;
-  updated_at: number;
+  createdUnderStrategy?: "direct" | "plan";
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface PlanGeneratedEvent {
@@ -1874,7 +1875,7 @@ export interface PluginSummaryDto {
   kind: "builtin" | "bundled" | "external";
   enabled: boolean;
   tools: string[];
-  mcp_servers: string[];
+  mcpServers: string[];
   skills: string[];
 }
 
@@ -1883,49 +1884,49 @@ export interface PluginManifestDto {
   version: string;
   description: string;
   permissions: string[];
-  default_enabled: boolean;
+  defaultEnabled: boolean;
   hooks: Record<string, string[]>;
   tools: { name: string; description: string }[];
-  mcp_servers: { name: string; command: string }[];
+  mcpServers: { name: string; command: string }[];
   skills: { name: string; path: string }[];
   capabilities: {
     seam: string;
-    capability_type: string;
+    capabilityType: string;
     version: string;
     description: string;
   }[];
 }
 
 export interface InstallOutcomeDto {
-  plugin_id: string;
+  pluginId: string;
   version: string;
-  install_path: string;
+  installPath: string;
 }
 
 export interface UpdateOutcomeDto {
-  plugin_id: string;
-  old_version: string;
-  new_version: string;
-  install_path: string;
+  pluginId: string;
+  oldVersion: string;
+  newVersion: string;
+  installPath: string;
 }
 
 // === Session Share ===
 
 export interface SharePermissions {
-  allow_terminal_access: boolean;
-  allow_file_access: boolean;
-  allow_model_access: boolean;
-  require_approval_for_actions: boolean;
-  max_participants: number;
+  allowTerminalAccess: boolean;
+  allowFileAccess: boolean;
+  allowModelAccess: boolean;
+  requireApprovalForActions: boolean;
+  maxParticipants: number;
 }
 
 export interface ShareSessionInfo {
-  session_id: string;
-  invite_code: string;
-  conversation_id: string;
+  sessionId: string;
+  inviteCode: string;
+  conversationId: string;
   permissions: SharePermissions;
-  participant_count: number;
-  created_at: number;
+  participantCount: number;
+  createdAt: number;
 }
 
 // === Device Sync Types ===
@@ -1968,7 +1969,7 @@ export type {
 export interface ShareParticipant {
   id: string;
   name: string;
-  joined_at: number;
+  joinedAt: number;
 }
 
 // ── Dynamic UI ──
@@ -2021,25 +2022,25 @@ export type {
 export { BUILTIN_STRATEGY_IDS, DEFAULT_RHAI_TEMPLATE, DEFAULT_STRATEGY_PARAMS } from "./quant";
 
 export interface DashboardStats {
-  total_conversations: number;
-  total_messages: number;
-  total_prompt_tokens: number;
-  total_completion_tokens: number;
-  total_tokens: number;
-  total_agent_sessions: number;
-  completed_agent_sessions: number;
-  failed_agent_sessions: number;
-  total_agent_tokens: number;
-  total_cost_usd: number;
-  total_tool_calls: number;
+  totalConversations: number;
+  totalMessages: number;
+  totalPromptTokens: number;
+  totalCompletionTokens: number;
+  totalTokens: number;
+  totalAgentSessions: number;
+  completedAgentSessions: number;
+  failedAgentSessions: number;
+  totalAgentTokens: number;
+  totalCostUsd: number;
+  totalToolCalls: number;
   /** 今日（本地时区）消息数 */
-  today_messages: number;
+  todayMessages: number;
   /** 今日（本地时区）输入 token 数 */
-  today_prompt_tokens: number;
+  todayPromptTokens: number;
   /** 今日（本地时区）输出 token 数 */
-  today_completion_tokens: number;
+  todayCompletionTokens: number;
   /** 今日（本地时区）总 token 数 */
-  today_tokens: number;
+  todayTokens: number;
 }
 
 // === Local Model (llama.cpp) Management ===

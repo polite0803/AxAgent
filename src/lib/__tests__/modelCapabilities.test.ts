@@ -14,14 +14,14 @@ import {
 import type { Model, ProviderConfig } from "@/types";
 
 const mockModel = (overrides: Partial<Model> = {}): Model => ({
-  model_id: "gpt-4",
+  modelId: "gpt-4",
   name: "GPT-4",
-  model_type: "Chat",
-  provider_id: "p-1",
+  modelType: "Chat",
+  providerId: "p-1",
   capabilities: ["Vision", "FunctionCalling", "Reasoning"],
-  max_tokens: 4096,
+  maxTokens: 4096,
   enabled: true,
-  param_overrides: null,
+  paramOverrides: null,
   ...overrides,
 });
 
@@ -30,24 +30,24 @@ const mockProvider = (
 ): ProviderConfig => ({
   id: "p-1",
   name: "OpenAI",
-  provider_type: "openai",
-  api_host: "https://api.openai.com",
-  api_path: null,
+  providerType: "openai",
+  apiHost: "https://api.openai.com",
+  apiPath: null,
   enabled: true,
   models: [
     mockModel(),
-    mockModel({ model_id: "gpt-3.5", capabilities: ["FunctionCalling"] }),
+    mockModel({ modelId: "gpt-3.5", capabilities: ["FunctionCalling"] }),
   ],
   keys: [],
-  proxy_config: null,
-  tool_adaptation: null,
-  tool_adaptation_marker_prefix: null,
-  custom_headers: null,
+  proxyConfig: null,
+  toolAdaptation: null,
+  toolAdaptationMarkerPrefix: null,
+  customHeaders: null,
   icon: null,
-  builtin_id: null,
-  sort_order: 0,
-  created_at: 0,
-  updated_at: 0,
+  builtinId: null,
+  sortOrder: 0,
+  createdAt: 0,
+  updatedAt: 0,
   ...overrides,
 });
 
@@ -97,7 +97,7 @@ describe("sanitizeModelCapabilities", () => {
 describe("getVisibleModelCapabilities", () => {
   it("returns sanitized capabilities for a chat model", () => {
     const model = mockModel({
-      model_type: "Chat",
+      modelType: "Chat",
       capabilities: ["Vision", "Reasoning"],
     });
     const result = getVisibleModelCapabilities(model);
@@ -106,7 +106,7 @@ describe("getVisibleModelCapabilities", () => {
 
   it("returns empty for a non-Chat model", () => {
     const model = mockModel({
-      model_type: "Embedding",
+      modelType: "Embedding",
       capabilities: ["Vision"],
     });
     const result = getVisibleModelCapabilities(model);
@@ -155,7 +155,7 @@ describe("findModelByIds", () => {
     const providers = [mockProvider()];
     const model = findModelByIds(providers, "p-1", "gpt-4");
     expect(model).not.toBeNull();
-    expect(model!.model_id).toBe("gpt-4");
+    expect(model!.modelId).toBe("gpt-4");
   });
 
   it("returns null for missing provider", () => {
@@ -184,11 +184,11 @@ describe("findModelByIds", () => {
       mockProvider({
         id: "p-2",
         name: "Anthropic",
-        models: [mockModel({ model_id: "claude-3", provider_id: "p-2" })],
+        models: [mockModel({ modelId: "claude-3", providerId: "p-2" })],
       }),
     ];
     const model = findModelByIds(providers, "p-2", "claude-3");
     expect(model).not.toBeNull();
-    expect(model!.model_id).toBe("claude-3");
+    expect(model!.modelId).toBe("claude-3");
   });
 });

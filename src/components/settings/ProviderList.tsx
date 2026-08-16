@@ -164,9 +164,9 @@ export function ProviderList() {
       const values = await form.validateFields();
       const provider = await createProvider({
         name: values.name,
-        provider_type: values.provider_type,
-        api_host: values.api_host
-          || DEFAULT_HOSTS[values.provider_type as ProviderType],
+        providerType: values.providerType,
+        apiHost: values.apiHost
+          || DEFAULT_HOSTS[values.providerType as ProviderType],
         enabled: false,
       });
       setSelectedProviderId(provider.id);
@@ -181,7 +181,7 @@ export function ProviderList() {
   };
 
   const handleTypeChange = (type: ProviderType) => {
-    form.setFieldValue("api_host", DEFAULT_HOSTS[type]);
+    form.setFieldValue("apiHost", DEFAULT_HOSTS[type]);
   };
 
   const handleDragEnd = (sectionProviders: ProviderConfig[]) => (event: DragEndEvent) => {
@@ -342,7 +342,7 @@ export function ProviderList() {
             <Input name="name" />
           </Form.Item>
           <Form.Item
-            name="provider_type"
+            name="providerType"
             label={t("settings.providerType")}
             rules={[{ required: true }]}
           >
@@ -351,8 +351,8 @@ export function ProviderList() {
               onChange={handleTypeChange}
             />
           </Form.Item>
-          <Form.Item name="api_host" label={t("settings.apiHost")}>
-            <Input name="api_host" />
+          <Form.Item name="apiHost" label={t("settings.apiHost")}>
+            <Input name="apiHost" />
           </Form.Item>
         </Form>
       </Modal>

@@ -335,7 +335,7 @@ export const usePlanStore = create<PlanStore>((set, get) => ({
       // Find the first reviewing/executing plan
       const activePlan = plans.find(
         (p: Plan) =>
-          p.is_active
+          p.isActive
           && (p.status === "reviewing"
             || p.status === "executing"
             || p.status === "draft"),

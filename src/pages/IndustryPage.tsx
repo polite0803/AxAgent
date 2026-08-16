@@ -620,7 +620,7 @@ export function IndustryPage() {
 
   /** 执行行业操作 - 调用后端命令获取真实 prompt */
   const handleAction = async (action: ActionItem) => {
-    if (!settings?.default_provider_id || !settings?.default_model_id) {
+    if (!settings?.defaultProviderId || !settings?.defaultModelId) {
       message.warning(t("opc.industry.noProviderConfig"));
       navigate("/settings/providers");
       return;
@@ -647,10 +647,10 @@ export function IndustryPage() {
 
       const conv = await createConversation(
         `${promptConfig.actionLabel} - ${manifest?.name || ""}`,
-        settings.default_model_id,
-        settings.default_provider_id,
+        settings.defaultModelId,
+        settings.defaultProviderId,
         {
-          system_prompt: promptConfig.systemPrompt,
+          systemPrompt: promptConfig.systemPrompt,
         },
       );
       if (conv?.id) {
@@ -659,10 +659,10 @@ export function IndustryPage() {
     } catch {
       const conv = await createConversation(
         `${actionLabel} - ${manifest?.name || ""}`,
-        settings.default_model_id,
-        settings.default_provider_id,
+        settings.defaultModelId,
+        settings.defaultProviderId,
         {
-          system_prompt:
+          systemPrompt:
             `你是一位专业的${industryId}领域助手，擅长${actionLabel}相关的分析和咨询。请根据用户需求提供高质量的分析和建议。`,
         },
       );
@@ -674,7 +674,7 @@ export function IndustryPage() {
 
   /** 使用预设工作流 */
   const handleUseWorkflow = async (wf: IndustryWorkflow) => {
-    if (!settings?.default_provider_id || !settings?.default_model_id) {
+    if (!settings?.defaultProviderId || !settings?.defaultModelId) {
       message.warning(t("opc.industry.noProviderConfig"));
       navigate("/settings/providers");
       return;
@@ -685,8 +685,8 @@ export function IndustryPage() {
     try {
       const conv = await createConversation(
         t("opc.industry.executeSuffix", { name: wfName }),
-        settings.default_model_id,
-        settings.default_provider_id,
+        settings.defaultModelId,
+        settings.defaultProviderId,
       );
       if (conv?.id) {
         navigate(`/chat?conversationId=${conv.id}&workflow=${wf.id}`);

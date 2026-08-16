@@ -22,7 +22,7 @@ export type EvaluationMetric =
 export interface BenchmarkMetadata {
   version: string;
   author: string;
-  created_at: string;
+  createdAt: string;
   tags: string[];
 }
 
@@ -49,8 +49,8 @@ export interface BenchmarkTask {
   name: string;
   description: string;
   input: TaskInput;
-  expected_output?: TaskOutput;
-  evaluation_criteria: EvaluationCriteria[];
+  expectedOutput?: TaskOutput;
+  evaluationCriteria: EvaluationCriteria[];
   difficulty: Difficulty;
   tags: string[];
 }
@@ -65,62 +65,62 @@ export interface Benchmark {
 }
 
 export interface RunnerConfig {
-  max_concurrency: number;
-  timeout_ms: number;
-  max_difficulty?: Difficulty;
-  include_traces: boolean;
+  maxConcurrency: number;
+  timeoutMs: number;
+  maxDifficulty?: Difficulty;
+  includeTraces: boolean;
 }
 
 export interface ScoreResult {
-  criteria_name: string;
+  criteriaName: string;
   metric: EvaluationMetric;
-  raw_score: number;
-  weighted_score: number;
+  rawScore: number;
+  weightedScore: number;
   passed: boolean;
 }
 
 export interface TaskResult {
-  task_id: string;
-  task_name: string;
+  taskId: string;
+  taskName: string;
   difficulty: Difficulty;
   success: boolean;
-  duration_ms: number;
+  durationMs: number;
   scores: ScoreResult[];
-  overall_score: number;
+  overallScore: number;
   response?: string;
   error?: string;
-  trace_id?: string;
+  traceId?: string;
 }
 
 export interface AggregateMetrics {
-  total_tasks: number;
-  passed_tasks: number;
-  failed_tasks: number;
-  pass_rate: number;
-  avg_duration_ms: number;
-  avg_score: number;
-  score_breakdown: Record<string, number>;
-  difficulty_distribution: Record<string, number>;
+  totalTasks: number;
+  passedTasks: number;
+  failedTasks: number;
+  passRate: number;
+  avgDurationMs: number;
+  avgScore: number;
+  scoreBreakdown: Record<string, number>;
+  difficultyDistribution: Record<string, number>;
 }
 
 export interface BenchmarkResult {
-  benchmark_id: string;
-  benchmark_name: string;
-  run_at: string;
+  benchmarkId: string;
+  benchmarkName: string;
+  runAt: string;
   config: RunnerConfig;
-  task_results: TaskResult[];
+  taskResults: TaskResult[];
   aggregate: AggregateMetrics;
-  duration_ms: number;
+  durationMs: number;
 }
 
 export interface ReportSummary {
-  total_tasks: number;
-  passed_tasks: number;
-  failed_tasks: number;
-  pass_rate: number;
-  overall_score: number;
-  total_duration_ms: number;
-  avg_task_duration_ms: number;
+  totalTasks: number;
+  passedTasks: number;
+  failedTasks: number;
+  passRate: number;
+  overallScore: number;
+  totalDurationMs: number;
+  avgTaskDurationMs: number;
 }
 
 export interface CriteriaScore {
@@ -130,22 +130,22 @@ export interface CriteriaScore {
 }
 
 export interface TaskBreakdown {
-  task_id: string;
-  task_name: string;
+  taskId: string;
+  taskName: string;
   difficulty: string;
   success: boolean;
   score: number;
-  duration_ms: number;
-  criteria_scores: CriteriaScore[];
+  durationMs: number;
+  criteriaScores: CriteriaScore[];
 }
 
 export interface BenchmarkReport {
-  benchmark_id: string;
-  benchmark_name: string;
-  generated_at: string;
+  benchmarkId: string;
+  benchmarkName: string;
+  generatedAt: string;
   summary: ReportSummary;
-  task_breakdown: TaskBreakdown[];
-  category_scores: Record<string, number>;
+  taskBreakdown: TaskBreakdown[];
+  categoryScores: Record<string, number>;
   recommendations: string[];
 }
 

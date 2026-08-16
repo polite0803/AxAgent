@@ -58,9 +58,9 @@ export function IntentClarificationPanel({
   const renderClarifying = () => (
     <div className="flex flex-col gap-4">
       <Typography.Text strong>{t("voice.intent.clarificationPrompt")}</Typography.Text>
-      {clarification.clarification_questions.map((question, idx) => {
+      {clarification.clarificationQuestions.map((question, idx) => {
         const qid = `q_${idx}`;
-        const answer = clarification.clarification_answers[qid] ?? "";
+        const answer = clarification.clarificationAnswers[qid] ?? "";
         return (
           <div key={qid} className="flex flex-col gap-2">
             <Typography.Text>{question}</Typography.Text>
@@ -96,12 +96,12 @@ export function IntentClarificationPanel({
       >
         <Space direction="vertical" size={4}>
           <Typography.Text type="secondary">{t("voice.intent.intentSummary")}:</Typography.Text>
-          <Typography.Text strong>{clarification.intent_summary}</Typography.Text>
+          <Typography.Text strong>{clarification.intentSummary}</Typography.Text>
         </Space>
       </Card>
-      {clarification.confirmation_options && clarification.confirmation_options.length > 0 && (
+      {clarification.confirmationOptions && clarification.confirmationOptions.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {clarification.confirmation_options.map((opt, idx) => (
+          {clarification.confirmationOptions.map((opt, idx) => (
             <Tag key={idx} color="blue">
               {opt}
             </Tag>
@@ -128,9 +128,9 @@ export function IntentClarificationPanel({
       <Tag color={stateTagColor[clarification.state]}>
         {t(`voice.intent.${clarification.state}`)}
       </Tag>
-      {clarification.confirmed_intent && (
+      {clarification.confirmedIntent && (
         <Typography.Text type="secondary" className="ml-2">
-          {clarification.confirmed_intent}
+          {clarification.confirmedIntent}
         </Typography.Text>
       )}
     </div>

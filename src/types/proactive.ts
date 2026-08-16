@@ -1,5 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+// === 主动建议 / 上下文预测 / 提醒 / 预取 类型定义 ===
+//
+// 与后端 DTO 对齐：后端 struct 字段保持 snake_case，通过
+// `#[serde(rename_all = "camelCase")]` 输出 camelCase，前端消费 camelCase。
+// 枚举值字面量（如 "low"、"daily"、"FileOpened" 等）保持不变。
+
 export type CapabilityType =
   | "ContextPrediction"
   | "ProactiveSuggestion"
@@ -20,7 +26,7 @@ export type SuggestionType =
 export type PredictedIntent =
   | { type: "CodeCompletion"; language: string; context: string }
   | { type: "Documentation"; topic: string }
-  | { type: "Search"; query_type: string }
+  | { type: "Search"; queryType: string }
   | { type: "Refactoring"; target: string }
   | { type: "Debug"; error: string }
   | { type: "TestGeneration"; target: string }
@@ -29,9 +35,9 @@ export type PredictedIntent =
 export type RecurrenceFrequency = "daily" | "weekly" | "monthly";
 
 export interface TriggerCondition {
-  condition_type: TriggerConditionType;
+  conditionType: TriggerConditionType;
   threshold?: number;
-  context_key?: string;
+  contextKey?: string;
 }
 
 export type TriggerConditionType =
@@ -48,30 +54,30 @@ export interface ProactiveAction {
 }
 
 export interface ProactiveCapability {
-  capability_type: CapabilityType;
+  capabilityType: CapabilityType;
   confidence: number;
-  trigger_conditions: TriggerCondition[];
+  triggerConditions: TriggerCondition[];
   action: ProactiveAction;
 }
 
 export interface ContextWindow {
   files: string[];
-  recent_actions: string[];
-  current_language?: string;
-  project_type?: string;
+  recentActions: string[];
+  currentLanguage?: string;
+  projectType?: string;
 }
 
 export interface ContextPrediction {
-  predicted_intent: PredictedIntent;
+  predictedIntent: PredictedIntent;
   confidence: number;
   reasoning: string;
-  suggested_actions: SuggestedAction[];
-  context_window: ContextWindow;
-  created_at: string;
+  suggestedActions: SuggestedAction[];
+  contextWindow: ContextWindow;
+  createdAt: string;
 }
 
 export interface SuggestedAction {
-  action_type: string;
+  actionType: string;
   title: string;
   description: string;
   priority: Priority;
@@ -79,14 +85,14 @@ export interface SuggestedAction {
 
 export interface ProactiveSuggestion {
   id: string;
-  suggestion_type: SuggestionType;
+  suggestionType: SuggestionType;
   title: string;
   description: string;
   /** Backend serializes SuggestionAction as { type, language?, context?, target?, topic? } etc. */
   action: Record<string, unknown>;
   priority: Priority;
-  created_at: string;
-  expires_at: string;
+  createdAt: string;
+  expiresAt: string;
   accepted?: boolean;
 }
 
@@ -94,10 +100,10 @@ export interface Reminder {
   id: string;
   title: string;
   description: string;
-  scheduled_at: string;
+  scheduledAt: string;
   recurrence?: ReminderRecurrence;
   completed: boolean;
-  created_at: string;
+  createdAt: string;
 }
 
 export interface ReminderRecurrence {
@@ -107,23 +113,23 @@ export interface ReminderRecurrence {
 
 export interface ProactiveConfig {
   enabled: boolean;
-  max_suggestions: number;
-  suggestion_ttl_minutes: number;
-  prediction_confidence_threshold: number;
-  prefetch_enabled: boolean;
-  reminder_enabled: boolean;
+  maxSuggestions: number;
+  suggestionTtlMinutes: number;
+  predictionConfidenceThreshold: number;
+  prefetchEnabled: boolean;
+  reminderEnabled: boolean;
 }
 
 export interface ContextFeatures {
-  current_file?: string;
-  current_language?: string;
-  recent_actions: ActionType[];
-  time_of_day: number;
-  day_of_week: string;
-  project_type?: string;
-  user_activity_level: ActivityLevel;
-  detected_errors: string[];
-  detected_patterns: PatternMatch[];
+  currentFile?: string;
+  currentLanguage?: string;
+  recentActions: ActionType[];
+  timeOfDay: number;
+  dayOfWeek: string;
+  projectType?: string;
+  userActivityLevel: ActivityLevel;
+  detectedErrors: string[];
+  detectedPatterns: PatternMatch[];
 }
 
 export type ActionType =
@@ -141,14 +147,14 @@ export type ActionType =
 export type ActivityLevel = "Low" | "Medium" | "High";
 
 export interface PatternMatch {
-  pattern_type: string;
-  matched_text: string;
+  patternType: string;
+  matchedText: string;
   confidence: number;
 }
 
 export interface PredictionResult {
   predictions: ContextPrediction[];
-  top_prediction?: ContextPrediction;
+  topPrediction?: ContextPrediction;
 }
 
 export type PrefetchType =
@@ -159,38 +165,38 @@ export type PrefetchType =
   | "toolCache";
 
 export interface PrefetchResult {
-  prefetch_type: PrefetchType;
-  resource_id: string;
+  prefetchType: PrefetchType;
+  resourceId: string;
   data?: string;
   ready: boolean;
-  estimated_prepare_time_ms: number;
-  created_at: string;
+  estimatedPrepareTimeMs: number;
+  createdAt: string;
 }
 
 export interface PrefetchResults {
   results: PrefetchResult[];
-  total_estimated_time_ms: number;
-  critical_path: string[];
+  totalEstimatedTimeMs: number;
+  criticalPath: string[];
 }
 
 export interface UserPreferenceProfile {
-  user_id: string;
-  coding_style: CodingStylePreference;
-  communication_style: CommunicationStylePreference;
-  work_habits: WorkHabitPreference;
-  learning_enabled: boolean;
+  userId: string;
+  codingStyle: CodingStylePreference;
+  communicationStyle: CommunicationStylePreference;
+  workHabits: WorkHabitPreference;
+  learningEnabled: boolean;
 }
 
 export interface CodingStylePreference {
-  preferred_language?: string;
-  documentation_level: DocumentationLevel;
-  test_creation: boolean;
+  preferredLanguage?: string;
+  documentationLevel: DocumentationLevel;
+  testCreation: boolean;
 }
 
 export type DocumentationLevel = "minimal" | "standard" | "comprehensive";
 
 export interface CommunicationStylePreference {
-  detail_level: DetailLevel;
+  detailLevel: DetailLevel;
   tone: CommunicationTone;
 }
 
@@ -198,46 +204,46 @@ export type DetailLevel = "brief" | "moderate" | "detailed";
 export type CommunicationTone = "formal" | "neutral" | "casual";
 
 export interface WorkHabitPreference {
-  peak_hours_start: number;
-  peak_hours_end: number;
-  multi_tasking_level: number;
+  peakHoursStart: number;
+  peakHoursEnd: number;
+  multiTaskingLevel: number;
 }
 
 export interface ReminderSchedule {
-  reminder_id: string;
-  next_trigger: string;
+  reminderId: string;
+  nextTrigger: string;
   recurrence?: ReminderRecurrence;
 }
 
 export interface ReminderNotification {
-  notification_id: string;
+  notificationId: string;
   reminder: Reminder;
-  triggered_at: string;
+  triggeredAt: string;
   acknowledged: boolean;
 }
 
 export interface SuggestionEngineConfig {
-  max_suggestions: number;
-  min_confidence_threshold: number;
-  suggestion_ttl_minutes: number;
-  personalization_enabled: boolean;
-  habit_based_suggestions: boolean;
+  maxSuggestions: number;
+  minConfidenceThreshold: number;
+  suggestionTtlMinutes: number;
+  personalizationEnabled: boolean;
+  habitBasedSuggestions: boolean;
 }
 
 export interface PrefetcherConfig {
   enabled: boolean;
-  max_cache_size: number;
-  cache_ttl_seconds: number;
-  parallel_prefetch: boolean;
-  prioritize_critical_path: boolean;
+  maxCacheSize: number;
+  cacheTtlSeconds: number;
+  parallelPrefetch: boolean;
+  prioritizeCriticalPath: boolean;
 }
 
 export interface ReminderManagerConfig {
   enabled: boolean;
-  max_active_reminders: number;
-  snooze_duration_minutes: number;
-  auto_cleanup_completed: boolean;
-  cleanup_after_days: number;
+  maxActiveReminders: number;
+  snoozeDurationMinutes: number;
+  autoCleanupCompleted: boolean;
+  cleanupAfterDays: number;
 }
 
 // ── Reminder backend DTO ──
@@ -246,22 +252,22 @@ export interface ReminderItem {
   id: string;
   title: string;
   description: string;
-  scheduled_at: string;
+  scheduledAt: string;
   completed: boolean;
   recurrence?: ReminderRecurrence;
-  created_at: string;
+  createdAt: string;
 }
 
 export interface ReminderListResult {
   active: ReminderItem[];
   completed: ReminderItem[];
-  pending_notifications: ReminderNotificationItem[];
+  pendingNotifications: ReminderNotificationItem[];
 }
 
 export interface ReminderNotificationItem {
-  notification_id: string;
-  reminder_id: string;
-  reminder_title: string;
-  triggered_at: string;
+  notificationId: string;
+  reminderId: string;
+  reminderTitle: string;
+  triggeredAt: string;
   acknowledged: boolean;
 }

@@ -69,8 +69,8 @@ function extractDecision(msg: Message): ModelVote | null {
       // 必须含 action 字段
       if (typeof data.action !== "string") { continue; }
       return {
-        modelId: msg.model_id ?? "__unknown__",
-        providerId: msg.provider_id,
+        modelId: msg.modelId ?? "__unknown__",
+        providerId: msg.providerId,
         action: data.action,
         positionPct: typeof data.positionPct === "number" ? data.positionPct : null,
         targetPrice: typeof data.targetPrice === "number" ? data.targetPrice : null,

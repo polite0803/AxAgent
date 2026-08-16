@@ -83,8 +83,8 @@ export function AppInitializer({ children }: AppInitializerProps) {
       if (isTauri()) {
         parallelTasks.push(
           invoke("apply_startup_settings", {
-            alwaysOnTop: settings.always_on_top ?? false,
-            closeToTray: settings.minimize_to_tray ?? false,
+            alwaysOnTop: settings.alwaysOnTop ?? false,
+            closeToTray: settings.minimizeToTray ?? false,
           }).catch((e) => logIpcError("apply_startup_settings")(e)),
         );
 
@@ -93,7 +93,7 @@ export function AppInitializer({ children }: AppInitializerProps) {
             (async () => {
               try {
                 const { enable, disable } = await import("@tauri-apps/plugin-autostart");
-                if (settings.auto_start) {
+                if (settings.autoStart) {
                   await enable();
                 } else {
                   await disable();

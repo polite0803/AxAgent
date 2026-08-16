@@ -118,7 +118,7 @@ export function TitleBar() {
     ? "chat"
     : (location.pathname.slice(1) as PageKey);
 
-  const alwaysOnTop = useSettingsStore((s) => s.settings.always_on_top);
+  const alwaysOnTop = useSettingsStore((s) => s.settings.alwaysOnTop);
   const saveSettings = useSettingsStore((s) => s.saveSettings);
   const settings = useSettingsStore((s) => s.settings);
   const deviceLayout = useUIStore((s) => s.deviceLayout);
@@ -135,7 +135,7 @@ export function TitleBar() {
     setPinned(next);
     try {
       await invoke("set_always_on_top", { enabled: next });
-      saveSettings({ always_on_top: next });
+      saveSettings({ alwaysOnTop: next });
     } catch {
       setPinned(!next);
     }
@@ -286,8 +286,8 @@ export function TitleBar() {
     if (Number.isNaN(d.getTime())) {
       return;
     }
-    const interval = settings.webdav_sync_interval_minutes ?? 60;
-    if (settings.webdav_sync_enabled && interval > 0) {
+    const interval = settings.webdavSyncIntervalMinutes ?? 60;
+    if (settings.webdavSyncEnabled && interval > 0) {
       const intervalMs = interval * 60000;
       let next = d.getTime() + intervalMs;
       // If overdue, advance to the next future interval
@@ -299,8 +299,8 @@ export function TitleBar() {
       nextWebDavTsRef.current = null;
     }
   }, [
-    settings.webdav_sync_enabled,
-    settings.webdav_sync_interval_minutes,
+    settings.webdavSyncEnabled,
+    settings.webdavSyncIntervalMinutes,
     lastWebDavSync,
   ]);
 
@@ -602,7 +602,7 @@ export function TitleBar() {
                   children: themeMenuItems.map((item) => ({
                     ...item,
                     onClick: () => {
-                      saveSettings({ theme_mode: item.key }).catch(
+                      saveSettings({ themeMode: item.key }).catch(
                         logIpcError("TitleBar: saveSettings(theme_mode)"),
                       );
                     },

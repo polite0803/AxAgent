@@ -7,9 +7,9 @@ async function seedOnboarding(page: import("@playwright/test").Page) {
       localStorage.setItem(
         "axagent_settings",
         JSON.stringify({
-          onboarding_completed: true,
-          onboarding_wizard_dismissed: true,
-          onboarding_tutorial_completed: true,
+          onboardingCompleted: true,
+          onboardingWizardDismissed: true,
+          onboardingTutorialCompleted: true,
         }),
       );
     } catch {
@@ -19,30 +19,40 @@ async function seedOnboarding(page: import("@playwright/test").Page) {
 }
 
 async function dismissModals(page: import("@playwright/test").Page) {
-  const closeBtn = page.locator(".ant-modal-close").first();
-  if (await closeBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-    await closeBtn.click();
-    await page.waitForTimeout(300);
+  // 尝试多种方式关闭可能存在的模态框（循环3次确保完全关闭）
+  for (let i = 0; i < 3; i++) {
+    // 1. 首先尝试点 X 关闭
+    const closeBtn = page.locator(".ant-modal-close").first();
+    if (await closeBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+      await closeBtn.click({ force: true });
+      await page.waitForTimeout(200);
+    }
+
+    // 2. 欢迎引导向导（WelcomeWizard）footer 为 null，没有 .ant-modal-footer，
+    // 关闭动作在弹窗体内的"跳过"按钮上（data-testid=onboarding-skip）。
+    const skipBtn = page.getByTestId("onboarding-skip").first();
+    if (await skipBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+      await skipBtn.click({ force: true });
+      await page.waitForTimeout(300);
+    }
+
+    // 3. 尝试点击主按钮关闭
+    const okBtn = page.locator(".ant-modal-footer .ant-btn-primary").first();
+    if (await okBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+      await okBtn.click({ force: true });
+      await page.waitForTimeout(200);
+    }
   }
-  // 欢迎引导向导（WelcomeWizard）footer 为 null，没有 .ant-modal-footer，
-  // 关闭动作在弹窗体内的“跳过”按钮上（data-testid=onboarding-skip）。
-  // 直接点 X 在部分环境下不会真正 dismiss，必须点“跳过”才能关闭，否则会遮挡画布。
-  const skipBtn = page.getByTestId("onboarding-skip").first();
-  if (await skipBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-    await skipBtn.click({ force: true });
-    await page.waitForTimeout(300);
-  }
-  const okBtn = page.locator(".ant-modal-footer .ant-btn-primary").first();
-  if (await okBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-    await okBtn.click();
-    await page.waitForTimeout(300);
-  }
+
+  // 额外等待，确保模态框完全消失
+  await page.waitForTimeout(500);
 }
 
 test.describe("Workflow Editor E2E Tests", () => {
   test.beforeEach(async ({ page }) => {
     await seedOnboarding(page);
     await page.goto("/workflow");
+    await page.waitForLoadState("networkidle");
     await dismissModals(page);
   });
 
@@ -62,8 +72,10 @@ test.describe("Workflow Editor E2E Tests", () => {
     const newButton = page.getByTestId("workflow-create-new-btn").first();
     await expect(newButton).toBeVisible({ timeout: 5000 });
     await newButton.click({ force: true });
+    // 等待 React Flow 画布渲染
+    await page.waitForLoadState("networkidle");
     const reactFlow = page.locator(".react-flow");
-    await expect(reactFlow).toBeVisible({ timeout: 10000 });
+    await expect(reactFlow).toBeVisible({ timeout: 15000 });
   });
 
   test("should filter templates by search", async ({ page }) => {
@@ -98,14 +110,22 @@ test.describe("Workflow Editor Canvas", () => {
   test.beforeEach(async ({ page }) => {
     await seedOnboarding(page);
     await page.goto("/workflow");
+    await page.waitForLoadState("networkidle");
     await dismissModals(page);
 
     const newButton = page.getByTestId("workflow-create-new-btn").first();
     await expect(newButton).toBeVisible({ timeout: 5000 });
     await newButton.click({ force: true });
 
-    // 等待编辑器完全渲染（节点出现），超时较长为首次加载留足时间
+    // 等待编辑器完全渲染：
+    // 1. 首先等待页面加载完成
+    await page.waitForLoadState("networkidle");
+    // 2. 然后等待 React Flow 画布出现
+    const reactFlow = page.locator(".react-flow");
+    await expect(reactFlow).toBeVisible({ timeout: 15000 });
+    // 3. 再等待节点出现
     await expect(page.locator("text=触发器").first()).toBeVisible({ timeout: 15000 });
+    // 4. 最后再 dismiss 一次模态框
     await dismissModals(page);
   });
 

@@ -31,7 +31,7 @@ export function RealtimePushPanel() {
 
   // 自动连接 WebSocket
   useEffect(() => {
-    if (localDevice && realtimePush.ws_status === "disconnected") {
+    if (localDevice && realtimePush.wsStatus === "disconnected") {
       connectWebSocket().catch((e) => {
         console.error("Failed to connect WebSocket:", e);
       });
@@ -39,7 +39,7 @@ export function RealtimePushPanel() {
 
     // 清理函数
     return () => {
-      if (realtimePush.ws_status === "connected") {
+      if (realtimePush.wsStatus === "connected") {
         disconnectWebSocket();
       }
     };
@@ -63,14 +63,14 @@ export function RealtimePushPanel() {
 
     const testSignal: SyncSignal = {
       type: "ping",
-      device_id: localDevice.device_id,
+      deviceId: localDevice.deviceId,
     };
     sendSignal(testSignal);
     message.success(t("deviceSync.realtime.signalSent"));
   };
 
   const getStatusIcon = () => {
-    switch (realtimePush.ws_status) {
+    switch (realtimePush.wsStatus) {
       case "connected":
         return <CheckCircleOutlined style={{ color: "#52c41a" }} />;
       case "connecting":
@@ -85,7 +85,7 @@ export function RealtimePushPanel() {
   };
 
   const getStatusTag = () => {
-    switch (realtimePush.ws_status) {
+    switch (realtimePush.wsStatus) {
       case "connected":
         return <Tag color="success">{t("deviceSync.realtime.status.connected")}</Tag>;
       case "connecting":
@@ -113,7 +113,7 @@ export function RealtimePushPanel() {
             size="small"
             icon={<ReloadOutlined />}
             onClick={handleReconnect}
-            disabled={realtimePush.ws_status === "connecting"}
+            disabled={realtimePush.wsStatus === "connecting"}
           >
             {t("deviceSync.realtime.reconnect")}
           </Button>
@@ -122,7 +122,7 @@ export function RealtimePushPanel() {
             danger
             icon={<DisconnectOutlined />}
             onClick={handleDisconnect}
-            disabled={realtimePush.ws_status !== "connected"}
+            disabled={realtimePush.wsStatus !== "connected"}
           >
             {t("deviceSync.realtime.disconnect")}
           </Button>
@@ -153,7 +153,7 @@ export function RealtimePushPanel() {
         </div>
 
         {/* 连接信息 */}
-        {realtimePush.ws_connection_id && (
+        {realtimePush.wsConnectionId && (
           <div
             style={{
               padding: "12px",
@@ -163,12 +163,12 @@ export function RealtimePushPanel() {
           >
             <Space direction="vertical">
               <span>
-                <strong>{t("deviceSync.realtime.connectionId")}:</strong> <code>{realtimePush.ws_connection_id}</code>
+                <strong>{t("deviceSync.realtime.connectionId")}:</strong> <code>{realtimePush.wsConnectionId}</code>
               </span>
-              {realtimePush.last_signal_at && (
+              {realtimePush.lastSignalAt && (
                 <span>
                   <strong>{t("deviceSync.realtime.lastSignal")}:</strong>{" "}
-                  {new Date(realtimePush.last_signal_at).toLocaleTimeString()}
+                  {new Date(realtimePush.lastSignalAt).toLocaleTimeString()}
                 </span>
               )}
             </Space>
@@ -176,7 +176,7 @@ export function RealtimePushPanel() {
         )}
 
         {/* 测试连接按钮 */}
-        {realtimePush.ws_status === "connected" && (
+        {realtimePush.wsStatus === "connected" && (
           <Button
             icon={<ThunderboltOutlined />}
             onClick={handleTestSignal}
@@ -188,8 +188,8 @@ export function RealtimePushPanel() {
 
         {/* 待处理信令 */}
         <div>
-          <h4>{t("deviceSync.realtime.pendingSignals")} ({realtimePush.pending_signals.length})</h4>
-          {realtimePush.pending_signals.length === 0
+          <h4>{t("deviceSync.realtime.pendingSignals")} ({realtimePush.pendingSignals.length})</h4>
+          {realtimePush.pendingSignals.length === 0
             ? (
               <Empty
                 description={t("deviceSync.realtime.noPendingSignals")}
@@ -200,14 +200,14 @@ export function RealtimePushPanel() {
               <List
                 size="small"
                 bordered
-                dataSource={realtimePush.pending_signals.slice(-5).reverse()}
+                dataSource={realtimePush.pendingSignals.slice(-5).reverse()}
                 renderItem={(signal) => (
                   <List.Item>
                     <Space>
                       <Tag color="blue">{signal.type}</Tag>
-                      {signal.device_id && (
+                      {signal.deviceId && (
                         <span style={{ color: "#8c8c8c", fontSize: 12 }}>
-                          {signal.device_id}
+                          {signal.deviceId}
                         </span>
                       )}
                     </Space>

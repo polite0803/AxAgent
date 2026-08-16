@@ -144,14 +144,14 @@ export function WebDavSync() {
 
       // Save sync settings
       await saveSettings({
-        webdav_host: newConfig.host,
-        webdav_username: newConfig.username,
-        webdav_path: newConfig.path,
-        webdav_accept_invalid_certs: newConfig.acceptInvalidCerts,
-        webdav_sync_enabled: values.syncEnabled || false,
-        webdav_sync_interval_minutes: values.syncIntervalMinutes || 60,
-        webdav_max_remote_backups: values.maxRemoteBackups || 10,
-        webdav_include_documents: values.includeDocuments || false,
+        webdavHost: newConfig.host,
+        webdavUsername: newConfig.username,
+        webdavPath: newConfig.path,
+        webdavAcceptInvalidCerts: newConfig.acceptInvalidCerts,
+        webdavSyncEnabled: values.syncEnabled || false,
+        webdavSyncIntervalMinutes: values.syncIntervalMinutes || 60,
+        webdavMaxRemoteBackups: values.maxRemoteBackups || 10,
+        webdavIncludeDocuments: values.includeDocuments || false,
       });
 
       // Restart sync scheduler
@@ -346,10 +346,10 @@ export function WebDavSync() {
                 password: config?.password ?? "",
                 path: config?.path ?? "",
                 acceptInvalidCerts: config?.acceptInvalidCerts ?? false,
-                syncEnabled: settings?.webdav_sync_enabled || false,
-                syncIntervalMinutes: settings?.webdav_sync_interval_minutes || 60,
-                maxRemoteBackups: settings?.webdav_max_remote_backups || 10,
-                includeDocuments: settings?.webdav_include_documents || false,
+                syncEnabled: settings?.webdavSyncEnabled || false,
+                syncIntervalMinutes: settings?.webdavSyncIntervalMinutes || 60,
+                maxRemoteBackups: settings?.webdavMaxRemoteBackups || 10,
+                includeDocuments: settings?.webdavIncludeDocuments || false,
               });
               setTestResult(null);
               setConfigModalOpen(true);

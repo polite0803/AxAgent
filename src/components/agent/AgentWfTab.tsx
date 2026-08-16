@@ -82,7 +82,7 @@ export function AgentWfTab() {
     try {
       const content = JSON.stringify(skill, null, 2);
       const result = await createSkill(skill.name, skill.description, content);
-      if (result.can_create) {
+      if (result.canCreate) {
         message.success(t("agentPanel.nlGen.applySkillSuccess"));
       } else {
         message.warning(result.message || t("agentPanel.nlGen.applySkillFailed"));
@@ -98,7 +98,7 @@ export function AgentWfTab() {
       await createSchema({
         title: schema.id || t("agentPanel.nlGen.defaultUITitle"),
         description: prompt,
-        schema_json: JSON.stringify(schema),
+        schemaJson: JSON.stringify(schema),
         category: "generated",
         tags: [],
       });

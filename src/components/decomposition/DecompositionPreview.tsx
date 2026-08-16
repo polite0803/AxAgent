@@ -50,7 +50,7 @@ export const DecompositionPreview: React.FC<DecompositionPreviewProps> = ({
     }
   };
 
-  const hasUnresolvedDeps = preview?.tool_dependencies.some(
+  const hasUnresolvedDeps = preview?.toolDependencies.some(
     (d) => d.status !== "satisfied",
   );
 
@@ -129,14 +129,14 @@ export const DecompositionPreview: React.FC<DecompositionPreviewProps> = ({
                 style={{ marginBottom: 16 }}
               />
 
-              {preview.tool_dependencies.length > 0 && (
+              {preview.toolDependencies.length > 0 && (
                 <>
                   <Typography.Title level={5}>
                     {t("decomposition.toolDependencies")} (
-                    {preview.tool_dependencies.length})
+                    {preview.toolDependencies.length})
                   </Typography.Title>
                   <ToolDependencyList
-                    dependencies={preview.tool_dependencies}
+                    dependencies={preview.toolDependencies}
                     onAction={handleDepAction}
                   />
 
@@ -178,11 +178,11 @@ export const DecompositionPreview: React.FC<DecompositionPreviewProps> = ({
                 {t("decomposition.sourceInfo")}
               </Typography.Title>
               <Paragraph type="secondary">
-                {t("decomposition.market")}: {preview.original_source.market}
-                {preview.original_source.repo
-                  && ` | ${t("decomposition.repo")}: ${preview.original_source.repo}`}
-                {preview.original_source.version
-                  && ` | ${t("decomposition.version")}: ${preview.original_source.version}`}
+                {t("decomposition.market")}: {preview.originalSource.market}
+                {preview.originalSource.repo
+                  && ` | ${t("decomposition.repo")}: ${preview.originalSource.repo}`}
+                {preview.originalSource.version
+                  && ` | ${t("decomposition.version")}: ${preview.originalSource.version}`}
               </Paragraph>
             </div>
           )

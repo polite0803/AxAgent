@@ -734,6 +734,8 @@ macro_rules! register_all_commands {
             // 工作流反思 / 进化 / 优化命令(阶段 5 wiring 暴露)
             commands::workflow_reflection::workflow_optimize_suggest,
             commands::workflow_reflection::workflow_optimize_apply,
+            commands::workflow_reflection::workflow_suggestion_confirm,
+            commands::workflow_reflection::workflow_suggestion_reject,
             commands::workflow_reflection::workflow_evolve_template,
             commands::workflow_reflection::workflow_evolution_stats,
             commands::workflow_reflection::workflow_evolution_is_running,
@@ -839,6 +841,9 @@ macro_rules! register_all_commands {
             commands::evolution_engine::run_text_grad_optimize,
             commands::evolution_engine::run_dream_consolidation,
             commands::evolution_engine::run_auto_tool_create,
+            commands::evolution_engine::unregister_runtime_tool,
+            commands::evolution_engine::list_runtime_tools,
+            commands::evolution_engine::load_runtime_evolution_tools,
             commands::evolution_engine::run_process_reward_analysis,
             commands::evolution_engine::run_intrinsic_motivation_analysis,
             commands::evolution_engine::run_coevolution_cycle,
@@ -1620,9 +1625,12 @@ commands::analyst_evolution::get_node_evolution_status_command,
             commands::capability::capability_list_passports,
             commands::capability::capability_remove_passport,
             commands::capability::capability_get_stats,
+            commands::capability::capability_evolve,
             commands::cognitive::cognitive_query,
             commands::cognitive::cognitive_route_l1,
             commands::cognitive::cognitive_list_execution_modes,
+            commands::cognitive::capability_gap_consent,
+            commands::cognitive::cognitive_evolution_decision,
         ]
     };
 }

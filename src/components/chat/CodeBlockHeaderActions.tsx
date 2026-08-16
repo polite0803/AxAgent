@@ -38,12 +38,12 @@ export const CodeBlockHeaderActions: React.FC<Props> = ({ ctx }) => {
   const { token } = theme.useToken();
   const settings = useSettingsStore((s) => s.settings);
   const saveSettings = useSettingsStore((s) => s.saveSettings);
-  const isDark = useResolvedDarkMode(settings.theme_mode);
+  const isDark = useResolvedDarkMode(settings.themeMode);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   const currentTheme = isDark
-    ? settings.code_theme || "poimandres"
-    : settings.code_theme_light || "github-light";
+    ? settings.codeTheme || "poimandres"
+    : settings.codeThemeLight || "github-light";
   const themeList = isDark ? SHIKI_DARK_THEMES : SHIKI_LIGHT_THEMES;
   const settingsKey = isDark ? "code_theme" : "code_theme_light";
 

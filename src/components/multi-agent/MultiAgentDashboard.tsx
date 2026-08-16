@@ -169,7 +169,7 @@ function DelegateForm({ roles, onSubmit, submitting }: DelegateFormProps) {
   // 供应商变化时，默认选中第一个模型
   useEffect(() => {
     if (availableModels.length > 0 && !modelId) {
-      setModelId(availableModels[0].model_id);
+      setModelId(availableModels[0].modelId);
     }
   }, [availableModels, modelId]);
 
@@ -278,7 +278,7 @@ function DelegateForm({ roles, onSubmit, submitting }: DelegateFormProps) {
               onChange={setModelId}
               options={availableModels.map((m) => ({
                 label: m.name,
-                value: m.model_id,
+                value: m.modelId,
               }))}
             />
           </Col>

@@ -8,16 +8,16 @@ import { mergeOlderPages, mergePreservedMessages, MESSAGE_PAGE_SIZE } from "../m
 function makeMessage(
   id: string,
   content: string,
-  created_at: number,
+  createdAt: number,
   status: string = "sent",
 ): Message {
   return {
     id,
     content,
-    created_at,
+    createdAt,
     status,
     role: "user",
-    conversation_id: "conv-1",
+    conversationId: "conv-1",
   } as Message;
 }
 

@@ -77,7 +77,7 @@ function makeMockTemplate(
     icon: "📋",
     tags: ["test"],
     version: 1,
-    is_preset: false,
+    isPreset: false,
     is_editable: true,
     is_public: false,
     is_system: false,
@@ -291,7 +291,7 @@ describe("WorkflowEditorStore", () => {
       await store.loadTemplates();
 
       expect(invokeMock).toHaveBeenCalledWith("list_workflow_templates", {
-        is_preset: undefined,
+        isPreset: undefined,
       });
       const state = useWorkflowEditorStore.getState() as any;
       expect(state.templates).toEqual(mockTemplates);

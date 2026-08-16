@@ -69,6 +69,7 @@ Generate the Prompt template:"#,
                 generation_method: "agent_prompt_template".to_string(),
                 agent_model: agent_model.map(|s| s.to_string()),
                 generated_at: now,
+                source: None,
             },
         })
     }

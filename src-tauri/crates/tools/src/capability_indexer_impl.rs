@@ -167,6 +167,27 @@ impl CapabilityIndexerImpl {
         meta.get(capability_id).cloned()
     }
 
+    /// 进化后刷新能力等级（更新内存索引 + 向量库持久化元数据，不重新嵌入）
+    pub async fn update_level(
+        &self,
+        capability_id: &str,
+        level: axagent_harness::CapabilityLevel,
+    ) -> Result<(), String> {
+        let passport = {
+            let meta = self.metadata.read().await;
+            match meta.get(capability_id) {
+                Some(p) => {
+                    let mut p = p.clone();
+                    p.level = level;
+                    p
+                },
+                None => return Err(format!("capability {capability_id} not found")),
+            }
+        };
+        self.store_metadata(&passport).await;
+        Ok(())
+    }
+
     /// 获取所有已索引护照的 ID 列表
     pub async fn list_capability_ids(&self) -> Vec<String> {
         let meta = self.metadata.read().await;
@@ -187,6 +208,8 @@ impl CapabilityIndexer for CapabilityIndexerImpl {
         passport: &CapabilityPassportDto,
     ) -> Result<IndexResult, String> {
         let start = std::time::Instant::now();
+        // 统一派生等级：保证所有索引护照的 level 始终与多维数据一致（进化后重索引即刷新）
+        let passport = &passport.clone().with_derived_level();
         let cid = passport.capability_id.clone();
 
         // 1. 生成嵌入向量

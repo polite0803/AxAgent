@@ -222,7 +222,7 @@ export function PlanHistoryPanel({ conversationId }: PlanHistoryPanelProps) {
                         marginBottom: 4,
                       }}
                     >
-                      {plan.steps.length} {t("plan.stepsApproved")} · {formatTime(plan.created_at)}
+                      {plan.steps.length} {t("plan.stepsApproved")} · {formatTime(plan.createdAt)}
                     </div>
 
                     {plan.steps.length > 0 && (

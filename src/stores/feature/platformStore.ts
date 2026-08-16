@@ -27,51 +27,51 @@ interface PlatformState {
 }
 
 const defaultConfig: PlatformConfig = {
-  telegram_enabled: false,
-  telegram_bot_token: null,
-  telegram_webhook_url: null,
-  telegram_webhook_secret: null,
-  telegram_allowed_users: null,
-  discord_enabled: false,
-  discord_bot_token: null,
-  discord_webhook_url: null,
-  discord_allowed_channels: null,
-  slack_enabled: false,
-  slack_bot_token: null,
-  slack_signing_secret: null,
-  slack_workspace_id: null,
-  slack_app_token: null,
-  whatsapp_enabled: false,
-  whatsapp_phone_number_id: null,
-  whatsapp_access_token: null,
-  whatsapp_business_account_id: null,
-  whatsapp_webhook_verify_token: null,
-  whatsapp_api_version: null,
-  wechat_enabled: false,
-  wechat_app_id: null,
-  wechat_app_secret: null,
-  wechat_token: null,
-  wechat_encoding_aes_key: null,
-  wechat_original_id: null,
-  wechat_mode: null,
-  feishu_enabled: false,
-  feishu_app_id: null,
-  feishu_app_secret: null,
-  feishu_verification_token: null,
-  feishu_encrypt_key: null,
-  qq_enabled: false,
-  qq_bot_app_id: null,
-  qq_bot_token: null,
-  qq_bot_secret: null,
-  dingtalk_enabled: false,
-  dingtalk_app_key: null,
-  dingtalk_app_secret: null,
-  dingtalk_agent_id: null,
-  dingtalk_robot_code: null,
-  api_server_enabled: false,
-  api_server_port: null,
-  auto_sync_messages: true,
-  max_history_per_session: 100,
+  telegramEnabled: false,
+  telegramBotToken: null,
+  telegramWebhookUrl: null,
+  telegramWebhookSecret: null,
+  telegramAllowedUsers: null,
+  discordEnabled: false,
+  discordBotToken: null,
+  discordWebhookUrl: null,
+  discordAllowedChannels: null,
+  slackEnabled: false,
+  slackBotToken: null,
+  slackSigningSecret: null,
+  slackWorkspaceId: null,
+  slackAppToken: null,
+  whatsappEnabled: false,
+  whatsappPhoneNumberId: null,
+  whatsappAccessToken: null,
+  whatsappBusinessAccountId: null,
+  whatsappWebhookVerifyToken: null,
+  whatsappApiVersion: null,
+  wechatEnabled: false,
+  wechatAppId: null,
+  wechatAppSecret: null,
+  wechatToken: null,
+  wechatEncodingAesKey: null,
+  wechatOriginalId: null,
+  wechatMode: null,
+  feishuEnabled: false,
+  feishuAppId: null,
+  feishuAppSecret: null,
+  feishuVerificationToken: null,
+  feishuEncryptKey: null,
+  qqEnabled: false,
+  qqBotAppId: null,
+  qqBotToken: null,
+  qqBotSecret: null,
+  dingtalkEnabled: false,
+  dingtalkAppKey: null,
+  dingtalkAppSecret: null,
+  dingtalkAgentId: null,
+  dingtalkRobotCode: null,
+  apiServerEnabled: false,
+  apiServerPort: null,
+  autoSyncMessages: true,
+  maxHistoryPerSession: 100,
 };
 
 export const usePlatformStore = create<PlatformState>((set, get) => ({
@@ -143,9 +143,9 @@ export const usePlatformStore = create<PlatformState>((set, get) => ({
 
   deactivateSession: async (sessionId: string) => {
     try {
-      await invoke("deactivate_platform_session", { sessionId });
+      await invoke("deactivate_platform_session", { session_id: sessionId });
       set((s) => ({
-        sessions: s.sessions.map((ses) => ses.session_id === sessionId ? { ...ses, is_active: false } : ses),
+        sessions: s.sessions.map((ses) => ses.sessionId === sessionId ? { ...ses, isActive: false } : ses),
       }));
     } catch (e) {
       set({ error: String(e) });
@@ -153,7 +153,7 @@ export const usePlatformStore = create<PlatformState>((set, get) => ({
   },
 
   sendMessage: async (platform: string, chatId: string, text: string) => {
-    await invoke("send_platform_message", { platform, chatId, text });
+    await invoke("send_platform_message", { platform, chat_id: chatId, text });
   },
 
   createSession: async (platform: string, chatId: string) => {

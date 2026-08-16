@@ -68,17 +68,6 @@ export const AgentStatsPanel: React.FC = () => {
   // 用 ref 存储最新 stats，避免在 setState updater 中嵌套调用另一个 setState
   const latestStatsRef = useRef<RuntimeStats | null>(null);
 
-  // 调试：记录渲染次数和 effect 执行次数，精确定位循环源
-  const renderCountRef = useRef(0);
-  renderCountRef.current += 1;
-  if (import.meta.env.DEV && renderCountRef.current % 20 === 0) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      `[AgentStatsPanel] render #${renderCountRef.current}`,
-      { streaming, activeConversationId, stats: !!stats, elapsed, toolElapsed },
-    );
-  }
-
   useEffect(() => {
     if (!streaming || !activeConversationId) {
       // 仅在值不同时才 setState，避免无效更新触发连锁渲染
@@ -214,6 +203,11 @@ export const AgentStatsPanel: React.FC = () => {
       pauseAgent(activeConversationId);
     }
   };
+
+  // 非活跃会话（未流式且无 runtime 数据）时不渲染，避免空 div 占位浪费布局空间
+  if (!streaming && !stats) {
+    return null;
+  }
 
   return (
     <div

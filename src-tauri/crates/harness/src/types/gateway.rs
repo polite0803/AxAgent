@@ -22,6 +22,7 @@ pub struct GatewayStatus {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GatewayKey {
     pub id: String,
     pub name: String,
@@ -57,6 +58,7 @@ pub struct GatewayMetrics {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UsageByKey {
     pub key_id: String,
     pub key_name: String,
@@ -67,6 +69,7 @@ pub struct UsageByKey {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UsageByProvider {
     pub provider_id: String,
     pub provider_name: String,
@@ -107,6 +110,7 @@ pub struct GatewayStats {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GatewaySettings {
     pub listen_address: String,
     pub port: u16,
@@ -143,6 +147,7 @@ pub enum LoadBalanceStrategy {
 // === Gateway Link (Client-side Gateway Connection) ===
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GatewayLink {
     pub id: String,
     pub name: String,
@@ -162,6 +167,7 @@ pub struct GatewayLink {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateGatewayLinkInput {
     pub name: String,
     pub link_type: String,
@@ -175,6 +181,7 @@ pub struct CreateGatewayLinkInput {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GatewayLinkModelSync {
     pub model_id: String,
     pub provider_name: String,
@@ -183,6 +190,7 @@ pub struct GatewayLinkModelSync {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GatewayLinkSkillSync {
     pub skill_name: String,
     pub skill_version: Option<String>,
@@ -191,6 +199,7 @@ pub struct GatewayLinkSkillSync {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GatewayLinkPolicy {
     pub id: String,
     pub link_id: String,
@@ -215,6 +224,7 @@ pub struct SaveGatewayLinkPolicyInput {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GatewayLinkActivity {
     pub id: String,
     pub link_id: String,

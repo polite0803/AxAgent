@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use crate::evaluator::benchmark::{Benchmark, BenchmarkTask};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Dataset {
     pub id: String,
     pub name: String,
@@ -17,6 +18,7 @@ pub struct Dataset {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DatasetMetadata {
     pub source: String,
     pub license: String,

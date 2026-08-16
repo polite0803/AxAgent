@@ -83,17 +83,17 @@ export function conversationPreferenceStateFromConversation(
   conversation?: Conversation | null,
 ): ConversationPreferenceState {
   return {
-    searchEnabled: conversation?.search_enabled ?? false,
-    searchProviderId: conversation?.search_provider_id ?? null,
-    thinkingBudget: conversation?.thinking_budget ?? null,
+    searchEnabled: conversation?.searchEnabled ?? false,
+    searchProviderId: conversation?.searchProviderId ?? null,
+    thinkingBudget: conversation?.thinkingBudget ?? null,
     mcpMode: ((conversation as Record<string, unknown> | null | undefined)
       ?.mcp_mode as "auto" | "disabled" | "manual") ?? "auto",
-    enabledMcpServerIds: [...(conversation?.enabled_mcp_server_ids ?? [])],
+    enabledMcpServerIds: [...(conversation?.enabledMcpServerIds ?? [])],
     enabledKnowledgeBaseIds: [
-      ...(conversation?.enabled_knowledge_base_ids ?? []),
+      ...(conversation?.enabledKnowledgeBaseIds ?? []),
     ],
-    activeMemoryNamespaceId: (conversation?.enabled_memory_namespace_ids ?? [])[0] ?? null,
-    enabledWikiIds: [...(conversation?.enabled_wiki_ids ?? [])],
+    activeMemoryNamespaceId: (conversation?.enabledMemoryNamespaceIds ?? [])[0] ?? null,
+    enabledWikiIds: [...(conversation?.enabledWikiIds ?? [])],
   };
 }
 
@@ -110,24 +110,24 @@ export function conversationPreferenceUpdateFromState(
   >,
 ): Pick<
   UpdateConversationInput,
-  | "search_enabled"
-  | "search_provider_id"
-  | "thinking_budget"
-  | "enabled_mcp_server_ids"
-  | "enabled_knowledge_base_ids"
-  | "enabled_memory_namespace_ids"
-  | "enabled_wiki_ids"
+  | "searchEnabled"
+  | "searchProviderId"
+  | "thinkingBudget"
+  | "enabledMcpServerIds"
+  | "enabledKnowledgeBaseIds"
+  | "enabledMemoryNamespaceIds"
+  | "enabledWikiIds"
 > {
   return {
-    search_enabled: state.searchEnabled,
-    search_provider_id: state.searchProviderId,
-    thinking_budget: state.thinkingBudget,
-    enabled_mcp_server_ids: [...state.enabledMcpServerIds],
-    enabled_knowledge_base_ids: [...state.enabledKnowledgeBaseIds],
-    enabled_memory_namespace_ids: state.activeMemoryNamespaceId
+    searchEnabled: state.searchEnabled,
+    searchProviderId: state.searchProviderId,
+    thinkingBudget: state.thinkingBudget,
+    enabledMcpServerIds: [...state.enabledMcpServerIds],
+    enabledKnowledgeBaseIds: [...state.enabledKnowledgeBaseIds],
+    enabledMemoryNamespaceIds: state.activeMemoryNamespaceId
       ? [state.activeMemoryNamespaceId]
       : [],
-    enabled_wiki_ids: [...state.enabledWikiIds],
+    enabledWikiIds: [...state.enabledWikiIds],
   };
 }
 
@@ -175,31 +175,31 @@ export function mergeConversationCollections(
 export function categoryTemplateUpdateFromCategory(
   category?: {
     id: string;
-    system_prompt?: string | null;
-    default_temperature?: number | null;
-    default_max_tokens?: number | null;
-    default_top_p?: number | null;
-    default_frequency_penalty?: number | null;
+    systemPrompt?: string | null;
+    defaultTemperature?: number | null;
+    defaultMaxTokens?: number | null;
+    defaultTopP?: number | null;
+    defaultFrequencyPenalty?: number | null;
   } | null,
 ): Pick<
   UpdateConversationInput,
-  | "category_id"
-  | "system_prompt"
+  | "categoryId"
+  | "systemPrompt"
   | "temperature"
-  | "max_tokens"
-  | "top_p"
-  | "frequency_penalty"
+  | "maxTokens"
+  | "topP"
+  | "frequencyPenalty"
 > {
   if (!category) {
     return {};
   }
 
   return {
-    category_id: category.id,
-    system_prompt: category.system_prompt ?? undefined,
-    temperature: category.default_temperature,
-    max_tokens: category.default_max_tokens,
-    top_p: category.default_top_p,
-    frequency_penalty: category.default_frequency_penalty,
+    categoryId: category.id,
+    systemPrompt: category.systemPrompt ?? undefined,
+    temperature: category.defaultTemperature,
+    maxTokens: category.defaultMaxTokens,
+    topP: category.defaultTopP,
+    frequencyPenalty: category.defaultFrequencyPenalty,
   };
 }

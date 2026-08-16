@@ -36,11 +36,11 @@ export function TraceFilters() {
           <Input
             id="trace-filters-input-36"
             placeholder={t("devtools.filterSession")}
-            value={localFilter.session_id || ""}
+            value={localFilter.sessionId || ""}
             onChange={(e) =>
               setLocalFilter((prev) => ({
                 ...prev,
-                session_id: e.target.value || undefined,
+                sessionId: e.target.value || undefined,
               }))}
             allowClear
           />
@@ -57,14 +57,14 @@ export function TraceFilters() {
               if (dates?.[0] && dates?.[1]) {
                 setLocalFilter((prev) => ({
                   ...prev,
-                  from_date: dates[0]!.toISOString(),
-                  to_date: dates[1]!.toISOString(),
+                  fromDate: dates[0]!.toISOString(),
+                  toDate: dates[1]!.toISOString(),
                 }));
               } else {
                 setLocalFilter((prev) => ({
                   ...prev,
-                  from_date: undefined,
-                  to_date: undefined,
+                  fromDate: undefined,
+                  toDate: undefined,
                 }));
               }
             }}
@@ -79,11 +79,11 @@ export function TraceFilters() {
             id="trace-filters-input-37"
             type="number"
             placeholder={t("devtools.minDuration")}
-            value={localFilter.min_duration_ms || ""}
+            value={localFilter.minDurationMs || ""}
             onChange={(e) =>
               setLocalFilter((prev) => ({
                 ...prev,
-                min_duration_ms: e.target.value
+                minDurationMs: e.target.value
                   ? Number(e.target.value)
                   : undefined,
               }))}
@@ -99,11 +99,11 @@ export function TraceFilters() {
             id="trace-filters-input-38"
             type="number"
             placeholder={t("devtools.maxDuration")}
-            value={localFilter.max_duration_ms || ""}
+            value={localFilter.maxDurationMs || ""}
             onChange={(e) =>
               setLocalFilter((prev) => ({
                 ...prev,
-                max_duration_ms: e.target.value
+                maxDurationMs: e.target.value
                   ? Number(e.target.value)
                   : undefined,
               }))}
@@ -118,8 +118,8 @@ export function TraceFilters() {
           <Select
             className="w-full"
             placeholder={t("devtools.includeErrors")}
-            value={localFilter.has_errors}
-            onChange={(value) => setLocalFilter((prev) => ({ ...prev, has_errors: value }))}
+            value={localFilter.hasErrors}
+            onChange={(value) => setLocalFilter((prev) => ({ ...prev, hasErrors: value }))}
             allowClear
             options={[
               { value: true, label: t("devtools.errorOnly") },

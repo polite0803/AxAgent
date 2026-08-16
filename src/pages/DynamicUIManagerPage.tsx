@@ -115,7 +115,7 @@ export function DynamicUIManagerPage() {
         version: "",
         change_log: "",
       });
-      setTimeout(() => setJsonSchemaText(editingRecord.schema_json), 0);
+      setTimeout(() => setJsonSchemaText(editingRecord.schemaJson), 0);
     } else {
       form.resetFields();
       form.setFieldsValue({ category: "custom", version: "", change_log: "" });
@@ -188,9 +188,9 @@ export function DynamicUIManagerPage() {
         description: values.description,
         category: values.category,
         tags: values.tags,
-        schema_json: jsonSchemaText,
+        schemaJson: jsonSchemaText,
         version: values.version?.trim() || undefined,
-        change_log: values.change_log?.trim() || undefined,
+        changeLog: values.change_log?.trim() || undefined,
       };
 
       if (editingRecord) {
@@ -204,7 +204,7 @@ export function DynamicUIManagerPage() {
           description: values.description,
           category: values.category,
           tags: values.tags || [],
-          schema_json: jsonSchemaText,
+          schemaJson: jsonSchemaText,
         };
         await createSchema(createParams);
         message.success(t("dynamicUIManager.createSuccess"));
@@ -269,7 +269,7 @@ export function DynamicUIManagerPage() {
       description: record.description,
       category: record.category,
       tags: record.tags,
-      schema_json: record.schema_json,
+      schemaJson: record.schemaJson,
     });
     message.success(t("dynamicUIManager.exportSuccess"));
   };
@@ -286,7 +286,7 @@ export function DynamicUIManagerPage() {
         description: s.description,
         category: s.category,
         tags: s.tags,
-        schema_json: s.schema_json,
+        schemaJson: s.schemaJson,
       })),
     );
     message.success(t("dynamicUIManager.exportSuccess"));
@@ -304,7 +304,7 @@ export function DynamicUIManagerPage() {
       const list = Array.isArray(parsed) ? parsed : [parsed];
       let count = 0;
       for (const item of list) {
-        const schemaJson = typeof item === "string" ? item : item?.schema_json;
+        const schemaJson = typeof item === "string" ? item : item?.schemaJson ?? item?.schema_json;
         if (!schemaJson || typeof schemaJson !== "string") {
           continue;
         }
@@ -324,7 +324,7 @@ export function DynamicUIManagerPage() {
           description: item?.description || "",
           category: item?.category || "custom",
           tags: item?.tags || [],
-          schema_json: schemaJson,
+          schemaJson: schemaJson,
         });
         count += 1;
       }
@@ -373,7 +373,7 @@ export function DynamicUIManagerPage() {
       ? {
         title: versionPreview.title,
         description: versionPreview.description,
-        schema_json: versionPreview.schema_json,
+        schemaJson: versionPreview.schemaJson,
         category: versionPreview.category,
         tags: versionPreview.tags,
       }
@@ -388,7 +388,7 @@ export function DynamicUIManagerPage() {
       );
     }
     try {
-      const schema = JSON.parse(schemaToRender.schema_json) as UISchema;
+      const schema = JSON.parse(schemaToRender.schemaJson) as UISchema;
       const isHistorical = !!versionPreview;
       return (
         <div className="p-4">
@@ -447,14 +447,14 @@ export function DynamicUIManagerPage() {
     },
     {
       title: t("dynamicUIManager.changeLog"),
-      dataIndex: "change_log",
-      key: "change_log",
+      dataIndex: "changeLog",
+      key: "changeLog",
       ellipsis: true,
     },
     {
       title: t("dynamicUIManager.versionUpdatedAt"),
-      dataIndex: "created_at",
-      key: "created_at",
+      dataIndex: "createdAt",
+      key: "createdAt",
       width: 160,
       render: (ts: number) => new Date(ts * 1000).toLocaleString(),
     },
@@ -542,7 +542,7 @@ export function DynamicUIManagerPage() {
                       <div className="min-w-0 flex-1">
                         <Space>
                           <Text strong>{item.title}</Text>
-                          {item.is_builtin
+                          {item.isBuiltin
                             ? <Tag color="purple">{t("dynamicUIManager.builtin")}</Tag>
                             : null}
                           <Tag color="green" style={{ fontSize: 11 }}>
@@ -556,7 +556,7 @@ export function DynamicUIManagerPage() {
                           <Space size={4} className="mt-1">
                             <Tag color="blue">{item.category}</Tag>
                             <Text type="secondary" className="text-xs">
-                              {new Date(item.updated_at).toLocaleString()}
+                              {new Date(item.updatedAt).toLocaleString()}
                             </Text>
                           </Space>
                         </div>
@@ -585,7 +585,7 @@ export function DynamicUIManagerPage() {
                           type="text"
                           icon={<EditOutlined />}
                           onClick={() => handleEdit(item)}
-                          disabled={item.is_builtin}
+                          disabled={item.isBuiltin}
                         />
                         <Popconfirm
                           title={t("dynamicUIManager.confirmDelete")}
@@ -597,7 +597,7 @@ export function DynamicUIManagerPage() {
                             type="text"
                             danger
                             icon={<DeleteOutlined />}
-                            disabled={item.is_builtin}
+                            disabled={item.isBuiltin}
                           />
                         </Popconfirm>
                       </Space>

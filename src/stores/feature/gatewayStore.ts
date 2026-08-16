@@ -75,13 +75,13 @@ interface GatewayState {
 
 export const useGatewayStore = create<GatewayState>((set) => ({
   status: {
-    is_running: false,
-    listen_address: "127.1.0.0",
+    isRunning: false,
+    listenAddress: "127.1.0.0",
     port: 8080,
-    ssl_enabled: false,
-    started_at: null,
-    https_port: null,
-    force_ssl: false,
+    sslEnabled: false,
+    startedAt: null,
+    httpsPort: null,
+    forceSsl: false,
   },
   keys: [],
   metrics: null,
@@ -115,7 +115,7 @@ export const useGatewayStore = create<GatewayState>((set) => ({
         "create_gateway_key",
         { name },
       );
-      set((s) => ({ keys: [...s.keys, result.gateway_key], error: null }));
+      set((s) => ({ keys: [...s.keys, result.gatewayKey], error: null }));
       return result;
     } catch (e) {
       set({ error: String(e) });

@@ -15,6 +15,7 @@ pub struct EvaluationScore {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TaskMetrics {
     pub task_id: String,
     pub difficulty: Difficulty,
@@ -26,6 +27,7 @@ pub struct TaskMetrics {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AggregateMetrics {
     pub total_tasks: usize,
     pub passed_tasks: usize,

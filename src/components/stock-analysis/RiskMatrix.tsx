@@ -181,7 +181,7 @@ function buildRiskMarkdown(
 
 export function RiskMatrix() {
   const { t } = useTranslation();
-  const themeMode = useSettingsStore((s) => s.settings.theme_mode);
+  const themeMode = useSettingsStore((s) => s.settings.themeMode);
   const isDark = themeMode === "dark"
     || (themeMode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   const riskAssessments = useStockAnalysisStore((s) => s.riskAssessments);

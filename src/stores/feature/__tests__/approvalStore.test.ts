@@ -17,15 +17,15 @@ import type { ApprovalRequest } from "@/types";
 function makeApproval(overrides?: Partial<ApprovalRequest>): ApprovalRequest {
   return {
     id: "approval-1",
-    execution_id: "exec-1",
-    node_id: "node-1",
-    workflow_id: "wf-1",
+    executionId: "exec-1",
+    nodeId: "node-1",
+    workflowId: "wf-1",
     title: "Confirm Action",
     message: "Are you sure?",
     status: "pending",
-    timeout_secs: 0,
-    expires_at: 0,
-    created_at: 0,
+    timeoutSecs: 0,
+    expiresAt: 0,
+    createdAt: 0,
     ...overrides,
   };
 }
@@ -92,9 +92,9 @@ describe("approvalStore", () => {
       const result = await useApprovalStore.getState().resumeApproval("exec-1", "approval-1", "approved");
 
       expect(invokeMock).toHaveBeenCalledWith("resume_approval", {
-        approvalId: "approval-1",
+        approval_id: "approval-1",
         decision: "approved",
-        decidedBy: "frontend",
+        decided_by: "frontend",
         note: null,
       });
       expect(result).toBe(true);
@@ -114,9 +114,9 @@ describe("approvalStore", () => {
       );
 
       expect(invokeMock).toHaveBeenCalledWith("resume_approval", {
-        approvalId: "approval-1",
+        approval_id: "approval-1",
         decision: "rejected",
-        decidedBy: "user-1",
+        decided_by: "user-1",
         note: "Not needed",
       });
       expect(result).toBe(true);
@@ -139,7 +139,7 @@ describe("approvalStore", () => {
 
       const result = await useApprovalStore.getState().cancelApproval("exec-1", "approval-1");
 
-      expect(invokeMock).toHaveBeenCalledWith("cancel_approval", { approvalId: "approval-1" });
+      expect(invokeMock).toHaveBeenCalledWith("cancel_approval", { approval_id: "approval-1" });
       expect(result).toBe(true);
     });
 

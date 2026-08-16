@@ -20,7 +20,7 @@ export function DecisionBanner({ embeddedInWorkspace = false }: { embeddedInWork
   const { message } = App.useApp();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const themeMode = useSettingsStore((s) => s.settings.theme_mode);
+  const themeMode = useSettingsStore((s) => s.settings.themeMode);
   const isDark = themeMode === "dark"
     || (themeMode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   const decision = useStockAnalysisStore((s) => s.decision);

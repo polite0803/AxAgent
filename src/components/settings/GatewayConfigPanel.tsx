@@ -20,78 +20,78 @@ type PlatformFieldDef = {
 const PLATFORM_FIELDS: Record<string, PlatformFieldDef[]> = {
   telegram: [
     {
-      key: "telegram_enabled",
+      key: "telegramEnabled",
       label: "settings.platform.enable",
       type: "switch",
     },
     {
-      key: "telegram_bot_token",
+      key: "telegramBotToken",
       label: "Bot Token",
       type: "password",
       placeholder: "settings.platform.placeholder.telegramBotToken",
     },
     {
-      key: "telegram_webhook_url",
+      key: "telegramWebhookUrl",
       label: "Webhook URL (Optional)",
       type: "text",
     },
     {
-      key: "telegram_webhook_secret",
+      key: "telegramWebhookSecret",
       label: "Webhook Secret (Optional)",
       type: "password",
     },
   ],
   discord: [
     {
-      key: "discord_enabled",
+      key: "discordEnabled",
       label: "settings.platform.enable",
       type: "switch",
     },
     {
-      key: "discord_bot_token",
+      key: "discordBotToken",
       label: "Bot Token",
       type: "password",
       placeholder: "settings.platform.placeholder.discordDevPortal",
     },
     {
-      key: "discord_webhook_url",
+      key: "discordWebhookUrl",
       label: "Webhook URL (Optional)",
       type: "text",
     },
   ],
   slack: [
-    { key: "slack_enabled", label: "settings.platform.enable", type: "switch" },
-    { key: "slack_bot_token", label: "Bot Token", type: "password" },
+    { key: "slackEnabled", label: "settings.platform.enable", type: "switch" },
+    { key: "slackBotToken", label: "Bot Token", type: "password" },
     {
-      key: "slack_app_token",
+      key: "slackAppToken",
       label: "App Token (Socket Mode)",
       type: "password",
       placeholder: "settings.platform.placeholder.slackAppToken",
     },
-    { key: "slack_signing_secret", label: "Signing Secret", type: "password" },
-    { key: "slack_workspace_id", label: "Workspace ID", type: "text" },
+    { key: "slackSigningSecret", label: "Signing Secret", type: "password" },
+    { key: "slackWorkspaceId", label: "Workspace ID", type: "text" },
   ],
   whatsapp: [
     {
-      key: "whatsapp_enabled",
+      key: "whatsappEnabled",
       label: "settings.platform.enable",
       type: "switch",
     },
-    { key: "whatsapp_phone_number_id", label: "Phone Number ID", type: "text" },
-    { key: "whatsapp_access_token", label: "Access Token", type: "password" },
+    { key: "whatsappPhoneNumberId", label: "Phone Number ID", type: "text" },
+    { key: "whatsappAccessToken", label: "Access Token", type: "password" },
     {
-      key: "whatsapp_business_account_id",
+      key: "whatsappBusinessAccountId",
       label: "Business Account ID",
       type: "text",
     },
     {
-      key: "whatsapp_webhook_verify_token",
+      key: "whatsappWebhookVerifyToken",
       label: "Webhook Verify Token (Optional)",
       type: "text",
       placeholder: "settings.platform.placeholder.webhookVerify",
     },
     {
-      key: "whatsapp_api_version",
+      key: "whatsappApiVersion",
       label: "API Version (Optional)",
       type: "text",
       placeholder: "settings.platform.placeholder.apiVersion",
@@ -99,12 +99,12 @@ const PLATFORM_FIELDS: Record<string, PlatformFieldDef[]> = {
   ],
   wechat: [
     {
-      key: "wechat_enabled",
+      key: "wechatEnabled",
       label: "settings.platform.enable",
       type: "switch",
     },
     {
-      key: "wechat_mode",
+      key: "wechatMode",
       label: "settings.platform.wechatMode",
       type: "select",
       options: [
@@ -118,61 +118,61 @@ const PLATFORM_FIELDS: Record<string, PlatformFieldDef[]> = {
         },
       ],
     },
-    { key: "wechat_app_id", label: "App ID", type: "text" },
-    { key: "wechat_app_secret", label: "App Secret", type: "password" },
-    { key: "wechat_token", label: "Token (Official Account)", type: "text" },
+    { key: "wechatAppId", label: "App ID", type: "text" },
+    { key: "wechatAppSecret", label: "App Secret", type: "password" },
+    { key: "wechatToken", label: "Token (Official Account)", type: "text" },
     {
-      key: "wechat_encoding_aes_key",
+      key: "wechatEncodingAesKey",
       label: "Encoding AES Key (Optional)",
       type: "password",
     },
     {
-      key: "wechat_original_id",
+      key: "wechatOriginalId",
       label: "Original ID (Optional)",
       type: "text",
     },
   ],
   feishu: [
     {
-      key: "feishu_enabled",
+      key: "feishuEnabled",
       label: "settings.platform.enable",
       type: "switch",
     },
-    { key: "feishu_app_id", label: "App ID", type: "text" },
-    { key: "feishu_app_secret", label: "App Secret", type: "password" },
+    { key: "feishuAppId", label: "App ID", type: "text" },
+    { key: "feishuAppSecret", label: "App Secret", type: "password" },
     {
-      key: "feishu_verification_token",
+      key: "feishuVerificationToken",
       label: "Verification Token (Optional)",
       type: "password",
     },
     {
-      key: "feishu_encrypt_key",
+      key: "feishuEncryptKey",
       label: "Encrypt Key (Optional)",
       type: "password",
     },
   ],
   qq: [
-    { key: "qq_enabled", label: "settings.platform.enable", type: "switch" },
-    { key: "qq_bot_app_id", label: "App ID", type: "text" },
-    { key: "qq_bot_token", label: "Token", type: "password" },
-    { key: "qq_bot_secret", label: "Secret (Optional)", type: "password" },
+    { key: "qqEnabled", label: "settings.platform.enable", type: "switch" },
+    { key: "qqBotAppId", label: "App ID", type: "text" },
+    { key: "qqBotToken", label: "Token", type: "password" },
+    { key: "qqBotSecret", label: "Secret (Optional)", type: "password" },
   ],
   dingtalk: [
     {
-      key: "dingtalk_enabled",
+      key: "dingtalkEnabled",
       label: "settings.platform.enable",
       type: "switch",
     },
-    { key: "dingtalk_app_key", label: "App Key", type: "text" },
-    { key: "dingtalk_app_secret", label: "App Secret", type: "password" },
+    { key: "dingtalkAppKey", label: "App Key", type: "text" },
+    { key: "dingtalkAppSecret", label: "App Secret", type: "password" },
     {
-      key: "dingtalk_agent_id",
+      key: "dingtalkAgentId",
       label: "Agent ID",
       type: "text",
       placeholder: "settings.platform.placeholder.dingtalkAgent",
     },
     {
-      key: "dingtalk_robot_code",
+      key: "dingtalkRobotCode",
       label: "Robot Code (Optional)",
       type: "text",
     },
@@ -296,20 +296,20 @@ export function GatewayConfigPanel() {
           <span>{t("settings.platform.enableApiServer")}</span>
           <Switch
             id="gateway-config-panel-switch-56"
-            checked={config.api_server_enabled}
-            onChange={(v) => handleChange("api_server_enabled", v)}
+            checked={config.apiServerEnabled}
+            onChange={(v) => handleChange("apiServerEnabled", v)}
           />
         </div>
-        {config.api_server_enabled && (
+        {config.apiServerEnabled && (
           <div className="mt-3">
             <Text type="secondary">{t("settings.platform.apiServerPort")}</Text>
             <Input
               id="gateway-config-panel-input-57"
               type="number"
-              value={config.api_server_port ?? 8080}
+              value={config.apiServerPort ?? 8080}
               onChange={(e) =>
                 handleChange(
-                  "api_server_port",
+                  "apiServerPort",
                   Number.parseInt(e.target.value, 10) || 8080,
                 )}
               placeholder="8080"
@@ -320,8 +320,8 @@ export function GatewayConfigPanel() {
           <span>{t("settings.platform.autoSyncMessages")}</span>
           <Switch
             id="gateway-config-panel-switch-58"
-            checked={config.auto_sync_messages}
-            onChange={(v) => handleChange("auto_sync_messages", v)}
+            checked={config.autoSyncMessages}
+            onChange={(v) => handleChange("autoSyncMessages", v)}
           />
         </div>
         <div className="mt-3">
@@ -331,10 +331,10 @@ export function GatewayConfigPanel() {
           <Input
             id="gateway-config-panel-input-59"
             type="number"
-            value={config.max_history_per_session}
+            value={config.maxHistoryPerSession}
             onChange={(e) =>
               handleChange(
-                "max_history_per_session",
+                "maxHistoryPerSession",
                 Number.parseInt(e.target.value, 10) || 100,
               )}
           />

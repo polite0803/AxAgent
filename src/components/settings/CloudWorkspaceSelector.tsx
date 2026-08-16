@@ -197,18 +197,18 @@ export function CloudWorkspaceSelector() {
 
   const openConfigModal = () => {
     const {
-      s3_endpoint = "",
-      s3_access_key_id = "",
-      s3_secret_access_key = "",
-      s3_region = "",
-      s3_provider_preset = "",
-      s3_use_path_style = false,
-      webdav_host = "",
-      webdav_username = "",
-      webdav_password = "",
-      webdav_path = "",
-      s3_bucket = "",
-      s3_root = "",
+      s3Endpoint: s3_endpoint = "",
+      s3AccessKeyId: s3_access_key_id = "",
+      s3SecretAccessKey: s3_secret_access_key = "",
+      s3Region: s3_region = "",
+      s3ProviderPreset: s3_provider_preset = "",
+      s3UsePathStyle: s3_use_path_style = false,
+      webdavHost: webdav_host = "",
+      webdavUsername: webdav_username = "",
+      webdavPassword: webdav_password = "",
+      webdavPath: webdav_path = "",
+      s3Bucket: s3_bucket = "",
+      s3Root: s3_root = "",
     } = settings;
 
     configForm.setFieldsValue({
@@ -362,7 +362,7 @@ export function CloudWorkspaceSelector() {
   };
 
   const loadConflicts = async () => {
-    const uri = settings.workspace_uri;
+    const uri = settings.workspaceUri;
     if (!uri) {
       message.warning(t("cloudWorkspace.noWorkspaceUri"));
       return;
@@ -389,7 +389,7 @@ export function CloudWorkspaceSelector() {
   };
 
   const handleResolveConflict = async (key: string, resolution: string) => {
-    const uri = settings.workspace_uri;
+    const uri = settings.workspaceUri;
     if (!uri) {
       return;
     }
@@ -406,7 +406,7 @@ export function CloudWorkspaceSelector() {
   };
 
   const handleSyncCloud = async () => {
-    const uri = settings.workspace_uri;
+    const uri = settings.workspaceUri;
     if (!uri) {
       message.warning(t("cloudWorkspace.noWorkspaceUri"));
       return;
@@ -458,7 +458,7 @@ export function CloudWorkspaceSelector() {
   const handleSetAsWorkspace = async () => {
     const values = configForm.getFieldsValue();
     const uri = buildWorkspaceUri(values);
-    await saveSettings({ workspace_uri: uri, cloud_backend: storageType });
+    await saveSettings({ workspaceUri: uri, cloudBackend: storageType });
     message.success(t("cloudWorkspace.setAsWorkspaceSuccess", { uri }));
   };
 
@@ -686,8 +686,8 @@ export function CloudWorkspaceSelector() {
     </div>
   );
 
-  const isConfigured = !!settings.workspace_uri;
-  const backendLabel = settings.cloud_backend === "webdav" ? "WebDAV" : "S3";
+  const isConfigured = !!settings.workspaceUri;
+  const backendLabel = settings.cloudBackend === "webdav" ? "WebDAV" : "S3";
 
   return (
     <div className="p-6 pb-12 space-y-6">
@@ -787,10 +787,10 @@ export function CloudWorkspaceSelector() {
                 <Descriptions.Item label={t("cloudWorkspace.currentWorkspace")}>
                   <Space>
                     <Tag icon={<Cloud size={12} />} color="blue">
-                      {settings.workspace_uri}
+                      {settings.workspaceUri}
                     </Tag>
                     <Tag
-                      color={settings.cloud_backend === "webdav" ? "green" : "purple"}
+                      color={settings.cloudBackend === "webdav" ? "green" : "purple"}
                     >
                       {backendLabel}
                     </Tag>
@@ -799,24 +799,24 @@ export function CloudWorkspaceSelector() {
                     </Tag>
                   </Space>
                 </Descriptions.Item>
-                {settings.s3_endpoint && (
+                {settings.s3Endpoint && (
                   <Descriptions.Item label={t("cloudWorkspace.s3Endpoint")}>
-                    <Text code>{settings.s3_endpoint}</Text>
+                    <Text code>{settings.s3Endpoint}</Text>
                   </Descriptions.Item>
                 )}
-                {settings.s3_bucket && (
+                {settings.s3Bucket && (
                   <Descriptions.Item label={t("cloudWorkspace.s3Bucket")}>
-                    <Text code>{settings.s3_bucket}</Text>
+                    <Text code>{settings.s3Bucket}</Text>
                   </Descriptions.Item>
                 )}
-                {settings.s3_region && (
+                {settings.s3Region && (
                   <Descriptions.Item label={t("cloudWorkspace.s3Region")}>
-                    <Text code>{settings.s3_region}</Text>
+                    <Text code>{settings.s3Region}</Text>
                   </Descriptions.Item>
                 )}
-                {settings.webdav_host && (
+                {settings.webdavHost && (
                   <Descriptions.Item label={t("cloudWorkspace.webdavUrl")}>
-                    <Text code>{settings.webdav_host}</Text>
+                    <Text code>{settings.webdavHost}</Text>
                   </Descriptions.Item>
                 )}
               </Descriptions>

@@ -23,6 +23,7 @@ import {
   Monitor,
   Search,
   Sparkles,
+  TrendingUp,
   User,
   Users,
   X,
@@ -70,6 +71,7 @@ import { getChatCodeThemes } from "./ChatMarkdownNodes";
 import { CitationManager, CitationStats } from "./CitationManager";
 import { CognitiveRoutePanel } from "./CognitiveRoutePanel";
 import { ComputerControlPanel } from "./ComputerControlPanel";
+import { EvolutionEvidencePanel } from "./EvolutionEvidencePanel";
 import { EvolutionSidebar } from "./EvolutionSidebar";
 import { ImageAnalysisPanel } from "./ImageAnalysisPanel";
 import { ImageGenPanel } from "./ImageGenPanel";
@@ -128,7 +130,7 @@ export function RightPanelContainer({
   const panelReport = useUIStore((s) => s.report);
   const panelSetChartResult = useUIStore((s) => s.setChartResult);
   const panelSetReport = useUIStore((s) => s.setReport);
-  const isDarkMode = useResolvedDarkMode(settings.theme_mode);
+  const isDarkMode = useResolvedDarkMode(settings.themeMode);
 
   const cacheValid = useCacheStore((s) => s.cacheValid);
   const hasPendingChanges = useCacheStore((s) => s.hasPendingChanges);
@@ -136,8 +138,8 @@ export function RightPanelContainer({
   const cacheHits = useCacheStore((s) => s.cacheHits);
 
   const codeThemes = useMemo(
-    () => getChatCodeThemes(settings.code_theme, settings.code_theme_light),
-    [settings.code_theme, settings.code_theme_light],
+    () => getChatCodeThemes(settings.codeTheme, settings.codeThemeLight),
+    [settings.codeTheme, settings.codeThemeLight],
   );
 
   // ── 面板定义（静态配置 + 运行时条件） ──────────────────────────────
@@ -245,6 +247,14 @@ export function RightPanelContainer({
       },
 
       // ═══ 扩展面板（默认折叠） ═══
+      {
+        key: "evolutionEvidence",
+        icon: <TrendingUp size={ICON} />,
+        labelKey: "chatRightPanel.evolutionEvidence",
+        category: "extra",
+        shouldRender: true,
+        render: () => <EvolutionEvidencePanel conversationId={conversationId} />,
+      },
       {
         key: "imageGen",
         icon: <Image size={ICON} />,

@@ -34,15 +34,15 @@ describe("hasMultipleModelVersions", () => {
   });
 
   it("单个消息应返回 false", () => {
-    expect(hasMultipleModelVersions([msg({ model_id: "gpt-4" })])).toBe(false);
+    expect(hasMultipleModelVersions([msg({ modelId: "gpt-4" })])).toBe(false);
   });
 
   it("多个消息但 model_id 都相同时应返回 false", () => {
     expect(
       hasMultipleModelVersions([
-        msg({ model_id: "gpt-4" }),
-        msg({ model_id: "gpt-4" }),
-        msg({ model_id: "gpt-4" }),
+        msg({ modelId: "gpt-4" }),
+        msg({ modelId: "gpt-4" }),
+        msg({ modelId: "gpt-4" }),
       ]),
     ).toBe(false);
   });
@@ -50,8 +50,8 @@ describe("hasMultipleModelVersions", () => {
   it("多个消息有不同 model_id 时应返回 true", () => {
     expect(
       hasMultipleModelVersions([
-        msg({ model_id: "gpt-4" }),
-        msg({ model_id: "claude-3" }),
+        msg({ modelId: "gpt-4" }),
+        msg({ modelId: "claude-3" }),
       ]),
     ).toBe(true);
   });
@@ -60,9 +60,9 @@ describe("hasMultipleModelVersions", () => {
     // 只有一个有效 model_id，不算多模型
     expect(
       hasMultipleModelVersions([
-        msg({ model_id: null }),
-        msg({ model_id: "gpt-4" }),
-        msg({ model_id: null }),
+        msg({ modelId: null }),
+        msg({ modelId: "gpt-4" }),
+        msg({ modelId: null }),
       ]),
     ).toBe(false);
   });
@@ -70,8 +70,8 @@ describe("hasMultipleModelVersions", () => {
   it("全部 model_id 为 null 时应返回 false", () => {
     expect(
       hasMultipleModelVersions([
-        msg({ model_id: null }),
-        msg({ model_id: null }),
+        msg({ modelId: null }),
+        msg({ modelId: null }),
       ]),
     ).toBe(false);
   });
@@ -79,9 +79,9 @@ describe("hasMultipleModelVersions", () => {
   it("三个不同模型应返回 true", () => {
     expect(
       hasMultipleModelVersions([
-        msg({ model_id: "gpt-4" }),
-        msg({ model_id: "claude-3" }),
-        msg({ model_id: "gemini-pro" }),
+        msg({ modelId: "gpt-4" }),
+        msg({ modelId: "claude-3" }),
+        msg({ modelId: "gemini-pro" }),
       ]),
     ).toBe(true);
   });

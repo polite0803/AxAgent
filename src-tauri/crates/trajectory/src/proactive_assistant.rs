@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ContextPrediction {
     pub predicted_intent: PredictedIntent,
     pub confidence: f32,
@@ -100,6 +101,7 @@ pub enum SuggestionAction {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Reminder {
     pub id: String,
     pub title: String,
@@ -111,6 +113,7 @@ pub struct Reminder {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ReminderRecurrence {
     pub frequency: RecurrenceFrequency,
     pub interval: u32,
@@ -125,6 +128,7 @@ pub enum RecurrenceFrequency {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProactiveConfig {
     pub enabled: bool,
     pub max_suggestions: usize,

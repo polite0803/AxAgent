@@ -41,7 +41,7 @@ export const ToolInstallPanel: React.FC<ToolInstallPanelProps> = ({
     try {
       await generateMissingTool(
         dependency.name,
-        dependency.install_instructions || dependency.name,
+        dependency.installInstructions || dependency.name,
         { type: "object", properties: {} },
         { type: "object", properties: {} },
       );
@@ -90,7 +90,7 @@ export const ToolInstallPanel: React.FC<ToolInstallPanelProps> = ({
           <Paragraph type="secondary" style={{ fontSize: 12 }}>
             {t("decomposition.manualInstallDesc")}
           </Paragraph>
-          {dependency.install_instructions && (
+          {dependency.installInstructions && (
             <div
               style={{
                 padding: 8,
@@ -101,7 +101,7 @@ export const ToolInstallPanel: React.FC<ToolInstallPanelProps> = ({
                 whiteSpace: "pre-wrap",
               }}
             >
-              {dependency.install_instructions}
+              {dependency.installInstructions}
             </div>
           )}
           <Button

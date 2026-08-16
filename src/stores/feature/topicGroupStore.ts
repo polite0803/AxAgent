@@ -59,7 +59,7 @@ export const useTopicGroupStore = create<TopicGroupStore>((set, get) => ({
     const msgs = useConversationStore
       .getState()
       .messages.filter(
-        (m) => m.is_active !== false && m.conversation_id === conversationId,
+        (m) => m.isActive !== false && m.conversationId === conversationId,
       );
     if (msgs.length < 3) {
       return;
@@ -85,8 +85,8 @@ export const useTopicGroupStore = create<TopicGroupStore>((set, get) => ({
         currentLabel = summarize(msg.content);
       } else {
         // assistant / tool → 归入当前组
-        if (currentIds.length === 0 && msg.parent_message_id) {
-          currentIds.push(msg.parent_message_id);
+        if (currentIds.length === 0 && msg.parentMessageId) {
+          currentIds.push(msg.parentMessageId);
           currentLabel = summarize(i18n.t("topicGroup.linkedReply"));
         }
         currentIds.push(msg.id);

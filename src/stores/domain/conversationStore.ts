@@ -175,16 +175,16 @@ export interface ConversationState {
   setActiveConversation: (id: string | null) => void;
   createConversation: (
     title: string,
-    model_id: string,
+    modelId: string,
     providerId: string,
     options?: {
       categoryId?: string | null;
       scenario?: string | null;
       mode?: string;
-      work_strategy?: string;
-      agent_profile_id?: string;
-      workflow_template_id?: string;
-      system_prompt?: string;
+      workStrategy?: string;
+      agentProfileId?: string;
+      workflowTemplateId?: string;
+      systemPrompt?: string;
     },
   ) => Promise<Conversation>;
   updateConversation: (
@@ -230,7 +230,7 @@ export interface ConversationState {
   regenerateWithModel: (
     targetMessageId: string,
     providerId: string,
-    model_id: string,
+    modelId: string,
   ) => Promise<void>;
   deleteMessage: (messageId: string) => Promise<void>;
   fetchMessages: (
@@ -275,7 +275,7 @@ export interface ConversationState {
   /** Regenerate the title of a conversation using AI */
   regenerateTitle: (conversationId: string) => Promise<void>;
   /** Companion models pending or currently streaming (for multi-model simultaneous response) */
-  pendingCompanionModels: Array<{ providerId: string; model_id: string }>;
+  pendingCompanionModels: Array<{ providerId: string; modelId: string }>;
   /** User message ID of the current multi-model request (for scoping UI indicators) */
   multiModelParentId: string | null;
   /** Message IDs of models that have completed their streams (for per-model loading indicators) */
@@ -283,7 +283,7 @@ export interface ConversationState {
   /** Send a message and generate responses from multiple companion models */
   sendMultiModelMessage: (
     content: string,
-    companionModels: Array<{ providerId: string; model_id: string }>,
+    companionModels: Array<{ providerId: string; modelId: string }>,
     attachments?: AttachmentInput[],
     searchProviderId?: string | null,
   ) => Promise<void>;
@@ -433,20 +433,20 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       // If backend command doesn't exist yet, add optimistic local message
       const localMsg: Message = {
         id: tempId("ctx-clear-"),
-        conversation_id: conversationId,
+        conversationId: conversationId,
         role: "system",
         content: "<!-- context-clear -->",
-        provider_id: null,
-        model_id: null,
-        token_count: null,
+        providerId: null,
+        modelId: null,
+        tokenCount: null,
         attachments: [],
         thinking: null,
-        tool_calls_json: null,
-        tool_call_id: null,
-        created_at: Date.now(),
-        parent_message_id: null,
-        version_index: 0,
-        is_active: true,
+        toolCallsJson: null,
+        toolCallId: null,
+        createdAt: Date.now(),
+        parentMessageId: null,
+        versionIndex: 0,
+        isActive: true,
         status: "complete",
       };
       set((s) => ({ messages: [...s.messages, localMsg] }));
@@ -530,27 +530,27 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           if (!m.enabled) {
             continue;
           }
-          const modelLower = m.model_id.toLowerCase();
+          const modelLower = m.modelId.toLowerCase();
           const exact = modelLower === keyword;
           // js-set-map-lookups: 子串匹配无法用 Set.has 替代
           const contains = modelLower.includes(keyword);
           if (!exact && !contains) {
             continue;
           }
-          const sameProvider = p.id === conversation.provider_id;
+          const sameProvider = p.id === conversation.providerId;
           const score = exact ? (sameProvider ? 3 : 2) : sameProvider ? 1 : 0;
           if (score > bestScore) {
             bestScore = score;
             bestProviderId = p.id;
-            bestModelId = m.model_id;
+            bestModelId = m.modelId;
           }
         }
       }
 
       if (bestProviderId && bestModelId) {
         await get().updateConversation(conversationId, {
-          provider_id: bestProviderId,
-          model_id: bestModelId,
+          providerId: bestProviderId,
+          modelId: bestModelId,
         });
       }
     } catch (e) {
@@ -700,20 +700,20 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
             // Message not yet in backend — create from buffer
             const newMessage: Message = {
               id: realId,
-              conversation_id: id,
+              conversationId: id,
               role: "assistant",
               content: sessionBuffer!.content,
-              provider_id: null,
-              model_id: null,
-              token_count: null,
+              providerId: null,
+              modelId: null,
+              tokenCount: null,
               attachments: [],
               thinking: sessionBuffer!.thinking || null,
-              tool_calls_json: null,
-              tool_call_id: null,
-              created_at: Date.now(),
-              parent_message_id: null,
-              version_index: 0,
-              is_active: true,
+              toolCallsJson: null,
+              toolCallId: null,
+              createdAt: Date.now(),
+              parentMessageId: null,
+              versionIndex: 0,
+              isActive: true,
               status: "partial",
             };
             useStreamStore.setState({ streamingMessageId: realId });
@@ -757,15 +757,15 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       });
   },
 
-  createConversation: async (title, model_id, providerId, options) => {
+  createConversation: async (title, modelId, providerId, options) => {
     try {
       const category = options?.categoryId
         ? (useCategoryStore
           .getState()
           .categories.find((item) => item.id === options.categoryId) ?? null)
         : null;
-      const templateProviderId = category?.default_provider_id ?? providerId;
-      const templateModelId = category?.default_model_id ?? model_id;
+      const templateProviderId = category?.defaultProviderId ?? providerId;
+      const templateModelId = category?.defaultModelId ?? modelId;
       if (!templateModelId || !templateProviderId) {
         throw new Error(
           "Cannot create conversation: model_id and provider_id are required. Please configure a provider and model first.",
@@ -777,7 +777,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           title,
           modelId: templateModelId,
           providerId: templateProviderId,
-          systemPrompt: options?.system_prompt ?? category?.system_prompt ?? undefined,
+          systemPrompt: options?.systemPrompt ?? category?.systemPrompt ?? undefined,
         },
       );
       let conversation = createdConversation;
@@ -792,10 +792,10 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
                 getPref().getState(),
               ),
               scenario: options?.scenario,
-              agent_profile_id: options?.agent_profile_id,
-              workflow_template_id: options?.workflow_template_id,
+              agentProfileId: options?.agentProfileId,
+              workflowTemplateId: options?.workflowTemplateId,
               mode: options?.mode,
-              work_strategy: options?.work_strategy,
+              workStrategy: options?.workStrategy,
               ...getStagedPreferenceUpdate(),
             },
           },
@@ -999,7 +999,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       useExecutionStore.getState().clearConversation(id);
       usePlanStore.getState().clearActivePlan(id);
       useTrajectoryStore.getState().clearConversation(id);
-      if (updated.is_archived) {
+      if (updated.isArchived) {
         // When archiving the active conversation, suppress sidebar auto-select
         if (get().activeConversationId === id) {
           setSidebarAutoSelectSuppression();
@@ -1104,7 +1104,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     );
     const archived: Conversation[] = [];
     for (const r of results) {
-      if (r.status === "fulfilled" && r.value.is_archived) {
+      if (r.status === "fulfilled" && r.value.isArchived) {
         archived.push(r.value);
       }
     }
@@ -1186,9 +1186,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           messages,
           loading: false,
           loadingOlder: false,
-          hasOlderMessages: page.has_older,
-          totalActiveCount: page.total_active_count,
-          oldestLoadedMessageId: messages[0]?.id ?? page.oldest_message_id,
+          hasOlderMessages: page.hasOlder,
+          totalActiveCount: page.totalActiveCount,
+          oldestLoadedMessageId: messages[0]?.id ?? page.oldestMessageId,
           error: null,
         };
       });
@@ -1261,9 +1261,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       set((s) => ({
         messages: mergeOlderPages(page.messages, s.messages),
         loadingOlder: false,
-        hasOlderMessages: page.has_older,
-        totalActiveCount: page.total_active_count,
-        oldestLoadedMessageId: page.oldest_message_id ?? s.oldestLoadedMessageId,
+        hasOlderMessages: page.hasOlder,
+        totalActiveCount: page.totalActiveCount,
+        oldestLoadedMessageId: page.oldestMessageId ?? s.oldestLoadedMessageId,
         error: null,
       }));
     } catch (e) {
@@ -1295,14 +1295,14 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         // 1. Race conditions with concurrent regenerate_with_model calls
         // 2. invoke delay causing stale content display
         // 3. Potential invoke failures during active streaming
-        // Just swap is_active flags in-memory; backend will be synced during cleanup.
+        // Just swap isActive flags in-memory; backend will be synced during cleanup.
         setUserManuallySelectedVersion(true);
-        // 多模型路径：仅在内存中切换 is_active（与下方正常路径 + catch 路径互斥）
+        // 多模型路径：仅在内存中切换 isActive（与下方正常路径 + catch 路径互斥）
         set((s) => {
           const targetExists = s.messages.some(
             (m) =>
               m.id === messageId
-              && m.parent_message_id === parentMessageId
+              && m.parentMessageId === parentMessageId
               && m.role === "assistant",
           );
           if (!targetExists) {
@@ -1311,14 +1311,14 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           return {
             messages: s.messages.map((m) => {
               if (
-                m.parent_message_id !== parentMessageId
+                m.parentMessageId !== parentMessageId
                 || m.role !== "assistant"
               ) {
                 return m;
               }
               return m.id === messageId
-                ? { ...m, is_active: true }
-                : { ...m, is_active: false };
+                ? { ...m, isActive: true }
+                : { ...m, isActive: false };
             }),
           };
         });
@@ -1332,7 +1332,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       });
 
       // Normal path: fetch all versions from DB and keep them all in store
-      // with correct is_active flags. This preserves multi-model detection
+      // with correct isActive flags. This preserves multi-model detection
       // (multiModelResponseParents) which needs multiple versions visible.
       const versions = await get().listMessageVersions(
         conversationId,
@@ -1344,7 +1344,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           const versionMap = new Map(versions.map((v) => [v.id, v]));
           const existingIds = new Set(
             s.messages.flatMap((m) =>
-              m.parent_message_id === parentMessageId && m.role === "assistant"
+              m.parentMessageId === parentMessageId && m.role === "assistant"
                 ? [m.id]
                 : []
             ),
@@ -1352,21 +1352,21 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           // Update existing versions in-place
           const updatedMessages = s.messages.map((m) => {
             if (
-              m.parent_message_id !== parentMessageId
+              m.parentMessageId !== parentMessageId
               || m.role !== "assistant"
             ) {
               return m;
             }
             const dbVersion = versionMap.get(m.id);
             if (dbVersion) {
-              return { ...dbVersion, is_active: m.id === messageId };
+              return { ...dbVersion, isActive: m.id === messageId };
             }
-            return { ...m, is_active: m.id === messageId };
+            return { ...m, isActive: m.id === messageId };
           });
           // Add any DB versions not already in store
           for (const v of versions) {
             if (!existingIds.has(v.id)) {
-              updatedMessages.push({ ...v, is_active: v.id === messageId });
+              updatedMessages.push({ ...v, isActive: v.id === messageId });
             }
           }
           return { messages: updatedMessages };
@@ -1410,7 +1410,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     if (userMessageId.startsWith("temp-")) {
       set((s) => ({
         messages: s.messages.filter(
-          (m) => m.id !== userMessageId && m.parent_message_id !== userMessageId,
+          (m) => m.id !== userMessageId && m.parentMessageId !== userMessageId,
         ),
       }));
       return;
@@ -1426,7 +1426,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       }
       set((s) => ({
         messages: s.messages.filter(
-          (m) => m.id !== userMessageId && m.parent_message_id !== userMessageId,
+          (m) => m.id !== userMessageId && m.parentMessageId !== userMessageId,
         ),
       }));
     } catch (e) {

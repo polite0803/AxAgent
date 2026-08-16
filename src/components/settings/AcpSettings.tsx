@@ -18,7 +18,7 @@ const DEFAULT_BASE_URL = "http://localhost:9876";
 export function AcpSettings() {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const settingsAcqBaseUrl = useSettingsStore((s) => s.settings.acp_base_url);
+  const settingsAcqBaseUrl = useSettingsStore((s) => s.settings.acpBaseUrl);
   const saveSettings = useSettingsStore((s) => s.saveSettings);
   const [baseUrl, setBaseUrl] = useState(
     () => settingsAcqBaseUrl ?? localStorage.getItem(STORAGE_KEY) ?? DEFAULT_BASE_URL,
@@ -54,7 +54,7 @@ export function AcpSettings() {
     localStorage.setItem(STORAGE_KEY, val);
     setConnected(null);
     // 异步保存到后端 settings，失败仅打日志不影响 UI
-    void saveSettings({ acp_base_url: val }).catch(logIpcError("acp.saveSettings"));
+    void saveSettings({ acpBaseUrl: val }).catch(logIpcError("acp.saveSettings"));
     lastSyncedRef.current = val;
   }, [saveSettings]);
 

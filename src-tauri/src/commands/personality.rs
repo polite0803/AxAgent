@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 use tauri::State;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PersonalityInfo {
     pub name: String,
     pub version: String,
@@ -201,6 +202,7 @@ pub async fn personality_delete(name: String, _state: State<'_, AppState>) -> Re
 
 /// 自动学习结果摘要
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AutoLearnResult {
     /// 是否成功学习（样本数过少时为 false）
     pub learned: bool,

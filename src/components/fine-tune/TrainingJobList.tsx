@@ -84,19 +84,19 @@ export function TrainingJobList() {
         {stats && (
           <div className="grid grid-cols-4 gap-4 mb-4">
             <Card size="small">
-              <div className="text-2xl font-bold">{stats.total_jobs}</div>
+              <div className="text-2xl font-bold">{stats.totalJobs}</div>
               <div className="text-zinc-500">{t("trainingJob.totalJobs")}</div>
             </Card>
             <Card size="small">
-              <div className="text-2xl font-bold">{stats.running_jobs}</div>
+              <div className="text-2xl font-bold">{stats.runningJobs}</div>
               <div className="text-zinc-500">{t("trainingJob.running")}</div>
             </Card>
             <Card size="small">
-              <div className="text-2xl font-bold">{stats.completed_jobs}</div>
+              <div className="text-2xl font-bold">{stats.completedJobs}</div>
               <div className="text-zinc-500">{t("trainingJob.completed")}</div>
             </Card>
             <Card size="small">
-              <div className="text-2xl font-bold">{stats.failed_jobs}</div>
+              <div className="text-2xl font-bold">{stats.failedJobs}</div>
               <div className="text-zinc-500">{t("trainingJob.failed")}</div>
             </Card>
           </div>
@@ -123,34 +123,34 @@ export function TrainingJobList() {
           />
           <Column
             title={t("trainingJob.baseModel")}
-            dataIndex="base_model"
-            key="base_model"
+            dataIndex="baseModel"
+            key="baseModel"
           />
           <Column
             title={t("trainingJob.datasetId")}
-            dataIndex="dataset_id"
-            key="dataset_id"
+            dataIndex="datasetId"
+            key="datasetId"
           />
           <Column
             title={t("trainingJob.progress")}
             key="progress"
-            render={(_: unknown, record: { progress_percent: number }) => (
+            render={(_: unknown, record: { progressPercent: number }) => (
               <Progress
-                percent={Math.round(record.progress_percent)}
+                percent={Math.round(record.progressPercent)}
                 size="small"
               />
             )}
           />
           <Column
             title={t("trainingJob.loss")}
-            dataIndex="current_loss"
-            key="current_loss"
+            dataIndex="currentLoss"
+            key="currentLoss"
             render={(loss: number) => (loss > 0 ? loss.toFixed(4) : "-")}
           />
           <Column
             title={t("trainingJob.loraOutput")}
-            dataIndex="output_lora"
-            key="output_lora"
+            dataIndex="outputLora"
+            key="outputLora"
             render={(lora: string | null) => lora ? <Tag color="green">{t("trainingJob.ready")}</Tag> : "-"}
           />
           <Column

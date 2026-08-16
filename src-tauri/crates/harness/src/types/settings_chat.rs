@@ -493,6 +493,7 @@ pub struct ChatStreamChunk {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ChatStreamEvent {
     pub conversation_id: String,
     pub message_id: String,
@@ -504,6 +505,7 @@ pub struct ChatStreamEvent {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ChatStreamErrorEvent {
     pub conversation_id: String,
     pub message_id: String,

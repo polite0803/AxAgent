@@ -18,9 +18,9 @@ export default defineConfig({
     screenshot: "only-on-failure",
     ...(process.env.PW_EXECUTABLE_PATH
       ? { executablePath: process.env.PW_EXECUTABLE_PATH }
-      : {
-        channel: process.env.PW_CHANNEL || (process.env.CI ? "chrome" : undefined),
-      }),
+      : process.env.PW_CHANNEL
+      ? { channel: process.env.PW_CHANNEL }
+      : {}),
   },
 
   projects: [
@@ -30,7 +30,9 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
         ...(process.env.PW_EXECUTABLE_PATH
           ? { executablePath: process.env.PW_EXECUTABLE_PATH }
-          : { channel: process.env.PW_CHANNEL || (process.env.CI ? "chrome" : undefined) }),
+          : process.env.PW_CHANNEL
+          ? { channel: process.env.PW_CHANNEL }
+          : {}),
       },
     },
   ],

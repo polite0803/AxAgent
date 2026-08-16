@@ -14,6 +14,7 @@ use uuid::Uuid;
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SubAgent {
     pub id: String,
     pub parent_id: Option<String>,
@@ -41,6 +42,7 @@ pub enum SubAgentStatus {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SubAgentMetadata {
     pub agent_type: String,
     pub capabilities: Vec<String>,

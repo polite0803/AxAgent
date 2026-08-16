@@ -150,11 +150,11 @@ export function ExecutionReplayPanel() {
                     {e.id.slice(0, 8)}
                   </span>
                   <span className="text-gray-400 shrink-0" style={{ fontSize: 10 }}>
-                    {formatDate(e.created_at)}
+                    {formatDate(e.createdAt)}
                   </span>
-                  {e.total_time_ms != null && (
+                  {e.totalTimeMs != null && (
                     <span className="text-gray-400 shrink-0" style={{ fontSize: 10 }}>
-                      {formatMs(e.total_time_ms)}
+                      {formatMs(e.totalTimeMs)}
                     </span>
                   )}
                 </button>
@@ -169,7 +169,7 @@ export function ExecutionReplayPanel() {
                   ? (
                     <Timeline
                       items={[
-                        ...(status.node_records ?? []).map((r) => ({
+                        ...(status.nodeRecords ?? []).map((r) => ({
                           color: STATUS_COLOR[r.status] ?? "gray",
                           dot: STATUS_ICON[r.status] ?? <Clock size={14} />,
                           children: (
@@ -179,13 +179,13 @@ export function ExecutionReplayPanel() {
                                   color={STATUS_COLOR[r.status] as string}
                                   className="shrink-0"
                                 />
-                                <span className="font-medium truncate">{r.node_name ?? r.node_id}</span>
+                                <span className="font-medium truncate">{r.nodeName ?? r.nodeId}</span>
                                 <Tag className="text-xs m-0 leading-none" style={{ fontSize: 10, padding: "0 3px" }}>
-                                  {r.node_type}
+                                  {r.nodeType}
                                 </Tag>
                               </div>
-                              {r.execution_time_ms != null && (
-                                <span className="text-gray-400">{formatMs(r.execution_time_ms)}</span>
+                              {r.executionTimeMs != null && (
+                                <span className="text-gray-400">{formatMs(r.executionTimeMs)}</span>
                               )}
                               {r.error && <span className="text-red-400 truncate text-xs">{r.error}</span>}
                             </div>
@@ -202,9 +202,9 @@ export function ExecutionReplayPanel() {
                             <span className="font-medium" style={{ fontSize: 11 }}>
                               {t("workEngine.status")}: {status.status}
                               {" · "}
-                              {status.node_count} {t("stockAnalysis.execution.nodes")}
+                              {status.nodeCount} {t("stockAnalysis.execution.nodes")}
                               {" · "}
-                              {status.total_time_ms != null ? formatMs(status.total_time_ms) : "-"}
+                              {status.totalTimeMs != null ? formatMs(status.totalTimeMs) : "-"}
                             </span>
                           ),
                         },

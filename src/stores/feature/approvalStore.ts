@@ -43,9 +43,9 @@ export const useApprovalStore = create<ApprovalStore>((set, get) => ({
   resumeApproval: async (_executionId, approvalId, decision, decidedBy, note) => {
     try {
       const result = await invoke<boolean>("resume_approval", {
-        approvalId,
+        approval_id: approvalId,
         decision,
-        decidedBy: decidedBy ?? "frontend",
+        decided_by: decidedBy ?? "frontend",
         note: note ?? null,
       });
       if (result) {
@@ -62,7 +62,7 @@ export const useApprovalStore = create<ApprovalStore>((set, get) => ({
   cancelApproval: async (_executionId, approvalId, _cancelledBy) => {
     try {
       const result = await invoke<boolean>("cancel_approval", {
-        approvalId,
+        approval_id: approvalId,
       });
       if (result) {
         get().fetchPendingApprovals();

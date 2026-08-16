@@ -353,7 +353,7 @@ export function LocalModelPanel({
       // 启动成功后同步 api_host 到 provider，确保后续 API 调用使用正确地址
       const newApiHost = `http://${startConfig.host}:${startConfig.port}`;
       if (newApiHost !== apiHost) {
-        updateProvider(providerId, { api_host: newApiHost });
+        updateProvider(providerId, { apiHost: newApiHost });
       }
       message.success(t("settings.localModel.startSuccess"));
       setStartModalOpen(false);

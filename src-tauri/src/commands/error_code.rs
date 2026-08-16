@@ -60,6 +60,8 @@ pub mod tool {
     pub const SSE_NO_ENDPOINT: &str = "TOOL_SSE_NO_ENDPOINT";
     /// 不支持的传输类型
     pub const TRANSPORT_UNSUPPORTED: &str = "TOOL_TRANSPORT_UNSUPPORTED";
+    /// 工具重复注册（运行时动态注册时与已有工具同名）
+    pub const REGISTRATION_DUPLICATE: &str = "TOOL_REGISTRATION_DUPLICATE";
 }
 
 /// MCP服务器相关错误码
@@ -680,6 +682,8 @@ pub mod capability {
     pub const STATS_FAILED: &str = "CAPABILITY_STATS_FAILED";
     /// 元数据恢复失败
     pub const METADATA_RESTORE_FAILED: &str = "CAPABILITY_METADATA_RESTORE_FAILED";
+    /// 能力进化失败
+    pub const EVOLVE_FAILED: &str = "CAPABILITY_EVOLVE_FAILED";
 }
 
 /// 用户提问通道已关闭错误码

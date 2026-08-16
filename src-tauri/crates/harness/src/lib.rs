@@ -280,6 +280,10 @@ pub mod rhai_ast_cache;
 pub mod rhai_engine;
 pub use rhai_ast_cache::{cache_size, get_or_compile_ast};
 
+// ── 技能侧反思钩子（自我进化通道二：能力偏弱进化改进）──
+pub mod skill_evolution_hook;
+pub use skill_evolution_hook::SkillEvolutionHook;
+
 // ── 可逆效果原语（一切皆插件：注册即记录、卸载即回滚）──
 pub mod reversible_effect;
 pub use reversible_effect::{EffectHandle, EffectScope, NamedEffect, ReversibleEffect};
@@ -419,7 +423,7 @@ pub use url_utils::{
 };
 
 // ── PromptGuard 契约重导出 ──
-pub use prompt_guard::{PatternPromptGuard, PromptGuard};
+pub use prompt_guard::{PatternPromptGuard, PromptGuard, PromptRejection};
 
 // ── SessionTracer 契约重导出 ──
 pub use session_tracer::SessionTracer;
@@ -504,6 +508,14 @@ pub use runtime_types::hooks::HookEvent;
 // ── PermissionChecker 契约顶层 re-export(供 NodeDispatcher / 工作流节点权限检查) ──
 pub use runtime_types::permission_enforcer::{EnforcementResult, PermissionChecker};
 
+// ── 能力补齐提议契约顶层 re-export(供认知编排器双通道闭环消费) ──
+pub use runtime_types::capability_gap::{
+    CapabilityGapProposal, CapabilityGapType, PromptAttackCategory,
+};
+
+// ── 运行时变异接口顶层 re-export(供自指工具与 wiring 层消费) ──
+pub use runtime_types::runtime_mutation::{MutationResult, RuntimeMutationAccess};
+
 // ── 多 Agent 协作契约(Swarm/Debate/SharedBlackboard 统一抽象) ──
 pub mod multi_agent;
 pub use multi_agent::{
@@ -587,9 +599,10 @@ pub use workflow_reflection::{
 };
 pub mod workflow_evolution;
 pub use workflow_evolution::{
-    EvolutionConfig, EvolutionPopulation, EvolutionStats, GenomeChange, GenomePosition,
-    SandboxValidationResult, WorkflowEvolver, WorkflowGenome, WorkflowGenomeLoader,
-    WorkflowLlmMutator, WorkflowModification, WorkflowSandbox,
+    EvolutionArtifactValidator, EvolutionConfig, EvolutionPopulation, EvolutionStats, GenomeChange,
+    GenomePosition, SandboxValidationResult, WorkflowDagExecutor, WorkflowEvolver, WorkflowGenome,
+    WorkflowGenomeLoader, WorkflowLlmMutator, WorkflowModification, WorkflowSandbox,
+    workflow_genome_from_generated,
 };
 pub mod workflow_optimization;
 pub use workflow_optimization::{
@@ -634,9 +647,9 @@ pub use indexer::{ChunkProvider, DocumentChunk, DocumentIndexer, IndexConfig, In
 // ── 能力发现契约（Capability Discovery Pipeline） ──
 pub mod capability;
 pub use capability::{
-    CallerPermissions, CapabilityDomain, CapabilityKind, CapabilityPassport, CapabilityPassportDto,
-    CapabilityStats, DiscoveryWeights, InputModality, ModalitySupport, OutputCapabilities,
-    PlanningComplexity, SecurityLevel, SessionBudget, Visibility,
+    CallerPermissions, CapabilityDomain, CapabilityKind, CapabilityLevel, CapabilityPassport,
+    CapabilityPassportDto, CapabilityStats, DiscoveryWeights, InputModality, ModalitySupport,
+    OutputCapabilities, PlanningComplexity, SecurityLevel, SessionBudget, Visibility,
 };
 pub mod capability_indexer;
 pub use capability_indexer::{

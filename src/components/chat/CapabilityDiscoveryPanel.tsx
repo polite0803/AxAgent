@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { useCapabilityStore } from "@/stores";
-import type { CapabilityPassportDto } from "@/types";
-import { Button, Card, Collapse, Empty, Input, Skeleton, Space, Tag, theme, Typography } from "antd";
-import { Database, RefreshCw, Search, ShieldCheck, Tag as TagIcon, Zap } from "lucide-react";
+import type { CapabilityLevel, CapabilityPassportDto } from "@/types";
+import { Button, Card, Collapse, Empty, Input, message, Skeleton, Space, Tag, theme, Typography } from "antd";
+import { Database, RefreshCw, Rocket, Search, ShieldCheck, Tag as TagIcon, Zap } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
-/** 能力护照 → 展示分类 key（agent 按 sub_category 细分为角色/专家） */
+/** 能力护照 → 展示分类 key（agent 按 subCategory 细分为角色/专家） */
 function passportKindKey(p: CapabilityPassportDto): string {
   return p.kind === "agent"
-    ? p.sub_category === "agent_role" ? "agent_role" : "agent_profile"
+    ? p.subCategory === "agent_role" ? "agent_role" : "agent_profile"
     : p.kind;
 }
 
@@ -24,6 +24,21 @@ const KIND_COLORS: Record<string, string> = {
   agent_role: "cyan",
   agent_profile: "geekblue",
 };
+
+/** 能力等级 → 标签颜色（低等级偏红警示，高等级偏青/紫成熟） */
+const LEVEL_COLORS: Record<CapabilityLevel, string> = {
+  l1: "red",
+  l2: "orange",
+  l3: "gold",
+  l4: "green",
+  l5: "cyan",
+};
+
+/** 是否支持一键进化：低等级（L1/L2）且载体为技能/工作流/Agent（角色与专家） */
+function canEvolve(p: CapabilityPassportDto): boolean {
+  return (p.level === "l1" || p.level === "l2")
+    && (p.kind === "skill" || p.kind === "workflow" || p.kind === "agent");
+}
 
 /** 能力发现面板：展示能力索引统计、已注册护照，并支持输入查询触发能力发现 */
 export function CapabilityDiscoveryPanel() {
@@ -38,8 +53,10 @@ export function CapabilityDiscoveryPanel() {
   const listPassports = useCapabilityStore((s) => s.listPassports);
   const getStats = useCapabilityStore((s) => s.getStats);
   const discover = useCapabilityStore((s) => s.discover);
+  const evolveCapability = useCapabilityStore((s) => s.evolveCapability);
 
   const [query, setQuery] = useState("");
+  const [evolvingId, setEvolvingId] = useState<string | null>(null);
 
   useEffect(() => {
     void listPassports();
@@ -58,6 +75,23 @@ export function CapabilityDiscoveryPanel() {
     void getStats();
   };
 
+  const handleEvolve = async (p: CapabilityPassportDto) => {
+    if (evolvingId) {
+      return;
+    }
+    setEvolvingId(p.capabilityId);
+    try {
+      const result = await evolveCapability({ capabilityId: p.capabilityId });
+      message.success(
+        t("capabilityPanel.evolveSuccess", { level: levelLabel(result.newLevel) }),
+      );
+    } catch {
+      message.error(t("capabilityPanel.evolveFailed"));
+    } finally {
+      setEvolvingId(null);
+    }
+  };
+
   const kindCount = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const p of passports) {
@@ -72,6 +106,21 @@ export function CapabilityDiscoveryPanel() {
     const label = t(`capabilityPanel.kind.${key}`);
     return label === `capabilityPanel.kind.${key}` ? key : label;
   };
+
+  /** 等级 key → 友好名称（如「L1 · 未成熟」，未命中翻译时回退为大写 Lx） */
+  const levelLabel = (level: CapabilityLevel): string => {
+    const label = t(`capabilityPanel.level.${level}`);
+    return label === `capabilityPanel.level.${level}` ? level.toUpperCase() : label;
+  };
+
+  const levelTag = (level: CapabilityLevel) => (
+    <Tag
+      color={LEVEL_COLORS[level]}
+      style={{ fontSize: 10, marginInlineEnd: 0, lineHeight: "16px" }}
+    >
+      {levelLabel(level)}
+    </Tag>
+  );
 
   return (
     <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
@@ -101,25 +150,25 @@ export function CapabilityDiscoveryPanel() {
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   {t("capabilityPanel.totalCapabilities")}
                 </Text>
-                <Text strong style={{ fontSize: 12 }}>{stats.total_capabilities}</Text>
+                <Text strong style={{ fontSize: 12 }}>{stats.totalCapabilities}</Text>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   {t("capabilityPanel.totalVectors")}
                 </Text>
-                <Text strong style={{ fontSize: 12 }}>{stats.total_vectors}</Text>
+                <Text strong style={{ fontSize: 12 }}>{stats.totalVectors}</Text>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   {t("capabilityPanel.positiveVectors")}
                 </Text>
-                <Text strong style={{ fontSize: 12 }}>{stats.positive_vectors}</Text>
+                <Text strong style={{ fontSize: 12 }}>{stats.positiveVectors}</Text>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   {t("capabilityPanel.negativeVectors")}
                 </Text>
-                <Text strong style={{ fontSize: 12 }}>{stats.negative_vectors}</Text>
+                <Text strong style={{ fontSize: 12 }}>{stats.negativeVectors}</Text>
               </div>
             </Space>
           )
@@ -169,7 +218,7 @@ export function CapabilityDiscoveryPanel() {
             <Text strong style={{ fontSize: 12.5, display: "block", marginBottom: 6 }}>
               {t("capabilityPanel.discoverResult")}
             </Text>
-            {discoveryResult.primary_match
+            {discoveryResult.primaryMatch
               ? (
                 <div
                   style={{
@@ -181,20 +230,21 @@ export function CapabilityDiscoveryPanel() {
                   }}
                 >
                   <Text strong style={{ fontSize: 12.5, display: "block" }}>
-                    {discoveryResult.primary_match.passport.name}
+                    {discoveryResult.primaryMatch.passport.name}
                   </Text>
                   <Text type="secondary" style={{ fontSize: 12, display: "block", marginTop: 2 }}>
-                    {discoveryResult.primary_match.passport.capability_id}
+                    {discoveryResult.primaryMatch.passport.capabilityId}
                   </Text>
                   <Space size={4} style={{ marginTop: 4 }} wrap>
                     <Tag
-                      color={KIND_COLORS[passportKindKey(discoveryResult.primary_match.passport)]}
+                      color={KIND_COLORS[passportKindKey(discoveryResult.primaryMatch.passport)]}
                       style={{ fontSize: 11 }}
                     >
-                      {kindLabel(passportKindKey(discoveryResult.primary_match.passport))}
+                      {kindLabel(passportKindKey(discoveryResult.primaryMatch.passport))}
                     </Tag>
+                    {levelTag(discoveryResult.primaryMatch.passport.level)}
                     <Tag style={{ fontSize: 11 }}>
-                      {t("capabilityPanel.score")}: {Math.round(discoveryResult.primary_match.final_score * 100)}%
+                      {t("capabilityPanel.score")}: {Math.round(discoveryResult.primaryMatch.finalScore * 100)}%
                     </Tag>
                   </Space>
                 </div>
@@ -219,15 +269,20 @@ export function CapabilityDiscoveryPanel() {
               <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 4 }}>
                 {discoveryResult.alternatives.map((alt) => (
                   <div
-                    key={alt.passport.capability_id}
+                    key={alt.passport.capabilityId}
                     style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 8,
                       fontSize: 12,
                       padding: "4px 8px",
                       borderRadius: 6,
                       backgroundColor: token.colorBgLayout,
                     }}
                   >
-                    {alt.passport.name}
+                    <Text style={{ fontSize: 12 }}>{alt.passport.name}</Text>
+                    {levelTag(alt.passport.level)}
                   </div>
                 ))}
               </div>
@@ -291,17 +346,18 @@ export function CapabilityDiscoveryPanel() {
             size="small"
             style={{ marginTop: 8 }}
             items={passports.slice(0, 20).map((p) => ({
-              key: p.capability_id,
+              key: p.capabilityId,
               label: (
-                <Space size={6}>
+                <Space size={6} wrap>
                   <TagIcon size={11} style={{ color: token.colorTextTertiary }} />
                   <Text style={{ fontSize: 12.5 }}>{p.name}</Text>
+                  {levelTag(p.level)}
                 </Space>
               ),
               children: (
                 <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                   <Text type="secondary" style={{ fontSize: 11, wordBreak: "break-all" }}>
-                    {p.capability_id}
+                    {p.capabilityId}
                   </Text>
                   {p.description && (
                     <Text type="secondary" style={{ fontSize: 11.5, lineHeight: 1.5 }}>
@@ -317,6 +373,19 @@ export function CapabilityDiscoveryPanel() {
                       {p.enabled ? t("capabilityPanel.enabled") : t("capabilityPanel.disabled")}
                     </Tag>
                   </Space>
+                  {canEvolve(p) && (
+                    <Button
+                      type="link"
+                      size="small"
+                      style={{ padding: 0, fontSize: 11.5, alignSelf: "flex-start" }}
+                      icon={<Rocket size={11} />}
+                      loading={evolvingId === p.capabilityId}
+                      disabled={evolvingId !== null}
+                      onClick={() => void handleEvolve(p)}
+                    >
+                      {t("capabilityPanel.evolve")}
+                    </Button>
+                  )}
                 </div>
               ),
             }))}

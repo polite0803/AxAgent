@@ -45,11 +45,11 @@ export function DeleteLastVersionPopover({
       if (msg.id.startsWith("temp-")) {
         useConversationStore.setState((s) => ({
           messages: s.messages.filter(
-            (m) => m.id !== msg.id && m.parent_message_id !== msg.id,
+            (m) => m.id !== msg.id && m.parentMessageId !== msg.id,
           ),
         }));
-      } else if (msg.parent_message_id) {
-        await deleteMessageGroup(conversationId, msg.parent_message_id);
+      } else if (msg.parentMessageId) {
+        await deleteMessageGroup(conversationId, msg.parentMessageId);
       }
     } catch (e) {
       messageApi.error(String(e));

@@ -55,13 +55,13 @@ function PermissionEditModal({
 
   useEffect(() => {
     if (permissions) {
-      setTrustLevel(permissions.trust_level);
-      setAllowPush(permissions.allow_push);
-      setAllowPull(permissions.allow_pull);
-      setAllowFullSync(permissions.allow_full_sync);
-      setAllowResolveConflicts(permissions.allow_resolve_conflicts);
-      setAllowManageDevices(permissions.allow_manage_devices);
-      setAllowModifyPolicy(permissions.allow_modify_policy);
+      setTrustLevel(permissions.trustLevel);
+      setAllowPush(permissions.allowPush);
+      setAllowPull(permissions.allowPull);
+      setAllowFullSync(permissions.allowFullSync);
+      setAllowResolveConflicts(permissions.allowResolveConflicts);
+      setAllowManageDevices(permissions.allowManageDevices);
+      setAllowModifyPolicy(permissions.allowModifyPolicy);
     }
   }, [permissions]);
 
@@ -70,13 +70,13 @@ function PermissionEditModal({
     setSaving(true);
     try {
       const update: PermissionUpdate = {
-        trust_level: trustLevel as DevicePermissions["trust_level"],
-        allow_push: allowPush,
-        allow_pull: allowPull,
-        allow_full_sync: allowFullSync,
-        allow_resolve_conflicts: allowResolveConflicts,
-        allow_manage_devices: allowManageDevices,
-        allow_modify_policy: allowModifyPolicy,
+        trustLevel: trustLevel as DevicePermissions["trustLevel"],
+        allowPush: allowPush,
+        allowPull: allowPull,
+        allowFullSync: allowFullSync,
+        allowResolveConflicts: allowResolveConflicts,
+        allowManageDevices: allowManageDevices,
+        allowModifyPolicy: allowModifyPolicy,
       };
       await onSave(update);
       onClose();
@@ -105,7 +105,7 @@ function PermissionEditModal({
         <>
           <Descriptions column={1} size="small" bordered style={{ marginBottom: 16 }}>
             <Descriptions.Item label={t("deviceSync.deviceId")}>
-              <Text code>{permissions.device_id}</Text>
+              <Text code>{permissions.deviceId}</Text>
             </Descriptions.Item>
           </Descriptions>
 
@@ -193,7 +193,7 @@ export function DevicePermissionsPanel() {
     if (!editingPermissions) { return; }
     try {
       await deviceSyncStore.updateDevicePermissions(
-        editingPermissions.device_id,
+        editingPermissions.deviceId,
         update,
       );
       message.success(t("deviceSync.permissionSaved"));
@@ -209,14 +209,14 @@ export function DevicePermissionsPanel() {
   const columns = [
     {
       title: t("deviceSync.deviceId"),
-      dataIndex: "device_id",
-      key: "device_id",
+      dataIndex: "deviceId",
+      key: "deviceId",
       render: (id: string) => <Text code>{id}</Text>,
     },
     {
       title: t("deviceSync.trustLevel"),
-      dataIndex: "trust_level",
-      key: "trust_level",
+      dataIndex: "trustLevel",
+      key: "trustLevel",
       width: 120,
       render: (level: string) => {
         const opt = getTrustLevelOptions(t).find((o) => o.value === level);
@@ -228,12 +228,12 @@ export function DevicePermissionsPanel() {
       key: "permissions",
       render: (_: unknown, record: DevicePermissions) => (
         <Space size={4}>
-          {record.allow_push && <Tag color="blue">Push</Tag>}
-          {record.allow_pull && <Tag color="green">Pull</Tag>}
-          {record.allow_full_sync && <Tag color="red">Full Sync</Tag>}
-          {record.allow_resolve_conflicts && <Tag color="purple">Resolve</Tag>}
-          {record.allow_manage_devices && <Tag color="orange">Manage</Tag>}
-          {record.allow_modify_policy && <Tag color="cyan">Policy</Tag>}
+          {record.allowPush && <Tag color="blue">Push</Tag>}
+          {record.allowPull && <Tag color="green">Pull</Tag>}
+          {record.allowFullSync && <Tag color="red">Full Sync</Tag>}
+          {record.allowResolveConflicts && <Tag color="purple">Resolve</Tag>}
+          {record.allowManageDevices && <Tag color="orange">Manage</Tag>}
+          {record.allowModifyPolicy && <Tag color="cyan">Policy</Tag>}
         </Space>
       ),
     },
@@ -293,7 +293,7 @@ export function DevicePermissionsPanel() {
           <Table
             columns={columns}
             dataSource={permissionsList}
-            rowKey="device_id"
+            rowKey="deviceId"
             size="small"
             pagination={false}
           />

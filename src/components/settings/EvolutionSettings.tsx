@@ -3,7 +3,24 @@
 import { EngineDetailPanel } from "@/components/settings/EngineDetailPanel";
 import { useEvolutionStore } from "@/stores/feature/evolutionStore";
 import type { EngineStatus } from "@/stores/feature/evolutionStore";
-import { Badge, Button, Card, Col, Empty, Row, Space, Statistic, Switch, Typography } from "antd";
+import type { RuntimeToolInfo } from "@/types";
+import {
+  Badge,
+  Button,
+  Card,
+  Col,
+  Empty,
+  message,
+  Popconfirm,
+  Row,
+  Space,
+  Statistic,
+  Switch,
+  Table,
+  Tag,
+  Typography,
+} from "antd";
+import type { ColumnsType } from "antd/es/table";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -34,8 +51,14 @@ export function EvolutionSettings() {
   const fetchAllEngineStatus = useEvolutionStore((s) => s.fetchAllEngineStatus);
   const startEngine = useEvolutionStore((s) => s.startEngine);
   const stopEngine = useEvolutionStore((s) => s.stopEngine);
+  // 阶段二 T2.5：运行时动态工具管理
+  const runtimeTools = useEvolutionStore((s) => s.runtimeTools);
+  const listRuntimeTools = useEvolutionStore((s) => s.listRuntimeTools);
+  const unregisterRuntimeTool = useEvolutionStore((s) => s.unregisterRuntimeTool);
 
   const [detailEngine, setDetailEngine] = useState<string | null>(null);
+  const [runtimeLoading, setRuntimeLoading] = useState(false);
+  const [unloadingName, setUnloadingName] = useState<string | null>(null);
 
   // S-P1-1: 添加错误处理
   useEffect(() => {
@@ -43,6 +66,91 @@ export function EvolutionSettings() {
       // store 内部已降级使用 mock 数据
     });
   }, [fetchAllEngineStatus]);
+
+  // 阶段二 T2.5：挂载时加载运行时动态工具列表
+  useEffect(() => {
+    listRuntimeTools().catch(() => {
+      // store 内部已降级使用 mock 数据
+    });
+  }, [listRuntimeTools]);
+
+  const refreshRuntimeTools = useCallback(async () => {
+    setRuntimeLoading(true);
+    try {
+      await listRuntimeTools();
+    } finally {
+      setRuntimeLoading(false);
+    }
+  }, [listRuntimeTools]);
+
+  const handleUnregister = useCallback(
+    async (name: string) => {
+      setUnloadingName(name);
+      try {
+        await unregisterRuntimeTool(name);
+        message.success(t("settings.evolution.runtimeTools.unloadSuccess", { name }));
+      } catch {
+        message.error(t("settings.evolution.runtimeTools.unloadFail", { name }));
+      } finally {
+        setUnloadingName(null);
+      }
+    },
+    [unregisterRuntimeTool, t],
+  );
+
+  // 运行时工具表列定义
+  const runtimeColumns: ColumnsType<RuntimeToolInfo> = [
+    {
+      title: t("settings.evolution.runtimeTools.name"),
+      dataIndex: "name",
+      key: "name",
+      render: (name: string) => <Text code>{name}</Text>,
+    },
+    {
+      title: t("settings.evolution.runtimeTools.source"),
+      dataIndex: "source",
+      key: "source",
+      width: 180,
+      render: (source: string) => {
+        const isSystem = source === "system_evolution";
+        return (
+          <Tag color={isSystem ? "purple" : "blue"}>
+            {isSystem
+              ? t("settings.evolution.runtimeTools.sourceSystem")
+              : t("settings.evolution.runtimeTools.sourceEvolved")}
+          </Tag>
+        );
+      },
+    },
+    {
+      title: t("settings.evolution.runtimeTools.action"),
+      key: "action",
+      width: 120,
+      align: "right",
+      render: (_, record) => {
+        // 自指工具（system_evolution）为系统内建能力，不可卸载，仅展示
+        if (record.source === "system_evolution") {
+          return (
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {t("settings.evolution.runtimeTools.builtin")}
+            </Text>
+          );
+        }
+        return (
+          <Popconfirm
+            title={t("settings.evolution.runtimeTools.unloadConfirm", { name: record.name })}
+            okText={t("common.confirm")}
+            cancelText={t("common.cancel")}
+            onConfirm={() => handleUnregister(record.name)}
+          >
+            <Button danger size="small" loading={unloadingName === record.name}>
+              {t("settings.evolution.runtimeTools.unload")}
+            </Button>
+          </Popconfirm>
+        );
+      },
+    },
+  ];
 
   const engineList = Object.values(engines);
   const runningCount = engineList.filter((e) => e.running).length;
@@ -177,6 +285,42 @@ export function EvolutionSettings() {
             })}
           </Row>
         )}
+
+      {/* ── 阶段二 T2.5：运行时动态工具管理 ── */}
+      <Card
+        size="small"
+        style={{ marginTop: 16 }}
+        title={
+          <Space size={8}>
+            <span>{t("settings.evolution.runtimeTools.title")}</span>
+            <Tag color="purple" style={{ margin: 0 }}>
+              {t("settings.evolution.runtimeTools.systemChannel")}
+            </Tag>
+          </Space>
+        }
+        extra={
+          <Button size="small" onClick={refreshRuntimeTools} loading={runtimeLoading}>
+            {t("settings.evolution.refresh")}
+          </Button>
+        }
+      >
+        <Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 12 }}>
+          {t("settings.evolution.runtimeTools.desc")}
+        </Paragraph>
+        <Table<RuntimeToolInfo>
+          rowKey="name"
+          size="small"
+          columns={runtimeColumns}
+          dataSource={runtimeTools}
+          loading={runtimeLoading}
+          pagination={false}
+          locale={{
+            emptyText: (
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("settings.evolution.runtimeTools.empty")} />
+            ),
+          }}
+        />
+      </Card>
 
       {/* Detail drawer */}
       {detailEngine && (

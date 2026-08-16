@@ -69,8 +69,8 @@ function buildSpanTree(spans: Span[]): SpanTreeNode[] {
 
   spans.forEach((span) => {
     const node = spanMap.get(span.id)!;
-    if (span.parent_span_id) {
-      const parent = spanMap.get(span.parent_span_id);
+    if (span.parentSpanId) {
+      const parent = spanMap.get(span.parentSpanId);
       if (parent) {
         parent.children.push(node);
       } else {
@@ -120,29 +120,29 @@ export const useTracerStore = create<TracerState>((set, get) => ({
       }
       const tree = buildSpanTree(traceExport.spans);
       const metrics: TraceMetrics = {
-        total_duration_ms: traceExport.metadata.total_duration_ms,
-        ttft_ms: undefined,
+        totalDurationMs: traceExport.metadata.totalDurationMs,
+        ttftMs: undefined,
         cost: {
-          total_tokens: traceExport.metadata.total_tokens,
-          input_tokens: 0,
-          output_tokens: 0,
-          cache_creation_tokens: 0,
-          cache_read_tokens: 0,
-          total_cost_usd: traceExport.metadata.total_cost_usd,
+          totalTokens: traceExport.metadata.totalTokens,
+          inputTokens: 0,
+          outputTokens: 0,
+          cacheCreationTokens: 0,
+          cacheReadTokens: 0,
+          totalCostUsd: traceExport.metadata.totalCostUsd,
           model: traceExport.metadata.model,
         },
-        spans_count: traceExport.spans.length,
-        errors_count: traceExport.spans.filter((s) => s.status === "error").length,
+        spansCount: traceExport.spans.length,
+        errorsCount: traceExport.spans.filter((s) => s.status === "error").length,
       };
       const summary: TraceSummary = {
-        trace_id: traceExport.trace_id,
-        session_id: traceExport.metadata.session_id,
-        started_at: traceExport.spans[0]?.start_time || traceExport.exported_at,
-        duration_ms: traceExport.metadata.total_duration_ms,
-        span_count: traceExport.spans.length,
-        error_count: traceExport.spans.filter((s) => s.status === "error").length,
-        total_tokens: traceExport.metadata.total_tokens,
-        total_cost_usd: traceExport.metadata.total_cost_usd,
+        traceId: traceExport.traceId,
+        sessionId: traceExport.metadata.sessionId,
+        startedAt: traceExport.spans[0]?.startTime || traceExport.exportedAt,
+        durationMs: traceExport.metadata.totalDurationMs,
+        spanCount: traceExport.spans.length,
+        errorCount: traceExport.spans.filter((s) => s.status === "error").length,
+        totalTokens: traceExport.metadata.totalTokens,
+        totalCostUsd: traceExport.metadata.totalCostUsd,
       };
       set({
         selectedTrace: { trace: traceExport, summary, metrics, tree },
@@ -198,7 +198,7 @@ export const useTracerStore = create<TracerState>((set, get) => ({
   exportTrace: async (traceId: string, format: "json" | "csv") => {
     set({ isLoading: true, error: null });
     try {
-      await invoke("tracer_export_traces", { traceIds: [traceId], format });
+      await invoke("tracer_export_traces", { trace_ids: [traceId], format });
       set({ isLoading: false });
     } catch (error) {
       set({
@@ -212,9 +212,9 @@ export const useTracerStore = create<TracerState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       await invoke("tracer_delete_trace", { traceId });
-      const traces = get().traces.filter((t) => t.trace_id !== traceId);
+      const traces = get().traces.filter((t) => t.traceId !== traceId);
       set({ traces, isLoading: false });
-      if (get().selectedTrace?.trace.trace_id === traceId) {
+      if (get().selectedTrace?.trace.traceId === traceId) {
         set({ selectedTrace: null, tree: [], metrics: null });
       }
     } catch (error) {
@@ -254,28 +254,30 @@ export const useTracerStore = create<TracerState>((set, get) => ({
   }) => {
     try {
       await invoke("tracer_record_span", {
-        trace_id: params.traceId,
-        span: {
-          span_type: "llm_call",
-          parent_span_id: params.parentSpanId || null,
-          name: `llm:${params.modelId}`,
-          start_time: new Date(Date.now() - params.durationMs).toISOString(),
-          end_time: new Date().toISOString(),
-          duration_ms: params.durationMs,
-          status: "ok",
-          attributes: {
-            model_id: params.modelId,
-            provider_id: params.providerId,
-            input_tokens: params.inputTokens,
-            output_tokens: params.outputTokens,
-            total_tokens: params.inputTokens + params.outputTokens,
-            cost_usd: params.costUsd,
-            cache_hit: params.cacheHit,
-            fallback_used: params.fallbackUsed,
-            fallback_model_id: params.fallbackModelId || null,
+        request: {
+          traceId: params.traceId,
+          span: {
+            spanType: "llm_call",
+            parentSpanId: params.parentSpanId || null,
+            name: `llm:${params.modelId}`,
+            startTime: new Date(Date.now() - params.durationMs).toISOString(),
+            endTime: new Date().toISOString(),
+            durationMs: params.durationMs,
+            status: "ok",
+            attributes: {
+              model_id: params.modelId,
+              provider_id: params.providerId,
+              input_tokens: params.inputTokens,
+              output_tokens: params.outputTokens,
+              total_tokens: params.inputTokens + params.outputTokens,
+              cost_usd: params.costUsd,
+              cache_hit: params.cacheHit,
+              fallback_used: params.fallbackUsed,
+              fallback_model_id: params.fallbackModelId || null,
+            },
+            events: [],
+            errors: [],
           },
-          events: [],
-          errors: [],
         },
       });
     } catch {
@@ -309,7 +311,7 @@ export const useTracerStore = create<TracerState>((set, get) => ({
         timeDistribution: { name: string; value: number; color: string }[];
         tokenDistribution: { name: string; tokens: number }[];
         failureModes: { reason: string; count: number; pct: number }[];
-      }>("tracer_get_bottlenecks", { traceId });
+      }>("tracer_get_bottlenecks", { trace_id: traceId });
     } catch (e) {
       console.warn("[tracerStore] getBottlenecks failed, using mock", e);
       return {
@@ -342,7 +344,7 @@ export const useTracerStore = create<TracerState>((set, get) => ({
     try {
       return await invoke<
         { id: string; problem: string; suggestion: string; expectedImprovement: string }[]
-      >("tracer_generate_suggestions", { traceId });
+      >("tracer_generate_suggestions", { trace_id: traceId });
     } catch (e) {
       console.warn("[tracerStore] generateSuggestions failed, using mock", e);
       return [
@@ -373,7 +375,7 @@ export const useTracerStore = create<TracerState>((set, get) => ({
     set((s) => ({ feedbackHistory: [...s.feedbackHistory, entry] }));
 
     try {
-      await invoke("tracer_submit_feedback", { traceId, rating, comment });
+      await invoke("tracer_submit_feedback", { trace_id: traceId, rating, comment });
     } catch {
       console.warn("[tracerStore] submitFeedback invoke failed, saved locally");
     }

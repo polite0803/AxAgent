@@ -12,6 +12,7 @@ use std::sync::{Arc, RwLock};
 const MAX_TRACES: usize = 10000;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TraceSummary {
     pub trace_id: String,
     pub session_id: String,
@@ -54,6 +55,7 @@ pub trait TraceStorage: Send + Sync {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TraceFilter {
     pub session_id: Option<String>,
     pub trace_id: Option<String>,

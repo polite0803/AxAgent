@@ -621,7 +621,7 @@ function PrivacyControlSection() {
   const settings = useSettingsStore((s) => s.settings);
   const saveSettings = useSettingsStore((s) => s.saveSettings);
   // 后端默认 "off";旧版 settings 若无此字段也回退到 "off"。
-  const level = settings.telemetry_level ?? "off";
+  const level = settings.telemetryLevel ?? "off";
 
   return (
     <SettingsGroup title={t("advancedSettings.privacyControl")}>
@@ -633,7 +633,7 @@ function PrivacyControlSection() {
         <span>{t("advancedSettings.telemetryLevelLabel")}</span>
         <Radio.Group
           value={level}
-          onChange={(e) => saveSettings({ telemetry_level: e.target.value })}
+          onChange={(e) => saveSettings({ telemetryLevel: e.target.value })}
           optionType="button"
           buttonStyle="solid"
           size="small"
@@ -682,13 +682,13 @@ function SmartRouterSection() {
     }
   }, [providers.length, fetchProviders]);
 
-  const enabled = settings.smart_router_enabled ?? false;
-  const mappings = settings.smart_router_tier_mappings ?? {};
+  const enabled = settings.smartRouterEnabled ?? false;
+  const mappings = settings.smartRouterTierMappings ?? {};
 
   const updateTier = (tier: string, patch: Partial<SmartRouterTierMapping>) => {
     const next: Record<string, SmartRouterTierMapping> = { ...mappings };
     next[tier] = { ...next[tier], ...patch };
-    saveSettings({ smart_router_tier_mappings: next });
+    saveSettings({ smartRouterTierMappings: next });
   };
 
   const tiers: Array<{ key: string; label: string }> = [
@@ -707,7 +707,7 @@ function SmartRouterSection() {
         <span>{t("advancedSettings.smartRouter.enableLabel")}</span>
         <Switch
           checked={enabled}
-          onChange={(v) => saveSettings({ smart_router_enabled: v })}
+          onChange={(v) => saveSettings({ smartRouterEnabled: v })}
         />
       </div>
       <div
@@ -722,7 +722,7 @@ function SmartRouterSection() {
       </div>
       {tiers.map((tier) => {
         const m = mappings[tier.key] ?? {};
-        const selectedProvider = providers.find((p) => p.id === m.provider_id);
+        const selectedProvider = providers.find((p) => p.id === m.providerId);
         return (
           <div key={tier.key}>
             <Divider style={{ margin: "4px 0" }} />
@@ -738,27 +738,27 @@ function SmartRouterSection() {
               >
                 <Select
                   disabled={!enabled}
-                  value={m.provider_id || undefined}
+                  value={m.providerId || undefined}
                   placeholder={t("advancedSettings.smartRouter.providerPlaceholder")}
                   style={{ width: 160 }}
                   showSearch
                   optionFilterProp="label"
                   allowClear
-                  onChange={(v) => updateTier(tier.key, { provider_id: v ?? "", model_id: "" })}
+                  onChange={(v) => updateTier(tier.key, { providerId: v ?? "", modelId: "" })}
                   options={providers.map((p) => ({ value: p.id, label: p.name }))}
                 />
                 <Select
                   disabled={!enabled || !selectedProvider}
-                  value={m.model_id || undefined}
+                  value={m.modelId || undefined}
                   placeholder={t("advancedSettings.smartRouter.modelPlaceholder")}
                   style={{ width: 180 }}
                   showSearch
                   optionFilterProp="label"
                   allowClear
-                  onChange={(v) => updateTier(tier.key, { model_id: v ?? "" })}
+                  onChange={(v) => updateTier(tier.key, { modelId: v ?? "" })}
                   options={(selectedProvider?.models ?? []).map((md) => ({
-                    value: md.model_id,
-                    label: md.name || md.model_id,
+                    value: md.modelId,
+                    label: md.name || md.modelId,
                   }))}
                 />
               </div>
@@ -788,8 +788,8 @@ function AgentBehaviorSection() {
       >
         <span>{t("advancedSettings.thoughtChain")}</span>
         <Switch
-          checked={settings.thought_chain_enabled ?? true}
-          onChange={(v) => saveSettings({ thought_chain_enabled: v })}
+          checked={settings.thoughtChainEnabled ?? true}
+          onChange={(v) => saveSettings({ thoughtChainEnabled: v })}
         />
       </div>
       <Divider style={{ margin: "4px 0" }} />
@@ -800,8 +800,8 @@ function AgentBehaviorSection() {
       >
         <span>{t("advancedSettings.errorRecovery")}</span>
         <Switch
-          checked={settings.error_recovery_enabled ?? true}
-          onChange={(v) => saveSettings({ error_recovery_enabled: v })}
+          checked={settings.errorRecoveryEnabled ?? true}
+          onChange={(v) => saveSettings({ errorRecoveryEnabled: v })}
         />
       </div>
       <Divider style={{ margin: "4px 0" }} />
@@ -812,8 +812,8 @@ function AgentBehaviorSection() {
       >
         <span>{t("advancedSettings.screenPerception")}</span>
         <Switch
-          checked={settings.screen_perception_enabled ?? false}
-          onChange={(v) => saveSettings({ screen_perception_enabled: v })}
+          checked={settings.screenPerceptionEnabled ?? false}
+          onChange={(v) => saveSettings({ screenPerceptionEnabled: v })}
         />
       </div>
       <Divider style={{ margin: "4px 0" }} />
@@ -824,8 +824,8 @@ function AgentBehaviorSection() {
       >
         <span>{t("advancedSettings.tot")}</span>
         <Switch
-          checked={settings.tot_enabled ?? false}
-          onChange={(v) => saveSettings({ tot_enabled: v })}
+          checked={settings.totEnabled ?? false}
+          onChange={(v) => saveSettings({ totEnabled: v })}
         />
       </div>
     </SettingsGroup>

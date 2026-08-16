@@ -258,18 +258,18 @@ export function GatewayTemplates() {
     fetchKeys,
   } = useGatewayStore();
   const [connecting, setConnecting] = useState<string | null>(null);
-  const enabledKeys = keys.filter((k) => k.enabled && k.has_encrypted_key);
-  const quickConnectBlocked = !status.is_running;
+  const enabledKeys = keys.filter((k) => k.enabled && k.hasEncryptedKey);
+  const quickConnectBlocked = !status.isRunning;
   const [selectedKeyId, setSelectedKeyId] = useState<string | undefined>(
     undefined,
   );
   const availableProtocols = useMemo<QuickConnectProtocol[]>(() => {
     const protocols: QuickConnectProtocol[] = [];
 
-    if (!status.force_ssl) {
+    if (!status.forceSsl) {
       protocols.push("http");
     }
-    if (status.https_port != null) {
+    if (status.httpsPort != null) {
       protocols.push("https");
     }
 
@@ -277,8 +277,8 @@ export function GatewayTemplates() {
       return protocols;
     }
 
-    return status.force_ssl ? ["https"] : ["http"];
-  }, [status.force_ssl, status.https_port]);
+    return status.forceSsl ? ["https"] : ["http"];
+  }, [status.forceSsl, status.httpsPort]);
   const [selectedProtocol, setSelectedProtocol] = useState<
     QuickConnectProtocol | undefined
   >(undefined);
@@ -377,7 +377,7 @@ export function GatewayTemplates() {
             placeholder={t("gateway.cliSelectKey")}
             options={enabledKeys.map((k) => ({
               value: k.id,
-              label: `${k.name} (${k.key_prefix})`,
+              label: `${k.name} (${k.keyPrefix})`,
             }))}
           />
           <Select<QuickConnectProtocol>

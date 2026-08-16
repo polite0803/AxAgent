@@ -64,6 +64,7 @@ fn compute_content_hash(content: &str) -> String {
 // ── Types ──
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DecompositionPreviewResponse {
     pub tool_dependencies: Vec<ToolDependencyPreview>,
     pub workflow_nodes: serde_json::Value,
@@ -73,6 +74,7 @@ pub struct DecompositionPreviewResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ToolDependencyPreview {
     pub name: String,
     pub tool_type: String,
@@ -82,6 +84,7 @@ pub struct ToolDependencyPreview {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CompositeSourceInfoResponse {
     pub market: String,
     pub repo: Option<String>,

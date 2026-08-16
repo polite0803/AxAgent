@@ -6,9 +6,9 @@ import { describe, expect, it } from "vitest";
 import {
   autoLayoutWorkflow,
   clampChildrenIntoContainers,
-  find_safe_position,
+  findSafePosition,
   getNodeSize,
-  would_create_cycle,
+  wouldCreateCycle,
 } from "@/lib/workflowLayout";
 
 function makeNode(
@@ -251,9 +251,9 @@ describe("workflowLayout", () => {
   });
 });
 
-describe("find_safe_position", () => {
+describe("findSafePosition", () => {
   it("returns the candidate when there is no overlap", () => {
-    const safe = find_safe_position(
+    const safe = findSafePosition(
       { x: 100, y: 100 },
       "agent",
       [{ id: "b", x: 500, y: 500, type: "agent" }],
@@ -267,7 +267,7 @@ describe("find_safe_position", () => {
     // algorithm picks the closest escape direction (right/left/down/up),
     // not necessarily right. We only assert the result escapes the bbox.
     const agentSize = getNodeSize("agent");
-    const safe = find_safe_position(
+    const safe = findSafePosition(
       { x: 50, y: 50 },
       "agent",
       [{ id: "b", x: 0, y: 0, type: "agent" }],
@@ -280,7 +280,7 @@ describe("find_safe_position", () => {
 
   it("snaps to grid", () => {
     // grid default is 20 → output should be divisible by 20 (when not overlapping)
-    const safe = find_safe_position(
+    const safe = findSafePosition(
       { x: 13, y: 27 },
       "agent",
       [],
@@ -291,9 +291,9 @@ describe("find_safe_position", () => {
   });
 });
 
-describe("would_create_cycle", () => {
+describe("wouldCreateCycle", () => {
   it("treats self-loop as a cycle", () => {
-    expect(would_create_cycle([], "a", "a")).toBe(true);
+    expect(wouldCreateCycle([], "a", "a")).toBe(true);
   });
 
   it("returns false for a simple new edge in a DAG", () => {
@@ -301,7 +301,7 @@ describe("would_create_cycle", () => {
       { source: "a", target: "b" },
       { source: "b", target: "c" },
     ];
-    expect(would_create_cycle(edges, "c", "d")).toBe(false);
+    expect(wouldCreateCycle(edges, "c", "d")).toBe(false);
   });
 
   it("returns true when new edge closes a cycle", () => {
@@ -312,7 +312,7 @@ describe("would_create_cycle", () => {
     ];
     // adding a -> c does not close a cycle (cycle already exists),
     // but adding b -> a would be one direction
-    expect(would_create_cycle(edges, "b", "a")).toBe(true);
+    expect(wouldCreateCycle(edges, "b", "a")).toBe(true);
   });
 
   it("detects transitive cycle", () => {
@@ -321,7 +321,7 @@ describe("would_create_cycle", () => {
       { source: "b", target: "c" },
     ];
     // adding c -> a would create a -> b -> c -> a
-    expect(would_create_cycle(edges, "c", "a")).toBe(true);
+    expect(wouldCreateCycle(edges, "c", "a")).toBe(true);
   });
 });
 

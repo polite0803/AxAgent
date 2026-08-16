@@ -161,7 +161,7 @@ describe("agentStore event handling", () => {
       conversationId: "conv1",
       assistantMessageId: "msg1",
       text: "Hello World!",
-      usage: { input_tokens: 10, output_tokens: 5 },
+      usage: { inputTokens: 10, outputTokens: 5 },
       numTurns: 1,
     });
 
@@ -179,7 +179,7 @@ describe("agentStore event handling", () => {
       conversationId: "conv1",
       assistantMessageId: "msg1",
       text: "Hello World!",
-      usage: { input_tokens: 100, output_tokens: 50 },
+      usage: { inputTokens: 100, outputTokens: 50 },
       numTurns: 3,
       costUsd: 0.005,
     });

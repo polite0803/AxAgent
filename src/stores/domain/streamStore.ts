@@ -715,8 +715,8 @@ export function flushPendingStreamChunk<T extends ConversationStoreLike>(
         ...updated[existingIdx],
         content: updated[existingIdx].content + (content ?? ""),
         // Enrich model info from chunk if missing
-        model_id: updated[existingIdx].model_id ?? chunkModelId ?? null,
-        provider_id: updated[existingIdx].provider_id ?? chunkProviderId ?? null,
+        modelId: updated[existingIdx].modelId ?? chunkModelId ?? null,
+        providerId: updated[existingIdx].providerId ?? chunkProviderId ?? null,
       };
       return {
         messages: updated,
@@ -731,8 +731,8 @@ export function flushPendingStreamChunk<T extends ConversationStoreLike>(
             ? {
               ...m,
               content: m.content + (content ?? ""),
-              model_id: m.model_id ?? chunkModelId ?? null,
-              provider_id: m.provider_id ?? chunkProviderId ?? null,
+              modelId: m.modelId ?? chunkModelId ?? null,
+              providerId: m.providerId ?? chunkProviderId ?? null,
             }
             : m
         ),
@@ -795,22 +795,22 @@ export function flushPendingStreamChunk<T extends ConversationStoreLike>(
       : session.streamBuffer?.content;
     const newMessage: Message = {
       id: messageId,
-      conversation_id: chunkConvId,
+      conversationId: chunkConvId,
       role: "assistant",
       content: bufferContent ?? content ?? "",
-      provider_id: chunkProviderId ?? null,
-      model_id: chunkModelId ?? null,
-      token_count: null,
+      providerId: chunkProviderId ?? null,
+      modelId: chunkModelId ?? null,
+      tokenCount: null,
       attachments: [],
       thinking: null,
-      tool_calls_json: null,
-      tool_call_id: null,
-      created_at: Date.now(),
+      toolCallsJson: null,
+      toolCallId: null,
+      createdAt: Date.now(),
       // In multi-model mode: group under the same parent and hide from main view
       // (only ModelTags pending animation is shown; fetchMessages after completion loads proper data)
-      parent_message_id: isMultiModel ? s.multiModelParentId : null,
-      version_index: 0,
-      is_active: !isMultiModel,
+      parentMessageId: isMultiModel ? s.multiModelParentId : null,
+      versionIndex: 0,
+      isActive: !isMultiModel,
       status: "partial",
     };
     // Register the new message in our index for O(1) future updates
@@ -832,7 +832,7 @@ interface ConversationStoreRefState {
   messages: Message[];
   streamingMessageId: string | null;
   multiModelParentId: string | null;
-  pendingCompanionModels: Array<{ providerId: string; model_id: string }>;
+  pendingCompanionModels: Array<{ providerId: string; modelId: string }>;
   multiModelDoneMessageIds: string[];
   regenerateMessage: (targetMessageId?: string) => Promise<void>;
 }

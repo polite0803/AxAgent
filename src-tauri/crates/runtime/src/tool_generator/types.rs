@@ -39,4 +39,8 @@ pub struct GeneratedToolSourceInfo {
     pub generation_method: String,
     pub agent_model: Option<String>,
     pub generated_at: i64,
+    /// 生成来源标记（如 "runtime_evolution"）。
+    /// 用于重启时判断是否应将持久化的工具自动注册回运行时 ToolRegistry。
+    #[serde(default)]
+    pub source: Option<String>,
 }

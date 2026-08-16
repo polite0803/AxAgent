@@ -102,8 +102,8 @@ export function getEffectiveThinkingBudget(
   const providers = useProviderStore.getState().providers;
   const model = findModelByIds(
     providers,
-    conversation.provider_id,
-    conversation.model_id,
+    conversation.providerId,
+    conversation.modelId,
   );
   if (!model) {
     return thinkingBudget;
@@ -161,7 +161,7 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
     if (conversationId) {
       void persistConversationPreferences(
         conversationId,
-        { search_enabled: enabled },
+        { searchEnabled: enabled },
         { searchEnabled: enabled },
         { searchEnabled: previous },
       );
@@ -176,7 +176,7 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
     if (conversationId) {
       void persistConversationPreferences(
         conversationId,
-        { search_provider_id: id },
+        { searchProviderId: id },
         { searchProviderId: id },
         { searchProviderId: previous },
       );
@@ -192,7 +192,7 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
     if (conversationId) {
       void persistConversationPreferences(
         conversationId,
-        { enabled_mcp_server_ids: nextIds },
+        { enabledMcpServerIds: nextIds },
         { enabledMcpServerIds: nextIds },
         { enabledMcpServerIds: previous },
       );
@@ -208,7 +208,7 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
     if (conversationId) {
       void persistConversationPreferences(
         conversationId,
-        { enabled_mcp_server_ids: nextIds },
+        { enabledMcpServerIds: nextIds },
         { enabledMcpServerIds: nextIds },
         { enabledMcpServerIds: previous },
       );
@@ -228,7 +228,7 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
         set({ enabledMcpServerIds: allBuiltinIds });
         void persistConversationPreferences(
           conversationId,
-          { enabled_mcp_server_ids: allBuiltinIds },
+          { enabledMcpServerIds: allBuiltinIds },
           { enabledMcpServerIds: allBuiltinIds, mcpMode: mode },
           { enabledMcpServerIds: [], mcpMode: "manual" },
         );
@@ -236,7 +236,7 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
         set({ enabledMcpServerIds: [] });
         void persistConversationPreferences(
           conversationId,
-          { enabled_mcp_server_ids: [] },
+          { enabledMcpServerIds: [] },
           { enabledMcpServerIds: [], mcpMode: mode },
           { enabledMcpServerIds: allBuiltinIds, mcpMode: "auto" },
         );
@@ -257,7 +257,7 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
     if (conversationId) {
       void persistConversationPreferences(
         conversationId,
-        { thinking_budget: budget },
+        { thinkingBudget: budget },
         { thinkingBudget: budget },
         { thinkingBudget: previous },
       );
@@ -273,7 +273,7 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
     if (conversationId) {
       void persistConversationPreferences(
         conversationId,
-        { enabled_knowledge_base_ids: nextIds },
+        { enabledKnowledgeBaseIds: nextIds },
         { enabledKnowledgeBaseIds: nextIds },
         { enabledKnowledgeBaseIds: previous },
       );
@@ -289,7 +289,7 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
     if (conversationId) {
       void persistConversationPreferences(
         conversationId,
-        { enabled_knowledge_base_ids: nextIds },
+        { enabledKnowledgeBaseIds: nextIds },
         { enabledKnowledgeBaseIds: nextIds },
         { enabledKnowledgeBaseIds: previous },
       );
@@ -304,7 +304,7 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
     if (conversationId) {
       void persistConversationPreferences(
         conversationId,
-        { enabled_memory_namespace_ids: id ? [id] : [] },
+        { enabledMemoryNamespaceIds: id ? [id] : [] },
         { activeMemoryNamespaceId: id },
         { activeMemoryNamespaceId: previous },
       );
@@ -318,7 +318,7 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
     if (conversationId) {
       void persistConversationPreferences(
         conversationId,
-        { enabled_memory_namespace_ids: nextId ? [nextId] : [] },
+        { enabledMemoryNamespaceIds: nextId ? [nextId] : [] },
         { activeMemoryNamespaceId: nextId },
         { activeMemoryNamespaceId: previous },
       );
@@ -334,7 +334,7 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
     if (conversationId) {
       void persistConversationPreferences(
         conversationId,
-        { enabled_wiki_ids: nextIds },
+        { enabledWikiIds: nextIds },
         { enabledWikiIds: nextIds },
         { enabledWikiIds: previous },
       );
@@ -350,7 +350,7 @@ export const usePreferenceStore = create<PreferenceState>((set, get) => ({
     if (conversationId) {
       void persistConversationPreferences(
         conversationId,
-        { enabled_wiki_ids: nextIds },
+        { enabledWikiIds: nextIds },
         { enabledWikiIds: nextIds },
         { enabledWikiIds: previous },
       );

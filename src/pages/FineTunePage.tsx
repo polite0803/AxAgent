@@ -34,7 +34,7 @@ export function FineTunePage() {
     },
     {
       key: "jobs",
-      label: `${t("fineTune.tab.training")}${stats ? ` (${stats.completed_jobs}/${stats.total_jobs})` : ""}`,
+      label: `${t("fineTune.tab.training")}${stats ? ` (${stats.completedJobs}/${stats.totalJobs})` : ""}`,
       children: <TrainingJobList />,
     },
     {
@@ -66,16 +66,16 @@ export function FineTunePage() {
           }}
         >
           <span>
-            {t("fineTune.stats.total")}: <b>{stats.total_jobs}</b>
+            {t("fineTune.stats.total")}: <b>{stats.totalJobs}</b>
           </span>
           <span style={{ color: token.colorSuccess }}>
-            {t("fineTune.stats.completed")}: <b>{stats.completed_jobs}</b>
+            {t("fineTune.stats.completed")}: <b>{stats.completedJobs}</b>
           </span>
           <span style={{ color: token.colorPrimary }}>
-            {t("fineTune.stats.running")}: <b>{stats.running_jobs}</b>
+            {t("fineTune.stats.running")}: <b>{stats.runningJobs}</b>
           </span>
           <span style={{ color: token.colorError }}>
-            {t("fineTune.stats.failed")}: <b>{stats.failed_jobs}</b>
+            {t("fineTune.stats.failed")}: <b>{stats.failedJobs}</b>
           </span>
         </div>
       )}

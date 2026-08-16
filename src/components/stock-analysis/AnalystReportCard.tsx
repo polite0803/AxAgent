@@ -312,7 +312,7 @@ function isEmptyAnalysis(parsed: ParsedReport): boolean {
 
 export function AnalystReportCard({ expertId, report }: Props) {
   const { t } = useTranslation();
-  const themeMode = useSettingsStore((s) => s.settings.theme_mode);
+  const themeMode = useSettingsStore((s) => s.settings.themeMode);
   const isDark = themeMode === "dark"
     || (themeMode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   let name = t(`stockAnalysis.workflow.analyst.${expertId}`, expertId);

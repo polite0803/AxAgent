@@ -11,9 +11,9 @@ export async function fileToAttachmentInput(file: File): Promise<AttachmentInput
     reader.onload = () => {
       const base64 = (reader.result as string).split(",")[1] || "";
       resolve({
-        file_name: file.name,
-        file_type: file.type || "application/octet-stream",
-        file_size: file.size,
+        fileName: file.name,
+        fileType: file.type || "application/octet-stream",
+        fileSize: file.size,
         data: base64,
       });
     };
@@ -70,4 +70,20 @@ export function getFileIcon(category: FileTypeCategory) {
     default:
       return <File size={16} />;
   }
+}
+
+/** 缩写工作目录路径：保留盘符 + 最后 3 段，超长路径省略中间部分 */
+export function abbreviatePath(path: string): string {
+  const normalized = path.replace(/\\/g, "/");
+  const segments = normalized.split("/").filter(Boolean);
+  if (segments.length <= 3 || normalized.length <= 45) {
+    return path;
+  }
+  // 保留盘符（如 D:）+ 最后 3 段
+  const drive = segments[0].endsWith(":") ? segments[0] : null;
+  const tail = segments.slice(-3);
+  const abbreviated = drive
+    ? [drive, "…", ...tail].join("/")
+    : "…/" + tail.join("/");
+  return abbreviated;
 }

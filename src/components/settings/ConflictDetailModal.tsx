@@ -90,19 +90,19 @@ export function ConflictDetailModal({
     >
       <Descriptions column={2} bordered size="small">
         <Descriptions.Item label={t("deviceSync.entityType")}>
-          <Tag color="blue">{conflict.entity_type}</Tag>
+          <Tag color="blue">{conflict.entityType}</Tag>
         </Descriptions.Item>
         <Descriptions.Item label={t("deviceSync.entityId")}>
-          <Text code>{conflict.entity_id}</Text>
+          <Text code>{conflict.entityId}</Text>
         </Descriptions.Item>
         <Descriptions.Item label={t("deviceSync.localVersion")}>
-          {conflict.local_vector.map((v) => `${v.device_id}:${v.counter}`).join(", ")}
+          {conflict.localVector.map((v) => `${v.deviceId}:${v.counter}`).join(", ")}
         </Descriptions.Item>
         <Descriptions.Item label={t("deviceSync.remoteVersion")}>
-          {conflict.remote_vector.map((v) => `${v.device_id}:${v.counter}`).join(", ")}
+          {conflict.remoteVector.map((v) => `${v.deviceId}:${v.counter}`).join(", ")}
         </Descriptions.Item>
         <Descriptions.Item label={t("deviceSync.detectedAt")} span={2}>
-          {new Date(conflict.detected_at).toLocaleString()}
+          {new Date(conflict.detectedAt).toLocaleString()}
         </Descriptions.Item>
       </Descriptions>
 
@@ -113,10 +113,10 @@ export function ConflictDetailModal({
       <Space direction="vertical" style={{ width: "100%" }}>
         <Descriptions column={2} size="small" bordered>
           <Descriptions.Item label={t("deviceSync.localData")}>
-            {conflict.local_data ? JSON.stringify(JSON.parse(conflict.local_data)).substring(0, 50) + "..." : "-"}
+            {conflict.localData ? JSON.stringify(JSON.parse(conflict.localData)).substring(0, 50) + "..." : "-"}
           </Descriptions.Item>
           <Descriptions.Item label={t("deviceSync.remoteData")}>
-            {conflict.remote_data ? JSON.stringify(JSON.parse(conflict.remote_data)).substring(0, 50) + "..." : "-"}
+            {conflict.remoteData ? JSON.stringify(JSON.parse(conflict.remoteData)).substring(0, 50) + "..." : "-"}
           </Descriptions.Item>
         </Descriptions>
       </Space>

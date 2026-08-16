@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 use tauri::State;
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProactiveSuggestion {
     pub id: String,
     pub suggestion_type: String,
@@ -82,6 +83,7 @@ impl From<&TrajProactiveSuggestion> for ProactiveSuggestion {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ContextPrediction {
     pub predicted_intent: serde_json::Value,
     pub confidence: f32,
@@ -101,7 +103,7 @@ impl From<&axagent_trajectory::ContextPrediction> for ContextPrediction {
                 serde_json::json!({ "type": "Documentation", "topic": topic })
             },
             axagent_trajectory::PredictedIntent::Search { query_type } => {
-                serde_json::json!({ "type": "Search", "query_type": query_type })
+                serde_json::json!({ "type": "Search", "queryType": query_type })
             },
             axagent_trajectory::PredictedIntent::Refactoring { target } => {
                 serde_json::json!({ "type": "Refactoring", "target": target })
@@ -137,9 +139,9 @@ impl From<&axagent_trajectory::ContextPrediction> for ContextPrediction {
 
         let context_window = serde_json::json!({
             "files": p.context_window.files,
-            "recent_actions": p.context_window.recent_actions,
-            "current_language": p.context_window.current_language,
-            "project_type": p.context_window.project_type,
+            "recentActions": p.context_window.recent_actions,
+            "currentLanguage": p.context_window.current_language,
+            "projectType": p.context_window.project_type,
         });
 
         Self {
@@ -154,6 +156,7 @@ impl From<&axagent_trajectory::ContextPrediction> for ContextPrediction {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PredictionResult {
     pub predictions: Vec<ContextPrediction>,
 }
@@ -165,17 +168,13 @@ impl From<TrajectoryPredictionResult> for PredictionResult {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProactiveConfig {
     pub enabled: bool,
-    #[serde(rename = "max_suggestions")]
     pub max_suggestions: i32,
-    #[serde(rename = "suggestion_ttl_minutes")]
     pub suggestion_ttl_minutes: i32,
-    #[serde(rename = "prediction_confidence_threshold")]
     pub prediction_confidence_threshold: f32,
-    #[serde(rename = "prefetch_enabled")]
     pub prefetch_enabled: bool,
-    #[serde(rename = "reminder_enabled")]
     pub reminder_enabled: bool,
 }
 

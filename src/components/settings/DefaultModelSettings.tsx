@@ -305,7 +305,7 @@ function ModelCard({
       if (parsed) {
         saveSettings({
           [providerIdKey]: parsed.providerId,
-          [modelIdKey]: parsed.model_id,
+          [modelIdKey]: parsed.modelId,
         } as Partial<AppSettings>);
       }
     },
@@ -378,16 +378,16 @@ export function DefaultModelSettings() {
       <ModelCard
         title={t("settings.defaultConversationModel")}
         description={t("settings.defaultConversationModelDesc")}
-        providerIdKey="default_provider_id"
-        modelIdKey="default_model_id"
+        providerIdKey="defaultProviderId"
+        modelIdKey="defaultModelId"
         placeholder={placeholderText}
         modalTitle={t("settings.defaultConversationModel")}
         showPrompt={false}
         showContextCount={true}
-        temperatureKey="default_temperature"
-        topPKey="default_top_p"
-        maxTokensKey="default_max_tokens"
-        contextCountKey="default_context_count"
+        temperatureKey="defaultTemperature"
+        topPKey="defaultTopP"
+        maxTokensKey="defaultMaxTokens"
+        contextCountKey="defaultContextCount"
         defaultTemperature={0.7}
         defaultTopP={1.0}
         defaultMaxTokens={4096}
@@ -396,16 +396,16 @@ export function DefaultModelSettings() {
       <ModelCard
         title={t("settings.titleSummaryModel")}
         description={t("settings.titleSummaryModelDesc")}
-        providerIdKey="title_summary_provider_id"
-        modelIdKey="title_summary_model_id"
+        providerIdKey="titleSummaryProviderId"
+        modelIdKey="titleSummaryModelId"
         placeholder={placeholderText}
         modalTitle={t("settings.titleSummaryModel")}
         showPrompt={true}
         showContextCount={false}
-        promptKey="title_summary_prompt"
-        temperatureKey="title_summary_temperature"
-        topPKey="title_summary_top_p"
-        maxTokensKey="title_summary_max_tokens"
+        promptKey="titleSummaryPrompt"
+        temperatureKey="titleSummaryTemperature"
+        topPKey="titleSummaryTopP"
+        maxTokensKey="titleSummaryMaxTokens"
         defaultTemperature={0.3}
         defaultTopP={1.0}
         defaultMaxTokens={256}
@@ -414,16 +414,16 @@ export function DefaultModelSettings() {
       <ModelCard
         title={t("settings.compressionModel")}
         description={t("settings.compressionModelDesc")}
-        providerIdKey="compression_provider_id"
-        modelIdKey="compression_model_id"
+        providerIdKey="compressionProviderId"
+        modelIdKey="compressionModelId"
         placeholder={placeholderText}
         modalTitle={t("settings.compressionModel")}
         showPrompt={true}
         showContextCount={false}
-        promptKey="compression_prompt"
-        temperatureKey="compression_temperature"
-        topPKey="compression_top_p"
-        maxTokensKey="compression_max_tokens"
+        promptKey="compressionPrompt"
+        temperatureKey="compressionTemperature"
+        topPKey="compressionTopP"
+        maxTokensKey="compressionMaxTokens"
         defaultTemperature={0.3}
         defaultTopP={1.0}
         defaultMaxTokens={1024}

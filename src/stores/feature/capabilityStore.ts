@@ -7,6 +7,8 @@ import type {
   CapabilityPassportDto,
   CapabilityRegistrationDetailDto,
   DiscoverRequestPayload,
+  EvolveCapabilityRequest,
+  EvolveCapabilityResult,
   IndexResult,
 } from "@/types";
 import i18next from "i18next";
@@ -56,6 +58,10 @@ interface CapabilityState {
   discover: (
     payload: DiscoverRequestPayload,
   ) => Promise<CapabilityDiscoveryResult>;
+  /** 一键进化能力以提升等级（低等级 L1/L2 使用） */
+  evolveCapability: (
+    request: EvolveCapabilityRequest,
+  ) => Promise<EvolveCapabilityResult>;
   setError: (error: string | null) => void;
   clearResult: () => void;
 }
@@ -110,7 +116,7 @@ export const useCapabilityStore = create<CapabilityState>((set) => ({
       });
       set((state) => ({
         passports: state.passports.filter(
-          (p) => p.capability_id !== capabilityId,
+          (p) => p.capabilityId !== capabilityId,
         ),
       }));
     } catch (e) {
@@ -182,6 +188,31 @@ export const useCapabilityStore = create<CapabilityState>((set) => ({
       throw e;
     } finally {
       set({ isDiscovering: false });
+    }
+  },
+
+  evolveCapability: async (request) => {
+    set({ isLoading: true, error: null });
+    try {
+      const result = await invoke<EvolveCapabilityResult>(
+        "capability_evolve",
+        { request },
+      );
+      // 同步本地护照等级，保持面板标签即时刷新
+      set((state) => ({
+        passports: state.passports.map((p) =>
+          p.capabilityId === result.capabilityId
+            ? { ...p, level: result.newLevel }
+            : p
+        ),
+      }));
+      return result;
+    } catch (e) {
+      const msg = translateCapabilityError(e);
+      set({ error: msg });
+      throw e;
+    } finally {
+      set({ isLoading: false });
     }
   },
 

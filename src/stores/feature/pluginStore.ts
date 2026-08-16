@@ -68,14 +68,14 @@ export const usePluginStore = create<PluginState>((set, get) => ({
         plugins: [
           ...s.plugins,
           {
-            id: outcome.plugin_id,
-            name: outcome.plugin_id.split("@")[0] || outcome.plugin_id,
+            id: outcome.pluginId,
+            name: outcome.pluginId.split("@")[0] || outcome.pluginId,
             version: outcome.version,
             description: "",
             kind: "external" as const,
             enabled: true,
             tools: [],
-            mcp_servers: [],
+            mcpServers: [],
             skills: [],
           },
         ],
@@ -150,7 +150,7 @@ export const usePluginStore = create<PluginState>((set, get) => ({
     try {
       const outcome = await invoke<UpdateOutcomeDto>("plugin_update", { pluginId });
       set((s) => ({
-        plugins: s.plugins.map((p) => p.id === pluginId ? { ...p, version: outcome.new_version } : p),
+        plugins: s.plugins.map((p) => p.id === pluginId ? { ...p, version: outcome.newVersion } : p),
         error: null,
       }));
       return outcome;

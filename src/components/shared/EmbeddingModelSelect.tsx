@@ -15,7 +15,7 @@ function useEmbeddingModelOptions() {
         return [];
       }
       const embeddingModels = p.models.filter(
-        (m) => m.enabled && m.model_type === "Embedding",
+        (m) => m.enabled && m.modelType === "Embedding",
       );
       if (embeddingModels.length === 0) {
         return [];
@@ -33,8 +33,8 @@ function useEmbeddingModelOptions() {
           title: p.name,
           options: embeddingModels.map((m) => ({
             label: m.name,
-            value: `${p.id}::${m.model_id}`,
-            model_id: m.model_id,
+            value: `${p.id}::${m.modelId}`,
+            modelId: m.modelId,
             providerName: p.name,
           })),
         },
@@ -44,7 +44,7 @@ function useEmbeddingModelOptions() {
 }
 
 /**
- * Model selector filtered to embedding-capable models (model_id contains "embed").
+ * Model selector filtered to embedding-capable models (modelId contains "embed").
  * Falls back to showing all models if no embedding models are found.
  */
 export function EmbeddingModelSelect({
@@ -69,10 +69,10 @@ export function EmbeddingModelSelect({
       oriOption: { label?: React.ReactNode; value?: string | number },
       _info: { index: number },
     ) => {
-      const model_id = String(oriOption.value ?? "").split("::")[1] ?? "";
+      const modelId = String(oriOption.value ?? "").split("::")[1] ?? "";
       return (
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <ModelIcon model={model_id} size={18} type="avatar" />
+          <ModelIcon model={modelId} size={18} type="avatar" />
           {oriOption.label}
         </span>
       );
@@ -89,7 +89,7 @@ export function EmbeddingModelSelect({
       const providerName = providerNameMap.get(parsed.providerId) ?? "";
       return (
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <ModelIcon model={parsed.model_id} size={18} type="avatar" />
+          <ModelIcon model={parsed.modelId} size={18} type="avatar" />
           {props.label}
           <span style={{ fontSize: 12, color: token.colorTextSecondary }}>
             ({providerName})

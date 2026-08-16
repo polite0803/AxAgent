@@ -56,7 +56,7 @@ export function DynamicUIStandalone({
         if (!mounted) {
           return;
         }
-        const parsed = JSON.parse(record.schema_json) as UISchema;
+        const parsed = JSON.parse(record.schemaJson) as UISchema;
         setSchema(parsed);
         const savedData = await loadFormData(schemaId, instanceKey);
         if (!mounted) {
@@ -89,9 +89,9 @@ export function DynamicUIStandalone({
     debounceRef.current = setTimeout(async () => {
       try {
         await saveFormData({
-          schema_id: schemaId,
-          form_data_json: JSON.stringify(data),
-          instance_key: instanceKey,
+          schemaId: schemaId,
+          formDataJson: JSON.stringify(data),
+          instanceKey: instanceKey,
         });
       } finally {
         savePendingRef.current = false;
@@ -138,9 +138,9 @@ export function DynamicUIStandalone({
         const sid = schemaIdRef.current;
         const ikey = instanceKeyRef.current;
         saveFormData({
-          schema_id: sid,
-          form_data_json: JSON.stringify(latest),
-          instance_key: ikey,
+          schemaId: sid,
+          formDataJson: JSON.stringify(latest),
+          instanceKey: ikey,
         }).catch((e) => {
           console.warn("DynamicUIStandalone: failed to persist form data on unmount", e);
         });

@@ -13,14 +13,17 @@
 //!   仅做静态结构校验:节点非空、edges 引用有效、variables 数量合理。
 //!   全部通过 → passed;否则 → 列出错误。比 evolver 内置的占位逻辑更严格。
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use tokio::sync::Mutex;
 use tracing::warn;
 
 use axagent_agent::ProviderLlmBridge;
 use axagent_harness::workflow_evolution::{
-    SandboxValidationResult, WorkflowGenome, WorkflowLlmMutator, WorkflowSandbox,
+    EvolutionArtifactValidator, ExecutionFeedbackSink, SandboxValidationResult, ToolExecutionStats,
+    WorkflowGenome, WorkflowLlmMutator, WorkflowSandbox,
 };
 use axagent_harness::workflow_reflection::WorkflowPattern;
 
@@ -861,6 +864,164 @@ impl WorkflowSandbox for DryRunWorkflowSandbox {
     }
 }
 
+// ── T4.4:计算型(Rhai)进化产物沙箱验证器 ──
+
+/// Rhai 脚本最大长度(字符)。超过视为 LLM 误生成 / 潜在 DoS,拒绝执行。
+const RHAI_SCRIPT_MAX_LEN: usize = 50_000;
+
+/// 进化产物危险模式列表(T4.4)。
+///
+/// Rhai 是内存沙箱语言,本身不能直接执行系统命令 / 访问文件系统 / 发网络请求
+/// (未注入对应模块)。这些模式命中说明产物含"尝试调用系统能力 / 破坏"的意图,
+/// 即便 Rhai 编译也会失败,也应在第一道防线提前拦截并给出明确错误,
+/// 与 `SkillSandboxExecutor::DANGEROUS_PATTERNS` 同思路。
+/// 刻意保持精确(不做 `format` / `eval` / `download` 等宽泛匹配),避免误伤合法脚本。
+const EVOLUTION_DANGEROUS_PATTERNS: &[&str] = &[
+    // 系统命令 / 进程执行(Rhai 未注入)
+    "std::process",
+    "process::Command",
+    "Command::new",
+    // 文件系统破坏
+    "std::fs",
+    "fs::remove",
+    "remove_dir_all",
+    // 网络请求(Rhai 未注入)
+    "reqwest",
+    "http::Client",
+    // 权限提升意图
+    "setuid",
+    "sudo -",
+];
+
+/// 计算型(Rhai)进化产物沙箱验证器(T4.4)。
+///
+/// 在 `GeneratedToolAdapter::call()` 真正执行 Rhai 脚本前调用,组合三道静态防线:
+/// 1. **长度限制**:脚本超长(> `RHAI_SCRIPT_MAX_LEN`)拒绝,防超长脚本 DoS
+/// 2. **自指熔断**:脚本内含 `/evolution/`、`evolution:workflow`、`self_evolution`
+///    等保护关键词时拒绝,防进化产物递归调用系统能力(复用 `SelfReferenceProtection`)
+/// 3. **危险模式**:命中 [`EVOLUTION_DANGEROUS_PATTERNS`] 中的危险意图片段时拒绝
+///
+/// 验证不通过 → 工具执行返回沙箱错误,产物不落地。wiring 层注入到进化工具执行路径。
+pub struct SelfReferenceArtifactValidator {
+    protected_keywords: Vec<String>,
+}
+
+impl SelfReferenceArtifactValidator {
+    pub fn new() -> Self {
+        // 复用认知路由的自指熔断保护关键词,保证与路由层同一套熔断语义
+        let protected_keywords =
+            axagent_harness::cognitive_router::SelfReferenceProtection::default()
+                .protected_keywords;
+        Self { protected_keywords }
+    }
+}
+
+impl Default for SelfReferenceArtifactValidator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl EvolutionArtifactValidator for SelfReferenceArtifactValidator {
+    fn validate_code(&self, code: &str) -> Vec<String> {
+        let mut violations = Vec::new();
+
+        // 1. 长度限制
+        if code.len() > RHAI_SCRIPT_MAX_LEN {
+            violations.push(format!("脚本长度 {} 超过上限 {RHAI_SCRIPT_MAX_LEN} 字符", code.len()));
+        }
+
+        // 2. 自指熔断保护关键词
+        for keyword in &self.protected_keywords {
+            if code.contains(keyword) {
+                violations.push(format!("脚本命中自指熔断保护关键词 '{keyword}'"));
+            }
+        }
+
+        // 3. 危险模式
+        for pattern in EVOLUTION_DANGEROUS_PATTERNS {
+            if code.contains(pattern) {
+                violations.push(format!("脚本命中危险模式 '{pattern}'"));
+            }
+        }
+
+        violations
+    }
+}
+
+// ── T5A.3:执行反馈闭环 wiring 实现 ──
+
+/// 进化产物执行反馈接收器（T5A.3）。
+///
+/// 累计 `GeneratedToolAdapter::call` 上报的真实执行成败到
+/// `AppState.evolution_execution_stats`（与 AppState 共享同一 Arc），
+/// 作为贝叶斯决策器的「真实执行证据」（阶段四后置闭环）。
+/// 与 [`ExecutionFeedbackSink`] 契约解耦：tools 层仅依赖 harness 契约，
+/// 本实现位于 wiring 层，不破坏架构分层。
+/// D3 持久化：持有可选数据库连接，`record` 更新内存后异步 upsert 落库，
+/// 重启后由启动流程加载回内存，真实执行证据不丢失。
+pub struct EvolutionFeedbackSinkImpl {
+    /// 统计表（D2 会话隔离）：`conversation_id → tool_id → ToolExecutionStats`。
+    /// 无会话上下文（`None`）落到 `""` 全局桶。
+    stats: Arc<Mutex<HashMap<String, HashMap<String, ToolExecutionStats>>>>,
+    /// 数据库连接（D3 持久化）：`Some` 时 `record` 同步更新内存并异步落库；
+    /// `None` 时仅内存累计（纯测试 / 无 DB 上下文）。
+    db: Option<axagent_harness::DatabaseConnection>,
+}
+
+impl EvolutionFeedbackSinkImpl {
+    pub fn new(
+        stats: Arc<Mutex<HashMap<String, HashMap<String, ToolExecutionStats>>>>,
+        db: Option<axagent_harness::DatabaseConnection>,
+    ) -> Self {
+        Self { stats, db }
+    }
+}
+
+impl ExecutionFeedbackSink for EvolutionFeedbackSinkImpl {
+    fn record(&self, conversation_id: Option<&str>, tool_id: &str, success: bool) {
+        // `record` 是同步回调（工具执行完成瞬间调用），统计表用 tokio Mutex 保护。
+        // 临界区仅一次哈希表条目更新、不含 await，blocking_lock 无死锁风险
+        //（同一时刻不会有其它任务持有该锁并等待本线程让出执行权）。
+        let conv = conversation_id.unwrap_or("").to_string();
+        let tool_id = tool_id.to_string();
+        {
+            let mut stats = self.stats.blocking_lock();
+            let conv_stats = stats.entry(conv.clone()).or_default();
+            let entry = conv_stats.entry(tool_id.clone()).or_default();
+            entry.usage_count += 1;
+            if success {
+                entry.successes += 1;
+            } else {
+                entry.failures += 1;
+            }
+        }
+        // D3 持久化：异步 upsert 到 DB（SQLite/PG 通用 UPSERT）。
+        // 仅在实际执行路径调用（D4 假成功修复），落库前已释放 stats 锁，无跨 await 持锁。
+        if let Some(db) = &self.db {
+            if let Ok(handle) = tokio::runtime::Handle::try_current() {
+                let db = db.clone();
+                handle.spawn(async move {
+                    if let Err(e) =
+                        axagent_dao::repo::evolution_execution_stats::upsert_execution_feedback(
+                            &db, &conv, &tool_id, success,
+                        )
+                        .await
+                    {
+                        tracing::warn!(
+                            target: "evolution_feedback",
+                            conversation_id = %conv,
+                            tool_id = %tool_id,
+                            error = %e,
+                            "进化产物执行反馈落库失败"
+                        );
+                    }
+                });
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1304,5 +1465,109 @@ mod tests {
             "Loop node should allow cycle, got: {:?}",
             result.execution_errors
         );
+    }
+
+    // ── T4.4:SelfReferenceArtifactValidator 单元测试 ──
+
+    #[test]
+    fn test_artifact_validator_passes_normal_rhai_script() {
+        // 纯计算脚本(无保护关键词 / 无危险模式 / 长度正常)→ 通过
+        let validator = SelfReferenceArtifactValidator::new();
+        let violations = validator.validate_code("let x = input * 2;\nx + 1");
+        assert!(violations.is_empty(), "正常脚本应通过, got: {violations:?}");
+    }
+
+    #[test]
+    fn test_artifact_validator_rejects_self_reference_keyword() {
+        // 命中自指熔断保护关键词(/evolution/)→ 拒绝
+        let validator = SelfReferenceArtifactValidator::new();
+        let violations = validator.validate_code("let route = \"/evolution/tool_x\";\nroute");
+        assert!(
+            violations.iter().any(|v| v.contains("/evolution/")),
+            "应命中 /evolution/ 保护关键词, got: {violations:?}"
+        );
+    }
+
+    #[test]
+    fn test_artifact_validator_rejects_dangerous_pattern() {
+        // 命中危险模式(process::Command)→ 拒绝
+        let validator = SelfReferenceArtifactValidator::new();
+        let violations =
+            validator.validate_code("let p = \"process::Command::new(\\\"rm\\\")\";\np");
+        assert!(
+            violations.iter().any(|v| v.contains("process::Command")),
+            "应命中危险模式 process::Command, got: {violations:?}"
+        );
+    }
+
+    #[test]
+    fn test_artifact_validator_rejects_oversized_script() {
+        // 超长脚本(> RHAI_SCRIPT_MAX_LEN)→ 拒绝
+        let validator = SelfReferenceArtifactValidator::new();
+        let long_code = "let x = 1;\n".repeat(RHAI_SCRIPT_MAX_LEN / 10 + 1);
+        let violations = validator.validate_code(&long_code);
+        assert!(
+            violations.iter().any(|v| v.contains("超过上限")),
+            "应命中长度限制, got: {violations:?}"
+        );
+    }
+
+    // ── T5A.3:EvolutionFeedbackSinkImpl 单元测试 ──
+
+    /// 构造嵌套统计表（D2 会话隔离）的测试 sink（无 DB，仅内存累计）。
+    fn make_sink()
+    -> (Arc<Mutex<HashMap<String, HashMap<String, ToolExecutionStats>>>>, EvolutionFeedbackSinkImpl)
+    {
+        let stats: Arc<Mutex<HashMap<String, HashMap<String, ToolExecutionStats>>>> =
+            Arc::new(Mutex::new(HashMap::new()));
+        let sink = EvolutionFeedbackSinkImpl::new(stats.clone(), None);
+        (stats, sink)
+    }
+
+    #[test]
+    fn test_feedback_sink_accumulates_stats() {
+        let (stats, sink) = make_sink();
+
+        sink.record(Some("conv_a"), "tool_a", true);
+        sink.record(Some("conv_a"), "tool_a", false);
+        sink.record(Some("conv_a"), "tool_b", true);
+
+        let snapshot = stats.blocking_lock().clone();
+        let conv = snapshot.get("conv_a").expect("conv_a 应有会话桶");
+        let a = conv.get("tool_a").copied().expect("tool_a 应有统计");
+        assert_eq!(a.usage_count, 2);
+        assert_eq!(a.successes, 1);
+        assert_eq!(a.failures, 1);
+
+        let b = conv.get("tool_b").copied().expect("tool_b 应有统计");
+        assert_eq!(b.usage_count, 1);
+        assert_eq!(b.successes, 1);
+        assert_eq!(b.failures, 0);
+    }
+
+    /// D2 会话隔离：不同会话的统计互不影响，且无会话上下文落到全局桶。
+    #[test]
+    fn test_feedback_sink_isolates_conversations() {
+        let (stats, sink) = make_sink();
+
+        sink.record(Some("conv_a"), "tool_x", true);
+        sink.record(Some("conv_b"), "tool_x", false);
+        sink.record(None, "tool_x", true);
+
+        let snapshot = stats.blocking_lock().clone();
+
+        // 三个会话桶各自独立
+        let a = snapshot.get("conv_a").and_then(|m| m.get("tool_x")).copied().unwrap();
+        assert_eq!((a.usage_count, a.successes, a.failures), (1, 1, 0));
+
+        let b = snapshot.get("conv_b").and_then(|m| m.get("tool_x")).copied().unwrap();
+        assert_eq!((b.usage_count, b.successes, b.failures), (1, 0, 1));
+
+        // 无会话上下文 → 全局桶 ""
+        let g = snapshot.get("").and_then(|m| m.get("tool_x")).copied().unwrap();
+        assert_eq!((g.usage_count, g.successes, g.failures), (1, 1, 0));
+
+        // 断言无跨会话污染：conv_a 里只有 1 次统计
+        assert_eq!(snapshot.get("conv_a").map(|m| m.len()).unwrap_or(0), 1);
     }
 }
