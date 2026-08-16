@@ -334,11 +334,24 @@ async fn evolve_skill(
         .trajectory_storage
         .get_skill(skill_id)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            ErrorResponse::from_error_with_code(
+                crate::commands::error_code::capability::EVOLVE_FAILED,
+                e,
+                ErrorCategory::Unrecoverable,
+            )
+            .to_string()
+        })?
         .ok_or_else(|| format!("Skill '{skill_id}' not found"))?;
 
-    let trajectories =
-        state.trajectory_storage.get_trajectories(Some(30)).await.map_err(|e| e.to_string())?;
+    let trajectories = state.trajectory_storage.get_trajectories(Some(30)).await.map_err(|e| {
+        ErrorResponse::from_error_with_code(
+            crate::commands::error_code::capability::EVOLVE_FAILED,
+            e,
+            ErrorCategory::Unrecoverable,
+        )
+        .to_string()
+    })?;
     let test_refs: Vec<_> = trajectories.iter().collect();
 
     let mut engine = state.skill_evolution_engine.lock().await;
@@ -400,7 +413,14 @@ async fn evolve_agent_role(
     let db = state.harness.db();
     let role = agent_role_repo::get_agent_role(db, role_id)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            ErrorResponse::from_error_with_code(
+                crate::commands::error_code::capability::EVOLVE_FAILED,
+                e,
+                ErrorCategory::Unrecoverable,
+            )
+            .to_string()
+        })?
         .ok_or_else(|| format!("AgentRole '{role_id}' not found"))?;
 
     let feedback = build_agent_feedback(state, &role.name).await;
@@ -422,12 +442,26 @@ async fn evolve_agent_role(
     let row = agent_roles::Entity::find_by_id(role_id)
         .one(db)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            ErrorResponse::from_error_with_code(
+                crate::commands::error_code::capability::EVOLVE_FAILED,
+                e,
+                ErrorCategory::Unrecoverable,
+            )
+            .to_string()
+        })?
         .ok_or_else(|| format!("AgentRole '{role_id}' not found"))?;
     let mut am: agent_roles::ActiveModel = row.into();
     am.system_prompt = Set(new_prompt.clone());
     am.updated_at = Set(axagent_harness::util_fns::now_ts());
-    am.update(db).await.map_err(|e| e.to_string())?;
+    am.update(db).await.map_err(|e| {
+        ErrorResponse::from_error_with_code(
+            crate::commands::error_code::capability::EVOLVE_FAILED,
+            e,
+            ErrorCategory::Unrecoverable,
+        )
+        .to_string()
+    })?;
 
     Ok((
         true,
@@ -445,15 +479,28 @@ async fn evolve_agent_profile(
     profile_id: &str,
 ) -> Result<(bool, serde_json::Value), String> {
     let db = state.harness.db();
-    let profile =
-        agent_profile_repo::get_agent_profile(db, profile_id).await.map_err(|e| e.to_string())?;
+    let profile = agent_profile_repo::get_agent_profile(db, profile_id).await.map_err(|e| {
+        ErrorResponse::from_error_with_code(
+            crate::commands::error_code::capability::EVOLVE_FAILED,
+            e,
+            ErrorCategory::Unrecoverable,
+        )
+        .to_string()
+    })?;
 
     // 载体一：关联的机构专家（expert_id → agency_experts.system_prompt）
     if let Some(expert_id) = profile.expert_id.as_deref() {
         let expert = agency_experts::Entity::find_by_id(expert_id)
             .one(db)
             .await
-            .map_err(|e| e.to_string())?
+            .map_err(|e| {
+                ErrorResponse::from_error_with_code(
+                    crate::commands::error_code::capability::EVOLVE_FAILED,
+                    e,
+                    ErrorCategory::Unrecoverable,
+                )
+                .to_string()
+            })?
             .ok_or_else(|| format!("AgencyExpert '{expert_id}' not found"))?;
 
         let feedback = build_agent_feedback(state, &profile.name).await;
@@ -476,7 +523,14 @@ async fn evolve_agent_profile(
 
         let mut am: agency_experts::ActiveModel = expert.into();
         am.system_prompt = Set(new_prompt.clone());
-        am.update(db).await.map_err(|e| e.to_string())?;
+        am.update(db).await.map_err(|e| {
+            ErrorResponse::from_error_with_code(
+                crate::commands::error_code::capability::EVOLVE_FAILED,
+                e,
+                ErrorCategory::Unrecoverable,
+            )
+            .to_string()
+        })?;
 
         return Ok((
             true,

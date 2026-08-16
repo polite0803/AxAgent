@@ -114,19 +114,24 @@ impl Tool for GeneratedToolAdapter {
     }
 
     async fn call(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let result = self.call_inner(input, ctx).await;
-        // 阶段四后置闭环：真实执行反馈回传（成败累计为贝叶斯证据）。
-        // 未注入 sink（纯 tools 层测试）时跳过。
-        if let Some(sink) = &self.feedback_sink {
-            sink.record(&self.tool.id, result.is_ok());
-        }
-        result
+        self.call_inner(input, ctx).await
     }
 }
 
 impl GeneratedToolAdapter {
-    /// `call` 的真实执行逻辑（与反馈上报解耦，便于统一在 `call` 中回传成败）。
-    async fn call_inner(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
+    /// 上报一次真实执行结果到进化证据（D4：仅真正执行的分支调用，
+    /// 「未执行/返回定义」的兜底分支不上报，避免假成功污染贝叶斯证据）。
+    /// D2：随执行上下文携带会话 id，统计按会话隔离。
+    /// 注意：tool_id 用 `tool.name`（进化引擎以 name 为唯一业务键索引
+    /// `created_tools`），而非随机 `tool.id`（UUID 每次重建都会变化，无法稳定累计）。
+    fn report(&self, ctx: &ToolContext, success: bool) {
+        if let Some(sink) = &self.feedback_sink {
+            sink.record(ctx.conversation_id.as_deref(), &self.tool.name, success);
+        }
+    }
+
+    /// `call` 的真实执行逻辑（各真正执行分支在末尾上报真实成败）。
+    async fn call_inner(&self, input: Value, ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         match self.tool.artifact_kind {
             EvolutionArtifactKind::RhaiScript => {
                 // T4.4：执行前先过沙箱验证（自指熔断关键词 / 危险模式 / 长度限制）。
@@ -134,6 +139,7 @@ impl GeneratedToolAdapter {
                 if let Some(validator) = &self.sandbox_validator {
                     let violations = validator.validate_code(&self.tool.code);
                     if !violations.is_empty() {
+                        self.report(ctx, false);
                         return Err(ToolError::execution_failed_for(
                             &self.tool.name,
                             format!("进化工具沙箱验证未通过: {}", violations.join("; ")),
@@ -143,6 +149,7 @@ impl GeneratedToolAdapter {
                 // 计算型产物：用 Rhai 引擎真正执行脚本
                 let engine = create_rhai_engine();
                 let ast = compile_script(&engine, &self.tool.code).map_err(|e| {
+                    self.report(ctx, false);
                     ToolError::execution_failed_for(
                         &self.tool.name,
                         format!("进化工具编译失败: {e}"),
@@ -152,6 +159,7 @@ impl GeneratedToolAdapter {
                 //（execute_rhai_ast 对 object 参数按字段平铺进 scope）
                 let wrapped = serde_json::json!({ "input": input });
                 let result = execute_rhai_ast(&ast, wrapped, None).map_err(|e| {
+                    self.report(ctx, false);
                     ToolError::execution_failed_for(
                         &self.tool.name,
                         format!("进化工具执行失败: {e}"),
@@ -168,6 +176,7 @@ impl GeneratedToolAdapter {
                         }
                     },
                 };
+                self.report(ctx, true);
                 Ok(ToolResult::success(content))
             },
             EvolutionArtifactKind::WorkflowDag => {
@@ -175,12 +184,14 @@ impl GeneratedToolAdapter {
                 match &self.workflow_executor {
                     Some(executor) => {
                         let genome = workflow_genome_from_generated(&self.tool).map_err(|e| {
+                            self.report(ctx, false);
                             ToolError::execution_failed_for(
                                 &self.tool.name,
                                 format!("编排型产物映射 WorkflowGenome 失败: {e}"),
                             )
                         })?;
                         let result = executor.execute(&genome, &input).await.map_err(|e| {
+                            self.report(ctx, false);
                             ToolError::execution_failed_for(
                                 &self.tool.name,
                                 format!("编排型产物工作流执行失败: {e}"),
@@ -192,10 +203,12 @@ impl GeneratedToolAdapter {
                             serde_json::to_string_pretty(&result)
                                 .unwrap_or_else(|_| result.to_string())
                         };
+                        self.report(ctx, true);
                         Ok(ToolResult::success(content))
                     },
                     None => {
-                        // 未注入执行器（如纯 tools 层测试）：返回定义供 Agent 参照
+                        // 未注入执行器（如纯 tools 层测试）：返回定义供 Agent 参照。
+                        // D4：产物并未真正执行，不上报真实成败（避免假成功污染贝叶斯证据）。
                         let definition = serde_json::json!({
                             "toolName": self.tool.name,
                             "description": self.tool.description,
@@ -219,6 +232,26 @@ impl GeneratedToolAdapter {
 mod tests {
     use super::*;
     use axagent_harness::trajectory_types::{EvolutionArtifactKind, GeneratedTool};
+
+    /// D4 测试桩：收集上报的真实执行反馈（会话 id / tool_id / 成败）。
+    #[derive(Default)]
+    struct MockSink(std::sync::Mutex<Vec<(Option<String>, String, bool)>>);
+
+    impl ExecutionFeedbackSink for MockSink {
+        fn record(&self, conversation_id: Option<&str>, tool_id: &str, success: bool) {
+            self.0.lock().unwrap().push((
+                conversation_id.map(|s| s.to_string()),
+                tool_id.to_string(),
+                success,
+            ));
+        }
+    }
+
+    impl MockSink {
+        fn snapshot(&self) -> Vec<(Option<String>, String, bool)> {
+            self.0.lock().unwrap().clone()
+        }
+    }
 
     #[tokio::test]
     async fn test_rhai_script_artifact_really_executes() {
@@ -390,5 +423,116 @@ s"#,
         assert!(!tr.is_error);
         assert!(tr.content.contains("wf_real"));
         assert!(tr.content.contains("\"executed\": true"));
+    }
+
+    // ── D4：真实执行反馈上报（仅真正执行的分支上报，兜底分支不产生假成功）──
+
+    #[tokio::test]
+    async fn test_workflow_dag_without_executor_does_not_report_feedback() {
+        // D4 核心断言：WorkflowDag 未注入执行器 → 返回定义（未真正执行）→ 不上报反馈，
+        // 避免「假成功」污染贝叶斯证据。
+        let tool = GeneratedTool::with_artifact_kind(
+            "wf_demo",
+            r#"{ "nodes": ["a", "b"], "edges": [["a", "b"]] }"#,
+            "编排型工具",
+            EvolutionArtifactKind::WorkflowDag,
+        );
+        let sink = Arc::new(MockSink::default());
+        let adapter = GeneratedToolAdapter::new(tool).with_feedback_sink(sink.clone());
+        let result = adapter.call(serde_json::json!({}), &ToolContext::new(".")).await;
+        assert!(result.is_ok(), "测试：未注入执行器应返回定义");
+        assert!(sink.snapshot().is_empty(), "测试：未执行不应上报任何反馈");
+    }
+
+    #[tokio::test]
+    async fn test_workflow_dag_with_executor_reports_success() {
+        // D4：注入执行器 → 真正执行成功 → 上报一次成功反馈（携带会话 id）
+        use axagent_harness::workflow_evolution::WorkflowDagExecutor;
+        use axagent_harness::workflow_evolution::WorkflowGenome;
+
+        struct MockExecutor;
+        #[async_trait::async_trait]
+        impl WorkflowDagExecutor for MockExecutor {
+            async fn execute(
+                &self,
+                genome: &WorkflowGenome,
+                input: &serde_json::Value,
+            ) -> Result<serde_json::Value, String> {
+                Ok(serde_json::json!({ "template": genome.name, "input": input }))
+            }
+        }
+
+        let tool = GeneratedTool::with_artifact_kind(
+            "wf_real",
+            &serde_json::json!({
+                "template_id": "wf-real",
+                "name": "wf_real",
+                "nodes": [{
+                    "type": "end",
+                    "id": "end",
+                    "title": "end",
+                    "position": {"x": 0, "y": 0},
+                    "retry": {"enabled": false, "max_retries": 1, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                    "enabled": true,
+                    "config": {"output_var": null}
+                }],
+                "edges": [],
+                "variables": [],
+                "fitness": 0.0,
+                "generation": 0,
+                "changed_node_ids": []
+            })
+            .to_string(),
+            "编排型工具（真执行）",
+            EvolutionArtifactKind::WorkflowDag,
+        );
+        let sink = Arc::new(MockSink::default());
+        let adapter = GeneratedToolAdapter::new(tool)
+            .with_workflow_executor(Arc::new(MockExecutor))
+            .with_feedback_sink(sink.clone());
+        let ctx = ToolContext::new(".").with_conversation("conv-a");
+        let result = adapter.call(serde_json::json!({"q": 1}), &ctx).await;
+        assert!(result.is_ok(), "测试：注入执行器应执行成功");
+        let records = sink.snapshot();
+        assert_eq!(records.len(), 1, "测试：真执行应上报一次反馈");
+        assert_eq!(records[0], (Some("conv-a".to_string()), "wf_real".to_string(), true));
+    }
+
+    #[tokio::test]
+    async fn test_rhai_failure_reports_feedback() {
+        // D4：Rhai 脚本真实执行失败 → 上报一次失败反馈（非假成功）
+        let tool = GeneratedTool::with_artifact_kind(
+            "broken",
+            "this is not valid rhai @@@",
+            "非法脚本工具",
+            EvolutionArtifactKind::RhaiScript,
+        );
+        let sink = Arc::new(MockSink::default());
+        let adapter = GeneratedToolAdapter::new(tool).with_feedback_sink(sink.clone());
+        let ctx = ToolContext::new(".").with_conversation("conv-b");
+        let result = adapter.call(serde_json::json!(1), &ctx).await;
+        assert!(result.is_err(), "测试：非法脚本应编译失败");
+        let records = sink.snapshot();
+        assert_eq!(records.len(), 1, "测试：真实失败应上报一次反馈");
+        assert_eq!(records[0], (Some("conv-b".to_string()), "broken".to_string(), false));
+    }
+
+    #[tokio::test]
+    async fn test_rhai_success_reports_feedback() {
+        // D4：Rhai 脚本真实执行成功 → 上报一次成功反馈
+        let tool = GeneratedTool::with_artifact_kind(
+            "calc_double",
+            "let result = input * 2;\nresult",
+            "翻倍计算工具",
+            EvolutionArtifactKind::RhaiScript,
+        );
+        let sink = Arc::new(MockSink::default());
+        let adapter = GeneratedToolAdapter::new(tool).with_feedback_sink(sink.clone());
+        let ctx = ToolContext::new(".").with_conversation("conv-c");
+        let result = adapter.call(serde_json::json!(21), &ctx).await;
+        assert!(result.is_ok(), "测试：计算型产物应执行成功");
+        let records = sink.snapshot();
+        assert_eq!(records.len(), 1, "测试：真执行应上报一次反馈");
+        assert_eq!(records[0], (Some("conv-c".to_string()), "calc_double".to_string(), true));
     }
 }

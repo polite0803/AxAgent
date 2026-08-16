@@ -127,23 +127,41 @@ pub struct SkillPosterior {
     weighted_successes: f64,
     /// 已累积的（置信度加权）失败次数（不含先验 +1）
     weighted_failures: f64,
+    /// 真实执行证据：累计成功权重（D1 真实优先，`confidence=1.0` 的无折减证据，
+    /// 即 `ToolExecutionStats` / `Skill` 历史计数，不含决策标签推断）。
+    #[serde(default)]
+    real_successes: f64,
+    /// 真实执行证据：累计总权重（真实成功 + 真实失败）。
+    #[serde(default)]
+    real_weight: f64,
 }
 
 impl SkillPosterior {
     /// 均匀先验 `Beta(1,1)`：无任何证据时 `P(success)=0.5`。
     pub fn new() -> Self {
-        Self { alpha: 1.0, beta: 1.0, weighted_successes: 0.0, weighted_failures: 0.0 }
+        Self {
+            alpha: 1.0,
+            beta: 1.0,
+            weighted_successes: 0.0,
+            weighted_failures: 0.0,
+            real_successes: 0.0,
+            real_weight: 0.0,
+        }
     }
 
     /// 从既有计数初始化（对齐 `Skill` 结构字段，见 `skill.rs`）。
     ///
     /// 成功/失败计数各 +1 构成 `Beta(α+1, β+1)` 后验，保留历史证据。
+    /// 计数视为「真实执行证据」（D1：`Skill` / `ToolExecutionStats` 均为实际执行统计），
+    /// 计入 `real_weight`，供真实优先决策使用。
     pub fn from_counts(successes: f64, failures: f64) -> Self {
         Self {
             alpha: successes + 1.0,
             beta: failures + 1.0,
             weighted_successes: successes,
             weighted_failures: failures,
+            real_successes: successes,
+            real_weight: successes + failures,
         }
     }
 
@@ -152,6 +170,10 @@ impl SkillPosterior {
     /// 置信度越高，本次证据对后验影响越大：
     /// - `success=true` → `alpha += confidence`
     /// - `success=false` → `beta += confidence`
+    ///
+    /// D1 真实优先：本方法**仅更新推断后验**（`alpha`/`beta`），不计入 `real_*`。
+    /// 决策标签流即使 `confidence=1.0` 也属于推断证据（按 `executionMode` 推断成败），
+    /// 不能污染真实优先判定；真实执行证据必须通过 `consume_real` 显式上报。
     pub fn update(&mut self, confidence: f64, success: bool) {
         let confidence = confidence.clamp(0.0, 1.0);
         if confidence <= f64::EPSILON {
@@ -164,6 +186,24 @@ impl SkillPosterior {
             self.beta += confidence;
             self.weighted_failures += confidence;
         }
+    }
+
+    /// D1 真实优先：消费一条真实执行证据（权重恒为 1.0，无置信度折减）。
+    ///
+    /// 与 `update` 的区别：真实执行是确定证据，同时计入 `real_successes` /
+    /// `real_weight`，作为真实优先判定（`decide` / `p_success`）的唯一来源。
+    /// 仅由 `EvolutionDecider::consume_execution_stats` 等真实执行反馈路径调用，
+    /// 决策标签流（`consume_decision*`）不走此方法。
+    pub fn consume_real(&mut self, success: bool) {
+        if success {
+            self.alpha += 1.0;
+            self.weighted_successes += 1.0;
+            self.real_successes += 1.0;
+        } else {
+            self.beta += 1.0;
+            self.weighted_failures += 1.0;
+        }
+        self.real_weight += 1.0;
     }
 
     /// `P(success) = alpha / (alpha + beta)`（后验均值）。
@@ -205,6 +245,21 @@ impl SkillPosterior {
     /// 已收集的（置信度加权）证据量，用于小样本场景下避免误触发。
     pub fn evidence_volume(&self) -> f64 {
         self.weighted_successes + self.weighted_failures
+    }
+
+    /// 真实执行后验 `P(success)`（D1 真实优先，仅由 `confidence=1.0` 的真实证据构成）。
+    /// 无真实证据（`real_weight=0`）时返回 `None`，由决策器回退到推断后验。
+    pub fn real_p_success(&self) -> Option<f64> {
+        if self.real_weight <= 0.0 {
+            None
+        } else {
+            Some(self.real_successes / self.real_weight)
+        }
+    }
+
+    /// 真实执行证据量（D1：真实成功 + 真实失败的累计权重）。
+    pub fn real_evidence_volume(&self) -> f64 {
+        self.real_weight
     }
 
     /// 是否已积累（置信度加权）失败证据（用于小样本下区分「无样本」与「有失败」）。
@@ -340,13 +395,14 @@ impl EvolutionDecider {
     /// T5A.4：将真实执行反馈并入当前后验（与决策标签流融合）。
     ///
     /// 决策标签流是「按 `executionMode` 推断成败」，真实执行反馈是「实际成败」，
-    /// 二者融合可校正推断偏差（真实结果优先）。真实执行为确定证据，每次权重 1.0。
+    /// 二者融合可校正推断偏差（真实结果优先）。真实执行为确定证据，每次权重 1.0，
+    /// 通过 `consume_real` 计入真实优先判定（D1：推断证据不稀释真实结果）。
     pub fn consume_execution_stats(&mut self, stats: &ToolExecutionStats) {
         for _ in 0..stats.successes {
-            self.consume_decision(1.0, true);
+            self.posterior.consume_real(true);
         }
         for _ in 0..stats.failures {
-            self.consume_decision(1.0, false);
+            self.posterior.consume_real(false);
         }
     }
 
@@ -386,7 +442,27 @@ impl EvolutionDecider {
     }
 
     /// 依据当前后验输出进化决策。
+    ///
+    /// D1 真实优先：存在真实执行证据（`ToolExecutionStats` / `Skill` 历史计数）时，
+    /// 仅以真实后验判定——推断证据（决策标签流）不稀释真实结果；
+    /// 无真实证据时回退到决策标签推断后验（冷启动）。
     pub fn decide(&self) -> EvolutionDecision {
+        // 真实优先分支：以真实执行后验为准（若存在真实证据）
+        if let Some(p) = self.posterior.real_p_success() {
+            let evidence = self.posterior.real_evidence_volume();
+            if evidence < self.min_evidence {
+                return EvolutionDecision::Observe;
+            }
+            if p < self.evolve_threshold {
+                return EvolutionDecision::Evolve;
+            }
+            if p > self.stable_threshold {
+                return EvolutionDecision::Stable;
+            }
+            return EvolutionDecision::Observe;
+        }
+
+        // 冷启动分支：无真实反馈 → 决策标签推断后验
         let p = self.posterior.p_success();
         let evidence = self.posterior.evidence_volume();
 
@@ -408,14 +484,18 @@ impl EvolutionDecider {
         matches!(self.decide(), EvolutionDecision::Evolve)
     }
 
-    /// 当前后验 `P(success)`。
+    /// 当前后验 `P(success)`（D1 真实优先：存在真实证据时返回真实后验，否则返回推断后验）。
     pub fn p_success(&self) -> f64 {
-        self.posterior.p_success()
+        self.posterior.real_p_success().unwrap_or_else(|| self.posterior.p_success())
     }
 
-    /// 当前已积累的（加权）证据量。
+    /// 当前已积累的证据量（D1 真实优先：存在真实证据时返回真实证据量，否则返回推断证据量）。
     pub fn evidence_volume(&self) -> f64 {
-        self.posterior.evidence_volume()
+        if self.posterior.real_evidence_volume() > 0.0 {
+            self.posterior.real_evidence_volume()
+        } else {
+            self.posterior.evidence_volume()
+        }
     }
 
     /// 决策结果 + 原因（用于决策标签 / 日志）。
@@ -582,18 +662,20 @@ mod tests {
 
     #[test]
     fn decider_from_execution_stats_uses_real_feedback() {
-        // 真实执行 8 次成功 / 2 次失败 → Beta(9,3)，P(success)=9/12=0.75
+        // 真实执行 8 次成功 / 2 次失败 → D1 真实优先：真实成功率 8/10=0.8
+        // （真实后验为原始比率，不掺 Beta(1,1) 先验，避免真实结果被稀释）
         let stats = ToolExecutionStats { usage_count: 10, successes: 8, failures: 2 };
         let decider = EvolutionDecider::from_execution_stats(&stats);
-        assert!((decider.p_success() - 0.75).abs() < 1e-9);
+        assert!((decider.p_success() - 0.8).abs() < 1e-9);
         assert!((decider.evidence_volume() - 10.0).abs() < 1e-9);
         assert_eq!(decider.decide(), EvolutionDecision::Stable);
     }
 
     #[test]
     fn decider_consume_execution_stats_fuses_with_labels() {
-        // 决策标签流推断 5 次成功 → P(success)≈0.857 → stable；
-        // 再融合 3 次真实失败 → 后验降至 0.6 → observe（真实反馈校正推断偏差）
+        // D1 真实优先：决策标签流推断 5 次成功 → P(success)≈0.857 → stable；
+        // 融合 3 次真实失败后，决策只以真实后验为准（P_real=0）→ evolve，
+        // 推断成功不再稀释真实失败结果。
         let mut decider = EvolutionDecider::new().with_thresholds(0.4, 0.7, 3.0);
         for _ in 0..5 {
             decider.consume_decision(1.0, true);
@@ -604,7 +686,43 @@ mod tests {
             successes: 0,
             failures: 3,
         });
-        assert_eq!(decider.decide(), EvolutionDecision::Observe);
+        assert_eq!(decider.decide(), EvolutionDecision::Evolve);
+        assert!((decider.p_success() - 0.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn decider_real_evidence_dominates_inference_labels() {
+        // D1 核心断言：真实反馈与推断冲突时，真实结果优先、不被稀释。
+        // 推断标签流 10 次高置信成功（约 0.9），真实执行 4 次全失败 → 必须触发进化，
+        // 而不是被推断证据拉回 stable/observe。
+        let mut decider = EvolutionDecider::new().with_thresholds(0.4, 0.7, 3.0);
+        let labels: Vec<serde_json::Value> = (0..10)
+            .map(|_| serde_json::json!({ "executionMode": "workflow", "confidence": 0.9 }))
+            .collect();
+        decider.consume_decision_labels(&labels);
+        assert_eq!(decider.decide(), EvolutionDecision::Stable);
+        decider.consume_execution_stats(&ToolExecutionStats {
+            usage_count: 4,
+            successes: 0,
+            failures: 4,
+        });
+        // 真实 4 次全失败 → 真实后验 0 → 触发进化
+        assert_eq!(decider.decide(), EvolutionDecision::Evolve);
+        assert_eq!(decider.evidence_volume(), 4.0);
+    }
+
+    #[test]
+    fn decider_no_real_feedback_uses_inference_cold_start() {
+        // D1 冷启动：无真实反馈时决策器回退到决策标签推断后验（不报错、不空转）
+        let mut decider = EvolutionDecider::new().with_thresholds(0.4, 0.7, 3.0);
+        let labels: Vec<serde_json::Value> = (0..5)
+            .map(|_| serde_json::json!({ "executionMode": "workflow", "confidence": 0.9 }))
+            .collect();
+        let consumed = decider.consume_decision_labels(&labels);
+        assert_eq!(consumed, 5);
+        // 无真实证据 → 推断后验判定
+        assert_eq!(decider.decide(), EvolutionDecision::Stable);
+        assert!((decider.evidence_volume() - 4.5).abs() < 1e-9);
     }
 
     #[test]

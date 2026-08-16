@@ -420,7 +420,7 @@ mod tests {
         let json = generator.to_json(&report);
         let parsed: serde_json::Value =
             serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
-        assert_eq!(parsed["benchmark_id"], "test");
+        assert_eq!(parsed["benchmarkId"], "test");
     }
 
     #[test]

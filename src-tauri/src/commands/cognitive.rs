@@ -1438,10 +1438,12 @@ pub async fn cognitive_evolution_decision(
 ///
 /// 抽成独立函数便于单元测试（无需构造完整 AppState，仅依赖数据库连接）。
 /// T5A.4 起额外接收进化产物真实执行统计快照，与决策标签流融合为双证据后验。
+/// D2 起统计快照按会话维度组织（`conversation_id → tool_id → stats`），
+/// 本函数只消费当前会话产物的真实反馈，避免跨会话污染决策。
 pub(crate) async fn evaluate_evolution_evidence(
     db: &axagent_harness::DatabaseConnection,
     conversation_id: &str,
-    execution_stats: &HashMap<String, ToolExecutionStats>,
+    execution_stats: &HashMap<String, HashMap<String, ToolExecutionStats>>,
 ) -> Result<EvolutionEvidenceView, axagent_harness::core_error::AxAgentError> {
     // 读取会话内消息的决策标签流（每条 assistant 消息的 decision 字段）
     let messages = axagent_dao::repo::message::list_messages(db, conversation_id).await?;
@@ -1450,17 +1452,23 @@ pub(crate) async fn evaluate_evolution_evidence(
         messages.iter().filter_map(|m| m.decision.clone()).collect();
     let total_labels = labels.len();
 
+    // D2 会话隔离：仅取本会话产物的真实执行反馈（空会话 → 空表，退化为冷启动推断）
+    let empty: HashMap<String, ToolExecutionStats> = HashMap::new();
+    let session_stats: &HashMap<String, ToolExecutionStats> =
+        execution_stats.get(conversation_id).unwrap_or(&empty);
+
     // 逐条消费为贝叶斯证据（决策标签流：按 executionMode 推断成败）
     let mut decider = axagent_trajectory::EvolutionDecider::new();
     let consumed_labels = decider.consume_decision_labels(&labels);
 
-    // T5A.4：融合真实执行反馈（进化产物真实成败，校正「按模式推断」的偏差）
-    for stats in execution_stats.values() {
+    // T5A.4：融合真实执行反馈（进化产物真实成败，校正「按模式推断」的偏差）。
+    // D1 真实优先：decide() 在存在真实反馈时仅以真实后验判定，推断证据不稀释。
+    for stats in session_stats.values() {
         decider.consume_execution_stats(stats);
     }
 
-    // T5A.4：真实执行反馈汇总视图（供前端对照展示）
-    let mut details: Vec<ToolExecutionDetail> = execution_stats
+    // T5A.4：真实执行反馈汇总视图（供前端对照展示，仅含本会话产物）
+    let mut details: Vec<ToolExecutionDetail> = session_stats
         .iter()
         .map(|(tool_id, s)| ToolExecutionDetail {
             tool_id: tool_id.clone(),
@@ -1470,9 +1478,9 @@ pub(crate) async fn evaluate_evolution_evidence(
         })
         .collect();
     details.sort_by(|a, b| a.tool_id.cmp(&b.tool_id));
-    let total_runs: u32 = execution_stats.values().map(|s| s.usage_count).sum();
-    let total_successes: u32 = execution_stats.values().map(|s| s.successes).sum();
-    let total_failures: u32 = execution_stats.values().map(|s| s.failures).sum();
+    let total_runs: u32 = session_stats.values().map(|s| s.usage_count).sum();
+    let total_successes: u32 = session_stats.values().map(|s| s.successes).sum();
+    let total_failures: u32 = session_stats.values().map(|s| s.failures).sum();
 
     let (decision, reason) = decider.describe();
 
@@ -1500,7 +1508,7 @@ pub(crate) async fn evaluate_evolution_evidence(
         total_labels,
         route_paths,
         execution_feedback: ExecutionFeedbackView {
-            tool_count: execution_stats.len(),
+            tool_count: session_stats.len(),
             total_runs,
             total_successes,
             total_failures,
@@ -1689,7 +1697,7 @@ mod tests {
     }
 
     /// T5A.4：真实执行反馈融合 — 决策标签流推断为 stable，真实执行反馈（全失败）
-    /// 校正后验至 observe；执行反馈视图输出真实成败对照。
+    /// 在 D1 真实优先下不稀释：真实后验 P=0 → 触发 evolve。
     #[tokio::test]
     async fn evolution_evidence_fuses_real_execution_feedback() {
         let db = axagent_dao::db::create_test_pool().await.expect("测试：创建连接池应成功").conn;
@@ -1705,20 +1713,25 @@ mod tests {
             .await;
         }
 
-        // 真实执行反馈：tool-a 真实 3 次全失败 → 校正后验至 observe
-        let mut execution_stats = HashMap::new();
+        // D2 会话隔离：按 (conversation_id → tool_id → stats) 嵌套组织
+        // 真实执行反馈：tool-a 真实 3 次全失败 → D1 真实优先，推断成功不稀释 → evolve
+        let mut execution_stats: HashMap<String, HashMap<String, ToolExecutionStats>> =
+            HashMap::new();
         execution_stats.insert(
-            "tool-a".to_string(),
-            ToolExecutionStats { usage_count: 3, successes: 0, failures: 3 },
+            conversation_id.clone(),
+            HashMap::from([(
+                "tool-a".to_string(),
+                ToolExecutionStats { usage_count: 3, successes: 0, failures: 3 },
+            )]),
         );
 
         let view = evaluate_evolution_evidence(&db, &conversation_id, &execution_stats)
             .await
             .expect("测试：进化评估应成功");
 
-        // 融合后 P(success)=(1+5)/(2+8)=0.6 → 介于 0.4~0.7 → observe
-        assert_eq!(view.decision, "observe");
-        assert!((view.p_success - 0.6).abs() < 1e-9, "p_success={}", view.p_success);
+        // D1 真实优先：真实后验 P(success)=0/3=0 < 0.4 → evolve
+        assert_eq!(view.decision, "evolve");
+        assert!((view.p_success - 0.0).abs() < 1e-9, "p_success={}", view.p_success);
         // 真实反馈对照视图
         assert_eq!(view.execution_feedback.tool_count, 1);
         assert_eq!(view.execution_feedback.total_runs, 3);

@@ -1218,13 +1218,17 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     tracing::info!("[cognitive] 认知编排器初始化完成");
 
     // ── T5A.3：进化产物执行统计存储（阶段四后置闭环）──
-    // 与 EvolutionFeedbackSinkImpl 共享同一 Arc，注入 GeneratedToolAdapter 后按 tool_id
-    // 累计真实执行成败，作为贝叶斯决策器的「真实执行证据」。
+    // 与 EvolutionFeedbackSinkImpl 共享同一 Arc，注入 GeneratedToolAdapter 后按
+    // (conversation_id, tool_id) 累计真实执行成败（D2 会话隔离），
+    // 作为贝叶斯决策器的「真实执行证据」。
     let evolution_execution_stats: std::sync::Arc<
         tokio::sync::Mutex<
             std::collections::HashMap<
                 String,
-                axagent_harness::workflow_evolution::ToolExecutionStats,
+                std::collections::HashMap<
+                    String,
+                    axagent_harness::workflow_evolution::ToolExecutionStats,
+                >,
             >,
         >,
     > = std::sync::Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new()));
@@ -1234,11 +1238,13 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     // 使 system_evolution_* 工具可通过 RuntimeMutationAccess trait 访问运行时注册表，
     // 编排型进化产物在 deploy 时经 WorkEngineWorkflowDagExecutor 真正执行（分层执行）。
     // 必须在 work_engine 创建之后注入（此处 work_engine 已就绪）。
+    // D3：一并注入数据库连接，使 deploy 生成的进化产物执行反馈可落库持久化（重启不丢）。
     axagent_tools::runtime_mutation::set_mutation_access(std::sync::Arc::new(
         crate::commands::evolution_engine::EvolutionMutationAccess::new(
             local_tool_registry.clone(),
             work_engine.clone(),
             evolution_execution_stats.clone(),
+            harness.db().clone(),
         ),
     )
         as std::sync::Arc<dyn axagent_harness::RuntimeMutationAccess>);

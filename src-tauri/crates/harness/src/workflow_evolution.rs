@@ -751,7 +751,9 @@ pub struct ToolExecutionStats {
 pub trait ExecutionFeedbackSink: Send + Sync + std::any::Any {
     /// 上报一次进化产物执行结果。
     ///
-    /// `tool_id` 为产物标识(`GeneratedTool.id`)，`success` 为真实成败。
+    /// `conversation_id` 为当前执行所属会话（`None` 表示无会话上下文，
+    /// 如纯 tools 层测试），`tool_id` 为产物标识(`GeneratedTool.id`)，
+    /// `success` 为真实成败。
     /// 实现方须线程安全（wiring 层用 `tokio::sync::Mutex` 保护统计表）。
-    fn record(&self, tool_id: &str, success: bool);
+    fn record(&self, conversation_id: Option<&str>, tool_id: &str, success: bool);
 }

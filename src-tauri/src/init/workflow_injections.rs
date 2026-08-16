@@ -958,28 +958,66 @@ impl EvolutionArtifactValidator for SelfReferenceArtifactValidator {
 /// 作为贝叶斯决策器的「真实执行证据」（阶段四后置闭环）。
 /// 与 [`ExecutionFeedbackSink`] 契约解耦：tools 层仅依赖 harness 契约，
 /// 本实现位于 wiring 层，不破坏架构分层。
+/// D3 持久化：持有可选数据库连接，`record` 更新内存后异步 upsert 落库，
+/// 重启后由启动流程加载回内存，真实执行证据不丢失。
 pub struct EvolutionFeedbackSinkImpl {
-    stats: Arc<Mutex<HashMap<String, ToolExecutionStats>>>,
+    /// 统计表（D2 会话隔离）：`conversation_id → tool_id → ToolExecutionStats`。
+    /// 无会话上下文（`None`）落到 `""` 全局桶。
+    stats: Arc<Mutex<HashMap<String, HashMap<String, ToolExecutionStats>>>>,
+    /// 数据库连接（D3 持久化）：`Some` 时 `record` 同步更新内存并异步落库；
+    /// `None` 时仅内存累计（纯测试 / 无 DB 上下文）。
+    db: Option<axagent_harness::DatabaseConnection>,
 }
 
 impl EvolutionFeedbackSinkImpl {
-    pub fn new(stats: Arc<Mutex<HashMap<String, ToolExecutionStats>>>) -> Self {
-        Self { stats }
+    pub fn new(
+        stats: Arc<Mutex<HashMap<String, HashMap<String, ToolExecutionStats>>>>,
+        db: Option<axagent_harness::DatabaseConnection>,
+    ) -> Self {
+        Self { stats, db }
     }
 }
 
 impl ExecutionFeedbackSink for EvolutionFeedbackSinkImpl {
-    fn record(&self, tool_id: &str, success: bool) {
+    fn record(&self, conversation_id: Option<&str>, tool_id: &str, success: bool) {
         // `record` 是同步回调（工具执行完成瞬间调用），统计表用 tokio Mutex 保护。
         // 临界区仅一次哈希表条目更新、不含 await，blocking_lock 无死锁风险
         //（同一时刻不会有其它任务持有该锁并等待本线程让出执行权）。
-        let mut stats = self.stats.blocking_lock();
-        let entry = stats.entry(tool_id.to_string()).or_default();
-        entry.usage_count += 1;
-        if success {
-            entry.successes += 1;
-        } else {
-            entry.failures += 1;
+        let conv = conversation_id.unwrap_or("").to_string();
+        let tool_id = tool_id.to_string();
+        {
+            let mut stats = self.stats.blocking_lock();
+            let conv_stats = stats.entry(conv.clone()).or_default();
+            let entry = conv_stats.entry(tool_id.clone()).or_default();
+            entry.usage_count += 1;
+            if success {
+                entry.successes += 1;
+            } else {
+                entry.failures += 1;
+            }
+        }
+        // D3 持久化：异步 upsert 到 DB（SQLite/PG 通用 UPSERT）。
+        // 仅在实际执行路径调用（D4 假成功修复），落库前已释放 stats 锁，无跨 await 持锁。
+        if let Some(db) = &self.db {
+            if let Ok(handle) = tokio::runtime::Handle::try_current() {
+                let db = db.clone();
+                handle.spawn(async move {
+                    if let Err(e) =
+                        axagent_dao::repo::evolution_execution_stats::upsert_execution_feedback(
+                            &db, &conv, &tool_id, success,
+                        )
+                        .await
+                    {
+                        tracing::warn!(
+                            target: "evolution_feedback",
+                            conversation_id = %conv,
+                            tool_id = %tool_id,
+                            error = %e,
+                            "进化产物执行反馈落库失败"
+                        );
+                    }
+                });
+            }
         }
     }
 }
@@ -1476,25 +1514,60 @@ mod tests {
 
     // ── T5A.3:EvolutionFeedbackSinkImpl 单元测试 ──
 
+    /// 构造嵌套统计表（D2 会话隔离）的测试 sink（无 DB，仅内存累计）。
+    fn make_sink()
+    -> (Arc<Mutex<HashMap<String, HashMap<String, ToolExecutionStats>>>>, EvolutionFeedbackSinkImpl)
+    {
+        let stats: Arc<Mutex<HashMap<String, HashMap<String, ToolExecutionStats>>>> =
+            Arc::new(Mutex::new(HashMap::new()));
+        let sink = EvolutionFeedbackSinkImpl::new(stats.clone(), None);
+        (stats, sink)
+    }
+
     #[test]
     fn test_feedback_sink_accumulates_stats() {
-        let stats: Arc<Mutex<HashMap<String, ToolExecutionStats>>> =
-            Arc::new(Mutex::new(HashMap::new()));
-        let sink = EvolutionFeedbackSinkImpl::new(stats.clone());
+        let (stats, sink) = make_sink();
 
-        sink.record("tool_a", true);
-        sink.record("tool_a", false);
-        sink.record("tool_b", true);
+        sink.record(Some("conv_a"), "tool_a", true);
+        sink.record(Some("conv_a"), "tool_a", false);
+        sink.record(Some("conv_a"), "tool_b", true);
 
         let snapshot = stats.blocking_lock().clone();
-        let a = snapshot.get("tool_a").copied().expect("tool_a 应有统计");
+        let conv = snapshot.get("conv_a").expect("conv_a 应有会话桶");
+        let a = conv.get("tool_a").copied().expect("tool_a 应有统计");
         assert_eq!(a.usage_count, 2);
         assert_eq!(a.successes, 1);
         assert_eq!(a.failures, 1);
 
-        let b = snapshot.get("tool_b").copied().expect("tool_b 应有统计");
+        let b = conv.get("tool_b").copied().expect("tool_b 应有统计");
         assert_eq!(b.usage_count, 1);
         assert_eq!(b.successes, 1);
         assert_eq!(b.failures, 0);
+    }
+
+    /// D2 会话隔离：不同会话的统计互不影响，且无会话上下文落到全局桶。
+    #[test]
+    fn test_feedback_sink_isolates_conversations() {
+        let (stats, sink) = make_sink();
+
+        sink.record(Some("conv_a"), "tool_x", true);
+        sink.record(Some("conv_b"), "tool_x", false);
+        sink.record(None, "tool_x", true);
+
+        let snapshot = stats.blocking_lock().clone();
+
+        // 三个会话桶各自独立
+        let a = snapshot.get("conv_a").and_then(|m| m.get("tool_x")).copied().unwrap();
+        assert_eq!((a.usage_count, a.successes, a.failures), (1, 1, 0));
+
+        let b = snapshot.get("conv_b").and_then(|m| m.get("tool_x")).copied().unwrap();
+        assert_eq!((b.usage_count, b.successes, b.failures), (1, 0, 1));
+
+        // 无会话上下文 → 全局桶 ""
+        let g = snapshot.get("").and_then(|m| m.get("tool_x")).copied().unwrap();
+        assert_eq!((g.usage_count, g.successes, g.failures), (1, 1, 0));
+
+        // 断言无跨会话污染：conv_a 里只有 1 次统计
+        assert_eq!(snapshot.get("conv_a").map(|m| m.len()).unwrap_or(0), 1);
     }
 }

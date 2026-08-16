@@ -280,12 +280,16 @@ pub struct AppState {
     pub platform_bridge: Arc<axagent_runtime::message_gateway::platform_bridge::PlatformBridge>,
     pub user_profile: Arc<TokioRwLock<axagent_trajectory::UserProfile>>,
     pub local_tool_registry: Arc<tokio::sync::Mutex<axagent_tools::registry::UnifiedToolRegistry>>,
-    /// 进化产物运行时执行统计（阶段四后置闭环）：tool_id → 真实成败计数。
+    /// 进化产物运行时执行统计（阶段四后置闭环）：
+    /// `conversation_id → tool_id → 真实成败计数`（D2 会话隔离，避免跨会话污染决策）。
     /// 与 `GeneratedToolAdapter` 注入的 `EvolutionFeedbackSink` 共享同一 Arc，
-    /// 供进化决策查询融合真实执行反馈。
+    /// 供进化决策按会话查询融合真实执行反馈。
     pub evolution_execution_stats: Arc<
         tokio::sync::Mutex<
-            HashMap<String, axagent_harness::workflow_evolution::ToolExecutionStats>,
+            HashMap<
+                String,
+                HashMap<String, axagent_harness::workflow_evolution::ToolExecutionStats>,
+            >,
         >,
     >,
     pub work_engine: Arc<axagent_runtime::work_engine::WorkEngine>,

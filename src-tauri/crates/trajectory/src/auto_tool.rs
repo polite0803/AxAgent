@@ -782,7 +782,8 @@ mod tests {
     #[test]
     fn test_evolution_artifact_kind_serde_backward_compat() {
         // 老数据（无 artifact_kind 字段）反序列化时自动补齐为默认 RhaiScript
-        let legacy = r#"{"id":"x","name":"legacy","code":"c","description":"d","test_coverage":0.0,"created_at":0,"usage_count":0,"success_rate":0.0}"#;
+        // 注意：GeneratedTool 带 #[serde(rename_all = "camelCase")]，字段须用 camelCase
+        let legacy = r#"{"id":"x","name":"legacy","code":"c","description":"d","testCoverage":0.0,"createdAt":0,"usageCount":0,"successRate":0.0}"#;
         let tool: GeneratedTool = serde_json::from_str(legacy).expect("测试：老数据反序列化应成功");
         assert_eq!(tool.artifact_kind, EvolutionArtifactKind::RhaiScript);
     }

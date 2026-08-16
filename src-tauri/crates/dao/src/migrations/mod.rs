@@ -45,9 +45,10 @@ pub mod v118_wiki_kb_link;
 pub mod v119_add_note_tags;
 pub mod v120_add_trajectory_invalidated;
 pub mod v121_add_trajectory_agent_name;
+pub mod v122_evolution_execution_stats;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 121;
+pub const CURRENT_VERSION: i32 = 122;
 
 /// P2-10: Schema 版本追踪表名。
 ///
@@ -189,6 +190,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 121,
         description: "v121_add_trajectory_agent_name: 为 trajectory_trajectories 表添加 agent_name 字段（结构化 Agent 标识，进化系统据此精准聚合每个 Agent 的证据）",
         up: |db| Box::pin(v121_add_trajectory_agent_name::up(db)),
+    },
+    Migration {
+        version: 122,
+        description: "v122_evolution_execution_stats: 创建 evolution_execution_stats 表（复合主键 (conversation_id, tool_id)），持久化进化产物真实执行反馈，重启后真实证据不丢失（阶段四后置闭环 D3）",
+        up: |db| Box::pin(v122_evolution_execution_stats::up(db)),
     },
 ];
 

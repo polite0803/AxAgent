@@ -24,23 +24,40 @@ test.describe("Plan Approval Gate (P0-2)", () => {
       if (msg.type() === "error") { console.log("CONSOLE_ERR>>", msg.text()); }
     });
     // 清空持久化开关 + 预置向导已完成（防止 WelcomeWizard Modal 阻挡交互）
+    // 注意：browserMock 使用 axagent_settings 作为 key
     await page.addInitScript(() => {
       try {
         localStorage.removeItem("axagent:agent:planApprovalEnabled");
       } catch { /* ignore */ }
       try {
+        // 设置 onboarding 状态（通过 axagent_settings key）
         localStorage.setItem(
           "axagent_settings",
           JSON.stringify({
-            onboarding_completed: true,
-            onboarding_wizard_dismissed: true,
-            onboarding_tutorial_completed: true,
+            onboardingCompleted: true,
+            onboardingWizardDismissed: true,
+            onboardingTutorialCompleted: true,
           }),
         );
       } catch { /* ignore */ }
     });
     await page.goto("/chat");
+
+    // 等待页面完全加载
+    await page.waitForLoadState("networkidle");
+
+    // 等待 chat-view 出现
     await page.waitForSelector('[data-testid="chat-view"]', { timeout: 20000 });
+
+    // 额外等待，确保 onboarding 状态被正确加载
+    await page.waitForTimeout(500);
+
+    // 尝试关闭任何可能存在的模态框
+    const skipBtn = page.getByTestId("onboarding-skip");
+    if (await skipBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await skipBtn.click({ force: true });
+      await page.waitForTimeout(500);
+    }
   });
 
   test("plan approval toggle persists to localStorage", async ({ page }) => {

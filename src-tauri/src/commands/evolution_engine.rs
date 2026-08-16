@@ -717,6 +717,7 @@ pub async fn run_auto_tool_create(
                         .with_feedback_sink(std::sync::Arc::new(
                             crate::init::workflow_injections::EvolutionFeedbackSinkImpl::new(
                                 state.evolution_execution_stats.clone(),
+                                Some(state.harness.db().clone()),
                             ),
                         ));
                 let reg_result = registry.register_runtime_tool(
@@ -830,6 +831,41 @@ pub async fn list_runtime_tools(state: State<'_, AppState>) -> Result<serde_json
     }))
 }
 
+/// 重启自动加载：从 DB 读取持久化的进化产物执行统计，填充到内存 HashMap。
+///
+/// D3 持久化：启动时在 `load_runtime_evolution_tools_impl` 之前调用，
+/// 保证真实执行证据在重启后不丢失。与 `EvolutionFeedbackSinkImpl`
+/// 共享同一 stats Arc，后续 `record` 继续累计。
+pub async fn load_evolution_execution_stats_impl(
+    db: &axagent_harness::DatabaseConnection,
+    stats: &std::sync::Arc<
+        tokio::sync::Mutex<
+            HashMap<
+                String,
+                HashMap<String, axagent_harness::workflow_evolution::ToolExecutionStats>,
+            >,
+        >,
+    >,
+) -> Result<(), String> {
+    let loaded = axagent_dao::repo::evolution_execution_stats::load_all_execution_stats(db)
+        .await
+        .map_err(|e| format!("加载持久化执行统计失败: {}", e))?;
+
+    let count: usize = loaded.values().map(|m| m.len()).sum();
+    if count > 0 {
+        let mut memory = stats.lock().await;
+        // 合并：已有 entry 以 DB 为准覆盖（重启后 DB 是权威来源）
+        for (conv, tools) in loaded {
+            memory.entry(conv).or_default().extend(tools);
+        }
+        drop(memory);
+        tracing::info!(target: "evolution_engine", count, "持久化执行统计已加载到内存");
+    } else {
+        tracing::debug!(target: "evolution_engine", "无持久化执行统计（空表）");
+    }
+    Ok(())
+}
+
 /// 重启自动加载：从 DB 读取 `source = "runtime_evolution"` 的持久化工具，
 /// 从 DB 加载持久化的 `runtime_evolution` 工具并注册回运行时注册表。
 ///
@@ -841,7 +877,10 @@ pub async fn load_runtime_evolution_tools_impl(
     work_engine: &std::sync::Arc<axagent_runtime::work_engine::WorkEngine>,
     stats: &std::sync::Arc<
         tokio::sync::Mutex<
-            HashMap<String, axagent_harness::workflow_evolution::ToolExecutionStats>,
+            HashMap<
+                String,
+                HashMap<String, axagent_harness::workflow_evolution::ToolExecutionStats>,
+            >,
         >,
     >,
 ) -> Result<serde_json::Value, String> {
@@ -896,7 +935,10 @@ pub async fn load_runtime_evolution_tools_impl(
                 crate::init::workflow_injections::SelfReferenceArtifactValidator::new(),
             ))
             .with_feedback_sink(std::sync::Arc::new(
-                crate::init::workflow_injections::EvolutionFeedbackSinkImpl::new(stats.clone()),
+                crate::init::workflow_injections::EvolutionFeedbackSinkImpl::new(
+                    stats.clone(),
+                    Some(db.clone()),
+                ),
             ));
         match registry
             .register_runtime_tool(std::sync::Arc::new(adapter), "runtime_evolution".to_string())
@@ -1289,11 +1331,17 @@ pub struct EvolutionMutationAccess {
     work_engine: std::sync::Arc<axagent_runtime::work_engine::WorkEngine>,
     /// 进化产物执行统计（T5A.3）：与 `AppState.evolution_execution_stats` 同 Arc，
     /// deploy 时注入 `EvolutionFeedbackSink` 累计真实执行成败。
+    /// D2 会话隔离：`conversation_id → tool_id → ToolExecutionStats`。
     stats: std::sync::Arc<
         tokio::sync::Mutex<
-            HashMap<String, axagent_harness::workflow_evolution::ToolExecutionStats>,
+            HashMap<
+                String,
+                HashMap<String, axagent_harness::workflow_evolution::ToolExecutionStats>,
+            >,
         >,
     >,
+    /// 数据库连接（D3 持久化）：deploy 的进化产物执行反馈经此落库，重启后加载不丢。
+    db: axagent_harness::DatabaseConnection,
 }
 
 impl EvolutionMutationAccess {
@@ -1303,11 +1351,15 @@ impl EvolutionMutationAccess {
         work_engine: std::sync::Arc<axagent_runtime::work_engine::WorkEngine>,
         stats: std::sync::Arc<
             tokio::sync::Mutex<
-                HashMap<String, axagent_harness::workflow_evolution::ToolExecutionStats>,
+                HashMap<
+                    String,
+                    HashMap<String, axagent_harness::workflow_evolution::ToolExecutionStats>,
+                >,
             >,
         >,
+        db: axagent_harness::DatabaseConnection,
     ) -> Self {
-        Self { registry, work_engine, stats }
+        Self { registry, work_engine, stats, db }
     }
 }
 
@@ -1386,6 +1438,7 @@ impl RuntimeMutationAccess for EvolutionMutationAccess {
             .with_feedback_sink(std::sync::Arc::new(
                 crate::init::workflow_injections::EvolutionFeedbackSinkImpl::new(
                     self.stats.clone(),
+                    Some(self.db.clone()),
                 ),
             ));
         match registry

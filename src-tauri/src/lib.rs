@@ -433,6 +433,15 @@ pub fn run() {
             let rt_tool_work_engine = state.work_engine.clone();
             let rt_tool_stats = state.evolution_execution_stats.clone();
             tauri::async_runtime::spawn(async move {
+                // D3 持久化：先加载上一会话落库的真实执行统计（重启不丢证据），
+                // 再加载运行时工具（工具的 feedback sink 会复用同一 stats Arc 继续累计）
+                if let Err(e) = crate::commands::evolution_engine::
+                    load_evolution_execution_stats_impl(&rt_tool_db, &rt_tool_stats)
+                    .await
+                {
+                    tracing::warn!(target: "evolution_engine",
+                        "启动加载持久化执行统计失败: {}", e);
+                }
                 if let Err(e) = crate::commands::evolution_engine::load_runtime_evolution_tools_impl(
                     &rt_tool_db,
                     &rt_tool_registry,
