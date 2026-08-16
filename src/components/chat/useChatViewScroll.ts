@@ -7,7 +7,6 @@ import {
   getDistanceToHistoryTop,
   getScrollTopAfterPrepend,
   hasScrollLayoutMetricsChanged,
-  shouldIgnoreScrollDepartureFromBottom,
   shouldKeepAutoScroll,
   shouldShowScrollToBottom,
   shouldStickToBottomOnLayoutChange,
@@ -225,18 +224,6 @@ export function useChatViewScroll({
         CHAT_SCROLL_IS_REVERSED,
         1,
       );
-      const hadRecentUserScrollIntent = Date.now() - lastUserScrollIntentAtRef.current < 250;
-      if (
-        shouldIgnoreScrollDepartureFromBottom(
-          keepAutoScroll,
-          stickToBottomRef.current,
-          hadRecentUserScrollIntent,
-        )
-      ) {
-        scrollToBottomImmediate("auto");
-        setShowScrollToBottom(false);
-        return;
-      }
       if (keepAutoScroll !== stickToBottomRef.current) {
         setStickToBottom(keepAutoScroll);
       }
