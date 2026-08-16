@@ -245,27 +245,27 @@ export interface DynamicUISchemaRecord {
   id: string;
   title: string;
   description: string;
-  schema_json: string;
+  schemaJson: string;
   category: string;
   tags: string[];
   version: string;
-  is_builtin: boolean;
-  created_at: string;
-  updated_at: string;
+  isBuiltin: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface DynamicUIFormDataRecord {
   id: string;
-  schema_id: string;
-  form_data_json: string;
-  instance_key: string;
-  updated_at: string;
+  schemaId: string;
+  formDataJson: string;
+  instanceKey: string;
+  updatedAt: string;
 }
 
 export interface CreateDynamicUISchemaParams {
   title: string;
   description: string;
-  schema_json: string;
+  schemaJson: string;
   category: string;
   tags: string[];
 }
@@ -273,42 +273,42 @@ export interface CreateDynamicUISchemaParams {
 export interface UpdateDynamicUISchemaParams {
   title?: string;
   description?: string;
-  schema_json?: string;
+  schemaJson?: string;
   category?: string;
   tags?: string[];
   /** 语义化版本号（可选），不传则自动递增 patch */
   version?: string;
   /** 变更说明 */
-  change_log?: string;
+  changeLog?: string;
 }
 
 export interface SaveDynamicUIFormDataParams {
-  schema_id: string;
-  form_data_json: string;
-  instance_key?: string;
+  schemaId: string;
+  formDataJson: string;
+  instanceKey?: string;
 }
 
 // ── 导航钉入配置类型 ──
 
 export interface DynamicUIPinRecord {
-  schema_id: string;
+  schemaId: string;
   title: string;
-  group_name: string;
+  groupName: string;
   position: number;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface PinDynamicUISchemaParams {
-  schema_id: string;
+  schemaId: string;
   title: string;
-  group_name: string;
+  groupName: string;
   position?: number;
 }
 
 export interface UpdateDynamicUIPinParams {
   title?: string;
-  group_name?: string;
+  groupName?: string;
   position?: number;
 }
 
@@ -316,18 +316,18 @@ export interface UpdateDynamicUIPinParams {
 
 export interface DynamicUISchemaVersion {
   id: number;
-  schema_id: string;
+  schemaId: string;
   version: string;
   title: string;
   description: string;
-  schema_json: string;
+  schemaJson: string;
   category: string;
   tags: string[];
-  change_log: string;
-  created_at: number;
+  changeLog: string;
+  createdAt: number;
 }
 
 export interface ListVersionsResponse {
   versions: DynamicUISchemaVersion[];
-  current_version: string;
+  currentVersion: string;
 }

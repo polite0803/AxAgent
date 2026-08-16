@@ -5,7 +5,6 @@ import type { ChatViewScrollApi } from "@/components/chat/ChatView";
 import { ChatView } from "@/components/chat/ChatView";
 import { RightPanelContainer } from "@/components/chat/RightPanelContainer";
 import { ScrollToMessageProvider } from "@/components/chat/ScrollToMessageContext";
-import { useSkillChatCommands } from "@/components/skill/SkillChatCommands";
 import { useAgentContext } from "@/hooks/useAgentContext";
 import { useConversationStore, useProviderStore, useSettingsStore, useTabStore, useUIStore } from "@/stores";
 import { theme } from "antd";
@@ -55,9 +54,9 @@ export function ChatPage() {
 
   // 右侧面板状态
   const settings = useSettingsStore((s) => s.settings);
-  const agentPanelEnabled = settings.agent_panel_enabled !== false;
+  const agentPanelEnabled = settings.agentPanelEnabled !== false;
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(
-    settings.agent_panel_compact === true,
+    settings.agentPanelCompact === true,
   );
   const [rightPanelWidth, setRightPanelWidth] = useState(RIGHT_PANEL_DEFAULT);
   const [rightDragging, setRightDragging] = useState(false);
@@ -66,9 +65,15 @@ export function ChatPage() {
     setRightPanelCollapsed((prev) => !prev);
   }, []);
 
-  // 只在 rightPanelCollapsed 变化时保存设置，直接用 getState() 避免依赖 saveSettings 导致循环
+  // 只在 rightPanelCollapsed 变化时保存设置（跳过首次挂载，避免无意义的初始写入），
+  // 直接用 getState() 避免依赖 saveSettings 导致循环
+  const rightPanelCollapsedInitializedRef = useRef(false);
   useEffect(() => {
-    useSettingsStore.getState().saveSettings({ agent_panel_compact: rightPanelCollapsed });
+    if (!rightPanelCollapsedInitializedRef.current) {
+      rightPanelCollapsedInitializedRef.current = true;
+      return;
+    }
+    useSettingsStore.getState().saveSettings({ agentPanelCompact: rightPanelCollapsed });
   }, [rightPanelCollapsed]);
 
   // ChatView 暴露的 scroll 能力，供右侧面板点击跳转消息使用
@@ -130,8 +135,6 @@ export function ChatPage() {
     };
   }, [rightDragging]);
 
-  const skillCommands = useSkillChatCommands(); // slash-command suggestions for chat input
-  void skillCommands; // consumed by chat slash-command input
   const conversations = useConversationStore((s) => s.conversations);
   const activeConversationId = useConversationStore(
     (s) => s.activeConversationId,

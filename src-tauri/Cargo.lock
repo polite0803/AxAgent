@@ -1585,6 +1585,7 @@ version = "2.9.4"
 dependencies = [
  "anyhow",
  "async-trait",
+ "axagent-dao",
  "axagent-entities",
  "axagent-harness",
  "axagent-kit",

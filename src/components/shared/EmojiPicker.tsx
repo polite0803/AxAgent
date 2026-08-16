@@ -42,7 +42,7 @@ export function EmojiPicker({
   const pickerRef = useRef<EmojiPickerElement | null>(null);
   const { token } = theme.useToken();
   const { t, i18n } = useTranslation();
-  const themeMode = useSettingsStore((s) => s.settings.theme_mode);
+  const themeMode = useSettingsStore((s) => s.settings.themeMode);
   const isDark = useResolvedDarkMode(themeMode);
 
   const onEmojiSelectRef = useRef(onEmojiSelect);

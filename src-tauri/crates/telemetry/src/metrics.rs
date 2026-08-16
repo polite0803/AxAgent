@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CostMetrics {
     pub total_tokens: u64,
     pub input_tokens: u64,
@@ -52,6 +53,7 @@ impl CostMetrics {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TraceMetrics {
     pub total_duration_ms: u64,
     pub ttft_ms: Option<u64>,
@@ -77,6 +79,7 @@ impl TraceMetrics {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SpanMetrics {
     pub span_id: String,
     pub name: String,
@@ -106,6 +109,7 @@ impl SpanMetrics {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AggregatedMetrics {
     pub total_traces: usize,
     pub total_spans: usize,

@@ -32,7 +32,7 @@ interface DecompositionState {
   confirmDecomposition: (
     workflowName: string,
     workflowDescription?: string,
-  ) => Promise<{ workflow_id: string; saved_skills: number }>;
+  ) => Promise<{ workflowId: string; savedSkills: number }>;
   reset: () => void;
 }
 
@@ -45,7 +45,7 @@ export const useDecompositionStore = create<DecompositionState>((set, get) => ({
   previewDecomposition: async (request) => {
     set({ loading: true });
     try {
-      const preview = await invoke<DecompositionPreview & { cache_id: string }>(
+      const preview = await invoke<DecompositionPreview & { cacheId: string }>(
         "preview_decomposition",
         { request },
       );
@@ -68,7 +68,7 @@ export const useDecompositionStore = create<DecompositionState>((set, get) => ({
     outputSchema: Record<string, unknown>,
   ) => {
     try {
-      const result = await invoke<{ tool_name: string; success: boolean }>(
+      const result = await invoke<{ toolName: string; success: boolean }>(
         "generate_missing_tool",
         {
           name,
@@ -96,7 +96,7 @@ export const useDecompositionStore = create<DecompositionState>((set, get) => ({
       throw new Error("No original request available");
     }
 
-    const result = await invoke<{ workflow_id: string; saved_skills: number }>(
+    const result = await invoke<{ workflowId: string; savedSkills: number }>(
       "confirm_decomposition",
       {
         request: {
@@ -108,7 +108,7 @@ export const useDecompositionStore = create<DecompositionState>((set, get) => ({
             version: originalRequest.version,
             repo: originalRequest.repo,
           },
-          cache_id: preview.cache_id,
+          cache_id: preview.cacheId,
           workflow_name: workflowName,
           workflow_description: workflowDescription,
         },

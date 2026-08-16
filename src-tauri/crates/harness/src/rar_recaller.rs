@@ -21,6 +21,7 @@ use serde::{Deserialize, Serialize};
 
 /// RAR 召回结果 — 软引导能力推荐的完整输出
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RarRecallResult {
     /// Top-K 命中的路径地址(按相似度降序)
     #[serde(default)]

@@ -41,13 +41,13 @@ export function SyncPolicyPanel() {
   useEffect(() => {
     if (deviceSyncStore.syncPolicy) {
       form.setFieldsValue({
-        conflict_strategy: deviceSyncStore.syncPolicy.conflict_strategy,
-        auto_sync_interval_secs: deviceSyncStore.syncPolicy.auto_sync_interval_secs,
-        sync_scope: deviceSyncStore.syncPolicy.sync_scope,
-        auto_resolve_conflicts: deviceSyncStore.syncPolicy.auto_resolve_conflicts,
-        max_conflict_threshold: deviceSyncStore.syncPolicy.max_conflict_threshold,
-        change_log_retention_enabled: deviceSyncStore.syncPolicy.change_log_retention_enabled,
-        change_log_retention_days: deviceSyncStore.syncPolicy.change_log_retention_days,
+        conflictStrategy: deviceSyncStore.syncPolicy.conflictStrategy,
+        autoSyncIntervalSecs: deviceSyncStore.syncPolicy.autoSyncIntervalSecs,
+        syncScope: deviceSyncStore.syncPolicy.syncScope,
+        autoResolveConflicts: deviceSyncStore.syncPolicy.autoResolveConflicts,
+        maxConflictThreshold: deviceSyncStore.syncPolicy.maxConflictThreshold,
+        changeLogRetentionEnabled: deviceSyncStore.syncPolicy.changeLogRetentionEnabled,
+        changeLogRetentionDays: deviceSyncStore.syncPolicy.changeLogRetentionDays,
         enabled: deviceSyncStore.syncPolicy.enabled,
       });
     }
@@ -59,13 +59,13 @@ export function SyncPolicyPanel() {
       setSaving(true);
 
       const update: SyncPolicyUpdate = {
-        conflict_strategy: values.conflict_strategy,
-        auto_sync_interval_secs: values.auto_sync_interval_secs,
-        sync_scope: values.sync_scope,
-        auto_resolve_conflicts: values.auto_resolve_conflicts,
-        max_conflict_threshold: values.max_conflict_threshold,
-        change_log_retention_enabled: values.change_log_retention_enabled,
-        change_log_retention_days: values.change_log_retention_days,
+        conflictStrategy: values.conflictStrategy,
+        autoSyncIntervalSecs: values.autoSyncIntervalSecs,
+        syncScope: values.syncScope,
+        autoResolveConflicts: values.autoResolveConflicts,
+        maxConflictThreshold: values.maxConflictThreshold,
+        changeLogRetentionEnabled: values.changeLogRetentionEnabled,
+        changeLogRetentionDays: values.changeLogRetentionDays,
         enabled: values.enabled,
       };
 
@@ -125,7 +125,7 @@ export function SyncPolicyPanel() {
               <Col span={12}>
                 <Form.Item
                   label={t("deviceSync.conflictStrategy")}
-                  name="conflict_strategy"
+                  name="conflictStrategy"
                   rules={[{ required: true }]}
                 >
                   <Select>
@@ -139,7 +139,7 @@ export function SyncPolicyPanel() {
 
                 <Form.Item
                   label={t("deviceSync.autoSyncInterval")}
-                  name="auto_sync_interval_secs"
+                  name="autoSyncIntervalSecs"
                   tooltip={t("deviceSync.autoSyncIntervalTooltip")}
                 >
                   <InputNumber min={0} step={60} style={{ width: "100%" }} />
@@ -147,7 +147,7 @@ export function SyncPolicyPanel() {
 
                 <Form.Item
                   label={t("deviceSync.maxConflictThreshold")}
-                  name="max_conflict_threshold"
+                  name="maxConflictThreshold"
                   tooltip={t("deviceSync.maxConflictThresholdTooltip")}
                 >
                   <InputNumber min={1} step={10} style={{ width: "100%" }} />
@@ -157,7 +157,7 @@ export function SyncPolicyPanel() {
               <Col span={12}>
                 <Form.Item
                   label={t("deviceSync.autoResolveConflicts")}
-                  name="auto_resolve_conflicts"
+                  name="autoResolveConflicts"
                   valuePropName="checked"
                 >
                   <Switch />
@@ -173,7 +173,7 @@ export function SyncPolicyPanel() {
 
                 <Form.Item
                   label={t("deviceSync.changeLogRetention")}
-                  name="change_log_retention_enabled"
+                  name="changeLogRetentionEnabled"
                   valuePropName="checked"
                 >
                   <Switch />
@@ -181,8 +181,8 @@ export function SyncPolicyPanel() {
 
                 <Form.Item
                   label={t("deviceSync.retentionDays")}
-                  name="change_log_retention_days"
-                  dependencies={["change_log_retention_enabled"]}
+                  name="changeLogRetentionDays"
+                  dependencies={["changeLogRetentionEnabled"]}
                 >
                   <InputNumber min={1} max={365} style={{ width: "100%" }} />
                 </Form.Item>
@@ -191,7 +191,7 @@ export function SyncPolicyPanel() {
 
             <Form.Item
               label={t("deviceSync.syncScope")}
-              name="sync_scope"
+              name="syncScope"
               rules={[{ required: true }]}
             >
               <Checkbox.Group>

@@ -24,9 +24,9 @@ export function sanitizeModelCapabilities(
 }
 
 export function getVisibleModelCapabilities(
-  model: Pick<Model, "model_type" | "capabilities">,
+  model: Pick<Model, "modelType" | "capabilities">,
 ): ModelCapability[] {
-  return sanitizeModelCapabilities(model.model_type, model.capabilities);
+  return sanitizeModelCapabilities(model.modelType, model.capabilities);
 }
 
 export function modelHasCapability(
@@ -45,11 +45,11 @@ export function supportsReasoning(
 export function findModelByIds(
   providers: ProviderConfig[],
   providerId: string | null | undefined,
-  model_id: string | null | undefined,
+  modelId: string | null | undefined,
 ): Model | null {
-  if (!providerId || !model_id) {
+  if (!providerId || !modelId) {
     return null;
   }
   const provider = providers.find((item) => item.id === providerId);
-  return provider?.models.find((item) => item.model_id === model_id) ?? null;
+  return provider?.models.find((item) => item.modelId === modelId) ?? null;
 }

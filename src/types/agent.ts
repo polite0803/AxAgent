@@ -11,13 +11,13 @@ export type ApprovalStatus = "pending" | "approved" | "denied";
 
 export interface AgentSession {
   id: string;
-  conversation_id: string;
+  conversationId: string;
   cwd?: string;
-  workspace_locked?: boolean;
-  permission_mode: AgentBehaviorMode;
-  runtime_status: AgentRuntimeStatus;
-  total_tokens: number;
-  total_cost_usd: number;
+  workspaceLocked?: boolean;
+  permissionMode: AgentBehaviorMode;
+  runtimeStatus: AgentRuntimeStatus;
+  totalTokens: number;
+  totalCostUsd: number;
 }
 
 // --- Event payload types (all tool-related events carry assistantMessageId anchor) ---
@@ -86,7 +86,7 @@ export interface AgentDoneEvent {
   assistantMessageId: string;
   text: string;
   thinking?: string;
-  usage?: { input_tokens: number; output_tokens: number };
+  usage?: { inputTokens: number; outputTokens: number };
   numTurns?: number;
   costUsd?: number;
   blocks?: Array<{
@@ -352,7 +352,7 @@ export type SubAgentStatus =
   | "cancelled";
 
 export interface SubAgentMetadata {
-  agent_type: string;
+  agentType: string;
   capabilities: string[];
   model?: string;
   tools: string[];
@@ -360,7 +360,7 @@ export interface SubAgentMetadata {
 
 export interface SubAgent {
   id: string;
-  parent_id?: string;
+  parentId?: string;
   name: string;
   description: string;
   status: SubAgentStatus;
@@ -368,8 +368,8 @@ export interface SubAgent {
   progress: number;
   result?: string;
   error?: string;
-  created_at: string;
-  completed_at?: string;
+  createdAt: string;
+  completedAt?: string;
   children: string[];
   metadata: SubAgentMetadata;
 }
@@ -378,32 +378,34 @@ export interface SubAgent {
 
 export interface TrajectorySummary {
   id: string;
-  session_id: string;
+  sessionId: string;
+  /** 结构化 agent 标识：记录该轨迹由哪个 Agent（AgentProfile 名称）执行 */
+  agentName?: string;
   topic: string;
   outcome: string;
-  duration_ms: number;
+  durationMs: number;
   quality?: {
     overall: number;
-    task_completion: number;
-    tool_efficiency: number;
-    reasoning_quality: number;
-    user_satisfaction: number;
+    taskCompletion: number;
+    toolEfficiency: number;
+    reasoningQuality: number;
+    userSatisfaction: number;
   };
-  step_count: number;
-  created_at: string;
+  stepCount: number;
+  createdAt: string;
 }
 
 export interface TrajectoryStep {
-  timestamp_ms: number;
+  timestampMs: number;
   role: string;
   content: string;
   reasoning?: string;
-  tool_calls?: Array<{
+  toolCalls?: Array<{
     id: string;
     name: string;
     input: Record<string, unknown>;
   }>;
-  tool_results?: Array<{
+  toolResults?: Array<{
     id: string;
     output: string;
     error?: string;
@@ -412,27 +414,29 @@ export interface TrajectoryStep {
 
 export interface TrajectoryDetail {
   id: string;
-  session_id: string;
+  sessionId: string;
+  /** 结构化 agent 标识：记录该轨迹由哪个 Agent（AgentProfile 名称）执行 */
+  agentName?: string;
   topic: string;
   outcome: string;
-  duration_ms: number;
+  durationMs: number;
   quality?: {
     overall: number;
-    task_completion: number;
-    tool_efficiency: number;
-    reasoning_quality: number;
-    user_satisfaction: number;
+    taskCompletion: number;
+    toolEfficiency: number;
+    reasoningQuality: number;
+    userSatisfaction: number;
   };
   steps: TrajectoryStep[];
   patterns: string[];
   rewards: Array<{
-    reward_type: string;
+    rewardType: string;
     value: number;
-    step_index: number;
-    timestamp_ms: number;
+    stepIndex: number;
+    timestampMs: number;
   }>;
-  created_at: string;
-  replay_count: number;
+  createdAt: string;
+  replayCount: number;
 }
 
 /** 智能体模式枚举 */

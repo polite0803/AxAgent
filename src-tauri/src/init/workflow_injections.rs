@@ -13,14 +13,17 @@
 //!   仅做静态结构校验:节点非空、edges 引用有效、variables 数量合理。
 //!   全部通过 → passed;否则 → 列出错误。比 evolver 内置的占位逻辑更严格。
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use tokio::sync::Mutex;
 use tracing::warn;
 
 use axagent_agent::ProviderLlmBridge;
 use axagent_harness::workflow_evolution::{
-    SandboxValidationResult, WorkflowGenome, WorkflowLlmMutator, WorkflowSandbox,
+    EvolutionArtifactValidator, ExecutionFeedbackSink, SandboxValidationResult, ToolExecutionStats,
+    WorkflowGenome, WorkflowLlmMutator, WorkflowSandbox,
 };
 use axagent_harness::workflow_reflection::WorkflowPattern;
 
@@ -861,6 +864,126 @@ impl WorkflowSandbox for DryRunWorkflowSandbox {
     }
 }
 
+// ── T4.4:计算型(Rhai)进化产物沙箱验证器 ──
+
+/// Rhai 脚本最大长度(字符)。超过视为 LLM 误生成 / 潜在 DoS,拒绝执行。
+const RHAI_SCRIPT_MAX_LEN: usize = 50_000;
+
+/// 进化产物危险模式列表(T4.4)。
+///
+/// Rhai 是内存沙箱语言,本身不能直接执行系统命令 / 访问文件系统 / 发网络请求
+/// (未注入对应模块)。这些模式命中说明产物含"尝试调用系统能力 / 破坏"的意图,
+/// 即便 Rhai 编译也会失败,也应在第一道防线提前拦截并给出明确错误,
+/// 与 `SkillSandboxExecutor::DANGEROUS_PATTERNS` 同思路。
+/// 刻意保持精确(不做 `format` / `eval` / `download` 等宽泛匹配),避免误伤合法脚本。
+const EVOLUTION_DANGEROUS_PATTERNS: &[&str] = &[
+    // 系统命令 / 进程执行(Rhai 未注入)
+    "std::process",
+    "process::Command",
+    "Command::new",
+    // 文件系统破坏
+    "std::fs",
+    "fs::remove",
+    "remove_dir_all",
+    // 网络请求(Rhai 未注入)
+    "reqwest",
+    "http::Client",
+    // 权限提升意图
+    "setuid",
+    "sudo -",
+];
+
+/// 计算型(Rhai)进化产物沙箱验证器(T4.4)。
+///
+/// 在 `GeneratedToolAdapter::call()` 真正执行 Rhai 脚本前调用,组合三道静态防线:
+/// 1. **长度限制**:脚本超长(> `RHAI_SCRIPT_MAX_LEN`)拒绝,防超长脚本 DoS
+/// 2. **自指熔断**:脚本内含 `/evolution/`、`evolution:workflow`、`self_evolution`
+///    等保护关键词时拒绝,防进化产物递归调用系统能力(复用 `SelfReferenceProtection`)
+/// 3. **危险模式**:命中 [`EVOLUTION_DANGEROUS_PATTERNS`] 中的危险意图片段时拒绝
+///
+/// 验证不通过 → 工具执行返回沙箱错误,产物不落地。wiring 层注入到进化工具执行路径。
+pub struct SelfReferenceArtifactValidator {
+    protected_keywords: Vec<String>,
+}
+
+impl SelfReferenceArtifactValidator {
+    pub fn new() -> Self {
+        // 复用认知路由的自指熔断保护关键词,保证与路由层同一套熔断语义
+        let protected_keywords =
+            axagent_harness::cognitive_router::SelfReferenceProtection::default()
+                .protected_keywords;
+        Self { protected_keywords }
+    }
+}
+
+impl Default for SelfReferenceArtifactValidator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl EvolutionArtifactValidator for SelfReferenceArtifactValidator {
+    fn validate_code(&self, code: &str) -> Vec<String> {
+        let mut violations = Vec::new();
+
+        // 1. 长度限制
+        if code.len() > RHAI_SCRIPT_MAX_LEN {
+            violations.push(format!("脚本长度 {} 超过上限 {RHAI_SCRIPT_MAX_LEN} 字符", code.len()));
+        }
+
+        // 2. 自指熔断保护关键词
+        for keyword in &self.protected_keywords {
+            if code.contains(keyword) {
+                violations.push(format!("脚本命中自指熔断保护关键词 '{keyword}'"));
+            }
+        }
+
+        // 3. 危险模式
+        for pattern in EVOLUTION_DANGEROUS_PATTERNS {
+            if code.contains(pattern) {
+                violations.push(format!("脚本命中危险模式 '{pattern}'"));
+            }
+        }
+
+        violations
+    }
+}
+
+// ── T5A.3:执行反馈闭环 wiring 实现 ──
+
+/// 进化产物执行反馈接收器（T5A.3）。
+///
+/// 累计 `GeneratedToolAdapter::call` 上报的真实执行成败到
+/// `AppState.evolution_execution_stats`（与 AppState 共享同一 Arc），
+/// 作为贝叶斯决策器的「真实执行证据」（阶段四后置闭环）。
+/// 与 [`ExecutionFeedbackSink`] 契约解耦：tools 层仅依赖 harness 契约，
+/// 本实现位于 wiring 层，不破坏架构分层。
+pub struct EvolutionFeedbackSinkImpl {
+    stats: Arc<Mutex<HashMap<String, ToolExecutionStats>>>,
+}
+
+impl EvolutionFeedbackSinkImpl {
+    pub fn new(stats: Arc<Mutex<HashMap<String, ToolExecutionStats>>>) -> Self {
+        Self { stats }
+    }
+}
+
+impl ExecutionFeedbackSink for EvolutionFeedbackSinkImpl {
+    fn record(&self, tool_id: &str, success: bool) {
+        // `record` 是同步回调（工具执行完成瞬间调用），统计表用 tokio Mutex 保护。
+        // 临界区仅一次哈希表条目更新、不含 await，blocking_lock 无死锁风险
+        //（同一时刻不会有其它任务持有该锁并等待本线程让出执行权）。
+        let mut stats = self.stats.blocking_lock();
+        let entry = stats.entry(tool_id.to_string()).or_default();
+        entry.usage_count += 1;
+        if success {
+            entry.successes += 1;
+        } else {
+            entry.failures += 1;
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1304,5 +1427,74 @@ mod tests {
             "Loop node should allow cycle, got: {:?}",
             result.execution_errors
         );
+    }
+
+    // ── T4.4:SelfReferenceArtifactValidator 单元测试 ──
+
+    #[test]
+    fn test_artifact_validator_passes_normal_rhai_script() {
+        // 纯计算脚本(无保护关键词 / 无危险模式 / 长度正常)→ 通过
+        let validator = SelfReferenceArtifactValidator::new();
+        let violations = validator.validate_code("let x = input * 2;\nx + 1");
+        assert!(violations.is_empty(), "正常脚本应通过, got: {violations:?}");
+    }
+
+    #[test]
+    fn test_artifact_validator_rejects_self_reference_keyword() {
+        // 命中自指熔断保护关键词(/evolution/)→ 拒绝
+        let validator = SelfReferenceArtifactValidator::new();
+        let violations = validator.validate_code("let route = \"/evolution/tool_x\";\nroute");
+        assert!(
+            violations.iter().any(|v| v.contains("/evolution/")),
+            "应命中 /evolution/ 保护关键词, got: {violations:?}"
+        );
+    }
+
+    #[test]
+    fn test_artifact_validator_rejects_dangerous_pattern() {
+        // 命中危险模式(process::Command)→ 拒绝
+        let validator = SelfReferenceArtifactValidator::new();
+        let violations =
+            validator.validate_code("let p = \"process::Command::new(\\\"rm\\\")\";\np");
+        assert!(
+            violations.iter().any(|v| v.contains("process::Command")),
+            "应命中危险模式 process::Command, got: {violations:?}"
+        );
+    }
+
+    #[test]
+    fn test_artifact_validator_rejects_oversized_script() {
+        // 超长脚本(> RHAI_SCRIPT_MAX_LEN)→ 拒绝
+        let validator = SelfReferenceArtifactValidator::new();
+        let long_code = "let x = 1;\n".repeat(RHAI_SCRIPT_MAX_LEN / 10 + 1);
+        let violations = validator.validate_code(&long_code);
+        assert!(
+            violations.iter().any(|v| v.contains("超过上限")),
+            "应命中长度限制, got: {violations:?}"
+        );
+    }
+
+    // ── T5A.3:EvolutionFeedbackSinkImpl 单元测试 ──
+
+    #[test]
+    fn test_feedback_sink_accumulates_stats() {
+        let stats: Arc<Mutex<HashMap<String, ToolExecutionStats>>> =
+            Arc::new(Mutex::new(HashMap::new()));
+        let sink = EvolutionFeedbackSinkImpl::new(stats.clone());
+
+        sink.record("tool_a", true);
+        sink.record("tool_a", false);
+        sink.record("tool_b", true);
+
+        let snapshot = stats.blocking_lock().clone();
+        let a = snapshot.get("tool_a").copied().expect("tool_a 应有统计");
+        assert_eq!(a.usage_count, 2);
+        assert_eq!(a.successes, 1);
+        assert_eq!(a.failures, 1);
+
+        let b = snapshot.get("tool_b").copied().expect("tool_b 应有统计");
+        assert_eq!(b.usage_count, 1);
+        assert_eq!(b.successes, 1);
+        assert_eq!(b.failures, 0);
     }
 }

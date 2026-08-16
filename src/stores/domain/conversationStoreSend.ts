@@ -88,11 +88,11 @@ export interface SendMethods {
   regenerateWithModel: (
     targetMessageId: string,
     providerId: string,
-    model_id: string,
+    modelId: string,
   ) => Promise<void>;
   sendMultiModelMessage: (
     content: string,
-    companionModels: Array<{ providerId: string; model_id: string }>,
+    companionModels: Array<{ providerId: string; modelId: string }>,
     attachments?: AttachmentInput[],
     searchProviderId?: string | null,
   ) => Promise<void>;
@@ -154,58 +154,58 @@ export function createSendMethods(
       // isTauri 专属的 Agent 分支守卫已由 cognitive_query 路由内部的
       // executionMode 判断承担，这里移除 2e9af1be 引入的误提短路。
 
-      const providerId = conversation.provider_id;
-      const model_id = conversation.model_id;
+      const providerId = conversation.providerId;
+      const modelId = conversation.modelId;
 
       // Optimistic user message（Clarify 二次执行时复用现有用户消息，不新建）
       const optimisticUserMsg: Message = isResumeClarify
         ? resumeUserMessage!
         : {
           id: tempId("temp-user-"),
-          conversation_id: conversationId,
+          conversationId: conversationId,
           role: "user",
           content,
-          provider_id: null,
-          model_id: null,
-          token_count: null,
+          providerId: null,
+          modelId: null,
+          tokenCount: null,
           attachments: attachments.map((a) => ({
             id: tempId("temp-att-"),
-            file_name: a.file_name,
-            file_type: a.file_type,
-            file_path: "",
-            file_size: a.file_size,
+            fileName: a.fileName,
+            fileType: a.fileType,
+            filePath: "",
+            fileSize: a.fileSize,
             data: a.data,
           })),
           thinking: null,
-          tool_calls_json: null,
-          tool_call_id: null,
-          created_at: Date.now(),
-          parent_message_id: null,
-          version_index: 0,
-          is_active: true,
+          toolCallsJson: null,
+          toolCallId: null,
+          createdAt: Date.now(),
+          parentMessageId: null,
+          versionIndex: 0,
+          isActive: true,
           status: "complete",
-          // 引用回复：乐观更新时携带 quoted_message_id，确保 UI 立即显示引用块
-          quoted_message_id: quotedMessageId,
+          // 引用回复：乐观更新时携带 quotedMessageId，确保 UI 立即显示引用块
+          quotedMessageId: quotedMessageId,
         };
 
       // Placeholder assistant message
       let currentMsgId = `temp-agent-${Date.now()}`;
       const placeholderAssistant: Message = {
         id: currentMsgId,
-        conversation_id: conversationId,
+        conversationId: conversationId,
         role: "assistant",
         content: i18n.t("agentMode.thinking"),
-        provider_id: providerId,
-        model_id: model_id,
-        token_count: null,
+        providerId: providerId,
+        modelId: modelId,
+        tokenCount: null,
         attachments: [],
         thinking: null,
-        tool_calls_json: null,
-        tool_call_id: null,
-        created_at: Date.now(),
-        parent_message_id: optimisticUserMsg.id,
-        version_index: 0,
-        is_active: true,
+        toolCallsJson: null,
+        toolCallId: null,
+        createdAt: Date.now(),
+        parentMessageId: optimisticUserMsg.id,
+        versionIndex: 0,
+        isActive: true,
         status: "partial",
       };
 
@@ -602,8 +602,8 @@ export function createSendMethods(
                     content: finalContent,
                     thinking: thinkingText || m.thinking,
                     status: "complete" as const,
-                    prompt_tokens: event.payload.usage?.input_tokens ?? null,
-                    completion_tokens: event.payload.usage?.output_tokens ?? null,
+                    prompt_tokens: event.payload.usage?.inputTokens ?? null,
+                    completion_tokens: event.payload.usage?.outputTokens ?? null,
                     blocks: event.payload.blocks ?? m.blocks,
                   } as Message;
                 }
@@ -751,13 +751,13 @@ export function createSendMethods(
               input: content,
               conversationId,
               providerId,
-              model_id,
+              modelId,
               // Clarify 二次执行：强制路由到用户选中的能力
               forcedCapabilityId: isResumeClarify
                 ? resumeClarify!.capabilityId
                 : undefined,
-              agentProfileId: conversation.agent_profile_id ?? undefined,
-              systemPrompt: conversation.system_prompt ?? undefined,
+              agentProfileId: conversation.agentProfileId ?? undefined,
+              systemPrompt: conversation.systemPrompt ?? undefined,
               searchProviderId: searchProviderId ?? undefined,
               agentContext: agentContextPayload,
               options: {
@@ -974,8 +974,8 @@ export function createSendMethods(
       if (targetMessageId) {
         // Find the AI message, then its parent user message
         const aiMsg = msgs.find((m) => m.id === targetMessageId);
-        if (aiMsg?.parent_message_id) {
-          userMsg = msgs.find((m) => m.id === aiMsg.parent_message_id);
+        if (aiMsg?.parentMessageId) {
+          userMsg = msgs.find((m) => m.id === aiMsg.parentMessageId);
         }
       }
       if (!userMsg) {
@@ -1003,24 +1003,24 @@ export function createSendMethods(
 
       // Find the original active AI message to preserve its created_at
       const originalAiMsg = msgs.find(
-        (m) => m.parent_message_id === parentId && m.is_active,
+        (m) => m.parentMessageId === parentId && m.isActive,
       );
       const placeholderAssistant: Message = {
         id: tempAssistantId,
-        conversation_id: conversationId,
+        conversationId: conversationId,
         role: "assistant",
         content: "",
-        provider_id: originalAiMsg?.provider_id ?? null,
-        model_id: originalAiMsg?.model_id ?? null,
-        token_count: null,
+        providerId: originalAiMsg?.providerId ?? null,
+        modelId: originalAiMsg?.modelId ?? null,
+        tokenCount: null,
         attachments: [],
         thinking: null,
-        tool_calls_json: null,
-        tool_call_id: null,
-        created_at: originalAiMsg?.created_at ?? Date.now(),
-        parent_message_id: userMsg.id,
-        version_index: 0,
-        is_active: true,
+        toolCallsJson: null,
+        toolCallId: null,
+        createdAt: originalAiMsg?.createdAt ?? Date.now(),
+        parentMessageId: userMsg.id,
+        versionIndex: 0,
+        isActive: true,
         status: "partial",
       };
 
@@ -1029,8 +1029,8 @@ export function createSendMethods(
         let inserted = false;
         const updated: Message[] = [];
         for (const m of s.messages) {
-          if (m.parent_message_id === parentId && m.is_active) {
-            updated.push({ ...m, is_active: false });
+          if (m.parentMessageId === parentId && m.isActive) {
+            updated.push({ ...m, isActive: false });
             if (!inserted) {
               updated.push(placeholderAssistant);
               inserted = true;
@@ -1130,7 +1130,7 @@ export function createSendMethods(
     regenerateWithModel: async (
       targetMessageId: string,
       providerId: string,
-      model_id: string,
+      modelId: string,
     ) => {
       const conversationId = get().activeConversationId;
       if (!conversationId) {
@@ -1140,37 +1140,37 @@ export function createSendMethods(
       const msgs = get().messages;
       // Find the AI message, then its parent user message
       const aiMsg = msgs.find((m) => m.id === targetMessageId);
-      if (!aiMsg?.parent_message_id) {
+      if (!aiMsg?.parentMessageId) {
         throw new Error("Cannot find parent user message");
       }
-      const userMsg = msgs.find((m) => m.id === aiMsg.parent_message_id);
+      const userMsg = msgs.find((m) => m.id === aiMsg.parentMessageId);
       if (!userMsg) {
         throw new Error("User message not found");
       }
 
       const parentId = userMsg.id;
       const originalAiMsg = msgs.find(
-        (m) => m.parent_message_id === parentId && m.is_active,
+        (m) => m.parentMessageId === parentId && m.isActive,
       );
 
       // Create placeholder with the target model info
       const tempAssistantId = tempId("temp-assistant-");
       const placeholderAssistant: Message = {
         id: tempAssistantId,
-        conversation_id: conversationId,
+        conversationId: conversationId,
         role: "assistant",
         content: "",
-        provider_id: providerId,
-        model_id: model_id,
-        token_count: null,
+        providerId: providerId,
+        modelId: modelId,
+        tokenCount: null,
         attachments: [],
         thinking: null,
-        tool_calls_json: null,
-        tool_call_id: null,
-        created_at: originalAiMsg?.created_at ?? Date.now(),
-        parent_message_id: userMsg.id,
-        version_index: 0,
-        is_active: true,
+        toolCallsJson: null,
+        toolCallId: null,
+        createdAt: originalAiMsg?.createdAt ?? Date.now(),
+        parentMessageId: userMsg.id,
+        versionIndex: 0,
+        isActive: true,
         status: "partial",
       };
 
@@ -1179,8 +1179,8 @@ export function createSendMethods(
         let inserted = false;
         const updated: Message[] = [];
         for (const m of s.messages) {
-          if (m.parent_message_id === parentId && m.is_active) {
-            updated.push({ ...m, is_active: false });
+          if (m.parentMessageId === parentId && m.isActive) {
+            updated.push({ ...m, isActive: false });
             if (!inserted) {
               updated.push(placeholderAssistant);
               inserted = true;
@@ -1226,7 +1226,7 @@ export function createSendMethods(
             conversationId,
             userMessageId: userMsg.id,
             targetProviderId: providerId,
-            targetModelId: model_id,
+            targetModelId: modelId,
             options: {
               enabledMcpServerIds: rMcpIds.length > 0 ? rMcpIds : undefined,
               thinkingBudget: rThinkingBudget,
@@ -1280,7 +1280,7 @@ export function createSendMethods(
 
     sendMultiModelMessage: (
       content: string,
-      companionModels: Array<{ providerId: string; model_id: string }>,
+      companionModels: Array<{ providerId: string; modelId: string }>,
       attachments?: AttachmentInput[],
       searchProviderId?: string | null,
     ) => {

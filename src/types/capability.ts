@@ -3,9 +3,11 @@
 //
 // 以后端 DTO 为权威来源对齐（见 src-tauri/crates/harness/src/capability*.rs）。
 // - 后端枚举使用 `#[serde(rename_all = "snake_case")]`，前端用 snake_case 字面量
-// - 后端 struct 字段默认 snake_case（无 rename_all），前端保持 snake_case
+// - 后端 struct 字段保持 snake_case，通过 `#[serde(rename_all = "camelCase")]`
+//   序列化输出 camelCase，前端消费 camelCase
 // - 后端 Tauri 命令 `DiscoverRequest` 使用 `#[serde(rename_all = "camelCase")]`，
-//   故 `DiscoverRequestPayload` 顶层字段用 camelCase，嵌套结构仍为 snake_case
+//   故 `DiscoverRequestPayload` 顶层字段与嵌套 FilterContext/CapabilityQuery/
+//   DiscoveryWeights/SessionBudget 均消费 camelCase
 
 // ── 能力护照（数字护照） ──────────────────────────
 
@@ -42,99 +44,106 @@ export type InputModality = "text" | "image" | "audio" | "video" | "file";
 /** 规划复杂度（对应后端 PlanningComplexity） */
 export type PlanningComplexity = "simple" | "moderate" | "complex";
 
+/** 能力等级（对应后端 CapabilityLevel，snake_case）
+ *  由护照多维数据派生（规划复杂度 / IQ 需求 / 成功率 / 耗时 / 成本）；
+ *  L1/L2 为低等级，可启用进化提升等级。 */
+export type CapabilityLevel = "l1" | "l2" | "l3" | "l4" | "l5";
+
 /** 模态支持声明（对应后端 ModalitySupport） */
 export interface ModalitySupport {
-  supports_text: boolean;
-  supports_image: boolean;
-  supports_audio: boolean;
-  supports_video: boolean;
-  supports_file: boolean;
+  supportsText: boolean;
+  supportsImage: boolean;
+  supportsAudio: boolean;
+  supportsVideo: boolean;
+  supportsFile: boolean;
 }
 
 /** 输出格式能力声明（对应后端 OutputCapabilities） */
 export interface OutputCapabilities {
-  supports_text: boolean;
-  supports_table: boolean;
-  supports_chart: boolean;
-  supports_image: boolean;
-  supports_interactive: boolean;
+  supportsText: boolean;
+  supportsTable: boolean;
+  supportsChart: boolean;
+  supportsImage: boolean;
+  supportsInteractive: boolean;
 }
 
 /** 能力运行时统计快照（对应后端 CapabilityStats） */
 export interface CapabilityStats {
   /** 总调用次数 */
-  total_calls: number;
+  totalCalls: number;
   /** 成功次数 */
-  success_count: number;
+  successCount: number;
   /** 平均执行耗时（秒） */
-  avg_duration_seconds: number;
+  avgDurationSeconds: number;
   /** 近 5 次成功率（0.0-1.0） */
-  recent_success_rate: number;
+  recentSuccessRate: number;
   /** 熔断状态（"closed" / "open" / "half_open"） */
-  circuit_state: string;
+  circuitState: string;
 }
 
 /** 能力护照序列化 DTO（对应后端 CapabilityPassportDto） */
 export interface CapabilityPassportDto {
-  capability_id: string;
+  capabilityId: string;
   name: string;
   description: string;
   kind: CapabilityKind;
   domain: CapabilityDomain;
   /** L2 子分类（集群 ID）。kind=agent 时用于区分专家(agent_profile)与角色(agent_role) */
-  sub_category?: string;
-  input_schema?: Record<string, unknown> | null;
+  subCategory?: string;
+  inputSchema?: Record<string, unknown> | null;
   tags: string[];
-  negative_scenarios: string[];
-  security_level: SecurityLevel;
-  modality_support: ModalitySupport;
-  output_capabilities: OutputCapabilities;
-  estimated_cost_usd?: number | null;
-  avg_duration_seconds?: number | null;
-  planning_complexity: PlanningComplexity;
-  model_iq_requirement: number;
-  experiment_group?: string | null;
+  negativeScenarios: string[];
+  securityLevel: SecurityLevel;
+  modalitySupport: ModalitySupport;
+  outputCapabilities: OutputCapabilities;
+  estimatedCostUsd?: number | null;
+  avgDurationSeconds?: number | null;
+  planningComplexity: PlanningComplexity;
+  modelIqRequirement: number;
+  experimentGroup?: string | null;
   stats: CapabilityStats;
   enabled: boolean;
+  /** 能力等级（L1-L5，由多维数据派生；低等级可进化提升） */
+  level: CapabilityLevel;
 }
 
 // ── 检索请求/结果 ──────────────────────────────────
 
 /** 能力检索请求（对应后端 CapabilityQuery） */
 export interface CapabilityQuery {
-  user_input: string;
-  top_k: number;
-  kind_filter?: CapabilityKind[] | null;
-  domain_filter?: CapabilityDomain[] | null;
-  required_modalities?: InputModality[] | null;
-  required_tags: string[];
-  exclude_ids: string[];
+  userInput: string;
+  topK: number;
+  kindFilter?: CapabilityKind[] | null;
+  domainFilter?: CapabilityDomain[] | null;
+  requiredModalities?: InputModality[] | null;
+  requiredTags: string[];
+  excludeIds: string[];
 }
 
 /** 命中的候选能力（对应后端 CapabilityCandidate） */
 export interface CapabilityCandidate {
-  capability_id: string;
+  capabilityId: string;
   name: string;
   kind: CapabilityKind;
   domain: CapabilityDomain;
   /** 语义相似度得分（0.0-1.0） */
-  semantic_score: number;
+  semanticScore: number;
   /** BM25/关键词匹配得分（0.0-1.0） */
-  keyword_score: number;
+  keywordScore: number;
   /** 标签硬匹配得分（完全匹配=1.0，部分匹配=0.5，无匹配=0.0） */
-  tag_score: number;
+  tagScore: number;
   /** 综合分（semantic*0.6 + keyword*0.2 + tag*0.2） */
-  retrieval_score: number;
-  matched_tags: string[];
-  negative_hit: boolean;
+  retrievalScore: number;
+  matchedTags: string[];
+  negativeHit: boolean;
   passport: CapabilityPassportDto;
 }
 
 /** 检索结果（对应后端 CapabilityRetrievalResult） */
 export interface CapabilityRetrievalResult {
   candidates: CapabilityCandidate[];
-  total_recalled: number;
-  elapsed_ms: number;
+  totalRecalled: number;
+  elapsedMs: number;
 }
 
 // ── 过滤上下文 ────────────────────────────────────
@@ -163,14 +172,14 @@ export type TaskPlanningLevel = "simple" | "moderate" | "complex";
 
 /** 能力过滤上下文（对应后端 FilterContext） */
 export interface FilterContext {
-  input_modalities: InputModality[];
-  detected_pii_types: PiiType[];
-  session_budget: SessionBudget;
-  device_type: OutputDeviceType;
-  task_planning_level?: TaskPlanningLevel | null;
-  user_id?: string | null;
-  user_history_ids: string[];
-  experiment_group?: string | null;
+  inputModalities: InputModality[];
+  detectedPiiTypes: PiiType[];
+  sessionBudget: SessionBudget;
+  deviceType: OutputDeviceType;
+  taskPlanningLevel?: TaskPlanningLevel | null;
+  userId?: string | null;
+  userHistoryIds: string[];
+  experimentGroup?: string | null;
 }
 
 // ── 用户偏好 / 预算 ──────────────────────────────────
@@ -186,19 +195,19 @@ export interface DiscoveryWeights {
   /** 成本惩罚系数（δ） */
   delta: number;
   /** 个性化提权比例 */
-  personalization_boost: number;
+  personalizationBoost: number;
   /** 冷启动探索提权 */
-  exploration_boost: number;
+  explorationBoost: number;
 }
 
 /** 单次会话预算（对应后端 SessionBudget） */
 export interface SessionBudget {
   /** 总预算上限（美元） */
-  max_total_usd: number;
+  maxTotalUsd: number;
   /** 单次调用上限（美元） */
-  max_per_call_usd: number;
+  maxPerCallUsd: number;
   /** 已使用金额 */
-  used_usd: number;
+  usedUsd: number;
 }
 
 // ── 排序结果 ──────────────────────────────────────
@@ -206,13 +215,13 @@ export interface SessionBudget {
 /** 排序后的能力条目（对应后端 RankedCapability） */
 export interface RankedCapability {
   passport: CapabilityPassportDto;
-  semantic_score: number;
-  history_score: number;
-  speed_score: number;
-  cost_score: number;
-  personalization_boost: number;
-  exploration_boost: number;
-  final_score: number;
+  semanticScore: number;
+  historyScore: number;
+  speedScore: number;
+  costScore: number;
+  personalizationBoost: number;
+  explorationBoost: number;
+  finalScore: number;
   reasons: string[];
 }
 
@@ -220,25 +229,25 @@ export interface RankedCapability {
 
 /** 能力发现最终结果（对应后端 CapabilityDiscoveryResult） */
 export interface CapabilityDiscoveryResult {
-  primary_match?: RankedCapability | null;
+  primaryMatch?: RankedCapability | null;
   alternatives: RankedCapability[];
   ambiguous: boolean;
-  clarification_prompt?: string | null;
+  clarificationPrompt?: string | null;
   suggestions: CapabilitySuggestion[];
-  circuit_info?: string | null;
-  total_elapsed_ms: number;
-  phase_timings: PhaseTiming[];
+  circuitInfo?: string | null;
+  totalElapsedMs: number;
+  phaseTimings: PhaseTiming[];
 }
 
 /** 阶段耗时（对应后端 PhaseTiming） */
 export interface PhaseTiming {
   phase: string;
-  elapsed_ms: number;
+  elapsedMs: number;
 }
 
 /** 能力补全建议（对应后端 CapabilitySuggestion） */
 export interface CapabilitySuggestion {
-  capability_id: string;
+  capabilityId: string;
   name: string;
   reason: string;
 }
@@ -247,20 +256,46 @@ export interface CapabilitySuggestion {
 
 /** 索引操作结果（对应后端 IndexResult） */
 export interface IndexResult {
-  capability_id: string;
+  capabilityId: string;
   success: boolean;
-  vector_dimensions: number;
-  indexed_at_ms: number;
+  vectorDimensions: number;
+  indexedAtMs: number;
   error?: string | null;
 }
 
 /** 索引统计（对应后端 CapabilityIndexStats） */
 export interface CapabilityIndexStats {
-  total_capabilities: number;
-  total_vectors: number;
-  positive_vectors: number;
-  negative_vectors: number;
-  last_indexed_at?: number | null;
+  totalCapabilities: number;
+  totalVectors: number;
+  positiveVectors: number;
+  negativeVectors: number;
+  lastIndexedAt?: number | null;
+}
+
+// ── 能力进化（capability_evolve） ──────────────────────
+//
+// 对应后端 commands/capability.rs 的 EvolveCapabilityRequest / EvolveCapabilityResult
+// （`#[serde(rename_all = "camelCase")]`），即「低等级能力一键进化提升」命令。
+
+/** 能力进化请求（camelCase 字段） */
+export interface EvolveCapabilityRequest {
+  /** 能力护照 ID（如 `workflow:{template_id}` / `skill:{name}`） */
+  capabilityId: string;
+  /** 工作流进化反思上下文（可选；缺省走启发式变异） */
+  reflections?: unknown[];
+}
+
+/** 能力进化结果（camelCase 字段） */
+export interface EvolveCapabilityResult {
+  capabilityId: string;
+  /** 进化是否产生有效改进 */
+  improved: boolean;
+  /** 进化前等级 */
+  oldLevel: CapabilityLevel;
+  /** 进化后等级 */
+  newLevel: CapabilityLevel;
+  /** 进化引擎返回的原始结果摘要 */
+  detail: Record<string, unknown>;
 }
 
 // ── 能力注册表（capability_registry_dump） ──────────
@@ -295,9 +330,9 @@ export interface CapabilityRegistrationDetailDto {
  * 能力发现请求载荷
  *
  * 对应后端 `DiscoverRequest`（commands/capability.rs），该 struct 使用
- * `#[serde(rename_all = "camelCase")]`，故顶层字段为 camelCase；
- * 嵌套的 FilterContext / CapabilityQuery / DiscoveryWeights / SessionBudget
- * 仍按各自 struct 的默认 snake_case 字段名传递。
+ * `#[serde(rename_all = "camelCase")]`，故顶层字段与嵌套
+ * FilterContext / CapabilityQuery / DiscoveryWeights / SessionBudget
+ * 均消费 camelCase 字段名。
  */
 export interface DiscoverRequestPayload {
   userInput: string;
@@ -369,7 +404,7 @@ export interface CognitiveQueryRequestPayload {
   /** 提供商 ID */
   providerId?: string;
   /** 模型 ID */
-  model_id?: string;
+  modelId?: string;
   /** Agent 画像 ID（Agent 执行模式透传） */
   agentProfileId?: string;
   /** 用户自定义系统提示（Agent 执行模式透传） */
@@ -381,8 +416,8 @@ export interface CognitiveQueryRequestPayload {
   /** Agent 执行选项（禁用工具 / 活跃域等） */
   options?: {
     temperature?: number;
-    top_p?: number;
-    max_tokens?: number;
+    topP?: number;
+    maxTokens?: number;
     /** 禁用的工具名称列表 */
     disabledTools?: string[];
     /** 活跃功能域列表 */

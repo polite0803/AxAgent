@@ -86,7 +86,10 @@ export function useChatViewScroll({
     scrollBoxRef.current = ((el as BubbleListElement)?.scrollBoxNativeElement as HTMLElement) ?? el ?? null;
   }, [bubbleListRef]);
 
-  useEffect(() => {
+  // 用 useLayoutEffect 同步 ref：确保在 paint 前（以及依赖该 ref 的
+  // ResizeObserver / rAF 回调执行前）ref 已反映最新用户意图，
+  // 避免用户上滚后 ref 仍为旧值导致被强制拉回底部。
+  useLayoutEffect(() => {
     stickToBottomRef.current = stickToBottom;
   }, [stickToBottom]);
 
@@ -292,8 +295,13 @@ export function useChatViewScroll({
 
       scrollLayoutMetricsRef.current = nextMetrics;
 
+      // 用户刚有上滚意图时，布局变化不应强制把滚动条拉回底部——
+      // 否则 LazyBubble 懒渲染/流式输出引起的高度变化会覆盖用户的上滚操作。
+      const hadRecentUserScrollIntent = Date.now() - lastUserScrollIntentAtRef.current < 300;
+
       if (
-        shouldStickToBottomOnLayoutChange(
+        !hadRecentUserScrollIntent
+        && shouldStickToBottomOnLayoutChange(
           previousMetrics,
           nextMetrics,
           stickToBottomRef.current,
@@ -335,10 +343,16 @@ export function useChatViewScroll({
   useEffect(() => {
     if (streaming && !prevStreamingRef.current) {
       streamingTimerRef.current = setTimeout(() => {
-        scrollToBottomImmediate("smooth");
-        // React 18 自动批处理两个独立 setState（均在 setTimeout 回调内）
-        setShowScrollToBottom(false);
-        setStickToBottom(true);
+        // 仅当用户仍粘在底部（或刚触发过滚动到底/切会话）时才自动跟随，
+        // 避免新的流式输出覆盖用户已主动上滚阅读历史消息的意图。
+        const hadRecentUserScrollIntent = Date.now() - lastUserScrollIntentAtRef.current < 300;
+        const shouldFollow = stickToBottomRef.current && !hadRecentUserScrollIntent;
+        if (shouldFollow) {
+          scrollToBottomImmediate("smooth");
+          // React 18 自动批处理两个独立 setState（均在 setTimeout 回调内）
+          setShowScrollToBottom(false);
+          setStickToBottom(true);
+        }
       }, 50);
     }
     prevStreamingRef.current = streaming;
@@ -351,7 +365,10 @@ export function useChatViewScroll({
 
   useEffect(() => {
     const rafId = window.requestAnimationFrame(() => {
-      if (stickToBottom) {
+      // 用户刚有上滚意图时，内容变化不应强制拉回底部，
+      // 防止流式输出持续更新 lastBubbleKey 时覆盖用户阅读历史消息的操作。
+      const hadRecentUserScrollIntent = Date.now() - lastUserScrollIntentAtRef.current < 300;
+      if (stickToBottom && !hadRecentUserScrollIntent) {
         scrollToBottomImmediate("auto");
         setShowScrollToBottom(false);
         return;

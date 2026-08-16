@@ -1213,7 +1213,17 @@
       "skill": "스킬",
       "agent_role": "역할",
       "agent_profile": "전문가"
-    }
+    },
+    "level": {
+      "l1": "L1 · 미성숙",
+      "l2": "L2 · 기본 사용 가능",
+      "l3": "L3 · 중간 성숙",
+      "l4": "L4 · 고도로 성숙",
+      "l5": "L5 · 최고 수준"
+    },
+    "evolve": "진화시키기",
+    "evolveSuccess": "진화 성공, 레벨이 {{level}}로 상승했습니다",
+    "evolveFailed": "진화 실패, 잠시 후 다시 시도해 주세요"
   },
   "chatMarkdown": {
     "inputParams": "입력 매개변수",
@@ -1250,7 +1260,8 @@
     "title": "어시스턴트",
     "visionAnalysis": "비전",
     "cognitiveRoute": "라우트 관측",
-    "capability": "능력"
+    "capability": "능력",
+    "evolutionEvidence": "진화 증거"
   },
   "cite": {
     "chunkLabel": "청크 #{{n}}",
@@ -2069,6 +2080,9 @@
     "COGNITIVE_EXECUTION_MODE_INVALID": "인지 라우팅 실행 모드가 잘못되었습니다",
     "COGNITIVE_PROMPT_REJECTED": "인지 프롬프트가 거부되었습니다",
     "COGNITIVE_RAR_RETRIEVE_FAILED": "인지 라우팅 후보 검색 실패: {{detail}}",
+    "COGNITIVE_GAP_PROPOSAL_PENDING": "능력 보완 제안이 생성되어 확인을 기다리고 있습니다",
+    "COGNITIVE_GAP_PROPOSAL_APPLIED": "능력 보완이 완료되었습니다. 요청을 다시 보내주세요",
+    "COGNITIVE_GAP_PROPOSAL_REJECTED": "능력 보완 제안이 거부되었습니다",
     "COMMON_INTERNAL": "내부 오류",
     "COMMON_INVALID_INPUT": "유효하지 않은 입력입니다",
     "COMMON_TIMEOUT": "작업 시간이 초과되었습니다",
@@ -2257,6 +2271,7 @@
     "TOOL_SSE_NO_ENDPOINT": "SSE 전송에 엔드포인트가 지정되지 않았습니다",
     "TOOL_STDIO_NO_COMMAND": "Stdio 전송에 명령이 지정되지 않았습니다",
     "TOOL_TRANSPORT_UNSUPPORTED": "지원되지 않는 전송 방식입니다",
+    "TOOL_REGISTRATION_DUPLICATE": "도구 중복 등록: 동일한 이름의 도구가 이미 존재합니다",
     "VECTOR_STORE_FAILED": "벡터 저장소 작업 실패",
     "VECTOR_EMBEDDING_FAILED": "벡터 임베딩 생성 실패",
     "VECTOR_SEARCH_FAILED": "벡터 검색 실패",
@@ -2374,6 +2389,7 @@
     "CAPABILITY_LIST_FAILED": "능력 목록 가져오기 실패",
     "CAPABILITY_STATS_FAILED": "능력 통계 가져오기 실패",
     "CAPABILITY_METADATA_RESTORE_FAILED": "메타데이터 복원 실패",
+    "CAPABILITY_EVOLVE_FAILED": "능력 진화 실패",
     "AGENT_INPUT_CHANNEL_CLOSED": "사용자 입력 채널이 닫혀 있습니다",
     "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "사용자 응답 대기 시간이 초과되었습니다(5분)",
     "AGENT_INPUT_NO_PROVIDER": "사용 가능한 provider/model이 없습니다: 설정에서 공급자를 활성화하세요",
@@ -2563,6 +2579,27 @@
     "loadFailed": "외부 전문가 로드 실패: {{error}}",
     "skippedInvalidRole": "잘못된 역할 건너뜀: {{role}}",
     "updateFailed": "외부 전문가 업데이트 실패: {{error}}"
+  },
+  "evolutionEvidence": {
+    "title": "진화 증거",
+    "empty": "진화 증거 데이터가 없습니다",
+    "decision": {
+      "evolve": "진화 권장",
+      "observe": "관찰 중",
+      "stable": "안정적"
+    },
+    "pSuccess": "사후 성공률 {value}%",
+    "evidenceVolume": "증거량 {value}",
+    "consumedLabels": "증거 {consumed}/{total}개 소비",
+    "routePaths": "증거 출처 경로",
+    "executionTitle": "실제 실행 피드백",
+    "noExecution": "실제 실행 데이터가 없습니다",
+    "totalRuns": "총 실행 {value}회",
+    "successRate": "성공률 {value}%",
+    "totalSuccesses": "성공 {value}",
+    "totalFailures": "실패 {value}",
+    "toolCount": "진화 산출물 {value}개",
+    "perSuccessRate": "성공률 {value}%"
   },
   "export": {
     "exportTime": "내보내기 시간",
@@ -4183,7 +4220,23 @@
       "stop": "중지",
       "stopAll": "모두 중지",
       "stopped": "중지됨",
-      "title": "진화"
+      "title": "진화",
+      "runtimeTools": {
+        "title": "런타임 동적 도구",
+        "desc": "Agent 진화 배포(system_evolution_deploy) 또는 자체 참조 도구(system_evolution_*)로 등록된 동적 기능. 시스템 내장 자체 참조 도구는 표시만 가능하며 제거할 수 없습니다. 진화 산출물을 제거하면 즉시 Agent에서 사용할 수 없게 됩니다.",
+        "systemChannel": "시스템 기능 채널",
+        "name": "도구 이름",
+        "source": "출처",
+        "sourceSystem": "내장",
+        "sourceEvolved": "진화 배포",
+        "action": "작업",
+        "builtin": "내장",
+        "empty": "런타임 동적 도구가 없습니다",
+        "unload": "제거",
+        "unloadConfirm": "도구 \"{{name}}\"을(를) 제거하시겠습니까? 제거 후 Agent는 즉시 이 도구를 호출할 수 없습니다.",
+        "unloadSuccess": "도구 \"{{name}}\"을(를) 제거했습니다",
+        "unloadFail": "도구 \"{{name}}\" 제거 실패"
+      }
     },
     "exitFullscreen": "전체 화면 종료",
     "expandAll": "모두 펼치기",
@@ -8612,6 +8665,23 @@
   },
   "reactPreview": {
     "title": "React 미리보기"
+  },
+  "evolutionConsentModal": {
+    "title": "능력 보완 / 진화 개선 제안",
+    "gapType": {
+      "guardRule": "방어 규칙 보완",
+      "exemptAuthorize": "오탐 면제 승인",
+      "capabilityMissing": "능력 부재 보완"
+    },
+    "pendingCount": "처리 대기 제안 {{count}}개, 현재 {{current}}번째",
+    "pendingOne": "처리 대기 제안 1개",
+    "proposal": "구체적인 변경",
+    "impact": "영향 범위",
+    "rollback": "롤백 방법",
+    "reject": "거부",
+    "approve": "동의 후 보완",
+    "expandDetails": "원시 세부 정보 펼치기",
+    "collapseDetails": "원시 세부 정보 접기"
   },
   "planApprovalModal": {
     "title": "계획 승인",

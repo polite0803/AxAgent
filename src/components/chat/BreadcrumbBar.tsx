@@ -27,7 +27,7 @@ function buildBreadcrumbs(
       break;
     }
     path.unshift(conv);
-    currentId = conv.parent_conversation_id;
+    currentId = conv.parentConversationId;
   }
 
   return path;
@@ -39,7 +39,7 @@ export function BreadcrumbBar({
   setActiveConversation,
 }: BreadcrumbBarProps) {
   const active = conversations.find((c) => c.id === activeConversationId);
-  if (!activeConversationId || !active?.parent_conversation_id) {
+  if (!activeConversationId || !active?.parentConversationId) {
     return null;
   }
 

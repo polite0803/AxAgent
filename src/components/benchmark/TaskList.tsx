@@ -41,11 +41,11 @@ export function TaskList({ tasks, results, onRetry }: TaskListProps) {
     },
     {
       title: t("benchmark.status"),
-      dataIndex: "task_id",
+      dataIndex: "taskId",
       key: "status",
       width: 100,
       render: (_: string, record: BenchmarkTask) => {
-        const result = results.find((r) => r.task_id === record.id);
+        const result = results.find((r) => r.taskId === record.id);
         if (!result) {
           return <Tag>{t("benchmark.waiting")}</Tag>;
         }
@@ -58,33 +58,33 @@ export function TaskList({ tasks, results, onRetry }: TaskListProps) {
     },
     {
       title: t("benchmark.score"),
-      dataIndex: "task_id",
+      dataIndex: "taskId",
       key: "score",
       width: 80,
       render: (_: string, record: BenchmarkTask) => {
-        const result = results.find((r) => r.task_id === record.id);
+        const result = results.find((r) => r.taskId === record.id);
         if (!result) {
           return "-";
         }
-        return formatScore(result.overall_score);
+        return formatScore(result.overallScore);
       },
     },
     {
       title: t("benchmark.duration"),
-      dataIndex: "task_id",
+      dataIndex: "taskId",
       key: "duration",
       width: 100,
       render: (_: string, record: BenchmarkTask) => {
-        const result = results.find((r) => r.task_id === record.id);
+        const result = results.find((r) => r.taskId === record.id);
         if (!result) {
           return "-";
         }
-        return formatDuration(result.duration_ms);
+        return formatDuration(result.durationMs);
       },
     },
     {
       title: t("benchmark.action"),
-      dataIndex: "task_id",
+      dataIndex: "taskId",
       key: "action",
       width: 100,
       render: (taskId: string) => (
@@ -105,7 +105,7 @@ export function TaskList({ tasks, results, onRetry }: TaskListProps) {
         pagination={false}
         expandable={{
           expandedRowRender: (record) => {
-            const result = results.find((r) => r.task_id === record.id);
+            const result = results.find((r) => r.taskId === record.id);
             if (!result) {
               return (
                 <div className="p-4 text-zinc-500">

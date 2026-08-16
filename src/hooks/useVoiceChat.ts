@@ -375,7 +375,7 @@ export function useVoiceChat({
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          sampleRate: config.audio_format.sample_rate,
+          sampleRate: config.audioFormat.sampleRate,
           channelCount: 1,
           echoCancellation: true,
         },
@@ -388,7 +388,7 @@ export function useVoiceChat({
       streamRef.current = stream;
 
       // P1-12：目标 sampleRate 失败时回退到硬件默认
-      const audioCtx = await createAudioContextWithFallback(config.audio_format.sample_rate);
+      const audioCtx = await createAudioContextWithFallback(config.audioFormat.sampleRate);
       if (myToken !== startTokenRef.current) {
         // await 期间被取消
         stream.getTracks().forEach((track) => track.stop());
@@ -501,10 +501,10 @@ export function useVoiceChat({
       ws.send(
         JSON.stringify({
           type: "session.create",
-          model: config.model_id,
+          model: config.modelId,
           voice: config.voice,
-          stt_provider: config.stt_provider_id ?? null,
-          tts_provider: config.tts_provider_id ?? null,
+          stt_provider: config.sttProviderId ?? null,
+          tts_provider: config.ttsProviderId ?? null,
         }),
       );
     };
@@ -628,10 +628,10 @@ export function useVoiceChat({
   }, [
     host,
     port,
-    config.model_id,
+    config.modelId,
     config.voice,
-    config.stt_provider_id,
-    config.tts_provider_id,
+    config.sttProviderId,
+    config.ttsProviderId,
     cleanup,
     runVAD,
     message,

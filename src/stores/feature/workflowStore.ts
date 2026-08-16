@@ -34,7 +34,7 @@ interface BackendTemplateResponse {
   icon: string;
   tags: string[];
   version: number;
-  is_preset: boolean;
+  isPreset: boolean;
   is_editable: boolean;
   is_public: boolean;
   /** 是否为系统模板（认知编排器等） */
@@ -161,7 +161,7 @@ function templateResponseToWorkflowDefinition(
     variables,
     createdAt: resp.created_at,
     updatedAt: resp.updated_at,
-    status: resp.is_preset ? "active" : "draft",
+    status: resp.isPreset ? "active" : "draft",
   };
 }
 
@@ -330,7 +330,7 @@ function templateResponseToWorkflowTemplate(
     nodeCount: resp.nodes?.length ?? 0,
     tags: resp.tags ?? [],
     workflow: templateResponseToWorkflowDefinition(resp),
-    isBuiltIn: resp.is_preset,
+    isBuiltIn: resp.isPreset,
     createdAt: resp.created_at,
     updatedAt: resp.updated_at,
   };

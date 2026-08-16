@@ -6,7 +6,7 @@ import { ModelIcon } from "@lobehub/icons";
 import { Select, theme } from "antd";
 import { useCallback, useMemo } from "react";
 
-/** Parse a combined `providerId::model_id` value. */
+/** Parse a combined `providerId::modelId` value. */
 // eslint-disable-next-line react-refresh/only-export-components
 export function parseModelValue(value: string | undefined) {
   if (!value) {
@@ -16,7 +16,7 @@ export function parseModelValue(value: string | undefined) {
   if (idx < 0) {
     return null;
   }
-  return { providerId: value.slice(0, idx), model_id: value.slice(idx + 2) };
+  return { providerId: value.slice(0, idx), modelId: value.slice(idx + 2) };
 }
 
 /** Hook: returns grouped Select options (Provider → Models) */
@@ -46,8 +46,8 @@ export function useGroupedModelOptions() {
                 ? [
                   {
                     label: m.name,
-                    value: `${p.id}::${m.model_id}`,
-                    model_id: m.model_id,
+                    value: `${p.id}::${m.modelId}`,
+                    modelId: m.modelId,
                     providerName: p.name,
                   },
                 ]
@@ -72,10 +72,10 @@ export function useProviderNameMap() {
 }
 
 /**
- * Hook: 返回一个把 `${providerId}::${model_id}` 复合 ID 解析为
+ * Hook: 返回一个把 `${providerId}::${modelId}` 复合 ID 解析为
  * "供应商名 / 模型名" 友好展示的函数。
  *
- * 后端 `embeddingProvider` 字段统一存的是 `providerId::model_id` 复合值，
+ * 后端 `embeddingProvider` 字段统一存的是 `providerId::modelId` 复合值，
  * 直接渲染会暴露内部 ID。本 hook 复用 `useProviderNameMap` +
  * `useProviderStore` 把它转成人类可读的标签。
  */
@@ -99,11 +99,11 @@ export function useEmbeddingProviderLabel(): (
       const providerName = providerNameMap.get(parsed.providerId)
         ?? providers.find((p) => p.id === parsed.providerId)?.name
         ?? parsed.providerId;
-      // 模型名优先用 provider.models 里的 name（友好名），找不到就用 model_id
+      // 模型名优先用 provider.models 里的 name（友好名），找不到就用 modelId
       const model = providers
         .find((p) => p.id === parsed.providerId)
-        ?.models.find((m) => m.model_id === parsed.model_id);
-      const modelLabel = model?.name ?? parsed.model_id;
+        ?.models.find((m) => m.modelId === parsed.modelId);
+      const modelLabel = model?.name ?? parsed.modelId;
       return `${providerName} / ${modelLabel}`;
     };
   }, [providerNameMap, providers]);
@@ -111,7 +111,7 @@ export function useEmbeddingProviderLabel(): (
 
 /**
  * Reusable model selector with provider-grouped options, ModelIcon rendering,
- * and search support. Value format: `providerId::model_id`.
+ * and search support. Value format: `providerId::modelId`.
  */
 export function ModelSelect({
   value,
@@ -135,10 +135,10 @@ export function ModelSelect({
       oriOption: { label?: React.ReactNode; value?: string | number },
       _info: { index: number },
     ) => {
-      const model_id = String(oriOption.value ?? "").split("::")[1] ?? "";
+      const modelId = String(oriOption.value ?? "").split("::")[1] ?? "";
       return (
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <ModelIcon model={model_id} size={18} type="avatar" />
+          <ModelIcon model={modelId} size={18} type="avatar" />
           {oriOption.label}
         </span>
       );
@@ -155,7 +155,7 @@ export function ModelSelect({
       const providerName = providerNameMap.get(parsed.providerId) ?? "";
       return (
         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <ModelIcon model={parsed.model_id} size={18} type="avatar" />
+          <ModelIcon model={parsed.modelId} size={18} type="avatar" />
           {props.label}
           <span style={{ fontSize: 12, color: token.colorTextSecondary }}>
             ({providerName})

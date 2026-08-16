@@ -1213,7 +1213,17 @@
       "skill": "Fähigkeit",
       "agent_role": "Rolle",
       "agent_profile": "Experte"
-    }
+    },
+    "level": {
+      "l1": "L1 · Unreif",
+      "l2": "L2 · Grundlegend nutzbar",
+      "l3": "L3 · Mittlere Reife",
+      "l4": "L4 · Hochreif",
+      "l5": "L5 · Spitzenklasse"
+    },
+    "evolve": "Evolvieren",
+    "evolveSuccess": "Evolution erfolgreich, Stufe auf {{level}} angehoben",
+    "evolveFailed": "Evolution fehlgeschlagen, bitte später erneut versuchen"
   },
   "chatMarkdown": {
     "inputParams": "Eingabeparameter",
@@ -1250,7 +1260,8 @@
     "title": "Assistent",
     "visionAnalysis": "Vision",
     "cognitiveRoute": "Route",
-    "capability": "Fähigkeit"
+    "capability": "Fähigkeit",
+    "evolutionEvidence": "Evolutionsnachweis"
   },
   "cite": {
     "chunkLabel": "Abschnitt #{{n}}",
@@ -2069,6 +2080,9 @@
     "COGNITIVE_EXECUTION_MODE_INVALID": "Ungültiger Cognitive-Routing-Ausführungsmodus",
     "COGNITIVE_PROMPT_REJECTED": "Kognitiver Prompt abgelehnt",
     "COGNITIVE_RAR_RETRIEVE_FAILED": "Kandidatenabruf des kognitiven Routings fehlgeschlagen: {{detail}}",
+    "COGNITIVE_GAP_PROPOSAL_PENDING": "Vorschlag zur Fähigkeitslücke erstellt, warte auf Bestätigung",
+    "COGNITIVE_GAP_PROPOSAL_APPLIED": "Fähigkeitslücke geschlossen; senden Sie Ihre Anfrage erneut",
+    "COGNITIVE_GAP_PROPOSAL_REJECTED": "Vorschlag zur Fähigkeitslücke abgelehnt",
     "COMMON_INTERNAL": "Interner Fehler",
     "COMMON_INVALID_INPUT": "Ungültige Eingabe",
     "COMMON_TIMEOUT": "Zeitüberschreitung bei Vorgang",
@@ -2257,6 +2271,7 @@
     "TOOL_SSE_NO_ENDPOINT": "Kein Endpunkt für SSE-Transport angegeben",
     "TOOL_STDIO_NO_COMMAND": "Kein Befehl für Stdio-Transport angegeben",
     "TOOL_TRANSPORT_UNSUPPORTED": "Nicht unterstützter Transporttyp",
+    "TOOL_REGISTRATION_DUPLICATE": "Werkzeugregistrierungskonflikt: Name existiert bereits",
     "VECTOR_STORE_FAILED": "Vektorspeicher-Vorgang fehlgeschlagen",
     "VECTOR_EMBEDDING_FAILED": "Vektor-Embedding-Erzeugung fehlgeschlagen",
     "VECTOR_SEARCH_FAILED": "Vektorsuche fehlgeschlagen",
@@ -2374,6 +2389,7 @@
     "CAPABILITY_LIST_FAILED": "Funktionsliste fehlgeschlagen",
     "CAPABILITY_STATS_FAILED": "Statistikabruf fehlgeschlagen",
     "CAPABILITY_METADATA_RESTORE_FAILED": "Metadatenwiederherstellung fehlgeschlagen",
+    "CAPABILITY_EVOLVE_FAILED": "Fähigkeits-Evolution fehlgeschlagen",
     "AGENT_INPUT_CHANNEL_CLOSED": "Der Benutzereingabekanal ist geschlossen",
     "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "Zeitüberschreitung beim Warten auf Benutzerantwort (5 Minuten)",
     "AGENT_INPUT_NO_PROVIDER": "Kein verfügbarer Provider/Modell: Bitte aktivieren Sie einen Provider in den Einstellungen",
@@ -2563,6 +2579,27 @@
     "loadFailed": "Laden des externen Experten fehlgeschlagen: {{error}}",
     "skippedInvalidRole": "Ungültige Rolle übersprungen: {{role}}",
     "updateFailed": "Aktualisierung des externen Experten fehlgeschlagen: {{error}}"
+  },
+  "evolutionEvidence": {
+    "title": "Evolutionsnachweis",
+    "empty": "Noch keine Evolutionsdaten",
+    "decision": {
+      "evolve": "Evolution empfohlen",
+      "observe": "Beobachten",
+      "stable": "Stabil"
+    },
+    "pSuccess": "A-posteriori-Erfolgsquote {value}%",
+    "evidenceVolume": "Beweismenge {value}",
+    "consumedLabels": "Verbrauchte {consumed}/{total} Beweise",
+    "routePaths": "Beweisquellenpfade",
+    "executionTitle": "Reales Ausführungsfeedback",
+    "noExecution": "Keine realen Ausführungsdaten",
+    "totalRuns": "Gesamtausführungen {value}",
+    "successRate": "Erfolgsquote {value}%",
+    "totalSuccesses": "Erfolge {value}",
+    "totalFailures": "Fehlschläge {value}",
+    "toolCount": "Evolutionsartefakte {value}",
+    "perSuccessRate": "Erfolgsquote {value}%"
   },
   "export": {
     "exportTime": "Exportzeit",
@@ -4183,7 +4220,23 @@
       "stop": "Stoppen",
       "stopAll": "Alle stoppen",
       "stopped": "Gestoppt",
-      "title": "Evolution"
+      "title": "Evolution",
+      "runtimeTools": {
+        "title": "Laufzeit-Dynamische Werkzeuge",
+        "desc": "Dynamische Fähigkeiten, die durch Evolutions-Bereitstellung des Agents (system_evolution_deploy) oder selbstreferenzielle Werkzeuge (system_evolution_*) registriert wurden. Integrierte selbstreferenzielle Werkzeuge sind nur lesbar; die Deinstallation eines Evolutions-Artefakts macht es dem Agent sofort unverfügbar.",
+        "systemChannel": "System-Fähigkeitskanal",
+        "name": "Werkzeugname",
+        "source": "Quelle",
+        "sourceSystem": "Integriert",
+        "sourceEvolved": "Evolviert",
+        "action": "Aktion",
+        "builtin": "Integriert",
+        "empty": "Keine laufzeit-dynamischen Werkzeuge",
+        "unload": "Deinstallieren",
+        "unloadConfirm": "Werkzeug \"{{name}}\" deinstallieren? Der Agent kann es nach der Deinstallation sofort nicht mehr aufrufen.",
+        "unloadSuccess": "Werkzeug \"{{name}}\" deinstalliert",
+        "unloadFail": "Deinstallation von Werkzeug \"{{name}}\" fehlgeschlagen"
+      }
     },
     "exitFullscreen": "Vollbild beenden",
     "expandAll": "Alle ausklappen",
@@ -8612,6 +8665,23 @@
   },
   "reactPreview": {
     "title": "React-Vorschau"
+  },
+  "evolutionConsentModal": {
+    "title": "Vorschlag zur Fähigkeitsergänzung / Evolution",
+    "gapType": {
+      "guardRule": "Schutzregel-Ergänzung",
+      "exemptAuthorize": "Ausnahme-Genehmigung",
+      "capabilityMissing": "Fehlende Fähigkeit"
+    },
+    "pendingCount": "{{count}} Vorschläge ausstehend, aktuell #{{current}}",
+    "pendingOne": "1 Vorschlag ausstehend",
+    "proposal": "Konkrete Änderung",
+    "impact": "Auswirkung",
+    "rollback": "Rollback",
+    "reject": "Ablehnen",
+    "approve": "Zustimmen",
+    "expandDetails": "Rohdetails erweitern",
+    "collapseDetails": "Rohdetails einklappen"
   },
   "planApprovalModal": {
     "title": "Planfreigabe",

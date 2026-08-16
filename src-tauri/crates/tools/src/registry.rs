@@ -36,6 +36,60 @@ pub struct ToolGroupInfo {
     pub tools: Vec<ToolInfo>,
 }
 
+/// 可逆副作用记录器 — 记录一次动态注册/修改操作，卸载时自动回滚。
+///
+/// # 设计
+/// - `target`: 关联的资源名（工具名），用于匹配卸载目标；
+/// - `description`: 人类可读的操作描述（审计/日志用）；
+/// - `dispose`: 回滚闭包，卸载时调用。
+///
+/// # 回滚语义
+/// 核心回滚（`runtime_tool_sources` 登记移除 + 工具卸载）由
+/// `UnifiedToolRegistry::unregister_runtime_tool` 完成；`dispose` 闭包用于
+/// 扩展副作用（如能力护照移除 / 审计清理 / 持久化标记失效），由注册方按需提供，
+/// 默认 no-op。
+///
+/// 副作用栈（`UnifiedToolRegistry::effects`）按后进先出（LIFO）清理，
+/// 与 Rust 作用域释放语义一致：后注册的先回滚。
+pub struct Disposer {
+    /// 关联的资源名（工具名），用于匹配卸载目标
+    pub target: String,
+    /// 操作描述（审计用）
+    pub description: String,
+    /// 回滚闭包
+    dispose: Box<dyn Fn() + Send + Sync + 'static>,
+}
+
+impl Disposer {
+    /// 创建副作用记录器。
+    ///
+    /// # 参数
+    /// - `target`: 关联资源名（工具名）
+    /// - `description`: 操作描述
+    /// - `dispose`: 回滚闭包（默认 no-op 可传 `|| {}`）
+    pub fn new(
+        target: impl Into<String>,
+        description: impl Into<String>,
+        dispose: impl Fn() + Send + Sync + 'static,
+    ) -> Self {
+        Self { target: target.into(), description: description.into(), dispose: Box::new(dispose) }
+    }
+
+    /// 执行回滚
+    pub fn dispose(&self) {
+        (self.dispose)();
+    }
+}
+
+impl std::fmt::Debug for Disposer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Disposer")
+            .field("target", &self.target)
+            .field("description", &self.description)
+            .finish()
+    }
+}
+
 /// 统一工具注册表
 ///
 /// 支持按名称、别名查找工具，按类别筛选，启用/禁用管理。
@@ -391,6 +445,18 @@ pub struct UnifiedToolRegistry {
     /// RL 策略工具排名器（可选），在 `get_chat_tools()` 返回前重排工具列表。
     /// 高权重工具排前面，间接影响 LLM 的工具选择偏好。
     pub tool_ranker: Option<Arc<dyn axagent_harness::ToolRanker>>,
+    /// 运行时动态注册的工具来源跟踪：工具名 → 来源标识（如 "runtime_evolution"）。
+    /// 仅存在于 `runtime_tool_sources` 中的工具才允许被 `unregister_runtime_tool` 卸载，
+    /// 原生内置工具与 MCP 工具不受影响。
+    pub runtime_tool_sources: HashMap<String, String>,
+    /// 副作用栈：记录所有动态注册/修改操作，卸载时自动回滚（后进先出）。
+    ///
+    /// 每个 `register_runtime_tool` 会登记一个 `Disposer`；`unregister_runtime_tool`
+    /// 按目标名匹配并执行回滚；`cleanup_runtime_effects` 全量清理（应用退出前）。
+    ///
+    /// 注意：`Disposer` 的回滚闭包不可 Clone，故 `Clone` 时重置为空
+    /// （与 `skill_handlers` 的处理方式一致，克隆体不携带副作用）。
+    pub effects: Vec<Disposer>,
 }
 
 impl Clone for UnifiedToolRegistry {
@@ -415,6 +481,8 @@ impl Clone for UnifiedToolRegistry {
             skill_handlers: HashMap::new(), // handlers 不可 Clone，clone 时重置为空
             ask_user_bridge: self.ask_user_bridge.clone(),
             tool_ranker: self.tool_ranker.clone(),
+            runtime_tool_sources: self.runtime_tool_sources.clone(),
+            effects: Vec::new(), // Disposer 不可 Clone，克隆体不携带副作用
         }
     }
 }
@@ -497,6 +565,8 @@ impl UnifiedToolRegistry {
             skill_handlers: HashMap::new(),
             ask_user_bridge: None,
             tool_ranker: None,
+            runtime_tool_sources: HashMap::new(),
+            effects: Vec::new(),
         };
         reg.init_all();
         reg
@@ -898,6 +968,94 @@ impl UnifiedToolRegistry {
 
     pub fn register_skill_tool(&mut self, name: impl Into<String>, handler: SkillToolHandler) {
         self.skill_handlers.insert(name.into(), handler);
+    }
+
+    /// 运行时动态注册一个工具（如进化引擎自动生成的工具）。
+    ///
+    /// - 若同名工具已存在（无论原生 / MCP / 已注册的运行时工具），返回
+    ///   `ToolError::new` 且 `error_code = "tool.{name}.duplicateRegistration"`，不会覆盖既有工具。
+    /// - 注册成功后记录来源标识，供 `unregister_runtime_tool` 与重启自动加载判断。
+    pub fn register_runtime_tool(
+        &mut self,
+        tool: Arc<dyn Tool>,
+        source: impl Into<String>,
+    ) -> Result<(), crate::ToolError> {
+        let name = tool.name().to_string();
+        if self.tools.find(&name).is_some()
+            || self.resolve_mcp_tool(&name).is_some()
+            || self.runtime_tool_sources.contains_key(&name)
+        {
+            return Err(ToolError {
+                message: format!("工具 '{name}' 已存在，无法重复注册"),
+                kind: crate::ToolErrorKind::ExecutionFailed,
+                error_code: axagent_harness::error_codes::tool::REGISTRATION_DUPLICATE.to_string(),
+            });
+        }
+        self.tools.register(tool);
+        self.runtime_tool_sources.insert(name.clone(), source.into());
+        // 登记副作用（卸载时回滚）。核心回滚（来源移除 + 工具卸载）由
+        // `unregister_runtime_tool` 完成；此处闭包用于扩展副作用，默认 no-op。
+        self.effects.push(Disposer::new(name.clone(), format!("运行时注册工具 '{name}'"), || {}));
+        Ok(())
+    }
+
+    /// 运行时卸载一个动态注册的工具。
+    ///
+    /// 仅允许卸载此前经 `register_runtime_tool` 注册的工具（在 `runtime_tool_sources`
+    /// 中有来源记录）。原生内置工具与 MCP 工具无法通过此入口卸载。
+    ///
+    /// 卸载时按后进先出（LIFO）执行与该工具名匹配的副作用回滚。
+    ///
+    /// 一个工具可能登记多个 Disposer（`register_runtime_tool` 内置登记 + wiring
+    /// 层 `push_effect` 附加的护照移除等），卸载时**全部**匹配项都要回滚，
+    /// 保证副作用栈不残留。
+    pub fn unregister_runtime_tool(&mut self, name: &str) -> Option<Arc<dyn Tool>> {
+        self.runtime_tool_sources.remove(name)?;
+        let tool = self.tools.unregister(name);
+        // 回滚该工具的全部副作用：从后往前匹配 target（后进先出）
+        let mut i = self.effects.len();
+        while i > 0 {
+            i -= 1;
+            if self.effects[i].target == name {
+                let disposer = self.effects.remove(i);
+                disposer.dispose();
+            }
+        }
+        tool
+    }
+
+    /// 运行时动态注册工具的来源集合（工具名 → 来源标识）
+    pub fn runtime_tool_sources(&self) -> &HashMap<String, String> {
+        &self.runtime_tool_sources
+    }
+
+    /// 登记一个扩展副作用（供 wiring 层附加回滚逻辑，如护照移除 / 审计清理）。
+    pub fn push_effect(&mut self, disposer: Disposer) {
+        self.effects.push(disposer);
+    }
+
+    /// 当前副作用栈长度（调试/审计用）
+    pub fn effects_len(&self) -> usize {
+        self.effects.len()
+    }
+
+    /// 全量清理副作用栈（后进先出），并返回已清理数量。
+    ///
+    /// 用于应用退出前或用户显式回滚全部进化产物时，保证动态注册不留残余：
+    /// 同步卸载全部运行时工具并清空来源记录，再依次回滚副作用。
+    pub fn cleanup_runtime_effects(&mut self) -> usize {
+        // 1) 卸载全部运行时工具 + 清空来源记录
+        let names: Vec<String> = self.runtime_tool_sources.keys().cloned().collect();
+        for name in &names {
+            self.tools.unregister(name);
+        }
+        self.runtime_tool_sources.clear();
+        // 2) 回滚副作用栈（后进先出）
+        let count = self.effects.len();
+        while let Some(disposer) = self.effects.pop() {
+            disposer.dispose();
+        }
+        count
     }
 
     /// 从 skill_handlers 执行注册的 Skill 工具
@@ -1561,6 +1719,7 @@ mod tests {
     use super::*;
     use crate::{ToolCategory, ToolContext};
     use async_trait::async_trait;
+    use std::sync::atomic::AtomicBool;
 
     struct EchoTool;
 
@@ -1617,6 +1776,151 @@ mod tests {
 
         let by_alias = registry.find("echo_test").expect("测试：find 应成功");
         assert_eq!(by_alias.name(), "echo");
+    }
+
+    /// 构造一个进化生成的测试工具适配器
+    fn make_generated_adapter(name: &str, id: &str) -> Arc<dyn Tool> {
+        let generated = axagent_harness::trajectory_types::GeneratedTool {
+            id: id.to_string(),
+            name: name.to_string(),
+            code: "return input;".to_string(),
+            description: "运行时进化测试工具".to_string(),
+            test_coverage: 0.0,
+            created_at: 0,
+            usage_count: 0,
+            success_rate: 0.0,
+            artifact_kind: axagent_harness::trajectory_types::EvolutionArtifactKind::RhaiScript,
+        };
+        Arc::new(crate::generated_tool::GeneratedToolAdapter::new(generated))
+    }
+
+    /// T1.1/T1.4：运行时注册 → get_chat_tools 可见 → 卸载后不可见
+    #[tokio::test]
+    async fn test_runtime_tool_register_and_discover() {
+        let mut registry = UnifiedToolRegistry::new();
+        let name = "runtime_echo_tool";
+
+        let result = registry
+            .register_runtime_tool(make_generated_adapter(name, "id-1"), "runtime_evolution");
+        assert!(result.is_ok(), "测试：运行时工具注册应成功");
+        assert_eq!(
+            registry.runtime_tool_sources().get(name).map(|s| s.as_str()),
+            Some("runtime_evolution")
+        );
+
+        // get_chat_tools 应包含运行时注册的工具（LLM 可发现）
+        let chat_tools = registry.get_chat_tools();
+        assert!(
+            chat_tools.iter().any(|ct| ct.function.name == name),
+            "测试：get_chat_tools 应包含运行时注册工具"
+        );
+
+        // 卸载后立即从 get_chat_tools 消失
+        let removed = registry.unregister_runtime_tool(name);
+        assert!(removed.is_some(), "测试：卸载应返回被卸载的工具");
+        assert!(registry.runtime_tool_sources().get(name).is_none());
+        let chat_tools_after = registry.get_chat_tools();
+        assert!(
+            !chat_tools_after.iter().any(|ct| ct.function.name == name),
+            "测试：卸载后 get_chat_tools 不应包含该工具"
+        );
+    }
+
+    /// T1.5：重复注册返回 TOOL_REGISTRATION_DUPLICATE 错误码
+    #[tokio::test]
+    async fn test_runtime_tool_duplicate_registration_error_code() {
+        let mut registry = UnifiedToolRegistry::new();
+
+        // 与内置工具同名 → 应拒绝并返回标准化错误码
+        let err = registry
+            .register_runtime_tool(
+                make_generated_adapter("FileRead", "id-builtin"),
+                "runtime_evolution",
+            )
+            .expect_err("测试：与内置工具同名注册应失败");
+        assert_eq!(err.error_code, axagent_harness::error_codes::tool::REGISTRATION_DUPLICATE);
+
+        // 同名运行时工具重复注册 → 同样拒绝
+        let dup_name = "runtime_dup_tool";
+        assert!(
+            registry
+                .register_runtime_tool(
+                    make_generated_adapter(dup_name, "id-a"),
+                    "runtime_evolution"
+                )
+                .is_ok()
+        );
+        let err2 = registry
+            .register_runtime_tool(make_generated_adapter(dup_name, "id-b"), "runtime_evolution")
+            .expect_err("测试：同名运行时工具重复注册应失败");
+        assert_eq!(err2.error_code, axagent_harness::error_codes::tool::REGISTRATION_DUPLICATE);
+
+        // 卸载非运行时工具应返回 None（不污染内置工具）
+        assert!(registry.unregister_runtime_tool("FileRead").is_none());
+    }
+
+    /// T2.2：副作用栈 — register 登记 Disposer，unregister 执行对应回滚（LIFO 匹配）
+    #[tokio::test]
+    async fn test_runtime_tool_effects_stack_lifo_rollback() {
+        let mut registry = UnifiedToolRegistry::new();
+
+        // 两个工具 + 一个扩展副作用（模拟护照移除等 wiring 附加回滚）
+        let name_a = "runtime_effects_a";
+        let name_b = "runtime_effects_b";
+        assert!(
+            registry
+                .register_runtime_tool(make_generated_adapter(name_a, "id-a"), "runtime_evolution")
+                .is_ok()
+        );
+        assert!(
+            registry
+                .register_runtime_tool(make_generated_adapter(name_b, "id-b"), "runtime_evolution")
+                .is_ok()
+        );
+
+        let rollback_called = Arc::new(AtomicBool::new(false));
+        let rollback_flag = rollback_called.clone();
+        registry.push_effect(Disposer::new(
+            name_b.to_string(),
+            "扩展副作用（测试）",
+            move || {
+                rollback_flag.store(true, std::sync::atomic::Ordering::SeqCst);
+            },
+        ));
+
+        assert_eq!(registry.effects_len(), 3, "测试：两个工具 + 一个扩展副作用");
+
+        // 卸载 name_b → 应触发其 Disposer 回滚（扩展副作用闭包执行）
+        let removed_b = registry.unregister_runtime_tool(name_b);
+        assert!(removed_b.is_some());
+        assert!(
+            rollback_called.load(std::sync::atomic::Ordering::SeqCst),
+            "测试：卸载时应执行匹配的 Disposer 回滚"
+        );
+        assert_eq!(registry.effects_len(), 1, "测试：卸载后对应 Disposer 已出栈");
+
+        // 卸载 name_a → 剩余 Disposer 出栈
+        let removed_a = registry.unregister_runtime_tool(name_a);
+        assert!(removed_a.is_some());
+        assert_eq!(registry.effects_len(), 0, "测试：全部卸载后副作用栈清空");
+    }
+
+    /// T2.2：副作用栈 — cleanup_runtime_effects 全量清理（后进先出）
+    #[tokio::test]
+    async fn test_runtime_tool_cleanup_all_effects() {
+        let mut registry = UnifiedToolRegistry::new();
+        let name = "runtime_cleanup_tool";
+        assert!(
+            registry
+                .register_runtime_tool(make_generated_adapter(name, "id-c"), "runtime_evolution")
+                .is_ok()
+        );
+        assert_eq!(registry.effects_len(), 1);
+
+        let cleaned = registry.cleanup_runtime_effects();
+        assert_eq!(cleaned, 1, "测试：全量清理应返回清理数量");
+        assert_eq!(registry.effects_len(), 0);
+        assert!(registry.runtime_tool_sources().get(name).is_none());
     }
 }
 

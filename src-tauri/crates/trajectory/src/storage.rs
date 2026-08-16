@@ -87,6 +87,7 @@ impl TrajectoryStorage {
             id: Set(t.id.clone()),
             session_id: Set(t.session_id.clone()),
             user_id: Set(t.user_id.clone()),
+            agent_name: Set(t.agent_name.clone()),
             topic: Set(t.topic.clone()),
             summary: Set(t.summary.clone()),
             outcome: Set(format!("{:?}", t.outcome).to_lowercase()),
@@ -101,6 +102,8 @@ impl TrajectoryStorage {
             created_at: Set(t.created_at.to_rfc3339()),
             replay_count: Set(t.replay_count as i32),
             last_replay_at: Set(t.last_replay_at.map(|dt| dt.to_rfc3339())),
+            // 新轨迹默认有效（append-only 证据链，v120 新增字段）
+            is_invalidated: Set(0),
         };
         // P1-2: on_conflict 不再更新 CreatedAt（保留原创建时间）
         trajectories::Entity::insert(am)
@@ -108,6 +111,7 @@ impl TrajectoryStorage {
                 sea_orm::sea_query::OnConflict::column(trajectories::Column::Id)
                     .update_columns([
                         trajectories::Column::SessionId,
+                        trajectories::Column::AgentName,
                         trajectories::Column::Topic,
                         trajectories::Column::Summary,
                         trajectories::Column::Outcome,
@@ -121,6 +125,8 @@ impl TrajectoryStorage {
                         trajectories::Column::Patterns,
                         trajectories::Column::ReplayCount,
                         trajectories::Column::LastReplayAt,
+                        // 重保存视为重新启用该轨迹：清除失效标记（append-only 证据链可恢复）
+                        trajectories::Column::IsInvalidated,
                     ])
                     .to_owned(),
             )
@@ -190,8 +196,10 @@ impl TrajectoryStorage {
         }
     }
 
+    /// 获取有效的轨迹列表（已标记失效的 append-only 证据不参与活动查询）。
     pub async fn get_trajectories(&self, limit: Option<usize>) -> Result<Vec<Trajectory>> {
         let models = trajectories::Entity::find()
+            .filter(trajectories::Column::IsInvalidated.eq(0))
             .order_by_desc(trajectories::Column::CreatedAt)
             .all(self.db.as_ref())
             .await?;
@@ -207,35 +215,34 @@ impl TrajectoryStorage {
         Ok(r)
     }
 
-    /// P1-3: 级联删除 trajectories + steps + rewards + skill_executions + FTS
+    /// P3-1（阶段三）：标记轨迹失效（软删除，append-only 证据存储）。
+    ///
+    /// 轨迹及其 steps/rewards/skill_executions 作为进化证据**不可物理删除**，
+    /// 仅置 `is_invalidated = 1` 使其退出活动查询（get_trajectories /
+    /// get_session_trajectories / query_trajectories）；同时清理 FTS 索引，
+    /// 避免全文搜索命中已失效证据。证据本体保留，供贝叶斯后验回溯。
     pub async fn delete_trajectory(&self, id: &str) -> Result<()> {
-        let txn = self.db.begin().await?;
-        trajectory_steps::Entity::delete_many()
-            .filter(trajectory_steps::Column::TrajectoryId.eq(id))
-            .exec(&txn)
-            .await?;
-        trajectory_rewards::Entity::delete_many()
-            .filter(trajectory_rewards::Column::TrajectoryId.eq(id))
-            .exec(&txn)
-            .await?;
-        trajectory_skill_executions::Entity::delete_many()
-            .filter(trajectory_skill_executions::Column::TrajectoryId.eq(id))
-            .exec(&txn)
-            .await?;
-        trajectories::Entity::delete_by_id(id).exec(&txn).await?;
-        txn.commit().await?;
+        let m = trajectories::Entity::find_by_id(id)
+            .one(self.db.as_ref())
+            .await?
+            .context("Trajectory not found")?;
+        let mut am: trajectories::ActiveModel = m.into_active_model();
+        am.is_invalidated = Set(1);
+        am.update(self.db.as_ref()).await?;
         let _ = self.delete_trajectory_fts(id).await;
-        info!("Deleted trajectory {}", id);
+        info!("Invalidated trajectory {}", id);
         Ok(())
     }
 
-    /// P1-5: 用字符串比较 ISO8601 / RFC3339 时间戳（字典序与时序一致）
+    /// P1-5: 用字符串比较 ISO8601 / RFC3339 时间戳（字典序与时序一致）。
+    /// 阶段三起清理为软删除：仅标记失效，证据本体保留（append-only）。
     pub async fn cleanup_old_trajectories_by_age(&self, max_age_days: u32) -> Result<usize> {
         let cutoff = Utc::now() - chrono::Duration::days(max_age_days as i64);
         let cutoff_str = cutoff.to_rfc3339();
         // ISO8601 / RFC3339 格式为 year-first、zero-padded，字符串字典序与时序一致，
         // 不需要 datetime() 函数（该函数是 SQLite 专有，PostgreSQL 不存在）。
         let old_trajectories = trajectories::Entity::find()
+            .filter(trajectories::Column::IsInvalidated.eq(0))
             .filter(sea_orm::sea_query::Expr::cust(format!("created_at < '{}'", cutoff_str)))
             .all(self.db.as_ref())
             .await?;
@@ -246,10 +253,14 @@ impl TrajectoryStorage {
         Ok(count)
     }
 
-    /// P1-4: 避免全表加载，使用 NOT IN 子查询找出需删除的 ID
+    /// P1-4: 避免全表加载，使用 NOT IN 子查询找出需清理的 ID。
+    /// 阶段三起清理为软删除：仅标记失效，证据本体保留（append-only）。
     pub async fn cleanup_old_trajectories_by_count(&self, max_trajectories: u32) -> Result<usize> {
-        // 先查总数判断是否需要清理
-        let total = trajectories::Entity::find().count(self.db.as_ref()).await?;
+        // 先查总数判断是否需要清理（仅统计有效轨迹）
+        let total = trajectories::Entity::find()
+            .filter(trajectories::Column::IsInvalidated.eq(0))
+            .count(self.db.as_ref())
+            .await?;
         if total <= max_trajectories as u64 {
             return Ok(0);
         }
@@ -259,6 +270,7 @@ impl TrajectoryStorage {
             // 取第二页（跳过前 max_trajectories 条），即为超出保留阈值的最旧轨迹
             let page_size: u64 = std::cmp::max(max_trajectories as u64, 1);
             let paginator = trajectories::Entity::find()
+                .filter(trajectories::Column::IsInvalidated.eq(0))
                 .order_by_desc(trajectories::Column::CreatedAt)
                 .paginate(self.db.as_ref(), page_size);
             let extra = paginator.fetch_page(1).await?;
@@ -285,6 +297,7 @@ impl TrajectoryStorage {
     pub async fn get_session_trajectories(&self, session_id: &str) -> Result<Vec<Trajectory>> {
         let models = trajectories::Entity::find()
             .filter(trajectories::Column::SessionId.eq(session_id))
+            .filter(trajectories::Column::IsInvalidated.eq(0))
             .order_by_asc(trajectories::Column::CreatedAt)
             .all(self.db.as_ref())
             .await?;
@@ -301,6 +314,8 @@ impl TrajectoryStorage {
 
     pub async fn query_trajectories(&self, query: &TrajectoryQuery) -> Result<Vec<Trajectory>> {
         let mut q = trajectories::Entity::find();
+        // 已标记失效的 append-only 证据不参与活动查询（贝叶斯后验回溯走 get_trajectory）
+        q = q.filter(trajectories::Column::IsInvalidated.eq(0));
         if let Some(ref sid) = query.session_id {
             q = q.filter(trajectories::Column::SessionId.eq(sid));
         }
@@ -1430,6 +1445,7 @@ fn model_to_trajectory(
         id: m.id.clone(),
         session_id: m.session_id.clone(),
         user_id: m.user_id.clone(),
+        agent_name: m.agent_name.clone(),
         topic: m.topic.clone(),
         summary: m.summary.clone(),
         outcome: serde_json::from_str(&format!("\"{}\"", m.outcome))
@@ -1502,6 +1518,81 @@ fn model_to_traj_pattern(p: &trajectory_patterns::Model) -> TrajectoryPattern {
         created_at: chrono::DateTime::parse_from_rfc3339(&p.created_at)
             .map(|dt| dt.with_timezone(&Utc))
             .unwrap_or_else(|_| Utc::now()),
+    }
+}
+
+// ── 阶段三 T3.1 / T3.5：append-only 证据存储集成测试 ─────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::trajectory::{Trajectory, TrajectoryOutcome, TrajectoryStep};
+
+    /// 构造最小 `Trajectory`（内部自动生成 uuid 主键）。
+    fn sample_trajectory(session: &str) -> Trajectory {
+        Trajectory::new(
+            session.to_string(),
+            "user-1".to_string(),
+            "测试主题".to_string(),
+            "测试摘要".to_string(),
+            TrajectoryOutcome::Success,
+            1000,
+            Vec::<TrajectoryStep>::new(),
+        )
+    }
+
+    /// 阶段三 T3.1：软删除（append-only）——`delete_trajectory` 仅置
+    /// `is_invalidated = 1`，证据本体保留；活动查询（get_trajectories）不再可见。
+    #[tokio::test]
+    async fn delete_trajectory_marks_invalidated_keeps_evidence() {
+        let db = axagent_dao::db::create_test_pool().await.expect("测试：创建连接池应成功").conn;
+        let storage = TrajectoryStorage::new(Arc::new(db.clone()));
+        let t = sample_trajectory("session-1");
+        storage.save_trajectory(&t).await.expect("测试：保存轨迹应成功");
+
+        assert_eq!(
+            storage.get_trajectories(None).await.expect("测试：查询应成功").len(),
+            1,
+            "保存后活动查询应可见"
+        );
+
+        storage.delete_trajectory(&t.id).await.expect("测试：软删除应成功");
+
+        assert!(
+            storage.get_trajectories(None).await.expect("测试：查询应成功").is_empty(),
+            "软删除后活动查询应不可见"
+        );
+        // 证据本体保留（append-only），is_invalidated = 1
+        let row = trajectories::Entity::find_by_id(&t.id)
+            .one(&db)
+            .await
+            .expect("测试：查询应成功")
+            .expect("证据本体必须保留（append-only，不可物理删除）");
+        assert_eq!(row.is_invalidated, 1);
+    }
+
+    /// 阶段三 T3.1：重新保存（on_conflict 清除失效标记）恢复活动可见。
+    #[tokio::test]
+    async fn resave_trajectory_reenables_invalidated_evidence() {
+        let db = axagent_dao::db::create_test_pool().await.expect("测试：创建连接池应成功").conn;
+        let storage = TrajectoryStorage::new(Arc::new(db.clone()));
+        let t = sample_trajectory("session-1");
+        storage.save_trajectory(&t).await.expect("测试：保存轨迹应成功");
+        storage.delete_trajectory(&t.id).await.expect("测试：软删除应成功");
+
+        storage.save_trajectory(&t).await.expect("测试：重新保存应成功");
+
+        assert_eq!(
+            storage.get_trajectories(None).await.expect("测试：查询应成功").len(),
+            1,
+            "重新保存应重新启用轨迹"
+        );
+        let row = trajectories::Entity::find_by_id(&t.id)
+            .one(&db)
+            .await
+            .expect("测试：查询应成功")
+            .expect("轨迹应存在");
+        assert_eq!(row.is_invalidated, 0);
     }
 }
 

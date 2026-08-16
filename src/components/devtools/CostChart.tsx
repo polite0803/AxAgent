@@ -24,7 +24,7 @@ export function CostChart({ metrics }: CostChartProps) {
   // 成本以人民币展示
   const formatCny = useFormatCny();
   const { cost } = metrics;
-  const total = cost.total_tokens || 1;
+  const total = cost.totalTokens || 1;
 
   return (
     <div className="p-4">
@@ -35,10 +35,10 @@ export function CostChart({ metrics }: CostChartProps) {
               {t("devtools.inputTokens")}
             </div>
             <div className="text-2xl font-bold">
-              {formatTokens(cost.input_tokens)}
+              {formatTokens(cost.inputTokens)}
             </div>
             <Progress
-              percent={(cost.input_tokens / total) * 100}
+              percent={(cost.inputTokens / total) * 100}
               showInfo={false}
               strokeColor="#1890ff"
             />
@@ -48,10 +48,10 @@ export function CostChart({ metrics }: CostChartProps) {
               {t("devtools.outputTokens")}
             </div>
             <div className="text-2xl font-bold">
-              {formatTokens(cost.output_tokens)}
+              {formatTokens(cost.outputTokens)}
             </div>
             <Progress
-              percent={(cost.output_tokens / total) * 100}
+              percent={(cost.outputTokens / total) * 100}
               showInfo={false}
               strokeColor="#52c41a"
             />
@@ -61,10 +61,10 @@ export function CostChart({ metrics }: CostChartProps) {
               {t("devtools.cacheCreation")}
             </div>
             <div className="text-2xl font-bold">
-              {formatTokens(cost.cache_creation_tokens)}
+              {formatTokens(cost.cacheCreationTokens)}
             </div>
             <Progress
-              percent={(cost.cache_creation_tokens / total) * 100}
+              percent={(cost.cacheCreationTokens / total) * 100}
               showInfo={false}
               strokeColor="#faad14"
             />
@@ -74,10 +74,10 @@ export function CostChart({ metrics }: CostChartProps) {
               {t("devtools.cacheRead")}
             </div>
             <div className="text-2xl font-bold">
-              {formatTokens(cost.cache_read_tokens)}
+              {formatTokens(cost.cacheReadTokens)}
             </div>
             <Progress
-              percent={(cost.cache_read_tokens / total) * 100}
+              percent={(cost.cacheReadTokens / total) * 100}
               showInfo={false}
               strokeColor="#f5222d"
             />
@@ -92,7 +92,7 @@ export function CostChart({ metrics }: CostChartProps) {
               {t("devtools.totalTokens")}
             </div>
             <div className="text-3xl font-bold">
-              {formatTokens(cost.total_tokens)}
+              {formatTokens(cost.totalTokens)}
             </div>
           </div>
           <div className="text-center">
@@ -100,7 +100,7 @@ export function CostChart({ metrics }: CostChartProps) {
               {t("devtools.totalCost")}
             </div>
             <div className="text-3xl font-bold text-green-600">
-              {formatCny(cost.total_cost_usd, 4)}
+              {formatCny(cost.totalCostUsd, 4)}
             </div>
           </div>
           <div className="text-center">

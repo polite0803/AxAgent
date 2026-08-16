@@ -147,7 +147,7 @@ export interface SkillDefinition {
   description: string;
   type: "chat" | "tool" | "workflow" | "automation";
   triggers: string[];
-  prompt_template: string;
+  promptTemplate: string;
   parameters: SkillParameter[];
   tools: string[];
   icon?: string;

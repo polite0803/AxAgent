@@ -252,7 +252,7 @@ function AppInner() {
       useSkillStore.getState().addSkillProposal(proposal);
       // 弹出通知，点击跳转到技能页面
       message.info({
-        content: t("app.newSkillProposal", { name: proposal.suggested_name }),
+        content: t("app.newSkillProposal", { name: proposal.suggestedName }),
         duration: 8,
         onClick: () => {
           navigate("/settings");
@@ -289,7 +289,7 @@ function AppInner() {
 
   const { checkForUpdate } = useUpdateChecker();
   const updateCheckInterval = useSettingsStore(
-    (s) => s.settings.update_check_interval ?? 60,
+    (s) => s.settings.updateCheckInterval ?? 60,
   );
   const updateIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -458,16 +458,16 @@ function AppInner() {
 
 function AppRoot() {
   const { i18n } = useTranslation();
-  const themeMode = useSettingsStore((s) => s.settings.theme_mode);
-  const primaryColor = useSettingsStore((s) => s.settings.primary_color);
-  const themePreset = useSettingsStore((s) => s.settings.theme_preset) as
+  const themeMode = useSettingsStore((s) => s.settings.themeMode);
+  const primaryColor = useSettingsStore((s) => s.settings.primaryColor);
+  const themePreset = useSettingsStore((s) => s.settings.themePreset) as
     | ThemePreset
     | undefined;
-  const fontSize = useSettingsStore((s) => s.settings.font_size);
-  const fontWeight = useSettingsStore((s) => s.settings.font_weight);
-  const fontFamily = useSettingsStore((s) => s.settings.font_family);
-  const codeFontFamily = useSettingsStore((s) => s.settings.code_font_family);
-  const borderRadius = useSettingsStore((s) => s.settings.border_radius);
+  const fontSize = useSettingsStore((s) => s.settings.fontSize);
+  const fontWeight = useSettingsStore((s) => s.settings.fontWeight);
+  const fontFamily = useSettingsStore((s) => s.settings.fontFamily);
+  const codeFontFamily = useSettingsStore((s) => s.settings.codeFontFamily);
+  const borderRadius = useSettingsStore((s) => s.settings.borderRadius);
   const language = useSettingsStore((s) => s.settings.language);
   const isDark = useResolvedDarkMode(themeMode, themePreset);
 

@@ -67,6 +67,7 @@ pub struct EmbedResponse {
 // === Realtime Voice ===
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RealtimeConfig {
     pub model_id: String,
     pub voice: Option<String>,
@@ -74,6 +75,7 @@ pub struct RealtimeConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AudioFormat {
     pub sample_rate: u32,
     pub channels: u8,

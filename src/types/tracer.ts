@@ -21,22 +21,22 @@ export interface SpanEvent {
 }
 
 export interface SpanError {
-  error_type: string;
+  errorType: string;
   message: string;
-  stack_trace?: string;
+  stackTrace?: string;
   timestamp: string;
 }
 
 export interface Span {
   id: string;
-  trace_id: string;
-  parent_span_id?: string;
+  traceId: string;
+  parentSpanId?: string;
   name: string;
-  span_type: SpanType;
-  service_name?: string;
-  start_time: string;
-  end_time?: string;
-  duration_ms?: number;
+  spanType: SpanType;
+  serviceName?: string;
+  startTime: string;
+  endTime?: string;
+  durationMs?: number;
   status: SpanStatus;
   attributes: Record<string, unknown>;
   events: SpanEvent[];
@@ -46,85 +46,85 @@ export interface Span {
 }
 
 export interface TraceMetadata {
-  user_id: string;
-  session_id: string;
-  agent_version: string;
+  userId: string;
+  sessionId: string;
+  agentVersion: string;
   model: string;
-  total_tokens: number;
-  total_cost_usd: number;
-  total_duration_ms: number;
+  totalTokens: number;
+  totalCostUsd: number;
+  totalDurationMs: number;
 }
 
 export interface TraceExport {
-  trace_id: string;
+  traceId: string;
   spans: Span[];
   metadata: TraceMetadata;
-  exported_at: string;
+  exportedAt: string;
 }
 
 export interface TraceSummary {
-  trace_id: string;
-  session_id: string;
-  started_at: string;
-  ended_at?: string;
-  duration_ms?: number;
-  span_count: number;
-  error_count: number;
-  total_tokens: number;
-  total_cost_usd: number;
+  traceId: string;
+  sessionId: string;
+  startedAt: string;
+  endedAt?: string;
+  durationMs?: number;
+  spanCount: number;
+  errorCount: number;
+  totalTokens: number;
+  totalCostUsd: number;
 }
 
 export interface TraceFilter {
-  session_id?: string;
-  trace_id?: string;
-  from_date?: string;
-  to_date?: string;
-  min_duration_ms?: number;
-  max_duration_ms?: number;
-  has_errors?: boolean;
+  sessionId?: string;
+  traceId?: string;
+  fromDate?: string;
+  toDate?: string;
+  minDurationMs?: number;
+  maxDurationMs?: number;
+  hasErrors?: boolean;
   limit?: number;
   offset?: number;
 }
 
 export interface CostMetrics {
-  total_tokens: number;
-  input_tokens: number;
-  output_tokens: number;
-  cache_creation_tokens: number;
-  cache_read_tokens: number;
-  total_cost_usd: number;
+  totalTokens: number;
+  inputTokens: number;
+  outputTokens: number;
+  cacheCreationTokens: number;
+  cacheReadTokens: number;
+  totalCostUsd: number;
   model: string;
 }
 
 export interface TraceMetrics {
-  total_duration_ms: number;
-  ttft_ms?: number;
+  totalDurationMs: number;
+  ttftMs?: number;
   cost: CostMetrics;
-  spans_count: number;
-  errors_count: number;
+  spansCount: number;
+  errorsCount: number;
 }
 
 export interface SpanMetrics {
-  span_id: string;
+  spanId: string;
   name: string;
-  span_type: string;
-  duration_ms: number;
-  start_time: string;
-  end_time?: string;
+  spanType: string;
+  durationMs: number;
+  startTime: string;
+  endTime?: string;
   status: string;
   attributes: Record<string, unknown>;
-  error_count: number;
+  errorCount: number;
 }
 
 export interface AggregatedMetrics {
-  total_traces: number;
-  total_spans: number;
-  total_errors: number;
-  avg_duration_ms: number;
-  avg_tokens: number;
-  avg_cost_usd: number;
-  traces_by_type: Record<string, number>;
-  errors_by_type: Record<string, number>;
+  totalTraces: number;
+  totalSpans: number;
+  totalErrors: number;
+  avgDurationMs: number;
+  avgTokens: number;
+  avgCostUsd: number;
+  tracesByType: Record<string, number>;
+  errorsByType: Record<string, number>;
 }
 
 export interface SpanTreeNode extends Span {
@@ -132,13 +132,13 @@ export interface SpanTreeNode extends Span {
 }
 
 export interface TraceListItem {
-  trace_id: string;
-  session_id: string;
-  started_at: string;
-  duration_ms?: number;
-  span_count: number;
-  error_count: number;
-  total_cost_usd: number;
+  traceId: string;
+  sessionId: string;
+  startedAt: string;
+  durationMs?: number;
+  spanCount: number;
+  errorCount: number;
+  totalCostUsd: number;
   status: "completed" | "in_progress" | "error";
 }
 
@@ -150,11 +150,11 @@ export interface TraceDetail {
 }
 
 export interface TimelineItem {
-  span_id: string;
+  spanId: string;
   name: string;
-  start_time: string;
-  duration_ms?: number;
+  startTime: string;
+  durationMs?: number;
   depth: number;
-  span_type: SpanType;
+  spanType: SpanType;
   status: SpanStatus;
 }

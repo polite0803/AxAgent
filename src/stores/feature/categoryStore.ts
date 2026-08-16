@@ -10,29 +10,29 @@ interface CategoryState {
   fetchCategories: () => Promise<void>;
   createCategory: (input: {
     name: string;
-    icon_type?: string | null;
-    icon_value?: string | null;
-    system_prompt?: string | null;
-    default_provider_id?: string | null;
-    default_model_id?: string | null;
-    default_temperature?: number | null;
-    default_max_tokens?: number | null;
-    default_top_p?: number | null;
-    default_frequency_penalty?: number | null;
+    iconType?: string | null;
+    iconValue?: string | null;
+    systemPrompt?: string | null;
+    defaultProviderId?: string | null;
+    defaultModelId?: string | null;
+    defaultTemperature?: number | null;
+    defaultMaxTokens?: number | null;
+    defaultTopP?: number | null;
+    defaultFrequencyPenalty?: number | null;
   }) => Promise<ConversationCategory>;
   updateCategory: (
     id: string,
     input: {
       name?: string;
-      icon_type?: string | null;
-      icon_value?: string | null;
-      system_prompt?: string | null;
-      default_provider_id?: string | null;
-      default_model_id?: string | null;
-      default_temperature?: number | null;
-      default_max_tokens?: number | null;
-      default_top_p?: number | null;
-      default_frequency_penalty?: number | null;
+      iconType?: string | null;
+      iconValue?: string | null;
+      systemPrompt?: string | null;
+      defaultProviderId?: string | null;
+      defaultModelId?: string | null;
+      defaultTemperature?: number | null;
+      defaultMaxTokens?: number | null;
+      defaultTopP?: number | null;
+      defaultFrequencyPenalty?: number | null;
     },
   ) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
@@ -59,7 +59,20 @@ export const useCategoryStore = create<CategoryState>((set) => ({
   createCategory: async (input) => {
     const category = await invoke<ConversationCategory>(
       "create_conversation_category",
-      { input },
+      {
+        input: {
+          name: input.name,
+          icon_type: input.iconType,
+          icon_value: input.iconValue,
+          system_prompt: input.systemPrompt,
+          default_provider_id: input.defaultProviderId,
+          default_model_id: input.defaultModelId,
+          default_temperature: input.defaultTemperature,
+          default_max_tokens: input.defaultMaxTokens,
+          default_top_p: input.defaultTopP,
+          default_frequency_penalty: input.defaultFrequencyPenalty,
+        },
+      },
     );
     set((s) => ({ categories: [...s.categories, category] }));
     return category;
@@ -68,7 +81,21 @@ export const useCategoryStore = create<CategoryState>((set) => ({
   updateCategory: async (id, input) => {
     const updated = await invoke<ConversationCategory>(
       "update_conversation_category",
-      { id, input },
+      {
+        id,
+        input: {
+          name: input.name,
+          icon_type: input.iconType,
+          icon_value: input.iconValue,
+          system_prompt: input.systemPrompt,
+          default_provider_id: input.defaultProviderId,
+          default_model_id: input.defaultModelId,
+          default_temperature: input.defaultTemperature,
+          default_max_tokens: input.defaultMaxTokens,
+          default_top_p: input.defaultTopP,
+          default_frequency_penalty: input.defaultFrequencyPenalty,
+        },
+      },
     );
     set((s) => ({
       categories: s.categories.map((c) => (c.id === id ? updated : c)),
@@ -87,7 +114,7 @@ export const useCategoryStore = create<CategoryState>((set) => ({
     set((s) => {
       const ordered = categoryIds.flatMap((id, i) => {
         const c = s.categories.find((c) => c.id === id);
-        return c ? [{ ...c, sort_order: i }] : [];
+        return c ? [{ ...c, sortOrder: i }] : [];
       }) as ConversationCategory[];
       return { categories: ordered };
     });
@@ -95,7 +122,7 @@ export const useCategoryStore = create<CategoryState>((set) => ({
 
   setCollapsed: async (id, collapsed) => {
     set((s) => ({
-      categories: s.categories.map((c) => c.id === id ? { ...c, is_collapsed: collapsed } : c),
+      categories: s.categories.map((c) => c.id === id ? { ...c, isCollapsed: collapsed } : c),
     }));
     await invoke("set_conversation_category_collapsed", { id, collapsed });
   },

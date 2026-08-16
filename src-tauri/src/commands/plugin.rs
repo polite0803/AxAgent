@@ -264,6 +264,7 @@ pub struct PluginManifestDto {
 }
 
 #[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PluginCapabilityDto {
     pub seam: String,
     pub capability_type: String,
@@ -297,6 +298,7 @@ pub struct InstallOutcomeDto {
 }
 
 #[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateOutcomeDto {
     pub plugin_id: String,
     pub old_version: String,

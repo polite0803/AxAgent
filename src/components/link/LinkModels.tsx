@@ -24,7 +24,7 @@ export function LinkModels({ link }: LinkModelsProps) {
 
   const handleAutoSyncChange = async (checked: boolean) => {
     try {
-      await updateSyncSettings(link.id, checked, link.auto_sync_skills);
+      await updateSyncSettings(link.id, checked, link.autoSyncSkills);
     } catch {
       message.error(t("link.updateSettingsFailed"));
     }
@@ -73,20 +73,20 @@ export function LinkModels({ link }: LinkModelsProps) {
   const columns = [
     {
       title: t("link.modelName"),
-      dataIndex: "model_id",
-      key: "model_id",
+      dataIndex: "modelId",
+      key: "modelId",
       ellipsis: true,
     },
     {
       title: t("link.providerName"),
-      dataIndex: "provider_name",
-      key: "provider_name",
+      dataIndex: "providerName",
+      key: "providerName",
       ellipsis: true,
     },
     {
       title: t("link.syncStatus"),
-      dataIndex: "sync_status",
-      key: "sync_status",
+      dataIndex: "syncStatus",
+      key: "syncStatus",
       width: 120,
       render: (status: string) => {
         const mapped = SYNC_STATUS_MAP[status] ?? {
@@ -108,11 +108,11 @@ export function LinkModels({ link }: LinkModelsProps) {
       key: "actions",
       width: 100,
       // GW-P0-6: 接收 record 参数,推送当前行而非全局选中行
-      render: (_: unknown, record: { model_id: string }) => (
+      render: (_: unknown, record: { modelId: string }) => (
         <Button
           size="small"
           icon={<Upload size={14} />}
-          onClick={() => handlePushOne(record.model_id)}
+          onClick={() => handlePushOne(record.modelId)}
           disabled={link.status !== "connected"}
         >
           {t("link.push")}
@@ -135,7 +135,7 @@ export function LinkModels({ link }: LinkModelsProps) {
         <div className="flex items-center gap-2">
           <Switch
             size="small"
-            checked={link.auto_sync_models}
+            checked={link.autoSyncModels}
             onChange={handleAutoSyncChange}
             disabled={link.status !== "connected"}
           />
@@ -178,7 +178,7 @@ export function LinkModels({ link }: LinkModelsProps) {
             <Table
               dataSource={modelSyncs}
               columns={columns}
-              rowKey="model_id"
+              rowKey="modelId"
               size="small"
               pagination={false}
               rowSelection={rowSelection}

@@ -26,8 +26,8 @@ export function ConversationSettings() {
           {t("settings.defaultSystemPromptDesc")}
         </div>
         <Input.TextArea
-          value={settings.default_system_prompt ?? ""}
-          onChange={(e) => saveSettings({ default_system_prompt: e.target.value || null })}
+          value={settings.defaultSystemPrompt ?? ""}
+          onChange={(e) => saveSettings({ defaultSystemPrompt: e.target.value || null })}
           placeholder={t("settings.defaultSystemPromptPlaceholder")}
           autoSize={{ minRows: 3, maxRows: 10 }}
         />
@@ -37,8 +37,8 @@ export function ConversationSettings() {
         <div className="flex items-center justify-between" style={rowStyle} data-search-key="conversation:bubbleStyle">
           <span>{t("settings.bubbleStyle")}</span>
           <SettingsSelect
-            value={settings.bubble_style}
-            onChange={(val) => saveSettings({ bubble_style: val })}
+            value={settings.bubbleStyle}
+            onChange={(val) => saveSettings({ bubbleStyle: val })}
             options={[
               { label: t("settings.bubbleModern"), value: "modern" },
               { label: t("settings.bubbleCompact"), value: "compact" },
@@ -60,8 +60,8 @@ export function ConversationSettings() {
           </div>
           <Switch
             id="conversation-settings-switch-43"
-            checked={settings.render_user_markdown ?? false}
-            onChange={(checked) => saveSettings({ render_user_markdown: checked })}
+            checked={settings.renderUserMarkdown ?? false}
+            onChange={(checked) => saveSettings({ renderUserMarkdown: checked })}
           />
         </div>
       </SettingsGroup>
@@ -83,10 +83,10 @@ export function ConversationSettings() {
         >
           <span>{t("settings.multiModelDisplayMode")}</span>
           <SettingsSelect
-            value={settings.multi_model_display_mode ?? "tabs"}
+            value={settings.multiModelDisplayMode ?? "tabs"}
             onChange={(val) =>
               saveSettings({
-                multi_model_display_mode: val as
+                multiModelDisplayMode: val as
                   | "tabs"
                   | "side-by-side"
                   | "stacked",
@@ -124,11 +124,11 @@ export function ConversationSettings() {
           <span>{t("settings.chatMinimapEnabled")}</span>
           <Switch
             id="conversation-settings-switch-44"
-            checked={settings.chat_minimap_enabled ?? false}
-            onChange={(checked) => saveSettings({ chat_minimap_enabled: checked })}
+            checked={settings.chatMinimapEnabled ?? false}
+            onChange={(checked) => saveSettings({ chatMinimapEnabled: checked })}
           />
         </div>
-        {settings.chat_minimap_enabled && (
+        {settings.chatMinimapEnabled && (
           <>
             <Divider style={{ margin: "4px 0" }} />
             <div
@@ -138,8 +138,8 @@ export function ConversationSettings() {
             >
               <span>{t("settings.chatMinimapStyle")}</span>
               <SettingsSelect
-                value={settings.chat_minimap_style ?? "faq"}
-                onChange={(val) => saveSettings({ chat_minimap_style: val as "faq" | "sticky" })}
+                value={settings.chatMinimapStyle ?? "faq"}
+                onChange={(val) => saveSettings({ chatMinimapStyle: val as "faq" | "sticky" })}
                 options={[
                   { label: t("settings.chatMinimapFaq"), value: "faq" },
                   { label: t("settings.chatMinimapSticky"), value: "sticky" },

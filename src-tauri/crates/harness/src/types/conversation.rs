@@ -6,6 +6,7 @@ use super::provider_model::deserialize_double_option;
 use super::rag_voice_etc::SourceRef;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Conversation {
     pub id: String,
     pub title: String,
@@ -136,6 +137,7 @@ pub enum ContentBlock {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ConversationStats {
     pub total_messages: u64,
     pub total_user_messages: u64,
@@ -150,6 +152,7 @@ pub struct ConversationStats {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DailyUsage {
     pub date: String,
     pub message_count: u64,
@@ -185,6 +188,7 @@ pub enum MessageRole {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Attachment {
     #[serde(default)]
     pub id: String,
@@ -198,6 +202,7 @@ pub struct Attachment {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AttachmentInput {
     pub file_name: String,
     pub file_type: String,
@@ -377,6 +382,7 @@ pub struct MessageSummary {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ConversationCategory {
     pub id: String,
     pub name: String,

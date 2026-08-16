@@ -140,6 +140,7 @@ pub fn resolve_provider_proxy(
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateProviderInput {
     pub name: String,
     pub provider_type: ProviderType,
@@ -255,6 +256,7 @@ pub enum ModelCapability {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct ModelParamOverrides {
     pub temperature: Option<f32>,
     pub max_tokens: Option<u32>,

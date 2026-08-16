@@ -40,6 +40,7 @@ impl Default for RunnerConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BenchmarkResult {
     pub benchmark_id: String,
     pub benchmark_name: String,
@@ -65,6 +66,7 @@ pub struct TaskResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ScoreResult {
     pub criteria_name: String,
     pub metric: EvaluationMetric,

@@ -144,9 +144,9 @@ export function AssistantFooter({
   const storeMessages = useConversationStore((s) => s.messages);
 
   useEffect(() => {
-    if (msg.parent_message_id && conversationId) {
+    if (msg.parentMessageId && conversationId) {
       let cancelled = false;
-      listMessageVersions(conversationId, msg.parent_message_id).then((v) => {
+      listMessageVersions(conversationId, msg.parentMessageId).then((v) => {
         if (!cancelled && v) {
           setAllVersions(v);
         }
@@ -156,25 +156,25 @@ export function AssistantFooter({
       };
     }
   }, [
-    msg.parent_message_id,
+    msg.parentMessageId,
     conversationId,
     listMessageVersions,
   ]);
 
   const mergedVersions = useMemo(() => {
-    if (!msg.parent_message_id) {
+    if (!msg.parentMessageId) {
       return allVersions;
     }
     const dbIds = new Set(allVersions.map((v) => v.id));
     const extra = storeMessages.filter(
       (m) =>
-        m.parent_message_id === msg.parent_message_id
+        m.parentMessageId === msg.parentMessageId
         && m.role === "assistant"
         && !dbIds.has(m.id)
-        && m.model_id,
+        && m.modelId,
     );
     return extra.length > 0 ? [...allVersions, ...extra] : allVersions;
-  }, [allVersions, storeMessages, msg.parent_message_id]);
+  }, [allVersions, storeMessages, msg.parentMessageId]);
 
   const hasMultiModels = useMemo(
     () => hasMultipleModelVersions(mergedVersions),
@@ -182,22 +182,22 @@ export function AssistantFooter({
   );
 
   useEffect(() => {
-    if (msg.parent_message_id && onMultiModelDetected) {
-      onMultiModelDetected(msg.parent_message_id, mergedVersions);
+    if (msg.parentMessageId && onMultiModelDetected) {
+      onMultiModelDetected(msg.parentMessageId, mergedVersions);
     }
-  }, [msg.parent_message_id, mergedVersions, onMultiModelDetected]);
+  }, [msg.parentMessageId, mergedVersions, onMultiModelDetected]);
 
   const currentModelOverride = useMemo(() => {
-    if (msg.provider_id && msg.model_id) {
-      return { providerId: msg.provider_id, model_id: msg.model_id };
+    if (msg.providerId && msg.modelId) {
+      return { providerId: msg.providerId, modelId: msg.modelId };
     }
     return null;
-  }, [msg.provider_id, msg.model_id]);
+  }, [msg.providerId, msg.modelId]);
 
   const handleModelSelect = useCallback(
     async (providerId: string, model_id: string) => {
       try {
-        if (providerId === msg.provider_id && model_id === msg.model_id) {
+        if (providerId === msg.providerId && model_id === msg.modelId) {
           await regenerateMessage(msg.id);
         } else {
           await regenerateWithModel(msg.id, providerId, model_id);
@@ -208,23 +208,23 @@ export function AssistantFooter({
     },
     [
       msg.id,
-      msg.provider_id,
-      msg.model_id,
+      msg.providerId,
+      msg.modelId,
       regenerateMessage,
       regenerateWithModel,
       messageApi,
     ],
   );
 
-  const totalTokens = (msg.prompt_tokens ?? 0) + (msg.completion_tokens ?? 0);
+  const totalTokens = (msg.promptTokens ?? 0) + (msg.completionTokens ?? 0);
 
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
       {!isStreaming
-        && (msg.prompt_tokens != null
-          || msg.completion_tokens != null
-          || msg.tokens_per_second != null
-          || msg.first_token_latency_ms != null)
+        && (msg.promptTokens != null
+          || msg.completionTokens != null
+          || msg.tokensPerSecond != null
+          || msg.firstTokenLatencyMs != null)
         && (
           <div
             style={{
@@ -239,24 +239,24 @@ export function AssistantFooter({
               flexWrap: "wrap",
             }}
           >
-            {msg.prompt_tokens != null && (
+            {msg.promptTokens != null && (
               <span
                 style={{ display: "inline-flex", alignItems: "center", gap: 2 }}
               >
                 <ArrowDown size={10} />
                 <span className="ax-glow-text">
-                  {formatTokenCount(msg.prompt_tokens)}
+                  {formatTokenCount(msg.promptTokens)}
                 </span>{" "}
                 {t("chat.tokens")}
               </span>
             )}
-            {msg.completion_tokens != null && (
+            {msg.completionTokens != null && (
               <span
                 style={{ display: "inline-flex", alignItems: "center", gap: 2 }}
               >
                 <ArrowDown size={10} />
                 <span className="ax-glow-text">
-                  {formatTokenCount(msg.completion_tokens)}
+                  {formatTokenCount(msg.completionTokens)}
                 </span>{" "}
                 {t("chat.tokens")}
               </span>
@@ -272,20 +272,20 @@ export function AssistantFooter({
                 </span>
               </span>
             )}
-            {msg.tokens_per_second != null && (
+            {msg.tokensPerSecond != null && (
               <span
                 style={{ display: "inline-flex", alignItems: "center", gap: 2 }}
               >
                 <Zap size={10} />
-                {formatSpeed(msg.tokens_per_second)}
+                {formatSpeed(msg.tokensPerSecond)}
               </span>
             )}
-            {msg.first_token_latency_ms != null && (
+            {msg.firstTokenLatencyMs != null && (
               <span
                 style={{ display: "inline-flex", alignItems: "center", gap: 2 }}
               >
                 <TextCursorInput size={10} />
-                {formatDuration(msg.first_token_latency_ms)}
+                {formatDuration(msg.firstTokenLatencyMs)}
               </span>
             )}
           </div>
@@ -444,10 +444,10 @@ export function AssistantFooter({
         {hasMultiModels
           && displayMode
           && onDisplayModeChange
-          && msg.parent_message_id && (
+          && msg.parentMessageId && (
           <LayoutSwitcher
             currentMode={displayMode}
-            onModeChange={(mode) => onDisplayModeChange(msg.parent_message_id!, mode)}
+            onModeChange={(mode) => onDisplayModeChange(msg.parentMessageId!, mode)}
           />
         )}
         <ModelTags

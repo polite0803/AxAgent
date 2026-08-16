@@ -50,15 +50,15 @@ export function CategoryManagerModal({
       try {
         await createCategory({
           name: data.name,
-          icon_type: data.icon_type,
-          icon_value: data.icon_value,
-          system_prompt: data.system_prompt,
-          default_provider_id: data.default_provider_id,
-          default_model_id: data.default_model_id,
-          default_temperature: data.default_temperature,
-          default_max_tokens: data.default_max_tokens,
-          default_top_p: data.default_top_p,
-          default_frequency_penalty: data.default_frequency_penalty,
+          iconType: data.iconType,
+          iconValue: data.iconValue,
+          systemPrompt: data.systemPrompt,
+          defaultProviderId: data.defaultProviderId,
+          defaultModelId: data.defaultModelId,
+          defaultTemperature: data.defaultTemperature,
+          defaultMaxTokens: data.defaultMaxTokens,
+          defaultTopP: data.defaultTopP,
+          defaultFrequencyPenalty: data.defaultFrequencyPenalty,
         });
         setCreateModalOpen(false);
         message.success(t("chat.createCategory") + " " + t("common.success"));
@@ -80,15 +80,15 @@ export function CategoryManagerModal({
       try {
         await updateCategory(editingCategory.id, {
           name: data.name,
-          icon_type: data.icon_type,
-          icon_value: data.icon_value,
-          system_prompt: data.system_prompt,
-          default_provider_id: data.default_provider_id,
-          default_model_id: data.default_model_id,
-          default_temperature: data.default_temperature,
-          default_max_tokens: data.default_max_tokens,
-          default_top_p: data.default_top_p,
-          default_frequency_penalty: data.default_frequency_penalty,
+          iconType: data.iconType,
+          iconValue: data.iconValue,
+          systemPrompt: data.systemPrompt,
+          defaultProviderId: data.defaultProviderId,
+          defaultModelId: data.defaultModelId,
+          defaultTemperature: data.defaultTemperature,
+          defaultMaxTokens: data.defaultMaxTokens,
+          defaultTopP: data.defaultTopP,
+          defaultFrequencyPenalty: data.defaultFrequencyPenalty,
         });
         setEditingCategory(null);
         message.success(t("chat.editCategory") + " " + t("common.success"));
@@ -115,15 +115,15 @@ export function CategoryManagerModal({
     setEditingCategory({
       id: category.id,
       name: category.name,
-      icon_type: category.icon_type,
-      icon_value: category.icon_value,
-      system_prompt: category.system_prompt,
-      default_provider_id: category.default_provider_id,
-      default_model_id: category.default_model_id,
-      default_temperature: category.default_temperature,
-      default_max_tokens: category.default_max_tokens,
-      default_top_p: category.default_top_p,
-      default_frequency_penalty: category.default_frequency_penalty,
+      iconType: category.iconType,
+      iconValue: category.iconValue,
+      systemPrompt: category.systemPrompt,
+      defaultProviderId: category.defaultProviderId,
+      defaultModelId: category.defaultModelId,
+      defaultTemperature: category.defaultTemperature,
+      defaultMaxTokens: category.defaultMaxTokens,
+      defaultTopP: category.defaultTopP,
+      defaultFrequencyPenalty: category.defaultFrequencyPenalty,
     });
   }, []);
 
@@ -196,7 +196,7 @@ export function CategoryManagerModal({
                     />
                     <div>
                       <div style={{ fontWeight: 500 }}>{category.name}</div>
-                      {category.system_prompt
+                      {category.systemPrompt
                         ? (
                           <div
                             style={{
@@ -214,7 +214,7 @@ export function CategoryManagerModal({
                                 display: "inline-block",
                               }}
                             >
-                              {category.system_prompt}
+                              {category.systemPrompt}
                             </span>
                           </div>
                         )
@@ -265,15 +265,15 @@ export function CategoryManagerModal({
           onOk={handleEdit}
           title={t("chat.editCategory")}
           initialName={editingCategory.name}
-          initialIconType={editingCategory.icon_type}
-          initialIconValue={editingCategory.icon_value}
-          initialSystemPrompt={editingCategory.system_prompt}
-          initialDefaultProviderId={editingCategory.default_provider_id}
-          initialDefaultModelId={editingCategory.default_model_id}
-          initialDefaultTemperature={editingCategory.default_temperature}
-          initialDefaultMaxTokens={editingCategory.default_max_tokens}
-          initialDefaultTopP={editingCategory.default_top_p}
-          initialDefaultFrequencyPenalty={editingCategory.default_frequency_penalty}
+          initialIconType={editingCategory.iconType}
+          initialIconValue={editingCategory.iconValue}
+          initialSystemPrompt={editingCategory.systemPrompt}
+          initialDefaultProviderId={editingCategory.defaultProviderId}
+          initialDefaultModelId={editingCategory.defaultModelId}
+          initialDefaultTemperature={editingCategory.defaultTemperature}
+          initialDefaultMaxTokens={editingCategory.defaultMaxTokens}
+          initialDefaultTopP={editingCategory.defaultTopP}
+          initialDefaultFrequencyPenalty={editingCategory.defaultFrequencyPenalty}
           confirmLoading={saving}
         />
       )}

@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 
 /// 索引操作结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct IndexResult {
     pub capability_id: String,
     pub success: bool,
@@ -69,6 +70,7 @@ pub trait CapabilityIndexer: Send + Sync {
 
 /// 索引统计
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CapabilityIndexStats {
     pub total_capabilities: u64,
     pub total_vectors: u64,

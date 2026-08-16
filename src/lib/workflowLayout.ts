@@ -255,7 +255,7 @@ function titleOf(n: NodeLike): string {
  * @param t    - i18n 渲染函数（默认走内置中文表，便于测试；UI 层可传 useTranslation 的 t）
  * @returns 建议标题（如 "获取K线+行情", "Agent-3", "Tool Fetch"）
  */
-export function suggest_title(id: string, type: string, t: RenderFn = defaultT): string {
+export function suggestTitle(id: string, type: string, t: RenderFn = defaultT): string {
   const segments = id.replace(/-\d+$/, "").split(/[-_]/);
 
   const verbKey = segments.length > 1 ? `workflow.layout.suggestTitle.verb.${segments[0]}` : "";
@@ -297,7 +297,7 @@ export function suggest_title(id: string, type: string, t: RenderFn = defaultT):
  * 5. **循环无出口**：强连通分量不含 loopBack 条件
  * 6. **自环边**：source === target
  */
-export function validate_workflow(
+export function validateWorkflow(
   nodes: NodeLike[],
   edges: EdgeLike[],
   t: RenderFn = defaultT,
@@ -719,7 +719,7 @@ export function toAbsolutePosition(
  * @param grid_size - 网格间距（默认 20px）
  * @returns 吸附后的坐标
  */
-export function snap_to_grid(
+export function snapToGrid(
   x: number,
   y: number,
   grid_size: number = 20,
@@ -745,7 +745,7 @@ export interface SiblingInfo {
  * 2. 若重叠，对每个重叠的 sibling 尝试上/下/左/右 4 个方向避开
  * 3. 筛选出不产生新重叠的方向，按距离排序取最近者
  * 4. 若 4 方向均产生新重叠，尝试对角线（右+下）回退
- * 5. 最终位置会被 snap_to_grid 吸附
+ * 5. 最终位置会被 snapToGrid 吸附
  *
  * @param candidate - 候选位置（含可选 id）
  * @param nodeType - 候选节点类型（用于 getNodeSize）
@@ -753,14 +753,14 @@ export interface SiblingInfo {
  * @param min_gap  - 节点间最小间隙（默认 10px）
  * @returns 安全的网格吸附坐标
  */
-export function find_safe_position(
+export function findSafePosition(
   candidate: { x: number; y: number; id?: string },
   nodeType: string,
   siblings: SiblingInfo[],
   min_gap: number = 10,
 ): { x: number; y: number } {
   if (siblings.length === 0) {
-    return snap_to_grid(candidate.x, candidate.y);
+    return snapToGrid(candidate.x, candidate.y);
   }
 
   const size = getNodeSize(nodeType);
@@ -796,7 +796,7 @@ export function find_safe_position(
 
   // 无重叠 → 直接返回
   if (!overlaps(ox, oy)) {
-    return snap_to_grid(ox, oy);
+    return snapToGrid(ox, oy);
   }
 
   // 收集所有不产生新重叠的方向候选
@@ -838,7 +838,7 @@ export function find_safe_position(
   dirCands.sort((a, b) => a.dist - b.dist);
 
   if (dirCands.length > 0) {
-    return snap_to_grid(dirCands[0].x, dirCands[0].y);
+    return snapToGrid(dirCands[0].x, dirCands[0].y);
   }
 
   // 对角线回退：右 + 下
@@ -857,11 +857,11 @@ export function find_safe_position(
   dirCands.sort((a, b) => a.dist - b.dist);
 
   if (dirCands.length > 0) {
-    return snap_to_grid(dirCands[0].x, dirCands[0].y);
+    return snapToGrid(dirCands[0].x, dirCands[0].y);
   }
 
   // 最后手段：右移 100px 后 snap，避开密集重叠区域
-  return snap_to_grid(candidate.x + 100, candidate.y);
+  return snapToGrid(candidate.x + 100, candidate.y);
 }
 
 /** 间距常量 */
@@ -881,7 +881,7 @@ const MARGIN_Y = 80; // 上边距
  *
  * @returns 更新了 position 的 nodes 和 edges（edges 不变）
  */
-export function autoLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; edges: Edge[] } {
+export function dagreLayout(nodes: Node[], edges: Edge[]): { nodes: Node[]; edges: Edge[] } {
   if (nodes.length === 0) { return { nodes, edges }; }
 
   const g = new dagre.graphlib.Graph();
@@ -1362,7 +1362,7 @@ function layoutNodeType(n: { type?: string; data?: Record<string, unknown> }): s
  * 3. 顶层节点（包括容器）使用 Dagre 进行布局
  * 4. 所有坐标统一转换为绝对坐标
  */
-export function auto_layout(
+export function autoLayout(
   nodes: AutoNode[],
   edges: LayoutEdge[],
   parentRefs: Record<string, string> = {},
@@ -1410,7 +1410,7 @@ export function auto_layout(
     const childEdges = edges.filter(
       (e) => childIds.includes(e.source) && childIds.includes(e.target),
     );
-    const childLayouted = auto_layout(childNodes, childEdges, childOf);
+    const childLayouted = autoLayout(childNodes, childEdges, childOf);
 
     // 使用 Dagre 布局子节点
     const g = new dagre.graphlib.Graph();
@@ -1648,7 +1648,7 @@ export function clampChildrenIntoContainers(
  *
  * 注：自循环（newSource === newTarget）也视为环。
  */
-export function would_create_cycle(
+export function wouldCreateCycle(
   edges: Array<{ source: string; target: string }>,
   newSource: string,
   newTarget: string,

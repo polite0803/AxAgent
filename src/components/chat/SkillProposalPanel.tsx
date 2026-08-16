@@ -38,7 +38,7 @@ const SkillProposalCard: React.FC<SkillProposalCardProps> = ({
   };
 
   const getEventLabel = () => {
-    switch (proposal.trigger_event) {
+    switch (proposal.triggerEvent) {
       case "successful_multi_step_workflow":
         return t("skill.proposal.successWorkflow");
       case "failed_workflow_needing_improvement":
@@ -46,7 +46,7 @@ const SkillProposalCard: React.FC<SkillProposalCardProps> = ({
       case "partial_success_requiring_refinement":
         return t("skill.proposal.partialSuccess");
       default:
-        return proposal.trigger_event;
+        return proposal.triggerEvent;
     }
   };
 
@@ -67,7 +67,7 @@ const SkillProposalCard: React.FC<SkillProposalCardProps> = ({
           <Space align="center" style={{ marginBottom: 8 }}>
             <Sparkles size={16} style={{ color: token.colorWarning }} />
             <Text strong style={{ fontSize: 15 }}>
-              {proposal.suggested_name}
+              {proposal.suggestedName}
             </Text>
             <Tag color={getConfidenceColor()}>
               {confidencePercent}% {t("skill.proposal.confidence")}
@@ -76,7 +76,7 @@ const SkillProposalCard: React.FC<SkillProposalCardProps> = ({
           </Space>
 
           <Paragraph type="secondary" style={{ marginBottom: 8, fontSize: 13 }}>
-            {proposal.task_description}
+            {proposal.taskDescription}
           </Paragraph>
 
           <details style={{ fontSize: 12 }}>
@@ -95,7 +95,7 @@ const SkillProposalCard: React.FC<SkillProposalCardProps> = ({
                 overflow: "auto",
               }}
             >
-              {proposal.suggested_content}
+              {proposal.suggestedContent}
             </pre>
           </details>
         </div>
@@ -119,7 +119,7 @@ const SkillProposalCard: React.FC<SkillProposalCardProps> = ({
           <Button
             size="small"
             icon={<X size={14} />}
-            onClick={() => onDismiss(proposal.suggested_name)}
+            onClick={() => onDismiss(proposal.suggestedName)}
           >
             {t("skill.proposal.dismiss")}
           </Button>
@@ -160,21 +160,21 @@ export const SkillProposalPanel: React.FC<SkillProposalPanelProps> = ({
   const handleCreate = async (proposal: SkillProposal) => {
     try {
       await createSkillFromProposal(
-        proposal.suggested_name,
-        proposal.task_description,
-        proposal.suggested_content,
+        proposal.suggestedName,
+        proposal.taskDescription,
+        proposal.suggestedContent,
       );
       message.success(
-        t("skill.proposal.created") + " " + proposal.suggested_name,
+        t("skill.proposal.created") + " " + proposal.suggestedName,
       );
-      setLocalProposals((prev) => prev.filter((p) => p.suggested_name !== proposal.suggested_name));
+      setLocalProposals((prev) => prev.filter((p) => p.suggestedName !== proposal.suggestedName));
     } catch {
       message.error(t("skill.proposal.error"));
     }
   };
 
   const handleDismiss = (name: string) => {
-    setLocalProposals((prev) => prev.filter((p) => p.suggested_name !== name));
+    setLocalProposals((prev) => prev.filter((p) => p.suggestedName !== name));
   };
 
   return (
@@ -223,7 +223,7 @@ export const SkillProposalPanel: React.FC<SkillProposalPanelProps> = ({
             </Paragraph>
             {localProposals.map((proposal) => (
               <SkillProposalCard
-                key={proposal.suggested_name}
+                key={proposal.suggestedName}
                 proposal={proposal}
                 onCreate={handleCreate}
                 onDismiss={handleDismiss}

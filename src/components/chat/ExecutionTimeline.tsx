@@ -194,7 +194,7 @@ export const ExecutionTimeline = React.memo(function ExecutionTimeline({
 
     // Plan steps
     if (plan) {
-      const planTs = plan.created_at * 1000;
+      const planTs = plan.createdAt * 1000;
       for (const step of plan.steps) {
         result.push(planStepToEvent(step, planTs));
       }

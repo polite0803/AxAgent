@@ -15,6 +15,7 @@ pub struct ReminderSchedule {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ReminderNotification {
     pub notification_id: String,
     pub reminder: Reminder,
@@ -23,6 +24,7 @@ pub struct ReminderNotification {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ReminderManagerConfig {
     pub enabled: bool,
     pub max_active_reminders: usize,

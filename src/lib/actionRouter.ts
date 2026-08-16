@@ -279,11 +279,11 @@ export class ActionRouter {
     const settingsStore = useSettingsStore.getState().settings;
 
     const providers = providerStore.providers;
-    let provider = settingsStore.default_provider_id
-      ? providers.find((p) => p.id === settingsStore.default_provider_id && p.enabled)
+    let provider = settingsStore.defaultProviderId
+      ? providers.find((p) => p.id === settingsStore.defaultProviderId && p.enabled)
       : undefined;
     let model = provider?.models.find(
-      (m) => m.model_id === settingsStore.default_model_id && m.enabled,
+      (m) => m.modelId === settingsStore.defaultModelId && m.enabled,
     );
     if (!provider || !model) {
       provider = providers.find(
@@ -301,7 +301,7 @@ export class ActionRouter {
     try {
       const conv = await convStore.createConversation(
         title,
-        model.model_id,
+        model.modelId,
         provider.id,
       );
       await convStore.sendMessage(action.prompt);

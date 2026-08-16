@@ -117,7 +117,7 @@ export function PrefetchIndicator() {
   const [mounted, setMounted] = useState(false);
 
   const resultsHash = useMemo(
-    () => (results ?? []).map((r) => `${r.resource_id}:${r.ready}`).join(","),
+    () => (results ?? []).map((r) => `${r.resourceId}:${r.ready}`).join(","),
     [results],
   );
 
@@ -199,7 +199,7 @@ export function PrefetchIndicator() {
               >
                 {displayedResults.map((result) => (
                   <li
-                    key={result.resource_id}
+                    key={result.resourceId}
                     className="flex items-center gap-2"
                   >
                     <span
@@ -210,13 +210,13 @@ export function PrefetchIndicator() {
                     >
                       {result.ready
                         ? CHECK_ICON
-                        : TYPE_ICONS[result.prefetch_type]}
+                        : TYPE_ICONS[result.prefetchType]}
                     </span>
                     <span className="text-xs text-muted-foreground flex-1 truncate">
-                      {t(`proactive.prefetchTypes.${result.prefetch_type}`)}
+                      {t(`proactive.prefetchTypes.${result.prefetchType}`)}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {result.estimated_prepare_time_ms}ms
+                      {result.estimatedPrepareTimeMs}ms
                     </span>
                   </li>
                 ))}
@@ -233,7 +233,7 @@ export function PrefetchIndicator() {
                 <span>{t("proactive.estimatedTime")}</span>
                 <span>
                   {results.reduce(
-                    (sum, r) => sum + r.estimated_prepare_time_ms,
+                    (sum, r) => sum + r.estimatedPrepareTimeMs,
                     0,
                   )}
                   ms

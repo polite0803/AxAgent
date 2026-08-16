@@ -111,8 +111,8 @@ const {
 
   const settingsState = {
     settings: {
-      default_provider_id: null,
-      default_model_id: null,
+      defaultProviderId: null,
+      defaultModelId: null,
     },
   };
 

@@ -808,13 +808,13 @@ function QuickBarResult({
         <div style={{ flex: 1, overflowY: "auto", padding: "6px 0" }}>
           {currentModels.map((m) => (
             <div
-              key={m.model_id}
+              key={m.modelId}
               role="button"
               tabIndex={0}
-              onClick={() => runModelSwitch(m.model_id)}
+              onClick={() => runModelSwitch(m.modelId)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
-                  runModelSwitch(m.model_id);
+                  runModelSwitch(m.modelId);
                 }
               }}
               style={{
@@ -824,16 +824,16 @@ function QuickBarResult({
                 padding: "8px 14px",
                 cursor: "pointer",
                 fontSize: 13,
-                backgroundColor: m.model_id === activeModelId
+                backgroundColor: m.modelId === activeModelId
                   ? token.colorFillSecondary
                   : "transparent",
                 color: token.colorText,
                 transition: "background-color 0.1s",
               }}
             >
-              <ModelIcon model={m.model_id} size={20} type="avatar" />
-              <span style={{ flex: 1 }}>{m.model_id}</span>
-              {m.model_id === activeModelId && (
+              <ModelIcon model={m.modelId} size={20} type="avatar" />
+              <span style={{ flex: 1 }}>{m.modelId}</span>
+              {m.modelId === activeModelId && (
                 <span style={{ fontSize: 10, color: token.colorPrimary }}>
                   {t("quickbar.result.current")}
                 </span>
@@ -950,8 +950,8 @@ export function QuickBarPage() {
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const settings = useSettingsStore((s) => s.settings);
-  const activeProviderId = settings.default_provider_id;
-  const activeModelId = settings.default_model_id;
+  const activeProviderId = settings.defaultProviderId;
+  const activeModelId = settings.defaultModelId;
   const providers = useProviderStore((s) => s.providers);
   const currentProvider = useMemo(
     () => providers.find((p) => p.id === activeProviderId),
@@ -998,11 +998,11 @@ export function QuickBarPage() {
   } {
     const settings = useSettingsStore.getState().settings;
     const providers = useProviderStore.getState().providers;
-    let provider = settings.default_provider_id
-      ? providers.find((p) => p.id === settings.default_provider_id && p.enabled)
+    let provider = settings.defaultProviderId
+      ? providers.find((p) => p.id === settings.defaultProviderId && p.enabled)
       : undefined;
     let model = provider?.models.find(
-      (m) => m.model_id === settings.default_model_id && m.enabled,
+      (m) => m.modelId === settings.defaultModelId && m.enabled,
     );
     if (!provider || !model) {
       provider = providers.find((p) => p.enabled && p.models.some((m) => m.enabled));
@@ -1011,7 +1011,7 @@ export function QuickBarPage() {
     if (!provider || !model) {
       throw new Error("No available provider/model");
     }
-    return { providerId: provider.id, modelId: model.model_id };
+    return { providerId: provider.id, modelId: model.modelId };
   }
 
   const ensureConversation = useCallback(async (): Promise<string> => {
@@ -1137,7 +1137,7 @@ export function QuickBarPage() {
             conversationId: cid,
             input: body,
             providerId: activeProviderId,
-            model_id: activeModelId,
+            modelId: activeModelId,
             agentProfileId: null,
           },
         },
@@ -1155,7 +1155,7 @@ export function QuickBarPage() {
             conversationId: cid,
             input: `Fetch the content from this URL and summarize it concisely: ${url}`,
             providerId: activeProviderId,
-            model_id: activeModelId,
+            modelId: activeModelId,
             agentProfileId: null,
           },
         },
@@ -1173,7 +1173,7 @@ export function QuickBarPage() {
             conversationId: cid,
             input: `Summarize the core content of this web page in 3-5 sentences: ${url}`,
             providerId: activeProviderId,
-            model_id: activeModelId,
+            modelId: activeModelId,
             agentProfileId: null,
           },
         },
@@ -1191,7 +1191,7 @@ export function QuickBarPage() {
             conversationId: cid,
             input: `Translate the following content to Chinese:\n\n${text}`,
             providerId: activeProviderId,
-            model_id: activeModelId,
+            modelId: activeModelId,
             agentProfileId: null,
           },
         },
@@ -1391,7 +1391,7 @@ export function QuickBarPage() {
 
   const runModelSwitch = (modelId: string) => {
     const store = useSettingsStore.getState();
-    store.saveSettings({ default_model_id: modelId });
+    store.saveSettings({ defaultModelId: modelId });
     setShowModelList(false);
     setResult(`✅ ${t("quickbar.result.modelSwitched")}`);
     clearTimeout(resultTimerRef.current);

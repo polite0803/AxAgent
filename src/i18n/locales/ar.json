@@ -1213,7 +1213,17 @@
       "skill": "مهارة",
       "agent_role": "دور",
       "agent_profile": "خبير"
-    }
+    },
+    "level": {
+      "l1": "L1 · غير ناضج",
+      "l2": "L2 · أساسي",
+      "l3": "L3 · نضج متوسط",
+      "l4": "L4 · نضج عالٍ",
+      "l5": "L5 · مستوى متقدم"
+    },
+    "evolve": "تطوير",
+    "evolveSuccess": "تم التطوير بنجاح، وتم رفع المستوى إلى {{level}}",
+    "evolveFailed": "فشل التطوير، يرجى المحاولة لاحقًا"
   },
   "chatMarkdown": {
     "inputParams": "معلمات الإدخال",
@@ -1250,7 +1260,8 @@
     "title": "المساعد",
     "visionAnalysis": "رؤية",
     "cognitiveRoute": "المسار",
-    "capability": "القدرة"
+    "capability": "القدرة",
+    "evolutionEvidence": "دليل التطور"
   },
   "cite": {
     "chunkLabel": "مقطع #{{n}}",
@@ -2069,6 +2080,9 @@
     "COGNITIVE_EXECUTION_MODE_INVALID": "وضع تنفيذ التوجيه المعرفي غير صالح",
     "COGNITIVE_PROMPT_REJECTED": "تم رفض الطلب المعرفي",
     "COGNITIVE_RAR_RETRIEVE_FAILED": "فشل استرجاع مرشحات التوجيه المعرفي: {{detail}}",
+    "COGNITIVE_GAP_PROPOSAL_PENDING": "تم إنشاء اقتراح فجوة القدرة، بانتظار تأكيدك",
+    "COGNITIVE_GAP_PROPOSAL_APPLIED": "تم استكمال القدرة، يرجى إعادة إرسال طلبك",
+    "COGNITIVE_GAP_PROPOSAL_REJECTED": "تم رفض اقتراح فجوة القدرة",
     "COMMON_INTERNAL": "خطأ داخلي",
     "COMMON_INVALID_INPUT": "إدخال غير صالح",
     "COMMON_TIMEOUT": "انتهت مهلة العملية",
@@ -2257,6 +2271,7 @@
     "TOOL_SSE_NO_ENDPOINT": "لم يتم تحديد نقطة نهاية لنقل SSE",
     "TOOL_STDIO_NO_COMMAND": "لم يتم تحديد أمر لنقل Stdio",
     "TOOL_TRANSPORT_UNSUPPORTED": "نوع النقل غير مدعوم",
+    "TOOL_REGISTRATION_DUPLICATE": "تعارض تسجيل الأداة: الاسم موجود بالفعل",
     "VECTOR_STORE_FAILED": "فشلت عملية تخزين المتجهات",
     "VECTOR_EMBEDDING_FAILED": "فشل إنشاء تضمين المتجهات",
     "VECTOR_SEARCH_FAILED": "فشل البحث في المتجهات",
@@ -2374,6 +2389,7 @@
     "CAPABILITY_LIST_FAILED": "فشل في سرد القدرات",
     "CAPABILITY_STATS_FAILED": "فشل في الحصول على إحصاءات القدرة",
     "CAPABILITY_METADATA_RESTORE_FAILED": "فشل استعادة البيانات الوصفية",
+    "CAPABILITY_EVOLVE_FAILED": "فشل تطوير القدرة",
     "AGENT_INPUT_CHANNEL_CLOSED": "قناة إدخال المستخدم مغلقة",
     "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "انتهت مهلة انتظار رد المستخدم (5 دقائق)",
     "AGENT_INPUT_NO_PROVIDER": "لا يوجد مزود/نموذج متاح: يرجى تفعيل مزود في الإعدادات",
@@ -2563,6 +2579,27 @@
     "loadFailed": "فشل تحميل الخبير الخارجي: {{error}}",
     "skippedInvalidRole": "تم تخطي الدور غير الصالح: {{role}}",
     "updateFailed": "فشل تحديث الخبير الخارجي: {{error}}"
+  },
+  "evolutionEvidence": {
+    "title": "دليل التطور",
+    "empty": "لا توجد بيانات دليل التطور بعد",
+    "decision": {
+      "evolve": "التطور موصى به",
+      "observe": "قيد المراقبة",
+      "stable": "أداء مستقر"
+    },
+    "pSuccess": "معدل النجاح البعدي {value}%",
+    "evidenceVolume": "حجم الأدلة {value}",
+    "consumedLabels": "استهلك {consumed}/{total} عنصر دليل",
+    "routePaths": "مسارات مصادر الأدلة",
+    "executionTitle": "ملاحظات التنفيذ الفعلية",
+    "noExecution": "لا توجد بيانات تنفيذ فعلية",
+    "totalRuns": "إجمالي التنفيذات {value}",
+    "successRate": "معدل النجاح {value}%",
+    "totalSuccesses": "نجاح {value}",
+    "totalFailures": "فشل {value}",
+    "toolCount": "مخرجات التطور {value}",
+    "perSuccessRate": "معدل النجاح {value}%"
   },
   "export": {
     "exportTime": "وقت التصدير",
@@ -4183,7 +4220,23 @@
       "stop": "إيقاف",
       "stopAll": "إيقاف الكل",
       "stopped": "متوقف",
-      "title": "التطور"
+      "title": "التطور",
+      "runtimeTools": {
+        "title": "أدوات ديناميكية وقت التشغيل",
+        "desc": "قدرات ديناميكية مسجلة عبر نشر تطور الوكيل (system_evolution_deploy) أو الأدوات ذاتية المرجع (system_evolution_*). الأدوات ذاتية المرجع المدمجة للقراءة فقط؛ إلغاء تثبيت أحد مخرجات التطور يجعله غير متاح فورًا للوكيل.",
+        "systemChannel": "قناة قدرات النظام",
+        "name": "اسم الأداة",
+        "source": "المصدر",
+        "sourceSystem": "مدمج",
+        "sourceEvolved": "متطور",
+        "action": "إجراء",
+        "builtin": "مدمج",
+        "empty": "لا توجد أدوات ديناميكية وقت التشغيل",
+        "unload": "إلغاء التثبيت",
+        "unloadConfirm": "إلغاء تثبيت الأداة \"{{name}}\"؟ لن يتمكن الوكيل من استدعائها فورًا بعد إلغاء التثبيت.",
+        "unloadSuccess": "تم إلغاء تثبيت الأداة \"{{name}}\"",
+        "unloadFail": "فشل إلغاء تثبيت الأداة \"{{name}}\""
+      }
     },
     "exitFullscreen": "الخروج من ملء الشاشة",
     "expandAll": "توسيع الكل",
@@ -8612,6 +8665,23 @@
   },
   "reactPreview": {
     "title": "معاينة React"
+  },
+  "evolutionConsentModal": {
+    "title": "اقتراح استكمال القدرة / التطور",
+    "gapType": {
+      "guardRule": "استكمال قاعدة الحماية",
+      "exemptAuthorize": "تفويض الإعفاء",
+      "capabilityMissing": "قدرة مفقودة"
+    },
+    "pendingCount": "{{count}} اقتراح معلق، الحالي #{{current}}",
+    "pendingOne": "اقتراح واحد معلق",
+    "proposal": "التغيير المقترح",
+    "impact": "التأثير",
+    "rollback": "التراجع",
+    "reject": "رفض",
+    "approve": "موافقة",
+    "expandDetails": "توسيع التفاصيل الخام",
+    "collapseDetails": "طي التفاصيل الخام"
   },
   "planApprovalModal": {
     "title": "الموافقة على الخطة",

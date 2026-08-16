@@ -79,9 +79,9 @@ function savePinnedModels(ids: string[]) {
 interface ModelSelectorProps {
   style?: React.CSSProperties;
   /** Custom select callback. When provided, overrides the default conversation/settings update. */
-  onSelect?: (providerId: string, model_id: string) => void;
+  onSelect?: (providerId: string, modelId: string) => void;
   /** Override which model is highlighted as current (e.g. for per-message model switching). */
-  overrideCurrentModel?: { providerId: string; model_id: string } | null;
+  overrideCurrentModel?: { providerId: string; modelId: string } | null;
   /** Custom trigger element. When provided, renders this instead of the default Tag. */
   children?: React.ReactNode;
   /** Controlled open state */
@@ -92,11 +92,11 @@ interface ModelSelectorProps {
   multiSelect?: boolean;
   /** Callback for multi-select mode. Returns array of selected models. */
   onMultiSelect?: (
-    models: Array<{ providerId: string; model_id: string }>,
+    models: Array<{ providerId: string; modelId: string }>,
   ) => void;
   /** Pre-selected models for multi-select mode */
-  defaultSelectedModels?: Array<{ providerId: string; model_id: string }>;
-  /** Model keys to exclude from the list (format: "providerId::model_id") */
+  defaultSelectedModels?: Array<{ providerId: string; modelId: string }>;
+  /** Model keys to exclude from the list (format: "providerId::modelId") */
   excludeModelKeys?: string[];
 }
 
@@ -106,7 +106,7 @@ interface ModelSelectorProps {
  */
 function ModelItemCard({
   providerId,
-  model_id,
+  modelId,
   modelName,
   providerName,
   isPinned,
@@ -123,7 +123,7 @@ function ModelItemCard({
   onTogglePin,
 }: {
   providerId: string;
-  model_id: string;
+  modelId: string;
   modelName: string;
   providerName: string;
   isPinned: boolean;
@@ -136,12 +136,12 @@ function ModelItemCard({
   hoveredKey: string | null;
   onHoveredKeyChange: (key: string | null) => void;
   onActiveIndexChange: (index: number) => void;
-  onSelect: (providerId: string, model_id: string) => void;
+  onSelect: (providerId: string, modelId: string) => void;
   onTogglePin: (key: string) => void;
 }) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const key = `${providerId}::${model_id}`;
+  const key = `${providerId}::${modelId}`;
   const isActive = multiSelect
     ? multiSelectedKeys.has(key)
     : currentValue === key;
@@ -156,7 +156,7 @@ function ModelItemCard({
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          onSelect(providerId, model_id);
+          onSelect(providerId, modelId);
         }
       }}
       style={{
@@ -170,7 +170,7 @@ function ModelItemCard({
         padding: "5px 10px",
         transition: "background-color 0.15s",
       }}
-      onClick={() => onSelect(providerId, model_id)}
+      onClick={() => onSelect(providerId, modelId)}
       onMouseEnter={() => {
         onHoveredKeyChange(key);
         onActiveIndexChange(-1);
@@ -178,7 +178,7 @@ function ModelItemCard({
       onMouseLeave={() => onHoveredKeyChange(null)}
     >
       {multiSelect && <Checkbox checked={isActive} style={{ pointerEvents: "none" }} />}
-      <ModelIcon model={model_id} size={20} type="avatar" />
+      <ModelIcon model={modelId} size={20} type="avatar" />
       <div className="flex-1 min-w-0 ax-truncate">
         <div className="flex items-center gap-1">
           {showProviderTag && providerName && (
@@ -224,7 +224,7 @@ function ModelItemCard({
               </Tag>
             </Tooltip>
           ))}
-          {model?.max_tokens != null && model.max_tokens > 0 && (
+          {model?.maxTokens != null && model.maxTokens > 0 && (
             <Tag
               variant="filled"
               color="default"
@@ -235,7 +235,7 @@ function ModelItemCard({
                 margin: 0,
               }}
             >
-              {formatTokenCount(model.max_tokens)}
+              {formatTokenCount(model.maxTokens)}
             </Tag>
           )}
         </div>
@@ -324,7 +324,7 @@ export function ModelSelector({
     if (open && multiSelect) {
       const initial = new Set(
         (defaultSelectedModels ?? []).map(
-          (m) => `${m.providerId}::${m.model_id}`,
+          (m) => `${m.providerId}::${m.modelId}`,
         ),
       );
       setMultiSelectedKeys(initial);
@@ -340,11 +340,11 @@ export function ModelSelector({
     let pid: string | undefined;
     let mid: string | undefined;
     if (activeConversation) {
-      pid = activeConversation.provider_id;
-      mid = activeConversation.model_id;
-    } else if (settings.default_provider_id && settings.default_model_id) {
-      pid = settings.default_provider_id;
-      mid = settings.default_model_id;
+      pid = activeConversation.providerId;
+      mid = activeConversation.modelId;
+    } else if (settings.defaultProviderId && settings.defaultModelId) {
+      pid = settings.defaultProviderId;
+      mid = settings.defaultModelId;
     } else {
       for (const p of providers) {
         if (!p.enabled) {
@@ -353,7 +353,7 @@ export function ModelSelector({
         for (const model of p.models) {
           if (model.enabled) {
             pid = p.id;
-            mid = model.model_id;
+            mid = model.modelId;
             break;
           }
         }
@@ -366,7 +366,7 @@ export function ModelSelector({
       return null;
     }
     const provider = providers.find((p) => p.id === pid);
-    const model = provider?.models.find((m) => m.model_id === mid);
+    const model = provider?.models.find((m) => m.modelId === mid);
     return {
       pid,
       mid,
@@ -375,13 +375,13 @@ export function ModelSelector({
     };
   }, [
     activeConversation,
-    settings.default_provider_id,
-    settings.default_model_id,
+    settings.defaultProviderId,
+    settings.defaultModelId,
     providers,
   ]);
 
   const currentValue = overrideCurrentModel
-    ? `${overrideCurrentModel.providerId}::${overrideCurrentModel.model_id}`
+    ? `${overrideCurrentModel.providerId}::${overrideCurrentModel.modelId}`
     : currentModel
     ? `${currentModel.pid}::${currentModel.mid}`
     : undefined;
@@ -404,13 +404,13 @@ export function ModelSelector({
         if (!m.enabled) {
           continue;
         }
-        const key = `${p.id}::${m.model_id}`;
+        const key = `${p.id}::${m.modelId}`;
         if (excludeSet.has(key)) {
           continue;
         }
         result.push({
           pid: p.id,
-          mid: m.model_id,
+          mid: m.modelId,
           name: m.name,
           providerName: p.name,
           model: m,
@@ -451,7 +451,7 @@ export function ModelSelector({
         if (!m.enabled) {
           return false;
         }
-        if (excludeModelKeys?.includes(`${p.id}::${m.model_id}`)) {
+        if (excludeModelKeys?.includes(`${p.id}::${m.modelId}`)) {
           return false;
         }
         if (!q) {
@@ -459,7 +459,7 @@ export function ModelSelector({
         }
         return (
           m.name.toLowerCase().includes(q)
-          || m.model_id.toLowerCase().includes(q)
+          || m.modelId.toLowerCase().includes(q)
           || p.name.toLowerCase().includes(q)
         );
       });
@@ -468,9 +468,9 @@ export function ModelSelector({
   }, [providers, search, excludeModelKeys]);
 
   const handleSelect = useCallback(
-    async (providerId: string, model_id: string) => {
+    async (providerId: string, modelId: string) => {
       if (multiSelect) {
-        const key = `${providerId}::${model_id}`;
+        const key = `${providerId}::${modelId}`;
         setMultiSelectedKeys((prev) => {
           const next = new Set(prev);
           if (next.has(key)) {
@@ -483,12 +483,12 @@ export function ModelSelector({
         return;
       }
       if (onSelect) {
-        onSelect(providerId, model_id);
+        onSelect(providerId, modelId);
       } else if (activeConversationId) {
         try {
           await updateConversation(activeConversationId, {
-            provider_id: providerId,
-            model_id: model_id,
+            providerId,
+            modelId,
           });
         } catch (e) {
           if (
@@ -502,8 +502,8 @@ export function ModelSelector({
         }
       } else {
         saveSettings({
-          default_provider_id: providerId,
-          default_model_id: model_id,
+          defaultProviderId: providerId,
+          defaultModelId: modelId,
         });
       }
       setOpen(false);
@@ -524,8 +524,8 @@ export function ModelSelector({
       return;
     }
     const models = Array.from(multiSelectedKeys).map((key) => {
-      const [providerId, model_id] = key.split("::");
-      return { providerId, model_id };
+      const [providerId, modelId] = key.split("::");
+      return { providerId, modelId };
     });
     onMultiSelect(models);
     setOpen(false);
@@ -659,7 +659,7 @@ export function ModelSelector({
         case "group":
           return `g-${row.provider.id}`;
         case "model":
-          return `m-${row.providerId}::${row.model.model_id}`;
+          return `m-${row.providerId}::${row.model.modelId}`;
       }
     },
     overscan: 10,
@@ -716,7 +716,7 @@ export function ModelSelector({
         if (activeIndex >= 0 && activeIndex < flatRows.length) {
           const row = flatRows[activeIndex];
           if (row.type === "model") {
-            handleSelect(row.providerId, row.model.model_id);
+            handleSelect(row.providerId, row.model.modelId);
           } else if (row.type === "pinned-model") {
             handleSelect(row.pid, row.mid);
           }
@@ -944,7 +944,7 @@ export function ModelSelector({
                   >
                     <ModelItemCard
                       providerId={row.pid}
-                      model_id={row.mid}
+                      modelId={row.mid}
                       modelName={row.name}
                       providerName={row.providerName}
                       isPinned={true}
@@ -1062,7 +1062,7 @@ export function ModelSelector({
 
               // type === 'model'
               const isPinned = pinnedModels.includes(
-                `${row.providerId}::${row.model.model_id}`,
+                `${row.providerId}::${row.model.modelId}`,
               );
               return (
                 <div
@@ -1079,7 +1079,7 @@ export function ModelSelector({
                 >
                   <ModelItemCard
                     providerId={row.providerId}
-                    model_id={row.model.model_id}
+                    modelId={row.model.modelId}
                     modelName={row.model.name}
                     providerName={row.providerName}
                     isPinned={isPinned}

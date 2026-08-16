@@ -242,7 +242,7 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
                   {t("chat.agentPanel.quality")}: {(trajectory.quality.overall * 100).toFixed(0)}%
                 </span>
                 <span>
-                  {t("chat.timeline.completed")}: {(trajectory.duration_ms / 1000).toFixed(1)}s
+                  {t("chat.timeline.completed")}: {(trajectory.durationMs / 1000).toFixed(1)}s
                 </span>
                 <span>
                   {t("chat.agentPanel.steps")}: {trajectory.steps.length}
@@ -260,9 +260,9 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
                 }}
               >
                 {t("chat.agentPanel.step")} {currentStep + 1} / {trajectory.steps.length}
-                {step.timestamp_ms > 0 && (
+                {step.timestampMs > 0 && (
                   <span style={{ marginLeft: 8 }}>
-                    +{(step.timestamp_ms / 1000).toFixed(1)}s
+                    +{(step.timestampMs / 1000).toFixed(1)}s
                   </span>
                 )}
               </div>
@@ -304,9 +304,9 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
               </div>
 
               {/* 工具调用 */}
-              {step.tool_calls && step.tool_calls.length > 0 && (
+              {step.toolCalls && step.toolCalls.length > 0 && (
                 <div style={{ marginTop: 8 }}>
-                  {step.tool_calls.map((tc, i) => (
+                  {step.toolCalls.map((tc, i) => (
                     <div
                       key={tc.id || i}
                       style={{
@@ -341,9 +341,9 @@ export function TrajectoryReplay({ conversationId }: TrajectoryReplayProps) {
               )}
 
               {/* 工具结果 */}
-              {step.tool_results && step.tool_results.length > 0 && (
+              {step.toolResults && step.toolResults.length > 0 && (
                 <div style={{ marginTop: 8 }}>
-                  {step.tool_results.map((tr, i) => (
+                  {step.toolResults.map((tr, i) => (
                     <div
                       key={tr.id || i}
                       style={{

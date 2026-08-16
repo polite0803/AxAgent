@@ -14,6 +14,7 @@ use tauri::command;
 // ── Request / Response types ──
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct StartSpanRequest {
     pub name: String,
     pub span_type: SpanType,
@@ -23,6 +24,7 @@ pub struct StartSpanRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EndSpanRequest {
     pub span_id: String,
     pub status: SpanStatus,
@@ -30,6 +32,7 @@ pub struct EndSpanRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RecordErrorRequest {
     pub span_id: String,
     pub error_type: String,
@@ -38,12 +41,14 @@ pub struct RecordErrorRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RecordSpanRequest {
     pub trace_id: String,
     pub span: SpanRecord,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SpanRecord {
     pub span_type: String,
     pub parent_span_id: Option<String>,
@@ -58,6 +63,7 @@ pub struct SpanRecord {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BottleneckResult {
     pub time_distribution: Vec<TimeDistributionItem>,
     pub token_distribution: Vec<TokenConsumptionItem>,
@@ -85,6 +91,7 @@ pub struct FailurePatternItem {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SuggestionItem {
     pub id: String,
     pub problem: String,
@@ -93,6 +100,7 @@ pub struct SuggestionItem {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FeedbackRecord {
     pub trace_id: String,
     pub rating: String,
@@ -664,6 +672,7 @@ pub fn tracer_get_feedback(trace_id: Option<String>) -> Result<Vec<FeedbackRecor
 
 /// 从前端 GlobalErrorBoundary 接收前端错误并记录到 tracing 系统。
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FrontendErrorPayload {
     pub message: String,
     pub stack: String,

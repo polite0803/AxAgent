@@ -41,6 +41,7 @@ async fn manager() -> &'static Mutex<ReminderManager> {
 // ── DTO ────────────────────────────────────────────────────────────
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ReminderListResult {
     pub active: Vec<ReminderItem>,
     pub completed: Vec<ReminderItem>,
@@ -48,6 +49,7 @@ pub struct ReminderListResult {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ReminderItem {
     pub id: String,
     pub title: String,
@@ -73,6 +75,7 @@ impl From<&Reminder> for ReminderItem {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ReminderNotificationItem {
     pub notification_id: String,
     pub reminder_id: String,
@@ -94,6 +97,7 @@ impl From<&ReminderNotification> for ReminderNotificationItem {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateReminderInput {
     pub title: String,
     pub description: Option<String>,
@@ -244,6 +248,7 @@ pub async fn reminder_update(
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AcknowledgeResult {
     pub acknowledged: bool,
     pub notification_id: String,

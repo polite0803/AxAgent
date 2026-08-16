@@ -119,13 +119,13 @@ export function DatasetManager() {
               />
               <Column
                 title={t("datasetManager.samples")}
-                dataIndex="num_samples"
-                key="num_samples"
+                dataIndex="numSamples"
+                key="numSamples"
               />
               <Column
                 title={t("datasetManager.created")}
-                dataIndex="created_at"
-                key="created_at"
+                dataIndex="createdAt"
+                key="createdAt"
                 render={(date: string) => new Date(date).toLocaleDateString()}
               />
               <Column

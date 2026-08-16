@@ -146,7 +146,7 @@ function schedulePrefetchCleanup(resourceId: string) {
   setTimeout(() => {
     useProactiveStore.setState((state) => {
       const remaining = state.prefetchResults.filter(
-        (r) => r.resource_id !== resourceId,
+        (r) => r.resourceId !== resourceId,
       );
       return {
         prefetchResults: remaining,
@@ -215,7 +215,7 @@ interface ProactiveState {
 export interface ReminderInput {
   title: string;
   description: string;
-  scheduled_at: string;
+  scheduledAt: string;
   recurrence?: {
     frequency: "daily" | "weekly" | "monthly";
     interval: number;
@@ -374,7 +374,7 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
       const reminder = await invoke<Reminder>("reminder_create", {
         title: input.title,
         description: input.description || null,
-        scheduledAt: input.scheduled_at,
+        scheduledAt: input.scheduledAt,
         recurrenceFrequency: input.recurrence?.frequency ?? null,
         recurrenceInterval: input.recurrence?.interval ?? null,
       });
@@ -437,11 +437,11 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
     try {
       const defaultConfig: ProactiveConfig = {
         enabled: true,
-        max_suggestions: 10,
-        suggestion_ttl_minutes: 60,
-        prediction_confidence_threshold: 0.5,
-        prefetch_enabled: true,
-        reminder_enabled: true,
+        maxSuggestions: 10,
+        suggestionTtlMinutes: 60,
+        predictionConfidenceThreshold: 0.5,
+        prefetchEnabled: true,
+        reminderEnabled: true,
       };
       const currentConfig = get().config || defaultConfig;
       const newConfig = { ...currentConfig, ...configUpdate };
@@ -464,7 +464,7 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
       set({
         error: error instanceof Error ? error.message : "Failed to prefetch",
       });
-      return { results: [], total_estimated_time_ms: 0, critical_path: [] };
+      return { results: [], totalEstimatedTimeMs: 0, criticalPath: [] };
     }
   },
 
@@ -492,11 +492,11 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
     const resourceId = `conv-${conversationId}`;
 
     const entry: PrefetchResult = {
-      prefetch_type: "contextAnalysis",
-      resource_id: resourceId,
+      prefetchType: "contextAnalysis",
+      resourceId: resourceId,
       ready: false,
-      estimated_prepare_time_ms: 200,
-      created_at: new Date().toISOString(),
+      estimatedPrepareTimeMs: 200,
+      createdAt: new Date().toISOString(),
     };
     set((state) => ({
       prefetchResults: [...state.prefetchResults, entry],
@@ -511,7 +511,7 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
       .then(() => {
         markPrefetched(type, [conversationId]);
         set((state) => ({
-          prefetchResults: state.prefetchResults.map((r) => r.resource_id === resourceId ? { ...r, ready: true } : r),
+          prefetchResults: state.prefetchResults.map((r) => r.resourceId === resourceId ? { ...r, ready: true } : r),
         }));
         schedulePrefetchCleanup(resourceId);
       })
@@ -523,11 +523,11 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
     // Also prefetch compression summary if available
     const compResourceId = `conv-${conversationId}-compression`;
     const compEntry: PrefetchResult = {
-      prefetch_type: "contextAnalysis",
-      resource_id: compResourceId,
+      prefetchType: "contextAnalysis",
+      resourceId: compResourceId,
       ready: false,
-      estimated_prepare_time_ms: 300,
-      created_at: new Date().toISOString(),
+      estimatedPrepareTimeMs: 300,
+      createdAt: new Date().toISOString(),
     };
     set((state) => ({
       prefetchResults: [...state.prefetchResults, compEntry],
@@ -539,7 +539,7 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
         markPrefetched("compressionSummary", [conversationId]);
         set((state) => ({
           prefetchResults: state.prefetchResults.map((r) =>
-            r.resource_id === compResourceId ? { ...r, ready: true } : r
+            r.resourceId === compResourceId ? { ...r, ready: true } : r
           ),
         }));
         schedulePrefetchCleanup(compResourceId);
@@ -562,11 +562,11 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
     const resourceId = `modelCosts-${providerId}`;
 
     const entry: PrefetchResult = {
-      prefetch_type: "toolCache",
-      resource_id: resourceId,
+      prefetchType: "toolCache",
+      resourceId: resourceId,
       ready: false,
-      estimated_prepare_time_ms: 100,
-      created_at: new Date().toISOString(),
+      estimatedPrepareTimeMs: 100,
+      createdAt: new Date().toISOString(),
     };
     set((state) => ({
       prefetchResults: [...state.prefetchResults, entry],
@@ -577,7 +577,7 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
       .then(() => {
         markPrefetched(type, ["metrics"]);
         set((state) => ({
-          prefetchResults: state.prefetchResults.map((r) => r.resource_id === resourceId ? { ...r, ready: true } : r),
+          prefetchResults: state.prefetchResults.map((r) => r.resourceId === resourceId ? { ...r, ready: true } : r),
         }));
         schedulePrefetchCleanup(resourceId);
       })
@@ -606,11 +606,11 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
         case "search": {
           const resourceId = `search-${intent.confidence}`;
           const entry: PrefetchResult = {
-            prefetch_type: "searchResults",
-            resource_id: resourceId,
+            prefetchType: "searchResults",
+            resourceId: resourceId,
             ready: false,
-            estimated_prepare_time_ms: 200,
-            created_at: new Date().toISOString(),
+            estimatedPrepareTimeMs: 200,
+            createdAt: new Date().toISOString(),
           };
           set((state) => ({
             prefetchResults: [...state.prefetchResults, entry],
@@ -621,7 +621,7 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
               markPrefetched(type, ["searchProviders"]);
               set((state) => ({
                 prefetchResults: state.prefetchResults.map((r) =>
-                  r.resource_id === resourceId ? { ...r, ready: true } : r
+                  r.resourceId === resourceId ? { ...r, ready: true } : r
                 ),
               }));
               schedulePrefetchCleanup(resourceId);
@@ -635,11 +635,11 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
         case "codeGeneration": {
           const resourceId = `codeGen-${intent.confidence}`;
           const entry: PrefetchResult = {
-            prefetch_type: "codeCompletion",
-            resource_id: resourceId,
+            prefetchType: "codeCompletion",
+            resourceId: resourceId,
             ready: false,
-            estimated_prepare_time_ms: 150,
-            created_at: new Date().toISOString(),
+            estimatedPrepareTimeMs: 150,
+            createdAt: new Date().toISOString(),
           };
           set((state) => ({
             prefetchResults: [...state.prefetchResults, entry],
@@ -650,7 +650,7 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
               markPrefetched(type, ["localTools"]);
               set((state) => ({
                 prefetchResults: state.prefetchResults.map((r) =>
-                  r.resource_id === resourceId ? { ...r, ready: true } : r
+                  r.resourceId === resourceId ? { ...r, ready: true } : r
                 ),
               }));
               schedulePrefetchCleanup(resourceId);
@@ -664,11 +664,11 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
         case "translation": {
           const resourceId = `translation-${intent.confidence}`;
           const entry: PrefetchResult = {
-            prefetch_type: "toolCache",
-            resource_id: resourceId,
+            prefetchType: "toolCache",
+            resourceId: resourceId,
             ready: false,
-            estimated_prepare_time_ms: 100,
-            created_at: new Date().toISOString(),
+            estimatedPrepareTimeMs: 100,
+            createdAt: new Date().toISOString(),
           };
           set((state) => ({
             prefetchResults: [...state.prefetchResults, entry],
@@ -679,7 +679,7 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
               markPrefetched(type, ["providers"]);
               set((state) => ({
                 prefetchResults: state.prefetchResults.map((r) =>
-                  r.resource_id === resourceId ? { ...r, ready: true } : r
+                  r.resourceId === resourceId ? { ...r, ready: true } : r
                 ),
               }));
               schedulePrefetchCleanup(resourceId);
@@ -713,7 +713,7 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
 
   markPrefetchEntryReady: (resourceId: string) => {
     set((state) => ({
-      prefetchResults: state.prefetchResults.map((r) => r.resource_id === resourceId ? { ...r, ready: true } : r),
+      prefetchResults: state.prefetchResults.map((r) => r.resourceId === resourceId ? { ...r, ready: true } : r),
     }));
     const updated = get().prefetchResults;
     if (updated.every((r) => r.ready)) {

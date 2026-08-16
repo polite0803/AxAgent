@@ -41,8 +41,8 @@ export function LoRAConfig() {
       const job = await createTrainingJob(values.datasetId, values.baseModel, {
         rank: values.rank,
         alpha: values.alpha,
-        learning_rate: values.learningRate,
-        batch_size: values.batchSize,
+        learningRate: values.learningRate,
+        batchSize: values.batchSize,
         epochs: values.epochs,
       });
 
@@ -89,7 +89,7 @@ export function LoRAConfig() {
             <Select placeholder={t("devtools.fineTune.selectDataset")}>
               {datasets.map((dataset) => (
                 <Select.Option key={dataset.id} value={dataset.id}>
-                  {dataset.name} ({dataset.num_samples} samples)
+                  {dataset.name} ({dataset.numSamples} samples)
                 </Select.Option>
               ))}
             </Select>
@@ -102,8 +102,8 @@ export function LoRAConfig() {
           >
             <Select placeholder={t("devtools.fineTune.selectBaseModel")}>
               {baseModels.map((model) => (
-                <Select.Option key={model.model_id} value={model.model_id}>
-                  {model.name} ({model.size_gb} GB)
+                <Select.Option key={model.modelId} value={model.modelId}>
+                  {model.name} ({model.sizeGb} GB)
                 </Select.Option>
               ))}
             </Select>

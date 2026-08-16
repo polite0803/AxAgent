@@ -29,16 +29,16 @@ export function ChatInspector({
     (s) => s.conversations.find((c) => c.id === s.activeConversationId)?.id,
   );
   const convProviderId = useConversationStore(
-    (s) => s.conversations.find((c) => c.id === s.activeConversationId)?.provider_id ?? "",
+    (s) => s.conversations.find((c) => c.id === s.activeConversationId)?.providerId ?? "",
   );
   const convModelId = useConversationStore(
-    (s) => s.conversations.find((c) => c.id === s.activeConversationId)?.model_id ?? "",
+    (s) => s.conversations.find((c) => c.id === s.activeConversationId)?.modelId ?? "",
   );
   const convCreatedAt = useConversationStore(
-    (s) => s.conversations.find((c) => c.id === s.activeConversationId)?.created_at,
+    (s) => s.conversations.find((c) => c.id === s.activeConversationId)?.createdAt,
   );
   const convMessageCount = useConversationStore(
-    (s) => s.conversations.find((c) => c.id === s.activeConversationId)?.message_count ?? 0,
+    (s) => s.conversations.find((c) => c.id === s.activeConversationId)?.messageCount ?? 0,
   );
 
   const [conversationCreatedFormatted, setConversationCreatedFormatted] = useState("");
@@ -180,7 +180,7 @@ export function ChatInspector({
               <div className="divide-y divide-gray-100">
                 {attachments.map((item) => (
                   <div style={{ padding: "8px 0" }}>
-                    <Typography.Text ellipsis>{item.file_name}</Typography.Text>
+                    <Typography.Text ellipsis>{item.fileName}</Typography.Text>
                   </div>
                 ))}
               </div>

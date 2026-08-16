@@ -1,0 +1,80 @@
+﻿src/components/chat/InputArea.tsx(749,9): error TS2739: Type '{ model_id: any; voice: TtsVoice; audio_format: { sample_rate: number; channels: number; encoding: string; }; stt_provider_id: string | null; tts_provider_id: string | null; }' is missing the following properties from type 'RealtimeConfig': modelId, audioFormat
+src/components/chat/InputAreaUtils.tsx(14,9): error TS2353: Object literal may only specify known properties, and 'file_name' does not exist in type 'AttachmentInput | PromiseLike<AttachmentInput>'.
+src/components/chat/ModelSelector.tsx(149,59): error TS2741: Property 'model_type' is missing in type 'Model' but required in type 'Pick<Model, "capabilities" | "model_type">'.
+src/components/decomposition/DecompositionPreview.tsx(54,6): error TS7006: Parameter 'd' implicitly has an 'any' type.
+src/components/link/LinkModels.tsx(179,15): error TS2322: Type 'GatewayLinkModelSync[]' is not assignable to type 'readonly { model_id: string; }[]'.
+src/components/link/LinkSkills.tsx(180,15): error TS2322: Type 'GatewayLinkSkillSync[]' is not assignable to type 'readonly { skill_name: string; }[]'.
+src/components/settings/CloudWorkspaceSelector.tsx(200,7): error TS2339: Property 's3_endpoint' does not exist on type 'AppSettings'.
+src/components/settings/CloudWorkspaceSelector.tsx(201,7): error TS2339: Property 's3_access_key_id' does not exist on type 'AppSettings'.
+src/components/settings/CloudWorkspaceSelector.tsx(202,7): error TS2339: Property 's3_secret_access_key' does not exist on type 'AppSettings'.
+src/components/settings/CloudWorkspaceSelector.tsx(203,7): error TS2339: Property 's3_region' does not exist on type 'AppSettings'.
+src/components/settings/CloudWorkspaceSelector.tsx(204,7): error TS2339: Property 's3_provider_preset' does not exist on type 'AppSettings'.
+src/components/settings/CloudWorkspaceSelector.tsx(205,7): error TS2339: Property 's3_use_path_style' does not exist on type 'AppSettings'.
+src/components/settings/CloudWorkspaceSelector.tsx(206,7): error TS2339: Property 'webdav_host' does not exist on type 'AppSettings'.
+src/components/settings/CloudWorkspaceSelector.tsx(207,7): error TS2339: Property 'webdav_username' does not exist on type 'AppSettings'.
+src/components/settings/CloudWorkspaceSelector.tsx(208,7): error TS2339: Property 'webdav_password' does not exist on type 'AppSettings'.
+src/components/settings/CloudWorkspaceSelector.tsx(209,7): error TS2339: Property 'webdav_path' does not exist on type 'AppSettings'.
+src/components/settings/CloudWorkspaceSelector.tsx(210,7): error TS2339: Property 's3_bucket' does not exist on type 'AppSettings'.
+src/components/settings/CloudWorkspaceSelector.tsx(211,7): error TS2339: Property 's3_root' does not exist on type 'AppSettings'.
+src/components/settings/DefaultModelSettings.tsx(381,9): error TS2820: Type '"default_provider_id"' is not assignable to type 'keyof AppSettings'. Did you mean '"defaultProviderId"'?
+src/components/settings/DefaultModelSettings.tsx(382,9): error TS2820: Type '"default_model_id"' is not assignable to type 'keyof AppSettings'. Did you mean '"defaultModelId"'?
+src/components/settings/DefaultModelSettings.tsx(387,9): error TS2820: Type '"default_temperature"' is not assignable to type 'keyof AppSettings'. Did you mean '"defaultTemperature"'?
+src/components/settings/DefaultModelSettings.tsx(388,9): error TS2820: Type '"default_top_p"' is not assignable to type 'keyof AppSettings'. Did you mean '"defaultTopP"'?
+src/components/settings/DefaultModelSettings.tsx(389,9): error TS2820: Type '"default_max_tokens"' is not assignable to type 'keyof AppSettings'. Did you mean '"defaultMaxTokens"'?
+src/components/settings/DefaultModelSettings.tsx(390,9): error TS2820: Type '"default_context_count"' is not assignable to type 'keyof AppSettings | undefined'. Did you mean '"defaultContextCount"'?
+src/components/settings/DefaultModelSettings.tsx(399,9): error TS2820: Type '"title_summary_provider_id"' is not assignable to type 'keyof AppSettings'. Did you mean '"titleSummaryProviderId"'?
+src/components/settings/DefaultModelSettings.tsx(400,9): error TS2820: Type '"title_summary_model_id"' is not assignable to type 'keyof AppSettings'. Did you mean '"titleSummaryModelId"'?
+src/components/settings/DefaultModelSettings.tsx(405,9): error TS2820: Type '"title_summary_prompt"' is not assignable to type 'keyof AppSettings | undefined'. Did you mean '"titleSummaryPrompt"'?
+src/components/settings/DefaultModelSettings.tsx(406,9): error TS2820: Type '"title_summary_temperature"' is not assignable to type 'keyof AppSettings'. Did you mean '"titleSummaryTemperature"'?
+src/components/settings/DefaultModelSettings.tsx(407,9): error TS2820: Type '"title_summary_top_p"' is not assignable to type 'keyof AppSettings'. Did you mean '"titleSummaryTopP"'?
+src/components/settings/DefaultModelSettings.tsx(408,9): error TS2820: Type '"title_summary_max_tokens"' is not assignable to type 'keyof AppSettings'. Did you mean '"titleSummaryMaxTokens"'?
+src/components/settings/DefaultModelSettings.tsx(417,9): error TS2820: Type '"compression_provider_id"' is not assignable to type 'keyof AppSettings'. Did you mean '"compressionProviderId"'?
+src/components/settings/DefaultModelSettings.tsx(418,9): error TS2820: Type '"compression_model_id"' is not assignable to type 'keyof AppSettings'. Did you mean '"compressionModelId"'?
+src/components/settings/DefaultModelSettings.tsx(423,9): error TS2820: Type '"compression_prompt"' is not assignable to type 'keyof AppSettings | undefined'. Did you mean '"compressionPrompt"'?
+src/components/settings/DefaultModelSettings.tsx(424,9): error TS2820: Type '"compression_temperature"' is not assignable to type 'keyof AppSettings'. Did you mean '"compressionTemperature"'?
+src/components/settings/DefaultModelSettings.tsx(425,9): error TS2820: Type '"compression_top_p"' is not assignable to type 'keyof AppSettings'. Did you mean '"compressionTopP"'?
+src/components/settings/DefaultModelSettings.tsx(426,9): error TS2820: Type '"compression_max_tokens"' is not assignable to type 'keyof AppSettings'. Did you mean '"compressionMaxTokens"'?
+src/components/settings/GatewayConfigPanel.tsx(324,43): error TS2345: Argument of type '"auto_sync_messages"' is not assignable to parameter of type 'keyof PlatformConfig'.
+src/components/settings/ProviderDetail.tsx(157,22): error TS2344: Type '"group_name" | "model_id"' does not satisfy the constraint 'keyof Model'.
+src/components/settings/ProviderDetail.tsx(334,37): error TS2739: Type 'Model' is missing the following properties from type 'Pick<Model, "group_name" | "model_id">': group_name, model_id
+src/components/settings/ProviderDetail.tsx(467,48): error TS2739: Type 'Model' is missing the following properties from type 'Pick<Model, "group_name" | "model_id">': group_name, model_id
+src/components/settings/ProviderDetail.tsx(1086,42): error TS2739: Type 'Model' is missing the following properties from type 'Pick<Model, "group_name" | "model_id">': group_name, model_id
+src/components/settings/ProviderDetail.tsx(1997,54): error TS2741: Property 'model_type' is missing in type 'Model' but required in type 'Pick<Model, "capabilities" | "model_type">'.
+src/components/settings/ProxySettings.tsx(19,13): error TS2339: Property 'proxy_type' does not exist on type 'AppSettings'.
+src/components/settings/ProxySettings.tsx(19,25): error TS2339: Property 'proxy_address' does not exist on type 'AppSettings'.
+src/components/settings/ProxySettings.tsx(19,40): error TS2339: Property 'proxy_port' does not exist on type 'AppSettings'.
+src/components/settings/ShortcutSettings.tsx(85,26): error TS2559: Type 'Partial<Record<"global_shortcut" | ShortcutSettingKey, string>>' has no properties in common with type 'Partial<AppSettings>'.
+src/components/settings/ShortcutSettings.tsx(105,26): error TS2559: Type 'Partial<Record<"global_shortcut" | ShortcutSettingKey, string>>' has no properties in common with type 'Partial<AppSettings>'.
+src/components/settings/ShortcutSettings.tsx(137,24): error TS2559: Type 'Partial<Record<"global_shortcut" | ShortcutSettingKey, string>>' has no properties in common with type 'Partial<AppSettings>'.
+src/components/voice/IntentClarificationPanel.tsx(61,51): error TS7006: Parameter 'question' implicitly has an 'any' type.
+src/components/voice/IntentClarificationPanel.tsx(61,61): error TS7006: Parameter 'idx' implicitly has an 'any' type.
+src/components/voice/IntentClarificationPanel.tsx(104,52): error TS7006: Parameter 'opt' implicitly has an 'any' type.
+src/components/voice/IntentClarificationPanel.tsx(104,57): error TS7006: Parameter 'idx' implicitly has an 'any' type.
+src/hooks/useIntentClarification.ts(131,50): error TS7006: Parameter 'q' implicitly has an 'any' type.
+src/hooks/useIntentClarification.ts(135,19): error TS7006: Parameter 'q' implicitly has an 'any' type.
+src/lib/__tests__/messageUtils.test.ts(14,10): error TS2352: Conversion of type '{ id: string; content: string; created_at: number; status: string; role: "user"; conversation_id: string; }' to type 'Message' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/lib/__tests__/modelCapabilities.test.ts(103,48): error TS2741: Property 'model_type' is missing in type 'Model' but required in type 'Pick<Model, "capabilities" | "model_type">'.
+src/lib/__tests__/modelCapabilities.test.ts(112,48): error TS2741: Property 'model_type' is missing in type 'Model' but required in type 'Pick<Model, "capabilities" | "model_type">'.
+src/lib/__tests__/shortcuts.test.ts(38,3): error TS2352: Conversion of type '{ shortcut_toggle_current_window: string; shortcut_toggle_all_windows: string; shortcut_close_window: string; shortcut_new_conversation: string; shortcut_open_settings: string; shortcut_toggle_model_selector: string; ... 52 more ...; gateway_ssl_cert_path: null; }' to type 'AppSettings' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/lib/modelCapabilities.ts(27,22): error TS2344: Type '"capabilities" | "model_type"' does not satisfy the constraint 'keyof Model'.
+src/lib/shortcuts.ts(135,3): error TS2820: Type '"shortcut_toggle_current_window"' is not assignable to type 'keyof AppSettings'. Did you mean '"shortcutToggleCurrentWindow"'?
+src/lib/shortcuts.ts(136,3): error TS2820: Type '"shortcut_toggle_all_windows"' is not assignable to type 'keyof AppSettings'. Did you mean '"shortcutToggleAllWindows"'?
+src/lib/shortcuts.ts(137,3): error TS2820: Type '"shortcut_close_window"' is not assignable to type 'keyof AppSettings'. Did you mean '"shortcutCloseWindow"'?
+src/lib/shortcuts.ts(138,3): error TS2820: Type '"shortcut_new_conversation"' is not assignable to type 'keyof AppSettings'. Did you mean '"shortcutNewConversation"'?
+src/lib/shortcuts.ts(139,3): error TS2820: Type '"shortcut_open_settings"' is not assignable to type 'keyof AppSettings'. Did you mean '"shortcutOpenSettings"'?
+src/lib/shortcuts.ts(140,3): error TS2820: Type '"shortcut_toggle_model_selector"' is not assignable to type 'keyof AppSettings'. Did you mean '"shortcutToggleModelSelector"'?
+src/lib/shortcuts.ts(141,3): error TS2820: Type '"shortcut_fill_last_message"' is not assignable to type 'keyof AppSettings'. Did you mean '"shortcutFillLastMessage"'?
+src/lib/shortcuts.ts(142,3): error TS2820: Type '"shortcut_clear_context"' is not assignable to type 'keyof AppSettings'. Did you mean '"shortcutClearContext"'?
+src/lib/shortcuts.ts(143,3): error TS2820: Type '"shortcut_clear_conversation_messages"' is not assignable to type 'keyof AppSettings'. Did you mean '"shortcutClearConversationMessages"'?
+src/lib/shortcuts.ts(144,3): error TS2820: Type '"shortcut_toggle_gateway"' is not assignable to type 'keyof AppSettings'. Did you mean '"shortcutToggleGateway"'?
+src/lib/shortcuts.ts(145,3): error TS2820: Type '"shortcut_toggle_mode"' is not assignable to type 'keyof AppSettings'. Did you mean '"shortcutToggleMode"'?
+src/lib/shortcuts.ts(146,3): error TS2820: Type '"shortcut_show_quick_bar"' is not assignable to type 'keyof AppSettings'. Did you mean '"shortcutShowQuickBar"'?
+src/stores/domain/conversationStoreEvents.ts(69,13): error TS2339: Property 'conversation_id' does not exist on type 'ChatStreamEvent'.
+src/stores/domain/conversationStoreEvents.ts(70,13): error TS2339: Property 'message_id' does not exist on type 'ChatStreamEvent'.
+src/stores/domain/conversationStoreEvents.ts(72,13): error TS2339: Property 'model_id' does not exist on type 'ChatStreamEvent'.
+src/stores/domain/conversationStoreEvents.ts(73,13): error TS2339: Property 'provider_id' does not exist on type 'ChatStreamEvent'.
+src/stores/domain/conversationStoreEvents.ts(328,13): error TS2339: Property 'conversation_id' does not exist on type 'ChatStreamErrorEvent'.
+src/stores/domain/conversationStoreEvents.ts(329,13): error TS2339: Property 'message_id' does not exist on type 'ChatStreamErrorEvent'.
+src/stores/feature/pluginStore.ts(66,11): error TS2345: Argument of type '(s: PluginState) => { installing: null; plugins: (PluginSummaryDto | { id: any; name: any; version: string; description: string; kind: "external"; enabled: true; tools: never[]; mcp_servers: never[]; skills: never[]; })[]; }' is not assignable to parameter of type 'Partial<PluginState> | PluginState | ((state: PluginState) => Partial<PluginState> | PluginState)'.
+src/stores/feature/workEngineStore.ts(389,19): error TS2352: Conversion of type '{ execution_id: string; workflow_id: string; status: ExecutionStatus; current_node_id: string | null; total_time_ms: number; node_count: number; parent_execution_id: null; }' to type 'ExecutionStatusResponse' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/stores/feature/workEngineStore.ts(398,11): error TS2322: Type '{ node_id: string; node_type: string; node_name: string | null; status: string; input: {} | null; output: {} | null; execution_time_ms: number | null; error: string | null; started_at: number; completed_at: number | null; parent_execution_id: string | null; sub_workflow_id: string | null; }[]' is not assignable to type 'NodeExecutionRecord[]'.

@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UserPreferenceProfile {
     pub user_id: String,
     pub coding_style: CodingStylePreference,
@@ -33,6 +34,7 @@ pub enum DocumentationLevel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CommunicationStylePreference {
     pub detail_level: DetailLevel,
     pub tone: CommunicationTone,

@@ -22,6 +22,7 @@ use serde::{Deserialize, Serialize};
 
 /// 排序后的能力条目
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RankedCapability {
     pub passport: CapabilityPassportDto,
     /// 语义相似度分（0.0-1.0）

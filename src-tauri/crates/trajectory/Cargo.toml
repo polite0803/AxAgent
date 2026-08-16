@@ -30,4 +30,6 @@ uuid = { version = "1", features = ["v4"] }
 abandoned = []
 
 [dev-dependencies]
+# 阶段三 T3.5：append-only 存储集成测试使用 create_test_pool（内存库 + 全量迁移）
+axagent-dao = { path = "../dao" }
 tempfile = "3"

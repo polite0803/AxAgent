@@ -15,7 +15,7 @@ export function BenchmarkReportView({ report }: BenchmarkReportViewProps) {
   const { t } = useTranslation();
 
   const columns = [
-    { title: t("benchmark.task"), dataIndex: "task_name", key: "task_name" },
+    { title: t("benchmark.task"), dataIndex: "taskName", key: "taskName" },
     {
       title: t("benchmark.difficulty"),
       dataIndex: "difficulty",
@@ -40,8 +40,8 @@ export function BenchmarkReportView({ report }: BenchmarkReportViewProps) {
     },
     {
       title: t("benchmark.duration"),
-      dataIndex: "duration_ms",
-      key: "duration_ms",
+      dataIndex: "durationMs",
+      key: "durationMs",
       render: formatDuration,
     },
   ];
@@ -81,10 +81,10 @@ export function BenchmarkReportView({ report }: BenchmarkReportViewProps) {
           <Card size="small">
             <Statistic
               title={t("benchmark.passRate")}
-              value={report.summary.pass_rate * 100}
+              value={report.summary.passRate * 100}
               suffix="%"
               precision={1}
-              styles={{ content: { color: report.summary.pass_rate >= 0.7 ? "#52c41a" : "#ff4d4f" } }}
+              styles={{ content: { color: report.summary.passRate >= 0.7 ? "#52c41a" : "#ff4d4f" } }}
             />
           </Card>
         </Col>
@@ -92,7 +92,7 @@ export function BenchmarkReportView({ report }: BenchmarkReportViewProps) {
           <Card size="small">
             <Statistic
               title={t("benchmark.overallScore")}
-              value={report.summary.overall_score * 100}
+              value={report.summary.overallScore * 100}
               suffix="%"
               precision={1}
             />
@@ -102,8 +102,8 @@ export function BenchmarkReportView({ report }: BenchmarkReportViewProps) {
           <Card size="small">
             <Statistic
               title={t("benchmark.taskCount")}
-              value={report.summary.total_tasks}
-              suffix={`/ ${report.summary.passed_tasks} ${t("benchmark.passed")}`}
+              value={report.summary.totalTasks}
+              suffix={`/ ${report.summary.passedTasks} ${t("benchmark.passed")}`}
             />
           </Card>
         </Col>
@@ -111,7 +111,7 @@ export function BenchmarkReportView({ report }: BenchmarkReportViewProps) {
           <Card size="small">
             <Statistic
               title={t("benchmark.totalDuration")}
-              value={report.summary.total_duration_ms}
+              value={report.summary.totalDurationMs}
               formatter={(val) => formatDuration(Number(val))}
             />
           </Card>
@@ -126,9 +126,9 @@ export function BenchmarkReportView({ report }: BenchmarkReportViewProps) {
             label: t("benchmark.taskDetails"),
             children: (
               <Table
-                dataSource={report.task_breakdown}
+                dataSource={report.taskBreakdown}
                 columns={columns}
-                rowKey="task_id"
+                rowKey="taskId"
                 size="small"
                 pagination={false}
                 expandable={{
@@ -138,7 +138,7 @@ export function BenchmarkReportView({ report }: BenchmarkReportViewProps) {
                         {t("benchmark.scoreDetails")}
                       </h4>
                       <Table
-                        dataSource={record.criteria_scores}
+                        dataSource={record.criteriaScores}
                         columns={criteriaColumns}
                         rowKey="name"
                         size="small"

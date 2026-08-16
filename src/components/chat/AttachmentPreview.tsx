@@ -27,7 +27,7 @@ export function AttachmentPreview({
 }) {
   const { t } = useTranslation();
   const { modal } = App.useApp();
-  const isImage = att.file_type?.startsWith("image/");
+  const isImage = att.fileType?.startsWith("image/");
   const mountedRef = useRef(true);
 
   const [src, setSrc] = useState<string | null>(() => {
@@ -35,7 +35,7 @@ export function AttachmentPreview({
       return null;
     }
     if (att.data) {
-      return `data:${att.file_type};base64,${att.data}`;
+      return `data:${att.fileType};base64,${att.data}`;
     }
     return null;
   });
@@ -43,12 +43,12 @@ export function AttachmentPreview({
   const [fileExists, setFileExists] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!att.file_path) {
+    if (!att.filePath) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setFileExists(false);
       return;
     }
-    invoke<boolean>("check_attachment_exists", { filePath: att.file_path })
+    invoke<boolean>("check_attachment_exists", { filePath: att.filePath })
       .then((exists) => {
         if (mountedRef.current) {
           setFileExists(exists);
@@ -62,20 +62,20 @@ export function AttachmentPreview({
     return () => {
       mountedRef.current = false;
     };
-  }, [att.file_path]);
+  }, [att.filePath]);
 
   useEffect(() => {
     if (!isImage || src || failedRef.current) {
       return;
     }
-    if (!att.file_path || fileExists === false) {
+    if (!att.filePath || fileExists === false) {
       failedRef.current = true;
       return;
     }
     if (fileExists === null) {
       return;
     }
-    invoke<string>("read_attachment_preview", { filePath: att.file_path })
+    invoke<string>("read_attachment_preview", { filePath: att.filePath })
       .then((dataUrl) => {
         if (mountedRef.current) {
           setSrc(dataUrl);
@@ -86,11 +86,11 @@ export function AttachmentPreview({
           failedRef.current = true;
         }
       });
-  }, [isImage, att.file_path, src, fileExists]);
+  }, [isImage, att.filePath, src, fileExists]);
 
   if (fileExists === false) {
     const showMissingModal = () => {
-      invoke<string>("resolve_attachment_path", { filePath: att.file_path })
+      invoke<string>("resolve_attachment_path", { filePath: att.filePath })
         .then((absPath) => {
           modal.confirm({
             icon: <CloseCircleFilled style={{ color: "#ff4d4f" }} />,
@@ -100,7 +100,7 @@ export function AttachmentPreview({
             cancelText: t("chat.attachmentRevealLocation"),
             onCancel: () => {
               invoke("reveal_attachment_file", {
-                filePath: att.file_path,
+                filePath: att.filePath,
               }).catch(logIpcError("reveal_attachment_file"));
             },
           });
@@ -108,7 +108,7 @@ export function AttachmentPreview({
         .catch(() => {
           modal.error({
             title: t("chat.attachmentNotFound"),
-            content: att.file_path || att.file_name,
+            content: att.filePath || att.fileName,
             okText: t("chat.attachmentOk"),
           });
         });
@@ -120,7 +120,7 @@ export function AttachmentPreview({
         style={{ margin: 0, cursor: "pointer" }}
         onClick={showMissingModal}
       >
-        {att.file_name}
+        {att.fileName}
       </Tag>
     );
   }
@@ -131,7 +131,7 @@ export function AttachmentPreview({
         icon={isImage ? <FileImage size={12} /> : <Paperclip size={12} />}
         style={{ margin: 0, cursor: "default", opacity: 0.5 }}
       >
-        {att.file_name}
+        {att.fileName}
       </Tag>
     );
   }
@@ -140,7 +140,7 @@ export function AttachmentPreview({
     return (
       <Image
         src={src}
-        alt={att.file_name}
+        alt={att.fileName}
         style={ATTACHMENT_IMG_STYLE}
         preview={{ mask: { blur: true }, scaleStep: 0.5 }}
       />
@@ -148,22 +148,22 @@ export function AttachmentPreview({
   }
 
   const handleOpen = () => {
-    if (att.file_path) {
-      invoke("open_attachment_file", { filePath: att.file_path }).catch(
+    if (att.filePath) {
+      invoke("open_attachment_file", { filePath: att.filePath }).catch(
         logIpcError("open_attachment_file"),
       );
     }
   };
 
   const handleReveal = () => {
-    if (att.file_path) {
-      invoke("reveal_attachment_file", { filePath: att.file_path }).catch(
+    if (att.filePath) {
+      invoke("reveal_attachment_file", { filePath: att.filePath }).catch(
         logIpcError("reveal_attachment_file"),
       );
     }
   };
 
-  const contextMenuItems = att.file_path
+  const contextMenuItems = att.filePath
     ? [
       { key: "open", label: t("chat.attachmentOpen"), onClick: handleOpen },
       {
@@ -178,14 +178,14 @@ export function AttachmentPreview({
     <Tag
       icon={isImage ? <FileImage size={12} /> : <Paperclip size={12} />}
       color={themeColor}
-      style={{ margin: 0, cursor: att.file_path ? "pointer" : "default" }}
-      onClick={att.file_path ? handleOpen : undefined}
+      style={{ margin: 0, cursor: att.filePath ? "pointer" : "default" }}
+      onClick={att.filePath ? handleOpen : undefined}
     >
-      {att.file_name}
+      {att.fileName}
     </Tag>
   );
 
-  if (!att.file_path) {
+  if (!att.filePath) {
     return tag;
   }
 

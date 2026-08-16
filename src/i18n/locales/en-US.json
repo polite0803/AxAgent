@@ -1213,7 +1213,17 @@
       "skill": "Skill",
       "agent_role": "Role",
       "agent_profile": "Expert"
-    }
+    },
+    "level": {
+      "l1": "L1 · Immature",
+      "l2": "L2 · Basic",
+      "l3": "L3 · Moderate",
+      "l4": "L4 · Mature",
+      "l5": "L5 · Top-tier"
+    },
+    "evolve": "Evolve",
+    "evolveSuccess": "Evolution succeeded, level raised to {{level}}",
+    "evolveFailed": "Evolution failed, please retry later"
   },
   "chatMarkdown": {
     "inputParams": "Input Params",
@@ -1250,7 +1260,8 @@
     "title": "Assistant Panel",
     "visionAnalysis": "Vision",
     "cognitiveRoute": "Route",
-    "capability": "Capability"
+    "capability": "Capability",
+    "evolutionEvidence": "Evolution Evidence"
   },
   "cite": {
     "chunkLabel": "Chunk #{{n}}",
@@ -2069,6 +2080,9 @@
     "COGNITIVE_EXECUTION_MODE_INVALID": "Invalid cognitive route execution mode",
     "COGNITIVE_PROMPT_REJECTED": "Cognitive prompt rejected",
     "COGNITIVE_RAR_RETRIEVE_FAILED": "Cognitive routing candidate retrieval failed: {{detail}}",
+    "COGNITIVE_GAP_PROPOSAL_PENDING": "Capability gap proposal generated, awaiting your confirmation",
+    "COGNITIVE_GAP_PROPOSAL_APPLIED": "Capability gap resolved; please resend your request",
+    "COGNITIVE_GAP_PROPOSAL_REJECTED": "Capability gap proposal rejected",
     "COMMON_INTERNAL": "Internal error",
     "COMMON_INVALID_INPUT": "Invalid input",
     "COMMON_TIMEOUT": "Operation timed out",
@@ -2257,6 +2271,7 @@
     "TOOL_SSE_NO_ENDPOINT": "SSE transport has no endpoint specified",
     "TOOL_STDIO_NO_COMMAND": "Stdio transport has no command specified",
     "TOOL_TRANSPORT_UNSUPPORTED": "Unsupported transport type",
+    "TOOL_REGISTRATION_DUPLICATE": "Tool registration conflict: name already exists",
     "VECTOR_STORE_FAILED": "Vector store operation failed",
     "VECTOR_EMBEDDING_FAILED": "Vector embedding generation failed",
     "VECTOR_SEARCH_FAILED": "Vector search failed",
@@ -2374,6 +2389,7 @@
     "CAPABILITY_LIST_FAILED": "Failed to list capabilities",
     "CAPABILITY_STATS_FAILED": "Failed to get capability stats",
     "CAPABILITY_METADATA_RESTORE_FAILED": "Metadata restoration failed",
+    "CAPABILITY_EVOLVE_FAILED": "Capability evolution failed",
     "AGENT_INPUT_CHANNEL_CLOSED": "The user input channel is closed",
     "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "Timed out waiting for user reply (5 minutes)",
     "AGENT_INPUT_NO_PROVIDER": "No available provider/model: please enable a provider in settings",
@@ -2563,6 +2579,27 @@
     "loadFailed": "Failed to load external expert: {{error}}",
     "skippedInvalidRole": "Skipped invalid role: {{role}}",
     "updateFailed": "Failed to update external expert: {{error}}"
+  },
+  "evolutionEvidence": {
+    "title": "Evolution Evidence",
+    "empty": "No evolution evidence yet",
+    "decision": {
+      "evolve": "Suggest Evolution",
+      "observe": "Observing",
+      "stable": "Stable"
+    },
+    "pSuccess": "Posterior success rate {value}%",
+    "evidenceVolume": "Evidence volume {value}",
+    "consumedLabels": "Consumed {consumed}/{total} evidence items",
+    "routePaths": "Evidence source paths",
+    "executionTitle": "Real Execution Feedback",
+    "noExecution": "No real execution data yet",
+    "totalRuns": "Total runs {value}",
+    "successRate": "Success rate {value}%",
+    "totalSuccesses": "Success {value}",
+    "totalFailures": "Failed {value}",
+    "toolCount": "Evolution artifacts {value}",
+    "perSuccessRate": "Success rate {value}%"
   },
   "export": {
     "exportTime": "Export time",
@@ -4183,7 +4220,23 @@
       "stop": "Stop",
       "stopAll": "Stop All",
       "stopped": "Stopped",
-      "title": "Evolution"
+      "title": "Evolution",
+      "runtimeTools": {
+        "title": "Runtime Dynamic Tools",
+        "desc": "Dynamic capabilities registered by Agent evolution deployment (system_evolution_deploy) or self-referential tools (system_evolution_*). Built-in self-referential tools are shown read-only; uninstalling an evolution artifact makes it immediately unavailable to the Agent.",
+        "systemChannel": "System Capability Channel",
+        "name": "Tool Name",
+        "source": "Source",
+        "sourceSystem": "Built-in",
+        "sourceEvolved": "Evolved",
+        "action": "Action",
+        "builtin": "Built-in",
+        "empty": "No runtime dynamic tools",
+        "unload": "Uninstall",
+        "unloadConfirm": "Uninstall tool \"{{name}}\"? The Agent will no longer be able to call it immediately after uninstalling.",
+        "unloadSuccess": "Tool \"{{name}}\" uninstalled",
+        "unloadFail": "Failed to uninstall tool \"{{name}}\""
+      }
     },
     "exitFullscreen": "Exit fullscreen",
     "expandAll": "Expand all",
@@ -8612,6 +8665,23 @@
   },
   "reactPreview": {
     "title": "React Preview"
+  },
+  "evolutionConsentModal": {
+    "title": "Capability Filling / Evolution Proposal",
+    "gapType": {
+      "guardRule": "Guard Rule",
+      "exemptAuthorize": "Exempt Authorization",
+      "capabilityMissing": "Missing Capability"
+    },
+    "pendingCount": "{{count}} proposals pending, currently #{{current}}",
+    "pendingOne": "1 proposal pending",
+    "proposal": "Proposed Change",
+    "impact": "Impact",
+    "rollback": "Rollback",
+    "reject": "Reject",
+    "approve": "Approve",
+    "expandDetails": "Expand raw details",
+    "collapseDetails": "Collapse raw details"
   },
   "planApprovalModal": {
     "title": "Plan Approval",

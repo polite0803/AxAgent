@@ -419,11 +419,11 @@ export function PlanCard({
                   >
                     {t(config.labelKey)}
                   </Tag>
-                  {step.estimated_tools && step.estimated_tools.length > 0 && (
+                  {step.estimatedTools && step.estimatedTools.length > 0 && (
                     <span
                       style={{ fontSize: 12, color: token.colorTextQuaternary }}
                     >
-                      {step.estimated_tools.join(", ")}
+                      {step.estimatedTools.join(", ")}
                     </span>
                   )}
                 </div>

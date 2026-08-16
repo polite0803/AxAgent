@@ -34,8 +34,8 @@ const PLAN_ID = "plan-1";
 function makePlan(overrides?: Partial<Plan>): Plan {
   return {
     id: PLAN_ID,
-    conversation_id: CONV_ID,
-    user_message_id: "msg-1",
+    conversationId: CONV_ID,
+    userMessageId: "msg-1",
     title: "Test Plan",
     status: "draft",
     steps: [
@@ -43,9 +43,9 @@ function makePlan(overrides?: Partial<Plan>): Plan {
       { id: "step-2", title: "Step 2", description: "Second step", status: "pending", result: null },
       { id: "step-3", title: "Step 3", description: "Third step", status: "pending", result: null },
     ],
-    is_active: true,
-    created_at: 1735689600000,
-    updated_at: 1735689600000,
+    isActive: true,
+    createdAt: 1735689600000,
+    updatedAt: 1735689600000,
     ...overrides,
   };
 }
@@ -276,7 +276,7 @@ describe("planStore", () => {
   describe("loadActivePlan", () => {
     it("loads the active plan from DB", async () => {
       const activePlan = makePlan({ status: "executing" });
-      const inactivePlan = makePlan({ id: "plan-2", status: "completed", is_active: false });
+      const inactivePlan = makePlan({ id: "plan-2", status: "completed", isActive: false });
       invokeMock.mockResolvedValueOnce([activePlan, inactivePlan]);
 
       await usePlanStore.getState().loadActivePlan(CONV_ID);

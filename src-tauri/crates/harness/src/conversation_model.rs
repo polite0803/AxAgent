@@ -49,6 +49,7 @@ pub struct ConversationMessage {
 /// - `cache_read_input_tokens`: prompt caching hit tokens
 /// - `cache_miss_input_tokens`: optional true miss value (DeepSeek-specific)
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TokenUsage {
     pub input_tokens: u32,
     pub output_tokens: u32,

@@ -35,7 +35,7 @@ import {
 
 interface MultiModelState {
   /** Companion models pending or currently streaming */
-  pendingCompanionModels: Array<{ providerId: string; model_id: string }>;
+  pendingCompanionModels: Array<{ providerId: string; modelId: string }>;
   /** User message ID of the current multi-model request */
   multiModelParentId: string | null;
   /** Message IDs of models that have completed their streams */
@@ -47,7 +47,7 @@ interface MultiModelState {
   /** Send a message and generate responses from multiple companion models */
   sendMultiModelMessage: (
     content: string,
-    companionModels: Array<{ providerId: string; model_id: string }>,
+    companionModels: Array<{ providerId: string; modelId: string }>,
     attachments?: AttachmentInput[],
     searchProviderId?: string | null,
   ) => Promise<void>;
@@ -80,23 +80,23 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
 
     // Save original conversation model to restore later
     const conv = convStore.conversations.find((c) => c.id === conversationId);
-    const originalProviderId = conv?.provider_id;
-    const originalModelId = conv?.model_id;
+    const originalProviderId = conv?.providerId;
+    const originalModelId = conv?.modelId;
 
     // Track ALL models (first + companions) in a unified counter
     setIsMultiModelActive(true);
     // 只计算伴随模型（companion）数量，不包含首个模型。
     // 首个模型通过正常流式通道处理，其完成不依赖 multiModelTotalRemaining。
     setMultiModelTotalRemaining(companionModels.length - 1);
-    setMultiModelFirstModelId(companionModels[0].model_id);
+    setMultiModelFirstModelId(companionModels[0].modelId);
     set({ pendingCompanionModels: [...companionModels] });
 
     // Switch to the first selected model and send
     const firstModel = companionModels[0];
     try {
       await convStore.updateConversation(conversationId, {
-        provider_id: firstModel.providerId,
-        model_id: firstModel.model_id,
+        providerId: firstModel.providerId,
+        modelId: firstModel.modelId,
       });
     } catch (e) {
       logIpcError("sendMultiModelMessage: failed to switch model")(e);
@@ -124,8 +124,8 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
       });
       if (originalProviderId && originalModelId) {
         void convStore.updateConversation(conversationId, {
-          provider_id: originalProviderId,
-          model_id: originalModelId,
+          providerId: originalProviderId,
+          modelId: originalModelId,
         });
       }
       return;
@@ -171,7 +171,7 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
             conversationId,
             userMessageId: lastUserMsg.id,
             targetProviderId: model.providerId,
-            targetModelId: model.model_id,
+            targetModelId: model.modelId,
             options: {
               enabledMcpServerIds: mcpIds.length > 0 ? mcpIds : undefined,
               thinkingBudget,
@@ -204,7 +204,7 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
                   ) {
                     const firstDbVersion = versions.find(
                       (v) =>
-                        v.model_id === _multiModelFirstModelId
+                        v.modelId === _multiModelFirstModelId
                         && !existingIds.has(v.id),
                     );
                     if (firstDbVersion) {
@@ -233,17 +233,17 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
                       return {
                         ...m,
                         id: resolvedFirstModelId,
-                        model_id: dbVersion?.model_id ?? m.model_id,
-                        provider_id: dbVersion?.provider_id ?? m.provider_id,
+                        modelId: dbVersion?.modelId ?? m.modelId,
+                        providerId: dbVersion?.providerId ?? m.providerId,
                       };
                     }
                     const dbVersion = dbVersionMap.get(m.id);
-                    if (dbVersion && (!m.model_id || !m.provider_id)) {
+                    if (dbVersion && (!m.modelId || !m.providerId)) {
                       enriched = true;
                       return {
                         ...m,
-                        model_id: dbVersion.model_id,
-                        provider_id: dbVersion.provider_id,
+                        modelId: dbVersion.modelId,
+                        providerId: dbVersion.providerId,
                       };
                     }
                     return m;
@@ -264,7 +264,7 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
           })
           .catch((e) => {
             logIpcError(
-              `sendMultiModelMessage: companion ${model.model_id} invoke failed`,
+              `sendMultiModelMessage: companion ${model.modelId} invoke failed`,
             )(e);
             decrementMultiModelTotalRemaining();
             if (_multiModelTotalRemaining <= 0 && _multiModelDoneResolve) {
@@ -301,8 +301,8 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
     if (originalProviderId && originalModelId) {
       try {
         await convStore.updateConversation(conversationId, {
-          provider_id: originalProviderId,
-          model_id: originalModelId,
+          providerId: originalProviderId,
+          modelId: originalModelId,
         });
       } catch (e) {
         logIpcError("sendMultiModelMessage: failed to restore model")(e);
@@ -320,23 +320,23 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
           .getState()
           .messages.find(
             (m) =>
-              m.parent_message_id === parentId
+              m.parentMessageId === parentId
               && m.role === "assistant"
-              && m.is_active,
+              && m.isActive,
           )?.id ?? null)
         : null;
 
       if (parentId && !_userManuallySelectedVersion) {
-        const firstModelId = companionModels[0].model_id;
+        const firstModelId = companionModels[0].modelId;
         let targetMessageId = _multiModelFirstMessageId;
         if (!targetMessageId) {
           const localMatch = useConversationStore
             .getState()
             .messages.find(
               (m) =>
-                m.parent_message_id === parentId
+                m.parentMessageId === parentId
                 && m.role === "assistant"
-                && m.model_id === firstModelId,
+                && m.modelId === firstModelId,
             );
           targetMessageId = localMatch?.id ?? null;
         }
@@ -365,7 +365,7 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
           displayVersion = refreshedMsgs.find((m) => m.id === userSelectedMessageId) ?? null;
         }
         if (!displayVersion) {
-          const firstModelId = companionModels[0].model_id;
+          const firstModelId = companionModels[0].modelId;
           displayVersion = _multiModelFirstMessageId
             ? (refreshedMsgs.find((m) => m.id === _multiModelFirstMessageId)
               ?? null)
@@ -373,9 +373,9 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
           if (!displayVersion) {
             displayVersion = refreshedMsgs.find(
               (m) =>
-                m.parent_message_id === parentId
+                m.parentMessageId === parentId
                 && m.role === "assistant"
-                && m.model_id === firstModelId,
+                && m.modelId === firstModelId,
             ) ?? null;
           }
         }
@@ -385,23 +385,23 @@ export const useMultiModelStore = create<MultiModelState>((set, get) => ({
             return {
               messages: s.messages.reduce<typeof s.messages>((acc, m) => {
                 if (
-                  m.parent_message_id === parentId
+                  m.parentMessageId === parentId
                   && m.role === "assistant"
                 ) {
                   // Multi-model mode: keep ALL companion model outputs
                   // All of them are useful for side-by-side comparison
                   if (m.id === displayVersion.id) {
-                    acc.push({ ...m, is_active: true });
+                    acc.push({ ...m, isActive: true });
                   } else if (
                     completedMessageIds.includes(m.id)
-                    && m.provider_id
-                    && m.model_id
+                    && m.providerId
+                    && m.modelId
                   ) {
                     // All successfully completed multi-model variants are kept active
-                    acc.push({ ...m, is_active: true });
+                    acc.push({ ...m, isActive: true });
                   } else {
                     // Only deactivate old versions that are not part of the current run
-                    acc.push({ ...m, is_active: false });
+                    acc.push({ ...m, isActive: false });
                   }
                 } else {
                   acc.push(m);

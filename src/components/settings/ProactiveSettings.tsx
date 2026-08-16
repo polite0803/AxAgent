@@ -17,9 +17,9 @@ export function ProactiveSettings() {
   const settings = useSettingsStore((s) => s.settings);
   const saveSettings = useSettingsStore((s) => s.saveSettings);
 
-  const proactiveNudge = settings.proactive_nudge_enabled ?? true;
-  const closedLoop = settings.closed_loop_enabled ?? true;
-  const closedLoopInterval = settings.closed_loop_interval_minutes ?? 5;
+  const proactiveNudge = settings.proactiveNudgeEnabled ?? true;
+  const closedLoop = settings.closedLoopEnabled ?? true;
+  const closedLoopInterval = settings.closedLoopIntervalMinutes ?? 5;
 
   const rowStyle = { padding: "4px 0" };
 
@@ -39,7 +39,7 @@ export function ProactiveSettings() {
           </div>
           <Switch
             checked={proactiveNudge}
-            onChange={(next) => saveSettings({ proactive_nudge_enabled: next })}
+            onChange={(next) => saveSettings({ proactiveNudgeEnabled: next })}
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
@@ -56,7 +56,7 @@ export function ProactiveSettings() {
           </div>
           <Switch
             checked={closedLoop}
-            onChange={(next) => saveSettings({ closed_loop_enabled: next })}
+            onChange={(next) => saveSettings({ closedLoopEnabled: next })}
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
@@ -76,7 +76,7 @@ export function ProactiveSettings() {
               min={1}
               max={120}
               value={closedLoopInterval}
-              onChange={(val) => val != null && saveSettings({ closed_loop_interval_minutes: val })}
+              onChange={(val) => val != null && saveSettings({ closedLoopIntervalMinutes: val })}
               style={{ width: 72 }}
             />
             <span

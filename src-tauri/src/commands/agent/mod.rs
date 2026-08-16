@@ -241,6 +241,8 @@ fn parse_domain_str(s: &str) -> Option<ToolDomain> {
 /// `get_tool_count` 共享，保证筛选语义一致（禁区 12：禁止重复定义）。
 #[derive(Default)]
 pub(crate) struct ProfileToolContext {
+    /// 结构化 Agent 标识：AgentProfile 名称，供轨迹记录时标记执行来源
+    pub agent_name: Option<String>,
     /// 角色 + 专家合并的工具域（不含默认兜底的 General）
     pub active_domains: HashSet<ToolDomain>,
     /// 岗位（AgentRole）的 system_prompt
@@ -398,6 +400,9 @@ pub(crate) async fn resolve_profile_tool_context(
     ctx.recommended_tools = profile.recommended_tools;
     ctx.disallowed_tools = profile.disallowed_tools;
 
+    // 结构化 Agent 标识：轨迹记录时据此标记执行来源
+    ctx.agent_name = Some(profile.name.clone());
+
     Some(ctx)
 }
 
@@ -545,6 +550,7 @@ pub async fn agent_query(
         profile_recommended_tools,
         profile_disallowed_tools,
         profile_active_domains,
+        profile_agent_name,
     ) = if let Some(ref profile_id) = request.agent_profile_id {
         match resolve_profile_tool_context(&app_state, profile_id, request.expert_id.as_deref())
             .await
@@ -555,6 +561,7 @@ pub async fn agent_query(
                 ctx.recommended_tools,
                 ctx.disallowed_tools,
                 ctx.active_domains,
+                ctx.agent_name,
             ),
             None => Default::default(),
         }
@@ -1718,6 +1725,17 @@ pub async fn agent_query(
     let mut system_prompt = system_prompt;
     system_prompt.push(format!("<tauri-command-index>\n{}\n</tauri-command-index>", command_index));
 
+    // ── 注入认知编排模式（可选）──
+    // 当 agent 由认知编排器（Ask/Act/Delegate）触发时，透传当前编排模式使 agent 运行时
+    // 感知高层决策上下文；直连 agent（非认知编排）时缺省为 None，不注入此段。
+    if let Some(ref mode) = request.execution_mode {
+        if !mode.is_empty() {
+            system_prompt.push(format!(
+                "<cognitive-mode>\nYour current execution mode is: {mode}\n</cognitive-mode>"
+            ));
+        }
+    }
+
     // Attach image URLs to the API client for multimodal support
     let api_client = api_client.with_image_urls(image_urls);
 
@@ -1991,7 +2009,7 @@ pub async fn agent_query(
                             serde_json::json!({ "type": "tool_use", "id": id, "name": name, "input": input })
                         }
                         axagent_runtime::ContentBlock::ToolResult { tool_use_id, tool_name, output, is_error } => {
-                            serde_json::json!({ "type": "tool_result", "tool_use_id": tool_use_id, "tool_name": tool_name, "output": output, "is_error": is_error })
+                            serde_json::json!({ "type": "tool_result", "toolUseId": tool_use_id, "toolName": tool_name, "output": output, "isError": is_error })
                         }
                     })
                     .collect();
@@ -2307,6 +2325,10 @@ pub async fn agent_query(
                     (now.timestamp_millis() - start_time.timestamp_millis()).max(0) as u64,
                     steps,
                 );
+                // 结构化 agent 标识：记录该轨迹由哪个 Agent 执行（AgentProfile 名称）
+                if let Some(name) = &profile_agent_name {
+                    trajectory.agent_name = Some(name.clone());
+                }
 
                 // ★ P2-3: Scorecard 真实评分流程 — 先计算质量分
                 axagent_harness::trajectory_scorer::TrajectoryScorer::apply(&mut trajectory);

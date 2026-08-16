@@ -13,6 +13,7 @@ use crate::commands::spawn_guard::SpawnGuard;
 // ── Types ──
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExecutionStatusResponse {
     pub execution_id: String,
     pub workflow_id: String,
@@ -26,6 +27,7 @@ pub struct ExecutionStatusResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NodeRecordResponse {
     pub node_id: String,
     pub node_type: String,
@@ -643,16 +645,16 @@ pub async fn list_pending_approvals(
         .map(|r| {
             serde_json::to_value(serde_json::json!({
                 "id": r.id,
-                "execution_id": r.execution_id,
-                "node_id": r.node_id,
-                "workflow_id": "",
+                "executionId": r.execution_id,
+                "nodeId": r.node_id,
+                "workflowId": "",
                 "title": r.title,
                 "message": r.message,
                 "status": r.status,
                 "approver": r.approver,
-                "timeout_secs": r.timeout_secs,
-                "expires_at": r.expires_at,
-                "created_at": r.created_at,
+                "timeoutSecs": r.timeout_secs,
+                "expiresAt": r.expires_at,
+                "createdAt": r.created_at,
             }))
             .map_err(|e| {
                 String::from(crate::commands::error::ErrorResponse::from_error(

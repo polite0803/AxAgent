@@ -1,60 +1,60 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 export interface PlatformConfig {
-  telegram_enabled: boolean;
-  telegram_bot_token: string | null;
-  telegram_webhook_url: string | null;
-  telegram_webhook_secret: string | null;
-  telegram_allowed_users: number[] | null;
+  telegramEnabled: boolean;
+  telegramBotToken: string | null;
+  telegramWebhookUrl: string | null;
+  telegramWebhookSecret: string | null;
+  telegramAllowedUsers: number[] | null;
 
-  discord_enabled: boolean;
-  discord_bot_token: string | null;
-  discord_webhook_url: string | null;
-  discord_allowed_channels: string[] | null;
+  discordEnabled: boolean;
+  discordBotToken: string | null;
+  discordWebhookUrl: string | null;
+  discordAllowedChannels: string[] | null;
 
-  slack_enabled: boolean;
-  slack_bot_token: string | null;
-  slack_signing_secret: string | null;
-  slack_workspace_id: string | null;
-  slack_app_token: string | null;
+  slackEnabled: boolean;
+  slackBotToken: string | null;
+  slackSigningSecret: string | null;
+  slackWorkspaceId: string | null;
+  slackAppToken: string | null;
 
-  whatsapp_enabled: boolean;
-  whatsapp_phone_number_id: string | null;
-  whatsapp_access_token: string | null;
-  whatsapp_business_account_id: string | null;
-  whatsapp_webhook_verify_token: string | null;
-  whatsapp_api_version: string | null;
+  whatsappEnabled: boolean;
+  whatsappPhoneNumberId: string | null;
+  whatsappAccessToken: string | null;
+  whatsappBusinessAccountId: string | null;
+  whatsappWebhookVerifyToken: string | null;
+  whatsappApiVersion: string | null;
 
-  wechat_enabled: boolean;
-  wechat_app_id: string | null;
-  wechat_app_secret: string | null;
-  wechat_token: string | null;
-  wechat_encoding_aes_key: string | null;
-  wechat_original_id: string | null;
-  wechat_mode: string | null;
+  wechatEnabled: boolean;
+  wechatAppId: string | null;
+  wechatAppSecret: string | null;
+  wechatToken: string | null;
+  wechatEncodingAesKey: string | null;
+  wechatOriginalId: string | null;
+  wechatMode: string | null;
 
-  feishu_enabled: boolean;
-  feishu_app_id: string | null;
-  feishu_app_secret: string | null;
-  feishu_verification_token: string | null;
-  feishu_encrypt_key: string | null;
+  feishuEnabled: boolean;
+  feishuAppId: string | null;
+  feishuAppSecret: string | null;
+  feishuVerificationToken: string | null;
+  feishuEncryptKey: string | null;
 
-  qq_enabled: boolean;
-  qq_bot_app_id: string | null;
-  qq_bot_token: string | null;
-  qq_bot_secret: string | null;
+  qqEnabled: boolean;
+  qqBotAppId: string | null;
+  qqBotToken: string | null;
+  qqBotSecret: string | null;
 
-  dingtalk_enabled: boolean;
-  dingtalk_app_key: string | null;
-  dingtalk_app_secret: string | null;
-  dingtalk_agent_id: string | null;
-  dingtalk_robot_code: string | null;
+  dingtalkEnabled: boolean;
+  dingtalkAppKey: string | null;
+  dingtalkAppSecret: string | null;
+  dingtalkAgentId: string | null;
+  dingtalkRobotCode: string | null;
 
-  api_server_enabled: boolean;
-  api_server_port: number | null;
+  apiServerEnabled: boolean;
+  apiServerPort: number | null;
 
-  auto_sync_messages: boolean;
-  max_history_per_session: number;
+  autoSyncMessages: boolean;
+  maxHistoryPerSession: number;
 }
 
 export interface PlatformMeta {
@@ -69,35 +69,35 @@ export const ALL_PLATFORMS: PlatformMeta[] = [
     name: "telegram",
     label: "Telegram",
     icon: "✈️",
-    enabledKey: "telegram_enabled",
+    enabledKey: "telegramEnabled",
   },
   {
     name: "discord",
     label: "Discord",
     icon: "💬",
-    enabledKey: "discord_enabled",
+    enabledKey: "discordEnabled",
   },
-  { name: "slack", label: "Slack", icon: "💼", enabledKey: "slack_enabled" },
+  { name: "slack", label: "Slack", icon: "💼", enabledKey: "slackEnabled" },
   {
     name: "whatsapp",
     label: "WhatsApp",
     icon: "📱",
-    enabledKey: "whatsapp_enabled",
+    enabledKey: "whatsappEnabled",
   },
-  { name: "wechat", label: "WeChat", icon: "💚", enabledKey: "wechat_enabled" },
-  { name: "feishu", label: "Feishu", icon: "🐦", enabledKey: "feishu_enabled" },
-  { name: "qq", label: "QQ", icon: "🐧", enabledKey: "qq_enabled" },
+  { name: "wechat", label: "WeChat", icon: "💚", enabledKey: "wechatEnabled" },
+  { name: "feishu", label: "Feishu", icon: "🐦", enabledKey: "feishuEnabled" },
+  { name: "qq", label: "QQ", icon: "🐧", enabledKey: "qqEnabled" },
   {
     name: "dingtalk",
     label: "DingTalk",
     icon: "🔷",
-    enabledKey: "dingtalk_enabled",
+    enabledKey: "dingtalkEnabled",
   },
   {
     name: "api_server",
     label: "API Server",
     icon: "🔌",
-    enabledKey: "api_server_enabled",
+    enabledKey: "apiServerEnabled",
   },
 ];
 
@@ -105,24 +105,24 @@ export interface PlatformStatus {
   name: string;
   enabled: boolean;
   connected: boolean;
-  last_activity: number | null;
-  active_sessions: number;
+  lastActivity: number | null;
+  activeSessions: number;
 }
 
 export interface PlatformSession {
-  session_id: string;
+  sessionId: string;
   platform: string;
-  user_id: string;
+  userId: string;
   username: string | null;
-  is_active: boolean;
-  last_activity: number;
+  isActive: boolean;
+  lastActivity: number;
 }
 
 export interface OutgoingMessage {
   platform: string;
-  chat_id: string;
+  chatId: string;
   content: string;
-  parse_mode: string | null;
+  parseMode: string | null;
 }
 
 export interface PlatformReconcileReport {

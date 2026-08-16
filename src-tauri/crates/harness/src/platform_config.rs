@@ -7,6 +7,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PlatformConfig {
     pub telegram_enabled: bool,
     pub telegram_bot_token: Option<String>,

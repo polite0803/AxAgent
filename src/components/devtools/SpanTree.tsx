@@ -100,13 +100,13 @@ function SpanNode({ node, level, isSelected, onSelect, selectedSpanId, onSelectS
             </span>
           )
           : <span className="mr-1 w-3 inline-block" />}
-        <Tag color={getSpanTypeColor(node.span_type)} className="mr-2 text-xs">
-          {node.span_type.replace("_", " ")}
+        <Tag color={getSpanTypeColor(node.spanType)} className="mr-2 text-xs">
+          {node.spanType.replace("_", " ")}
         </Tag>
         <Text className="flex-1 truncate">{node.name}</Text>
-        <Tooltip title={`Duration: ${formatDuration(node.duration_ms)}`}>
+        <Tooltip title={`Duration: ${formatDuration(node.durationMs)}`}>
           <Text type="secondary" className="text-xs ml-2">
-            {formatDuration(node.duration_ms)}
+            {formatDuration(node.durationMs)}
           </Text>
         </Tooltip>
         {node.errors.length > 0 && (

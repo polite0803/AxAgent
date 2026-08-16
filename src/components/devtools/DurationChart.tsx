@@ -27,21 +27,21 @@ export function DurationChart({ metrics }: DurationChartProps) {
           <Col span={8}>
             <Statistic
               title={t("devtools.totalDuration")}
-              value={metrics.total_duration_ms}
+              value={metrics.totalDurationMs}
               formatter={(value) => formatDuration(Number(value))}
             />
           </Col>
           <Col span={8}>
             <Statistic
               title={t("devtools.spansCount")}
-              value={metrics.spans_count}
+              value={metrics.spansCount}
             />
           </Col>
           <Col span={8}>
             <Statistic
               title={t("devtools.avgPerSpan")}
-              value={metrics.spans_count > 0
-                ? metrics.total_duration_ms / metrics.spans_count
+              value={metrics.spansCount > 0
+                ? metrics.totalDurationMs / metrics.spansCount
                 : 0}
               formatter={(value) => formatDuration(Number(value))}
             />
@@ -49,10 +49,10 @@ export function DurationChart({ metrics }: DurationChartProps) {
         </Row>
       </Card>
 
-      {metrics.ttft_ms && (
+      {metrics.ttftMs && (
         <Card title={t("devtools.timeToFirstToken")} className="mt-4">
           <Statistic
-            value={metrics.ttft_ms}
+            value={metrics.ttftMs}
             formatter={(value) => formatDuration(Number(value))}
           />
         </Card>
@@ -63,14 +63,14 @@ export function DurationChart({ metrics }: DurationChartProps) {
           <Col span={12}>
             <div className="text-zinc-500 mb-1">{t("devtools.errorRate")}</div>
             <div className="text-2xl">
-              {metrics.spans_count > 0
-                ? `${((metrics.errors_count / metrics.spans_count) * 100).toFixed(1)}%`
+              {metrics.spansCount > 0
+                ? `${((metrics.errorsCount / metrics.spansCount) * 100).toFixed(1)}%`
                 : "0%"}
             </div>
           </Col>
           <Col span={12}>
             <div className="text-zinc-500 mb-1">{t("devtools.errorCount")}</div>
-            <div className="text-2xl text-red-500">{metrics.errors_count}</div>
+            <div className="text-2xl text-red-500">{metrics.errorsCount}</div>
           </Col>
         </Row>
       </Card>

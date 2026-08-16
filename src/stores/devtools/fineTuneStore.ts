@@ -7,61 +7,61 @@ export interface DatasetInfo {
   id: string;
   name: string;
   description: string;
-  num_samples: number;
-  created_at: string;
+  numSamples: number;
+  createdAt: string;
 }
 
 export interface TrainingJobInfo {
   id: string;
   status: string;
-  dataset_id: string;
-  base_model: string;
-  progress_percent: number;
-  current_loss: number;
-  output_lora: string | null;
+  datasetId: string;
+  baseModel: string;
+  progressPercent: number;
+  currentLoss: number;
+  outputLora: string | null;
 }
 
 export interface TrainingStats {
-  total_jobs: number;
-  completed_jobs: number;
-  running_jobs: number;
-  failed_jobs: number;
+  totalJobs: number;
+  completedJobs: number;
+  runningJobs: number;
+  failedJobs: number;
 }
 
 export interface BaseModelInfo {
-  model_id: string;
+  modelId: string;
   name: string;
   path: string;
-  size_gb: number;
-  context_length: number;
-  supports_lora: boolean;
+  sizeGb: number;
+  contextLength: number;
+  supportsLora: boolean;
 }
 
 export interface LoRAAdapterInfo {
-  adapter_id: string;
+  adapterId: string;
   name: string;
-  base_model: string;
-  lora_path: string;
+  baseModel: string;
+  loraPath: string;
   rank: number;
   alpha: number;
-  training_date: string;
-  performance_score: number;
+  trainingDate: string;
+  performanceScore: number;
 }
 
 export interface LoRAConfig {
   rank: number;
   alpha: number;
-  learning_rate: number;
-  batch_size: number;
+  learningRate: number;
+  batchSize: number;
   epochs: number;
 }
 
 // DT-P0-4: 与后端 ActiveModelConfig 对齐
 export interface ActiveModelInfo {
-  base_model: string;
-  lora_adapters: string[];
-  system_prompt?: string;
-  generation_params: unknown;
+  baseModel: string;
+  loraAdapters: string[];
+  systemPrompt?: string;
+  generationParams: unknown;
 }
 
 interface FineTuneState {
@@ -244,8 +244,8 @@ export const useFineTuneStore = create<FineTuneState>((set, get) => ({
         baseModel,
         rank: config.rank,
         alpha: config.alpha,
-        learningRate: config.learning_rate,
-        batchSize: config.batch_size,
+        learningRate: config.learningRate,
+        batchSize: config.batchSize,
         epochs: config.epochs,
       });
       set((state) => ({

@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 
 import { ModuleErrorBoundary } from "@/components/layout/ModuleErrorBoundary";
 import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
+import { translateBackendError } from "@/lib/errorI18n";
 import { logIpcError } from "@/lib/invoke";
 import {
   setupAgentEventListeners,
@@ -45,6 +46,7 @@ import { ClarifyCard } from "./ClarifyCard";
 import { CodeBlockPreviewModal } from "./CodeBlockPreviewModal";
 import { ContextBar, estimateConversationTokens } from "./ContextBar";
 import { ContextGraphPanel } from "./ContextGraphPanel";
+import { EvolutionConsentModal } from "./EvolutionConsentModal";
 import { ExtractMemoriesModal } from "./ExtractMemoriesModal";
 import { InputArea } from "./InputArea";
 import { PermissionModal } from "./PermissionModal";
@@ -153,9 +155,9 @@ function ChatViewInner({
     : false;
   const compressing = useCompressStore((s) => s.compressing);
   const settings = useSettingsStore((s) => s.settings);
-  const bubbleStyle = settings.bubble_style;
+  const bubbleStyle = settings.bubbleStyle;
   const providers = useProviderStore((s) => s.providers);
-  const isDarkMode = useResolvedDarkMode(settings.theme_mode);
+  const isDarkMode = useResolvedDarkMode(settings.themeMode);
   const storeError = useConversationStore((s) => s.error);
   const loadOlderMessages = useConversationStore((s) => s.loadOlderMessages);
   const streamingMessageId = useStreamStore((s) => s.streamingMessageId);
@@ -194,12 +196,12 @@ function ChatViewInner({
     lightTheme: codeBlockLightTheme,
     themes: codeBlockThemes,
   } = useMemo(
-    () => getChatCodeThemes(settings.code_theme, settings.code_theme_light),
-    [settings.code_theme, settings.code_theme_light],
+    () => getChatCodeThemes(settings.codeTheme, settings.codeThemeLight),
+    [settings.codeTheme, settings.codeThemeLight],
   );
 
-  const bubbleListThemeKey = `bubble-list:${isDarkMode ? "dark" : "light"}:${settings.code_theme ?? ""}:${
-    settings.code_theme_light ?? ""
+  const bubbleListThemeKey = `bubble-list:${isDarkMode ? "dark" : "light"}:${settings.codeTheme ?? ""}:${
+    settings.codeThemeLight ?? ""
   }`;
 
   useEffect(() => {
@@ -255,7 +257,7 @@ function ChatViewInner({
 
   useEffect(() => {
     if (storeError) {
-      messageApi.error(storeError);
+      messageApi.error(translateBackendError(storeError));
       useConversationStore.setState({ error: null });
     }
   }, [storeError, messageApi]);
@@ -295,9 +297,7 @@ function ChatViewInner({
     activeConversationId,
     activeConversation,
     messages,
-    bubbleListRef,
     messageAreaRef,
-    loadOlderMessages,
   });
 
   const contextBarModel = useMemo(() => {
@@ -305,14 +305,14 @@ function ChatViewInner({
       return null;
     }
     const provider = providers.find(
-      (p) => p.id === activeConversation.provider_id,
+      (p) => p.id === activeConversation.providerId,
     );
     const model = provider?.models.find(
-      (m) => m.model_id === activeConversation.model_id,
+      (m) => m.modelId === activeConversation.modelId,
     );
     return {
-      name: model?.name ?? activeConversation.model_id,
-      maxTokens: model?.max_tokens ?? activeConversation.max_tokens ?? undefined,
+      name: model?.name ?? activeConversation.modelId,
+      maxTokens: model?.maxTokens ?? activeConversation.maxTokens ?? undefined,
     };
   }, [activeConversation, providers]);
 
@@ -361,7 +361,7 @@ function ChatViewInner({
   }, [scroll.minimapScrollTo, scroll.scrollBoxRef]);
 
   const activeMessages = useMemo(
-    () => messages.filter((msg) => msg.is_active !== false),
+    () => messages.filter((msg) => msg.isActive !== false),
     [messages],
   );
 
@@ -413,10 +413,10 @@ function ChatViewInner({
       {contextBarModel && (
         <ContextBar
           modelName={contextBarModel.name}
-          searchEnabled={activeConversation?.search_enabled ?? false}
+          searchEnabled={activeConversation?.searchEnabled ?? false}
           toolCount={actions.toolCount}
-          knowledgeCount={activeConversation?.enabled_knowledge_base_ids?.length ?? 0}
-          memoryEnabled={(activeConversation?.enabled_memory_namespace_ids?.length ?? 0) > 0}
+          knowledgeCount={activeConversation?.enabledKnowledgeBaseIds?.length ?? 0}
+          memoryEnabled={(activeConversation?.enabledMemoryNamespaceIds?.length ?? 0) > 0}
           tokenUsed={tokenUsed > 0 ? tokenUsed : undefined}
           tokenMax={contextBarModel.maxTokens}
           mode={activeConversation?.mode}
@@ -435,23 +435,23 @@ function ChatViewInner({
       {activeConversationId && messages.length > 0
         && (() => {
           const ctxProvider = providers.find(
-            (p) => p.id === activeConversation?.provider_id,
+            (p) => p.id === activeConversation?.providerId,
           );
           const ctxModel = ctxProvider?.models.find(
-            (m) => m.model_id === activeConversation?.model_id,
+            (m) => m.modelId === activeConversation?.modelId,
           );
           return (
             <div style={{ padding: "0 16px", flexShrink: 0 }}>
               <ContextGraphPanel
                 conversationTitle={activeConversation?.title}
                 conversationId={activeConversationId}
-                modelName={ctxModel?.name ?? activeConversation?.model_id}
+                modelName={ctxModel?.name ?? activeConversation?.modelId}
                 providerName={ctxProvider?.name}
-                knowledgeBaseIds={activeConversation?.enabled_knowledge_base_ids ?? []}
-                memoryNamespaceIds={activeConversation?.enabled_memory_namespace_ids ?? []}
-                mcpServerIds={activeConversation?.enabled_mcp_server_ids ?? []}
-                searchEnabled={activeConversation?.search_enabled ?? false}
-                enabledSkillIds={activeConversation?.enabled_skill_ids ?? []}
+                knowledgeBaseIds={activeConversation?.enabledKnowledgeBaseIds ?? []}
+                memoryNamespaceIds={activeConversation?.enabledMemoryNamespaceIds ?? []}
+                mcpServerIds={activeConversation?.enabledMcpServerIds ?? []}
+                searchEnabled={activeConversation?.searchEnabled ?? false}
+                enabledSkillIds={activeConversation?.enabledSkillIds ?? []}
               />
             </div>
           );
@@ -507,8 +507,8 @@ function ChatViewInner({
                 style={{
                   flex: "1 1 0%",
                   minHeight: 0,
-                  padding: settings.chat_minimap_enabled
-                      && settings.chat_minimap_style === "sticky"
+                  padding: settings.chatMinimapEnabled
+                      && settings.chatMinimapStyle === "sticky"
                     ? "40px 16px 8px 16px"
                     : "8px 16px",
                   overflowX: "hidden",
@@ -634,6 +634,7 @@ function ChatViewInner({
 
       <PermissionModal />
       <PlanApprovalModal />
+      <EvolutionConsentModal />
       {filePermRequest && (
         <FilePermissionDialog
           open={filePermDialogOpen}

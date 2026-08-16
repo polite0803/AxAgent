@@ -2953,7 +2953,8 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
             test_embedding,
             test_capability_indexer_impl.clone(),
         ));
-    let test_workflow_graph = Arc::new(axagent_harness::WorkflowGraph::new());
+    let test_workflow_graph =
+        Arc::new(tokio::sync::RwLock::new(axagent_harness::WorkflowGraph::new()));
     let test_cognitive_router: Arc<dyn axagent_harness::CognitiveRouter> =
         Arc::new(axagent_harness::DefaultCognitiveRouter::new(
             test_domain_router,
@@ -2986,6 +2987,9 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         agent_always_allowed: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
         agent_prompters: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
         agent_plan_approvals: Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new())),
+        evolution_consent_senders: Arc::new(tokio::sync::Mutex::new(
+            std::collections::HashMap::new(),
+        )),
         agent_session_manager: {
             let repo: Arc<dyn AgentSessionRepository> =
                 Arc::new(DaoAgentSessionRepository::new(Arc::new(db.clone())));
@@ -3067,6 +3071,9 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
             ),
         ),
         user_profile: Arc::new(tokio::sync::RwLock::new(axagent_trajectory::UserProfile::new())),
+        evolution_execution_stats: Arc::new(tokio::sync::Mutex::new(
+            std::collections::HashMap::new(),
+        )),
         local_tool_registry: Arc::new(tokio::sync::Mutex::new(
             axagent_tools::registry::UnifiedToolRegistry::new(),
         )),

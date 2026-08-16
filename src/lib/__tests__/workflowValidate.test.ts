@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { WorkflowEdge, WorkflowNode } from "@/components/workflow/types";
-import { suggest_title, validate_workflow } from "@/lib/workflowLayout";
+import { suggestTitle, validateWorkflow } from "@/lib/workflowLayout";
 import type { ValidateIssue } from "@/lib/workflowLayout";
 
 // ── 工厂函数 ──────────────────────────────────────────────────
@@ -41,7 +41,7 @@ function findIssues(issues: ValidateIssue[], rule: string): ValidateIssue[] {
 
 // ── 测试 ──────────────────────────────────────────────────────
 
-describe("validate_workflow", () => {
+describe("validateWorkflow", () => {
   // ================================================================
   // 规则 1：孤立节点（非 trigger、非容器，入=出=0）
   // ================================================================
@@ -49,14 +49,14 @@ describe("validate_workflow", () => {
     it("正常链路无孤立节点", () => {
       const nodes = [n("a", "trigger"), n("b", "agent"), n("c", "end")];
       const edges = [e("e1", "a", "b"), e("e2", "b", "c")];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       expect(findIssues(result.issues, "orphan_node")).toHaveLength(0);
     });
 
     it("孤立 agent 节点被检出", () => {
       const nodes = [n("a", "trigger"), n("b", "agent")];
       const edges = [e("e1", "a", "b")];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       // 'b' 有入度，不应检出
       expect(findIssues(result.issues, "orphan_node")).toHaveLength(0);
     });
@@ -64,7 +64,7 @@ describe("validate_workflow", () => {
     it("独立未连接节点（非 trigger）被检出", () => {
       const nodes = [n("trigger-1", "trigger"), n("orphan", "llm")];
       const edges: WorkflowEdge[] = [];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       const issues = findIssues(result.issues, "orphan_node");
       expect(issues).toHaveLength(1);
       expect(issues[0].nodeIds).toContain("orphan");
@@ -73,7 +73,7 @@ describe("validate_workflow", () => {
     it("孤立 tool 节点也被检出", () => {
       const nodes = [n("t1", "tool"), n("t2", "code")];
       const edges: WorkflowEdge[] = [];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       const issues = findIssues(result.issues, "orphan_node");
       expect(issues).toHaveLength(2);
     });
@@ -81,7 +81,7 @@ describe("validate_workflow", () => {
     it("trigger 节点即使孤立也不报错", () => {
       const nodes = [n("tr", "trigger")];
       const edges: WorkflowEdge[] = [];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       expect(findIssues(result.issues, "orphan_node")).toHaveLength(0);
     });
   });
@@ -98,7 +98,7 @@ describe("validate_workflow", () => {
         e("e3", "c", "agg"),
         e("e4", "d", "agg"),
       ];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       const issues = findIssues(result.issues, "data_blackhole");
       expect(issues).toHaveLength(1);
       expect(issues[0].nodeIds).toContain("agg");
@@ -119,14 +119,14 @@ describe("validate_workflow", () => {
         e("e3", "c", "agg"),
         e("e4", "agg", "out"),
       ];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       expect(findIssues(result.issues, "data_blackhole")).toHaveLength(0);
     });
 
     it("aggregator 入度<3 不报错", () => {
       const nodes = [n("a", "agent"), n("agg", "aggregator")];
       const edges = [e("e1", "a", "agg")];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       expect(findIssues(result.issues, "data_blackhole")).toHaveLength(0);
     });
   });
@@ -138,7 +138,7 @@ describe("validate_workflow", () => {
     it("有子节点的 parallel 调度容器被检出（error）", () => {
       const nodes = [n("p", "parallel"), n("child", "agent", "p")];
       const edges: WorkflowEdge[] = [];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       const issues = findIssues(result.issues, "dead_branch");
       expect(issues).toHaveLength(1);
       expect(issues[0].severity).toBe("error");
@@ -148,7 +148,7 @@ describe("validate_workflow", () => {
     it("无子节点的 parallel 装饰容器被检出（warning）", () => {
       const nodes = [n("p", "parallel")];
       const edges: WorkflowEdge[] = [];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       const issues = findIssues(result.issues, "dead_branch");
       expect(issues).toHaveLength(1);
       expect(issues[0].severity).toBe("warning");
@@ -158,14 +158,14 @@ describe("validate_workflow", () => {
     it("有连接的 container 不报错", () => {
       const nodes = [n("tr", "trigger"), n("p", "parallel"), n("end", "end")];
       const edges = [e("e1", "tr", "p"), e("e2", "p", "end")];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       expect(findIssues(result.issues, "dead_branch")).toHaveLength(0);
     });
 
     it("loop 和 debate 死分支也被检出", () => {
       const nodes = [n("lp", "loop"), n("db", "debate")];
       const edges: WorkflowEdge[] = [];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       expect(findIssues(result.issues, "dead_branch")).toHaveLength(2);
     });
   });
@@ -180,7 +180,7 @@ describe("validate_workflow", () => {
         e("e1", "tr", "c"),
         e("e2", "c", "a", "false"),
       ];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       const issues = findIssues(result.issues, "unconnected_port");
       expect(issues).toHaveLength(1);
       expect(issues[0].nodeIds).toContain("c");
@@ -194,7 +194,7 @@ describe("validate_workflow", () => {
         e("e1", "tr", "c"),
         e("e2", "c", "a", "true"),
       ];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       const issues = findIssues(result.issues, "unconnected_port");
       expect(issues).toHaveLength(1);
       expect(issues[0].message).toContain("false");
@@ -203,7 +203,7 @@ describe("validate_workflow", () => {
     it("condition 双端口均未连被检出", () => {
       const nodes = [n("tr", "trigger"), n("c", "condition")];
       const edges = [e("e1", "tr", "c")];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       const issues = findIssues(result.issues, "unconnected_port");
       expect(issues).toHaveLength(1);
       expect(issues[0].message).toContain("true");
@@ -217,7 +217,7 @@ describe("validate_workflow", () => {
         e("e2", "c", "t", "true"),
         e("e3", "c", "f", "false"),
       ];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       expect(findIssues(result.issues, "unconnected_port")).toHaveLength(0);
     });
   });
@@ -229,7 +229,7 @@ describe("validate_workflow", () => {
     it("简单环路无断路条件被检出", () => {
       const nodes = [n("a", "agent"), n("b", "agent"), n("c", "agent")];
       const edges = [e("e1", "a", "b"), e("e2", "b", "c"), e("e3", "c", "a")];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       const issues = findIssues(result.issues, "cycle_no_exit");
       expect(issues).toHaveLength(1);
       expect(issues[0].severity).toBe("error");
@@ -243,14 +243,14 @@ describe("validate_workflow", () => {
         e("e1", "a", "b"),
         e("e2", "b", "a", "loopBack", "loopBack"),
       ];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       expect(findIssues(result.issues, "cycle_no_exit")).toHaveLength(0);
     });
 
     it("无环路不报错", () => {
       const nodes = [n("tr", "trigger"), n("a", "agent"), n("end", "end")];
       const edges = [e("e1", "tr", "a"), e("e2", "a", "end")];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       expect(findIssues(result.issues, "cycle_no_exit")).toHaveLength(0);
     });
   });
@@ -262,7 +262,7 @@ describe("validate_workflow", () => {
     it("自环边被检出", () => {
       const nodes = [n("a", "agent")];
       const edges = [e("sl", "a", "a")];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       const issues = findIssues(result.issues, "self_loop");
       expect(issues).toHaveLength(1);
       expect(issues[0].nodeIds).toContain("a");
@@ -273,7 +273,7 @@ describe("validate_workflow", () => {
     it("正常边不报错", () => {
       const nodes = [n("a", "agent"), n("b", "agent")];
       const edges = [e("e1", "a", "b")];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       expect(findIssues(result.issues, "self_loop")).toHaveLength(0);
     });
   });
@@ -283,7 +283,7 @@ describe("validate_workflow", () => {
   // ================================================================
   describe("Edge cases", () => {
     it("空输入返回 valid", () => {
-      const result = validate_workflow([], []);
+      const result = validateWorkflow([], []);
       expect(result.valid).toBe(true);
       expect(result.issues).toHaveLength(0);
     });
@@ -295,7 +295,7 @@ describe("validate_workflow", () => {
         e("e1", "a", "b"),
         e("sl", "a", "a", undefined, "grouping"),
       ];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       expect(findIssues(result.issues, "self_loop")).toHaveLength(0);
       // 正常边存在，不被视为孤立
       expect(findIssues(result.issues, "orphan_node")).toHaveLength(0);
@@ -305,7 +305,7 @@ describe("validate_workflow", () => {
       // 仅通过 grouping 边连接 → 节点仍被视为孤立
       const nodes = [n("tr", "trigger"), n("a", "agent")];
       const edges = [e("e1", "tr", "a", undefined, "grouping")];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       // agent 只有 grouping 边，应被认定为孤立
       expect(findIssues(result.issues, "orphan_node")).toHaveLength(1);
     });
@@ -313,7 +313,7 @@ describe("validate_workflow", () => {
     it("带 end 节点的完整链路全部通过", () => {
       const nodes = [n("tr", "trigger"), n("a", "agent"), n("e", "end")];
       const edges = [e("e1", "tr", "a"), e("e2", "a", "e")];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       expect(result.valid).toBe(true);
     });
 
@@ -321,7 +321,7 @@ describe("validate_workflow", () => {
       // 同时：孤立节点 + 自环边 + condition 缺端口
       const nodes = [n("tr", "trigger"), n("orphan", "llm"), n("c", "condition")];
       const edges = [e("sl", "c", "c")];
-      const result = validate_workflow(nodes, edges);
+      const result = validateWorkflow(nodes, edges);
       expect(result.valid).toBe(false);
       expect(findIssues(result.issues, "orphan_node")).toHaveLength(1);
       expect(findIssues(result.issues, "self_loop")).toHaveLength(1);
@@ -339,7 +339,7 @@ describe("validate_workflow", () => {
         { ...n("a2", "agent"), title: "获取数据" },
         { ...n("a3", "tool"), title: "获取数据" },
       ];
-      const result = validate_workflow(nodes, []);
+      const result = validateWorkflow(nodes, []);
       const issues = findIssues(result.issues, "duplicate_title");
       // agent 有 2 个重复"获取数据"，tool 只有 1 个不重复
       expect(issues).toHaveLength(1);
@@ -352,7 +352,7 @@ describe("validate_workflow", () => {
         { ...n("a1", "agent"), title: "获取数据" },
         { ...n("t1", "tool"), title: "获取数据" },
       ];
-      const result = validate_workflow(nodes, []);
+      const result = validateWorkflow(nodes, []);
       expect(findIssues(result.issues, "duplicate_title")).toHaveLength(0);
     });
 
@@ -361,34 +361,34 @@ describe("validate_workflow", () => {
         { ...n("a1", "agent"), title: "" },
         { ...n("a2", "agent"), title: "" },
       ];
-      const result = validate_workflow(nodes, []);
+      const result = validateWorkflow(nodes, []);
       expect(findIssues(result.issues, "duplicate_title")).toHaveLength(0);
     });
   });
 });
 
-// ── suggest_title 测试 ──────────────────────────────────────
-describe("suggest_title", () => {
+// ── suggestTitle 测试 ──────────────────────────────────────
+describe("suggestTitle", () => {
   it("get-market-data → 获取行情数据", () => {
-    expect(suggest_title("get-market-data", "tool")).toBe("获取行情数据");
+    expect(suggestTitle("get-market-data", "tool")).toBe("获取行情数据");
   });
 
   it("fetch-user-order → 获取用户订单", () => {
-    expect(suggest_title("fetch-user-order", "agent")).toBe("获取用户订单");
+    expect(suggestTitle("fetch-user-order", "agent")).toBe("获取用户订单");
   });
 
   it("parse-kline → 解析K线", () => {
-    expect(suggest_title("parse-kline", "tool")).toBe("解析K线");
+    expect(suggestTitle("parse-kline", "tool")).toBe("解析K线");
   });
 
   it("短ID回退到 type+ID", () => {
-    const result = suggest_title("node-5", "agent");
+    const result = suggestTitle("node-5", "agent");
     expect(result).toContain("Agent");
     expect(result).toContain("node-5");
   });
 
   it("无分隔符的ID只用type+ID", () => {
-    const result = suggest_title("myagent", "agent");
+    const result = suggestTitle("myagent", "agent");
     expect(result).toContain("myagent");
   });
 });
@@ -399,7 +399,7 @@ describe("Rule 8 — workflow_ref", () => {
     const nodes = [
       { ...n("r1", "workflowRef"), config: { target_workflow_id: "" } },
     ];
-    const result = validate_workflow(nodes, []);
+    const result = validateWorkflow(nodes, []);
     const issues = findIssues(result.issues, "workflow_ref_empty");
     expect(issues).toHaveLength(1);
     expect(issues[0].nodeIds).toContain("r1");
@@ -414,7 +414,7 @@ describe("Rule 8 — workflow_ref", () => {
         data: { templateId: "wf-1" },
       },
     ];
-    const result = validate_workflow(nodes, []);
+    const result = validateWorkflow(nodes, []);
     const issues = findIssues(result.issues, "workflow_ref_self");
     expect(issues).toHaveLength(1);
     expect(issues[0].nodeIds).toContain("r1");
@@ -432,7 +432,7 @@ describe("Rule 8 — workflow_ref", () => {
         config: { target_workflow_id: "wf-target" },
       },
     ];
-    const result = validate_workflow(nodes, []);
+    const result = validateWorkflow(nodes, []);
     const issues = findIssues(result.issues, "workflow_ref_depth");
     // 2 个节点指向同一目标，产生 1 对冲突
     expect(issues.length).toBeGreaterThanOrEqual(1);
@@ -447,7 +447,7 @@ describe("Rule 8 — workflow_ref", () => {
         data: { templateId: "wf-self" },
       },
     ];
-    const result = validate_workflow(nodes, []);
+    const result = validateWorkflow(nodes, []);
     expect(findIssues(result.issues, "workflow_ref_empty")).toHaveLength(0);
     expect(findIssues(result.issues, "workflow_ref_self")).toHaveLength(0);
   });

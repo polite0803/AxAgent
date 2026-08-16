@@ -66,11 +66,11 @@ export function createEventMethods(
             return; // cancelled
           }
           const {
-            conversation_id,
-            message_id,
+            conversationId: conversation_id,
+            messageId: message_id,
             chunk,
-            model_id: evt_model_id,
-            provider_id: evt_provider_id,
+            modelId: evt_model_id,
+            providerId: evt_provider_id,
           } = event.payload;
 
           if (typeof conversation_id !== "string" || !conversation_id) {
@@ -78,7 +78,7 @@ export function createEventMethods(
           }
 
           if (chunk.done) {
-            if (chunk.is_final === false) {
+            if (chunk.isFinal === false) {
               // Append any remaining content in the done chunk (e.g. closing </think> tag)
               if (chunk.content) {
                 appendStreamChunk(
@@ -138,7 +138,7 @@ export function createEventMethods(
                 const updated: Partial<ConversationState> = {};
                 updated.conversations = s.conversations.map((c) =>
                   c.id === conversation_id
-                    ? { ...c, message_count: c.message_count + 1 }
+                    ? { ...c, messageCount: c.messageCount + 1 }
                     : c
                 );
                 // Update completed message status to prevent "主动停止" tag
@@ -202,7 +202,7 @@ export function createEventMethods(
             set((s) => ({
               conversations: s.conversations.map((c) =>
                 c.id === conversation_id
-                  ? { ...c, message_count: c.message_count + 1 }
+                  ? { ...c, messageCount: c.messageCount + 1 }
                   : c
               ),
               // Update completed message status immediately to prevent "主动停止" tag flash
@@ -325,8 +325,8 @@ export function createEventMethods(
             return; // cancelled
           }
           const {
-            conversation_id,
-            message_id,
+            conversationId: conversation_id,
+            messageId: message_id,
             error: errMsg,
           } = event.payload;
 

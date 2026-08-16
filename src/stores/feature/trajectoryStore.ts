@@ -32,7 +32,7 @@ export const useTrajectoryStore = create<TrajectoryStore>((set, get) => ({
     set({ loadingList: true });
     try {
       const result = await invoke<TrajectorySummary[]>("trajectory_list", {
-        sessionId: conversationId,
+        session_id: conversationId,
         limit: 20,
       });
       set((s) => ({
@@ -58,7 +58,7 @@ export const useTrajectoryStore = create<TrajectoryStore>((set, get) => ({
     }));
     try {
       const result = await invoke<TrajectoryDetail>("get_trajectory_detail", {
-        trajectoryId,
+        trajectory_id: trajectoryId,
       });
       set((s) => ({
         trajectoryDetails: { ...s.trajectoryDetails, [trajectoryId]: result },

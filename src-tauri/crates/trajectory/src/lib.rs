@@ -40,6 +40,8 @@ mod context_predictor;
 #[allow(dead_code)]
 mod dream_consolidation;
 mod dream_data_provider;
+#[allow(dead_code)]
+mod evidence;
 mod fts5;
 mod insight;
 mod intrinsic_reward;
@@ -184,6 +186,10 @@ pub use skill_decomposition::{
 
 pub use skill_evolution::SkillEvolutionEngine;
 
+pub use evidence::{
+    DecisionEvidence, EvidenceOutcome, EvolutionDecider, EvolutionDecision, SkillPosterior,
+};
+
 pub use skill_proposal::SkillProposalService;
 
 pub use skills_hub_adapter::SkillsHubAdapter;
@@ -214,7 +220,7 @@ pub use suggestion_engine::SuggestionEngine;
 
 pub use task_prefetcher::{PrefetchResult, PrefetchResults, PrefetchType, TaskPrefetcher};
 
-pub use text_grad::{ComputationGraph, TextGradConfig, TextGradEngine};
+pub use text_grad::{ComputationGraph, ComputationNode, NodeType, TextGradConfig, TextGradEngine};
 
 pub use trajectory::{
     ExportFormat, MessageRole, RLTrainingEntry, ToolCall, Trajectory, TrajectoryExportOptions,

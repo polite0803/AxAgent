@@ -45,7 +45,7 @@ export function GatewayKeys() {
     return keys.filter(
       (k) =>
         k.name.toLowerCase().includes(lower)
-        || k.key_prefix.toLowerCase().includes(lower),
+        || k.keyPrefix.toLowerCase().includes(lower),
     );
   }, [keys, searchText]);
 
@@ -56,7 +56,7 @@ export function GatewayKeys() {
     setCreating(true);
     try {
       const result = await createKey(keyName.trim());
-      setCreatedKey(result.plain_key);
+      setCreatedKey(result.plainKey);
       setKeyName("");
     } catch (e) {
       showBackendError(message, e);
@@ -118,7 +118,7 @@ export function GatewayKeys() {
       width: 100,
       render: (_: unknown, record: GatewayKey) => (
         <div style={{ display: "flex", gap: 4 }}>
-          {record.has_encrypted_key && (
+          {record.hasEncryptedKey && (
             <CopyButton
               text={async () => decryptKey(record.id)}
               size={14}

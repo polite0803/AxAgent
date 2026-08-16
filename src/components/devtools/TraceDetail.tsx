@@ -47,10 +47,10 @@ export function TraceDetail() {
     if (selectedTrace) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setStartedAtFormatted(
-        new Date(selectedTrace.summary.started_at).toLocaleString(),
+        new Date(selectedTrace.summary.startedAt).toLocaleString(),
       );
     }
-  }, [selectedTrace?.summary.started_at, selectedTrace]);
+  }, [selectedTrace?.summary.startedAt, selectedTrace]);
 
   if (!selectedTrace) {
     return null;
@@ -59,7 +59,7 @@ export function TraceDetail() {
   const { trace, summary } = selectedTrace;
 
   const handleExport = (format: "json" | "csv") => {
-    exportTrace(trace.trace_id, format);
+    exportTrace(trace.traceId, format);
   };
 
   return (
@@ -68,10 +68,10 @@ export function TraceDetail() {
         <div className="flex justify-between items-center mb-4">
           <div>
             <Text strong className="text-lg">
-              Trace: {trace.trace_id.slice(0, 8)}...
+              Trace: {trace.traceId.slice(0, 8)}...
             </Text>
             <Text type="secondary" className="ml-2">
-              Session: {summary.session_id}
+              Session: {summary.sessionId}
             </Text>
           </div>
           <Space>
@@ -89,14 +89,14 @@ export function TraceDetail() {
             <Card size="small">
               <Descriptions column={1} size="small">
                 <Descriptions.Item label={t("devtools.duration")}>
-                  {formatDuration(summary.duration_ms)}
+                  {formatDuration(summary.durationMs)}
                 </Descriptions.Item>
                 <Descriptions.Item label={t("devtools.spansCount")}>
-                  {summary.span_count}
+                  {summary.spanCount}
                 </Descriptions.Item>
                 <Descriptions.Item label={t("devtools.errorCount")}>
-                  <Tag color={summary.error_count > 0 ? "red" : "green"}>
-                    {summary.error_count}
+                  <Tag color={summary.errorCount > 0 ? "red" : "green"}>
+                    {summary.errorCount}
                   </Tag>
                 </Descriptions.Item>
               </Descriptions>
@@ -109,10 +109,10 @@ export function TraceDetail() {
                   {trace.metadata.model}
                 </Descriptions.Item>
                 <Descriptions.Item label={t("devtools.totalTokens")}>
-                  {formatTokens(trace.metadata.total_tokens)}
+                  {formatTokens(trace.metadata.totalTokens)}
                 </Descriptions.Item>
                 <Descriptions.Item label={t("devtools.cost")}>
-                  {formatCny(trace.metadata.total_cost_usd, 4)}
+                  {formatCny(trace.metadata.totalCostUsd, 4)}
                 </Descriptions.Item>
               </Descriptions>
             </Card>
@@ -121,10 +121,10 @@ export function TraceDetail() {
             <Card size="small">
               <Descriptions column={1} size="small">
                 <Descriptions.Item label={t("traceDetail.userId")}>
-                  {trace.metadata.user_id}
+                  {trace.metadata.userId}
                 </Descriptions.Item>
                 <Descriptions.Item label={t("devtools.agentVersion")}>
-                  {trace.metadata.agent_version}
+                  {trace.metadata.agentVersion}
                 </Descriptions.Item>
                 <Descriptions.Item label={t("devtools.startedAt")}>
                   {startedAtFormatted}
@@ -137,13 +137,13 @@ export function TraceDetail() {
               {metrics && (
                 <Descriptions column={1} size="small">
                   <Descriptions.Item label={t("devtools.inputTokens")}>
-                    {formatTokens(metrics.cost.input_tokens)}
+                    {formatTokens(metrics.cost.inputTokens)}
                   </Descriptions.Item>
                   <Descriptions.Item label={t("devtools.outputTokens")}>
-                    {formatTokens(metrics.cost.output_tokens)}
+                    {formatTokens(metrics.cost.outputTokens)}
                   </Descriptions.Item>
                   <Descriptions.Item label={t("devtools.cacheRead")}>
-                    {formatTokens(metrics.cost.cache_read_tokens)}
+                    {formatTokens(metrics.cost.cacheReadTokens)}
                   </Descriptions.Item>
                 </Descriptions>
               )}

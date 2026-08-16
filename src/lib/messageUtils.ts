@@ -34,7 +34,7 @@ export function mergePreservedMessages(
   }
 
   return Array.from(merged.values()).sort(
-    (left, right) => left.created_at - right.created_at || left.id.localeCompare(right.id),
+    (left, right) => left.createdAt - right.createdAt || left.id.localeCompare(right.id),
   );
 }
 
@@ -50,6 +50,6 @@ export function mergeOlderPages(
     merged.set(message.id, message);
   }
   return Array.from(merged.values()).sort(
-    (left, right) => left.created_at - right.created_at || left.id.localeCompare(right.id),
+    (left, right) => left.createdAt - right.createdAt || left.id.localeCompare(right.id),
   );
 }

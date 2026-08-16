@@ -23,16 +23,16 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import "@xyflow/react/dist/style.css";
 import { invoke, isTauri, logIpcError } from "@/lib/invoke";
 import {
-  auto_layout,
+  autoLayout,
   autoLayoutWorkflow,
   type AutoNode,
-  find_safe_position,
+  findSafePosition,
   getNodeSize,
   type NodePositionLike,
   toAbsolutePosition,
   toRelativePosition,
-  validate_workflow,
-  would_create_cycle,
+  validateWorkflow,
+  wouldCreateCycle,
 } from "@/lib/workflowLayout";
 import { useWorkflowEditorStore } from "@/stores";
 
@@ -506,7 +506,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         .filter((e) => !edgesRef.current.some((er) => er.id === e.id))
         .map((e) => ({ source: e.source, target: e.target }));
       const allEdges = [...currentEdges, ...pendingEdges];
-      const wouldCycle = would_create_cycle(
+      const wouldCycle = wouldCreateCycle(
         allEdges,
         params.source,
         params.target,
@@ -859,7 +859,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     }
 
     // 前端结构校验：error 级别阻塞保存，warning 级别仅提示
-    const frontendIssues = validate_workflow(nodes, cleanedEdges, t);
+    const frontendIssues = validateWorkflow(nodes, cleanedEdges, t);
     const frontendErrors = frontendIssues.issues.filter((i) => i.severity === "error");
     const frontendWarnings = frontendIssues.issues.filter((i) => i.severity === "warning");
     if (frontendErrors.length > 0) {
@@ -1491,7 +1491,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             y: n.position.y,
             type: (n.data?.type as string) || n.type || "",
           }));
-        const safePos = find_safe_position({ x: node.position.x, y: node.position.y }, nodeType, siblings);
+        const safePos = findSafePosition({ x: node.position.x, y: node.position.y }, nodeType, siblings);
         storePos = safePos;
         rfPos = safePos;
         newParentId = undefined;
@@ -1635,14 +1635,14 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     const layoutEdges = reactFlowEdges.filter(
       (e) => (e.data as { edgeType?: string } | undefined)?.edgeType !== "grouping",
     );
-    // 使用新的 auto_layout（按 type 分层 + Barycenter 启发式）
-    const layoutedNodes = auto_layout(
+    // 使用新的 autoLayout（按 type 分层 + Barycenter 启发式）
+    const layoutedNodes = autoLayout(
       reactFlowNodes as unknown as AutoNode[], // SAFE: ReactFlow Node to AutoNode for layout engine — both carry position/id/type
       layoutEdges,
       parentRefs,
     );
-    // auto_layout 返回值：所有节点 position = 绝对坐标
-    // ReactFlow setRNodes 需要子节点为相对坐标，但 auto_layout 返回绝对坐标
+    // autoLayout 返回值：所有节点 position = 绝对坐标
+    // ReactFlow setRNodes 需要子节点为相对坐标，但 autoLayout 返回绝对坐标
     // 所以需要将子节点转为相对坐标给 ReactFlow，同时存绝对坐标到 store
     skipPositionWriteRef.current = true;
     const rfNodes = layoutedNodes.map((n) => {
@@ -1701,7 +1701,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             sourceHandle: e.sourceHandle as string | undefined,
             targetHandle: e.targetHandle as string | undefined,
           }));
-          const subLayouted = auto_layout(rfSubNodes, rfSubEdges);
+          const subLayouted = autoLayout(rfSubNodes, rfSubEdges);
           const updatedSubNodes: Array<Record<string, unknown>> = subNodes.map((n) => {
             const nodeId = (n.id || (n.base as Record<string, unknown> | undefined)?.id || "") as string;
             const laid = subLayouted.find((ln) => ln.id === nodeId);

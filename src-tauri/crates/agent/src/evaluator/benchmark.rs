@@ -29,25 +29,7 @@ pub enum EvaluationMetric {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BenchmarkMetadata {
-    pub version: String,
-    pub author: String,
-    pub created_at: String,
-    pub tags: Vec<String>,
-}
-
-impl Default for BenchmarkMetadata {
-    fn default() -> Self {
-        Self {
-            version: "1.0.0".to_string(),
-            author: "system".to_string(),
-            created_at: chrono::Utc::now().to_rfc3339(),
-            tags: vec![],
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TaskInput {
     pub query: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -57,12 +39,14 @@ pub struct TaskInput {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TaskOutput {
     pub content: String,
     pub format: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EvaluationCriteria {
     pub name: String,
     pub metric: EvaluationMetric,
@@ -72,6 +56,7 @@ pub struct EvaluationCriteria {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BenchmarkTask {
     pub id: String,
     pub name: String,
@@ -86,6 +71,7 @@ pub struct BenchmarkTask {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Benchmark {
     pub id: String,
     pub name: String,
@@ -93,6 +79,27 @@ pub struct Benchmark {
     pub category: BenchmarkCategory,
     pub tasks: Vec<BenchmarkTask>,
     pub metadata: BenchmarkMetadata,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BenchmarkMetadata {
+    pub version: String,
+    pub author: String,
+    pub created_at: String,
+    #[serde(default)]
+    pub tags: Vec<String>,
+}
+
+impl Default for BenchmarkMetadata {
+    fn default() -> Self {
+        Self {
+            version: "1.0.0".to_string(),
+            author: "system".to_string(),
+            created_at: chrono::Utc::now().to_rfc3339(),
+            tags: vec![],
+        }
+    }
 }
 
 pub struct BenchmarkSuite {

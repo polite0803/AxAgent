@@ -51,7 +51,7 @@ export function TracerPanel() {
 
   const handleDelete = async (traceId: string) => {
     try {
-      await invoke("tracer_delete_trace", { traceId });
+      await invoke("tracer_delete_trace", { trace_id: traceId });
       fetchTraces();
     } catch {
       // ignore
@@ -78,8 +78,8 @@ export function TracerPanel() {
     );
   }
 
-  const totalErrors = traces.reduce((sum, t) => sum + t.error_count, 0);
-  const totalSpans = traces.reduce((sum, t) => sum + t.span_count, 0);
+  const totalErrors = traces.reduce((sum, t) => sum + t.errorCount, 0);
+  const totalSpans = traces.reduce((sum, t) => sum + t.spanCount, 0);
 
   return (
     <div className="border-b border-border/50 px-3 py-2 space-y-2">
@@ -159,33 +159,33 @@ export function TracerPanel() {
           <div className="max-h-48 overflow-y-auto space-y-1">
             {traces.map((trace) => (
               <div
-                key={trace.trace_id}
+                key={trace.traceId}
                 className="text-xs p-1.5 rounded bg-muted/30 flex items-center gap-2"
               >
                 <span
-                  className={`size-1.5 rounded-full shrink-0 ${trace.error_count > 0 ? "bg-red-500" : "bg-green-500"}`}
+                  className={`size-1.5 rounded-full shrink-0 ${trace.errorCount > 0 ? "bg-red-500" : "bg-green-500"}`}
                 />
                 <div className="flex-1 min-w-0">
                   <div className="text-foreground/80 truncate font-mono text-[10px]">
-                    {trace.trace_id.slice(0, 8)}
+                    {trace.traceId.slice(0, 8)}
                   </div>
                   <div className="text-[10px] text-muted-foreground/60 flex items-center gap-1">
                     <Clock size={10} />
-                    {trace.duration_ms && trace.duration_ms > 0 ? `${trace.duration_ms}ms` : "--"}
+                    {trace.durationMs && trace.durationMs > 0 ? `${trace.durationMs}ms` : "--"}
                     <span>·</span>
-                    {trace.span_count} spans
-                    {trace.error_count > 0 && (
+                    {trace.spanCount} spans
+                    {trace.errorCount > 0 && (
                       <>
                         <span>·</span>
                         <span className="text-red-500">
-                          {trace.error_count} err
+                          {trace.errorCount} err
                         </span>
                       </>
                     )}
                   </div>
                 </div>
                 <button
-                  onClick={() => handleDelete(trace.trace_id)}
+                  onClick={() => handleDelete(trace.traceId)}
                   className="p-0.5 rounded hover:bg-muted/50 text-muted-foreground/40 hover:text-red-500 transition-colors"
                   title={t("devtools.deleteTrace")}
                 >

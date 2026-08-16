@@ -37,7 +37,7 @@ interface TabProps {
   onClose: (tabId: string) => void;
   onCloseOthers: (tabId: string) => void;
   onCloseRight: (tabId: string) => void;
-  model_id?: string | null;
+  modelId?: string | null;
   isStreaming?: boolean;
 }
 
@@ -48,7 +48,7 @@ const Tab = memo(function Tab({
   onClose,
   onCloseOthers,
   onCloseRight,
-  model_id,
+  modelId,
   isStreaming,
 }: TabProps) {
   const { token } = theme.useToken();
@@ -93,7 +93,7 @@ const Tab = memo(function Tab({
               customIcon.type === "emoji" ? <span style={{ fontSize: 12 }}>{customIcon.value}</span> : (
                 <img
                   src={customIcon.value}
-                  alt={model_id || ""}
+                  alt={modelId || ""}
                   style={{
                     width: 14,
                     height: 14,
@@ -103,8 +103,8 @@ const Tab = memo(function Tab({
                 />
               )
             )
-            : model_id
-            ? <ModelIcon model={model_id} size={14} type="avatar" />
+            : modelId
+            ? <ModelIcon model={modelId} size={14} type="avatar" />
             : (
               <Avatar
                 size={14}
@@ -163,11 +163,11 @@ export function TabBar() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleNewConversation = useCallback(async () => {
-    let provider = settings.default_provider_id
-      ? providers.find((p) => p.id === settings.default_provider_id && p.enabled)
+    let provider = settings.defaultProviderId
+      ? providers.find((p) => p.id === settings.defaultProviderId && p.enabled)
       : undefined;
     let model = provider?.models.find(
-      (m) => m.model_id === settings.default_model_id && m.enabled,
+      (m) => m.modelId === settings.defaultModelId && m.enabled,
     );
     if (!provider || !model) {
       provider = providers.find(
@@ -176,7 +176,7 @@ export function TabBar() {
       model = provider?.models.find((m) => m.enabled);
     }
     if (!provider || !model) { return; }
-    const conv = await createConversation("", model.model_id, provider.id);
+    const conv = await createConversation("", model.modelId, provider.id);
     openTab(conv.id, conv.title);
   }, [providers, settings, createConversation, openTab]);
 
@@ -229,7 +229,7 @@ export function TabBar() {
               onClose={handleClose}
               onCloseOthers={handleCloseOthers}
               onCloseRight={handleCloseRight}
-              model_id={conv?.model_id}
+              modelId={conv?.modelId}
               isStreaming={tab.conversationId in activeStreams}
             />
           );

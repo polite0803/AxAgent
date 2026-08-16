@@ -1114,10 +1114,12 @@ fn start_skill_evolution(state: &AppState) {
         }
 
         let interval = std::time::Duration::from_secs(45 * 60);
-        let success_threshold = 0.5;
-        let min_usages = 3;
-        // P1: 连续失败次数阈值，达到即触发自动进化
-        let auto_trigger_consecutive_failures: u32 = 3;
+        // T3.2: 弱技能扫描由 if-else 启发式改为贝叶斯后验决策
+        // （EvolutionDecider::from_skill 从累计统计构建 Beta 后验，
+        //   融合连续失败加权 + 95% 置信下界小样本保护）。
+        let evolve_threshold = 0.4;
+        let stable_threshold = 0.7;
+        let min_evidence = 3.0;
         loop {
             tokio::time::sleep(interval).await;
             let skills: Vec<axagent_trajectory::Skill> = match trajectory_storage.get_skills().await
@@ -1131,18 +1133,18 @@ fn start_skill_evolution(state: &AppState) {
             let weak_skills: Vec<_> = skills
                 .into_iter()
                 .filter(|s| {
-                    s.consecutive_failures >= auto_trigger_consecutive_failures
-                        || (s.total_usages >= min_usages && s.success_rate < success_threshold)
+                    let decider = axagent_trajectory::EvolutionDecider::from_skill(s)
+                        .with_thresholds(evolve_threshold, stable_threshold, min_evidence);
+                    matches!(decider.decide(), axagent_trajectory::EvolutionDecision::Evolve)
                 })
                 .collect();
             if weak_skills.is_empty() {
                 continue;
             }
             tracing::info!(
-                "[evolution] Found {} skills to evolve (consecutive_failures>={} or success<{:.0}%)",
+                "[evolution] Found {} skills to evolve (bayesian P(success)<{:.0}%)",
                 weak_skills.len(),
-                auto_trigger_consecutive_failures,
-                success_threshold * 100.0
+                evolve_threshold * 100.0
             );
             let test_trajectories: Vec<axagent_trajectory::Trajectory> =
                 match trajectory_storage.get_trajectories(Some(30)).await {

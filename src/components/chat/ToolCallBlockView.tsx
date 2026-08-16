@@ -8,6 +8,8 @@ import { useTranslation } from "react-i18next";
 
 interface ToolCallBlockViewProps {
   blocks: ContentBlock[];
+  /** 所属消息时间戳（秒级），用于在工具调用块上展示执行时间 */
+  createdAt?: number;
 }
 
 const toolIcons: Record<string, React.ReactNode> = {
@@ -38,9 +40,17 @@ function getInputSummary(input: string): string {
 }
 
 export const ToolCallBlockView = React.memo(
-  function ToolCallBlockView({ blocks }: ToolCallBlockViewProps) {
+  function ToolCallBlockView({ blocks, createdAt }: ToolCallBlockViewProps) {
     const { t } = useTranslation();
     const { token } = theme.useToken();
+
+    const timeLabel = createdAt
+      ? (() => {
+        const d = new Date(createdAt * 1000);
+        const pad = (n: number) => String(n).padStart(2, "0");
+        return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      })()
+      : null;
 
     // Group tool_use + tool_result by id
     const toolUseBlocks = blocks.filter(
@@ -50,7 +60,7 @@ export const ToolCallBlockView = React.memo(
       (b): b is ContentBlock & { type: "tool_result" } => b.type === "tool_result",
     );
     const resultByUseId = new Map(
-      toolResultBlocks.map((r) => [r.tool_use_id, r]),
+      toolResultBlocks.map((r) => [r.toolUseId, r]),
     );
 
     if (toolUseBlocks.length === 0) { return null; }
@@ -67,7 +77,7 @@ export const ToolCallBlockView = React.memo(
           {toolUseBlocks.map((use) => {
             const result = resultByUseId.get(use.id);
             const hasResult = result !== undefined;
-            const isError = result?.is_error ?? false;
+            const isError = result?.isError ?? false;
             const inputDisplay = use.input;
 
             return (
@@ -83,6 +93,18 @@ export const ToolCallBlockView = React.memo(
                     <span className="tc-title">
                       <span>{use.name}</span>
                     </span>
+                    {timeLabel && (
+                      <span
+                        className="tc-time"
+                        style={{
+                          marginLeft: "auto",
+                          fontSize: 11,
+                          color: token.colorTextQuaternary,
+                        }}
+                      >
+                        {timeLabel}
+                      </span>
+                    )}
                   </div>
                   <div className="tc-desc">
                     <Typography.Text

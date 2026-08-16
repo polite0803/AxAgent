@@ -747,10 +747,10 @@ export interface WorkflowTemplateResponse {
   icon: string;
   tags: string[];
   version: number;
-  is_preset: boolean;
+  isPreset: boolean;
   is_editable: boolean;
   is_public: boolean;
-  /** 是否为系统模板（认知编排器等），由后端按 is_preset + cognitive_router 标签权威判定 */
+  /** 是否为系统模板（认知编排器等），由后端按 isPreset + cognitive_router 标签权威判定 */
   is_system: boolean;
   trigger_config?: TriggerConfig;
   nodes: WorkflowNode[];
@@ -765,7 +765,7 @@ export interface WorkflowTemplateResponse {
 }
 
 export interface TemplateFilter {
-  is_preset?: boolean;
+  isPreset?: boolean;
   tags?: string[];
   search?: string;
 }

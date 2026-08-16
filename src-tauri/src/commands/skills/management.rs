@@ -664,6 +664,7 @@ pub async fn create_skill_from_proposal(
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SimilarSkillInfo {
     pub id: String,
     pub name: String,
@@ -675,6 +676,7 @@ pub struct SimilarSkillInfo {
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SkillCreateCheckResult {
     pub has_similar: bool,
     pub similar_skills: Vec<SimilarSkillInfo>,

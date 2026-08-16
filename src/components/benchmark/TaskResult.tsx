@@ -16,7 +16,7 @@ export function TaskResultCard({ result }: TaskResultCardProps) {
       <div className="flex items-start justify-between mb-4">
         <div>
           <Typography.Title level={5} className="mb-1">
-            {result.task_name}
+            {result.taskName}
           </Typography.Title>
           <div className="flex gap-2">
             <Badge color={result.success ? "green" : "red"}>
@@ -27,21 +27,21 @@ export function TaskResultCard({ result }: TaskResultCardProps) {
         </div>
         <div className="text-right">
           <div className="text-2xl font-bold">
-            {formatScore(result.overall_score)}
+            {formatScore(result.overallScore)}
           </div>
           <div className="text-xs text-zinc-500">
-            {formatDuration(result.duration_ms)}
+            {formatDuration(result.durationMs)}
           </div>
         </div>
       </div>
 
       <Descriptions size="small" className="mb-4">
         <Descriptions.Item label={t("benchmark.taskId")}>
-          {result.task_id}
+          {result.taskId}
         </Descriptions.Item>
-        {result.trace_id && (
+        {result.traceId && (
           <Descriptions.Item label={t("benchmark.traceId")}>
-            {result.trace_id}
+            {result.traceId}
           </Descriptions.Item>
         )}
       </Descriptions>
@@ -61,13 +61,13 @@ export function TaskResultCard({ result }: TaskResultCardProps) {
         <div className="space-y-2">
           {result.scores.map((score) => (
             <div
-              key={score.criteria_name}
+              key={score.criteriaName}
               className="flex items-center justify-between p-2 bg-zinc-50 rounded"
             >
-              <span className="text-sm">{score.criteria_name}</span>
+              <span className="text-sm">{score.criteriaName}</span>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">
-                  {formatScore(score.raw_score)}
+                  {formatScore(score.rawScore)}
                 </span>
                 <Badge color={score.passed ? "green" : "red"} />
               </div>

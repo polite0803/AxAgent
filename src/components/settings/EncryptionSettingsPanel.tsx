@@ -34,7 +34,7 @@ export function EncryptionSettingsPanel() {
 
   const handleKeyDerivationChange = (keyDerivation: string) => {
     updateEncryptionConfig({
-      key_derivation: keyDerivation as "pre_shared_key" | "x25519",
+      keyDerivation: keyDerivation as "pre_shared_key" | "x25519",
     });
   };
 
@@ -136,7 +136,7 @@ export function EncryptionSettingsPanel() {
             <div>
               <Text strong>{t("deviceSync.encryption.keyDerivationLabel")}</Text>
               <Select
-                value={encryption.config.key_derivation}
+                value={encryption.config.keyDerivation}
                 onChange={handleKeyDerivationChange}
                 style={{ width: "100%", marginTop: 8 }}
                 options={[
@@ -174,11 +174,11 @@ export function EncryptionSettingsPanel() {
             </div>
 
             {/* 密钥哈希显示 */}
-            {encryption.config.key_hash && (
+            {encryption.config.keyHash && (
               <div>
                 <Text strong>{t("deviceSync.encryption.keyHashLabel")}</Text>
                 <Input
-                  value={encryption.config.key_hash}
+                  value={encryption.config.keyHash}
                   readOnly
                   style={{ marginTop: 8, fontFamily: "monospace" }}
                 />
@@ -200,19 +200,19 @@ export function EncryptionSettingsPanel() {
         )}
 
         {/* 加密状态信息 */}
-        {encryption.last_encrypted_at && (
+        {encryption.lastEncryptedAt && (
           <Alert
             message={t("deviceSync.encryption.lastEncryptedTitle")}
-            description={new Date(encryption.last_encrypted_at).toLocaleString()}
+            description={new Date(encryption.lastEncryptedAt).toLocaleString()}
             type="success"
             showIcon
           />
         )}
 
-        {encryption.encryption_error && (
+        {encryption.encryptionError && (
           <Alert
             message={t("deviceSync.encryption.errorTitle")}
-            description={encryption.encryption_error}
+            description={encryption.encryptionError}
             type="error"
             showIcon
           />

@@ -8,20 +8,20 @@ import { buildAssistantDisplayContent, shouldHideAssistantBubble } from "../tool
 function makeMessage(overrides: Partial<Message>): Message {
   return {
     id: "msg-1",
-    conversation_id: "conv-1",
+    conversationId: "conv-1",
     role: "assistant",
     content: "",
-    provider_id: null,
-    model_id: null,
-    token_count: null,
+    providerId: null,
+    modelId: null,
+    tokenCount: null,
     attachments: [],
     thinking: null,
-    tool_calls_json: null,
-    tool_call_id: null,
-    created_at: 1,
-    parent_message_id: null,
-    version_index: 0,
-    is_active: true,
+    toolCallsJson: null,
+    toolCallId: null,
+    createdAt: 1,
+    parentMessageId: null,
+    versionIndex: 0,
+    isActive: true,
     status: "complete",
     ...overrides,
   };
@@ -43,7 +43,7 @@ describe("buildAssistantDisplayContent", () => {
     const assistant = makeMessage({
       id: "assistant-streaming",
       content: "",
-      tool_calls_json: null,
+      toolCallsJson: null,
     });
 
     expect(shouldHideAssistantBubble(assistant, "")).toBe(false);
@@ -52,7 +52,7 @@ describe("buildAssistantDisplayContent", () => {
   it("hides assistant bubble with empty content but present tool_calls_json", () => {
     const assistant = makeMessage({
       content: "",
-      tool_calls_json: '[{"id":"call-1","type":"function","function":{"name":"fetch","arguments":"{}"}}]',
+      toolCallsJson: '[{"id":"call-1","type":"function","function":{"name":"fetch","arguments":"{}"}}]',
     });
 
     expect(shouldHideAssistantBubble(assistant, "")).toBe(true);

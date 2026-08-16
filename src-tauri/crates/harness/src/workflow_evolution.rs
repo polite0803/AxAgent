@@ -8,6 +8,7 @@
 //! 异步执行:进化流程在后台 `tokio::spawn`,不阻塞工作流引擎主流程。
 
 use crate::reflection_types::Reflection;
+use crate::trajectory_types::GeneratedTool;
 use crate::workflow_reflection::{WorkflowPattern, WorkflowRunStatus};
 use crate::workflow_types::{WorkflowEdge, WorkflowNode};
 use async_trait::async_trait;
@@ -260,6 +261,101 @@ pub trait WorkflowSandbox: Send + Sync + std::any::Any {
         genome: &WorkflowGenome,
         test_input: &serde_json::Value,
     ) -> Result<SandboxValidationResult, String>;
+}
+
+/// 编排型进化产物执行器(T4.3)。
+///
+/// `GeneratedToolAdapter` 对 `WorkflowDag` 类型产物调用该 trait 执行,
+/// 将 `WorkflowGenome` 交由 rt-workflow 引擎(或沙箱)真正运行。
+///
+/// 依赖方向:trajectory / tools 仅依赖本契约;wiring 层将 `WorkEngine`
+/// 包装为 `Arc<dyn WorkflowDagExecutor>` 注入,不打破 harness 分层。
+#[async_trait]
+pub trait WorkflowDagExecutor: Send + Sync + std::any::Any {
+    /// 执行编排型进化产物。
+    ///
+    /// `genome` 为产物映射出的 `WorkflowGenome`,`input` 为工具调用入参。
+    /// 返回执行后的精简结果(`Workflow.output` 或节点结果聚合)。
+    async fn execute(
+        &self,
+        genome: &WorkflowGenome,
+        input: &serde_json::Value,
+    ) -> Result<serde_json::Value, String>;
+}
+
+/// 进化产物代码沙箱验证器(T4.4)。
+///
+/// 计算型(`RhaiScript`)产物在 `GeneratedToolAdapter::call()` 真正执行前,
+/// 先调用本 trait 验证代码安全性:
+/// - 脚本/代码长度限制(防超长脚本 DoS)
+/// - 自指熔断关键词检测(防进化产物递归调用系统能力,复用 `SelfReferenceProtection`)
+/// - 危险模式检测(与 `SkillSandboxExecutor` 同思路的第一道防线)
+///
+/// 返回违规原因列表;空列表 = 通过,允许执行。
+/// 依赖方向:tools 仅依赖本契约;wiring 层将安全策略实现注入,不打破 harness 分层。
+/// 与 [`WorkflowDagExecutor`] 对称:均为"进化产物执行链"的 wiring 注入接缝。
+pub trait EvolutionArtifactValidator: Send + Sync + std::any::Any {
+    /// 验证进化产物代码是否安全。返回违规原因列表(空 = 通过)。
+    fn validate_code(&self, code: &str) -> Vec<String>;
+}
+
+/// 将进化产物(`GeneratedTool`)映射为可执行的 `WorkflowGenome`(T4.3)。
+///
+/// 映射规则:
+/// - 优先:产物 `code` 本身是 `WorkflowGenome` 的 JSON(LLM 结构化输出直接落库),
+///   直接反序列化并补齐模板元信息。
+/// - 兜底:产物 `code` 是自定义 DAG 描述(含 `nodes`/`edges`/`variables` 键),
+///   将其节点映射为 `WorkflowNode`(默认 `delay` 类型不可用,按 `kind` 字段映射)。
+///
+/// 产物 `id` 用作 `template_id`,保证每次进化产物有独立可溯源模板 ID。
+pub fn workflow_genome_from_generated(tool: &GeneratedTool) -> Result<WorkflowGenome, String> {
+    // 1. 优先:code 直接是 WorkflowGenome JSON
+    if let Ok(genome) = serde_json::from_str::<WorkflowGenome>(&tool.code) {
+        return Ok(genome);
+    }
+
+    // 2. 兜底:code 是自定义 DAG 描述(含 nodes/edges/variables 键)
+    let value: serde_json::Value =
+        serde_json::from_str(&tool.code).map_err(|e| format!("进化产物 code 非 JSON: {e}"))?;
+    let nodes_value = value.get("nodes").ok_or("进化产物缺少 nodes")?;
+    let edges_value = value.get("edges").unwrap_or(&serde_json::Value::Null);
+    let variables_value = value.get("variables").unwrap_or(&serde_json::Value::Null);
+
+    let nodes: Vec<WorkflowNode> = nodes_value
+        .as_array()
+        .ok_or("nodes 必须是数组")?
+        .iter()
+        .map(|n| {
+            // 节点 JSON 直接反序列化为 WorkflowNode(带 type tag 的 enum)
+            serde_json::from_value::<WorkflowNode>(n.clone())
+                .map_err(|e| format!("节点反序列化失败: {e}"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let edges: Vec<WorkflowEdge> = edges_value
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .map(|e| {
+                    serde_json::from_value::<WorkflowEdge>(e.clone())
+                        .map_err(|err| format!("边反序列化失败: {err}"))
+                })
+                .collect::<Result<Vec<_>, _>>()
+        })
+        .unwrap_or_else(|| Ok(Vec::new()))?;
+
+    let variables: Vec<serde_json::Value> = variables_value.as_array().cloned().unwrap_or_default();
+
+    Ok(WorkflowGenome {
+        template_id: tool.id.clone(),
+        name: tool.name.clone(),
+        nodes,
+        edges,
+        variables,
+        fitness: 0.0,
+        generation: 0,
+        changed_node_ids: Vec::new(),
+    })
 }
 
 // ── 基础校验工具(方案 1A) ──
@@ -539,4 +635,123 @@ mod merge_genome_by_mask_tests {
         assert!(merged.nodes.iter().any(|n| n.base_id() == "n1"));
         assert!(merged.nodes.iter().any(|n| n.base_id() == "n4"));
     }
+}
+
+// ── T4.3:GeneratedTool → WorkflowGenome 转换(分层执行的编排型产物入口) ──
+
+#[cfg(test)]
+mod workflow_genome_from_generated_tests {
+    use super::*;
+    use crate::trajectory_types::EvolutionArtifactKind;
+
+    /// code 直接是 WorkflowGenome JSON(带 template_id/name/nodes/...) → 直接路径
+    #[test]
+    fn direct_genome_json_path() {
+        let tool = GeneratedTool::with_artifact_kind(
+            "wf_direct",
+            &serde_json::json!({
+                "template_id": "wf-direct",
+                "name": "wf_direct",
+                "nodes": [{
+                    "type": "delay",
+                    "id": "d1",
+                    "title": "delay-1",
+                    "position": {"x": 0, "y": 0},
+                    "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                    "enabled": true,
+                    "config": {"delay_type": "seconds", "seconds": 1, "until": null}
+                }],
+                "edges": [],
+                "variables": [],
+                "fitness": 0.0,
+                "generation": 0,
+                "changed_node_ids": []
+            })
+            .to_string(),
+            "编排型工具",
+            EvolutionArtifactKind::WorkflowDag,
+        );
+
+        let genome = workflow_genome_from_generated(&tool).expect("直接 JSON 路径应成功");
+        assert_eq!(genome.template_id, "wf-direct");
+        assert_eq!(genome.name, "wf_direct");
+        assert_eq!(genome.nodes.len(), 1);
+        assert_eq!(genome.nodes[0].base_id(), "d1");
+    }
+
+    /// code 是自定义 DAG 描述(仅 nodes/edges/variables,无 genome 外壳字段) → 兜底路径
+    #[test]
+    fn fallback_custom_dag_description_path() {
+        let tool = GeneratedTool::with_artifact_kind(
+            "wf_fallback",
+            &serde_json::json!({
+                "nodes": [{
+                    "type": "delay",
+                    "id": "d1",
+                    "title": "delay-1",
+                    "position": {"x": 0, "y": 0},
+                    "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                    "enabled": true,
+                    "config": {"delay_type": "seconds", "seconds": 1, "until": null}
+                }],
+                "edges": [],
+                "variables": []
+            })
+            .to_string(),
+            "编排型工具(自定义描述)",
+            EvolutionArtifactKind::WorkflowDag,
+        );
+
+        let genome = workflow_genome_from_generated(&tool).expect("兜底路径应成功");
+        // 兜底路径下 template_id/name 回退到 tool 字段(id 为 UUID,仅断言非空)
+        assert!(!genome.template_id.is_empty());
+        assert_eq!(genome.name, "wf_fallback");
+        assert_eq!(genome.nodes.len(), 1);
+        assert_eq!(genome.variables.len(), 0);
+    }
+
+    /// code 非 JSON → 明确错误,不静默
+    #[test]
+    fn non_json_code_returns_error() {
+        let tool = GeneratedTool::with_artifact_kind(
+            "wf_bad",
+            "not-json-at-all",
+            "非法编排型工具",
+            EvolutionArtifactKind::WorkflowDag,
+        );
+
+        let err = workflow_genome_from_generated(&tool).unwrap_err();
+        assert!(err.contains("非 JSON"), "错误信息应说明 code 非 JSON: {err}");
+    }
+}
+
+/// 进化产物运行时执行统计（贝叶斯证据输入，阶段四后置闭环）。
+///
+/// 由 wiring 层按 `tool_id` 累计，作为「真实执行反馈」的证据源，
+/// 供 `EvolutionDecider` 重建后验（与 `DecisionEvidence` 的「按模式推断成败」对照，
+/// 真实执行结果优先）。
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ToolExecutionStats {
+    /// 已执行次数。
+    pub usage_count: u32,
+    /// 真实成功次数。
+    pub successes: u32,
+    /// 真实失败次数。
+    pub failures: u32,
+}
+
+/// 进化产物执行反馈回传契约（阶段四后置闭环）。
+///
+/// `GeneratedToolAdapter::call` 执行完成（成功/失败）后调用，
+/// wiring 层实现把真实执行结果累计到进化产物的贝叶斯证据。
+///
+/// 与 [`WorkflowDagExecutor`] / [`EvolutionArtifactValidator`] 对称，
+/// 均为"进化产物执行链"的 wiring 注入接缝，tools 仅依赖本契约，
+/// 不打破 harness 分层。
+pub trait ExecutionFeedbackSink: Send + Sync + std::any::Any {
+    /// 上报一次进化产物执行结果。
+    ///
+    /// `tool_id` 为产物标识(`GeneratedTool.id`)，`success` 为真实成败。
+    /// 实现方须线程安全（wiring 层用 `tokio::sync::Mutex` 保护统计表）。
+    fn record(&self, tool_id: &str, success: bool);
 }

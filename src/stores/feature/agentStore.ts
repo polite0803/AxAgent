@@ -497,8 +497,8 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
       stats.numTurns = event.numTurns;
     }
     if (event.usage) {
-      stats.inputTokens = event.usage.input_tokens;
-      stats.outputTokens = event.usage.output_tokens;
+      stats.inputTokens = event.usage.inputTokens;
+      stats.outputTokens = event.usage.outputTokens;
     }
     if (event.costUsd != null) {
       stats.costUsd = event.costUsd;

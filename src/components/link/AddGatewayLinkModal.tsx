@@ -36,11 +36,11 @@ export function AddGatewayLinkModal({
       setLoading(true);
       const input: CreateGatewayLinkInput = {
         name: values.name,
-        link_type: values.link_type,
+        linkType: values.link_type,
         endpoint: values.endpoint.replace(/\/+$/, ""),
-        api_key: values.api_key || null,
-        auto_sync_models: values.auto_sync_models ?? false,
-        auto_sync_skills: values.auto_sync_skills ?? false,
+        apiKey: values.api_key || null,
+        autoSyncModels: values.auto_sync_models ?? false,
+        autoSyncSkills: values.auto_sync_skills ?? false,
       };
       const link = await createLink(input);
       await fetchLinks();

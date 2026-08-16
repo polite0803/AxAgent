@@ -129,9 +129,9 @@ export function DeviceSyncPanel() {
   const handleFullSync = async (deviceId: string) => {
     const result = await deviceSyncStore.fullSync(deviceId);
     if (result?.success) {
-      message.success(t("deviceSync.syncSuccess", { count: result.files_synced }));
+      message.success(t("deviceSync.syncSuccess", { count: result.filesSynced }));
     } else {
-      message.error(result?.error_message || t("deviceSync.syncFailed"));
+      message.error(result?.errorMessage || t("deviceSync.syncFailed"));
     }
   };
 
@@ -139,9 +139,9 @@ export function DeviceSyncPanel() {
   const handleIncrementalSync = async (deviceId: string) => {
     const result = await deviceSyncStore.incrementalSync(deviceId);
     if (result?.success) {
-      message.success(t("deviceSync.syncSuccess", { count: result.files_synced }));
+      message.success(t("deviceSync.syncSuccess", { count: result.filesSynced }));
     } else {
-      message.error(result?.error_message || t("deviceSync.syncFailed"));
+      message.error(result?.errorMessage || t("deviceSync.syncFailed"));
     }
   };
 
@@ -171,7 +171,7 @@ export function DeviceSyncPanel() {
         <Card
           title={
             <Space>
-              <DeviceIcon type={localDevice.device_type} />
+              <DeviceIcon type={localDevice.deviceType} />
               <span>{t("deviceSync.currentDevice")}</span>
             </Space>
           }
@@ -185,7 +185,7 @@ export function DeviceSyncPanel() {
               <Text strong>{t("deviceSync.os")}:</Text> {localDevice.os}
             </Col>
             <Col span={8}>
-              <Text strong>{t("deviceSync.version")}:</Text> {localDevice.app_version}
+              <Text strong>{t("deviceSync.version")}:</Text> {localDevice.appVersion}
             </Col>
           </Row>
         </Card>
@@ -208,14 +208,14 @@ export function DeviceSyncPanel() {
         >
           <Row gutter={[16, 16]}>
             <Col span={6}>
-              <Text strong>{t("deviceSync.connectedDevices")}:</Text> {syncStatus.connected_devices}
+              <Text strong>{t("deviceSync.connectedDevices")}:</Text> {syncStatus.connectedDevices}
             </Col>
             <Col span={6}>
-              <Text strong>{t("deviceSync.pendingChanges")}:</Text> {syncStatus.pending_changes}
+              <Text strong>{t("deviceSync.pendingChanges")}:</Text> {syncStatus.pendingChanges}
             </Col>
             <Col span={6}>
-              <Text strong>{t("deviceSync.lastSync")}:</Text> {syncStatus.last_sync_at
-                ? new Date(syncStatus.last_sync_at).toLocaleString()
+              <Text strong>{t("deviceSync.lastSync")}:</Text> {syncStatus.lastSyncAt
+                ? new Date(syncStatus.lastSyncAt).toLocaleString()
                 : t("deviceSync.never")}
             </Col>
             <Col span={6}>
@@ -258,7 +258,7 @@ export function DeviceSyncPanel() {
                   actions={[
                     <Button
                       size="small"
-                      onClick={() => handleIncrementalSync(device.device_id)}
+                      onClick={() => handleIncrementalSync(device.deviceId)}
                       loading={isSyncing}
                     >
                       {t("deviceSync.incrementalSync")}
@@ -266,7 +266,7 @@ export function DeviceSyncPanel() {
                     <Button
                       size="small"
                       type="primary"
-                      onClick={() => handleFullSync(device.device_id)}
+                      onClick={() => handleFullSync(device.deviceId)}
                       loading={isSyncing}
                     >
                       {t("deviceSync.fullSync")}
@@ -274,19 +274,19 @@ export function DeviceSyncPanel() {
                     <Button
                       size="small"
                       danger
-                      onClick={() => handleUnpair(device.device_id)}
+                      onClick={() => handleUnpair(device.deviceId)}
                     >
                       {t("deviceSync.unpair")}
                     </Button>,
                   ]}
                 >
                   <List.Item.Meta
-                    avatar={<DeviceIcon type={device.device_type} />}
+                    avatar={<DeviceIcon type={device.deviceType} />}
                     title={
                       <Space>
                         {device.name}
-                        <Tag color={getTrustLevelConfig(t)[device.trust_level].color}>
-                          {getTrustLevelConfig(t)[device.trust_level].label}
+                        <Tag color={getTrustLevelConfig(t)[device.trustLevel].color}>
+                          {getTrustLevelConfig(t)[device.trustLevel].label}
                         </Tag>
                       </Space>
                     }
@@ -294,7 +294,7 @@ export function DeviceSyncPanel() {
                       <Space direction="vertical" size={4}>
                         <Text type="secondary">{device.hostname}</Text>
                         <Text type="secondary" style={{ fontSize: 12 }}>
-                          {t("deviceSync.lastActive")}: {new Date(device.last_active_at).toLocaleString()}
+                          {t("deviceSync.lastActive")}: {new Date(device.lastActiveAt).toLocaleString()}
                         </Text>
                       </Space>
                     }
@@ -335,10 +335,10 @@ export function DeviceSyncPanel() {
                 ]}
               >
                 <List.Item.Meta
-                  title={`${conflict.entity_type}: ${conflict.entity_id}`}
+                  title={`${conflict.entityType}: ${conflict.entityId}`}
                   description={t("deviceSync.conflictDescription", {
-                    localVer: conflict.local_vector.map((v) => `${v.device_id}:${v.counter}`).join(", "),
-                    remoteVer: conflict.remote_vector.map((v) => `${v.device_id}:${v.counter}`).join(", "),
+                    localVer: conflict.localVector.map((v) => `${v.deviceId}:${v.counter}`).join(", "),
+                    remoteVer: conflict.remoteVector.map((v) => `${v.deviceId}:${v.counter}`).join(", "),
                   })}
                 />
               </List.Item>
@@ -400,7 +400,7 @@ export function DeviceSyncPanel() {
               </Title>
               <Text type="secondary">
                 {t("deviceSync.codeExpiresAt", {
-                  time: new Date(currentPairingCode.expires_at).toLocaleTimeString(),
+                  time: new Date(currentPairingCode.expiresAt).toLocaleTimeString(),
                 })}
               </Text>
               <Paragraph type="secondary" style={{ marginTop: 16 }}>
@@ -462,7 +462,7 @@ export function DeviceSyncPanel() {
         >
           <Card size="small" style={{ marginBottom: 16 }}>
             <Space>
-              <DeviceIcon type={currentPairingRequest.device.device_type} />
+              <DeviceIcon type={currentPairingRequest.device.deviceType} />
               <div>
                 <Text strong>{currentPairingRequest.device.name}</Text>
                 <br />

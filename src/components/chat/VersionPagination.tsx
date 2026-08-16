@@ -23,33 +23,33 @@ export function VersionPagination({
   const [switching, setSwitching] = useState(false);
   const switchingRef = useRef(false);
 
-  const currentModelId = msg.model_id;
+  const currentModelId = msg.modelId;
   const modelVersions = allVersions.filter(
-    (v) => v.model_id === currentModelId,
+    (v) => v.modelId === currentModelId,
   );
 
   const sorted = modelVersions.toSorted(
-    (a, b) => a.version_index - b.version_index,
+    (a, b) => a.versionIndex - b.versionIndex,
   );
   const currentIdx = sorted.findIndex((v) => v.id === msg.id);
-  const current = currentIdx >= 0 ? currentIdx : sorted.findIndex((v) => v.is_active);
+  const current = currentIdx >= 0 ? currentIdx : sorted.findIndex((v) => v.isActive);
 
   const doSwitch = useCallback(
     async (targetId: string) => {
       // Fix: concurrent guard — prevent rapid clicks from triggering
       // multiple switches before React state catches up. switchingRef
       // provides the lock; switching state disables buttons visually.
-      if (switchingRef.current || !msg.parent_message_id) { return; }
+      if (switchingRef.current || !msg.parentMessageId) { return; }
       switchingRef.current = true;
       setSwitching(true);
       try {
-        await switchMessageVersion(conversationId, msg.parent_message_id, targetId);
+        await switchMessageVersion(conversationId, msg.parentMessageId, targetId);
       } finally {
         switchingRef.current = false;
         setSwitching(false);
       }
     },
-    [conversationId, msg.parent_message_id, switchMessageVersion],
+    [conversationId, msg.parentMessageId, switchMessageVersion],
   );
 
   if (modelVersions.length <= 1 && !switching) {

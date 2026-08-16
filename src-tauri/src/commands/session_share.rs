@@ -12,6 +12,7 @@ use tauri::State;
 
 /// 创建/加入共享会话后返回的会话信息
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ShareSessionInfo {
     pub session_id: String,
     pub invite_code: String,

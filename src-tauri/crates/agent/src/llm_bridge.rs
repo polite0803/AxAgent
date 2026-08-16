@@ -5,9 +5,9 @@ use axagent_harness::llm_executor::{LlmCallConfig, execute_llm};
 #[cfg(test)]
 use axagent_harness::trajectory_types::ProcedureStep;
 use axagent_harness::trajectory_types::{
-    GeneratedTool, LlmEvolutionProvider, LlmJudge, LlmJudgeFuture, LlmMutationRequest,
-    LlmMutationResponse, LlmTextGradProvider, LlmToolProvider, PrmLlmProvider, RewardCategory,
-    StepReward, ToolCreationRequest,
+    EvolutionArtifactKind, GeneratedTool, LlmEvolutionProvider, LlmJudge, LlmJudgeFuture,
+    LlmMutationRequest, LlmMutationResponse, LlmTextGradProvider, LlmToolProvider, PrmLlmProvider,
+    RewardCategory, StepReward, ToolCreationRequest,
 };
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
@@ -22,7 +22,8 @@ use tokio::sync::Mutex;
 static SCORE_NUMBER_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"(-?\d+\.?\d*)").expect("hardcoded regex is valid"));
 static CODE_BLOCK_RE: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"(?s)```(?:javascript|js)?\s*\n(.*?)```").expect("hardcoded regex is valid")
+    regex::Regex::new(r"(?s)```(?:javascript|js|rhai)?\s*\n(.*?)```")
+        .expect("hardcoded regex is valid")
 });
 static JSON_OBJECT_RE: LazyLock<regex::Regex> =
     LazyLock::new(|| regex::Regex::new(r"(?s)\{.*\}").expect("hardcoded regex is valid"));
@@ -560,7 +561,9 @@ impl LlmToolProvider for ProviderLlmBridge {
     ) -> Pin<Box<dyn Future<Output = Result<GeneratedTool, String>> + Send + '_>> {
         let tool_list = request.available_tools.join(", ");
         let user_msg = format!(
-            "Pattern: {}\nContext: {}\nAvailable tools: {}\n\nGenerate a JavaScript function that implements this pattern. Wrap the code in ```javascript``` code blocks.",
+            "Pattern: {}\nContext: {}\nAvailable tools: {}\n\nGenerate a Rhai script that implements this pattern. \
+             The input argument is available as the `input` variable. Use pure computation (arithmetic, string/array/map manipulation); \
+             do NOT use file/network access. The script's last expression is its result. Wrap the code in ```rhai``` code blocks.",
             request.pattern_description, request.context, tool_list
         );
         let name = slugify(&request.pattern_description);
@@ -568,12 +571,17 @@ impl LlmToolProvider for ProviderLlmBridge {
 
         Box::pin(async move {
             match self.call_llm(
-                "You are a tool code generator. Generate a JavaScript function that implements the described pattern.",
+                "You are a tool code generator. Generate a Rhai script that implements the described pattern as pure computation.",
                 &user_msg,
             ).await {
                 Ok(text) => {
                     let code = extract_code_from_response(&text);
-                    Ok(GeneratedTool::new(&name, &code, &description))
+                    Ok(GeneratedTool::with_artifact_kind(
+                        &name,
+                        &code,
+                        &description,
+                        EvolutionArtifactKind::infer(&code),
+                    ))
                 }
                 Err(e) => Err(e),
             }
@@ -586,11 +594,13 @@ impl LlmToolProvider for ProviderLlmBridge {
         error: &str,
     ) -> Pin<Box<dyn Future<Output = Result<GeneratedTool, String>> + Send + '_>> {
         let user_msg = format!(
-            "Current code:\n```javascript\n{}\n```\n\nError:\n{}\n\nFix the errors and return the improved code wrapped in ```javascript``` code blocks.",
+            "Current code:\n```rhai\n{}\n```\n\nError:\n{}\n\nFix the errors and return the improved Rhai script wrapped in ```rhai``` code blocks. The input argument is available as the `input` variable; the script's last expression is its result.",
             tool.code, error
         );
         let name = tool.name.clone();
         let description = tool.description.clone();
+        // EvolutionArtifactKind 为 Copy 类型，提前复制避免闭包捕获借用
+        let artifact_kind = tool.artifact_kind;
 
         Box::pin(async move {
             match self
@@ -602,7 +612,7 @@ impl LlmToolProvider for ProviderLlmBridge {
             {
                 Ok(text) => {
                     let code = extract_code_from_response(&text);
-                    Ok(GeneratedTool::new(&name, &code, &description))
+                    Ok(GeneratedTool::with_artifact_kind(&name, &code, &description, artifact_kind))
                 },
                 Err(e) => Err(e),
             }

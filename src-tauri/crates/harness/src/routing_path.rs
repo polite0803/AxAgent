@@ -28,6 +28,7 @@ use std::fmt::Write as _;
 ///
 /// 格式: `/{domain}/{cluster}/{capability}`
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(rename_all = "camelCase")]
 pub struct RoutingPath {
     /// L1: 业务域
     pub domain: CapabilityDomain,

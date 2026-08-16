@@ -1213,7 +1213,17 @@
       "skill": "技能",
       "agent_role": "角色",
       "agent_profile": "專家"
-    }
+    },
+    "level": {
+      "l1": "L1 · 未成熟",
+      "l2": "L2 · 基礎可用",
+      "l3": "L3 · 中等成熟",
+      "l4": "L4 · 高度成熟",
+      "l5": "L5 · 頂級能力"
+    },
+    "evolve": "進化提升",
+    "evolveSuccess": "進化成功，等級提升至 {{level}}",
+    "evolveFailed": "進化失敗，請稍後重試"
   },
   "chatMarkdown": {
     "inputParams": "輸入參數",
@@ -1250,7 +1260,8 @@
     "title": "助理面板",
     "visionAnalysis": "視覺分析",
     "cognitiveRoute": "路由觀測",
-    "capability": "能力"
+    "capability": "能力",
+    "evolutionEvidence": "進化證據"
   },
   "cite": {
     "chunkLabel": "區塊 #{{n}}",
@@ -2069,6 +2080,9 @@
     "COGNITIVE_EXECUTION_MODE_INVALID": "認知路由執行模式無效",
     "COGNITIVE_PROMPT_REJECTED": "認知提示被拒絕",
     "COGNITIVE_RAR_RETRIEVE_FAILED": "認知路由候選檢索失敗：{{detail}}",
+    "COGNITIVE_GAP_PROPOSAL_PENDING": "已生成能力補齊提議，等待您的確認",
+    "COGNITIVE_GAP_PROPOSAL_APPLIED": "能力補齊已完成，請重新發送您的請求",
+    "COGNITIVE_GAP_PROPOSAL_REJECTED": "能力補齊提議已拒絕",
     "COMMON_INTERNAL": "內部錯誤",
     "COMMON_INVALID_INPUT": "無效的輸入",
     "COMMON_TIMEOUT": "操作逾時",
@@ -2257,6 +2271,7 @@
     "TOOL_SSE_NO_ENDPOINT": "SSE 傳輸未指定端點",
     "TOOL_STDIO_NO_COMMAND": "Stdio 傳輸未指定命令",
     "TOOL_TRANSPORT_UNSUPPORTED": "不支援的傳輸方式",
+    "TOOL_REGISTRATION_DUPLICATE": "工具重複註冊，與已有工具同名",
     "VECTOR_STORE_FAILED": "向量儲存操作失敗",
     "VECTOR_EMBEDDING_FAILED": "向量嵌入生成失敗",
     "VECTOR_SEARCH_FAILED": "向量搜尋失敗",
@@ -2374,6 +2389,7 @@
     "CAPABILITY_LIST_FAILED": "能力列表獲取失敗",
     "CAPABILITY_STATS_FAILED": "能力統計獲取失敗",
     "CAPABILITY_METADATA_RESTORE_FAILED": "元數據恢復失敗",
+    "CAPABILITY_EVOLVE_FAILED": "能力進化失敗",
     "AGENT_INPUT_CHANNEL_CLOSED": "使用者提問通道已關閉",
     "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "等待使用者回覆逾時（5 分鐘）",
     "AGENT_INPUT_NO_PROVIDER": "沒有可用的 provider/model：請先在設定中啟用供應商",
@@ -2563,6 +2579,27 @@
     "loadFailed": "加載外部專家失敗: {{error}}",
     "skippedInvalidRole": "跳過無效角色: {{role}}",
     "updateFailed": "更新外部專家失敗: {{error}}"
+  },
+  "evolutionEvidence": {
+    "title": "進化證據",
+    "empty": "暫無進化證據數據",
+    "decision": {
+      "evolve": "建議進化",
+      "observe": "待觀察",
+      "stable": "表現穩定"
+    },
+    "pSuccess": "後驗成功率 {value}%",
+    "evidenceVolume": "證據量 {value}",
+    "consumedLabels": "消費 {consumed}/{total} 條證據",
+    "routePaths": "證據來源路徑",
+    "executionTitle": "真實執行反饋",
+    "noExecution": "暫無真實執行數據",
+    "totalRuns": "總執行 {value} 次",
+    "successRate": "成功率 {value}%",
+    "totalSuccesses": "成功 {value}",
+    "totalFailures": "失敗 {value}",
+    "toolCount": "進化產物 {value} 個",
+    "perSuccessRate": "成功率 {value}%"
   },
   "export": {
     "exportTime": "導出時間",
@@ -4183,7 +4220,23 @@
       "stop": "停止",
       "stopAll": "全部停止",
       "stopped": "已停止",
-      "title": "自我進化"
+      "title": "自我進化",
+      "runtimeTools": {
+        "title": "執行時期動態工具",
+        "desc": "Agent 進化部署（system_evolution_deploy）或自指工具（system_evolution_*）註冊的動態能力。系統內建自指工具僅展示不可卸載；進化產物卸載後立即對 Agent 不可見。",
+        "systemChannel": "系統能力通道",
+        "name": "工具名稱",
+        "source": "來源",
+        "sourceSystem": "系統內建",
+        "sourceEvolved": "進化部署",
+        "action": "操作",
+        "builtin": "內建",
+        "empty": "暫無執行時期動態工具",
+        "unload": "卸載",
+        "unloadConfirm": "確認卸載工具 \"{{name}}\"？卸載後 Agent 立即無法呼叫該工具。",
+        "unloadSuccess": "工具 \"{{name}}\" 已卸載",
+        "unloadFail": "工具 \"{{name}}\" 卸載失敗"
+      }
     },
     "exitFullscreen": "退出全螢幕",
     "expandAll": "展開所有",
@@ -8612,6 +8665,23 @@
   },
   "reactPreview": {
     "title": "React 預覽"
+  },
+  "evolutionConsentModal": {
+    "title": "能力補齊 / 進化改進提議",
+    "gapType": {
+      "guardRule": "防護規則補齊",
+      "exemptAuthorize": "誤傷豁免授權",
+      "capabilityMissing": "能力缺失補齊"
+    },
+    "pendingCount": "共有 {{count}} 個待處理提議，目前為第 {{current}} 個",
+    "pendingOne": "僅 1 個待處理提議",
+    "proposal": "具體變更",
+    "impact": "影響範圍",
+    "rollback": "回滾方式",
+    "reject": "拒絕",
+    "approve": "同意補齊",
+    "expandDetails": "展開原始詳情",
+    "collapseDetails": "收起原始詳情"
   },
   "planApprovalModal": {
     "title": "計劃確認",

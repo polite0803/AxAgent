@@ -69,7 +69,7 @@ const mockBackendTemplate = {
   icon: "🔧",
   tags: [],
   version: 1,
-  is_preset: false,
+  isPreset: false,
   is_editable: true,
   is_public: false,
   nodes: [],

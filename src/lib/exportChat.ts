@@ -163,7 +163,7 @@ export function buildJsonTranscript(
       role: m.role,
       content: getExportMessageContent(m, options),
       ...(options?.includeThinking === false ? {} : { thinking: m.thinking }),
-      created_at: m.created_at,
+      createdAt: m.createdAt,
     })),
   };
   return JSON.stringify(data, null, 2);
@@ -216,8 +216,8 @@ export function buildHtmlTranscript(
         // 换行转 <br>
         .replace(/\n/g, "<br>");
 
-      const time = m.created_at
-        ? new Date(m.created_at).toLocaleString(i18n.language)
+      const time = m.createdAt
+        ? new Date(m.createdAt).toLocaleString(i18n.language)
         : "";
 
       return `<div class="message ${alignClass}">

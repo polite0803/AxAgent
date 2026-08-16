@@ -157,42 +157,42 @@ export function GatewayMonitor() {
               <Card size="small">
                 <Statistic
                   title={t("gatewayMonitor.totalRequests")}
-                  value={metrics.total_requests}
+                  value={metrics.totalRequests}
                   prefix={<Activity size={16} />}
                 />
               </Card>
               <Card size="small">
                 <Statistic
                   title={t("gatewayMonitor.totalTokens")}
-                  value={metrics.total_tokens}
+                  value={metrics.totalTokens}
                   prefix={<BarChart3 size={16} />}
                 />
               </Card>
               <Card size="small">
                 <Statistic
                   title={t("gatewayMonitor.activeConnections")}
-                  value={metrics.active_connections}
+                  value={metrics.activeConnections}
                   prefix={<Server size={16} />}
                 />
               </Card>
               <Card size="small">
                 <Statistic
                   title={t("gatewayMonitor.todayRequests")}
-                  value={metrics.today_requests}
+                  value={metrics.todayRequests}
                   prefix={<TrendingUp size={16} />}
                 />
               </Card>
               <Card size="small">
                 <Statistic
                   title={t("gatewayMonitor.todayTokens")}
-                  value={metrics.today_tokens}
+                  value={metrics.todayTokens}
                   prefix={<Zap size={16} />}
                 />
               </Card>
               <Card size="small">
                 <Statistic
                   title={t("gatewayMonitor.totalCost")}
-                  value={metrics.total_cost_usd}
+                  value={metrics.totalCostUsd}
                   precision={4}
                   prefix={<DollarSign size={16} />}
                   styles={{ content: { color: token.colorSuccess } }}

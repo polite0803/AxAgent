@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { t } from "@/lib/i18nStoreHelper";
-import { invoke } from "@/lib/invoke";
+import { invoke, listen } from "@/lib/invoke";
+import type { CapabilityGapProposal, EvolutionEvidenceView, RuntimeToolInfo } from "@/types";
 import { create } from "zustand";
 
 // ── Types ──
@@ -295,6 +296,17 @@ interface EvolutionState {
   loading: boolean;
   error: string | null;
 
+  // ── 能力补齐/进化改进提议同意弹窗（T0.13） ──
+  /** 挂起的提议（按 proposalId 索引），有值即弹窗可见 */
+  pendingConsent: Record<string, CapabilityGapProposal>;
+
+  /** 处理后端 evolution-consent-request 事件 */
+  handleConsentRequest: (proposal: CapabilityGapProposal) => void;
+  /** 用户同意/拒绝后调用，回传结果给后端 */
+  respondConsent: (proposalId: string, approved: boolean) => Promise<void>;
+  /** 清理已处理的提议 */
+  clearConsent: (proposalId: string) => void;
+
   fetchAllEngineStatus: () => Promise<void>;
   startEngine: (name: string) => Promise<void>;
   stopEngine: (name: string) => Promise<void>;
@@ -304,6 +316,24 @@ interface EvolutionState {
   getABTestResults: (skillId: string) => ABTestResult[];
   triggerSkillEvolution: (skillId: string) => Promise<void>;
   addEvolutionEvent: (event: EvolutionEvent) => void;
+
+  // ── 阶段二 T2.5：运行时动态工具管理 ──
+
+  /** 运行时动态注册的工具列表（来源 runtime_evolution / system_evolution） */
+  runtimeTools: RuntimeToolInfo[];
+  /** 刷新运行时工具列表（调 list_runtime_tools） */
+  listRuntimeTools: () => Promise<RuntimeToolInfo[]>;
+  /** 卸载一个运行时动态注册的工具（调 unregister_runtime_tool） */
+  unregisterRuntimeTool: (name: string) => Promise<void>;
+
+  // ── T5A.4：进化证据视图（认知编排器决策标签流 → 贝叶斯后验） ──
+
+  /** 最近一次拉取的进化证据视图（按会话缓存，null 表示未加载） */
+  evolutionEvidence: EvolutionEvidenceView | null;
+  /** 是否正在拉取进化证据 */
+  evidenceLoading: boolean;
+  /** 拉取指定会话的进化证据（调 cognitive_evolution_decision） */
+  fetchEvolutionEvidence: (conversationId: string) => Promise<EvolutionEvidenceView | null>;
 }
 
 export const useEvolutionStore = create<EvolutionState>((set, get) => ({
@@ -311,6 +341,38 @@ export const useEvolutionStore = create<EvolutionState>((set, get) => ({
   evolutionHistory: [],
   loading: false,
   error: null,
+  pendingConsent: {},
+  runtimeTools: [],
+  evolutionEvidence: null,
+  evidenceLoading: false,
+
+  // ── 能力补齐/进化改进提议同意（T0.13） ──
+
+  handleConsentRequest: (proposal) => {
+    set((s) => ({
+      pendingConsent: { ...s.pendingConsent, [proposal.id]: proposal },
+    }));
+  },
+
+  respondConsent: async (proposalId, approved) => {
+    try {
+      await invoke("capability_gap_consent", {
+        request: { proposalId, approved },
+      });
+    } catch (e) {
+      console.warn("[evolutionStore] respondConsent failed", e);
+    } finally {
+      get().clearConsent(proposalId);
+    }
+  },
+
+  clearConsent: (proposalId) => {
+    set((s) => {
+      const rest = { ...s.pendingConsent };
+      delete rest[proposalId];
+      return { pendingConsent: rest };
+    });
+  },
 
   fetchAllEngineStatus: async () => {
     set({ loading: true, error: null });
@@ -470,4 +532,71 @@ export const useEvolutionStore = create<EvolutionState>((set, get) => ({
       evolutionHistory: [...state.evolutionHistory.slice(-199), event],
     }));
   },
+
+  // ── 阶段二 T2.5：运行时动态工具管理 ──
+
+  listRuntimeTools: async () => {
+    try {
+      const result = await invoke<{ success: boolean; count: number; tools: RuntimeToolInfo[] }>(
+        "list_runtime_tools",
+      );
+      const tools = result?.tools ?? [];
+      set({ runtimeTools: tools });
+      return tools;
+    } catch (e) {
+      console.warn("[evolutionStore] listRuntimeTools failed", e);
+      // 浏览器 mock 模式：展示自指工具静态列表
+      const mock: RuntimeToolInfo[] = [
+        { name: "system_evolution_inspect", source: "system_evolution" },
+        { name: "system_evolution_define", source: "system_evolution" },
+        { name: "system_evolution_deploy", source: "system_evolution" },
+        { name: "system_evolution_undeploy", source: "system_evolution" },
+      ];
+      set({ runtimeTools: mock });
+      return mock;
+    }
+  },
+
+  unregisterRuntimeTool: async (name: string) => {
+    try {
+      await invoke("unregister_runtime_tool", { toolName: name });
+      // 本地同步移除
+      set((s) => ({ runtimeTools: s.runtimeTools.filter((tool) => tool.name !== name) }));
+      get().addEvolutionEvent({
+        engine: "auto_tool_creator",
+        timestamp: Date.now(),
+        type: "stopped",
+        detail: `Runtime tool ${name} unregistered`,
+      });
+    } catch (e) {
+      console.warn("[evolutionStore] unregisterRuntimeTool failed", e);
+      throw e;
+    }
+  },
+
+  // ── T5A.4：进化证据视图 ──
+
+  fetchEvolutionEvidence: async (conversationId) => {
+    set({ evidenceLoading: true });
+    try {
+      const view = await invoke<EvolutionEvidenceView>("cognitive_evolution_decision", {
+        conversation_id: conversationId,
+      });
+      set({ evolutionEvidence: view, evidenceLoading: false });
+      return view;
+    } catch (e) {
+      console.warn("[evolutionStore] fetchEvolutionEvidence failed", e);
+      set({ evolutionEvidence: null, evidenceLoading: false });
+      return null;
+    }
+  },
 }));
+
+// ── 事件监听（T0.13） ──
+// 模块顶层监听能力补齐/进化改进提议事件（仿照 agentStore 顶层兜底模式），
+// 避免依赖组件 useEffect 的挂载时机导致事件丢失。
+// 后端 `await_user_consent`（cognitive.rs）emit 本事件后阻塞等待前端回传；
+// 前端弹窗同意/拒绝后由 `respondConsent` → `capability_gap_consent` 命令回传。
+listen<CapabilityGapProposal>("evolution-consent-request", (event) => {
+  useEvolutionStore.getState().handleConsentRequest(event.payload);
+});

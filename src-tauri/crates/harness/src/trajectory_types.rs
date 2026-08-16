@@ -12,6 +12,7 @@ use uuid::Uuid;
 pub use crate::types::MessageRole;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ToolCall {
     pub id: String,
     pub name: String,
@@ -19,6 +20,7 @@ pub struct ToolCall {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TrajectoryToolResult {
     pub tool_use_id: String,
     pub tool_name: String,
@@ -27,6 +29,7 @@ pub struct TrajectoryToolResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TrajectoryStep {
     pub timestamp_ms: u64,
     pub role: MessageRole,
@@ -67,6 +70,7 @@ impl TrajectoryOutcome {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TrajectoryQuality {
     pub overall: f64,
     pub task_completion: f64,
@@ -88,10 +92,14 @@ impl Default for TrajectoryQuality {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Trajectory {
     pub id: String,
     pub session_id: String,
     pub user_id: String,
+    /// 结构化 agent 标识：记录该轨迹由哪个 Agent（AgentProfile 名称）执行。
+    /// 进化系统据此精准聚合每个 Agent 的证据，无需回退文本匹配。
+    pub agent_name: Option<String>,
     pub topic: String,
     pub summary: String,
     pub outcome: TrajectoryOutcome,
@@ -122,6 +130,7 @@ impl Trajectory {
             id,
             session_id,
             user_id,
+            agent_name: None,
             topic,
             summary,
             outcome,
@@ -135,6 +144,12 @@ impl Trajectory {
             replay_count: 0,
             last_replay_at: None,
         }
+    }
+
+    /// 链式设置结构化 agent 标识（记录点就近填充，避免散落赋值）。
+    pub fn with_agent_name(mut self, agent_name: impl Into<String>) -> Self {
+        self.agent_name = Some(agent_name.into());
+        self
     }
 }
 
@@ -181,6 +196,7 @@ impl RewardType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RewardSignal {
     pub reward_type: RewardType,
     pub value: f64,
@@ -190,6 +206,7 @@ pub struct RewardSignal {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TrajectoryPattern {
     pub id: String,
     pub name: String,
@@ -275,6 +292,7 @@ impl Default for TrajectoryQuery {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TrajectoryExportOptions {
     pub format: ExportFormat,
     pub min_quality: Option<f64>,
@@ -313,6 +331,7 @@ impl Default for TrainingConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RLTrainingEntry {
     pub prompt: String,
     pub completion: String,
@@ -360,7 +379,54 @@ pub struct CompressedTrajectory {
 
 // ── LLM bridge types and traits (from other trajectory modules) ──
 
+/// 进化产物的类型标注 —— 决定产物由哪套执行引擎承载。
+///
+/// 分层执行决策（阶段四）：
+/// - `RhaiScript`：计算型产物（纯计算 / 数据处理 / 简单内部工具编排），
+///   由 Rhai 脚本引擎直接执行，复用 `RhaiEngineAdapter`。
+/// - `WorkflowDag`：编排型产物（涉及内部能力调用序列、分支、聚合），
+///   映射为 `WorkflowGenome` 由 rt-workflow 引擎执行。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum EvolutionArtifactKind {
+    #[default]
+    RhaiScript,
+    WorkflowDag,
+}
+
+impl EvolutionArtifactKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            EvolutionArtifactKind::RhaiScript => "rhai_script",
+            EvolutionArtifactKind::WorkflowDag => "workflow_dag",
+        }
+    }
+
+    pub fn try_from_str(s: &str) -> Self {
+        match s {
+            "workflow_dag" => EvolutionArtifactKind::WorkflowDag,
+            _ => EvolutionArtifactKind::RhaiScript,
+        }
+    }
+
+    /// 根据产物代码特征推断类型：含编排结构化标记 → `WorkflowDag`，否则 → `RhaiScript`。
+    /// 用于 LLM 生成代码未显式标注时的兜底分类。
+    pub fn infer(code: &str) -> Self {
+        let lowered = code.to_ascii_lowercase();
+        if lowered.contains("workflow")
+            || lowered.contains("depends_on")
+            || lowered.contains("child_nodes")
+            || lowered.contains("\"edges\"")
+        {
+            EvolutionArtifactKind::WorkflowDag
+        } else {
+            EvolutionArtifactKind::RhaiScript
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GeneratedTool {
     pub id: String,
     pub name: String,
@@ -370,6 +436,10 @@ pub struct GeneratedTool {
     pub created_at: i64,
     pub usage_count: u32,
     pub success_rate: f64,
+    /// 产物类型标注：决定执行引擎（Rhai 脚本 / 工作流 DAG）。
+    /// 默认 `RhaiScript`，老数据反序列化时自动补齐。
+    #[serde(default)]
+    pub artifact_kind: EvolutionArtifactKind,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -402,6 +472,7 @@ pub struct ProcedureStep {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LlmMutationRequest {
     pub skill_name: String,
     pub current_steps: Vec<ProcedureStep>,
@@ -458,6 +529,7 @@ pub enum RewardCategory {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct StepReward {
     pub step_index: usize,
     pub reward: f64,
@@ -475,6 +547,7 @@ pub trait PrmLlmProvider: Send + Sync {
 }
 
 impl GeneratedTool {
+    /// 构造计算型工具（默认产物类型为 `RhaiScript`）。
     pub fn new(name: &str, code: &str, description: &str) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
@@ -485,7 +558,20 @@ impl GeneratedTool {
             created_at: Utc::now().timestamp(),
             usage_count: 0,
             success_rate: 0.0,
+            artifact_kind: EvolutionArtifactKind::RhaiScript,
         }
+    }
+
+    /// 按产物类型构造工具（`RhaiScript` 计算型 / `WorkflowDag` 编排型）。
+    pub fn with_artifact_kind(
+        name: &str,
+        code: &str,
+        description: &str,
+        artifact_kind: EvolutionArtifactKind,
+    ) -> Self {
+        let mut tool = Self::new(name, code, description);
+        tool.artifact_kind = artifact_kind;
+        tool
     }
 }
 

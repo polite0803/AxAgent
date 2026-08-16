@@ -123,9 +123,9 @@ export const FormRenderer: React.FC<DynamicUIProps> = ({
       if (schemaId) {
         try {
           await saveFormData({
-            schema_id: schemaId,
-            form_data_json: JSON.stringify(values),
-            instance_key: instanceKey,
+            schemaId: schemaId,
+            formDataJson: JSON.stringify(values),
+            instanceKey: instanceKey,
           });
           message.success(t("common.saved"));
         } catch (e) {

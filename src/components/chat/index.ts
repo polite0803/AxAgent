@@ -12,6 +12,8 @@ export { CategoryManagerModal } from "./CategoryManagerModal";
 export { ChatSidebar } from "./ChatSidebar";
 export { ChatView } from "./ChatView";
 export { CitationManager, CitationStats } from "./CitationManager";
+export { EvolutionConsentModal } from "./EvolutionConsentModal";
+export { ExtractMemoriesModal } from "./ExtractMemoriesModal";
 export { FilePermissionDialog } from "./FilePermissionDialog";
 export type { FilePermissionRequest } from "./FilePermissionDialog";
 export { ImageAnalysisPanel } from "./ImageAnalysisPanel";

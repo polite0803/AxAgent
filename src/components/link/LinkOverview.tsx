@@ -23,10 +23,10 @@ export function LinkOverview({ link }: LinkOverviewProps) {
   const skillSyncs = useGatewayLinkStore((s) => s.skillSyncs);
 
   const syncedModelCount = modelSyncs.filter(
-    (m) => m.sync_status === "synced",
+    (m) => m.syncStatus === "synced",
   ).length;
   const syncedSkillCount = skillSyncs.filter(
-    (s) => s.sync_status === "synced",
+    (s) => s.syncStatus === "synced",
   ).length;
 
   const handleToggle = async () => {
@@ -72,7 +72,7 @@ export function LinkOverview({ link }: LinkOverviewProps) {
           <div className="flex items-center gap-3">
             <div>
               <Tag color={statusColor}>{statusLabel}</Tag>
-              {link.latency_ms != null && link.status === "connected" && (
+              {link.latencyMs != null && link.status === "connected" && (
                 <span
                   style={{
                     fontSize: 12,
@@ -80,7 +80,7 @@ export function LinkOverview({ link }: LinkOverviewProps) {
                     marginLeft: 8,
                   }}
                 >
-                  {t("link.latency")}: {link.latency_ms}ms
+                  {t("link.latency")}: {link.latencyMs}ms
                 </span>
               )}
               {link.version && (
@@ -94,7 +94,7 @@ export function LinkOverview({ link }: LinkOverviewProps) {
                   v{link.version}
                 </span>
               )}
-              {link.status === "error" && link.error_message && (
+              {link.status === "error" && link.errorMessage && (
                 <div
                   style={{
                     fontSize: 12,
@@ -102,7 +102,7 @@ export function LinkOverview({ link }: LinkOverviewProps) {
                     marginTop: 4,
                   }}
                 >
-                  {link.error_message}
+                  {link.errorMessage}
                 </div>
               )}
             </div>
@@ -147,8 +147,8 @@ export function LinkOverview({ link }: LinkOverviewProps) {
           <Card size="small">
             <Statistic
               title={t("link.lastSync")}
-              value={link.last_sync_at
-                ? new Date(link.last_sync_at * 1000).toLocaleString()
+              value={link.lastSyncAt
+                ? new Date(link.lastSyncAt * 1000).toLocaleString()
                 : "-"}
               styles={{ content: { fontSize: 14 } }}
               prefix={<Clock size={14} />}
@@ -192,7 +192,7 @@ export function LinkOverview({ link }: LinkOverviewProps) {
                       fontSize: 12,
                     }}
                   >
-                    {new Date(activity.created_at * 1000).toLocaleTimeString()}
+                    {new Date(activity.createdAt * 1000).toLocaleTimeString()}
                   </span>
                   <span>{activity.description}</span>
                 </div>

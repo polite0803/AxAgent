@@ -320,6 +320,7 @@ pub fn run() {
                                 id: pattern.id.clone(),
                                 session_id: String::new(),
                                 user_id: String::new(),
+                                agent_name: None,
                                 topic: pattern.name.clone(),
                                 summary: pattern.description.clone(),
                                 outcome: if pattern.success_rate >= 0.5 {
@@ -423,6 +424,25 @@ pub fn run() {
                 // 幂等 upsert，每次启动都调用，确保三个内置角色记录存在
                 if let Err(e) = crate::commands::multi_agent_setup::seed_multi_agent_roles::seed_multi_agent_roles(&seed_db).await {
                     tracing::warn!("[multi_agent_setup] 种子化 Multi-Agent 角色失败: {}", e);
+                }
+            });
+            // 重启自动加载持久化的 runtime_evolution 工具（幂等，source=runtime_evolution）
+            // 使上一会话 AutoToolCreator / 自指工具部署的产物在应用重启后自动恢复可用
+            let rt_tool_db = state.harness.db().clone();
+            let rt_tool_registry = state.local_tool_registry.clone();
+            let rt_tool_work_engine = state.work_engine.clone();
+            let rt_tool_stats = state.evolution_execution_stats.clone();
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = crate::commands::evolution_engine::load_runtime_evolution_tools_impl(
+                    &rt_tool_db,
+                    &rt_tool_registry,
+                    &rt_tool_work_engine,
+                    &rt_tool_stats,
+                )
+                .await
+                {
+                    tracing::warn!(target: "evolution_engine",
+                        "启动加载持久化运行时工具失败: {}", e);
                 }
             });
             init::services::start_background_services(app.handle(), &state, app_dir.clone(), tray_language);

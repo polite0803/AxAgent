@@ -8,6 +8,7 @@ use crate::evaluator::metrics::{format_score, get_difficulty_label};
 use crate::evaluator::runner::{BenchmarkResult, TaskResult};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BenchmarkReport {
     pub benchmark_id: String,
     pub benchmark_name: String,
@@ -19,6 +20,7 @@ pub struct BenchmarkReport {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ReportSummary {
     pub total_tasks: usize,
     pub passed_tasks: usize,
@@ -30,6 +32,7 @@ pub struct ReportSummary {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TaskBreakdown {
     pub task_id: String,
     pub task_name: String,
@@ -41,6 +44,7 @@ pub struct TaskBreakdown {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CriteriaScore {
     pub name: String,
     pub score: f32,

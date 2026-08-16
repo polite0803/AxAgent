@@ -7,20 +7,20 @@ import { buildJsonTranscript, buildMarkdownTranscript, buildTextTranscript } fro
 
 const mockMessage = (overrides: Partial<Message> = {}): Message => ({
   id: "msg-1",
-  conversation_id: "conv-1",
+  conversationId: "conv-1",
   role: "assistant",
   content: "Hello, how can I help you?",
-  provider_id: null,
-  model_id: null,
-  token_count: null,
+  providerId: null,
+  modelId: null,
+  tokenCount: null,
   attachments: [],
   thinking: null,
-  tool_calls_json: null,
-  tool_call_id: null,
-  created_at: 1714500000000,
-  parent_message_id: null,
-  version_index: 0,
-  is_active: true,
+  toolCallsJson: null,
+  toolCallId: null,
+  createdAt: 1714500000000,
+  parentMessageId: null,
+  versionIndex: 0,
+  isActive: true,
   status: "complete",
   ...overrides,
 });
@@ -83,9 +83,9 @@ describe("buildTextTranscript", () => {
 
   it("handles multiple messages in sequence", () => {
     const msgs = [
-      mockMessage({ role: "user", content: "Q1", created_at: 1 }),
-      mockMessage({ role: "assistant", content: "A1", created_at: 2 }),
-      mockMessage({ role: "user", content: "Q2", created_at: 3 }),
+      mockMessage({ role: "user", content: "Q1", createdAt: 1 }),
+      mockMessage({ role: "assistant", content: "A1", createdAt: 2 }),
+      mockMessage({ role: "user", content: "Q2", createdAt: 3 }),
     ];
     const result = buildTextTranscript(msgs, "History");
     expect(result).toContain("[User]");
@@ -138,7 +138,7 @@ describe("buildJsonTranscript", () => {
   });
 
   it("includes created_at timestamp", () => {
-    const msg = mockMessage({ created_at: 1714500000000 });
+    const msg = mockMessage({ createdAt: 1714500000000 });
     const result = buildJsonTranscript([msg], "Chat");
     const parsed = JSON.parse(result);
     expect(parsed.messages[0].created_at).toBe(1714500000000);

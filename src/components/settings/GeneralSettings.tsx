@@ -71,9 +71,9 @@ export function GeneralSettings() {
           <span>{t("settings.autoStart")}</span>
           <Switch
             id="general-settings-switch-60"
-            checked={settings.auto_start}
+            checked={settings.autoStart}
             onChange={async (checked) => {
-              saveSettings({ auto_start: checked });
+              saveSettings({ autoStart: checked });
               if (inTauri && !import.meta.env.DEV) {
                 try {
                   if (checked) {
@@ -95,8 +95,8 @@ export function GeneralSettings() {
           <span>{t("settings.showOnStart")}</span>
           <Switch
             id="general-settings-switch-61"
-            checked={settings.show_on_start}
-            onChange={(checked) => saveSettings({ show_on_start: checked })}
+            checked={settings.showOnStart}
+            onChange={(checked) => saveSettings({ showOnStart: checked })}
           />
         </div>
         <Divider style={{ margin: "4px 0" }} />
@@ -104,9 +104,9 @@ export function GeneralSettings() {
           <span>{t("desktop.alwaysOnTop")}</span>
           <Switch
             id="general-settings-switch-62"
-            checked={settings.always_on_top ?? false}
+            checked={settings.alwaysOnTop ?? false}
             onChange={(checked) => {
-              saveSettings({ always_on_top: checked });
+              saveSettings({ alwaysOnTop: checked });
               if (inTauri) {
                 invoke("set_always_on_top", { enabled: checked }).catch(
                   logIpcError("set_always_on_top"),
@@ -121,8 +121,8 @@ export function GeneralSettings() {
           <span>{t("desktop.startMinimized")}</span>
           <Switch
             id="general-settings-switch-63"
-            checked={settings.start_minimized ?? false}
-            onChange={(checked) => saveSettings({ start_minimized: checked })}
+            checked={settings.startMinimized ?? false}
+            onChange={(checked) => saveSettings({ startMinimized: checked })}
             disabled={!inTauri}
           />
         </div>
@@ -134,9 +134,9 @@ export function GeneralSettings() {
           <span>{t("settings.minimizeToTray")}</span>
           <Switch
             id="general-settings-switch-64"
-            checked={settings.minimize_to_tray}
+            checked={settings.minimizeToTray}
             onChange={(checked) => {
-              saveSettings({ minimize_to_tray: checked });
+              saveSettings({ minimizeToTray: checked });
               if (inTauri) {
                 invoke("set_close_to_tray", { enabled: checked }).catch(
                   logIpcError("set_close_to_tray"),
@@ -156,16 +156,16 @@ export function GeneralSettings() {
         >
           <span>{t("settings.defaultWorkspaceDir")}</span>
           <div className="flex items-center gap-2">
-            {settings.default_workspace_dir
+            {settings.defaultWorkspaceDir
               ? (
                 <>
                   <Text type="secondary" ellipsis style={{ maxWidth: 200 }}>
-                    {settings.default_workspace_dir}
+                    {settings.defaultWorkspaceDir}
                   </Text>
                   <Button
                     size="small"
                     icon={<X size={14} />}
-                    onClick={() => saveSettings({ default_workspace_dir: null })}
+                    onClick={() => saveSettings({ defaultWorkspaceDir: null })}
                     disabled={!inTauri}
                   />
                 </>
@@ -185,7 +185,7 @@ export function GeneralSettings() {
                       });
                       if (selected) {
                         saveSettings({
-                          default_workspace_dir: selected as string,
+                          defaultWorkspaceDir: selected as string,
                         });
                       }
                     } catch {

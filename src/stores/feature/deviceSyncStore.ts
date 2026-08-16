@@ -175,26 +175,26 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
 
   // === 实时推送状态 ===
   realtimePush: {
-    ws_status: "disconnected",
-    ws_connection_id: null,
-    last_signal_at: null,
-    pending_signals: [],
+    wsStatus: "disconnected",
+    wsConnectionId: null,
+    lastSignalAt: null,
+    pendingSignals: [],
   },
 
   connectWebSocket: async () => {
     set((state) => ({
       realtimePush: {
         ...state.realtimePush,
-        ws_status: "connecting",
+        wsStatus: "connecting",
       },
     }));
     // WebSocket 连接逻辑将在运行时实现
     set((state) => ({
       realtimePush: {
         ...state.realtimePush,
-        ws_status: "connected",
-        ws_connection_id: `conn-${Date.now()}`,
-        last_signal_at: Date.now(),
+        wsStatus: "connected",
+        wsConnectionId: `conn-${Date.now()}`,
+        lastSignalAt: Date.now(),
       },
     }));
   },
@@ -203,8 +203,8 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
     set((state) => ({
       realtimePush: {
         ...state.realtimePush,
-        ws_status: "disconnected",
-        ws_connection_id: null,
+        wsStatus: "disconnected",
+        wsConnectionId: null,
       },
     }));
   },
@@ -213,8 +213,8 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
     set((state) => ({
       realtimePush: {
         ...state.realtimePush,
-        pending_signals: [...state.realtimePush.pending_signals, signal as never],
-        last_signal_at: Date.now(),
+        pendingSignals: [...state.realtimePush.pendingSignals, signal as never],
+        lastSignalAt: Date.now(),
       },
     }));
   },
@@ -224,12 +224,12 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
     config: {
       enabled: false,
       algorithm: "aes256_gcm",
-      key_derivation: "pre_shared_key",
-      key_hash: null,
+      keyDerivation: "pre_shared_key",
+      keyHash: null,
     },
-    is_encrypting: false,
-    last_encrypted_at: null,
-    encryption_error: null,
+    isEncrypting: false,
+    lastEncryptedAt: null,
+    encryptionError: null,
   },
 
   updateEncryptionConfig: (config) => {
@@ -248,8 +248,8 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
     set((state) => ({
       encryption: {
         ...state.encryption,
-        is_encrypting: true,
-        encryption_error: null,
+        isEncrypting: true,
+        encryptionError: null,
       },
     }));
     try {
@@ -260,8 +260,8 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
       set((state) => ({
         encryption: {
           ...state.encryption,
-          is_encrypting: false,
-          last_encrypted_at: Date.now(),
+          isEncrypting: false,
+          lastEncryptedAt: Date.now(),
         },
       }));
       return encrypted;
@@ -270,8 +270,8 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
       set((state) => ({
         encryption: {
           ...state.encryption,
-          is_encrypting: false,
-          encryption_error: translateErrorMessage(e),
+          isEncrypting: false,
+          encryptionError: translateErrorMessage(e),
         },
       }));
       return null;
@@ -282,8 +282,8 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
     set((state) => ({
       encryption: {
         ...state.encryption,
-        is_encrypting: true,
-        encryption_error: null,
+        isEncrypting: true,
+        encryptionError: null,
       },
     }));
     try {
@@ -294,8 +294,8 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
       set((state) => ({
         encryption: {
           ...state.encryption,
-          is_encrypting: false,
-          last_encrypted_at: Date.now(),
+          isEncrypting: false,
+          lastEncryptedAt: Date.now(),
         },
       }));
       return decrypted;
@@ -304,8 +304,8 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
       set((state) => ({
         encryption: {
           ...state.encryption,
-          is_encrypting: false,
-          encryption_error: translateErrorMessage(e),
+          isEncrypting: false,
+          encryptionError: translateErrorMessage(e),
         },
       }));
       return null;
@@ -334,7 +334,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
   getLocalDevice: async () => {
     try {
       const device = await invoke<DeviceInfo>("get_local_device");
-      set({ localDevice: device, localDeviceId: device.device_id });
+      set({ localDevice: device, localDeviceId: device.deviceId });
       return device;
     } catch (e) {
       logIpcError("get_local_device")(e);
@@ -356,7 +356,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
   unpairDevice: async (deviceId) => {
     try {
       await invoke<void>("unpair_device", { device_id: deviceId });
-      const devices = get().devices.filter((d) => d.device_id !== deviceId);
+      const devices = get().devices.filter((d) => d.deviceId !== deviceId);
       set({ devices });
     } catch (e) {
       logIpcError("unpair_device")(e);
@@ -426,7 +426,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
       });
       set({ isSyncing: false });
       if (!result.success) {
-        set({ error: result.error_message || "Sync failed" });
+        set({ error: result.errorMessage || "Sync failed" });
       }
       return result;
     } catch (e) {
@@ -444,7 +444,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
       });
       set({ isSyncing: false });
       if (!result.success) {
-        set({ error: result.error_message || "Sync failed" });
+        set({ error: result.errorMessage || "Sync failed" });
       }
       return result;
     } catch (e) {
@@ -680,7 +680,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
       const list = await invoke<DevicePermissions[]>("list_all_permissions");
       const newMap = new Map<string, DevicePermissions>();
       for (const p of list) {
-        newMap.set(p.device_id, p);
+        newMap.set(p.deviceId, p);
       }
       set({ devicePermissions: newMap });
     } catch (e) {
@@ -705,21 +705,21 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
       isSyncing: false,
       error: null,
       realtimePush: {
-        ws_status: "disconnected",
-        ws_connection_id: null,
-        last_signal_at: null,
-        pending_signals: [],
+        wsStatus: "disconnected",
+        wsConnectionId: null,
+        lastSignalAt: null,
+        pendingSignals: [],
       },
       encryption: {
         config: {
           enabled: false,
           algorithm: "aes256_gcm",
-          key_derivation: "pre_shared_key",
-          key_hash: null,
+          keyDerivation: "pre_shared_key",
+          keyHash: null,
         },
-        is_encrypting: false,
-        last_encrypted_at: null,
-        encryption_error: null,
+        isEncrypting: false,
+        lastEncryptedAt: null,
+        encryptionError: null,
       },
       // P2 reset
       syncPolicy: null,

@@ -81,9 +81,9 @@ createMockWs.CLOSED = 3;
 // ── 测试配置 ──────────────────────────────────────────────────
 
 const defaultConfig: RealtimeConfig = {
-  model_id: "gpt-4o-realtime-preview",
+  modelId: "gpt-4o-realtime-preview",
   voice: null,
-  audio_format: { sample_rate: 24000, channels: 1, encoding: "Pcm16" },
+  audioFormat: { sampleRate: 24000, channels: 1, encoding: "Pcm16" },
 };
 
 const defaultApiKey = "sk-test-key-123";
@@ -233,7 +233,7 @@ describe("useVoiceChat", () => {
     expect(mockWsInstances[0].send).toHaveBeenCalledWith(
       JSON.stringify({
         type: "session.create",
-        model: defaultConfig.model_id,
+        model: defaultConfig.modelId,
         voice: null,
         stt_provider: null,
         tts_provider: null,

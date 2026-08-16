@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-pub use axagent_harness::trajectory_types::{GeneratedTool, LlmToolProvider, ToolCreationRequest};
+pub use axagent_harness::trajectory_types::{
+    EvolutionArtifactKind, GeneratedTool, LlmToolProvider, ToolCreationRequest,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::future::Future;
@@ -60,14 +62,12 @@ impl DefaultLlmToolProvider {
     fn build_code_from_template(&self, request: &ToolCreationRequest) -> String {
         let tool_list = request.available_tools.join(", ");
         format!(
-            r#"function {name}(input) {{
-  // Auto-generated tool for: {desc}
-  // Context: {ctx}
-  // Available tools: {tools}
-  const result = process(input);
-  return {{ success: true, data: result }};
-}}"#,
-            name = slugify(&request.pattern_description),
+            r#"// Auto-generated Rhai tool for: {desc}
+// Context: {ctx}
+// Available tools: {tools}
+// 输入参数以 `input` 变量注入（GeneratedToolAdapter 统一包装为 {{ "input": ... }}）
+let result = input;
+result"#,
             desc = request.pattern_description,
             ctx = request.context,
             tools = tool_list,
@@ -76,23 +76,19 @@ impl DefaultLlmToolProvider {
 
     fn build_improved_code(&self, tool: &GeneratedTool, error: &str) -> String {
         format!(
-            r#"function {name}(input) {{
-  // Improved tool for: {desc}
-  // Previous error: {err}
-  // Original code:
-  // {orig}
-  try {{
-    const result = process(input);
-    if (!result) throw new Error("empty result");
-    return {{ success: true, data: result }};
-  }} catch (e) {{
-    return {{ success: false, error: e.message }};
-  }}
+            r#"// Improved Rhai tool for: {desc}
+// Previous error: {err}
+// Original code:
+// {orig}
+try {{
+    let result = input;
+    result
+}} catch (e) {{
+    format!("进化工具执行失败: {{}}", e)
 }}"#,
-            name = slugify(&tool.name),
             desc = tool.description,
             err = error,
-            orig = tool.code.replace('\n', "\n  // "),
+            orig = tool.code.replace('\n', "\n// "),
         )
     }
 }
@@ -122,7 +118,10 @@ impl LlmToolProvider for DefaultLlmToolProvider {
         let code = self.build_code_from_template(request);
         let name = slugify(&request.pattern_description);
         let description = request.pattern_description.clone();
-        Box::pin(async move { Ok(GeneratedTool::new(&name, &code, &description)) })
+        let artifact_kind = EvolutionArtifactKind::infer(&code);
+        Box::pin(async move {
+            Ok(GeneratedTool::with_artifact_kind(&name, &code, &description, artifact_kind))
+        })
     }
 
     fn improve_tool_code(
@@ -134,8 +133,14 @@ impl LlmToolProvider for DefaultLlmToolProvider {
         let name = tool.name.clone();
         let description = tool.description.clone();
         let previous_usage = tool.usage_count;
+        let artifact_kind = tool.artifact_kind;
         Box::pin(async move {
-            let mut improved = GeneratedTool::new(&name, &improved_code, &description);
+            let mut improved = GeneratedTool::with_artifact_kind(
+                &name,
+                &improved_code,
+                &description,
+                artifact_kind,
+            );
             improved.usage_count = previous_usage;
             Ok(improved)
         })
@@ -736,6 +741,50 @@ mod tests {
         assert_eq!(deserialized.name, "ser_tool");
         assert_eq!(deserialized.code, "code");
         assert_eq!(deserialized.description, "desc");
+    }
+
+    #[test]
+    fn test_evolution_artifact_kind_default_and_roundtrip() {
+        // 默认产物类型为 RhaiScript（计算型）
+        let tool = GeneratedTool::new("calc_tool", "fn main() {} ", "计算型工具");
+        assert_eq!(tool.artifact_kind, EvolutionArtifactKind::RhaiScript);
+        assert_eq!(tool.artifact_kind.as_str(), "rhai_script");
+
+        // 显式标注为 WorkflowDag（编排型）
+        let wf = GeneratedTool::with_artifact_kind(
+            "wf_tool",
+            r#"{ "nodes": [...], "edges": [...] }"#,
+            "编排型工具",
+            EvolutionArtifactKind::WorkflowDag,
+        );
+        assert_eq!(wf.artifact_kind, EvolutionArtifactKind::WorkflowDag);
+        assert_eq!(
+            EvolutionArtifactKind::try_from_str("workflow_dag"),
+            EvolutionArtifactKind::WorkflowDag
+        );
+        assert_eq!(
+            EvolutionArtifactKind::try_from_str("unknown"),
+            EvolutionArtifactKind::RhaiScript
+        );
+    }
+
+    #[test]
+    fn test_evolution_artifact_kind_infer() {
+        // 纯计算代码 → RhaiScript
+        let calc = "let x = input.value * 2; x";
+        assert_eq!(EvolutionArtifactKind::infer(calc), EvolutionArtifactKind::RhaiScript);
+
+        // 编排型代码（含节点/边/依赖标记）→ WorkflowDag
+        let wf = r#"workflow { nodes: ["a", "b"], edges: [{ "from": "a", "to": "b" }], depends_on: {} }"#;
+        assert_eq!(EvolutionArtifactKind::infer(wf), EvolutionArtifactKind::WorkflowDag);
+    }
+
+    #[test]
+    fn test_evolution_artifact_kind_serde_backward_compat() {
+        // 老数据（无 artifact_kind 字段）反序列化时自动补齐为默认 RhaiScript
+        let legacy = r#"{"id":"x","name":"legacy","code":"c","description":"d","test_coverage":0.0,"created_at":0,"usage_count":0,"success_rate":0.0}"#;
+        let tool: GeneratedTool = serde_json::from_str(legacy).expect("测试：老数据反序列化应成功");
+        assert_eq!(tool.artifact_kind, EvolutionArtifactKind::RhaiScript);
     }
 
     #[test]

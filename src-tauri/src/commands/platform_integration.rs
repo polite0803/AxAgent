@@ -22,6 +22,7 @@ const VALID_PLATFORMS: &[&str] = &["discord", "telegram", "slack", "webhook"];
 // ── IPC 返回类型（替代旧 axagent_trajectory 中的类型） ──
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OutgoingMessage {
     pub platform: String,
     pub chat_id: String,
@@ -30,6 +31,7 @@ pub struct OutgoingMessage {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PlatformSession {
     pub session_id: String,
     pub platform: String,

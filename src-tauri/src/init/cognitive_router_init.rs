@@ -17,7 +17,7 @@
 use sea_orm::DatabaseConnection;
 
 use axagent_dao::repo::workflow_template::{
-    build_active_model_from_data, get_workflow_template, insert_workflow_template,
+    build_active_model_from_data, get_workflow_template, upsert_workflow_template,
 };
 use axagent_harness::workflow_types::{
     BackoffType, CompareOperator, Condition, ConditionNode, ConditionNodeConfig,
@@ -36,6 +36,16 @@ pub const COGNITIVE_L3_CAPABILITY_ROUTER_ID: &str = "cognitive_l3_capability_rou
 /// 认知编排器标签（用于隔离和筛选）
 pub const COGNITIVE_ROUTER_TAG: &str = "cognitive_router";
 
+/// 认知编排器模板版本：模板结构（节点/边）变更时必须递增对应版本，
+/// 触发已存在模板在下次初始化时重新灌入（否则 `ensure_template` 对已存在模板直接跳过，
+/// 代码修复在已有数据库上不会生效）。
+/// L1 / L2 / 主 DAG 本轮未变更保持 v1；L3 因 P2（置信度提取）与 P5（能力类型提取）
+/// 新增节点升级到 v2。
+const L1_TEMPLATE_VERSION: i32 = 1;
+const L2_TEMPLATE_VERSION: i32 = 1;
+const L3_TEMPLATE_VERSION: i32 = 2;
+const MAIN_TEMPLATE_VERSION: i32 = 1;
+
 /// 初始化认知编排器（4 个工作流模板，共 ~53 个节点）
 pub async fn ensure_cognitive_router_templates(db: &DatabaseConnection) -> Result<(), String> {
     // 1. 创建 L1 域路由子工作流（~10 节点）
@@ -44,6 +54,7 @@ pub async fn ensure_cognitive_router_templates(db: &DatabaseConnection) -> Resul
         COGNITIVE_L1_DOMAIN_ROUTER_ID,
         "L1 域路由",
         "识别用户输入所属的业务域（规则匹配 + LLM 兜底 + 置信度评估）",
+        L1_TEMPLATE_VERSION,
         build_l1_router_nodes(),
         build_l1_router_edges(),
     )
@@ -55,6 +66,7 @@ pub async fn ensure_cognitive_router_templates(db: &DatabaseConnection) -> Resul
         COGNITIVE_L2_CLUSTER_ROUTER_ID,
         "L2 簇路由",
         "在业务域内匹配具体的能力簇（规则匹配 + LLM 兜底）",
+        L2_TEMPLATE_VERSION,
         build_l2_router_nodes(),
         build_l2_router_edges(),
     )
@@ -66,6 +78,7 @@ pub async fn ensure_cognitive_router_templates(db: &DatabaseConnection) -> Resul
         COGNITIVE_L3_CAPABILITY_ROUTER_ID,
         "L3 能力路由",
         "选择具体的执行策略（RAR 检索 + 图谱路由 + 熔断检查 + 执行模式决策）",
+        L3_TEMPLATE_VERSION,
         build_l3_router_nodes(),
         build_l3_router_edges(),
     )
@@ -77,6 +90,7 @@ pub async fn ensure_cognitive_router_templates(db: &DatabaseConnection) -> Resul
         COGNITIVE_ROUTER_MAIN_ID,
         "认知编排器",
         "系统级路由编排器，协调 L1/L2/L3 三层路由，支持熔断保护和物理隔离",
+        MAIN_TEMPLATE_VERSION,
         build_main_router_nodes(),
         build_main_router_edges(),
     )
@@ -86,28 +100,39 @@ pub async fn ensure_cognitive_router_templates(db: &DatabaseConnection) -> Resul
     Ok(())
 }
 
-/// 确保模板存在（不存在则创建，存在则跳过）
+/// 确保模板存在（不存在则创建；已存在但版本落后于代码则重新灌入，保证结构修复生效）
 async fn ensure_template(
     db: &DatabaseConnection,
     id: &str,
     name: &str,
     description: &str,
+    version: i32,
     nodes: Vec<WorkflowNode>,
     edges: Vec<WorkflowEdge>,
 ) -> Result<(), String> {
     let existing = get_workflow_template(db, id).await.map_err(|e| e.to_string())?;
 
-    if existing.is_some() {
-        tracing::debug!("[cognitive_router] 模板 {} 已存在，跳过", id);
-        return Ok(());
+    if let Some(t) = existing {
+        // 已存在：仅当版本落后于代码时重新灌入（覆盖预设模板结构）；否则跳过。
+        if t.version < version {
+            tracing::info!(
+                "[cognitive_router] 模板 {} 结构变更，版本 v{} → v{}，重新灌入",
+                id,
+                t.version,
+                version
+            );
+        } else {
+            tracing::debug!("[cognitive_router] 模板 {} 已存在（v{}），跳过", id, t.version);
+            return Ok(());
+        }
+    } else {
+        tracing::info!(
+            "[cognitive_router] 创建模板: {} ({} 节点, {} 边)",
+            name,
+            nodes.len(),
+            edges.len()
+        );
     }
-
-    tracing::info!(
-        "[cognitive_router] 创建模板: {} ({} 节点, {} 边)",
-        name,
-        nodes.len(),
-        edges.len()
-    );
 
     let now = chrono::Utc::now().timestamp_millis();
     let template = WorkflowTemplateData {
@@ -116,7 +141,7 @@ async fn ensure_template(
         description: Some(description.to_string()),
         icon: "🤖".to_string(),
         tags: vec![COGNITIVE_ROUTER_TAG.to_string()],
-        version: 1,
+        version,
         is_preset: true,
         is_editable: true,
         is_public: false,
@@ -134,9 +159,9 @@ async fn ensure_template(
         created_at: now,
         updated_at: now,
     };
-
     let active = build_active_model_from_data(&template);
-    insert_workflow_template(db, active).await.map_err(|e| e.to_string())?;
+    // 幂等灌入：不存在时插入，存在（版本落后）时整表覆盖（含 nodes/edges/version）
+    upsert_workflow_template(db, active).await.map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -798,7 +823,8 @@ fn build_l2_router_edges() -> Vec<WorkflowEdge> {
 //   1. 系统能力层：RAR 检索/图谱路由返回的 circuit_broken 字段（自指自检在系统能力内部完成）
 //   2. DAG 层：normalize_l3 归一化时用 Rhai 对 capability_id 做编排器关键字二次防线
 
-/// L3 RAR 候选选择 prompt（LLM 从 RAR 检索候选中选 1，输出 JSON 含 label/confidence/execution_mode）
+/// L3 RAR 候选选择 prompt（LLM 从 RAR 检索候选中选 1，输出 JSON 含 label/confidence；
+/// execution_mode 由图谱路由按置信度统一决策，LLM 无需输出）
 const L3_SELECT_PROMPT: &str = r#"你是一个 L3 工作流选择器。根据用户输入，从候选工作流中选择最匹配的一个。
 
 用户输入：{user_input}
@@ -806,7 +832,7 @@ const L3_SELECT_PROMPT: &str = r#"你是一个 L3 工作流选择器。根据用
 能力簇：{l2_cluster}
 候选项：{rar_candidates}
 
-请返回 JSON：{"label": "候选id", "confidence": 0.xx, "execution_mode": "direct|workflow|delegate|ask|plan|act"}
+请返回 JSON：{"label": "候选id", "confidence": 0.xx}
 只输出 JSON，不要包含任何其他内容。"#;
 
 /// L3 结果归一化 Rhai 表达式 —— 汇总选中能力 + 图谱路径，输出统一决策对象。
@@ -900,6 +926,31 @@ fn build_l3_router_nodes() -> Vec<WorkflowNode> {
             "rar_selected.category",
             "selected_capability",
         ),
+        // 4b. 有候选路径：提取 RAR 选中候选的置信度（图谱降级时保留真实分数，替代硬编码 0.5）
+        data_transformer_node(
+            "score_from_rar",
+            "提取选中置信度",
+            Position { x: 500.0, y: 320.0 },
+            "rar_candidates",
+            r#"let cap = rar_selected.category;
+let mut s = 0.0;
+for c in rar_candidates.candidates { if c.id == cap { s = c.score.to_float(); } }
+s"#,
+            "selected_score",
+        ),
+        // 4c. 有候选路径：提取选中候选的能力类型（P5 非 Workflow 能力高置信度保护——
+        //     Agent/Tool/知识库/技能即使高置信命中也不能直发工作流，需委派 agent 执行）
+        data_transformer_node(
+            "kind_from_rar",
+            "提取能力类型",
+            Position { x: 680.0, y: 320.0 },
+            "rar_candidates",
+            r#"let cap = rar_selected.category;
+let mut k = "";
+for c in rar_candidates.candidates { if c.id == cap { if c.kind != () { k = c.kind; } } }
+k"#,
+            "selected_kind",
+        ),
         // 5. 无候选路径：以 L2 能力簇作为兜底能力（避免引用未定义的 rar_selected）
         data_transformer_node(
             "fallback_cluster",
@@ -909,7 +960,25 @@ fn build_l3_router_nodes() -> Vec<WorkflowNode> {
             "l2_cluster",
             "selected_capability",
         ),
-        // 6. 图谱路由（系统能力，输入选中能力，返回路径 + 熔断标记）
+        // 5b. 无候选路径：无 RAR 分数，selected_score 置 0（图谱降级时回退默认 0.5）
+        data_transformer_node(
+            "score_fallback",
+            "置信度兜底",
+            Position { x: 500.0, y: 200.0 },
+            "l2_cluster",
+            "0.0",
+            "selected_score",
+        ),
+        // 5c. 无候选路径：无选中候选，selected_kind 置空（簇级兜底视为工作流路径，不触发降级）
+        data_transformer_node(
+            "kind_fallback",
+            "能力类型兜底",
+            Position { x: 680.0, y: 200.0 },
+            "l2_cluster",
+            "\"\"",
+            "selected_kind",
+        ),
+        // 6. 图谱路由（系统能力，输入选中能力，返回路径 + 熔断标记 + 执行模式）
         sub_workflow_node(
             "graph_router",
             "图谱路由",
@@ -917,6 +986,8 @@ fn build_l3_router_nodes() -> Vec<WorkflowNode> {
             "system_workflow_graph_router",
             vec![
                 ("selected_capability", "selected_capability"),
+                ("selected_score", "selected_score"),
+                ("selected_kind", "selected_kind"),
                 ("l1_domain", "l1_domain"),
                 ("l2_cluster", "l2_cluster"),
                 ("user_input", "user_input"),
@@ -948,9 +1019,13 @@ fn build_l3_router_edges() -> Vec<WorkflowEdge> {
         branch_edge("e2", "rar_has_results", "rar_llm_select", true, "有候选"),
         branch_edge("e3", "rar_has_results", "fallback_cluster", false, "无候选"),
         direct_edge("e4", "rar_llm_select", "condense_selected"),
-        direct_edge("e5", "condense_selected", "graph_router"),
-        direct_edge("e6", "fallback_cluster", "graph_router"),
-        direct_edge("e7", "graph_router", "normalize_l3"),
-        direct_edge("e8", "normalize_l3", "l3_success"),
+        direct_edge("e5", "condense_selected", "score_from_rar"),
+        direct_edge("e6", "score_from_rar", "kind_from_rar"),
+        direct_edge("e6b", "kind_from_rar", "graph_router"),
+        direct_edge("e7", "fallback_cluster", "score_fallback"),
+        direct_edge("e8", "score_fallback", "kind_fallback"),
+        direct_edge("e8b", "kind_fallback", "graph_router"),
+        direct_edge("e9", "graph_router", "normalize_l3"),
+        direct_edge("e10", "normalize_l3", "l3_success"),
     ]
 }

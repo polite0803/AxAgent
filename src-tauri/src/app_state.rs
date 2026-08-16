@@ -161,6 +161,7 @@ pub struct ShareSessionRecord {
 
 /// 共享会话权限配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SharePermissions {
     pub allow_terminal_access: bool,
     pub allow_file_access: bool,
@@ -185,6 +186,7 @@ impl Default for SharePermissions {
 
 /// 会话参与者
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ShareParticipant {
     pub id: String,
     pub name: String,
@@ -235,6 +237,11 @@ pub struct AppState {
     /// `agent_query` 在闸门触发时插入 sender 并 await；`agent_approve_plan` 取出并发送。
     pub agent_plan_approvals:
         Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<bool>>>>,
+    /// 能力补齐/进化改进提议的挂起审批槽：proposalId → 同意信号发送端。
+    /// 认知编排器三触发点（拒绝 / NO_CANDIDATE / Clarify 兜底）生成提议后插入 sender 并
+    /// await；前端 EvolutionConsentModal 同意/拒绝后由 `capability_gap_consent` 取出并发送。
+    pub evolution_consent_senders:
+        Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<bool>>>>,
     pub agent_session_manager: Arc<axagent_agent::SessionManager>,
     pub agent_cancel_tokens: Arc<DashMap<String, Arc<AtomicBool>>>,
     pub agent_paused: Arc<Mutex<std::collections::HashSet<String>>>,
@@ -273,6 +280,14 @@ pub struct AppState {
     pub platform_bridge: Arc<axagent_runtime::message_gateway::platform_bridge::PlatformBridge>,
     pub user_profile: Arc<TokioRwLock<axagent_trajectory::UserProfile>>,
     pub local_tool_registry: Arc<tokio::sync::Mutex<axagent_tools::registry::UnifiedToolRegistry>>,
+    /// 进化产物运行时执行统计（阶段四后置闭环）：tool_id → 真实成败计数。
+    /// 与 `GeneratedToolAdapter` 注入的 `EvolutionFeedbackSink` 共享同一 Arc，
+    /// 供进化决策查询融合真实执行反馈。
+    pub evolution_execution_stats: Arc<
+        tokio::sync::Mutex<
+            HashMap<String, axagent_harness::workflow_evolution::ToolExecutionStats>,
+        >,
+    >,
     pub work_engine: Arc<axagent_runtime::work_engine::WorkEngine>,
     /// 工作流反思器(阶段 5 注入):同一实例同时挂载到 WorkEngine 与此字段,
     /// 供命令层手动触发整体 / 节点级反思。None = 反思未启用(理论上 wiring 层必注入)。

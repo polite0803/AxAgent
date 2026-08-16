@@ -1213,7 +1213,17 @@
       "skill": "スキル",
       "agent_role": "ロール",
       "agent_profile": "エキスパート"
-    }
+    },
+    "level": {
+      "l1": "L1 · 未成熟",
+      "l2": "L2 · 基本利用可能",
+      "l3": "L3 · 中程度の成熟",
+      "l4": "L4 · 高度に成熟",
+      "l5": "L5 · 最高水準"
+    },
+    "evolve": "進化させる",
+    "evolveSuccess": "進化に成功し、レベルが {{level}} に向上しました",
+    "evolveFailed": "進化に失敗しました。後でもう一度お試しください"
   },
   "chatMarkdown": {
     "inputParams": "入力パラメータ",
@@ -1250,7 +1260,8 @@
     "title": "アシスタント",
     "visionAnalysis": "視覚分析",
     "cognitiveRoute": "ルート観測",
-    "capability": "能力"
+    "capability": "能力",
+    "evolutionEvidence": "進化エビデンス"
   },
   "cite": {
     "chunkLabel": "チャンク #{{n}}",
@@ -2069,6 +2080,9 @@
     "COGNITIVE_EXECUTION_MODE_INVALID": "認知ルーティングの実行モードが無効です",
     "COGNITIVE_PROMPT_REJECTED": "認知プロンプトが拒否されました",
     "COGNITIVE_RAR_RETRIEVE_FAILED": "認知ルーティングの候補検索に失敗しました：{{detail}}",
+    "COGNITIVE_GAP_PROPOSAL_PENDING": "能力補完提案が生成されました。確認をお待ちしています",
+    "COGNITIVE_GAP_PROPOSAL_APPLIED": "能力補完が完了しました。リクエストを再送してください",
+    "COGNITIVE_GAP_PROPOSAL_REJECTED": "能力補完提案が拒否されました",
     "COMMON_INTERNAL": "内部エラー",
     "COMMON_INVALID_INPUT": "無効な入力です",
     "COMMON_TIMEOUT": "操作がタイムアウトしました",
@@ -2257,6 +2271,7 @@
     "TOOL_SSE_NO_ENDPOINT": "SSEトランスポートにエンドポイントが指定されていません",
     "TOOL_STDIO_NO_COMMAND": "Stdioトランスポートにコマンドが指定されていません",
     "TOOL_TRANSPORT_UNSUPPORTED": "サポートされていないトランスポート方式です",
+    "TOOL_REGISTRATION_DUPLICATE": "ツールの重複登録: 同名のツールが既に存在します",
     "VECTOR_STORE_FAILED": "ベクターストア操作に失敗しました",
     "VECTOR_EMBEDDING_FAILED": "ベクター埋め込み生成に失敗しました",
     "VECTOR_SEARCH_FAILED": "ベクター検索に失敗しました",
@@ -2374,6 +2389,7 @@
     "CAPABILITY_LIST_FAILED": "能力のリスト取得に失敗しました",
     "CAPABILITY_STATS_FAILED": "能力統計の取得に失敗しました",
     "CAPABILITY_METADATA_RESTORE_FAILED": "メタデータの復元に失敗しました",
+    "CAPABILITY_EVOLVE_FAILED": "能力の進化に失敗しました",
     "AGENT_INPUT_CHANNEL_CLOSED": "ユーザー入力チャネルが閉じられています",
     "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "ユーザーの返信待ちがタイムアウトしました（5分）",
     "AGENT_INPUT_NO_PROVIDER": "利用可能なプロバイダー/モデルがありません：設定でプロバイダーを有効にしてください",
@@ -2563,6 +2579,27 @@
     "loadFailed": "外部エキスパートの読み込みに失敗しました：{{error}}",
     "skippedInvalidRole": "無効なロールをスキップしました：{{role}}",
     "updateFailed": "外部エキスパートの更新に失敗しました：{{error}}"
+  },
+  "evolutionEvidence": {
+    "title": "進化エビデンス",
+    "empty": "進化エビデンスデータはまだありません",
+    "decision": {
+      "evolve": "進化を推奨",
+      "observe": "観察中",
+      "stable": "安定"
+    },
+    "pSuccess": "事後成功率 {value}%",
+    "evidenceVolume": "エビデンス量 {value}",
+    "consumedLabels": "エビデンス {consumed}/{total} 件を消費",
+    "routePaths": "エビデンスのソースパス",
+    "executionTitle": "実際の実行フィードバック",
+    "noExecution": "実際の実行データはまだありません",
+    "totalRuns": "総実行 {value} 回",
+    "successRate": "成功率 {value}%",
+    "totalSuccesses": "成功 {value}",
+    "totalFailures": "失敗 {value}",
+    "toolCount": "進化成果物 {value} 個",
+    "perSuccessRate": "成功率 {value}%"
   },
   "export": {
     "exportTime": "エクスポート時刻",
@@ -4183,7 +4220,23 @@
       "stop": "停止",
       "stopAll": "すべて停止",
       "stopped": "停止済み",
-      "title": "進化"
+      "title": "進化",
+      "runtimeTools": {
+        "title": "ランタイム動的ツール",
+        "desc": "Agent 進化デプロイ（system_evolution_deploy）または自己参照ツール（system_evolution_*）で登録された動的能力。システム内蔵の自己参照ツールは表示のみでアンインストール不可。進化成果物はアンインストール後すぐに Agent から利用できなくなります。",
+        "systemChannel": "システム能力チャネル",
+        "name": "ツール名",
+        "source": "ソース",
+        "sourceSystem": "内蔵",
+        "sourceEvolved": "進化デプロイ",
+        "action": "操作",
+        "builtin": "内蔵",
+        "empty": "ランタイム動的ツールはありません",
+        "unload": "アンインストール",
+        "unloadConfirm": "ツール「{{name}}」をアンインストールしますか？アンインストール後、Agent はすぐにこのツールを呼び出せなくなります。",
+        "unloadSuccess": "ツール「{{name}}」をアンインストールしました",
+        "unloadFail": "ツール「{{name}}」のアンインストールに失敗しました"
+      }
     },
     "exitFullscreen": "フルスクリーン解除",
     "expandAll": "全て展開",
@@ -8612,6 +8665,23 @@
   },
   "reactPreview": {
     "title": "Reactプレビュー"
+  },
+  "evolutionConsentModal": {
+    "title": "能力補完 / 進化改善提案",
+    "gapType": {
+      "guardRule": "防御ルール補完",
+      "exemptAuthorize": "誤検知免除承認",
+      "capabilityMissing": "能力欠落補完"
+    },
+    "pendingCount": "保留中の提案が {{count}} 件、現在 {{current}} 件目",
+    "pendingOne": "保留中の提案は 1 件",
+    "proposal": "具体的な変更",
+    "impact": "影響範囲",
+    "rollback": "ロールバック方法",
+    "reject": "拒否",
+    "approve": "承認して補完",
+    "expandDetails": "生の詳細を展開",
+    "collapseDetails": "生の詳細を折りたたむ"
   },
   "planApprovalModal": {
     "title": "計画承認",

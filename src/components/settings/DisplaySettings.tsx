@@ -144,8 +144,8 @@ export function DisplaySettings() {
           <span>{t("settings.theme.label")}</span>
           <Segmented
             data-testid="dark-mode-toggle"
-            value={settings.theme_mode}
-            onChange={(val) => saveSettings({ theme_mode: val as string })}
+            value={settings.themeMode}
+            onChange={(val) => saveSettings({ themeMode: val as string })}
             options={[
               {
                 label: t("settings.themeSystem"),
@@ -173,16 +173,16 @@ export function DisplaySettings() {
           <span style={{ paddingTop: 4 }}>{t("settings.themePreset")}</span>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
             {THEME_PRESETS.map((preset) => {
-              const isActive = (settings.theme_preset || "deep-dusk") === preset.key;
+              const isActive = (settings.themePreset || "deep-dusk") === preset.key;
               return (
                 <Tooltip key={preset.key} title={preset.label}>
                   <div
                     role="button"
                     tabIndex={0}
-                    onClick={() => saveSettings({ theme_preset: preset.key })}
+                    onClick={() => saveSettings({ themePreset: preset.key })}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
-                        saveSettings({ theme_preset: preset.key });
+                        saveSettings({ themePreset: preset.key });
                       }
                     }}
                     style={{
@@ -268,10 +268,10 @@ export function DisplaySettings() {
                 key={color}
                 role="button"
                 tabIndex={0}
-                onClick={() => saveSettings({ primary_color: color })}
+                onClick={() => saveSettings({ primaryColor: color })}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
-                    saveSettings({ primary_color: color });
+                    saveSettings({ primaryColor: color });
                   }
                 }}
                 style={{
@@ -280,10 +280,10 @@ export function DisplaySettings() {
                   borderRadius: "50%",
                   backgroundColor: color,
                   cursor: "pointer",
-                  border: settings.primary_color === color
+                  border: settings.primaryColor === color
                     ? "2px solid currentColor"
                     : "2px solid transparent",
-                  boxShadow: settings.primary_color === color
+                  boxShadow: settings.primaryColor === color
                     ? `0 0 0 1px ${color}`
                     : "none",
                   transition: "box-shadow 0.2s, transform 0.2s",
@@ -291,8 +291,8 @@ export function DisplaySettings() {
               />
             ))}
             <ColorPicker
-              value={settings.primary_color}
-              onChangeComplete={(color) => saveSettings({ primary_color: color.toHexString() })}
+              value={settings.primaryColor}
+              onChangeComplete={(color) => saveSettings({ primaryColor: color.toHexString() })}
               size="small"
             />
           </div>
@@ -304,8 +304,8 @@ export function DisplaySettings() {
           <Slider
             min={12}
             max={20}
-            value={settings.font_size}
-            onChange={(val) => saveSettings({ font_size: val })}
+            value={settings.fontSize}
+            onChange={(val) => saveSettings({ fontSize: val })}
             marks={{ 12: "12", 14: "14", 16: "16", 18: "18", 20: "20" }}
           />
         </div>
@@ -316,8 +316,8 @@ export function DisplaySettings() {
             min={100}
             max={900}
             step={100}
-            value={settings.font_weight}
-            onChange={(val) => saveSettings({ font_weight: val })}
+            value={settings.fontWeight}
+            onChange={(val) => saveSettings({ fontWeight: val })}
             marks={{
               100: "100",
               300: "300",
@@ -333,8 +333,8 @@ export function DisplaySettings() {
           <span>{t("settings.fontFamily")}</span>
           <SettingsSelect
             searchable
-            value={settings.font_family || ""}
-            onChange={(val) => saveSettings({ font_family: val })}
+            value={settings.fontFamily || ""}
+            onChange={(val) => saveSettings({ fontFamily: val })}
             options={[
               { label: t("settings.fontDefault"), value: "" },
               ...systemFonts.map((f) => ({ label: f, value: f })),
@@ -346,8 +346,8 @@ export function DisplaySettings() {
           <span>{t("settings.codeFontFamily")}</span>
           <SettingsSelect
             searchable
-            value={settings.code_font_family || ""}
-            onChange={(val) => saveSettings({ code_font_family: val })}
+            value={settings.codeFontFamily || ""}
+            onChange={(val) => saveSettings({ codeFontFamily: val })}
             options={[
               { label: t("settings.fontDefault"), value: "" },
               ...systemFonts.map((f) => ({ label: f, value: f })),
@@ -359,8 +359,8 @@ export function DisplaySettings() {
           <span>{t("settings.codeThemeLight")}</span>
           <SettingsSelect
             searchable
-            value={settings.code_theme_light || "github-light"}
-            onChange={(val) => saveSettings({ code_theme_light: val })}
+            value={settings.codeThemeLight || "github-light"}
+            onChange={(val) => saveSettings({ codeThemeLight: val })}
             options={lightThemeOptions}
           />
         </div>
@@ -369,8 +369,8 @@ export function DisplaySettings() {
           <span>{t("settings.codeThemeDark")}</span>
           <SettingsSelect
             searchable
-            value={settings.code_theme || "poimandres"}
-            onChange={(val) => saveSettings({ code_theme: val })}
+            value={settings.codeTheme || "poimandres"}
+            onChange={(val) => saveSettings({ codeTheme: val })}
             options={darkThemeOptions}
           />
         </div>
@@ -380,8 +380,8 @@ export function DisplaySettings() {
           <Slider
             min={0}
             max={20}
-            value={settings.border_radius}
-            onChange={(val) => saveSettings({ border_radius: val })}
+            value={settings.borderRadius}
+            onChange={(val) => saveSettings({ borderRadius: val })}
             marks={{ 0: "0", 4: "4", 8: "8", 12: "12", 16: "16", 20: "20" }}
           />
         </div>

@@ -69,9 +69,9 @@ export const useEvaluatorStore = create<EvaluatorState>((set, get) => ({
   isRunning: false,
   error: null,
   config: {
-    max_concurrency: 3,
-    timeout_ms: 60000,
-    include_traces: true,
+    maxConcurrency: 3,
+    timeoutMs: 60000,
+    includeTraces: true,
   },
 
   loadBenchmarks: async () => {
@@ -171,7 +171,7 @@ export const useEvaluatorStore = create<EvaluatorState>((set, get) => ({
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `benchmark-report-${currentReport.benchmark_id}.${ext}`;
+      a.download = `benchmark-report-${currentReport.benchmarkId}.${ext}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

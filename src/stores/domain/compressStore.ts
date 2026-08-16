@@ -35,8 +35,8 @@ export const useCompressStore = create<CompressState>((set) => ({
       });
       useConversationStore.setState({
         messages: page.messages,
-        hasOlderMessages: page.has_older,
-        totalActiveCount: page.total_active_count,
+        hasOlderMessages: page.hasOlder,
+        totalActiveCount: page.totalActiveCount,
         oldestLoadedMessageId: page.messages.length > 0 ? page.messages[0].id : null,
       });
       set({ compressing: false });
@@ -74,8 +74,8 @@ export const useCompressStore = create<CompressState>((set) => ({
       });
       useConversationStore.setState({
         messages: page.messages,
-        hasOlderMessages: page.has_older,
-        totalActiveCount: page.total_active_count,
+        hasOlderMessages: page.hasOlder,
+        totalActiveCount: page.totalActiveCount,
         oldestLoadedMessageId: page.messages.length > 0 ? page.messages[0].id : null,
       });
     } catch (e) {

@@ -380,11 +380,11 @@ function ThinkNode(
   }>,
 ) {
   const { t } = useTranslation();
-  const selectedDarkCodeTheme = useSettingsStore((s) => s.settings.code_theme);
+  const selectedDarkCodeTheme = useSettingsStore((s) => s.settings.codeTheme);
   const selectedLightCodeTheme = useSettingsStore(
-    (s) => s.settings.code_theme_light,
+    (s) => s.settings.codeThemeLight,
   );
-  const codeFontFamily = useSettingsStore((s) => s.settings.code_font_family);
+  const codeFontFamily = useSettingsStore((s) => s.settings.codeFontFamily);
   const { node, ctx } = props;
   const thinkingNodesCacheRef = useRef<Map<string, ChatMarkdownNode[]>>(
     new Map(),

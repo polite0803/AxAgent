@@ -196,7 +196,7 @@ export function SchedulerSettings() {
   };
 
   const handleWebdavSyncChange = async (syncEnabled: boolean) => {
-    saveSettings({ webdav_sync_enabled: syncEnabled });
+    saveSettings({ webdavSyncEnabled: syncEnabled });
     if (inTauri) {
       try {
         await invoke("restart_webdav_sync");
@@ -208,7 +208,7 @@ export function SchedulerSettings() {
   };
 
   const handleWebdavIntervalChange = async (syncIntervalMinutes: number) => {
-    saveSettings({ webdav_sync_interval_minutes: syncIntervalMinutes });
+    saveSettings({ webdavSyncIntervalMinutes: syncIntervalMinutes });
     if (inTauri) {
       try {
         await invoke("restart_webdav_sync");
@@ -220,14 +220,14 @@ export function SchedulerSettings() {
   };
 
   const handleClosedLoopChange = (closedLoopEnabled: boolean) => {
-    saveSettings({ closed_loop_enabled: closedLoopEnabled });
+    saveSettings({ closedLoopEnabled: closedLoopEnabled });
     message.success(t("settings.scheduler.saved"));
   };
 
   const handleClosedLoopIntervalChange = (
     closedLoopIntervalMinutes: number,
   ) => {
-    saveSettings({ closed_loop_interval_minutes: closedLoopIntervalMinutes });
+    saveSettings({ closedLoopIntervalMinutes: closedLoopIntervalMinutes });
     message.success(t("settings.scheduler.saved"));
   };
 
@@ -724,7 +724,7 @@ export function SchedulerSettings() {
           <span>{t("settings.scheduler.enabled")}</span>
           <Switch
             id="scheduler-settings-switch-153"
-            checked={settings.webdav_sync_enabled ?? false}
+            checked={settings.webdavSyncEnabled ?? false}
             onChange={handleWebdavSyncChange}
           />
         </div>
@@ -733,7 +733,7 @@ export function SchedulerSettings() {
           <span>{t("settings.scheduler.syncInterval")}</span>
           <Select
             id="scheduler-settings-select-154"
-            value={settings.webdav_sync_interval_minutes ?? 60}
+            value={settings.webdavSyncIntervalMinutes ?? 60}
             options={webdavIntervalOptions}
             onChange={handleWebdavIntervalChange}
             style={{ width: 120 }}
@@ -750,12 +750,12 @@ export function SchedulerSettings() {
             id="scheduler-settings-inputnumber-155"
             min={1}
             max={100}
-            value={settings.webdav_max_remote_backups ?? 10}
-            onChange={(v) => v && saveSettings({ webdav_max_remote_backups: v })}
+            value={settings.webdavMaxRemoteBackups ?? 10}
+            onChange={(v) => v && saveSettings({ webdavMaxRemoteBackups: v })}
             style={{ width: 80 }}
           />
         </div>
-        {settings.webdav_sync_enabled && (
+        {settings.webdavSyncEnabled && (
           <>
             <Divider style={{ margin: "4px 0" }} />
             <div style={rowStyle} className="flex items-center justify-between">
@@ -779,7 +779,7 @@ export function SchedulerSettings() {
           <span>{t("settings.scheduler.enabled")}</span>
           <Switch
             id="scheduler-settings-switch-156"
-            checked={settings.closed_loop_enabled ?? true}
+            checked={settings.closedLoopEnabled ?? true}
             onChange={handleClosedLoopChange}
           />
         </div>
@@ -788,13 +788,13 @@ export function SchedulerSettings() {
           <span>{t("settings.scheduler.nudgeInterval")}</span>
           <Select
             id="scheduler-settings-select-157"
-            value={settings.closed_loop_interval_minutes ?? 5}
+            value={settings.closedLoopIntervalMinutes ?? 5}
             options={closedLoopIntervalOptions}
             onChange={handleClosedLoopIntervalChange}
             style={{ width: 120 }}
           />
         </div>
-        {(settings.closed_loop_enabled ?? true) && (
+        {(settings.closedLoopEnabled ?? true) && (
           <>
             <Divider style={{ margin: "4px 0" }} />
             <div style={rowStyle} className="flex items-center justify-between">

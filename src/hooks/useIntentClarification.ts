@@ -5,11 +5,11 @@ import { useCallback, useRef, useState } from "react";
 
 const INITIAL_CLARIFICATION: IntentClarification = {
   state: "draft",
-  original_input: "",
-  clarification_questions: [],
-  clarification_answers: {},
-  created_at: 0,
-  updated_at: 0,
+  originalInput: "",
+  clarificationQuestions: [],
+  clarificationAnswers: {},
+  createdAt: 0,
+  updatedAt: 0,
 };
 
 function createTimestamp(): number {
@@ -20,9 +20,9 @@ function createDraft(input: string): IntentClarification {
   const now = createTimestamp();
   return {
     ...INITIAL_CLARIFICATION,
-    original_input: input,
-    created_at: now,
-    updated_at: now,
+    originalInput: input,
+    createdAt: now,
+    updatedAt: now,
   };
 }
 
@@ -75,7 +75,7 @@ export function useIntentClarification(): UseIntentClarificationReturn {
       if (!prev) { return prev; }
       const next = updater(prev);
       clarificationRef.current = next;
-      return { ...next, updated_at: createTimestamp() };
+      return { ...next, updatedAt: createTimestamp() };
     });
   }, []);
 
@@ -88,7 +88,7 @@ export function useIntentClarification(): UseIntentClarificationReturn {
           next = mutator(next);
         }
         clarificationRef.current = next;
-        return { ...next, updated_at: createTimestamp() };
+        return { ...next, updatedAt: createTimestamp() };
       });
     },
     [],
@@ -107,7 +107,7 @@ export function useIntentClarification(): UseIntentClarificationReturn {
     (questions: string[]) => {
       transitionTo("clarifying", (prev) => ({
         ...prev,
-        clarification_questions: questions,
+        clarificationQuestions: questions,
       }));
     },
     [transitionTo],
@@ -118,28 +118,28 @@ export function useIntentClarification(): UseIntentClarificationReturn {
       setClarification((prev) => {
         if (!prev) { return prev; }
         const nextAnswers = {
-          ...prev.clarification_answers,
+          ...prev.clarificationAnswers,
           [questionId]: answer,
         };
         const next: IntentClarification = {
           ...prev,
-          clarification_answers: nextAnswers,
+          clarificationAnswers: nextAnswers,
         };
 
         // 如果所有问题都已回答完毕，自动流转到 needs_confirmation
-        const allAnswered = prev.clarification_questions.length > 0
-          && prev.clarification_questions.every((q) => nextAnswers[q] !== undefined);
+        const allAnswered = prev.clarificationQuestions.length > 0
+          && prev.clarificationQuestions.every((q) => nextAnswers[q] !== undefined);
 
         if (allAnswered) {
-          const summary = prev.clarification_questions
+          const summary = prev.clarificationQuestions
             .map((q) => `${q}: ${nextAnswers[q]}`)
             .join("\n");
           next.state = "needs_confirmation";
-          next.intent_summary = summary;
+          next.intentSummary = summary;
         }
 
         clarificationRef.current = next;
-        return { ...next, updated_at: createTimestamp() };
+        return { ...next, updatedAt: createTimestamp() };
       });
     },
     [],
@@ -149,8 +149,8 @@ export function useIntentClarification(): UseIntentClarificationReturn {
     (summary: string, options?: string[]) => {
       transitionTo("needs_confirmation", (prev) => ({
         ...prev,
-        intent_summary: summary,
-        confirmation_options: options,
+        intentSummary: summary,
+        confirmationOptions: options,
       }));
     },
     [transitionTo],
@@ -159,7 +159,7 @@ export function useIntentClarification(): UseIntentClarificationReturn {
   const confirm = useCallback(() => {
     transitionTo("submitted", (prev) => ({
       ...prev,
-      confirmed_intent: prev.intent_summary ?? prev.original_input,
+      confirmedIntent: prev.intentSummary ?? prev.originalInput,
     }));
   }, [transitionTo]);
 
@@ -176,7 +176,7 @@ export function useIntentClarification(): UseIntentClarificationReturn {
     (executionId: string) => {
       update((prev) => ({
         ...prev,
-        workflow_execution_id: executionId,
+        workflowExecutionId: executionId,
       }));
     },
     [update],
@@ -186,7 +186,7 @@ export function useIntentClarification(): UseIntentClarificationReturn {
     (summary: string) => {
       update((prev) => ({
         ...prev,
-        intent_summary: summary,
+        intentSummary: summary,
       }));
     },
     [update],
@@ -196,7 +196,7 @@ export function useIntentClarification(): UseIntentClarificationReturn {
     clarification,
     isActive: clarification !== null && clarification.state !== "submitted" && clarification.state !== "cancelled",
     state: clarification?.state ?? null,
-    workflowExecutionId: clarification?.workflow_execution_id,
+    workflowExecutionId: clarification?.workflowExecutionId,
     start,
     setQuestions,
     answerQuestion,

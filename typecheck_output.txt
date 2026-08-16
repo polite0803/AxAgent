@@ -1,0 +1,415 @@
+src/components/benchmark/BenchmarkConfig.tsx(15,58): error TS2551: Property 'max_concurrency' does not exist on type 'RunnerConfig'. Did you mean 'maxConcurrency'?
+src/components/benchmark/BenchmarkConfig.tsx(20,25): error TS2551: Property 'max_concurrency' does not exist on type 'RunnerConfig'. Did you mean 'maxConcurrency'?
+src/components/benchmark/BenchmarkConfig.tsx(21,44): error TS2561: Object literal may only specify known properties, but 'max_concurrency' does not exist in type 'Partial<RunnerConfig>'. Did you mean to write 'maxConcurrency'?
+src/components/benchmark/BenchmarkConfig.tsx(28,58): error TS2551: Property 'timeout_ms' does not exist on type 'RunnerConfig'. Did you mean 'timeoutMs'?
+src/components/benchmark/BenchmarkConfig.tsx(34,25): error TS2551: Property 'timeout_ms' does not exist on type 'RunnerConfig'. Did you mean 'timeoutMs'?
+src/components/benchmark/BenchmarkConfig.tsx(35,44): error TS2561: Object literal may only specify known properties, but 'timeout_ms' does not exist in type 'Partial<RunnerConfig>'. Did you mean to write 'timeoutMs'?
+src/components/benchmark/BenchmarkConfig.tsx(47,25): error TS2551: Property 'max_difficulty' does not exist on type 'RunnerConfig'. Did you mean 'maxDifficulty'?
+src/components/benchmark/BenchmarkConfig.tsx(48,44): error TS2561: Object literal may only specify known properties, but 'max_difficulty' does not exist in type 'Partial<RunnerConfig>'. Did you mean to write 'maxDifficulty'?
+src/components/benchmark/BenchmarkReportView.tsx(105,37): error TS2551: Property 'total_tasks' does not exist on type 'ReportSummary'. Did you mean 'totalTasks'?
+src/components/benchmark/BenchmarkReportView.tsx(106,43): error TS2551: Property 'passed_tasks' does not exist on type 'ReportSummary'. Did you mean 'passedTasks'?
+src/components/benchmark/BenchmarkReportView.tsx(129,36): error TS2551: Property 'task_breakdown' does not exist on type 'BenchmarkReport'. Did you mean 'taskBreakdown'?
+src/components/benchmark/BenchmarkReportView.tsx(141,44): error TS2339: Property 'criteriaScores' does not exist on type 'string'.
+src/components/benchmark/TaskResult.tsx(19,21): error TS2551: Property 'task_name' does not exist on type 'TaskResult'. Did you mean 'taskName'?
+src/components/benchmark/TaskResult.tsx(30,33): error TS2551: Property 'overall_score' does not exist on type 'TaskResult'. Did you mean 'overallScore'?
+src/components/benchmark/TaskResult.tsx(33,36): error TS2551: Property 'duration_ms' does not exist on type 'TaskResult'. Did you mean 'durationMs'?
+src/components/chat/CapabilityDiscoveryPanel.tsx(15,9): error TS2551: Property 'sub_category' does not exist on type 'CapabilityPassportDto'. Did you mean 'subCategory'?
+src/components/chat/CapabilityDiscoveryPanel.tsx(82,21): error TS2551: Property 'capability_id' does not exist on type 'CapabilityPassportDto'. Did you mean 'capabilityId'?
+src/components/chat/CapabilityDiscoveryPanel.tsx(84,63): error TS2551: Property 'capability_id' does not exist on type 'CapabilityPassportDto'. Did you mean 'capabilityId'?
+src/components/chat/CapabilityDiscoveryPanel.tsx(153,62): error TS2551: Property 'total_capabilities' does not exist on type 'CapabilityIndexStats'. Did you mean 'totalCapabilities'?
+src/components/chat/CapabilityDiscoveryPanel.tsx(159,62): error TS2551: Property 'total_vectors' does not exist on type 'CapabilityIndexStats'. Did you mean 'totalVectors'?
+src/components/chat/CapabilityDiscoveryPanel.tsx(165,62): error TS2551: Property 'positive_vectors' does not exist on type 'CapabilityIndexStats'. Did you mean 'positiveVectors'?
+src/components/chat/CapabilityDiscoveryPanel.tsx(171,62): error TS2551: Property 'negative_vectors' does not exist on type 'CapabilityIndexStats'. Did you mean 'negativeVectors'?
+src/components/chat/CapabilityDiscoveryPanel.tsx(221,30): error TS2551: Property 'primary_match' does not exist on type 'CapabilityDiscoveryResult'. Did you mean 'primaryMatch'?
+src/components/chat/CapabilityDiscoveryPanel.tsx(233,38): error TS2551: Property 'primary_match' does not exist on type 'CapabilityDiscoveryResult'. Did you mean 'primaryMatch'?
+src/components/chat/CapabilityDiscoveryPanel.tsx(236,38): error TS2551: Property 'primary_match' does not exist on type 'CapabilityDiscoveryResult'. Did you mean 'primaryMatch'?
+src/components/chat/CapabilityDiscoveryPanel.tsx(240,74): error TS2551: Property 'primary_match' does not exist on type 'CapabilityDiscoveryResult'. Did you mean 'primaryMatch'?
+src/components/chat/CapabilityDiscoveryPanel.tsx(243,66): error TS2551: Property 'primary_match' does not exist on type 'CapabilityDiscoveryResult'. Did you mean 'primaryMatch'?
+src/components/chat/CapabilityDiscoveryPanel.tsx(245,47): error TS2551: Property 'primary_match' does not exist on type 'CapabilityDiscoveryResult'. Did you mean 'primaryMatch'?
+src/components/chat/CapabilityDiscoveryPanel.tsx(247,81): error TS2551: Property 'primary_match' does not exist on type 'CapabilityDiscoveryResult'. Did you mean 'primaryMatch'?
+src/components/chat/CapabilityDiscoveryPanel.tsx(272,39): error TS2551: Property 'capability_id' does not exist on type 'CapabilityPassportDto'. Did you mean 'capabilityId'?
+src/components/chat/CapabilityDiscoveryPanel.tsx(349,22): error TS2551: Property 'capability_id' does not exist on type 'CapabilityPassportDto'. Did you mean 'capabilityId'?
+src/components/chat/CapabilityDiscoveryPanel.tsx(360,24): error TS2551: Property 'capability_id' does not exist on type 'CapabilityPassportDto'. Did you mean 'capabilityId'?
+src/components/chat/CapabilityDiscoveryPanel.tsx(382,49): error TS2551: Property 'capability_id' does not exist on type 'CapabilityPassportDto'. Did you mean 'capabilityId'?
+src/components/chat/CategoryManagerModal.tsx(118,7): error TS2353: Object literal may only specify known properties, and 'iconType' does not exist in type '((prevState: EditTarget | null) => EditTarget | null) | EditTarget'.
+src/components/chat/ChatViewMessages.tsx(247,46): error TS2552: Cannot find name 'modelId'. Did you mean 'model_id'?
+src/components/chat/ChatViewMessages.tsx(1142,6): error TS6133: 'model_id' is declared but its value is never read.
+src/components/chat/ChatViewMessages.tsx(1143,19): error TS2552: Cannot find name 'modelId'. Did you mean 'model_id'?
+src/components/chat/InputArea.tsx(749,9): error TS2741: Property 'audioFormat' is missing in type '{ modelId: string; voice: TtsVoice; audio_format: { sample_rate: number; channels: number; encoding: string; }; stt_provider_id: string | null; tts_provider_id: string | null; }' but required in type 'RealtimeConfig'.
+src/components/chat/InputArea.tsx(986,11): error TS2345: Argument of type '{ providerId: string; modelId: string; }[]' is not assignable to parameter of type '{ providerId: string; model_id: string; }[]'.
+  Property 'model_id' is missing in type '{ providerId: string; modelId: string; }' but required in type '{ providerId: string; model_id: string; }'.
+src/components/chat/InputArea.tsx(1522,13): error TS2322: Type '{ providerId: string; modelId: string; modelName: string; providerName: string; }[]' is not assignable to type 'CompanionModelInfo[]'.
+  Property 'model_id' is missing in type '{ providerId: string; modelId: string; modelName: string; providerName: string; }' but required in type 'CompanionModelInfo'.
+src/components/chat/ModelSelector.tsx(149,59): error TS2741: Property 'model_type' is missing in type 'Model' but required in type 'Pick<Model, "capabilities" | "model_type">'.
+src/components/chat/ModelSelector.tsx(506,11): error TS2561: Object literal may only specify known properties, but 'default_modelId' does not exist in type 'Partial<AppSettings>'. Did you mean to write 'defaultModelId'?
+src/components/chat/ModelTags.tsx(57,70): error TS2551: Property 'model_id' does not exist on type '{ providerId: string; modelId: string; }'. Did you mean 'modelId'?
+src/components/chat/ModelTags.tsx(67,30): error TS2551: Property 'model_id' does not exist on type '{ providerId: string; modelId: string; }'. Did you mean 'modelId'?
+src/components/chat/ModelTags.tsx(68,45): error TS2551: Property 'model_id' does not exist on type '{ providerId: string; modelId: string; }'. Did you mean 'modelId'?
+src/components/chat/ModelTags.tsx(71,22): error TS2551: Property 'model_id' does not exist on type '{ providerId: string; modelId: string; }'. Did you mean 'modelId'?
+src/components/chat/ModelTags.tsx(151,54): error TS2551: Property 'model_id' does not exist on type '{ providerId: string; modelId: string; }'. Did you mean 'modelId'?
+src/components/chat/ModelTags.tsx(154,32): error TS2551: Property 'model_id' does not exist on type '{ providerId: string; modelId: string; }'. Did you mean 'modelId'?
+src/components/chat/ModelTags.tsx(172,36): error TS2551: Property 'model_id' does not exist on type '{ providerId: string; modelId: string; }'. Did you mean 'modelId'?
+src/components/chat/ToolCallBlockView.tsx(63,38): error TS2551: Property 'tool_use_id' does not exist on type '{ type: "tool_result"; toolUseId: string; toolName: string; output: string; isError: boolean; } & { type: "tool_result"; }'. Did you mean 'toolUseId'?
+  Property 'tool_use_id' does not exist on type 'never'.
+src/components/chat/TracerPanel.tsx(81,57): error TS2551: Property 'error_count' does not exist on type 'TraceSummary'. Did you mean 'errorCount'?
+src/components/chat/TracerPanel.tsx(82,56): error TS2551: Property 'span_count' does not exist on type 'TraceSummary'. Did you mean 'spanCount'?
+src/components/chat/__tests__/toolCallDisplay.test.tsx(14,5): error TS2561: Object literal may only specify known properties, but 'provider_id' does not exist in type 'Message'. Did you mean to write 'providerId'?
+src/components/devtools/DurationChart.tsx(30,30): error TS2551: Property 'total_duration_ms' does not exist on type 'TraceMetrics'. Did you mean 'totalDurationMs'?
+src/components/devtools/DurationChart.tsx(44,27): error TS2551: Property 'total_duration_ms' does not exist on type 'TraceMetrics'. Did you mean 'totalDurationMs'?
+src/components/devtools/SpanDetail.tsx(95,13): error TS2551: Property 'service_name' does not exist on type 'Span'. Did you mean 'serviceName'?
+src/components/devtools/SpanDetail.tsx(99,21): error TS2551: Property 'service_name' does not exist on type 'Span'. Did you mean 'serviceName'?
+src/components/devtools/Timeline.tsx(53,26): error TS2551: Property 'start_time' does not exist on type 'Span'. Did you mean 'startTime'?
+src/components/devtools/Timeline.tsx(53,61): error TS2551: Property 'start_time' does not exist on type 'Span'. Did you mean 'startTime'?
+src/components/devtools/Timeline.tsx(57,35): error TS2551: Property 'start_time' does not exist on type 'Span'. Did you mean 'startTime'?
+src/components/devtools/Timeline.tsx(60,62): error TS2551: Property 'end_time' does not exist on type 'Span'. Did you mean 'endTime'?
+src/components/devtools/Timeline.tsx(65,39): error TS2551: Property 'start_time' does not exist on type 'Span'. Did you mean 'startTime'?
+src/components/devtools/Timeline.tsx(68,29): error TS2551: Property 'duration_ms' does not exist on type 'Span'. Did you mean 'durationMs'?
+src/components/devtools/Timeline.tsx(83,20): error TS2551: Property 'parent_span_id' does not exist on type 'Span'. Did you mean 'parentSpanId'?
+src/components/devtools/Timeline.tsx(85,37): error TS2551: Property 'parent_span_id' does not exist on type 'Span'. Did you mean 'parentSpanId'?
+src/components/devtools/TraceDetail.tsx(71,29): error TS2551: Property 'trace_id' does not exist on type 'TraceExport'. Did you mean 'traceId'?
+src/components/devtools/TraceDetail.tsx(74,33): error TS2551: Property 'session_id' does not exist on type 'TraceSummary'. Did you mean 'sessionId'?
+src/components/devtools/TraceDetail.tsx(92,43): error TS2551: Property 'duration_ms' does not exist on type 'TraceSummary'. Did you mean 'durationMs'?
+src/components/devtools/TraceDetail.tsx(95,28): error TS2551: Property 'span_count' does not exist on type 'TraceSummary'. Did you mean 'spanCount'?
+src/components/devtools/TraceDetail.tsx(98,39): error TS2551: Property 'error_count' does not exist on type 'TraceSummary'. Did you mean 'errorCount'?
+src/components/devtools/TraceDetail.tsx(99,30): error TS2551: Property 'error_count' does not exist on type 'TraceSummary'. Did you mean 'errorCount'?
+src/components/devtools/TraceFilters.tsx(102,32): error TS2551: Property 'max_duration_ms' does not exist on type 'TraceFilter'. Did you mean 'maxDurationMs'?
+src/components/devtools/TraceList.tsx(53,20): error TS2551: Property 'trace_id' does not exist on type 'TraceSummary'. Did you mean 'traceId'?
+src/components/devtools/TraceList.tsx(56,26): error TS2551: Property 'started_at' does not exist on type 'TraceSummary'. Did you mean 'startedAt'?
+src/components/devtools/TraceList.tsx(59,42): error TS2551: Property 'error_count' does not exist on type 'TraceSummary'. Did you mean 'errorCount'?
+src/components/devtools/TraceList.tsx(60,18): error TS2551: Property 'error_count' does not exist on type 'TraceSummary'. Did you mean 'errorCount'?
+src/components/devtools/TraceList.tsx(60,45): error TS2551: Property 'error_count' does not exist on type 'TraceSummary'. Did you mean 'errorCount'?
+src/components/devtools/TraceList.tsx(65,48): error TS2551: Property 'span_count' does not exist on type 'TraceSummary'. Did you mean 'spanCount'?
+src/components/devtools/TraceList.tsx(69,35): error TS2551: Property 'duration_ms' does not exist on type 'TraceSummary'. Did you mean 'durationMs'?
+src/components/devtools/TraceList.tsx(74,30): error TS2551: Property 'total_cost_usd' does not exist on type 'TraceSummary'. Did you mean 'totalCostUsd'?
+src/components/devtools/TraceList.tsx(91,23): error TS2551: Property 'trace_id' does not exist on type 'TraceSummary'. Did you mean 'traceId'?
+src/components/devtools/TraceList.tsx(94,48): error TS2551: Property 'trace_id' does not exist on type 'TraceExport'. Did you mean 'traceId'?
+src/components/devtools/TraceList.tsx(147,24): error TS2551: Property 'trace_id' does not exist on type 'TraceSummary'. Did you mean 'traceId'?
+src/components/devtools/TraceList.tsx(149,31): error TS2551: Property 'trace_id' does not exist on type 'TraceSummary'. Did you mean 'traceId'?
+src/components/gateway/GatewaySettings.tsx(74,9): error TS2561: Object literal may only specify known properties, but 'gateway_ssl_key_path' does not exist in type 'Partial<AppSettings>'. Did you mean to write 'gatewaySslKeyPath'?
+src/components/link/AddGatewayLinkModal.tsx(39,9): error TS2561: Object literal may only specify known properties, but 'link_type' does not exist in type 'CreateGatewayLinkInput'. Did you mean to write 'linkType'?
+src/components/link/LinkModels.tsx(179,15): error TS2322: Type 'GatewayLinkModelSync[]' is not assignable to type 'readonly { model_id: string; }[]'.
+  Property 'model_id' is missing in type 'GatewayLinkModelSync' but required in type '{ model_id: string; }'.
+src/components/link/LinkSkills.tsx(180,15): error TS2322: Type 'GatewayLinkSkillSync[]' is not assignable to type 'readonly { skill_name: string; }[]'.
+  Property 'skill_name' is missing in type 'GatewayLinkSkillSync' but required in type '{ skill_name: string; }'.
+src/components/proactive/PrefetchIndicator.tsx(120,43): error TS2551: Property 'resource_id' does not exist on type 'PrefetchResult'. Did you mean 'resourceId'?
+src/components/proactive/PrefetchIndicator.tsx(202,33): error TS2551: Property 'resource_id' does not exist on type 'PrefetchResult'. Did you mean 'resourceId'?
+src/components/proactive/PrefetchIndicator.tsx(213,27): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type 'Record<PrefetchType, Element>'.
+src/components/proactive/PrefetchIndicator.tsx(213,45): error TS2551: Property 'prefetch_type' does not exist on type 'PrefetchResult'. Did you mean 'prefetchType'?
+src/components/proactive/PrefetchIndicator.tsx(216,60): error TS2551: Property 'prefetch_type' does not exist on type 'PrefetchResult'. Did you mean 'prefetchType'?
+src/components/proactive/PrefetchIndicator.tsx(219,31): error TS2551: Property 'estimated_prepare_time_ms' does not exist on type 'PrefetchResult'. Did you mean 'estimatedPrepareTimeMs'?
+src/components/proactive/PrefetchIndicator.tsx(236,41): error TS2551: Property 'estimated_prepare_time_ms' does not exist on type 'PrefetchResult'. Did you mean 'estimatedPrepareTimeMs'?
+src/components/settings/AboutPage.tsx(178,7): error TS2561: Object literal may only specify known properties, but 'onboarding_completed' does not exist in type 'Partial<AppSettings>'. Did you mean to write 'onboardingCompleted'?
+src/components/settings/AdvancedSettings.tsx(725,67): error TS2551: Property 'provider_id' does not exist on type 'SmartRouterTierMapping'. Did you mean 'providerId'?
+src/components/settings/AdvancedSettings.tsx(741,28): error TS2551: Property 'provider_id' does not exist on type 'SmartRouterTierMapping'. Did you mean 'providerId'?
+src/components/settings/AdvancedSettings.tsx(747,80): error TS2561: Object literal may only specify known properties, but 'model_id' does not exist in type 'Partial<SmartRouterTierMapping>'. Did you mean to write 'modelId'?
+src/components/settings/AdvancedSettings.tsx(752,28): error TS2551: Property 'model_id' does not exist on type 'SmartRouterTierMapping'. Did you mean 'modelId'?
+src/components/settings/CloudWorkspaceSelector.tsx(461,45): error TS2561: Object literal may only specify known properties, but 'cloud_backend' does not exist in type 'Partial<AppSettings>'. Did you mean to write 'cloudBackend'?
+src/components/settings/ConflictDetailModal.tsx(93,39): error TS2551: Property 'entity_type' does not exist on type 'ConflictInfo'. Did you mean 'entityType'?
+src/components/settings/ConflictDetailModal.tsx(96,32): error TS2551: Property 'entity_id' does not exist on type 'ConflictInfo'. Did you mean 'entityId'?
+src/components/settings/ConflictDetailModal.tsx(99,21): error TS2551: Property 'local_vector' does not exist on type 'ConflictInfo'. Did you mean 'localVector'?
+src/components/settings/ConflictDetailModal.tsx(99,39): error TS7006: Parameter 'v' implicitly has an 'any' type.
+src/components/settings/ConflictDetailModal.tsx(102,21): error TS2551: Property 'remote_vector' does not exist on type 'ConflictInfo'. Did you mean 'remoteVector'?
+src/components/settings/ConflictDetailModal.tsx(102,40): error TS7006: Parameter 'v' implicitly has an 'any' type.
+src/components/settings/ConflictDetailModal.tsx(105,30): error TS2551: Property 'detected_at' does not exist on type 'ConflictInfo'. Did you mean 'detectedAt'?
+src/components/settings/ConflictDetailModal.tsx(116,23): error TS2551: Property 'local_data' does not exist on type 'ConflictInfo'. Did you mean 'localData'?
+src/components/settings/ConflictDetailModal.tsx(116,71): error TS2551: Property 'local_data' does not exist on type 'ConflictInfo'. Did you mean 'localData'?
+src/components/settings/ConflictDetailModal.tsx(119,23): error TS2551: Property 'remote_data' does not exist on type 'ConflictInfo'. Did you mean 'remoteData'?
+src/components/settings/ConflictDetailModal.tsx(119,72): error TS2551: Property 'remote_data' does not exist on type 'ConflictInfo'. Did you mean 'remoteData'?
+src/components/settings/DefaultModelSettings.tsx(381,9): error TS2820: Type '"default_provider_id"' is not assignable to type 'keyof AppSettings'. Did you mean '"defaultProviderId"'?
+src/components/settings/DefaultModelSettings.tsx(382,9): error TS2820: Type '"default_model_id"' is not assignable to type 'keyof AppSettings'. Did you mean '"defaultModelId"'?
+src/components/settings/DefaultModelSettings.tsx(387,9): error TS2820: Type '"default_temperature"' is not assignable to type 'keyof AppSettings'. Did you mean '"defaultTemperature"'?
+src/components/settings/DefaultModelSettings.tsx(388,9): error TS2820: Type '"default_top_p"' is not assignable to type 'keyof AppSettings'. Did you mean '"defaultTopP"'?
+src/components/settings/DefaultModelSettings.tsx(389,9): error TS2820: Type '"default_max_tokens"' is not assignable to type 'keyof AppSettings'. Did you mean '"defaultMaxTokens"'?
+src/components/settings/DefaultModelSettings.tsx(390,9): error TS2820: Type '"default_context_count"' is not assignable to type 'keyof AppSettings | undefined'. Did you mean '"defaultContextCount"'?
+src/components/settings/DefaultModelSettings.tsx(399,9): error TS2820: Type '"title_summary_provider_id"' is not assignable to type 'keyof AppSettings'. Did you mean '"titleSummaryProviderId"'?
+src/components/settings/DefaultModelSettings.tsx(400,9): error TS2820: Type '"title_summary_model_id"' is not assignable to type 'keyof AppSettings'. Did you mean '"titleSummaryModelId"'?
+src/components/settings/DefaultModelSettings.tsx(405,9): error TS2820: Type '"title_summary_prompt"' is not assignable to type 'keyof AppSettings | undefined'. Did you mean '"titleSummaryPrompt"'?
+src/components/settings/DefaultModelSettings.tsx(406,9): error TS2820: Type '"title_summary_temperature"' is not assignable to type 'keyof AppSettings'. Did you mean '"titleSummaryTemperature"'?
+src/components/settings/DefaultModelSettings.tsx(407,9): error TS2820: Type '"title_summary_top_p"' is not assignable to type 'keyof AppSettings'. Did you mean '"titleSummaryTopP"'?
+src/components/settings/DefaultModelSettings.tsx(408,9): error TS2820: Type '"title_summary_max_tokens"' is not assignable to type 'keyof AppSettings'. Did you mean '"titleSummaryMaxTokens"'?
+src/components/settings/DevicePermissionsPanel.tsx(58,33): error TS2551: Property 'trust_level' does not exist on type 'DevicePermissions'. Did you mean 'trustLevel'?
+src/components/settings/DevicePermissionsPanel.tsx(59,32): error TS2551: Property 'allow_push' does not exist on type 'DevicePermissions'. Did you mean 'allowPush'?
+src/components/settings/DevicePermissionsPanel.tsx(60,32): error TS2551: Property 'allow_pull' does not exist on type 'DevicePermissions'. Did you mean 'allowPull'?
+src/components/settings/DevicePermissionsPanel.tsx(61,36): error TS2551: Property 'allow_full_sync' does not exist on type 'DevicePermissions'. Did you mean 'allowFullSync'?
+src/components/settings/DevicePermissionsPanel.tsx(62,44): error TS2551: Property 'allow_resolve_conflicts' does not exist on type 'DevicePermissions'. Did you mean 'allowResolveConflicts'?
+src/components/settings/DevicePermissionsPanel.tsx(63,41): error TS2551: Property 'allow_manage_devices' does not exist on type 'DevicePermissions'. Did you mean 'allowManageDevices'?
+src/components/settings/DevicePermissionsPanel.tsx(64,40): error TS2551: Property 'allow_modify_policy' does not exist on type 'DevicePermissions'. Did you mean 'allowModifyPolicy'?
+src/components/settings/DevicePermissionsPanel.tsx(73,9): error TS2561: Object literal may only specify known properties, but 'trust_level' does not exist in type 'PermissionUpdate'. Did you mean to write 'trustLevel'?
+src/components/settings/DevicePermissionsPanel.tsx(73,54): error TS2339: Property 'trust_level' does not exist on type 'DevicePermissions'.
+src/components/settings/DevicePermissionsPanel.tsx(108,39): error TS2551: Property 'device_id' does not exist on type 'DevicePermissions'. Did you mean 'deviceId'?
+src/components/settings/DevicePermissionsPanel.tsx(196,28): error TS2551: Property 'device_id' does not exist on type 'DevicePermissions'. Did you mean 'deviceId'?
+src/components/settings/DevicePermissionsPanel.tsx(231,19): error TS2551: Property 'allow_push' does not exist on type 'DevicePermissions'. Did you mean 'allowPush'?
+src/components/settings/DevicePermissionsPanel.tsx(232,19): error TS2551: Property 'allow_pull' does not exist on type 'DevicePermissions'. Did you mean 'allowPull'?
+src/components/settings/DevicePermissionsPanel.tsx(233,19): error TS2551: Property 'allow_full_sync' does not exist on type 'DevicePermissions'. Did you mean 'allowFullSync'?
+src/components/settings/DevicePermissionsPanel.tsx(234,19): error TS2551: Property 'allow_resolve_conflicts' does not exist on type 'DevicePermissions'. Did you mean 'allowResolveConflicts'?
+src/components/settings/DevicePermissionsPanel.tsx(235,19): error TS2551: Property 'allow_manage_devices' does not exist on type 'DevicePermissions'. Did you mean 'allowManageDevices'?
+src/components/settings/DevicePermissionsPanel.tsx(236,19): error TS2551: Property 'allow_modify_policy' does not exist on type 'DevicePermissions'. Did you mean 'allowModifyPolicy'?
+src/components/settings/DeviceSyncPanel.tsx(132,67): error TS2551: Property 'files_synced' does not exist on type 'SyncResult'. Did you mean 'filesSynced'?
+src/components/settings/DeviceSyncPanel.tsx(142,67): error TS2551: Property 'files_synced' does not exist on type 'SyncResult'. Did you mean 'filesSynced'?
+src/components/settings/DeviceSyncPanel.tsx(174,45): error TS2551: Property 'device_type' does not exist on type 'DeviceInfo'. Did you mean 'deviceType'?
+src/components/settings/DeviceSyncPanel.tsx(188,75): error TS2551: Property 'app_version' does not exist on type 'DeviceInfo'. Did you mean 'appVersion'?
+src/components/settings/DeviceSyncPanel.tsx(211,83): error TS2551: Property 'connected_devices' does not exist on type 'DeviceSyncStatus'. Did you mean 'connectedDevices'?
+src/components/settings/DeviceSyncPanel.tsx(214,81): error TS2551: Property 'pending_changes' does not exist on type 'DeviceSyncStatus'. Did you mean 'pendingChanges'?
+src/components/settings/DeviceSyncPanel.tsx(217,75): error TS2551: Property 'last_sync_at' does not exist on type 'DeviceSyncStatus'. Did you mean 'lastSyncAt'?
+src/components/settings/DeviceSyncPanel.tsx(218,39): error TS2551: Property 'last_sync_at' does not exist on type 'DeviceSyncStatus'. Did you mean 'lastSyncAt'?
+src/components/settings/DeviceSyncPanel.tsx(261,67): error TS2551: Property 'device_id' does not exist on type 'DeviceInfo'. Did you mean 'deviceId'?
+src/components/settings/DeviceSyncPanel.tsx(269,60): error TS2551: Property 'device_id' does not exist on type 'DeviceInfo'. Did you mean 'deviceId'?
+src/components/settings/DeviceSyncPanel.tsx(277,58): error TS2551: Property 'device_id' does not exist on type 'DeviceInfo'. Did you mean 'deviceId'?
+src/components/settings/DeviceSyncPanel.tsx(284,54): error TS2551: Property 'device_type' does not exist on type 'DeviceInfo'. Did you mean 'deviceType'?
+src/components/settings/DeviceSyncPanel.tsx(288,37): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ backup_only: { label: string; color: string; description: string; }; standard: { label: string; color: string; description: string; }; full: { label: string; color: string; description: string; }; }'.
+src/components/settings/DeviceSyncPanel.tsx(288,67): error TS2551: Property 'trust_level' does not exist on type 'DeviceInfo'. Did you mean 'trustLevel'?
+src/components/settings/DeviceSyncPanel.tsx(289,28): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ backup_only: { label: string; color: string; description: string; }; standard: { label: string; color: string; description: string; }; full: { label: string; color: string; description: string; }; }'.
+src/components/settings/DeviceSyncPanel.tsx(289,58): error TS2551: Property 'trust_level' does not exist on type 'DeviceInfo'. Did you mean 'trustLevel'?
+src/components/settings/DeviceSyncPanel.tsx(297,74): error TS2551: Property 'last_active_at' does not exist on type 'DeviceInfo'. Did you mean 'lastActiveAt'?
+src/components/settings/DeviceSyncPanel.tsx(338,38): error TS2551: Property 'entity_type' does not exist on type 'ConflictInfo'. Did you mean 'entityType'?
+src/components/settings/DeviceSyncPanel.tsx(338,63): error TS2551: Property 'entity_id' does not exist on type 'ConflictInfo'. Did you mean 'entityId'?
+src/components/settings/DeviceSyncPanel.tsx(340,40): error TS2551: Property 'local_vector' does not exist on type 'ConflictInfo'. Did you mean 'localVector'?
+src/components/settings/DeviceSyncPanel.tsx(340,58): error TS7006: Parameter 'v' implicitly has an 'any' type.
+src/components/settings/DeviceSyncPanel.tsx(341,41): error TS2551: Property 'remote_vector' does not exist on type 'ConflictInfo'. Did you mean 'remoteVector'?
+src/components/settings/DeviceSyncPanel.tsx(341,60): error TS7006: Parameter 'v' implicitly has an 'any' type.
+src/components/settings/DeviceSyncPanel.tsx(403,53): error TS2551: Property 'expires_at' does not exist on type 'PairingCode'. Did you mean 'expiresAt'?
+src/components/settings/DeviceSyncPanel.tsx(465,62): error TS2551: Property 'device_type' does not exist on type 'DeviceInfo'. Did you mean 'deviceType'?
+src/components/settings/EncryptionSettingsPanel.tsx(37,7): error TS2561: Object literal may only specify known properties, but 'key_derivation' does not exist in type 'Partial<SyncEncryptionConfig>'. Did you mean to write 'keyDerivation'?
+src/components/settings/EncryptionSettingsPanel.tsx(139,42): error TS2551: Property 'key_derivation' does not exist on type 'SyncEncryptionConfig'. Did you mean 'keyDerivation'?
+src/components/settings/EncryptionSettingsPanel.tsx(177,32): error TS2551: Property 'key_hash' does not exist on type 'SyncEncryptionConfig'. Did you mean 'keyHash'?
+src/components/settings/EncryptionSettingsPanel.tsx(181,44): error TS2551: Property 'key_hash' does not exist on type 'SyncEncryptionConfig'. Did you mean 'keyHash'?
+src/components/settings/EncryptionSettingsPanel.tsx(203,21): error TS2551: Property 'last_encrypted_at' does not exist on type 'EncryptionState'. Did you mean 'lastEncryptedAt'?
+src/components/settings/EncryptionSettingsPanel.tsx(206,46): error TS2551: Property 'last_encrypted_at' does not exist on type 'EncryptionState'. Did you mean 'lastEncryptedAt'?
+src/components/settings/EncryptionSettingsPanel.tsx(212,21): error TS2551: Property 'encryption_error' does not exist on type 'EncryptionState'. Did you mean 'encryptionError'?
+src/components/settings/EncryptionSettingsPanel.tsx(215,37): error TS2551: Property 'encryption_error' does not exist on type 'EncryptionState'. Did you mean 'encryptionError'?
+src/components/settings/LocalModelPanel.tsx(356,38): error TS2561: Object literal may only specify known properties, but 'api_host' does not exist in type 'UpdateProviderInput'. Did you mean to write 'apiHost'?
+src/components/settings/ProviderDetail.tsx(157,22): error TS2344: Type '"group_name" | "model_id"' does not satisfy the constraint 'keyof Model'.
+  Type '"group_name"' is not assignable to type 'keyof Model'. Did you mean '"groupName"'?
+src/components/settings/ProviderDetail.tsx(159,43): error TS2339: Property 'trim' does not exist on type '{}'.
+src/components/settings/ProviderDetail.tsx(160,48): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+src/components/settings/ProviderDetail.tsx(334,37): error TS2739: Type 'Model' is missing the following properties from type 'Pick<Model, "group_name" | "model_id">': group_name, model_id
+src/components/settings/ProviderDetail.tsx(467,47): error TS2739: Type 'Model' is missing the following properties from type 'Pick<Model, "group_name" | "model_id">': group_name, model_id
+src/components/settings/ProviderDetail.tsx(721,7): error TS2561: Object literal may only specify known properties, but 'model_id' does not exist in type 'Model'. Did you mean to write 'modelId'?
+src/components/settings/ProviderDetail.tsx(762,49): error TS2551: Property 'max_tokens' does not exist on type 'ModelParamOverrides'. Did you mean 'maxTokens'?
+src/components/settings/ProviderDetail.tsx(763,39): error TS2551: Property 'top_p' does not exist on type 'ModelParamOverrides'. Did you mean 'topP'?
+src/components/settings/ProviderDetail.tsx(764,46): error TS2551: Property 'frequency_penalty' does not exist on type 'ModelParamOverrides'. Did you mean 'frequencyPenalty'?
+src/components/settings/ProviderDetail.tsx(766,29): error TS2551: Property 'use_max_completion_tokens' does not exist on type 'ModelParamOverrides'. Did you mean 'useMaxCompletionTokens'?
+src/components/settings/ProviderDetail.tsx(768,47): error TS2551: Property 'no_system_role' does not exist on type 'ModelParamOverrides'. Did you mean 'noSystemRole'?
+src/components/settings/ProviderDetail.tsx(769,49): error TS2551: Property 'force_max_tokens' does not exist on type 'ModelParamOverrides'. Did you mean 'forceMaxTokens'?
+src/components/settings/ProviderDetail.tsx(771,29): error TS2551: Property 'thinking_param_style' does not exist on type 'ModelParamOverrides'. Did you mean 'thinkingParamStyle'?
+src/components/settings/ProviderDetail.tsx(773,49): error TS2551: Property 'request_delay_ms' does not exist on type 'ModelParamOverrides'. Did you mean 'requestDelayMs'?
+src/components/settings/ProviderDetail.tsx(785,7): error TS2561: Object literal may only specify known properties, but 'top_p' does not exist in type 'ModelParamOverrides'. Did you mean to write 'topP'?
+src/components/settings/ProviderDetail.tsx(850,38): error TS2561: Object literal may only specify known properties, but 'api_host' does not exist in type 'UpdateProviderInput'. Did you mean to write 'apiHost'?
+src/components/settings/ProviderDetail.tsx(863,38): error TS2561: Object literal may only specify known properties, but 'api_path' does not exist in type 'UpdateProviderInput'. Did you mean to write 'apiPath'?
+src/components/settings/ProviderDetail.tsx(1086,42): error TS2739: Type 'Model' is missing the following properties from type 'Pick<Model, "group_name" | "model_id">': group_name, model_id
+src/components/settings/ProviderDetail.tsx(1171,12): error TS6133: 'model_id' is declared but its value is never read.
+src/components/settings/ProviderDetail.tsx(1173,30): error TS2552: Cannot find name 'modelId'. Did you mean 'model_id'?
+src/components/settings/ProviderDetail.tsx(1396,48): error TS2561: Object literal may only specify known properties, but 'api_host' does not exist in type 'UpdateProviderInput'. Did you mean to write 'apiHost'?
+src/components/settings/ProviderDetail.tsx(1455,48): error TS2561: Object literal may only specify known properties, but 'tool_adaptation' does not exist in type 'UpdateProviderInput'. Did you mean to write 'toolAdaptation'?
+src/components/settings/ProviderDetail.tsx(1457,48): error TS2561: Object literal may only specify known properties, but 'tool_adaptation' does not exist in type 'UpdateProviderInput'. Did you mean to write 'toolAdaptation'?
+src/components/settings/ProviderDetail.tsx(1482,50): error TS2561: Object literal may only specify known properties, but 'tool_adaptation_marker_prefix' does not exist in type 'UpdateProviderInput'. Did you mean to write 'toolAdaptationMarkerPrefix'?
+src/components/settings/ProviderDetail.tsx(1997,54): error TS2741: Property 'model_type' is missing in type 'Model' but required in type 'Pick<Model, "capabilities" | "model_type">'.
+src/components/settings/ProviderDetail.tsx(2158,48): error TS2561: Object literal may only specify known properties, but 'custom_headers' does not exist in type 'UpdateProviderInput'. Did you mean to write 'customHeaders'?
+src/components/settings/ProviderDetail.tsx(2185,50): error TS2551: Property 'proxy_type' does not exist on type 'ProviderProxyConfig'. Did you mean 'proxyType'?
+src/components/settings/ProviderDetail.tsx(2188,25): error TS2561: Object literal may only specify known properties, but 'proxy_config' does not exist in type 'UpdateProviderInput'. Did you mean to write 'proxyConfig'?
+src/components/settings/ProviderDetail.tsx(2190,64): error TS2551: Property 'proxy_address' does not exist on type 'ProviderProxyConfig'. Did you mean 'proxyAddress'?
+src/components/settings/ProviderDetail.tsx(2191,61): error TS2551: Property 'proxy_port' does not exist on type 'ProviderProxyConfig'. Did you mean 'proxyPort'?
+src/components/settings/ProviderDetail.tsx(2208,50): error TS2551: Property 'proxy_address' does not exist on type 'ProviderProxyConfig'. Did you mean 'proxyAddress'?
+src/components/settings/ProviderDetail.tsx(2211,25): error TS2561: Object literal may only specify known properties, but 'proxy_config' does not exist in type 'UpdateProviderInput'. Did you mean to write 'proxyConfig'?
+src/components/settings/ProviderDetail.tsx(2213,61): error TS2551: Property 'proxy_type' does not exist on type 'ProviderProxyConfig'. Did you mean 'proxyType'?
+src/components/settings/ProviderDetail.tsx(2215,61): error TS2551: Property 'proxy_port' does not exist on type 'ProviderProxyConfig'. Did you mean 'proxyPort'?
+src/components/settings/ProviderDetail.tsx(2219,53): error TS2551: Property 'proxy_type' does not exist on type 'ProviderProxyConfig'. Did you mean 'proxyType'?
+src/components/settings/ProviderDetail.tsx(2228,50): error TS2551: Property 'proxy_port' does not exist on type 'ProviderProxyConfig'. Did you mean 'proxyPort'?
+src/components/settings/ProviderDetail.tsx(2231,25): error TS2561: Object literal may only specify known properties, but 'proxy_config' does not exist in type 'UpdateProviderInput'. Did you mean to write 'proxyConfig'?
+src/components/settings/ProviderDetail.tsx(2233,61): error TS2551: Property 'proxy_type' does not exist on type 'ProviderProxyConfig'. Did you mean 'proxyType'?
+src/components/settings/ProviderDetail.tsx(2234,64): error TS2551: Property 'proxy_address' does not exist on type 'ProviderProxyConfig'. Did you mean 'proxyAddress'?
+src/components/settings/ProviderDetail.tsx(2242,53): error TS2551: Property 'proxy_type' does not exist on type 'ProviderProxyConfig'. Did you mean 'proxyType'?
+src/components/settings/ProviderList.tsx(167,9): error TS2561: Object literal may only specify known properties, but 'provider_type' does not exist in type 'CreateProviderInput'. Did you mean to write 'providerType'?
+src/components/settings/RealtimePushPanel.tsx(34,37): error TS2551: Property 'ws_status' does not exist on type 'RealtimePushState'. Did you mean 'wsStatus'?
+src/components/settings/RealtimePushPanel.tsx(42,24): error TS2551: Property 'ws_status' does not exist on type 'RealtimePushState'. Did you mean 'wsStatus'?
+src/components/settings/RealtimePushPanel.tsx(66,7): error TS2561: Object literal may only specify known properties, but 'device_id' does not exist in type 'SyncSignal'. Did you mean to write 'deviceId'?
+src/components/settings/RealtimePushPanel.tsx(66,30): error TS2551: Property 'device_id' does not exist on type 'DeviceInfo'. Did you mean 'deviceId'?
+src/components/settings/RealtimePushPanel.tsx(73,26): error TS2551: Property 'ws_status' does not exist on type 'RealtimePushState'. Did you mean 'wsStatus'?
+src/components/settings/RealtimePushPanel.tsx(88,26): error TS2551: Property 'ws_status' does not exist on type 'RealtimePushState'. Did you mean 'wsStatus'?
+src/components/settings/RealtimePushPanel.tsx(116,36): error TS2551: Property 'ws_status' does not exist on type 'RealtimePushState'. Did you mean 'wsStatus'?
+src/components/settings/RealtimePushPanel.tsx(125,36): error TS2551: Property 'ws_status' does not exist on type 'RealtimePushState'. Did you mean 'wsStatus'?
+src/components/settings/RealtimePushPanel.tsx(156,23): error TS2551: Property 'ws_connection_id' does not exist on type 'RealtimePushState'. Did you mean 'wsConnectionId'?
+src/components/settings/RealtimePushPanel.tsx(166,95): error TS2551: Property 'ws_connection_id' does not exist on type 'RealtimePushState'. Did you mean 'wsConnectionId'?
+src/components/settings/RealtimePushPanel.tsx(168,29): error TS2551: Property 'last_signal_at' does not exist on type 'RealtimePushState'. Did you mean 'lastSignalAt'?
+src/components/settings/RealtimePushPanel.tsx(171,42): error TS2551: Property 'last_signal_at' does not exist on type 'RealtimePushState'. Did you mean 'lastSignalAt'?
+src/components/settings/RealtimePushPanel.tsx(179,23): error TS2551: Property 'ws_status' does not exist on type 'RealtimePushState'. Did you mean 'wsStatus'?
+src/components/settings/RealtimePushPanel.tsx(191,72): error TS2551: Property 'pending_signals' does not exist on type 'RealtimePushState'. Did you mean 'pendingSignals'?
+src/components/settings/RealtimePushPanel.tsx(192,25): error TS2551: Property 'pending_signals' does not exist on type 'RealtimePushState'. Did you mean 'pendingSignals'?
+src/components/settings/RealtimePushPanel.tsx(203,42): error TS2551: Property 'pending_signals' does not exist on type 'RealtimePushState'. Did you mean 'pendingSignals'?
+src/components/settings/RealtimePushPanel.tsx(207,42): error TS18046: 'signal' is of type 'unknown'.
+src/components/settings/RealtimePushPanel.tsx(208,24): error TS18046: 'signal' is of type 'unknown'.
+src/components/settings/RealtimePushPanel.tsx(210,28): error TS18046: 'signal' is of type 'unknown'.
+src/components/settings/ShortcutSettings.tsx(85,26): error TS2559: Type 'Partial<Record<"global_shortcut" | ShortcutSettingKey, string>>' has no properties in common with type 'Partial<AppSettings>'.
+src/components/settings/ShortcutSettings.tsx(105,26): error TS2559: Type 'Partial<Record<"global_shortcut" | ShortcutSettingKey, string>>' has no properties in common with type 'Partial<AppSettings>'.
+src/components/settings/ShortcutSettings.tsx(137,24): error TS2559: Type 'Partial<Record<"global_shortcut" | ShortcutSettingKey, string>>' has no properties in common with type 'Partial<AppSettings>'.
+src/components/settings/SyncPolicyPanel.tsx(44,55): error TS2551: Property 'conflict_strategy' does not exist on type 'SyncPolicy'. Did you mean 'conflictStrategy'?
+src/components/settings/SyncPolicyPanel.tsx(45,61): error TS2551: Property 'auto_sync_interval_secs' does not exist on type 'SyncPolicy'. Did you mean 'autoSyncIntervalSecs'?
+src/components/settings/SyncPolicyPanel.tsx(46,48): error TS2551: Property 'sync_scope' does not exist on type 'SyncPolicy'. Did you mean 'syncScope'?
+src/components/settings/SyncPolicyPanel.tsx(47,60): error TS2551: Property 'auto_resolve_conflicts' does not exist on type 'SyncPolicy'. Did you mean 'autoResolveConflicts'?
+src/components/settings/SyncPolicyPanel.tsx(48,60): error TS2551: Property 'max_conflict_threshold' does not exist on type 'SyncPolicy'. Did you mean 'maxConflictThreshold'?
+src/components/settings/SyncPolicyPanel.tsx(49,66): error TS2551: Property 'change_log_retention_enabled' does not exist on type 'SyncPolicy'. Did you mean 'changeLogRetentionEnabled'?
+src/components/settings/SyncPolicyPanel.tsx(50,63): error TS2551: Property 'change_log_retention_days' does not exist on type 'SyncPolicy'. Did you mean 'changeLogRetentionDays'?
+src/components/settings/SyncPolicyPanel.tsx(62,9): error TS2561: Object literal may only specify known properties, but 'conflict_strategy' does not exist in type 'SyncPolicyUpdate'. Did you mean to write 'conflictStrategy'?
+src/components/settings/WebDavSync.tsx(148,9): error TS2561: Object literal may only specify known properties, but 'webdav_username' does not exist in type 'Partial<AppSettings>'. Did you mean to write 'webdavUsername'?
+src/components/shared/ModelSelect.tsx(105,51): error TS2551: Property 'modelId' does not exist on type '{ providerId: string; model_id: string; }'. Did you mean 'model_id'?
+src/components/workflow/DebugPanel.tsx(880,18): error TS2561: Object literal may only specify known properties, but 'session_id' does not exist in type 'TraceFilter'. Did you mean to write 'sessionId'?
+src/components/workflow/DebugPanel.tsx(1593,44): error TS2561: Object literal may only specify known properties, but 'session_id' does not exist in type 'TraceFilter'. Did you mean to write 'sessionId'?
+src/hooks/__tests__/useVoiceChat.test.tsx(86,3): error TS2561: Object literal may only specify known properties, but 'audio_format' does not exist in type 'RealtimeConfig'. Did you mean to write 'audioFormat'?
+src/hooks/useIntentClarification.ts(9,3): error TS2561: Object literal may only specify known properties, but 'clarification_questions' does not exist in type 'IntentClarification'. Did you mean to write 'clarificationQuestions'?
+src/hooks/useIntentClarification.ts(24,5): error TS2561: Object literal may only specify known properties, but 'created_at' does not exist in type 'IntentClarification'. Did you mean to write 'createdAt'?
+src/hooks/useVoiceChat.ts(378,42): error TS2551: Property 'sample_rate' does not exist on type 'AudioFormat'. Did you mean 'sampleRate'?
+src/hooks/useVoiceChat.ts(391,80): error TS2551: Property 'sample_rate' does not exist on type 'AudioFormat'. Did you mean 'sampleRate'?
+src/lib/__tests__/exportChat.test.ts(13,3): error TS2561: Object literal may only specify known properties, but 'provider_id' does not exist in type 'Message'. Did you mean to write 'providerId'?
+src/lib/__tests__/messageUtils.test.ts(14,10): error TS2352: Conversion of type '{ id: string; content: string; created_at: number; status: string; role: "user"; conversation_id: string; }' to type 'Message' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ id: string; content: string; created_at: number; status: string; role: "user"; conversation_id: string; }' is missing the following properties from type 'Message': conversationId, providerId, modelId, tokenCount, and 8 more.
+src/lib/__tests__/modelCapabilities.test.ts(19,3): error TS2561: Object literal may only specify known properties, but 'model_type' does not exist in type 'Model'. Did you mean to write 'modelType'?
+src/lib/__tests__/modelCapabilities.test.ts(34,3): error TS2561: Object literal may only specify known properties, but 'api_host' does not exist in type 'ProviderConfig'. Did you mean to write 'apiHost'?
+src/lib/__tests__/modelCapabilities.test.ts(103,48): error TS2741: Property 'model_type' is missing in type 'Model' but required in type 'Pick<Model, "capabilities" | "model_type">'.
+src/lib/__tests__/modelCapabilities.test.ts(112,48): error TS2741: Property 'model_type' is missing in type 'Model' but required in type 'Pick<Model, "capabilities" | "model_type">'.
+src/lib/__tests__/modelCapabilities.test.ts(187,51): error TS2561: Object literal may only specify known properties, but 'provider_id' does not exist in type 'Partial<Model>'. Did you mean to write 'providerId'?
+src/lib/__tests__/shortcuts.test.ts(38,3): error TS2352: Conversion of type '{ shortcut_toggle_current_window: string; shortcut_toggle_all_windows: string; shortcut_close_window: string; shortcut_new_conversation: string; shortcut_open_settings: string; shortcut_toggle_model_selector: string; ... 52 more ...; gateway_ssl_cert_path: null; }' to type 'AppSettings' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ shortcut_toggle_current_window: string; shortcut_toggle_all_windows: string; shortcut_close_window: string; shortcut_new_conversation: string; shortcut_open_settings: string; shortcut_toggle_model_selector: string; ... 52 more ...; gateway_ssl_cert_path: null; }' is missing the following properties from type 'AppSettings': themeMode, themePreset, primaryColor, borderRadius, and 57 more.
+src/lib/browserMock.ts(195,5): error TS2561: Object literal may only specify known properties, but 'total_calls' does not exist in type 'CapabilityStats'. Did you mean to write 'totalCalls'?
+src/lib/browserMock.ts(213,5): error TS2561: Object literal may only specify known properties, but 'capability_id' does not exist in type 'CapabilityPassportDto'. Did you mean to write 'capabilityId'?
+src/lib/browserMock.ts(329,5): error TS2561: Object literal may only specify known properties, but 'total_capabilities' does not exist in type 'CapabilityIndexStats'. Did you mean to write 'totalCapabilities'?
+src/lib/browserMock.ts(343,5): error TS2561: Object literal may only specify known properties, but 'capability_id' does not exist in type 'IndexResult'. Did you mean to write 'capabilityId'?
+src/lib/browserMock.ts(343,29): error TS2551: Property 'capability_id' does not exist on type 'CapabilityPassportDto'. Did you mean 'capabilityId'?
+src/lib/browserMock.ts(361,5): error TS2561: Object literal may only specify known properties, but 'semantic_score' does not exist in type 'RankedCapability'. Did you mean to write 'semanticScore'?
+src/lib/browserMock.ts(376,23): error TS2551: Property 'final_score' does not exist on type 'RankedCapability'. Did you mean 'finalScore'?
+src/lib/browserMock.ts(376,39): error TS2551: Property 'final_score' does not exist on type 'RankedCapability'. Did you mean 'finalScore'?
+src/lib/browserMock.ts(380,49): error TS2551: Property 'final_score' does not exist on type 'RankedCapability'. Did you mean 'finalScore'?
+src/lib/browserMock.ts(383,5): error TS2561: Object literal may only specify known properties, but 'primary_match' does not exist in type 'CapabilityDiscoveryResult'. Did you mean to write 'primaryMatch'?
+src/lib/browserMock.ts(1397,9): error TS2561: Object literal may only specify known properties, but 'sort_order' does not exist in type 'ConversationCategory'. Did you mean to write 'sortOrder'?
+src/lib/browserMock.ts(2025,11): error TS2561: Object literal may only specify known properties, but 'provider_id' does not exist in type 'Message'. Did you mean to write 'providerId'?
+src/lib/browserMock.ts(2083,9): error TS2561: Object literal may only specify known properties, but 'key_prefix' does not exist in type 'GatewayKey'. Did you mean to write 'keyPrefix'?
+src/lib/browserMock.ts(3876,11): error TS2820: Type '"telegram_enabled"' is not assignable to type 'keyof PlatformConfig'. Did you mean '"telegramEnabled"'?
+src/lib/browserMock.ts(3877,11): error TS2820: Type '"discord_enabled"' is not assignable to type 'keyof PlatformConfig'. Did you mean '"discordEnabled"'?
+src/lib/browserMock.ts(3878,11): error TS2820: Type '"slack_enabled"' is not assignable to type 'keyof PlatformConfig'. Did you mean '"slackEnabled"'?
+src/lib/browserMock.ts(3879,11): error TS2820: Type '"whatsapp_enabled"' is not assignable to type 'keyof PlatformConfig'. Did you mean '"whatsappEnabled"'?
+src/lib/browserMock.ts(3880,11): error TS2820: Type '"wechat_enabled"' is not assignable to type 'keyof PlatformConfig'. Did you mean '"wechatEnabled"'?
+src/lib/browserMock.ts(3881,11): error TS2820: Type '"feishu_enabled"' is not assignable to type 'keyof PlatformConfig'. Did you mean '"feishuEnabled"'?
+src/lib/browserMock.ts(3882,11): error TS2820: Type '"qq_enabled"' is not assignable to type 'keyof PlatformConfig'. Did you mean '"qqEnabled"'?
+src/lib/browserMock.ts(3883,11): error TS2820: Type '"dingtalk_enabled"' is not assignable to type 'keyof PlatformConfig'. Did you mean '"dingtalkEnabled"'?
+src/lib/browserMock.ts(3903,9): error TS2561: Object literal may only specify known properties, but 'session_id' does not exist in type 'PlatformSession'. Did you mean to write 'sessionId'?
+src/lib/browserMock.ts(3919,31): error TS2551: Property 'session_id' does not exist on type 'PlatformSession'. Did you mean 'sessionId'?
+src/lib/browserMock.ts(4725,48): error TS2551: Property 'capability_id' does not exist on type 'CapabilityPassportDto'. Did you mean 'capabilityId'?
+src/lib/browserMock.ts(4725,75): error TS2551: Property 'capability_id' does not exist on type 'CapabilityPassportDto'. Did you mean 'capabilityId'?
+src/lib/browserMock.ts(4738,50): error TS2551: Property 'capability_id' does not exist on type 'CapabilityPassportDto'. Did you mean 'capabilityId'?
+src/lib/browserMock.ts(4738,77): error TS2551: Property 'capability_id' does not exist on type 'CapabilityPassportDto'. Did you mean 'capabilityId'?
+src/lib/browserMock.ts(4752,35): error TS2551: Property 'capability_id' does not exist on type 'CapabilityPassportDto'. Did you mean 'capabilityId'?
+src/lib/modelCapabilities.ts(27,22): error TS2344: Type '"capabilities" | "model_type"' does not satisfy the constraint 'keyof Model'.
+  Type '"model_type"' is not assignable to type 'keyof Model'. Did you mean '"modelType"'?
+src/lib/modelCapabilities.ts(29,36): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'ModelType | null | undefined'.
+src/lib/modelCapabilities.ts(54,59): error TS2552: Cannot find name 'modelId'. Did you mean 'model_id'?
+src/lib/shortcuts.ts(135,3): error TS2820: Type '"shortcut_toggle_current_window"' is not assignable to type 'keyof AppSettings'. Did you mean '"shortcutToggleCurrentWindow"'?
+src/lib/shortcuts.ts(136,3): error TS2820: Type '"shortcut_toggle_all_windows"' is not assignable to type 'keyof AppSettings'. Did you mean '"shortcutToggleAllWindows"'?
+src/lib/shortcuts.ts(137,3): error TS2820: Type '"shortcut_close_window"' is not assignable to type 'keyof AppSettings'. Did you mean '"shortcutCloseWindow"'?
+src/lib/shortcuts.ts(138,3): error TS2820: Type '"shortcut_new_conversation"' is not assignable to type 'keyof AppSettings'. Did you mean '"shortcutNewConversation"'?
+src/lib/shortcuts.ts(139,3): error TS2820: Type '"shortcut_open_settings"' is not assignable to type 'keyof AppSettings'. Did you mean '"shortcutOpenSettings"'?
+src/lib/shortcuts.ts(140,3): error TS2820: Type '"shortcut_toggle_model_selector"' is not assignable to type 'keyof AppSettings'. Did you mean '"shortcutToggleModelSelector"'?
+src/lib/shortcuts.ts(141,3): error TS2820: Type '"shortcut_fill_last_message"' is not assignable to type 'keyof AppSettings'. Did you mean '"shortcutFillLastMessage"'?
+src/lib/shortcuts.ts(142,3): error TS2820: Type '"shortcut_clear_context"' is not assignable to type 'keyof AppSettings'. Did you mean '"shortcutClearContext"'?
+src/lib/shortcuts.ts(143,3): error TS2820: Type '"shortcut_clear_conversation_messages"' is not assignable to type 'keyof AppSettings'. Did you mean '"shortcutClearConversationMessages"'?
+src/lib/shortcuts.ts(144,3): error TS2820: Type '"shortcut_toggle_gateway"' is not assignable to type 'keyof AppSettings'. Did you mean '"shortcutToggleGateway"'?
+src/lib/shortcuts.ts(145,3): error TS2820: Type '"shortcut_toggle_mode"' is not assignable to type 'keyof AppSettings'. Did you mean '"shortcutToggleMode"'?
+src/lib/shortcuts.ts(146,3): error TS2820: Type '"shortcut_show_quick_bar"' is not assignable to type 'keyof AppSettings'. Did you mean '"shortcutShowQuickBar"'?
+src/lib/shortcuts.ts(235,31): error TS2551: Property 'shortcut_clear_context' does not exist on type 'AppSettings'. Did you mean 'shortcutClearContext'?
+src/stores/__tests__/conversationStore.test.ts(30,5): error TS2561: Object literal may only specify known properties, but 'provider_id' does not exist in type 'Message'. Did you mean to write 'providerId'?
+src/stores/__tests__/conversationStore.test.ts(49,5): error TS2561: Object literal may only specify known properties, but 'oldest_message_id' does not exist in type 'MessagePage'. Did you mean to write 'oldestMessageId'?
+src/stores/devtools/tracerStore.ts(72,14): error TS2551: Property 'parent_span_id' does not exist on type 'Span'. Did you mean 'parentSpanId'?
+src/stores/devtools/tracerStore.ts(73,39): error TS2551: Property 'parent_span_id' does not exist on type 'Span'. Did you mean 'parentSpanId'?
+src/stores/devtools/tracerStore.ts(123,49): error TS2551: Property 'total_duration_ms' does not exist on type 'TraceMetadata'. Did you mean 'totalDurationMs'?
+src/stores/devtools/tracerStore.ts(126,11): error TS2561: Object literal may only specify known properties, but 'total_tokens' does not exist in type 'CostMetrics'. Did you mean to write 'totalTokens'?
+src/stores/devtools/tracerStore.ts(126,46): error TS2551: Property 'total_tokens' does not exist on type 'TraceMetadata'. Did you mean 'totalTokens'?
+src/stores/devtools/tracerStore.ts(131,48): error TS2551: Property 'total_cost_usd' does not exist on type 'TraceMetadata'. Did you mean 'totalCostUsd'?
+src/stores/devtools/tracerStore.ts(138,9): error TS2561: Object literal may only specify known properties, but 'trace_id' does not exist in type 'TraceSummary'. Did you mean to write 'traceId'?
+src/stores/devtools/tracerStore.ts(138,31): error TS2551: Property 'trace_id' does not exist on type 'TraceExport'. Did you mean 'traceId'?
+src/stores/devtools/tracerStore.ts(139,42): error TS2551: Property 'session_id' does not exist on type 'TraceMetadata'. Did you mean 'sessionId'?
+src/stores/devtools/tracerStore.ts(140,43): error TS2551: Property 'start_time' does not exist on type 'Span'. Did you mean 'startTime'?
+src/stores/devtools/tracerStore.ts(140,69): error TS2551: Property 'exported_at' does not exist on type 'TraceExport'. Did you mean 'exportedAt'?
+src/stores/devtools/tracerStore.ts(141,43): error TS2551: Property 'total_duration_ms' does not exist on type 'TraceMetadata'. Did you mean 'totalDurationMs'?
+src/stores/devtools/tracerStore.ts(144,44): error TS2551: Property 'total_tokens' does not exist on type 'TraceMetadata'. Did you mean 'totalTokens'?
+src/stores/devtools/tracerStore.ts(145,46): error TS2551: Property 'total_cost_usd' does not exist on type 'TraceMetadata'. Did you mean 'totalCostUsd'?
+src/stores/domain/conversationPreferences.ts(113,3): error TS2344: Type '"enabled_knowledge_base_ids" | "enabled_mcp_server_ids" | "enabled_memory_namespace_ids" | "enabled_wiki_ids" | "search_enabled" | "search_provider_id" | "thinking_budget"' does not satisfy the constraint 'keyof UpdateConversationInput'.
+  Type '"enabled_knowledge_base_ids"' is not assignable to type 'keyof UpdateConversationInput'. Did you mean '"enabledKnowledgeBaseIds"'?
+src/stores/domain/conversationPreferences.ts(186,3): error TS2344: Type '"category_id" | "frequency_penalty" | "max_tokens" | "system_prompt" | "temperature" | "top_p"' does not satisfy the constraint 'keyof UpdateConversationInput'.
+  Type '"category_id"' is not assignable to type 'keyof UpdateConversationInput'. Did you mean '"categoryId"'?
+src/stores/domain/conversationPreferences.ts(194,5): error TS2739: Type '{}' is missing the following properties from type 'Pick<UpdateConversationInput, "category_id" | "frequency_penalty" | "max_tokens" | "system_prompt" | "temperature" | "top_p">': category_id, frequency_penalty, max_tokens, system_prompt, top_p
+src/stores/domain/conversationStore.ts(439,9): error TS2561: Object literal may only specify known properties, but 'provider_id' does not exist in type 'Message'. Did you mean to write 'providerId'?
+src/stores/domain/conversationStore.ts(702,15): error TS2561: Object literal may only specify known properties, but 'provider_id' does not exist in type 'Message'. Did you mean to write 'providerId'?
+src/stores/domain/conversationStore.ts(1495,19): error TS2322: Type 'ConversationState' is not assignable to type 'ConversationStoreRefState'.
+  Types of property 'pendingCompanionModels' are incompatible.
+    Type '{ providerId: string; modelId: string; }[]' is not assignable to type '{ providerId: string; model_id: string; }[]'.
+      Property 'model_id' is missing in type '{ providerId: string; modelId: string; }' but required in type '{ providerId: string; model_id: string; }'.
+src/stores/domain/conversationStoreSend.ts(158,13): error TS6133: 'modelId' is declared but its value is never read.
+src/stores/domain/conversationStoreSend.ts(168,11): error TS2561: Object literal may only specify known properties, but 'provider_id' does not exist in type 'Message'. Did you mean to write 'providerId'?
+src/stores/domain/conversationStoreSend.ts(198,9): error TS2561: Object literal may only specify known properties, but 'provider_id' does not exist in type 'Message'. Did you mean to write 'providerId'?
+src/stores/domain/conversationStoreSend.ts(199,19): error TS2552: Cannot find name 'model_id'. Did you mean 'modelId'?
+src/stores/domain/conversationStoreSend.ts(754,15): error TS2552: Cannot find name 'model_id'. Did you mean 'modelId'?
+src/stores/domain/conversationStoreSend.ts(1015,9): error TS2561: Object literal may only specify known properties, but 'token_count' does not exist in type 'Message'. Did you mean to write 'tokenCount'?
+src/stores/domain/conversationStoreSend.ts(1163,9): error TS2561: Object literal may only specify known properties, but 'provider_id' does not exist in type 'Message'. Did you mean to write 'providerId'?
+src/stores/domain/multiModelStore.ts(98,9): error TS2561: Object literal may only specify known properties, but 'provider_id' does not exist in type 'UpdateConversationInput'. Did you mean to write 'providerId'?
+src/stores/domain/multiModelStore.ts(127,11): error TS2561: Object literal may only specify known properties, but 'provider_id' does not exist in type 'UpdateConversationInput'. Did you mean to write 'providerId'?
+src/stores/domain/multiModelStore.ts(304,11): error TS2561: Object literal may only specify known properties, but 'provider_id' does not exist in type 'UpdateConversationInput'. Did you mean to write 'providerId'?
+src/stores/domain/multiModelStore.ts(441,5): error TS2322: Type '{ providerId: string; model_id: string; }[]' is not assignable to type '{ providerId: string; modelId: string; }[]'.
+  Property 'modelId' is missing in type '{ providerId: string; model_id: string; }' but required in type '{ providerId: string; modelId: string; }'.
+src/stores/domain/preferenceStore.ts(164,11): error TS2561: Object literal may only specify known properties, but 'search_enabled' does not exist in type 'Partial<UpdateConversationInput>'. Did you mean to write 'searchEnabled'?
+src/stores/domain/preferenceStore.ts(179,11): error TS2561: Object literal may only specify known properties, but 'search_provider_id' does not exist in type 'Partial<UpdateConversationInput>'. Did you mean to write 'searchProviderId'?
+src/stores/domain/preferenceStore.ts(195,11): error TS2561: Object literal may only specify known properties, but 'enabled_mcp_server_ids' does not exist in type 'Partial<UpdateConversationInput>'. Did you mean to write 'enabledMcpServerIds'?
+src/stores/domain/preferenceStore.ts(211,11): error TS2561: Object literal may only specify known properties, but 'enabled_mcp_server_ids' does not exist in type 'Partial<UpdateConversationInput>'. Did you mean to write 'enabledMcpServerIds'?
+src/stores/domain/preferenceStore.ts(231,13): error TS2561: Object literal may only specify known properties, but 'enabled_mcp_server_ids' does not exist in type 'Partial<UpdateConversationInput>'. Did you mean to write 'enabledMcpServerIds'?
+src/stores/domain/preferenceStore.ts(239,13): error TS2561: Object literal may only specify known properties, but 'enabled_mcp_server_ids' does not exist in type 'Partial<UpdateConversationInput>'. Did you mean to write 'enabledMcpServerIds'?
+src/stores/domain/preferenceStore.ts(260,11): error TS2561: Object literal may only specify known properties, but 'thinking_budget' does not exist in type 'Partial<UpdateConversationInput>'. Did you mean to write 'thinkingBudget'?
+src/stores/domain/preferenceStore.ts(276,11): error TS2561: Object literal may only specify known properties, but 'enabled_knowledge_base_ids' does not exist in type 'Partial<UpdateConversationInput>'. Did you mean to write 'enabledKnowledgeBaseIds'?
+src/stores/domain/preferenceStore.ts(292,11): error TS2561: Object literal may only specify known properties, but 'enabled_knowledge_base_ids' does not exist in type 'Partial<UpdateConversationInput>'. Did you mean to write 'enabledKnowledgeBaseIds'?
+src/stores/domain/preferenceStore.ts(307,11): error TS2561: Object literal may only specify known properties, but 'enabled_memory_namespace_ids' does not exist in type 'Partial<UpdateConversationInput>'. Did you mean to write 'enabledMemoryNamespaceIds'?
+src/stores/domain/preferenceStore.ts(321,11): error TS2561: Object literal may only specify known properties, but 'enabled_memory_namespace_ids' does not exist in type 'Partial<UpdateConversationInput>'. Did you mean to write 'enabledMemoryNamespaceIds'?
+src/stores/domain/preferenceStore.ts(337,11): error TS2561: Object literal may only specify known properties, but 'enabled_wiki_ids' does not exist in type 'Partial<UpdateConversationInput>'. Did you mean to write 'enabledWikiIds'?
+src/stores/domain/preferenceStore.ts(353,11): error TS2561: Object literal may only specify known properties, but 'enabled_wiki_ids' does not exist in type 'Partial<UpdateConversationInput>'. Did you mean to write 'enabledWikiIds'?
+src/stores/domain/streamStore.ts(801,7): error TS2561: Object literal may only specify known properties, but 'provider_id' does not exist in type 'Message'. Did you mean to write 'providerId'?
+src/stores/feature/__tests__/planStore.test.ts(38,5): error TS2561: Object literal may only specify known properties, but 'user_message_id' does not exist in type 'Plan'. Did you mean to write 'userMessageId'?
+src/stores/feature/capabilityStore.ts(119,20): error TS2551: Property 'capability_id' does not exist on type 'CapabilityPassportDto'. Did you mean 'capabilityId'?
+src/stores/feature/capabilityStore.ts(204,13): error TS2551: Property 'capability_id' does not exist on type 'CapabilityPassportDto'. Did you mean 'capabilityId'?
+src/stores/feature/deviceSyncStore.ts(178,5): error TS2561: Object literal may only specify known properties, but 'ws_status' does not exist in type 'RealtimePushState'. Did you mean to write 'wsStatus'?
+src/stores/feature/deviceSyncStore.ts(216,49): error TS2551: Property 'pending_signals' does not exist on type 'RealtimePushState'. Did you mean 'pendingSignals'?
+src/stores/feature/deviceSyncStore.ts(227,7): error TS2561: Object literal may only specify known properties, but 'key_derivation' does not exist in type 'SyncEncryptionConfig'. Did you mean to write 'keyDerivation'?
+src/stores/feature/deviceSyncStore.ts(337,56): error TS2551: Property 'device_id' does not exist on type 'DeviceInfo'. Did you mean 'deviceId'?
+src/stores/feature/deviceSyncStore.ts(359,53): error TS2551: Property 'device_id' does not exist on type 'DeviceInfo'. Did you mean 'deviceId'?
+src/stores/feature/deviceSyncStore.ts(683,22): error TS2551: Property 'device_id' does not exist on type 'DevicePermissions'. Did you mean 'deviceId'?
+src/stores/feature/deviceSyncStore.ts(708,9): error TS2561: Object literal may only specify known properties, but 'ws_status' does not exist in type 'RealtimePushState'. Did you mean to write 'wsStatus'?
+src/stores/feature/deviceSyncStore.ts(717,11): error TS2561: Object literal may only specify known properties, but 'key_derivation' does not exist in type 'SyncEncryptionConfig'. Did you mean to write 'keyDerivation'?
+src/stores/feature/gatewayStore.ts(79,5): error TS2561: Object literal may only specify known properties, but 'listen_address' does not exist in type 'GatewayStatus'. Did you mean to write 'listenAddress'?
+src/stores/feature/onboardingStore.ts(123,7): error TS2561: Object literal may only specify known properties, but 'onboarding_selected_preset' does not exist in type 'Partial<AppSettings>'. Did you mean to write 'onboardingSelectedPreset'?
+src/stores/feature/pluginStore.ts(66,11): error TS2345: Argument of type '(s: PluginState) => { installing: null; plugins: (PluginSummaryDto | { id: string; name: string; version: string; description: string; kind: "external"; enabled: true; tools: never[]; mcp_servers: never[]; skills: never[]; })[]; }' is not assignable to parameter of type 'Partial<PluginState> | PluginState | ((state: PluginState) => Partial<PluginState> | PluginState)'.
+  Type '(s: PluginState) => { installing: null; plugins: (PluginSummaryDto | { id: string; name: string; version: string; description: string; kind: "external"; enabled: true; tools: never[]; mcp_servers: never[]; skills: never[]; })[]; }' is not assignable to type '(state: PluginState) => Partial<PluginState> | PluginState'.
+    Type '{ installing: null; plugins: (PluginSummaryDto | { id: string; name: string; version: string; description: string; kind: "external"; enabled: true; tools: never[]; mcp_servers: never[]; skills: never[]; })[]; }' is not assignable to type 'Partial<PluginState> | PluginState'.
+      Type '{ installing: null; plugins: (PluginSummaryDto | { id: string; name: string; version: string; description: string; kind: "external"; enabled: true; tools: never[]; mcp_servers: never[]; skills: never[]; })[]; }' is missing the following properties from type 'PluginState': loading, error, validating, loadPlugins, and 6 more.
+src/stores/feature/proactiveStore.ts(149,18): error TS2551: Property 'resource_id' does not exist on type 'PrefetchResult'. Did you mean 'resourceId'?
+src/stores/feature/proactiveStore.ts(440,9): error TS2561: Object literal may only specify known properties, but 'max_suggestions' does not exist in type 'ProactiveConfig'. Did you mean to write 'maxSuggestions'?
+src/stores/feature/proactiveStore.ts(457,3): error TS2322: Type '(predictions: ContextPrediction[]) => Promise<PrefetchResults | { results: never[]; total_estimated_time_ms: number; critical_path: never[]; }>' is not assignable to type '(predictions: ContextPrediction[]) => Promise<PrefetchResults>'.
+  Type 'Promise<PrefetchResults | { results: never[]; total_estimated_time_ms: number; critical_path: never[]; }>' is not assignable to type 'Promise<PrefetchResults>'.
+    Type 'PrefetchResults | { results: never[]; total_estimated_time_ms: number; critical_path: never[]; }' is not assignable to type 'PrefetchResults'.
+      Type '{ results: never[]; total_estimated_time_ms: number; critical_path: never[]; }' is missing the following properties from type 'PrefetchResults': totalEstimatedTimeMs, criticalPath
+src/stores/feature/proactiveStore.ts(495,7): error TS2561: Object literal may only specify known properties, but 'prefetch_type' does not exist in type 'PrefetchResult'. Did you mean to write 'prefetchType'?
+src/stores/feature/proactiveStore.ts(514,63): error TS2551: Property 'resource_id' does not exist on type 'PrefetchResult'. Did you mean 'resourceId'?
+src/stores/feature/proactiveStore.ts(526,7): error TS2561: Object literal may only specify known properties, but 'prefetch_type' does not exist in type 'PrefetchResult'. Did you mean to write 'prefetchType'?
+src/stores/feature/proactiveStore.ts(542,15): error TS2551: Property 'resource_id' does not exist on type 'PrefetchResult'. Did you mean 'resourceId'?
+src/stores/feature/proactiveStore.ts(565,7): error TS2561: Object literal may only specify known properties, but 'prefetch_type' does not exist in type 'PrefetchResult'. Did you mean to write 'prefetchType'?
+src/stores/feature/proactiveStore.ts(580,63): error TS2551: Property 'resource_id' does not exist on type 'PrefetchResult'. Did you mean 'resourceId'?
+src/stores/feature/proactiveStore.ts(609,13): error TS2561: Object literal may only specify known properties, but 'prefetch_type' does not exist in type 'PrefetchResult'. Did you mean to write 'prefetchType'?
+src/stores/feature/proactiveStore.ts(624,21): error TS2551: Property 'resource_id' does not exist on type 'PrefetchResult'. Did you mean 'resourceId'?
+src/stores/feature/proactiveStore.ts(638,13): error TS2561: Object literal may only specify known properties, but 'prefetch_type' does not exist in type 'PrefetchResult'. Did you mean to write 'prefetchType'?
+src/stores/feature/proactiveStore.ts(653,21): error TS2551: Property 'resource_id' does not exist on type 'PrefetchResult'. Did you mean 'resourceId'?
+src/stores/feature/proactiveStore.ts(667,13): error TS2561: Object literal may only specify known properties, but 'prefetch_type' does not exist in type 'PrefetchResult'. Did you mean to write 'prefetchType'?
+src/stores/feature/proactiveStore.ts(682,21): error TS2551: Property 'resource_id' does not exist on type 'PrefetchResult'. Did you mean 'resourceId'?
+src/stores/feature/proactiveStore.ts(716,59): error TS2551: Property 'resource_id' does not exist on type 'PrefetchResult'. Did you mean 'resourceId'?
+src/stores/feature/providerStore.ts(240,57): error TS2552: Cannot find name 'modelId'. Did you mean 'model'?
+src/stores/feature/providerStore.ts(265,57): error TS2552: Cannot find name 'modelId'. Did you mean 'model'?
+src/stores/feature/settingsStore.ts(11,3): error TS2561: Object literal may only specify known properties, but 'theme_preset' does not exist in type 'AppSettings'. Did you mean to write 'themePreset'?
+src/stores/feature/workEngineStore.ts(261,33): error TS2551: Property 'node_id' does not exist on type 'NodeExecutionRecord'. Did you mean 'nodeId'?
+src/stores/feature/workEngineStore.ts(389,19): error TS2352: Conversion of type '{ execution_id: string; workflow_id: string; status: ExecutionStatus; current_node_id: string | null; total_time_ms: number; node_count: number; parent_execution_id: null; }' to type 'ExecutionStatusResponse' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ execution_id: string; workflow_id: string; status: ExecutionStatus; current_node_id: string | null; total_time_ms: number; node_count: number; parent_execution_id: null; }' is missing the following properties from type 'ExecutionStatusResponse': executionId, workflowId, currentNodeId, totalTimeMs, and 4 more.
+src/stores/feature/workEngineStore.ts(398,11): error TS2322: Type '{ node_id: string; node_type: string; node_name: string | null; status: string; input: {} | null; output: {} | null; execution_time_ms: number | null; error: string | null; started_at: number; completed_at: number | null; parent_execution_id: string | null; sub_workflow_id: string | null; }[]' is not assignable to type 'NodeExecutionRecord[]'.
+  Type '{ node_id: string; node_type: string; node_name: string | null; status: string; input: {} | null; output: {} | null; execution_time_ms: number | null; error: string | null; started_at: number; completed_at: number | null; parent_execution_id: string | null; sub_workflow_id: string | null; }' is missing the following properties from type 'NodeExecutionRecord': nodeId, nodeType, nodeName, executionTimeMs, and 4 more.
+src/stores/feature/workflowEditorStore.ts(2791,29): error TS2551: Property 'trace_id' does not exist on type 'TraceSummary'. Did you mean 'traceId'?
+src/stores/feature/workflowEditorStore.ts(2792,30): error TS2551: Property 'duration_ms' does not exist on type 'TraceSummary'. Did you mean 'durationMs'?

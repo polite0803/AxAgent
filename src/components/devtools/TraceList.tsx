@@ -50,28 +50,28 @@ function TraceItem({ trace, isSelected, onClick }: TraceItemProps) {
       <div className="flex justify-between items-start">
         <div className="flex-1 min-w-0">
           <Text strong className="block truncate">
-            {trace.trace_id.slice(0, 8)}...
+            {trace.traceId.slice(0, 8)}...
           </Text>
           <Text type="secondary" className="text-xs block">
-            {dayjs(trace.started_at).format("MM-DD HH:mm:ss")}
+            {dayjs(trace.startedAt).format("MM-DD HH:mm:ss")}
           </Text>
         </div>
-        <Tag color={getStatusColor(trace.error_count)} className="ml-2">
-          {trace.error_count > 0 ? `${trace.error_count} errors` : "OK"}
+        <Tag color={getStatusColor(trace.errorCount)} className="ml-2">
+          {trace.errorCount > 0 ? `${trace.errorCount} errors` : "OK"}
         </Tag>
       </div>
       <div className="mt-2 flex gap-4">
         <Text type="secondary" className="text-xs">
-          <span className="font-medium">{trace.span_count}</span> spans
+          <span className="font-medium">{trace.spanCount}</span> spans
         </Text>
         <Text type="secondary" className="text-xs">
           <span className="font-medium">
-            {formatDuration(trace.duration_ms)}
+            {formatDuration(trace.durationMs)}
           </span>
         </Text>
         <Text type="secondary" className="text-xs">
           <span className="font-medium">
-            {formatCny(trace.total_cost_usd, 4)}
+            {formatCny(trace.totalCostUsd, 4)}
           </span>
         </Text>
       </div>
@@ -88,10 +88,10 @@ export function TraceList() {
   }, [loadTraces]);
 
   const handleSelect = (trace: TraceSummary) => {
-    selectTrace(trace.trace_id);
+    selectTrace(trace.traceId);
   };
 
-  const selectedTraceId = selectedTrace?.trace.trace_id;
+  const selectedTraceId = selectedTrace?.trace.traceId;
 
   return (
     <div className="p-3">
@@ -101,12 +101,12 @@ export function TraceList() {
             placeholder={t("devtools.searchTraceId")}
             onPressEnter={(e) => {
               const value = (e.target as HTMLInputElement).value;
-              const next = { ...filter, trace_id: value || undefined };
+              const next = { ...filter, traceId: value || undefined };
               setFilter(next);
               loadTraces(next);
             }}
             onClear={() => {
-              const next = { ...filter, trace_id: undefined };
+              const next = { ...filter, traceId: undefined };
               setFilter(next);
               loadTraces(next);
             }}
@@ -115,7 +115,7 @@ export function TraceList() {
           <Button
             type="primary"
             onClick={() => {
-              const next = { ...filter, trace_id: undefined };
+              const next = { ...filter, traceId: undefined };
               setFilter(next);
               loadTraces(next);
             }}
@@ -129,8 +129,8 @@ export function TraceList() {
             if (dates && dates[0] && dates[1]) {
               const newFilter = {
                 ...filter,
-                from_date: dates[0].toISOString(),
-                to_date: dates[1].toISOString(),
+                fromDate: dates[0].toISOString(),
+                toDate: dates[1].toISOString(),
               };
               setFilter(newFilter);
               loadTraces(newFilter);
@@ -144,9 +144,9 @@ export function TraceList() {
       <div className="divide-y divide-gray-100">
         {traces.map((trace) => (
           <TraceItem
-            key={trace.trace_id}
+            key={trace.traceId}
             trace={trace}
-            isSelected={trace.trace_id === selectedTraceId}
+            isSelected={trace.traceId === selectedTraceId}
             onClick={() => handleSelect(trace)}
           />
         ))}

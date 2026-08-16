@@ -11,7 +11,7 @@ import { getAllWindows, getCurrentWindow } from "@tauri-apps/api/window";
 
 function notifyShortcutTriggered(action: ShortcutAction) {
   const settings = useSettingsStore.getState().settings;
-  if (!settings.shortcut_trigger_toast_enabled) {
+  if (!settings.shortcutTriggerToastEnabled) {
     return;
   }
   const actionLabel = i18n.t(SHORTCUT_ACTION_LABEL_KEYS[action]);
@@ -78,7 +78,7 @@ async function closeCurrentWindow() {
 
 async function toggleGatewayPage() {
   const status = await invoke<GatewayStatus>("get_gateway_status");
-  if (status.is_running) {
+  if (status.isRunning) {
     await invoke("stop_gateway");
   } else {
     await invoke("start_gateway");

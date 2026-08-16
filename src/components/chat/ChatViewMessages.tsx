@@ -144,7 +144,7 @@ function AssistantFooter({
   conversationId: string;
   assistantCopyText: string;
   getModelDisplayInfo: (
-    model_id?: string | null,
+    modelId?: string | null,
     providerId?: string | null,
   ) => { modelName: string; providerName: string };
   onEditMessage: (
@@ -191,9 +191,9 @@ function AssistantFooter({
   const storeMessages = useConversationStore((s) => s.messages);
 
   useEffect(() => {
-    if (msg.parent_message_id && conversationId) {
+    if (msg.parentMessageId && conversationId) {
       let cancelled = false;
-      listMessageVersions(conversationId, msg.parent_message_id).then((v) => {
+      listMessageVersions(conversationId, msg.parentMessageId).then((v) => {
         if (!cancelled && v) {
           setAllVersions(v);
         }
@@ -203,25 +203,25 @@ function AssistantFooter({
       };
     }
   }, [
-    msg.parent_message_id,
+    msg.parentMessageId,
     conversationId,
     listMessageVersions,
   ]);
 
   const mergedVersions = useMemo(() => {
-    if (!msg.parent_message_id) {
+    if (!msg.parentMessageId) {
       return allVersions;
     }
     const dbIds = new Set(allVersions.map((v) => v.id));
     const extra = storeMessages.filter(
       (m) =>
-        m.parent_message_id === msg.parent_message_id
+        m.parentMessageId === msg.parentMessageId
         && m.role === "assistant"
         && !dbIds.has(m.id)
-        && m.model_id,
+        && m.modelId,
     );
     return extra.length > 0 ? [...allVersions, ...extra] : allVersions;
-  }, [allVersions, storeMessages, msg.parent_message_id]);
+  }, [allVersions, storeMessages, msg.parentMessageId]);
 
   const hasMultiModels = useMemo(
     () => hasMultipleModelVersions(mergedVersions),
@@ -229,25 +229,25 @@ function AssistantFooter({
   );
 
   useEffect(() => {
-    if (msg.parent_message_id && onMultiModelDetected) {
-      onMultiModelDetected(msg.parent_message_id, mergedVersions);
+    if (msg.parentMessageId && onMultiModelDetected) {
+      onMultiModelDetected(msg.parentMessageId, mergedVersions);
     }
-  }, [msg.parent_message_id, mergedVersions, onMultiModelDetected]);
+  }, [msg.parentMessageId, mergedVersions, onMultiModelDetected]);
 
   const currentModelOverride = useMemo(() => {
-    if (msg.provider_id && msg.model_id) {
-      return { providerId: msg.provider_id, model_id: msg.model_id };
+    if (msg.providerId && msg.modelId) {
+      return { providerId: msg.providerId, modelId: msg.modelId };
     }
     return null;
-  }, [msg.provider_id, msg.model_id]);
+  }, [msg.providerId, msg.modelId]);
 
   const handleModelSelect = useCallback(
-    async (providerId: string, model_id: string) => {
+    async (providerId: string, modelId: string) => {
       try {
-        if (providerId === msg.provider_id && model_id === msg.model_id) {
+        if (providerId === msg.providerId && modelId === msg.modelId) {
           await regenerateMessage(msg.id);
         } else {
-          await regenerateWithModel(msg.id, providerId, model_id);
+          await regenerateWithModel(msg.id, providerId, modelId);
         }
       } catch (e) {
         messageApi.error(String(e));
@@ -255,23 +255,23 @@ function AssistantFooter({
     },
     [
       msg.id,
-      msg.provider_id,
-      msg.model_id,
+      msg.providerId,
+      msg.modelId,
       regenerateMessage,
       regenerateWithModel,
       messageApi,
     ],
   );
 
-  const totalTokens = (msg.prompt_tokens ?? 0) + (msg.completion_tokens ?? 0);
+  const totalTokens = (msg.promptTokens ?? 0) + (msg.completionTokens ?? 0);
 
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
       {!isStreaming
-        && (msg.prompt_tokens != null
-          || msg.completion_tokens != null
-          || msg.tokens_per_second != null
-          || msg.first_token_latency_ms != null)
+        && (msg.promptTokens != null
+          || msg.completionTokens != null
+          || msg.tokensPerSecond != null
+          || msg.firstTokenLatencyMs != null)
         && (
           <div
             style={{
@@ -286,24 +286,24 @@ function AssistantFooter({
               flexWrap: "wrap",
             }}
           >
-            {msg.prompt_tokens != null && (
+            {msg.promptTokens != null && (
               <span
                 style={{ display: "inline-flex", alignItems: "center", gap: 2 }}
               >
                 <ArrowDown size={10} />
                 <span className="ax-glow-text">
-                  {formatTokenCount(msg.prompt_tokens)}
+                  {formatTokenCount(msg.promptTokens)}
                 </span>{" "}
                 {t("chat.tokens")}
               </span>
             )}
-            {msg.completion_tokens != null && (
+            {msg.completionTokens != null && (
               <span
                 style={{ display: "inline-flex", alignItems: "center", gap: 2 }}
               >
                 <ArrowDown size={10} />
                 <span className="ax-glow-text">
-                  {formatTokenCount(msg.completion_tokens)}
+                  {formatTokenCount(msg.completionTokens)}
                 </span>{" "}
                 {t("chat.tokens")}
               </span>
@@ -319,20 +319,20 @@ function AssistantFooter({
                 </span>
               </span>
             )}
-            {msg.tokens_per_second != null && (
+            {msg.tokensPerSecond != null && (
               <span
                 style={{ display: "inline-flex", alignItems: "center", gap: 2 }}
               >
                 <Zap size={10} />
-                {formatSpeed(msg.tokens_per_second)}
+                {formatSpeed(msg.tokensPerSecond)}
               </span>
             )}
-            {msg.first_token_latency_ms != null && (
+            {msg.firstTokenLatencyMs != null && (
               <span
                 style={{ display: "inline-flex", alignItems: "center", gap: 2 }}
               >
                 <TextCursorInput size={10} />
-                {formatDuration(msg.first_token_latency_ms)}
+                {formatDuration(msg.firstTokenLatencyMs)}
               </span>
             )}
           </div>
@@ -501,10 +501,10 @@ function AssistantFooter({
         {hasMultiModels
           && displayMode
           && onDisplayModeChange
-          && msg.parent_message_id && (
+          && msg.parentMessageId && (
           <LayoutSwitcher
             currentMode={displayMode}
-            onModeChange={(mode) => onDisplayModeChange(msg.parent_message_id!, mode)}
+            onModeChange={(mode) => onDisplayModeChange(msg.parentMessageId!, mode)}
           />
         )}
         <ModelTags
@@ -589,7 +589,7 @@ export function useChatViewMessages({
   bubbleListRef: _bubbleListRef,
   handleEditMessage,
 }: ChatViewMessagesProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { token } = theme.useToken();
   const { message: messageApi } = App.useApp();
 
@@ -599,15 +599,15 @@ export function useChatViewMessages({
     profile.avatarType,
     profile.avatarValue,
   );
-  const isDarkMode = useResolvedDarkMode(settings.theme_mode);
+  const isDarkMode = useResolvedDarkMode(settings.themeMode);
   const { copy: copyMessage, isCopiedFor: isUserMsgCopied } = useCopyToClipboard();
   const {
     darkTheme: codeBlockDarkTheme,
     lightTheme: codeBlockLightTheme,
     themes: codeBlockThemes,
   } = useMemo(
-    () => getChatCodeThemes(settings.code_theme, settings.code_theme_light),
-    [settings.code_theme, settings.code_theme_light],
+    () => getChatCodeThemes(settings.codeTheme, settings.codeThemeLight),
+    [settings.codeTheme, settings.codeThemeLight],
   );
 
   const streamingMessageId = useStreamStore((s) => s.streamingMessageId);
@@ -689,7 +689,7 @@ export function useChatViewMessages({
   }, [streaming, streamingMessageId]);
 
   const activeMessages = useMemo(
-    () => messages.filter((msg) => msg.is_active !== false),
+    () => messages.filter((msg) => msg.isActive !== false),
     [messages],
   );
   const assistantByParentId = useMemo(() => {
@@ -697,10 +697,10 @@ export function useChatViewMessages({
     for (const msg of messages) {
       if (
         msg.role === "assistant"
-        && msg.parent_message_id
-        && msg.is_active !== false
+        && msg.parentMessageId
+        && msg.isActive !== false
       ) {
-        map.set(`ai:${msg.parent_message_id}`, msg);
+        map.set(`ai:${msg.parentMessageId}`, msg);
       }
     }
     return map;
@@ -709,13 +709,13 @@ export function useChatViewMessages({
   const multiModelResponseParents = useMemo(() => {
     const modelsByParent = new Map<string, Set<string>>();
     for (const msg of messages) {
-      if (msg.role === "assistant" && msg.parent_message_id) {
-        if (!modelsByParent.has(msg.parent_message_id)) {
-          modelsByParent.set(msg.parent_message_id, new Set());
+      if (msg.role === "assistant" && msg.parentMessageId) {
+        if (!modelsByParent.has(msg.parentMessageId)) {
+          modelsByParent.set(msg.parentMessageId, new Set());
         }
         modelsByParent
-          .get(msg.parent_message_id)!
-          .add(msg.model_id || `__no_model_${msg.id}`);
+          .get(msg.parentMessageId)!
+          .add(msg.modelId || `__no_model_${msg.id}`);
       }
     }
     const result = new Set<string>();
@@ -871,8 +871,8 @@ export function useChatViewMessages({
       }
       // js-set-map-lookups: 单次子串检查，Set 无优化收益
       if (msg.role === "assistant" && !aiContent.includes('data-axagent="1"')) {
-        const parentSearch = msg.parent_message_id
-          ? userSearchContentById.get(msg.parent_message_id)
+        const parentSearch = msg.parentMessageId
+          ? userSearchContentById.get(msg.parentMessageId)
           : undefined;
         if (parentSearch?.hasSearch && parentSearch.sources.length > 0) {
           const { sources } = parentSearch;
@@ -883,8 +883,8 @@ export function useChatViewMessages({
         }
       }
 
-      const stableKey = msg.parent_message_id
-        ? `ai:${msg.parent_message_id}:${msg.id}`
+      const stableKey = msg.parentMessageId
+        ? `ai:${msg.parentMessageId}:${msg.id}`
         : msg.id;
       if (nextCache.has(stableKey)) {
         continue;
@@ -933,6 +933,34 @@ export function useChatViewMessages({
     activeConversationId ? s.groupsByConversation[activeConversationId] : null
   );
 
+  // 跨天分隔条文案：今天/昨天/其余按本地化日期（当年省略年份）
+  const formatDividerLabel = useCallback(
+    (d: Date) => {
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const diffDays = Math.round(
+        (startOfToday.getTime() - startOfDay.getTime()) / 86_400_000,
+      );
+      if (diffDays === 0) {
+        return t("chat.today");
+      }
+      if (diffDays === 1) {
+        return t("chat.yesterday");
+      }
+      const locale = i18n.language.startsWith("zh")
+        ? "zh-CN"
+        : "en-US";
+      const sameYear = d.getFullYear() === now.getFullYear();
+      return d.toLocaleDateString(locale, {
+        month: "long",
+        day: "numeric",
+        ...(sameYear ? {} : { year: "numeric" }),
+      });
+    },
+    [i18n.language, t],
+  );
+
   const allBubbleItems = useMemo(() => {
     let items = bubbleItems;
     const topicEnabled = activeConversationId && topicGroupEnabledByConv;
@@ -979,6 +1007,40 @@ export function useChatViewMessages({
         },
       ];
     }
+
+    // 跨天分组：在每天的第一条真实消息前插入日期分隔条
+    const resolveItemTime = (item: BubbleItemType): number | null => {
+      if (item.role === "user") {
+        return messageById.get(String(item.key))?.createdAt ?? null;
+      }
+      if (item.role === "ai") {
+        const msg = assistantByParentId.get(String(item.key))
+          ?? messageById.get(String(item.key));
+        return msg?.createdAt ?? null;
+      }
+      return null;
+    };
+    const dated: typeof items = [];
+    let lastDayKey = "";
+    for (const item of items) {
+      const ts = resolveItemTime(item);
+      if (ts != null) {
+        const d = new Date(ts * 1000);
+        const dayKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        if (dayKey !== lastDayKey) {
+          dated.push({
+            key: `__date-divider__${dayKey}`,
+            role: "date-divider",
+            content: formatDividerLabel(d),
+            variant: "borderless" as const,
+          });
+          lastDayKey = dayKey;
+        }
+      }
+      dated.push(item);
+    }
+    items = dated;
+
     return items;
   }, [
     bubbleItems,
@@ -987,6 +1049,9 @@ export function useChatViewMessages({
     expertSwitchBubble,
     topicGroupEnabledByConv,
     topicGroupsByConv,
+    assistantByParentId,
+    messageById,
+    formatDividerLabel,
   ]);
 
   const visibleBubbleItems = useMemo(() => {
@@ -1048,8 +1113,9 @@ export function useChatViewMessages({
     streamingMessageId,
   ]);
 
+  // 后端 now_ts() 返回秒级时间戳，需转毫秒再构造 Date
   const formatTime = useCallback((ts: number) => {
-    const d = new Date(ts);
+    const d = new Date(ts * 1000);
     const now = new Date();
     const isToday = d.getFullYear() === now.getFullYear()
       && d.getMonth() === now.getMonth()
@@ -1061,15 +1127,26 @@ export function useChatViewMessages({
     return `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${timeStr}`;
   }, []);
 
+  // 完整时间戳（含年份、秒），用于悬停气泡展示
+  const formatFullTimestamp = useCallback((ts: number) => {
+    const d = new Date(ts * 1000);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${
+      pad(
+        d.getHours(),
+      )
+    }:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }, []);
+
   const getModelDisplayInfo = useCallback(
-    (model_id?: string | null, providerId?: string | null) => {
-      const mid = model_id ?? activeConversation?.model_id;
-      const pid = providerId ?? activeConversation?.provider_id;
+    (modelId?: string | null, providerId?: string | null) => {
+      const mid = modelId ?? activeConversation?.modelId;
+      const pid = providerId ?? activeConversation?.providerId;
       if (!mid) {
         return { modelName: "AI", providerName: "" };
       }
       const provider = providers.find((p) => p.id === pid);
-      const model = provider?.models.find((m) => m.model_id === mid);
+      const model = provider?.models.find((m) => m.modelId === mid);
       return {
         modelName: model?.name ?? mid,
         providerName: provider?.name ?? "",
@@ -1139,7 +1216,7 @@ export function useChatViewMessages({
     (bubbleData: BubbleItemType) => {
       const msg = messageById.get(String(bubbleData.key));
       const attachments = msg?.attachments ?? [];
-      const quotedMessage = getQuotedMessage(msg?.quoted_message_id);
+      const quotedMessage = getQuotedMessage(msg?.quotedMessageId);
       return {
         placement: "end" as const,
         className: "msg-row user",
@@ -1160,7 +1237,7 @@ export function useChatViewMessages({
                   </div>
                 )}
                 {text
-                  && (settings.render_user_markdown
+                  && (settings.renderUserMarkdown
                     ? (
                       <AssistantMarkdown
                         content={text}
@@ -1169,7 +1246,7 @@ export function useChatViewMessages({
                         codeBlockDarkTheme={codeBlockDarkTheme}
                         codeBlockLightTheme={codeBlockLightTheme}
                         codeBlockThemes={codeBlockThemes}
-                        codeFontFamily={settings.code_font_family || undefined}
+                        codeFontFamily={settings.codeFontFamily || undefined}
                       />
                     )
                     : <div style={{ whiteSpace: "pre-wrap" }}>{text}</div>)}
@@ -1184,7 +1261,7 @@ export function useChatViewMessages({
                 >
                   {attachments.map((att, i) => (
                     <AttachmentPreview
-                      key={att.id || `${att.file_name}-${i}`}
+                      key={att.id || `${att.fileName}-${i}`}
                       att={att}
                       themeColor={token.colorPrimary}
                     />
@@ -1206,7 +1283,7 @@ export function useChatViewMessages({
                     <QuoteBlock quotedMessage={quotedMessage} onJump={handleJumpToMessage} />
                   </div>
                 )}
-                {settings.render_user_markdown
+                {settings.renderUserMarkdown
                   ? (
                     <AssistantMarkdown
                       content={text}
@@ -1215,7 +1292,7 @@ export function useChatViewMessages({
                       codeBlockDarkTheme={codeBlockDarkTheme}
                       codeBlockLightTheme={codeBlockLightTheme}
                       codeBlockThemes={codeBlockThemes}
-                      codeFontFamily={settings.code_font_family || undefined}
+                      codeFontFamily={settings.codeFontFamily || undefined}
                     />
                   )
                   : text}
@@ -1229,9 +1306,11 @@ export function useChatViewMessages({
                 {profile.name || t("chat.you")}
               </Typography.Text>
               {msg && (
-                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                  {formatTime(msg.created_at)}
-                </Typography.Text>
+                <Tooltip title={formatFullTimestamp(msg.createdAt)}>
+                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                    {formatTime(msg.createdAt)}
+                  </Typography.Text>
+                </Tooltip>
               )}
             </div>
           </div>
@@ -1344,8 +1423,8 @@ export function useChatViewMessages({
       messageById,
       profile.name,
       regenerateMessage,
-      settings.code_font_family,
-      settings.render_user_markdown,
+      settings.codeFontFamily,
+      settings.renderUserMarkdown,
       setQuotedMessageId,
       t,
       token.colorError,
@@ -1356,8 +1435,9 @@ export function useChatViewMessages({
   );
 
   const renderConvIconForChat = useCallback(
-    (size: number, model_id?: string | null) => {
+    (size: number, modelId?: string | null) => {
       if (!activeConversation) {
+        // 无会话时渲染默认 Bot 头像
         return (
           <Avatar
             icon={<Bot size={16} />}
@@ -1383,7 +1463,7 @@ export function useChatViewMessages({
         }
         return <Avatar size={size} src={customIcon.value} />;
       }
-      const mid = model_id ?? activeConversation.model_id;
+      const mid = modelId ?? activeConversation.modelId;
       if (mid) {
         return <ModelIcon model={mid} size={size} type="avatar" />;
       }
@@ -1408,9 +1488,9 @@ export function useChatViewMessages({
             return (
               messages.find(
                 (m) =>
-                  m.parent_message_id === parentId
+                  m.parentMessageId === parentId
                   && m.role === "assistant"
-                  && m.is_active !== false,
+                  && m.isActive !== false,
               ) ?? messageById.get(key)
             );
           }
@@ -1432,17 +1512,17 @@ export function useChatViewMessages({
         isStreaming,
         bubbleData.content,
       );
-      const isMultiModelMsg = !!multiModelParentId && msg?.parent_message_id === multiModelParentId;
+      const isMultiModelMsg = !!multiModelParentId && msg?.parentMessageId === multiModelParentId;
       const isAgentMsg = activeConversation?.mode === "agent";
       const bubbleLoading = isMultiModelMsg || isAgentMsg ? false : rawBubbleLoading;
 
-      const parentId = msg?.parent_message_id;
+      const parentId = msg?.parentMessageId;
       const hasMultiModels = !!parentId
         && (multiModelResponseParents.has(parentId)
           || multiModelVersions.current.has(parentId));
       const effectiveDisplayMode: MultiModelDisplayMode = hasMultiModels
         ? (displayModeOverrides.get(parentId)
-          ?? settings.multi_model_display_mode
+          ?? settings.multiModelDisplayMode
           ?? "tabs")
         : "tabs";
       const isNonTabsMultiModel = hasMultiModels && effectiveDisplayMode !== "tabs";
@@ -1453,7 +1533,7 @@ export function useChatViewMessages({
         ...getBubbleVariant(false),
         avatar: isNonTabsMultiModel
           ? undefined
-          : renderConvIconForChat(32, msg?.model_id),
+          : renderConvIconForChat(32, msg?.modelId),
         loading: bubbleLoading,
         contentRender: (content: ReactNode) => {
           const text = content as string;
@@ -1464,7 +1544,7 @@ export function useChatViewMessages({
             />
           );
           // 引用回复：被引用消息预览块（streaming 时不显示，避免干扰）
-          const quotedMessage = !isStreaming ? getQuotedMessage(msg?.quoted_message_id) : null;
+          const quotedMessage = !isStreaming ? getQuotedMessage(msg?.quotedMessageId) : null;
           const quoteBlock = quotedMessage
             ? <QuoteBlock quotedMessage={quotedMessage} onJump={handleJumpToMessage} />
             : null;
@@ -1492,7 +1572,7 @@ export function useChatViewMessages({
                           codeBlockDarkTheme={codeBlockDarkTheme}
                           codeBlockLightTheme={codeBlockLightTheme}
                           codeBlockThemes={codeBlockThemes}
-                          codeFontFamily={settings.code_font_family || undefined}
+                          codeFontFamily={settings.codeFontFamily || undefined}
                         />
                       </div>
                     )
@@ -1506,7 +1586,7 @@ export function useChatViewMessages({
           if (isNonTabsMultiModel && parentId && activeConversationId) {
             const refVersions = multiModelVersions.current.get(parentId);
             const storeVersions = messages.filter(
-              (m) => m.parent_message_id === parentId && m.role === "assistant",
+              (m) => m.parentMessageId === parentId && m.role === "assistant",
             );
             const allVersions = refVersions && refVersions.length > storeVersions.length
               ? refVersions
@@ -1537,13 +1617,13 @@ export function useChatViewMessages({
                         codeBlockDarkTheme={codeBlockDarkTheme}
                         codeBlockLightTheme={codeBlockLightTheme}
                         codeBlockThemes={codeBlockThemes}
-                        codeFontFamily={settings.code_font_family || undefined}
+                        codeFontFamily={settings.codeFontFamily || undefined}
                         messageId={vMsg?.id}
                       />
                       {vMsg?.blocks
                         && vMsg.blocks.some((b) => b.type === "tool_use")
                         && !isVersionStreaming
-                        && <ToolCallBlockView blocks={vMsg.blocks} />}
+                        && <ToolCallBlockView blocks={vMsg.blocks} createdAt={vMsg.createdAt} />}
                     </>
                   )}
                 />
@@ -1626,7 +1706,7 @@ export function useChatViewMessages({
                   codeBlockDarkTheme={codeBlockDarkTheme}
                   codeBlockLightTheme={codeBlockLightTheme}
                   codeBlockThemes={codeBlockThemes}
-                  codeFontFamily={settings.code_font_family || undefined}
+                  codeFontFamily={settings.codeFontFamily || undefined}
                   messageId={msg?.id}
                 />
                 {isCollapsed && (
@@ -1674,7 +1754,7 @@ export function useChatViewMessages({
               ))}
               {/* Persisted tool calls from message blocks */}
               {msg?.blocks && msg.blocks.some((b) => b.type === "tool_use") && !isStreaming && (
-                <ToolCallBlockView blocks={msg.blocks} />
+                <ToolCallBlockView blocks={msg.blocks} createdAt={msg.createdAt} />
               )}
               {isAgentMode
                 && msg
@@ -1714,8 +1794,8 @@ export function useChatViewMessages({
             return null;
           }
           const { modelName, providerName } = getModelDisplayInfo(
-            msg?.model_id,
-            msg?.provider_id,
+            msg?.modelId,
+            msg?.providerId,
           );
           return (
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -1739,15 +1819,17 @@ export function useChatViewMessages({
                   {modelName}
                 </Typography.Text>
                 {msg && (
-                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                    {formatTime(msg.created_at)}
-                  </Typography.Text>
+                  <Tooltip title={formatFullTimestamp(msg.createdAt)}>
+                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                      {formatTime(msg.createdAt)}
+                    </Typography.Text>
+                  </Tooltip>
                 )}
                 {msg?.status === "partial"
                   && !isStreaming
                   && !(
                     multiModelParentId
-                    && msg.parent_message_id === multiModelParentId
+                    && msg.parentMessageId === multiModelParentId
                   ) && (
                   <Tag
                     color="orange"
@@ -1800,7 +1882,7 @@ export function useChatViewMessages({
                 codeBlockDarkTheme={codeBlockDarkTheme}
                 codeBlockLightTheme={codeBlockLightTheme}
                 codeBlockThemes={codeBlockThemes}
-                codeFontFamily={settings.code_font_family || undefined}
+                codeFontFamily={settings.codeFontFamily || undefined}
               />
             </div>
           )
@@ -1984,7 +2066,7 @@ export function useChatViewMessages({
                   }
                   const summary = await getCompressionSummary(convId);
                   setSummaryModalText(
-                    summary?.summary_text ?? t("chat.noSummary"),
+                    summary?.summaryText ?? t("chat.noSummary"),
                   );
                   setSummaryModalOpen(true);
                 }}
@@ -2168,10 +2250,64 @@ export function useChatViewMessages({
     [activeConversationId],
   );
 
+  const dateDividerRole = useCallback(
+    (bubbleData: BubbleItemType) => {
+      const label = typeof bubbleData.content === "string"
+        ? bubbleData.content
+        : "";
+      return {
+        placement: "start" as const,
+        variant: "borderless" as const,
+        className: "context-clear-bubble",
+        contentRender: () => (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "10px 0",
+              width: "100%",
+            }}
+          >
+            <div
+              style={{
+                flex: 1,
+                height: 1,
+                borderTop: `1px solid ${token.colorSplit}`,
+              }}
+            />
+            <span
+              style={{
+                margin: "0 12px",
+                color: token.colorTextTertiary,
+                fontSize: 12,
+                display: "inline-flex",
+                alignItems: "center",
+                whiteSpace: "nowrap",
+                userSelect: "none",
+              }}
+            >
+              {label}
+            </span>
+            <div
+              style={{
+                flex: 1,
+                height: 1,
+                borderTop: `1px solid ${token.colorSplit}`,
+              }}
+            />
+          </div>
+        ),
+      };
+    },
+    [token.colorSplit, token.colorTextTertiary],
+  );
+
   const roles: RoleType = useMemo(
     () => ({
       user: userRole,
       ai: aiRole,
+      "date-divider": dateDividerRole,
       "context-clear": contextClearRole,
       "context-compressed": contextCompressedRole,
       "context-compressing": contextCompressingRole,
@@ -2183,6 +2319,7 @@ export function useChatViewMessages({
       contextClearRole,
       contextCompressedRole,
       contextCompressingRole,
+      dateDividerRole,
       expertSwitchRole,
       userRole,
       topicGroupRole,

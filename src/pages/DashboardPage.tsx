@@ -330,34 +330,34 @@ function OverviewTab() {
     const g = gatewayMetrics;
     const stats = backendStats;
     return {
-      conversationCount: stats?.total_conversations ?? conversations.length,
-      totalMessages: stats?.total_messages ?? conversations.reduce((sum, c) => sum + (c.message_count || 0), 0),
+      conversationCount: stats?.totalConversations ?? conversations.length,
+      totalMessages: stats?.totalMessages ?? conversations.reduce((sum, c) => sum + (c.messageCount || 0), 0),
       // 总 token：明确语义为"AxAgent 内聊天产生的 token"，不与 Gateway 转发的 token 混用 fallback
-      totalTokens: stats?.total_tokens ?? 0,
+      totalTokens: stats?.totalTokens ?? 0,
       // 今日 token（messages 表）：AxAgent 内聊天今日消耗
-      todayMessages: stats?.today_messages ?? 0,
-      todayTokens: stats?.today_tokens ?? 0,
+      todayMessages: stats?.todayMessages ?? 0,
+      todayTokens: stats?.todayTokens ?? 0,
       gatewayMetrics: g
         ? {
-          totalRequests: g.total_requests,
-          totalTokens: g.total_tokens,
-          todayRequests: g.today_requests,
-          todayTokens: g.today_tokens,
-          activeConnections: g.active_connections,
+          totalRequests: g.totalRequests,
+          totalTokens: g.totalTokens,
+          todayRequests: g.todayRequests,
+          todayTokens: g.todayTokens,
+          activeConnections: g.activeConnections,
         }
         : null,
       agentStats: {
-        totalSessions: stats?.total_agent_sessions
+        totalSessions: stats?.totalAgentSessions
           ?? conversations.filter((c) => c.mode === "agent" || c.mode === "gateway").length,
-        completedSessions: stats?.completed_agent_sessions
+        completedSessions: stats?.completedAgentSessions
           ?? conversations.filter((c) => c.mode === "agent" || c.mode === "gateway").filter((c) =>
-            c.workflow_status === "completed"
+            c.workflowStatus === "completed"
           ).length,
-        failedSessions: stats?.failed_agent_sessions
+        failedSessions: stats?.failedAgentSessions
           ?? conversations.filter((c) => c.mode === "agent" || c.mode === "gateway").filter((c) =>
-            c.workflow_status === "failed"
+            c.workflowStatus === "failed"
           ).length,
-        totalToolCalls: stats?.total_tool_calls ?? 0,
+        totalToolCalls: stats?.totalToolCalls ?? 0,
       },
       providerCount: providers.filter((p) => p.enabled).length,
       modelCount: providers
@@ -503,7 +503,7 @@ function OverviewTab() {
               background: token.colorBgContainer,
             }}
           >
-            {gatewayStatus.is_running
+            {gatewayStatus.isRunning
               ? (
                 <Row gutter={[8, 8]}>
                   <Col span={8}>
@@ -684,7 +684,7 @@ function OverviewTab() {
             <StatCard
               icon={<Zap size={18} />}
               title={t("dashboard.totalCost")}
-              value={formatCny(backendStats?.total_cost_usd ?? 0)}
+              value={formatCny(backendStats?.totalCostUsd ?? 0)}
               color="#ff4d4f"
               loading={isLoading}
             />
@@ -693,8 +693,8 @@ function OverviewTab() {
             <StatCard
               icon={<TrendingUp size={18} />}
               title={t("dashboard.avgCostPerSession")}
-              value={backendStats && backendStats.total_agent_sessions > 0
-                ? formatCny(backendStats.total_cost_usd / backendStats.total_agent_sessions, 4)
+              value={backendStats && backendStats.totalAgentSessions > 0
+                ? formatCny(backendStats.totalCostUsd / backendStats.totalAgentSessions, 4)
                 : formatCny(0)}
               color="#1677ff"
               loading={isLoading}
@@ -704,7 +704,7 @@ function OverviewTab() {
             <StatCard
               icon={<Database size={18} />}
               title={t("dashboard.totalAgentTokens")}
-              value={formatNumber(backendStats?.total_agent_tokens ?? 0)}
+              value={formatNumber(backendStats?.totalAgentTokens ?? 0)}
               color="#722ed1"
               loading={isLoading}
             />
@@ -716,7 +716,7 @@ function OverviewTab() {
               // 日均 token = 30 天总 token / 30（不是除以"有数据的天数"）
               value={dailyUsage.length > 0
                 ? formatNumber(
-                  Math.round(dailyUsage.reduce((s, d) => s + d.total_tokens, 0) / 30),
+                  Math.round(dailyUsage.reduce((s, d) => s + d.totalTokens, 0) / 30),
                 )
                 : "0"}
               color="#52c41a"
