@@ -395,7 +395,7 @@ jobs:
       fail-fast: false
       matrix:
         abi: [arm64-v8a, armeabi-v7a, x86_64]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
         with:
@@ -420,7 +420,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           prefix-key: 'v1-android'
-          key: 'ubuntu-22.04-${{ matrix.abi }}'
+          key: 'ubuntu-24.04-${{ matrix.abi }}'
           workspaces: src-tauri -> target
 
       - name: Setup Node.js
@@ -443,17 +443,17 @@ jobs:
         with:
           ndk-version: ${{ env.NDK_VERSION }}
 
-      - name: Setup JDK 23 (Zulu)
+      - name: Setup JDK 17 (Zulu)
         uses: actions/setup-java@v4
         with:
-          java-version: '23'
+          java-version: '17'
           distribution: 'zulu'
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
       - name: Install cargo-ndk
-        run: cargo install cargo-ndk
+        run: cargo install cargo-ndk --version 0.16.1
 
       - name: Setup Android NDK toolchain PATH
         run: |
@@ -495,12 +495,10 @@ jobs:
           if [ -s "$GP" ] && [ -n "$(tail -c 1 "$GP")" ]; then
             echo "" >> "$GP"
           fi
-          if [ "${{ matrix.abi }}" = "armeabi-v7a" ]; then
-            # armv7 32 位构建内存峰值最高：tauri android init 生成的默认配置
-            # Gradle daemon 2GB + Kotlin daemon 2GB，在 7GB runner 上叠加 cargo-ndk
-            # 全量编译极易 OOM → runner 失联（步骤被 cancel、日志不落盘）。
-            # 此前该步骤用 grep 判断 jvmargs 已存在即跳过，导致限制从未生效。
-            # 强制覆盖并收紧并行，降低峰值内存。
+          # armv7 (32位) 和 arm64 (64位, 需同时产出 APK+AAB) 内存峰值都很高
+          # 在 7GB runner 上叠加 cargo-ndk 全量编译极易 OOM → runner 失联
+          # 强制覆盖并收紧并行，降低峰值内存
+          if [ "${{ matrix.abi }}" = "armeabi-v7a" ] || [ "${{ matrix.abi }}" = "arm64-v8a" ]; then
             sed -i '/^org.gradle.jvmargs=/d; /^kotlin.daemon.jvm.options=/d; /^org.gradle.parallel=/d; /^org.gradle.workers.max=/d' "$GP"
             printf '%s\n' \
               'org.gradle.jvmargs=-Xmx2560m -XX:MaxMetaspaceSize=1024m -XX:+UseParallelGC' \
@@ -519,14 +517,21 @@ jobs:
       # arm64-v8a job 二次 gradle 内存峰值叠加，触发 "runner lost communication"
       # (OOM)。仅 arm64-v8a 需要 AAB（Play Store）。
       - name: Build Android APK + AAB
-        timeout-minutes: 120
+        timeout-minutes: 180
         run: |
           cd src-tauri
           TARGET=${{ matrix.abi == 'arm64-v8a' && 'aarch64' || matrix.abi == 'armeabi-v7a' && 'armv7' || 'x86_64' }}
-          # armv7 全量编译内存峰值最高，限制 Rust 并行编译降低 OOM 风险
-          if [ "${{ matrix.abi }}" = "armeabi-v7a" ]; then
+          # armv7 (32位) 和 arm64 (需同时产出 APK+AAB) 全量编译内存峰值最高
+          # 限制 Rust 并行编译降低 OOM 风险
+          if [ "${{ matrix.abi }}" = "armeabi-v7a" ] || [ "${{ matrix.abi }}" = "arm64-v8a" ]; then
             export CARGO_BUILD_JOBS=2
           fi
+          echo "=== System Resources Before Build ==="
+          echo "Memory:"
+          free -h
+          echo "Disk:"
+          df -h /
+          echo "======================================="
           if [[ "${{ matrix.abi }}" == "arm64-v8a" ]]; then
             npx tauri android build --target "$TARGET" --apk --aab
           else
