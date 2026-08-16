@@ -7,13 +7,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { GatewayOverview } from "../GatewayOverview";
 
 let status = {
-  is_running: false,
-  listen_address: "127.1.0.0",
+  isRunning: false,
+  listenAddress: "127.1.0.0",
   port: 8000,
-  ssl_enabled: true,
-  started_at: null,
-  https_port: 8443,
-  force_ssl: false,
+  sslEnabled: true,
+  startedAt: null,
+  httpsPort: 8443,
+  forceSsl: false,
 };
 const startGateway = vi.fn();
 const stopGateway = vi.fn();
@@ -63,13 +63,13 @@ describe("GatewayOverview", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     status = {
-      is_running: false,
-      listen_address: "127.1.0.0",
+      isRunning: false,
+      listenAddress: "127.1.0.0",
       port: 8000,
-      ssl_enabled: true,
-      started_at: null,
-      https_port: 8443,
-      force_ssl: false,
+      sslEnabled: true,
+      startedAt: null,
+      httpsPort: 8443,
+      forceSsl: false,
     };
     metrics = null;
     requestLogs = [];
@@ -107,15 +107,15 @@ describe("GatewayOverview", () => {
 
   it("shows split request and response tokens in overview cards and recent logs", async () => {
     metrics = {
-      total_requests: 12,
-      total_tokens: 3500,
-      total_request_tokens: 1200,
-      total_response_tokens: 2300,
-      active_connections: 0,
-      today_requests: 2,
-      today_tokens: 1500,
-      today_request_tokens: 900,
-      today_response_tokens: 600,
+      totalRequests: 12,
+      totalTokens: 3500,
+      totalRequestTokens: 1200,
+      totalResponseTokens: 2300,
+      activeConnections: 0,
+      todayRequests: 2,
+      todayTokens: 1500,
+      todayRequestTokens: 900,
+      todayResponseTokens: 600,
     };
     requestLogs = [
       {

@@ -41,13 +41,13 @@ vi.mock("@/stores", () => ({
 function buildStoreState(overrides: Record<string, unknown> = {}) {
   return {
     status: {
-      is_running: true,
-      listen_address: "127.1.0.0",
+      isRunning: true,
+      listenAddress: "127.1.0.0",
       port: 8000,
-      ssl_enabled: true,
-      started_at: null,
-      https_port: 8443,
-      force_ssl: false,
+      sslEnabled: true,
+      startedAt: null,
+      httpsPort: 8443,
+      forceSsl: false,
     },
     cliTools: [
       {
@@ -88,12 +88,12 @@ function buildStoreState(overrides: Record<string, unknown> = {}) {
       {
         id: "key-1",
         name: "Primary Gateway Key",
-        key_hash: "hash",
-        key_prefix: "aqb_123",
+        keyHash: "hash",
+        keyPrefix: "aqb_123",
         enabled: true,
-        created_at: 1,
-        last_used_at: null,
-        has_encrypted_key: true,
+        createdAt: 1,
+        lastUsedAt: null,
+        hasEncryptedKey: true,
       },
     ],
     fetchStatus,
@@ -199,13 +199,13 @@ describe("GatewayTemplates", () => {
   it("auto-selects the only available http protocol and disables switching when https is unavailable", async () => {
     storeState = buildStoreState({
       status: {
-        is_running: true,
-        listen_address: "127.1.0.0",
+        isRunning: true,
+        listenAddress: "127.1.0.0",
         port: 8000,
-        ssl_enabled: false,
-        started_at: null,
-        https_port: null,
-        force_ssl: false,
+        sslEnabled: false,
+        startedAt: null,
+        httpsPort: null,
+        forceSsl: false,
       },
       cliTools: [
         {
@@ -246,13 +246,13 @@ describe("GatewayTemplates", () => {
   it("treats force ssl as https-only and offers reconnect when a tool is connected over http", async () => {
     storeState = buildStoreState({
       status: {
-        is_running: true,
-        listen_address: "127.1.0.0",
+        isRunning: true,
+        listenAddress: "127.1.0.0",
         port: 8000,
-        ssl_enabled: true,
-        started_at: null,
-        https_port: 8443,
-        force_ssl: true,
+        sslEnabled: true,
+        startedAt: null,
+        httpsPort: 8443,
+        forceSsl: true,
       },
     });
 
@@ -315,13 +315,13 @@ describe("GatewayTemplates", () => {
   it("shows a warning and disables quick connect actions while the gateway is stopped", async () => {
     storeState = buildStoreState({
       status: {
-        is_running: false,
-        listen_address: "127.1.0.0",
+        isRunning: false,
+        listenAddress: "127.1.0.0",
         port: 8000,
-        ssl_enabled: true,
-        started_at: null,
-        https_port: 8443,
-        force_ssl: false,
+        sslEnabled: true,
+        startedAt: null,
+        httpsPort: 8443,
+        forceSsl: false,
       },
     });
 

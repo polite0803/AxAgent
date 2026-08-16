@@ -138,7 +138,10 @@ const DEFAULT_HOSTS: Record<ProviderType, string> = {
   llama_cpp: "http://localhost:8091",
 };
 
-function deriveModelGroupName(model_id: string): string {
+function deriveModelGroupName(model_id?: string | null): string {
+  if (!model_id) {
+    return "";
+  }
   const parts = model_id
     .trim()
     .split("-")

@@ -1857,7 +1857,7 @@ async function executeCommand<T>(
     }
     case "agent_runtime_stats": {
       return {
-        conversationId: (args as { conversationId?: string } | undefined)?.conversationId ?? "",
+        conversationId: (args as { conversation_id?: string } | undefined)?.conversation_id ?? "",
         running: false,
         paused: false,
         activeSessions: 0,
@@ -2557,7 +2557,7 @@ async function executeCommand<T>(
         })[]
       >("knowledge_bases", []);
       const target = kbs5.find(
-        (k) => k.id === (args as { baseId?: string })?.baseId,
+        (k) => k.id === (args as { base_id?: string })?.base_id,
       );
       return (target?.documents ?? []) as T;
     }
@@ -3085,7 +3085,7 @@ async function executeCommand<T>(
       return getStore<BackupManifest[]>("backups", []) as T;
     case "delete_backup": {
       const backups = getStore<BackupManifest[]>("backups", []);
-      const bkpId = (args as { backupId?: string })?.backupId;
+      const bkpId = (args as { backup_id?: string })?.backup_id;
       setStore(
         "backups",
         backups.filter((b) => b.id !== bkpId),
@@ -3094,7 +3094,7 @@ async function executeCommand<T>(
     }
     case "batch_delete_backups": {
       const allBkps = getStore<BackupManifest[]>("backups", []);
-      const idsToDelete = (args as { backupIds?: string[] })?.backupIds || [];
+      const idsToDelete = (args as { backup_ids?: string[] })?.backup_ids || [];
       setStore(
         "backups",
         allBkps.filter((b) => !idsToDelete.includes(b.id)),
@@ -3136,7 +3136,7 @@ async function executeCommand<T>(
     case "reveal_files_page_entry":
       return undefined as T;
     case "cleanup_missing_files_page_entry": {
-      const entryId = (args as { entryId?: string })?.entryId;
+      const entryId = (args as { entry_id?: string })?.entry_id;
       if (entryId?.startsWith("backup_manifest::")) {
         const backupId = entryId.slice("backup_manifest::".length);
         const backups = getStore<BackupManifest[]>("backups", []);

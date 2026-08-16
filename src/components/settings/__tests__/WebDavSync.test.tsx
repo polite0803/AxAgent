@@ -13,10 +13,10 @@ const { invokeMock, saveSettingsMock } = vi.hoisted(() => ({
 
 const settingsStoreState = {
   settings: {
-    webdav_sync_enabled: false,
-    webdav_sync_interval_minutes: 60,
-    webdav_max_remote_backups: 10,
-    webdav_include_documents: false,
+    webdavSyncEnabled: false,
+    webdavSyncIntervalMinutes: 60,
+    webdavMaxRemoteBackups: 10,
+    webdavIncludeDocuments: false,
   },
   saveSettings: saveSettingsMock,
 };
@@ -43,10 +43,10 @@ describe("WebDavSync", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     settingsStoreState.settings = {
-      webdav_sync_enabled: false,
-      webdav_sync_interval_minutes: 60,
-      webdav_max_remote_backups: 10,
-      webdav_include_documents: false,
+      webdavSyncEnabled: false,
+      webdavSyncIntervalMinutes: 60,
+      webdavMaxRemoteBackups: 10,
+      webdavIncludeDocuments: false,
     };
 
     invokeMock.mockImplementation(async (command: string) => {
@@ -105,14 +105,14 @@ describe("WebDavSync", () => {
     await waitFor(() => {
       expect(saveSettingsMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          webdav_host: "https://dav.example.com",
-          webdav_username: "alice",
-          webdav_path: "/axagent/",
-          webdav_accept_invalid_certs: false,
-          webdav_sync_enabled: false,
-          webdav_sync_interval_minutes: 60,
-          webdav_max_remote_backups: 10,
-          webdav_include_documents: false,
+          webdavHost: "https://dav.example.com",
+          webdavUsername: "alice",
+          webdavPath: "/axagent/",
+          webdavAcceptInvalidCerts: false,
+          webdavSyncEnabled: false,
+          webdavSyncIntervalMinutes: 60,
+          webdavMaxRemoteBackups: 10,
+          webdavIncludeDocuments: false,
         }),
       );
     });
