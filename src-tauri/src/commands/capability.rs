@@ -12,9 +12,10 @@ use axagent_dao::repo::agent_role as agent_role_repo;
 use axagent_entities::{agency_experts, agent_roles};
 use axagent_harness::trajectory_types::TrajectoryOutcome;
 use axagent_harness::{
-    CapabilityDiscoveryRequest, CapabilityDiscoveryResult, CapabilityDomain, CapabilityIndexer,
-    CapabilityKind, CapabilityLevel, CapabilityPassportDto, CapabilityQuery, DiscoveryWeights,
-    FilterContext, Reflection, SessionBudget, Visibility,
+    CapabilityDiscoveryRequest, CapabilityDiscoveryResult, CapabilityDomain,
+    CapabilityEvolvability, CapabilityIndexer, CapabilityKind, CapabilityLevel,
+    CapabilityPassportDto, CapabilityQuery, CapabilitySource, DiscoveryWeights, FilterContext,
+    Reflection, SessionBudget, Visibility,
 };
 use axagent_trajectory::{
     ComputationGraph, ComputationNode, NodeType, TextGradConfig, TextGradEngine,
@@ -125,6 +126,7 @@ pub async fn capability_discover(
         enable_circuit_breaker: request.enable_circuit_breaker,
         enable_rar: false,
         rar_top_k: 5,
+        task_shape: None,
     };
 
     axagent_harness::CapabilityRouter::discover(
@@ -237,6 +239,34 @@ pub struct EvolveCapabilityResult {
     pub detail: serde_json::Value,
 }
 
+/// 能力进化策略（由来源 × 可进化性联合决定）。
+///
+/// 作为纯函数提取，便于对进化边界做单元测试（不依赖 AppState）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum EvolutionPolicy {
+    /// 拒绝进化（`evolvable = None`：外部插件只读能力）
+    Reject,
+    /// 就地提升等级（`Local`：内置能力 / 插件本地可写载体）
+    InPlace,
+    /// 生成派生副本，原护照不变（`Derived`：插件声明能力）
+    Derived,
+}
+
+/// 解析能力进化策略。
+///
+/// 边界规则：
+/// - `None` → 拒绝（任何来源都不可进化）；
+/// - `Derived` + 插件来源 → 派生副本；
+/// - `Local` → 就地提升；`Derived` + 内置来源（异常组合）回退就地提升。
+pub(crate) fn resolve_evolution_policy(passport: &CapabilityPassportDto) -> EvolutionPolicy {
+    match (passport.source, passport.evolvable) {
+        (_, CapabilityEvolvability::None) => EvolutionPolicy::Reject,
+        (CapabilitySource::Plugin, CapabilityEvolvability::Derived) => EvolutionPolicy::Derived,
+        (CapabilitySource::Builtin, CapabilityEvolvability::Derived)
+        | (_, CapabilityEvolvability::Local) => EvolutionPolicy::InPlace,
+    }
+}
+
 /// 一键进化能力以提升等级。
 ///
 /// 按能力类型分发到对应进化引擎（技能 → 技能进化引擎，工作流 → 工作流进化器），
@@ -264,6 +294,16 @@ pub async fn capability_evolve(
                 .with_detail(format!("capability '{}' not found", request.capability_id))
         })?;
     let old_level = passport.level;
+
+    // 1.5 进化边界检查：不可进化的能力（外部插件只读能力）直接拒绝；
+    //    插件声明的能力（Derived）以派生副本方式进化：产出新护照，原护照保持不变
+    let policy = resolve_evolution_policy(&passport);
+    if policy == EvolutionPolicy::Reject {
+        return Err(CommandError::new(crate::commands::error_code::capability::NOT_EVOLVABLE)
+            .with_category(ErrorCategory::Unrecoverable)
+            .with_detail("该能力不可进化（外部插件只读能力）"));
+    }
+    let derived = policy == EvolutionPolicy::Derived;
 
     // 2. 按能力类型分发进化
     let (improved, detail) = match passport.kind {
@@ -300,21 +340,38 @@ pub async fn capability_evolve(
         },
     };
 
-    // 3. 进化成功后提升一级（L5 封顶）
+    // 3. 进化成功后提升一级（L5 封顶）；
+    //    Derived（插件声明能力）注册派生副本，原护照等级不变
     let new_level = old_level.promote();
-    state
-        .capability_indexer
-        .update_level(&request.capability_id, new_level)
-        .await
-        .map_err(evolve_err)?;
+    if derived {
+        let mut derived_passport = passport.clone();
+        derived_passport.capability_id = format!("{}:derived", request.capability_id);
+        derived_passport.name = format!("{}（进化副本）", passport.name);
+        derived_passport.level = new_level;
+        state.capability_indexer.index_passport(&derived_passport).await.map_err(evolve_err)?;
+        tracing::info!(
+            capability_id = %request.capability_id,
+            derived_id = %derived_passport.capability_id,
+            ?old_level,
+            ?new_level,
+            improved,
+            "🧬 插件能力派生进化完成：注册进化副本，原护照不变"
+        );
+    } else {
+        state
+            .capability_indexer
+            .update_level(&request.capability_id, new_level)
+            .await
+            .map_err(evolve_err)?;
 
-    tracing::info!(
-        capability_id = %request.capability_id,
-        ?old_level,
-        ?new_level,
-        improved,
-        "🧬 能力进化完成：等级已提升"
-    );
+        tracing::info!(
+            capability_id = %request.capability_id,
+            ?old_level,
+            ?new_level,
+            improved,
+            "🧬 能力进化完成：等级已提升"
+        );
+    }
 
     Ok(EvolveCapabilityResult {
         capability_id: request.capability_id,
@@ -706,7 +763,12 @@ pub(crate) async fn register_evolution_product(
         domain: CapabilityDomain::General,
         sub_category: "auto_generated".to_string(),
         visibility: Visibility::Public,
-        tags: vec!["auto_evolved".to_string(), route_tag],
+        tags: vec![
+            "auto_evolved".to_string(),
+            route_tag,
+            "evolvable".to_string(),      // 标记为可进化
+            "capability_gap".to_string(), // 标记来源：能力补齐
+        ],
         ..Default::default()
     };
     state.capability_indexer.index_passport(&passport).await.map_err(|e| {
@@ -724,4 +786,88 @@ pub(crate) async fn register_evolution_product(
         "🗺️ 进化产物已注册护照并同步进工作流图谱"
     );
     Ok(())
+}
+
+// ── 单元测试：进化边界 ─────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 构造一个仅关注来源 × 可进化性的护照（其余字段用默认值）。
+    fn passport(
+        source: CapabilitySource,
+        evolvable: CapabilityEvolvability,
+    ) -> CapabilityPassportDto {
+        CapabilityPassportDto {
+            capability_id: "cap.test".into(),
+            source,
+            evolvable,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn none_always_rejects_regardless_of_source() {
+        // 外部插件只读能力：拒绝进化
+        assert_eq!(
+            resolve_evolution_policy(&passport(
+                CapabilitySource::Plugin,
+                CapabilityEvolvability::None
+            )),
+            EvolutionPolicy::Reject,
+        );
+        // 内置能力也不可进化（防御性：None 永远拒绝）
+        assert_eq!(
+            resolve_evolution_policy(&passport(
+                CapabilitySource::Builtin,
+                CapabilityEvolvability::None
+            )),
+            EvolutionPolicy::Reject,
+        );
+    }
+
+    #[test]
+    fn plugin_derived_yields_copy_preserving_original() {
+        // 插件声明能力：派生副本，原护照不变
+        assert_eq!(
+            resolve_evolution_policy(&passport(
+                CapabilitySource::Plugin,
+                CapabilityEvolvability::Derived
+            )),
+            EvolutionPolicy::Derived,
+        );
+    }
+
+    #[test]
+    fn local_evolves_in_place() {
+        // 内置能力：就地提升等级
+        assert_eq!(
+            resolve_evolution_policy(&passport(
+                CapabilitySource::Builtin,
+                CapabilityEvolvability::Local
+            )),
+            EvolutionPolicy::InPlace,
+        );
+        // 插件本地可写载体（技能 / Agent）：就地提升
+        assert_eq!(
+            resolve_evolution_policy(&passport(
+                CapabilitySource::Plugin,
+                CapabilityEvolvability::Local
+            )),
+            EvolutionPolicy::InPlace,
+        );
+    }
+
+    #[test]
+    fn builtin_derived_anomaly_falls_back_to_in_place() {
+        // 防御性：内置来源 + Derived（异常组合）回退就地提升
+        assert_eq!(
+            resolve_evolution_policy(&passport(
+                CapabilitySource::Builtin,
+                CapabilityEvolvability::Derived
+            )),
+            EvolutionPolicy::InPlace,
+        );
+    }
 }

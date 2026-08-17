@@ -19,6 +19,10 @@ pub struct Model {
     pub decision: Option<String>,
     pub approver_actual: Option<String>,
     pub comment: Option<String>,
+    /// 审批超时后的自动裁决动作：auto_reject(默认) / auto_approve。
+    /// 落库以便 DAO 层 auto_resolve_timeouts 在无人值守时按策略裁决。
+    #[sea_orm(default_value = "auto_reject")]
+    pub timeout_action: String,
     pub timeout_secs: i64,
     pub expires_at: i64,
     pub created_at: i64,

@@ -19,10 +19,12 @@
 pub mod decomposer;
 pub mod dynamic_subgraph;
 pub mod executor;
+pub mod task_shape_classifier;
 pub mod types;
 
 pub use dynamic_subgraph::DynamicSubGraph;
 pub use executor::{OrchestratorExecutor, OrchestratorState};
+pub use task_shape_classifier::{DefaultTaskShapeClassifier, classify_hybrid, classify_input};
 pub use types::{
     DecompositionPlan, OrchestrationError, OrchestrationEvent, OrchestrationStrategy,
     StructuredHandover, SubTask, SubTaskStatus, WorkerAssignment,

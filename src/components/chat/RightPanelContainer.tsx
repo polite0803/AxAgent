@@ -395,47 +395,59 @@ export function RightPanelContainer({
   const [visibleTabs, setVisibleTabs] = useState<PanelEntry[]>([]);
   const [overflowPanels, setOverflowPanels] = useState<PanelEntry[]>([]);
 
-  // 计算可见 tab 和溢出 tab
+  // 计算可见 tab 和溢出 tab，并监听容器尺寸变化重新计算。
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const container = tabsRef.current;
     if (!container) { return; }
-    const maxWidth = container.clientWidth;
-    let usedWidth = 0;
-    const visible: PanelEntry[] = [];
-    const overflow: PanelEntry[] = [];
-    // 为每个 tab 预留约 40px 宽度（icon + padding）
-    const tabWidth = 40;
-    for (const p of visiblePanels) {
-      if (usedWidth + tabWidth + 30 <= maxWidth) { // 30px 为 ... 按钮预留
-        visible.push(p);
-        usedWidth += tabWidth;
-      } else {
-        overflow.push(p);
+
+    const calculate = () => {
+      const maxWidth = container.clientWidth;
+      // 容器宽度为 0（尚未布局或被折叠隐藏）时，全部面板放 visible，
+      // 不做溢出截断，避免首次渲染 tab 全部消失且不重算。
+      if (maxWidth === 0) {
+        setVisibleTabs(visiblePanels);
+        setOverflowPanels([]);
+        return;
       }
-    }
-    if (overflow.length === 0) {
-      setVisibleTabs(visiblePanels);
-      setOverflowPanels([]);
-    } else {
-      setVisibleTabs(visible);
-      setOverflowPanels(overflow);
-    }
+      let usedWidth = 0;
+      const visible: PanelEntry[] = [];
+      const overflow: PanelEntry[] = [];
+      // 为每个 tab 预留约 40px 宽度（icon + padding）
+      const tabWidth = 40;
+      for (const p of visiblePanels) {
+        if (usedWidth + tabWidth + 30 <= maxWidth) { // 30px 为 ... 按钮预留
+          visible.push(p);
+          usedWidth += tabWidth;
+        } else {
+          overflow.push(p);
+        }
+      }
+      if (overflow.length === 0) {
+        setVisibleTabs(visiblePanels);
+        setOverflowPanels([]);
+      } else {
+        setVisibleTabs(visible);
+        setOverflowPanels(overflow);
+      }
+    };
+
+    calculate();
+
+    // 容器尺寸变化（窗口 resize / 折叠展开 / 面板列表变化）时重新计算
+    const ro = new ResizeObserver(() => calculate());
+    ro.observe(container);
+    return () => ro.disconnect();
   }, [visiblePanels]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const [activeTab, setActiveTab] = useState(() => visiblePanels[0]?.key ?? "");
 
-  // 仅在 isAgent 切换时验证 activeTab 有效性
-  /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
-  useEffect(() => {
-    if (!visiblePanels.some((p) => p.key === activeTab)) {
-      setActiveTab(visiblePanels[0]?.key ?? "");
-    }
-  }, [isAgent]);
-  /* eslint-enable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
-
-  const activePanel = visiblePanels.find((p) => p.key === activeTab);
+  // 渲染时直接计算有效面板：activeTab 不在当前 visiblePanels 中时回退到第一个。
+  // 不再用 effect 校验——effect 依赖过窄（之前只监听 isAgent），
+  // 当面板列表因 conversationId / panelReport / panelResearchSources 等变化时，
+  // activeTab 可能指向已不存在的面板，导致 activePanel 为 undefined、内容区空白。
+  const activePanel = visiblePanels.find((p) => p.key === activeTab) ?? visiblePanels[0];
 
   // ── 抽屉模式渲染 ──
   if (drawerOpen) {

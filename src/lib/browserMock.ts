@@ -208,6 +208,8 @@ function mockPassport(
   description: string,
   tags: string[],
   subCategory?: string,
+  source: CapabilityPassportDto["source"] = "builtin",
+  evolvable: CapabilityPassportDto["evolvable"] = "local",
 ): CapabilityPassportDto {
   return {
     capabilityId: capabilityId,
@@ -242,6 +244,8 @@ function mockPassport(
     stats: capabilityStats(),
     level: "l3",
     enabled: true,
+    source,
+    evolvable,
   };
 }
 
@@ -304,6 +308,17 @@ function defaultMockPassports(): CapabilityPassportDto[] {
       "general",
       "检索产品使用文档。",
       ["文档", "知识库", "产品"],
+    ),
+    mockPassport(
+      "cap.skill.web_automation",
+      "网页自动化技能",
+      "skill",
+      "automation",
+      "由浏览器插件提供的网页自动化能力，可执行点击、填表与截图。",
+      ["网页", "自动化", "插件"],
+      undefined,
+      "plugin",
+      "derived",
     ),
   ];
 }
@@ -4036,10 +4051,10 @@ async function executeCommand<T>(
         version: "0.0.0",
         description: `Plugin from ${source}`,
         permissions: [],
-        default_enabled: true,
+        defaultEnabled: true,
         hooks: {},
         tools: [],
-        mcp_servers: [],
+        mcpServers: [],
         skills: [],
       } as T;
     }
@@ -4054,15 +4069,15 @@ async function executeCommand<T>(
         description: `Plugin from ${source}`,
         kind: "openclaw",
         enabled: true,
-        tool_names: [],
-        mcp_server_names: [],
-        skill_names: [],
+        tools: [],
+        mcpServers: [],
+        skills: [],
       });
       setStore("plugins", plugins);
       return {
-        plugin_id: id,
+        pluginId: id,
         version: "0.0.0",
-        install_path: `/mock/plugins/${id}`,
+        installPath: `/mock/plugins/${id}`,
       } as T;
     }
     case "plugin_enable":
@@ -4091,9 +4106,9 @@ async function executeCommand<T>(
     }
     case "plugin_update": {
       return {
-        plugin_id: (args?.pluginId as string) || "",
+        pluginId: (args?.pluginId as string) || "",
         version: "0.0.0",
-        install_path: "",
+        installPath: "",
       } as T;
     }
 

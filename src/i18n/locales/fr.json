@@ -1223,7 +1223,12 @@
     },
     "evolve": "Évoluer",
     "evolveSuccess": "Évolution réussie, niveau élevé à {{level}}",
-    "evolveFailed": "Échec de l'évolution, veuillez réessayer plus tard"
+    "evolveFailed": "Échec de l'évolution, veuillez réessayer plus tard",
+    "pluginSource": "Extension",
+    "evolvable": {
+      "local": "Évolution locale",
+      "derived": "Dérivé"
+    }
   },
   "chatMarkdown": {
     "inputParams": "Paramètres d'entrée",
@@ -1596,6 +1601,7 @@
     "circuitClosed": "Normal",
     "llmFallback": "Repli LLM",
     "fallbackPath": "Chemin de repli",
+    "filteredCount": "Circuit filtré",
     "candidates": "Candidats",
     "stageRecords": "Étapes de route",
     "recordedAt": "Enregistré à",
@@ -1614,6 +1620,34 @@
       "delegate": "Déléguer à l'agent",
       "parameter_extract": "Extraction de paramètres",
       "clarify": "En attente de clarification"
+    },
+    "taskShape": {
+      "label": "Forme de tâche",
+      "contextCost": "Coût de contexte",
+      "isolationNeed": "Besoin d'isolation",
+      "strategy": "Stratégie recommandée",
+      "mergeScore": "Tendance de fusion",
+      "splitScore": "Tendance de division",
+      "evidence": "Preuve",
+      "contextCostMap": {
+        "ephemeral": "Éphémère",
+        "resumable": "Reprendable",
+        "long_running_project": "Projet long terme",
+        "persistent_journey": "Voyage persistant"
+      },
+      "isolationNeedMap": {
+        "read_only_thought": "Lecture seule",
+        "workspace_write": "Écriture espace",
+        "sandbox_required": "Sandbox requis",
+        "approval_and_air_gap": "Approbation et isolation"
+      },
+      "strategyMap": {
+        "handleLocally": "Traiter localement",
+        "delegateSingleExpert": "Déléguer à un expert",
+        "parallelExperts": "Experts en parallèle",
+        "orchestratorDag": "Orchestrateur DAG",
+        "approvalGate": "Porte d'approbation"
+      }
     }
   },
   "continuation": {
@@ -2390,6 +2424,7 @@
     "CAPABILITY_STATS_FAILED": "Échec de la récupération des statistiques",
     "CAPABILITY_METADATA_RESTORE_FAILED": "Échec de la restauration des métadonnées",
     "CAPABILITY_EVOLVE_FAILED": "Échec de l'évolution de la capacité",
+    "CAPABILITY_NOT_EVOLVABLE": "Cette capacité ne peut pas être évoluée (capacité en lecture seule d'un plugin externe)",
     "AGENT_INPUT_CHANNEL_CLOSED": "Le canal de saisie utilisateur est fermé",
     "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "Délai d'attente dépassé pour la réponse de l'utilisateur (5 minutes)",
     "AGENT_INPUT_NO_PROVIDER": "Aucun fournisseur/modèle disponible : activez un fournisseur dans les paramètres",
@@ -2413,7 +2448,8 @@
     "SESSION_SHARE_NOT_FOUND": "La session n'existe pas",
     "WORK_ENGINE_EXECUTION_NOT_FOUND": "execution_id invalide ou workflow non enregistré",
     "TRAJECTORY_NOT_FOUND": "Trajectoire introuvable",
-    "UNKNOWN_PRESET": "Préréglage inconnu"
+    "UNKNOWN_PRESET": "Préréglage inconnu",
+    "UNITY_P0_CLASSIFIER_FAILED": "Échec de la classification de la forme de la tâche"
   },
   "errorBoundary": {
     "copied": "Copié",
@@ -8671,7 +8707,8 @@
     "gapType": {
       "guardRule": "Complément de règle de protection",
       "exemptAuthorize": "Autorisation d'exemption",
-      "capabilityMissing": "Capacité manquante"
+      "capabilityMissing": "Capacité manquante",
+      "skillEvolution": "Évolution des compétences"
     },
     "pendingCount": "{{count}} propositions en attente, actuellement #{{current}}",
     "pendingOne": "1 proposition en attente",
@@ -9548,5 +9585,12 @@
         "associatedWith": "Associé à"
       }
     }
+  },
+  "taskShapeApproval": {
+    "title": "Approbation d'opération à haut risque",
+    "inputPreview": "Aperçu de l'entrée",
+    "approve": "Approuver",
+    "reject": "Rejeter",
+    "rejectedToast": "Opération à haut risque rejetée"
   }
 }

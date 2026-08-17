@@ -2,6 +2,7 @@
 
 use agent_macro::agent_command;
 
+use axagent_harness::CapabilityIndexer;
 use tauri::{State, command};
 use tracing::warn;
 
@@ -163,51 +164,102 @@ pub async fn plugin_install(
 #[command]
 pub async fn plugin_enable(state: State<'_, AppState>, plugin_id: String) -> Result<(), String> {
     let plugin_manager = state.plugin_manager.clone();
-    tauri::async_runtime::spawn_blocking(move || {
+    let capability_indexer = state.capability_indexer.clone();
+    let plugin_id_for_task = plugin_id.clone();
+    let (enable_result, passports) = tauri::async_runtime::spawn_blocking(move || {
         let mut manager = plugin_manager.blocking_write();
-        manager.enable(&plugin_id).map_err(|e| {
+        let result = manager.enable(&plugin_id_for_task).map_err(|e| {
             String::from(crate::commands::error::ErrorResponse::from_error(
                 e,
                 crate::commands::error::ErrorCategory::Unrecoverable,
             ))
-        })
+        });
+        // 护照构造为纯函数（同 manifest 稳定），启用后用于注册能力发现索引
+        let passports = manager.passports_for_plugin(&plugin_id_for_task);
+        (result, passports)
     })
     .await
-    .map_err(|e| format!("plugin enable task panicked: {e}"))?
+    .map_err(|e| format!("plugin enable task panicked: {e}"))?;
+    enable_result?;
+    // 索引同步：把该插件的能力护照写入能力发现索引（async 上下文）
+    for passport in &passports {
+        if let Err(e) = capability_indexer.index_passport(passport).await {
+            warn!("SECURITY: 插件 `{plugin_id}` 护照 `{}` 注册失败: {e}", passport.capability_id);
+        }
+    }
+    Ok(())
 }
 
 #[agent_command(domain = plugin, safety = Caution, call_mode = StateInput, description = "禁用指定插件")]
 #[command]
 pub async fn plugin_disable(state: State<'_, AppState>, plugin_id: String) -> Result<(), String> {
     let plugin_manager = state.plugin_manager.clone();
-    tauri::async_runtime::spawn_blocking(move || {
+    let capability_indexer = state.capability_indexer.clone();
+    let plugin_id_for_task = plugin_id.clone();
+    let (disable_result, ids) = tauri::async_runtime::spawn_blocking(move || {
+        // 先取护照 ID（目录尚在），再禁用，供索引回滚
+        let manager = plugin_manager.blocking_read();
+        let ids: Vec<String> = manager
+            .passports_for_plugin(&plugin_id_for_task)
+            .into_iter()
+            .map(|p| p.capability_id)
+            .collect();
+        drop(manager);
         let mut manager = plugin_manager.blocking_write();
-        manager.disable(&plugin_id).map_err(|e| {
+        let result = manager.disable(&plugin_id_for_task).map_err(|e| {
             String::from(crate::commands::error::ErrorResponse::from_error(
                 e,
                 crate::commands::error::ErrorCategory::Unrecoverable,
             ))
-        })
+        });
+        (result, ids)
     })
     .await
-    .map_err(|e| format!("plugin disable task panicked: {e}"))?
+    .map_err(|e| format!("plugin disable task panicked: {e}"))?;
+    disable_result?;
+    // 索引同步：移除该插件的能力护照（async 上下文）
+    for id in ids {
+        if let Err(e) = capability_indexer.remove_index(&id).await {
+            warn!("SECURITY: 插件 `{plugin_id}` 护照 `{id}` 回滚失败: {e}");
+        }
+    }
+    Ok(())
 }
 
 #[agent_command(domain = plugin, safety = Dangerous, call_mode = StateInput, description = "卸载指定插件")]
 #[command]
 pub async fn plugin_uninstall(state: State<'_, AppState>, plugin_id: String) -> Result<(), String> {
     let plugin_manager = state.plugin_manager.clone();
-    tauri::async_runtime::spawn_blocking(move || {
+    let capability_indexer = state.capability_indexer.clone();
+    let plugin_id_for_task = plugin_id.clone();
+    let (uninstall_result, ids) = tauri::async_runtime::spawn_blocking(move || {
+        // 先取护照 ID（卸载会删除插件目录），再卸载，供索引回滚
+        let manager = plugin_manager.blocking_read();
+        let ids: Vec<String> = manager
+            .passports_for_plugin(&plugin_id_for_task)
+            .into_iter()
+            .map(|p| p.capability_id)
+            .collect();
+        drop(manager);
         let mut manager = plugin_manager.blocking_write();
-        manager.uninstall(&plugin_id).map_err(|e| {
+        let result = manager.uninstall(&plugin_id_for_task).map_err(|e| {
             String::from(crate::commands::error::ErrorResponse::from_error(
                 e,
                 crate::commands::error::ErrorCategory::Unrecoverable,
             ))
-        })
+        });
+        (result, ids)
     })
     .await
-    .map_err(|e| format!("plugin uninstall task panicked: {e}"))?
+    .map_err(|e| format!("plugin uninstall task panicked: {e}"))?;
+    uninstall_result?;
+    // 索引同步：移除该插件的能力护照（async 上下文）
+    for id in ids {
+        if let Err(e) = capability_indexer.remove_index(&id).await {
+            warn!("SECURITY: 插件 `{plugin_id}` 护照 `{id}` 回滚失败: {e}");
+        }
+    }
+    Ok(())
 }
 
 #[agent_command(domain = plugin, safety = Caution, call_mode = StateInput, description = "更新指定插件")]
@@ -237,6 +289,7 @@ pub async fn plugin_update(
 }
 
 #[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PluginSummaryDto {
     pub id: String,
     pub name: String,
@@ -250,6 +303,7 @@ pub struct PluginSummaryDto {
 }
 
 #[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PluginManifestDto {
     pub name: String,
     pub version: String,
@@ -273,24 +327,28 @@ pub struct PluginCapabilityDto {
 }
 
 #[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ToolDto {
     pub name: String,
     pub description: String,
 }
 
 #[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct McpServerDto {
     pub name: String,
     pub command: String,
 }
 
 #[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SkillDto {
     pub name: String,
     pub path: String,
 }
 
 #[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct InstallOutcomeDto {
     pub plugin_id: String,
     pub version: String,

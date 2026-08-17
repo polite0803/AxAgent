@@ -100,6 +100,12 @@ pub const ADDITIONAL_COLUMNS: &[(&str, &str, &str)] = &[
     ("workflow_templates", "mission_hash", "TEXT"),
     ("workflow_templates", "cluster_id", "TEXT"),
     ("workflow_templates", "route_path", "TEXT"),
+    // ── workflow_approvals 审批超时策略（无人值守超时裁决） ──
+    ("workflow_approvals", "timeout_action", "TEXT NOT NULL DEFAULT 'auto_reject'"),
+    // ── background_tasks 断点恢复 + 幂等（夜间长时任务） ──
+    ("background_tasks", "idempotency_key", "TEXT"),
+    ("background_tasks", "attempt", "INTEGER NOT NULL DEFAULT 0"),
+    ("background_tasks", "resume_from", "TEXT"),
 ];
 
 pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
@@ -622,7 +628,9 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             description TEXT NOT NULL DEFAULT '', task_type TEXT NOT NULL, command TEXT, \
             prompt TEXT, status TEXT NOT NULL DEFAULT 'pending', \
             output TEXT NOT NULL DEFAULT '', exit_code INTEGER, conversation_id TEXT, \
-            created_by TEXT, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, \
+            created_by TEXT, \
+            idempotency_key TEXT, attempt INTEGER NOT NULL DEFAULT 0, resume_from TEXT, \
+            created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, \
             finished_at BIGINT)",
     ] {
         exec_ddl(&db, is_pg, sql).await?;
@@ -1196,6 +1204,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             decision TEXT, \
             approver_actual TEXT, \
             comment TEXT, \
+            timeout_action TEXT NOT NULL DEFAULT 'auto_reject', \
             timeout_secs BIGINT NOT NULL DEFAULT 86400, \
             expires_at BIGINT NOT NULL DEFAULT 0, \
             created_at BIGINT NOT NULL, \

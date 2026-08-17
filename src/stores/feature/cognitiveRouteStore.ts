@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type {
+  CognitiveCandidateSummary,
   CognitiveExecutionMode,
   CognitiveQueryResponse,
   CognitiveRouteStageView,
@@ -38,6 +39,10 @@ export interface CognitiveRouteObservation {
   fallbackPath: string | null;
   /** 候选列表（Top-K） */
   candidates: string[];
+  /** 候选能力详情（含名称/描述/置信度/种类，供前端展示） */
+  candidateDetails: CognitiveCandidateSummary[];
+  /** 熔断过滤数量（RAR 原始候选数 - 最终候选数，0 表示无过滤） */
+  filteredCount: number;
   /** 执行模式 */
   executionMode: CognitiveExecutionMode;
   /** 选中工作流的可读名称（未命中工作流时为 null） */
@@ -81,6 +86,8 @@ export const useCognitiveRouteStore = create<CognitiveRouteState>((set) => ({
         circuitBreakReason: response.circuitBreakReason ?? null,
         fallbackPath: response.fallbackPath ?? null,
         candidates: response.candidates ?? [],
+        candidateDetails: response.candidateDetails ?? [],
+        filteredCount: response.filteredCount ?? 0,
         executionMode: response.executionMode,
         selectedWorkflowName: response.selectedWorkflowName ?? null,
         selectedAgentProfile: response.selectedAgentProfile ?? null,

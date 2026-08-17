@@ -31,6 +31,20 @@ interface BubbleListRef {
   scrollBoxNativeElement?: HTMLElement | null;
 }
 
+/**
+ * 从气泡 key 解析底层消息 id：
+ * - user 消息的 key 即 msg.id
+ * - assistant 消息的 key 为 `ai:<parentMessageId>:<msgId>`，最后一段为 msgId
+ * （多模型版本共存时同 parentId 会有多个气泡，key 必须携带 msgId 区分）
+ */
+function parseBubbleMsgId(key: string): string {
+  if (key.startsWith("ai:")) {
+    const idx = key.lastIndexOf(":");
+    return idx >= 0 ? key.slice(idx + 1) : key.slice(3);
+  }
+  return key;
+}
+
 // Local replacement for @ant-design/x Actions
 interface ActionItem {
   key: string;
@@ -692,19 +706,6 @@ export function useChatViewMessages({
     () => messages.filter((msg) => msg.isActive !== false),
     [messages],
   );
-  const assistantByParentId = useMemo(() => {
-    const map = new Map<string, Message>();
-    for (const msg of messages) {
-      if (
-        msg.role === "assistant"
-        && msg.parentMessageId
-        && msg.isActive !== false
-      ) {
-        map.set(`ai:${msg.parentMessageId}`, msg);
-      }
-    }
-    return map;
-  }, [messages]);
 
   const multiModelResponseParents = useMemo(() => {
     const modelsByParent = new Map<string, Set<string>>();
@@ -933,6 +934,16 @@ export function useChatViewMessages({
     activeConversationId ? s.groupsByConversation[activeConversationId] : null
   );
 
+  // 主题分组启用后，随消息变化增量归组（新增 user 消息开新组、新增回复并入当前组）。
+  // 依赖最后一条消息 id：流式期间同 id 内容更新不会重复触发，只有新消息才会。
+  const lastActiveMsgId = activeMessages[activeMessages.length - 1]?.id;
+  useEffect(() => {
+    if (!activeConversationId || !topicGroupEnabledByConv) {
+      return;
+    }
+    useTopicGroupStore.getState().autoDetect(activeConversationId);
+  }, [activeConversationId, topicGroupEnabledByConv, lastActiveMsgId]);
+
   // 跨天分隔条文案：今天/昨天/其余按本地化日期（当年省略年份）
   const formatDividerLabel = useCallback(
     (d: Date) => {
@@ -976,7 +987,9 @@ export function useChatViewMessages({
       let lastGroupId: string | null = null;
       for (const item of items) {
         const key = String(item.key);
-        const group = msgKeyToGroup.get(key);
+        // 分组表键为真实消息 id，气泡 key 可能是 `ai:<parentId>:<msgId>`，
+        // 必须解析出真实 msgId 再匹配，否则 AI 消息永远命中不了分组。
+        const group = msgKeyToGroup.get(parseBubbleMsgId(key));
         if (group && group.id !== lastGroupId) {
           lastGroupId = group.id;
           enhanced.push({
@@ -1010,12 +1023,8 @@ export function useChatViewMessages({
 
     // 跨天分组：在每天的第一条真实消息前插入日期分隔条
     const resolveItemTime = (item: BubbleItemType): number | null => {
-      if (item.role === "user") {
-        return messageById.get(String(item.key))?.createdAt ?? null;
-      }
-      if (item.role === "ai") {
-        const msg = assistantByParentId.get(String(item.key))
-          ?? messageById.get(String(item.key));
+      if (item.role === "user" || item.role === "ai") {
+        const msg = messageById.get(parseBubbleMsgId(String(item.key)));
         return msg?.createdAt ?? null;
       }
       return null;
@@ -1049,7 +1058,6 @@ export function useChatViewMessages({
     expertSwitchBubble,
     topicGroupEnabledByConv,
     topicGroupsByConv,
-    assistantByParentId,
     messageById,
     formatDividerLabel,
   ]);
@@ -1057,8 +1065,6 @@ export function useChatViewMessages({
   const visibleBubbleItems = useMemo(() => {
     return [...allBubbleItems].reverse();
   }, [allBubbleItems]);
-
-  const hiddenEarlierCount = 0;
 
   // FE-I9 修复：AI 内容解析缓存改用 useRef（命令式缓存，引用稳定）。
   const aiContentNodesCache = useRef<
@@ -1071,8 +1077,7 @@ export function useChatViewMessages({
       if (item.role !== "ai" || typeof item.content !== "string") {
         continue;
       }
-      const msg = assistantByParentId.get(String(item.key))
-        ?? messageById.get(String(item.key));
+      const msg = messageById.get(parseBubbleMsgId(String(item.key)));
       if (msg?.status === "error") {
         continue;
       }
@@ -1107,7 +1112,6 @@ export function useChatViewMessages({
     return next;
   }, [
     bubbleItems,
-    assistantByParentId,
     messageById,
     streaming,
     streamingMessageId,
@@ -1362,8 +1366,11 @@ export function useChatViewMessages({
                 icon: <RotateCcw size={14} />,
                 label: t("chat.regenerate"),
                 onItemClick: async () => {
+                  if (!msg) { return; }
                   try {
-                    await regenerateMessage();
+                    // 必须传入本条 user 消息 id，否则 store 会回退到「最后一条
+                    // user 消息」，中间消息点重生成会错误地重生成最后一条。
+                    await regenerateMessage(msg.id);
                   } catch (e) {
                     messageApi.error(String(e));
                   }
@@ -1480,22 +1487,9 @@ export function useChatViewMessages({
 
   const aiRole = useCallback(
     (bubbleData: BubbleItemType) => {
-      const msg = assistantByParentId.get(String(bubbleData.key))
-        ?? (() => {
-          const key = String(bubbleData.key);
-          if (key.startsWith("ai:")) {
-            const parentId = key.slice(3);
-            return (
-              messages.find(
-                (m) =>
-                  m.parentMessageId === parentId
-                  && m.role === "assistant"
-                  && m.isActive !== false,
-              ) ?? messageById.get(key)
-            );
-          }
-          return messageById.get(key);
-        })();
+      // 气泡 key 携带 msgId（`ai:<parentId>:<msgId>`），必须解析出真实消息 id 再查表，
+      // 不能直接用 key 匹配 assistantByParentId（其 key 为 `ai:<parentId>`）。
+      const msg = messageById.get(parseBubbleMsgId(String(bubbleData.key)));
       const isStreaming = streaming && msg?.id === streamingMessageId;
       const shouldRenderFromContent = shouldRenderAssistantMarkdownFromContent(
         isStreaming,
@@ -1914,7 +1908,6 @@ export function useChatViewMessages({
       agentPendingPermissions,
       agentToolCalls,
       aiContentNodesById,
-      assistantByParentId,
       codeBlockDarkTheme,
       codeBlockLightTheme,
       codeBlockThemes,
@@ -2333,7 +2326,6 @@ export function useChatViewMessages({
   return {
     allBubbleItems,
     visibleBubbleItems,
-    hiddenEarlierCount,
     lastBubbleKey,
     roles,
     bubbleItems,

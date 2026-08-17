@@ -36,7 +36,7 @@
 
 use crate::capability::{CapabilityDomain, CapabilityKind};
 use crate::cluster_router::{ClusterRouter, ClusterRoutingResult};
-use crate::domain_router::{DomainRouter, DomainRoutingResult};
+use crate::domain_router::{DomainDecision, DomainRouter, DomainRoutingResult, LlmReasoner};
 use crate::rar_router::{RarCircuitBreaker, RarRouter};
 use crate::workflow_graph::{WorkflowGraph, WorkflowGraphRouter, WorkflowGraphSync};
 use async_trait::async_trait;
@@ -356,6 +356,10 @@ pub struct RoutingDecisionV2 {
     /// 路由决策的执行模式（如何落地执行，由 route 决策）
     #[serde(default)]
     pub execution_mode: ExecutionMode,
+    /// P0: 任务形态决策（原则三标尺输出，Step 0 产出，随路由决策留痕）。
+    /// `None` 表示未启用 UNITY_P0_TASK_SHAPE flag。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub task_shape: Option<crate::task_shape::TaskShapeDecision>,
 }
 
 impl RoutingDecisionV2 {
@@ -376,6 +380,7 @@ impl RoutingDecisionV2 {
             candidates: Vec::new(),
             candidate_details: Vec::new(),
             execution_mode: ExecutionMode::Ask,
+            task_shape: None,
         }
     }
 
@@ -553,6 +558,8 @@ pub struct DefaultCognitiveRouter {
     circuit_breaker: RarCircuitBreaker,
     /// 配置
     config: CognitiveRouterConfig,
+    /// L2 模型兜底推理器（双层决策三段闭环）。可选项；None 时 L1 退化为纯规则路由。
+    llm_reasoner: Option<Arc<LlmReasoner>>,
 }
 
 impl DefaultCognitiveRouter {
@@ -570,6 +577,45 @@ impl DefaultCognitiveRouter {
             workflow_graph,
             circuit_breaker: RarCircuitBreaker::new(),
             config: CognitiveRouterConfig::default(),
+            llm_reasoner: None,
+        }
+    }
+
+    /// 注入 L2 模型兜底推理器，启用"规则优先→模型兜底→规则复查"双层决策闭环。
+    pub fn with_llm_reasoner(mut self, reasoner: Arc<LlmReasoner>) -> Self {
+        self.llm_reasoner = Some(reasoner);
+        self
+    }
+
+    /// L1 域路由（双层决策三段闭环）。
+    ///
+    /// 注入 `llm_reasoner` 时走 `DomainRouter::decide`，未注入时回退纯规则 `route`，
+    /// 保证认知路由始终可用、不强制依赖外部 LLM。
+    async fn l1_route(&self, user_input: &str) -> DomainRoutingResult {
+        let start = Instant::now();
+        match &self.llm_reasoner {
+            Some(reasoner) => match self.domain_router.decide(user_input, Some(reasoner)).await {
+                DomainDecision::Rule(rules) => {
+                    let rule = rules.first().cloned();
+                    match rule {
+                        Some(r) => DomainRoutingResult::rule_hit(
+                            r.target_domain,
+                            r,
+                            start.elapsed().as_millis() as u64,
+                        ),
+                        None => DomainRoutingResult::unknown(start.elapsed().as_millis() as u64),
+                    }
+                },
+                DomainDecision::Llm { domain, confidence } => DomainRoutingResult::llm_hit(
+                    domain,
+                    confidence,
+                    start.elapsed().as_millis() as u64,
+                ),
+                DomainDecision::General => {
+                    DomainRoutingResult::unknown(start.elapsed().as_millis() as u64)
+                },
+            },
+            None => self.domain_router.route(user_input).await,
         }
     }
 
@@ -923,9 +969,9 @@ impl CognitiveRouter for DefaultCognitiveRouter {
         let total_start = Instant::now();
         let mut decision = RoutingDecisionV2::empty();
 
-        // Step 1: L1 域路由
+        // Step 1: L1 域路由（双层决策三段闭环：规则优先→模型兜底→规则复查）
         let l1_start = Instant::now();
-        let l1_result = self.domain_router.route(user_input).await;
+        let l1_result = self.l1_route(user_input).await;
         let l1_elapsed = l1_start.elapsed().as_millis() as u64;
 
         let domain_str = l1_result.domain.as_str().to_string();
@@ -1585,6 +1631,7 @@ mod tests {
                 agent_profile_id: None,
             }],
             execution_mode: ExecutionMode::Workflow,
+            task_shape: None,
         }
     }
 

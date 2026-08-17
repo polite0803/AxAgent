@@ -2,6 +2,7 @@
 
 // === Provider System ===
 import type { RAGPipelineConfig } from "./knowledge";
+import type { TaskShapeDecision } from "./taskShape";
 
 export type ProviderType =
   | "openai"
@@ -212,6 +213,8 @@ export interface Message {
   intentClarification?: IntentClarification | null;
   /** 认知编排决策标签：该消息对应一轮执行的决策信息（ExecutionMode / 路由路径 / 命中工作流 / 专家等） */
   decision?: CognitiveDecisionInfo | null;
+  /** P0: 任务形态决策（原则三标尺输出，每条消息显示其分类决策） */
+  taskShape?: TaskShapeDecision | null;
 }
 
 // ── 认知编排决策标签 ────────────────────────────────
@@ -232,6 +235,8 @@ export interface CognitiveDecisionInfo {
     role: string | null;
     expert: string | null;
   } | null;
+  /** P1: 任务形态决策（原则三标尺输出，与后端 build_decision_value.taskShape 对齐） */
+  taskShape?: TaskShapeDecision | null;
 }
 
 // ── Content Block (Part-based message model, short-term) ──────────────
@@ -940,6 +945,8 @@ export interface MarketplaceSkill {
   hasUpdate?: boolean;
   currentVersion?: string;
   latestVersion?: string;
+  categories?: string[];
+  tags?: string[];
 }
 
 export interface SkillUpdateInfo {
@@ -1276,6 +1283,7 @@ export * from "./platform";
 export * from "./proactive";
 export * from "./search";
 export * from "./style";
+export * from "./taskShape";
 export * from "./tracer";
 export * from "./wiki";
 export * from "./workflow";
@@ -1670,7 +1678,7 @@ export interface PluginSummaryDto {
   name: string;
   version: string;
   description: string;
-  kind: "builtin" | "bundled" | "external";
+  kind: "builtin" | "bundled" | "external" | "openclaw";
   enabled: boolean;
   tools: string[];
   mcpServers: string[];

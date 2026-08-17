@@ -1744,7 +1744,7 @@ pub async fn agent_query(
         .as_ref()
         .map(|s| s.permission_mode.clone())
         .unwrap_or_else(|| "default".to_string());
-    let runtime_permission_mode = match permission_mode_str.as_str() {
+    let mut runtime_permission_mode = match permission_mode_str.as_str() {
         "full_access" => axagent_runtime::PermissionMode::Allow,
         "accept_edits" => axagent_runtime::PermissionMode::WorkspaceWrite,
         "default" => axagent_runtime::PermissionMode::Prompt,
@@ -1754,6 +1754,23 @@ pub async fn agent_query(
         "[agent_query] Permission mode: {} -> {:?}",
         permission_mode_str, runtime_permission_mode
     );
+
+    // P2: 按任务形态决策的「安全隔离需求」覆盖会话级权限模式（只降级不升级）。
+    // 当 UNITY_P0_TASK_SHAPE flag 关闭或分类失败时 task_shape 为 None，本块无操作。
+    // 严格级别：ReadOnly > Prompt > WorkspaceWrite > DangerFullAccess > Allow
+    // 设计原则：用户最严格配置不可被覆盖（Prompt 不降级为更宽松），只可能降级。
+    if let Some(ts) = &request.task_shape {
+        use axagent_harness::task_shape::resolve_effective_permission;
+        let effective =
+            resolve_effective_permission(runtime_permission_mode, Some(ts.isolation_need));
+        if effective != runtime_permission_mode {
+            info!(
+                "[agent_query] Permission overridden by task_shape: {:?} -> {:?} (isolation={:?})",
+                runtime_permission_mode, effective, ts.isolation_need
+            );
+            runtime_permission_mode = effective;
+        }
+    }
 
     // Get always-allowed tools for this conversation
     let always_allowed = app_state
@@ -1908,6 +1925,19 @@ pub async fn agent_query(
     let pause_state = Arc::new(axagent_runtime_core::PauseState::new());
     app_state.agent_pause_states.insert(conversation_id.clone(), pause_state.clone());
 
+    // ── 技能侧反思钩子（自我进化通道二：能力偏弱进化改进）注入 ──
+    // 实现 harness `SkillEvolutionHook` 契约：工具执行完成（`skill_` 前缀）后即时
+    // 固化成败证据、贝叶斯判定；命中则 spawn 走用户同意通道生成技能进化提议，同意后执行。
+    // 与周期扫描（start_skill_evolution）互补，使即时弱技能能被及时发现并进化。
+    let skill_evolution_hook: Arc<dyn axagent_harness::SkillEvolutionHook> =
+        Arc::new(crate::commands::evolution_hook::SkillEvolutionHookImpl {
+            app: app.clone(),
+            trajectory_storage: app_state.trajectory_storage.clone(),
+            skill_evolution_engine: app_state.skill_evolution_engine.clone(),
+            evolution_consent_senders: app_state.evolution_consent_senders.clone(),
+            constitution: app_state.constitution.clone(),
+        });
+
     let mut runtime = create_conversation_runtime(
         ConversationRuntimeFactoryArgs::new(
             session.session().clone(),
@@ -1918,7 +1948,8 @@ pub async fn agent_query(
             runtime_feature_config,
         )
         .with_hook_chain_option(crate::commands::multi_agent::get_global_hook_chain())
-        .with_pause_state(pause_state),
+        .with_pause_state(pause_state)
+        .with_skill_evolution_hook(skill_evolution_hook),
     );
 
     // 将 nudge 注入到运行时级 system_prompt（通过 <memory_context> 块在每次 LLM 调用前注入）

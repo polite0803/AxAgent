@@ -8,6 +8,7 @@ use crate::state::{
 };
 use axagent_credential::CredentialManager;
 use axagent_harness::DefaultCapabilityRouter;
+use axagent_harness::PatternPromptGuard;
 use axagent_harness::fleet::FleetRepository;
 use axagent_plugins::PluginManager;
 use axagent_runtime::dashboard_registry::DashboardRegistry;
@@ -293,6 +294,9 @@ pub struct AppState {
         >,
     >,
     pub work_engine: Arc<axagent_runtime::work_engine::WorkEngine>,
+    /// 夜间长时任务的成本门控状态（max_budget / spent / tripped）。
+    /// 内存态，重启后由运维经 `set_budget` 重新配置；供 Scheduler gate 判定。
+    pub scheduler_budget: Arc<tokio::sync::RwLock<crate::scheduler::gate::BudgetState>>,
     /// 工作流反思器(阶段 5 注入):同一实例同时挂载到 WorkEngine 与此字段,
     /// 供命令层手动触发整体 / 节点级反思。None = 反思未启用(理论上 wiring 层必注入)。
     pub workflow_reflector: Arc<dyn axagent_harness::WorkflowReflector>,
@@ -397,6 +401,13 @@ pub struct AppState {
     pub capability_indexer: Arc<CapabilityIndexerImpl>,
     /// 认知编排器（三层路由树协调器，全局用户消息唯一入口）
     pub cognitive_router: Arc<dyn axagent_harness::CognitiveRouter>,
+    /// 动态防护规则管理器（运行时注入，GuardRule/ExemptAuthorize 动态注入的入口）
+    pub prompt_guard: Arc<PatternPromptGuard>,
+    /// P3: 任务形态 LLM 兜底分类器（wiring 层注入，规则置信度不足时调用）
+    pub task_shape_llm_classifier: Arc<dyn axagent_harness::TaskShapeLlmClassifier>,
+    /// P3: ApprovalGate 审批 oneshot 通道（key = approval_id, value = Sender<bool>）
+    pub task_shape_approval_senders:
+        Arc<tokio::sync::Mutex<HashMap<String, tokio::sync::oneshot::Sender<bool>>>>,
 
     // ── Phase 3 P1 Task 3.1: domain decomposition ───────────────────────────
     // The six sub-state structs below provide a focused, composable view of

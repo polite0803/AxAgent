@@ -3,11 +3,6 @@
   "productName": "AxAgent",
   "version": "2.9.6",
   "identifier": "top.axagent.desktop",
-  "android": {
-    "minSdkVersion": 24,
-    "targetSdkVersion": 34,
-    "compileSdkVersion": 34
-  },
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",

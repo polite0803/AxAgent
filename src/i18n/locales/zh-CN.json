@@ -1223,7 +1223,12 @@
     },
     "evolve": "进化提升",
     "evolveSuccess": "进化成功，等级提升至 {{level}}",
-    "evolveFailed": "进化失败，请稍后重试"
+    "evolveFailed": "进化失败，请稍后重试",
+    "pluginSource": "插件",
+    "evolvable": {
+      "local": "本地进化",
+      "derived": "衍生产物"
+    }
   },
   "chatMarkdown": {
     "inputParams": "输入参数",
@@ -1596,6 +1601,7 @@
     "circuitClosed": "正常",
     "llmFallback": "LLM 兜底",
     "fallbackPath": "备选路径",
+    "filteredCount": "熔断过滤",
     "candidates": "候选能力",
     "branch": "执行分支",
     "workflowName": "选中工作流",
@@ -1614,6 +1620,34 @@
       "delegate": "委派 Agent",
       "parameter_extract": "参数抽取",
       "clarify": "待澄清选择"
+    },
+    "taskShape": {
+      "label": "任务形态",
+      "contextCost": "上下文成本",
+      "isolationNeed": "隔离需求",
+      "strategy": "推荐策略",
+      "mergeScore": "合并倾向",
+      "splitScore": "拆分倾向",
+      "evidence": "证据",
+      "contextCostMap": {
+        "ephemeral": "瞬时",
+        "resumable": "可续",
+        "long_running_project": "长周期",
+        "persistent_journey": "持久旅程"
+      },
+      "isolationNeedMap": {
+        "read_only_thought": "纯思考",
+        "workspace_write": "工作区写入",
+        "sandbox_required": "强制沙箱",
+        "approval_and_air_gap": "审批气隔"
+      },
+      "strategyMap": {
+        "handleLocally": "本地处理",
+        "delegateSingleExpert": "委派单专家",
+        "parallelExperts": "并行专家",
+        "orchestratorDag": "编排器 DAG",
+        "approvalGate": "审批门"
+      }
     }
   },
   "continuation": {
@@ -2390,6 +2424,7 @@
     "CAPABILITY_STATS_FAILED": "能力统计获取失败",
     "CAPABILITY_METADATA_RESTORE_FAILED": "元数据恢复失败",
     "CAPABILITY_EVOLVE_FAILED": "能力进化失败",
+    "CAPABILITY_NOT_EVOLVABLE": "该能力不可进化（外部插件只读能力）",
     "AGENT_INPUT_CHANNEL_CLOSED": "用户提问通道已关闭",
     "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "等待用户回复超时（5 分钟）",
     "AGENT_INPUT_NO_PROVIDER": "没有可用的 provider/model：请先在设置中启用提供商",
@@ -2413,7 +2448,8 @@
     "SESSION_SHARE_NOT_FOUND": "会话不存在",
     "WORK_ENGINE_EXECUTION_NOT_FOUND": "execution_id 无效或工作流未注册",
     "TRAJECTORY_NOT_FOUND": "轨迹未找到",
-    "UNKNOWN_PRESET": "未知的预设"
+    "UNKNOWN_PRESET": "未知的预设",
+    "UNITY_P0_CLASSIFIER_FAILED": "任务形态分类失败"
   },
   "errorBoundary": {
     "copied": "已复制",
@@ -8671,7 +8707,8 @@
     "gapType": {
       "guardRule": "防护规则补齐",
       "exemptAuthorize": "误伤豁免授权",
-      "capabilityMissing": "能力缺失补齐"
+      "capabilityMissing": "能力缺失补齐",
+      "skillEvolution": "技能进化改进"
     },
     "pendingCount": "共有 {{count}} 个待处理提议，当前为第 {{current}} 个",
     "pendingOne": "仅 1 个待处理提议",
@@ -9550,5 +9587,12 @@
         "associatedWith": "关联"
       }
     }
+  },
+  "taskShapeApproval": {
+    "title": "高危操作审批",
+    "inputPreview": "输入预览",
+    "approve": "批准执行",
+    "reject": "拒绝",
+    "rejectedToast": "高危操作已拒绝"
   }
 }

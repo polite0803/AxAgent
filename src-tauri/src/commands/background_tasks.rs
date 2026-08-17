@@ -46,6 +46,9 @@ pub struct BackgroundTaskInfo {
     pub output: String,
     pub exit_code: Option<i32>,
     pub conversation_id: Option<String>,
+    pub idempotency_key: Option<String>,
+    pub attempt: i32,
+    pub resume_from: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
     pub finished_at: Option<i64>,
@@ -64,6 +67,9 @@ impl From<background_tasks::Model> for BackgroundTaskInfo {
             output: m.output,
             exit_code: m.exit_code,
             conversation_id: m.conversation_id,
+            idempotency_key: m.idempotency_key,
+            attempt: m.attempt,
+            resume_from: m.resume_from,
             created_at: m.created_at,
             updated_at: m.updated_at,
             finished_at: m.finished_at,
@@ -152,8 +158,31 @@ pub async fn spawn_background_task(
     command: Option<String>,
     prompt: Option<String>,
     description: Option<String>,
+    idempotency_key: Option<String>,
 ) -> Result<String, String> {
     let db = state.harness.db().clone();
+
+    // 幂等：若提供 idempotency_key 且已存在任务，直接返回已有任务 id，不重复提交
+    if let Some(key) = idempotency_key.as_deref() {
+        let existing = background_tasks::Entity::find()
+            .filter(background_tasks::Column::IdempotencyKey.eq(key))
+            .one(&db)
+            .await
+            .map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
+        if let Some(task) = existing {
+            tracing::info!(
+                task_id = %task.id, key = %key,
+                "[background_tasks] 命中幂等键，返回已有任务"
+            );
+            return Ok(task.id);
+        }
+    }
+
     let id = uuid::Uuid::new_v4().to_string();
     let now = Utc::now().timestamp_millis();
 
@@ -169,6 +198,9 @@ pub async fn spawn_background_task(
         exit_code: Set(None),
         conversation_id: Set(None),
         created_by: Set(None),
+        idempotency_key: Set(idempotency_key),
+        attempt: Set(0),
+        resume_from: Set(None),
         created_at: Set(now),
         updated_at: Set(now),
         finished_at: Set(None),

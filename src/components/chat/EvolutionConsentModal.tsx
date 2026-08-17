@@ -4,7 +4,7 @@ import { logIpcError } from "@/lib/invoke";
 import { useEvolutionStore } from "@/stores";
 import type { CapabilityGapProposal, CapabilityGapType } from "@/types";
 import { Button, Modal, Space, Tag, Tooltip, Typography } from "antd";
-import { AlertTriangle, CheckCircle, Lightbulb, Shield, ShieldOff, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle, Lightbulb, Shield, ShieldOff, Sparkles, XCircle } from "lucide-react";
 import React, { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -31,6 +31,12 @@ const GAP_TYPE_CONFIG: Record<
     bg: "var(--ant-color-primary-bg)",
     icon: <Lightbulb size={14} />,
     labelKey: "evolutionConsentModal.gapType.capabilityMissing",
+  },
+  skill_evolution: {
+    color: "purple",
+    bg: "var(--ant-purple-1, #f3e8ff)",
+    icon: <Sparkles size={14} />,
+    labelKey: "evolutionConsentModal.gapType.skillEvolution",
   },
 };
 

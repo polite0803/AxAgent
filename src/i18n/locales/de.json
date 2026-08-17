@@ -1223,7 +1223,12 @@
     },
     "evolve": "Evolvieren",
     "evolveSuccess": "Evolution erfolgreich, Stufe auf {{level}} angehoben",
-    "evolveFailed": "Evolution fehlgeschlagen, bitte später erneut versuchen"
+    "evolveFailed": "Evolution fehlgeschlagen, bitte später erneut versuchen",
+    "pluginSource": "Plugin",
+    "evolvable": {
+      "local": "Lokale Evolution",
+      "derived": "Abgeleitet"
+    }
   },
   "chatMarkdown": {
     "inputParams": "Eingabeparameter",
@@ -1596,6 +1601,7 @@
     "circuitClosed": "Normal",
     "llmFallback": "LLM-Fallback",
     "fallbackPath": "Fallback-Pfad",
+    "filteredCount": "Gefiltert",
     "candidates": "Kandidaten",
     "stageRecords": "Routenphasen",
     "recordedAt": "Aufgezeichnet um",
@@ -1614,6 +1620,34 @@
       "delegate": "An Agent delegieren",
       "parameter_extract": "Parameter extrahieren",
       "clarify": "Auf Klärung warten"
+    },
+    "taskShape": {
+      "label": "Aufgabenform",
+      "contextCost": "Kontextkosten",
+      "isolationNeed": "Isolationsbedarf",
+      "strategy": "Empfohlene Strategie",
+      "mergeScore": "Zusammenführungstendenz",
+      "splitScore": "Aufteilungstendenz",
+      "evidence": "Beweis",
+      "contextCostMap": {
+        "ephemeral": "Flüchtig",
+        "resumable": "Fortsetzbar",
+        "long_running_project": "Langfristiges Projekt",
+        "persistent_journey": "Fortlaufende Reise"
+      },
+      "isolationNeedMap": {
+        "read_only_thought": "Nur Lesen",
+        "workspace_write": "Arbeitsbereich Schreiben",
+        "sandbox_required": "Sandbox erforderlich",
+        "approval_and_air_gap": "Genehmigung & Air Gap"
+      },
+      "strategyMap": {
+        "handleLocally": "Lokal verarbeiten",
+        "delegateSingleExpert": "Einzelnen Experten delegieren",
+        "parallelExperts": "Parallele Experten",
+        "orchestratorDag": "Orchestrator DAG",
+        "approvalGate": "Genehmigungsgate"
+      }
     }
   },
   "continuation": {
@@ -2390,6 +2424,7 @@
     "CAPABILITY_STATS_FAILED": "Statistikabruf fehlgeschlagen",
     "CAPABILITY_METADATA_RESTORE_FAILED": "Metadatenwiederherstellung fehlgeschlagen",
     "CAPABILITY_EVOLVE_FAILED": "Fähigkeits-Evolution fehlgeschlagen",
+    "CAPABILITY_NOT_EVOLVABLE": "Diese Fähigkeit kann nicht weiterentwickelt werden (schreibgeschützte Fähigkeit eines externen Plugins)",
     "AGENT_INPUT_CHANNEL_CLOSED": "Der Benutzereingabekanal ist geschlossen",
     "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "Zeitüberschreitung beim Warten auf Benutzerantwort (5 Minuten)",
     "AGENT_INPUT_NO_PROVIDER": "Kein verfügbarer Provider/Modell: Bitte aktivieren Sie einen Provider in den Einstellungen",
@@ -2413,7 +2448,8 @@
     "SESSION_SHARE_NOT_FOUND": "Sitzung existiert nicht",
     "WORK_ENGINE_EXECUTION_NOT_FOUND": "Ungültige execution_id oder Workflow nicht registriert",
     "TRAJECTORY_NOT_FOUND": "Verlauf nicht gefunden",
-    "UNKNOWN_PRESET": "Unbekannte Vorgabe"
+    "UNKNOWN_PRESET": "Unbekannte Vorgabe",
+    "UNITY_P0_CLASSIFIER_FAILED": "Klassifizierung der Aufgabenform fehlgeschlagen"
   },
   "errorBoundary": {
     "copied": "Kopiert",
@@ -8671,7 +8707,8 @@
     "gapType": {
       "guardRule": "Schutzregel-Ergänzung",
       "exemptAuthorize": "Ausnahme-Genehmigung",
-      "capabilityMissing": "Fehlende Fähigkeit"
+      "capabilityMissing": "Fehlende Fähigkeit",
+      "skillEvolution": "Skill-Evolution"
     },
     "pendingCount": "{{count}} Vorschläge ausstehend, aktuell #{{current}}",
     "pendingOne": "1 Vorschlag ausstehend",
@@ -9548,5 +9585,12 @@
         "associatedWith": "Verbunden mit"
       }
     }
+  },
+  "taskShapeApproval": {
+    "title": "Genehmigung risikoreicher Vorgänge",
+    "inputPreview": "Eingabe Vorschau",
+    "approve": "Genehmigen",
+    "reject": "Ablehnen",
+    "rejectedToast": "Risikoreicher Vorgang abgelehnt"
   }
 }

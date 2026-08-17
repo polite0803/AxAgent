@@ -44,13 +44,14 @@ fn provider_type_to_registry_key(pt: &ProviderType) -> &'static str {
 }
 
 /// 解析默认 provider 的完整上下文
-struct ResolvedProvider {
-    model_id: String,
-    ctx: ProviderRequestContext,
-    adapter: Arc<dyn ProviderAdapter>,
+pub(crate) struct ResolvedProvider {
+    pub(crate) provider_id: String,
+    pub(crate) model_id: String,
+    pub(crate) ctx: ProviderRequestContext,
+    pub(crate) adapter: Arc<dyn ProviderAdapter>,
 }
 
-async fn resolve_default_provider(state: &AppState) -> Result<ResolvedProvider, String> {
+pub(crate) async fn resolve_default_provider(state: &AppState) -> Result<ResolvedProvider, String> {
     let settings =
         axagent_dao::repo::settings::get_settings(state.harness.db()).await.unwrap_or_default();
     let provider_id =
@@ -108,7 +109,12 @@ async fn resolve_default_provider(state: &AppState) -> Result<ResolvedProvider, 
         )
     })?;
 
-    Ok(ResolvedProvider { model_id: model_id.to_string(), ctx, adapter })
+    Ok(ResolvedProvider {
+        provider_id: provider.id.clone(),
+        model_id: model_id.to_string(),
+        ctx,
+        adapter,
+    })
 }
 
 #[agent_command(domain = memory, safety = Safe, call_mode = StateOnly, description = "列出记忆命名空间")]

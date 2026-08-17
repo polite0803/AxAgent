@@ -805,7 +805,7 @@ export function flushPendingStreamChunk<T extends ConversationStoreLike>(
       thinking: null,
       toolCallsJson: null,
       toolCallId: null,
-      createdAt: Date.now(),
+      createdAt: Math.floor(Date.now() / 1000),
       // In multi-model mode: group under the same parent and hide from main view
       // (only ModelTags pending animation is shown; fetchMessages after completion loads proper data)
       parentMessageId: isMultiModel ? s.multiModelParentId : null,

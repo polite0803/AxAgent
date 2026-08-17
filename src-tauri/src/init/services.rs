@@ -36,6 +36,8 @@ pub fn start_background_services(
     start_text_grad_analysis(state);
     start_cron_scheduler(state);
     start_trigger_recovery(state);
+    start_scheduler_recovery(app, state);
+    start_approval_event_bridge(app, state);
     start_persistent_runner(state);
     start_platform_adapters(state);
     start_skill_watcher(app, state);
@@ -2042,6 +2044,60 @@ fn start_trigger_recovery(state: &AppState) {
             webhook,
             event
         );
+    });
+}
+
+/// 夜间长时任务「不丢失」启动钩子：扫描 background_tasks 未完成任务 → 重新入队。
+///
+/// 设计见 `docs/夜间长时自主任务运行-详细设计.md` ①（Scheduler::restore）。
+/// 在 cron 调度器就绪后延迟短暂执行，避免与启动期 DB 初始化竞争。
+fn start_scheduler_recovery(app: &tauri::AppHandle, state: &AppState) {
+    let app = app.clone();
+    let db = state.harness.db().clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+        match crate::scheduler::restore::restore_incomplete_tasks(&db, Some(&app)).await {
+            Ok(ids) => {
+                if ids.is_empty() {
+                    tracing::info!("[start_scheduler_recovery] 无待恢复任务");
+                } else {
+                    tracing::info!(
+                        "[start_scheduler_recovery] 恢复 {} 个任务: {:?}",
+                        ids.len(),
+                        ids
+                    );
+                }
+            },
+            Err(e) => {
+                tracing::error!("[start_scheduler_recovery] 恢复引导失败: {}", e);
+            },
+        }
+    });
+}
+
+/// 审批事件桥接：订阅统一事件总线，将 rt-workflow 发布的 `ApprovalRequested`
+/// 领域事件转发为前端 Tauri 事件 `workflow:approval-requested`。
+///
+/// 前端审批面板借此实现"推送式"唤醒（主动刷新 pending 并打开面板），
+/// 替代纯轮询；不依赖外部 LLM，纯内存总线订阅，启动即挂载。
+fn start_approval_event_bridge(app: &tauri::AppHandle, state: &AppState) {
+    let app = app.clone();
+    let event_bus = state.event_bus.clone();
+    tauri::async_runtime::spawn(async move {
+        let mut sub = event_bus.subscribe().await;
+        loop {
+            match sub.recv().await {
+                Some(evt) => {
+                    if evt.kind == "ApprovalRequested" {
+                        let _ = app.emit("workflow:approval-requested", &evt.payload);
+                    }
+                },
+                None => {
+                    tracing::debug!("[start_approval_event_bridge] 事件总线已关闭，桥接退出");
+                    break;
+                },
+            }
+        }
     });
 }
 

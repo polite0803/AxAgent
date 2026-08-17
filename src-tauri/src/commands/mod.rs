@@ -18,6 +18,7 @@ pub mod branches;
 #[cfg(not(mobile))]
 pub mod browser;
 pub mod capability;
+pub mod capability_gap_workflow;
 pub mod chart_generator;
 pub mod cloud_workspace;
 pub mod cognitive;
@@ -41,6 +42,7 @@ pub mod error_code;
 pub mod evaluator;
 pub mod evolution;
 pub mod evolution_engine;
+pub mod evolution_hook;
 pub mod file_browser;
 pub(crate) mod file_cleanup;
 pub mod files;

@@ -114,6 +114,11 @@ export function CognitiveRoutePanel() {
               {t("cognitiveRoute.fallbackPath")}: {observation.fallbackPath}
             </Tag>
           )}
+          {observation.filteredCount > 0 && (
+            <Tag color="warning" icon={<AlertTriangle size={11} />}>
+              {t("cognitiveRoute.filteredCount")}: {observation.filteredCount}
+            </Tag>
+          )}
         </div>
       </div>
 
@@ -171,27 +176,52 @@ export function CognitiveRoutePanel() {
         </div>
       )}
 
-      {/* 候选能力 */}
-      {observation.candidates.length > 0 && (
+      {/* 候选能力详情 */}
+      {observation.candidateDetails.length > 0 && (
         <div style={{ marginTop: 12 }}>
           <Text strong style={{ fontSize: 13, display: "block", marginBottom: 6 }}>
-            {t("cognitiveRoute.candidates")} ({observation.candidates.length})
+            {t("cognitiveRoute.candidates")} ({observation.candidateDetails.length})
           </Text>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            {observation.candidates.map((id) => (
-              <div
-                key={id}
-                style={{
-                  fontSize: 12.5,
-                  padding: "4px 8px",
-                  borderRadius: 6,
-                  backgroundColor: token.colorBgLayout,
-                  wordBreak: "break-all",
-                }}
-              >
-                {id}
-              </div>
-            ))}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {observation.candidateDetails.map((c) => {
+              const scorePct = Math.round(c.score * 100);
+              return (
+                <div
+                  key={c.capabilityId}
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: 6,
+                    border: `1px solid ${token.colorBorderSecondary}`,
+                    backgroundColor: token.colorBgLayout,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                    <Text strong style={{ fontSize: 12.5, wordBreak: "break-all" }}>
+                      {c.name || c.capabilityId}
+                    </Text>
+                    <Tag
+                      style={{ fontSize: 11, marginLeft: "auto", flexShrink: 0 }}
+                      color={scorePct >= 80 ? "green" : scorePct >= 60 ? "orange" : "red"}
+                    >
+                      {scorePct}%
+                    </Tag>
+                  </div>
+                  {c.description && (
+                    <Text
+                      type="secondary"
+                      style={{ fontSize: 12, display: "block", marginBottom: 4, lineHeight: 1.5 }}
+                    >
+                      {c.description}
+                    </Text>
+                  )}
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                    <Tag style={{ fontSize: 11 }}>{c.kind}</Tag>
+                    {c.domain && <Tag style={{ fontSize: 11 }}>{c.domain}</Tag>}
+                    {c.cluster && <Tag style={{ fontSize: 11 }}>{c.cluster}</Tag>}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

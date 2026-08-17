@@ -1223,7 +1223,12 @@
     },
     "evolve": "進化提升",
     "evolveSuccess": "進化成功，等級提升至 {{level}}",
-    "evolveFailed": "進化失敗，請稍後重試"
+    "evolveFailed": "進化失敗，請稍後重試",
+    "pluginSource": "外掛",
+    "evolvable": {
+      "local": "本機進化",
+      "derived": "衍生"
+    }
   },
   "chatMarkdown": {
     "inputParams": "輸入參數",
@@ -1596,6 +1601,7 @@
     "circuitClosed": "正常",
     "llmFallback": "LLM 兜底",
     "fallbackPath": "備選路徑",
+    "filteredCount": "熔斷過濾",
     "candidates": "候選能力",
     "stageRecords": "路由階段",
     "recordedAt": "觀測時間",
@@ -1614,6 +1620,34 @@
       "delegate": "委派 Agent",
       "parameter_extract": "參數抽取",
       "clarify": "待澄清選擇"
+    },
+    "taskShape": {
+      "label": "任務形態",
+      "contextCost": "上下文成本",
+      "isolationNeed": "隔離需求",
+      "strategy": "推薦策略",
+      "mergeScore": "合併傾向",
+      "splitScore": "拆分傾向",
+      "evidence": "證據",
+      "contextCostMap": {
+        "ephemeral": "瞬時",
+        "resumable": "可續",
+        "long_running_project": "長週期",
+        "persistent_journey": "持久旅程"
+      },
+      "isolationNeedMap": {
+        "read_only_thought": "純思考",
+        "workspace_write": "工作區寫入",
+        "sandbox_required": "強制沙箱",
+        "approval_and_air_gap": "審批氣隔"
+      },
+      "strategyMap": {
+        "handleLocally": "本地處理",
+        "delegateSingleExpert": "委派單專家",
+        "parallelExperts": "並行專家",
+        "orchestratorDag": "編排器 DAG",
+        "approvalGate": "審批門"
+      }
     }
   },
   "continuation": {
@@ -2390,6 +2424,7 @@
     "CAPABILITY_STATS_FAILED": "能力統計獲取失敗",
     "CAPABILITY_METADATA_RESTORE_FAILED": "元數據恢復失敗",
     "CAPABILITY_EVOLVE_FAILED": "能力進化失敗",
+    "CAPABILITY_NOT_EVOLVABLE": "該能力不可進化（外部外掛唯讀能力）",
     "AGENT_INPUT_CHANNEL_CLOSED": "使用者提問通道已關閉",
     "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "等待使用者回覆逾時（5 分鐘）",
     "AGENT_INPUT_NO_PROVIDER": "沒有可用的 provider/model：請先在設定中啟用供應商",
@@ -2413,7 +2448,8 @@
     "SESSION_SHARE_NOT_FOUND": "會話不存在",
     "WORK_ENGINE_EXECUTION_NOT_FOUND": "execution_id 無效或工作流未註冊",
     "TRAJECTORY_NOT_FOUND": "軌跡未找到",
-    "UNKNOWN_PRESET": "未知的預設"
+    "UNKNOWN_PRESET": "未知的預設",
+    "UNITY_P0_CLASSIFIER_FAILED": "任務形態分類失敗"
   },
   "errorBoundary": {
     "copied": "已複製",
@@ -8671,7 +8707,8 @@
     "gapType": {
       "guardRule": "防護規則補齊",
       "exemptAuthorize": "誤傷豁免授權",
-      "capabilityMissing": "能力缺失補齊"
+      "capabilityMissing": "能力缺失補齊",
+      "skillEvolution": "技能進化"
     },
     "pendingCount": "共有 {{count}} 個待處理提議，目前為第 {{current}} 個",
     "pendingOne": "僅 1 個待處理提議",
@@ -9548,5 +9585,12 @@
         "associatedWith": "關聯"
       }
     }
+  },
+  "taskShapeApproval": {
+    "title": "高風險操作審批",
+    "inputPreview": "輸入預覽",
+    "approve": "批准執行",
+    "reject": "拒絕",
+    "rejectedToast": "高風險操作已拒絕"
   }
 }

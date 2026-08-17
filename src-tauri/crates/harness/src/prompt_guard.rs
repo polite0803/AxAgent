@@ -10,6 +10,7 @@
 
 use crate::PromptAttackCategory;
 use std::fmt;
+use std::sync::Arc;
 
 /// Prompt 注入防护契约
 ///
@@ -66,6 +67,15 @@ impl fmt::Display for PromptRejection {
     }
 }
 
+/// 动态防护规则（运行时注入，非编译期静态模式）
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct DynamicGuardRule {
+    pub category: PromptAttackCategory,
+    pub pattern: String,
+    pub reason: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
 /// 基于正则模式的 Prompt 注入防护实现。
 ///
 /// 对已知注入攻击模式做匹配并阻断，作为 `axagent-prompt-guard` crate
@@ -79,6 +89,8 @@ impl fmt::Display for PromptRejection {
 #[derive(Debug)]
 pub struct PatternPromptGuard {
     patterns: Vec<(PromptAttackCategory, &'static str, &'static str)>,
+    /// 动态防护规则（运行时注入，优先级高于静态模式）
+    dynamic_rules: Arc<tokio::sync::RwLock<Vec<DynamicGuardRule>>>,
 }
 
 impl Default for PatternPromptGuard {
@@ -153,7 +165,23 @@ impl PatternPromptGuard {
                 (PromptAttackCategory::Jailbreak, "jailbreak", "越狱: jailbreak 关键词"),
                 (PromptAttackCategory::Jailbreak, "override your safety", "越狱: 覆盖安全限制"),
             ],
+            dynamic_rules: Arc::new(tokio::sync::RwLock::new(Vec::new())),
         }
+    }
+
+    /// 添加动态防护规则
+    pub async fn add_dynamic_rule(&self, rule: DynamicGuardRule) {
+        self.dynamic_rules.write().await.push(rule);
+    }
+
+    /// 移除动态防护规则（按 pattern 精确匹配）
+    pub async fn remove_dynamic_rule(&self, pattern: &str) {
+        self.dynamic_rules.write().await.retain(|r| r.pattern != pattern);
+    }
+
+    /// 获取所有动态防护规则
+    pub async fn list_dynamic_rules(&self) -> Vec<DynamicGuardRule> {
+        self.dynamic_rules.read().await.clone()
     }
 }
 
@@ -165,6 +193,7 @@ impl PromptGuard for PatternPromptGuard {
 
     fn process_user_input_structured(&self, input: &str) -> Result<String, PromptRejection> {
         let lower = input.to_lowercase();
+        // 先检查静态模式
         for (category, pattern, reason) in &self.patterns {
             if lower.contains(&pattern.to_lowercase()) {
                 return Err(PromptRejection {
@@ -173,6 +202,19 @@ impl PromptGuard for PatternPromptGuard {
                     reason: format!("L1 阻断 [{reason}]: 检测到模式 \"{pattern}\""),
                     suggestion: gap_suggestion(*category),
                 });
+            }
+        }
+        // 再检查动态规则（同步获取，因本方法是同步方法不能 await）
+        if let Ok(rules) = self.dynamic_rules.try_read() {
+            for rule in rules.iter() {
+                if lower.contains(&rule.pattern.to_lowercase()) {
+                    return Err(PromptRejection {
+                        category: rule.category,
+                        pattern: rule.pattern.clone(),
+                        reason: format!("动态规则阻断 [{:?}]: {}", rule.category, rule.reason),
+                        suggestion: String::new(),
+                    });
+                }
             }
         }
         Ok(input.to_string())

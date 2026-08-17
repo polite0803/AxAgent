@@ -32,6 +32,8 @@ pub enum CapabilityGapType {
     ExemptAuthorize,
     /// 能力缺口：系统当前无能力安全处理 → 提议生成工作流 / 技能 / 工具
     CapabilityMissing,
+    /// 技能偏弱：贝叶斯后验判定表现不佳 → 提议进化改进该技能
+    SkillEvolution,
 }
 
 /// 能力补齐提议（前端弹窗展示 / 用户同意 / 落库）。

@@ -16,6 +16,9 @@ export const FEATURE_FLAGS = {
 
   /** Phase 4: 自然语言驱动动态业务扩展 */
   NL_EXTENSION: false,
+
+  /** Unity P0: 任务形态分类器（原则三标尺：上下文保留成本 × 安全隔离需求） */
+  UNITY_P0_TASK_SHAPE: false,
 } as const;
 
 export type FeatureFlagKey = keyof typeof FEATURE_FLAGS;

@@ -88,6 +88,7 @@ impl Tool for CronCreateTool {
             description: desc.clone(),
             is_active: true,
             run_count: 0,
+            priority: Some("medium".to_string()),
         };
         store.add(job).await;
 

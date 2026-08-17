@@ -18,7 +18,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use tracing;
 
-use axagent_harness::{EffectHandle, NpmRegistryService, parse_npm_package_spec};
+use axagent_harness::{
+    CapabilityPassportDto, EffectHandle, NpmRegistryService, parse_npm_package_spec,
+};
 
 const EXTERNAL_MARKETPLACE: &str = "external";
 const BUILTIN_MARKETPLACE: &str = "builtin";
@@ -70,6 +72,9 @@ pub struct PluginManager {
     capability_registry: Option<Arc<axagent_harness::CapabilityRegistry>>,
     /// 各插件已注册能力的可逆句柄（键 = 插件 ID，值 = 撤销句柄列表）。
     active_capability_handles: HashMap<String, Vec<EffectHandle>>,
+    /// 各插件已注册护照的 capability_id（键 = 插件 ID，值 = 护照 ID 列表）。
+    /// 启用时记录，禁用 / 卸载时回滚索引的依据（索引写入由命令层 async 完成）。
+    active_passport_ids: HashMap<String, Vec<String>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -233,6 +238,7 @@ impl PluginManager {
             npm_registry: None,
             capability_registry: None,
             active_capability_handles: HashMap::new(),
+            active_passport_ids: HashMap::new(),
         }
     }
 
@@ -501,6 +507,14 @@ impl PluginManager {
                 );
             }
         }
+        // 能力发现护照：构造并记录（索引写入由命令层 async 完成，见 `passports_for_plugin`）。
+        if !manifest.skills.is_empty()
+            || !manifest.agents.is_empty()
+            || !manifest.capabilities.is_empty()
+        {
+            let count = self.register_plugin_passports(plugin_id, manifest, record.kind);
+            tracing::info!("Plugin `{plugin_id}` registered {count} capability passport(s)");
+        }
         Ok(())
     }
 
@@ -560,11 +574,136 @@ impl PluginManager {
         }
     }
 
+    /// 启用插件时构造并记录其能力护照（索引写入由命令层 async 完成）。
+    ///
+    /// 护照统一标记 `CapabilitySource::Plugin`，`evolvable` 由载体决定：
+    /// 技能 / Agent 本地可写 → `Local`；声明的能力默认 `Derived`（进化产出副本、原护照不变）。
+    /// 返回构造的护照数量。
+    fn register_plugin_passports(
+        &mut self,
+        plugin_id: &str,
+        manifest: &crate::types::PluginManifest,
+        kind: PluginKind,
+    ) -> usize {
+        let passports = self.collect_plugin_passports(plugin_id, manifest, kind);
+        let ids: Vec<String> = passports.iter().map(|p| p.capability_id.clone()).collect();
+        if !ids.is_empty() {
+            self.active_passport_ids.insert(plugin_id.to_string(), ids);
+        }
+        passports.len()
+    }
+
+    /// 取出插件已注册的护照 ID（禁用 / 卸载时回滚索引的依据）。
+    fn take_plugin_passport_ids(&mut self, plugin_id: &str) -> Vec<String> {
+        self.active_passport_ids.remove(plugin_id).unwrap_or_default()
+    }
+
+    /// 读取指定插件的能力护照（从 registry 加载 manifest 同步构造）。
+    ///
+    /// 纯构造、无副作用：启用后注册索引、禁用 / 卸载前回滚索引、启动收集均复用。
+    pub fn passports_for_plugin(&self, plugin_id: &str) -> Vec<CapabilityPassportDto> {
+        let Ok(registry) = self.plugin_registry() else {
+            return Vec::new();
+        };
+        let Some(record) = registry.get(plugin_id) else {
+            return Vec::new();
+        };
+        let meta = record.metadata();
+        let Some(root) = meta.root.as_ref() else {
+            return Vec::new();
+        };
+        let Ok(manifest) = load_plugin_from_directory(root) else {
+            return Vec::new();
+        };
+        self.collect_plugin_passports(plugin_id, &manifest, meta.kind)
+    }
+
+    /// 同步构造某插件的全部能力护照（技能 + Agent + 声明的能力）。
+    ///
+    /// 纯函数：同一 manifest 输出稳定，注册与回滚共用同一套 ID 推导。
+    fn collect_plugin_passports(
+        &self,
+        plugin_id: &str,
+        manifest: &crate::types::PluginManifest,
+        kind: PluginKind,
+    ) -> Vec<CapabilityPassportDto> {
+        use axagent_harness::{
+            CapabilityDomain, CapabilityEvolvability, CapabilityKind, CapabilityPassportDto,
+            CapabilitySource, Visibility,
+        };
+        let mut passports = Vec::new();
+        // 技能（本地 SKILL.md，本地可写 → Local 进化）
+        for skill in &manifest.skills {
+            passports.push(CapabilityPassportDto {
+                capability_id: format!("plugin:{plugin_id}:skill:{}", skill.name),
+                name: skill.name.clone(),
+                description: format!("插件 `{plugin_id}` 提供的技能 {}", skill.name),
+                kind: CapabilityKind::Skill,
+                domain: CapabilityDomain::General,
+                source: CapabilitySource::Plugin,
+                evolvable: CapabilityEvolvability::Local,
+                sub_category: "plugin_skill".to_string(),
+                visibility: Visibility::Public,
+                tags: vec!["plugin".to_string(), plugin_id.to_string(), "skill".to_string()],
+                ..Default::default()
+            });
+        }
+        // Agent（本地 agent 定义，本地可写 → Local 进化）
+        for agent in &manifest.agents {
+            passports.push(CapabilityPassportDto {
+                capability_id: format!("plugin:{plugin_id}:agent:{}", agent.agent_type),
+                name: agent.agent_type.clone(),
+                description: agent.description.clone(),
+                kind: CapabilityKind::Agent,
+                domain: CapabilityDomain::General,
+                source: CapabilitySource::Plugin,
+                evolvable: CapabilityEvolvability::Local,
+                sub_category: "plugin_agent".to_string(),
+                visibility: Visibility::Public,
+                tags: vec!["plugin".to_string(), plugin_id.to_string(), "agent".to_string()],
+                ..Default::default()
+            });
+        }
+        // 声明的能力（按 decl 检索元数据映射；默认 Derived 进化 → 不影响原能力）
+        for decl in &manifest.capabilities {
+            if !decl.discoverable {
+                continue;
+            }
+            let mut dto = CapabilityPassportDto {
+                capability_id: format!("plugin:{plugin_id}:cap:{}", decl.seam),
+                name: if decl.name.is_empty() {
+                    decl.seam.clone()
+                } else {
+                    decl.name.clone()
+                },
+                description: decl.description.clone(),
+                kind: parse_capability_kind(&decl.kind).unwrap_or(CapabilityKind::Tool),
+                domain: decl.domain.parse().unwrap_or(CapabilityDomain::General),
+                source: CapabilitySource::Plugin,
+                evolvable: parse_capability_evolvability(&decl.evolvable)
+                    .unwrap_or(CapabilityEvolvability::Derived),
+                sub_category: decl.capability_type.clone(),
+                visibility: parse_visibility(&decl.visibility),
+                tags: decl.tags.clone(),
+                negative_scenarios: decl.negative_scenarios.clone(),
+                ..Default::default()
+            };
+            if dto.tags.is_empty() {
+                dto.tags = vec!["plugin".to_string(), plugin_id.to_string()];
+            }
+            passports.push(dto);
+        }
+        // 非内置插件在能力发现中始终标记为插件来源（OpenClaw 等也参与发现/进化判断）
+        let _ = kind;
+        passports
+    }
+
     pub fn disable(&mut self, plugin_id: &str) -> Result<(), PluginError> {
         self.mcp_launcher.stop_plugin_mcps(plugin_id);
         crate::agent_provider::unregister_plugin_agents_sync(plugin_id);
         self.skill_installer.remove_plugin_skills(plugin_id).ok();
         self.unregister_plugin_capabilities(plugin_id);
+        let _ = self.take_plugin_passport_ids(plugin_id);
         self.ensure_known_plugin(plugin_id)?;
         self.write_enabled_state(plugin_id, Some(false))?;
         self.config.enabled_plugins.insert(plugin_id.to_string(), false);
@@ -626,6 +765,7 @@ impl PluginManager {
             crate::agent_provider::unregister_plugin_agents_sync(&plugin_id);
             self.skill_installer.remove_plugin_skills(&plugin_id).ok();
             self.unregister_plugin_capabilities(&plugin_id);
+            let _ = self.take_plugin_passport_ids(&plugin_id);
             tracing::info!("Stopped plugin: {plugin_id}");
         }
     }
@@ -665,6 +805,7 @@ impl PluginManager {
         crate::agent_provider::unregister_plugin_agents_sync(plugin_id);
         self.skill_installer.remove_plugin_skills(plugin_id).ok();
         self.unregister_plugin_capabilities(plugin_id);
+        let _ = self.take_plugin_passport_ids(plugin_id);
         if record.install_path.exists() {
             remove_dir_all_with_retry(&record.install_path)?;
         }
@@ -981,7 +1122,9 @@ impl PluginManager {
     fn is_enabled(&self, metadata: &PluginMetadata) -> bool {
         self.config.enabled_plugins.get(&metadata.id).copied().unwrap_or(match metadata.kind {
             PluginKind::External => false,
-            PluginKind::Builtin | PluginKind::Bundled => metadata.default_enabled,
+            PluginKind::Builtin | PluginKind::Bundled | PluginKind::OpenClaw => {
+                metadata.default_enabled
+            },
         })
     }
 
@@ -1058,6 +1201,40 @@ impl PluginManager {
     }
 }
 
+// ── 护照元数据映射 helper ─────────────────────────
+
+/// 将插件声明的能力类型字符串映射为 `CapabilityKind`（未知回退 `Tool`）。
+fn parse_capability_kind(s: &str) -> Option<axagent_harness::CapabilityKind> {
+    match s.to_lowercase().as_str() {
+        "tool" => Some(axagent_harness::CapabilityKind::Tool),
+        "workflow" => Some(axagent_harness::CapabilityKind::Workflow),
+        "knowledge_base" | "knowledgebase" => Some(axagent_harness::CapabilityKind::KnowledgeBase),
+        "agent" => Some(axagent_harness::CapabilityKind::Agent),
+        "skill" => Some(axagent_harness::CapabilityKind::Skill),
+        _ => None,
+    }
+}
+
+/// 将插件声明的可进化性字符串映射为 `CapabilityEvolvability`。
+fn parse_capability_evolvability(s: &str) -> Option<axagent_harness::CapabilityEvolvability> {
+    match s.to_lowercase().as_str() {
+        "local" => Some(axagent_harness::CapabilityEvolvability::Local),
+        "derived" => Some(axagent_harness::CapabilityEvolvability::Derived),
+        "none" => Some(axagent_harness::CapabilityEvolvability::None),
+        _ => None,
+    }
+}
+
+/// 将插件声明的可见性字符串映射为 `Visibility`（未知回退 `Public`）。
+fn parse_visibility(s: &str) -> axagent_harness::Visibility {
+    match s.to_lowercase().as_str() {
+        "system_only" => axagent_harness::Visibility::SystemOnly,
+        "privileged_only" => axagent_harness::Visibility::PrivilegedOnly,
+        "hidden" => axagent_harness::Visibility::Hidden,
+        _ => axagent_harness::Visibility::Public,
+    }
+}
+
 #[must_use]
 pub fn builtin_plugins() -> Vec<PluginDefinition> {
     vec![PluginDefinition::Builtin(BuiltinPlugin {
@@ -1123,6 +1300,15 @@ fn load_plugin_definition(
             permissions,
         }),
         PluginKind::External => PluginDefinition::External(ExternalPlugin {
+            metadata,
+            hooks,
+            lifecycle,
+            tools,
+            mcp_servers,
+            skills,
+            permissions,
+        }),
+        PluginKind::OpenClaw => PluginDefinition::OpenClaw(OpenClawPlugin {
             metadata,
             hooks,
             lifecycle,
@@ -1971,6 +2157,16 @@ fn looks_like_npm_spec(source: &str) -> bool {
 }
 
 pub(crate) fn parse_install_source(source: &str) -> Result<PluginInstallSource, PluginError> {
+    // OpenClaw 包检测: openclaw:package-name
+    if let Some(package_id) = source.strip_prefix("openclaw:") {
+        let pkg = package_id.trim();
+        if pkg.is_empty() {
+            return Err(PluginError::InvalidManifest(
+                "OpenClaw package ID must not be empty".to_string(),
+            ));
+        }
+        return Ok(PluginInstallSource::OpenClaw { package_id: pkg.to_string() });
+    }
     // npm 包检测
     if looks_like_npm_spec(source) {
         let (name, version) = parse_npm_package_spec(source);
@@ -2061,6 +2257,34 @@ fn materialize_source(
                 )),
             }
         },
+        PluginInstallSource::OpenClaw { package_id } => {
+            let dest = temp_root.join(format!("openclaw-{}", sanitize_plugin_id(package_id)));
+            let dest_clone = dest.clone();
+            let pid = package_id.clone();
+            let service = npm_registry.cloned();
+            match service {
+                Some(registry) => {
+                    let rt = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .map_err(|e| {
+                            PluginError::CommandFailed(format!(
+                                "Failed to create runtime for OpenClaw plugin download: {e}"
+                            ))
+                        })?;
+                    rt.block_on(async {
+                        registry
+                            .download_package(&pid, None, &dest)
+                            .await
+                            .map_err(PluginError::CommandFailed)?;
+                        Ok(dest_clone)
+                    })
+                },
+                None => Err(PluginError::CommandFailed(
+                    "NPM registry service is not configured".to_string(),
+                )),
+            }
+        },
     }
 }
 
@@ -2109,6 +2333,7 @@ fn describe_install_source(source: &PluginInstallSource) -> String {
             Some(version) => format!("{name}@{version}"),
             None => name.clone(),
         },
+        PluginInstallSource::OpenClaw { package_id } => format!("openclaw:{package_id}"),
     }
 }
 
@@ -2270,7 +2495,10 @@ fn collect_files_recursive(dir: &Path, files: &mut Vec<PathBuf>) -> Result<(), P
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axagent_harness::CapabilityRegistry;
+    use axagent_harness::{
+        CapabilityDomain, CapabilityEvolvability, CapabilityKind, CapabilityRegistry,
+        CapabilitySource,
+    };
 
     fn temp_dir(label: &str) -> PathBuf {
         let nanos = std::time::SystemTime::now()
@@ -2303,6 +2531,14 @@ mod tests {
                 capability_type: "platform_adapter".into(),
                 version: "1.0".into(),
                 description: "demo telegram adapter".into(),
+                name: "Telegram 适配器".into(),
+                kind: "tool".into(),
+                domain: "communication".into(),
+                tags: vec!["telegram".into()],
+                negative_scenarios: Vec::new(),
+                visibility: "public".into(),
+                discoverable: true,
+                evolvable: "derived".into(),
             }],
         }
     }
@@ -2342,5 +2578,107 @@ mod tests {
         assert!(errors.is_empty());
         // 未注入 registry 时不报错、不崩溃
         manager.unregister_plugin_capabilities("external:noop");
+    }
+
+    /// 构造含技能 + Agent + 声明能力（含不可发现项）的 manifest，验证护照映射。
+    fn manifest_with_passport_sources() -> PluginManifest {
+        let mut manifest = demo_manifest_with_capabilities();
+        manifest.skills =
+            vec![PluginSkillEntry { name: "web-auto".into(), path: "skills/web-auto".into() }];
+        manifest.agents = vec![PluginAgentDefInternal {
+            agent_type: "helper".into(),
+            description: "demo helper agent".into(),
+            tools: Vec::new(),
+            disallowed_tools: Vec::new(),
+            model: None,
+            background: false,
+            system_prompt: None,
+        }];
+        // 追加一个 discoverable=false 的声明能力（应被护照映射跳过）
+        manifest.capabilities.push(PluginCapabilityDecl {
+            seam: "hidden.seam".into(),
+            capability_type: "internal".into(),
+            version: "1.0".into(),
+            description: String::new(),
+            name: String::new(),
+            kind: "tool".into(),
+            domain: "general".into(),
+            tags: Vec::new(),
+            negative_scenarios: Vec::new(),
+            visibility: "public".into(),
+            discoverable: false,
+            evolvable: "none".into(),
+        });
+        manifest
+    }
+
+    #[test]
+    fn plugin_passports_mapping_marks_source_and_evolvability() {
+        let config = PluginManagerConfig::new(temp_dir("p3passmap"));
+        let manager = PluginManager::new(config);
+        let manifest = manifest_with_passport_sources();
+
+        let passports =
+            manager.collect_plugin_passports("external:demo", &manifest, PluginKind::External);
+        // 1 技能 + 1 Agent + 1 可发现声明能力（hidden.seam 被跳过）
+        assert_eq!(passports.len(), 3, "护照应跳过 discoverable=false 的声明能力");
+
+        // 技能：插件来源 + 本地可写（Local 进化）
+        let skill = passports
+            .iter()
+            .find(|p| p.capability_id == "plugin:external:demo:skill:web-auto")
+            .expect("技能护照应存在");
+        assert_eq!(skill.source, CapabilitySource::Plugin);
+        assert_eq!(skill.evolvable, CapabilityEvolvability::Local);
+        assert_eq!(skill.kind, CapabilityKind::Skill);
+        assert!(skill.tags.contains(&"plugin".to_string()));
+
+        // Agent：插件来源 + 本地可写（Local 进化）
+        let agent = passports
+            .iter()
+            .find(|p| p.capability_id == "plugin:external:demo:agent:helper")
+            .expect("Agent 护照应存在");
+        assert_eq!(agent.source, CapabilitySource::Plugin);
+        assert_eq!(agent.evolvable, CapabilityEvolvability::Local);
+        assert_eq!(agent.kind, CapabilityKind::Agent);
+
+        // 声明能力：插件来源 + 按 decl 解析（derived → 进化产出副本、原护照不变）
+        let cap = passports
+            .iter()
+            .find(|p| p.capability_id == "plugin:external:demo:cap:platform.adapter.telegram")
+            .expect("声明能力护照应存在");
+        assert_eq!(cap.source, CapabilitySource::Plugin);
+        assert_eq!(cap.evolvable, CapabilityEvolvability::Derived);
+        assert_eq!(cap.kind, CapabilityKind::Tool);
+        assert_eq!(cap.domain, CapabilityDomain::Communication);
+
+        // 不可发现的能力不应产出护照
+        assert!(
+            !passports.iter().any(|p| p.capability_id == "plugin:external:demo:cap:hidden.seam"),
+            "discoverable=false 不应产出护照"
+        );
+    }
+
+    #[test]
+    fn plugin_passports_register_tracks_ids_and_rollback() {
+        let config = PluginManagerConfig::new(temp_dir("p3passlife"));
+        let mut manager = PluginManager::new(config);
+        let manifest = manifest_with_passport_sources();
+
+        // 注册护照：记录 ID 供回滚
+        let count =
+            manager.register_plugin_passports("external:demo", &manifest, PluginKind::External);
+        assert_eq!(count, 3);
+        let tracked = manager.active_passport_ids.get("external:demo").cloned();
+        let tracked = tracked.expect("应记录护照 ID 集合");
+        assert_eq!(tracked.len(), 3);
+        assert!(tracked.contains(&"plugin:external:demo:skill:web-auto".to_string()));
+
+        // 回滚：取出 ID 并清空状态
+        let ids = manager.take_plugin_passport_ids("external:demo");
+        assert_eq!(ids.len(), 3);
+        assert!(!manager.active_passport_ids.contains_key("external:demo"));
+        // 重复回滚为空（幂等）
+        assert!(manager.take_plugin_passport_ids("external:demo").is_empty());
     }
 }

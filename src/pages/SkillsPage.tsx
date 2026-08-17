@@ -309,7 +309,10 @@ function MarketplaceCard({
   source: string;
 }) {
   const { token: cardToken } = theme.useToken();
-  const githubUrl = `https://github.com/${skill.repo}`;
+  const isOpenClaw = source === "openclaw";
+  const externalUrl = isOpenClaw
+    ? `https://clawhub.ai/${skill.repo}`
+    : `https://github.com/${skill.repo}`;
 
   return (
     <Card
@@ -390,9 +393,9 @@ function MarketplaceCard({
             size="small"
             type="text"
             icon={<GitFork size={14} color={CHAT_ICON_COLORS.GitFork} />}
-            onClick={() => openExternalUrl(githubUrl)}
+            onClick={() => openExternalUrl(externalUrl)}
           >
-            GitHub
+            {isOpenClaw ? "ClawHub" : "GitHub"}
           </Button>
           {skill.installed
             ? (
@@ -460,7 +463,7 @@ export function SkillsPage() {
   const [installing, setInstalling] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [marketplaceSource, setMarketplaceSource] = useState<
-    "skillhub" | "github"
+    "skillhub" | "github" | "openclaw"
   >("skillhub");
   const [marketplaceInput, setMarketplaceInput] = useState("");
   const marketplaceQueryRef = useRef("");
@@ -554,7 +557,8 @@ export function SkillsPage() {
     async (repo: string, target: string) => {
       setInstalling(repo);
       try {
-        const name = await installSkill(repo, target);
+        const src = marketplaceSource === "openclaw" ? `openclaw:${repo}` : repo;
+        const name = await installSkill(src, target);
         messageApi.success(t("skills.installSuccess", { name }));
       } catch (e) {
         messageApi.error(String(e));
@@ -562,7 +566,7 @@ export function SkillsPage() {
         setInstalling(null);
       }
     },
-    [installSkill, messageApi, t],
+    [installSkill, messageApi, t, marketplaceSource],
   );
 
   const handleToggle = useCallback(
@@ -635,7 +639,7 @@ export function SkillsPage() {
           file_name: string;
           found: boolean;
           error: string | null;
-        }>("get_marketplace_skill_content", { repo });
+        }>("get_marketplace_skill_content", { repo, source: marketplaceSource });
         if (result.found && result.content.trim()) {
           setMarketplaceDetailContent({
             name: skill.name,
@@ -659,7 +663,7 @@ export function SkillsPage() {
         setMarketplaceDetailLoading(false);
       }
     },
-    [marketplaceSkills, t],
+    [marketplaceSkills, marketplaceSource, t],
   );
 
   const handleDecomposeComplete = useCallback(() => {
@@ -1134,6 +1138,7 @@ export function SkillsPage() {
             options={[
               { value: "skillhub", label: "skillhub" },
               { value: "github", label: "GitHub" },
+              { value: "openclaw", label: "OpenClaw" },
             ]}
           />
           <Select

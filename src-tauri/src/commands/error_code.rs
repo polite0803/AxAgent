@@ -666,6 +666,8 @@ pub mod capability {
     pub const METADATA_RESTORE_FAILED: &str = "CAPABILITY_METADATA_RESTORE_FAILED";
     /// 能力进化失败
     pub const EVOLVE_FAILED: &str = "CAPABILITY_EVOLVE_FAILED";
+    /// 能力不可进化（外部插件只读能力，evolvable = none）
+    pub const NOT_EVOLVABLE: &str = "CAPABILITY_NOT_EVOLVABLE";
 }
 
 /// 用户提问通道已关闭错误码
@@ -760,4 +762,14 @@ pub mod plugin_profile {
     pub const DUPLICATE_NAME: &str = "PLUGIN_PROFILE_DUPLICATE_NAME";
     /// 插件组合 Profile 持久化 I/O 失败
     pub const IO_FAILED: &str = "PLUGIN_PROFILE_IO_FAILED";
+}
+
+/// Unity 改造相关错误码
+///
+/// P0 阶段：任务形态分类器（原则三标尺：上下文保留成本 × 安全隔离需求）。
+/// 与前端 `error.UNITY_P0_CLASSIFIER_FAILED` 翻译键对齐。
+/// 镜像 `crates/harness/src/error_codes.rs::unity`，两处定义值必须一致。
+pub mod unity {
+    /// 任务形态分类失败（分类器内部异常，回退到 HandleLocally 策略）
+    pub const P0_CLASSIFIER_FAILED: &str = "UNITY_P0_CLASSIFIER_FAILED";
 }

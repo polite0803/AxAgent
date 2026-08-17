@@ -23,6 +23,7 @@ use axagent_harness::{NpmRegistryService, parse_npm_package_spec};
 const EXTERNAL_MARKETPLACE: &str = "external";
 const BUILTIN_MARKETPLACE: &str = "builtin";
 const BUNDLED_MARKETPLACE: &str = "bundled";
+const OPENCLAW_MARKETPLACE: &str = "openclaw";
 const SETTINGS_FILE_NAME: &str = "settings.json";
 const REGISTRY_FILE_NAME: &str = "installed.json";
 pub(crate) const MANIFEST_FILE_NAME: &str = "plugin.json";
@@ -54,6 +55,7 @@ pub enum PluginDefinition {
     Builtin(BuiltinPlugin),
     Bundled(BundledPlugin),
     External(ExternalPlugin),
+    OpenClaw(OpenClawPlugin),
 }
 
 impl Plugin for BuiltinPlugin {
@@ -207,12 +209,62 @@ impl Plugin for ExternalPlugin {
     }
 }
 
+impl Plugin for OpenClawPlugin {
+    fn metadata(&self) -> &PluginMetadata {
+        &self.metadata
+    }
+
+    fn hooks(&self) -> &PluginHooks {
+        &self.hooks
+    }
+
+    fn lifecycle(&self) -> &PluginLifecycle {
+        &self.lifecycle
+    }
+
+    fn tools(&self) -> &[PluginTool] {
+        &self.tools
+    }
+
+    fn mcp_servers(&self) -> &[PluginMcpServer] {
+        &self.mcp_servers
+    }
+
+    fn skills(&self) -> &[PluginSkillEntry] {
+        &self.skills
+    }
+
+    fn permissions(&self) -> &[PluginPermission] {
+        &self.permissions
+    }
+
+    fn validate(&self) -> Result<(), PluginError> {
+        validate_hook_paths(self.metadata.root.as_deref(), &self.hooks)?;
+        validate_lifecycle_paths(self.metadata.root.as_deref(), &self.lifecycle)?;
+        validate_tool_paths(self.metadata.root.as_deref(), &self.tools)
+    }
+
+    fn initialize(&self) -> Result<(), PluginError> {
+        run_lifecycle_commands(self.metadata(), self.lifecycle(), "init", &self.lifecycle.init)
+    }
+
+    fn shutdown(&self) -> Result<(), PluginError> {
+        run_lifecycle_commands(
+            self.metadata(),
+            self.lifecycle(),
+            "shutdown",
+            &self.lifecycle.shutdown,
+        )
+    }
+}
+
 impl Plugin for PluginDefinition {
     fn metadata(&self) -> &PluginMetadata {
         match self {
             Self::Builtin(plugin) => plugin.metadata(),
             Self::Bundled(plugin) => plugin.metadata(),
             Self::External(plugin) => plugin.metadata(),
+            Self::OpenClaw(plugin) => plugin.metadata(),
         }
     }
 
@@ -221,6 +273,7 @@ impl Plugin for PluginDefinition {
             Self::Builtin(plugin) => plugin.hooks(),
             Self::Bundled(plugin) => plugin.hooks(),
             Self::External(plugin) => plugin.hooks(),
+            Self::OpenClaw(plugin) => plugin.hooks(),
         }
     }
 
@@ -229,6 +282,7 @@ impl Plugin for PluginDefinition {
             Self::Builtin(plugin) => plugin.lifecycle(),
             Self::Bundled(plugin) => plugin.lifecycle(),
             Self::External(plugin) => plugin.lifecycle(),
+            Self::OpenClaw(plugin) => plugin.lifecycle(),
         }
     }
 
@@ -237,6 +291,7 @@ impl Plugin for PluginDefinition {
             Self::Builtin(plugin) => plugin.tools(),
             Self::Bundled(plugin) => plugin.tools(),
             Self::External(plugin) => plugin.tools(),
+            Self::OpenClaw(plugin) => plugin.tools(),
         }
     }
 
@@ -245,6 +300,7 @@ impl Plugin for PluginDefinition {
             Self::Builtin(plugin) => plugin.mcp_servers(),
             Self::Bundled(plugin) => plugin.mcp_servers(),
             Self::External(plugin) => plugin.mcp_servers(),
+            Self::OpenClaw(plugin) => plugin.mcp_servers(),
         }
     }
 
@@ -253,6 +309,7 @@ impl Plugin for PluginDefinition {
             Self::Builtin(plugin) => plugin.skills(),
             Self::Bundled(plugin) => plugin.skills(),
             Self::External(plugin) => plugin.skills(),
+            Self::OpenClaw(plugin) => plugin.skills(),
         }
     }
 
@@ -261,6 +318,7 @@ impl Plugin for PluginDefinition {
             Self::Builtin(plugin) => plugin.permissions(),
             Self::Bundled(plugin) => plugin.permissions(),
             Self::External(plugin) => plugin.permissions(),
+            Self::OpenClaw(plugin) => plugin.permissions(),
         }
     }
 
@@ -269,6 +327,7 @@ impl Plugin for PluginDefinition {
             Self::Builtin(plugin) => plugin.validate(),
             Self::Bundled(plugin) => plugin.validate(),
             Self::External(plugin) => plugin.validate(),
+            Self::OpenClaw(plugin) => plugin.validate(),
         }
     }
 
@@ -277,6 +336,7 @@ impl Plugin for PluginDefinition {
             Self::Builtin(plugin) => plugin.initialize(),
             Self::Bundled(plugin) => plugin.initialize(),
             Self::External(plugin) => plugin.initialize(),
+            Self::OpenClaw(plugin) => plugin.initialize(),
         }
     }
 
@@ -285,6 +345,7 @@ impl Plugin for PluginDefinition {
             Self::Builtin(plugin) => plugin.shutdown(),
             Self::Bundled(plugin) => plugin.shutdown(),
             Self::External(plugin) => plugin.shutdown(),
+            Self::OpenClaw(plugin) => plugin.shutdown(),
         }
     }
 }

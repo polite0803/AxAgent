@@ -81,6 +81,8 @@ export type { GlobalShortcutDiagnostic, GlobalShortcutStatus } from "./feature/s
 export { useSkillExtensionStore } from "./feature/skillExtensionStore";
 export { useSkillStore } from "./feature/skillStore";
 export { useSourceStore } from "./feature/sourceStore";
+export { setupTaskShapeApprovalListeners, useTaskShapeApprovalStore } from "./feature/taskShapeApprovalStore";
+export type { TaskShapeApprovalEvent } from "./feature/taskShapeApprovalStore";
 export { useTerminalStore } from "./feature/terminalStore";
 export { useTopicGroupStore } from "./feature/topicGroupStore";
 export { useTrajectoryStore } from "./feature/trajectoryStore";

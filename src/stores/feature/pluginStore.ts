@@ -72,7 +72,7 @@ export const usePluginStore = create<PluginState>((set, get) => ({
             name: outcome.pluginId.split("@")[0] || outcome.pluginId,
             version: outcome.version,
             description: "",
-            kind: "external" as const,
+            kind: source.startsWith("openclaw:") ? "openclaw" as const : "external" as const,
             enabled: true,
             tools: [],
             mcpServers: [],

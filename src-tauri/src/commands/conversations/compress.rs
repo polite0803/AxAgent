@@ -930,6 +930,9 @@ mod tests_conversation {
                 Arc::new(axagent_providers::registry::ProviderRegistry::create_default())
                     as Arc<dyn axagent_harness::registry::ProviderRegistry>,
             )),
+            scheduler_budget: Arc::new(tokio::sync::RwLock::new(
+                crate::scheduler::gate::BudgetState::default(),
+            )),
             workflow_reflector: axagent_trajectory::WorkflowReflectorImpl::with_defaults()
                 .into_arc(),
             workflow_evolver: axagent_trajectory::WorkflowEvolverImpl::with_defaults().into_arc(),
@@ -973,6 +976,12 @@ mod tests_conversation {
             capability_router: test_capability_router,
             capability_indexer: test_capability_indexer_impl,
             cognitive_router: test_cognitive_router,
+            // 动态防护规则管理器 + 任务形态 LLM 兜底分类器 + 审批通道（测试替身）
+            prompt_guard: Arc::new(axagent_harness::PatternPromptGuard::new()),
+            task_shape_llm_classifier: Arc::new(
+                axagent_harness::test_support::NoopTaskShapeLlmClassifier,
+            ),
+            task_shape_approval_senders: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             tot_sessions: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             planner_sessions: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             #[cfg(not(target_os = "android"))]

@@ -2,33 +2,33 @@
 
 export type ModelParamOverrides = {
   temperature: number | null;
-  max_tokens: number | null;
-  top_p: number | null;
-  frequency_penalty: number | null;
+  maxTokens: number | null;
+  topP: number | null;
+  frequencyPenalty: number | null;
   /**
    * When true, the provider adapter should send `max_completion_tokens`
    * instead of `max_tokens` (required by OpenAI o-series models).
    */
-  use_max_completion_tokens: boolean | null;
+  useMaxCompletionTokens: boolean | null;
   /**
    * When true, system messages are converted to user messages
    * (for models that don't support the system role).
    */
-  no_system_role: boolean | null;
+  noSystemRole: boolean | null;
   /**
    * When true, always include max_tokens in the request
    * (falls back to 4096 if conversation.max_tokens is not set).
    */
-  force_max_tokens: boolean | null;
+  forceMaxTokens: boolean | null;
   /**
    * Thinking parameter format for the provider API.
    * "reasoning_effort" (default/OpenAI) or "enable_thinking" (SiliconFlow).
    */
-  thinking_param_style: string | null;
+  thinkingParamStyle: string | null;
   /**
    * Delay in milliseconds before each API request to this model.
    * Used to avoid hitting rate limits (e.g. 429 errors) on providers
    * with strict per-model rate quotas.
    */
-  request_delay_ms: bigint | null;
+  requestDelayMs: bigint | null;
 };

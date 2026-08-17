@@ -193,6 +193,12 @@ pub struct AgentQueryRequest {
     /// 当前编排模式以调整行为；直连 agent（非认知编排）调用时缺省为 None。
     #[serde(rename = "executionMode", default, skip_serializing_if = "Option::is_none")]
     pub execution_mode: Option<String>,
+    /// P0: 任务形态决策（原则三标尺输出）。
+    /// 当 UNITY_P0_TASK_SHAPE 启用时，由 TaskShapeClassifier 在路由前产出，
+    /// 运行时据此覆盖会话权限初值（按任务而非按会话）。
+    /// `None` 表示未启用 flag 或直连 agent 调用。
+    #[serde(rename = "taskShape", default, skip_serializing_if = "Option::is_none")]
+    pub task_shape: Option<axagent_harness::TaskShapeDecision>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

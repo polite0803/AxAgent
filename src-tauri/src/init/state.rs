@@ -19,6 +19,7 @@ use axagent_dao::search_sources_impl::{
     MemoryUnifiedSource, ObsidianUnifiedSource, RagUnifiedSource, WikiUnifiedSource,
 };
 use axagent_harness::AgentSessionRepository;
+use axagent_harness::PatternPromptGuard;
 use axagent_harness::feedback_data_lake::register_feedback_lake;
 use axagent_plugins::{PluginManager, PluginManagerConfig};
 use axagent_runtime_core::prompt_cache::PromptCache;
@@ -800,6 +801,14 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     // ── Fleet 意图分类 LLM（真实 Provider 实现，供 dispatcher 路由）──
     let fleet_intent_llm: Arc<dyn axagent_harness::fleet::FleetIntentLlm> =
         Arc::new(crate::commands::fleet::executor::ProviderFleetIntentLlm::new(harness.clone()));
+
+    // ── P3: 任务形态 LLM 兜底分类器（wiring 层注入）──
+    let task_shape_llm_classifier: Arc<dyn axagent_harness::TaskShapeLlmClassifier> =
+        Arc::new(axagent_runtime::ProviderTaskShapeLlmClassifier::new(harness.clone()));
+    // ── P3: ApprovalGate 审批 oneshot 通道 ──
+    let task_shape_approval_senders: Arc<
+        tokio::sync::Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<bool>>>,
+    > = Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new()));
     let tot_sessions: Arc<
         tokio::sync::Mutex<std::collections::HashMap<String, crate::app_state::TotSession>>,
     > = Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new()));
@@ -1302,6 +1311,9 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         local_tool_registry,
         evolution_execution_stats,
         work_engine,
+        scheduler_budget: Arc::new(tokio::sync::RwLock::new(
+            crate::scheduler::gate::BudgetState::default(),
+        )),
         workflow_reflector,
         workflow_evolver,
         workflow_optimizer,
@@ -1348,6 +1360,11 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         capability_indexer,
         // 认知编排器
         cognitive_router,
+        // 动态防护规则管理器
+        prompt_guard: Arc::new(PatternPromptGuard::new()),
+        // P3: 任务形态 LLM 兜底分类器 + 审批通道
+        task_shape_llm_classifier,
+        task_shape_approval_senders,
         // Phase 3 P1 Task 3.1: domain decomposition
         infra: infra_state,
         gateway_state,
@@ -1428,10 +1445,12 @@ async fn register_all_capabilities(
     // 4. 技能：从 SkillState 缓存的 PluginManager 收集技能护照
     //    通过 plugin_registry_report() 容错加载（单个 SKILL.md 损坏不影响整体），
     //    技能归入 Core 域 + skill 集群，与工具/工作流并行参与 RAR 检索。
+    //    仅收集内置（Builtin）技能；插件技能/Agent/声明能力统一由 4b 以
+    //    Plugin 来源收集，避免启动收集与插件生命周期护照注册重复。
     {
         use axagent_harness::{
-            CapabilityDomain, CapabilityKind, CapabilityPassportDto, PlanningComplexity,
-            SecurityLevel, Visibility,
+            CapabilityDomain, CapabilityEvolvability, CapabilityKind, CapabilityPassportDto,
+            CapabilitySource, PlanningComplexity, SecurityLevel, Visibility,
         };
         let plugin_manager = skill_state.plugin_manager.read().await;
         if let Ok(report) = plugin_manager.plugin_registry_report() {
@@ -1441,12 +1460,17 @@ async fn register_all_capabilities(
             let plugins = report.into_registry_allowing_failures();
             for p in plugins.summaries() {
                 let meta = &p.metadata;
+                if meta.kind != axagent_plugins::PluginKind::Builtin {
+                    continue;
+                }
                 passports.push(CapabilityPassportDto {
                     capability_id: format!("skill:{}", meta.name),
                     name: meta.name.clone(),
                     description: meta.description.clone(),
                     kind: CapabilityKind::Skill,
                     domain: CapabilityDomain::General,
+                    source: CapabilitySource::Builtin,
+                    evolvable: CapabilityEvolvability::Local,
                     sub_category: "skill".to_string(),
                     visibility: Visibility::Public,
                     caller_permissions: Default::default(),
@@ -1466,6 +1490,28 @@ async fn register_all_capabilities(
                     level: axagent_harness::CapabilityLevel::L1,
                     enabled: true,
                 });
+            }
+        }
+    }
+
+    // 4b. 插件护照：非内置插件的技能 + Agent + 声明能力，统一以 Plugin 来源收集。
+    //     运行时启用/禁用/卸载由命令层增量同步（`passports_for_plugin`），
+    //     启动时在此一次性收集，保证与插件生命周期注册的护照 ID 完全一致。
+    {
+        use axagent_harness::CapabilitySource;
+        let plugin_manager = skill_state.plugin_manager.read().await;
+        if let Ok(report) = plugin_manager.plugin_registry_report() {
+            for p in report.into_registry_allowing_failures().summaries() {
+                if p.metadata.kind == axagent_plugins::PluginKind::Builtin {
+                    continue;
+                }
+                let plugin_id = &p.metadata.id;
+                for passport in plugin_manager.passports_for_plugin(plugin_id) {
+                    // 双保险：仅收集明确标记为插件来源的护照
+                    if passport.source == CapabilitySource::Plugin {
+                        passports.push(passport);
+                    }
+                }
             }
         }
     }
@@ -1520,6 +1566,8 @@ async fn register_all_capabilities(
                     agent_profile_id: Some(p.id.clone()),
                     stats: Default::default(),
                     level: axagent_harness::CapabilityLevel::L1,
+                    source: axagent_harness::CapabilitySource::Builtin,
+                    evolvable: axagent_harness::CapabilityEvolvability::Local,
                     enabled: true,
                 });
             }
@@ -1611,6 +1659,8 @@ async fn register_all_capabilities(
                     agent_profile_id: exec_profile,
                     stats: Default::default(),
                     level: axagent_harness::CapabilityLevel::L1,
+                    source: axagent_harness::CapabilitySource::Builtin,
+                    evolvable: axagent_harness::CapabilityEvolvability::Local,
                     enabled: true,
                 });
             }
@@ -1695,8 +1745,9 @@ fn infer_role_domain(active_domains: &[String]) -> axagent_harness::CapabilityDo
 /// - 用于内部编排和基础设施服务
 async fn register_system_capabilities(indexer: &Arc<axagent_tools::CapabilityIndexerImpl>) {
     use axagent_harness::{
-        CallerPermissions, CapabilityDomain, CapabilityIndexer, CapabilityKind,
-        CapabilityPassportDto, OutputCapabilities, PlanningComplexity, SecurityLevel, Visibility,
+        CallerPermissions, CapabilityDomain, CapabilityEvolvability, CapabilityIndexer,
+        CapabilityKind, CapabilityPassportDto, CapabilitySource, OutputCapabilities,
+        PlanningComplexity, SecurityLevel, Visibility,
     };
 
     let mut system_passports = vec![
@@ -1731,6 +1782,8 @@ async fn register_system_capabilities(indexer: &Arc<axagent_tools::CapabilityInd
             stats: Default::default(),
             level: axagent_harness::CapabilityLevel::L1,
             enabled: true,
+            source: CapabilitySource::Builtin,
+            evolvable: CapabilityEvolvability::Local,
         },
         // LayeredPromptEngine — 分层 Prompt 引擎
         CapabilityPassportDto {
@@ -1763,6 +1816,8 @@ async fn register_system_capabilities(indexer: &Arc<axagent_tools::CapabilityInd
             stats: Default::default(),
             level: axagent_harness::CapabilityLevel::L1,
             enabled: true,
+            source: CapabilitySource::Builtin,
+            evolvable: CapabilityEvolvability::Local,
         },
     ];
 
@@ -1806,6 +1861,8 @@ async fn register_system_capabilities(indexer: &Arc<axagent_tools::CapabilityInd
             agent_profile_id: None,
             stats: Default::default(),
             level: axagent_harness::CapabilityLevel::L1,
+            source: axagent_harness::CapabilitySource::Builtin,
+            evolvable: axagent_harness::CapabilityEvolvability::None,
             enabled: true,
         });
     }

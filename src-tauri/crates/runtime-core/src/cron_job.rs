@@ -80,9 +80,67 @@ pub struct CronJob {
     pub next_run_at: Option<i64>,
     /// 重试/超时配置
     pub config: TaskConfig,
+    /// 优先级：low / medium / high / batch（调度排序用）
+    #[serde(default = "default_priority")]
+    pub priority: String,
+    /// 预估成本（E8 折算，用于择时与成本门控）
+    #[serde(default)]
+    pub epoch_cost_estimate: Option<f64>,
     /// 创建/更新时间
     pub created_at: i64,
     pub updated_at: i64,
+}
+
+/// serde 默认优先级（兼容旧库中无该字段的持久化任务）
+fn default_priority() -> String {
+    CronJobPriority::default().to_string()
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum CronJobPriority {
+    Batch,
+    Low,
+    #[default]
+    Medium,
+    High,
+}
+
+impl CronJobPriority {
+    /// 数值化排序权重：High > Medium > Low > Batch
+    pub fn weight(&self) -> i32 {
+        match self {
+            Self::High => 4,
+            Self::Medium => 3,
+            Self::Low => 2,
+            Self::Batch => 1,
+        }
+    }
+}
+
+impl std::str::FromStr for CronJobPriority {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.trim().to_ascii_lowercase().as_str() {
+            "high" => Ok(Self::High),
+            "low" => Ok(Self::Low),
+            "batch" => Ok(Self::Batch),
+            _ => Ok(Self::Medium),
+        }
+    }
+}
+
+impl std::fmt::Display for CronJobPriority {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Self::High => "high",
+            Self::Medium => "medium",
+            Self::Low => "low",
+            Self::Batch => "batch",
+        };
+        f.write_str(s)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -145,6 +203,8 @@ impl CronJob {
             last_result: None,
             next_run_at: None,
             config: TaskConfig::default(),
+            priority: CronJobPriority::default().to_string(),
+            epoch_cost_estimate: None,
             created_at: now,
             updated_at: now,
         }
@@ -152,6 +212,16 @@ impl CronJob {
 
     pub fn with_platform(mut self, platform: &str) -> Self {
         self.platform = Some(platform.to_string());
+        self
+    }
+
+    pub fn with_priority(mut self, priority: impl Into<String>) -> Self {
+        self.priority = priority.into();
+        self
+    }
+
+    pub fn with_cost_estimate(mut self, estimate: Option<f64>) -> Self {
+        self.epoch_cost_estimate = estimate;
         self
     }
 
@@ -357,10 +427,24 @@ impl CronJobStore {
     pub async fn list_due(&self) -> Vec<CronJob> {
         let now = now_millis();
         let jobs = self.jobs.read().await;
-        jobs.iter()
+        let mut due: Vec<CronJob> = jobs
+            .iter()
             .filter(|j| j.is_active() && j.next_run_at.is_none_or(|next| now >= next))
             .cloned()
-            .collect()
+            .collect();
+        // 优先级排序：priority(高→低), 预估耗时(短→长), 提交时间(早→晚)
+        due.sort_by(|a, b| {
+            let pa = a.priority.parse::<CronJobPriority>().map_or(3, |p| p.weight());
+            let pb = b.priority.parse::<CronJobPriority>().map_or(3, |p| p.weight());
+            pb.cmp(&pa)
+                .then_with(|| {
+                    let ea = a.epoch_cost_estimate.unwrap_or(0.0);
+                    let eb = b.epoch_cost_estimate.unwrap_or(0.0);
+                    ea.partial_cmp(&eb).unwrap_or(std::cmp::Ordering::Equal)
+                })
+                .then_with(|| a.created_at.cmp(&b.created_at))
+        });
+        due
     }
 
     pub async fn set_status(&self, id: &str, status: CronJobStatus) -> bool {
@@ -491,6 +575,8 @@ impl From<axagent_harness::tool_service::CronJobData> for CronJob {
             last_result: None,
             next_run_at: None,
             config: TaskConfig::default(),
+            priority: data.priority.unwrap_or_else(|| CronJobPriority::default().to_string()),
+            epoch_cost_estimate: None,
             created_at: now,
             updated_at: now,
         }
@@ -506,6 +592,7 @@ impl From<&CronJob> for axagent_harness::tool_service::CronJobData {
             description: job.description.clone(),
             is_active: job.is_active(),
             run_count: job.run_count,
+            priority: Some(job.priority.clone()),
         }
     }
 }

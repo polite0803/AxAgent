@@ -23,6 +23,7 @@ function makeApproval(overrides?: Partial<ApprovalRequest>): ApprovalRequest {
     title: "Confirm Action",
     message: "Are you sure?",
     status: "pending",
+    timeoutAction: "auto_reject",
     timeoutSecs: 0,
     expiresAt: 0,
     createdAt: 0,

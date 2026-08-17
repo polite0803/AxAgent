@@ -40,6 +40,7 @@ pub mod hook_config;
 pub mod lan_transfer;
 mod lane_events;
 pub mod llm_bridge;
+pub mod llm_helpers;
 pub mod lsp_client;
 pub mod lsp_process;
 pub mod lsp_protocol;
@@ -82,6 +83,7 @@ pub mod summary_compression;
 pub mod task_manager;
 pub mod task_packet;
 pub mod task_registry;
+pub mod task_shape_llm;
 pub mod tasks;
 pub mod team_cron_registry;
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
@@ -114,6 +116,10 @@ pub use branch_lock::{BranchLockCollision, BranchLockIntent, detect_branch_lock_
 
 // ── SubTaskDispatcher 生产 wiring ──
 pub use subtask_dispatcher::{NoopSubTaskHandler, RuntimeSubTaskDispatcher, SubTaskHandler};
+
+// ── P3: 任务形态 LLM 兜底分类器（wiring 层注入） ──
+pub use llm_helpers::{ResolvedProvider, resolve_default_provider};
+pub use task_shape_llm::ProviderTaskShapeLlmClassifier;
 
 pub use file_ops::{
     EditFileOutput, GlobSearchOutput, GrepSearchInput, GrepSearchOutput, ReadFileOutput,

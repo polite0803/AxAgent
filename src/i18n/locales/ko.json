@@ -1223,7 +1223,12 @@
     },
     "evolve": "진화시키기",
     "evolveSuccess": "진화 성공, 레벨이 {{level}}로 상승했습니다",
-    "evolveFailed": "진화 실패, 잠시 후 다시 시도해 주세요"
+    "evolveFailed": "진화 실패, 잠시 후 다시 시도해 주세요",
+    "pluginSource": "플러그인",
+    "evolvable": {
+      "local": "로컬 진화",
+      "derived": "파생"
+    }
   },
   "chatMarkdown": {
     "inputParams": "입력 매개변수",
@@ -1596,6 +1601,7 @@
     "circuitClosed": "정상",
     "llmFallback": "LLM 폴백",
     "fallbackPath": "대체 경로",
+    "filteredCount": "회로 필터링됨",
     "candidates": "후보",
     "stageRecords": "라우트 단계",
     "recordedAt": "기록 시간",
@@ -1614,6 +1620,34 @@
       "delegate": "에이전트 위임",
       "parameter_extract": "파라미터 추출",
       "clarify": "확인 대기"
+    },
+    "taskShape": {
+      "label": "작업 형태",
+      "contextCost": "컨텍스트 비용",
+      "isolationNeed": "격리 요구",
+      "strategy": "권장 전략",
+      "mergeScore": "병합 성향",
+      "splitScore": "분할 성향",
+      "evidence": "증거",
+      "contextCostMap": {
+        "ephemeral": "순간",
+        "resumable": "재개 가능",
+        "long_running_project": "장기 프로젝트",
+        "persistent_journey": "지속 여정"
+      },
+      "isolationNeedMap": {
+        "read_only_thought": "읽기 전용",
+        "workspace_write": "워크스페이스 쓰기",
+        "sandbox_required": "샌드박스 필수",
+        "approval_and_air_gap": "승인·에어갭"
+      },
+      "strategyMap": {
+        "handleLocally": "로컬 처리",
+        "delegateSingleExpert": "단일 전문가 위임",
+        "parallelExperts": "병렬 전문가",
+        "orchestratorDag": "오케스트레이터 DAG",
+        "approvalGate": "승인 게이트"
+      }
     }
   },
   "continuation": {
@@ -2390,6 +2424,7 @@
     "CAPABILITY_STATS_FAILED": "능력 통계 가져오기 실패",
     "CAPABILITY_METADATA_RESTORE_FAILED": "메타데이터 복원 실패",
     "CAPABILITY_EVOLVE_FAILED": "능력 진화 실패",
+    "CAPABILITY_NOT_EVOLVABLE": "이 능력은 진화할 수 없습니다（외부 플러그인 읽기 전용 기능）",
     "AGENT_INPUT_CHANNEL_CLOSED": "사용자 입력 채널이 닫혀 있습니다",
     "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "사용자 응답 대기 시간이 초과되었습니다(5분)",
     "AGENT_INPUT_NO_PROVIDER": "사용 가능한 provider/model이 없습니다: 설정에서 공급자를 활성화하세요",
@@ -2413,7 +2448,8 @@
     "SESSION_SHARE_NOT_FOUND": "세션이 존재하지 않습니다",
     "WORK_ENGINE_EXECUTION_NOT_FOUND": "execution_id가 유효하지 않거나 워크플로가 등록되지 않았습니다",
     "TRAJECTORY_NOT_FOUND": "궤적을 찾을 수 없습니다",
-    "UNKNOWN_PRESET": "알 수 없는 프리셋"
+    "UNKNOWN_PRESET": "알 수 없는 프리셋",
+    "UNITY_P0_CLASSIFIER_FAILED": "작업 형태 분류 실패"
   },
   "errorBoundary": {
     "copied": "복사됨",
@@ -8671,7 +8707,8 @@
     "gapType": {
       "guardRule": "방어 규칙 보완",
       "exemptAuthorize": "오탐 면제 승인",
-      "capabilityMissing": "능력 부재 보완"
+      "capabilityMissing": "능력 부재 보완",
+      "skillEvolution": "스킬 진화"
     },
     "pendingCount": "처리 대기 제안 {{count}}개, 현재 {{current}}번째",
     "pendingOne": "처리 대기 제안 1개",
@@ -9548,5 +9585,12 @@
         "associatedWith": "연결됨"
       }
     }
+  },
+  "taskShapeApproval": {
+    "title": "고위험 작업 승인",
+    "inputPreview": "입력 미리보기",
+    "approve": "승인",
+    "reject": "거부",
+    "rejectedToast": "고위험 작업이 거부되었습니다"
   }
 }

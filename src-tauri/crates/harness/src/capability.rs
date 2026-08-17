@@ -43,6 +43,33 @@ impl CapabilityKind {
     }
 }
 
+/// 能力来源（追溯护照注册来源，用于能力发现与进化的边界判断）
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CapabilitySource {
+    /// 内置能力（应用自身注册的护照）
+    #[default]
+    Builtin,
+    /// 插件提供的能力（配合 plugin_id 溯源；禁用/卸载插件时回滚）
+    Plugin,
+}
+
+/// 能力可进化性（决定进化引擎的分发边界）
+///
+/// 外部插件声明的能力默认不可进化；仅当载体本地可写时才允许就地进化
+/// （Local），否则以衍生产物（Derived）方式产出独立副本、原护照不变。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CapabilityEvolvability {
+    /// 不可进化（外部插件只读能力）
+    #[default]
+    None,
+    /// 本地进化：能力载体本地可写，直接提升等级/参数
+    Local,
+    /// 衍生产物：进化产生新的独立能力副本，原护照保持不变
+    Derived,
+}
+
 // ── 能力域（唯一权威分类轴） ───────────────────────
 
 /// 能力所属功能域
@@ -510,6 +537,16 @@ pub trait CapabilityPassport: Send + Sync {
         CapabilityDomain::General
     }
 
+    /// 能力来源（默认内置）
+    fn source(&self) -> CapabilitySource {
+        CapabilitySource::Builtin
+    }
+
+    /// 能力可进化性（默认不可进化）
+    fn evolvability(&self) -> CapabilityEvolvability {
+        CapabilityEvolvability::None
+    }
+
     /// 子分类（L2 集群标识，用于三层路由的第二层）
     ///
     /// 返回 `CapabilityCluster::cluster_id`，如 `"general_file_ops"`。
@@ -618,6 +655,8 @@ pub trait CapabilityPassport: Send + Sync {
             description: self.description().to_string(),
             kind: self.kind(),
             domain: self.domain(),
+            source: self.source(),
+            evolvable: self.evolvability(),
             sub_category: self.sub_category(),
             visibility: self.visibility(),
             caller_permissions: self.caller_permissions(),
@@ -691,6 +730,12 @@ pub struct CapabilityPassportDto {
     #[serde(default)]
     pub stats: CapabilityStats,
     pub enabled: bool,
+    /// 能力来源（内置 / 插件），用于溯源与进化边界判断
+    #[serde(default)]
+    pub source: CapabilitySource,
+    /// 能力可进化性（决定进化引擎分发边界）
+    #[serde(default)]
+    pub evolvable: CapabilityEvolvability,
 }
 
 impl Default for CapabilityPassportDto {
@@ -701,6 +746,8 @@ impl Default for CapabilityPassportDto {
             description: String::new(),
             kind: CapabilityKind::Tool,
             domain: CapabilityDomain::General,
+            source: CapabilitySource::Builtin,
+            evolvable: CapabilityEvolvability::None,
             sub_category: String::new(),
             visibility: Visibility::Public,
             caller_permissions: CallerPermissions::new(),

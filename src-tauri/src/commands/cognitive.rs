@@ -37,8 +37,9 @@ use axagent_harness::workflow_evolution::ToolExecutionStats;
 use axagent_harness::workflow_types::Variable;
 use axagent_harness::{
     CandidateSummary, CapabilityDomain, CapabilityGapProposal, CapabilityGapType, CapabilityKind,
-    CapabilityQuery, ExecutionMode, ModeHint, PatternPromptGuard, PromptAttackCategory,
-    PromptGuard, PromptRejection, RouteStageRecord, RoutingDecisionV2, TaskShapeDecision,
+    CapabilityQuery, DynamicGuardRule, ExecutionMode, ModeHint, PatternPromptGuard,
+    PromptAttackCategory, PromptGuard, PromptRejection, RouteStageRecord, RoutingDecisionV2,
+    TaskShapeDecision,
 };
 use axagent_runtime::work_engine::{RunOptions, SubWorkflowCallback};
 use sea_orm::EntityTrait;
@@ -84,7 +85,7 @@ async fn classify_task_shape(
     let decision = axagent_orchestrator::classify_hybrid(
         input,
         permission,
-        Some(&*state.task_shape_llm_classifier),
+        Some(state.task_shape_llm_classifier.as_ref()),
     )
     .await
     .ok()?;
@@ -407,6 +408,12 @@ impl From<RoutingDecisionV2> for CognitiveQueryResponse {
     }
 }
 
+// ── 能力补齐自动重试配置 ────────────────────────────────────
+
+/// 能力补齐后自动重试的最大次数。
+/// 防止因重复补齐导致的无限递归。
+const MAX_CAPABILITY_GAP_RETRIES: usize = 2;
+
 // ── Tauri 命令 ────────────────────────────────────
 
 /// 将嵌套执行器（workflow_execute / agent_query）返回的错误串转为 CommandError。
@@ -471,17 +478,51 @@ async fn persist_decision_to_message(
 
 /// 认知编排统一入口 — 用户消息触发，完成三层路由决策并按执行模式分发执行
 ///
-/// # 分支执行（复用既有执行器，不新增）
-/// - `Workflow`：调用 `workflow_execute`，由 WorkEngine 执行命中的工作流模板
-///   （`capability_id` 即工作流模板 ID，`SubWorkflowExecutor` 支持嵌套）
-/// - `Delegate` / `Ask` / `Plan` / `Act`：调用 `agent_query`，交给通用 agent
-///   （Ask/Plan/Act 对应 agent 引擎原有的三种执行模式，由认知编排器自动决策）
+/// 自动重试机制：能力补齐完成（`GAP_PROPOSAL_APPLIED`）后自动重试，最多重试 2 次，
+/// 避免要求用户手动重发请求，提升用户体验。
 #[agent_command(domain = cognitive, safety = Caution, call_mode = StateInput, description = "认知编排统一入口（三层路由决策并按执行模式分发）")]
 #[tauri::command]
 pub async fn cognitive_query(
     app: tauri::AppHandle,
     state: State<'_, AppState>,
     request: CognitiveQueryRequest,
+) -> Result<CognitiveQueryResponse, CommandError> {
+    let mut retry_count = 0;
+    const MAX_RETRIES: usize = MAX_CAPABILITY_GAP_RETRIES;
+
+    loop {
+        match cognitive_query_inner(&app, state.clone(), &request, retry_count).await {
+            Ok(response) => return Ok(response),
+            Err(e) => {
+                if e.code == axagent_harness::error_codes::cognitive::GAP_PROPOSAL_APPLIED
+                    && retry_count < MAX_RETRIES
+                {
+                    retry_count += 1;
+                    tracing::info!(
+                        retry_count = %retry_count,
+                        "能力补齐完成，自动重试路由决策"
+                    );
+                    continue;
+                }
+                return Err(e);
+            },
+        }
+    }
+}
+
+/// 认知编排查询内部实现，被 `cognitive_query` 循环包装器调用以支持自动重试。
+///
+/// # 参数
+/// - `app`: Tauri 应用句柄引用
+/// - `state`: 全局应用状态（Tauri State，可 clone）
+/// - `request`: 查询请求引用
+/// - `retry_count`: 当前重试次数（0 = 首次调用，1 = 第一次重试，以此类推），
+///   仅用于日志记录，不改变核心逻辑。
+async fn cognitive_query_inner(
+    app: &tauri::AppHandle,
+    state: State<'_, AppState>,
+    request: &CognitiveQueryRequest,
+    _retry_count: usize,
 ) -> Result<CognitiveQueryResponse, CommandError> {
     let input = request.input.trim().to_string();
     if input.is_empty() {
@@ -501,7 +542,7 @@ pub async fn cognitive_query(
             tracing::error!(%rejection.reason, "🛡️ 安全拦截命中，进入能力补齐提议通道");
             let proposal = build_capability_gap_proposal(Some(&rejection), &input);
             // 征求用户同意（复用授权事件通道，前端 EvolutionConsentModal 弹窗）
-            if !await_user_consent(&app, &state, &proposal).await? {
+            if !await_user_consent(app, &state, &proposal).await? {
                 // 用户拒绝 → 保持原拒绝行为（不透传）。
                 // 注意：该分支直接返回 Err，未生成任何 assistant 消息，决策标签无处可挂，
                 // 故不再调用 persist_decision_to_message（此前误把 conversation_id 当 message_id，必然静默失败）。
@@ -513,7 +554,7 @@ pub async fn cognitive_query(
             }
             // 用户同意 → 执行补齐（挂 disposer 可回滚）。
             // 补齐返回 Err 时同样无 assistant 消息可挂决策，故此处不持久化。
-            apply_capability_gap_proposal(&state, &proposal).await?;
+            apply_capability_gap_proposal(&state, &proposal, &input).await?;
             // 补齐后输入按安全化语义继续：
             // - 误伤豁免（ExemptAuthorize）→ 放行原始输入（有界豁免已生效），继续走三层路由
             // - 其余（GuardRule / CapabilityMissing）→ 提示重新发送，避免绕过防护
@@ -696,7 +737,7 @@ pub async fn cognitive_query(
                     task_shape: None,
                 };
                 let agent_resp =
-                    crate::commands::agent::agent_query(app, state.clone(), agent_request)
+                    crate::commands::agent::agent_query(app.clone(), state.clone(), agent_request)
                         .await
                         .map_err(|e| {
                             executor_error(e, axagent_harness::error_codes::cognitive::ROUTE_FAILED)
@@ -750,7 +791,7 @@ pub async fn cognitive_query(
     // 产出 `TaskShapeDecision` 注入主 DAG variables + 最终响应，
     // 供路由管线 / AgentQueryRequest / 前端决策标签消费。
     // flag 关闭时返回 None，完全不影响旧链路。
-    let task_shape_decision = classify_task_shape(state, &input, request.options.as_ref()).await;
+    let task_shape_decision = classify_task_shape(&state, &input, request.options.as_ref()).await;
 
     // 1. 动态分类目录：L1 全量业务域；L2 按预路由 L1 域实时生成（纯规则匹配，零 LLM 成本）
     let l1_categories = state.cognitive_router.list_l1_categories().await;
@@ -844,8 +885,8 @@ pub async fn cognitive_query(
         Some(v) => v,
         None => {
             let proposal = build_capability_gap_proposal(None, &input);
-            if await_user_consent(&app, &state, &proposal).await? {
-                apply_capability_gap_proposal(&state, &proposal).await?;
+            if await_user_consent(app, &state, &proposal).await? {
+                apply_capability_gap_proposal(&state, &proposal, &input).await?;
                 return Err(CommandError::new(
                     axagent_harness::error_codes::cognitive::GAP_PROPOSAL_APPLIED,
                 )
@@ -871,8 +912,8 @@ pub async fn cognitive_query(
             "认知编排主 DAG 输出缺少关键字段"
         );
         let proposal = build_capability_gap_proposal(None, &input);
-        if await_user_consent(&app, &state, &proposal).await? {
-            apply_capability_gap_proposal(&state, &proposal).await?;
+        if await_user_consent(app, &state, &proposal).await? {
+            apply_capability_gap_proposal(&state, &proposal, &input).await?;
             return Err(CommandError::new(
                 axagent_harness::error_codes::cognitive::GAP_PROPOSAL_APPLIED,
             )
@@ -955,8 +996,8 @@ pub async fn cognitive_query(
         // 表明系统当前无对应能力，征求用户同意后自动补齐。
         if candidate_details.is_empty() && circuit_break_reason_str != "self_reference" {
             let proposal = build_capability_gap_proposal(None, &input);
-            if await_user_consent(&app, &state, &proposal).await? {
-                apply_capability_gap_proposal(&state, &proposal).await?;
+            if await_user_consent(app, &state, &proposal).await? {
+                apply_capability_gap_proposal(&state, &proposal, &input).await?;
                 return Err(CommandError::new(
                     axagent_harness::error_codes::cognitive::GAP_PROPOSAL_APPLIED,
                 )
@@ -1045,8 +1086,8 @@ pub async fn cognitive_query(
     // 拒绝则保持原 Clarify 空候选行为（返回空候选，前端自行兜底）。
     if mode == ExecutionMode::Clarify && response.candidate_details.is_empty() {
         let proposal = build_capability_gap_proposal(None, &input);
-        if await_user_consent(&app, &state, &proposal).await? {
-            apply_capability_gap_proposal(&state, &proposal).await?;
+        if await_user_consent(app, &state, &proposal).await? {
+            apply_capability_gap_proposal(&state, &proposal, &input).await?;
             return Err(CommandError::new(
                 axagent_harness::error_codes::cognitive::GAP_PROPOSAL_APPLIED,
             )
@@ -1076,6 +1117,16 @@ pub async fn cognitive_query(
             .map_err(|e| {
                 executor_error(e, axagent_harness::error_codes::cognitive::ROUTE_FAILED)
             })?;
+            // 记录补齐工作流命中执行（evolution:workflow: 前缀的为补齐产物）
+            if workflow_id.starts_with("evolution:workflow:") {
+                tracing::info!(
+                    capability_id = %workflow_id,
+                    execution_mode = ?mode,
+                    "补齐工作流已被命中执行"
+                );
+                // 可选：后续可扩展为持久化统计记录
+            }
+
             CognitiveExecutionView::Workflow { workflow_id, execution_id }
         },
         // ParameterExtract：精准命中（置信度 > 0.90），跳过澄清直接执行目标工作流；
@@ -1207,7 +1258,7 @@ pub async fn cognitive_query(
                         response.execution = Some(CognitiveExecutionView::Agent {
                             conversation_id: conversation_id.clone(),
                             assistant_message_id: String::new(),
-                            status: "approval_rejected".to_string(),
+                            status: Some("approval_rejected".to_string()),
                         });
                         return Ok(response);
                     }
@@ -1221,28 +1272,27 @@ pub async fn cognitive_query(
             }
 
             // 2b. DelegateSingleExpert：用户未显式指定 expert 时，用分类器建议覆盖
-            //     用户显式指定优先（request.agent_profile_id / request.expert_id），尊重用户意图
-            let effective_expert_id =
-                if request.agent_profile_id.is_none() && request.expert_id.is_none() {
-                    task_shape_decision
-                        .as_ref()
-                        .and_then(|ts| match &ts.recommended_strategy {
-                            ExecutionStrategy::DelegateSingleExpert {
-                                expert_id: expert_from_shape,
-                            } => {
-                                tracing::info!(
-                                    from_shape = expert_from_shape,
-                                    already_selected = ?dynamic_expert_id,
-                                    "[cognitive_query] task_shape 建议委派专家"
-                                );
-                                Some(expert_from_shape.clone())
-                            },
-                            _ => None,
-                        })
-                        .or(dynamic_expert_id)
-                } else {
-                    dynamic_expert_id
-                };
+            //     用户显式指定优先（request.agent_profile_id），尊重用户意图
+            let effective_expert_id = if request.agent_profile_id.is_none() {
+                task_shape_decision
+                    .as_ref()
+                    .and_then(|ts| match &ts.recommended_strategy {
+                        ExecutionStrategy::DelegateSingleExpert {
+                            expert_id: expert_from_shape,
+                        } => {
+                            tracing::info!(
+                                from_shape = expert_from_shape,
+                                already_selected = ?dynamic_expert_id,
+                                "[cognitive_query] task_shape 建议委派专家"
+                            );
+                            Some(expert_from_shape.clone())
+                        },
+                        _ => None,
+                    })
+                    .or(dynamic_expert_id)
+            } else {
+                dynamic_expert_id
+            };
 
             let agent_request = AgentQueryRequest {
                 conversation_id,
@@ -1267,11 +1317,12 @@ pub async fn cognitive_query(
                 // P1: 透传任务形态决策（原则三标尺），运行时按任务而非按会话覆盖权限初值
                 task_shape: task_shape_decision.clone(),
             };
-            let agent_resp = crate::commands::agent::agent_query(app, state.clone(), agent_request)
-                .await
-                .map_err(|e| {
-                    executor_error(e, axagent_harness::error_codes::cognitive::ROUTE_FAILED)
-                })?;
+            let agent_resp =
+                crate::commands::agent::agent_query(app.clone(), state.clone(), agent_request)
+                    .await
+                    .map_err(|e| {
+                        executor_error(e, axagent_harness::error_codes::cognitive::ROUTE_FAILED)
+                    })?;
             persist_decision_to_message(
                 state.harness.db(),
                 &agent_resp.assistant_message_id,
@@ -1432,31 +1483,80 @@ fn build_capability_gap_proposal(
 async fn apply_capability_gap_proposal(
     state: &AppState,
     proposal: &CapabilityGapProposal,
+    input: &str,
 ) -> Result<(), CommandError> {
     match proposal.gap_type {
         CapabilityGapType::CapabilityMissing => {
-            // 复用 T0.11 统一注册：生成能力护照（auto_evolved 标签 + /evolution/ 前缀，
-            // L2 混合检索可见）并同步进工作流图谱（L3 图谱路由可见）。
-            let workflow_id = format!("auto_generated:{}", proposal.id);
-            let display_name = proposal.title.trim();
-            crate::commands::capability::register_evolution_product(
-                state,
-                &workflow_id,
-                display_name,
-                &proposal.proposal,
+            // 1. 生成实际工作流模板并落库
+            let template_id = format!("auto_generated:{}", proposal.id);
+            match crate::commands::capability_gap_workflow::generate_gap_workflow_template(
+                state, input, proposal,
             )
-            .await?;
+            .await
+            {
+                Ok(template) => {
+                    // 2. 注册能力护照（L2 检索可见）+ 同步图谱（L3 路由可见）
+                    crate::commands::capability::register_evolution_product(
+                        state,
+                        &template.id,
+                        &template.name,
+                        &template.description.unwrap_or_default(),
+                    )
+                    .await?;
+                    tracing::info!(
+                        template_id = %template.id,
+                        "能力补齐：工作流模板已创建，护照已注册"
+                    );
+                },
+                Err(e) => {
+                    // 模板生成失败时仍尝试注册护照（降级行为）
+                    tracing::error!(%e, "工作流模板生成失败，尝试仅注册能力护照");
+                    crate::commands::capability::register_evolution_product(
+                        state,
+                        &template_id,
+                        proposal.title.trim(),
+                        &proposal.proposal,
+                    )
+                    .await?;
+                },
+            }
+        },
+        CapabilityGapType::GuardRule => {
+            let category = proposal.category.unwrap_or(PromptAttackCategory::Jailbreak);
+            let rule = DynamicGuardRule {
+                category,
+                pattern: proposal.proposal.clone(),
+                reason: proposal.reason.clone(),
+                created_at: chrono::Utc::now(),
+            };
+            state.prompt_guard.add_dynamic_rule(rule).await;
             tracing::info!(
-                workflow_id = %workflow_id,
-                "🗺️ 能力补齐：工作流护照已注册并同步进工作流图谱"
+                category = ?category,
+                pattern = %proposal.proposal,
+                "GuardRule: 动态防护规则已注入"
             );
         },
-        CapabilityGapType::GuardRule | CapabilityGapType::ExemptAuthorize => {
-            // 阶段二注入动态防护规则 / 有界豁免（挂 Disposer）；阶段零仅记录决策标签
+        CapabilityGapType::ExemptAuthorize => {
+            let exemption = DynamicGuardRule {
+                category: PromptAttackCategory::Jailbreak,
+                pattern: proposal.proposal.clone(),
+                reason: format!("有界豁免: {}", proposal.reason),
+                created_at: chrono::Utc::now(),
+            };
+            // ExemptAuthorize 用豁免模式，不在安全拦截器中检查
+            // 而是记录到豁免列表，安全拦截放行时优先匹配
+            state.prompt_guard.add_dynamic_rule(exemption).await;
             tracing::info!(
-                gap_type = ?proposal.gap_type,
-                category = ?proposal.category,
-                "🔒 能力补齐：防护类提议已记录（动态注入见阶段二副作用栈）"
+                pattern = %proposal.proposal,
+                "ExemptAuthorize: 有界豁免已注入"
+            );
+        },
+        CapabilityGapType::SkillEvolution => {
+            // 技能进化由进化 hook（evolution_hook.rs）在工具执行后即时处理：
+            // 用户同意 → 遗传算法进化 → 版本替换落库，此处不重复执行（避免重复进化）。
+            tracing::info!(
+                gap_id = %proposal.id,
+                "SkillEvolution: 提议已由技能侧反思 hook 处理，忽略重复应用"
             );
         },
     }
@@ -1468,26 +1568,27 @@ const CONSENT_TIMEOUT: Duration = Duration::from_secs(180);
 /// 前端同意弹窗事件名（T0.13 EvolutionConsentModal 监听）。
 const EVOLUTION_CONSENT_EVENT: &str = "evolution-consent-request";
 
-/// 征求用户同意：通过事件通道下发提议，阻塞等待前端弹窗回传（T0.13 配套）。
+/// 征求用户同意：通过事件通道下发提议，阻塞等待前端弹窗回传。
 ///
-/// 复用 `agent_plan_approvals` 同款挂起审批槽模式：
+/// 认知编排器（`await_user_consent` 薄封装）与 `SkillEvolutionHook`（wiring 层即时技能进化）
+/// 共用本公共实现，避免重复（禁区 12）。内部复用 `agent_plan_approvals` 同款挂起审批槽模式：
 /// 1. 插入 `oneshot` sender 到 `evolution_consent_senders`（proposalId → sender）
 /// 2. emit `evolution-consent-request` 事件（携带 camelCase 提议）
 /// 3. await receiver（180s 超时，超时视为拒绝）
 /// 4. 前端弹窗由 `capability_gap_consent` 命令回传结果
 ///
 /// 返回 `true` = 用户同意；`false` = 用户拒绝 / 超时 / 前端无监听。
-async fn await_user_consent(
+pub(crate) async fn await_capability_consent(
     app: &tauri::AppHandle,
-    state: &AppState,
+    senders: &Arc<tokio::sync::Mutex<HashMap<String, tokio::sync::oneshot::Sender<bool>>>>,
     proposal: &CapabilityGapProposal,
 ) -> Result<bool, CommandError> {
     let (tx, rx) = tokio::sync::oneshot::channel::<bool>();
-    state.evolution_consent_senders.lock().await.insert(proposal.id.clone(), tx);
+    senders.lock().await.insert(proposal.id.clone(), tx);
     // 事件下发失败不阻断：视为拒绝（保持原安全行为），并清理挂起槽
     if let Err(e) = app.emit(EVOLUTION_CONSENT_EVENT, proposal) {
         tracing::warn!(%e, "🧭 能力补齐提议事件下发失败，视为用户拒绝");
-        state.evolution_consent_senders.lock().await.remove(&proposal.id);
+        senders.lock().await.remove(&proposal.id);
         return Ok(false);
     }
     tracing::info!(proposal_id = %proposal.id, "🧭 能力补齐提议已下发，等待用户同意/拒绝");
@@ -1497,9 +1598,18 @@ async fn await_user_consent(
         Ok(Err(_)) | Err(_) => false,
     };
     // 清理残留挂起槽（前端可能从未回传）
-    state.evolution_consent_senders.lock().await.remove(&proposal.id);
+    senders.lock().await.remove(&proposal.id);
     tracing::info!(proposal_id = %proposal.id, approved = %approved, "🧭 能力补齐提议审批结果");
     Ok(approved)
+}
+
+/// 认知编排器的用户同意封装（拒绝 / NO_CANDIDATE / Clarify 兜底三触发点调用）。
+async fn await_user_consent(
+    app: &tauri::AppHandle,
+    state: &AppState,
+    proposal: &CapabilityGapProposal,
+) -> Result<bool, CommandError> {
+    await_capability_consent(app, &state.evolution_consent_senders, proposal).await
 }
 
 /// 能力补齐提议的用户审批回传请求

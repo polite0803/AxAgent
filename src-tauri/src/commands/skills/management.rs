@@ -193,6 +193,9 @@ pub async fn search_marketplace(
             search_github_marketplace(&query, sort_order, page_num, per_page_num, &installed_refs)
                 .await?
         },
+        "openclaw" => {
+            search_openclaw_marketplace(&query, page_num, per_page_num, &installed_refs).await?
+        },
         _ => {
             search_skillhub_marketplace(&query, sort_order, page_num, per_page_num, &installed_refs)
                 .await?
@@ -405,11 +408,128 @@ async fn search_skillhub_marketplace(
     Ok(results)
 }
 
+/// 搜索 OpenClaw/ClawHub 市场
+async fn search_openclaw_marketplace(
+    query: &str,
+    page: u32,
+    per_page: u32,
+    installed_refs: &std::collections::HashSet<String>,
+) -> Result<Vec<MarketplaceSkill>, String> {
+    let search_query = if query.is_empty() { "agent" } else { query };
+    let url = format!(
+        "https://clawhub.ai/api/v1/search?q={}&limit={}",
+        urlencoding::encode(search_query),
+        per_page.min(100),
+    );
+
+    let client =
+        reqwest::Client::builder().timeout(Duration::from_secs(30)).build().map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+    let response = client
+        .get(&url)
+        .header("User-Agent", "AxAgent")
+        .header("Accept", "application/json")
+        .send()
+        .await
+        .map_err(|e| format!("ClawHub search failed: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("ClawHub API error: {}", response.status()));
+    }
+
+    let body: serde_json::Value = response.json().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    let items = body["results"].as_array().cloned().unwrap_or_default();
+
+    let mut results: Vec<MarketplaceSkill> = Vec::new();
+    for item in items {
+        let slug = item["slug"].as_str().unwrap_or("").to_string();
+        let display_name = item["displayName"].as_str().unwrap_or("").to_string();
+        let summary = item["summary"].as_str().unwrap_or("").to_string();
+        let owner_handle = item["ownerHandle"].as_str().unwrap_or("").to_string();
+        let downloads = item["downloads"].as_i64().unwrap_or(0);
+        let stars = item["score"].as_i64().unwrap_or(0);
+        let version = item["version"]
+            .as_str()
+            .or_else(|| item["native"]["skill"]["tags"]["latest"].as_str())
+            .unwrap_or("")
+            .to_string();
+
+        let name = if !display_name.is_empty() {
+            display_name
+        } else {
+            slug.clone()
+        };
+        let repo = if owner_handle.is_empty() {
+            slug.clone()
+        } else {
+            format!("{}/{}", owner_handle, slug)
+        };
+        let installed = installed_refs.contains(&repo.to_lowercase());
+
+        let mut skill = MarketplaceSkill {
+            name,
+            description: summary,
+            repo: repo.clone(),
+            stars,
+            installs: downloads,
+            installed,
+            current_version: None,
+            ..Default::default()
+        };
+
+        // 检查已安装的 OpenClaw 技能是否有更新（本地 manifest 的 commit 存的是安装时的版本）
+        if installed {
+            if let Some(info) = get_installed_skill_info(&repo) {
+                // get_installed_skill_info 仅对 github 来源生效；OpenClaw 走下方逻辑
+                if info.version != version && !version.is_empty() {
+                    skill.has_update = Some(true);
+                    skill.latest_version = Some(version.clone());
+                }
+            }
+            if let Ok(text) =
+                std::fs::read_to_string(skills_dir().join(&slug).join("skill-manifest.json"))
+            {
+                if let Ok(val) = serde_json::from_str::<serde_json::Value>(&text) {
+                    if let Some(local_version) = val["commit"].as_str() {
+                        if !local_version.is_empty()
+                            && !version.is_empty()
+                            && local_version != version
+                        {
+                            skill.has_update = Some(true);
+                            skill.latest_version = Some(version);
+                        }
+                    }
+                }
+            }
+        }
+
+        results.push(skill);
+    }
+
+    // 简单分页：ClawHub 不支持 offset，但我们通过 client 端限制返回
+    let offset = ((page - 1) * per_page) as usize;
+    if offset < results.len() {
+        results = results.into_iter().skip(offset).take(per_page as usize).collect();
+    } else {
+        results.clear();
+    }
+
+    Ok(results)
+}
+
 #[agent_command(domain = skills, safety = Safe, call_mode = StateOnly, description = "获取技能市场分类列表")]
 #[tauri::command]
 pub async fn get_marketplace_categories() -> Result<Vec<MarketplaceCategory>, String> {
     let url = "https://skillshub.wtf/api/v1/categories";
-
     let client =
         reqwest::Client::builder().timeout(Duration::from_secs(30)).build().map_err(|e| {
             String::from(crate::commands::error::ErrorResponse::from_error(

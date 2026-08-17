@@ -20,7 +20,7 @@ env:
   CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: short
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  NDK_VERSION: 'r27d'
+  NDK_VERSION: 'r26d'
 
 concurrency:
   group: '${{ github.workflow }}-${{ github.ref }}'
@@ -419,8 +419,8 @@ jobs:
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: 'v1-android'
-          key: 'ubuntu-24.04-${{ matrix.abi }}'
+          prefix-key: 'v2-android'
+          key: 'ubuntu-24.04-ndk${{ env.NDK_VERSION }}-${{ matrix.abi }}'
           workspaces: src-tauri -> target
 
       - name: Setup Node.js
@@ -449,23 +449,76 @@ jobs:
           java-version: '17'
           distribution: 'zulu'
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          api-level: 34
+          target-sdk: 34
+          build-tools: '34.0.0'
+          cmake: '3.22.1'
 
       - name: Install cargo-ndk
         run: cargo install cargo-ndk --version 0.16.1
 
       - name: Setup Android NDK toolchain PATH
         run: |
-          TOOLCHAIN="${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          NDK_PATH="${{ steps.setup-ndk.outputs.ndk-path }}"
+          TOOLCHAIN="$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin"
           echo "$TOOLCHAIN" >> $GITHUB_PATH
+          echo "NDK_PATH=$NDK_PATH" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
+          echo "NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
+          echo "=== NDK Setup ==="
+          echo "NDK_PATH: $NDK_PATH"
+          ls -la "$NDK_PATH/" 2>/dev/null || echo "ERROR: NDK path not found!"
+          ls -la "$TOOLCHAIN/" 2>/dev/null || echo "ERROR: Toolchain not found!"
+          echo "=================="
 
       - name: Initialize Android project
         run: |
           cd src-tauri
+          echo "=== Checking Android SDK ==="
+          echo "ANDROID_HOME: $ANDROID_HOME"
+          echo "ANDROID_NDK_HOME: $ANDROID_NDK_HOME"
+          echo "NDK_HOME: $NDK_HOME"
+          ls -la "$ANDROID_HOME" 2>/dev/null || echo "ANDROID_HOME not set"
+          ls -la "$NDK_HOME" 2>/dev/null || echo "NDK_HOME not set"
+          echo "==============================="
           npx tauri android init
+          echo "=== Generated Android project ==="
+          ls -la gen/android/
+          echo "==============================="
         env:
-          NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          NDK_HOME: ${{ env.NDK_HOME }}
+          ANDROID_NDK_HOME: ${{ env.NDK_HOME }}
+
+      - name: Ensure Gradle Wrapper
+        run: |
+          cd src-tauri/gen/android
+          if [ ! -f "gradlew" ] || [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
+            echo "Gradle wrapper missing, generating..."
+            gradle wrapper --gradle-version 8.9
+            chmod +x gradlew
+          fi
+          echo "=== Gradle Wrapper Status ==="
+          ls -la gradlew
+          ls -la gradle/wrapper/gradle-wrapper.jar
+          cat gradle/wrapper/gradle-wrapper.properties
+          echo "==============================="
+          # Verify critical files exist
+          if [ ! -f "gradlew" ]; then
+            echo "ERROR: gradlew not found"
+            exit 1
+          fi
+          if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
+            echo "ERROR: gradle-wrapper.jar not found"
+            exit 1
+          fi
 
       - name: Setup keystore and signing config
         run: |
@@ -531,7 +584,14 @@ jobs:
           free -h
           echo "Disk:"
           df -h /
+          echo "Gradle version:"
+          gradle --version 2>/dev/null || echo "gradle CLI not available"
+          echo "Java version:"
+          java -version 2>&1
+          echo "NDK path: $NDK_HOME"
+          ls "$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/" 2>/dev/null | head -5 || echo "WARNING: NDK toolchain not found at $NDK_HOME"
           echo "======================================="
+          echo "=== Running tauri android build ==="
           if [[ "${{ matrix.abi }}" == "arm64-v8a" ]]; then
             npx tauri android build --target "$TARGET" --apk --aab
           else

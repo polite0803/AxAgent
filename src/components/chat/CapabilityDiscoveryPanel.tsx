@@ -3,7 +3,7 @@
 import { useCapabilityStore } from "@/stores";
 import type { CapabilityLevel, CapabilityPassportDto } from "@/types";
 import { Button, Card, Collapse, Empty, Input, message, Skeleton, Space, Tag, theme, Typography } from "antd";
-import { Database, RefreshCw, Rocket, Search, ShieldCheck, Tag as TagIcon, Zap } from "lucide-react";
+import { Database, Plug, RefreshCw, Rocket, Search, ShieldCheck, Tag as TagIcon, Zap } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -34,10 +34,10 @@ const LEVEL_COLORS: Record<CapabilityLevel, string> = {
   l5: "cyan",
 };
 
-/** 是否支持一键进化：低等级（L1/L2）且载体为技能/工作流/Agent（角色与专家） */
+/** 是否支持一键进化：低等级（L1/L2）且能力可进化（后端 evolvable 字段非 none） */
 function canEvolve(p: CapabilityPassportDto): boolean {
   return (p.level === "l1" || p.level === "l2")
-    && (p.kind === "skill" || p.kind === "workflow" || p.kind === "agent");
+    && p.evolvable !== "none";
 }
 
 /** 能力发现面板：展示能力索引统计、已注册护照，并支持输入查询触发能力发现 */
@@ -369,9 +369,19 @@ export function CapabilityDiscoveryPanel() {
                       {kindLabel(passportKindKey(p))}
                     </Tag>
                     {p.domain && <Tag style={{ fontSize: 11 }}>{p.domain}</Tag>}
+                    {p.source === "plugin" && (
+                      <Tag color="blue" style={{ fontSize: 11 }} icon={<Plug size={10} />}>
+                        {t("capabilityPanel.pluginSource")}
+                      </Tag>
+                    )}
                     <Tag color={p.enabled ? "success" : "default"} style={{ fontSize: 11 }}>
                       {p.enabled ? t("capabilityPanel.enabled") : t("capabilityPanel.disabled")}
                     </Tag>
+                    {p.evolvable !== "none" && (
+                      <Tag color="orange" style={{ fontSize: 11 }}>
+                        {t(`capabilityPanel.evolvable.${p.evolvable}`)}
+                      </Tag>
+                    )}
                   </Space>
                   {canEvolve(p) && (
                     <Button

@@ -1223,7 +1223,12 @@
     },
     "evolve": "Evolve",
     "evolveSuccess": "Evolution succeeded, level raised to {{level}}",
-    "evolveFailed": "Evolution failed, please retry later"
+    "evolveFailed": "Evolution failed, please retry later",
+    "pluginSource": "Plugin",
+    "evolvable": {
+      "local": "Local evolution",
+      "derived": "Derived"
+    }
   },
   "chatMarkdown": {
     "inputParams": "Input Params",
@@ -1596,6 +1601,7 @@
     "circuitClosed": "Normal",
     "llmFallback": "LLM fallback",
     "fallbackPath": "Fallback path",
+    "filteredCount": "Circuit filtered",
     "candidates": "Candidates",
     "stageRecords": "Route stages",
     "recordedAt": "Recorded at",
@@ -1614,6 +1620,34 @@
       "delegate": "Delegate to agent",
       "parameter_extract": "Parameter extraction",
       "clarify": "Await clarification"
+    },
+    "taskShape": {
+      "label": "Task Shape",
+      "contextCost": "Context Cost",
+      "isolationNeed": "Isolation Need",
+      "strategy": "Strategy",
+      "mergeScore": "Merge Score",
+      "splitScore": "Split Score",
+      "evidence": "Evidence",
+      "contextCostMap": {
+        "ephemeral": "Ephemeral",
+        "resumable": "Resumable",
+        "long_running_project": "Long-running Project",
+        "persistent_journey": "Persistent Journey"
+      },
+      "isolationNeedMap": {
+        "read_only_thought": "Read-only Thought",
+        "workspace_write": "Workspace Write",
+        "sandbox_required": "Sandbox Required",
+        "approval_and_air_gap": "Approval & Air Gap"
+      },
+      "strategyMap": {
+        "handleLocally": "Handle Locally",
+        "delegateSingleExpert": "Delegate Single Expert",
+        "parallelExperts": "Parallel Experts",
+        "orchestratorDag": "Orchestrator DAG",
+        "approvalGate": "Approval Gate"
+      }
     }
   },
   "continuation": {
@@ -2390,6 +2424,7 @@
     "CAPABILITY_STATS_FAILED": "Failed to get capability stats",
     "CAPABILITY_METADATA_RESTORE_FAILED": "Metadata restoration failed",
     "CAPABILITY_EVOLVE_FAILED": "Capability evolution failed",
+    "CAPABILITY_NOT_EVOLVABLE": "This capability cannot be evolved (external plugin read-only capability)",
     "AGENT_INPUT_CHANNEL_CLOSED": "The user input channel is closed",
     "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "Timed out waiting for user reply (5 minutes)",
     "AGENT_INPUT_NO_PROVIDER": "No available provider/model: please enable a provider in settings",
@@ -2413,7 +2448,8 @@
     "SESSION_SHARE_NOT_FOUND": "Session does not exist",
     "WORK_ENGINE_EXECUTION_NOT_FOUND": "Invalid execution_id or workflow not registered",
     "TRAJECTORY_NOT_FOUND": "Trajectory not found",
-    "UNKNOWN_PRESET": "Unknown preset"
+    "UNKNOWN_PRESET": "Unknown preset",
+    "UNITY_P0_CLASSIFIER_FAILED": "Task shape classification failed"
   },
   "errorBoundary": {
     "copied": "Copied",
@@ -8671,7 +8707,8 @@
     "gapType": {
       "guardRule": "Guard Rule",
       "exemptAuthorize": "Exempt Authorization",
-      "capabilityMissing": "Missing Capability"
+      "capabilityMissing": "Missing Capability",
+      "skillEvolution": "Skill Evolution"
     },
     "pendingCount": "{{count}} proposals pending, currently #{{current}}",
     "pendingOne": "1 proposal pending",
@@ -9548,5 +9585,12 @@
         "associatedWith": "Associated with"
       }
     }
+  },
+  "taskShapeApproval": {
+    "title": "High-Risk Operation Approval",
+    "inputPreview": "Input Preview",
+    "approve": "Approve",
+    "reject": "Reject",
+    "rejectedToast": "High-risk operation rejected"
   }
 }
