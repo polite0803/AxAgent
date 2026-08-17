@@ -39,12 +39,14 @@ pub const COGNITIVE_ROUTER_TAG: &str = "cognitive_router";
 /// 认知编排器模板版本：模板结构（节点/边）变更时必须递增对应版本，
 /// 触发已存在模板在下次初始化时重新灌入（否则 `ensure_template` 对已存在模板直接跳过，
 /// 代码修复在已有数据库上不会生效）。
-/// L1 / L2 / 主 DAG 本轮未变更保持 v1；L3 因 P2（置信度提取）与 P5（能力类型提取）
-/// 新增节点升级到 v2。
-const L1_TEMPLATE_VERSION: i32 = 1;
+/// L1 因 P1（LLM 输出归一化：{label,confidence} → {category,confidence}）
+/// 新增 l1_llm_normalize 节点升级到 v2。
+/// L2 本轮未变更保持 v1；L3 因新增 raw_count 归一化输出字段升级到 v4。
+/// 主 DAG 因 B2（l1_fallback_normalize）/ I2（l2_fallback_normalize）新增节点升级到 v2。
+const L1_TEMPLATE_VERSION: i32 = 2;
 const L2_TEMPLATE_VERSION: i32 = 1;
-const L3_TEMPLATE_VERSION: i32 = 2;
-const MAIN_TEMPLATE_VERSION: i32 = 1;
+const L3_TEMPLATE_VERSION: i32 = 4;
+const MAIN_TEMPLATE_VERSION: i32 = 2;
 
 /// 初始化认知编排器（4 个工作流模板，共 ~53 个节点）
 pub async fn ensure_cognitive_router_templates(db: &DatabaseConnection) -> Result<(), String> {
@@ -417,6 +419,8 @@ fn build_main_router_nodes() -> Vec<WorkflowNode> {
             vec![cond("l1_result.confidence", CompareOperator::Lt, serde_json::json!(0.7))],
         ),
         // 4. L1 兜底（LLM 重新分类，结果覆盖 l1_result 供下游统一消费）
+        //   注意：l1_fallback LLM 节点输出为 {label, confidence}，需映射为 {category, confidence}，
+        //   见下方归一化节点 l1_fallback_normalize。
         llm_classifier_node(
             "l1_fallback",
             "L1 LLM 兜底分类",
@@ -434,11 +438,22 @@ fn build_main_router_nodes() -> Vec<WorkflowNode> {
             Some("__l1_categories"),
             "你是一个业务域分类器。根据用户输入，将其归类到最合适的业务域。\n\n业务域列表：\n- general: 通用能力（文件读写、Shell、文本、网络、搜索、文档、配置等兜底通用能力）\n- devops: 运维（CI/CD、部署、监控告警、安全审计、容器编排）\n- ai_media: AI 媒体（图像、视频、音频的生成与处理）\n- finance: 金融（行情、交易、风控、组合管理）\n- automation: 自动化（RPA、定时任务、工作流编排）\n- data_analysis: 数据分析（SQL 查询、可视化、ETL/数据清洗）\n- content_creation: 内容创作（写作、设计、排版）\n- communication: 通信（IM、邮件、推送通知）\n\n用户输入：{user_input}\n\n请返回 JSON 格式：{\"label\": \"xxx\", \"confidence\": 0.xx}",
             "user_input",
-            "l1_result",
+            "l1_fallback_raw",
             Some(0.6),
             Some("general"),
         ),
+        // 4b. L1 兜底归一化：LLM 输出 {label, confidence} → {category, confidence}，覆写 l1_result
+        data_transformer_node(
+            "l1_fallback_normalize",
+            "L1 兜底归一化",
+            Position { x: 250.0, y: 380.0 },
+            "l1_fallback_raw",
+            r#"#{ "category": l1_fallback_raw.label, "confidence": l1_fallback_raw.confidence }"#,
+            "l1_result",
+        ),
         // 5. L2 子工作流调用（l1_domain 取 l1_result.category；透传动态目录 __l2_categories）
+        //   注意：l1_fallback LLM 节点输出为 {label, confidence}，需映射为 {category, confidence}，
+        //   见下方归一化节点 l1_fallback_normalize。
         sub_workflow_node(
             "call_l2",
             "调用 L2 簇路由",
@@ -467,6 +482,8 @@ fn build_main_router_nodes() -> Vec<WorkflowNode> {
             vec![cond("l2_result.confidence", CompareOperator::Lt, serde_json::json!(0.6))],
         ),
         // 8. L2 兜底
+        //   注意：l2_fallback LLM 节点输出为 {cluster, confidence}，需映射为 {category, confidence}，
+        //   见下方归一化节点 l2_fallback_normalize。
         llm_classifier_node(
             "l2_fallback",
             "L2 LLM 兜底分类",
@@ -494,6 +511,15 @@ fn build_main_router_nodes() -> Vec<WorkflowNode> {
             "l2_fallback_result",
             Some(0.5),
             Some("general"),
+        ),
+        // 8b. L2 兜底归一化：LLM 输出 {cluster, confidence} → {category, confidence}，覆写 l2_result
+        data_transformer_node(
+            "l2_fallback_normalize",
+            "L2 兜底归一化",
+            Position { x: 250.0, y: 780.0 },
+            "l2_fallback_result",
+            r#"#{ "category": l2_fallback_result.cluster, "confidence": l2_fallback_result.confidence }"#,
+            "l2_result",
         ),
         // 9. L3 子工作流调用（RAR + 图谱 + 熔断；透传字符串 l1/l2 category）
         sub_workflow_node(
@@ -535,12 +561,14 @@ fn build_main_router_edges() -> Vec<WorkflowEdge> {
         direct_edge("e2", "validate_l1", "l1_low_conf"),
         branch_edge("e3", "l1_low_conf", "l1_fallback", true, "低置信度"),
         branch_edge("e4", "l1_low_conf", "call_l2", false, "通过"),
-        direct_edge("e5", "l1_fallback", "call_l2"),
+        direct_edge("e5", "l1_fallback", "l1_fallback_normalize"),
+        direct_edge("e5b", "l1_fallback_normalize", "call_l2"),
         direct_edge("e6", "call_l2", "validate_l2"),
         direct_edge("e7", "validate_l2", "l2_low_conf"),
         branch_edge("e8", "l2_low_conf", "l2_fallback", true, "低置信度"),
         branch_edge("e9", "l2_low_conf", "call_l3", false, "通过"),
-        direct_edge("e10", "l2_fallback", "call_l3"),
+        direct_edge("e10", "l2_fallback", "l2_fallback_normalize"),
+        direct_edge("e10b", "l2_fallback_normalize", "call_l3"),
         direct_edge("e11", "call_l3", "circuit_breaker"),
         branch_edge("e12", "circuit_breaker", "circuit_broken_end", true, "熔断触发"),
         direct_edge("e13", "circuit_breaker", "end"),
@@ -614,6 +642,8 @@ fn build_l1_router_nodes() -> Vec<WorkflowNode> {
             Some("l1_result"),
         ),
         // 5. LLM 兜底分类（动态分类目录注入口：categories_var=__l1_categories）
+        //   注意：LLM 输出为 {label, confidence}，需归一化为 {category, confidence}，
+        //   见下方 l1_llm_normalize 节点。
         llm_classifier_node(
             "l1_llm",
             "L1 LLM 分类",
@@ -635,26 +665,39 @@ fn build_l1_router_nodes() -> Vec<WorkflowNode> {
             Some(0.6),
             Some("general"),
         ),
-        // 6. LLM 结果置信度检查
+        // 5b. LLM 输出归一化：{label, confidence} → {category, confidence}，供下游统一消费
+        data_transformer_node(
+            "l1_llm_normalize",
+            "LLM 输出归一化",
+            Position { x: 300.0, y: 320.0 },
+            "l1_llm_result",
+            r#"#{ "category": l1_llm_result.label, "confidence": l1_llm_result.confidence }"#,
+            "l1_llm_normalized",
+        ),
+        // 6. LLM 结果置信度检查（使用归一化后的字段名 category/confidence）
         condition_node(
             "l1_llm_conf",
             "LLM 置信度检查",
             Position { x: 100.0, y: 440.0 },
-            vec![cond("l1_llm_result.confidence", CompareOperator::Gte, serde_json::json!(0.6))],
+            vec![cond(
+                "l1_llm_normalized.confidence",
+                CompareOperator::Gte,
+                serde_json::json!(0.6),
+            )],
         ),
-        // 7. LLM 成功（输出 l1_llm_result，含 category/confidence）
+        // 7. LLM 成功（输出 l1_llm_normalized，含 category/confidence）
         end_node_with_var(
             "l1_llm_end",
             "L1 LLM 分类成功",
             Position { x: 300.0, y: 440.0 },
-            Some("l1_llm_result"),
+            Some("l1_llm_normalized"),
         ),
         // 8. LLM 低置信度（仍输出结果，主 DAG 的 l1_low_conf 会二次兜底）
         end_node_with_var(
             "l1_low_conf_end",
             "L1 LLM 低置信度",
             Position { x: 100.0, y: 560.0 },
-            Some("l1_llm_result"),
+            Some("l1_llm_normalized"),
         ),
     ]
 }
@@ -665,7 +708,8 @@ fn build_l1_router_edges() -> Vec<WorkflowEdge> {
         branch_edge("e2", "l1_rule_hit", "l1_rule_normalize", true, "规则命中"),
         branch_edge("e3", "l1_rule_hit", "l1_llm", false, "规则未命中"),
         direct_edge("e4", "l1_rule_normalize", "l1_rule_end"),
-        direct_edge("e5", "l1_llm", "l1_llm_conf"),
+        direct_edge("e5", "l1_llm", "l1_llm_normalize"),
+        direct_edge("e5b", "l1_llm_normalize", "l1_llm_conf"),
         branch_edge("e6", "l1_llm_conf", "l1_llm_end", true, "高置信度"),
         branch_edge("e7", "l1_llm_conf", "l1_low_conf_end", false, "低置信度"),
     ]
@@ -860,6 +904,7 @@ let reason = if self_ref { "self_reference" } else if graph_path.circuit_broken 
 let llm_fb = if graph_path.is_llm_fallback == () { false } else { graph_path.is_llm_fallback };
 let fb_path = if graph_path.fallback_path == () { "" } else { graph_path.fallback_path };
 let stages = if graph_path.stage_records == () { [] } else { graph_path.stage_records };
+let raw_cnt = if rar_candidates == () || rar_candidates.raw_count == () { 0 } else { rar_candidates.raw_count };
 let cands = if rar_candidates == () || rar_candidates.candidates == () || rar_candidates.candidates.len() == 0 {
     let fb_id = if l2_cluster == "" { l1_domain } else { l2_cluster };
     [#{ "id": fb_id, "name": fb_id, "description": "", "score": graph_path.confidence }]
@@ -876,6 +921,7 @@ let cands = if rar_candidates == () || rar_candidates.candidates == () || rar_ca
     "execution_mode": mode,
     "reason": reason,
     "candidates": cands,
+    "raw_count": raw_cnt,
     "is_llm_fallback": llm_fb,
     "fallback_path": fb_path,
     "stage_records": stages

@@ -38,7 +38,7 @@ use axagent_harness::workflow_types::Variable;
 use axagent_harness::{
     CandidateSummary, CapabilityDomain, CapabilityGapProposal, CapabilityGapType, CapabilityKind,
     CapabilityQuery, ExecutionMode, ModeHint, PatternPromptGuard, PromptAttackCategory,
-    PromptGuard, PromptRejection, RouteStageRecord, RoutingDecisionV2,
+    PromptGuard, PromptRejection, RouteStageRecord, RoutingDecisionV2, TaskShapeDecision,
 };
 use axagent_runtime::work_engine::{RunOptions, SubWorkflowCallback};
 use sea_orm::EntityTrait;
@@ -48,6 +48,56 @@ use std::sync::Arc;
 use std::time::Duration;
 use tauri::Emitter;
 use tauri::State;
+
+// ── P1: 任务形态分类器（原则三标尺） ──────────────────────────
+//
+// 在三层路由前调用，产出 `TaskShapeDecision` 注入到：
+// - 主 DAG variables（`__task_shape`）供路由管线消费
+// - `RoutingDecisionV2.task_shape`（决策留痕）
+// - `AgentQueryRequest.task_shape`（运行时按任务覆盖权限初值）
+// - `CognitiveQueryResponse.task_shape`（前端展示决策标签）
+//
+// flag 关闭时（`UNITY_P0_TASK_SHAPE_ENABLED = false`）不注入，走旧链路。
+const UNITY_P0_TASK_SHAPE_ENABLED: bool = true;
+
+/// 在三层路由前执行任务形态分类。
+///
+/// 当 `UNITY_P0_TASK_SHAPE_ENABLED = true` 时调用 `classify_hybrid`（规则优先 +
+/// LLM 兜底），返回 `Some(TaskShapeDecision)`；否则返回 `None`，走旧链路。
+///
+/// # 参数
+/// - `state`: AppState（用于获取 LLM 分类器）
+/// - `input`: 用户原始输入（已过安全拦截）
+/// - `options`: Agent 执行选项（提取活跃域用于权限模式推断）
+async fn classify_task_shape(
+    state: &AppState,
+    input: &str,
+    options: Option<&AgentOptions>,
+) -> Option<TaskShapeDecision> {
+    if !UNITY_P0_TASK_SHAPE_ENABLED {
+        return None;
+    }
+    // 推断当前权限模式：从 options.active_domains 推断，缺省 WorkspaceWrite
+    let permission = axagent_harness::runtime_types::permissions::PermissionMode::WorkspaceWrite;
+    let _ = options; // 预留：后续可从 options 推断更精确的权限模式
+    // P3: 走 classify_hybrid（规则优先 + LLM 兜底）
+    let decision = axagent_orchestrator::classify_hybrid(
+        input,
+        permission,
+        Some(&*state.task_shape_llm_classifier),
+    )
+    .await
+    .ok()?;
+    tracing::debug!(
+        context_cost = ?decision.context_cost,
+        isolation_need = ?decision.isolation_need,
+        strategy = ?decision.recommended_strategy,
+        merge_score = decision.merge_score,
+        split_score = decision.split_score,
+        "🧭 任务形态分类完成（原则三标尺 + LLM 兜底）"
+    );
+    Some(decision)
+}
 
 // ── DTO 类型 ──────────────────────────────────────
 
@@ -305,6 +355,9 @@ pub struct CognitiveQueryResponse {
     pub candidates: Vec<String>,
     /// 候选摘要（Top-K，含名称/描述/置信度，Clarify 分支展示用）
     pub candidate_details: Vec<CandidateSummary>,
+    /// 熔断过滤数量（RAR 原始候选数 - 最终候选数，0 表示无过滤）
+    #[serde(default)]
+    pub filtered_count: usize,
     /// 执行模式（ask / plan / act / workflow / delegate / parameter_extract / clarify）
     pub execution_mode: String,
     /// 选中工作流的可读名称（从能力护照/候选解析；未命中工作流时为 None）
@@ -319,6 +372,13 @@ pub struct CognitiveQueryResponse {
     pub total_elapsed_ms: u64,
     /// 执行分支结果（Workflow → WorkEngine；其余 → agent_query）
     pub execution: Option<CognitiveExecutionView>,
+    /// P1: 任务形态决策（原则三标尺输出，Step 0 产出）
+    ///
+    /// 当 `UNITY_P0_TASK_SHAPE` flag 启用时由 `DefaultTaskShapeClassifier` 在路由前产出，
+    /// 随响应返回前端展示决策标签（两条标尺 + 推荐策略 + 合并/拆分倾向）。
+    /// `None` 表示 flag 未启用或分类失败已回退。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub task_shape: Option<axagent_harness::TaskShapeDecision>,
 }
 
 impl From<RoutingDecisionV2> for CognitiveQueryResponse {
@@ -335,12 +395,14 @@ impl From<RoutingDecisionV2> for CognitiveQueryResponse {
             fallback_path: d.fallback_path,
             candidates: d.candidates,
             candidate_details: d.candidate_details,
+            filtered_count: 0,
             execution_mode: d.execution_mode.as_str().to_string(),
             selected_workflow_name: None,
             selected_agent_profile: None,
             stage_records: d.stage_records.iter().map(RouteStageView::from).collect(),
             total_elapsed_ms: d.total_elapsed_ms,
             execution: None,
+            task_shape: d.task_shape,
         }
     }
 }
@@ -357,13 +419,14 @@ fn executor_error(e: String, fallback_code: &'static str) -> CommandError {
 }
 
 /// 构建认知编排决策标签（JSON 对象），持久化到 assistant 消息用于每条消息独立展示。
-/// 字段与前端 `CognitiveDecisionInfo` 类型对齐：ExecutionMode / 路由路径 / 命中工作流 / 专家。
+/// 字段与前端 `CognitiveDecisionInfo` 类型对齐：ExecutionMode / 路由路径 / 命中工作流 / 专家 / 任务形态。
 fn build_decision_value(
     execution_mode: &str,
     route_path: &str,
     confidence: f64,
     selected_workflow_name: Option<String>,
     selected_agent_profile: Option<&SelectedAgentProfileView>,
+    task_shape: Option<&TaskShapeDecision>,
 ) -> serde_json::Value {
     serde_json::json!({
         "executionMode": execution_mode,
@@ -376,6 +439,8 @@ fn build_decision_value(
             "role": p.role,
             "expert": p.expert,
         })),
+        // P1: 任务形态决策（原则三标尺输出），前端 CognitiveDecisionCard 展示
+        "taskShape": task_shape,
     })
 }
 
@@ -387,6 +452,7 @@ fn decision_from_response(response: &CognitiveQueryResponse) -> serde_json::Valu
         response.confidence,
         response.selected_workflow_name.clone(),
         response.selected_agent_profile.as_ref(),
+        response.task_shape.as_ref(),
     )
 }
 
@@ -436,27 +502,18 @@ pub async fn cognitive_query(
             let proposal = build_capability_gap_proposal(Some(&rejection), &input);
             // 征求用户同意（复用授权事件通道，前端 EvolutionConsentModal 弹窗）
             if !await_user_consent(&app, &state, &proposal).await? {
-                // 用户拒绝 → 保持原拒绝行为（不透传）+ 拒绝即证据
-                persist_decision_to_message(
-                    state.harness.db(),
-                    request.conversation_id.as_deref().unwrap_or_default(),
-                    &build_rejection_decision(&rejection),
-                )
-                .await;
+                // 用户拒绝 → 保持原拒绝行为（不透传）。
+                // 注意：该分支直接返回 Err，未生成任何 assistant 消息，决策标签无处可挂，
+                // 故不再调用 persist_decision_to_message（此前误把 conversation_id 当 message_id，必然静默失败）。
                 return Err(CommandError::new(
                     axagent_harness::error_codes::cognitive::PROMPT_REJECTED,
                 )
                 .with_category(ErrorCategory::Unrecoverable)
                 .with_detail(rejection.reason));
             }
-            // 用户同意 → 执行补齐（挂 disposer 可回滚）
+            // 用户同意 → 执行补齐（挂 disposer 可回滚）。
+            // 补齐返回 Err 时同样无 assistant 消息可挂决策，故此处不持久化。
             apply_capability_gap_proposal(&state, &proposal).await?;
-            persist_decision_to_message(
-                state.harness.db(),
-                request.conversation_id.as_deref().unwrap_or_default(),
-                &build_gap_decision(&proposal),
-            )
-            .await;
             // 补齐后输入按安全化语义继续：
             // - 误伤豁免（ExemptAuthorize）→ 放行原始输入（有界豁免已生效），继续走三层路由
             // - 其余（GuardRule / CapabilityMissing）→ 提示重新发送，避免绕过防护
@@ -483,8 +540,14 @@ pub async fn cognitive_query(
             .and_then(|v| v.as_str())
             .map(|s| s.to_string())
         {
-            let decision =
-                build_decision_value(ExecutionMode::ParameterExtract.as_str(), "", 1.0, None, None);
+            let decision = build_decision_value(
+                ExecutionMode::ParameterExtract.as_str(),
+                "",
+                1.0,
+                None,
+                None,
+                None,
+            );
             let execution_id = crate::commands::workflows::workflow_execute(
                 app.clone(),
                 state,
@@ -513,6 +576,7 @@ pub async fn cognitive_query(
                 fallback_path: None,
                 candidates: Vec::new(),
                 candidate_details: Vec::new(),
+                filtered_count: 0,
                 execution_mode: ExecutionMode::ParameterExtract.as_str().to_string(),
                 selected_workflow_name: None,
                 selected_agent_profile: None,
@@ -522,6 +586,8 @@ pub async fn cognitive_query(
                     workflow_id: target,
                     execution_id,
                 }),
+                // JSON 快速路径：用户已显式提供目标 ID，跳过路由，不产出 task_shape
+                task_shape: None,
             });
         }
     }
@@ -559,6 +625,8 @@ pub async fn cognitive_query(
             1.0,
             selected_workflow_name.clone(),
             selected_agent_profile.as_ref(),
+            // Clarify 二次执行：task_shape 已在前一次主调用中产出，此处不重复分类
+            None,
         );
 
         let execution = match forced_kind {
@@ -624,6 +692,8 @@ pub async fn cognitive_query(
                     // 透传认知编排决策模式：Clarify 二次执行按能力类型定性（Agent→delegate，
                     // 其余→workflow），让 agent 运行时感知当前编排模式
                     execution_mode: Some(execution_mode.clone()),
+                    // Clarify 二次执行：task_shape 已在前一次主调用中产出，此处不重复分类
+                    task_shape: None,
                 };
                 let agent_resp =
                     crate::commands::agent::agent_query(app, state.clone(), agent_request)
@@ -657,12 +727,15 @@ pub async fn cognitive_query(
             fallback_path: None,
             candidates: Vec::new(),
             candidate_details: Vec::new(),
+            filtered_count: 0,
             execution_mode,
             selected_workflow_name,
             selected_agent_profile,
             stage_records: Vec::new(),
             total_elapsed_ms: 0,
             execution: Some(execution),
+            // Clarify 二次执行：task_shape 已在前一次主调用中产出，此处不重复分类
+            task_shape: None,
         });
     }
 
@@ -672,6 +745,12 @@ pub async fn cognitive_query(
     // candidates / 熔断标记等），替代原先 CognitiveRouter.route_with_hint 的硬编码三层调用。
     let total_start = std::time::Instant::now();
     let mode_hint = ModeHint::parse_str(request.mode_hint.as_deref().unwrap_or("auto"));
+
+    // ── P1 Step 0：任务形态分类（原则三标尺，在三层路由前产出）──
+    // 产出 `TaskShapeDecision` 注入主 DAG variables + 最终响应，
+    // 供路由管线 / AgentQueryRequest / 前端决策标签消费。
+    // flag 关闭时返回 None，完全不影响旧链路。
+    let task_shape_decision = classify_task_shape(state, &input, request.options.as_ref()).await;
 
     // 1. 动态分类目录：L1 全量业务域；L2 按预路由 L1 域实时生成（纯规则匹配，零 LLM 成本）
     let l1_categories = state.cognitive_router.list_l1_categories().await;
@@ -705,6 +784,15 @@ pub async fn cognitive_query(
             name: "__l2_categories".to_string(),
             var_type: "array".to_string(),
             value: serde_json::json!(l2_categories),
+            description: None,
+            is_secret: false,
+        },
+        // P1: 任务形态决策（原则三标尺输出），供主 DAG 各子工作流按需消费。
+        // flag 关闭时为 null，路由管线应跳过此变量。
+        Variable {
+            name: "__task_shape".to_string(),
+            var_type: "object".to_string(),
+            value: serde_json::json!(task_shape_decision),
             description: None,
             is_secret: false,
         },
@@ -770,6 +858,32 @@ pub async fn cognitive_query(
         },
     };
     let l3 = l3_value.as_object().cloned().unwrap_or_default();
+
+    // B1: 验证 l3_result 必须包含关键字段，缺失时触发能力补齐提议通道
+    const REQUIRED_L3_FIELDS: &[&str] =
+        &["route_path", "capability_id", "confidence", "execution_mode"];
+    let missing_fields: Vec<&str> =
+        REQUIRED_L3_FIELDS.iter().filter(|f| !l3.contains_key(**f)).copied().collect();
+    if !missing_fields.is_empty() {
+        tracing::error!(
+            missing = ?missing_fields,
+            l3_value = %l3_value,
+            "认知编排主 DAG 输出缺少关键字段"
+        );
+        let proposal = build_capability_gap_proposal(None, &input);
+        if await_user_consent(&app, &state, &proposal).await? {
+            apply_capability_gap_proposal(&state, &proposal).await?;
+            return Err(CommandError::new(
+                axagent_harness::error_codes::cognitive::GAP_PROPOSAL_APPLIED,
+            )
+            .with_category(ErrorCategory::General)
+            .with_detail("已按用户同意补齐能力，请重新发送请求".to_string()));
+        }
+        return Err(CommandError::new(axagent_harness::error_codes::cognitive::NO_CANDIDATE)
+            .with_category(ErrorCategory::Retryable)
+            .with_detail("认知编排器主 DAG 输出缺少关键字段，无法生成路由决策".to_string()));
+    }
+
     let get_str = |key: &str, default: &str| {
         l3.get(key).and_then(|v| v.as_str()).unwrap_or(default).to_string()
     };
@@ -814,6 +928,10 @@ pub async fn cognitive_query(
     let candidates: Vec<String> =
         candidate_details.iter().map(|c| c.capability_id.clone()).collect();
 
+    // 熔断过滤数量：RAR 原始候选数 - 最终候选数（兜底 0 表示无过滤）
+    let raw_count = l3.get("raw_count").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
+    let filtered_count = raw_count.saturating_sub(candidate_details.len());
+
     // 认知编排自动选专家：取选中能力（capability_id）候选上标注的推荐专家。
     // 命中工作流路径时由 WorkEngine/AgentNode 自行绑定专家，此处仅服务于
     // Ask/Act/Delegate 等 Agent 执行路径；选中能力无推荐专家时兜底为 None，
@@ -829,13 +947,27 @@ pub async fn cognitive_query(
     );
 
     // 5. 熔断检查（自指/系统能力层熔断 → 可恢复错误，前端引导重试或降级）
+    let circuit_break_reason_str =
+        circuit_break_reason.as_deref().unwrap_or("self-reference circuit breaker");
     if l3.get("is_circuit_broken").and_then(|v| v.as_bool()).unwrap_or(false) {
+        // 熔断 + 无候选（非自指）→ 进入能力补齐提议通道（T0.5）
+        // 自指熔断是系统保护机制，不应触发能力补齐；其余场景（全部候选被拦截/无可用路径）
+        // 表明系统当前无对应能力，征求用户同意后自动补齐。
+        if candidate_details.is_empty() && circuit_break_reason_str != "self_reference" {
+            let proposal = build_capability_gap_proposal(None, &input);
+            if await_user_consent(&app, &state, &proposal).await? {
+                apply_capability_gap_proposal(&state, &proposal).await?;
+                return Err(CommandError::new(
+                    axagent_harness::error_codes::cognitive::GAP_PROPOSAL_APPLIED,
+                )
+                .with_category(ErrorCategory::General)
+                .with_detail("已按用户同意补齐能力，请重新发送请求".to_string()));
+            }
+            tracing::info!("🧭 熔断无候选且用户拒绝补齐，返回熔断错误");
+        }
+
         let mut params = HashMap::new();
-        // 熔断原因可能缺失，兜底默认值避免前端渲染出字面量 `{reason}`
-        params.insert(
-            "reason".to_string(),
-            circuit_break_reason.unwrap_or_else(|| "self-reference circuit breaker".to_string()),
-        );
+        params.insert("reason".to_string(), circuit_break_reason_str.to_string());
         return Err(CommandError::new(axagent_harness::error_codes::cognitive::CIRCUIT_BROKEN)
             .with_category(ErrorCategory::Retryable)
             .with_params(params));
@@ -892,12 +1024,14 @@ pub async fn cognitive_query(
         fallback_path,
         candidates,
         candidate_details,
+        filtered_count,
         execution_mode: mode.as_str().to_string(),
         selected_workflow_name,
         selected_agent_profile,
         stage_records,
         total_elapsed_ms: total_start.elapsed().as_millis() as u64,
         execution: None,
+        task_shape: task_shape_decision.clone(),
     };
 
     // ── 分支执行：按执行模式复用既有执行器 ──
@@ -1014,6 +1148,102 @@ pub async fn cognitive_query(
                 selected_agent_profile.as_deref(),
             )
             .await;
+
+            // ── P3: 策略实装（ExecutionStrategy 真正影响执行路径）──────────
+
+            // 2a. ApprovalGate 真实阻断：通过 oneshot 通道等待用户审批决策
+            use axagent_harness::ExecutionStrategy;
+            if let Some(ts) = &task_shape_decision {
+                if matches!(ts.recommended_strategy, ExecutionStrategy::ApprovalGate) {
+                    let preview: String = input.chars().take(80).collect();
+                    let approval_id =
+                        format!("{}-{}", conversation_id, chrono::Utc::now().timestamp_millis());
+
+                    tracing::warn!(
+                        conversation_id = %conversation_id,
+                        approval_id = %approval_id,
+                        input_preview = %preview,
+                        evidence = ?ts.evidence,
+                        merge_score = ts.merge_score,
+                        split_score = ts.split_score,
+                        "🚨 ApprovalGate 命中：高危任务触发审批阻断"
+                    );
+
+                    // 创建 oneshot 通道并注册到 AppState
+                    let (tx, rx) = tokio::sync::oneshot::channel::<bool>();
+                    {
+                        let mut senders = state.task_shape_approval_senders.lock().await;
+                        senders.insert(approval_id.clone(), tx);
+                    }
+
+                    // 向前端发送审批请求事件
+                    let _ = app.emit(
+                        "task-shape-approval-request",
+                        serde_json::json!({
+                            "approvalId": &approval_id,
+                            "conversationId": &conversation_id,
+                            "inputPreview": &preview,
+                            "evidence": &ts.evidence,
+                            "mergeScore": ts.merge_score,
+                            "splitScore": ts.split_score
+                        }),
+                    );
+
+                    // 阻塞等待用户决策（true=批准, false=拒绝, 通道关闭=拒绝）
+                    let approved = rx.await.unwrap_or(false);
+
+                    // 清理通道
+                    {
+                        let mut senders = state.task_shape_approval_senders.lock().await;
+                        senders.remove(&approval_id);
+                    }
+
+                    if !approved {
+                        tracing::info!(
+                            conversation_id = %conversation_id,
+                            approval_id = %approval_id,
+                            "ApprovalGate 审批被拒绝，任务终止"
+                        );
+                        response.execution = Some(CognitiveExecutionView::Agent {
+                            conversation_id: conversation_id.clone(),
+                            assistant_message_id: String::new(),
+                            status: "approval_rejected".to_string(),
+                        });
+                        return Ok(response);
+                    }
+
+                    tracing::info!(
+                        conversation_id = %conversation_id,
+                        approval_id = %approval_id,
+                        "ApprovalGate 审批通过，继续执行"
+                    );
+                }
+            }
+
+            // 2b. DelegateSingleExpert：用户未显式指定 expert 时，用分类器建议覆盖
+            //     用户显式指定优先（request.agent_profile_id / request.expert_id），尊重用户意图
+            let effective_expert_id =
+                if request.agent_profile_id.is_none() && request.expert_id.is_none() {
+                    task_shape_decision
+                        .as_ref()
+                        .and_then(|ts| match &ts.recommended_strategy {
+                            ExecutionStrategy::DelegateSingleExpert {
+                                expert_id: expert_from_shape,
+                            } => {
+                                tracing::info!(
+                                    from_shape = expert_from_shape,
+                                    already_selected = ?dynamic_expert_id,
+                                    "[cognitive_query] task_shape 建议委派专家"
+                                );
+                                Some(expert_from_shape.clone())
+                            },
+                            _ => None,
+                        })
+                        .or(dynamic_expert_id)
+                } else {
+                    dynamic_expert_id
+                };
+
             let agent_request = AgentQueryRequest {
                 conversation_id,
                 input,
@@ -1030,10 +1260,12 @@ pub async fn cognitive_query(
                 options: request.options.clone(),
                 // 认知编排选专家：显式指定优先，路由自动推导兜底；角色命中时动态补专家
                 agent_profile_id: selected_agent_profile,
-                expert_id: dynamic_expert_id,
+                expert_id: effective_expert_id,
                 agent_context: request.agent_context.clone(),
                 // 透传认知编排决策模式（Ask/Act/Delegate），让 agent 运行时感知当前编排模式
                 execution_mode: Some(mode.as_str().to_string()),
+                // P1: 透传任务形态决策（原则三标尺），运行时按任务而非按会话覆盖权限初值
+                task_shape: task_shape_decision.clone(),
             };
             let agent_resp = crate::commands::agent::agent_query(app, state.clone(), agent_request)
                 .await
@@ -1307,41 +1539,6 @@ pub async fn capability_gap_consent(
     Ok(())
 }
 
-/// 拒绝即证据：安全拦截拒绝的结构化决策标签（T0.3 用户拒绝分支持久化用）。
-fn build_rejection_decision(rejection: &PromptRejection) -> serde_json::Value {
-    serde_json::json!({
-        "executionMode": "rejected",
-        "routePath": "security:rejected",
-        "confidence": 0.0,
-        "rejection": {
-            "category": serde_json::to_value(rejection.category).unwrap_or_default(),
-            "pattern": rejection.pattern,
-            "reason": rejection.reason,
-            "suggestion": rejection.suggestion,
-        },
-    })
-}
-
-/// 补齐产物决策标签（T0.3/T0.4/T0.5 用户同意补齐后持久化用，
-/// 供阶段三贝叶斯后验消费：记录补齐原因 + 缺口类型）。
-fn build_gap_decision(proposal: &CapabilityGapProposal) -> serde_json::Value {
-    serde_json::json!({
-        "executionMode": "gap_proposal",
-        "routePath": "evolution:gap_proposal",
-        "confidence": 0.0,
-        "gapProposal": {
-            "id": proposal.id,
-            "gapType": serde_json::to_value(proposal.gap_type).unwrap_or_default(),
-            "category": proposal.category.map(|c| serde_json::to_value(c).unwrap_or_default()),
-            "title": proposal.title,
-            "proposal": proposal.proposal,
-            "reason": proposal.reason,
-            "impact": proposal.impact,
-            "rollback": proposal.rollback,
-        },
-    })
-}
-
 // ── 阶段三 T3.3：决策标签作为证据源 ─────────────────
 
 /// 进化产物真实执行反馈对照明细（按 tool_id，T5A.4）。
@@ -1520,6 +1717,45 @@ pub(crate) async fn evaluate_evolution_evidence(
             details,
         },
     })
+}
+
+// ── P3: ApprovalGate 审批回传命令 ──────────────────────────
+
+/// ApprovalGate 审批请求参数（前端回传）。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskShapeApprovalRequest {
+    /// 审批 ID（与 `task-shape-approval-request` 事件中的 `approvalId` 对应）
+    pub approval_id: String,
+    /// 用户是否批准执行
+    pub approved: bool,
+}
+
+/// ApprovalGate 审批回传 — 前端审批弹窗同意/拒绝后调用。
+///
+/// 从 `task_shape_approval_senders` 取出对应 oneshot sender，
+/// 唤醒 `cognitive_query` 中阻塞等待的 ApprovalGate barrier。
+#[tauri::command]
+pub async fn respond_task_shape_approval(
+    state: State<'_, AppState>,
+    request: TaskShapeApprovalRequest,
+) -> Result<(), String> {
+    let mut senders = state.task_shape_approval_senders.lock().await;
+    if let Some(sender) = senders.remove(&request.approval_id) {
+        let _ = sender.send(request.approved);
+        tracing::info!(
+            approval_id = %request.approval_id,
+            approved = %request.approved,
+            "🚨 ApprovalGate 审批回传"
+        );
+        Ok(())
+    } else {
+        tracing::warn!(
+            approval_id = %request.approval_id,
+            "🚨 ApprovalGate 审批回传：无挂起的审批（可能已超时或已处理）"
+        );
+        Ok(()) // 不报错，避免前端报异常
+    }
 }
 
 // ── 阶段三 T3.5：决策标签流 → 贝叶斯后验 的集成测试 ─────────────
