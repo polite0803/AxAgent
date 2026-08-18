@@ -185,7 +185,7 @@ describe("memoryStore", () => {
       await useMemoryStore.getState().addItem(NS_ID, "New Item", "Content");
 
       expect(invokeMock).toHaveBeenCalledWith("add_memory_item", {
-        input: { namespace_id: NS_ID, title: "New Item", content: "Content" },
+        input: { namespaceId: NS_ID, title: "New Item", content: "Content" },
       });
       expect(useMemoryStore.getState().items).toHaveLength(1);
     });

@@ -64,6 +64,10 @@ vi.mock("antd", () => ({
   Button: ({ children }: { children: React.ReactNode }) => <button>{children}</button>,
   Spin: () => <div data-testid="spin" />,
   Result: () => <div data-testid="result" />,
+  Modal: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Badge: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+  Empty: () => <div data-testid="empty" />,
+  Input: Object.assign(() => <input />, { TextArea: () => <textarea /> }),
   Typography: {
     Text: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
     Paragraph: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
@@ -216,6 +220,20 @@ vi.mock("@/stores", () => ({
   useTabStore: Object.assign(
     () => ({ pruneInvalidTabs: vi.fn() }),
     { getState: () => ({ pruneInvalidTabs: vi.fn() }) },
+  ),
+  useApprovalStore: Object.assign(
+    (selector: (state: unknown) => unknown) =>
+      selector({
+        pendingApprovals: [],
+        loading: false,
+        panelOpen: false,
+        error: null,
+        setPanelOpen: vi.fn(),
+        fetchPendingApprovals: vi.fn().mockResolvedValue(undefined),
+        resumeApproval: vi.fn().mockResolvedValue(true),
+        cancelApproval: vi.fn().mockResolvedValue(true),
+      }),
+    { getState: () => ({ pendingApprovals: [], loading: false, panelOpen: false }) },
   ),
   initAnimationPreference: () => () => {},
 }));
