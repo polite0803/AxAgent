@@ -463,7 +463,7 @@ jobs:
           cmake: '3.22.1'
 
       - name: Install cargo-ndk
-        run: cargo install cargo-ndk --version 0.16.1
+        run: cargo install cargo-ndk --version 4.1.2
 
       - name: Setup Android NDK toolchain PATH
         run: |
