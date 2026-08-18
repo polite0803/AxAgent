@@ -6,7 +6,7 @@
 //! 由 wiring 层（`commands/evolution_engine.rs`）注入具体实现。
 //!
 //! # 架构
-//! ```
+//! ```text
 //! tools (本文件)          harness                wiring (commands)
 //! ┌──────────────┐       ┌──────────────────┐    ┌─────────────────────┐
 //! │ InspectTool  │──────→│RuntimeMutationAccess│←───│EvolutionEngineAccess│
