@@ -359,6 +359,10 @@ vi.mock("@ant-design/icons", () =>
     get: (_target, prop) => () => <span data-icon={String(prop)} />,
   }));
 
+vi.mock("@/components/approval/ApprovalPanel", () => ({
+  ApprovalPanel: () => null,
+}));
+
 vi.mock("@/lib/preloadChatRenderers", () => ({
   preloadChatRenderers,
   preloadCommonPages: vi.fn(),
