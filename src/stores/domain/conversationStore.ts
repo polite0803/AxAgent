@@ -3,6 +3,7 @@
 import { invoke, logIpcError } from "@/lib/invoke";
 import { mergeOlderPages, mergePreservedMessages, MESSAGE_PAGE_SIZE } from "@/lib/messageUtils";
 import { useProviderStore } from "@/stores/feature/providerStore";
+import { useSettingsStore } from "@/stores/feature/settingsStore";
 import type {
   AttachmentInput,
   CognitiveClarification,
@@ -764,8 +765,37 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           .getState()
           .categories.find((item) => item.id === options.categoryId) ?? null)
         : null;
-      const templateProviderId = category?.defaultProviderId ?? providerId;
-      const templateModelId = category?.defaultModelId ?? modelId;
+      let templateProviderId = category?.defaultProviderId ?? providerId;
+      let templateModelId = category?.defaultModelId ?? modelId;
+
+      // 回退逻辑：当 modelId 或 providerId 为空时，从 settings 或第一个可用的 provider/model 中获取
+      if (!templateModelId || !templateProviderId) {
+        const settings = useSettingsStore.getState().settings;
+        const providers = useProviderStore.getState().providers;
+
+        if (!templateProviderId && settings.defaultProviderId) {
+          templateProviderId = settings.defaultProviderId;
+        }
+        if (!templateModelId && settings.defaultModelId) {
+          templateModelId = settings.defaultModelId;
+        }
+
+        if (!templateModelId || !templateProviderId) {
+          const provider = providers.find(
+            (p) => p.id === templateProviderId && p.enabled,
+          ) ?? providers.find(
+            (p) => p.enabled && p.models.some((m) => m.enabled),
+          );
+          if (provider) {
+            templateProviderId = templateProviderId || provider.id;
+            const model = provider.models.find((m) => m.enabled);
+            if (model) {
+              templateModelId = templateModelId || model.modelId;
+            }
+          }
+        }
+      }
+
       if (!templateModelId || !templateProviderId) {
         throw new Error(
           "Cannot create conversation: model_id and provider_id are required. Please configure a provider and model first.",
