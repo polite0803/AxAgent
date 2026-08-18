@@ -408,7 +408,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             "ALTER TABLE agency_experts ADD CONSTRAINT agency_experts_category_check \
              CHECK (category IN ('general','development','security','data','finance',\
              'devops','design','writing','business','opc-company','opc-experts',\
-             'stock-analysis'))",
+             'opc-industry','opc-domain','stock-analysis'))",
         ))
         .await?;
 
@@ -424,7 +424,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             "ALTER TABLE agent_profiles ADD CONSTRAINT agent_profiles_category_check \
              CHECK (category IN ('general','development','security','data','finance',\
              'devops','design','writing','business','opc-company','opc-experts',\
-             'stock-analysis'))",
+             'opc-industry','opc-domain','stock-analysis'))",
         ))
         .await?;
     }

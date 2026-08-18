@@ -81,9 +81,10 @@ pub mod v219_trade_intent_audit;
 pub mod v220_narrative_structure;
 pub mod v221_demand_discovery;
 pub mod v222_demand_lead_evaluation;
+pub mod v223_heal_stale_schema;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 222;
+pub const CURRENT_VERSION: i32 = 223;
 
 /// P2-10: Schema 版本追踪表名。
 ///
@@ -346,6 +347,11 @@ const MIGRATIONS: &[Migration] = &[
         description: "v222_demand_lead_evaluation: 为 opc_demand_lead 表添加需求价值评估字段",
         up: |db| Box::pin(v222_demand_lead_evaluation::up(db)),
     },
+    Migration {
+        version: 223,
+        description: "v223_heal_stale_schema: 自愈迁移——补 trajectory_trajectories.agent_name 列 + 重新断言 agency_experts/agent_profiles 的 category CHECK 约束（含 opc-industry/opc-domain），修复 repair_schema 强制写版本号导致的存量库 schema 缺失",
+        up: |db| Box::pin(v223_heal_stale_schema::up(db)),
+    },
 ];
 
 /// 执行所有尚未应用的 schema 迁移。
@@ -516,31 +522,43 @@ pub async fn repair_schema(db: &sea_orm::DatabaseConnection) -> Result<(usize, u
 
     let mut fixed = 0usize;
     let total = MIGRATIONS.len();
+    // 记录是否有迁移失败：只要有失败，就不得强制写入 CURRENT_VERSION，
+    // 否则版本表会显示"已追平"，下次 run_migrations 将永久跳过失败的迁移
+    // （这正是 v223 背景中「存量库 schema 缺失」的根因）。
+    let mut all_ok = true;
 
     for m in MIGRATIONS {
         tracing::info!("[repair_schema] 重跑迁移 v{}: {}", m.version, m.description);
         match (m.up)(db.clone()).await {
             Ok(()) => {
-                // 记录版本号。容错处理：即使记录失败也不中断修复流程，
-                // 最后统一强制写入 CURRENT_VERSION。
+                // 记录版本号。容错处理：即使记录失败也不中断修复流程。
                 if let Err(e) = record_version(db, backend, m.version, m.description).await {
                     tracing::warn!("[repair_schema] 版本号写入失败 v{}: {}", m.version, e);
                 }
                 fixed += 1;
             },
             Err(e) => {
+                all_ok = false;
                 tracing::warn!("[repair_schema] 迁移 v{} 重跑报错（可忽略）: {}", m.version, e);
             },
         }
     }
 
-    // 关键：修复完成后强制确保 CURRENT_VERSION 被记录。
-    // 这保证了无论中间哪些版本号写入失败，get_schema_status 都能正确返回 0 pending。
-    // 如果连这一步都失败，说明数据库存在严重问题，应报错通知用户。
-    record_version(db, backend, CURRENT_VERSION, "repair_schema completed").await.map_err(|e| {
-        tracing::error!("[repair_schema] 强制写入版本号失败: {}", e);
-        DbErr::Custom(format!("修复完成但版本号写入失败: {e}"))
-    })?;
+    if all_ok {
+        // 所有迁移成功：强制确保 CURRENT_VERSION 被记录。
+        // 这保证了 get_schema_status 能正确返回 0 pending。
+        record_version(db, backend, CURRENT_VERSION, "repair_schema completed").await.map_err(
+            |e| {
+                tracing::error!("[repair_schema] 强制写入版本号失败: {}", e);
+                DbErr::Custom(format!("修复完成但版本号写入失败: {e}"))
+            },
+        )?;
+    } else {
+        tracing::warn!(
+            "[repair_schema] 部分迁移失败，不强制写入 CURRENT_VERSION，\
+             下次启动 run_migrations 将重试失败的迁移"
+        );
+    }
 
     // 验证：读取当前最大版本号
     let final_version = read_max_version(db).await.unwrap_or(0);
@@ -571,7 +589,7 @@ pub async fn ensure_category_check_constraints(
     let backend = db.get_database_backend();
     let categories = "'general','development','security','data','finance',\
         'devops','design','writing','business','opc-company','opc-experts',\
-        'stock-analysis'";
+        'opc-industry','opc-domain','stock-analysis'";
 
     // agency_experts
     let _ = db
