@@ -910,6 +910,29 @@ export function InputArea() {
   // ── Unified Mode (Ask / Plan / Action) ──
   // 认知编排器模式下执行模式由路由自动决策，不再提供手动 Ask / Plan / Action 选择
 
+  // 解析默认 provider + model：优先 settings 默认值，回退到第一个启用的 provider/model。
+  // 统一供 handleSend 与「新建会话」动作复用，避免各处重复且行为不一致。
+  const resolveDefaultProviderModel = useCallback(() => {
+    if (providersLoading || (providers ?? []).length === 0) {
+      return null;
+    }
+    let provider = settings.defaultProviderId
+      ? providers.find(
+        (p) => p.id === settings.defaultProviderId && p.enabled,
+      )
+      : undefined;
+    let model = provider?.models.find(
+      (m) => m.modelId === settings.defaultModelId && m.enabled,
+    );
+    if (!provider || !model) {
+      provider = providers.find(
+        (p) => p.enabled && p.models.some((m) => m.enabled),
+      );
+      model = provider?.models.find((m) => m.enabled);
+    }
+    return provider && model ? { provider, model } : null;
+  }, [providers, providersLoading, settings.defaultProviderId, settings.defaultModelId]);
+
   const handleSend = useCallback(async () => {
     const trimmed = value.trim();
     if (!trimmed || streaming) {
@@ -926,32 +949,15 @@ export function InputArea() {
             .createGatewayConversation(selectedGatewayId);
           useConversationStore.getState().setActiveConversation(conversationId);
         } else {
-          if (providersLoading || (providers ?? []).length === 0) {
-            messageApi.warning(t("chat.noModelsAvailable"));
-            return;
-          }
-          let provider = settings.defaultProviderId
-            ? providers.find(
-              (p) => p.id === settings.defaultProviderId && p.enabled,
-            )
-            : undefined;
-          let model = provider?.models.find(
-            (m) => m.modelId === settings.defaultModelId && m.enabled,
-          );
-          if (!provider || !model) {
-            provider = providers.find(
-              (p) => p.enabled && p.models.some((m) => m.enabled),
-            );
-            model = provider?.models.find((m) => m.enabled);
-          }
-          if (!provider || !model) {
+          const resolved = resolveDefaultProviderModel();
+          if (!resolved) {
             messageApi.warning(t("chat.noModelsAvailable"));
             return;
           }
           await createConversation(
             trimmed.slice(0, 30),
-            model.modelId,
-            provider.id,
+            resolved.model.modelId,
+            resolved.provider.id,
             {
               mode: pendingModeRef.current ?? undefined,
             },
@@ -1023,9 +1029,7 @@ export function InputArea() {
     sendMultiModelMessage,
     companionModels,
     activeConversationId,
-    providers,
-    providersLoading,
-    settings,
+    resolveDefaultProviderModel,
     createConversation,
     messageApi,
     t,
@@ -1576,10 +1580,22 @@ export function InputArea() {
                   await clearAllMessages();
                   messageApi.success(t("chat.clearHistoryDone"));
                   break;
-                case "new":
+                case "new": {
                   if (!activeConversationId) { return; }
-                  await createConversation("", "", "", { mode: "chat" });
+                  // 从默认配置/回退解析 provider+model，避免传入空串触发创建失败
+                  const resolved = resolveDefaultProviderModel();
+                  if (!resolved) {
+                    messageApi.warning(t("chat.noModelsAvailable"));
+                    return;
+                  }
+                  await createConversation(
+                    "",
+                    resolved.model.modelId,
+                    resolved.provider.id,
+                    { mode: "chat" },
+                  );
                   break;
+                }
                 case "stop":
                   cancelCurrentStream(activeConversationId ?? undefined);
                   break;
