@@ -51,7 +51,7 @@ export function TracerPanel() {
 
   const handleDelete = async (traceId: string) => {
     try {
-      await invoke("tracer_delete_trace", { trace_id: traceId });
+      await invoke("tracer_delete_trace", { traceId });
       fetchTraces();
     } catch {
       // ignore

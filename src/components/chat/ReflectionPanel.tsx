@@ -584,13 +584,13 @@ export function useReflection() {
 
       try {
         const result = await invoke<ReflectionData>("reflect_on_task", {
-          task_id: params.taskId,
-          task_description: params.taskDescription,
+          taskId: params.taskId,
+          taskDescription: params.taskDescription,
           success: params.success,
           error: params.error || null,
-          tools_used: params.toolsUsed,
+          toolsUsed: params.toolsUsed,
           iterations: params.iterations,
-          duration_ms: params.durationMs,
+          durationMs: params.durationMs,
         });
 
         setReflection(result);

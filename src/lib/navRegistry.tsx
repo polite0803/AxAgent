@@ -15,6 +15,7 @@ import {
   Code,
   Cpu,
   DollarSign,
+  Edit3,
   GraduationCap,
   LineChart,
   MapPin,
@@ -38,7 +39,7 @@ export interface NavItem {
   pluginName?: string;
 }
 
-const industryNav = (key: string, icon: React.ReactNode, labelKey: string, path: string): NavItem => ({
+const domainNav = (key: string, icon: React.ReactNode, labelKey: string, path: string): NavItem => ({
   key,
   icon,
   labelKey,
@@ -46,8 +47,9 @@ const industryNav = (key: string, icon: React.ReactNode, labelKey: string, path:
   isPlugin: false,
 });
 
-/** 内置导航项（按域归组，见 NAV_ITEM_DOMAIN_MAP） */
+/** 内置导航项（按 8 个标准能力域归组，对齐后端 CapabilityDomain 职责） */
 export const builtinNavItems: NavItem[] = [
+  // ── 通用域（general）：文件/Shell/文本/网络/搜索/文档/配置 ──
   {
     key: "chat",
     icon: <Icon icon="fluent:chat-20-filled" size={17} />,
@@ -55,109 +57,121 @@ export const builtinNavItems: NavItem[] = [
     path: BUILTIN_PAGE_PATH.chat,
     isPlugin: false,
   },
-  // ── 金融域 ──
-  {
-    key: "invest",
-    icon: <LineChart size={17} />,
-    labelKey: "nav.invest",
-    path: BUILTIN_PAGE_PATH.invest,
-    isPlugin: false,
-  },
-  industryNav(
-    "opc-industry-finance-invest",
+
+  // ── 金融域（finance）：行情、交易、风控、组合管理 ──
+  domainNav(
+    "finance-investment",
+    <LineChart size={17} />,
+    "nav.financeInvestment",
+    BUILTIN_PAGE_PATH.financeInvestment,
+  ),
+  domainNav(
+    "finance-analysis",
     <TrendingUp size={17} />,
-    "opc.industries.finance_invest",
-    BUILTIN_PAGE_PATH.opcIndustryFinanceInvest,
+    "nav.financeAnalysis",
+    BUILTIN_PAGE_PATH.financeAnalysis,
   ),
-  industryNav(
-    "opc-industry-accounting",
+  domainNav(
+    "finance-accounting",
     <PieChart size={17} />,
-    "opc.industries.accounting",
-    BUILTIN_PAGE_PATH.opcIndustryAccounting,
+    "nav.financeAccounting",
+    BUILTIN_PAGE_PATH.financeAccounting,
   ),
-  // ── 自动化域 ──
-  {
-    key: "opc",
-    icon: <Building2 size={17} />,
-    labelKey: "nav.opc",
-    path: BUILTIN_PAGE_PATH.opc,
-    isPlugin: false,
-  },
-  industryNav(
-    "opc-industry-sales-growth",
+
+  // ── 自动化域（automation）：RPA、定时任务、工作流编排 ──
+  domainNav(
+    "automation-operations",
+    <Building2 size={17} />,
+    "nav.automationOperations",
+    BUILTIN_PAGE_PATH.automationOperations,
+  ),
+  domainNav(
+    "automation-sales",
     <DollarSign size={17} />,
-    "opc.industries.sales_growth",
-    BUILTIN_PAGE_PATH.opcIndustrySalesGrowth,
+    "nav.automationSales",
+    BUILTIN_PAGE_PATH.automationSales,
   ),
-  industryNav(
-    "opc-industry-project-management",
+  domainNav(
+    "automation-projects",
     <Target size={17} />,
-    "opc.industries.project_management",
-    BUILTIN_PAGE_PATH.opcIndustryProjectManagement,
+    "nav.automationProjects",
+    BUILTIN_PAGE_PATH.automationProjects2,
   ),
-  industryNav(
-    "opc-industry-industry-consulting",
+  domainNav(
+    "automation-consulting",
     <Users size={17} />,
-    "opc.industries.industry_consulting",
-    BUILTIN_PAGE_PATH.opcIndustryIndustryConsulting,
+    "nav.automationConsulting",
+    BUILTIN_PAGE_PATH.automationConsulting,
   ),
-  industryNav(
-    "opc-industry-ecommerce",
+  domainNav(
+    "automation-ecommerce",
     <ShoppingBag size={17} />,
-    "opc.industries.ecommerce",
-    BUILTIN_PAGE_PATH.opcIndustryEcommerce,
+    "nav.automationEcommerce",
+    BUILTIN_PAGE_PATH.automationEcommerce,
   ),
-  // ── 运维域 ──
-  industryNav(
-    "opc-industry-software-dev",
+
+  // ── 运维域（devops）：CI/CD、部署、监控告警、安全审计、容器编排 ──
+  domainNav(
+    "devops-software",
     <Code size={17} />,
-    "opc.industries.software_dev",
-    BUILTIN_PAGE_PATH.opcIndustrySoftwareDev,
+    "nav.devopsSoftware",
+    BUILTIN_PAGE_PATH.devopsSoftware,
   ),
-  industryNav(
-    "opc-industry-security",
+  domainNav(
+    "devops-security",
     <Shield size={17} />,
-    "opc.industries.security",
-    BUILTIN_PAGE_PATH.opcIndustrySecurity,
+    "nav.devopsSecurity",
+    BUILTIN_PAGE_PATH.devopsSecurity,
   ),
-  // ── 数据分析域 ──
-  industryNav(
-    "opc-industry-geospatial",
+
+  // ── 数据分析域（data_analysis）：SQL 查询、数据可视化、ETL/数据清洗 ──
+  domainNav(
+    "data-geospatial",
     <MapPin size={17} />,
-    "opc.industries.geospatial",
-    BUILTIN_PAGE_PATH.opcIndustryGeospatial,
+    "nav.dataGeospatial",
+    BUILTIN_PAGE_PATH.dataGeospatial,
   ),
-  industryNav(
-    "opc-industry-ai-research",
+  domainNav(
+    "data-ai-research",
     <Cpu size={17} />,
-    "opc.industries.ai_research",
-    BUILTIN_PAGE_PATH.opcIndustryAiResearch,
+    "nav.dataAiResearch",
+    BUILTIN_PAGE_PATH.dataAiResearch,
   ),
-  // ── 内容创作域 ──
-  industryNav(
-    "opc-industry-content-media",
-    <MessageSquare size={17} />,
-    "opc.industries.content_media",
-    BUILTIN_PAGE_PATH.opcIndustryContentMedia,
+
+  // ── 内容创作域（content_creation）：写作、设计、排版 ──
+  domainNav(
+    "content-media",
+    <Edit3 size={17} />,
+    "nav.contentMedia",
+    BUILTIN_PAGE_PATH.contentMedia,
   ),
-  industryNav(
-    "opc-industry-design",
+  domainNav(
+    "content-design",
     <Palette size={17} />,
-    "opc.industries.design",
-    BUILTIN_PAGE_PATH.opcIndustryDesign,
+    "nav.contentDesign",
+    BUILTIN_PAGE_PATH.contentDesign,
   ),
-  industryNav(
-    "opc-industry-education",
+  domainNav(
+    "content-education",
     <GraduationCap size={17} />,
-    "opc.industries.education",
-    BUILTIN_PAGE_PATH.opcIndustryEducation,
+    "nav.contentEducation",
+    BUILTIN_PAGE_PATH.contentEducation,
   ),
-  // ── AI 媒体域 ──
-  industryNav(
-    "opc-industry-game-dev",
+
+  // ── AI 媒体域（ai_media）：图像/视频/音频的生成与处理 ──
+  domainNav(
+    "ai-media-game",
     <Rocket size={17} />,
-    "opc.industries.game_dev",
-    BUILTIN_PAGE_PATH.opcIndustryGameDev,
+    "nav.aiMediaGame",
+    BUILTIN_PAGE_PATH.aiMediaGame,
+  ),
+
+  // ── 通信域（communication）：IM、邮件、推送通知 ──
+  domainNav(
+    "communication-message",
+    <MessageSquare size={17} />,
+    "nav.communicationMessage",
+    BUILTIN_PAGE_PATH.communicationMessage,
   ),
 ];
 

@@ -911,8 +911,8 @@ export function IndustryLearningPanel({
               <Space>
                 <BulbOutlined />
                 <strong>{t("opc.industry.learning.reflection.label")}</strong>
-                <Tag color={learningConfig.reflection_enabled ? "green" : "default"}>
-                  {learningConfig.reflection_enabled
+                <Tag color={learningConfig.reflectionEnabled ? "green" : "default"}>
+                  {learningConfig.reflectionEnabled
                     ? t("opc.industry.learning.reflection.enabled")
                     : t("opc.industry.learning.reflection.disabled")}
                 </Tag>
@@ -924,13 +924,13 @@ export function IndustryLearningPanel({
                 size="small"
                 icon={<BulbOutlined />}
                 onClick={async () => {
-                  if (!learningConfig.reflection_enabled) {
+                  if (!learningConfig.reflectionEnabled) {
                     message.warning(t("opc.industry.learning.reflection.notEnabled"));
                     return;
                   }
                   await onReflect();
                 }}
-                disabled={!learningConfig.reflection_enabled}
+                disabled={!learningConfig.reflectionEnabled}
                 block
               >
                 {t("opc.industry.learning.reflection.trigger")}
@@ -946,8 +946,8 @@ export function IndustryLearningPanel({
               <Space>
                 <ThunderboltOutlined />
                 <strong>{t("opc.industry.learning.evolution.label")}</strong>
-                <Tag color={learningConfig.evolution_enabled ? "green" : "default"}>
-                  {learningConfig.evolution_enabled
+                <Tag color={learningConfig.evolutionEnabled ? "green" : "default"}>
+                  {learningConfig.evolutionEnabled
                     ? t("opc.industry.learning.evolution.enabled")
                     : t("opc.industry.learning.evolution.disabled")}
                 </Tag>
@@ -959,13 +959,13 @@ export function IndustryLearningPanel({
                 size="small"
                 icon={<RocketOutlined />}
                 onClick={async () => {
-                  if (!learningConfig.evolution_enabled) {
+                  if (!learningConfig.evolutionEnabled) {
                     message.warning(t("opc.industry.learning.evolution.notEnabled"));
                     return;
                   }
                   await onEvolve();
                 }}
-                disabled={!learningConfig.evolution_enabled}
+                disabled={!learningConfig.evolutionEnabled}
                 block
               >
                 {t("opc.industry.learning.evolution.trigger")}
@@ -981,8 +981,8 @@ export function IndustryLearningPanel({
               <Space>
                 <PlayCircleOutlined />
                 <strong>{t("opc.industry.learning.selfImprovement.label")}</strong>
-                <Tag color={learningConfig.self_improvement_enabled ? "green" : "default"}>
-                  {learningConfig.self_improvement_enabled
+                <Tag color={learningConfig.selfImprovementEnabled ? "green" : "default"}>
+                  {learningConfig.selfImprovementEnabled
                     ? t("opc.industry.learning.selfImprovement.enabled")
                     : t("opc.industry.learning.selfImprovement.disabled")}
                 </Tag>
@@ -994,13 +994,13 @@ export function IndustryLearningPanel({
                 size="small"
                 icon={<PlayCircleOutlined />}
                 onClick={async () => {
-                  if (!learningConfig.self_improvement_enabled) {
+                  if (!learningConfig.selfImprovementEnabled) {
                     message.warning(t("opc.industry.learning.selfImprovement.notEnabled"));
                     return;
                   }
                   await onSelfImprove();
                 }}
-                disabled={!learningConfig.self_improvement_enabled}
+                disabled={!learningConfig.selfImprovementEnabled}
                 block
               >
                 {t("opc.industry.learning.selfImprovement.trigger")}
@@ -1016,8 +1016,8 @@ export function IndustryLearningPanel({
               <Space>
                 <FundProjectionScreenOutlined />
                 <strong>{t("opc.industry.learning.reinforcementLearning.label")}</strong>
-                <Tag color={learningConfig.reinforcement_learning_enabled ? "green" : "default"}>
-                  {learningConfig.reinforcement_learning_enabled
+                <Tag color={learningConfig.reinforcementLearningEnabled ? "green" : "default"}>
+                  {learningConfig.reinforcementLearningEnabled
                     ? t("opc.industry.learning.reinforcementLearning.enabled")
                     : t("opc.industry.learning.reinforcementLearning.disabled")}
                 </Tag>

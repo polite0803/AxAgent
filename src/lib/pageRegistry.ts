@@ -21,27 +21,82 @@ import { CAPABILITY_DOMAIN_META } from "@/lib/domainMeta";
 export const DEFAULT_HOME = "/chat";
 
 /**
- * key→path 映射，覆盖所有内置页面（含未进入导航栏的 link/marketplace 等）。
+ * key→path 映射，覆盖所有内置页面。
+ *
+ * 路径按 8 个标准能力域组织：
+ *   - 通用功能路径保持顶级（/chat, /terminal, /files, /gateway 等）
+ *   - 业务路径挂在对应域下（/finance/investment, /automation/operations 等）
+ *   - 旧路径保留作重定向（/invest → /finance/investment, /opc → /automation/operations 等）
  */
 export const BUILTIN_PAGE_PATH: Record<string, string> = {
-  // 能力域聚合入口路径（8 个业务域，路径来源 domainMeta 单一真相源）
+  // ── 能力域聚合入口路径（8 个业务域，路径来源 domainMeta 单一真相源） ──
   ...Object.fromEntries(CAPABILITY_DOMAIN_META.map((d) => [d.id, d.path])),
+
+  // ── 通用功能（general 域） ──
   chat: "/chat",
   dashboard: "/dashboard",
   knowledge: "/knowledge",
   memory: "/memory",
   link: "/link",
-  gateway: "/gateway",
   settings: "/settings",
   workflow: "/workflow",
-  files: "/files",
-  terminal: "/terminal",
   "dynamic-ui": "/dynamic-ui",
   marketplace: "/marketplace",
   wiki: "/wiki",
-  // AxInvest 股票业务统一入口（7 个业务页面合并为 Tab）
+  multiAgent: "/multi-agent",
+
+  // ── 运维域（devops）：路径保持顶级（/terminal, /files, /gateway） ──
+  terminal: "/terminal",
+  files: "/files",
+  gateway: "/gateway",
+
+  // ── 金融域（finance） ──
+  // 股票业务统一入口（原 /invest，路径改为 /finance/investment）
+  financeInvestment: "/finance/investment",
+  // 行业页面
+  financeAnalysis: "/finance/analysis",
+  financeAccounting: "/finance/accounting",
+
+  // ── 自动化域（automation） ──
+  // OPC 一人公司管理（原 /opc，路径改为 /automation/operations）
+  automationOperations: "/automation/operations",
+  // OPC 管理子页面（仪表板、发票、客户、项目等）
+  automationDashboard: "/automation/operations/dashboard",
+  automationInvoices: "/automation/operations/invoices",
+  automationCustomers: "/automation/operations/customers",
+  automationProjects: "/automation/operations/projects",
+  automationSites: "/automation/operations/sites",
+  automationTalent: "/automation/operations/talent",
+  automationMarket: "/automation/operations/market",
+  automationKanban: "/automation/operations/kanban",
+  // 行业页面
+  automationSales: "/automation/sales",
+  automationProjects2: "/automation/projects",
+  automationConsulting: "/automation/consulting",
+  automationEcommerce: "/automation/ecommerce",
+
+  // ── 运维域行业页面 ──
+  devopsSoftware: "/devops/software",
+  devopsSecurity: "/devops/security",
+
+  // ── 数据分析域（data_analysis） ──
+  dataGeospatial: "/data-analysis/geospatial",
+  dataAiResearch: "/data-analysis/ai-research",
+
+  // ── 内容创作域（content_creation） ──
+  contentMedia: "/content-creation/media",
+  contentDesign: "/content-creation/design",
+  contentEducation: "/content-creation/education",
+
+  // ── AI 媒体域（ai_media） ──
+  aiMediaGame: "/ai-media/game",
+
+  // ── 通信域（communication） ──
+  communicationMessage: "/communication/message",
+
+  // ── 以下为旧路径（保留作重定向，兼容书签和外链） ──
+  // 旧股票业务路径 → 重定向到 /finance/investment
   invest: "/invest",
-  // 以下为 invest 页面子 tab 的历史独立路由（已重定向到 /invest?tab=xxx）
   workspace: "/workspace",
   "stock-analysis": "/stock-analysis",
   screener: "/screener",
@@ -50,20 +105,17 @@ export const BUILTIN_PAGE_PATH: Record<string, string> = {
   "paper-portfolio": "/paper-portfolio",
   "market-mainline": "/market-mainline",
   "screenshot-diagnosis": "/screenshot-diagnosis",
-  "trade": "/trade",
+  trade: "/trade",
   backtest: "/backtest",
   compare: "/compare",
   "scheduled-analysis": "/scheduled-analysis",
   quant: "/quant",
   "replay-workbench": "/replay-workbench",
   pipeline: "/pipeline",
-  // G1 跨市场数据接入
   "cross-market": "/cross-market",
-  // G5 Multi-Agent 固定角色 pool
-  multiAgent: "/multi-agent",
-  // OPC 一人公司管理
+
+  // 旧 OPC 路径 → 重定向到 /automation/operations
   opc: "/opc",
-  // OPC 管理页面（仪表板、发票、客户、项目等）
   opcDashboard: "/opc/dashboard",
   opcInvoices: "/opc/invoices",
   opcCustomers: "/opc/customers",
@@ -72,7 +124,8 @@ export const BUILTIN_PAGE_PATH: Record<string, string> = {
   opcTalent: "/opc/talent",
   opcMarket: "/opc/market",
   opcKanban: "/opc/kanban",
-  // OPC 9 大垂直行业入口
+
+  // 旧 OPC 行业路径 → 重定向到对应的域化路径
   opcIndustryAiResearch: "/opc/industries/ai-research",
   opcIndustrySoftwareDev: "/opc/industries/software-dev",
   opcIndustryFinanceInvest: "/opc/industries/finance-invest",
@@ -82,21 +135,19 @@ export const BUILTIN_PAGE_PATH: Record<string, string> = {
   opcIndustryAccounting: "/opc/industries/accounting",
   opcIndustryEcommerce: "/opc/industries/ecommerce",
   opcIndustryEducation: "/opc/industries/education",
-  // OPC 新增 6 个行业入口
   opcIndustryDesign: "/opc/industries/design",
   opcIndustryProjectManagement: "/opc/industries/project-management",
   opcIndustrySecurity: "/opc/industries/security",
   opcIndustryGeospatial: "/opc/industries/geospatial",
   opcIndustryGameDev: "/opc/industries/game-dev",
-  // OPC 行业动态路由（单数形式，与方案文档一致）
+  // 旧动态路由和导航页
   opcIndustryDynamic: "/opc/industry",
-  // OPC 行业导航页面（集中展示所有行业入口）
   opcIndustries: "/opc/industries",
-  // 以下为历史兼容入口 / devtools 等次要路由，同样收归此处以消除散写硬编码
+
+  // ── 历史兼容入口 / devtools 等 ──
   llmWiki: "/llm-wiki",
   learningGraph: "/learning-graph",
   quickbar: "/quickbar",
-  // 开发者工具已并入对话页「开发工具」Tab（/chat + state.tab），以下路径保留作旧路由重定向
   devtools: "/devtools",
   devtoolsTraceExplorer: "/devtools/trace-explorer",
   devtoolsBenchmark: "/devtools/benchmark",

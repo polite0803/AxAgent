@@ -374,8 +374,8 @@ export function Sidebar() {
               </Tooltip>
             );
           })}
-          {/* invest-workspace section：展开时显示最近股票快捷列表 */}
-          {section.key === "invest-workspace" && !sidebarCollapsed && recentStocks.length > 0 && (
+          {/* 金融域分组：展开时显示最近股票快捷列表 */}
+          {section.key === "finance" && !sidebarCollapsed && recentStocks.length > 0 && (
             <div className="mt-0.5 mb-1 space-y-0.5">
               {!sidebarCollapsed && (
                 <div
@@ -389,7 +389,10 @@ export function Sidebar() {
                 <button
                   key={stock.code}
                   type="button"
-                  onClick={() => navigate(`${BUILTIN_PAGE_PATH.workspace}/${stock.code}`)}
+                  onClick={() =>
+                    navigate(
+                      `${BUILTIN_PAGE_PATH.financeInvestment}?tab=workspace&stockCode=${stock.code}`,
+                    )}
                   className="w-full flex items-center gap-1.5 px-3 py-1 rounded text-left transition-colors hover:opacity-70"
                   style={{ color: "var(--color-text-secondary)" }}
                 >

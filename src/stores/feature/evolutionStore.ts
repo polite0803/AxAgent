@@ -580,7 +580,7 @@ export const useEvolutionStore = create<EvolutionState>((set, get) => ({
     set({ evidenceLoading: true });
     try {
       const view = await invoke<EvolutionEvidenceView>("cognitive_evolution_decision", {
-        conversation_id: conversationId,
+        conversationId,
       });
       set({ evolutionEvidence: view, evidenceLoading: false });
       return view;

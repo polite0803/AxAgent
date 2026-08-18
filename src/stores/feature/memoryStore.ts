@@ -128,7 +128,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
   addItem: async (namespaceId, title, content) => {
     try {
       await invoke("add_memory_item", {
-        input: { namespace_id: namespaceId, title, content },
+        input: { namespaceId, title, content },
       });
       await get().loadItems(namespaceId);
     } catch (e) {

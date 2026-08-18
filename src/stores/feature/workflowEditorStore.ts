@@ -2281,9 +2281,9 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         await invoke("workflow_ai_chat_stream", {
           message,
           history,
-          current_nodes: get().nodes.length > 0 ? get().nodes : undefined,
-          current_edges: get().edges.length > 0 ? get().edges : undefined,
-          session_id: aiChatSessionId,
+          currentNodes: get().nodes.length > 0 ? get().nodes : undefined,
+          currentEdges: get().edges.length > 0 ? get().edges : undefined,
+          sessionId: aiChatSessionId,
         });
       } catch (error) {
         logIpcError("AI Chat")(error);

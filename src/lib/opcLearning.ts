@@ -33,22 +33,22 @@ export async function listLearningConfigs(): Promise<IndustryLearningConfigSumma
 
 /**
  * 触发工作流反思
- * P1-7：返回类型对齐后端 ReflectionResult（snake_case）
+ * P1-7：返回类型对齐后端 ReflectionResult（camelCase）
  */
 export async function reflectOnWorkflow(
   params: ReflectOnWorkflowParams,
 ): Promise<{
   success: boolean;
-  industry_id: string;
-  workflow_id: string;
-  quality_score: number;
+  industryId: string;
+  workflowId: string;
+  qualityScore: number;
   suggestions: string[];
   summary: string;
 }> {
   return invoke("opc_reflect_on_workflow", {
-    industryId: params.industry_id,
-    workflowId: params.workflow_id,
-    workflowResult: params.workflow_result,
+    industryId: params.industryId,
+    workflowId: params.workflowId,
+    workflowResult: params.workflowResult,
   });
 }
 
@@ -60,15 +60,15 @@ export async function evolveWorkflow(
   params: EvolveWorkflowParams,
 ): Promise<{
   success: boolean;
-  industry_id: string;
-  workflow_id: string;
+  industryId: string;
+  workflowId: string;
   status: string;
-  suggested_optimizations: string[];
+  suggestedOptimizations: string[];
   message: string;
 }> {
   return invoke("opc_evolve_workflow", {
-    industryId: params.industry_id,
-    workflowId: params.workflow_id,
+    industryId: params.industryId,
+    workflowId: params.workflowId,
     reason: params.reason,
   });
 }
@@ -81,14 +81,14 @@ export async function runSelfImprovement(
   params: RunSelfImprovementParams,
 ): Promise<{
   success: boolean;
-  industry_id: string;
+  industryId: string;
   target: string;
   status: string;
-  improvements_applied: string[];
+  improvementsApplied: string[];
   message: string;
 }> {
   return invoke("opc_run_self_improvement", {
-    industryId: params.industry_id,
+    industryId: params.industryId,
     target: params.target,
   });
 }
@@ -107,17 +107,17 @@ export async function getRLStats(industryId?: string): Promise<ExperiencePoolSta
  */
 export async function recordRLExperience(
   params: {
-    industry_id: string;
-    workflow_id: string;
-    quality_score: number;
-    workflow_result: Record<string, unknown>;
+    industryId: string;
+    workflowId: string;
+    qualityScore: number;
+    workflowResult: Record<string, unknown>;
   },
 ): Promise<{ success: boolean; experienceId?: string; totalReward?: number; message?: string }> {
   return invoke("opc_record_rl_experience", {
-    industryId: params.industry_id,
-    workflowId: params.workflow_id,
-    qualityScore: params.quality_score,
-    workflowResult: params.workflow_result,
+    industryId: params.industryId,
+    workflowId: params.workflowId,
+    qualityScore: params.qualityScore,
+    workflowResult: params.workflowResult,
   });
 }
 
@@ -128,7 +128,7 @@ export async function triggerRLOptimization(
   params: TriggerRLOptimizationParams,
 ): Promise<RLPolicyUpdate> {
   return invoke("opc_trigger_rl_optimization", {
-    industryId: params.industry_id,
+    industryId: params.industryId,
   });
 }
 
@@ -136,13 +136,13 @@ export async function triggerRLOptimization(
  * 触发自动学习闭环（反思→进化→自我改进→RL）
  */
 export async function triggerAutoLearning(params: {
-  industry_id: string;
-  workflow_id: string;
-  workflow_result: Record<string, unknown>;
+  industryId: string;
+  workflowId: string;
+  workflowResult: Record<string, unknown>;
 }): Promise<AutoLearningResult> {
   return invoke("opc_trigger_industry_learning", {
-    industryId: params.industry_id,
-    workflowId: params.workflow_id,
-    workflowResult: params.workflow_result,
+    industryId: params.industryId,
+    workflowId: params.workflowId,
+    workflowResult: params.workflowResult,
   });
 }

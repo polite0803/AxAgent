@@ -564,16 +564,16 @@ export function IndustryPage() {
 
   /** 触发反思 */
   const handleReflect = async () => {
-    if (!learningConfig?.reflection_enabled) {
+    if (!learningConfig?.reflectionEnabled) {
       message.warning(t("opc.industry.learning.reflection.notEnabled"));
       return;
     }
     try {
       message.loading({ content: t("opc.industry.learning.reflection.triggerDesc"), key: "reflect" });
       await reflectOnWorkflow({
-        industry_id: industryId,
-        workflow_id: `industry_${industryId}`,
-        workflow_result: { status: "manual_triggered" },
+        industryId,
+        workflowId: `industry_${industryId}`,
+        workflowResult: { status: "manual_triggered" },
       });
       message.success({ content: t("opc.industry.learning.reflection.triggerSuccess"), key: "reflect" });
     } catch (e) {
@@ -583,15 +583,15 @@ export function IndustryPage() {
 
   /** 触发进化 */
   const handleEvolve = async () => {
-    if (!learningConfig?.evolution_enabled) {
+    if (!learningConfig?.evolutionEnabled) {
       message.warning(t("opc.industry.learning.evolution.notEnabled"));
       return;
     }
     try {
       message.loading({ content: t("opc.industry.learning.evolution.triggerDesc"), key: "evolve" });
       await evolveWorkflow({
-        industry_id: industryId,
-        workflow_id: `industry_${industryId}`,
+        industryId,
+        workflowId: `industry_${industryId}`,
         reason: "manual_optimization",
       });
       message.success({ content: t("opc.industry.learning.evolution.triggerSuccess"), key: "evolve" });
@@ -602,14 +602,14 @@ export function IndustryPage() {
 
   /** 执行自我改进 */
   const handleSelfImprove = async () => {
-    if (!learningConfig?.self_improvement_enabled) {
+    if (!learningConfig?.selfImprovementEnabled) {
       message.warning(t("opc.industry.learning.selfImprovement.notEnabled"));
       return;
     }
     try {
       message.loading({ content: t("opc.industry.learning.selfImprovement.triggerDesc"), key: "selfImprove" });
       await runSelfImprovement({
-        industry_id: industryId,
+        industryId,
         target: "overall_performance",
       });
       message.success({ content: t("opc.industry.learning.selfImprovement.triggerSuccess"), key: "selfImprove" });
@@ -1353,8 +1353,8 @@ export function IndustryPage() {
                     <Space>
                       <ExperimentOutlined />
                       <strong>{t("opc.industry.learning.reflection.label")}</strong>
-                      <Tag color={learningConfig.reflection_enabled ? "green" : "default"}>
-                        {learningConfig.reflection_enabled
+                      <Tag color={learningConfig.reflectionEnabled ? "green" : "default"}>
+                        {learningConfig.reflectionEnabled
                           ? t("opc.industry.learning.reflection.enabled")
                           : t("opc.industry.learning.reflection.disabled")}
                       </Tag>
@@ -1366,7 +1366,7 @@ export function IndustryPage() {
                       size="small"
                       icon={<BulbOutlined />}
                       onClick={handleReflect}
-                      disabled={!learningConfig.reflection_enabled}
+                      disabled={!learningConfig.reflectionEnabled}
                       block
                     >
                       {t("opc.industry.learning.reflection.trigger")}
@@ -1382,8 +1382,8 @@ export function IndustryPage() {
                     <Space>
                       <ThunderboltOutlined />
                       <strong>{t("opc.industry.learning.evolution.label")}</strong>
-                      <Tag color={learningConfig.evolution_enabled ? "green" : "default"}>
-                        {learningConfig.evolution_enabled
+                      <Tag color={learningConfig.evolutionEnabled ? "green" : "default"}>
+                        {learningConfig.evolutionEnabled
                           ? t("opc.industry.learning.evolution.enabled")
                           : t("opc.industry.learning.evolution.disabled")}
                       </Tag>
@@ -1395,7 +1395,7 @@ export function IndustryPage() {
                       size="small"
                       icon={<SyncOutlined />}
                       onClick={handleEvolve}
-                      disabled={!learningConfig.evolution_enabled}
+                      disabled={!learningConfig.evolutionEnabled}
                       block
                     >
                       {t("opc.industry.learning.evolution.trigger")}
@@ -1411,8 +1411,8 @@ export function IndustryPage() {
                     <Space>
                       <RocketOutlined />
                       <strong>{t("opc.industry.learning.selfImprovement.label")}</strong>
-                      <Tag color={learningConfig.self_improvement_enabled ? "green" : "default"}>
-                        {learningConfig.self_improvement_enabled
+                      <Tag color={learningConfig.selfImprovementEnabled ? "green" : "default"}>
+                        {learningConfig.selfImprovementEnabled
                           ? t("opc.industry.learning.selfImprovement.enabled")
                           : t("opc.industry.learning.selfImprovement.disabled")}
                       </Tag>
@@ -1424,7 +1424,7 @@ export function IndustryPage() {
                       size="small"
                       icon={<PlayCircleOutlined />}
                       onClick={handleSelfImprove}
-                      disabled={!learningConfig.self_improvement_enabled}
+                      disabled={!learningConfig.selfImprovementEnabled}
                       block
                     >
                       {t("opc.industry.learning.selfImprovement.trigger")}
@@ -1440,8 +1440,8 @@ export function IndustryPage() {
                     <Space>
                       <FundProjectionScreenOutlined />
                       <strong>{t("opc.industry.learning.reinforcementLearning.label")}</strong>
-                      <Tag color={learningConfig.reinforcement_learning_enabled ? "green" : "default"}>
-                        {learningConfig.reinforcement_learning_enabled
+                      <Tag color={learningConfig.reinforcementLearningEnabled ? "green" : "default"}>
+                        {learningConfig.reinforcementLearningEnabled
                           ? t("opc.industry.learning.reinforcementLearning.enabled")
                           : t("opc.industry.learning.reinforcementLearning.disabled")}
                       </Tag>

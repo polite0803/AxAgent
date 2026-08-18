@@ -103,46 +103,36 @@ export const CAPABILITY_DOMAIN_IDS: readonly CapabilityDomain[] = CAPABILITY_DOM
 // ── 导航项归域表 ──────────────────────────────────
 //
 // 将侧栏内置导航项（NavItem.key）按业务本质归入唯一标准域。
-// 这是「导航以域为标准」的权威归域来源，行业/业务入口在此收敛。
-// 历史业务线（invest/opc）不再是域轴，而是作为 finance/automation 域下的具体导航项。
+// 这是「导航以域为标准」的权威归域来源。
 
 /** 导航项 key → 标准域 id */
 export const NAV_ITEM_DOMAIN_MAP: Readonly<Record<string, CapabilityDomain>> = {
-  // 通用工作台（对话/知识/记忆等）
+  // 通用域
   chat: "general",
-  knowledge: "general",
-  memory: "general",
-  wiki: "general",
-  settings: "general",
-  marketplace: "general",
-  "multi-agent": "general",
-  // 金融：投资业务 + 金融财务类行业
-  invest: "finance",
-  "opc-industry-finance-invest": "finance",
-  "opc-industry-accounting": "finance",
-  // 自动化：一人公司运营 + 销售/项目管理/电商/咨询类行业
-  opc: "automation",
-  "opc-industry-sales-growth": "automation",
-  "opc-industry-project-management": "automation",
-  "opc-industry-industry-consulting": "automation",
-  "opc-industry-ecommerce": "automation",
-  // 运维：终端/文件/网关 + 软件研发/安全类行业
-  terminal: "devops",
-  files: "devops",
-  gateway: "devops",
-  "opc-industry-software-dev": "devops",
-  "opc-industry-security": "devops",
-  // 数据分析：GIS/地理 + 科研类行业
-  "opc-industry-geospatial": "data_analysis",
-  "opc-industry-ai-research": "data_analysis",
-  // 内容创作：内容/设计/教育类行业
-  "opc-industry-content-media": "content_creation",
-  "opc-industry-design": "content_creation",
-  "opc-industry-education": "content_creation",
-  // AI 媒体：游戏等媒体创作类行业
-  "opc-industry-game-dev": "ai_media",
-  // 通信：暂无内置导航项，预留
-  // communication: (无)
+  // 金融域
+  "finance-investment": "finance",
+  "finance-analysis": "finance",
+  "finance-accounting": "finance",
+  // 自动化域
+  "automation-operations": "automation",
+  "automation-sales": "automation",
+  "automation-projects": "automation",
+  "automation-consulting": "automation",
+  "automation-ecommerce": "automation",
+  // 运维域
+  "devops-software": "devops",
+  "devops-security": "devops",
+  // 数据分析域
+  "data-geospatial": "data_analysis",
+  "data-ai-research": "data_analysis",
+  // 内容创作域
+  "content-media": "content_creation",
+  "content-design": "content_creation",
+  "content-education": "content_creation",
+  // AI 媒体域
+  "ai-media-game": "ai_media",
+  // 通信域
+  "communication-message": "communication",
 };
 
 /** 根据导航项 key 解析其所属标准域；未知项兜底 general */

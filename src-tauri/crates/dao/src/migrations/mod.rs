@@ -554,6 +554,61 @@ pub async fn repair_schema(db: &sea_orm::DatabaseConnection) -> Result<(usize, u
     Ok((fixed, total))
 }
 
+/// 安全网：确保 agency_experts / agent_profiles 的 category CHECK 约束
+/// 包含所有业务值（opc-company / opc-experts / stock-analysis 等）。
+///
+/// 背景：v200 迁移曾错误地在重写 CHECK 约束时遗漏 `opc-company`，
+/// 导致已应用 v200 的存量库在 OPC 种子化时触发约束违反。
+/// 本函数可在启动种子化前调用，作为独立于迁移框架的安全保障。
+pub async fn ensure_category_check_constraints(
+    db: &sea_orm::DatabaseConnection,
+) -> Result<(), DbErr> {
+    let is_pg = db.get_database_backend() == DbBackend::Postgres;
+    if !is_pg {
+        return Ok(());
+    }
+
+    let backend = db.get_database_backend();
+    let categories = "'general','development','security','data','finance',\
+        'devops','design','writing','business','opc-company','opc-experts',\
+        'stock-analysis'";
+
+    // agency_experts
+    let _ = db
+        .execute_raw(Statement::from_string(
+            backend,
+            "ALTER TABLE agency_experts DROP CONSTRAINT IF EXISTS agency_experts_category_check",
+        ))
+        .await;
+    db.execute_raw(Statement::from_string(
+        backend,
+        format!(
+            "ALTER TABLE agency_experts ADD CONSTRAINT agency_experts_category_check \
+             CHECK (category IN ({categories}))"
+        ),
+    ))
+    .await?;
+
+    // agent_profiles
+    let _ = db
+        .execute_raw(Statement::from_string(
+            backend,
+            "ALTER TABLE agent_profiles DROP CONSTRAINT IF EXISTS agent_profiles_category_check",
+        ))
+        .await;
+    db.execute_raw(Statement::from_string(
+        backend,
+        format!(
+            "ALTER TABLE agent_profiles ADD CONSTRAINT agent_profiles_category_check \
+             CHECK (category IN ({categories}))"
+        ),
+    ))
+    .await?;
+
+    tracing::debug!("[schema] category CHECK 约束已确认");
+    Ok(())
+}
+
 async fn record_version(
     db: &sea_orm::DatabaseConnection,
     backend: DbBackend,

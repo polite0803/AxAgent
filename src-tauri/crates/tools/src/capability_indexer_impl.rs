@@ -314,6 +314,23 @@ impl CapabilityIndexer for CapabilityIndexerImpl {
     async fn index_batch(&self, passports: &[CapabilityPassportDto]) -> Vec<IndexResult> {
         let mut results = Vec::with_capacity(passports.len());
         for passport in passports {
+            // 已索引的能力直接跳过（启动时 restore_metadata_from_store 已恢复元数据到内存），
+            // 避免重复执行嵌入生成 + SQL 删除 + md5 去重查询。
+            let already_indexed = {
+                let meta = self.metadata.read().await;
+                meta.contains_key(&passport.capability_id)
+            };
+            if already_indexed {
+                results.push(IndexResult {
+                    capability_id: passport.capability_id.clone(),
+                    success: true,
+                    vector_dimensions: self.embedding_dimensions,
+                    indexed_at_ms: 0,
+                    error: None,
+                });
+                continue;
+            }
+
             match self.index_passport(passport).await {
                 Ok(result) => results.push(result),
                 Err(e) => {

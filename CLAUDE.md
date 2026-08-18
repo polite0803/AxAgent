@@ -122,7 +122,7 @@ npm run bump          # 版本号升级
 - **后端 Rust 结构体字段保持 snake_case（Rust / rustfmt / clippy 惯例）**，通过 `#[serde(rename_all = "camelCase")]` 注解在序列化输出 camelCase。**禁止**直接改 Rust 字段为 camelCase —— 会触发 clippy `non_camel_case_types` / `non_snake_case` 警告，违反 `cargo clippy -- -D warnings` 铁律
 - **前端 TS 类型字段消费 camelCase**，与后端序列化输出对齐（如 `session_id`→`sessionId`、`duration_ms`→`durationMs`、`timestamp_ms`→`timestampMs`、`tool_calls`→`toolCalls`）。**禁止**在 TS 类型/消费处写 snake_case
 - **新增/修改 DTO 两步必须同步**：① 后端结构体加 `#[serde(rename_all = "camelCase")]`；② 前端 `src/types/` 类型改 camelCase 并同步所有消费方（组件 / store）
-- **命令参数（invoke 传参）例外**：Tauri 命令参数名是 Rust 原生 snake_case（不经过 serde rename），前端 `invoke()` 传参键名**必须用 snake_case 与后端参数名一致**（如 `session_id`、`trajectory_id`），不要套用 DTO 的 camelCase。DTO 字段名与命令参数名是两套体系，禁止混用
+- **命令参数（invoke 传参）用 camelCase**：Tauri v2 宏默认 `argument_case = Camel`，前端 `invoke()` 传参键名**必须用 camelCase**，由 Tauri 自动转换为后端 Rust 的 snake_case 参数名（如 `session_id` → 传 `sessionId`、`trajectory_id` → 传 `trajectoryId`）。浏览器 mock（`browserMock.ts`）也会自动做 camelCase → snake_case 转换，与真实 Tauri 行为保持一致。仅当命令显式声明 `rename_all = "snake_case"` 时才例外。DTO 字段名与命令参数名是两套体系，禁止混用
 
 ## Store 分类规则
 

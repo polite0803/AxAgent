@@ -184,6 +184,31 @@ pub fn run() {
         }
     }
 
+    // ── Windows: 设置 AppUserModelID ──
+    // 确保任务栏图标正确关联到应用。缺失此项会导致 Windows 任务栏
+    // 在某些操作后丢失图标（如关闭窗口/重启应用）。
+    // 参考: https://learn.microsoft.com/en-us/windows/win32/shell/appids
+    #[cfg(target_os = "windows")]
+    {
+        #[link(name = "shell32")]
+        unsafe extern "system" {
+            fn SetCurrentProcessExplicitAppUserModelID(AppID: *const u16) -> i32;
+        }
+
+        let app_id = crate::paths::app_user_model_id();
+        let wide_id: Vec<u16> = app_id.encode_utf16().chain(std::iter::once(0)).collect();
+        // SAFETY: 字符串已正确 null 终止；SetCurrentProcessExplicitAppUserModelID
+        // 是幂等的，可在应用启动安全调用。
+        unsafe {
+            let hr = SetCurrentProcessExplicitAppUserModelID(wide_id.as_ptr());
+            if hr < 0 {
+                tracing::warn!("SetCurrentProcessExplicitAppUserModelID failed: HRESULT={hr}");
+            } else {
+                tracing::info!("AppUserModelID set: {app_id}");
+            }
+        }
+    }
+
     #[cfg(target_os = "android")]
     crate::android_utils::mark_startup_phase("register_plugins_start");
     let builder = tauri::Builder::default();

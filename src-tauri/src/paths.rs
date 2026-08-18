@@ -100,3 +100,10 @@ pub fn axagent_home() -> PathBuf {
         PathBuf::from(home).join(".axagent")
     }
 }
+
+/// Windows AppUserModelID — 任务栏图标识别的唯一标识。
+/// 必须与 tauri.conf.json 的 identifier 字段保持一致。
+/// 参考: https://learn.microsoft.com/en-us/windows/win32/shell/appids
+pub fn app_user_model_id() -> &'static str {
+    "top.axagent.desktop"
+}

@@ -169,6 +169,11 @@ const PROFILE_TOOLS: &[(&str, &[&str])] = &[
 
 /// 主入口：种子化所有 OPC 专家/角色/Profile/工作流模板
 pub async fn ensure_opc_company_seeded(db: &DatabaseConnection) -> Result<(), String> {
+    // 0. 安全网：确保 category CHECK 约束包含所有业务值（修复旧版 v200 约束遗漏 opc-company 的问题）
+    if let Err(e) = axagent_dao::migrations::ensure_category_check_constraints(db).await {
+        tracing::warn!("[opc-company] CHECK 约束修复失败（将继续尝试种子化）: {}", e);
+    }
+
     // 1. 种子化 6 个核心公司专家 + 角色 + Profile
     seed_opc_experts(db).await?;
     seed_opc_roles(db).await?;

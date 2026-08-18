@@ -2645,6 +2645,7 @@ fn industry_learning_config_path(
 
 /// 行业学习配置
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct IndustryLearningConfigView {
     pub version: u32,
     pub industry_id: String,
@@ -3064,7 +3065,7 @@ pub async fn opc_trigger_industry_learning(
                 last_quality_score = quality_score / 100.0; // 转换为 0.0-1.0 范围
                 reflection_result = serde_json::json!({
                     "status": "success",
-                    "quality_score": quality_score / 100.0,
+                    "qualityScore": quality_score / 100.0,
                     "message": result.summary,
                 });
 
@@ -3153,9 +3154,9 @@ pub async fn opc_trigger_industry_learning(
                     rl_data.get("policyOptimized").and_then(|v| v.as_bool()).unwrap_or(false);
                 rl_result = Some(serde_json::json!({
                     "status": "success",
-                    "experience_recorded": has_experience,
-                    "pool_size": pool_size,
-                    "policy_optimized": policy_optimized,
+                    "experienceRecorded": has_experience,
+                    "poolSize": pool_size,
+                    "policyOptimized": policy_optimized,
                     "message": format!("RL 状态: {}", rl_data["status"]),
                 }));
             },
@@ -3176,9 +3177,9 @@ pub async fn opc_trigger_industry_learning(
     Ok(serde_json::json!({
         "reflection": reflection_result,
         "evolution": evolution_result,
-        "self_improvement": self_improvement_result,
-        "reinforcement_learning": rl_result,
-        "triggered_at": now,
+        "selfImprovement": self_improvement_result,
+        "reinforcementLearning": rl_result,
+        "triggeredAt": now,
     }))
 }
 

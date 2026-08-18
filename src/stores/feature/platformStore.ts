@@ -143,7 +143,7 @@ export const usePlatformStore = create<PlatformState>((set, get) => ({
 
   deactivateSession: async (sessionId: string) => {
     try {
-      await invoke("deactivate_platform_session", { session_id: sessionId });
+      await invoke("deactivate_platform_session", { sessionId });
       set((s) => ({
         sessions: s.sessions.map((ses) => ses.sessionId === sessionId ? { ...ses, isActive: false } : ses),
       }));
@@ -153,7 +153,7 @@ export const usePlatformStore = create<PlatformState>((set, get) => ({
   },
 
   sendMessage: async (platform: string, chatId: string, text: string) => {
-    await invoke("send_platform_message", { platform, chat_id: chatId, text });
+    await invoke("send_platform_message", { platform, chatId, text });
   },
 
   createSession: async (platform: string, chatId: string) => {

@@ -46,6 +46,7 @@ pub trait LlmInferencePort: Send + Sync {
 
 /// 反思请求
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ReflectionRequest {
     pub industry_id: String,
     pub workflow_id: String,
@@ -68,6 +69,7 @@ impl Default for ReflectionRequest {
 
 /// 反思结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ReflectionResult {
     pub success: bool,
     pub industry_id: String,
@@ -82,6 +84,7 @@ pub struct ReflectionResult {
 
 /// 维度评分
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DimensionScore {
     pub dimension: String,
     pub score: f64,
@@ -92,6 +95,7 @@ pub struct DimensionScore {
 
 /// 进化请求
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EvolutionRequest {
     pub industry_id: String,
     pub workflow_id: String,
@@ -100,6 +104,7 @@ pub struct EvolutionRequest {
 
 /// 进化结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EvolutionResult {
     pub success: bool,
     pub industry_id: String,
@@ -118,6 +123,7 @@ pub struct SelfImprovementRequest {
 
 /// 自我改进结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SelfImprovementResult {
     pub success: bool,
     pub industry_id: String,
@@ -131,6 +137,7 @@ pub struct SelfImprovementResult {
 
 /// RL 经验记录 — 单次工作流执行的经验数据
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RLExperience {
     pub id: String,
     pub industry_id: String,
@@ -158,6 +165,7 @@ pub struct RLExperience {
 
 /// RL 策略优化结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RLPolicyUpdate {
     pub industry_id: String,
     pub experiences_used: usize,
@@ -171,6 +179,7 @@ pub struct RLPolicyUpdate {
 
 /// RL 经验池统计
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExperiencePoolStats {
     pub total_experiences: usize,
     pub industry_count: usize,
@@ -182,6 +191,7 @@ pub struct ExperiencePoolStats {
 
 /// 综合评估结果
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ComprehensiveEvaluation {
     /// 代码验证结果
     pub code_verification: Option<CodeVerificationResult>,

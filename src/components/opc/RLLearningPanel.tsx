@@ -74,7 +74,7 @@ export function RLLearningPanel({ industryId, compact = false }: RLLearningPanel
               <Title level={compact ? 5 : 4} style={{ margin: 0 }}>
                 {t("opc.rl.panelTitle")}
               </Title>
-              {config?.reinforcement_learning_enabled
+              {config?.reinforcementLearningEnabled
                 ? <Tag color="green">{t("opc.rl.enabled")}</Tag>
                 : <Tag color="default">{t("opc.rl.disabled")}</Tag>}
             </Space>
@@ -94,7 +94,7 @@ export function RLLearningPanel({ industryId, compact = false }: RLLearningPanel
                   icon={<BulbOutlined />}
                   onClick={handleOptimize}
                   loading={rlLoading}
-                  disabled={!config?.reinforcement_learning_enabled}
+                  disabled={!config?.reinforcementLearningEnabled}
                   size={compact ? "small" : "middle"}
                 >
                   {t("opc.rl.optimize")}
@@ -110,7 +110,7 @@ export function RLLearningPanel({ industryId, compact = false }: RLLearningPanel
             <Card size={compact ? "small" : "default"}>
               <Statistic
                 title={t("opc.rl.totalExperiences")}
-                value={stats.total_experiences}
+                value={stats.totalExperiences}
                 prefix={<BarChartOutlined />}
               />
             </Card>
@@ -119,7 +119,7 @@ export function RLLearningPanel({ industryId, compact = false }: RLLearningPanel
             <Card size={compact ? "small" : "default"}>
               <Statistic
                 title={t("opc.rl.industryCount")}
-                value={stats.industry_count}
+                value={stats.industryCount}
               />
             </Card>
           </Col>
@@ -127,9 +127,9 @@ export function RLLearningPanel({ industryId, compact = false }: RLLearningPanel
             <Card size={compact ? "small" : "default"}>
               <Statistic
                 title={t("opc.rl.avgReward")}
-                value={stats.avg_reward.toFixed(3)}
+                value={stats.avgReward.toFixed(3)}
                 valueStyle={{
-                  color: stats.avg_reward >= 0.6 ? "#3f8600" : stats.avg_reward >= 0.3 ? "#d48806" : "#cf1322",
+                  color: stats.avgReward >= 0.6 ? "#3f8600" : stats.avgReward >= 0.3 ? "#d48806" : "#cf1322",
                 }}
                 prefix={<TrophyOutlined />}
               />
@@ -139,11 +139,11 @@ export function RLLearningPanel({ industryId, compact = false }: RLLearningPanel
             <Card size={compact ? "small" : "default"}>
               <Statistic
                 title={t("opc.rl.successRate")}
-                value={stats.success_rate.toFixed(1)}
+                value={stats.successRate.toFixed(1)}
                 suffix="%"
-                prefix={stats.success_rate >= 70
+                prefix={stats.successRate >= 70
                   ? <RiseOutlined style={{ color: "#3f8600" }} />
-                  : stats.success_rate >= 40
+                  : stats.successRate >= 40
                   ? <MinusOutlined style={{ color: "#d48806" }} />
                   : <FallOutlined style={{ color: "#cf1322" }} />}
               />
@@ -205,15 +205,15 @@ function PolicyUpdateContent({
   compact: boolean;
 }) {
   const { t } = useTranslation();
-  const trendIcon = update.reward_trend === "improving"
+  const trendIcon = update.rewardTrend === "improving"
     ? <RiseOutlined style={{ color: "#3f8600" }} />
-    : update.reward_trend === "declining"
+    : update.rewardTrend === "declining"
     ? <FallOutlined style={{ color: "#cf1322" }} />
     : <MinusOutlined style={{ color: "#8c8c8c" }} />;
 
-  const trendLabel = update.reward_trend === "improving"
+  const trendLabel = update.rewardTrend === "improving"
     ? t("opc.rl.trendImproving")
-    : update.reward_trend === "declining"
+    : update.rewardTrend === "declining"
     ? t("opc.rl.trendDeclining")
     : t("opc.rl.trendStable");
 
@@ -223,7 +223,7 @@ function PolicyUpdateContent({
         <Col span={8}>
           <Text type="secondary">{t("opc.rl.experiencesUsed")}</Text>
           <div>
-            <Text strong>{update.experiences_used}</Text>
+            <Text strong>{update.experiencesUsed}</Text>
           </div>
         </Col>
         <Col span={8}>
@@ -235,17 +235,17 @@ function PolicyUpdateContent({
         <Col span={8}>
           <Text type="secondary">{t("opc.rl.avgReward")}</Text>
           <div>
-            <Text strong>{update.avg_reward.toFixed(3)}</Text>
+            <Text strong>{update.avgReward.toFixed(3)}</Text>
           </div>
         </Col>
       </Row>
 
-      {update.suggested_adjustments.length > 0 && (
+      {update.suggestedAdjustments.length > 0 && (
         <div>
           <Text type="secondary">{t("opc.rl.suggestions")}:</Text>
           <div style={{ marginTop: 8 }}>
             <Space wrap>
-              {update.suggested_adjustments.map((s, i) => (
+              {update.suggestedAdjustments.map((s, i) => (
                 <Tag key={i} color="blue">
                   {s}
                 </Tag>
@@ -255,19 +255,19 @@ function PolicyUpdateContent({
         </div>
       )}
 
-      {update.reflection_threshold !== undefined && (
+      {update.reflectionThreshold !== undefined && (
         <Alert
           message={t("opc.rl.thresholdAdjusted")}
-          description={t("opc.rl.newThreshold") + `: ${update.reflection_threshold.toFixed(2)}`}
+          description={t("opc.rl.newThreshold") + `: ${update.reflectionThreshold.toFixed(2)}`}
           type="info"
           showIcon
         />
       )}
 
-      {update.evolution_trigger_adjusted !== undefined && (
+      {update.evolutionTriggerAdjusted !== undefined && (
         <Alert
           message={t("opc.rl.evolutionTriggerAdjusted")}
-          description={update.evolution_trigger_adjusted
+          description={update.evolutionTriggerAdjusted
             ? t("opc.rl.moreAggressive")
             : t("opc.rl.moreConservative")}
           type="warning"
@@ -324,7 +324,7 @@ function AutoLearningResultItem({
       <Space direction="vertical" size={4} style={{ width: "100%" }}>
         <Row justify="space-between">
           <Text type="secondary" style={{ fontSize: 12 }}>
-            {new Date(result.triggered_at).toLocaleString()}
+            {new Date(result.triggeredAt).toLocaleString()}
           </Text>
         </Row>
         <Row gutter={8}>
@@ -332,9 +332,9 @@ function AutoLearningResultItem({
             <Tag color={getStatusColor(result.reflection.status)}>
               {t("opc.rl.reflection")}: {getStatusLabel(result.reflection.status)}
             </Tag>
-            {result.reflection.quality_score !== undefined && (
+            {result.reflection.qualityScore !== undefined && (
               <Progress
-                percent={Math.round((result.reflection.quality_score as number) * 100)}
+                percent={Math.round((result.reflection.qualityScore as number) * 100)}
                 size="small"
                 style={{ display: "inline-block", width: 60 }}
               />
@@ -347,17 +347,17 @@ function AutoLearningResultItem({
               </Tag>
             </Col>
           )}
-          {result.self_improvement && (
+          {result.selfImprovement && (
             <Col>
-              <Tag color={getStatusColor(result.self_improvement.status)}>
-                {t("opc.rl.selfImprovement")}: {getStatusLabel(result.self_improvement.status)}
+              <Tag color={getStatusColor(result.selfImprovement.status)}>
+                {t("opc.rl.selfImprovement")}: {getStatusLabel(result.selfImprovement.status)}
               </Tag>
             </Col>
           )}
-          {result.reinforcement_learning && (
+          {result.reinforcementLearning && (
             <Col>
-              <Tag color={getStatusColor(result.reinforcement_learning.status)}>
-                {t("opc.rl.rl")}: {getStatusLabel(result.reinforcement_learning.status)}
+              <Tag color={getStatusColor(result.reinforcementLearning.status)}>
+                {t("opc.rl.rl")}: {getStatusLabel(result.reinforcementLearning.status)}
               </Tag>
             </Col>
           )}
@@ -369,11 +369,11 @@ function AutoLearningResultItem({
 
 function emptyStats(): ExperiencePoolStats {
   return {
-    total_experiences: 0,
-    industry_count: 0,
-    oldest_timestamp_ms: undefined,
-    newest_timestamp_ms: undefined,
-    avg_reward: 0,
-    success_rate: 0,
+    totalExperiences: 0,
+    industryCount: 0,
+    oldestTimestampMs: undefined,
+    newestTimestampMs: undefined,
+    avgReward: 0,
+    successRate: 0,
   };
 }

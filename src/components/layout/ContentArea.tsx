@@ -125,65 +125,82 @@ function NotFoundRoute() {
   );
 }
 
-/**
- * 旧路由重定向到 /chat，通过 location.state.tab 传递目标功能 Tab。
- * WorkspaceHub 读取 state 并切换 Tab。
- */
+/** 旧路由重定向到 /chat，通过 location.state.tab 传递目标功能 Tab。 */
 function redirectToChat(tab: string) {
   return <Navigate to={BUILTIN_PAGE_PATH.chat} replace state={{ tab }} />;
 }
 
-/**
- * 旧股票业务路由重定向到 /invest?tab=xxx。
- * InvestHub 读取 query 参数激活对应 Tab。
- * 附加参数（stockCode/view）以 query 形式传递，workspace tab 会消费。
- */
-function redirectToInvest(
+/** 旧股票业务路由重定向到 /finance/investment?tab=xxx */
+function redirectToFinanceInvestment(
   tab: string,
   extra?: { stockCode?: string; view?: string },
 ) {
   const params = new URLSearchParams({ tab });
   if (extra?.stockCode) { params.set("stockCode", extra.stockCode); }
   if (extra?.view) { params.set("view", extra.view); }
-  return <Navigate to={`${BUILTIN_PAGE_PATH.invest}?${params.toString()}`} replace />;
+  return <Navigate to={`${BUILTIN_PAGE_PATH.financeInvestment}?${params.toString()}`} replace />;
 }
 
-/** 从路径参数读取 stockCode 并重定向到 /invest?tab=workspace&stockCode=xxx */
+/** 旧路径 /invest/:stockCode → /finance/investment?tab=workspace&stockCode=xxx */
 function RedirectStockWorkspace() {
   const { stockCode } = useParams<{ stockCode?: string }>();
-  return redirectToInvest("workspace", { stockCode });
+  return redirectToFinanceInvestment("workspace", { stockCode });
 }
 
-/** 从路径参数读取 analysis ID 并重定向到 /invest?tab=workspace&view=analysis&analysisId=xxx */
+/** 旧路径 /stock-analysis/:id → /finance/investment?tab=workspace&view=analysis&analysisId=xxx */
 function RedirectStockAnalysisById() {
   const { id } = useParams<{ id: string }>();
   const params = new URLSearchParams({ tab: "workspace", view: "analysis" });
   if (id) { params.set("analysisId", id); }
-  return <Navigate to={`${BUILTIN_PAGE_PATH.invest}?${params.toString()}`} replace />;
+  return <Navigate to={`${BUILTIN_PAGE_PATH.financeInvestment}?${params.toString()}`} replace />;
 }
 
-/** 从行业 ID 映射到对应的页面组件 */
+/** 旧 /invest 路径重定向到 /finance/investment */
+function RedirectInvestPath() {
+  return <Navigate to={BUILTIN_PAGE_PATH.financeInvestment} replace />;
+}
+
+/** 旧 /opc 路径重定向到 /automation/operations */
+function RedirectOpcPath() {
+  const { tab } = useParams<{ tab?: string }>();
+  if (tab) {
+    return <Navigate to={`${BUILTIN_PAGE_PATH.automationOperations}/${tab}`} replace />;
+  }
+  return <Navigate to={BUILTIN_PAGE_PATH.automationOperations} replace />;
+}
+
+/** 旧行业路径重定向到域化路径 */
+function RedirectIndustryPath({ to }: { to: string }) {
+  return <Navigate to={to} replace />;
+}
+
+/** 路径→页面组件映射（域化路径 → 行业页面组件） */
 const INDUSTRY_PAGE_MAP: Record<string, React.LazyExoticComponent<React.ComponentType>> = {
-  "ai-research": LazyAiResearchPage,
-  "software-dev": LazySoftwareDevPage,
-  "finance-invest": LazyFinanceInvestPage,
-  "sales-growth": LazySalesGrowthPage,
-  "content-media": LazyContentMediaPage,
-  "industry-consulting": LazyIndustryConsultingPage,
-  accounting: LazyAccountingPage,
-  ecommerce: LazyEcommercePage,
-  education: LazyEducationPage,
-  design: LazyDesignPage,
-  "project-management": LazyProjectManagementPage,
-  security: LazySecurityPage,
-  geospatial: LazyGeospatialPage,
-  "game-dev": LazyGameDevPage,
-  _default: LazyIndustryPage, // 保留作为后备
+  // 金融域
+  [BUILTIN_PAGE_PATH.financeAnalysis]: LazyFinanceInvestPage,
+  [BUILTIN_PAGE_PATH.financeAccounting]: LazyAccountingPage,
+  // 自动化域
+  [BUILTIN_PAGE_PATH.automationSales]: LazySalesGrowthPage,
+  [BUILTIN_PAGE_PATH.automationProjects2]: LazyProjectManagementPage,
+  [BUILTIN_PAGE_PATH.automationConsulting]: LazyIndustryConsultingPage,
+  [BUILTIN_PAGE_PATH.automationEcommerce]: LazyEcommercePage,
+  // 运维域
+  [BUILTIN_PAGE_PATH.devopsSoftware]: LazySoftwareDevPage,
+  [BUILTIN_PAGE_PATH.devopsSecurity]: LazySecurityPage,
+  // 数据分析域
+  [BUILTIN_PAGE_PATH.dataGeospatial]: LazyGeospatialPage,
+  [BUILTIN_PAGE_PATH.dataAiResearch]: LazyAiResearchPage,
+  // 内容创作域
+  [BUILTIN_PAGE_PATH.contentMedia]: LazyContentMediaPage,
+  [BUILTIN_PAGE_PATH.contentDesign]: LazyDesignPage,
+  [BUILTIN_PAGE_PATH.contentEducation]: LazyEducationPage,
+  // AI 媒体域
+  [BUILTIN_PAGE_PATH.aiMediaGame]: LazyGameDevPage,
 };
 
-/** 根据行业 ID 渲染对应的页面组件 */
-function renderIndustryPage(industryId: string) {
-  const Page = INDUSTRY_PAGE_MAP[industryId] || INDUSTRY_PAGE_MAP._default;
+/** 根据域化路径渲染对应的行业页面组件 */
+function renderIndustryPage(path: string) {
+  const Page = INDUSTRY_PAGE_MAP[path] || LazyIndustryPage;
   return (
     <PageContextProvider page="opc">
       <SafeLazyPage Page={Page} />
@@ -191,27 +208,32 @@ function renderIndustryPage(industryId: string) {
   );
 }
 
-/** 从路径参数读取行业 ID 并重定向到对应的独立页面 */
-function RedirectIndustryPath() {
-  const { industryId } = useParams<{ industryId?: string }>();
-  if (!industryId) {
-    return <Navigate to={BUILTIN_PAGE_PATH.opc} replace />;
-  }
-  return <Navigate to={`${BUILTIN_PAGE_PATH.opcIndustryDynamic}/${industryId}`} replace />;
-}
+/** 旧行业 ID → 新域化路径映射 */
+const INDUSTRY_ID_TO_PATH: Record<string, string> = {
+  "finance-invest": BUILTIN_PAGE_PATH.financeAnalysis,
+  accounting: BUILTIN_PAGE_PATH.financeAccounting,
+  "sales-growth": BUILTIN_PAGE_PATH.automationSales,
+  "project-management": BUILTIN_PAGE_PATH.automationProjects2,
+  "industry-consulting": BUILTIN_PAGE_PATH.automationConsulting,
+  ecommerce: BUILTIN_PAGE_PATH.automationEcommerce,
+  "software-dev": BUILTIN_PAGE_PATH.devopsSoftware,
+  security: BUILTIN_PAGE_PATH.devopsSecurity,
+  geospatial: BUILTIN_PAGE_PATH.dataGeospatial,
+  "ai-research": BUILTIN_PAGE_PATH.dataAiResearch,
+  "content-media": BUILTIN_PAGE_PATH.contentMedia,
+  design: BUILTIN_PAGE_PATH.contentDesign,
+  education: BUILTIN_PAGE_PATH.contentEducation,
+  "game-dev": BUILTIN_PAGE_PATH.aiMediaGame,
+};
 
-/** 9 个硬编码行业路由重定向到 /opc/industry/:id 动态路由 */
-function redirectToIndustry(id: string) {
-  return <Navigate to={`${BUILTIN_PAGE_PATH.opcIndustryDynamic}/${id}`} replace />;
-}
-
-/** 根据路由参数中的 id 选择对应的行业页面组件 */
-function IndustryRouter() {
+/** 旧 /opc/industry/:id 动态路由 → 重定向到域化路径 */
+function RedirectIndustryById() {
   const { id } = useParams<{ id?: string }>();
   if (!id) {
-    return <Navigate to={BUILTIN_PAGE_PATH.opc} replace />;
+    return <Navigate to={BUILTIN_PAGE_PATH.automationOperations} replace />;
   }
-  return renderIndustryPage(id);
+  const newPath = INDUSTRY_ID_TO_PATH[id] || BUILTIN_PAGE_PATH.automationOperations;
+  return <Navigate to={newPath} replace />;
 }
 
 export const ContentArea = memo(function ContentArea() {
@@ -226,7 +248,8 @@ export const ContentArea = memo(function ContentArea() {
       >
         <Routes>
           <Route path="/" element={<Navigate to={DEFAULT_HOME} replace />} />
-          {/* 能力域聚合入口（8 个业务域，见 domainMeta）— 每个域路径渲染 DomainHub */}
+
+          {/* ── 能力域聚合入口（8 个业务域） ── */}
           {CAPABILITY_DOMAIN_META.map((domain) => (
             <Route
               key={domain.id}
@@ -238,7 +261,8 @@ export const ContentArea = memo(function ContentArea() {
               }
             />
           ))}
-          {/* 工作台 Hub：对话页作为核心，内含仪表盘/工作流/终端/知识源 Tab */}
+
+          {/* ── 通用功能 ── */}
           <Route
             path={BUILTIN_PAGE_PATH.chat}
             element={
@@ -247,7 +271,6 @@ export const ContentArea = memo(function ContentArea() {
               </PageContextProvider>
             }
           />
-          {/* 以下路由重定向到 /chat 并通过 state.tab 设置功能 Tab */}
           <Route path={BUILTIN_PAGE_PATH.dashboard} element={redirectToChat("dashboard")} />
           <Route path={BUILTIN_PAGE_PATH.workflow} element={redirectToChat("workflow")} />
           <Route path={BUILTIN_PAGE_PATH.terminal} element={redirectToChat("terminal")} />
@@ -255,7 +278,6 @@ export const ContentArea = memo(function ContentArea() {
           <Route path={BUILTIN_PAGE_PATH.knowledge} element={redirectToChat("knowledge")} />
           <Route path={BUILTIN_PAGE_PATH.multiAgent} element={redirectToChat("multiAgent")} />
           <Route path={BUILTIN_PAGE_PATH.marketplace} element={redirectToChat("workflow")} />
-          {/* 记忆页保留独立路由（无侧栏入口，通过知识源内 Memory Tab 访问） */}
           <Route
             path={BUILTIN_PAGE_PATH.memory}
             element={
@@ -264,12 +286,6 @@ export const ContentArea = memo(function ContentArea() {
               </PageContextProvider>
             }
           />
-          {
-            /* /link 与 /gateway 共用 GatewayLinkPage。
-               /link 承载 OAuth / 网关连接回调（带 token 参数），page 上下文为 "link"；
-               /gateway 为常规网关管理页，page 上下文为 "gateway"。
-               二者语义不同（连接回调 vs 管理），不可合并。 */
-          }
           <Route
             path={BUILTIN_PAGE_PATH.link}
             element={
@@ -294,11 +310,7 @@ export const ContentArea = memo(function ContentArea() {
               </PageContextProvider>
             }
           />
-          {/* 知识库子路由（/llm-wiki 与 /knowledge 共用 KnowledgeHubPage，保留 wiki 上下文） */}
-          <Route
-            path={BUILTIN_PAGE_PATH.llmWiki}
-            element={redirectToChat("knowledge")}
-          />
+          <Route path={BUILTIN_PAGE_PATH.llmWiki} element={redirectToChat("knowledge")} />
           <Route
             path={`${BUILTIN_PAGE_PATH.llmWiki}/:wikiId/graph`}
             element={
@@ -331,7 +343,6 @@ export const ContentArea = memo(function ContentArea() {
               </PageContextProvider>
             }
           />
-          {/* 动态页面查看器保留独立路由（通过 schemaId 访问） */}
           <Route
             path={`${BUILTIN_PAGE_PATH["dynamic-ui"]}/:schemaId`}
             element={
@@ -340,59 +351,228 @@ export const ContentArea = memo(function ContentArea() {
               </PageContextProvider>
             }
           />
-          {/* 动态页面管理入口重定向到设置（已迁入设置/扩展分组） */}
           <Route
             path={BUILTIN_PAGE_PATH["dynamic-ui"]}
             element={<Navigate to={BUILTIN_PAGE_PATH.settings} replace />}
           />
-          {/* AxInvest 股票业务统一入口 — 7 个业务页面合并为 InvestHub Tab */}
+
+          {/* ── 金融域（finance） ── */}
+          {/* 股票业务统一入口 */}
           <Route
-            path={BUILTIN_PAGE_PATH.invest}
+            path={BUILTIN_PAGE_PATH.financeInvestment}
             element={
               <PageContextProvider page="invest">
                 <SafeLazyPage Page={LazyInvestPage} />
               </PageContextProvider>
             }
           />
-          {/* OPC 一人公司管理 — 根路径重定向到仪表板 */}
+          {/* 行业页面 */}
           <Route
-            path={BUILTIN_PAGE_PATH.opc}
-            element={<Navigate to={`${BUILTIN_PAGE_PATH.opc}/dashboard`} replace />}
+            path={BUILTIN_PAGE_PATH.financeAnalysis}
+            element={renderIndustryPage(BUILTIN_PAGE_PATH.financeAnalysis)}
           />
-          {/* OPC 行业相关路由（必须在 /opc/:tab 之前，否则会被错误匹配） */}
-          {/* OPC 旧复数行业路由（重定向到单数动态路由） */}
           <Route
-            path={`${BUILTIN_PAGE_PATH.opc}/industries/:industryId`}
-            element={<RedirectIndustryPath />}
+            path={BUILTIN_PAGE_PATH.financeAccounting}
+            element={renderIndustryPage(BUILTIN_PAGE_PATH.financeAccounting)}
           />
-          {/* OPC 9 大垂直行业路由（重定向到 /opc/industry/:id 动态路由） */}
-          <Route path={BUILTIN_PAGE_PATH.opcIndustryAiResearch} element={redirectToIndustry("ai-research")} />
-          <Route path={BUILTIN_PAGE_PATH.opcIndustrySoftwareDev} element={redirectToIndustry("software-dev")} />
-          <Route path={BUILTIN_PAGE_PATH.opcIndustryFinanceInvest} element={redirectToIndustry("finance-invest")} />
-          <Route path={BUILTIN_PAGE_PATH.opcIndustrySalesGrowth} element={redirectToIndustry("sales-growth")} />
-          <Route path={BUILTIN_PAGE_PATH.opcIndustryContentMedia} element={redirectToIndustry("content-media")} />
+
+          {/* ── 自动化域（automation） ── */}
+          {/* OPC 管理根路径重定向到仪表板 */}
+          <Route
+            path={BUILTIN_PAGE_PATH.automationOperations}
+            element={<Navigate to={BUILTIN_PAGE_PATH.automationDashboard} replace />}
+          />
+          {/* OPC 子页面（仪表板、发票、客户、项目等） */}
+          <Route
+            path={`${BUILTIN_PAGE_PATH.automationOperations}/:tab`}
+            element={
+              <PageContextProvider page="opc">
+                <SafeLazyPage Page={LazyOpcSubPage} />
+              </PageContextProvider>
+            }
+          />
+          {/* 行业页面 */}
+          <Route
+            path={BUILTIN_PAGE_PATH.automationSales}
+            element={renderIndustryPage(BUILTIN_PAGE_PATH.automationSales)}
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.automationProjects2}
+            element={renderIndustryPage(BUILTIN_PAGE_PATH.automationProjects2)}
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.automationConsulting}
+            element={renderIndustryPage(BUILTIN_PAGE_PATH.automationConsulting)}
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.automationEcommerce}
+            element={renderIndustryPage(BUILTIN_PAGE_PATH.automationEcommerce)}
+          />
+
+          {/* ── 运维域（devops）行业页面 ── */}
+          <Route
+            path={BUILTIN_PAGE_PATH.devopsSoftware}
+            element={renderIndustryPage(BUILTIN_PAGE_PATH.devopsSoftware)}
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.devopsSecurity}
+            element={renderIndustryPage(BUILTIN_PAGE_PATH.devopsSecurity)}
+          />
+
+          {/* ── 数据分析域（data_analysis）行业页面 ── */}
+          <Route
+            path={BUILTIN_PAGE_PATH.dataGeospatial}
+            element={renderIndustryPage(BUILTIN_PAGE_PATH.dataGeospatial)}
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.dataAiResearch}
+            element={renderIndustryPage(BUILTIN_PAGE_PATH.dataAiResearch)}
+          />
+
+          {/* ── 内容创作域（content_creation）行业页面 ── */}
+          <Route
+            path={BUILTIN_PAGE_PATH.contentMedia}
+            element={renderIndustryPage(BUILTIN_PAGE_PATH.contentMedia)}
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.contentDesign}
+            element={renderIndustryPage(BUILTIN_PAGE_PATH.contentDesign)}
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.contentEducation}
+            element={renderIndustryPage(BUILTIN_PAGE_PATH.contentEducation)}
+          />
+
+          {/* ── AI 媒体域（ai_media）行业页面 ── */}
+          <Route
+            path={BUILTIN_PAGE_PATH.aiMediaGame}
+            element={renderIndustryPage(BUILTIN_PAGE_PATH.aiMediaGame)}
+          />
+
+          {/* ── 旧路径重定向（兼容书签和外链） ── */}
+          {/* 旧 /invest → /finance/investment */}
+          <Route path={BUILTIN_PAGE_PATH.invest} element={<RedirectInvestPath />} />
+          <Route path={`${BUILTIN_PAGE_PATH.invest}/:stockCode`} element={<RedirectStockWorkspace />} />
+          <Route
+            path={BUILTIN_PAGE_PATH["stock-analysis"]}
+            element={redirectToFinanceInvestment("workspace", { view: "analysis" })}
+          />
+          <Route
+            path={`${BUILTIN_PAGE_PATH["stock-analysis"]}/:id`}
+            element={<RedirectStockAnalysisById />}
+          />
+          <Route
+            path={`${BUILTIN_PAGE_PATH["stock-analysis"]}/*`}
+            element={redirectToFinanceInvestment("workspace", { view: "analysis" })}
+          />
+          <Route path={BUILTIN_PAGE_PATH.screener} element={redirectToFinanceInvestment("screener")} />
+          <Route
+            path={BUILTIN_PAGE_PATH.watchlist}
+            element={redirectToFinanceInvestment("workspace", { view: "monitor" })}
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.portfolio}
+            element={redirectToFinanceInvestment("workspace", { view: "monitor" })}
+          />
+          <Route path={BUILTIN_PAGE_PATH["paper-portfolio"]} element={redirectToFinanceInvestment("paper-portfolio")} />
+          <Route path={BUILTIN_PAGE_PATH["market-mainline"]} element={redirectToFinanceInvestment("market-mainline")} />
+          <Route
+            path={BUILTIN_PAGE_PATH["screenshot-diagnosis"]}
+            element={redirectToFinanceInvestment("screenshot-diagnosis")}
+          />
+          <Route path={BUILTIN_PAGE_PATH.trade} element={redirectToFinanceInvestment("workspace", { view: "trade" })} />
+          <Route
+            path={BUILTIN_PAGE_PATH.backtest}
+            element={redirectToFinanceInvestment("workspace", { view: "backtest" })}
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.compare}
+            element={redirectToFinanceInvestment("workspace", { view: "compare" })}
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH["scheduled-analysis"]}
+            element={redirectToFinanceInvestment("market-mainline")}
+          />
+          <Route path={BUILTIN_PAGE_PATH.quant} element={redirectToFinanceInvestment("quant")} />
+          <Route
+            path={BUILTIN_PAGE_PATH["replay-workbench"]}
+            element={redirectToFinanceInvestment("market-mainline")}
+          />
+          <Route path={BUILTIN_PAGE_PATH.pipeline} element={redirectToFinanceInvestment("pipeline")} />
+
+          {/* 旧 /workspace → /finance/investment?tab=workspace */}
+          <Route path={BUILTIN_PAGE_PATH.workspace} element={redirectToFinanceInvestment("workspace")} />
+          <Route path={`${BUILTIN_PAGE_PATH.workspace}/:stockCode`} element={<RedirectStockWorkspace />} />
+
+          {/* 旧 /opc → /automation/operations */}
+          <Route path={BUILTIN_PAGE_PATH.opc} element={<RedirectOpcPath />} />
+          <Route path={`${BUILTIN_PAGE_PATH.opc}/:tab`} element={<RedirectOpcPath />} />
+
+          {/* 旧 OPC 行业路径 → 重定向到域化路径 */}
+          <Route
+            path={BUILTIN_PAGE_PATH.opcIndustryAiResearch}
+            element={<RedirectIndustryPath to={BUILTIN_PAGE_PATH.dataAiResearch} />}
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.opcIndustrySoftwareDev}
+            element={<RedirectIndustryPath to={BUILTIN_PAGE_PATH.devopsSoftware} />}
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.opcIndustryFinanceInvest}
+            element={<RedirectIndustryPath to={BUILTIN_PAGE_PATH.financeAnalysis} />}
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.opcIndustrySalesGrowth}
+            element={<RedirectIndustryPath to={BUILTIN_PAGE_PATH.automationSales} />}
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.opcIndustryContentMedia}
+            element={<RedirectIndustryPath to={BUILTIN_PAGE_PATH.contentMedia} />}
+          />
           <Route
             path={BUILTIN_PAGE_PATH.opcIndustryIndustryConsulting}
-            element={redirectToIndustry("industry-consulting")}
+            element={<RedirectIndustryPath to={BUILTIN_PAGE_PATH.automationConsulting} />}
           />
-          <Route path={BUILTIN_PAGE_PATH.opcIndustryAccounting} element={redirectToIndustry("accounting")} />
-          <Route path={BUILTIN_PAGE_PATH.opcIndustryEcommerce} element={redirectToIndustry("ecommerce")} />
-          <Route path={BUILTIN_PAGE_PATH.opcIndustryEducation} element={redirectToIndustry("education")} />
-          {/* OPC 新增 6 个行业路由 */}
-          <Route path={BUILTIN_PAGE_PATH.opcIndustryDesign} element={redirectToIndustry("design")} />
+          <Route
+            path={BUILTIN_PAGE_PATH.opcIndustryAccounting}
+            element={<RedirectIndustryPath to={BUILTIN_PAGE_PATH.financeAccounting} />}
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.opcIndustryEcommerce}
+            element={<RedirectIndustryPath to={BUILTIN_PAGE_PATH.automationEcommerce} />}
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.opcIndustryEducation}
+            element={<RedirectIndustryPath to={BUILTIN_PAGE_PATH.contentEducation} />}
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.opcIndustryDesign}
+            element={<RedirectIndustryPath to={BUILTIN_PAGE_PATH.contentDesign} />}
+          />
           <Route
             path={BUILTIN_PAGE_PATH.opcIndustryProjectManagement}
-            element={redirectToIndustry("project-management")}
+            element={<RedirectIndustryPath to={BUILTIN_PAGE_PATH.automationProjects2} />}
           />
-          <Route path={BUILTIN_PAGE_PATH.opcIndustrySecurity} element={redirectToIndustry("security")} />
-          <Route path={BUILTIN_PAGE_PATH.opcIndustryGeospatial} element={redirectToIndustry("geospatial")} />
-          <Route path={BUILTIN_PAGE_PATH.opcIndustryGameDev} element={redirectToIndustry("game-dev")} />
-          {/* OPC 行业动态路由（单数形式，根据 ID 渲染对应的独立页面） */}
+          <Route
+            path={BUILTIN_PAGE_PATH.opcIndustrySecurity}
+            element={<RedirectIndustryPath to={BUILTIN_PAGE_PATH.devopsSecurity} />}
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.opcIndustryGeospatial}
+            element={<RedirectIndustryPath to={BUILTIN_PAGE_PATH.dataGeospatial} />}
+          />
+          <Route
+            path={BUILTIN_PAGE_PATH.opcIndustryGameDev}
+            element={<RedirectIndustryPath to={BUILTIN_PAGE_PATH.aiMediaGame} />}
+          />
+
+          {/* 旧动态路由 → 重定向到域化路径 */}
           <Route
             path={`${BUILTIN_PAGE_PATH.opcIndustryDynamic}/:id`}
-            element={<IndustryRouter />}
+            element={<RedirectIndustryById />}
           />
-          {/* OPC 行业导航页面（集中展示所有行业入口） */}
+
+          {/* 旧 OPC 行业导航页 → 重定向到自动化域 */}
           <Route
             path={BUILTIN_PAGE_PATH.opcIndustries}
             element={
@@ -401,65 +581,15 @@ export const ContentArea = memo(function ContentArea() {
               </PageContextProvider>
             }
           />
-          {/* OPC 独立子页面路由（仪表盘、发票、客户、项目等）— 直接渲染对应组件 */}
-          <Route
-            path={`${BUILTIN_PAGE_PATH.opc}/:tab`}
-            element={
-              <PageContextProvider page="opc">
-                <SafeLazyPage Page={LazyOpcSubPage} />
-              </PageContextProvider>
-            }
-          />
-          {/* ── 旧股票业务路由重定向到 /invest?tab=xxx ── */}
-          {/* /workspace → workspace tab（单股深度工作区） */}
-          <Route path={BUILTIN_PAGE_PATH.workspace} element={redirectToInvest("workspace")} />
-          <Route path={`${BUILTIN_PAGE_PATH.workspace}/:stockCode`} element={<RedirectStockWorkspace />} />
-          {/* /stock-analysis → workspace tab（股票分析归入工作区 analysis 视图） */}
-          <Route
-            path={BUILTIN_PAGE_PATH["stock-analysis"]}
-            element={redirectToInvest("workspace", { view: "analysis" })}
-          />
-          <Route
-            path={`${BUILTIN_PAGE_PATH["stock-analysis"]}/:id`}
-            element={<RedirectStockAnalysisById />}
-          />
-          <Route
-            path={`${BUILTIN_PAGE_PATH["stock-analysis"]}/*`}
-            element={redirectToInvest("workspace", { view: "analysis" })}
-          />
-          {/* /screener → screener tab（选股） */}
-          <Route path={BUILTIN_PAGE_PATH.screener} element={redirectToInvest("screener")} />
-          {/* /watchlist → workspace tab monitor 视图（自选股跟踪） */}
-          <Route path={BUILTIN_PAGE_PATH.watchlist} element={redirectToInvest("workspace", { view: "monitor" })} />
-          {/* /portfolio → workspace tab monitor 视图（持仓跟踪） */}
-          <Route path={BUILTIN_PAGE_PATH.portfolio} element={redirectToInvest("workspace", { view: "monitor" })} />
-          {/* /paper-portfolio → paper-portfolio tab（模拟观察） */}
-          <Route path={BUILTIN_PAGE_PATH["paper-portfolio"]} element={redirectToInvest("paper-portfolio")} />
-          {/* /market-mainline → market-mainline tab（市场主线） */}
-          <Route path={BUILTIN_PAGE_PATH["market-mainline"]} element={redirectToInvest("market-mainline")} />
-          {/* /screenshot-diagnosis → screenshot-diagnosis tab（截图诊断） */}
-          <Route path={BUILTIN_PAGE_PATH["screenshot-diagnosis"]} element={redirectToInvest("screenshot-diagnosis")} />
-          {/* /trade → workspace tab trade 视图（交易） */}
-          <Route path={BUILTIN_PAGE_PATH.trade} element={redirectToInvest("workspace", { view: "trade" })} />
-          {/* /backtest → workspace tab backtest 视图（回测） */}
-          <Route path={BUILTIN_PAGE_PATH.backtest} element={redirectToInvest("workspace", { view: "backtest" })} />
-          {/* /compare → workspace tab compare 视图（对比） */}
-          <Route path={BUILTIN_PAGE_PATH.compare} element={redirectToInvest("workspace", { view: "compare" })} />
-          {/* /scheduled-analysis → 无对应 tab，重定向到默认（market-mainline） */}
-          <Route path={BUILTIN_PAGE_PATH["scheduled-analysis"]} element={redirectToInvest("market-mainline")} />
-          {/* /quant → quant tab（量化策略验证） */}
-          <Route path={BUILTIN_PAGE_PATH.quant} element={redirectToInvest("quant")} />
-          {/* /replay-workbench → 无对应 tab，重定向到默认 */}
-          <Route path={BUILTIN_PAGE_PATH["replay-workbench"]} element={redirectToInvest("market-mainline")} />
-          {/* /pipeline → pipeline tab（流程编排） */}
-          <Route path={BUILTIN_PAGE_PATH.pipeline} element={redirectToInvest("pipeline")} />
-          {/* 开发工具已并入对话页「开发工具」Tab（见 WorkspaceSwitcher 门控），旧路由/子路由重定向到 /chat + state.tab */}
+
+          {/* 开发工具旧路由 → 重定向到 /chat */}
           <Route path={BUILTIN_PAGE_PATH.devtools} element={redirectToChat("devtools")} />
           <Route path={BUILTIN_PAGE_PATH.devtoolsTraceExplorer} element={redirectToChat("devtools")} />
           <Route path={BUILTIN_PAGE_PATH.devtoolsBenchmark} element={redirectToChat("devtools")} />
           <Route path={BUILTIN_PAGE_PATH.devtoolsToolRecommender} element={redirectToChat("devtools")} />
           <Route path={BUILTIN_PAGE_PATH.devtoolsFineTune} element={redirectToChat("devtools")} />
           <Route path={BUILTIN_PAGE_PATH.devtoolsRlTraining} element={redirectToChat("devtools")} />
+
           {/* 学习图 */}
           <Route
             path={BUILTIN_PAGE_PATH.learningGraph}
@@ -469,6 +599,7 @@ export const ContentArea = memo(function ContentArea() {
               </PageContextProvider>
             }
           />
+
           <Route path="*" element={<NotFoundRoute />} />
         </Routes>
       </div>

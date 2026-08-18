@@ -597,7 +597,7 @@ export const useExecutionStore = create<ExecutionStore>()(
         });
         try {
           const result = await invoke<TrajectorySummary[]>("trajectory_list", {
-            session_id: conversationId,
+            sessionId: conversationId,
             limit: 20,
           });
           set(
@@ -641,7 +641,7 @@ export const useExecutionStore = create<ExecutionStore>()(
         try {
           const result = await invoke<TrajectoryDetail>(
             "get_trajectory_detail",
-            { trajectory_id: trajectoryId },
+            { trajectoryId: trajectoryId },
           );
           set(
             (s) => ({

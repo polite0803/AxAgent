@@ -198,7 +198,7 @@ export const useTracerStore = create<TracerState>((set, get) => ({
   exportTrace: async (traceId: string, format: "json" | "csv") => {
     set({ isLoading: true, error: null });
     try {
-      await invoke("tracer_export_traces", { trace_ids: [traceId], format });
+      await invoke("tracer_export_traces", { traceIds: [traceId], format });
       set({ isLoading: false });
     } catch (error) {
       set({
@@ -311,7 +311,7 @@ export const useTracerStore = create<TracerState>((set, get) => ({
         timeDistribution: { name: string; value: number; color: string }[];
         tokenDistribution: { name: string; tokens: number }[];
         failureModes: { reason: string; count: number; pct: number }[];
-      }>("tracer_get_bottlenecks", { trace_id: traceId });
+      }>("tracer_get_bottlenecks", { traceId });
     } catch (e) {
       console.warn("[tracerStore] getBottlenecks failed, using mock", e);
       return {
@@ -344,7 +344,7 @@ export const useTracerStore = create<TracerState>((set, get) => ({
     try {
       return await invoke<
         { id: string; problem: string; suggestion: string; expectedImprovement: string }[]
-      >("tracer_generate_suggestions", { trace_id: traceId });
+      >("tracer_generate_suggestions", { traceId });
     } catch (e) {
       console.warn("[tracerStore] generateSuggestions failed, using mock", e);
       return [
@@ -375,7 +375,7 @@ export const useTracerStore = create<TracerState>((set, get) => ({
     set((s) => ({ feedbackHistory: [...s.feedbackHistory, entry] }));
 
     try {
-      await invoke("tracer_submit_feedback", { trace_id: traceId, rating, comment });
+      await invoke("tracer_submit_feedback", { traceId, rating, comment });
     } catch {
       console.warn("[tracerStore] submitFeedback invoke failed, saved locally");
     }

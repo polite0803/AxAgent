@@ -54,18 +54,18 @@ interface IndustryLearningState {
   loadRLStats: (industryId?: string) => Promise<ExperiencePoolStats | null>;
   /** 记录 RL 经验 */
   recordExperience: (params: {
-    industry_id: string;
-    workflow_id: string;
-    quality_score: number;
-    workflow_result: Record<string, unknown>;
+    industryId: string;
+    workflowId: string;
+    qualityScore: number;
+    workflowResult: Record<string, unknown>;
   }) => Promise<boolean>;
   /** 触发 RL 策略优化 */
   triggerOptimization: (industryId: string) => Promise<RLPolicyUpdate | null>;
   /** 触发自动学习闭环 */
   triggerAutoLearning: (params: {
-    industry_id: string;
-    workflow_id: string;
-    workflow_result: Record<string, unknown>;
+    industryId: string;
+    workflowId: string;
+    workflowResult: Record<string, unknown>;
   }) => Promise<AutoLearningResult | null>;
   /** 获取最近的自动学习结果 */
   getLatestAutoLearning: () => AutoLearningResult | undefined;
@@ -151,10 +151,10 @@ export const useIndustryLearningStore = create<IndustryLearningState>(
     },
 
     recordExperience: async (params: {
-      industry_id: string;
-      workflow_id: string;
-      quality_score: number;
-      workflow_result: Record<string, unknown>;
+      industryId: string;
+      workflowId: string;
+      qualityScore: number;
+      workflowResult: Record<string, unknown>;
     }) => {
       set({ rlLoading: true });
       try {
@@ -170,7 +170,7 @@ export const useIndustryLearningStore = create<IndustryLearningState>(
     triggerOptimization: async (industryId: string) => {
       set({ rlLoading: true });
       try {
-        const update = await triggerRLOptimization({ industry_id: industryId });
+        const update = await triggerRLOptimization({ industryId });
         const newUpdates = new Map(get().rlPolicyUpdates);
         newUpdates.set(industryId, update);
         set({ rlPolicyUpdates: newUpdates, rlLoading: false });
