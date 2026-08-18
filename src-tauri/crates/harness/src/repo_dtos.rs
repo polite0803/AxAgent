@@ -79,6 +79,12 @@ pub struct BackgroundTask {
     pub exit_code: Option<i32>,
     pub conversation_id: Option<String>,
     pub created_by: Option<String>,
+    /// 幂等键：防重复提交（唯一）
+    pub idempotency_key: Option<String>,
+    /// 重试/续跑计数
+    pub attempt: i32,
+    /// 断点位置（agent 任务 checkpoint）
+    pub resume_from: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
     pub finished_at: Option<i64>,
@@ -93,6 +99,7 @@ pub struct CreateBackgroundTaskInput {
     pub command: Option<String>,
     pub prompt: Option<String>,
     pub created_by: Option<String>,
+    pub idempotency_key: Option<String>,
 }
 
 /// 更新后台任务状态的输入 DTO

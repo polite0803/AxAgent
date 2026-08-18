@@ -77,6 +77,7 @@ export { useProviderStore } from "./feature/providerStore";
 export { useReadingListStore } from "./feature/readingListStore";
 export { useRlTrainingStore } from "./feature/rlTrainingStore";
 export type { CheckpointInfo, RLTrainingConfig, TrainingMetrics } from "./feature/rlTrainingStore";
+export { useSchedulerStore } from "./feature/schedulerStore";
 export { useSearchStore } from "./feature/searchStore";
 export { useSecurityStore } from "./feature/securityStore";
 export { useSettingsStore } from "./feature/settingsStore";
@@ -84,6 +85,8 @@ export type { GlobalShortcutDiagnostic, GlobalShortcutStatus } from "./feature/s
 export { useSkillExtensionStore } from "./feature/skillExtensionStore";
 export { useSkillStore } from "./feature/skillStore";
 export { useSourceStore } from "./feature/sourceStore";
+export { setupTaskShapeApprovalListeners, useTaskShapeApprovalStore } from "./feature/taskShapeApprovalStore";
+export type { TaskShapeApprovalEvent } from "./feature/taskShapeApprovalStore";
 export { useTerminalStore } from "./feature/terminalStore";
 export { useTopicGroupStore } from "./feature/topicGroupStore";
 export { useTrajectoryStore } from "./feature/trajectoryStore";

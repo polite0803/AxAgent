@@ -814,7 +814,13 @@ const SKILL_FILENAMES: [&str; 4] = ["SKILL.md", "skill.md", "README.md", "readme
 #[tauri::command]
 pub async fn get_marketplace_skill_content(
     repo: String,
+    source: Option<String>,
 ) -> Result<MarketplaceSkillContent, String> {
+    // OpenClaw/ClawHub 来源：直接下载 zip 读取 SKILL.md
+    if source.as_deref() == Some("openclaw") {
+        return fetch_openclaw_skill_content(&repo).await;
+    }
+
     let parts: Vec<&str> = repo.split('/').collect();
     if parts.len() != 2 {
         return Err(format!("Invalid repo format: '{}'. Expected 'owner/repo'", repo));
@@ -914,4 +920,112 @@ pub async fn get_marketplace_skill_content(
             SKILL_FILENAMES.join(", ")
         )),
     })
+}
+
+/// 从 ClawHub 下载 OpenClaw 技能 zip 并提取 SKILL.md / README.md 内容供详情预览。
+/// `repo` 支持纯 slug（如 `gifgrep`）或 `owner/slug`，取最后一段作为 slug。
+async fn fetch_openclaw_skill_content(repo: &str) -> Result<MarketplaceSkillContent, String> {
+    let slug = repo
+        .trim()
+        .trim_matches('/')
+        .trim_start_matches('@')
+        .rsplit('/')
+        .next()
+        .unwrap_or("")
+        .to_string();
+    if slug.is_empty() {
+        return Ok(MarketplaceSkillContent {
+            content: String::new(),
+            file_name: String::new(),
+            found: false,
+            error: Some("OpenClaw skill id must not be empty".to_string()),
+        });
+    }
+
+    let url = format!("https://clawhub.ai/api/v1/download?slug={}", urlencoding::encode(&slug));
+
+    let client =
+        reqwest::Client::builder().timeout(Duration::from_secs(60)).build().map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+    let response = client
+        .get(&url)
+        .header("User-Agent", "AxAgent")
+        .send()
+        .await
+        .map_err(|e| format!("Failed to download OpenClaw skill: {}", e))?;
+
+    if !response.status().is_success() {
+        return Ok(MarketplaceSkillContent {
+            content: String::new(),
+            file_name: String::new(),
+            found: false,
+            error: Some(format!(
+                "ClawHub download failed ({}): {}",
+                response.status(),
+                response.text().await.unwrap_or_default()
+            )),
+        });
+    }
+
+    let bytes = response.bytes().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+
+    let cursor = std::io::Cursor::new(&bytes);
+    let mut archive =
+        zip::ZipArchive::new(cursor).map_err(|e| format!("Failed to read zip: {}", e))?;
+
+    // 收集所有 .md 文件，按优先级排序（SKILL.md > README.md，深度浅的优先）
+    let mut md_entries: Vec<(String, usize)> = Vec::new();
+    for i in 0..archive.len() {
+        let file =
+            archive.by_index(i).map_err(|e| format!("Failed to read zip entry {}: {}", i, e))?;
+        if file.is_dir() {
+            continue;
+        }
+        let name = file.name().to_string();
+        let lower = name.to_lowercase();
+        if lower.ends_with(".md") {
+            let depth = name.matches('/').count();
+            let priority = if lower.ends_with("skill.md") {
+                0
+            } else if lower.ends_with("readme.md") {
+                1
+            } else {
+                2
+            };
+            md_entries.push((name, priority * 100 + depth));
+        }
+    }
+
+    if md_entries.is_empty() {
+        return Ok(MarketplaceSkillContent {
+            content: String::new(),
+            file_name: String::new(),
+            found: false,
+            error: Some("No skill definition file found in OpenClaw package. Searched for: SKILL.md, README.md".to_string()),
+        });
+    }
+
+    md_entries.sort_by_key(|(_, score)| *score);
+    let (best_name, _) = &md_entries[0];
+
+    let mut file =
+        archive.by_name(best_name).map_err(|e| format!("Failed to read {}: {}", best_name, e))?;
+    let mut content = String::new();
+    std::io::Read::read_to_string(&mut file, &mut content).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+
+    Ok(MarketplaceSkillContent { content, file_name: best_name.clone(), found: true, error: None })
 }

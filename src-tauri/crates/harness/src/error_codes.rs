@@ -435,3 +435,12 @@ pub mod cognitive {
     /// 能力补齐提议被用户拒绝（保持原拒绝/无候选行为）
     pub const GAP_PROPOSAL_REJECTED: &str = "COGNITIVE_GAP_PROPOSAL_REJECTED";
 }
+
+/// Unity 改造相关错误码
+///
+/// P0 阶段：任务形态分类器（原则三标尺：上下文保留成本 × 安全隔离需求）。
+/// 与前端 `error.UNITY_P0_CLASSIFIER_FAILED` 翻译键对齐。
+pub mod unity {
+    /// 任务形态分类失败（分类器内部异常，回退到 HandleLocally 策略）
+    pub const P0_CLASSIFIER_FAILED: &str = "UNITY_P0_CLASSIFIER_FAILED";
+}

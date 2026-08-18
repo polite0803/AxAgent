@@ -1536,7 +1536,12 @@
     },
     "evolve": "Evolvieren",
     "evolveSuccess": "Evolution erfolgreich, Stufe auf {{level}} angehoben",
-    "evolveFailed": "Evolution fehlgeschlagen, bitte später erneut versuchen"
+    "evolveFailed": "Evolution fehlgeschlagen, bitte später erneut versuchen",
+    "pluginSource": "Plugin",
+    "evolvable": {
+      "local": "Lokale Evolution",
+      "derived": "Abgeleitet"
+    }
   },
   "chatMarkdown": {
     "inputParams": "Eingabeparameter",
@@ -1962,6 +1967,7 @@
     "circuitClosed": "Normal",
     "llmFallback": "LLM-Fallback",
     "fallbackPath": "Fallback-Pfad",
+    "filteredCount": "Gefiltert",
     "candidates": "Kandidaten",
     "stageRecords": "Routenphasen",
     "recordedAt": "Aufgezeichnet um",
@@ -1980,6 +1986,34 @@
       "delegate": "An Agent delegieren",
       "parameter_extract": "Parameter extrahieren",
       "clarify": "Auf Klärung warten"
+    },
+    "taskShape": {
+      "label": "Aufgabenform",
+      "contextCost": "Kontextkosten",
+      "isolationNeed": "Isolationsbedarf",
+      "strategy": "Empfohlene Strategie",
+      "mergeScore": "Zusammenführungstendenz",
+      "splitScore": "Aufteilungstendenz",
+      "evidence": "Beweis",
+      "contextCostMap": {
+        "ephemeral": "Flüchtig",
+        "resumable": "Fortsetzbar",
+        "long_running_project": "Langfristiges Projekt",
+        "persistent_journey": "Fortlaufende Reise"
+      },
+      "isolationNeedMap": {
+        "read_only_thought": "Nur Lesen",
+        "workspace_write": "Arbeitsbereich Schreiben",
+        "sandbox_required": "Sandbox erforderlich",
+        "approval_and_air_gap": "Genehmigung & Air Gap"
+      },
+      "strategyMap": {
+        "handleLocally": "Lokal verarbeiten",
+        "delegateSingleExpert": "Einzelnen Experten delegieren",
+        "parallelExperts": "Parallele Experten",
+        "orchestratorDag": "Orchestrator DAG",
+        "approvalGate": "Genehmigungsgate"
+      }
     }
   },
   "continuation": {
@@ -2797,6 +2831,7 @@
     "CAPABILITY_STATS_FAILED": "Statistikabruf fehlgeschlagen",
     "CAPABILITY_METADATA_RESTORE_FAILED": "Metadatenwiederherstellung fehlgeschlagen",
     "CAPABILITY_EVOLVE_FAILED": "Fähigkeits-Evolution fehlgeschlagen",
+    "CAPABILITY_NOT_EVOLVABLE": "Diese Fähigkeit kann nicht weiterentwickelt werden (schreibgeschützte Fähigkeit eines externen Plugins)",
     "AGENT_INPUT_CHANNEL_CLOSED": "Der Benutzereingabekanal ist geschlossen",
     "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "Zeitüberschreitung beim Warten auf Benutzerantwort (5 Minuten)",
     "AGENT_INPUT_NO_PROVIDER": "Kein verfügbarer Provider/Modell: Bitte aktivieren Sie einen Provider in den Einstellungen",
@@ -2820,7 +2855,8 @@
     "SESSION_SHARE_NOT_FOUND": "Sitzung existiert nicht",
     "WORK_ENGINE_EXECUTION_NOT_FOUND": "Ungültige execution_id oder Workflow nicht registriert",
     "TRAJECTORY_NOT_FOUND": "Verlauf nicht gefunden",
-    "UNKNOWN_PRESET": "Unbekannte Vorgabe"
+    "UNKNOWN_PRESET": "Unbekannte Vorgabe",
+    "UNITY_P0_CLASSIFIER_FAILED": "Klassifizierung der Aufgabenform fehlgeschlagen"
   },
   "errorBoundary": {
     "copied": "Kopiert",
@@ -8183,6 +8219,9 @@
       "advancedDesc": "Erweiterter Zeitplan",
       "autoBackup": "Automatische Sicherung",
       "backupInterval": "Sicherungsintervall",
+      "budgetPlaceholder": "Unbegrenzt",
+      "budgetSaved": "Budget gespeichert",
+      "budgetTripped": "Ausgelöst",
       "closedLoop": "Closed-Loop-Nudge",
       "conversation_stats": "Konversationsstatistiken",
       "conversation_statsDesc": "Konversationsmuster und Statistiken analysieren",
@@ -8216,6 +8255,7 @@
       "knowledge_graph_update": "Wissensgraph-Aktualisierung",
       "knowledge_graph_updateDesc": "Wissensgraph aktualisieren und optimieren",
       "lastRunAt": "Letzte Ausführung",
+      "maxBudget": "Kostendeckel (USD)",
       "maxCount": "Max. Aufbewahrung",
       "maxRemoteBackups": "Max. Remote-Sicherungen",
       "minutes": "{{count}} Min",
@@ -8224,18 +8264,25 @@
       "monthly": "Monatlich",
       "monthlyDesc": "Monatlich am Tag {{day}}",
       "nextRunAt": "Nächste Ausführung",
+      "nightTask": "Nächtliche Langzeitaufgaben",
+      "noRestorable": "Nichts wiederherzustellen",
       "noTasks": "Keine benutzerdefinierten Aufgaben konfiguriert",
       "nudgeInterval": "Nudge-Intervall",
       "once": "Einmal",
       "pauseTask": "Pause",
       "quickCreated": "Schnell erstellt",
       "refreshed": "Aktualisiert",
+      "reportApprovals": "Genehmigungen",
+      "reportCost": "Kosten",
+      "reportDuration": "Dauer",
+      "reportGeneratedAt": "Generiert um",
+      "reportLoaded": "Bericht geladen",
+      "reportStatus": "Status",
       "reportTemplates": "Berichtsvorlagen",
+      "restoreTasks": "Ausstehende Aufgaben wiederherstellen",
+      "restored": "{{count}} Aufgaben wiederhergestellt",
       "resumeTask": "Fortsetzen",
       "running": "Läuft",
-      "strategyOverwrite": "Overwrite",
-      "strategyMerge": "Merge",
-      "strategyDryRun": "Dry run",
       "saturday": "Sa",
       "saved": "Gespeichert",
       "schedule": "Zeitplan",
@@ -8248,10 +8295,15 @@
       "scheduleWeekly": "Wöchentlich",
       "selectDayOfMonth": "Tag des Monats auswählen",
       "selectInterval": "Intervall auswählen",
+      "selectReportTask": "Aufgabe zum Anzeigen des Berichts auswählen",
       "selectScheduleType": "Zeitplantyp auswählen",
       "selectTemplate": "Vorlage Auswählen",
+      "spent": "Verbrauchte Kosten",
       "startTime": "Starten",
       "status": "Status",
+      "strategyDryRun": "Dry run",
+      "strategyMerge": "Merge",
+      "strategyOverwrite": "Overwrite",
       "sunday": "So",
       "syncInterval": "Synchronisierungsintervall",
       "taskActive": "Aktiv",
@@ -8265,6 +8317,7 @@
       "tuesday": "Di",
       "unknownTemplateType": "Unbekannter Vorlagentyp",
       "updateTask": "Aufgabe Aktualisieren",
+      "viewReport": "Bericht anzeigen",
       "webdavSync": "WebDAV-Auto-Sync",
       "wednesday": "Mi",
       "weekdays": "Wochentage",
@@ -12493,7 +12546,8 @@
     "gapType": {
       "guardRule": "Schutzregel-Ergänzung",
       "exemptAuthorize": "Ausnahme-Genehmigung",
-      "capabilityMissing": "Fehlende Fähigkeit"
+      "capabilityMissing": "Fehlende Fähigkeit",
+      "skillEvolution": "Skill-Evolution"
     },
     "pendingCount": "{{count}} Vorschläge ausstehend, aktuell #{{current}}",
     "pendingOne": "1 Vorschlag ausstehend",
@@ -16148,5 +16202,12 @@
         "associatedWith": "Verbunden mit"
       }
     }
+  },
+  "taskShapeApproval": {
+    "title": "Genehmigung risikoreicher Vorgänge",
+    "inputPreview": "Eingabe Vorschau",
+    "approve": "Genehmigen",
+    "reject": "Ablehnen",
+    "rejectedToast": "Risikoreicher Vorgang abgelehnt"
   }
 }

@@ -32,17 +32,15 @@ use crate::AppState;
 use crate::commands::error::ErrorCategory;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::fleet as fleet_err;
+use crate::commands::memory::resolve_default_provider;
 use async_trait::async_trait;
 use axagent_agent::AxAgentApiClient;
 use axagent_dao::repo::agent_profile;
 use axagent_dao::repo::agent_role;
-use axagent_dao::repo::provider;
 use axagent_entities::agency_experts;
 use axagent_harness::fleet::{DispatchEvent, FleetIntentLlm, FleetMember, FleetMemberStatus};
 use axagent_harness::runtime_types::permissions::PermissionMode;
 use axagent_harness::runtime_types::permissions::PermissionPolicy;
-use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
-use axagent_harness::{ProviderAdapter, ProviderRequestContext, resolve_base_url_for_type};
 use axagent_runtime::harness::RuntimeHarness;
 use axagent_runtime_core::ConversationRuntimeFactoryArgs;
 use axagent_runtime_core::RuntimeFeatureConfig;
@@ -53,56 +51,6 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use tracing::{info, warn};
 
-/// 已解析的默认提供商上下文（供路由与执行共用）。
-struct ResolvedProvider {
-    provider_id: String,
-    model_id: String,
-    adapter: Arc<dyn ProviderAdapter>,
-    ctx: ProviderRequestContext,
-}
-
-/// 从 Harness 解析「第一个启用且含可用 key 的提供商」。
-async fn resolve_default_provider(harness: &RuntimeHarness) -> Result<ResolvedProvider, String> {
-    let providers = provider::list_providers(harness.db()).await.unwrap_or_default();
-
-    let prov = providers
-        .into_iter()
-        .find(|p| p.enabled && p.keys.iter().any(|k| k.enabled))
-        .ok_or_else(|| "没有启用的模型提供商".to_string())?;
-
-    let key =
-        prov.keys.iter().find(|k| k.enabled).ok_or_else(|| "没有可用的 API key".to_string())?;
-    let api_key = axagent_crypto::decrypt_key(&key.key_encrypted, harness.master_key())
-        .map_err(|e| format!("解密 API key 失败: {e}"))?;
-
-    let ctx = ProviderRequestContext {
-        api_key,
-        key_id: key.id.clone(),
-        provider_id: prov.id.clone(),
-        base_url: Some(resolve_base_url_for_type(&prov.api_host, &prov.provider_type)),
-        api_path: prov.api_path.clone(),
-        proxy_config: axagent_harness::types::provider_model::resolve_provider_proxy(
-            &prov.proxy_config,
-            &axagent_dao::repo::settings::get_settings(harness.db()).await.unwrap_or_default(),
-        ),
-        custom_headers: prov.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
-        api_mode: None,
-        conversation: None,
-        previous_response_id: None,
-        store_response: None,
-    };
-
-    let adapter = harness
-        .get_adapter_for_provider(&prov)
-        .await
-        .ok_or_else(|| format!("无适配器可用: {:?}", prov.provider_type))?;
-
-    // 默认模型：取该 provider 模型列表的第一个
-    let model_id = prov.models.first().map(|m| m.model_id.clone()).unwrap_or_default();
-
-    Ok(ResolvedProvider { provider_id: prov.id, model_id, adapter, ctx })
-}
-
 /// 真实 LLM 意图分类：用默认提供商跑一次非流式 chat，返回 `{"agent_slug": "..."}` JSON 文本。
 ///
 /// 调用失败时返回 `Err`，由上层兜底到第一个可路由成员（不阻塞用户）。
@@ -111,40 +59,13 @@ async fn route_with_harness(
     system_prompt: &str,
     user_prompt: &str,
 ) -> Result<String, String> {
-    let resolved = resolve_default_provider(harness).await?;
-
-    let request = ChatRequest {
-        model: resolved.model_id.clone(),
-        messages: vec![
-            ChatMessage {
-                role: "system".to_string(),
-                content: ChatContent::Text(system_prompt.to_string()),
-                tool_calls: None,
-                tool_call_id: None,
-                thinking: None,
-            },
-            ChatMessage {
-                role: "user".to_string(),
-                content: ChatContent::Text(user_prompt.to_string()),
-                tool_calls: None,
-                tool_call_id: None,
-                thinking: None,
-            },
-        ],
-        stream: false,
-        temperature: Some(0.0),
-        top_p: None,
-        max_tokens: Some(256),
-        ..Default::default()
-    };
-
-    let resp = resolved
-        .adapter
-        .chat(&resolved.ctx, Arc::new(request))
-        .await
-        .map_err(|e| format!("路由 LLM 调用失败: {e}"))?;
-
-    Ok(resp.content)
+    axagent_runtime::llm_helpers::chat_with_default_provider(
+        harness,
+        system_prompt,
+        user_prompt,
+        256,
+    )
+    .await
 }
 
 /// `FleetIntentLlm` 的真实实现（wiring 层注入）：
@@ -243,7 +164,7 @@ pub async fn execute_fleet_turn(
     emit(busy_evt);
 
     // ── 2. 解析提供商（失败则报错并复位状态）──
-    let resolved = match resolve_default_provider(&app_state.harness).await {
+    let resolved = match resolve_default_provider(app_state).await {
         Ok(r) => r,
         Err(e) => {
             let msg = format!("解析模型提供商失败: {e}");

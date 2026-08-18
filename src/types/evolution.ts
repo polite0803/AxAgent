@@ -17,7 +17,8 @@ export type PromptAttackCategory =
 export type CapabilityGapType =
   | "guard_rule"
   | "exempt_authorize"
-  | "capability_missing";
+  | "capability_missing"
+  | "skill_evolution";
 
 /** 运行时动态注册的工具（与后端 `list_runtime_tools` 返回对齐）。 */
 export interface RuntimeToolInfo {

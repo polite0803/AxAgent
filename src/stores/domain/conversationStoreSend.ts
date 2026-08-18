@@ -179,7 +179,7 @@ export function createSendMethods(
           thinking: null,
           toolCallsJson: null,
           toolCallId: null,
-          createdAt: Date.now(),
+          createdAt: Math.floor(Date.now() / 1000),
           parentMessageId: null,
           versionIndex: 0,
           isActive: true,
@@ -202,7 +202,7 @@ export function createSendMethods(
         thinking: null,
         toolCallsJson: null,
         toolCallId: null,
-        createdAt: Date.now(),
+        createdAt: Math.floor(Date.now() / 1000),
         parentMessageId: optimisticUserMsg.id,
         versionIndex: 0,
         isActive: true,
@@ -874,12 +874,18 @@ export function createSendMethods(
         // cognitive_query 的 Agent 执行分支透传 agent_query 的 status。
         const isRejected = cognitiveResult?.execution?.kind === "agent"
           && cognitiveResult.execution.status === "rejected";
-        if (isRejected) {
+        const isApprovalRejected = cognitiveResult?.execution?.kind === "agent"
+          && cognitiveResult.execution.status === "approval_rejected";
+        if (isRejected || isApprovalRejected) {
           set((s) => ({
             messages: s.messages.filter((m) => m.id !== currentMsgId),
           }));
           cleanup();
-          message.info(i18n.t("planApproval.rejectedToast"));
+          if (isApprovalRejected) {
+            message.info(i18n.t("taskShapeApproval.rejectedToast"));
+          } else {
+            message.info(i18n.t("planApproval.rejectedToast"));
+          }
           return;
         }
         // Wait for agent-done or agent-error event
@@ -985,13 +991,17 @@ export function createSendMethods(
       }
 
       const msgs = get().messages;
-      // Find the user message (either specific or last one)
+      // Find the user message (either specific or last one).
+      // targetMessageId 语义：可以是 user 消息 id，也可以是该条回复的 assistant
+      // 消息 id。若为 user 消息 id 则直接定位，避免「找 AI→parent」逻辑把中间
+      // 消息的 id 误当成 AI 消息而回退到最后一条 user 消息。
       let userMsg: Message | undefined;
       if (targetMessageId) {
-        // Find the AI message, then its parent user message
-        const aiMsg = msgs.find((m) => m.id === targetMessageId);
-        if (aiMsg?.parentMessageId) {
-          userMsg = msgs.find((m) => m.id === aiMsg.parentMessageId);
+        const targetMsg = msgs.find((m) => m.id === targetMessageId);
+        if (targetMsg?.role === "user") {
+          userMsg = targetMsg;
+        } else if (targetMsg?.parentMessageId) {
+          userMsg = msgs.find((m) => m.id === targetMsg.parentMessageId);
         }
       }
       if (!userMsg) {
@@ -1033,7 +1043,7 @@ export function createSendMethods(
         thinking: null,
         toolCallsJson: null,
         toolCallId: null,
-        createdAt: originalAiMsg?.createdAt ?? Date.now(),
+        createdAt: originalAiMsg?.createdAt ?? Math.floor(Date.now() / 1000),
         parentMessageId: userMsg.id,
         versionIndex: 0,
         isActive: true,
@@ -1183,7 +1193,7 @@ export function createSendMethods(
         thinking: null,
         toolCallsJson: null,
         toolCallId: null,
-        createdAt: originalAiMsg?.createdAt ?? Date.now(),
+        createdAt: originalAiMsg?.createdAt ?? Math.floor(Date.now() / 1000),
         parentMessageId: userMsg.id,
         versionIndex: 0,
         isActive: true,

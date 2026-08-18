@@ -20,6 +20,7 @@ pub mod init;
 pub use init::{create_app_state, init_database_with_dir};
 mod knowledge_integration;
 mod memory_extract;
+pub mod scheduler;
 
 #[macro_use]
 mod register_commands;

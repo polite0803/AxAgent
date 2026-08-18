@@ -1536,7 +1536,12 @@
     },
     "evolve": "Evolucionar",
     "evolveSuccess": "Evolución exitosa, nivel elevado a {{level}}",
-    "evolveFailed": "Error en la evolución, inténtalo más tarde"
+    "evolveFailed": "Error en la evolución, inténtalo más tarde",
+    "pluginSource": "Complemento",
+    "evolvable": {
+      "local": "Evolución local",
+      "derived": "Derivado"
+    }
   },
   "chatMarkdown": {
     "inputParams": "Parámetros de entrada",
@@ -1962,6 +1967,7 @@
     "circuitClosed": "Normal",
     "llmFallback": "Respaldo LLM",
     "fallbackPath": "Ruta de respaldo",
+    "filteredCount": "Filtrado de circuito",
     "candidates": "Candidatos",
     "stageRecords": "Etapas de ruta",
     "recordedAt": "Registrado a las",
@@ -1980,6 +1986,34 @@
       "delegate": "Delegar al agente",
       "parameter_extract": "Extracción de parámetros",
       "clarify": "Esperando aclaración"
+    },
+    "taskShape": {
+      "label": "Forma de tarea",
+      "contextCost": "Costo de contexto",
+      "isolationNeed": "Necesidad de aislamiento",
+      "strategy": "Estrategia recomendada",
+      "mergeScore": "Tendencia de fusión",
+      "splitScore": "Tendencia de división",
+      "evidence": "Evidencia",
+      "contextCostMap": {
+        "ephemeral": "Efímero",
+        "resumable": "Reanudable",
+        "long_running_project": "Proyecto prolongado",
+        "persistent_journey": "Viaje persistente"
+      },
+      "isolationNeedMap": {
+        "read_only_thought": "Solo lectura",
+        "workspace_write": "Escritura de espacio",
+        "sandbox_required": "Sandbox requerido",
+        "approval_and_air_gap": "Aprobación y aislamiento"
+      },
+      "strategyMap": {
+        "handleLocally": "Procesar localmente",
+        "delegateSingleExpert": "Delegar a un experto",
+        "parallelExperts": "Expertos en paralelo",
+        "orchestratorDag": "Orquestador DAG",
+        "approvalGate": "Puerta de aprobación"
+      }
     }
   },
   "continuation": {
@@ -2797,6 +2831,7 @@
     "CAPABILITY_STATS_FAILED": "Estadísticas de capacidad fallidas",
     "CAPABILITY_METADATA_RESTORE_FAILED": "Restauración de metadatos fallida",
     "CAPABILITY_EVOLVE_FAILED": "Error en la evolución de la capacidad",
+    "CAPABILITY_NOT_EVOLVABLE": "Esta capacidad no puede evolucionar (capacidad de solo lectura de un complemento externo)",
     "AGENT_INPUT_CHANNEL_CLOSED": "El canal de entrada del usuario está cerrado",
     "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "Tiempo de espera agotado al esperar la respuesta del usuario (5 minutos)",
     "AGENT_INPUT_NO_PROVIDER": "No hay proveedor/modelo disponible: active un proveedor en la configuración",
@@ -2820,7 +2855,8 @@
     "SESSION_SHARE_NOT_FOUND": "La sesión no existe",
     "WORK_ENGINE_EXECUTION_NOT_FOUND": "execution_id inválido o workflow no registrado",
     "TRAJECTORY_NOT_FOUND": "Trayectoria no encontrada",
-    "UNKNOWN_PRESET": "Ajuste predefinido desconocido"
+    "UNKNOWN_PRESET": "Ajuste predefinido desconocido",
+    "UNITY_P0_CLASSIFIER_FAILED": "Error en la clasificación de la forma de la tarea"
   },
   "errorBoundary": {
     "copied": "Copiado",
@@ -8183,6 +8219,9 @@
       "advancedDesc": "Programación avanzada",
       "autoBackup": "Copia de Seguridad Auto",
       "backupInterval": "Intervalo de Copia",
+      "budgetPlaceholder": "Ilimitado",
+      "budgetSaved": "Presupuesto guardado",
+      "budgetTripped": "Disparado",
       "closedLoop": "Nudge de Bucle Cerrado",
       "conversation_stats": "Estadísticas de conversación",
       "conversation_statsDesc": "Analizar patrones y estadísticas de conversación",
@@ -8216,6 +8255,7 @@
       "knowledge_graph_update": "Actualización del grafo de conocimiento",
       "knowledge_graph_updateDesc": "Actualizar y optimizar el grafo de conocimiento",
       "lastRunAt": "Última Ejecución",
+      "maxBudget": "Límite de costo (USD)",
       "maxCount": "Máx. Retenidos",
       "maxRemoteBackups": "Máx. Copias Remotas",
       "minutes": "{{count}} min",
@@ -8224,18 +8264,25 @@
       "monthly": "Mensual",
       "monthlyDesc": "Mensual el día {{day}}",
       "nextRunAt": "Próxima Ejecución",
+      "nightTask": "Tareas nocturnas de larga duración",
+      "noRestorable": "Nada que restaurar",
       "noTasks": "No hay tareas personalizadas configuradas",
       "nudgeInterval": "Intervalo de Nudge",
       "once": "Una vez",
       "pauseTask": "Pausar",
       "quickCreated": "Creación rápida",
       "refreshed": "Actualizado",
+      "reportApprovals": "Aprobaciones",
+      "reportCost": "Costo",
+      "reportDuration": "Duración",
+      "reportGeneratedAt": "Generado el",
+      "reportLoaded": "Informe cargado",
+      "reportStatus": "Estado",
       "reportTemplates": "Plantillas de Informes",
+      "restoreTasks": "Restaurar tareas pendientes",
+      "restored": "{{count}} tareas restauradas",
       "resumeTask": "Reanudar",
       "running": "En ejecución",
-      "strategyOverwrite": "Overwrite",
-      "strategyMerge": "Merge",
-      "strategyDryRun": "Dry run",
       "saturday": "Sáb",
       "saved": "Guardado",
       "schedule": "Programación",
@@ -8248,10 +8295,15 @@
       "scheduleWeekly": "Semanal",
       "selectDayOfMonth": "Seleccionar día del mes",
       "selectInterval": "Seleccionar intervalo",
+      "selectReportTask": "Seleccionar tarea para ver informe",
       "selectScheduleType": "Seleccionar tipo de programación",
       "selectTemplate": "Seleccionar Plantilla",
+      "spent": "Costo gastado",
       "startTime": "Inicio",
       "status": "Estado",
+      "strategyDryRun": "Dry run",
+      "strategyMerge": "Merge",
+      "strategyOverwrite": "Overwrite",
       "sunday": "Dom",
       "syncInterval": "Intervalo de Sincronización",
       "taskActive": "Activa",
@@ -8265,6 +8317,7 @@
       "tuesday": "Mar",
       "unknownTemplateType": "Tipo de plantilla desconocido",
       "updateTask": "Actualizar Tarea",
+      "viewReport": "Ver informe",
       "webdavSync": "Sincronización WebDAV Auto",
       "wednesday": "Mié",
       "weekdays": "Días de la semana",
@@ -12493,7 +12546,8 @@
     "gapType": {
       "guardRule": "Complemento de regla de protección",
       "exemptAuthorize": "Autorización de exención",
-      "capabilityMissing": "Capacidad faltante"
+      "capabilityMissing": "Capacidad faltante",
+      "skillEvolution": "Evolución de habilidades"
     },
     "pendingCount": "{{count}} propuestas pendientes, actualmente #{{current}}",
     "pendingOne": "1 propuesta pendiente",
@@ -16148,5 +16202,12 @@
         "associatedWith": "Asociado con"
       }
     }
+  },
+  "taskShapeApproval": {
+    "title": "Aprobación de operación de alto riesgo",
+    "inputPreview": "Vista previa de entrada",
+    "approve": "Aprobar",
+    "reject": "Rechazar",
+    "rejectedToast": "Operación de alto riesgo rechazada"
   }
 }

@@ -311,7 +311,7 @@ describe("getShortcutBinding", () => {
 
   it("returns custom binding when setting is provided", () => {
     const settings = mockSettings({
-      shortcut_new_conversation: "CmdOrCtrl+M",
+      shortcutNewConversation: "CmdOrCtrl+M",
     });
     const binding = getShortcutBinding(settings, "newConversation");
     expect(binding).toBe("CmdOrCtrl+M");

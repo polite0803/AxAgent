@@ -476,7 +476,24 @@ impl DomainRoutingResult {
     }
 }
 
-// ── L1 域路由接口 ──────────────────────────────────
+// ── 双层决策接口（设计 §4 三段闭环）─────────────────
+
+/// L2 模型兜底推理器。输入用户 Query，返回候选域标识（如 "finance"/"research"）。
+/// 由接线方注入实际 LLM 实现；`None`/无输入表示不启用模型兜底。
+pub type LlmReasoner = dyn Fn(&str) -> std::pin::Pin<Box<dyn std::future::Future<Output = Option<String>> + Send>>
+    + Send
+    + Sync;
+
+/// 双层决策结果（设计 §4）：规则优先，模型兜底，模型结果必须过规则关。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum DomainDecision {
+    /// 规则直接覆盖，未调用模型。
+    Rule(Vec<DomainRoutingRule>),
+    /// 规则未覆盖，模型兜底（已用规则复查交叉验证，无覆盖）。
+    Llm { domain: CapabilityDomain, confidence: f64 },
+    /// 规则与模型都未命中 → 通用域。
+    General,
+}
 
 /// L1 域路由接口 — 纯规则 + LLM 兜底
 ///
@@ -511,6 +528,40 @@ pub trait DomainRouter: Send + Sync {
 
     /// 批量更新规则优先级
     async fn reorder_rules(&self, rule_ids: Vec<String>) -> Result<(), String>;
+
+    /// 双层决策三段流水线（设计 §4）。
+    ///
+    /// 1. **规则优先**：规则命中即直接用规则结果，不调模型（低风险高频走规则）；
+    /// 2. **模型兜底**：规则未覆盖才调用注入的 LLM 推理器分类（模糊才走模型）；
+    /// 3. **规则复查**：模型输出再跑一次规则匹配交叉验证，命中仍以规则为准，
+    ///    未命中则返回 `Llm`，兜底失败返回 `General`（模型结果必过规则关）。
+    ///
+    /// `llm_reasoner` 为可选注入；传 `None` 时跳过模型兜底，等同于普通 rule-only。
+    async fn decide(
+        &self,
+        query: &str,
+        llm_reasoner: Option<&std::sync::Arc<LlmReasoner>>,
+    ) -> DomainDecision {
+        // 1) 规则覆盖 → 直接用规则结果
+        let route = self.route(query).await;
+        if let Some(rule) = route.matched_rule {
+            return DomainDecision::Rule(vec![rule]);
+        }
+        // 2) 规则未覆盖 → 模型兜底分类
+        let llm_domain = match llm_reasoner {
+            Some(reasoner) => reasoner(query).await,
+            None => None,
+        };
+        let Some(domain) = llm_domain.and_then(|d| d.parse::<CapabilityDomain>().ok()) else {
+            return DomainDecision::General;
+        };
+        // 3) 模型输出再过规则关：用 LLM 给出的域重跑规则匹配，
+        //    若被规则覆盖则以规则为准（规则仍优先于模型）。
+        if let Some(rule) = self.route(domain.as_str()).await.matched_rule {
+            return DomainDecision::Rule(vec![rule]);
+        }
+        DomainDecision::Llm { domain, confidence: route.confidence.max(0.5) }
+    }
 }
 
 // ── 内置默认规则集 ──────────────────────────────

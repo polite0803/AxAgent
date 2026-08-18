@@ -1539,7 +1539,12 @@
     },
     "evolve": "進化提升",
     "evolveSuccess": "進化成功，等級提升至 {{level}}",
-    "evolveFailed": "進化失敗，請稍後重試"
+    "evolveFailed": "進化失敗，請稍後重試",
+    "pluginSource": "外掛",
+    "evolvable": {
+      "local": "本機進化",
+      "derived": "衍生"
+    }
   },
   "chatMarkdown": {
     "inputParams": "輸入參數",
@@ -1965,6 +1970,7 @@
     "circuitClosed": "正常",
     "llmFallback": "LLM 兜底",
     "fallbackPath": "備選路徑",
+    "filteredCount": "熔斷過濾",
     "candidates": "候選能力",
     "stageRecords": "路由階段",
     "recordedAt": "觀測時間",
@@ -1983,6 +1989,34 @@
       "delegate": "委派 Agent",
       "parameter_extract": "參數抽取",
       "clarify": "待澄清選擇"
+    },
+    "taskShape": {
+      "label": "任務形態",
+      "contextCost": "上下文成本",
+      "isolationNeed": "隔離需求",
+      "strategy": "推薦策略",
+      "mergeScore": "合併傾向",
+      "splitScore": "拆分傾向",
+      "evidence": "證據",
+      "contextCostMap": {
+        "ephemeral": "瞬時",
+        "resumable": "可續",
+        "long_running_project": "長週期",
+        "persistent_journey": "持久旅程"
+      },
+      "isolationNeedMap": {
+        "read_only_thought": "純思考",
+        "workspace_write": "工作區寫入",
+        "sandbox_required": "強制沙箱",
+        "approval_and_air_gap": "審批氣隔"
+      },
+      "strategyMap": {
+        "handleLocally": "本地處理",
+        "delegateSingleExpert": "委派單專家",
+        "parallelExperts": "並行專家",
+        "orchestratorDag": "編排器 DAG",
+        "approvalGate": "審批門"
+      }
     }
   },
   "continuation": {
@@ -2800,6 +2834,7 @@
     "CAPABILITY_STATS_FAILED": "能力統計獲取失敗",
     "CAPABILITY_METADATA_RESTORE_FAILED": "元數據恢復失敗",
     "CAPABILITY_EVOLVE_FAILED": "能力進化失敗",
+    "CAPABILITY_NOT_EVOLVABLE": "該能力不可進化（外部外掛唯讀能力）",
     "AGENT_INPUT_CHANNEL_CLOSED": "使用者提問通道已關閉",
     "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "等待使用者回覆逾時（5 分鐘）",
     "AGENT_INPUT_NO_PROVIDER": "沒有可用的 provider/model：請先在設定中啟用供應商",
@@ -2823,7 +2858,8 @@
     "SESSION_SHARE_NOT_FOUND": "會話不存在",
     "WORK_ENGINE_EXECUTION_NOT_FOUND": "execution_id 無效或工作流未註冊",
     "TRAJECTORY_NOT_FOUND": "軌跡未找到",
-    "UNKNOWN_PRESET": "未知的預設"
+    "UNKNOWN_PRESET": "未知的預設",
+    "UNITY_P0_CLASSIFIER_FAILED": "任務形態分類失敗"
   },
   "errorBoundary": {
     "copied": "已複製",
@@ -8186,6 +8222,9 @@
       "advancedDesc": "進階排程",
       "autoBackup": "自動備份",
       "backupInterval": "備份間隔",
+      "budgetPlaceholder": "不限",
+      "budgetSaved": "預算已儲存",
+      "budgetTripped": "已熔斷",
       "closedLoop": "閉環學習提示",
       "conversation_stats": "對話統計",
       "conversation_statsDesc": "分析對話模式和統計",
@@ -8219,6 +8258,7 @@
       "knowledge_graph_update": "知識圖譜更新",
       "knowledge_graph_updateDesc": "更新和優化知識圖譜",
       "lastRunAt": "上次執行",
+      "maxBudget": "成本上限（USD）",
       "maxCount": "最大保留數量",
       "maxRemoteBackups": "最大遠程保留數",
       "minutes": "{{count}} 分鐘",
@@ -8227,18 +8267,25 @@
       "monthly": "每月",
       "monthlyDesc": "每月第{{day}}天",
       "nextRunAt": "下次執行",
+      "nightTask": "夜間長時任務",
+      "noRestorable": "暫無未完成任務",
       "noTasks": "暫無自訂任務",
       "nudgeInterval": "提示間隔",
       "once": "一次",
       "pauseTask": "暫停",
       "quickCreated": "快速創建",
       "refreshed": "已重新",
+      "reportApprovals": "審批數",
+      "reportCost": "成本",
+      "reportDuration": "耗時",
+      "reportGeneratedAt": "產生時間",
+      "reportLoaded": "報告已載入",
+      "reportStatus": "狀態",
       "reportTemplates": "報告範本",
+      "restoreTasks": "復原未完成任務",
+      "restored": "已復原 {{count}} 個任務",
       "resumeTask": "恢復",
       "running": "運行中",
-      "strategyOverwrite": "Overwrite（覆蓋）",
-      "strategyMerge": "Merge（合併）",
-      "strategyDryRun": "Dry run（僅驗證）",
       "saturday": "週六",
       "saved": "已儲存",
       "schedule": "排程",
@@ -8251,10 +8298,15 @@
       "scheduleWeekly": "每週",
       "selectDayOfMonth": "選擇日期",
       "selectInterval": "選擇間隔",
+      "selectReportTask": "選擇任務檢視報告",
       "selectScheduleType": "選擇排程類型",
       "selectTemplate": "選擇範本",
+      "spent": "已用成本",
       "startTime": "開始",
       "status": "狀態",
+      "strategyDryRun": "Dry run（僅驗證）",
+      "strategyMerge": "Merge（合併）",
+      "strategyOverwrite": "Overwrite（覆蓋）",
       "sunday": "週日",
       "syncInterval": "同步間隔",
       "taskActive": "執行中",
@@ -8268,6 +8320,7 @@
       "tuesday": "週二",
       "unknownTemplateType": "未知的範本類型",
       "updateTask": "更新任務",
+      "viewReport": "檢視報告",
       "webdavSync": "WebDAV 自動同步",
       "wednesday": "週三",
       "weekdays": "平日",
@@ -12496,7 +12549,8 @@
     "gapType": {
       "guardRule": "防護規則補齊",
       "exemptAuthorize": "誤傷豁免授權",
-      "capabilityMissing": "能力缺失補齊"
+      "capabilityMissing": "能力缺失補齊",
+      "skillEvolution": "技能進化"
     },
     "pendingCount": "共有 {{count}} 個待處理提議，目前為第 {{current}} 個",
     "pendingOne": "僅 1 個待處理提議",
@@ -16151,5 +16205,12 @@
         "associatedWith": "關聯"
       }
     }
+  },
+  "taskShapeApproval": {
+    "title": "高風險操作審批",
+    "inputPreview": "輸入預覽",
+    "approve": "批准執行",
+    "reject": "拒絕",
+    "rejectedToast": "高風險操作已拒絕"
   }
 }

@@ -10,6 +10,8 @@ export interface ApprovalRequest {
   message: string;
   status: "pending" | "approved" | "rejected" | "expired";
   approver?: string;
+  /** 审批超时后的自动裁决策略：auto_reject(默认拒绝) / auto_approve(自动放行) */
+  timeoutAction: string;
   timeoutSecs: number;
   expiresAt: number;
   createdAt: number;

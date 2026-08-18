@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { logIpcError } from "@/lib/invoke";
+import { listen, logIpcError } from "@/lib/invoke";
 import { useApprovalStore } from "@/stores";
 import type { ApprovalRequest } from "@/types";
 import { Badge, Empty, Input, Modal, Space, Spin } from "antd";
@@ -25,6 +25,18 @@ export function ApprovalPanel() {
       fetchPendingApprovals().catch(logIpcError("ApprovalPanel: fetchPendingApprovals"));
     }
   }, [panelOpen, fetchPendingApprovals]);
+
+  // 推送式唤醒：后端统一事件总线桥接的审批请求事件（workflow:approval-requested）
+  // 到达时主动刷新待审批列表并打开面板，替代纯轮询。
+  useEffect(() => {
+    const unlistenPromise = listen<unknown>("workflow:approval-requested", () => {
+      fetchPendingApprovals().catch(logIpcError("ApprovalPanel: on-approval-requested"));
+      setPanelOpen(true);
+    });
+    return () => {
+      unlistenPromise.then((unlisten) => unlisten()).catch(() => {});
+    };
+  }, [fetchPendingApprovals, setPanelOpen]);
 
   const handleApproved = useCallback(
     (_approvalId: string) => {

@@ -30,6 +30,13 @@ pub struct Model {
     pub conversation_id: Option<String>,
     /// 创建者会话 ID
     pub created_by: Option<String>,
+    /// 幂等键：防重复提交，重复 key 返回已有任务
+    pub idempotency_key: Option<String>,
+    /// 重试/续跑计数
+    #[sea_orm(default_value = "0")]
+    pub attempt: i32,
+    /// 断点位置（agent 任务 checkpoint 位置，冗余到引擎 checkpoint）
+    pub resume_from: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
     pub finished_at: Option<i64>,

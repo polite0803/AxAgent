@@ -152,6 +152,13 @@ pub mod wiki_dtos;
 pub mod task_scene;
 pub use task_scene::TaskScene;
 
+// ── P0: 任务形态分类器（原则三核心标尺：上下文保留成本 × 安全隔离需求）──
+pub mod task_shape;
+pub use task_shape::{
+    ContextRetentionCost, ExecutionStrategy, SecurityIsolationNeed, TaskShapeClassifier,
+    TaskShapeDecision, TaskShapeLlmClassifier, resolve_effective_permission,
+};
+
 // ── ServiceRegistryProvider 契约重导出 ──
 pub use service_registry::ServiceRegistryProvider;
 
@@ -423,7 +430,7 @@ pub use url_utils::{
 };
 
 // ── PromptGuard 契约重导出 ──
-pub use prompt_guard::{PatternPromptGuard, PromptGuard, PromptRejection};
+pub use prompt_guard::{DynamicGuardRule, PatternPromptGuard, PromptGuard, PromptRejection};
 
 // ── SessionTracer 契约重导出 ──
 pub use session_tracer::SessionTracer;
@@ -647,9 +654,10 @@ pub use indexer::{ChunkProvider, DocumentChunk, DocumentIndexer, IndexConfig, In
 // ── 能力发现契约（Capability Discovery Pipeline） ──
 pub mod capability;
 pub use capability::{
-    CallerPermissions, CapabilityDomain, CapabilityKind, CapabilityLevel, CapabilityPassport,
-    CapabilityPassportDto, CapabilityStats, DiscoveryWeights, InputModality, ModalitySupport,
-    OutputCapabilities, PlanningComplexity, SecurityLevel, SessionBudget, Visibility,
+    CallerPermissions, CapabilityDomain, CapabilityEvolvability, CapabilityKind, CapabilityLevel,
+    CapabilityPassport, CapabilityPassportDto, CapabilitySource, CapabilityStats, DiscoveryWeights,
+    InputModality, ModalitySupport, OutputCapabilities, PlanningComplexity, SecurityLevel,
+    SessionBudget, Visibility,
 };
 pub mod capability_indexer;
 pub use capability_indexer::{
@@ -694,8 +702,8 @@ pub use capability_router::{
 // ── L1/L2 分层路由契约 ──
 pub mod domain_router;
 pub use domain_router::{
-    DomainRouter, DomainRouterImpl, DomainRoutingResult, DomainRoutingRule, DomainRuleType,
-    MatchMode, default_domain_rules,
+    DomainDecision, DomainRouter, DomainRouterImpl, DomainRoutingResult, DomainRoutingRule,
+    DomainRuleType, LlmReasoner, MatchMode, default_domain_rules,
 };
 pub mod cluster_router;
 pub use cluster_router::{

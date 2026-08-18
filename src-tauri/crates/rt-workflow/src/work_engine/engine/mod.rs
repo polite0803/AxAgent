@@ -2896,6 +2896,8 @@ impl WorkEngine {
                                             decision: None,
                                             approver_actual: None,
                                             comment: None,
+                                            // 落库 timeout_action，供 DAO 层 auto_resolve_timeouts 超时裁决
+                                            timeout_action: approval.timeout_action.clone(),
                                             timeout_secs: approval.timeout_secs as i64,
                                             expires_at: now_ms + (approval.timeout_secs as i64 * 1000),
                                             created_at: now_ms,
@@ -2909,6 +2911,25 @@ impl WorkEngine {
                                     {
                                         tracing::error!(error = %e, "[Approval] 保存审批记录失败");
                                     }
+                                    // 5.1 审批风险分级与推送接线：请求已创建，桥接到统一事件总线，
+                                    // 供前端审批面板 / 飞书 IM / 邮件推送通道展示审批链接与超时信息。
+                                    self.publish_workflow_event(
+                                        "ApprovalRequested",
+                                        serde_json::json!({
+                                            "approvalId": record.id,
+                                            "executionId": record.execution_id,
+                                            "workflowId": workflow_id,
+                                            "nodeId": record.node_id,
+                                            "title": record.title,
+                                            "message": record.message,
+                                            "approver": record.approver,
+                                            "channels": approval.channels,
+                                            "timeoutSecs": record.timeout_secs,
+                                            "expiresAt": record.expires_at,
+                                            "approvalLink": format!("/approvals?id={}", record.id),
+                                        }),
+                                    )
+                                    .await;
                                 }
                             }
                             // 标记暂停
@@ -2942,14 +2963,47 @@ impl WorkEngine {
                                         // 收到恢复信号，正常继续
                                     },
                                     Err(_elapsed) => {
-                                        // 审批超时，自动取消工作流
+                                        // 审批超时：按 timeout_action 裁决（默认拒绝）
+                                        let is_auto_approve = {
+                                            let ta =
+                                                approval.timeout_action.trim().to_ascii_lowercase();
+                                            ta == "auto_approve" || ta == "approve"
+                                        };
+                                        if is_auto_approve {
+                                            tracing::info!(
+                                                execution_id = %execution_id,
+                                                node_id = %nr.node_id,
+                                                timeout_secs = timeout_secs,
+                                                "[Approval] 审批超时，按策略 auto_approve 自动批准，继续执行"
+                                            );
+                                            // 自动批准：落库标记（若仍 pending），并继续后续节点
+                                            {
+                                                let db_clone = {
+                                                    let db_guard = self
+                                                        .db
+                                                        .lock()
+                                                        .unwrap_or_else(|e| e.into_inner());
+                                                    db_guard.clone()
+                                                };
+                                                if let Some(db) = db_clone.as_ref() {
+                                                    let _ = axagent_dao::repo::workflow_approval::resolve_approval_for_timeout(
+                                                        db, &execution_id, &nr.node_id, true,
+                                                    )
+                                                    .await;
+                                                }
+                                            }
+                                            // 视为已恢复，继续处理下一节点结果
+                                            continue;
+                                        }
+
+                                        // 默认：超时拒绝，取消工作流（永久停摆）
                                         tracing::warn!(
                                             execution_id = %execution_id,
                                             node_id = %nr.node_id,
                                             timeout_secs = timeout_secs,
-                                            "[Approval] 审批超时，自动取消"
+                                            "[Approval] 审批超时，默认拒绝并取消工作流"
                                         );
-                                        // 更新审批记录为 expired
+                                        // 更新审批记录为 rejected（仅仍 pending 时生效，与 DAO 侧幂等）
                                         {
                                             let db_clone = {
                                                 let db_guard = self
@@ -2959,8 +3013,8 @@ impl WorkEngine {
                                                 db_guard.clone()
                                             };
                                             if let Some(db) = db_clone.as_ref() {
-                                                let _ = axagent_dao::repo::workflow_approval::expire_approval(
-                                                    db, &execution_id, &nr.node_id,
+                                                let _ = axagent_dao::repo::workflow_approval::resolve_approval_for_timeout(
+                                                    db, &execution_id, &nr.node_id, false,
                                                 )
                                                 .await;
                                             }
@@ -2973,7 +3027,7 @@ impl WorkEngine {
                                                     nr.node_id.clone(),
                                                     serde_json::json!({
                                                         "status": "timeout",
-                                                        "reason": format!("审批超时（{}秒）", timeout_secs),
+                                                        "reason": format!("审批超时，默认拒绝（{}秒）", timeout_secs),
                                                     }),
                                                 );
                                             }

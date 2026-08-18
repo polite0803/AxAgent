@@ -20,6 +20,9 @@ interface BackgroundTask {
   output: string;
   exit_code?: number;
   conversation_id?: string;
+  idempotency_key?: string;
+  attempt: number;
+  resume_from?: string;
   created_at: number;
   updated_at: number;
   finished_at?: number;

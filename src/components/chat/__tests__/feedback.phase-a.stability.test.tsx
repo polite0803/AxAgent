@@ -40,10 +40,10 @@ describe("Phase A feedback regressions", () => {
     );
 
     expect(modalSource).toContain(
-      "setMaxTokens(conversation.max_tokens ?? null)",
+      "setMaxTokens(conversation.maxTokens ?? null)",
     );
     expect(modalSource).not.toContain(
-      "setMaxTokens(conversation.max_tokens ?? settings.default_max_tokens ?? 4096)",
+      "setMaxTokens(conversation.maxTokens ?? settings.defaultMaxTokens ?? 4096)",
     );
   });
 
@@ -59,8 +59,8 @@ describe("Phase A feedback regressions", () => {
       "src-tauri/crates/dao/src/repo/conversation.rs",
     );
 
-    expect(modalSource).toContain("max_tokens: maxTokens,");
-    expect(typeSource).toMatch(/max_tokens\?: number \| null;/);
+    expect(modalSource).toContain("maxTokens,");
+    expect(typeSource).toMatch(/maxTokens\?: number \| null;/);
     expect(rustTypeSource).toMatch(
       /deserialize_double_option"\)\]\s*pub max_tokens: Option<Option<i64>>/,
     );

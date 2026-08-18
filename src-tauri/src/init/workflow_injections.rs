@@ -1514,12 +1514,12 @@ mod tests {
 
     // ── T5A.3:EvolutionFeedbackSinkImpl 单元测试 ──
 
+    /// 嵌套统计表类型别名（D2 会话隔离：会话 → 工具 → 统计）。
+    type StatsMap = Arc<Mutex<HashMap<String, HashMap<String, ToolExecutionStats>>>>;
+
     /// 构造嵌套统计表（D2 会话隔离）的测试 sink（无 DB，仅内存累计）。
-    fn make_sink()
-    -> (Arc<Mutex<HashMap<String, HashMap<String, ToolExecutionStats>>>>, EvolutionFeedbackSinkImpl)
-    {
-        let stats: Arc<Mutex<HashMap<String, HashMap<String, ToolExecutionStats>>>> =
-            Arc::new(Mutex::new(HashMap::new()));
+    fn make_sink() -> (StatsMap, EvolutionFeedbackSinkImpl) {
+        let stats: StatsMap = Arc::new(Mutex::new(HashMap::new()));
         let sink = EvolutionFeedbackSinkImpl::new(stats.clone(), None);
         (stats, sink)
     }

@@ -762,6 +762,12 @@ macro_rules! register_all_commands {
             commands::background_tasks::list_background_tasks,
             commands::background_tasks::get_background_task_output,
             commands::background_tasks::stop_background_task,
+            // Scheduler 协调器命令（夜间长时自主任务）
+            scheduler::restore::restore_pending_tasks,
+            scheduler::set_task_priority,
+            scheduler::set_budget,
+            scheduler::get_budget_usage,
+            scheduler::get_task_report,
             // Skill Decomposition commands
             commands::skill_decomposition::preview_decomposition,
             commands::skill_decomposition::confirm_decomposition,
@@ -1631,6 +1637,7 @@ commands::analyst_evolution::get_node_evolution_status_command,
             commands::cognitive::cognitive_list_execution_modes,
             commands::cognitive::capability_gap_consent,
             commands::cognitive::cognitive_evolution_decision,
+            commands::cognitive::respond_task_shape_approval,
         ]
     };
 }

@@ -9,6 +9,8 @@
 //   故 `DiscoverRequestPayload` 顶层字段与嵌套 FilterContext/CapabilityQuery/
 //   DiscoveryWeights/SessionBudget 均消费 camelCase
 
+import type { TaskShapeDecision } from "./taskShape";
+
 // ── 能力护照（数字护照） ──────────────────────────
 
 /** 能力承载载体（对应后端 CapabilityKind） */
@@ -48,6 +50,15 @@ export type PlanningComplexity = "simple" | "moderate" | "complex";
  *  由护照多维数据派生（规划复杂度 / IQ 需求 / 成功率 / 耗时 / 成本）；
  *  L1/L2 为低等级，可启用进化提升等级。 */
 export type CapabilityLevel = "l1" | "l2" | "l3" | "l4" | "l5";
+
+/** 能力来源（对应后端 CapabilitySource，snake_case） */
+export type CapabilitySource = "builtin" | "plugin";
+
+/** 能力可进化性（对应后端 CapabilityEvolvability，snake_case）
+ *  - none：不可进化（外部插件只读能力）
+ *  - local：载体本地可写，就地提升等级/参数
+ *  - derived：进化产出独立副本，原护照保持不变 */
+export type CapabilityEvolvability = "none" | "local" | "derived";
 
 /** 模态支持声明（对应后端 ModalitySupport） */
 export interface ModalitySupport {
@@ -105,6 +116,10 @@ export interface CapabilityPassportDto {
   enabled: boolean;
   /** 能力等级（L1-L5，由多维数据派生；低等级可进化提升） */
   level: CapabilityLevel;
+  /** 能力来源（内置 / 插件），用于溯源与进化边界判断 */
+  source: CapabilitySource;
+  /** 能力可进化性（决定进化引擎分发边界：none / local / derived） */
+  evolvable: CapabilityEvolvability;
 }
 
 // ── 检索请求/结果 ──────────────────────────────────
@@ -498,6 +513,8 @@ export interface CognitiveQueryResponse {
   candidates: string[];
   /** 候选能力详情（Clarify 模式用于用户选择） */
   candidateDetails?: CognitiveCandidateSummary[] | null;
+  /** 熔断过滤数量（RAR 原始候选数 - 最终候选数，0 表示无过滤） */
+  filteredCount?: number;
   /** 执行模式（ask / plan / act / workflow / delegate） */
   executionMode: CognitiveExecutionMode;
   /** 选中工作流的可读名称（未命中工作流时为 null） */
@@ -510,4 +527,12 @@ export interface CognitiveQueryResponse {
   totalElapsedMs: number;
   /** 执行分支结果（Workflow → WorkEngine；其余 → agent_query） */
   execution?: CognitiveExecutionView | null;
+  /**
+   * P1: 任务形态决策（原则三标尺输出，Step 0 产出）
+   *
+   * 当 UNITY_P0_TASK_SHAPE flag 启用时由 DefaultTaskShapeClassifier 在路由前产出，
+   * 随响应返回前端展示决策标签（两条标尺 + 推荐策略 + 合并/拆分倾向）。
+   * null 表示 flag 未启用或分类失败已回退。
+   */
+  taskShape?: TaskShapeDecision | null;
 }

@@ -101,6 +101,12 @@ pub const ADDITIONAL_COLUMNS: &[(&str, &str, &str)] = &[
     ("workflow_templates", "mission_hash", "TEXT"),
     ("workflow_templates", "cluster_id", "TEXT"),
     ("workflow_templates", "route_path", "TEXT"),
+    // ── workflow_approvals 审批超时策略（无人值守超时裁决） ──
+    ("workflow_approvals", "timeout_action", "TEXT NOT NULL DEFAULT 'auto_reject'"),
+    // ── background_tasks 断点恢复 + 幂等（夜间长时任务） ──
+    ("background_tasks", "idempotency_key", "TEXT"),
+    ("background_tasks", "attempt", "INTEGER NOT NULL DEFAULT 0"),
+    ("background_tasks", "resume_from", "TEXT"),
 ];
 
 pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
@@ -624,7 +630,9 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             description TEXT NOT NULL DEFAULT '', task_type TEXT NOT NULL, command TEXT, \
             prompt TEXT, status TEXT NOT NULL DEFAULT 'pending', \
             output TEXT NOT NULL DEFAULT '', exit_code INTEGER, conversation_id TEXT, \
-            created_by TEXT, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, \
+            created_by TEXT, \
+            idempotency_key TEXT, attempt INTEGER NOT NULL DEFAULT 0, resume_from TEXT, \
+            created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, \
             finished_at BIGINT)",
     ] {
         exec_ddl(&db, is_pg, sql).await?;
@@ -918,6 +926,33 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         let mut already = 0usize;
 
         for (table, column, col_type) in ADDITIONAL_COLUMNS {
+            // 表不存在时跳过：部分清单项对应的表由本迁移后续 PHASE 创建
+            // （如 PHASE 7 的 workflow_approvals），此刻直接 ALTER 会报
+            // `no such table`。表由后续 PHASE 以完整 DDL 建出，无需在此补列。
+            let table_exists = if is_pg {
+                db.query_one_raw(Statement::from_string(
+                    DbBackend::Postgres,
+                    format!(
+                        "SELECT 1 AS exists_flag FROM information_schema.tables \
+                         WHERE table_schema = current_schema() AND table_name = '{table}'"
+                    ),
+                ))
+                .await?
+                .is_some()
+            } else {
+                let rows = db
+                    .query_all_raw(Statement::from_sql_and_values(
+                        DbBackend::Sqlite,
+                        "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                        [(*table).into()],
+                    ))
+                    .await?;
+                !rows.is_empty()
+            };
+            if !table_exists {
+                continue;
+            }
+
             let exists = if is_pg {
                 let row = db
                     .query_one_raw(Statement::from_string(
@@ -1198,6 +1233,7 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             decision TEXT, \
             approver_actual TEXT, \
             comment TEXT, \
+            timeout_action TEXT NOT NULL DEFAULT 'auto_reject', \
             timeout_secs BIGINT NOT NULL DEFAULT 86400, \
             expires_at BIGINT NOT NULL DEFAULT 0, \
             created_at BIGINT NOT NULL, \

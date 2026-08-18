@@ -1539,7 +1539,12 @@
     },
     "evolve": "विकसित करें",
     "evolveSuccess": "विकास सफल, स्तर {{level}} तक बढ़ा",
-    "evolveFailed": "विकास विफल, कृपया बाद में पुनः प्रयास करें"
+    "evolveFailed": "विकास विफल, कृपया बाद में पुनः प्रयास करें",
+    "pluginSource": "प्लगइन",
+    "evolvable": {
+      "local": "स्थानीय विकास",
+      "derived": "व्युत्पन्न"
+    }
   },
   "chatMarkdown": {
     "inputParams": "इनपुट पैरामीटर",
@@ -1965,6 +1970,7 @@
     "circuitClosed": "सामान्य",
     "llmFallback": "LLM फ़ॉलबैक",
     "fallbackPath": "फ़ॉलबैक पथ",
+    "filteredCount": "सर्किट फ़िल्टर किया गया",
     "candidates": "उम्मीदवार",
     "stageRecords": "रूट चरण",
     "recordedAt": "दर्ज समय",
@@ -1983,6 +1989,34 @@
       "delegate": "एजेंट को सौंपें",
       "parameter_extract": "पैरामीटर निष्कर्षण",
       "clarify": "स्पष्टीकरण प्रतीक्षा"
+    },
+    "taskShape": {
+      "label": "कार्य आकार",
+      "contextCost": "संदर्भ लागत",
+      "isolationNeed": "पृथक्करण आवश्यकता",
+      "strategy": "अनुशंसित रणनीति",
+      "mergeScore": "विलय प्रवृत्ति",
+      "splitScore": "विभाजन प्रवृत्ति",
+      "evidence": "सबूत",
+      "contextCostMap": {
+        "ephemeral": "क्षणिक",
+        "resumable": "पुनः आरंभनीय",
+        "long_running_project": "दीर्घकालिक परियोजना",
+        "persistent_journey": "निरंतर यात्रा"
+      },
+      "isolationNeedMap": {
+        "read_only_thought": "केवल पठन",
+        "workspace_write": "कार्यस्थल लेखन",
+        "sandbox_required": "सैंडबॉक्स आवश्यक",
+        "approval_and_air_gap": "अनुमोदन और वायु अंतराल"
+      },
+      "strategyMap": {
+        "handleLocally": "स्थानीय प्रसंस्करण",
+        "delegateSingleExpert": "एकल विशेषज्ञ को सौंपें",
+        "parallelExperts": "समानांतर विशेषज्ञ",
+        "orchestratorDag": "ऑर्केस्ट्रेटर DAG",
+        "approvalGate": "अनुमोदन द्वार"
+      }
     }
   },
   "continuation": {
@@ -2800,6 +2834,7 @@
     "CAPABILITY_STATS_FAILED": "क्षमता आँकड़े प्राप्त करने में विफल",
     "CAPABILITY_METADATA_RESTORE_FAILED": "मेटाडेटा पुनर्स्थापना विफल",
     "CAPABILITY_EVOLVE_FAILED": "क्षमता विकास विफल",
+    "CAPABILITY_NOT_EVOLVABLE": "यह क्षमता विकसित नहीं की जा सकती (बाहरी प्लगइन की केवल-पढ़ने वाली क्षमता)",
     "AGENT_INPUT_CHANNEL_CLOSED": "उपयोगकर्ता इनपुट चैनल बंद है",
     "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "उपयोगकर्ता उत्तर की प्रतीक्षा समय समाप्त (5 मिनट)",
     "AGENT_INPUT_NO_PROVIDER": "कोई उपलब्ध प्रदाता/मॉडल नहीं: कृपया सेटिंग्स में प्रदाता सक्षम करें",
@@ -2823,7 +2858,8 @@
     "SESSION_SHARE_NOT_FOUND": "सत्र मौजूद नहीं है",
     "WORK_ENGINE_EXECUTION_NOT_FOUND": "अमान्य execution_id या वर्कफ़्लो पंजीकृत नहीं है",
     "TRAJECTORY_NOT_FOUND": "ट्रैजेक्ट्री नहीं मिली",
-    "UNKNOWN_PRESET": "अज्ञात प्रीसेट"
+    "UNKNOWN_PRESET": "अज्ञात प्रीसेट",
+    "UNITY_P0_CLASSIFIER_FAILED": "कार्य आकार वर्गीकरण विफल"
   },
   "errorBoundary": {
     "copied": "कॉपी हुआ",
@@ -8186,6 +8222,9 @@
       "advancedDesc": "उन्नत अनुसूची",
       "autoBackup": "ऑटो बैकअप",
       "backupInterval": "बैकअप अंतराल",
+      "budgetPlaceholder": "असीमित",
+      "budgetSaved": "बजट सहेजा गया",
+      "budgetTripped": "ट्रिप हो गया",
       "closedLoop": "क्लोज्ड-लूप नज",
       "conversation_stats": "वार्तालाप आँकड़े",
       "conversation_statsDesc": "वार्तालाप पैटर्न और आँकड़े का विश्लेषण करें",
@@ -8219,6 +8258,7 @@
       "knowledge_graph_update": "ज्ञान ग्राफ अपडेट",
       "knowledge_graph_updateDesc": "ज्ञान ग्राफ को अपडेट और अनुकूलित करें",
       "lastRunAt": "पिछला रन",
+      "maxBudget": "लागत सीमा (USD)",
       "maxCount": "अधिकतम रिटेन",
       "maxRemoteBackups": "अधिकतम रिमोट बैकअप",
       "minutes": "{{count}} मिनट",
@@ -8227,18 +8267,25 @@
       "monthly": "मासिक",
       "monthlyDesc": "प्रत्येक माह के {{day}} दिन",
       "nextRunAt": "अगला रन",
+      "nightTask": "रात्रि दीर्घकालिक कार्य",
+      "noRestorable": "पुनर्स्थापित करने के लिए कुछ नहीं",
       "noTasks": "कोई कस्टम कार्य कॉन्फ़िगर नहीं",
       "nudgeInterval": "नज अंतराल",
       "once": "एक बार",
       "pauseTask": "रोकें",
       "quickCreated": "त्वरित बनाया गया",
       "refreshed": "ताज़ा किया गया",
+      "reportApprovals": "अनुमोदन संख्या",
+      "reportCost": "लागत",
+      "reportDuration": "अवधि",
+      "reportGeneratedAt": "निर्माण समय",
+      "reportLoaded": "रिपोर्ट लोड हुई",
+      "reportStatus": "स्थिति",
       "reportTemplates": "रिपोर्ट टेम्पलेट्स",
+      "restoreTasks": "लंबित कार्य पुनर्स्थापित करें",
+      "restored": "{{count}} कार्य पुनर्स्थापित किए",
       "resumeTask": "जारी रखें",
       "running": "चल रहा है",
-      "strategyOverwrite": "Overwrite",
-      "strategyMerge": "Merge",
-      "strategyDryRun": "Dry run",
       "saturday": "शनि",
       "saved": "सहेजा गया",
       "schedule": "अनुसूची",
@@ -8251,10 +8298,15 @@
       "scheduleWeekly": "साप्ताहिक",
       "selectDayOfMonth": "महीने का दिन चुनें",
       "selectInterval": "अंतराल चुनें",
+      "selectReportTask": "रिपोर्ट देखने के लिए कार्य चुनें",
       "selectScheduleType": "अनुसूची प्रकार चुनें",
       "selectTemplate": "टेम्पलेट चुनें",
+      "spent": "खर्च लागत",
       "startTime": "शुरू",
       "status": "स्थिति",
+      "strategyDryRun": "Dry run",
+      "strategyMerge": "Merge",
+      "strategyOverwrite": "Overwrite",
       "sunday": "रवि",
       "syncInterval": "सिंक अंतराल",
       "taskActive": "सक्रिय",
@@ -8268,6 +8320,7 @@
       "tuesday": "मंगल",
       "unknownTemplateType": "अज्ञात टेम्पलेट प्रकार",
       "updateTask": "कार्य अपडेट करें",
+      "viewReport": "रिपोर्ट देखें",
       "webdavSync": "WebDAV ऑटो सिंक",
       "wednesday": "बुध",
       "weekdays": "कार्यदिवस",
@@ -12496,7 +12549,8 @@
     "gapType": {
       "guardRule": "सुरक्षा नियम पूर्ति",
       "exemptAuthorize": "छूट प्राधिकरण",
-      "capabilityMissing": "लुप्त क्षमता"
+      "capabilityMissing": "लुप्त क्षमता",
+      "skillEvolution": "कौशल विकास"
     },
     "pendingCount": "{{count}} प्रस्ताव लंबित, वर्तमान #{{current}}",
     "pendingOne": "1 प्रस्ताव लंबित",
@@ -16151,5 +16205,12 @@
         "associatedWith": "से जुड़ा"
       }
     }
+  },
+  "taskShapeApproval": {
+    "title": "उच्च जोखिम संचालन स्वीकृति",
+    "inputPreview": "इनपुट पूर्वावलोकन",
+    "approve": "स्वीकृत",
+    "reject": "अस्वीकार",
+    "rejectedToast": "उच्च जोखिम संचालन अस्वीकृत"
   }
 }

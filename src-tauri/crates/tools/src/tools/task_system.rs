@@ -26,6 +26,7 @@ async fn db_spawn_task(title: &str, desc: &str) -> Result<String, String> {
         command: None,
         prompt: None,
         created_by: None,
+        idempotency_key: None,
     };
     let task = repo.spawn_task(input).await?;
     Ok(task.id)

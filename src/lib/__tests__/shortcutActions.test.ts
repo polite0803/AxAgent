@@ -78,7 +78,7 @@ import type { ShortcutAction } from "../shortcuts";
 function mockSettings(overrides: Record<string, unknown> = {}) {
   mockSettingsStoreGetState.mockReturnValue({
     settings: {
-      shortcut_trigger_toast_enabled: false,
+      shortcutTriggerToastEnabled: false,
       ...overrides,
     },
   });
@@ -111,7 +111,7 @@ describe("shortcutActions", () => {
   // ═══════════════════════════════════════════════════════════════
   describe("toast 通知", () => {
     it("shortcut_trigger_toast_enabled=false 时不弹出 toast", async () => {
-      mockSettings({ shortcut_trigger_toast_enabled: false });
+      mockSettings({ shortcutTriggerToastEnabled: false });
 
       await executeShortcutAction("newConversation");
 
@@ -119,7 +119,7 @@ describe("shortcutActions", () => {
     });
 
     it("shortcut_trigger_toast_enabled=true 时应弹出 toast", async () => {
-      mockSettings({ shortcut_trigger_toast_enabled: true });
+      mockSettings({ shortcutTriggerToastEnabled: true });
       mockITranslate.mockImplementation((key: string) => key);
 
       await executeShortcutAction("newConversation");
@@ -342,7 +342,7 @@ describe("shortcutActions", () => {
   // ═══════════════════════════════════════════════════════════════
   describe("toggleGateway", () => {
     it("网关运行中应调用 stop_gateway", async () => {
-      mockInvoke.mockResolvedValueOnce({ is_running: true });
+      mockInvoke.mockResolvedValueOnce({ isRunning: true });
 
       await executeShortcutAction("toggleGateway");
 
@@ -352,7 +352,7 @@ describe("shortcutActions", () => {
     });
 
     it("网关未运行时应调用 start_gateway", async () => {
-      mockInvoke.mockResolvedValueOnce({ is_running: false });
+      mockInvoke.mockResolvedValueOnce({ isRunning: false });
 
       await executeShortcutAction("toggleGateway");
 

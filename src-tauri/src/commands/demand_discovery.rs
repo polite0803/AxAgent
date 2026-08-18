@@ -990,6 +990,7 @@ pub async fn opc_match_lead_capabilities(
         enable_circuit_breaker: true,
         enable_rar: true,
         rar_top_k: 10,
+        task_shape: None,
     };
 
     let discovery_result = axagent_harness::CapabilityRouter::discover(

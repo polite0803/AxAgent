@@ -141,6 +141,6 @@ describe("buildJsonTranscript", () => {
     const msg = mockMessage({ createdAt: 1714500000000 });
     const result = buildJsonTranscript([msg], "Chat");
     const parsed = JSON.parse(result);
-    expect(parsed.messages[0].created_at).toBe(1714500000000);
+    expect(parsed.messages[0].createdAt).toBe(1714500000000);
   });
 });

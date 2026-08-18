@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { ApprovalPanel } from "@/components/approval/ApprovalPanel";
 import { TabBar } from "@/components/chat/TabBar";
 import { AppInitializer } from "@/components/layout/AppInitializer";
 import { CommandPalette } from "@/components/layout/CommandPalette";
@@ -364,6 +365,7 @@ function AppInner() {
               <CommandPalette open={cmdOpen} onClose={handleCloseCmdPalette} />
               <GlobalCopyMenu />
               <ErrorNotificationToast />
+              <ApprovalPanel />
               <div className="main-area">
                 <nav className={`nav-sidebar${sidebarCollapsed ? "" : " expanded"}`}>
                   <ModuleErrorBoundary moduleName="Sidebar">

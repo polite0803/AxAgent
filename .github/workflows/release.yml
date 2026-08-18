@@ -20,7 +20,7 @@ env:
   CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: short
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  NDK_VERSION: 'r27d'
+  NDK_VERSION: 'r26d'
 
 concurrency:
   group: '${{ github.workflow }}-${{ github.ref }}'
@@ -410,7 +410,7 @@ jobs:
       fail-fast: false
       matrix:
         abi: [arm64-v8a, armeabi-v7a, x86_64]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       # Android 构建也容易 OOM，限制并行度并关闭 LTO
       CARGO_BUILD_JOBS: 1
@@ -447,8 +447,8 @@ jobs:
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: 'v1-android'
-          key: 'ubuntu-22.04-${{ matrix.abi }}'
+          prefix-key: 'v2-android'
+          key: 'ubuntu-24.04-ndk${{ env.NDK_VERSION }}-${{ matrix.abi }}'
           workspaces: src-tauri -> target
 
       - name: Setup Node.js
@@ -472,14 +472,24 @@ jobs:
           ndk-version: ${{ env.NDK_VERSION }}
           link-to-sdk: true
 
-      - name: Setup JDK 23 (Zulu)
+      - name: Setup JDK 17 (Zulu)
         uses: actions/setup-java@v4
         with:
-          java-version: '23'
+          java-version: '17'
           distribution: 'zulu'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          api-level: 34
+          target-sdk: 34
+          build-tools: '34.0.0'
+          cmake: '3.22.1'
 
       - name: Verify NDK installation
         run: |
@@ -503,19 +513,62 @@ jobs:
           ls "$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/lib64/clang/*/lib/linux/" 2>/dev/null || true
 
       - name: Install cargo-ndk
-        run: cargo install cargo-ndk
+        run: cargo install cargo-ndk --version 0.16.1
 
       - name: Setup Android NDK toolchain PATH
         run: |
-          TOOLCHAIN="${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          NDK_PATH="${{ steps.setup-ndk.outputs.ndk-path }}"
+          TOOLCHAIN="$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin"
           echo "$TOOLCHAIN" >> $GITHUB_PATH
+          echo "NDK_PATH=$NDK_PATH" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
+          echo "NDK_HOME=$NDK_PATH" >> $GITHUB_ENV
+          echo "=== NDK Setup ==="
+          echo "NDK_PATH: $NDK_PATH"
+          ls -la "$NDK_PATH/" 2>/dev/null || echo "ERROR: NDK path not found!"
+          ls -la "$TOOLCHAIN/" 2>/dev/null || echo "ERROR: Toolchain not found!"
+          echo "=================="
 
       - name: Initialize Android project
         run: |
           cd src-tauri
+          echo "=== Checking Android SDK ==="
+          echo "ANDROID_HOME: $ANDROID_HOME"
+          echo "ANDROID_NDK_HOME: $ANDROID_NDK_HOME"
+          echo "NDK_HOME: $NDK_HOME"
+          ls -la "$ANDROID_HOME" 2>/dev/null || echo "ANDROID_HOME not set"
+          ls -la "$NDK_HOME" 2>/dev/null || echo "NDK_HOME not set"
+          echo "==============================="
           npx tauri android init
+          echo "=== Generated Android project ==="
+          ls -la gen/android/
+          echo "==============================="
         env:
-          NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          NDK_HOME: ${{ env.NDK_HOME }}
+          ANDROID_NDK_HOME: ${{ env.NDK_HOME }}
+
+      - name: Ensure Gradle Wrapper
+        run: |
+          cd src-tauri/gen/android
+          if [ ! -f "gradlew" ] || [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
+            echo "Gradle wrapper missing, generating..."
+            gradle wrapper --gradle-version 8.9
+            chmod +x gradlew
+          fi
+          echo "=== Gradle Wrapper Status ==="
+          ls -la gradlew
+          ls -la gradle/wrapper/gradle-wrapper.jar
+          cat gradle/wrapper/gradle-wrapper.properties
+          echo "==============================="
+          # Verify critical files exist
+          if [ ! -f "gradlew" ]; then
+            echo "ERROR: gradlew not found"
+            exit 1
+          fi
+          if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
+            echo "ERROR: gradle-wrapper.jar not found"
+            exit 1
+          fi
 
       - name: Setup keystore and signing config
         run: |
@@ -544,12 +597,10 @@ jobs:
           if [ -s "$GP" ] && [ -n "$(tail -c 1 "$GP")" ]; then
             echo "" >> "$GP"
           fi
-          if [ "${{ matrix.abi }}" = "armeabi-v7a" ]; then
-            # armv7 32 位构建内存峰值最高：tauri android init 生成的默认配置
-            # Gradle daemon 2GB + Kotlin daemon 2GB，在 7GB runner 上叠加 cargo-ndk
-            # 全量编译极易 OOM → runner 失联（步骤被 cancel、日志不落盘）。
-            # 此前该步骤用 grep 判断 jvmargs 已存在即跳过，导致限制从未生效。
-            # 强制覆盖并收紧并行，降低峰值内存。
+          # armv7 (32位) 和 arm64 (64位, 需同时产出 APK+AAB) 内存峰值都很高
+          # 在 7GB runner 上叠加 cargo-ndk 全量编译极易 OOM → runner 失联
+          # 强制覆盖并收紧并行，降低峰值内存
+          if [ "${{ matrix.abi }}" = "armeabi-v7a" ] || [ "${{ matrix.abi }}" = "arm64-v8a" ]; then
             sed -i '/^org.gradle.jvmargs=/d; /^kotlin.daemon.jvm.options=/d; /^org.gradle.parallel=/d; /^org.gradle.workers.max=/d' "$GP"
             printf '%s\n' \
               'org.gradle.jvmargs=-Xmx2560m -XX:MaxMetaspaceSize=1024m -XX:+UseParallelGC' \
@@ -567,14 +618,28 @@ jobs:
       # 避免为 AAB 单独再启动一次完整的 gradle 构建。
       # --target 参数接受: aarch64, armv7, i686, x86_64
       - name: Build Android APK + AAB
-        timeout-minutes: 120
+        timeout-minutes: 180
         run: |
           cd src-tauri
           TARGET=${{ matrix.abi == 'arm64-v8a' && 'aarch64' || matrix.abi == 'armeabi-v7a' && 'armv7' || 'x86_64' }}
-          # armv7 全量编译内存峰值最高，限制 Rust 并行编译降低 OOM 风险
-          if [ "${{ matrix.abi }}" = "armeabi-v7a" ]; then
+          # armv7 (32位) 和 arm64 (需同时产出 APK+AAB) 全量编译内存峰值最高
+          # 限制 Rust 并行编译降低 OOM 风险
+          if [ "${{ matrix.abi }}" = "armeabi-v7a" ] || [ "${{ matrix.abi }}" = "arm64-v8a" ]; then
             export CARGO_BUILD_JOBS=2
           fi
+          echo "=== System Resources Before Build ==="
+          echo "Memory:"
+          free -h
+          echo "Disk:"
+          df -h /
+          echo "Gradle version:"
+          gradle --version 2>/dev/null || echo "gradle CLI not available"
+          echo "Java version:"
+          java -version 2>&1
+          echo "NDK path: $NDK_HOME"
+          ls "$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/" 2>/dev/null | head -5 || echo "WARNING: NDK toolchain not found at $NDK_HOME"
+          echo "======================================="
+          echo "=== Running tauri android build ==="
           if [[ "${{ matrix.abi }}" == "arm64-v8a" ]]; then
             npx tauri android build --target "$TARGET" --apk --aab
           else

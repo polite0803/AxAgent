@@ -16,6 +16,7 @@ import {
   setupAgentEventListeners,
   setupDreamEventListeners,
   setupPlanEventListeners,
+  setupTaskShapeApprovalListeners,
   useAgentStore,
   useCacheStore,
   useCompressStore,
@@ -52,6 +53,7 @@ import { InputArea } from "./InputArea";
 import { PermissionModal } from "./PermissionModal";
 import { PlanApprovalModal } from "./PlanApprovalModal";
 import { PlanCard } from "./PlanCard";
+import { TaskShapeApprovalModal } from "./TaskShapeApprovalModal";
 // QuickCommandBar removed: /clear, /compact, /model are covered by bottom toolbar & header ModelSelector
 import { WorkflowProgressPanel } from "./WorkflowProgressPanel";
 
@@ -60,63 +62,6 @@ import { StreamingStyles } from "./ChatViewStreaming";
 
 // Memoized to ensure style tags inject only once
 const MemoizedStreamingStyles = React.memo(StreamingStyles);
-
-/** IntersectionObserver-based lazy bubble wrapper for long message lists */
-const LAZY_BUBBLE_ROOT_MARGIN = "300px";
-const LAZY_BUBBLE_MIN_HEIGHT = 60;
-
-// 共享单例 IntersectionObserver + 回调注册表，避免每条消息各建一个 observer
-const lazyBubbleObserver:
-  | { observer: IntersectionObserver; callbacks: WeakMap<Element, () => void> }
-  | null = typeof IntersectionObserver === "undefined"
-    ? null
-    : (() => {
-      const callbacks = new WeakMap<Element, () => void>();
-      const observer = new IntersectionObserver(
-        (entries) => {
-          for (const entry of entries) {
-            if (entry.isIntersecting) {
-              const cb = callbacks.get(entry.target);
-              callbacks.delete(entry.target);
-              observer.unobserve(entry.target);
-              cb?.();
-            }
-          }
-        },
-        { rootMargin: LAZY_BUBBLE_ROOT_MARGIN },
-      );
-      return { observer, callbacks };
-    })();
-
-const LazyBubble = React.memo(function LazyBubble({
-  children,
-}: {
-  children: ReactNode;
-}) {
-  const [visible, setVisible] = useState(false);
-  const ref = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || !lazyBubbleObserver) {
-      setVisible(true);
-      return;
-    }
-    const { observer, callbacks } = lazyBubbleObserver;
-    callbacks.set(el, () => setVisible(true));
-    observer.observe(el);
-    return () => {
-      callbacks.delete(el);
-      observer.unobserve(el);
-    };
-  }, []);
-
-  return (
-    <div ref={ref} style={{ minHeight: visible ? undefined : LAZY_BUBBLE_MIN_HEIGHT }}>
-      {visible ? children : null}
-    </div>
-  );
-});
 import { ChatViewToolbar } from "./ChatViewToolbar";
 import { ChatViewWelcome } from "./ChatViewWelcome";
 import { FilePermissionDialog } from "./FilePermissionDialog";
@@ -266,10 +211,12 @@ function ChatViewInner({
     const cleanupAgent = setupAgentEventListeners();
     const cleanupPlan = setupPlanEventListeners();
     const cleanupDream = setupDreamEventListeners();
+    const cleanupTaskShapeApproval = setupTaskShapeApprovalListeners();
     return () => {
       cleanupAgent();
       cleanupPlan();
       cleanupDream();
+      cleanupTaskShapeApproval();
     };
   }, []);
 
@@ -478,28 +425,6 @@ function ChatViewInner({
           )
           : (
             <>
-              {msgState.hiddenEarlierCount > 0
-                && msgState.hiddenEarlierCount
-                  === msgState.allBubbleItems.length
-                && (
-                  <div style={{ textAlign: "center", padding: "8px 0", flexShrink: 0 }}>
-                    <Button
-                      size="small"
-                      type="link"
-                      loading={loadingOlder}
-                      onClick={() => {
-                        const scrollBox = scroll.scrollBoxRef.current;
-                        if (scrollBox) {
-                          scrollBox.scrollTo({ top: 0, behavior: "smooth" });
-                        }
-                      }}
-                    >
-                      {t("chat.showAllMessages", {
-                        count: msgState.allBubbleItems.length,
-                      })}
-                    </Button>
-                  </div>
-                )}
               <div
                 ref={bubbleListRef}
                 className="msg-list-scroll-box"
@@ -543,14 +468,6 @@ function ChatViewInner({
                       </div>
                     </div>
                   );
-                  // Only use lazy rendering for large lists (>20 items)
-                  if (messages.length > 20) {
-                    return (
-                      <LazyBubble key={item.key}>
-                        {bubbleNode}
-                      </LazyBubble>
-                    );
-                  }
                   return bubbleNode;
                 })}
                 <ClarifyCard />
@@ -633,6 +550,7 @@ function ChatViewInner({
       </div>
 
       <PermissionModal />
+      <TaskShapeApprovalModal />
       <PlanApprovalModal />
       <EvolutionConsentModal />
       {filePermRequest && (

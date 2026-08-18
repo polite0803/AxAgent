@@ -1392,6 +1392,25 @@ impl StyleVectorizer for NoopStyleVectorizer {
     }
 }
 
+// ── from task_shape.rs ──
+
+use crate::task_shape::{TaskShapeDecision, TaskShapeLlmClassifier};
+
+/// 返回 `Ok(None)` 的 TaskShapeLlmClassifier 空实现（回退规则结论）。
+#[derive(Debug)]
+pub struct NoopTaskShapeLlmClassifier;
+
+#[async_trait]
+impl TaskShapeLlmClassifier for NoopTaskShapeLlmClassifier {
+    async fn refine(
+        &self,
+        _user_input: &str,
+        _rule_result: &TaskShapeDecision,
+    ) -> std::result::Result<Option<TaskShapeDecision>, String> {
+        Ok(None)
+    }
+}
+
 // ── from tool_access.rs ──
 #[derive(Default)]
 pub struct NoopToolAccessControl;

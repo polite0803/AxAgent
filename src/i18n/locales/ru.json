@@ -1539,7 +1539,12 @@
     },
     "evolve": "Эволюционировать",
     "evolveSuccess": "Эволюция успешна, уровень повышен до {{level}}",
-    "evolveFailed": "Сбой эволюции, повторите позже"
+    "evolveFailed": "Сбой эволюции, повторите позже",
+    "pluginSource": "Плагин",
+    "evolvable": {
+      "local": "Локальная эволюция",
+      "derived": "Производное"
+    }
   },
   "chatMarkdown": {
     "inputParams": "Входные параметры",
@@ -1965,6 +1970,7 @@
     "circuitClosed": "Нормально",
     "llmFallback": "Запасной LLM",
     "fallbackPath": "Запасной путь",
+    "filteredCount": "Отфильтровано",
     "candidates": "Кандидаты",
     "stageRecords": "Этапы маршрута",
     "recordedAt": "Записано в",
@@ -1983,6 +1989,34 @@
       "delegate": "Делегировать агенту",
       "parameter_extract": "Извлечение параметров",
       "clarify": "Ожидание уточнения"
+    },
+    "taskShape": {
+      "label": "Форма задачи",
+      "contextCost": "Стоимость контекста",
+      "isolationNeed": "Потребность в изоляции",
+      "strategy": "Рекомендуемая стратегия",
+      "mergeScore": "Тенденция слияния",
+      "splitScore": "Тенденция разделения",
+      "evidence": "Доказательство",
+      "contextCostMap": {
+        "ephemeral": "Эфемерный",
+        "resumable": "Возобновляемый",
+        "long_running_project": "Долгосрочный проект",
+        "persistent_journey": "Непрерывное путешествие"
+      },
+      "isolationNeedMap": {
+        "read_only_thought": "Только чтение",
+        "workspace_write": "Запись в рабочей области",
+        "sandbox_required": "Требуется песочница",
+        "approval_and_air_gap": "Утверждение и изоляция"
+      },
+      "strategyMap": {
+        "handleLocally": "Локальная обработка",
+        "delegateSingleExpert": "Делегировать одному эксперту",
+        "parallelExperts": "Параллельные эксперты",
+        "orchestratorDag": "Оркестратор DAG",
+        "approvalGate": "Шлюз утверждения"
+      }
     }
   },
   "continuation": {
@@ -2800,6 +2834,7 @@
     "CAPABILITY_STATS_FAILED": "Не удалось получить статистику возможностей",
     "CAPABILITY_METADATA_RESTORE_FAILED": "Восстановление метаданных не удалось",
     "CAPABILITY_EVOLVE_FAILED": "Сбой эволюции способности",
+    "CAPABILITY_NOT_EVOLVABLE": "Эту возможность нельзя развить (внешний плагин, только для чтения)",
     "AGENT_INPUT_CHANNEL_CLOSED": "Канал ввода пользователя закрыт",
     "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "Превышено время ожидания ответа пользователя (5 минут)",
     "AGENT_INPUT_NO_PROVIDER": "Нет доступного провайдера/модели: включите провайдера в настройках",
@@ -2823,7 +2858,8 @@
     "SESSION_SHARE_NOT_FOUND": "Сессия не существует",
     "WORK_ENGINE_EXECUTION_NOT_FOUND": "Неверный execution_id или рабочий процесс не зарегистрирован",
     "TRAJECTORY_NOT_FOUND": "Траектория не найдена",
-    "UNKNOWN_PRESET": "Неизвестная предустановка"
+    "UNKNOWN_PRESET": "Неизвестная предустановка",
+    "UNITY_P0_CLASSIFIER_FAILED": "Ошибка классификации формы задачи"
   },
   "errorBoundary": {
     "copied": "Скопировано",
@@ -8186,6 +8222,9 @@
       "advancedDesc": "Расширенное расписание",
       "autoBackup": "Авто Резервное Копирование",
       "backupInterval": "Интервал Резервного Копирования",
+      "budgetPlaceholder": "Без ограничений",
+      "budgetSaved": "Бюджет сохранён",
+      "budgetTripped": "Сработал",
       "closedLoop": "Closed-Loop Надо",
       "conversation_stats": "Статистика разговоров",
       "conversation_statsDesc": "Анализировать паттерны и статистику разговоров",
@@ -8219,6 +8258,7 @@
       "knowledge_graph_update": "Обновление графа знаний",
       "knowledge_graph_updateDesc": "Обновлять и оптимизировать граф знаний",
       "lastRunAt": "Последний запуск",
+      "maxBudget": "Лимит затрат (USD)",
       "maxCount": "Макс. Сохранено",
       "maxRemoteBackups": "Макс. Удалённых Копий",
       "minutes": "{{count}} мин",
@@ -8227,18 +8267,25 @@
       "monthly": "Ежемесячно",
       "monthlyDesc": "Ежемесячно, день {{day}}",
       "nextRunAt": "Следующий запуск",
+      "nightTask": "Ночные длительные задачи",
+      "noRestorable": "Нечего восстанавливать",
       "noTasks": "Нет настроенных пользовательских задач",
       "nudgeInterval": "Интервал Надо",
       "once": "Однократно",
       "pauseTask": "Пауза",
       "quickCreated": "Быстро создано",
       "refreshed": "Обновлено",
+      "reportApprovals": "Одобрения",
+      "reportCost": "Стоимость",
+      "reportDuration": "Длительность",
+      "reportGeneratedAt": "Сгенерировано",
+      "reportLoaded": "Отчёт загружен",
+      "reportStatus": "Статус",
       "reportTemplates": "Шаблоны отчётов",
+      "restoreTasks": "Восстановить незавершённые задачи",
+      "restored": "Восстановлено задач: {{count}}",
       "resumeTask": "Продолжить",
       "running": "Выполняется",
-      "strategyOverwrite": "Overwrite",
-      "strategyMerge": "Merge",
-      "strategyDryRun": "Dry run",
       "saturday": "Сб",
       "saved": "Сохранено",
       "schedule": "Расписание",
@@ -8251,10 +8298,15 @@
       "scheduleWeekly": "Еженедельно",
       "selectDayOfMonth": "Выбрать день месяца",
       "selectInterval": "Выбрать интервал",
+      "selectReportTask": "Выберите задачу для просмотра отчёта",
       "selectScheduleType": "Выбрать тип расписания",
       "selectTemplate": "Выбрать шаблон",
+      "spent": "Потрачено",
       "startTime": "Начало",
       "status": "Статус",
+      "strategyDryRun": "Dry run",
+      "strategyMerge": "Merge",
+      "strategyOverwrite": "Overwrite",
       "sunday": "Вс",
       "syncInterval": "Интервал Синхронизации",
       "taskActive": "Активна",
@@ -8268,6 +8320,7 @@
       "tuesday": "Вт",
       "unknownTemplateType": "Неизвестный тип шаблона",
       "updateTask": "Обновить задачу",
+      "viewReport": "Просмотр отчёта",
       "webdavSync": "WebDAV Авто Синхронизация",
       "wednesday": "Ср",
       "weekdays": "Будние дни",
@@ -12496,7 +12549,8 @@
     "gapType": {
       "guardRule": "Дополнение защитных правил",
       "exemptAuthorize": "Авторизация исключения",
-      "capabilityMissing": "Отсутствующая возможность"
+      "capabilityMissing": "Отсутствующая возможность",
+      "skillEvolution": "Эволюция навыков"
     },
     "pendingCount": "Ожидает {{count}} предложений, сейчас #{{current}}",
     "pendingOne": "Ожидает 1 предложение",
@@ -16151,5 +16205,12 @@
         "associatedWith": "Связано с"
       }
     }
+  },
+  "taskShapeApproval": {
+    "title": "Утверждение высокорискованных операций",
+    "inputPreview": "Предварительный просмотр ввода",
+    "approve": "Утвердить",
+    "reject": "Отклонить",
+    "rejectedToast": "Высокорискованная операция отклонена"
   }
 }

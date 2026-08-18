@@ -548,6 +548,8 @@ function mockPassport(
   description: string,
   tags: string[],
   subCategory?: string,
+  source: CapabilityPassportDto["source"] = "builtin",
+  evolvable: CapabilityPassportDto["evolvable"] = "local",
 ): CapabilityPassportDto {
   return {
     capabilityId: capabilityId,
@@ -582,6 +584,8 @@ function mockPassport(
     stats: capabilityStats(),
     level: "l3",
     enabled: true,
+    source,
+    evolvable,
   };
 }
 
@@ -644,6 +648,17 @@ function defaultMockPassports(): CapabilityPassportDto[] {
       "general",
       "检索产品使用文档。",
       ["文档", "知识库", "产品"],
+    ),
+    mockPassport(
+      "cap.skill.web_automation",
+      "网页自动化技能",
+      "skill",
+      "automation",
+      "由浏览器插件提供的网页自动化能力，可执行点击、填表与截图。",
+      ["网页", "自动化", "插件"],
+      undefined,
+      "plugin",
+      "derived",
     ),
   ];
 }
@@ -2211,7 +2226,7 @@ async function executeCommand<T>(
     }
     case "agent_runtime_stats": {
       return {
-        conversationId: (args as { conversationId?: string } | undefined)?.conversationId ?? "",
+        conversationId: (args as { conversation_id?: string } | undefined)?.conversation_id ?? "",
         running: false,
         paused: false,
         activeSessions: 0,
@@ -2911,7 +2926,7 @@ async function executeCommand<T>(
         })[]
       >("knowledge_bases", []);
       const target = kbs5.find(
-        (k) => k.id === (args as { baseId?: string })?.baseId,
+        (k) => k.id === (args as { base_id?: string })?.base_id,
       );
       return (target?.documents ?? []) as T;
     }
@@ -3109,7 +3124,7 @@ async function executeCommand<T>(
       return getStore<Fleet[]>("fleets", []) as T;
     }
     case "fleet_get": {
-      const fleetId = (args as { fleetId?: string }).fleetId ?? "";
+      const fleetId = (args as { fleet_id?: string }).fleet_id ?? "";
       const fleet = getStore<Fleet[]>("fleets", []).find((f) => f.id === fleetId);
       return (fleet ?? null) as T;
     }
@@ -3118,8 +3133,8 @@ async function executeCommand<T>(
       const fleets = getStore<Fleet[]>("fleets", []);
       const fleet: Fleet = {
         id: genId(),
-        name: input.name ?? "New Fleet",
-        sceneTemplateSlug: (input as Record<string, unknown>).sceneTemplateSlug as string ?? "default",
+        name: (input as Record<string, unknown>).name as string ?? "New Fleet",
+        sceneTemplateSlug: (input as Record<string, unknown>).scene_template_slug as string ?? "default",
         status: "active",
         createdAt: nowTs(),
         updatedAt: nowTs(),
@@ -3130,7 +3145,7 @@ async function executeCommand<T>(
       return fleet as T;
     }
     case "fleet_update_status": {
-      const { fleetId, status } = args as { fleetId?: string; status?: string };
+      const { fleet_id: fleetId, status } = args as { fleet_id?: string; status?: string };
       if (fleetId && status) {
         const fleets = getStore<Fleet[]>("fleets", []);
         setStore(
@@ -3141,7 +3156,7 @@ async function executeCommand<T>(
       return undefined as T;
     }
     case "fleet_delete": {
-      const fleetId = (args as { fleetId?: string }).fleetId ?? "";
+      const fleetId = (args as { fleet_id?: string }).fleet_id ?? "";
       setStore("fleets", getStore<Fleet[]>("fleets", []).filter((f) => f.id !== fleetId));
       // 级联删除成员缓存
       for (let i = localStorage.length - 1; i >= 0; i--) {
@@ -3153,7 +3168,7 @@ async function executeCommand<T>(
       return undefined as T;
     }
     case "fleet_reset_daily_tokens": {
-      const fleetId = (args as { fleetId?: string }).fleetId ?? "";
+      const fleetId = (args as { fleet_id?: string }).fleet_id ?? "";
       const members = getStore<FleetMember[]>(`fleet_members:${fleetId}`, []);
       setStore(
         `fleet_members:${fleetId}`,
@@ -3162,11 +3177,11 @@ async function executeCommand<T>(
       return undefined as T;
     }
     case "fleet_list_members": {
-      const fleetId = (args as { fleetId?: string }).fleetId ?? "";
+      const fleetId = (args as { fleet_id?: string }).fleet_id ?? "";
       return getStore<FleetMember[]>(`fleet_members:${fleetId}`, []) as T;
     }
     case "fleet_get_member": {
-      const memberId = (args as { memberId?: string }).memberId ?? "";
+      const memberId = (args as { member_id?: string }).member_id ?? "";
       for (let i = localStorage.length - 1; i >= 0; i--) {
         const key = localStorage.key(i);
         if (!key || !key.startsWith("axagent_fleet_members:")) {
@@ -3182,10 +3197,10 @@ async function executeCommand<T>(
     }
     case "fleet_add_member": {
       const input = (args as { input?: Partial<FleetMember> }).input ?? {};
-      const fleetId = input.fleetId ?? "";
+      const fleetId = (input as Record<string, unknown>).fleet_id as string ?? "";
       const members = getStore<FleetMember[]>(`fleet_members:${fleetId}`, []);
       // 与后端一致：同舰队内 slug 必须唯一（路由与事件回写的键）
-      const slug = (input.agentSlug ?? "assistant").trim();
+      const slug = ((input as Record<string, unknown>).agent_slug as string ?? "assistant").trim();
       if (members.some((m) => m.agentSlug === slug)) {
         throw new Error(
           JSON.stringify({
@@ -3197,12 +3212,12 @@ async function executeCommand<T>(
       const member: FleetMember = {
         id: genId(),
         fleetId,
-        agentId: input.agentId ?? genId(),
+        agentId: (input as Record<string, unknown>).agent_id as string ?? genId(),
         agentSlug: slug,
-        displayName: input.displayName ?? "Assistant",
-        role: input.role ?? "",
-        agentProfileId: input.agentProfileId ?? undefined,
-        roomId: input.roomId ?? "workspace",
+        displayName: (input as Record<string, unknown>).display_name as string ?? "Assistant",
+        role: (input as Record<string, unknown>).role as string ?? "",
+        agentProfileId: (input as Record<string, unknown>).agent_profile_id as string | undefined,
+        roomId: (input as Record<string, unknown>).room_id as string ?? "workspace",
         status: "idle",
         joinedAt: nowTs(),
         todayTokens: 0,
@@ -3213,7 +3228,7 @@ async function executeCommand<T>(
       return member as T;
     }
     case "fleet_remove_member": {
-      const { memberId } = args as { memberId?: string };
+      const { member_id: memberId } = args as { member_id?: string };
       if (memberId) {
         // 遍历所有 fleet_members 存储，移除对应成员
         for (let i = localStorage.length - 1; i >= 0; i--) {
@@ -3229,7 +3244,7 @@ async function executeCommand<T>(
       return undefined as T;
     }
     case "fleet_update_member_status": {
-      const { memberId, status } = args as { memberId?: string; status?: string };
+      const { member_id: memberId, status } = args as { member_id?: string; status?: string };
       if (memberId && status) {
         for (let i = localStorage.length - 1; i >= 0; i--) {
           const key = localStorage.key(i);
@@ -3245,10 +3260,10 @@ async function executeCommand<T>(
     }
     case "fleet_dispatch":
     case "fleet_direct_message": {
-      const input = (args as { input?: { fleetId?: string; userMessage?: string; agentSlug?: string } })
+      const input = (args as { input?: { fleet_id?: string; user_message?: string; agent_slug?: string } })
         .input ?? {};
-      const onEvent = (args as { onEvent?: MockChannel }).onEvent;
-      const fleetId = input.fleetId ?? "";
+      const onEvent = (args as { on_event?: MockChannel }).on_event;
+      const fleetId = (input as Record<string, unknown>).fleet_id as string ?? "";
       const members = getStore<FleetMember[]>(`fleet_members:${fleetId}`, []);
       const push = (evt: unknown) => onEvent?.onmessage?.(evt);
       if (members.length === 0) {
@@ -3256,11 +3271,11 @@ async function executeCommand<T>(
         return undefined as T;
       }
       // 直接 DM 时定位目标成员，否则取第一个
-      const target = (args as { input?: { agentSlug?: string } }).input?.agentSlug
-        ? members.find((m) => m.agentSlug === (args as { input?: { agentSlug?: string } }).input!.agentSlug)
-          ?? members[0]
+      const targetAgentSlug = (input as Record<string, unknown>).agent_slug as string | undefined;
+      const target = targetAgentSlug
+        ? members.find((m) => m.agentSlug === targetAgentSlug) ?? members[0]
         : members[0];
-      const msg = input.userMessage ?? "";
+      const msg = (input as Record<string, unknown>).user_message as string ?? "";
       push({
         type: "routing",
         agentSlug: target.agentSlug,
@@ -3454,7 +3469,7 @@ async function executeCommand<T>(
       return getStore<BackupManifest[]>("backups", []) as T;
     case "delete_backup": {
       const backups = getStore<BackupManifest[]>("backups", []);
-      const bkpId = (args as { backupId?: string })?.backupId;
+      const bkpId = (args as { backup_id?: string })?.backup_id;
       setStore(
         "backups",
         backups.filter((b) => b.id !== bkpId),
@@ -3463,7 +3478,7 @@ async function executeCommand<T>(
     }
     case "batch_delete_backups": {
       const allBkps = getStore<BackupManifest[]>("backups", []);
-      const idsToDelete = (args as { backupIds?: string[] })?.backupIds || [];
+      const idsToDelete = (args as { backup_ids?: string[] })?.backup_ids || [];
       setStore(
         "backups",
         allBkps.filter((b) => !idsToDelete.includes(b.id)),
@@ -3505,7 +3520,7 @@ async function executeCommand<T>(
     case "reveal_files_page_entry":
       return undefined as T;
     case "cleanup_missing_files_page_entry": {
-      const entryId = (args as { entryId?: string })?.entryId;
+      const entryId = (args as { entry_id?: string })?.entry_id;
       if (entryId?.startsWith("backup_manifest::")) {
         const backupId = entryId.slice("backup_manifest::".length);
         const backups = getStore<BackupManifest[]>("backups", []);
@@ -4585,10 +4600,10 @@ async function executeCommand<T>(
         version: "0.0.0",
         description: `Plugin from ${source}`,
         permissions: [],
-        default_enabled: true,
+        defaultEnabled: true,
         hooks: {},
         tools: [],
-        mcp_servers: [],
+        mcpServers: [],
         skills: [],
       } as T;
     }
@@ -4603,15 +4618,15 @@ async function executeCommand<T>(
         description: `Plugin from ${source}`,
         kind: "openclaw",
         enabled: true,
-        tool_names: [],
-        mcp_server_names: [],
-        skill_names: [],
+        tools: [],
+        mcpServers: [],
+        skills: [],
       });
       setStore("plugins", plugins);
       return {
-        plugin_id: id,
+        pluginId: id,
         version: "0.0.0",
-        install_path: `/mock/plugins/${id}`,
+        installPath: `/mock/plugins/${id}`,
       } as T;
     }
     case "plugin_enable":
@@ -4640,9 +4655,9 @@ async function executeCommand<T>(
     }
     case "plugin_update": {
       return {
-        plugin_id: (args?.pluginId as string) || "",
+        pluginId: (args?.pluginId as string) || "",
         version: "0.0.0",
-        install_path: "",
+        installPath: "",
       } as T;
     }
 
@@ -6614,6 +6629,33 @@ async function executeCommand<T>(
       return [] as T;
     case "tool_warmup":
       return { success: true, warmed_up: false } as T;
+
+    // ── App Config (应用配置) ───────────────────────────────────────
+    case "get_app_config":
+      return {} as T;
+
+    // ── Onboarding (引导检测) ───────────────────────────────────────
+    case "detect_ollama_availability":
+      return { available: false, models: [], error: null } as T;
+    case "detect_api_keys":
+      return [] as T;
+
+    // ── LLM Wiki (知识库) ───────────────────────────────────────────
+    case "llm_wiki_list":
+      return [] as T;
+
+    // ── Prompt Cache (提示缓存) ────────────────────────────────────
+    case "get_prompt_cache_state":
+      return {
+        cacheValid: true,
+        hasPendingChanges: false,
+        tokensSaved: 0,
+        cacheHits: 0,
+      } as T;
+
+    // ── Tool Count (工具计数) ───────────────────────────────────────
+    case "get_tool_count":
+      return 0 as T;
 
     default: {
       console.warn(`[BrowserMock] Unhandled command: ${cmd}`, args);

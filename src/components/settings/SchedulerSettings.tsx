@@ -2,7 +2,8 @@
 
 import { showBackendError } from "@/lib/errorI18n";
 import { invoke, isTauri, logIpcError } from "@/lib/invoke";
-import { useBackupStore, useSettingsStore } from "@/stores";
+import { useBackupStore, useSchedulerStore, useSettingsStore } from "@/stores";
+import type { TaskReport } from "@/types";
 import {
   App,
   Button,
@@ -122,6 +123,19 @@ export function SchedulerSettings() {
   const saveSettings = useSettingsStore((s) => s.saveSettings);
   const backupSettings = useBackupStore((s) => s.backupSettings);
   const updateBackupSettings = useBackupStore((s) => s.updateBackupSettings);
+  // 夜间长时任务：预算 / 报告 / 恢复
+  const budget = useSchedulerStore((s) => s.budget);
+  const budgetLoading = useSchedulerStore((s) => s.loading);
+  const fetchBudget = useSchedulerStore((s) => s.fetchBudget);
+  const setBudgetCmd = useSchedulerStore((s) => s.setBudget);
+  const getTaskReport = useSchedulerStore((s) => s.getTaskReport);
+  const restorePendingTasks = useSchedulerStore((s) => s.restorePendingTasks);
+
+  const [budgetInput, setBudgetInput] = useState<number | null>(null);
+  const [reportTaskId, setReportTaskId] = useState<string | undefined>(undefined);
+  const [report, setReport] = useState<TaskReport | null>(null);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [restoreLoading, setRestoreLoading] = useState(false);
 
   interface ExecutionRecord {
     id: string;
@@ -174,8 +188,17 @@ export function SchedulerSettings() {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       loadCustomTasks();
       loadTemplates();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchBudget();
     }
-  }, [inTauri, loadCustomTasks, loadTemplates]);
+  }, [inTauri, loadCustomTasks, loadTemplates, fetchBudget]);
+
+  // 预算加载完成后把当前上限填入输入框（仅首次）
+  useEffect(() => {
+    if (budget?.maxBudget != null && budgetInput == null) {
+      setBudgetInput(budget.maxBudget);
+    }
+  }, [budget, budgetInput]);
 
   const handleAutoBackupChange = async (enabled: boolean) => {
     if (!backupSettings) {
@@ -649,6 +672,48 @@ export function SchedulerSettings() {
     }
   };
 
+  const handleSaveBudget = async () => {
+    try {
+      const saved = await setBudgetCmd(budgetInput);
+      setBudgetInput(saved.maxBudget);
+      message.success(t("settings.scheduler.budgetSaved"));
+    } catch (e) {
+      showBackendError(message, e);
+    }
+  };
+
+  const handleLoadReport = async () => {
+    if (!reportTaskId) {
+      return;
+    }
+    setReportLoading(true);
+    try {
+      const r = await getTaskReport(reportTaskId);
+      setReport(r);
+      message.success(t("settings.scheduler.reportLoaded"));
+    } catch (e) {
+      showBackendError(message, e);
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  const handleRestoreTasks = async () => {
+    setRestoreLoading(true);
+    try {
+      const ids = await restorePendingTasks();
+      if (ids.length > 0) {
+        message.success(t("settings.scheduler.restored", { count: ids.length }));
+      } else {
+        message.info(t("settings.scheduler.noRestorable"));
+      }
+    } catch (e) {
+      showBackendError(message, e);
+    } finally {
+      setRestoreLoading(false);
+    }
+  };
+
   return (
     <div>
       <SettingsGroup title={t("settings.scheduler.autoBackup")}>
@@ -1061,6 +1126,106 @@ export function SchedulerSettings() {
               </div>
             ))
           )}
+      </SettingsGroup>
+
+      <SettingsGroup title={t("settings.scheduler.nightTask")}>
+        {/* 成本预算门控 */}
+        <div
+          style={rowStyle}
+          className="flex items-center justify-between"
+          data-search-key="scheduler:maxBudget"
+        >
+          <div className="flex items-center gap-2">
+            <span>{t("settings.scheduler.maxBudget")}</span>
+            {budget?.tripped && <Tag color="red">{t("settings.scheduler.budgetTripped")}</Tag>}
+          </div>
+          <div className="flex items-center gap-2">
+            <InputNumber
+              id="scheduler-settings-inputnumber-budget"
+              min={0}
+              step={0.1}
+              precision={2}
+              value={budgetInput ?? null}
+              onChange={setBudgetInput}
+              placeholder={t("settings.scheduler.budgetPlaceholder")}
+              style={{ width: 120 }}
+            />
+            <Button
+              size="small"
+              loading={budgetLoading}
+              onClick={handleSaveBudget}
+            >
+              {t("common.save")}
+            </Button>
+          </div>
+        </div>
+        <div style={rowStyle} className="flex items-center justify-between">
+          <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+            {t("settings.scheduler.spent")}
+          </span>
+          <span>${(budget?.spent ?? 0).toFixed(4)}</span>
+        </div>
+        <Divider style={{ margin: "4px 0" }} />
+
+        {/* 长时任务报告 */}
+        <div style={rowStyle}>
+          <div className="flex items-center gap-2">
+            <Select
+              style={{ flex: 1 }}
+              placeholder={t("settings.scheduler.selectReportTask")}
+              value={reportTaskId}
+              onChange={setReportTaskId}
+              options={customTasks.map((task) => ({
+                value: task.id,
+                label: task.name,
+              }))}
+              allowClear
+            />
+            <Button
+              size="small"
+              loading={reportLoading}
+              onClick={handleLoadReport}
+            >
+              {t("settings.scheduler.viewReport")}
+            </Button>
+          </div>
+          {report && (
+            <div
+              style={{
+                marginTop: 8,
+                fontSize: 12,
+                color: "var(--color-text-secondary)",
+              }}
+            >
+              <div>{t("settings.scheduler.reportStatus")}: {report.status}</div>
+              <div>
+                {t("settings.scheduler.reportDuration")}: {(report.durationMs / 1000).toFixed(1)}s
+              </div>
+              <div>
+                {t("settings.scheduler.reportCost")}: ${report.costUsd.toFixed(4)}
+              </div>
+              <div>
+                {t("settings.scheduler.reportApprovals")}: {report.approvals.length}
+              </div>
+              <div>
+                {t("settings.scheduler.reportGeneratedAt")}: {new Date(report.generatedAt).toLocaleString()}
+              </div>
+            </div>
+          )}
+        </div>
+        <Divider style={{ margin: "4px 0" }} />
+
+        {/* 未完成任务恢复 */}
+        <div style={rowStyle}>
+          <Button
+            size="small"
+            icon={<RefreshCw size={14} />}
+            loading={restoreLoading}
+            onClick={handleRestoreTasks}
+          >
+            {t("settings.scheduler.restoreTasks")}
+          </Button>
+        </div>
       </SettingsGroup>
 
       <Modal

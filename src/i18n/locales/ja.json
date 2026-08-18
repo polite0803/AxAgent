@@ -1539,7 +1539,12 @@
     },
     "evolve": "進化させる",
     "evolveSuccess": "進化に成功し、レベルが {{level}} に向上しました",
-    "evolveFailed": "進化に失敗しました。後でもう一度お試しください"
+    "evolveFailed": "進化に失敗しました。後でもう一度お試しください",
+    "pluginSource": "プラグイン",
+    "evolvable": {
+      "local": "ローカル進化",
+      "derived": "派生"
+    }
   },
   "chatMarkdown": {
     "inputParams": "入力パラメータ",
@@ -1965,6 +1970,7 @@
     "circuitClosed": "正常",
     "llmFallback": "LLMフォールバック",
     "fallbackPath": "フォールバック経路",
+    "filteredCount": "回路フィルター済み",
     "candidates": "候補",
     "stageRecords": "ルート段階",
     "recordedAt": "記録時刻",
@@ -1983,6 +1989,34 @@
       "delegate": "エージェント委任",
       "parameter_extract": "パラメータ抽出",
       "clarify": "確認待ち"
+    },
+    "taskShape": {
+      "label": "タスク形態",
+      "contextCost": "コンテキストコスト",
+      "isolationNeed": "分離要件",
+      "strategy": "推奨戦略",
+      "mergeScore": "統合傾向",
+      "splitScore": "分割傾向",
+      "evidence": "証拠",
+      "contextCostMap": {
+        "ephemeral": "瞬時",
+        "resumable": "再開可能",
+        "long_running_project": "長期プロジェクト",
+        "persistent_journey": "持続ジャーニー"
+      },
+      "isolationNeedMap": {
+        "read_only_thought": "読み取り専用",
+        "workspace_write": "ワークスペース書き込み",
+        "sandbox_required": "サンドボックス必須",
+        "approval_and_air_gap": "承認・エアギャップ"
+      },
+      "strategyMap": {
+        "handleLocally": "ローカル処理",
+        "delegateSingleExpert": "単一専門家へ委譲",
+        "parallelExperts": "並行専門家",
+        "orchestratorDag": "オーケストレータDAG",
+        "approvalGate": "承認ゲート"
+      }
     }
   },
   "continuation": {
@@ -2800,6 +2834,7 @@
     "CAPABILITY_STATS_FAILED": "能力統計の取得に失敗しました",
     "CAPABILITY_METADATA_RESTORE_FAILED": "メタデータの復元に失敗しました",
     "CAPABILITY_EVOLVE_FAILED": "能力の進化に失敗しました",
+    "CAPABILITY_NOT_EVOLVABLE": "この能力は進化できません（外部プラグインの読み取り専用能力）",
     "AGENT_INPUT_CHANNEL_CLOSED": "ユーザー入力チャネルが閉じられています",
     "AGENT_INPUT_WAIT_REPLY_TIMEOUT": "ユーザーの返信待ちがタイムアウトしました（5分）",
     "AGENT_INPUT_NO_PROVIDER": "利用可能なプロバイダー/モデルがありません：設定でプロバイダーを有効にしてください",
@@ -2823,7 +2858,8 @@
     "SESSION_SHARE_NOT_FOUND": "セッションが存在しません",
     "WORK_ENGINE_EXECUTION_NOT_FOUND": "execution_id が無効、またはワークフローが登録されていません",
     "TRAJECTORY_NOT_FOUND": "軌跡が見つかりません",
-    "UNKNOWN_PRESET": "不明なプリセット"
+    "UNKNOWN_PRESET": "不明なプリセット",
+    "UNITY_P0_CLASSIFIER_FAILED": "タスク形状の分類に失敗しました"
   },
   "errorBoundary": {
     "copied": "コピーしました",
@@ -8186,6 +8222,9 @@
       "advancedDesc": "詳細スケジュール",
       "autoBackup": "自動バックアップ",
       "backupInterval": "バックアップ間隔",
+      "budgetPlaceholder": "無制限",
+      "budgetSaved": "予算を保存しました",
+      "budgetTripped": "トリップ済み",
       "closedLoop": "クローズドループナッジ",
       "conversation_stats": "会話統計",
       "conversation_statsDesc": "会話パターンと統計を分析",
@@ -8219,6 +8258,7 @@
       "knowledge_graph_update": "ナレッジグラフ更新",
       "knowledge_graph_updateDesc": "ナレッジグラフを更新・最適化",
       "lastRunAt": "最終実行",
+      "maxBudget": "コスト上限（USD）",
       "maxCount": "最大保持数",
       "maxRemoteBackups": "最大リモートバックアップ数",
       "minutes": "{{count}} 分",
@@ -8227,18 +8267,25 @@
       "monthly": "毎月",
       "monthlyDesc": "毎月 {{day}} 日",
       "nextRunAt": "次回実行",
+      "nightTask": "夜間の長時間タスク",
+      "noRestorable": "復元対象のタスクはありません",
       "noTasks": "カスタムタスクが設定されていません",
       "nudgeInterval": "ナッジ間隔",
       "once": "1 回のみ",
       "pauseTask": "タスクを一時停止",
       "quickCreated": "クイック作成",
       "refreshed": "更新しました",
+      "reportApprovals": "承認数",
+      "reportCost": "コスト",
+      "reportDuration": "所要時間",
+      "reportGeneratedAt": "生成日時",
+      "reportLoaded": "レポートを読み込みました",
+      "reportStatus": "ステータス",
       "reportTemplates": "レポートテンプレート",
+      "restoreTasks": "未完了タスクを復元",
+      "restored": "{{count}} 件のタスクを復元しました",
       "resumeTask": "タスクを再開",
       "running": "実行中",
-      "strategyOverwrite": "Overwrite",
-      "strategyMerge": "Merge",
-      "strategyDryRun": "Dry run",
       "saturday": "土",
       "saved": "保存しました",
       "schedule": "スケジュール",
@@ -8251,10 +8298,15 @@
       "scheduleWeekly": "毎週",
       "selectDayOfMonth": "日を選択",
       "selectInterval": "間隔を選択",
+      "selectReportTask": "レポートを表示するタスクを選択",
       "selectScheduleType": "スケジュールタイプを選択",
       "selectTemplate": "テンプレートを選択",
+      "spent": "使用済みコスト",
       "startTime": "開始",
       "status": "ステータス",
+      "strategyDryRun": "Dry run",
+      "strategyMerge": "Merge",
+      "strategyOverwrite": "Overwrite",
       "sunday": "日",
       "syncInterval": "同期間隔",
       "taskActive": "アクティブ",
@@ -8268,6 +8320,7 @@
       "tuesday": "火",
       "unknownTemplateType": "不明なテンプレートタイプ",
       "updateTask": "タスクを更新",
+      "viewReport": "レポートを表示",
       "webdavSync": "WebDAV 自動同期",
       "wednesday": "水",
       "weekdays": "曜日",
@@ -12496,7 +12549,8 @@
     "gapType": {
       "guardRule": "防御ルール補完",
       "exemptAuthorize": "誤検知免除承認",
-      "capabilityMissing": "能力欠落補完"
+      "capabilityMissing": "能力欠落補完",
+      "skillEvolution": "スキル進化"
     },
     "pendingCount": "保留中の提案が {{count}} 件、現在 {{current}} 件目",
     "pendingOne": "保留中の提案は 1 件",
@@ -16151,5 +16205,12 @@
         "associatedWith": "関連付けられた"
       }
     }
+  },
+  "taskShapeApproval": {
+    "title": "高リスク操作の承認",
+    "inputPreview": "入力プレビュー",
+    "approve": "承認",
+    "reject": "拒否",
+    "rejectedToast": "高リスク操作は拒否されました"
   }
 }

@@ -25,6 +25,7 @@ use crate::sandbox::{SandboxConfig, apply_env_to_command, check_subprocess_permi
 const EXTERNAL_MARKETPLACE: &str = "external";
 const BUILTIN_MARKETPLACE: &str = "builtin";
 const BUNDLED_MARKETPLACE: &str = "bundled";
+const OPENCLAW_MARKETPLACE: &str = "openclaw";
 const SETTINGS_FILE_NAME: &str = "settings.json";
 const REGISTRY_FILE_NAME: &str = "installed.json";
 const MANIFEST_FILE_NAME: &str = "plugin.json";
@@ -36,6 +37,7 @@ pub enum PluginKind {
     Builtin,
     Bundled,
     External,
+    OpenClaw,
 }
 
 impl Display for PluginKind {
@@ -44,6 +46,7 @@ impl Display for PluginKind {
             Self::Builtin => write!(f, "builtin"),
             Self::Bundled => write!(f, "bundled"),
             Self::External => write!(f, "external"),
+            Self::OpenClaw => write!(f, "openclaw"),
         }
     }
 }
@@ -55,6 +58,7 @@ impl PluginKind {
             Self::Builtin => BUILTIN_MARKETPLACE,
             Self::Bundled => BUNDLED_MARKETPLACE,
             Self::External => EXTERNAL_MARKETPLACE,
+            Self::OpenClaw => OPENCLAW_MARKETPLACE,
         }
     }
 }
@@ -168,6 +172,9 @@ pub struct PluginDependency {
 /// 脚本插件无法跨进程提供 Rust trait 对象，因此以「声明」形式描述插件
 /// 提供的能力接缝；`PluginManager` 在启用插件时将这些声明以
 /// `CapabilityOrigin::ExternalPlugin` 注册进能力注册表，禁用 / 卸载时可逆回滚。
+///
+/// 扩展的检索元数据字段（`name`/`kind`/`domain`/`tags`/`visibility`/`discoverable`/
+/// `evolvable`）用于把声明映射为能力护照（`CapabilityPassportDto`），接入能力发现。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PluginCapabilityDecl {
     /// 能力接缝 ID（如 `"platform.adapter.telegram"`、`"tool.set.myplugin"`）。
@@ -181,6 +188,34 @@ pub struct PluginCapabilityDecl {
     /// 人类可读描述。
     #[serde(default)]
     pub description: String,
+    /// 护照显示名（默认回退到 `seam`）。
+    #[serde(default)]
+    pub name: String,
+    /// 能力载体类型（`tool`/`workflow`/`knowledge_base`/`agent`/`skill`），映射 `CapabilityKind`。
+    #[serde(default)]
+    pub kind: String,
+    /// 能力域（如 `general`/`finance`/`automation`），映射 `CapabilityDomain`。
+    #[serde(default)]
+    pub domain: String,
+    /// 检索标签（增强能力发现匹配）。
+    #[serde(default)]
+    pub tags: Vec<String>,
+    /// 负面场景（防止误匹配）。
+    #[serde(default)]
+    pub negative_scenarios: Vec<String>,
+    /// 可见性（`public`/`system_only`），映射 `Visibility`。
+    #[serde(default)]
+    pub visibility: String,
+    /// 是否参与能力发现（默认 true；false 时仅注册运行时能力注册表，不进发现索引）。
+    #[serde(default = "default_discoverable")]
+    pub discoverable: bool,
+    /// 可进化性（`none`/`local`/`derived`），映射 `CapabilityEvolvability`。
+    #[serde(default)]
+    pub evolvable: String,
+}
+
+fn default_discoverable() -> bool {
+    true
 }
 
 fn default_capability_version() -> String {
@@ -703,6 +738,7 @@ pub enum PluginInstallSource {
     LocalPath { path: PathBuf },
     GitUrl { url: String },
     NpmPackage { name: String, version: Option<String> },
+    OpenClaw { package_id: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -755,6 +791,18 @@ pub struct BundledPlugin {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ExternalPlugin {
+    pub metadata: PluginMetadata,
+    pub hooks: PluginHooks,
+    pub lifecycle: PluginLifecycle,
+    pub tools: Vec<PluginTool>,
+    pub mcp_servers: Vec<PluginMcpServer>,
+    pub skills: Vec<PluginSkillEntry>,
+    /// 插件声明的权限集合（来自 manifest），用于沙箱 capability 检查。
+    pub permissions: Vec<PluginPermission>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct OpenClawPlugin {
     pub metadata: PluginMetadata,
     pub hooks: PluginHooks,
     pub lifecycle: PluginLifecycle,

@@ -22,6 +22,7 @@ pub mod executor;
 pub mod industry_adapters;
 pub mod industry_learning;
 pub mod task_context;
+pub mod task_shape_classifier;
 pub mod token_budget;
 pub mod types;
 
@@ -41,6 +42,7 @@ pub use industry_learning::{
 pub use task_context::{
     IndustryContextManager, IndustryTaskContext, TaskContextState, TaskContextSummary,
 };
+pub use task_shape_classifier::{DefaultTaskShapeClassifier, classify_hybrid, classify_input};
 pub use token_budget::{
     BudgetDecision, CompactionResult, DryLeafEntry, IndustryTokenBudgetManager,
     IndustryTokenConfig, IndustryTokenStats, TokenUsageSnapshot,

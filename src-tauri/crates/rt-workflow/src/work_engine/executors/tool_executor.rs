@@ -134,13 +134,16 @@ impl NodeExecutorTrait for ToolExecutor {
                 })?;
 
             return Ok(NodeOutput {
-                output: serde_json::json!({
-                    "tool_name": tool_name,
-                    "result": result.content,
-                    "truncated": result.truncated,
-                    "is_error": result.is_error,
-                    "node_id": node.base_id(),
-                }),
+                output: attach_investigation(
+                    tool_name,
+                    serde_json::json!({
+                        "tool_name": tool_name,
+                        "result": result.content,
+                        "truncated": result.truncated,
+                        "is_error": result.is_error,
+                        "node_id": node.base_id(),
+                    }),
+                ),
                 output_var: Some(tool_node.config.output_var.clone()),
                 control: None,
             });
@@ -172,15 +175,70 @@ impl NodeExecutorTrait for ToolExecutor {
         };
 
         Ok(NodeOutput {
-            output: serde_json::json!({
-                "tool_name": tool_name,
-                "result": output,
-                "node_id": node.base_id(),
-            }),
+            output: attach_investigation(
+                tool_name,
+                serde_json::json!({
+                    "tool_name": tool_name,
+                    "result": output,
+                    "node_id": node.base_id(),
+                }),
+            ),
             output_var: Some(tool_node.config.output_var.clone()),
             control: None,
         })
     }
+}
+
+/// 执行后自检（设计文档 §6）：对工具结果做轻量级结构校验。
+///
+/// 仅针对"状态变更 / 外部副作用"类工具：若结果串携带错误信号（error/failed/
+/// exception/permission denied 等），视为疑似失败，返回需要人工调查的原因；
+/// 否则返回 None。
+///
+/// 该信号会写入节点输出 `needs_investigation` 字段，供 Scheduler 汇入 ⑦ 长时报告，
+/// 并让后台任务置为 `needs_investigation` 状态交由人工复核。
+fn attach_investigation(tool_name: &str, mut output: serde_json::Value) -> serde_json::Value {
+    const SIDE_EFFECT_TOOLS: &[&str] = &[
+        "write_file",
+        "create_file",
+        "edit_file",
+        "apply_diff",
+        "execute_command",
+        "bash",
+        "shell",
+        "webhookSend",
+        "email",
+        "notification",
+        "httpRequest",
+        "databaseQuery",
+        "fileOperation",
+    ];
+
+    if SIDE_EFFECT_TOOLS.contains(&tool_name) {
+        let text = output
+            .get("result")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_ascii_lowercase())
+            .unwrap_or_default();
+        let suspicious = text.contains("error")
+            || text.contains("failed")
+            || text.contains("exception")
+            || text.contains("traceback")
+            || text.contains("permission denied")
+            || text.contains("not found");
+        if suspicious && let Some(obj) = output.as_object_mut() {
+            obj.insert("needs_investigation".to_string(), serde_json::json!(true));
+            obj.insert(
+                "investigation_reason".to_string(),
+                serde_json::json!(format!(
+                    "工具 '{}' 执行后自检发现疑似失败信号，需人工复核",
+                    tool_name
+                )),
+            );
+        }
+    }
+
+    output
 }
 
 fn resolve_var_path(path: &str, context: &ExecutionState) -> Option<serde_json::Value> {

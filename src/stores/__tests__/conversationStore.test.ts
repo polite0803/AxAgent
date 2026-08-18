@@ -323,7 +323,7 @@ describe("conversationStore pagination", () => {
     expect(invokeMock).toHaveBeenCalledWith("update_conversation", {
       id: "conv-1",
       input: {
-        search_enabled: true,
+        searchEnabled: true,
       },
     });
   });
@@ -429,8 +429,8 @@ describe("conversationStore pagination", () => {
 
     onChunk?.({
       payload: {
-        conversation_id: "conv-1",
-        message_id: "assistant-1",
+        conversationId: "conv-1",
+        messageId: "assistant-1",
         chunk: {
           content: " world",
           thinking: null,
@@ -473,19 +473,19 @@ describe("conversationStore pagination", () => {
           expect(args).toEqual({
             id: "conv-template",
             input: {
-              category_id: "cat-template",
-              system_prompt: "Category prompt",
+              categoryId: "cat-template",
+              systemPrompt: "Category prompt",
               temperature: 0.2,
-              max_tokens: 8192,
-              top_p: 0.95,
-              frequency_penalty: 0.4,
-              search_enabled: false,
-              search_provider_id: null,
-              thinking_budget: null,
-              enabled_mcp_server_ids: [],
-              enabled_knowledge_base_ids: [],
-              enabled_memory_namespace_ids: [],
-              enabled_wiki_ids: [],
+              maxTokens: 8192,
+              topP: 0.95,
+              frequencyPenalty: 0.4,
+              searchEnabled: false,
+              searchProviderId: null,
+              thinkingBudget: null,
+              enabledMcpServerIds: [],
+              enabledKnowledgeBaseIds: [],
+              enabledMemoryNamespaceIds: [],
+              enabledWikiIds: [],
             },
           });
 

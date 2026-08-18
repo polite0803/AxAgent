@@ -52,6 +52,10 @@ pub struct CapabilityDiscoveryRequest {
     /// RAR 召回数量(默认 5)
     #[serde(default = "default_rar_top_k")]
     pub rar_top_k: usize,
+    /// P0: 任务形态决策（原则三标尺输出，由 TaskShapeClassifier 在路由前产出）。
+    /// `None` 表示未启用 UNITY_P0_TASK_SHAPE flag，走旧链路。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub task_shape: Option<crate::task_shape::TaskShapeDecision>,
 }
 
 impl Default for CapabilityDiscoveryRequest {
@@ -66,6 +70,7 @@ impl Default for CapabilityDiscoveryRequest {
             enable_circuit_breaker: false,
             enable_rar: false,
             rar_top_k: default_rar_top_k(),
+            task_shape: None,
         }
     }
 }

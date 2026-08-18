@@ -28,11 +28,11 @@ expression: serialized
   ],
   "iterations": 1,
   "usage": {
-    "input_tokens": 100,
-    "output_tokens": 10,
-    "cache_creation_input_tokens": 0,
-    "cache_read_input_tokens": 800,
-    "cache_miss_input_tokens": null
+    "inputTokens": 100,
+    "outputTokens": 10,
+    "cacheCreationInputTokens": 0,
+    "cacheReadInputTokens": 800,
+    "cacheMissInputTokens": null
   },
   "auto_compaction": null,
   "thinking": ""

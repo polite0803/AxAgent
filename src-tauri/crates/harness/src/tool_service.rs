@@ -27,6 +27,8 @@ pub struct CronJobData {
     pub description: String,
     pub is_active: bool,
     pub run_count: u32,
+    /// 优先级：low / medium / high / batch（可选，调度排序用）
+    pub priority: Option<String>,
 }
 
 /// CronJob 存储 —— 由 runtime-core 实现，tools 通过 OnceLock 注入使用。

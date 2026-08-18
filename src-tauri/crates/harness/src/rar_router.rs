@@ -1311,6 +1311,8 @@ mod tests {
             agent_profile_id: None,
             stats: crate::capability::CapabilityStats::default(),
             level: crate::capability::CapabilityLevel::L1,
+            source: crate::capability::CapabilitySource::Builtin,
+            evolvable: crate::capability::CapabilityEvolvability::Local,
             enabled: true,
         };
 

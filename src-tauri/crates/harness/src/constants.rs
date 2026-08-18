@@ -133,6 +133,12 @@ pub mod dir_name {
     pub const SKILLS: &str = "skills";
 }
 
+/// Unity 改造 Feature Flag 常量（与前端 FEATURE_FLAGS 双写对齐）
+pub mod unity_feature_flag {
+    /// P0: 任务形态分类器（原则三标尺：上下文保留成本 × 安全隔离需求）
+    pub const UNITY_P0_TASK_SHAPE: &str = "UNITY_P0_TASK_SHAPE";
+}
+
 /// 3.1 P2:投机执行影子目录常量
 ///
 /// 投机执行(CoW 覆盖文件系统轻量方案):等待用户确认时,后台投机执行

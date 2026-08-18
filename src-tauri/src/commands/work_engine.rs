@@ -730,11 +730,33 @@ pub async fn list_pending_approvals(
     execution_id: Option<String>,
 ) -> Result<Vec<serde_json::Value>, String> {
     let db = state.harness.db();
-    // 先处理超时自动裁决
+    // 先处理超时自动裁决，并按策略联动引擎（拒→cancel / 放→resume）
     let now_ms = chrono::Utc::now().timestamp_millis();
-    let _ = axagent_dao::repo::workflow_approval::auto_resolve_timeouts(db, now_ms)
+    let engine = &*state.work_engine;
+    let resolved = axagent_dao::repo::workflow_approval::auto_resolve_timeouts(db, now_ms)
         .await
-        .map_err(|e| format!("超时裁决处理失败: {}", e));
+        .map_err(|e| format!("超时裁决处理失败: {}", e))?;
+    for res in resolved {
+        match res {
+            axagent_dao::repo::workflow_approval::TimeoutResolution::Rejected {
+                execution_id: eid,
+                ..
+            } => {
+                tracing::warn!(execution_id = %eid, "[Approval] 超时默认拒绝，取消工作流");
+                // 拒绝：永久停摆。cancel 本身幂等，失败仅告警不阻塞列表
+                if let Err(e) = engine.cancel(&eid).await {
+                    tracing::error!(execution_id = %eid, error = %e, "[Approval] 超时拒绝后取消工作流失败");
+                }
+            },
+            axagent_dao::repo::workflow_approval::TimeoutResolution::Approved {
+                execution_id: eid,
+                ..
+            } => {
+                tracing::info!(execution_id = %eid, "[Approval] 超时自动批准，恢复工作流");
+                engine.resume_breakpoints(&eid).await;
+            },
+        }
+    }
 
     let records =
         axagent_dao::repo::workflow_approval::list_pending_approvals(db, execution_id.as_deref())
@@ -758,9 +780,12 @@ pub async fn list_pending_approvals(
                 "message": r.message,
                 "status": r.status,
                 "approver": r.approver,
+                "timeoutAction": r.timeout_action,
                 "timeoutSecs": r.timeout_secs,
                 "expiresAt": r.expires_at,
                 "createdAt": r.created_at,
+                "decision": r.decision,
+                "comment": r.comment,
             }))
             .map_err(|e| {
                 String::from(crate::commands::error::ErrorResponse::from_error(

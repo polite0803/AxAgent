@@ -385,7 +385,15 @@ pub async fn install_skill(
     })?;
 
     let (skill_name, commit, source_ref, source_kind) =
-        if source.starts_with('/') || source.starts_with('.') {
+        if let Some(pkg_id) = source.strip_prefix("openclaw:") {
+            let (name, version) = install_from_openclaw(pkg_id, &target_dir).await?;
+            let ref_and_kind = if pkg_id.contains('/') {
+                pkg_id.trim().trim_matches('/').trim_start_matches('@').to_string()
+            } else {
+                name.clone()
+            };
+            (name, version, ref_and_kind, "openclaw".to_string())
+        } else if source.starts_with('/') || source.starts_with('.') {
             let (name, commit) = install_from_local(&source, &target_dir).await?;
             (name, commit, source.clone(), "local".to_string())
         } else {
@@ -690,59 +698,8 @@ async fn install_from_github_zipball(
 
     let commit = top_dir.split('-').next_back().unwrap_or("unknown").to_string();
 
-    let dest_canonical = temp_dir
-        .path()
-        .canonicalize()
-        .map_err(|e| format!("Failed to canonicalize temp dir: {}", e))?;
-    // 阶段一：使用 enclosed_name() 验证所有 entry
-    for i in 0..archive.len() {
-        let entry = archive.by_index(i).map_err(|e| format!("Failed to read zip entry: {}", e))?;
-
-        // enclosed_name(): 非 UTF-8 或路径遍历路径时返回 None
-        let entry_path = entry
-            .enclosed_name()
-            .ok_or_else(|| {
-                format!("Invalid zip entry name (non-UTF-8 or path traversal): entry {}", i)
-            })?
-            .to_path_buf();
-
-        let resolved = temp_dir.path().join(&entry_path);
-        let canonical = resolved
-            .canonicalize()
-            .map_err(|e| format!("Failed to canonicalize zip entry path: {}", e))?;
-        if !canonical.starts_with(&dest_canonical) {
-            return Err(String::from(crate::commands::error::ErrorResponse::from_error(
-                "Path traversal detected in zip".to_string(),
-                crate::commands::error::ErrorCategory::Validation,
-            )));
-        }
-    }
-
-    // 阶段二：解压
-    archive.extract(temp_dir.path()).map_err(|e| format!("Failed to extract: {}", e))?;
-
-    // 阶段三：解压后二次验证（防止 TOCTOU）
-    for i in 0..archive.len() {
-        let entry =
-            archive.by_index(i).map_err(|e| format!("Failed to re-read zip entry: {}", e))?;
-        let entry_path = entry.enclosed_name().ok_or_else(|| {
-            format!("Invalid zip entry name during post-extract check: entry {}", i)
-        })?;
-        let resolved = temp_dir.path().join(&entry_path);
-        if resolved.exists() {
-            let canonical = resolved
-                .canonicalize()
-                .map_err(|e| format!("Failed to canonicalize extracted file: {}", e))?;
-            if !canonical.starts_with(&dest_canonical) {
-                // 回滚已解压文件
-                let _ = std::fs::remove_dir_all(temp_dir.path());
-                return Err(String::from(crate::commands::error::ErrorResponse::from_error(
-                    "Post-extract path traversal violation detected".to_string(),
-                    crate::commands::error::ErrorCategory::Validation,
-                )));
-            }
-        }
-    }
+    // 安全解压（含路径遍历防护与二次验证），复用公共逻辑
+    extract_zip_secure(&mut archive, temp_dir.path())?;
 
     let extracted = temp_dir.path().join(&top_dir);
     let skill_target = target_dir.join(repo);
@@ -760,6 +717,219 @@ async fn install_from_github_zipball(
     save_skill_manifest(&skill_target, "github", &format!("{}/{}", owner, repo), "main", &commit)?;
 
     Ok((repo.to_string(), commit))
+}
+
+/// 从 ClawHub 下载并安装 OpenClaw 技能。
+/// `pkg` 支持纯 slug（如 `gifgrep`）或 `owner/slug` / `@owner/slug` 包标识；
+/// 本地目录名取 slug 最后一段，source_ref 记录 `owner/slug` 以与市场结果匹配。
+async fn install_from_openclaw(pkg: &str, target_dir: &Path) -> Result<(String, String), String> {
+    let pkg = pkg.trim().trim_matches('/').trim_start_matches('@');
+    if pkg.is_empty() {
+        return Err("OpenClaw skill id must not be empty".to_string());
+    }
+    if pkg.contains('\\') || pkg.contains("..") || pkg.contains('\0') || pkg.contains(' ') {
+        return Err(format!("Invalid OpenClaw skill id: {}", pkg));
+    }
+    let (owner, slug) = match pkg.split_once('/') {
+        Some((o, s)) if !o.is_empty() && !s.is_empty() => (o.to_string(), s.to_string()),
+        _ => (String::new(), pkg.to_string()),
+    };
+    if slug.contains('/') {
+        return Err(format!("Invalid OpenClaw skill id: {}", pkg));
+    }
+    validate_skill_name(&slug)?;
+
+    let url = format!("https://clawhub.ai/api/v1/download?slug={}", urlencoding::encode(&slug));
+
+    let client =
+        reqwest::Client::builder().timeout(Duration::from_secs(60)).build().map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+    let response = client
+        .get(&url)
+        .header("User-Agent", "AxAgent")
+        .send()
+        .await
+        .map_err(|e| format!("Failed to download OpenClaw skill: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!(
+            "ClawHub download failed ({}): {}",
+            response.status(),
+            response.text().await.unwrap_or_default()
+        ));
+    }
+
+    let bytes = response.bytes().await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+
+    let temp_dir = tempfile::tempdir().map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    let cursor = std::io::Cursor::new(&bytes);
+    let mut archive =
+        zip::ZipArchive::new(cursor).map_err(|e| format!("Failed to read zip: {}", e))?;
+
+    let top_dir = archive
+        .file_names()
+        .next()
+        .and_then(|n| n.split('/').next())
+        .filter(|s| !s.is_empty())
+        .map(String::from);
+
+    // 安全解压（含路径遍历防护与二次验证），复用公共逻辑
+    extract_zip_secure(&mut archive, temp_dir.path())?;
+
+    let extracted = match &top_dir {
+        Some(d) => temp_dir.path().join(d),
+        None => temp_dir.path().to_path_buf(),
+    };
+    let skill_target = target_dir.join(&slug);
+
+    if skill_target.exists() {
+        remove_dir_all_with_retry(&skill_target).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                std::io::Error::other(e),
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+    }
+
+    copy_dir_recursive(&extracted, &skill_target)?;
+
+    // 获取当前最新版本号存入 manifest.commit，供市场更新检查对比
+    let version = fetch_openclaw_latest_version(&slug).await;
+    let source_ref = if owner.is_empty() {
+        slug.clone()
+    } else {
+        format!("{}/{}", owner, slug)
+    };
+    save_skill_manifest(&skill_target, "openclaw", &source_ref, "latest", &version)?;
+
+    Ok((slug, version))
+}
+
+/// 查询 ClawHub 技能详情，获取当前最新版本号。
+async fn fetch_openclaw_latest_version(slug: &str) -> String {
+    let url = format!("https://clawhub.ai/api/v1/skills/{}", urlencoding::encode(slug));
+    let client = reqwest::Client::builder().timeout(Duration::from_secs(30)).build();
+    let client = match client {
+        Ok(c) => c,
+        Err(_) => return String::new(),
+    };
+    let response = client.get(&url).header("User-Agent", "AxAgent").send().await;
+    let response = match response {
+        Ok(r) if r.status().is_success() => r,
+        _ => return String::new(),
+    };
+    let body: serde_json::Value = response.json().await.unwrap_or_default();
+    body["latestVersion"]["version"]
+        .as_str()
+        .or_else(|| body["skill"]["tags"]["latest"].as_str())
+        .unwrap_or("")
+        .to_string()
+}
+
+/// 安全解压 ZIP 归档到 dest 目录。
+/// 包含路径遍历防护（拒绝 `..` / 绝对路径 / 盘符 / 符号链接），并在解压完成后
+/// 做二次验证，防止归档内容逃逸目标目录。供 github / openclaw 安装复用。
+fn extract_zip_secure<R: std::io::Read + std::io::Seek>(
+    archive: &mut zip::ZipArchive<R>,
+    dest: &Path,
+) -> Result<(), String> {
+    for i in 0..archive.len() {
+        let mut file =
+            archive.by_index(i).map_err(|e| format!("Failed to read zip entry {}: {}", i, e))?;
+        if file.is_dir() {
+            continue;
+        }
+        // 拒绝符号链接条目，防止通过链接逃逸目标目录
+        if file.unix_mode().is_some_and(|m| m & 0o170000 == 0o120000) {
+            return Err(format!("Zip entry contains a symlink: {}", file.name()));
+        }
+        let out_path = safe_zip_path(dest, file.name())?;
+        if let Some(parent) = out_path.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| {
+                String::from(crate::commands::error::ErrorResponse::from_error(
+                    e,
+                    crate::commands::error::ErrorCategory::Unrecoverable,
+                ))
+            })?;
+        }
+        let mut out_file = std::fs::File::create(&out_path).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+        std::io::copy(&mut file, &mut out_file).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+    }
+    // 二次验证：递归确认所有解压文件都位于 dest 之内（防 TOCTOU / 软链逃逸）
+    verify_no_escape(dest, dest)
+}
+
+/// 将 zip 条目名安全解析到 base 目录下；含遍历段时返回 Err。
+fn safe_zip_path(base: &Path, entry_name: &str) -> Result<PathBuf, String> {
+    let normalized = entry_name.replace('\\', "/");
+    if normalized.starts_with('/') || normalized.contains('\0') {
+        return Err(format!("Unsafe zip entry name: {}", entry_name));
+    }
+    let bytes = normalized.as_bytes();
+    if bytes.len() >= 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':' {
+        return Err(format!("Zip entry contains a drive letter: {}", entry_name));
+    }
+    let mut out = base.to_path_buf();
+    for seg in normalized.split('/') {
+        match seg {
+            "" | "." => {},
+            ".." => return Err(format!("Zip entry contains path traversal: {}", entry_name)),
+            s => out.push(s),
+        }
+    }
+    Ok(out)
+}
+
+/// 递归验证目录下所有文件都位于 base 之内。
+fn verify_no_escape(dir: &Path, base: &Path) -> Result<(), String> {
+    let entries = std::fs::read_dir(dir).map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let ft = entry.file_type().map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+        if ft.is_symlink() {
+            return Err(format!("Symlink found after extraction: {}", path.display()));
+        }
+        if ft.is_dir() {
+            verify_no_escape(&path, base)?;
+        } else if !path.starts_with(base) {
+            return Err(format!("Extracted file escaped base directory: {}", path.display()));
+        }
+    }
+    Ok(())
 }
 
 fn get_git_commit(repo_path: &Path) -> Option<String> {
