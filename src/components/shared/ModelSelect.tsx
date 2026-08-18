@@ -112,6 +112,10 @@ export function useEmbeddingProviderLabel(): (
 /**
  * Reusable model selector with provider-grouped options, ModelIcon rendering,
  * and search support. Value format: `providerId::modelId`.
+ *
+ * Uses `labelInValue` internally to bypass Ant Design's internal
+ * value-to-option mapping, which has issues with grouped options in v6.
+ * The external API remains a simple string value.
  */
 export function ModelSelect({
   value,
@@ -129,6 +133,28 @@ export function ModelSelect({
   const { token } = theme.useToken();
   const groupedOptions = useGroupedModelOptions();
   const providerNameMap = useProviderNameMap();
+
+  // Build a flat map of value → label for reliable lookup
+  const valueToLabelMap = useMemo(() => {
+    const map = new Map<string, string>();
+    groupedOptions.forEach((group) => {
+      group.options?.forEach((opt) => {
+        if (typeof opt.value === "string") {
+          map.set(opt.value, String(opt.label ?? opt.value));
+        }
+      });
+    });
+    return map;
+  }, [groupedOptions]);
+
+  // Convert external string value to labelInValue format { value, label }
+  const internalValue = useMemo(() => {
+    if (!value) {
+      return undefined;
+    }
+    const label = valueToLabelMap.get(value) ?? value;
+    return { value, label };
+  }, [value, valueToLabelMap]);
 
   const optionRender = useCallback(
     (
@@ -148,7 +174,8 @@ export function ModelSelect({
 
   const labelRender = useCallback(
     (props: { label?: React.ReactNode; value?: string | number }) => {
-      const parsed = parseModelValue(String(props.value ?? ""));
+      const valueStr = String(props.value ?? "");
+      const parsed = parseModelValue(valueStr);
       if (!parsed) {
         return <span>{props.label}</span>;
       }
@@ -166,10 +193,30 @@ export function ModelSelect({
     [providerNameMap, token.colorTextSecondary],
   );
 
+  // Convert onChange back to simple string for external API
+  const handleChange = useCallback(
+    (newValue: unknown) => {
+      if (newValue === undefined || newValue === null) {
+        onChange(undefined);
+        return;
+      }
+      if (typeof newValue === "string") {
+        onChange(newValue);
+      } else if (
+        typeof newValue === "object"
+        && newValue !== null
+        && "value" in newValue
+      ) {
+        onChange(String((newValue as { value: string }).value));
+      }
+    },
+    [onChange],
+  );
+
   return (
     <Select
-      value={value}
-      onChange={onChange}
+      value={internalValue}
+      onChange={handleChange}
       placeholder={placeholder}
       allowClear={allowClear}
       showSearch
@@ -177,6 +224,7 @@ export function ModelSelect({
       optionRender={optionRender}
       labelRender={labelRender}
       options={groupedOptions}
+      labelInValue
       style={style}
     />
   );
