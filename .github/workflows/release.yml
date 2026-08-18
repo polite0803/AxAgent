@@ -513,7 +513,7 @@ jobs:
           ls "$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/lib64/clang/*/lib/linux/" 2>/dev/null || true
 
       - name: Install cargo-ndk
-        run: cargo install cargo-ndk --version 0.16.1
+        run: cargo install cargo-ndk --version 4.1.2
 
       - name: Setup Android NDK toolchain PATH
         run: |
