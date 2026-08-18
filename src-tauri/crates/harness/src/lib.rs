@@ -631,8 +631,8 @@ pub use capability_router::{
 // ── L1/L2 分层路由契约 ──
 pub mod domain_router;
 pub use domain_router::{
-    DomainRouter, DomainRouterImpl, DomainRoutingResult, DomainRoutingRule, DomainRuleType,
-    MatchMode, default_domain_rules,
+    DomainDecision, DomainRouter, DomainRouterImpl, DomainRoutingResult, DomainRoutingRule,
+    DomainRuleType, LlmReasoner, MatchMode, default_domain_rules,
 };
 pub mod cluster_router;
 pub use cluster_router::{

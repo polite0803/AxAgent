@@ -19,6 +19,7 @@ use tracing::{info, warn};
 /// 内存中的预算额度（不落库，重启后由运维重新设置）。
 /// 如需持久化，可后续迁移到 `app_config` 或独立 `budget_settings` 表。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct BudgetState {
     /// 成本上限（USD）。None = 不限。
     pub max_budget: Option<f64>,

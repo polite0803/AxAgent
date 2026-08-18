@@ -1216,13 +1216,46 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     );
     let workflow_graph: Arc<tokio::sync::RwLock<axagent_harness::WorkflowGraph>> =
         Arc::new(tokio::sync::RwLock::new(axagent_harness::WorkflowGraph::new()));
-    let cognitive_router: Arc<dyn axagent_harness::CognitiveRouter> =
-        Arc::new(axagent_harness::DefaultCognitiveRouter::new(
+    // ── 双层决策：注入 L1 域路由 LLM 兜底推理器 ──
+    // 规则未命中时调用默认提供商做轻量分类，输出合法域标识；
+    // 任何失败回退 `None`（走纯规则 `route`），绝不断流。复用
+    // `llm_helpers::chat_with_default_provider`（与 fleet/task_shape 同调用入口）。
+    let l1_reasoner_harness = harness.clone();
+    let l1_llm_reasoner: Arc<axagent_harness::LlmReasoner> = Arc::new(move |user_input: &str| {
+        let harness = l1_reasoner_harness.clone();
+        let input = user_input.to_string();
+        Box::pin(async move {
+            const SYS: &str = "你是 L1 域路由分类器。根据用户输入，从以下业务域标识中选最匹配的一个，\
+                只输出该标识，不要解释、不要引号、不要标点：\
+                general, devops, ai_media, data_analysis, content_creation, communication, finance, automation, system";
+            let user = format!("用户输入：{input}");
+            match axagent_runtime::llm_helpers::chat_with_default_provider(&harness, SYS, &user, 16)
+                .await
+            {
+                Ok(text) => {
+                    let candidate = text.trim().trim_matches('"').trim_matches('`');
+                    if candidate.parse::<axagent_harness::CapabilityDomain>().is_ok() {
+                        Some(candidate.to_string())
+                    } else {
+                        None
+                    }
+                },
+                Err(e) => {
+                    tracing::warn!(error = %e, "L1 域路由 LLM 兜底调用失败，回退纯规则路由");
+                    None
+                },
+            }
+        })
+    });
+    let cognitive_router: Arc<dyn axagent_harness::CognitiveRouter> = Arc::new(
+        axagent_harness::DefaultCognitiveRouter::new(
             domain_router,
             cluster_router,
             rar_router,
             workflow_graph,
-        ));
+        )
+        .with_llm_reasoner(l1_llm_reasoner),
+    );
 
     tracing::info!("[cognitive] 认知编排器初始化完成");
 

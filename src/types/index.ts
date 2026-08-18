@@ -1281,6 +1281,7 @@ export type { OutputRiskLevel, SanitizedOutput } from "@/lib/security/outputSani
 export * from "./capability";
 export * from "./platform";
 export * from "./proactive";
+export * from "./scheduler";
 export * from "./search";
 export * from "./style";
 export * from "./taskShape";

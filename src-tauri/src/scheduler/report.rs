@@ -20,6 +20,7 @@ pub const LONG_TASK_THRESHOLD_MS: i64 = 300_000;
 
 /// 长时任务报告（结构化，可被前端渲染）。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TaskReport {
     pub task_id: String,
     pub title: String,
@@ -35,6 +36,7 @@ pub struct TaskReport {
 
 /// 审批汇总条目（从 workflow_approvals 冗余摘取）。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ApprovalSummary {
     pub approver: Option<String>,
     pub status: Option<String>,

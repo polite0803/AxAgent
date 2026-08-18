@@ -924,6 +924,33 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         let mut already = 0usize;
 
         for (table, column, col_type) in ADDITIONAL_COLUMNS {
+            // 表不存在时跳过：部分清单项对应的表由本迁移后续 PHASE 创建
+            // （如 PHASE 7 的 workflow_approvals），此刻直接 ALTER 会报
+            // `no such table`。表由后续 PHASE 以完整 DDL 建出，无需在此补列。
+            let table_exists = if is_pg {
+                db.query_one_raw(Statement::from_string(
+                    DbBackend::Postgres,
+                    format!(
+                        "SELECT 1 AS exists_flag FROM information_schema.tables \
+                         WHERE table_schema = current_schema() AND table_name = '{table}'"
+                    ),
+                ))
+                .await?
+                .is_some()
+            } else {
+                let rows = db
+                    .query_all_raw(Statement::from_sql_and_values(
+                        DbBackend::Sqlite,
+                        "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                        [(*table).into()],
+                    ))
+                    .await?;
+                !rows.is_empty()
+            };
+            if !table_exists {
+                continue;
+            }
+
             let exists = if is_pg {
                 let row = db
                     .query_one_raw(Statement::from_string(

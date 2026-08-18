@@ -74,6 +74,7 @@ export { useProviderStore } from "./feature/providerStore";
 export { useReadingListStore } from "./feature/readingListStore";
 export { useRlTrainingStore } from "./feature/rlTrainingStore";
 export type { CheckpointInfo, RLTrainingConfig, TrainingMetrics } from "./feature/rlTrainingStore";
+export { useSchedulerStore } from "./feature/schedulerStore";
 export { useSearchStore } from "./feature/searchStore";
 export { useSecurityStore } from "./feature/securityStore";
 export { useSettingsStore } from "./feature/settingsStore";
