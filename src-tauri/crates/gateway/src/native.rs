@@ -824,7 +824,7 @@ fn build_http_client(
     proxy_config: Option<&ProviderProxyConfig>,
 ) -> Result<reqwest::Client, Box<AxAgentError>> {
     #[cfg(target_os = "android")]
-    let mut builder = reqwest::Client::builder().use_native_tls();
+    let mut builder = reqwest::Client::builder().use_rustls_tls();
     #[cfg(not(target_os = "android"))]
     let mut builder = reqwest::Client::builder().use_rustls_tls();
 

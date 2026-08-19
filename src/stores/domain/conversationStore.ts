@@ -825,7 +825,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       // 最终检查 — 理论上不应到达此分支，除非 providers 列表完全为空
       // （浏览器 mock 至少有 2 个 builtin provider）
       if (!templateModelId || !templateProviderId) {
-        console.error("[createConversation] 未能解析出有效的 provider/model，使用兜底值", {
+        console.error("[createConversation] Failed to resolve valid provider/model, using fallback", {
           modelId,
           providerId,
           settingsDefaultProviderId: useSettingsStore.getState().settings.defaultProviderId,

@@ -32,7 +32,7 @@ cron = "0.17"
 hex = { workspace = true }
 hmac = "0.13"
 jsonschema = "0.47"
-lettre = { version = "0.11", features = ["tokio1-native-tls", "builder"] }
+lettre = { version = "0.11", default-features = false, features = ["builder", "hostname", "smtp-transport", "tokio1", "tokio1-rustls", "rustls-tls"] }
 regex = "1"
 reqwest = { workspace = true }
 sha2 = { workspace = true }
