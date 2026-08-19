@@ -53,45 +53,30 @@ export function ChatPage() {
       }
 
       // 2. 如果有 workflow 参数，创建带工作流模板的会话
+      // provider/model 选择与加载时机由 createConversation 内部兜底处理，
+      // 此处不预先读取，避免启动时序竞态导致静默跳过。
       if (workflow) {
-        const providers = useProviderStore.getState().providers;
-        const providerId = providers[0]?.id;
-        const modelId = providers[0]?.models.find((m) => m.enabled)?.modelId
-          ?? providers[0]?.models[0]?.modelId;
-
-        if (providerId && modelId) {
-          await convStore.createConversation(
-            workflow,
-            modelId,
-            providerId,
-            { workflowTemplateId: workflow },
-          );
-          if (prompt) {
-            // 注入初始 prompt
-            await useConversationStore.getState().sendMessage(prompt);
-          }
-          // 清理 URL 参数
-          setSearchParams({}, { replace: true });
-          return;
+        await convStore.createConversation(
+          workflow,
+          undefined,
+          undefined,
+          { workflowTemplateId: workflow },
+        );
+        if (prompt) {
+          // 注入初始 prompt
+          await useConversationStore.getState().sendMessage(prompt);
         }
+        // 清理 URL 参数
+        setSearchParams({}, { replace: true });
+        return;
       }
 
       // 3. 如果有 prompt 但没有 workflow，在当前或新建会话中发送
       if (prompt) {
         const activeId = useConversationStore.getState().activeConversationId;
         if (!activeId) {
-          // 创建新会话再发送
-          const providers = useProviderStore.getState().providers;
-          const providerId = providers[0]?.id;
-          const modelId = providers[0]?.models.find((m) => m.enabled)?.modelId
-            ?? providers[0]?.models[0]?.modelId;
-          if (providerId && modelId) {
-            await convStore.createConversation(
-              prompt.slice(0, 30),
-              modelId,
-              providerId,
-            );
-          }
+          // 创建新会话再发送（provider/model 由 createConversation 内部兜底解析）
+          await convStore.createConversation(prompt.slice(0, 30));
         }
         // 发送初始 prompt
         await useConversationStore.getState().sendMessage(prompt);

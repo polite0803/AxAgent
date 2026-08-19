@@ -176,8 +176,8 @@ export interface ConversationState {
   setActiveConversation: (id: string | null) => void;
   createConversation: (
     title: string,
-    modelId: string,
-    providerId: string,
+    modelId?: string,
+    providerId?: string,
     options?: {
       categoryId?: string | null;
       scenario?: string | null;
