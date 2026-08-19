@@ -50,7 +50,7 @@ sha2 = "0.11"
 sysinfo = "0.39"
 thiserror = { workspace = true }
 tokio = { version = "1", features = ["io-std", "io-util", "macros", "process", "rt", "rt-multi-thread", "sync", "time"] }
-tokio-tungstenite = { version = "0.30", features = ["native-tls"] }
+tokio-tungstenite = { version = "0.30", features = ["rustls-tls-webpki-roots"] }
 tokio-util = { version = "0.7", features = ["rt"] }
 tower-http = { version = "0.7", features = ["cors"] }
 tracing = "0.1"

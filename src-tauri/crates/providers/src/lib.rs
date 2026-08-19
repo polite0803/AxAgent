@@ -223,10 +223,10 @@ pub fn parse_base64_data_url(url: &str) -> Option<(String, String)> {
 /// - "http"/"socks5": use explicit proxy with address/port
 /// - None or "none": disable all proxies
 pub fn build_http_client(proxy_config: Option<&ProviderProxyConfig>) -> Result<reqwest::Client> {
-    // Android TLS: aws-lc-rs 在 ARM 设备上经常不可用，ring 也可能缺失。
-    // 使用 native-tls-vendored 静态链接 OpenSSL，确保 Android 上 HTTPS 可靠工作。
+    // Android TLS: reqwest 0.13 默认使用 rustls（aws-lc-rs），纯 Rust，无需现场编译 OpenSSL，
+    // 避免安卓 CI 上 vendored openssl 编译不稳定导致的构建失败。
     #[cfg(target_os = "android")]
-    let mut builder = reqwest::Client::builder().use_native_tls();
+    let mut builder = reqwest::Client::builder().use_rustls_tls();
     #[cfg(not(target_os = "android"))]
     let mut builder = reqwest::Client::builder().use_rustls_tls();
 
