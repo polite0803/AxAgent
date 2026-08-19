@@ -228,6 +228,9 @@ fn generate_ipc_types(out_dir: &Path) {
     output.push_str("//\n");
     output.push_str("// 本文件包含所有 Tauri IPC 跨进程传输的数据结构定义，\n");
     output.push_str("// 用于确保前后端类型一致性。\n\n");
+    output.push_str("// 生成文件中的类型别名仅供后端 DTO 同步校验，\n");
+    output.push_str("// 不在前端运行时直接引用，故禁用 no-unused-vars 规则。\n");
+    output.push_str("// oxlint-disable no-unused-vars\n\n");
 
     output.push_str(
         "// ============================================================================\n",

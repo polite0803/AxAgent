@@ -20,14 +20,12 @@ fn main() {
     let is_test =
         std::env::var("CARGO_CFG_TARGET_FEATURE").map(|v| v.contains("test")).unwrap_or(false);
 
-    if !is_test {
-        if let Err(e) = check_select_macros() {
-            eprintln!("构建错误: select! 宏分支检查失败\n{}", e);
-            eprintln!("");
-            eprintln!("业务规则要求分支顺序保持不变，请检查上述违规项。");
-            eprintln!("如确需修改分支顺序，请与架构师评审后更新 build.rs 中的规则。");
-            process::exit(1);
-        }
+    if !is_test && let Err(e) = check_select_macros() {
+        eprintln!("构建错误: select! 宏分支检查失败\n{}", e);
+        eprintln!();
+        eprintln!("业务规则要求分支顺序保持不变，请检查上述违规项。");
+        eprintln!("如确需修改分支顺序，请与架构师评审后更新 build.rs 中的规则。");
+        process::exit(1);
     }
 
     println!("cargo:rerun-if-changed=src/");
@@ -109,20 +107,20 @@ fn check_ticket_sweeper_selects(content: &str, file_path: &str, violations: &mut
     while i < lines.len() {
         if lines[i].contains("select!") {
             // 检查第一分支
-            if let Some(first_arm) = extract_first_arm(lines.as_slice(), i) {
-                if !first_arm.contains("tick.tick()") {
-                    violations.push(format!(
-                        "❌ {}:{} - ticket_sweeper select! 第一分支不符合业务规则\n\
-                         位置: 第 {} 行附近\n\
-                         第一分支: {}\n\
-                         要求: 第一分支必须是 tick.tick()\n\
-                         原因: 确保定时清理过期票据的逻辑按预期执行",
-                        file_path,
-                        i + 1,
-                        i + 1,
-                        first_arm.trim()
-                    ));
-                }
+            if let Some(first_arm) = extract_first_arm(lines.as_slice(), i)
+                && !first_arm.contains("tick.tick()")
+            {
+                violations.push(format!(
+                    "❌ {}:{} - ticket_sweeper select! 第一分支不符合业务规则\n\
+                     位置: 第 {} 行附近\n\
+                     第一分支: {}\n\
+                     要求: 第一分支必须是 tick.tick()\n\
+                     原因: 确保定时清理过期票据的逻辑按预期执行",
+                    file_path,
+                    i + 1,
+                    i + 1,
+                    first_arm.trim()
+                ));
             }
 
             // 检查是否包含 shutdown 分支
@@ -151,8 +149,7 @@ fn extract_first_arm(lines: &[&str], select_line_idx: usize) -> Option<String> {
     let mut brace_depth = 0i32;
     let mut arm_content = String::new();
 
-    for j in select_line_idx..lines.len() {
-        let line = lines[j];
+    for (j, line) in lines.iter().enumerate().skip(select_line_idx) {
         let trimmed = line.trim();
 
         // 跳过空行和注释
@@ -217,8 +214,7 @@ fn has_arm_containing(lines: &[&str], select_line_idx: usize, pattern: &str) -> 
     let mut brace_depth = 0i32;
     let mut in_select = false;
 
-    for j in select_line_idx..lines.len() {
-        let line = lines[j];
+    for line in lines.iter().skip(select_line_idx) {
         let trimmed = line.trim();
 
         if !in_select {
