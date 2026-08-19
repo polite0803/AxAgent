@@ -937,7 +937,7 @@ pub async fn plan_execute(
     if use_dag_execution {
         // 转换 PlanStep → HierarchicalPlanner Plan → compile_plan_to_dag → WorkEngine 执行
         use axagent_agent::hierarchical_planner::{
-            Phase, PhaseStatus, Plan, PlanStatus, PlannedTask, TaskStatus,
+            ActionType, Phase, PhaseStatus, Plan, PlanStatus, PlannedTask, TaskStatus,
         };
         use axagent_kit::plan_compiler::compile_plan_to_dag;
 
@@ -963,16 +963,17 @@ pub async fn plan_execute(
                     }
                 });
 
-            let action_type = step.action_type.clone().unwrap_or_else(|| {
-                {
+            let action_type = step
+                .action_type
+                .as_deref()
+                .and_then(|s| ActionType::from_str(s).ok())
+                .unwrap_or_else(|| {
                     if step.estimated_tools.as_ref().is_some_and(|t| !t.is_empty()) {
-                        "tool"
+                        ActionType::Tool
                     } else {
-                        "agent"
+                        ActionType::Agent
                     }
-                }
-                .to_string()
-            });
+                });
 
             phases.push(Phase {
                 id: phase_id,

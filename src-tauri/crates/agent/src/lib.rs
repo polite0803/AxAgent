@@ -138,7 +138,9 @@ pub use recovery_strategies::{
 };
 
 // hierarchical_planner — 外部引用：commands/plan
-pub use hierarchical_planner::{Phase, PhaseStatus, Plan, PlanStatus, PlannedTask, TaskStatus};
+pub use hierarchical_planner::{
+    ActionType, Phase, PhaseStatus, Plan, PlanStatus, PlannedTask, TaskStatus,
+};
 
 // insight_generator — 外部引用：commands/reflection
 pub use insight_generator::{Insight, InsightCategory, InsightStats};

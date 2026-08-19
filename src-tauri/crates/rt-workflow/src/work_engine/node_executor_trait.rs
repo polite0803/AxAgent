@@ -3,7 +3,7 @@
 //! Node executor trait and related types
 
 use async_trait::async_trait;
-use axagent_harness::workflow_types::{ExecutionStatus, WorkflowNode};
+use axagent_harness::workflow_types::{ExecutionStatus, NodeKind, WorkflowNode};
 use serde::{Deserialize, Serialize};
 
 /// Output from a node execution
@@ -236,5 +236,41 @@ pub fn node_type_name(node: &WorkflowNode) -> &'static str {
         WorkflowNode::MultiAgent(_) => "multiAgent",
         WorkflowNode::Storage(_) => "storage",
         WorkflowNode::WorkflowRef(_) => "workflowRef",
+    }
+}
+
+/// 获取节点的高级分类（NodeKind）
+pub fn node_kind(node: &WorkflowNode) -> NodeKind {
+    match node {
+        WorkflowNode::Trigger(_) => NodeKind::Input,
+        WorkflowNode::End(_) => NodeKind::Output,
+        WorkflowNode::Tool(_)
+        | WorkflowNode::Code(_)
+        | WorkflowNode::HttpRequest(_)
+        | WorkflowNode::FileOperation(_)
+        | WorkflowNode::WebhookSend(_)
+        | WorkflowNode::Logging(_)
+        | WorkflowNode::Notification(_)
+        | WorkflowNode::DatabaseQuery(_)
+        | WorkflowNode::DocumentParser(_)
+        | WorkflowNode::DataTransformer(_)
+        | WorkflowNode::Email(_)
+        | WorkflowNode::Validation(_)
+        | WorkflowNode::Delay(_)
+        | WorkflowNode::SubWorkflow(_)
+        | WorkflowNode::WorkflowRef(_)
+        | WorkflowNode::VectorRetrieve(_)
+        | WorkflowNode::LlmClassifier(_)
+        | WorkflowNode::Approval(_)
+        | WorkflowNode::Aggregator(_) => NodeKind::Tool,
+        WorkflowNode::Agent(_) | WorkflowNode::Llm(_) => NodeKind::Agent,
+        WorkflowNode::Condition(_) | WorkflowNode::Switch(_) => NodeKind::Condition,
+        WorkflowNode::Loop(_) => NodeKind::Loop,
+        WorkflowNode::Parallel(_)
+        | WorkflowNode::Merge(_)
+        | WorkflowNode::Debate(_)
+        | WorkflowNode::Swarm(_)
+        | WorkflowNode::MultiAgent(_) => NodeKind::Container,
+        WorkflowNode::Storage(_) => NodeKind::Storage,
     }
 }

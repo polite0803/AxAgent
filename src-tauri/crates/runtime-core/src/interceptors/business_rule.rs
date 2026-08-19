@@ -40,10 +40,17 @@ impl HarnessInterceptor for BusinessRuleInterceptor {
         _point: InterceptPoint,
         ctx: &mut InterceptorContext,
     ) -> InterceptorResult {
-        let node_type = ctx.node_id.as_deref().unwrap_or("unknown");
+        // 修复：使用 node_kind 而不是 node_id 作为节点类型
+        let node_kind = match ctx.node_kind.as_ref() {
+            Some(kind) => kind,
+            None => {
+                // 如果没有节点类型，直接通过（兼容非工作流节点场景）
+                return InterceptorResult::Continue;
+            },
+        };
         let input = ctx.request.clone().unwrap_or(serde_json::Value::Null);
 
-        match self.engine.evaluate(node_type, &input) {
+        match self.engine.evaluate(node_kind, &input) {
             RuleEvaluationOutcome::Pass => InterceptorResult::Continue,
             RuleEvaluationOutcome::Violation { reason, .. } => {
                 InterceptorResult::Block { reason: format!("[业务规则] {reason}") }

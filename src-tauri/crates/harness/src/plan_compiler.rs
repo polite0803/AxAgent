@@ -7,7 +7,7 @@
 //! 均可使用，无需依赖彼此。
 
 use crate::plan_types::PhaseStatus;
-use crate::plan_types::{Phase, Plan, PlanStatus, PlannedTask};
+use crate::plan_types::{ActionType, Phase, Plan, PlanStatus, PlannedTask};
 use crate::workflow_types::*;
 
 // ── Plan → DAG 编译 ─────────────────────────────────────
@@ -15,7 +15,7 @@ use crate::workflow_types::*;
 /// 将 Plan 的 Phase 编译为工作流 DAG。
 /// - Phase 间串行（按 phase.dependencies 排序）
 /// - Phase 内 Task 按 task.dependencies 生成精确边
-/// - action_type="tool" → ToolNode, "llm" → LLMNode, 其他 → AgentNode
+/// - ActionType::Tool → ToolNode, ActionType::Llm → LLMNode, ActionType::Agent → AgentNode
 pub fn compile_plan_to_dag(
     plan: &Plan,
     tool_names: &[String],
@@ -81,8 +81,8 @@ pub fn compile_plan_to_dag(
                 continue_on_fail: false,
             };
 
-            let node = match task.action_type.as_str() {
-                "tool" => WorkflowNode::Tool(ToolNode {
+            let node = match &task.action_type {
+                ActionType::Tool => WorkflowNode::Tool(ToolNode {
                     base,
                     config: ToolNodeConfig {
                         tool_name: task
@@ -104,7 +104,7 @@ pub fn compile_plan_to_dag(
                         output_var: format!("r_{nid}"),
                     },
                 }),
-                "llm" => WorkflowNode::Llm(LLMNode {
+                ActionType::Llm => WorkflowNode::Llm(LLMNode {
                     base,
                     config: LLMNodeConfig {
                         model: "".to_string(),
@@ -119,7 +119,7 @@ pub fn compile_plan_to_dag(
                         reserved_output_tokens: None,
                     },
                 }),
-                _ => WorkflowNode::Agent(AgentNode {
+                ActionType::Agent => WorkflowNode::Agent(AgentNode {
                     base,
                     config: AgentNodeConfig {
                         system_prompt: task.description.clone(),
@@ -294,10 +294,9 @@ pub fn dag_to_plan(goal: &str, nodes: &[WorkflowNode], edges: &[WorkflowEdge]) -
         let nid = node.base().id.clone();
         let ntitle = node.base().title.clone();
         let (action_type, params) = match node {
-            WorkflowNode::Tool(_) => ("tool".to_string(), serde_json::json!({"tool": ntitle})),
-            WorkflowNode::Agent(_) | WorkflowNode::Llm(_) => {
-                ("llm".to_string(), serde_json::json!({"prompt": ntitle}))
-            },
+            WorkflowNode::Tool(_) => (ActionType::Tool, serde_json::json!({"tool": ntitle})),
+            WorkflowNode::Agent(_) => (ActionType::Agent, serde_json::json!({"prompt": ntitle})),
+            WorkflowNode::Llm(_) => (ActionType::Llm, serde_json::json!({"prompt": ntitle})),
             _ => continue,
         };
 

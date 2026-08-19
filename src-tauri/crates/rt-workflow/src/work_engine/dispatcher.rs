@@ -18,7 +18,7 @@ use super::executors::{
     ValidationExecutor, VectorRetrieveExecutor, WebhookSendExecutor,
 };
 use super::node_executor_trait::{
-    NodeError, NodeExecutorTrait, NodeOutput, error_code, node_type_name,
+    NodeError, NodeExecutorTrait, NodeOutput, error_code, node_kind, node_type_name,
 };
 
 /// 节点分派器。
@@ -122,7 +122,18 @@ impl NodeDispatcher {
     pub async fn register_arc(&self, executor: Arc<dyn NodeExecutorTrait>) {
         let key = executor.node_type();
         let mut map = self.executors.write().await;
-        if map.contains_key(key) && !Arc::ptr_eq(map.get(key).expect("checked above"), &executor) {
+        if map.contains_key(key)
+            && !Arc::ptr_eq(
+                map.get(key).unwrap_or_else(|| {
+                    tracing::error!(
+                        node_type = key,
+                        "dispatcher.register_arc: 逻辑错误：contains_key 为 true 但 get 返回 None"
+                    );
+                    unreachable!("key exists due to contains_key check above")
+                }),
+                &executor,
+            )
+        {
             tracing::warn!(
                 node_type = key,
                 "dispatcher.register_arc: 覆盖已存在的不同实例（请检查是否还有遗留的重复 register 调用）"
@@ -143,6 +154,7 @@ impl NodeDispatcher {
         context: &ExecutionState,
     ) -> Result<NodeOutput, NodeError> {
         let node_type = node_type_name(node);
+        let node_kind = node_kind(node);
         let node_id = node.base_id().to_string();
 
         // ── 全局 metrics:节点 dispatch 计数 ──
@@ -175,10 +187,10 @@ impl NodeDispatcher {
         // ── 业务规则引擎检查（硬约束） ──
         // 在执行之前先检查业务规则。仅对可执行节点类型进行检查。
         if let Some(ref br_engine) = context.business_rule_engine
-            && is_business_rule_applicable(node_type)
+            && is_business_rule_applicable(&node_kind)
         {
             let node_input = build_node_input_snapshot(node, context);
-            let outcome = br_engine.evaluate(node_type, &node_input);
+            let outcome = br_engine.evaluate(&node_kind, &node_input);
             use axagent_harness::business_rules::RuleEvaluationOutcome;
             match &outcome {
                 RuleEvaluationOutcome::Violation { rule_name, action, reason, .. } => {
@@ -234,7 +246,7 @@ impl NodeDispatcher {
         // 仅对执行"外部操作"的节点类型检查,与业务规则共用白名单。
         // Denied → 阻断执行;AllowedWithAudit → 记录警告后继续;Allowed → 正常执行。
         if let Some(checker) = self.permission_checker_clone()
-            && is_business_rule_applicable(node_type)
+            && is_business_rule_applicable(&node_kind)
         {
             let node_input = build_node_input_snapshot(node, context);
             let input_str = node_input.to_string();
@@ -271,9 +283,24 @@ impl NodeDispatcher {
 
         let executor = {
             let map = self.executors.read().await;
-            map.get(node_type).cloned().unwrap_or_else(|| {
-                map.get("fallback").cloned().expect("FallbackExecutor must be registered")
-            })
+            match map.get(node_type).cloned() {
+                Some(exe) => exe,
+                None => map
+                    .get("fallback")
+                    .cloned()
+                    .ok_or_else(|| {
+                        tracing::error!(
+                            node_type,
+                            "dispatch: 找不到节点类型 '{node_type}' 的执行器，且 FallbackExecutor 未注册"
+                        );
+                        NodeError::exec_failed(
+                            error_code::UNSUPPORTED_NODE_TYPE,
+                            format!(
+                                "No executor registered for node type '{node_type}' and no FallbackExecutor available"
+                            ),
+                        )
+                    })?,
+            }
         };
         tracing::info!(
             node_id = %node.base_id(),
@@ -406,21 +433,9 @@ impl NodeDispatcher {
 
 /// 判断该节点类型是否适用于业务规则检查。
 /// 主要对执行"外部操作"的节点类型做检查，纯内部节点跳过。
-fn is_business_rule_applicable(node_type: &str) -> bool {
-    matches!(
-        node_type,
-        "agent"
-            | "tool"
-            | "httpRequest"
-            | "webhookSend"
-            | "fileOperation"
-            | "databaseQuery"
-            | "code"
-            | "notification"
-            | "email"
-            | "llm"
-            | "llmClassifier"
-    )
+fn is_business_rule_applicable(node_kind: &axagent_harness::workflow_types::NodeKind) -> bool {
+    use axagent_harness::workflow_types::NodeKind;
+    matches!(node_kind, NodeKind::Agent | NodeKind::Tool)
 }
 
 /// 构建节点输入快照，供业务规则评估使用。

@@ -25,6 +25,7 @@
 //!  - `interrupt_nodes`: 命中即挂起的 body 节点 ID 集合
 
 use async_trait::async_trait;
+use axagent_harness::node_output_status::NodeOutputStatus;
 use axagent_harness::workflow_types::{LoopCheckpoint, LoopType, WorkflowNode};
 #[cfg(test)]
 use serde_json::json;
@@ -58,7 +59,10 @@ impl Default for LoopExecutor {
 ///
 /// 判定条件（满足任一即触发）：
 ///  1) body_step_id ∈ config.interrupt_nodes
-///  2) body_step 输出是审批类节点约定的 `{"status": "pending", ...}`
+///  2) body_step 输出状态为 pending 类（waiting_for_approval / paused / needs_intervention）
+///
+/// 使用结构化枚举 `NodeOutputStatus` 解析，替代脆弱的字符串比较。
+/// 解析失败时记录警告并降级到旧的字符串比较逻辑，确保向后兼容。
 ///
 /// 返回 (是否触发, 触发的 step_id, 触发的 step_output)。
 fn detect_interrupt(
@@ -66,16 +70,43 @@ fn detect_interrupt(
     step_id: &str,
     step_output: &serde_json::Value,
 ) -> Option<(String, serde_json::Value)> {
+    // 1) 显式指定的 interrupt 节点
     if config.interrupt_nodes.iter().any(|n| n == step_id) {
         return Some((step_id.to_string(), step_output.clone()));
     }
-    if let Some(obj) = step_output.as_object()
-        && let Some(serde_json::Value::String(s)) = obj.get("status")
-        && s == "pending"
-    {
-        return Some((step_id.to_string(), step_output.clone()));
+
+    // 2) 使用结构化枚举解析状态
+    match NodeOutputStatus::from_json(step_output) {
+        Ok(status) if status.is_pending() => {
+            tracing::debug!(
+                step_id,
+                status = status.status_str(),
+                "detect_interrupt: 检测到 pending 类状态，触发中断"
+            );
+            Some((step_id.to_string(), step_output.clone()))
+        },
+        Ok(_) => {
+            tracing::debug!(step_id, "detect_interrupt: 状态不是 pending 类，继续执行");
+            None
+        },
+        Err(e) => {
+            // 降级处理：如果无法解析为 NodeOutputStatus，回退到旧的字符串比较
+            // 这确保向后兼容未使用结构化状态的节点输出
+            tracing::debug!(
+                step_id,
+                error = %e,
+                "detect_interrupt: 无法解析为 NodeOutputStatus，降级到字符串比较"
+            );
+            if let Some(obj) = step_output.as_object()
+                && let Some(serde_json::Value::String(s)) = obj.get("status")
+                && s == "pending"
+            {
+                tracing::debug!(step_id, "detect_interrupt: 降级匹配到 'pending' 状态");
+                return Some((step_id.to_string(), step_output.clone()));
+            }
+            None
+        },
     }
-    None
 }
 
 #[async_trait]

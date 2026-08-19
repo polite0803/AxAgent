@@ -8,6 +8,7 @@
 //!
 //! 具体拦截器实现位于 `axagent_runtime_core::interceptors`。
 
+use crate::workflow_types::NodeKind;
 use std::sync::Arc;
 
 /// 拦截点
@@ -48,6 +49,7 @@ pub struct InterceptorContext {
     pub response: Option<serde_json::Value>,
     pub tool_name: Option<String>,
     pub node_id: Option<String>,
+    pub node_kind: Option<NodeKind>,
     pub workflow_id: Option<String>,
     pub duration_ms: u64,
     pub error: Option<String>,
@@ -62,6 +64,7 @@ impl InterceptorContext {
             response: None,
             tool_name: None,
             node_id: None,
+            node_kind: None,
             workflow_id: None,
             duration_ms: 0,
             error: None,
@@ -76,6 +79,7 @@ impl InterceptorContext {
             response,
             tool_name: None,
             node_id: None,
+            node_kind: None,
             workflow_id: None,
             duration_ms: 0,
             error: None,
@@ -83,13 +87,18 @@ impl InterceptorContext {
     }
 
     /// 为 BeforeNodeExecute 创建上下文
-    pub fn before_node(node_id: String, request: Option<serde_json::Value>) -> Self {
+    pub fn before_node(
+        node_id: String,
+        node_kind: NodeKind,
+        request: Option<serde_json::Value>,
+    ) -> Self {
         Self {
             point: InterceptPoint::BeforeNodeExecute,
             request,
             response: None,
             tool_name: None,
             node_id: Some(node_id),
+            node_kind: Some(node_kind),
             workflow_id: None,
             duration_ms: 0,
             error: None,
@@ -172,10 +181,14 @@ mod tests {
         assert_eq!(ctx.point, InterceptPoint::AfterLlmCall);
         assert!(ctx.response.is_some());
 
-        let ctx =
-            InterceptorContext::before_node("n1".into(), Some(serde_json::json!({"foo": "bar"})));
+        let ctx = InterceptorContext::before_node(
+            "n1".into(),
+            NodeKind::Tool,
+            Some(serde_json::json!({"foo": "bar"})),
+        );
         assert_eq!(ctx.point, InterceptPoint::BeforeNodeExecute);
         assert_eq!(ctx.node_id.as_deref(), Some("n1"));
+        assert_eq!(ctx.node_kind, Some(NodeKind::Tool));
     }
 
     #[test]

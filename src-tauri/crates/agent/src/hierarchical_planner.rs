@@ -6,8 +6,8 @@ type TaskCallback = Box<dyn Fn(&str, &PlannedTask) + Send + Sync>;
 
 // 纯数据 DTO 通过 axagent-harness 定义，保持类型统一
 pub use axagent_harness::plan_types::{
-    Phase, PhaseStatus, Plan, PlanStatus, PlanVersion, PlannedTask, ReplanAction, ReplanReason,
-    TaskStatus,
+    ActionType, Phase, PhaseStatus, Plan, PlanStatus, PlanVersion, PlannedTask, ReplanAction,
+    ReplanReason, TaskStatus,
 };
 
 /// 计划进度（独立于 core-types，字段不同）
@@ -880,7 +880,7 @@ impl PlanBuilder {
 
 pub struct TaskBuilder {
     description: String,
-    action_type: String,
+    action_type: ActionType,
     parameters: serde_json::Value,
     dependencies: Vec<String>,
     max_retries: u32,
@@ -888,15 +888,27 @@ pub struct TaskBuilder {
 }
 
 impl TaskBuilder {
-    pub fn new(description: &str, action_type: &str) -> Self {
+    pub fn new(description: &str, action_type: ActionType) -> Self {
         Self {
             description: description.to_string(),
-            action_type: action_type.to_string(),
+            action_type,
             parameters: serde_json::json!({}),
             dependencies: Vec::new(),
             max_retries: 3,
             assigned_role: None,
         }
+    }
+
+    pub fn new_tool(description: &str) -> Self {
+        Self::new(description, ActionType::Tool)
+    }
+
+    pub fn new_llm(description: &str) -> Self {
+        Self::new(description, ActionType::Llm)
+    }
+
+    pub fn new_agent(description: &str) -> Self {
+        Self::new(description, ActionType::Agent)
     }
 
     pub fn with_parameters(mut self, params: serde_json::Value) -> Self {
@@ -987,7 +999,7 @@ mod tests {
                 id: "p1".to_string(),
                 name: "Phase 1".to_string(),
                 description: "First phase".to_string(),
-                tasks: vec![TaskBuilder::new("Task 1", "shell").build()],
+                tasks: vec![TaskBuilder::new("Task 1", ActionType::Agent).build()],
                 dependencies: vec![],
                 status: PhaseStatus::Pending,
             }],
@@ -1004,7 +1016,7 @@ mod tests {
     #[test]
     fn test_task_completion_flow() {
         let mut planner = HierarchicalPlanner::new();
-        let task = TaskBuilder::new("Task 1", "shell").build();
+        let task = TaskBuilder::new("Task 1", ActionType::Agent).build();
         let task_id = task.id.clone();
 
         planner.create_plan(
@@ -1033,10 +1045,11 @@ mod tests {
 
     #[test]
     fn test_task_dependency_blocking() {
-        let task1 = TaskBuilder::new("Task 1", "shell").build();
+        let task1 = TaskBuilder::new("Task 1", ActionType::Agent).build();
         let task1_id = task1.id.clone();
-        let task2 =
-            TaskBuilder::new("Task 2", "shell").with_dependencies(vec![task1_id.clone()]).build();
+        let task2 = TaskBuilder::new("Task 2", ActionType::Agent)
+            .with_dependencies(vec![task1_id.clone()])
+            .build();
         let task2_id = task2.id.clone();
 
         let mut planner = HierarchicalPlanner::new();
@@ -1069,9 +1082,9 @@ mod tests {
     #[test]
     fn test_progress_tracking() {
         let mut planner = HierarchicalPlanner::new();
-        let task1 = TaskBuilder::new("Task 1", "shell").build();
+        let task1 = TaskBuilder::new("Task 1", ActionType::Agent).build();
         let task1_id = task1.id.clone();
-        let task2 = TaskBuilder::new("Task 2", "shell").build();
+        let task2 = TaskBuilder::new("Task 2", ActionType::Agent).build();
 
         planner.create_plan(
             "Test plan",
@@ -1100,7 +1113,7 @@ mod tests {
 
     #[test]
     fn test_task_retry_on_failure() {
-        let task = TaskBuilder::new("Flaky task", "shell").with_max_retries(2).build();
+        let task = TaskBuilder::new("Flaky task", ActionType::Agent).with_max_retries(2).build();
         let task_id = task.id.clone();
 
         let mut planner = HierarchicalPlanner::new();
@@ -1139,7 +1152,7 @@ mod tests {
                 id: "p1".to_string(),
                 name: "Phase 1".to_string(),
                 description: "First phase".to_string(),
-                tasks: vec![TaskBuilder::new("Task 1", "shell").build()],
+                tasks: vec![TaskBuilder::new("Task 1", ActionType::Agent).build()],
                 dependencies: vec![],
                 status: PhaseStatus::Pending,
             }],
@@ -1153,7 +1166,7 @@ mod tests {
     #[test]
     fn test_replan_retry_failed_step() {
         let mut planner = HierarchicalPlanner::new();
-        let task = TaskBuilder::new("Flaky task", "shell").with_max_retries(2).build();
+        let task = TaskBuilder::new("Flaky task", ActionType::Agent).with_max_retries(2).build();
         let task_id = task.id.clone();
 
         planner.create_plan(
@@ -1208,8 +1221,8 @@ mod tests {
 
     #[test]
     fn test_replan_skip_impossible_step() {
-        let task1 = TaskBuilder::new("Task 1", "shell").build();
-        let task2 = TaskBuilder::new("Task 2", "shell").build();
+        let task1 = TaskBuilder::new("Task 1", ActionType::Agent).build();
+        let task2 = TaskBuilder::new("Task 2", ActionType::Agent).build();
 
         let mut planner = HierarchicalPlanner::new();
         planner.create_plan(
@@ -1247,7 +1260,7 @@ mod tests {
 
     #[test]
     fn test_replan_insert_new_step() {
-        let task = TaskBuilder::new("Deploy app", "shell").build();
+        let task = TaskBuilder::new("Deploy app", ActionType::Agent).build();
 
         let mut planner = HierarchicalPlanner::new();
         planner.create_plan(
@@ -1264,7 +1277,8 @@ mod tests {
 
         let phase_id = planner.get_plan().expect("测试：get_plan 应成功").phases[0].id.clone();
 
-        let new_task = TaskBuilder::new("Run migration", "shell").with_dependencies(vec![]).build();
+        let new_task =
+            TaskBuilder::new("Run migration", ActionType::Agent).with_dependencies(vec![]).build();
 
         let reason = ReplanReason::NewDependencyDiscovered {
             task_id: "deploy".to_string(),
@@ -1302,7 +1316,7 @@ mod tests {
             id: "p2".to_string(),
             name: "Phase 2".to_string(),
             description: "Inserted phase".to_string(),
-            tasks: vec![TaskBuilder::new("New task", "shell").build()],
+            tasks: vec![TaskBuilder::new("New task", ActionType::Agent).build()],
             dependencies: vec!["p1".to_string()],
             status: PhaseStatus::Pending,
         };
@@ -1323,8 +1337,10 @@ mod tests {
 
     #[test]
     fn test_replan_modify_task() {
-        let task =
-            TaskBuilder::new("Task 1", "shell").with_max_retries(1).with_role("developer").build();
+        let task = TaskBuilder::new("Task 1", ActionType::Agent)
+            .with_max_retries(1)
+            .with_role("developer")
+            .build();
 
         let mut planner = HierarchicalPlanner::new();
         planner.create_plan(
@@ -1365,8 +1381,8 @@ mod tests {
 
     #[test]
     fn test_replan_remove_task() {
-        let task1 = TaskBuilder::new("Task 1", "shell").build();
-        let task2 = TaskBuilder::new("Task 2", "shell").build();
+        let task1 = TaskBuilder::new("Task 1", ActionType::Agent).build();
+        let task2 = TaskBuilder::new("Task 2", ActionType::Agent).build();
 
         let mut planner = HierarchicalPlanner::new();
         planner.create_plan(
@@ -1403,8 +1419,8 @@ mod tests {
 
     #[test]
     fn test_replan_reorder_tasks() {
-        let task1 = TaskBuilder::new("Task 1", "shell").build();
-        let task2 = TaskBuilder::new("Task 2", "shell").build();
+        let task1 = TaskBuilder::new("Task 1", ActionType::Agent).build();
+        let task2 = TaskBuilder::new("Task 2", ActionType::Agent).build();
 
         let mut planner = HierarchicalPlanner::new();
         planner.create_plan(
@@ -1438,7 +1454,7 @@ mod tests {
     #[test]
     fn test_rollback_plan() {
         let mut planner = HierarchicalPlanner::new();
-        let task = TaskBuilder::new("Task 1", "shell").build();
+        let task = TaskBuilder::new("Task 1", ActionType::Agent).build();
         planner.create_plan(
             "Test plan",
             vec![Phase {
@@ -1492,7 +1508,7 @@ mod tests {
     #[test]
     fn test_replan_history_accumulation() {
         let mut planner = HierarchicalPlanner::new();
-        let task = TaskBuilder::new("Task 1", "shell").build();
+        let task = TaskBuilder::new("Task 1", ActionType::Agent).build();
         planner.create_plan(
             "Test plan",
             vec![Phase {
@@ -1529,8 +1545,8 @@ mod tests {
 
     #[test]
     fn test_get_step_status_methods() {
-        let task1 = TaskBuilder::new("Task 1", "shell").build();
-        let task2 = TaskBuilder::new("Task 2", "shell").build();
+        let task1 = TaskBuilder::new("Task 1", ActionType::Agent).build();
+        let task2 = TaskBuilder::new("Task 2", ActionType::Agent).build();
 
         let mut planner = HierarchicalPlanner::new();
         planner.create_plan(
@@ -1557,8 +1573,8 @@ mod tests {
 
     #[test]
     fn test_multiple_replans_preserve_completed_work() {
-        let task1 = TaskBuilder::new("Task 1", "shell").build();
-        let task2 = TaskBuilder::new("Task 2", "shell").build();
+        let task1 = TaskBuilder::new("Task 1", ActionType::Agent).build();
+        let task2 = TaskBuilder::new("Task 2", ActionType::Agent).build();
         let task1_id = task1.id.clone();
 
         let mut planner = HierarchicalPlanner::new();
@@ -1599,7 +1615,7 @@ mod tests {
 
     #[test]
     fn test_compile_dag_single_phase_single_task_node_id() {
-        let task = TaskBuilder::new("Research topic", "agent").build();
+        let task = TaskBuilder::new("Research topic", ActionType::Agent).build();
         let task_id = task.id.clone();
         let plan = Plan {
             id: "plan-1".to_string(),
@@ -1642,9 +1658,9 @@ mod tests {
 
     #[test]
     fn test_compile_dag_multi_phase_result_key_pattern() {
-        let task0 = TaskBuilder::new("Task 0", "agent").build();
+        let task0 = TaskBuilder::new("Task 0", ActionType::Agent).build();
         let task0_id = task0.id.clone();
-        let task1 = TaskBuilder::new("Task 1", "tool").build();
+        let task1 = TaskBuilder::new("Task 1", ActionType::Tool).build();
         let task1_id = task1.id.clone();
 
         let plan = Plan {
@@ -1688,9 +1704,9 @@ mod tests {
 
     #[test]
     fn test_compile_dag_task_within_phase_dependencies() {
-        let task0 = TaskBuilder::new("First task", "agent").build();
+        let task0 = TaskBuilder::new("First task", ActionType::Agent).build();
         let task0_id = task0.id.clone();
-        let task1 = TaskBuilder::new("Second task", "llm")
+        let task1 = TaskBuilder::new("Second task", ActionType::Llm)
             .with_dependencies(vec![task0_id.clone()])
             .build();
         let task1_id = task1.id.clone();
@@ -1723,7 +1739,7 @@ mod tests {
 
     #[test]
     fn test_compile_dag_tool_node_has_output_var() {
-        let task = TaskBuilder::new("Run tool", "tool")
+        let task = TaskBuilder::new("Run tool", ActionType::Tool)
             .with_parameters(serde_json::json!({"tool": "Bash", "command": "echo hi"}))
             .build();
         let task_id = task.id.clone();

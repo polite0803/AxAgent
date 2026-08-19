@@ -8,3 +8,4 @@ publish = false
 axagent-harness = { path = "../crates/harness" }
 schemars = "1.2"
 serde_json = "1"
+ts-rs = { version = "12", features = ["serde-json-impl", "no-serde-warnings"] }

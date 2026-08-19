@@ -10,6 +10,7 @@
 use axagent_harness::business_rules::{
     BusinessRule, BusinessRuleEvaluator, RuleAction, RuleEvaluationOutcome, RuleResult,
 };
+use axagent_harness::workflow_types::NodeKind;
 use std::sync::Arc;
 
 /// 业务规则引擎 — 持有若干规则，对外提供批量评估接口。
@@ -19,7 +20,11 @@ pub struct BusinessRuleEngine {
 }
 
 impl BusinessRuleEvaluator for BusinessRuleEngine {
-    fn evaluate(&self, node_type: &str, node_input: &serde_json::Value) -> RuleEvaluationOutcome {
+    fn evaluate(
+        &self,
+        node_type: &NodeKind,
+        node_input: &serde_json::Value,
+    ) -> RuleEvaluationOutcome {
         for rule in &self.rules {
             let result = (rule.evaluate)(node_type, node_input);
             match result {
@@ -71,7 +76,7 @@ impl BusinessRuleEngine {
     /// 全部通过返回 `RuleEvaluationOutcome::Pass`。
     pub fn evaluate(
         &self,
-        node_type: &str,
+        node_type: &NodeKind,
         node_input: &serde_json::Value,
     ) -> RuleEvaluationOutcome {
         BusinessRuleEvaluator::evaluate(self, node_type, node_input)
@@ -88,7 +93,7 @@ pub fn amount_threshold_rule(threshold: f64) -> BusinessRule {
     BusinessRule {
         name: format!("AmountThreshold_{threshold}"),
         description: format!("金额超 {threshold} 需审批"),
-        evaluate: Arc::new(move |_node_type: &str, input: &serde_json::Value| {
+        evaluate: Arc::new(move |_node_kind: &NodeKind, input: &serde_json::Value| {
             let amount = input
                 .get("amount")
                 .or_else(|| input.get("value"))
@@ -112,16 +117,16 @@ pub fn destructive_operation_guard() -> BusinessRule {
     BusinessRule {
         name: "DestructiveOperationGuard".to_string(),
         description: "破坏性操作（删除/覆盖）需额外确认".to_string(),
-        evaluate: Arc::new(|node_type: &str, input: &serde_json::Value| {
-            // 检查节点类型
-            let type_is_destructive = matches!(node_type, "fileOperation" | "tool");
+        evaluate: Arc::new(|node_kind: &NodeKind, input: &serde_json::Value| {
+            // 检查节点类型是否为工具类（Tool 类节点可能执行破坏性操作）
+            let is_tool_node = matches!(node_kind, NodeKind::Tool);
             // 检查工具名或操作类型是否包含破坏性关键词
             let tool_name = input
                 .get("tool_name")
                 .or_else(|| input.get("operation"))
                 .and_then(|v| v.as_str())
                 .unwrap_or("");
-            let is_destructive = type_is_destructive
+            let is_destructive = is_tool_node
                 && (tool_name.contains("delete")
                     || tool_name.contains("remove")
                     || tool_name.contains("overwrite")
@@ -132,7 +137,7 @@ pub fn destructive_operation_guard() -> BusinessRule {
             if is_destructive {
                 RuleResult::RequiresApproval {
                     reason: format!(
-                        "检测到破坏性操作 '{tool_name}'（节点类型: {node_type}），需人工确认",
+                        "检测到破坏性操作 '{tool_name}'（节点类型: {node_kind:?}），需人工确认",
                     ),
                 }
             } else {
@@ -150,9 +155,9 @@ pub fn network_access_guard(allowed_domains: Vec<String>) -> BusinessRule {
     BusinessRule {
         name: "NetworkAccessGuard".to_string(),
         description: format!("网络访问需授权白名单（允许域名: {}）", allowed_domains.join(", ")),
-        evaluate: Arc::new(move |node_type: &str, input: &serde_json::Value| {
-            // 仅检查网络相关节点类型
-            if !matches!(node_type, "httpRequest" | "webhookSend" | "tool") {
+        evaluate: Arc::new(move |node_kind: &NodeKind, input: &serde_json::Value| {
+            // 仅检查工具类节点（可能包含 HTTP 请求等网络操作）
+            if !matches!(node_kind, NodeKind::Tool) {
                 return RuleResult::Pass;
             }
             let url = input
@@ -187,13 +192,14 @@ pub fn network_access_guard(allowed_domains: Vec<String>) -> BusinessRule {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axagent_harness::workflow_types::NodeKind;
     use serde_json::json;
 
     #[test]
     fn test_amount_threshold_passes_below() {
         let rule = amount_threshold_rule(10000.0);
         let input = json!({"amount": 5000});
-        match (rule.evaluate)("tool", &input) {
+        match (rule.evaluate)(&NodeKind::Tool, &input) {
             RuleResult::Pass => {},
             other => panic!("Expected Pass, got {:?}", other),
         }
@@ -203,7 +209,7 @@ mod tests {
     fn test_amount_threshold_blocks_above() {
         let rule = amount_threshold_rule(10000.0);
         let input = json!({"amount": 15000});
-        match (rule.evaluate)("tool", &input) {
+        match (rule.evaluate)(&NodeKind::Tool, &input) {
             RuleResult::RequiresApproval { .. } => {},
             other => panic!("Expected RequiresApproval, got {:?}", other),
         }
@@ -213,7 +219,7 @@ mod tests {
     fn test_destructive_operation_detected() {
         let rule = destructive_operation_guard();
         let input = json!({"tool_name": "delete_file", "file_path": "/tmp/test"});
-        match (rule.evaluate)("tool", &input) {
+        match (rule.evaluate)(&NodeKind::Tool, &input) {
             RuleResult::RequiresApproval { ref reason } => {
                 assert!(reason.contains("delete_file"));
             },
@@ -225,9 +231,20 @@ mod tests {
     fn test_destructive_operation_safe() {
         let rule = destructive_operation_guard();
         let input = json!({"tool_name": "read_file", "file_path": "/tmp/test"});
-        match (rule.evaluate)("tool", &input) {
+        match (rule.evaluate)(&NodeKind::Tool, &input) {
             RuleResult::Pass => {},
             other => panic!("Expected Pass, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_non_tool_node_skips_destructive_check() {
+        // Agent 节点不应该被工具类规则检查
+        let rule = destructive_operation_guard();
+        let input = json!({"tool_name": "delete_file"});
+        match (rule.evaluate)(&NodeKind::Agent, &input) {
+            RuleResult::Pass => {},
+            other => panic!("Expected Pass for Agent node, got {:?}", other),
         }
     }
 
@@ -235,7 +252,7 @@ mod tests {
     fn test_network_access_allowed() {
         let rule = network_access_guard(vec!["api.example.com".to_string()]);
         let input = json!({"url": "https://api.example.com/v1/data"});
-        match (rule.evaluate)("httpRequest", &input) {
+        match (rule.evaluate)(&NodeKind::Tool, &input) {
             RuleResult::Pass => {},
             other => panic!("Expected Pass, got {:?}", other),
         }
@@ -245,11 +262,22 @@ mod tests {
     fn test_network_access_blocked() {
         let rule = network_access_guard(vec!["api.example.com".to_string()]);
         let input = json!({"url": "https://evil.com/hack"});
-        match (rule.evaluate)("httpRequest", &input) {
+        match (rule.evaluate)(&NodeKind::Tool, &input) {
             RuleResult::Violation { ref reason } => {
                 assert!(reason.contains("evil.com"));
             },
             other => panic!("Expected Violation, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_network_access_skipped_for_non_tool() {
+        // 非 Tool 类节点应该跳过网络检查
+        let rule = network_access_guard(vec!["api.example.com".to_string()]);
+        let input = json!({"url": "https://evil.com/hack"});
+        match (rule.evaluate)(&NodeKind::Agent, &input) {
+            RuleResult::Pass => {},
+            other => panic!("Expected Pass for Agent node, got {:?}", other),
         }
     }
 
@@ -259,7 +287,8 @@ mod tests {
             amount_threshold_rule(10000.0),
             destructive_operation_guard(),
         ]);
-        let outcome = engine.evaluate("tool", &json!({"amount": 100, "tool_name": "read_file"}));
+        let outcome =
+            engine.evaluate(&NodeKind::Tool, &json!({"amount": 100, "tool_name": "read_file"}));
         assert!(matches!(outcome, RuleEvaluationOutcome::Pass));
     }
 
@@ -271,14 +300,14 @@ mod tests {
         ]);
         // 金额超阈值 + 破坏性操作，应返回金额违规（第一条规则优先）
         let outcome =
-            engine.evaluate("tool", &json!({"amount": 50000, "tool_name": "delete_file"}));
+            engine.evaluate(&NodeKind::Tool, &json!({"amount": 50000, "tool_name": "delete_file"}));
         assert!(matches!(outcome, RuleEvaluationOutcome::RequiresApproval { .. }));
     }
 
     #[test]
     fn test_engine_empty() {
         let engine = BusinessRuleEngine::empty();
-        let outcome = engine.evaluate("tool", &json!({"amount": 999999}));
+        let outcome = engine.evaluate(&NodeKind::Tool, &json!({"amount": 999999}));
         assert!(matches!(outcome, RuleEvaluationOutcome::Pass));
     }
 }
