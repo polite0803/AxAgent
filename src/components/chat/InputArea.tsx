@@ -1576,10 +1576,22 @@ export function InputArea() {
                   await clearAllMessages();
                   messageApi.success(t("chat.clearHistoryDone"));
                   break;
-                case "new":
-                  if (!activeConversationId) { return; }
-                  await createConversation("", "", "", { mode: "chat" });
+                case "new": {
+                  // 从当前对话继承模型/provider，或使用回退逻辑
+                  const fallbackProviderId = activeConversation?.providerId
+                    ?? settings.defaultProviderId
+                    ?? "";
+                  const fallbackModelId = activeConversation?.modelId
+                    ?? settings.defaultModelId
+                    ?? "";
+                  await createConversation(
+                    "",
+                    fallbackModelId,
+                    fallbackProviderId,
+                    { mode: "chat" },
+                  );
                   break;
+                }
                 case "stop":
                   cancelCurrentStream(activeConversationId ?? undefined);
                   break;
