@@ -10,6 +10,7 @@
 //! evolves, change them here first.
 
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
 // ── MessageRole ──────────────────────────────────────────────────────────────
 //
@@ -21,7 +22,7 @@ pub use crate::types::MessageRole;
 // ── ContentBlock ─────────────────────────────────────────────────────────────
 
 /// Authoritative definition of a content block (text / tool-use / tool-result).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 pub enum ContentBlock {
     Text { text: String },
     ToolUse { id: String, name: String, input: String },
@@ -31,7 +32,7 @@ pub enum ContentBlock {
 // ── ConversationMessage ──────────────────────────────────────────────────────
 
 /// Authoritative definition of a conversation message (role + content + optional usage).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
 pub struct ConversationMessage {
     pub role: MessageRole,
     pub blocks: Vec<ContentBlock>,
@@ -48,7 +49,7 @@ pub struct ConversationMessage {
 /// - `cache_creation_input_tokens`: prompt caching write tokens
 /// - `cache_read_input_tokens`: prompt caching hit tokens
 /// - `cache_miss_input_tokens`: optional true miss value (DeepSeek-specific)
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct TokenUsage {
     pub input_tokens: u32,
@@ -76,7 +77,7 @@ impl TokenUsage {
 // ── SessionInfo (minimal DTO) ────────────────────────────────────────────────
 
 /// Minimal session info that agent needs — full Session stays in runtime-core.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
 pub struct SessionInfo {
     pub session_id: String,
     pub user_id: String,

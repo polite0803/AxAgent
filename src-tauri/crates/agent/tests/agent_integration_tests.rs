@@ -9,7 +9,8 @@ use axagent_agent::coordinator::{
 };
 use axagent_agent::error_recovery_engine::{ErrorRecoveryEngine, RecoveryConfig, RecoveryContext};
 use axagent_agent::hierarchical_planner::{
-    HierarchicalPlanner, PlanBuilder, ReplanAction, ReplanReason, TaskBuilder, TaskStatus,
+    ActionType as PlannerActionType, HierarchicalPlanner, PlanBuilder, ReplanAction, ReplanReason,
+    TaskBuilder, TaskStatus,
 };
 use axagent_agent::react_engine::{LlmReasoningProvider, ReActEngine, ReActError, ReActResult};
 use axagent_agent::reasoning_state::{ActionType, ReActConfig, ReasoningContext};
@@ -532,8 +533,8 @@ mod test_react_engine_lifecycle {
 mod test_hierarchical_planner_dynamic_replanning {
     use super::*;
 
-    fn make_task(desc: &str, action: &str) -> axagent_agent::hierarchical_planner::PlannedTask {
-        TaskBuilder::new(desc, action).with_max_retries(1).build()
+    fn make_task(desc: &str, _action: &str) -> axagent_agent::hierarchical_planner::PlannedTask {
+        TaskBuilder::new(desc, PlannerActionType::Agent).with_max_retries(1).build()
     }
 
     #[test]
@@ -782,7 +783,7 @@ mod test_hierarchical_planner_dynamic_replanning {
     fn test_rollback_to_previous_version() {
         let mut planner = HierarchicalPlanner::new();
 
-        let task1 = TaskBuilder::new("Original Task", "original_action").build();
+        let task1 = TaskBuilder::new("Original Task", PlannerActionType::Agent).build();
         let task1_id = task1.id.clone();
 
         let _plan = PlanBuilder::new("Rollback Test")
@@ -835,7 +836,7 @@ mod test_hierarchical_planner_dynamic_replanning {
         let reason =
             ReplanReason::ResourceConstraint { constraint: "API rate limited".to_string() };
 
-        let new_task = TaskBuilder::new("Replacement Task", "replacement").build();
+        let new_task = TaskBuilder::new("Replacement Task", PlannerActionType::Agent).build();
 
         let actions = vec![
             ReplanAction::Skip { task_id: task1_id.clone(), reason: "Rate limited".to_string() },
@@ -860,7 +861,7 @@ mod test_hierarchical_planner_dynamic_replanning {
     fn test_replan_modify_task_parameters() {
         let mut planner = HierarchicalPlanner::new();
 
-        let task = TaskBuilder::new("Modify Test", "action")
+        let task = TaskBuilder::new("Modify Test", PlannerActionType::Agent)
             .with_max_retries(1)
             .with_role("junior")
             .build();

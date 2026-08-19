@@ -2,6 +2,8 @@
 
 //! DAG store — graph creation, dependency analysis, ready-node computation,
 //! and condition-branch skipping.
+//!
+//! 阶段 B: Typestate 集成 — 添加类型安全的节点状态管理方法。
 
 use std::collections::{HashMap, HashSet};
 
@@ -10,6 +12,7 @@ use axagent_harness::workflow_types::{EdgeType, WorkflowEdge, WorkflowNode};
 use crate::workflow_engine::{NodeRuntimeState, NodeStatus, Workflow, current_timestamp};
 
 use super::WorkEngine;
+use super::node_state::{AnyNodeState, PendingNode, ReadyNode, RunningNode, restore_typestate};
 
 /// Test helper: build a minimal Tool‑variant WorkflowNode with the given id & enabled flag.
 #[cfg(test)]
@@ -187,6 +190,230 @@ impl WorkEngine {
             })
             .map(|n| n.base_id().to_string())
             .collect()
+    }
+
+    // ── Typestate 辅助方法（阶段 B） ──
+
+    /// 从 Workflow 创建 Typestate 节点集合（用于渐进式迁移）
+    ///
+    /// 返回 HashMap<String, Box<dyn AnyNodeState>>，键为节点 ID，值为 Typestate 节点。
+    /// 此方法从 `node_states` 恢复 Typestate，确保状态信息不丢失。
+    pub(crate) fn to_typestate_map(workflow: &Workflow) -> HashMap<String, Box<dyn AnyNodeState>> {
+        workflow
+            .nodes
+            .iter()
+            .map(|node| {
+                let node_id = node.base_id().to_string();
+                let state = workflow.node_states.get(&node_id).cloned().unwrap_or_default();
+                (node_id, restore_typestate(node.clone(), state))
+            })
+            .collect()
+    }
+
+    /// 从 Typestate 集合获取就绪节点列表（类型安全版本）
+    ///
+    /// 与 `compute_ready_nodes` 不同，此方法返回 `Vec<ReadyNode>`，
+    /// 编译器确保只能对就绪状态的节点进行后续操作。
+    pub(crate) fn compute_ready_nodes_typed(workflow: &Workflow) -> Vec<ReadyNode> {
+        let loop_body_steps: HashSet<&str> = workflow
+            .nodes
+            .iter()
+            .filter_map(|n| match n {
+                WorkflowNode::Loop(l) => Some(l.config.body_steps.iter().map(|s| s.as_str())),
+                _ => None,
+            })
+            .flatten()
+            .collect();
+
+        let done_or_skipped: HashSet<&str> = workflow
+            .node_states
+            .iter()
+            .filter(|(_, s)| matches!(s.status, NodeStatus::Completed | NodeStatus::Skipped))
+            .map(|(id, _)| id.as_str())
+            .collect();
+
+        // 计算每个未完成节点的"未完成依赖数"
+        let mut remaining_deps: HashMap<&str, usize> = HashMap::new();
+        for node in &workflow.nodes {
+            remaining_deps.entry(node.base_id()).or_insert(0);
+        }
+        for edge in &workflow.edges {
+            if !done_or_skipped.contains(edge.source.as_str()) {
+                *remaining_deps.entry(edge.target.as_str()).or_insert(0) += 1;
+                continue;
+            }
+
+            // ConditionTrue/ConditionFalse 边：根据 condition 节点的输出决定是否激活
+            if edge.edge_type == EdgeType::ConditionTrue
+                || edge.edge_type == EdgeType::ConditionFalse
+            {
+                let cond_output = workflow.results.get(edge.source.as_str());
+                let result = cond_output
+                    .and_then(|o| o.get("result"))
+                    .and_then(|r| r.as_bool())
+                    .unwrap_or(false);
+                let branch = edge.source_handle.as_deref().unwrap_or(match edge.edge_type {
+                    EdgeType::ConditionTrue => "true",
+                    EdgeType::ConditionFalse => "false",
+                    _ => "true",
+                });
+                let should_follow = (branch == "true" && result) || (branch == "false" && !result);
+                if !should_follow {
+                    continue;
+                }
+            }
+
+            // Switch 边：根据 switch 节点的 matched_label 决定是否激活
+            let is_switch_source = workflow
+                .nodes
+                .iter()
+                .any(|n| n.base_id() == edge.source && matches!(n, WorkflowNode::Switch(_)));
+            if is_switch_source {
+                let switch_output = workflow.results.get(edge.source.as_str());
+                let selected_case =
+                    switch_output.and_then(|o| o.get("matched_label")).and_then(|v| v.as_str());
+                if let Some(ref handle) = edge.source_handle
+                    && selected_case.is_none_or(|case| case != handle.as_str())
+                {
+                    continue;
+                }
+            }
+        }
+
+        // 筛选就绪节点（Pending 状态且依赖满足）
+        workflow
+            .nodes
+            .iter()
+            .filter_map(|n| {
+                let state = workflow.node_states.get(n.base_id());
+                let is_pending = state
+                    .is_none_or(|s| matches!(s.status, NodeStatus::Pending | NodeStatus::Ready));
+                let deps_met = remaining_deps.get(n.base_id()).copied().unwrap_or(0) == 0;
+                if is_pending
+                    && deps_met
+                    && n.base_enabled()
+                    && !loop_body_steps.contains(n.base_id())
+                {
+                    // 转换为 Typestate Ready 节点
+                    let pending = PendingNode::new(n.clone());
+                    Some(pending.mark_ready())
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    /// 将 Typestate 节点的状态同步回 Workflow.node_states
+    ///
+    /// 当 Typestate 状态转移完成后，需要将新的状态写回 Workflow，
+    /// 以保持数据一致性。
+    pub(crate) fn sync_typestate_to_workflow(
+        workflow: &mut Workflow,
+        typestate_map: &HashMap<String, Box<dyn AnyNodeState>>,
+    ) {
+        for (node_id, any_state) in typestate_map {
+            if let Some(state) = workflow.node_states.get_mut(node_id) {
+                *state = any_state.runtime_state().clone();
+            } else {
+                workflow.node_states.insert(node_id.clone(), any_state.runtime_state().clone());
+            }
+        }
+    }
+
+    /// 标记就绪节点为运行中（类型安全版本）
+    ///
+    /// 在节点开始执行前调用此方法，返回 `RunningNode`。
+    /// 编译器确保只能对 `ReadyNode` 调用此方法。
+    pub(crate) fn mark_ready_to_running(
+        workflow: &mut Workflow,
+        node_id: &str,
+    ) -> Option<RunningNode> {
+        let node = workflow.nodes.iter().find(|n| n.base_id() == node_id)?.clone();
+        let state = workflow.node_states.get(node_id).cloned()?;
+
+        // 只有 Ready 状态才能转换为 Running
+        if !matches!(state.status, NodeStatus::Ready) {
+            return None;
+        }
+
+        // 使用 Typestate 公共 API 进行状态转移
+        let pending = PendingNode::new(node);
+        let ready = pending.mark_ready();
+        let running = ready.start();
+
+        // 同步回 Workflow
+        workflow.node_states.insert(node_id.to_string(), running.runtime_state().clone());
+
+        Some(running)
+    }
+
+    /// 标记运行中节点为完成（类型安全版本）
+    pub(crate) fn mark_running_to_completed(workflow: &mut Workflow, node_id: &str) -> bool {
+        let Some(state) = workflow.node_states.get_mut(node_id) else {
+            return false;
+        };
+
+        if !matches!(state.status, NodeStatus::Running) {
+            return false;
+        }
+
+        state.status = NodeStatus::Completed;
+        state.completed_at = Some(current_timestamp() as i64);
+        state.attempts = 0;
+        true
+    }
+
+    /// 标记运行中节点为失败（类型安全版本）
+    pub(crate) fn mark_running_to_failed(
+        workflow: &mut Workflow,
+        node_id: &str,
+        error: String,
+    ) -> bool {
+        let Some(state) = workflow.node_states.get_mut(node_id) else {
+            return false;
+        };
+
+        if !matches!(state.status, NodeStatus::Running) {
+            return false;
+        }
+
+        state.status = NodeStatus::Failed;
+        state.error = Some(error);
+        state.completed_at = Some(current_timestamp() as i64);
+        state.attempts += 1;
+        true
+    }
+
+    /// 标记就绪节点为跳过（类型安全版本）
+    pub(crate) fn mark_ready_to_skipped(workflow: &mut Workflow, node_id: &str) -> bool {
+        let Some(state) = workflow.node_states.get_mut(node_id) else {
+            return false;
+        };
+
+        if !matches!(state.status, NodeStatus::Ready) {
+            return false;
+        }
+
+        state.status = NodeStatus::Skipped;
+        state.completed_at = Some(current_timestamp() as i64);
+        true
+    }
+
+    /// 失败节点重试（回到就绪状态）
+    pub(crate) fn mark_failed_to_ready(workflow: &mut Workflow, node_id: &str) -> bool {
+        let Some(state) = workflow.node_states.get_mut(node_id) else {
+            return false;
+        };
+
+        if !matches!(state.status, NodeStatus::Failed) {
+            return false;
+        }
+
+        state.status = NodeStatus::Ready;
+        state.error = None;
+        state.completed_at = None;
+        true
     }
 }
 

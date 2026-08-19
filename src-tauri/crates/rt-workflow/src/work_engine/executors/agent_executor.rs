@@ -272,6 +272,8 @@ impl AgentExecutor {
             history: Vec::new(),
             tools,
             tool_permissions: None,
+            // 注意：model 为空时表示"使用默认模型"，空字符串在此处是语义正确的默认值
+            // 而非掩盖错误的手段
             model: an.config.model.clone().unwrap_or_default(),
             provider_id: None,
             temperature: an.config.temperature,
@@ -429,52 +431,44 @@ impl NodeExecutorTrait for AgentExecutor {
         // 1. 加载 agent profile（带 TTL 缓存，经 harness repository 抽象，不直接依赖 entities）
         // 修复缺陷 6：缓存项 60 秒后失效，避免用户修改 profile 后缓存仍是旧的
         let profile = if let Some(ref pid) = an.config.agent_profile_id {
-            // 先查缓存，检查 TTL
-            {
+            // 先尝试从缓存获取（检查 TTL）
+            let cached_profile = {
                 let cache = self.profile_cache.lock().await;
-                let cached_valid = cache.get(pid.as_str()).map(|c| {
+                cache.get(pid.as_str()).and_then(|c| {
                     if c.cached_at.elapsed() > PROFILE_CACHE_TTL {
                         tracing::debug!(
                             profile_id = %pid,
                             "Profile cache expired (TTL={:?}), will re-fetch from DB",
                             PROFILE_CACHE_TTL
                         );
-                        false
+                        None
                     } else {
-                        true
+                        Some(c.profile.clone())
                     }
-                });
-                if let Some(true) = cached_valid {
-                    Some(
-                        cache
-                            .get(pid.as_str())
-                            .expect("Agent 执行器：缓存应在检查后命中")
-                            .profile
-                            .clone(),
-                    )
-                } else {
-                    drop(cache);
-                    let result = axagent_harness::repositories::agent_profile_repository()
-                        .get_agent_profile(pid.as_str())
-                        .await
-                        .map_err(|e| {
-                            NodeError::exec_failed(
-                                error_code::UNSUPPORTED_PROVIDER,
-                                format!("Agent profile query failed: {e}"),
-                            )
-                        })?;
-                    if let Some(ref p) = result {
-                        let mut cache = self.profile_cache.lock().await;
-                        cache.insert(
-                            pid.clone(),
-                            CachedProfile {
-                                profile: p.clone(),
-                                cached_at: std::time::Instant::now(),
-                            },
-                        );
-                    }
-                    result
+                })
+            };
+
+            // 如果缓存未命中或过期，查询数据库
+            if let Some(cached) = cached_profile {
+                Some(cached)
+            } else {
+                let result = axagent_harness::repositories::agent_profile_repository()
+                    .get_agent_profile(pid.as_str())
+                    .await
+                    .map_err(|e| {
+                        NodeError::exec_failed(
+                            error_code::UNSUPPORTED_PROVIDER,
+                            format!("Agent profile query failed: {e}"),
+                        )
+                    })?;
+                if let Some(ref p) = result {
+                    let mut cache = self.profile_cache.lock().await;
+                    cache.insert(
+                        pid.clone(),
+                        CachedProfile { profile: p.clone(), cached_at: std::time::Instant::now() },
+                    );
                 }
+                result
             }
         } else {
             None
@@ -2389,8 +2383,17 @@ impl AgentExecutor {
                 .clone()
             // data dropped here
         };
-        let phases_json: Vec<serde_json::Value> =
-            plan.phases.iter().map(|p| serde_json::to_value(p).unwrap_or_default()).collect();
+        let phases_json: Vec<serde_json::Value> = plan
+            .phases
+            .iter()
+            .map(|p| match serde_json::to_value(p) {
+                Ok(v) => v,
+                Err(e) => {
+                    tracing::warn!("Plan 阶段序列化失败: {e}, 使用 Null 占位");
+                    serde_json::Value::Null
+                },
+            })
+            .collect();
         // Bundle planner operations into a single lock scope to avoid TOCTOU
         {
             let mut planner = lock_or_recover(planner_arc.lock());
@@ -2930,7 +2933,13 @@ fn parse_chat2api_format(text: &str) -> Option<Vec<axagent_harness::types::ToolC
         }
 
         let args_json = serde_json::Value::Object(args_map);
-        let arguments_str = serde_json::to_string(&args_json).unwrap_or_default();
+        let arguments_str = match serde_json::to_string(&args_json) {
+            Ok(s) => s,
+            Err(e) => {
+                tracing::warn!("inline tool call 参数序列化失败: {e}, 使用空字符串");
+                String::new()
+            },
+        };
 
         results.push(axagent_harness::types::ToolCall {
             id: format!("inline-{}", results.len()),
@@ -3936,6 +3945,7 @@ fn validate_strict_mode_output(
 
         // 所有修复尝试均失败 → 报告具体失败原因（列出前 3 个候选的错误）
         for (i, c) in candidates.iter().take(3).enumerate() {
+            // 注意：此处用于日志记录错误信息，空字符串作为默认值是安全的
             let err = serde_json::from_str::<serde_json::Value>(c)
                 .err()
                 .map(|e| e.to_string())
@@ -3947,6 +3957,7 @@ fn validate_strict_mode_output(
                 c.chars().take(100).collect::<String>()
             );
         }
+        // 注意：此处用于日志记录错误信息，空字符串作为默认值是安全的
         let serde_err = serde_json::from_str::<serde_json::Value>(trimmed)
             .err()
             .map(|e| e.to_string())

@@ -1191,6 +1191,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sha2 0.11.0",
+ "static_assertions",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
@@ -9334,6 +9335,7 @@ dependencies = [
  "axagent-harness",
  "schemars 1.2.1",
  "serde_json",
+ "ts-rs",
 ]
 
 [[package]]

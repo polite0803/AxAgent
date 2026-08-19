@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use axagent_agent::hierarchical_planner::{
-    HierarchicalPlanner, PlanBuilder, PlanStatus, TaskBuilder,
+    ActionType, HierarchicalPlanner, PlanBuilder, PlanStatus, TaskBuilder,
 };
 use serde_json::json;
 
-fn make_task(desc: &str, action: &str) -> axagent_agent::hierarchical_planner::PlannedTask {
+fn make_task(desc: &str, action: ActionType) -> axagent_agent::hierarchical_planner::PlannedTask {
     TaskBuilder::new(desc, action).build()
 }
 
@@ -32,7 +32,7 @@ fn test_create_plan() {
         "data_collection",
         "Gather data",
         vec![],
-        vec![make_task("Search for information", "web_search")],
+        vec![make_task("Search for information", ActionType::Agent)],
     );
     let plan = planner.create_plan("Test Goal", vec![phase]);
     assert_eq!(plan.goal, "Test Goal");
@@ -43,7 +43,7 @@ fn test_create_plan() {
 #[test]
 fn test_get_plan() {
     let mut planner = HierarchicalPlanner::new();
-    let phase = make_phase("p1", "Phase 1", vec![], vec![make_task("task", "action")]);
+    let phase = make_phase("p1", "Phase 1", vec![], vec![make_task("task", ActionType::Agent)]);
     planner.create_plan("Goal", vec![phase]);
     let plan = planner.get_plan();
     assert!(plan.is_some());
@@ -53,7 +53,7 @@ fn test_get_plan() {
 #[test]
 fn test_start_execution() {
     let mut planner = HierarchicalPlanner::new();
-    let phase = make_phase("p1", "Phase 1", vec![], vec![make_task("task", "action")]);
+    let phase = make_phase("p1", "Phase 1", vec![], vec![make_task("task", ActionType::Agent)]);
     planner.create_plan("Execute Test", vec![phase]);
     let result = planner.start_execution();
     assert!(result.is_ok());
@@ -63,7 +63,7 @@ fn test_start_execution() {
 #[test]
 fn test_pause_and_resume() {
     let mut planner = HierarchicalPlanner::new();
-    let phase = make_phase("p1", "Phase 1", vec![], vec![make_task("task", "action")]);
+    let phase = make_phase("p1", "Phase 1", vec![], vec![make_task("task", ActionType::Agent)]);
     planner.create_plan("Pause Test", vec![phase]);
     planner.start_execution().expect("测试应成功");
 
@@ -77,7 +77,7 @@ fn test_pause_and_resume() {
 #[test]
 fn test_cancel_execution() {
     let mut planner = HierarchicalPlanner::new();
-    let phase = make_phase("p1", "Phase 1", vec![], vec![make_task("task", "action")]);
+    let phase = make_phase("p1", "Phase 1", vec![], vec![make_task("task", ActionType::Agent)]);
     planner.create_plan("Cancel Test", vec![phase]);
     planner.start_execution().expect("测试应成功");
 
@@ -92,7 +92,7 @@ fn test_get_next_executable_tasks() {
         "p1",
         "Phase 1",
         vec![],
-        vec![make_task("Search for information", "web_search")],
+        vec![make_task("Search for information", ActionType::Agent)],
     );
     planner.create_plan("Tasks Test", vec![phase]);
     planner.start_execution().expect("测试应成功");
@@ -105,7 +105,8 @@ fn test_get_next_executable_tasks() {
 #[test]
 fn test_mark_task_lifecycle() {
     let mut planner = HierarchicalPlanner::new();
-    let phase = make_phase("p1", "Phase 1", vec![], vec![make_task("test task", "action_type")]);
+    let phase =
+        make_phase("p1", "Phase 1", vec![], vec![make_task("test task", ActionType::Agent)]);
     planner.create_plan("Lifecycle Test", vec![phase]);
     planner.start_execution().expect("测试应成功");
 
@@ -121,7 +122,7 @@ fn test_mark_task_lifecycle() {
 #[test]
 fn test_mark_task_failed() {
     let mut planner = HierarchicalPlanner::new();
-    let task = TaskBuilder::new("failable task", "action").with_max_retries(1).build();
+    let task = TaskBuilder::new("failable task", ActionType::Agent).with_max_retries(1).build();
     let phase = make_phase("p1", "Phase 1", vec![], vec![task]);
     planner.create_plan("Fail Test", vec![phase]);
     planner.start_execution().expect("测试应成功");
@@ -142,7 +143,7 @@ fn test_get_progress() {
         "p1",
         "Phase 1",
         vec![],
-        vec![make_task("task1", "action"), make_task("task2", "action")],
+        vec![make_task("task1", ActionType::Agent), make_task("task2", ActionType::Agent)],
     );
     planner.create_plan("Progress Test", vec![phase]);
 
@@ -159,7 +160,7 @@ fn test_plan_builder() {
             "First Phase",
             "Description of first phase",
             vec![],
-            vec![TaskBuilder::new("Do something", "action_type").with_max_retries(3).build()],
+            vec![TaskBuilder::new("Do something", ActionType::Agent).with_max_retries(3).build()],
         )
         .build(&mut planner);
 
@@ -171,7 +172,7 @@ fn test_plan_builder() {
 
 #[test]
 fn test_task_builder_with_dependencies() {
-    let task = TaskBuilder::new("Dependent task", "compute")
+    let task = TaskBuilder::new("Dependent task", ActionType::Agent)
         .with_dependencies(vec!["task_1".to_string(), "task_2".to_string()])
         .with_role("analyzer")
         .build();
@@ -185,7 +186,7 @@ fn test_task_builder_with_dependencies() {
 fn test_planner_with_max_retries() {
     let planner = HierarchicalPlanner::new().with_max_retries(5);
     let mut planner = planner;
-    let phase = make_phase("p1", "Phase 1", vec![], vec![make_task("task", "action")]);
+    let phase = make_phase("p1", "Phase 1", vec![], vec![make_task("task", ActionType::Agent)]);
     planner.create_plan("Retry Test", vec![phase]);
     let plan = planner.get_plan().expect("测试应成功");
     assert!(plan.phases[0].tasks[0].max_retries > 0);
@@ -199,13 +200,13 @@ fn test_multiple_phases_with_dependencies() {
             "Phase 1",
             "First phase",
             vec![],
-            vec![TaskBuilder::new("Task 1", "action").build()],
+            vec![TaskBuilder::new("Task 1", ActionType::Agent).build()],
         )
         .add_phase(
             "Phase 2",
             "Second phase",
             vec!["id_Phase 1".to_string()],
-            vec![TaskBuilder::new("Task 2", "action").build()],
+            vec![TaskBuilder::new("Task 2", ActionType::Agent).build()],
         )
         .build(&mut planner);
 
@@ -217,7 +218,7 @@ fn test_multiple_phases_with_dependencies() {
 #[test]
 fn test_plan_status_transitions() {
     let mut planner = HierarchicalPlanner::new();
-    let phase = make_phase("p1", "Phase 1", vec![], vec![make_task("task", "action")]);
+    let phase = make_phase("p1", "Phase 1", vec![], vec![make_task("task", ActionType::Agent)]);
     planner.create_plan("Status Test", vec![phase]);
 
     assert_eq!(planner.get_plan().expect("测试应成功").status, PlanStatus::Draft);
@@ -233,10 +234,10 @@ fn test_plan_status_transitions() {
 
 #[test]
 fn test_task_builder_with_parameters() {
-    let task = TaskBuilder::new("param task", "search")
+    let task = TaskBuilder::new("param task", ActionType::Agent)
         .with_parameters(json!({"query": "rust programming", "limit": 10}))
         .build();
 
     assert_eq!(task.description, "param task");
-    assert_eq!(task.action_type, "search");
+    assert_eq!(task.action_type, ActionType::Agent);
 }

@@ -47,6 +47,7 @@ pub mod core_error;
 pub mod error_codes;
 pub mod orchestration_dispatch;
 pub use orchestration_dispatch::{DispatchRequest, SubTaskDispatchResult, SubTaskDispatcher};
+pub mod node_output_status;
 pub mod persistence_mod;
 pub mod plan_compiler;
 pub mod plan_types;
@@ -57,6 +58,7 @@ pub mod url_utils;
 pub mod util_fns;
 pub mod workflow_node_deserializer;
 pub mod workflow_types;
+pub use node_output_status::NodeOutputStatus;
 #[macro_use]
 pub mod reliability;
 pub mod response_normalizer;
@@ -869,3 +871,6 @@ pub use industry_orchestration::{
     SelfImprovementConfig, SkillEvolverConfig, StepDependency, SubTask, SubTaskStatus,
     WorkflowEvolverConfig,
 };
+
+// ── 类型驱动设计：DTO 尺寸锁定（编译时断言） ──
+pub mod dto_locks;

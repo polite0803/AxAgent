@@ -141,7 +141,7 @@ pub use recovery_strategies::{
 
 // hierarchical_planner — 外部引用：commands/plan, commands/dojo_sdk (G19 Plan 三件套)
 pub use hierarchical_planner::{
-    HierarchicalPlanner, Phase, PhaseStatus, Plan, PlanStatus, PlannedTask, TaskStatus,
+    ActionType, HierarchicalPlanner, Phase, PhaseStatus, Plan, PlanStatus, PlannedTask, TaskStatus,
 };
 
 // insight_generator — 外部引用：commands/reflection

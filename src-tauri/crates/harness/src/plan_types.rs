@@ -7,8 +7,50 @@
 
 use crate::workflow_types::CompensationConfig;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 // ── 核心数据类型 ────────────────────────────────────────────
+
+/// 计划任务的动作类型
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ActionType {
+    /// 工具调用
+    Tool,
+    /// LLM 推理
+    Llm,
+    /// Agent 执行
+    Agent,
+}
+
+impl ActionType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Tool => "tool",
+            Self::Llm => "llm",
+            Self::Agent => "agent",
+        }
+    }
+}
+
+impl FromStr for ActionType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "tool" => Ok(Self::Tool),
+            "llm" => Ok(Self::Llm),
+            "agent" => Ok(Self::Agent),
+            other => Err(format!("Unknown action type: {other}")),
+        }
+    }
+}
+
+impl std::fmt::Display for ActionType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Plan {
@@ -34,7 +76,7 @@ pub struct Phase {
 pub struct PlannedTask {
     pub id: String,
     pub description: String,
-    pub action_type: String,
+    pub action_type: ActionType,
     pub parameters: serde_json::Value,
     pub dependencies: Vec<String>,
     pub status: TaskStatus,

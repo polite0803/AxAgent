@@ -124,7 +124,7 @@ pub struct CompensationConfig {
 ///
 /// 由引擎层定义，编辑器前端根据此分类从主题 token 映射颜色。
 /// 禁止在工作流设计层面随意指定节点颜色。
-#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema, TS)]
 pub enum NodeKind {
     /// 输入/触发类（黄）
     Input,

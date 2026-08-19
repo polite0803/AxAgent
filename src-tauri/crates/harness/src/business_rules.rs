@@ -7,6 +7,8 @@
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+use crate::workflow_types::NodeKind;
+
 // ── 核心类型 ──
 
 /// 规则评估结果
@@ -36,8 +38,8 @@ pub enum RuleAction {
 pub struct BusinessRule {
     pub name: String,
     pub description: String,
-    /// 规则评估函数：输入 (node_type, 节点输入数据) → 是否违反
-    pub evaluate: Arc<dyn Fn(&str, &serde_json::Value) -> RuleResult + Send + Sync>,
+    /// 规则评估函数：输入 (节点类型, 节点输入数据) → 是否违反
+    pub evaluate: Arc<dyn Fn(&NodeKind, &serde_json::Value) -> RuleResult + Send + Sync>,
     /// 违反时的行为
     pub action: RuleAction,
 }
@@ -67,5 +69,9 @@ pub enum RuleEvaluationOutcome {
 ///
 /// 拦截器等组件通过此 trait 解耦，无需直接依赖具体实现类型。
 pub trait BusinessRuleEvaluator: std::fmt::Debug + Send + Sync + std::any::Any {
-    fn evaluate(&self, node_type: &str, node_input: &serde_json::Value) -> RuleEvaluationOutcome;
+    fn evaluate(
+        &self,
+        node_type: &NodeKind,
+        node_input: &serde_json::Value,
+    ) -> RuleEvaluationOutcome;
 }

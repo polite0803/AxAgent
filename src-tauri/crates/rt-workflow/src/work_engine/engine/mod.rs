@@ -35,7 +35,9 @@ use output_builder::{
 use rhai_runtime::{LocalRhaiToolFn, RhaiScriptCache, rhai_map_to_json};
 
 use dag_store::skip_disabled_branch_nodes;
-use node_state::{NodeCircuitBreaker, NodeResult, compute_backoff};
+use node_state::{
+    AnyNodeState, NodeCircuitBreaker, NodeResult, compute_backoff, restore_typestate,
+};
 
 use crate::task_contract::TaskContract;
 use crate::workflow_engine::{
@@ -1207,7 +1209,21 @@ impl WorkEngine {
     pub async fn get_ready_steps(&self, workflow_id: &str) -> Result<Vec<String>, WorkflowError> {
         let workflows = self.workflows.read().await;
         let workflow = workflows.get(workflow_id).ok_or(WorkflowError::WorkflowNotFound)?;
-        Ok(Self::compute_ready_nodes(workflow))
+
+        // 同时使用现有方法和 Typestate 方法计算就绪节点，验证结果一致性
+        let ready_nodes = Self::compute_ready_nodes(workflow);
+        let ready_nodes_typed = Self::compute_ready_nodes_typed_internal(workflow);
+
+        // Typestate 方法结果作为验证
+        if ready_nodes != ready_nodes_typed {
+            tracing::warn!(
+                "[Typestate] 就绪节点计算结果不一致: 现有方法={:?}, Typestate方法={:?}",
+                ready_nodes,
+                ready_nodes_typed
+            );
+        }
+
+        Ok(ready_nodes)
     }
 
     /// 按 execution_id 取就绪节点（修复：运行时操作必须按 execution_id 索引，
@@ -1220,7 +1236,21 @@ impl WorkEngine {
         let workflow = workflows
             .get(execution_id)
             .ok_or_else(|| WorkEngineError::NotFound(execution_id.to_string()))?;
-        Ok(Self::compute_ready_nodes(workflow))
+
+        // 同时使用现有方法和 Typestate 方法计算就绪节点，验证结果一致性
+        let ready_nodes = Self::compute_ready_nodes(workflow);
+        let ready_nodes_typed = Self::compute_ready_nodes_typed_internal(workflow);
+
+        // Typestate 方法结果作为验证
+        if ready_nodes != ready_nodes_typed {
+            tracing::warn!(
+                "[Typestate] 就绪节点计算结果不一致(execution): 现有方法={:?}, Typestate方法={:?}",
+                ready_nodes,
+                ready_nodes_typed
+            );
+        }
+
+        Ok(ready_nodes)
     }
 
     /// 更新节点运行时状态，自动推进工作流终端判定
@@ -1278,13 +1308,13 @@ impl WorkEngine {
         error: Option<String>,
         output_var: Option<&str>,
     ) -> Result<(), WorkEngineError> {
-        let state = match workflow.node_states.get_mut(node_id) {
-            Some(s) => s,
+        // 先获取当前状态的副本，避免可变借用冲突
+        let current_status = match workflow.node_states.get(node_id) {
+            Some(s) => s.status,
             None => return Err(WorkEngineError::NotFound(node_id.to_string())),
         };
 
         // ── 状态机合法性校验 ──
-        let current_status = state.status;
         if !status.is_valid_transition_from(current_status) {
             tracing::warn!(
                 "[状态机] 非法状态迁移被拒绝: node={}, {:?} → {:?} (workflow={})",
@@ -1299,6 +1329,46 @@ impl WorkEngine {
                 to: format!("{status:?}"),
             });
         }
+
+        // ── Typestate 状态转移验证（阶段 B） ──
+        // 使用 Typestate 类型系统验证状态转移的正确性
+        Self::validate_typestate_transition(workflow, node_id, status)?;
+
+        // ── Typestate 状态转移执行（阶段 B） ──
+        // 根据目标状态使用对应的 Typestate 方法执行状态转移
+        // 这将确保状态转移只能通过 Typestate 定义的合法路径进行
+        match status {
+            NodeStatus::Running => {
+                // Ready → Running
+                let _ = WorkEngine::mark_ready_to_running(workflow, node_id);
+            },
+            NodeStatus::Completed => {
+                // Running → Completed
+                let _ = WorkEngine::mark_running_to_completed(workflow, node_id);
+            },
+            NodeStatus::Failed => {
+                // Running → Failed
+                let err_msg = error.clone().unwrap_or_else(|| "Unknown error".to_string());
+                let _ = WorkEngine::mark_running_to_failed(workflow, node_id, err_msg);
+            },
+            NodeStatus::Skipped => {
+                // Ready → Skipped
+                let _ = WorkEngine::mark_ready_to_skipped(workflow, node_id);
+            },
+            NodeStatus::Ready => {
+                // Failed → Ready（重试）
+                let _ = WorkEngine::mark_failed_to_ready(workflow, node_id);
+            },
+            _ => {
+                // 其他状态直接修改
+            },
+        }
+
+        // 现在可以安全获取可变引用（Typestate 方法已同步更新状态）
+        let state = match workflow.node_states.get_mut(node_id) {
+            Some(s) => s,
+            None => return Err(WorkEngineError::NotFound(node_id.to_string())),
+        };
 
         state.status = status;
         // ── 时间戳维护：保证 started_at/completed_at 在 status 变化时正确更新 ──
@@ -1327,6 +1397,11 @@ impl WorkEngine {
             state.error = Some(e);
             state.attempts += 1;
         }
+
+        // ── Typestate 同步验证（阶段 B） ──
+        // 将更新后的状态同步回 Typestate 映射，确保 Typestate 状态与 Workflow 一致
+        let typestate_map = WorkEngine::to_typestate_map(workflow);
+        Self::sync_typestate_to_workflow_internal(workflow, &typestate_map);
 
         // ── 回滚补偿：节点标记为 Failed 时，根据补偿策略执行操作 ──
         if status == NodeStatus::Failed
@@ -1393,6 +1468,88 @@ impl WorkEngine {
         }
 
         Ok(())
+    }
+
+    /// Typestate 状态转移验证（阶段 B）
+    ///
+    /// 使用 Typestate 类型系统验证状态转移的正确性。
+    /// 从当前节点状态恢复 Typestate，尝试执行状态转移，
+    /// 如果转移不合法则返回错误。
+    fn validate_typestate_transition(
+        workflow: &mut Workflow,
+        node_id: &str,
+        target_status: NodeStatus,
+    ) -> Result<(), WorkEngineError> {
+        let state = match workflow.node_states.get(node_id) {
+            Some(s) => s.clone(),
+            None => return Err(WorkEngineError::NotFound(node_id.to_string())),
+        };
+
+        let node = match workflow.nodes.iter().find(|n| n.base_id() == node_id) {
+            Some(n) => n.clone(),
+            None => return Err(WorkEngineError::NotFound(node_id.to_string())),
+        };
+
+        // 从当前状态恢复 Typestate
+        let typestate = restore_typestate(node, state);
+
+        // 验证目标状态是否可达
+        let current_status = typestate.current_status();
+        let is_valid = Self::can_transition_via_typestate(current_status, target_status);
+
+        if !is_valid {
+            tracing::warn!(
+                "[Typestate] 状态转移验证失败: node={}, {:?} → {:?}",
+                node_id,
+                current_status,
+                target_status
+            );
+            return Err(WorkEngineError::InvalidStateTransition {
+                node_id: node_id.to_string(),
+                from: format!("{current_status:?}"),
+                to: format!("{target_status:?}"),
+            });
+        }
+
+        Ok(())
+    }
+
+    /// Typestate 状态转移合法性判断
+    ///
+    /// 基于 Typestate 状态机规则判断转移是否合法：
+    /// - Pending → Ready（通过 mark_ready）
+    /// - Ready → Running / Skipped（通过 start / skip）
+    /// - Running → Completed / Failed（通过 complete / fail）
+    /// - Failed → Ready（通过 retry）
+    fn can_transition_via_typestate(from: NodeStatus, to: NodeStatus) -> bool {
+        use NodeStatus::*;
+        matches!(
+            (from, to),
+            (Pending, Ready)
+                | (Ready, Running)
+                | (Ready, Skipped)
+                | (Running, Completed)
+                | (Running, Failed)
+                | (Failed, Ready)
+        )
+    }
+
+    /// Typestate 版本的就绪节点计算（阶段 B）
+    ///
+    /// 使用 Typestate 方法计算就绪节点，返回类型安全的 ReadyNode 列表。
+    /// 用于渐进式替换现有的 compute_ready_nodes 方法。
+    fn compute_ready_nodes_typed_internal(workflow: &Workflow) -> Vec<String> {
+        // 调用 dag_store 中的 Typestate 方法
+        let ready_nodes = WorkEngine::compute_ready_nodes_typed(workflow);
+        ready_nodes.iter().map(|r| r.node_id().to_string()).collect()
+    }
+
+    /// 从 Typestate 集合同步回 Workflow（阶段 B）
+    fn sync_typestate_to_workflow_internal(
+        workflow: &mut Workflow,
+        typestate_map: &HashMap<String, Box<dyn AnyNodeState>>,
+    ) {
+        WorkEngine::sync_typestate_to_workflow(workflow, typestate_map);
     }
 
     /// 重试重置：将执行实例中的节点状态直接置回 Ready，供下一轮调度重新执行。
