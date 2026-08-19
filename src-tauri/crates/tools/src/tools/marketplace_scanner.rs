@@ -781,6 +781,46 @@ fn regex_find(text: &str, pattern: &str) -> Option<String> {
     None
 }
 
+/// 判断错误是否为网络环境问题（网络集成测试专用）
+///
+/// 覆盖两类环境性失败，用于网络集成测试「离线/CI 网络不可达或服务端限流时跳过」：
+/// - 网络层错误（连接失败、DNS 解析失败、超时等，来自 reqwest 等）
+/// - HTTP 限流/服务端错误（429 限流、403 拒绝、5xx 临时故障）
+///
+/// 注意：不匹配 4xx 中的其他错误（如 400），避免掩盖请求构造类的真实逻辑缺陷。
+#[cfg(test)]
+pub(crate) fn is_network_env_error(err: &str) -> bool {
+    let err_lower = err.to_lowercase();
+
+    // 网络层错误
+    if err_lower.contains("connection")
+        || err_lower.contains("dns")
+        || err_lower.contains("timed out")
+        || err_lower.contains("error sending request")
+        || err_lower.contains("timeout")
+    {
+        return true;
+    }
+
+    // HTTP 限流 / 服务端临时错误（各平台错误格式略有差异，如「状态码 429」/「状态码: 429」/「status 429」）
+    [
+        "状态码 429",
+        "状态码: 429",
+        "status 429",
+        "status: 429",
+        "状态码 403",
+        "状态码: 403",
+        "status 403",
+        "status: 403",
+        "状态码 5",
+        "状态码: 5",
+        "status 5",
+        "status: 5",
+    ]
+    .iter()
+    .any(|pattern| err_lower.contains(pattern))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -789,6 +829,26 @@ mod tests {
     fn test_new_aggregate_scanner() {
         let scanner = AggregateMarketplaceScanner::new();
         assert!(scanner.disabled_platforms.is_empty());
+    }
+
+    #[test]
+    fn test_is_network_env_error() {
+        // 网络层错误（reqwest 等）
+        assert!(is_network_env_error("ArXiv API 请求失败: error sending request for url"));
+        assert!(is_network_env_error("连接失败: connection reset by peer"));
+        assert!(is_network_env_error("DNS 解析失败"));
+        assert!(is_network_env_error("请求超时: operation timed out"));
+
+        // HTTP 限流 / 服务端临时错误（CI 数据中心 IP 常见）
+        assert!(is_network_env_error("ArXiv API 返回状态码 429"));
+        assert!(is_network_env_error("HN Algolia API 返回状态码: 429"));
+        assert!(is_network_env_error("API 返回状态码 503: Service Unavailable"));
+        assert!(is_network_env_error("ArXiv API 返回状态码 403"));
+
+        // 真实逻辑错误不应被跳过
+        assert!(!is_network_env_error("ArXiv API 返回状态码 400"));
+        assert!(!is_network_env_error("未配置 API Token，无法调用官方 API"));
+        assert!(!is_network_env_error("响应解析失败: unexpected token"));
     }
 
     #[test]

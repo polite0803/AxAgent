@@ -299,17 +299,12 @@ mod tests {
         let scanner = HackerNewsScanner::new();
         let result = scanner.search("AI").await;
 
-        // 网络集成测试：离线/CI 环境网络不可达时跳过，避免测试不稳定
-        if let Err(e) = &result {
-            let err_lower = e.to_lowercase();
-            if err_lower.contains("connection")
-                || err_lower.contains("dns")
-                || err_lower.contains("timed out")
-                || err_lower.contains("error sending request")
-            {
-                eprintln!("[HackerNewsScanner] 网络不可达，跳过网络集成测试: {}", e);
-                return;
-            }
+        // 网络集成测试：离线/CI 环境网络不可达或服务端限流（如 429）时跳过，避免测试不稳定
+        if let Err(e) = &result
+            && crate::tools::marketplace_scanner::is_network_env_error(e)
+        {
+            eprintln!("[HackerNewsScanner] 网络不可达或服务端限流，跳过网络集成测试: {}", e);
+            return;
         }
 
         // 应该成功（可能返回一些结果）
