@@ -132,7 +132,11 @@ impl LinkGraph {
     }
 
     pub fn get_node_ids(&self) -> Vec<String> {
-        self.nodes.keys().cloned().collect()
+        let mut ids: Vec<String> = self.nodes.keys().cloned().collect();
+        // 排序消除 HashMap::keys() 迭代顺序的随机性：
+        // Louvain 等下游算法依赖稳定的节点处理顺序，相同输入必须产生相同输出
+        ids.sort();
+        ids
     }
 
     pub fn get_node(&self, node_id: &str) -> Option<&GraphNode> {

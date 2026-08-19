@@ -107,13 +107,18 @@ impl LouvainDetector {
     }
 
     fn get_neighbor_communities(&self, node_id: &str) -> Vec<i32> {
-        let mut communities = HashSet::new();
-        for neighbor in self.graph.get_neighbors(node_id) {
-            if let Some(&c) = self.node_to_community.get(&neighbor) {
-                communities.insert(c);
+        let mut communities: Vec<i32> = {
+            let mut set = HashSet::new();
+            for neighbor in self.graph.get_neighbors(node_id) {
+                if let Some(&c) = self.node_to_community.get(&neighbor) {
+                    set.insert(c);
+                }
             }
-        }
-        communities.into_iter().collect()
+            set.into_iter().collect()
+        };
+        // 排序消除 HashSet 迭代顺序的随机性：相同输入必须产生相同的 Louvain 划分
+        communities.sort_unstable();
+        communities
     }
 
     fn modularity_gain(&self, node_id: &str, target_community: i32) -> f64 {

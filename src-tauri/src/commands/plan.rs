@@ -940,6 +940,7 @@ pub async fn plan_execute(
             ActionType, Phase, PhaseStatus, Plan, PlanStatus, PlannedTask, TaskStatus,
         };
         use axagent_kit::plan_compiler::compile_plan_to_dag;
+        use std::str::FromStr;
 
         let mut phases: Vec<Phase> = Vec::new();
         let mut step_id_to_phase: std::collections::HashMap<String, String> =

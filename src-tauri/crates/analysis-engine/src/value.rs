@@ -1,4 +1,5 @@
 use crate::decision::ValueConfig;
+use crate::types::{BuffettVerdict, FScoreLevel, MoatLevel, MosLevel};
 use axagent_astock_data::FinancialReport;
 
 /// 内在价值估算结果
@@ -14,7 +15,7 @@ pub struct IntrinsicValue {
     /// 安全边际 (%)
     pub margin_of_safety: Option<f64>,
     /// 安全边际判断
-    pub mos_judgment: String,
+    pub mos_judgment: MosLevel,
 }
 
 /// Piotroski F-Score (0-9)
@@ -25,7 +26,7 @@ pub struct FScore {
     pub leverage: u32,      // 0-3 (ΔLeverage, ΔCurrent, Shares)
     pub efficiency: u32,    // 0-2 (ΔMargin, ΔTurnover)
     pub total: u32,         // 0-9
-    pub grade: String,      // "优秀(7-9)" | "良好(5-6)" | "一般(3-4)" | "差(0-2)"
+    pub grade: FScoreLevel,
     pub details: Vec<String>,
 }
 
@@ -44,7 +45,7 @@ pub struct MoatAssessment {
     /// 护城河评分 (0-100)
     pub moat_score: u32,
     /// 护城河类型猜测
-    pub moat_type: String,
+    pub moat_type: MoatLevel,
     /// 评估详情
     pub details: Vec<String>,
 }
@@ -57,7 +58,7 @@ pub struct ValueAssessment {
     pub f_score: FScore,
     pub moat: MoatAssessment,
     pub value_judgment: String,
-    pub buffett_verdict: String,
+    pub buffett_verdict: BuffettVerdict,
 }
 
 impl ValueAssessment {
@@ -75,12 +76,7 @@ impl ValueAssessment {
         } else {
             None
         };
-        let mos_judgment = match metrics.mos_level.as_str() {
-            "充足" => format!("充足的安全边际 {:.0}%", metrics.margin_of_safety_pct),
-            "适中" => format!("有一定安全边际 {:.0}%", metrics.margin_of_safety_pct),
-            "不足" => format!("安全边际不足 {:.0}%", metrics.margin_of_safety_pct),
-            _ => format!("无安全边际 {:.0}%", metrics.margin_of_safety_pct),
-        };
+        let mos_judgment = metrics.mos_level;
 
         let f_score = FScore {
             // 修复(2026-07-29): 原代码从 total 机械分配分项（盈利先满4→杠杆→效率），
@@ -92,7 +88,7 @@ impl ValueAssessment {
             leverage: 0,
             efficiency: 0,
             total: metrics.f_score,
-            grade: metrics.f_score_level.clone(),
+            grade: metrics.f_score_level,
             details: vec![format!(
                 "F-Score={}/9（分项不可还原，详见 ValueEngine::f_score）",
                 metrics.f_score
@@ -109,32 +105,25 @@ impl ValueAssessment {
                 None
             },
             moat_score: metrics.moat_score,
-            moat_type: metrics.moat_level.clone(),
-            details: vec![format!("护城河{}/100({})", metrics.moat_score, metrics.moat_level)],
+            moat_type: metrics.moat_level,
+            details: vec![format!(
+                "护城河{}/100({})",
+                metrics.moat_score,
+                metrics.moat_level.label()
+            )],
         };
 
-        let buffett_verdict = if metrics.moat_score >= 70
-            && metrics.f_score >= 7
-            && metrics.margin_of_safety_pct >= 20.0
-        {
-            "🎯 巴菲特可能会喜欢：宽护城河+财务健康+充足安全边际。以合理价格买入优秀公司。"
-                .to_string()
-        } else if metrics.moat_score >= 50
-            && metrics.f_score >= 5
-            && metrics.margin_of_safety_pct >= 10.0
-        {
-            "👍 有一定吸引力：护城河和财务状况尚可，安全边际处于临界点。可小仓位观察。".to_string()
-        } else if metrics.moat_score >= 30 {
-            "🤔 需要更多安全边际：公司质地一般，等待更好的价格。巴菲特会说：'等待那个又胖又慢的球'。"
-                .to_string()
-        } else {
-            "❌ 不符合巴菲特标准：护城河不足或财务质量差。'以合理价格买入优秀公司比以便宜价格买入平庸公司好得多'。"
-                .to_string()
-        };
+        let buffett_verdict = BuffettVerdict::from_metrics(
+            metrics.moat_score,
+            metrics.f_score,
+            metrics.margin_of_safety_pct,
+        );
 
         let value_judgment = format!(
             "护城河评分{}/100 | F-Score {}/9 | {}",
-            metrics.moat_score, metrics.f_score, mos_judgment
+            metrics.moat_score,
+            metrics.f_score,
+            mos_judgment.description(metrics.margin_of_safety_pct)
         );
 
         ValueAssessment {
@@ -344,12 +333,7 @@ impl ValueEngine {
         }
 
         let total = profitability + leverage + efficiency;
-        let grade = match total {
-            7..=9 => "优秀".to_string(),
-            5..=6 => "良好".to_string(),
-            3..=4 => "一般".to_string(),
-            _ => "差".to_string(),
-        };
+        let grade = FScoreLevel::from_score(total);
 
         FScore { profitability, leverage, efficiency, total, grade, details }
     }
@@ -450,13 +434,7 @@ impl ValueEngine {
             score += 10;
         }
 
-        let moat_type = if score >= 60 {
-            "宽护城河".to_string()
-        } else if score >= 35 {
-            "窄护城河".to_string()
-        } else {
-            "无护城河".to_string()
-        };
+        let moat_type = MoatLevel::from_score(score);
 
         MoatAssessment {
             roe_consistency_years: if roe_years_above_15 > 0 {
@@ -496,14 +474,14 @@ impl ValueEngine {
                         graham_value: None,
                         avg_intrinsic_value: None,
                         margin_of_safety: None,
-                        mos_judgment: "无财务数据，无法估值".to_string(),
+                        mos_judgment: MosLevel::None,
                     },
                     f_score: FScore {
                         profitability: 0,
                         leverage: 0,
                         efficiency: 0,
                         total: 0,
-                        grade: "无数据".to_string(),
+                        grade: FScoreLevel::Weak,
                         details: vec![],
                     },
                     moat: MoatAssessment {
@@ -512,11 +490,11 @@ impl ValueEngine {
                         gross_margin_stability: None,
                         fcf_to_earnings: None,
                         moat_score: 0,
-                        moat_type: "无数据".to_string(),
+                        moat_type: MoatLevel::None,
                         details: vec![],
                     },
                     value_judgment: "无足够财务数据".to_string(),
-                    buffett_verdict: "数据不足，无法判断。巴菲特原则：不懂不做。".to_string(),
+                    buffett_verdict: BuffettVerdict::DoesNotMeetStandard,
                 };
             },
         };
@@ -532,21 +510,7 @@ impl ValueEngine {
 
         let avg_iv = graham;
         let mos = avg_iv.map(|iv| Self::margin_of_safety(iv, current_price));
-        let mos_judgment = match mos {
-            Some(m) if m >= 30.0 => {
-                format!("充足的安全边际 {:.0}%（内在价值远高于现价）", m)
-            },
-            Some(m) if m >= 15.0 => {
-                format!("有一定安全边际 {:.0}%", m)
-            },
-            Some(m) if m >= 0.0 => {
-                format!("安全边际不足 {:.0}%（现价接近内在价值）", m)
-            },
-            Some(m) => {
-                format!("无安全边际 {:.0}%（现价高于内在价值）", m)
-            },
-            None => "无法计算安全边际（缺少股本数据，DCF不可用）".to_string(),
-        };
+        let mos_judgment = MosLevel::from_mos_pct(mos.unwrap_or(0.0));
 
         let previous = financials.get(1);
         let f_score = if let Some(prev) = previous {
@@ -557,32 +521,21 @@ impl ValueEngine {
                 leverage: 0,
                 efficiency: 0,
                 total: 0,
-                grade: "无对比数据".to_string(),
+                grade: FScoreLevel::Weak,
                 details: vec![],
             }
         };
 
         let moat = Self::moat_assessment(financials);
 
-        let buffett_verdict = if moat.moat_score >= 70
-            && f_score.total >= 7
-            && mos.unwrap_or(0.0) >= 20.0
-        {
-            "🎯 巴菲特可能会喜欢：宽护城河+财务健康+充足安全边际。以合理价格买入优秀公司。"
-                .to_string()
-        } else if moat.moat_score >= 50 && f_score.total >= 5 && mos.unwrap_or(0.0) >= 10.0 {
-            "👍 有一定吸引力：护城河和财务状况尚可，安全边际处于临界点。可小仓位观察。".to_string()
-        } else if moat.moat_score >= 30 {
-            "🤔 需要更多安全边际：公司质地一般，等待更好的价格。巴菲特会说：'等待那个又胖又慢的球'。"
-                .to_string()
-        } else {
-            "❌ 不符合巴菲特标准：护城河不足或财务质量差。'以合理价格买入优秀公司比以便宜价格买入平庸公司好得多'。"
-                .to_string()
-        };
+        let buffett_verdict =
+            BuffettVerdict::from_metrics(moat.moat_score, f_score.total, mos.unwrap_or(0.0));
 
         let value_judgment = format!(
             "护城河评分{}/100 | F-Score {}/9 | {}（无股本数据，DCF不可用）",
-            moat.moat_score, f_score.total, mos_judgment
+            moat.moat_score,
+            f_score.total,
+            mos_judgment.description(mos.unwrap_or(0.0))
         );
 
         ValueAssessment {
@@ -616,14 +569,14 @@ impl ValueEngine {
                         graham_value: None,
                         avg_intrinsic_value: None,
                         margin_of_safety: None,
-                        mos_judgment: "无财务数据，无法估值".to_string(),
+                        mos_judgment: MosLevel::None,
                     },
                     f_score: FScore {
                         profitability: 0,
                         leverage: 0,
                         efficiency: 0,
                         total: 0,
-                        grade: "无数据".to_string(),
+                        grade: FScoreLevel::Weak,
                         details: vec![],
                     },
                     moat: MoatAssessment {
@@ -632,11 +585,11 @@ impl ValueEngine {
                         gross_margin_stability: None,
                         fcf_to_earnings: None,
                         moat_score: 0,
-                        moat_type: "无数据".to_string(),
+                        moat_type: MoatLevel::None,
                         details: vec![],
                     },
                     value_judgment: "无足够财务数据".to_string(),
-                    buffett_verdict: "数据不足，无法判断。巴菲特原则：不懂不做。".to_string(),
+                    buffett_verdict: BuffettVerdict::DoesNotMeetStandard,
                 };
             },
         };
@@ -698,21 +651,7 @@ impl ValueEngine {
 
         // 安全边际
         let mos = avg_iv.map(|iv| Self::margin_of_safety(iv, current_price));
-        let mos_judgment = match mos {
-            Some(m) if m >= 30.0 => {
-                format!("充足的安全边际 {:.0}%（内在价值远高于现价）", m)
-            },
-            Some(m) if m >= 15.0 => {
-                format!("有一定安全边际 {:.0}%", m)
-            },
-            Some(m) if m >= 0.0 => {
-                format!("安全边际不足 {:.0}%（现价接近内在价值）", m)
-            },
-            Some(m) => {
-                format!("无安全边际 {:.0}%（现价高于内在价值）", m)
-            },
-            None => "无法计算安全边际（缺少估值数据）".to_string(),
-        };
+        let mos_judgment = MosLevel::from_mos_pct(mos.unwrap_or(0.0));
 
         // F-Score
         let previous = financials.get(1);
@@ -724,7 +663,7 @@ impl ValueEngine {
                 leverage: 0,
                 efficiency: 0,
                 total: 0,
-                grade: "无对比数据".to_string(),
+                grade: FScoreLevel::Weak,
                 details: vec![],
             }
         };
@@ -733,26 +672,15 @@ impl ValueEngine {
         let moat = Self::moat_assessment(financials);
 
         // 巴菲特式裁决
-        let buffett_verdict = if moat.moat_score >= 70
-            && f_score.total >= 7
-            && mos.unwrap_or(0.0) >= 20.0
-        {
-            "🎯 巴菲特可能会喜欢：宽护城河+财务健康+充足安全边际。以合理价格买入优秀公司。"
-                .to_string()
-        } else if moat.moat_score >= 50 && f_score.total >= 5 && mos.unwrap_or(0.0) >= 10.0 {
-            "👍 有一定吸引力：护城河和财务状况尚可，安全边际处于临界点。可小仓位观察。".to_string()
-        } else if moat.moat_score >= 30 {
-            "🤔 需要更多安全边际：公司质地一般，等待更好的价格。巴菲特会说：'等待那个又胖又慢的球'。"
-                .to_string()
-        } else {
-            "❌ 不符合巴菲特标准：护城河不足或财务质量差。'以合理价格买入优秀公司比以便宜价格买入平庸公司好得多'。"
-                .to_string()
-        };
+        let buffett_verdict =
+            BuffettVerdict::from_metrics(moat.moat_score, f_score.total, mos.unwrap_or(0.0));
 
         // 综合判断 (在移动 f_score/moat/mos_judgment 前计算)
         let value_judgment = format!(
             "护城河评分{}/100 | F-Score {}/9 | {}",
-            moat.moat_score, f_score.total, mos_judgment
+            moat.moat_score,
+            f_score.total,
+            mos_judgment.description(mos.unwrap_or(0.0))
         );
 
         ValueAssessment {

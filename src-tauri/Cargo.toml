@@ -243,6 +243,17 @@ lto = true
 codegen-units = 1
 opt-level = "s"
 
+# Android CI 专用 profile：降低内存峰值，避免 GitHub Actions 7GB runner OOM
+# 注：LTO = true + codegen-units = 1 在交叉编译 ARM 时峰值超 7GB，
+#     会被 Actions OOM Killer 强制杀掉（表现为 "runner has received a shutdown signal"）。
+# 策略：关闭全程序 LTO，拆分 codegen-units，保留体积优化与 strip。
+[profile.release-android]
+inherits = "release"
+strip = true
+lto = "off"
+codegen-units = 16
+opt-level = "s"
+
 [profile.dev]
 opt-level = 0
 # line-tables-only: 仅生成行号表，保留 panic 回溯的源文件+行号。

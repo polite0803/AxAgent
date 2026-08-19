@@ -3,18 +3,17 @@
 //! 无需额外数据源，纯用已有 `get_klines("000300", "daily", 60)` 数据判断。
 //! 不引入新依赖，纯函数模块。
 
+use crate::types::{MarketRegimeType, VolatilityLevel};
 use axagent_astock_data::KLine;
 
 /// 市场状态
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MarketRegime {
-    /// "bull" / "bear" / "sideways"
-    pub regime: String,
+    pub regime: MarketRegimeType,
     /// 置信度 0-1
     pub confidence: f64,
-    /// "high" / "low"
-    pub volatility: String,
+    pub volatility: VolatilityLevel,
     /// 可读描述
     pub description: String,
 }
@@ -31,9 +30,9 @@ pub struct MarketRegime {
 pub fn classify_regime(klines: &[KLine]) -> MarketRegime {
     if klines.len() < 20 {
         return MarketRegime {
-            regime: "sideways".into(),
+            regime: MarketRegimeType::Sideways,
             confidence: 0.3,
-            volatility: "low".into(),
+            volatility: VolatilityLevel::Low,
             description: format!("数据不足（仅{}日），默认震荡", klines.len()),
         };
     }
@@ -78,21 +77,15 @@ pub fn classify_regime(klines: &[KLine]) -> MarketRegime {
     };
 
     // 布林带宽度（波动率）：20日收盘价标准差 / ma20
-    let (bollinger_pct, vol_str) = if closes.len() >= 20 {
+    let (bollinger_pct, vol_level) = if closes.len() >= 20 {
         let variance =
             closes[closes.len() - 20..].iter().map(|c| (c - ma20).powi(2)).sum::<f64>() / 20.0;
         let std_dev = variance.sqrt();
         let bbp = if ma20 > 0.0 { std_dev / ma20 } else { 0.0 };
-        let vs = if bbp > 0.20 {
-            "high"
-        } else if bbp < 0.10 {
-            "low"
-        } else {
-            "normal"
-        };
-        (bbp, vs.to_string())
+        let vl = VolatilityLevel::from_bollinger_pct(bbp);
+        (bbp, vl)
     } else {
-        (0.0, "normal".to_string())
+        (0.0, VolatilityLevel::Normal)
     };
 
     // 决策逻辑
@@ -106,7 +99,7 @@ pub fn classify_regime(klines: &[KLine]) -> MarketRegime {
                 ""
             };
             (
-                "bull".to_string(),
+                MarketRegimeType::Bull,
                 c,
                 format!(
                     "沪深300站上{ma60_label}{:.1}%，短期均线多头排列{}",
@@ -118,7 +111,7 @@ pub fn classify_regime(klines: &[KLine]) -> MarketRegime {
             // 价格在 MA60 下方 3% + MA20 下方 + 向下斜率
             let c = (price_above_ma60.abs() * 2.0).clamp(0.5, 0.95);
             (
-                "bear".to_string(),
+                MarketRegimeType::Bear,
                 c,
                 format!(
                     "沪深300跌破{ma60_label}{:.1}%，短期均线空头排列",
@@ -129,13 +122,13 @@ pub fn classify_regime(klines: &[KLine]) -> MarketRegime {
             // 不满足牛/熊条件 → 震荡
             let c = 0.5 + (slope.abs() * 3.0).min(0.3); // 斜率越大信心越高
             (
-                "sideways".to_string(),
+                MarketRegimeType::Sideways,
                 c.min(0.8),
                 format!("均线交叉/粘合，方向不明确（斜率{:.2}%）", slope * 100.0),
             )
         };
 
-    MarketRegime { regime, confidence, volatility: vol_str, description: desc }
+    MarketRegime { regime, confidence, volatility: vol_level, description: desc }
 }
 
 /// 简单移动平均
@@ -173,7 +166,7 @@ mod tests {
         // 持续上涨 → 牛市
         let closes: Vec<f64> = (1..=60).map(|i| 3000.0 + i as f64 * 15.0).collect();
         let r = classify_regime(&make_klines(&closes));
-        assert_eq!(r.regime, "bull", "持续上涨应识别为牛市: {}", r.description);
+        assert_eq!(r.regime, MarketRegimeType::Bull, "持续上涨应识别为牛市: {}", r.description);
         assert!(r.confidence >= 0.5);
     }
 
@@ -182,7 +175,7 @@ mod tests {
         // 持续下跌 → 熊市
         let closes: Vec<f64> = (1..=60).map(|i| 4000.0 - i as f64 * 15.0).collect();
         let r = classify_regime(&make_klines(&closes));
-        assert_eq!(r.regime, "bear", "持续下跌应识别为熊市: {}", r.description);
+        assert_eq!(r.regime, MarketRegimeType::Bear, "持续下跌应识别为熊市: {}", r.description);
         assert!(r.confidence >= 0.5);
     }
 
@@ -194,14 +187,14 @@ mod tests {
             closes[i] = closes[i - 1] + (i as f64 % 5.0 - 2.0);
         }
         let r = classify_regime(&make_klines(&closes));
-        assert_eq!(r.regime, "sideways", "窄幅震荡应识别为震荡: {}", r.description);
+        assert_eq!(r.regime, MarketRegimeType::Sideways, "窄幅震荡应识别为震荡: {}", r.description);
     }
 
     #[test]
     fn test_insufficient_data() {
         let closes = vec![3500.0; 10];
         let r = classify_regime(&make_klines(&closes));
-        assert_eq!(r.regime, "sideways");
+        assert_eq!(r.regime, MarketRegimeType::Sideways);
         assert!(r.confidence <= 0.3);
     }
 
@@ -214,6 +207,11 @@ mod tests {
             closes.push(3500.0 + cycle * 1200.0); // ±1200, ~34% 振幅
         }
         let r = classify_regime(&make_klines(&closes));
-        assert_eq!(r.volatility, "high", "大幅震荡应识别为高波动, got={}", r.volatility);
+        assert_eq!(
+            r.volatility,
+            VolatilityLevel::High,
+            "大幅震荡应识别为高波动, got={:?}",
+            r.volatility
+        );
     }
 }

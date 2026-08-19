@@ -22,7 +22,7 @@ use crate::AppState;
 use agent_macro::agent_command;
 use axagent_astock_data::mcp_tools::DojoSdkExecutor;
 use axagent_harness::plan_types::{
-    Phase, PhaseStatus, PlannedTask, ReplanAction, ReplanReason, TaskStatus,
+    ActionType, Phase, PhaseStatus, PlannedTask, ReplanAction, ReplanReason, TaskStatus,
 };
 use axagent_harness::strategy_contract::Bar;
 use axagent_quant::{
@@ -31,6 +31,7 @@ use axagent_quant::{
 };
 use serde_json::{Value, json};
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::{Arc, LazyLock};
 use tauri::State;
 use tokio::sync::Mutex;
@@ -418,7 +419,8 @@ fn task_from_json(task_json: &Value, task_idx: usize) -> Result<PlannedTask, Str
         .as_str()
         .ok_or_else(|| "task.description 缺失".to_string())?
         .to_string();
-    let action_type = task_json["action_type"].as_str().unwrap_or("agent").to_string();
+    let action_type = ActionType::from_str(task_json["action_type"].as_str().unwrap_or("agent"))
+        .unwrap_or(ActionType::Agent);
     let parameters = task_json["parameters"].clone();
     let dependencies: Vec<String> = task_json["dependencies"]
         .as_array()

@@ -72,6 +72,7 @@ impl ValidationError {
 // ── OPC 业务规则集（融合自 opc-dao/rules.rs） ──────────────────
 
 use axagent_harness::business_rules::{BusinessRule, RuleAction, RuleResult};
+use axagent_harness::workflow_types::NodeKind;
 use std::sync::Arc;
 
 /// 创建一个金额阈值审批规则
@@ -79,7 +80,7 @@ fn make_amount_rule(name: &str, desc: &str, threshold: f64) -> BusinessRule {
     BusinessRule {
         name: name.to_string(),
         description: desc.to_string(),
-        evaluate: Arc::new(move |_node_type: &str, input: &serde_json::Value| {
+        evaluate: Arc::new(move |_node_type: &NodeKind, input: &serde_json::Value| {
             if let Some(amount) = input.get("amount").and_then(|v| v.as_f64()) {
                 if amount > threshold {
                     return RuleResult::RequiresApproval {

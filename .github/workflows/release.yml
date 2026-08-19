@@ -597,19 +597,18 @@ jobs:
           if [ -s "$GP" ] && [ -n "$(tail -c 1 "$GP")" ]; then
             echo "" >> "$GP"
           fi
-          # armv7 (32位) 和 arm64 (64位, 需同时产出 APK+AAB) 内存峰值都很高
-          # 在 7GB runner 上叠加 cargo-ndk 全量编译极易 OOM → runner 失联
-          # 强制覆盖并收紧并行，降低峰值内存
+          # ARM 交叉编译是内存大户：cargo 交叉编译 + Gradle 共存极易吃光 7GB runner
+          # 统一策略：Gradle JVM 收紧、禁用并行、workers=2
           if [ "${{ matrix.abi }}" = "armeabi-v7a" ] || [ "${{ matrix.abi }}" = "arm64-v8a" ]; then
             sed -i '/^org.gradle.jvmargs=/d; /^kotlin.daemon.jvm.options=/d; /^org.gradle.parallel=/d; /^org.gradle.workers.max=/d' "$GP"
             printf '%s\n' \
-              'org.gradle.jvmargs=-Xmx2560m -XX:MaxMetaspaceSize=1024m -XX:+UseParallelGC' \
-              'kotlin.daemon.jvm.options=-Xmx1024m' \
+              'org.gradle.jvmargs=-Xmx1536m -XX:MaxMetaspaceSize=768m -XX:+UseParallelGC' \
+              'kotlin.daemon.jvm.options=-Xmx768m' \
               'org.gradle.parallel=false' \
               'org.gradle.workers.max=2' >> "$GP"
           else
             grep -q '^org.gradle.jvmargs=' "$GP" \
-              || echo 'org.gradle.jvmargs=-Xmx2560m -XX:MaxMetaspaceSize=1024m -XX:+UseParallelGC' >> "$GP"
+              || echo 'org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=1024m -XX:+UseParallelGC' >> "$GP"
           fi
           echo "--- gradle.properties ---"
           cat "$GP"
@@ -617,15 +616,23 @@ jobs:
       # 注：APK 与 AAB 在同一次 `tauri android build` 中产出（--apk --aab），
       # 避免为 AAB 单独再启动一次完整的 gradle 构建。
       # --target 参数接受: aarch64, armv7, i686, x86_64
+      # 内存策略：
+      #   1) CARGO_PROFILE env：Cargo 1.78+ 原生支持，覆盖默认 profile，
+      #      release-android 关闭 LTO + codegen-units=16，避免 ARM 交叉编译 OOM。
+      #   2) tauri android build 内部通过 Gradle 调用 cargo，CARGO_PROFILE 会被 cargo 读取。
       - name: Build Android APK + AAB
-        timeout-minutes: 180
+        timeout-minutes: 240
         run: |
           cd src-tauri
           TARGET=${{ matrix.abi == 'arm64-v8a' && 'aarch64' || matrix.abi == 'armeabi-v7a' && 'armv7' || 'x86_64' }}
-          # armv7 (32位) 和 arm64 (需同时产出 APK+AAB) 全量编译内存峰值最高
-          # 限制 Rust 并行编译降低 OOM 风险
+          # ARM 交叉编译：收紧 cargo 并发 + 使用 release-android profile 降内存
+          # x86_64 是 native 编译，仍用 release profile（速度/体积优先）
           if [ "${{ matrix.abi }}" = "armeabi-v7a" ] || [ "${{ matrix.abi }}" = "arm64-v8a" ]; then
+            export CARGO_BUILD_JOBS=1
+            export CARGO_PROFILE=release-android
+          else
             export CARGO_BUILD_JOBS=2
+            export CARGO_PROFILE=release
           fi
           echo "=== System Resources Before Build ==="
           echo "Memory:"
@@ -637,6 +644,8 @@ jobs:
           echo "Java version:"
           java -version 2>&1
           echo "NDK path: $NDK_HOME"
+          echo "Cargo profile: $CARGO_PROFILE"
+          echo "Cargo jobs: $CARGO_BUILD_JOBS"
           ls "$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/" 2>/dev/null | head -5 || echo "WARNING: NDK toolchain not found at $NDK_HOME"
           echo "======================================="
           echo "=== Running tauri android build ==="
@@ -650,7 +659,7 @@ jobs:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          ORG_GRADLE_PROJECT_org_gradle_jvmargs: '-Xmx3072m -XX:MaxMetaspaceSize=1024m -XX:+UseParallelGC'
+          # 不再通过 env 覆盖 JVM args，统一由 gradle.properties 管理，避免冲突
           RUST_BACKTRACE: full
 
       - name: Upload APK and AAB to release

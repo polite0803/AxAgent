@@ -1,5 +1,10 @@
 /// price_alerts 表 ↔ RealtimeMonitor 双向转换（v203 数据模型对齐）
 pub mod alert_mapping;
+pub mod types;
+pub use types::{
+    AnalystStance, BuffettVerdict, FScoreLevel, FeedbackTrend, MarketRegimeType, MoatLevel,
+    MosLevel, StrategyTrend, SuggestionType, ValueSignal, VolatilityLevel,
+};
 pub mod backtest;
 pub mod backtest_feedback;
 pub mod backtest_strategy;

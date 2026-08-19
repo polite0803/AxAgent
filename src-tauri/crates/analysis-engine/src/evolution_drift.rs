@@ -24,6 +24,7 @@ use uuid::Uuid;
 
 use axagent_entities::{strategy_performance, strategy_weight_history};
 
+use crate::types::StrategyTrend;
 use crate::weight_decay::{
     compute_adjusted_weights, format_rationale, StrategyPerformanceRow, WeightDecayConfig,
 };
@@ -82,7 +83,7 @@ pub struct StrategySummaryRow {
     pub avg_weight: f64,
     pub total_samples: u32,
     pub avg_win_rate: f64,
-    pub trend: String, // "up" | "down" | "stable"
+    pub trend: StrategyTrend,
 }
 
 /// 读取当前生效的 weights（每个 (strategy, period) 取最新一条 weight_history.new_weight）
@@ -295,19 +296,13 @@ pub async fn get_dashboard(
             let stats_for: Vec<&StrategyStatRow> =
                 stats.iter().filter(|s| s.strategy_id == sid).collect();
             let net_delta: f64 = stats_for.iter().map(|s| s.delta_pct).sum();
-            let trend = if net_delta > 5.0 {
-                "up"
-            } else if net_delta < -5.0 {
-                "down"
-            } else {
-                "stable"
-            };
+            let trend = StrategyTrend::from_net_delta(net_delta);
             StrategySummaryRow {
                 strategy_id: sid,
                 avg_weight: avg_w,
                 total_samples: sum_s,
                 avg_win_rate: avg_wr,
-                trend: trend.to_string(),
+                trend,
             }
         })
         .collect();

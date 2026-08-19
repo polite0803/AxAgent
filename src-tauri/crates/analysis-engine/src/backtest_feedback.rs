@@ -19,6 +19,7 @@
 //!   → 记录到 strategy_weight_history 表
 //! ```
 
+use crate::types::{AnalystStance, FeedbackTrend, SuggestionType};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -42,8 +43,8 @@ pub struct AnalystBacktestPerformance {
     pub confidence_calibration: f64,
     /// 建议：调整方向
     pub suggestion: PromptSuggestion,
-    /// 胜率趋势: "improving" | "declining" | "stable" | "insufficient_data"
-    pub trend: String,
+    /// 胜率趋势
+    pub trend: FeedbackTrend,
     /// 关联的 time_horizon 维度
     pub time_horizon: String,
 }
@@ -58,7 +59,7 @@ pub struct PromptSuggestion {
     /// - "tweak_prompt": 微调提示词(降低/提升某方面 bias)
     /// - "review_logic": 重构分析逻辑
     /// - "disable": 暂时禁用(表现极差)
-    pub suggestion_type: String,
+    pub suggestion_type: SuggestionType,
     /// 权重调整建议 (0-3, 1=不变)
     pub suggested_weight: f64,
     /// 可读的建议描述
@@ -97,8 +98,8 @@ pub struct AnalysisParticipation {
     pub time_horizon: String,
     /// 分析日期 (YYYY-MM-DD)
     pub date: String,
-    /// 该分析师的立场方向: "bullish" | "bearish" | "neutral"
-    pub stance: String,
+    /// 该分析师的立场方向
+    pub stance: AnalystStance,
     /// 该分析师的置信度 (0-1)
     pub confidence: f64,
     /// 实际走势是否正确
@@ -138,9 +139,9 @@ pub fn analyze_backtest_feedback(input: FeedbackInput) -> BacktestFeedbackReport
 
             // 方向偏差: bullish占比 - bearish占比
             let bullish_count =
-                participations.iter().filter(|p| p.stance == "bullish").count() as f64;
+                participations.iter().filter(|p| p.stance == AnalystStance::Bullish).count() as f64;
             let bearish_count =
-                participations.iter().filter(|p| p.stance == "bearish").count() as f64;
+                participations.iter().filter(|p| p.stance == AnalystStance::Bearish).count() as f64;
             let direction_bias = if total > 0 {
                 (bullish_count - bearish_count) / total as f64
             } else {
@@ -159,7 +160,7 @@ pub fn analyze_backtest_feedback(input: FeedbackInput) -> BacktestFeedbackReport
             // - total < 8: 每段样本不足 4 个，不够判断趋势
             // - 阈值 ±0.15: 防止小幅波动误判为趋势变化
             let trend = if total < 8 {
-                "insufficient_data"
+                FeedbackTrend::InsufficientData
             } else {
                 let mid = total as usize / 2;
                 let recent_half: Vec<_> = participations.iter().skip(mid).collect();
@@ -171,11 +172,11 @@ pub fn analyze_backtest_feedback(input: FeedbackInput) -> BacktestFeedbackReport
                 let early_accuracy = early_correct as f64 / early_half.len() as f64;
 
                 if recent_accuracy > early_accuracy + 0.15 {
-                    "improving"
+                    FeedbackTrend::Improving
                 } else if recent_accuracy < early_accuracy - 0.15 {
-                    "declining"
+                    FeedbackTrend::Declining
                 } else {
-                    "stable"
+                    FeedbackTrend::Stable
                 }
             };
 
@@ -190,7 +191,7 @@ pub fn analyze_backtest_feedback(input: FeedbackInput) -> BacktestFeedbackReport
                 direction_bias,
                 confidence_calibration,
                 suggestion,
-                trend: trend.to_string(),
+                trend,
                 time_horizon,
             }
         })
@@ -218,7 +219,8 @@ pub fn analyze_backtest_feedback(input: FeedbackInput) -> BacktestFeedbackReport
     };
 
     // 6. 是否需要调整
-    let requires_adjustment = performances.iter().any(|p| p.suggestion.suggestion_type != "none");
+    let requires_adjustment =
+        performances.iter().any(|p| p.suggestion.suggestion_type != SuggestionType::None);
 
     BacktestFeedbackReport {
         total_samples,
@@ -235,12 +237,12 @@ pub fn analyze_backtest_feedback(input: FeedbackInput) -> BacktestFeedbackReport
 fn generate_suggestion(
     accuracy: f64,
     calibration: f64,
-    trend: &str,
+    trend: FeedbackTrend,
     samples: u32,
 ) -> PromptSuggestion {
     if samples < 3 {
         return PromptSuggestion {
-            suggestion_type: "none".into(),
+            suggestion_type: SuggestionType::None,
             suggested_weight: 1.0,
             description: format!("样本不足({}),暂不调整", samples),
         };
@@ -249,7 +251,7 @@ fn generate_suggestion(
     // 准确率极低 → 需审视逻辑
     if accuracy < 0.3 && samples >= 10 {
         return PromptSuggestion {
-            suggestion_type: "review_logic".into(),
+            suggestion_type: SuggestionType::ReviewLogic,
             suggested_weight: 0.5, // 降权到 50%
             description: format!(
                 "准确率仅 {:.0}%,样本 {} 个,建议审查分析逻辑是否出系统性偏差",
@@ -262,7 +264,7 @@ fn generate_suggestion(
     // 准确率偏低 → 微调 + 降权
     if accuracy < 0.4 {
         return PromptSuggestion {
-            suggestion_type: "tweak_prompt".into(),
+            suggestion_type: SuggestionType::TweakPrompt,
             suggested_weight: 0.7,
             description: format!("准确率 {:.0}%,建议降低 bias 强度,权重降至 0.7", accuracy * 100.0),
         };
@@ -271,7 +273,7 @@ fn generate_suggestion(
     // 置信度校准: 过度自信 (confidence >> accuracy)
     if calibration > 0.2 {
         return PromptSuggestion {
-            suggestion_type: "tweak_prompt".into(),
+            suggestion_type: SuggestionType::TweakPrompt,
             suggested_weight: 1.0,
             description: format!(
                 "置信度校准偏移({:+.0}%),过于自信,建议提示词中降低确定性表述",
@@ -281,9 +283,9 @@ fn generate_suggestion(
     }
 
     // 趋势下降
-    if trend == "declining" && accuracy <= 0.55 {
+    if trend == FeedbackTrend::Declining && accuracy <= 0.55 {
         return PromptSuggestion {
-            suggestion_type: "tweak_prompt".into(),
+            suggestion_type: SuggestionType::TweakPrompt,
             suggested_weight: 0.85,
             description: format!(
                 "胜率呈下降趋势(当前 {:.0}%),建议降权至 0.85 并关注",
@@ -295,7 +297,7 @@ fn generate_suggestion(
     // 表现稳定或优秀
     if accuracy >= 0.6 {
         return PromptSuggestion {
-            suggestion_type: "adjust_weight".into(),
+            suggestion_type: SuggestionType::AdjustWeight,
             suggested_weight: (1.0 + (accuracy - 0.5) * 2.0).clamp(1.0, 1.5),
             description: format!(
                 "表现优秀(准确率 {:.0}%),建议提权至 {:.2}",
@@ -306,7 +308,7 @@ fn generate_suggestion(
     }
 
     PromptSuggestion {
-        suggestion_type: "none".into(),
+        suggestion_type: SuggestionType::None,
         suggested_weight: 1.0,
         description: "表现正常,无需调整".into(),
     }
@@ -319,7 +321,7 @@ mod tests {
     fn participation(
         analyst_id: &str,
         horizon: &str,
-        stance: &str,
+        stance: AnalystStance,
         confidence: f64,
         correct: bool,
         days_ago: i32,
@@ -333,7 +335,7 @@ mod tests {
             analyst_id: analyst_id.to_string(),
             time_horizon: horizon.to_string(),
             date,
-            stance: stance.to_string(),
+            stance,
             confidence,
             was_correct: correct,
         }
@@ -350,7 +352,9 @@ mod tests {
     #[test]
     fn high_accuracy_earns_weight_boost() {
         let participations: Vec<_> = (0..30)
-            .map(|i| participation("a-technical", "short", "bullish", 0.8, i % 3 != 0, i))
+            .map(|i| {
+                participation("a-technical", "short", AnalystStance::Bullish, 0.8, i % 3 != 0, i)
+            })
             .collect();
         let report = analyze_backtest_feedback(FeedbackInput { participations });
         let tech =
@@ -367,20 +371,26 @@ mod tests {
     #[test]
     fn low_accuracy_triggers_review() {
         let participations: Vec<_> = (0..20)
-            .map(|i| participation("bad-analyst", "mid", "bullish", 0.9, false, i))
+            .map(|i| participation("bad-analyst", "mid", AnalystStance::Bullish, 0.9, false, i))
             .collect();
         let report = analyze_backtest_feedback(FeedbackInput { participations });
         let bad =
             report.analyst_performances.iter().find(|p| p.analyst_id == "bad-analyst").unwrap();
         assert!(bad.accuracy < 0.3, "故意设错应低于 0.3, 实际={}", bad.accuracy);
-        assert_eq!(bad.suggestion.suggestion_type, "review_logic", "极低准确率应触发 review_logic");
+        assert_eq!(
+            bad.suggestion.suggestion_type,
+            SuggestionType::ReviewLogic,
+            "极低准确率应触发 review_logic"
+        );
     }
 
     #[test]
     fn overconfidence_detected() {
         // 高置信度但低准确率
         let participations: Vec<_> = (0..15)
-            .map(|i| participation("overconfident", "short", "bullish", 0.95, i % 2 == 0, i))
+            .map(|i| {
+                participation("overconfident", "short", AnalystStance::Bullish, 0.95, i % 2 == 0, i)
+            })
             .collect();
         let report = analyze_backtest_feedback(FeedbackInput { participations });
         let oc =
@@ -391,7 +401,11 @@ mod tests {
             "过度自信应被检测: calibration={}",
             oc.confidence_calibration
         );
-        assert_eq!(oc.suggestion.suggestion_type, "tweak_prompt", "过度自信应触发 tweak_prompt");
+        assert_eq!(
+            oc.suggestion.suggestion_type,
+            SuggestionType::TweakPrompt,
+            "过度自信应触发 tweak_prompt"
+        );
     }
 
     #[test]
@@ -399,37 +413,65 @@ mod tests {
         // 前 10 次全对,后 10 次全错
         let mut participations = vec![];
         for i in 0..10 {
-            participations.push(participation("declining", "long", "bullish", 0.7, true, 30 - i));
+            participations.push(participation(
+                "declining",
+                "long",
+                AnalystStance::Bullish,
+                0.7,
+                true,
+                30 - i,
+            ));
         }
         for i in 0..10 {
-            participations.push(participation("declining", "long", "bullish", 0.7, false, 10 - i));
+            participations.push(participation(
+                "declining",
+                "long",
+                AnalystStance::Bullish,
+                0.7,
+                false,
+                10 - i,
+            ));
         }
         let report = analyze_backtest_feedback(FeedbackInput { participations });
         let decl =
             report.analyst_performances.iter().find(|p| p.analyst_id == "declining").unwrap();
-        assert_eq!(decl.trend, "declining", "下降趋势应被检测, 实际={}", decl.trend);
+        assert_eq!(decl.trend, FeedbackTrend::Declining, "下降趋势应被检测, 实际={}", decl.trend);
         assert!(decl.suggestion.suggested_weight < 1.0, "下降趋势应降权");
     }
 
     #[test]
     fn insufficient_samples_no_adjustment() {
         let participations = vec![
-            participation("newbie", "short", "bullish", 0.7, true, 1),
-            participation("newbie", "short", "bullish", 0.7, false, 2),
+            participation("newbie", "short", AnalystStance::Bullish, 0.7, true, 1),
+            participation("newbie", "short", AnalystStance::Bullish, 0.7, false, 2),
         ];
         let report = analyze_backtest_feedback(FeedbackInput { participations });
         let n = report.analyst_performances.iter().find(|p| p.analyst_id == "newbie").unwrap();
-        assert_eq!(n.suggestion.suggestion_type, "none");
+        assert_eq!(n.suggestion.suggestion_type, SuggestionType::None);
     }
 
     #[test]
     fn strong_performers_listed_in_top() {
         let mut participations = vec![];
         for i in 0..20 {
-            participations.push(participation("star", "short", "bullish", 0.8, true, i));
+            participations.push(participation(
+                "star",
+                "short",
+                AnalystStance::Bullish,
+                0.8,
+                true,
+                i,
+            ));
         }
         for i in 0..20 {
-            participations.push(participation("laggard", "short", "bullish", 0.8, false, i));
+            participations.push(participation(
+                "laggard",
+                "short",
+                AnalystStance::Bullish,
+                0.8,
+                false,
+                i,
+            ));
         }
         let report = analyze_backtest_feedback(FeedbackInput { participations });
         assert!(report.top_performers.contains(&"star".to_string()), "星号分析师应在 top 列表");

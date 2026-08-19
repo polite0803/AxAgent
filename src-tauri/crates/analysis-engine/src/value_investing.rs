@@ -1,5 +1,6 @@
 use axagent_astock_data::FinancialReport;
 
+use crate::types::{FScoreLevel, MoatLevel, MosLevel, ValueSignal};
 use crate::value::ValueEngine;
 
 /// 价值投资综合指标
@@ -12,18 +13,18 @@ pub struct ValueMetrics {
     pub dcf_high: f64, // 乐观估值
     /// 安全边际
     pub margin_of_safety_pct: f64, // (内在价值-现价)/内在价值 × 100
-    pub mos_level: String, // "充足" | "适中" | "不足" | "无"
+    pub mos_level: MosLevel,
     /// Piotroski F-Score (0-9)
     pub f_score: u32,
-    pub f_score_level: String, // "优秀(7-9)" | "良好(5-6)" | "一般(3-4)" | "弱(0-2)"
+    pub f_score_level: FScoreLevel,
     /// 护城河量化评分 (0-100)
     pub moat_score: u32,
-    pub moat_level: String, // "宽阔" | "狭窄" | "无"
+    pub moat_level: MoatLevel,
     /// 所有者收益（Buffett's Owner Earnings）
     pub owner_earnings: f64,
     pub owner_earnings_yield: f64, // 所有者收益率 = OE / 市值
     /// 综合判断
-    pub value_signal: String, // "低估" | "合理偏低" | "合理" | "偏高" | "高估"
+    pub value_signal: ValueSignal,
     pub summary: String,
 }
 
@@ -66,15 +67,7 @@ impl ValueInvestingEngine {
         } else {
             0.0
         };
-        let mos_level = if mos > 30.0 {
-            "充足"
-        } else if mos > 15.0 {
-            "适中"
-        } else if mos > 0.0 {
-            "不足"
-        } else {
-            "无"
-        };
+        let mos_level = MosLevel::from_mos_pct(mos);
 
         // 3. F-Score（委托统一的 ValueEngine::f_score，保证与详情版口径一致）
         let f_score = if financials.len() >= 2 {
@@ -82,12 +75,7 @@ impl ValueInvestingEngine {
         } else {
             0
         };
-        let f_score_level = match f_score {
-            7..=9 => "优秀(7-9)",
-            5..=6 => "良好(5-6)",
-            3..=4 => "一般(3-4)",
-            _ => "弱(0-2)",
-        };
+        let f_score_level = FScoreLevel::from_score(f_score);
 
         // 4. 护城河评分
         let (moat_score, moat_level) = Self::moat_checklist(financials, pe, pb);
@@ -124,29 +112,19 @@ impl ValueInvestingEngine {
                 0
             };
 
-        let value_signal = if value_score >= 60 {
-            "低估"
-        } else if value_score >= 45 {
-            "合理偏低"
-        } else if value_score >= 30 {
-            "合理"
-        } else if value_score >= 15 {
-            "偏高"
-        } else {
-            "高估"
-        };
+        let value_signal = ValueSignal::from_score(value_score as i32);
 
         let summary = format!(
             "内在价值≈{:.2} | 安全边际{:.0}%({}) | F-Score={}/9({}) | 护城河{}/100({}) | OE收益率{:.1}% | {}",
             dcf_mid,
             mos,
-            mos_level,
+            mos_level.label(),
             f_score,
-            f_score_level,
+            f_score_level.label(),
             moat_score,
-            moat_level,
+            moat_level.label(),
             oe_yield,
-            value_signal
+            value_signal.label()
         );
 
         ValueMetrics {
@@ -154,14 +132,14 @@ impl ValueInvestingEngine {
             dcf_mid,
             dcf_high,
             margin_of_safety_pct: mos,
-            mos_level: mos_level.to_string(),
+            mos_level,
             f_score,
-            f_score_level: f_score_level.to_string(),
+            f_score_level,
             moat_score,
-            moat_level: moat_level.to_string(),
+            moat_level,
             owner_earnings,
             owner_earnings_yield: oe_yield,
-            value_signal: value_signal.to_string(),
+            value_signal,
             summary,
         }
     }
@@ -226,9 +204,9 @@ impl ValueInvestingEngine {
         financials: &[FinancialReport],
         pe: Option<f64>,
         _pb: Option<f64>,
-    ) -> (u32, String) {
+    ) -> (u32, MoatLevel) {
         if financials.is_empty() {
-            return (0, "无".to_string());
+            return (0, MoatLevel::None);
         }
         let f = &financials[0];
         let mut score = 0u32;
@@ -293,14 +271,8 @@ impl ValueInvestingEngine {
             }
         }
 
-        let level = if score >= 70 {
-            "宽阔"
-        } else if score >= 40 {
-            "狭窄"
-        } else {
-            "无"
-        };
-        (score, level.to_string())
+        let level = MoatLevel::from_score(score);
+        (score, level)
     }
 
     /// 巴菲特所有者收益 = 净利润 + 折旧摊销 - 资本支出
