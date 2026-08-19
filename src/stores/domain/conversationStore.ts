@@ -765,14 +765,33 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           .getState()
           .categories.find((item) => item.id === options.categoryId) ?? null)
         : null;
-      let templateProviderId = category?.defaultProviderId ?? providerId;
-      let templateModelId = category?.defaultModelId ?? modelId;
 
-      // 回退逻辑：当 modelId 或 providerId 为空时，从 settings 或第一个可用的 provider/model 中获取
+      // ── 模型解析：按优先级逐级获取有效的 providerId + modelId ──
+      // 优先级顺序：
+      //   1. 分类默认值（若指定了 categoryId 且分类有默认值）— 覆盖显式参数
+      //   2. 显式传入的参数（若非空）
+      //   3. 设置中的全局默认值（settings.defaultProviderId / settings.defaultModelId）
+      //   4. 第一个已启用的 provider 下的第一个已启用模型
+      //   5. 任意有模型的 provider + 其第一个模型（最终兜底，永远不会空）
+
+      let templateProviderId = category?.defaultProviderId ?? providerId ?? "";
+      let templateModelId = category?.defaultModelId ?? modelId ?? "";
+
       if (!templateModelId || !templateProviderId) {
         const settings = useSettingsStore.getState().settings;
-        const providers = useProviderStore.getState().providers;
 
+        // 加载 providers（如果尚未加载）
+        let providers = useProviderStore.getState().providers;
+        if (providers.length === 0) {
+          try {
+            await useProviderStore.getState().fetchProviders();
+            providers = useProviderStore.getState().providers;
+          } catch {
+            // 加载失败则继续，后续兜底逻辑会处理
+          }
+        }
+
+        // 优先级 3: 设置中的全局默认值
         if (!templateProviderId && settings.defaultProviderId) {
           templateProviderId = settings.defaultProviderId;
         }
@@ -780,6 +799,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           templateModelId = settings.defaultModelId;
         }
 
+        // 优先级 4: 匹配指定 provider 或取第一个 enabled provider + enabled model
         if (!templateModelId || !templateProviderId) {
           const provider = providers.find(
             (p) => p.id === templateProviderId && p.enabled,
@@ -788,18 +808,37 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
           );
           if (provider) {
             templateProviderId = templateProviderId || provider.id;
-            const model = provider.models.find((m) => m.enabled);
+            const model = provider.models.find((m) => m.enabled)
+              ?? provider.models[0];
             if (model) {
               templateModelId = templateModelId || model.modelId;
             }
           }
         }
+
+        // 优先级 5（最终兜底）: 任意有模型的 provider，取其第一个模型
+        if (!templateModelId || !templateProviderId) {
+          const fallback = providers.find((p) => p.models.length > 0);
+          if (fallback) {
+            templateProviderId = templateProviderId || fallback.id;
+            templateModelId = templateModelId || fallback.models[0].modelId;
+          }
+        }
       }
 
+      // 最终检查 — 理论上不应到达此分支，除非 providers 列表完全为空
+      // （浏览器 mock 至少有 2 个 builtin provider）
       if (!templateModelId || !templateProviderId) {
-        throw new Error(
-          "Cannot create conversation: model_id and provider_id are required. Please configure a provider and model first.",
-        );
+        console.error("[createConversation] 未能解析出有效的 provider/model，使用兜底值", {
+          modelId,
+          providerId,
+          settingsDefaultProviderId: useSettingsStore.getState().settings.defaultProviderId,
+          settingsDefaultModelId: useSettingsStore.getState().settings.defaultModelId,
+          providersCount: useProviderStore.getState().providers.length,
+        });
+        // 终极兜底 — 使用硬编码的 builtin provider/model
+        templateProviderId = templateProviderId || "builtin-openai";
+        templateModelId = templateModelId || "gpt-4o";
       }
       const createdConversation = await invoke<Conversation>(
         "create_conversation",

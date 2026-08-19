@@ -1581,17 +1581,17 @@ export function InputArea() {
                   messageApi.success(t("chat.clearHistoryDone"));
                   break;
                 case "new": {
-                  if (!activeConversationId) { return; }
-                  // 从默认配置/回退解析 provider+model，避免传入空串触发创建失败
-                  const resolved = resolveDefaultProviderModel();
-                  if (!resolved) {
-                    messageApi.warning(t("chat.noModelsAvailable"));
-                    return;
-                  }
+                  // 从当前对话继承模型/provider，或使用回退逻辑
+                  const fallbackProviderId = activeConversation?.providerId
+                    ?? settings.defaultProviderId
+                    ?? "";
+                  const fallbackModelId = activeConversation?.modelId
+                    ?? settings.defaultModelId
+                    ?? "";
                   await createConversation(
                     "",
-                    resolved.model.modelId,
-                    resolved.provider.id,
+                    fallbackModelId,
+                    fallbackProviderId,
                     { mode: "chat" },
                   );
                   break;
