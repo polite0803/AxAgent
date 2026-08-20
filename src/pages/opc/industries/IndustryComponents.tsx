@@ -570,7 +570,7 @@ export function IndustryActionsPanel({
   const actionsPrefix = `opc.industry.actions.${industryId}`;
 
   const handleAction = async (action: ActionItem) => {
-    if (!settings?.defaultProviderId || !settings?.defaultModelId) {
+    if (!settings?.defaultModel?.a || !settings?.defaultModel?.b) {
       message.warning(t("opc.industry.noProviderConfig"));
       navigate("/settings/providers");
       return;
@@ -598,8 +598,8 @@ export function IndustryActionsPanel({
 
       const conv = await createConversation(
         promptConfig.actionLabel,
-        settings.defaultModelId,
-        settings.defaultProviderId,
+        settings.defaultModel.b,
+        settings.defaultModel.a,
         {
           systemPrompt: promptConfig.systemPrompt,
         },
@@ -610,8 +610,8 @@ export function IndustryActionsPanel({
     } catch {
       const conv = await createConversation(
         actionLabel,
-        settings.defaultModelId,
-        settings.defaultProviderId,
+        settings.defaultModel.b,
+        settings.defaultModel.a,
         {
           systemPrompt:
             `你是一位专业的${industryId}领域助手，擅长${actionLabel}相关的分析和咨询。请根据用户需求提供高质量的分析和建议。`,
@@ -698,7 +698,7 @@ export function IndustryWorkflowsPanel({
   const workflowsPrefix = `opc.industry.workflows.${industryId}`;
 
   const handleUseWorkflow = async (wf: IndustryWorkflow) => {
-    if (!settings?.defaultProviderId || !settings?.defaultModelId) {
+    if (!settings?.defaultModel?.a || !settings?.defaultModel?.b) {
       message.warning(t("opc.industry.noProviderConfig"));
       navigate("/settings/providers");
       return;
@@ -707,8 +707,8 @@ export function IndustryWorkflowsPanel({
     try {
       const conv = await createConversation(
         t("opc.industry.executeSuffix", { name: wf.name || wf.id }),
-        settings.defaultModelId,
-        settings.defaultProviderId,
+        settings.defaultModel.b,
+        settings.defaultModel.a,
       );
       if (conv?.id) {
         navigate(`/chat?conversationId=${conv.id}&workflow=${wf.id}`);

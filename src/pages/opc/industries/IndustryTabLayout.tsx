@@ -34,7 +34,7 @@ function IndustryTabContent({
   const settings = useSettingsStore((s) => s.settings);
 
   const handleAction = async (actionKey: string) => {
-    if (!settings?.defaultProviderId || !settings?.defaultModelId) {
+    if (!settings?.defaultModel?.a || !settings?.defaultModel?.b) {
       message.warning(t("opc.industry.noProviderConfig"));
       navigate("/settings/providers");
       return;
@@ -63,8 +63,8 @@ function IndustryTabContent({
 
       const conv = await createConversation(
         promptConfig.actionLabel,
-        settings.defaultModelId,
-        settings.defaultProviderId,
+        settings.defaultModel.b,
+        settings.defaultModel.a,
         {
           systemPrompt: promptConfig.systemPrompt,
         },
@@ -75,8 +75,8 @@ function IndustryTabContent({
     } catch {
       const conv = await createConversation(
         actionLabel,
-        settings.defaultModelId,
-        settings.defaultProviderId,
+        settings.defaultModel.b,
+        settings.defaultModel.a,
         {
           systemPrompt:
             `你是一位专业的${industryId}领域助手，擅长${actionLabel}相关的分析和咨询。请根据用户需求提供高质量的分析和建议。`,

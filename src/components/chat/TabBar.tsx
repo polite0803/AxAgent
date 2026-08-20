@@ -163,11 +163,11 @@ export function TabBar() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleNewConversation = useCallback(async () => {
-    let provider = settings.defaultProviderId
-      ? providers.find((p) => p.id === settings.defaultProviderId && p.enabled)
+    let provider = settings.defaultModel
+      ? providers.find((p) => p.id === settings.defaultModel?.a && p.enabled)
       : undefined;
     let model = provider?.models.find(
-      (m) => m.modelId === settings.defaultModelId && m.enabled,
+      (m) => m.modelId === settings.defaultModel?.b && m.enabled,
     );
     if (!provider || !model) {
       provider = providers.find(

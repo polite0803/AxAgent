@@ -6,6 +6,7 @@ import { SmartProviderIcon } from "@/lib/providerIcons";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
 import { useConversationStore, useProviderStore, useSettingsStore, useUIStore } from "@/stores";
 import type { Model, ModelCapability } from "@/types";
+import { ModelRef } from "@/types/paired";
 import { ModelIcon } from "@lobehub/icons";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button, Checkbox, Input, Modal, Tag, theme } from "antd";
@@ -342,9 +343,9 @@ export function ModelSelector({
     if (activeConversation) {
       pid = activeConversation.providerId;
       mid = activeConversation.modelId;
-    } else if (settings.defaultProviderId && settings.defaultModelId) {
-      pid = settings.defaultProviderId;
-      mid = settings.defaultModelId;
+    } else if (settings.defaultModel) {
+      pid = settings.defaultModel?.a;
+      mid = settings.defaultModel?.b;
     } else {
       for (const p of providers) {
         if (!p.enabled) {
@@ -375,8 +376,8 @@ export function ModelSelector({
     };
   }, [
     activeConversation,
-    settings.defaultProviderId,
-    settings.defaultModelId,
+    settings.defaultModel?.a,
+    settings.defaultModel?.b,
     providers,
   ]);
 
@@ -502,8 +503,7 @@ export function ModelSelector({
         }
       } else {
         saveSettings({
-          defaultProviderId: providerId,
-          defaultModelId: modelId,
+          defaultModel: ModelRef.from(providerId, modelId),
         });
       }
       setOpen(false);

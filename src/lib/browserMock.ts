@@ -1828,8 +1828,7 @@ async function executeCommand<T>(
         iconType: input.iconType ?? null,
         iconValue: input.iconValue ?? null,
         systemPrompt: input.systemPrompt ?? null,
-        defaultProviderId: input.defaultProviderId ?? null,
-        defaultModelId: input.defaultModelId ?? null,
+        defaultModel: input.defaultModel ?? null,
         defaultTemperature: input.defaultTemperature ?? null,
         defaultMaxTokens: input.defaultMaxTokens ?? null,
         defaultTopP: input.defaultTopP ?? null,
@@ -1866,11 +1865,8 @@ async function executeCommand<T>(
         if (input.systemPrompt !== undefined) {
           cats[idx].systemPrompt = input.systemPrompt;
         }
-        if (input.defaultProviderId !== undefined) {
-          cats[idx].defaultProviderId = input.defaultProviderId;
-        }
-        if (input.defaultModelId !== undefined) {
-          cats[idx].defaultModelId = input.defaultModelId;
+        if (input.defaultModel !== undefined) {
+          cats[idx].defaultModel = input.defaultModel;
         }
         if (input.defaultTemperature !== undefined) {
           cats[idx].defaultTemperature = input.defaultTemperature;

@@ -47,7 +47,7 @@ export function IndustryTabContent({ industryId, config, tabKey }: IndustryTabCo
   const [refactorWorkflowId, setRefactorWorkflowId] = useState<string>("");
 
   const handleAction = async (action: ActionItem) => {
-    if (!settings?.defaultProviderId || !settings?.defaultModelId) {
+    if (!settings?.defaultModel?.a || !settings?.defaultModel?.b) {
       message.warning(t("opc.industry.noProviderConfig"));
       navigate("/settings/providers");
       return;
@@ -75,8 +75,8 @@ export function IndustryTabContent({ industryId, config, tabKey }: IndustryTabCo
 
       const conv = await createConversation(
         promptConfig.actionLabel,
-        settings.defaultModelId,
-        settings.defaultProviderId,
+        settings.defaultModel.b,
+        settings.defaultModel.a,
         {
           systemPrompt: promptConfig.systemPrompt,
         },
@@ -87,8 +87,8 @@ export function IndustryTabContent({ industryId, config, tabKey }: IndustryTabCo
     } catch {
       const conv = await createConversation(
         actionLabel,
-        settings.defaultModelId,
-        settings.defaultProviderId,
+        settings.defaultModel.b,
+        settings.defaultModel.a,
         {
           systemPrompt:
             `你是一位专业的${industryId}领域助手，擅长${actionLabel}相关的分析和咨询。请根据用户需求提供高质量的分析和建议。`,

@@ -308,12 +308,12 @@ export function ChatSidebar({
     let provider: (typeof providers)[0] | undefined;
     let model: (typeof providers)[0]["models"][0] | undefined;
 
-    if (settings.defaultProviderId && settings.defaultModelId) {
+    if (settings.defaultModel) {
       provider = providers.find(
-        (p) => p.id === settings.defaultProviderId && p.enabled,
+        (p) => p.id === settings.defaultModel?.a && p.enabled,
       );
       model = provider?.models.find(
-        (m) => m.modelId === settings.defaultModelId && m.enabled,
+        (m) => m.modelId === settings.defaultModel?.b && m.enabled,
       );
     }
 

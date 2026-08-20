@@ -573,11 +573,11 @@ export function InputArea() {
       );
     }
 
-    if (settings.defaultProviderId && settings.defaultModelId) {
+    if (settings.defaultModel?.a && settings.defaultModel?.b) {
       const defaultModel = findModelByIds(
         providers,
-        settings.defaultProviderId,
-        settings.defaultModelId,
+        settings.defaultModel.a,
+        settings.defaultModel.b,
       );
       if (defaultModel?.enabled) {
         return defaultModel;
@@ -599,8 +599,8 @@ export function InputArea() {
   }, [
     activeConversation,
     providers,
-    settings.defaultProviderId,
-    settings.defaultModelId,
+    settings.defaultModel?.a,
+    settings.defaultModel?.b,
   ]);
 
   // Context token usage calculation
@@ -916,13 +916,13 @@ export function InputArea() {
     if (providersLoading || (providers ?? []).length === 0) {
       return null;
     }
-    let provider = settings.defaultProviderId
+    let provider = settings.defaultModel?.a
       ? providers.find(
-        (p) => p.id === settings.defaultProviderId && p.enabled,
+        (p) => p.id === settings.defaultModel!.a && p.enabled,
       )
       : undefined;
     let model = provider?.models.find(
-      (m) => m.modelId === settings.defaultModelId && m.enabled,
+      (m) => m.modelId === settings.defaultModel?.b && m.enabled,
     );
     if (!provider || !model) {
       provider = providers.find(
@@ -931,7 +931,7 @@ export function InputArea() {
       model = provider?.models.find((m) => m.enabled);
     }
     return provider && model ? { provider, model } : null;
-  }, [providers, providersLoading, settings.defaultProviderId, settings.defaultModelId]);
+  }, [providers, providersLoading, settings.defaultModel?.a, settings.defaultModel?.b]);
 
   const handleSend = useCallback(async () => {
     const trimmed = value.trim();
@@ -1583,10 +1583,10 @@ export function InputArea() {
                 case "new": {
                   // 从当前对话继承模型/provider，或使用回退逻辑
                   const fallbackProviderId = activeConversation?.providerId
-                    ?? settings.defaultProviderId
+                    ?? settings.defaultModel?.a
                     ?? "";
                   const fallbackModelId = activeConversation?.modelId
-                    ?? settings.defaultModelId
+                    ?? settings.defaultModel?.b
                     ?? "";
                   await createConversation(
                     "",

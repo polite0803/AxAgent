@@ -116,6 +116,10 @@ export function useEmbeddingProviderLabel(): (
  * Uses `labelInValue` internally to bypass Ant Design's internal
  * value-to-option mapping, which has issues with grouped options in v6.
  * The external API remains a simple string value.
+ *
+ * 修复策略：使用 key 属性强制 Select 在 value 或 options 变化时
+ * 完全重新创建，避免 Ant Design v6 在 grouped options 下
+ * 内部状态与外部 value 不同步的 bug。
  */
 export function ModelSelect({
   value,
@@ -152,9 +156,33 @@ export function ModelSelect({
     if (!value) {
       return undefined;
     }
-    const label = valueToLabelMap.get(value) ?? value;
+    const label = valueToLabelMap.get(value);
+    if (label === undefined) {
+      return undefined;
+    }
     return { value, label };
   }, [value, valueToLabelMap]);
+
+  // 关键修复：计算 options 指纹，用于 key 属性
+  // 当 options 内容变化时，强制 Select 重新创建，避免内部状态不同步
+  const optionsFingerprint = useMemo(() => {
+    return groupedOptions
+      .map(
+        (g) =>
+          `${g.options?.length ?? 0}:${
+            g.options
+              ?.map((o) => String(o.value))
+              .join("|") ?? ""
+          }`,
+      )
+      .join("||");
+  }, [groupedOptions]);
+
+  // Select 的 key：仅在 options 变化时强制重新创建（不在 value 变化时）
+  // 避免每次选择都闪烁
+  const selectKey = useMemo(() => {
+    return `model-select__${optionsFingerprint}`;
+  }, [optionsFingerprint]);
 
   const optionRender = useCallback(
     (
@@ -175,22 +203,25 @@ export function ModelSelect({
   const labelRender = useCallback(
     (props: { label?: React.ReactNode; value?: string | number }) => {
       const valueStr = String(props.value ?? "");
+      // 关键修复：使用 valueToLabelMap 自己查找正确的 label
+      // 不依赖 Ant Design 传入的 props.label，避免 grouped options + labelInValue 下的匹配 bug
+      const correctLabel = valueToLabelMap.get(valueStr) ?? String(props.label ?? "");
       const parsed = parseModelValue(valueStr);
       if (!parsed) {
-        return <span>{props.label}</span>;
+        return <span>{correctLabel}</span>;
       }
       const providerName = providerNameMap.get(parsed.providerId) ?? "";
       return (
         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <ModelIcon model={parsed.modelId} size={18} type="avatar" />
-          {props.label}
+          {correctLabel}
           <span style={{ fontSize: 12, color: token.colorTextSecondary }}>
             ({providerName})
           </span>
         </span>
       );
     },
-    [providerNameMap, token.colorTextSecondary],
+    [valueToLabelMap, providerNameMap, token.colorTextSecondary],
   );
 
   // Convert onChange back to simple string for external API
@@ -215,6 +246,7 @@ export function ModelSelect({
 
   return (
     <Select
+      key={selectKey}
       value={internalValue}
       onChange={handleChange}
       placeholder={placeholder}

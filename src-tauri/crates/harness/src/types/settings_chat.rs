@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::constants;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(default)]
+#[serde(default, rename_all = "camelCase")]
 pub struct AppSettings {
     pub language: String,
     pub theme_mode: String,

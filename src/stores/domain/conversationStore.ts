@@ -770,12 +770,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       // 优先级顺序：
       //   1. 分类默认值（若指定了 categoryId 且分类有默认值）— 覆盖显式参数
       //   2. 显式传入的参数（若非空）
-      //   3. 设置中的全局默认值（settings.defaultProviderId / settings.defaultModelId）
+      //   3. 设置中的全局默认值（settings.defaultModel?.a / settings.defaultModel?.b）
       //   4. 第一个已启用的 provider 下的第一个已启用模型
       //   5. 任意有模型的 provider + 其第一个模型（最终兜底，永远不会空）
 
-      let templateProviderId = category?.defaultProviderId ?? providerId ?? "";
-      let templateModelId = category?.defaultModelId ?? modelId ?? "";
+      let templateProviderId = category?.defaultModel?.a ?? providerId ?? "";
+      let templateModelId = category?.defaultModel?.b ?? modelId ?? "";
 
       if (!templateModelId || !templateProviderId) {
         const settings = useSettingsStore.getState().settings;
@@ -792,11 +792,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         }
 
         // 优先级 3: 设置中的全局默认值
-        if (!templateProviderId && settings.defaultProviderId) {
-          templateProviderId = settings.defaultProviderId;
+        if (!templateProviderId && settings.defaultModel?.a) {
+          templateProviderId = settings.defaultModel.a;
         }
-        if (!templateModelId && settings.defaultModelId) {
-          templateModelId = settings.defaultModelId;
+        if (!templateModelId && settings.defaultModel?.b) {
+          templateModelId = settings.defaultModel.b;
         }
 
         // 优先级 4: 匹配指定 provider 或取第一个 enabled provider + enabled model
@@ -832,8 +832,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         console.error("[createConversation] Failed to resolve valid provider/model, using fallback", {
           modelId,
           providerId,
-          settingsDefaultProviderId: useSettingsStore.getState().settings.defaultProviderId,
-          settingsDefaultModelId: useSettingsStore.getState().settings.defaultModelId,
+          settingsDefaultProviderId: useSettingsStore.getState().settings.defaultModel?.a,
+          settingsDefaultModelId: useSettingsStore.getState().settings.defaultModel?.b,
           providersCount: useProviderStore.getState().providers.length,
         });
         // 终极兜底 — 使用硬编码的 builtin provider/model

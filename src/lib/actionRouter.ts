@@ -279,11 +279,11 @@ export class ActionRouter {
     const settingsStore = useSettingsStore.getState().settings;
 
     const providers = providerStore.providers;
-    let provider = settingsStore.defaultProviderId
-      ? providers.find((p) => p.id === settingsStore.defaultProviderId && p.enabled)
+    let provider = settingsStore.defaultModel?.a
+      ? providers.find((p) => p.id === settingsStore.defaultModel!.a && p.enabled)
       : undefined;
     let model = provider?.models.find(
-      (m) => m.modelId === settingsStore.defaultModelId && m.enabled,
+      (m) => m.modelId === settingsStore.defaultModel?.b && m.enabled,
     );
     if (!provider || !model) {
       provider = providers.find(

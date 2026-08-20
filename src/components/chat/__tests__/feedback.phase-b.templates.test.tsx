@@ -18,8 +18,7 @@ describe("Phase B category template regressions", () => {
       "src-tauri/crates/entities/src/conversation_categories.rs",
     );
 
-    expect(typeSource).toMatch(/defaultProviderId: string \| null;/);
-    expect(typeSource).toMatch(/defaultModelId: string \| null;/);
+    expect(typeSource).toMatch(/defaultModel: NullableModelRef;/);
     expect(typeSource).toMatch(/defaultTemperature: number \| null;/);
     expect(typeSource).toMatch(/defaultMaxTokens: number \| null;/);
     expect(typeSource).toMatch(/defaultTopP: number \| null;/);
