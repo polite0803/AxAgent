@@ -1,3 +1,4 @@
+// oxlint-disable no-unused-vars
 // 此文件由 schema-gen 自动生成，请勿手动编辑
 // 修改 Rust DTO 后请重新运行: cargo run -p schema-gen -- ipc-types
 //
