@@ -31,6 +31,9 @@ use tokio_util::sync::CancellationToken;
 /// 失败时返回结构化错误，由调用方决定如何处理（错误展示 / 重试 / 退出）。
 /// 不再 `process::exit(1)`——harness 架构要求启动错误可被前端感知。
 pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState, String> {
+    let t_start = std::time::Instant::now();
+    tracing::info!("[startup] create_app_state begin");
+
     // 命令元数据已通过 inventory 在编译时自动收集，无需手动初始化
 
     let DatabaseInitResult { db_handle, master_key, db_path, app_dir, .. } = db_result;
@@ -179,9 +182,8 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
                 }
             },
         };
-        if let Err(e) = ms.initialize().await {
-            tracing::warn!("Failed to initialize MemoryService: {}", e);
-        }
+        // P0-OPT: FTS5 初始化移到后台异步，加速首帧显示
+        tracing::debug!("MemoryService created (FTS5 init deferred to background)");
         Arc::new(TokioRwLock::new(ms))
     };
 
@@ -424,31 +426,10 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
                     axagent_trajectory::SkillSandboxExecutor::with_default_policy(),
                 ))
                 .await;
-            // 阶段三 T3.4：注入 LLM 变异器（若 DB 中有启用的 provider）。
-            // ProviderLlmBridge 同时实现 LlmEvolutionProvider，可复用 LLM 生成
-            // 结构化 diff 替代随机变异；无 provider 时引擎使用内置占位变异。
-            if let Some(bridge) = axagent_runtime::llm_bridge::build_llm_bridge_from_db_with(
-                &master_key,
-                &harness_registry,
-                None,
-                None,
-            )
-            .await
-            {
-                engine
-                    .set_llm_provider(std::sync::Arc::new(bridge)
-                        as std::sync::Arc<
-                            dyn axagent_harness::trajectory_types::LlmEvolutionProvider,
-                        >)
-                    .await;
-                tracing::info!(
-                    "[SkillEvolution] LLM mutator injected (evidence-driven evolution enabled)"
-                );
-            } else {
-                tracing::info!(
-                    "[SkillEvolution] No enabled provider in DB, LLM mutation disabled (using placeholder)"
-                );
-            }
+            // P0-OPT: LLM 变异器注入移到后台异步，加速首帧显示
+            tracing::debug!(
+                "SkillEvolutionEngine created (LLM mutator injection deferred to background)"
+            );
             Arc::new(tokio::sync::Mutex::new(engine))
         }
         #[cfg(target_os = "android")]
@@ -494,9 +475,8 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
                 }
             },
         };
-        if let Err(e) = auto_ms.initialize().await {
-            tracing::warn!("Failed to initialize MemoryService for AutoMemory: {}", e);
-        }
+        // P0-OPT: AutoMemory FTS5 初始化也移到后台
+        tracing::debug!("AutoMemoryExtractor created (FTS5 init deferred to background)");
         let auto_ms = Arc::new(tokio::sync::RwLock::new(auto_ms));
         let auto_pl = Arc::new(tokio::sync::RwLock::new(axagent_trajectory::PatternLearner::new(
             axagent_trajectory::PatternConfig::default(),
@@ -565,34 +545,8 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let workflow_optimizer: Arc<dyn axagent_harness::WorkflowOptimizer> =
         axagent_trajectory::WorkflowOptimizerImpl::with_defaults().into_arc();
 
-    // 优化 4-b:注入 LLM 变异器(若 DB 中有启用的 provider)
-    {
-        if let Some(bridge) = axagent_runtime::llm_bridge::build_llm_bridge_from_db_with(
-            &master_key,
-            &harness_registry,
-            None,
-            None,
-        )
-        .await
-        {
-            let mutator = super::workflow_injections::ProviderWorkflowLlmMutator::new(bridge);
-            if let Err(e) = workflow_evolver
-                .set_llm_provider(std::sync::Arc::new(mutator)
-                    as std::sync::Arc<dyn axagent_harness::WorkflowLlmMutator>)
-                .await
-            {
-                tracing::warn!("[Evolver] set_llm_provider failed: {e}");
-            } else {
-                tracing::info!(
-                    "[Evolver] LLM mutator injected (provider workflow evolution enabled)"
-                );
-            }
-        } else {
-            tracing::info!(
-                "[Evolver] No enabled provider in DB, LLM mutation disabled (using MVP placeholder)"
-            );
-        }
-    }
+    // P0-OPT: LLM 变异器注入移到后台异步，加速首帧显示
+    tracing::debug!("WorkflowEvolver created (LLM injection deferred to background)");
 
     // P2-8:注入带有限试运行的沙箱(静态校验 + 模拟执行,始终注入)
     // 比 ReachabilityWorkflowSandbox 更强:额外做节点级配置合理性、累积超时上限、
@@ -1148,10 +1102,10 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         embedding_provider.clone(),
     ));
 
-    // 从 VectorStore 恢复元数据索引（确保重启后已注册能力不丢失）
-    if let Err(e) = capability_indexer_impl.restore_metadata_from_store().await {
-        tracing::warn!("[capability] 元数据恢复失败（将以空索引启动）: {}", e);
-    }
+    // P0-OPT: 元数据恢复 + 护照批量注册移到后台异步，加速首帧显示
+    tracing::debug!(
+        "CapabilityIndexer created (metadata restore + passport registration deferred)"
+    );
 
     // 转为 trait 对象供 Retriever 使用
     let capability_indexer_trait: Arc<dyn axagent_harness::CapabilityIndexer> =
@@ -1173,29 +1127,9 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
 
     tracing::info!("[capability] 能力发现系统初始化完成");
 
-    // 自动注册所有能力护照（工具/工作流/知识库/技能）
-    register_all_capabilities(&capability_indexer, &local_tool_registry, &sea_db, &skill_state)
-        .await;
-
-    // ── 认知编排器初始化（主工作流 + L1/L2/L3 子工作流模板） ──────────────────────
-    // 认知编排器由 4 个工作流模板组成，存储在 workflow_templates 表中，
-    // 通过 is_preset=true + 标签 "cognitive_router" 与业务工作流隔离。
-    if let Err(e) = crate::init::ensure_cognitive_router_templates(&sea_db).await {
-        tracing::error!("[cognitive] 认知编排器初始化失败: {}", e);
-    } else {
-        tracing::info!("[cognitive] 认知编排器初始化完成");
-    }
-
-    // 主 DAG 以固定模板 ID 被 run_workflow(COGNITIVE_ROUTER_MAIN_ID) 引用，
-    // 必须按该 ID 加载进 WorkEngine 内存，否则引擎找不到模板、执行空转
-    // （表现为 LLM 长时间"思考中"且无路由观测输出）。子工作流 L1/L2/L3 由
-    // SubWorkflowExecutor 运行期从 DB 懒加载，无需在此预加载。
-    if let Err(e) = work_engine.load_workflow_template(crate::init::COGNITIVE_ROUTER_MAIN_ID).await
-    {
-        tracing::error!("[cognitive] 主 DAG 加载进引擎失败: {}", e);
-    } else {
-        tracing::info!("[cognitive] 主 DAG 已加载进 WorkEngine 内存");
-    }
+    // P0-OPT: 能力护照注册 + 认知编排器初始化 + 主 DAG 加载全部移到后台异步，
+    // 加速首帧显示（见 run_deferred_init）
+    tracing::debug!("Cognitive router templates + main DAG load deferred to background");
 
     // ── 认知编排器初始化（三层路由树协调器） ──────────────────────
     // 全局用户消息唯一入口：L1 域路由 → L2 簇路由 → L3 RAR+图谱路由 → 执行模式决策。
@@ -1290,6 +1224,11 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         ),
     )
         as std::sync::Arc<dyn axagent_harness::RuntimeMutationAccess>);
+
+    tracing::info!(
+        elapsed = %t_start.elapsed().as_millis(),
+        "[startup] create_app_state 关键路径完成（首帧可渲染）"
+    );
 
     Ok(AppState {
         harness,
@@ -2014,4 +1953,115 @@ impl axagent_harness::WebhookPersistence for DbWebhookPersistence {
             .await
             .map_err(|e| format!("保存 webhook_subscriptions 失败: {}", e))
     }
+}
+
+// ── 后台延迟初始化 ──────────────────────────────────────────────────
+// P0-OPT: 以下重型操作已从 create_app_state 移到此处，通过异步任务在后台执行。
+// 目的是将 Tauri setup 回调时间从数秒降低到数百毫秒，加速首帧显示。
+
+/// 后台延迟初始化入口 — 在 AppState 构造完成后异步执行。
+///
+/// 被推迟的操作：
+/// 1. MemoryService FTS5 索引构建（最耗时）
+/// 2. SkillEvolutionEngine LLM 变异器注入（需 DB 查询）
+/// 3. WorkflowEvolver LLM 变异器注入（需 DB 查询）
+/// 4. CapabilityIndexer 元数据恢复（向量存储读取）
+/// 5. 能力护照批量注册 register_all_capabilities（多表查询 + 向量索引）
+/// 6. 认知编排器工作流模板初始化
+/// 7. WorkEngine 主 DAG 加载
+pub async fn run_deferred_init(app_state: &crate::app_state::AppState) {
+    tracing::info!("[startup] 开始后台延迟初始化（首帧已显示）...");
+    let t0 = std::time::Instant::now();
+
+    // ── 1. MemoryService FTS5 初始化 ──
+    match app_state.memory_service.write().await.initialize().await {
+        Ok(_) => {
+            tracing::info!(elapsed = %t0.elapsed().as_millis(), "[startup] MemoryService FTS5 完成")
+        },
+        Err(e) => tracing::warn!("[startup] MemoryService FTS5 失败（不阻塞）: {}", e),
+    }
+
+    // ── 2. CapabilityIndexer 元数据恢复 ──
+    match app_state.capability_indexer.restore_metadata_from_store().await {
+        Ok(_) => tracing::info!("[startup] 能力索引元数据恢复完成"),
+        Err(e) => tracing::warn!("[startup] 能力索引元数据恢复失败: {}", e),
+    }
+
+    // ── 3. register_all_capabilities（最重型操作） ──
+    register_all_capabilities(
+        &app_state.capability_indexer,
+        &app_state.local_tool_registry,
+        &app_state.harness.db(),
+        &app_state.skill,
+    )
+    .await;
+
+    // ── 4. SkillEvolutionEngine LLM 注入 ──
+    #[cfg(not(target_os = "android"))]
+    {
+        let master_key = app_state.harness.master_key();
+        let harness_registry = app_state.harness.provider_registry();
+        if let Some(bridge) = axagent_runtime::llm_bridge::build_llm_bridge_from_db_with(
+            master_key,
+            harness_registry,
+            None,
+            None,
+        )
+        .await
+        {
+            let engine = app_state.skill_evolution_engine.lock().await;
+            let provider: std::sync::Arc<
+                dyn axagent_harness::trajectory_types::LlmEvolutionProvider,
+            > = std::sync::Arc::new(bridge);
+            engine.set_llm_provider(provider).await;
+            tracing::info!("[startup] SkillEvolutionEngine LLM 注入完成");
+        }
+    }
+
+    // ── 5. WorkflowEvolver LLM 注入 ──
+    {
+        let master_key = app_state.harness.master_key();
+        let harness_registry = app_state.harness.provider_registry();
+        if let Some(bridge) = axagent_runtime::llm_bridge::build_llm_bridge_from_db_with(
+            master_key,
+            harness_registry,
+            None,
+            None,
+        )
+        .await
+        {
+            let mutator = super::workflow_injections::ProviderWorkflowLlmMutator::new(bridge);
+            if let Err(e) = app_state
+                .workflow_evolver
+                .set_llm_provider(std::sync::Arc::new(mutator)
+                    as std::sync::Arc<dyn axagent_harness::WorkflowLlmMutator>)
+                .await
+            {
+                tracing::warn!("[startup] WorkflowEvolver LLM 注入失败: {e}");
+            } else {
+                tracing::info!("[startup] WorkflowEvolver LLM 注入完成");
+            }
+        }
+    }
+
+    // ── 6. 认知编排器工作流模板初始化 ──
+    if let Err(e) = crate::init::ensure_cognitive_router_templates(&app_state.harness.db()).await {
+        tracing::error!("[startup] 认知编排器模板初始化失败: {}", e);
+    } else {
+        tracing::info!("[startup] 认知编排器模板初始化完成");
+    }
+
+    // ── 7. WorkEngine 主 DAG 加载 ──
+    if let Err(e) =
+        app_state.work_engine.load_workflow_template(crate::init::COGNITIVE_ROUTER_MAIN_ID).await
+    {
+        tracing::error!("[startup] 主 DAG 加载失败: {}", e);
+    } else {
+        tracing::info!("[startup] 主 DAG 已加载进 WorkEngine 内存");
+    }
+
+    tracing::info!(
+        elapsed = %t0.elapsed().as_millis(),
+        "[startup] 后台延迟初始化全部完成"
+    );
 }

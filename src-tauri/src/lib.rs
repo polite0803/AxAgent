@@ -246,6 +246,7 @@ pub fn run() {
             android_utils::mark_startup_phase("db_init_done");
 
             android_utils::mark_startup_phase("state_init_start");
+            let t_state = std::time::Instant::now();
             let state = match tauri::async_runtime::block_on(init::state::create_app_state(db_result)) {
                 Ok(s) => s,
                 Err(e) => {
@@ -254,68 +255,109 @@ pub fn run() {
                     return Ok(());
                 }
             };
+            tracing::info!(elapsed = %t_state.elapsed().as_millis(), "[startup] create_app_state (block_on) 完成");
 
             android_utils::mark_startup_phase("state_init_done");
 
             app.manage(state);
 
             let state = app.state::<AppState>();
-            let sea_db = state.harness.db().clone();
+            let app_data_dir = state.app_data_dir.clone();
 
-            // 直接在 Tauri 主 runtime 上 reset 会话（同上：避免连接池跨 runtime 孤儿化）
-            if let Err(e) = tauri::async_runtime::block_on(async {
-                axagent_dao::repo::agent_session::reset_running_sessions(&sea_db).await
-            }) {
-                tracing::error!("Session reset failed: {:?}", e);
-            }
-
-            // Initialize pricing configuration from pricing.toml
-            commands::agent::init_pricing_config(app.handle());
-
-            // 注入 Orchestrator 流式报告器（绑定 AppHandle 以便推送事件到前端）
-            {
-                let reporter = commands::orchestrator::create_stream_reporter(app.handle().clone());
-                let stream_reporter = state.stream_reporter.clone();
-                tauri::async_runtime::block_on(async {
-                    *stream_reporter.write().await = Some(reporter);
-                });
-            }
-
-            // m7: validate agent_roles.yaml schema at startup
-            {
-                let config_dir = app_dir.join("config");
-                let roles_path = config_dir.join("agent_roles.yaml");
-                if roles_path.exists() {
-                    config_validator::validate_agent_roles(&roles_path.to_string_lossy());
+            // ── 窗口状态恢复（保留在同步路径，确保 WebView 创建后立即恢复） ──
+            #[cfg(not(mobile))]
+            if let Some(main_window) = app.get_webview_window("main") {
+                #[cfg(target_os = "windows")]
+                {
+                    let _ = main_window.set_decorations(false);
+                    let _ = main_window.set_minimizable(true);
+                    let _ = main_window.set_maximizable(true);
                 }
-            }
 
-            if let Some(home) = dirs::home_dir() {
-                let user_md_path = home.join(".axinvest").join("USER.md");
-                if user_md_path.exists() {
-                    if let Ok(content) = std::fs::read_to_string(&user_md_path) {
-                        if let Some(profile) = axagent_trajectory::UserProfile::from_user_md(&content) {
-                            let user_profile = state.user_profile.clone();
-                            spawn_block_on("user_profile", async move {
-                                let mut p = user_profile.write().await;
-                                *p = profile;
-                                tracing::info!("[user-profile] Loaded profile from USER.md ({} preferences, {} expertise domains)",
-                                    p.preferences.len(), p.expertise.len());
-                            })
-                            .unwrap_or_else(|e| {
-                                tracing::error!("User profile thread panicked: {:?}", e);
-                            });
-                        }
+                if let Some(saved_state) = window_state::load_window_state(&app_data_dir) {
+                    let restored_state = if let Ok(Some(monitor)) = main_window.current_monitor() {
+                        let monitor_size = monitor.size().to_logical::<f64>(main_window.scale_factor().unwrap_or(1.0));
+                        window_state::clamp_window_state_to_monitor(saved_state, monitor_size.width, monitor_size.height)
+                    } else {
+                        saved_state
+                    };
+
+                    let _ = main_window.set_size(tauri::LogicalSize::new(restored_state.width, restored_state.height));
+                    if let (Some(x), Some(y)) = (restored_state.x, restored_state.y) {
+                        let _ = main_window.set_position(tauri::LogicalPosition::new(x, y));
+                    } else {
+                        let _ = main_window.center();
+                    }
+                    if restored_state.fullscreen {
+                        let _ = main_window.set_fullscreen(true);
+                    } else if restored_state.maximized {
+                        let _ = main_window.maximize();
                     }
                 }
             }
 
-            if let Ok(persisted) = tauri::async_runtime::block_on(state.trajectory_storage.get_patterns()) {
-                if !persisted.is_empty() {
-                    let pattern_count = persisted.len();
-                    let pattern_learner = state.pattern_learner.clone();
-                    spawn_block_on("pattern_learner", async move {
-                        let mut pl = pattern_learner.write().await;
+            // ── 异步启动：所有种子化/初始化操作在后台执行，不阻塞 UI ──
+            // 提取 'static 安全的 Arc/PathBuf 字段进 async 闭包（State 借用本身不可跨闭包）
+            let init_state = app.state::<AppState>();
+            let init_sea_db = init_state.harness.db().clone();
+            let init_app_dir = app_data_dir.clone();
+            let init_user_profile = init_state.user_profile.clone();
+            let init_pattern_learner = init_state.pattern_learner.clone();
+            let init_stream_reporter = init_state.stream_reporter.clone();
+            let init_local_tool_registry = init_state.local_tool_registry.clone();
+            let init_work_engine = init_state.work_engine.clone();
+            let init_evolution_stats = init_state.evolution_execution_stats.clone();
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let app_state = app_handle.state::<AppState>();
+                let sea_db = init_sea_db;
+                let t_async = std::time::Instant::now();
+                tracing::info!("[startup] 异步初始化开始");
+
+                // 1. 直接在 Tauri 主 runtime 上 reset 会话（避免连接池跨 runtime 孤儿化）
+                if let Err(e) = axagent_dao::repo::agent_session::reset_running_sessions(&sea_db).await {
+                    tracing::error!("Session reset failed: {:?}", e);
+                }
+
+                // 2. Initialize pricing configuration from pricing.toml
+                commands::agent::init_pricing_config(&app_handle);
+
+                // 3. 注入 Orchestrator 流式报告器（绑定 AppHandle 以便推送事件到前端）
+                {
+                    let reporter = commands::orchestrator::create_stream_reporter(app_handle.clone());
+                    let mut stream_reporter_guard = init_stream_reporter.write().await;
+                    *stream_reporter_guard = Some(reporter);
+                }
+
+                // 4. m7: validate agent_roles.yaml schema at startup
+                {
+                    let config_dir = init_app_dir.join("config");
+                    let roles_path = config_dir.join("agent_roles.yaml");
+                    if roles_path.exists() {
+                        config_validator::validate_agent_roles(&roles_path.to_string_lossy());
+                    }
+                }
+
+                // 5. 加载 USER.md profile（若存在）
+                if let Some(home) = dirs::home_dir() {
+                    let user_md_path = home.join(".axinvest").join("USER.md");
+                    if user_md_path.exists() {
+                        if let Ok(content) = std::fs::read_to_string(&user_md_path) {
+                            if let Some(profile) = axagent_trajectory::UserProfile::from_user_md(&content) {
+                                let mut p = init_user_profile.write().await;
+                                *p = profile;
+                                tracing::info!("[user-profile] Loaded profile from USER.md ({} preferences, {} expertise domains)",
+                                    p.preferences.len(), p.expertise.len());
+                            }
+                        }
+                    }
+                }
+
+                // 6. 加载持久化 trajectory patterns 到 PatternLearner
+                if let Ok(persisted) = app_state.trajectory_storage.get_patterns().await {
+                    if !persisted.is_empty() {
+                        let pattern_count = persisted.len();
+                        let mut pl = init_pattern_learner.write().await;
                         for pattern in &persisted {
                             pl.learn_from_trajectory(&axagent_trajectory::Trajectory {
                                 id: pattern.id.clone(),
@@ -346,116 +388,83 @@ pub fn run() {
                                 last_replay_at: None,
                             });
                         }
-                    })
-                    .unwrap_or_else(|e| {
-                        tracing::error!("Pattern learner thread panicked: {:?}", e);
+                        tracing::info!("[P5] Loaded {} persisted patterns into PatternLearner", pattern_count);
+                    }
+                }
+
+                // 7. 移动端云同步连接检查
+                #[cfg(mobile)]
+                if let Some(ref sync_engine) = app_state.sync_engine {
+                    tracing::info!("[mobile] Starting cloud sync engine...");
+                    let engine = sync_engine.clone();
+                    spawn_block_on("cloud_sync", async move {
+                        match engine.backend.check_connection().await {
+                            Ok(true) => tracing::info!("[mobile] Cloud sync backend connected"),
+                            Ok(false) => tracing::warn!("[mobile] Cloud sync backend unreachable"),
+                            Err(e) => tracing::warn!("[mobile] Cloud sync connection check failed: {}", e),
+                        }
+                    }).unwrap_or_else(|e| {
+                        tracing::error!("Mobile sync thread panicked: {:?}", e);
                     });
-                    tracing::info!("[P5] Loaded {} persisted patterns into PatternLearner", pattern_count);
-                }
-            }
-
-            let app_dir = state.app_data_dir.clone();
-
-            #[cfg(not(mobile))]
-            if let Some(main_window) = app.get_webview_window("main") {
-                #[cfg(target_os = "windows")]
-                {
-                    let _ = main_window.set_decorations(false);
-                    let _ = main_window.set_minimizable(true);
-                    let _ = main_window.set_maximizable(true);
                 }
 
-                if let Some(saved_state) = window_state::load_window_state(&app_dir) {
-                    let restored_state = if let Ok(Some(monitor)) = main_window.current_monitor() {
-                        let monitor_size = monitor.size().to_logical::<f64>(main_window.scale_factor().unwrap_or(1.0));
-                        window_state::clamp_window_state_to_monitor(saved_state, monitor_size.width, monitor_size.height)
-                    } else {
-                        saved_state
-                    };
+                // 8. 获取 tray_language
+                #[cfg(not(mobile))]
+                let tray_language = {
+                    axagent_dao::repo::settings::get_settings(&sea_db)
+                        .await
+                        .map(|s| s.language)
+                        .unwrap_or_else(|e| {
+                            tracing::error!("Failed to get tray language: {}", e);
+                            "en".to_string()
+                        })
+                };
+                #[cfg(mobile)]
+                let tray_language = "en".to_string();
 
-                    let _ = main_window.set_size(tauri::LogicalSize::new(restored_state.width, restored_state.height));
-                    if let (Some(x), Some(y)) = (restored_state.x, restored_state.y) {
-                        let _ = main_window.set_position(tauri::LogicalPosition::new(x, y));
-                    } else {
-                        let _ = main_window.center();
-                    }
-                    if restored_state.fullscreen {
-                        let _ = main_window.set_fullscreen(true);
-                    } else if restored_state.maximized {
-                        let _ = main_window.maximize();
-                    }
-                }
-            }
-
-            #[cfg(mobile)]
-            if let Some(ref sync_engine) = state.sync_engine {
-                tracing::info!("[mobile] Starting cloud sync engine...");
-                let engine = sync_engine.clone();
-                spawn_block_on("cloud_sync", async move {
-                    match engine.backend.check_connection().await {
-                        Ok(true) => tracing::info!("[mobile] Cloud sync backend connected"),
-                        Ok(false) => tracing::warn!("[mobile] Cloud sync backend unreachable"),
-                        Err(e) => tracing::warn!("[mobile] Cloud sync connection check failed: {}", e),
-                    }
-                }).unwrap_or_else(|e| {
-                    tracing::error!("Mobile sync thread panicked: {:?}", e);
-                });
-            }
-
-            let state = app.state::<AppState>();
-            #[cfg(not(mobile))]
-            let tray_language = {
-                let db = state.harness.db().clone();
-                tauri::async_runtime::block_on(
-                    axagent_dao::repo::settings::get_settings(&db),
-                )
-                .map(|s| s.language)
-                .unwrap_or_else(|e| {
-                    tracing::error!("Failed to get tray language: {}", e);
-                    "en".to_string()
-                })
-            };
-            #[cfg(mobile)]
-            let tray_language = "en".to_string();
-
-            // 异步启动：不阻塞 UI
-            let seed_db = state.harness.db().clone();
-            tauri::async_runtime::spawn(async move {
-                // Multi-Agent 固定角色（analyst/implementer/reviewer）种子化
-                // 幂等 upsert，每次启动都调用，确保三个内置角色记录存在
-                if let Err(e) = crate::commands::multi_agent_setup::seed_multi_agent_roles::seed_multi_agent_roles(&seed_db).await {
+                // 9. Multi-Agent 固定角色（analyst/implementer/reviewer）种子化
+                if let Err(e) = crate::commands::multi_agent_setup::seed_multi_agent_roles::seed_multi_agent_roles(&sea_db).await {
                     tracing::warn!("[multi_agent_setup] 种子化 Multi-Agent 角色失败: {}", e);
                 }
-            });
-            // 重启自动加载持久化的 runtime_evolution 工具（幂等，source=runtime_evolution）
-            // 使上一会话 AutoToolCreator / 自指工具部署的产物在应用重启后自动恢复可用
-            let rt_tool_db = state.harness.db().clone();
-            let rt_tool_registry = state.local_tool_registry.clone();
-            let rt_tool_work_engine = state.work_engine.clone();
-            let rt_tool_stats = state.evolution_execution_stats.clone();
-            tauri::async_runtime::spawn(async move {
-                // D3 持久化：先加载上一会话落库的真实执行统计（重启不丢证据），
-                // 再加载运行时工具（工具的 feedback sink 会复用同一 stats Arc 继续累计）
+
+                // 10. 加载持久化 runtime_evolution 工具（幂等，source=runtime_evolution）
                 if let Err(e) = crate::commands::evolution_engine::
-                    load_evolution_execution_stats_impl(&rt_tool_db, &rt_tool_stats)
+                    load_evolution_execution_stats_impl(&sea_db, &init_evolution_stats)
                     .await
                 {
                     tracing::warn!(target: "evolution_engine",
                         "启动加载持久化执行统计失败: {}", e);
                 }
                 if let Err(e) = crate::commands::evolution_engine::load_runtime_evolution_tools_impl(
-                    &rt_tool_db,
-                    &rt_tool_registry,
-                    &rt_tool_work_engine,
-                    &rt_tool_stats,
+                    &sea_db,
+                    &init_local_tool_registry,
+                    &init_work_engine,
+                    &init_evolution_stats,
                 )
                 .await
                 {
                     tracing::warn!(target: "evolution_engine",
                         "启动加载持久化运行时工具失败: {}", e);
                 }
+
+                // 11. P0-OPT 新增: 执行被推迟到后台的重型初始化
+                // （MemoryService FTS5、能力索引、LLM 注入、认知模板等）
+                init::state::run_deferred_init(&app_state).await;
+
+                // 12. 启动后台服务
+                init::services::start_background_services(
+                    &app_handle,
+                    &app_state,
+                    init_app_dir,
+                    tray_language,
+                );
+
+                android_utils::mark_startup_phase("setup_async_complete");
+                tracing::info!(
+                    elapsed = %t_async.elapsed().as_millis(),
+                    "[startup] 异步初始化完成"
+                );
             });
-            init::services::start_background_services(app.handle(), &state, app_dir.clone(), tray_language);
 
             android_utils::mark_startup_phase("setup_complete");
             Ok(())
