@@ -314,7 +314,7 @@ fn run_check(ts_types_dir: &Path) {
     let mut missing_types = Vec::new();
 
     for (dto_name, _module) in IPC_DTO_TYPES {
-        if !generated_content.contains(&format!("{}", dto_name)) {
+        if !generated_content.contains(&dto_name.to_string()) {
             missing_types.push(format!("{}: 未在生成的 ipc.ts 中找到类型定义", dto_name));
         }
     }
@@ -327,7 +327,7 @@ fn run_check(ts_types_dir: &Path) {
         for issue in &missing_types {
             eprintln!("   - {}", issue);
         }
-        eprintln!("");
+        eprintln!();
         eprintln!("   建议: 运行 'cargo run -p schema-gen -- ipc-types' 重新生成类型定义");
     }
 }
