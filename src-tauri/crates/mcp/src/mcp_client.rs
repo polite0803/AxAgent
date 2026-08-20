@@ -732,22 +732,38 @@ pub async fn call_tool_stdio(
         AxAgentError::Gateway(format!("Failed to spawn MCP server '{}': {}", command, e))
     })?;
 
-    let client = ().serve(transport).await.map_err(|e| {
-        let err_str = e.to_string();
-        let hint = if err_str.contains("connection closed") || err_str.contains("UnexpectedEof") {
-            format!(
-                "{}\n\nThe MCP server process exited unexpectedly during initialization. \
+    // 添加握手超时：防止子进程异常退出（如输出非 JSON 后立即 EOF）时
+    // rmcp 库无限期等待初始化响应，导致调用挂起。
+    let client = match tokio::time::timeout(std::time::Duration::from_secs(10), ().serve(transport))
+        .await
+    {
+        Ok(Ok(client)) => client,
+        Ok(Err(e)) => {
+            let err_str = e.to_string();
+            let hint = if err_str.contains("connection closed")
+                || err_str.contains("UnexpectedEof")
+                || err_str.contains("EOF")
+            {
+                format!(
+                    "{}\n\nThe MCP server process exited unexpectedly during initialization. \
                     Possible causes:\n\
                     - The command or package may not be installed\n\
                     - Node.js / Python / runtime may not be in PATH\n\
                     - The server package version may be incompatible",
+                    err_str
+                )
+            } else {
                 err_str
-            )
-        } else {
-            err_str
-        };
-        AxAgentError::Gateway(format!("MCP handshake failed: {}", hint))
-    })?;
+            };
+            return Err(AxAgentError::Gateway(format!("MCP handshake failed: {}", hint)));
+        },
+        Err(_elapsed) => {
+            return Err(AxAgentError::Gateway(
+                "MCP handshake timed out (10s). The server process did not respond with valid MCP initialize response. \
+                The command may have exited prematurely or is not an MCP server.".into(),
+            ));
+        },
+    };
 
     // Generate a unique progress token so the server can send progress notifications
     let mut progress_meta = serde_json::Map::new();
@@ -778,25 +794,39 @@ pub async fn discover_tools_stdio(
         AxAgentError::Gateway(format!("Failed to spawn MCP server '{}': {}", command, e))
     })?;
 
-    let client = ()
-        .serve(transport)
+    // 添加握手超时：防止子进程异常退出时 rmcp 库无限期等待
+    let client = match tokio::time::timeout(std::time::Duration::from_secs(10), ().serve(transport))
         .await
-        .map_err(|e| {
+    {
+        Ok(Ok(client)) => client,
+        Ok(Err(e)) => {
             let err_str = e.to_string();
-            let hint = if err_str.contains("connection closed") || err_str.contains("UnexpectedEof") {
+            let hint = if err_str.contains("connection closed")
+                || err_str.contains("UnexpectedEof")
+                || err_str.contains("EOF")
+            {
                 format!(
                     "{}\n\nThe MCP server process exited unexpectedly during initialization. \
                     Possible causes:\n\
                     - The command or package may not be installed (run `{} {}` manually to verify)\n\
                     - Node.js / Python / runtime may not be in PATH\n\
                     - The server package version may be incompatible",
-                    err_str, command, args.join(" ")
+                    err_str,
+                    command,
+                    args.join(" ")
                 )
             } else {
                 err_str
             };
-            AxAgentError::Gateway(format!("MCP handshake failed: {}", hint))
-        })?;
+            return Err(AxAgentError::Gateway(format!("MCP handshake failed: {}", hint)));
+        },
+        Err(_elapsed) => {
+            return Err(AxAgentError::Gateway(
+                "MCP handshake timed out (10s). The server process did not respond with valid MCP initialize response. \
+                The command may have exited prematurely or is not an MCP server.".into(),
+            ));
+        },
+    };
 
     let tools = client
         .list_all_tools()
