@@ -5,6 +5,7 @@ import { invoke, isTauri, listen, type UnlistenFn } from "@/lib/invoke";
 import { useProviderStore, useSettingsStore } from "@/stores";
 import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
 import type { Model } from "@/types";
+import { ModelRef } from "@/types";
 import { ModelIcon } from "@lobehub/icons";
 import { Input, InputRef, theme, Typography } from "antd";
 import {
@@ -717,8 +718,9 @@ interface QuickBarResultProps {
   copied: boolean;
   currentModels: Model[];
   activeModelId: string | null;
+  activeProviderId: string | null;
   selectedWikiId: string | null;
-  runModelSwitch: (modelId: string) => void;
+  runModelSwitch: (providerId: string, modelId: string) => void;
   handleCopy: () => void;
   handleContinue: () => void;
   setLoading: (v: boolean) => void;
@@ -732,6 +734,7 @@ function QuickBarResult({
   copied,
   currentModels,
   activeModelId,
+  activeProviderId,
   selectedWikiId,
   runModelSwitch,
   handleCopy,
@@ -811,10 +814,10 @@ function QuickBarResult({
               key={m.modelId}
               role="button"
               tabIndex={0}
-              onClick={() => runModelSwitch(m.modelId)}
+              onClick={() => runModelSwitch(activeProviderId!, m.modelId)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
-                  runModelSwitch(m.modelId);
+                  runModelSwitch(activeProviderId!, m.modelId);
                 }
               }}
               style={{
@@ -950,8 +953,8 @@ export function QuickBarPage() {
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const settings = useSettingsStore((s) => s.settings);
-  const activeProviderId = settings.defaultProviderId;
-  const activeModelId = settings.defaultModelId;
+  const activeProviderId = settings.defaultModel?.a ?? null;
+  const activeModelId = settings.defaultModel?.b ?? null;
   const providers = useProviderStore((s) => s.providers);
   const currentProvider = useMemo(
     () => providers.find((p) => p.id === activeProviderId),
@@ -998,11 +1001,11 @@ export function QuickBarPage() {
   } {
     const settings = useSettingsStore.getState().settings;
     const providers = useProviderStore.getState().providers;
-    let provider = settings.defaultProviderId
-      ? providers.find((p) => p.id === settings.defaultProviderId && p.enabled)
+    let provider = settings.defaultModel?.a
+      ? providers.find((p) => p.id === settings.defaultModel!.a && p.enabled)
       : undefined;
     let model = provider?.models.find(
-      (m) => m.modelId === settings.defaultModelId && m.enabled,
+      (m) => m.modelId === settings.defaultModel?.b && m.enabled,
     );
     if (!provider || !model) {
       provider = providers.find((p) => p.enabled && p.models.some((m) => m.enabled));
@@ -1389,9 +1392,10 @@ export function QuickBarPage() {
       return cid;
     }), [startStream, ensureConversation]);
 
-  const runModelSwitch = (modelId: string) => {
+  const runModelSwitch = (providerId: string, modelId: string) => {
     const store = useSettingsStore.getState();
-    store.saveSettings({ defaultModelId: modelId });
+    const modelRef = ModelRef.from(providerId, modelId);
+    store.saveSettings({ defaultModel: modelRef });
     setShowModelList(false);
     setResult(`✅ ${t("quickbar.result.modelSwitched")}`);
     clearTimeout(resultTimerRef.current);
@@ -1835,6 +1839,7 @@ export function QuickBarPage() {
         copied={copied}
         currentModels={currentModels}
         activeModelId={activeModelId}
+        activeProviderId={activeProviderId}
         selectedWikiId={selectedWikiId}
         runModelSwitch={runModelSwitch}
         handleCopy={handleCopy}

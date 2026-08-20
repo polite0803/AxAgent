@@ -54,14 +54,14 @@ export function AgentChatTab() {
     let provider: ProviderConfig | undefined;
     let model: Model | undefined;
 
-    if (settings?.defaultProviderId && settings?.defaultModelId) {
+    if (settings?.defaultModel?.a && settings?.defaultModel?.b) {
       const defaultModel = findModelByIds(
         providers,
-        settings.defaultProviderId,
-        settings.defaultModelId,
+        settings.defaultModel!.a,
+        settings.defaultModel!.b,
       );
       if (defaultModel?.enabled) {
-        provider = providers.find((p) => p.id === settings.defaultProviderId);
+        provider = providers.find((p) => p.id === settings.defaultModel!.a);
         model = defaultModel;
       }
     }

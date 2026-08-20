@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { invoke } from "@/lib/invoke";
+import { type AdaptResult, adaptSettings } from "@/lib/settingsAdaptor";
+import { fromDto, toDto, validateDtoConsistency } from "@/lib/settingsDtoConverter";
 import { DEFAULT_SHORTCUT_BINDINGS } from "@/lib/shortcuts";
-import type { AppSettings } from "@/types";
+import type { AppSettings, ProviderConfig } from "@/types";
 import { create } from "zustand";
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -21,28 +23,30 @@ const DEFAULT_SETTINGS: AppSettings = {
   bubbleStyle: "modern",
   codeTheme: "poimandres",
   codeThemeLight: "github-light",
-  defaultProviderId: null,
-  defaultModelId: null,
+
+  // === 使用 NullableModelRef 保证结构一致性 ===
+  defaultModel: null,
   defaultTemperature: null,
   defaultMaxTokens: null,
   defaultTopP: null,
   defaultFrequencyPenalty: null,
   defaultContextCount: null,
-  titleSummaryProviderId: null,
-  titleSummaryModelId: null,
+
+  titleSummaryModel: null,
   titleSummaryTemperature: null,
   titleSummaryMaxTokens: null,
   titleSummaryTopP: null,
   titleSummaryFrequencyPenalty: null,
   titleSummaryContextCount: null,
   titleSummaryPrompt: null,
-  compressionProviderId: null,
-  compressionModelId: null,
+
+  compressionModel: null,
   compressionTemperature: null,
   compressionMaxTokens: null,
   compressionTopP: null,
   compressionFrequencyPenalty: null,
   compressionPrompt: null,
+
   proxyType: null,
   proxyAddress: null,
   proxyPort: null,
@@ -179,12 +183,12 @@ export interface GlobalShortcutStatus {
 interface SettingsState {
   settings: AppSettings;
   loading: boolean;
-  /** Set once after the first successful fetchSettings; guards saveSettings from writing stale data. */
   _loaded: boolean;
   error: string | null;
   globalShortcutStatus: GlobalShortcutStatus;
   fetchSettings: () => Promise<void>;
   saveSettings: (settings: Partial<AppSettings>) => Promise<void>;
+  validateAndCleanModels: (providers: readonly ProviderConfig[]) => Promise<AdaptResult>;
   setGlobalShortcutStatus: (status: GlobalShortcutStatus) => void;
 }
 
@@ -200,12 +204,27 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     diagnostics: [],
   },
 
+  /**
+   * 从后端加载设置
+   *
+   * 关键变化：
+   * 1. 后端返回的是分离字段格式（providerId + modelId）
+   * 2. 使用 fromDto() 转换为前端强类型格式（NullableModelRef）
+   * 3. 类型系统保证：转换后的 AppSettings 不可能存在不一致
+   */
   fetchSettings: async () => {
     set({ loading: true });
     try {
-      const fetched = await invoke<Partial<AppSettings>>("get_settings");
+      const rawDto = await invoke<Record<string, unknown>>("get_settings");
+
+      // 开发环境断言：验证后端数据的结构正确性
+      validateDtoConsistency(rawDto as never);
+
+      // 转换为前端强类型
+      const appSettings = fromDto(rawDto as never);
+
       set({
-        settings: { ...DEFAULT_SETTINGS, ...fetched },
+        settings: { ...DEFAULT_SETTINGS, ...appSettings },
         loading: false,
         _loaded: true,
         error: null,
@@ -215,22 +234,67 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }
   },
 
+  /**
+   * 保存设置到后端
+   *
+   * 关键变化：
+   * 1. 前端内部使用 NullableModelRef（类型安全）
+   * 2. 使用 toDto() 转换为后端需要的分离字段格式
+   * 3. 转换层保证：如果 NullableModelRef 有效，拆分后的字段一定有效
+   */
   saveSettings: async (partial) => {
     if (!get()._loaded) {
-      // Settings haven't been hydrated from the DB yet; dropping silently would
-      // make the change look "persisted" in the UI but vanish on next launch.
       console.warn(
         "[settingsStore] saveSettings called before fetchSettings finished — skipping",
         { keys: Object.keys(partial) },
       );
       return;
     }
+
+    // 更新本地状态
     set((s) => ({ settings: { ...s.settings, ...partial }, error: null }));
+
     try {
-      await invoke("save_settings", { settings: get().settings });
+      // 转换为后端 DTO 格式并保存
+      const dto = toDto(get().settings);
+      await invoke("save_settings", { settings: dto });
     } catch (e) {
       set({ error: String(e) });
     }
+  },
+
+  /**
+   * 验证并清理无效的模型引用
+   *
+   * 这是类型驱动设计的核心：
+   * - 类型系统保证结构一致性
+   * - 运行时验证数据有效性（provider/model 是否真实存在）
+   * - 任何无效引用在此阶段就被清除
+   */
+  validateAndCleanModels: async (providers) => {
+    const currentSettings = get().settings;
+    const result = adaptSettings(currentSettings, providers);
+
+    if (result.changed) {
+      console.warn("[settingsStore] 发现并清理无效的模型引用", {
+        invalidFields: result.invalidFields,
+      });
+
+      // 更新本地状态为清理后的设置
+      set({ settings: result.cleanedSettings });
+
+      // 持久化清理后的设置到后端
+      try {
+        const dto = toDto(result.cleanedSettings);
+        await invoke("save_settings", { settings: dto });
+        console.info("[settingsStore] 已保存清理后的设置到后端");
+      } catch (e) {
+        console.error("[settingsStore] 保存清理后的设置失败", e);
+        set({ error: String(e) });
+      }
+    }
+
+    return result;
   },
 
   setGlobalShortcutStatus: (status) => {

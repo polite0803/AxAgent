@@ -251,13 +251,13 @@ export function useChatViewActions({
             messageApi.warning(t("chat.noModel"));
             return;
           }
-          let provider = settings.defaultProviderId
+          let provider = settings.defaultModel
             ? providers.find(
-              (p) => p.id === settings.defaultProviderId && p.enabled,
+              (p) => p.id === settings.defaultModel?.a && p.enabled,
             )
             : undefined;
           let model = provider?.models.find(
-            (m) => m.modelId === settings.defaultModelId && m.enabled,
+            (m) => m.modelId === settings.defaultModel?.b && m.enabled,
           );
           if (!provider || !model) {
             provider = providers.find(

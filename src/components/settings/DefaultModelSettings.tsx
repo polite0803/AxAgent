@@ -3,7 +3,9 @@
 import { ModelParamSliders } from "@/components/common/ModelParamSliders";
 import { Tooltip } from "@/components/layout/Tooltip";
 import { ModelSelect, parseModelValue } from "@/components/shared/ModelSelect";
+import { getModelSelection } from "@/lib/settingsAdaptor";
 import { useProviderStore, useSettingsStore } from "@/stores";
+import { ModelSelection } from "@/types";
 import type { AppSettings } from "@/types";
 import { Button, Divider, Input, InputNumber, Modal, Slider, theme } from "antd";
 import { Info, Settings, Undo2 } from "lucide-react";
@@ -245,8 +247,7 @@ function ModelParamsModal({
 function ModelCard({
   title,
   description,
-  providerIdKey,
-  modelIdKey,
+  modelKey,
   placeholder,
   modalTitle,
   showPrompt,
@@ -264,8 +265,7 @@ function ModelCard({
 }: {
   title: string;
   description: string;
-  providerIdKey: keyof AppSettings;
-  modelIdKey: keyof AppSettings;
+  modelKey: keyof AppSettings;
   placeholder: string;
   modalTitle: string;
   showPrompt: boolean;
@@ -286,30 +286,32 @@ function ModelCard({
   const saveSettings = useSettingsStore((s) => s.saveSettings);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const currentProviderId = settings[providerIdKey] as string | null;
-  const currentModelId = settings[modelIdKey] as string | null;
-  const currentValue = currentProviderId && currentModelId
-    ? `${currentProviderId}::${currentModelId}`
+  // 使用 getModelSelection 获取强类型的模型选择
+  // 如果返回 null，说明未设置或设置无效（后者已在数据层被清理）
+  const modelSelection = getModelSelection(settings, modelKey);
+
+  // 转换为 ModelSelect 组件需要的字符串格式
+  const currentValue = modelSelection
+    ? ModelSelection.toValue(modelSelection)
     : undefined;
 
   const handleChange = useCallback(
     (value: string | undefined) => {
       if (!value) {
         saveSettings({
-          [providerIdKey]: null,
-          [modelIdKey]: null,
+          [modelKey]: null,
         } as Partial<AppSettings>);
         return;
       }
       const parsed = parseModelValue(value);
       if (parsed) {
+        const modelRef = ModelSelection.from(parsed.providerId, parsed.modelId);
         saveSettings({
-          [providerIdKey]: parsed.providerId,
-          [modelIdKey]: parsed.modelId,
+          [modelKey]: modelRef,
         } as Partial<AppSettings>);
       }
     },
-    [saveSettings, providerIdKey, modelIdKey],
+    [saveSettings, modelKey],
   );
 
   return (
@@ -366,10 +368,28 @@ function ModelCard({
 export function DefaultModelSettings() {
   const { t } = useTranslation();
   const fetchProviders = useProviderStore((s) => s.fetchProviders);
+  const providers = useProviderStore((s) => s.providers);
+  const providerLoading = useProviderStore((s) => s.loading);
+  const validateAndCleanModels = useSettingsStore((s) => s.validateAndCleanModels);
+  const fetchSettings = useSettingsStore((s) => s.fetchSettings);
 
+  // 首次加载：获取 settings 和 providers
   useEffect(() => {
+    fetchSettings();
     fetchProviders();
-  }, [fetchProviders]);
+  }, [fetchSettings, fetchProviders]);
+
+  // 当 providers 加载完成后，立即验证并清理无效的模型引用
+  // 这是类型驱动设计的关键：在数据层就清除无效状态
+  useEffect(() => {
+    if (!providerLoading && providers.length > 0) {
+      validateAndCleanModels(providers).then((result) => {
+        if (result.changed) {
+          console.info("[DefaultModelSettings] 已清理无效模型引用", result.invalidFields);
+        }
+      });
+    }
+  }, [providerLoading, providers, validateAndCleanModels]);
 
   const placeholderText = t("settings.useActiveModel");
 
@@ -378,8 +398,7 @@ export function DefaultModelSettings() {
       <ModelCard
         title={t("settings.defaultConversationModel")}
         description={t("settings.defaultConversationModelDesc")}
-        providerIdKey="defaultProviderId"
-        modelIdKey="defaultModelId"
+        modelKey="defaultModel"
         placeholder={placeholderText}
         modalTitle={t("settings.defaultConversationModel")}
         showPrompt={false}
@@ -396,8 +415,7 @@ export function DefaultModelSettings() {
       <ModelCard
         title={t("settings.titleSummaryModel")}
         description={t("settings.titleSummaryModelDesc")}
-        providerIdKey="titleSummaryProviderId"
-        modelIdKey="titleSummaryModelId"
+        modelKey="titleSummaryModel"
         placeholder={placeholderText}
         modalTitle={t("settings.titleSummaryModel")}
         showPrompt={true}
@@ -414,8 +432,7 @@ export function DefaultModelSettings() {
       <ModelCard
         title={t("settings.compressionModel")}
         description={t("settings.compressionModelDesc")}
-        providerIdKey="compressionProviderId"
-        modelIdKey="compressionModelId"
+        modelKey="compressionModel"
         placeholder={placeholderText}
         modalTitle={t("settings.compressionModel")}
         showPrompt={true}

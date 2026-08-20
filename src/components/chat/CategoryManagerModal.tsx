@@ -4,6 +4,7 @@ import { Tooltip } from "@/components/layout/Tooltip";
 import { message } from "@/lib/toast";
 import { useCategoryStore, useConversationStore } from "@/stores";
 import type { ConversationCategory } from "@/types";
+import { ModelRef, type NullableModelRef } from "@/types/paired";
 import { Avatar, Button, Empty, Modal, Popconfirm, theme } from "antd";
 import { FolderOpen, Pencil, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -15,7 +16,9 @@ interface CategoryManagerModalProps {
   onClose: () => void;
 }
 
-type EditTarget = { id: string } & CategoryEditFormData;
+type EditTarget = { id: string } & Omit<CategoryEditFormData, "defaultProviderId" | "defaultModelId"> & {
+  defaultModel: NullableModelRef;
+};
 
 export function CategoryManagerModal({
   open,
@@ -53,8 +56,9 @@ export function CategoryManagerModal({
           iconType: data.iconType,
           iconValue: data.iconValue,
           systemPrompt: data.systemPrompt,
-          defaultProviderId: data.defaultProviderId,
-          defaultModelId: data.defaultModelId,
+          defaultModel: data.defaultProviderId && data.defaultModelId
+            ? ModelRef.from(data.defaultProviderId, data.defaultModelId)
+            : null,
           defaultTemperature: data.defaultTemperature,
           defaultMaxTokens: data.defaultMaxTokens,
           defaultTopP: data.defaultTopP,
@@ -83,8 +87,9 @@ export function CategoryManagerModal({
           iconType: data.iconType,
           iconValue: data.iconValue,
           systemPrompt: data.systemPrompt,
-          defaultProviderId: data.defaultProviderId,
-          defaultModelId: data.defaultModelId,
+          defaultModel: data.defaultProviderId && data.defaultModelId
+            ? ModelRef.from(data.defaultProviderId, data.defaultModelId)
+            : null,
           defaultTemperature: data.defaultTemperature,
           defaultMaxTokens: data.defaultMaxTokens,
           defaultTopP: data.defaultTopP,
@@ -118,8 +123,7 @@ export function CategoryManagerModal({
       iconType: category.iconType,
       iconValue: category.iconValue,
       systemPrompt: category.systemPrompt,
-      defaultProviderId: category.defaultProviderId,
-      defaultModelId: category.defaultModelId,
+      defaultModel: category.defaultModel,
       defaultTemperature: category.defaultTemperature,
       defaultMaxTokens: category.defaultMaxTokens,
       defaultTopP: category.defaultTopP,
@@ -268,8 +272,8 @@ export function CategoryManagerModal({
           initialIconType={editingCategory.iconType}
           initialIconValue={editingCategory.iconValue}
           initialSystemPrompt={editingCategory.systemPrompt}
-          initialDefaultProviderId={editingCategory.defaultProviderId}
-          initialDefaultModelId={editingCategory.defaultModelId}
+          initialDefaultProviderId={editingCategory.defaultModel?.a ?? null}
+          initialDefaultModelId={editingCategory.defaultModel?.b ?? null}
           initialDefaultTemperature={editingCategory.defaultTemperature}
           initialDefaultMaxTokens={editingCategory.defaultMaxTokens}
           initialDefaultTopP={editingCategory.defaultTopP}

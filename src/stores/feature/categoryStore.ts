@@ -2,6 +2,7 @@
 
 import { invoke } from "@/lib/invoke";
 import type { ConversationCategory } from "@/types";
+import type { NullableModelRef } from "@/types/paired";
 import { create } from "zustand";
 
 interface CategoryState {
@@ -13,8 +14,7 @@ interface CategoryState {
     iconType?: string | null;
     iconValue?: string | null;
     systemPrompt?: string | null;
-    defaultProviderId?: string | null;
-    defaultModelId?: string | null;
+    defaultModel?: NullableModelRef;
     defaultTemperature?: number | null;
     defaultMaxTokens?: number | null;
     defaultTopP?: number | null;
@@ -27,8 +27,7 @@ interface CategoryState {
       iconType?: string | null;
       iconValue?: string | null;
       systemPrompt?: string | null;
-      defaultProviderId?: string | null;
-      defaultModelId?: string | null;
+      defaultModel?: NullableModelRef;
       defaultTemperature?: number | null;
       defaultMaxTokens?: number | null;
       defaultTopP?: number | null;
@@ -65,8 +64,8 @@ export const useCategoryStore = create<CategoryState>((set) => ({
           icon_type: input.iconType,
           icon_value: input.iconValue,
           system_prompt: input.systemPrompt,
-          default_provider_id: input.defaultProviderId,
-          default_model_id: input.defaultModelId,
+          default_provider_id: input.defaultModel?.a,
+          default_model_id: input.defaultModel?.b,
           default_temperature: input.defaultTemperature,
           default_max_tokens: input.defaultMaxTokens,
           default_top_p: input.defaultTopP,
@@ -88,8 +87,8 @@ export const useCategoryStore = create<CategoryState>((set) => ({
           icon_type: input.iconType,
           icon_value: input.iconValue,
           system_prompt: input.systemPrompt,
-          default_provider_id: input.defaultProviderId,
-          default_model_id: input.defaultModelId,
+          default_provider_id: input.defaultModel?.a,
+          default_model_id: input.defaultModel?.b,
           default_temperature: input.defaultTemperature,
           default_max_tokens: input.defaultMaxTokens,
           default_top_p: input.defaultTopP,

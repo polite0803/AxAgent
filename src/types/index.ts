@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+// === Paired Types (全局同步字段对) ===
+export * from "./paired";
+
+// === Model Selection System ===
+export * from "./modelSelection";
+
 // === Provider System ===
 import type { RAGPipelineConfig } from "./knowledge";
+import type { NullableModelRef } from "./paired";
 import type { TaskShapeDecision } from "./taskShape";
 
 export type ProviderType =
@@ -122,8 +129,9 @@ export interface ConversationCategory {
   iconType: string | null;
   iconValue: string | null;
   systemPrompt: string | null;
-  defaultProviderId: string | null;
-  defaultModelId: string | null;
+
+  // 使用 NullableModelRef 保证结构一致性
+  defaultModel: NullableModelRef;
   defaultTemperature: number | null;
   defaultMaxTokens: number | null;
   defaultTopP: number | null;
@@ -469,28 +477,31 @@ export interface AppSettings {
   bubbleStyle: string;
   codeTheme: string;
   codeThemeLight: string;
-  defaultProviderId: string | null;
-  defaultModelId: string | null;
+
+  // === 模型选择：使用 NullableModelRef 保证结构一致性 ===
+  // 类型系统保证：不可能出现 providerId 存在但 modelId 缺失的状态
+  defaultModel: NullableModelRef;
   defaultTemperature: number | null;
   defaultMaxTokens: number | null;
   defaultTopP: number | null;
   defaultFrequencyPenalty: number | null;
   defaultContextCount: number | null;
-  titleSummaryProviderId: string | null;
-  titleSummaryModelId: string | null;
+
+  titleSummaryModel: NullableModelRef;
   titleSummaryTemperature: number | null;
   titleSummaryMaxTokens: number | null;
   titleSummaryTopP: number | null;
   titleSummaryFrequencyPenalty: number | null;
   titleSummaryContextCount: number | null;
   titleSummaryPrompt: string | null;
-  compressionProviderId: string | null;
-  compressionModelId: string | null;
+
+  compressionModel: NullableModelRef;
   compressionTemperature: number | null;
   compressionMaxTokens: number | null;
   compressionTopP: number | null;
   compressionFrequencyPenalty: number | null;
   compressionPrompt: string | null;
+
   proxyType: string | null;
   proxyAddress: string | null;
   proxyPort: number | null;

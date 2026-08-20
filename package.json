@@ -78,6 +78,7 @@
     "lint": "tsc --noEmit",
     "lint:eslint": "eslint src --max-warnings=0",
     "check:types": "node scripts/type-consistency.mjs",
+    "check:paired": "node scripts/check-paired-fields.ts",
     "docs": "typedoc --out docs src",
     "docs:watch": "typedoc --out docs --watch src",
     "ci:check": "node scripts/ci-check.mjs",
