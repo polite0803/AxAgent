@@ -290,6 +290,7 @@ pub fn run() {
             android_utils::mark_startup_phase("db_init_done");
 
             android_utils::mark_startup_phase("state_init_start");
+            let t_state = std::time::Instant::now();
             let state = match tauri::async_runtime::block_on(init::state::create_app_state(db_result)) {
                 Ok(s) => s,
                 Err(e) => {
@@ -298,142 +299,156 @@ pub fn run() {
                     return Ok(());
                 }
             };
+            tracing::info!(elapsed = %t_state.elapsed().as_millis(), "[startup] create_app_state (block_on) 完成");
 
             android_utils::mark_startup_phase("state_init_done");
 
             app.manage(state);
 
+            // 保留 state 引用供后续使用
             let state = app.state::<AppState>();
-            let sea_db = state.harness.db().clone();
+            let app_data_dir = state.app_data_dir.clone();
 
-            // 直接在 Tauri 主 runtime 上 reset 会话（同上：避免连接池跨 runtime 孤儿化）
-            if let Err(e) = tauri::async_runtime::block_on(async {
-                axagent_dao::repo::agent_session::reset_running_sessions(&sea_db).await
-            }) {
-                tracing::error!("Session reset failed: {:?}", e);
-            }
+            // ── 窗口状态恢复（保留在同步路径，确保 WebView 创建后立即恢复） ──
+            #[cfg(not(mobile))]
+            if let Some(main_window) = app.get_webview_window("main") {
+                #[cfg(target_os = "windows")]
+                {
+                    let _ = main_window.set_decorations(false);
+                    let _ = main_window.set_minimizable(true);
+                    let _ = main_window.set_maximizable(true);
+                }
 
-            // Seed OPC knowledge sources (Wiki + Memory) on first launch
-            {
-                tauri::async_runtime::block_on(async {
-                    init::opc_knowledge::seed_opc_knowledge(&sea_db).await;
-                });
-            }
+                if let Some(saved_state) = window_state::load_window_state(&app_data_dir) {
+                    let restored_state = if let Ok(Some(monitor)) = main_window.current_monitor() {
+                        let monitor_size = monitor.size().to_logical::<f64>(main_window.scale_factor().unwrap_or(1.0));
+                        window_state::clamp_window_state_to_monitor(saved_state, monitor_size.width, monitor_size.height)
+                    } else {
+                        saved_state
+                    };
 
-            // 同步 OPC 行业包/领域包资产到用户数据目录（CWD 无关，供 seed 与命令读取）
-            crate::commands::opc_workflows::ensure_opc_config_synced(&app_dir);
-
-            // Seed OPC professional workflow templates（行业数据资产包驱动）
-            {
-                tauri::async_runtime::block_on(async {
-                    if let Err(e) = crate::commands::opc_workflows::ensure_opc_workflows_seeded(&sea_db, Some(&app_dir)).await {
-                        tracing::error!("[opc-workflows] Seed failed: {e}");
+                    let _ = main_window.set_size(tauri::LogicalSize::new(restored_state.width, restored_state.height));
+                    if let (Some(x), Some(y)) = (restored_state.x, restored_state.y) {
+                        let _ = main_window.set_position(tauri::LogicalPosition::new(x, y));
+                    } else {
+                        let _ = main_window.center();
                     }
-                });
-            }
-
-            // Seed OPC company architecture (CEO/CTO/CFO + expert profiles)
-            {
-                tauri::async_runtime::block_on(async {
-                    if let Err(e) = crate::commands::opc_setup::ensure_opc_company_seeded(&sea_db).await {
-                        tracing::error!("[opc-company] Seed failed: {e}");
+                    if restored_state.fullscreen {
+                        let _ = main_window.set_fullscreen(true);
+                    } else if restored_state.maximized {
+                        let _ = main_window.maximize();
                     }
-                });
+                }
             }
 
-            // Seed OPC demand discovery cron jobs
-            {
-                let cron_store = state.cron_job_store.clone();
-                tauri::async_runtime::block_on(async {
-                    if let Err(e) =
-                        crate::commands::opc_setup::seed_opc_cron::seed_demand_discovery_crons(&cron_store)
-                            .await
-                    {
-                        tracing::error!("[opc-cron] Seed failed: {e}");
-                    }
-                });
-            }
+            // ── 异步启动：所有种子化/初始化操作在后台执行，不阻塞 UI ──
+            // 提取 'static 安全的 Arc/PathBuf 字段进 async 闭包
+            let init_state = app.state::<AppState>();
+            let init_sea_db = init_state.harness.db().clone();
+            let init_app_dir = app_dir.clone();
+            let init_cron_store = init_state.cron_job_store.clone();
+            let init_user_profile = init_state.user_profile.clone();
+            let init_pattern_learner = init_state.pattern_learner.clone();
+            let init_stream_reporter = init_state.stream_reporter.clone();
+            let init_concept_index = init_state.concept_index.clone();
+            let init_platform_manager = init_state.platform_manager.clone();
+            let init_local_tool_registry = init_state.local_tool_registry.clone();
+            let init_work_engine = init_state.work_engine.clone();
+            let init_evolution_stats = init_state.evolution_execution_stats.clone();
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let app_state = app_handle.state::<AppState>();
+                let sea_db = init_sea_db;
+                let t_async = std::time::Instant::now();
+                tracing::info!("[startup] 异步初始化开始");
 
-            // Initialize pricing configuration from pricing.toml
-            commands::agent::init_pricing_config(app.handle());
+                // 1. reset 会话
+                if let Err(e) = axagent_dao::repo::agent_session::reset_running_sessions(&sea_db).await {
+                    tracing::error!("Session reset failed: {:?}", e);
+                }
 
-            // 注入 Orchestrator 流式报告器（绑定 AppHandle 以便推送事件到前端）
-            {
-                let reporter = commands::orchestrator::create_stream_reporter(app.handle().clone());
-                let stream_reporter = state.stream_reporter.clone();
-                tauri::async_runtime::block_on(async {
-                    *stream_reporter.write().await = Some(reporter);
-                });
-            }
+                // 2. Seed OPC knowledge sources (Wiki + Memory)
+                init::opc_knowledge::seed_opc_knowledge(&sea_db).await;
 
-            // m7: validate agent_roles.yaml schema at startup
-            {
-                let config_dir = app_dir.join("config");
-                let roles_path = config_dir.join("agent_roles.yaml");
-                if roles_path.exists() {
-                    config_validator::validate_agent_roles(&roles_path.to_string_lossy());
+                // 3. 同步 OPC 行业包/领域包资产到用户数据目录
+                crate::commands::opc_workflows::ensure_opc_config_synced(&init_app_dir);
 
-                    // 将 YAML 中启用的角色 upsert 到 agent_roles 表
-                    // （AxInvest 本地：OPC 角色 opc_financial_clerk 等由此入 DB）
-                    if let Ok(content) = std::fs::read_to_string(&roles_path) {
-                        let roles = config_validator::parse_enabled_roles(&content);
-                        if !roles.is_empty() {
-                            let db = state.harness.db().clone();
-                            tauri::async_runtime::block_on(async {
+                // 4. Seed OPC professional workflow templates
+                if let Err(e) = crate::commands::opc_workflows::ensure_opc_workflows_seeded(&sea_db, Some(&init_app_dir)).await {
+                    tracing::error!("[opc-workflows] Seed failed: {e}");
+                }
+
+                // 5. Seed OPC company architecture
+                if let Err(e) = crate::commands::opc_setup::ensure_opc_company_seeded(&sea_db).await {
+                    tracing::error!("[opc-company] Seed failed: {e}");
+                }
+
+                // 6. Seed OPC demand discovery cron jobs
+                if let Err(e) = crate::commands::opc_setup::seed_opc_cron::seed_demand_discovery_crons(&init_cron_store).await {
+                    tracing::error!("[opc-cron] Seed failed: {e}");
+                }
+
+                // 7. Initialize pricing configuration
+                commands::agent::init_pricing_config(&app_handle);
+
+                // 8. 注入 Orchestrator 流式报告器
+                {
+                    let reporter = commands::orchestrator::create_stream_reporter(app_handle.clone());
+                    let mut stream_reporter_guard = init_stream_reporter.write().await;
+                    *stream_reporter_guard = Some(reporter);
+                }
+
+                // 9. validate agent_roles.yaml schema 并种子化
+                {
+                    let config_dir = init_app_dir.join("config");
+                    let roles_path = config_dir.join("agent_roles.yaml");
+                    if roles_path.exists() {
+                        config_validator::validate_agent_roles(&roles_path.to_string_lossy());
+                        if let Ok(content) = std::fs::read_to_string(&roles_path) {
+                            let roles = config_validator::parse_enabled_roles(&content);
+                            if !roles.is_empty() {
                                 for r in &roles {
                                     let name = r.name.as_deref().unwrap_or("");
                                     let prompt = r.system_prompt.as_deref().unwrap_or("");
-                                    let tools: Vec<String> =
-                                        r.allowed_tools.clone().unwrap_or_default();
+                                    let tools: Vec<String> = r.allowed_tools.clone().unwrap_or_default();
                                     let max_conc = r.max_concurrent.unwrap_or(1) as i32;
                                     let timeout = r.timeout_seconds.unwrap_or(600) as i64;
 
                                     match axagent_dao::repo::agent_role::upsert_agent_role(
-                                        &db, name, name, None, prompt, &tools, &[], max_conc,
+                                        &sea_db, name, name, None, prompt, &tools, &[], max_conc,
                                         timeout, "file:agent_roles.yaml",
                                     )
                                     .await
                                     {
-                                        Ok(_) => {
-                                            tracing::info!("[opc] Seeded agent role: {name}")
-                                        }
-                                        Err(e) => tracing::warn!(
-                                            "[opc] Failed to seed role {name}: {e}"
-                                        ),
+                                        Ok(_) => tracing::info!("[opc] Seeded agent role: {name}"),
+                                        Err(e) => tracing::warn!("[opc] Failed to seed role {name}: {e}"),
                                     }
                                 }
-                            });
+                            }
                         }
                     }
                 }
-            }
 
-            if let Some(home) = dirs::home_dir() {
-                let user_md_path = home.join(".axinvest").join("USER.md");
-                if user_md_path.exists() {
-                    if let Ok(content) = std::fs::read_to_string(&user_md_path) {
-                        if let Some(profile) = axagent_trajectory::UserProfile::from_user_md(&content) {
-                            let user_profile = state.user_profile.clone();
-                            spawn_block_on("user_profile", async move {
-                                let mut p = user_profile.write().await;
+                // 10. 加载 USER.md profile
+                if let Some(home) = dirs::home_dir() {
+                    let user_md_path = home.join(".axinvest").join("USER.md");
+                    if user_md_path.exists() {
+                        if let Ok(content) = std::fs::read_to_string(&user_md_path) {
+                            if let Some(profile) = axagent_trajectory::UserProfile::from_user_md(&content) {
+                                let mut p = init_user_profile.write().await;
                                 *p = profile;
                                 tracing::info!("[user-profile] Loaded profile from USER.md ({} preferences, {} expertise domains)",
                                     p.preferences.len(), p.expertise.len());
-                            })
-                            .unwrap_or_else(|e| {
-                                tracing::error!("User profile thread panicked: {:?}", e);
-                            });
+                            }
                         }
                     }
                 }
-            }
 
-            if let Ok(persisted) = tauri::async_runtime::block_on(state.trajectory_storage.get_patterns()) {
-                if !persisted.is_empty() {
-                    let pattern_count = persisted.len();
-                    let pattern_learner = state.pattern_learner.clone();
-                    spawn_block_on("pattern_learner", async move {
-                        let mut pl = pattern_learner.write().await;
+                // 11. 加载持久化 trajectory patterns 到 PatternLearner
+                if let Ok(persisted) = app_state.trajectory_storage.get_patterns().await {
+                    if !persisted.is_empty() {
+                        let pattern_count = persisted.len();
+                        let mut pl = init_pattern_learner.write().await;
                         for pattern in &persisted {
                             pl.learn_from_trajectory(&axagent_trajectory::Trajectory {
                                 id: pattern.id.clone(),
@@ -464,174 +479,123 @@ pub fn run() {
                                 last_replay_at: None,
                             });
                         }
-                    })
-                    .unwrap_or_else(|e| {
-                        tracing::error!("Pattern learner thread panicked: {:?}", e);
-                    });
-                    tracing::info!("[P5] Loaded {} persisted patterns into PatternLearner", pattern_count);
-                }
-            }
-
-            let app_dir = state.app_data_dir.clone();
-
-            #[cfg(not(mobile))]
-            if let Some(main_window) = app.get_webview_window("main") {
-                #[cfg(target_os = "windows")]
-                {
-                    let _ = main_window.set_decorations(false);
-                    let _ = main_window.set_minimizable(true);
-                    let _ = main_window.set_maximizable(true);
-                }
-
-                if let Some(saved_state) = window_state::load_window_state(&app_dir) {
-                    let restored_state = if let Ok(Some(monitor)) = main_window.current_monitor() {
-                        let monitor_size = monitor.size().to_logical::<f64>(main_window.scale_factor().unwrap_or(1.0));
-                        window_state::clamp_window_state_to_monitor(saved_state, monitor_size.width, monitor_size.height)
-                    } else {
-                        saved_state
-                    };
-
-                    let _ = main_window.set_size(tauri::LogicalSize::new(restored_state.width, restored_state.height));
-                    if let (Some(x), Some(y)) = (restored_state.x, restored_state.y) {
-                        let _ = main_window.set_position(tauri::LogicalPosition::new(x, y));
-                    } else {
-                        let _ = main_window.center();
-                    }
-                    if restored_state.fullscreen {
-                        let _ = main_window.set_fullscreen(true);
-                    } else if restored_state.maximized {
-                        let _ = main_window.maximize();
+                        tracing::info!("[P5] Loaded {} persisted patterns into PatternLearner", pattern_count);
                     }
                 }
-            }
 
-            #[cfg(mobile)]
-            if let Some(ref sync_engine) = state.sync_engine {
-                tracing::info!("[mobile] Starting cloud sync engine...");
-                let engine = sync_engine.clone();
-                spawn_block_on("cloud_sync", async move {
-                    match engine.backend.check_connection().await {
-                        Ok(true) => tracing::info!("[mobile] Cloud sync backend connected"),
-                        Ok(false) => tracing::warn!("[mobile] Cloud sync backend unreachable"),
-                        Err(e) => tracing::warn!("[mobile] Cloud sync connection check failed: {}", e),
-                    }
-                }).unwrap_or_else(|e| {
-                    tracing::error!("Mobile sync thread panicked: {:?}", e);
-                });
-            }
-
-            let state = app.state::<AppState>();
-            #[cfg(not(mobile))]
-            let tray_language = {
-                let db = state.harness.db().clone();
-                tauri::async_runtime::block_on(
-                    axagent_dao::repo::settings::get_settings(&db),
-                )
-                .map(|s| s.language)
-                .unwrap_or_else(|e| {
-                    tracing::error!("Failed to get tray language: {}", e);
-                    "en".to_string()
-                })
-            };
-            #[cfg(mobile)]
-            let tray_language = "en".to_string();
-
-            // 异步启动：不阻塞 UI — 种子化股票分析专家/角色/Profile/工作流模板（UPSERT 幂等）
-            let seed_db = state.harness.db().clone();
-            // 仅提取 'static 安全的 Arc/PathBuf 字段进 async 闭包（State 借用本身不可跨闭包）
-            let concept_index = state.concept_index.clone();
-            let app_data_dir = state.app_data_dir.clone();
-            tauri::async_runtime::spawn(async move {
-                // 1. 种子化股票分析专家/角色/Profile/工作流模板
-                //   （OPC 行业无运行时容器，命令直读行业包，无需启动初始化）
-                if let Err(e) = crate::commands::stock_analysis_setup::ensure_stock_analysis_experts_seeded(&seed_db).await {
+                // 12. 异步股票业务种子化（专家/角色/工作流模板）
+                if let Err(e) = crate::commands::stock_analysis_setup::ensure_stock_analysis_experts_seeded(&sea_db).await {
                     tracing::error!("[startup] 股票业务种子化失败: {e}");
                 }
-                // 2. 构建全局 ConceptIndex（49行业+163概念本体 + lemonhu 知识库）
+                // 13. 构建全局 ConceptIndex
                 {
-                    let idx = crate::commands::stock_analysis_setup::seed_concept_index::ensure_concept_index(&seed_db, &app_data_dir).await;
-                    let mut w = concept_index.write().await;
+                    let idx = crate::commands::stock_analysis_setup::seed_concept_index::ensure_concept_index(&sea_db, &init_app_dir).await;
+                    let mut w = init_concept_index.write().await;
                     *w = idx;
                     tracing::info!("[startup] ConceptIndex 构建完成");
                 }
-                // 3. 同步内置 SKILL.md 到用户目录（同步操作，快速完成）
+                // 14. 同步内置 SKILL.md
                 crate::commands::skills::seed_builtin_skills();
-                // 4. Multi-Agent 固定角色（analyst/implementer/reviewer）种子化
-                // 幂等 upsert，每次启动都调用，确保三个内置角色记录存在
-                if let Err(e) = crate::commands::multi_agent_setup::seed_multi_agent_roles::seed_multi_agent_roles(&seed_db).await {
+                // 15. Multi-Agent 固定角色种子化
+                if let Err(e) = crate::commands::multi_agent_setup::seed_multi_agent_roles::seed_multi_agent_roles(&sea_db).await {
                     tracing::warn!("[multi_agent_setup] 种子化 Multi-Agent 角色失败: {}", e);
                 }
-            });
-// 注入 OPC 通知发送 channel + 后台 worker（AxInvest 本地薄补丁：
-            // OPC 台账工具 OpcSendNotification 经 8 渠道消息网关发送）
-            {
-                let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
-                axagent_tools::tools::opc::set_opc_notify_tx(tx);
 
-                let pm = state.platform_manager.clone();
-                let db = state.harness.db().clone();
-                tauri::async_runtime::spawn(async move {
-                    while let Some(notif) = rx.recv().await {
-                        let config =
-                            axagent_dao::repo::platform_config::get_platform_config(&db).await;
-                        match pm.get_adapter(&notif.platform).await {
-                            Some(adapter) => {
-                                if let Err(e) = adapter
-                                    .send_message(&config, &notif.chat_id, &notif.message, None)
-                                    .await
-                                {
-                                    tracing::error!(
-                                        "[opc-notify] {}/{}: {e}",
-                                        notif.platform,
-                                        notif.chat_id
-                                    );
-                                } else {
-                                    tracing::info!(
-                                        "[opc-notify] Sent via {} to {}",
-                                        notif.platform,
-                                        notif.chat_id
-                                    );
+                // 16. 启动 OPC notify worker（独立 spawn，避免无限循环阻塞后续初始化）
+                {
+                    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+                    axagent_tools::tools::opc::set_opc_notify_tx(tx);
+                    let pm = init_platform_manager.clone();
+                    let db = sea_db.clone();
+                    tauri::async_runtime::spawn(async move {
+                        while let Some(notif) = rx.recv().await {
+                            let config = axagent_dao::repo::platform_config::get_platform_config(&db).await;
+                            match pm.get_adapter(&notif.platform).await {
+                                Some(adapter) => {
+                                    if let Err(e) = adapter
+                                        .send_message(&config, &notif.chat_id, &notif.message, None)
+                                        .await
+                                    {
+                                        tracing::error!("[opc-notify] {}/{}: {e}", notif.platform, notif.chat_id);
+                                    } else {
+                                        tracing::info!("[opc-notify] Sent via {} to {}", notif.platform, notif.chat_id);
+                                    }
                                 }
+                                None => tracing::warn!("[opc-notify] Platform {} not available", notif.platform),
                             }
-                            None => tracing::warn!(
-                                "[opc-notify] Platform {} not available",
-                                notif.platform
-                            ),
                         }
-                    }
-                });
-                tracing::info!("[opc] Started OPC notify worker");
-            }
+                    });
+                    tracing::info!("[opc] Started OPC notify worker");
+                }
 
-            // 重启自动加载持久化的 runtime_evolution 工具（幂等，source=runtime_evolution）
-            // 使上一会话 AutoToolCreator / 自指工具部署的产物在应用重启后自动恢复可用
-            let rt_tool_db = state.harness.db().clone();
-            let rt_tool_registry = state.local_tool_registry.clone();
-            let rt_tool_work_engine = state.work_engine.clone();
-            let rt_tool_stats = state.evolution_execution_stats.clone();
-            tauri::async_runtime::spawn(async move {
-                // D3 持久化：先加载上一会话落库的真实执行统计（重启不丢证据），
-                // 再加载运行时工具（工具的 feedback sink 会复用同一 stats Arc 继续累计）
+                // 17. 加载持久化 runtime_evolution 工具
                 if let Err(e) = crate::commands::evolution_engine::
-                    load_evolution_execution_stats_impl(&rt_tool_db, &rt_tool_stats)
+                    load_evolution_execution_stats_impl(&sea_db, &init_evolution_stats)
                     .await
                 {
                     tracing::warn!(target: "evolution_engine",
                         "启动加载持久化执行统计失败: {}", e);
                 }
                 if let Err(e) = crate::commands::evolution_engine::load_runtime_evolution_tools_impl(
-                    &rt_tool_db,
-                    &rt_tool_registry,
-                    &rt_tool_work_engine,
-                    &rt_tool_stats,
+                    &sea_db,
+                    &init_local_tool_registry,
+                    &init_work_engine,
+                    &init_evolution_stats,
                 )
                 .await
                 {
                     tracing::warn!(target: "evolution_engine",
                         "启动加载持久化运行时工具失败: {}", e);
                 }
+
+                // 18. 移动端云同步连接检查
+                #[cfg(mobile)]
+                if let Some(ref sync_engine) = app_state.sync_engine {
+                    tracing::info!("[mobile] Starting cloud sync engine...");
+                    let engine = sync_engine.clone();
+                    spawn_block_on("cloud_sync", async move {
+                        match engine.backend.check_connection().await {
+                            Ok(true) => tracing::info!("[mobile] Cloud sync backend connected"),
+                            Ok(false) => tracing::warn!("[mobile] Cloud sync backend unreachable"),
+                            Err(e) => tracing::warn!("[mobile] Cloud sync connection check failed: {}", e),
+                        }
+                    }).unwrap_or_else(|e| {
+                        tracing::error!("Mobile sync thread panicked: {:?}", e);
+                    });
+                }
+
+                // 19. 获取 tray_language
+                #[cfg(not(mobile))]
+                let tray_language = {
+                    axagent_dao::repo::settings::get_settings(&sea_db)
+                        .await
+                        .map(|s| s.language)
+                        .unwrap_or_else(|e| {
+                            tracing::error!("Failed to get tray language: {}", e);
+                            "en".to_string()
+                        })
+                };
+                #[cfg(mobile)]
+                let tray_language = "en".to_string();
+
+                // P0-OPT 新增: 执行被推迟到后台的重型初始化
+                // （MemoryService FTS5、能力索引、LLM 注入、认知模板等）
+                init::state::run_deferred_init(&app_state).await;
+
+                // 20. 启动后台服务
+                init::services::start_background_services(
+                    &app_handle,
+                    &app_state,
+                    init_app_dir,
+                    tray_language,
+                );
+
+                android_utils::mark_startup_phase("setup_async_complete");
+                tracing::info!(
+                    elapsed = %t_async.elapsed().as_millis(),
+                    "[startup] 异步初始化完成"
+                );
             });
-            init::services::start_background_services(app.handle(), &state, app_dir.clone(), tray_language);
 
             android_utils::mark_startup_phase("setup_complete");
             Ok(())
