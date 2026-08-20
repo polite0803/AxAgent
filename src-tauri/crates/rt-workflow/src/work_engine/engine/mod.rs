@@ -1177,6 +1177,36 @@ impl WorkEngine {
             );
         }
 
+        // 将仍为 Pending 的就绪节点推进为 Ready，使其符合状态机约束
+        // （Pending → Ready → Running → Completed）。
+        // 根因：compute_ready_nodes 把依赖满足的 Pending 节点也算作就绪，
+        // 但 Typestate 校验拒绝 Pending → Running / Pending → Completed，
+        // 若调度前不显式推进为 Ready，节点会永远停留在 Pending，
+        // 触发 inter-batch early scheduling 无限重调度死循环。
+        let pending_ready: Vec<String> = ready_nodes
+            .iter()
+            .filter(|id| {
+                workflow
+                    .node_states
+                    .get(*id)
+                    .map(|s| s.status == NodeStatus::Pending)
+                    .unwrap_or(false)
+            })
+            .cloned()
+            .collect();
+        drop(workflows);
+        for id in &pending_ready {
+            self.update_node_status_for_execution(
+                execution_id,
+                id,
+                NodeStatus::Ready,
+                None,
+                None,
+                None,
+            )
+            .await?;
+        }
+
         Ok(ready_nodes)
     }
 
