@@ -10,105 +10,126 @@
 //!
 //! ⚠️ 重要：修改这些断言前必须经过人工评审！
 //!
+//! ## 跨平台说明
+//!
+//! 尺寸断言仅在 64 位平台（`target_pointer_width = "64"`）上启用。
+//! 原因：`String` / `Vec` 等堆分配类型的大小取决于指针宽度：
+//! - 64 位平台：String = 24 字节（ptr + len + capacity，各 8 字节）
+//! - 32 位平台：String = 12 字节（ptr + len + capacity，各 4 字节）
+//!
+//! 移动端 ARM（32 位）与桌面端（64 位）的内存布局不同，但：
+//! - Tauri IPC 使用 JSON 序列化，不涉及内存布局的跨平台传输
+//! - 序列化后的字段（如 `session_id`、`role`、`blocks`）不受指针宽度影响
+//! - 开发 / CI 主平台为 64 位，因此在 64 位上锁定尺寸已足以守护 DTO 稳定性
+//!
 //! ## 如何更新锁定值
 //!
-//! 1. 运行尺寸检测测试：
+//! 1. 在 64 位平台上运行尺寸检测测试：
 //!    ```bash
 //!    cargo test -p axagent-harness -- inspect_dto_sizes -- --nocapture
 //!    ```
 //! 2. 复制输出的尺寸值
-//! 3. 更新下方的 assert_eq_size! 宏
+//! 3. 更新下方的 assert_eq_size! 宏（仅限 `#[cfg(target_pointer_width = "64")]` 块内）
 //! 4. 提交 PR 并附原因说明
 
 // ============================================================================
 // 基础类型尺寸锁定（确保底层类型稳定性）
 // ============================================================================
 
-// String 基础尺寸（在 64 位平台上为 24 字节）
-static_assertions::assert_eq_size!(String, [u8; 24]);
-
-// bool 基础尺寸
+// bool 基础尺寸（平台无关）
 static_assertions::assert_eq_size!(bool, [u8; 1]);
 
-// u32 基础尺寸
+// u32 基础尺寸（平台无关）
 static_assertions::assert_eq_size!(u32, [u8; 4]);
 
-// u64 基础尺寸
+// u64 基础尺寸（平台无关）
 static_assertions::assert_eq_size!(u64, [u8; 8]);
 
-// f64 基础尺寸
+// f64 基础尺寸（平台无关）
 static_assertions::assert_eq_size!(f64, [u8; 8]);
 
 // ============================================================================
-// Agent 相关 DTO 尺寸锁定（锁定于 2026-04-23，平台: 64-bit Windows）
+// 64 位平台专属尺寸锁定
+//
+// 以下断言依赖 String / Vec 等堆分配类型的 64 位布局（ptr=8B）。
+// 在 32 位平台上这些值完全不同，因此仅在 target_pointer_width = "64" 时启用。
 // ============================================================================
+#[cfg(target_pointer_width = "64")]
+mod size_locks_64 {
+    // String 基础尺寸（在 64 位平台上为 24 字节）
+    static_assertions::assert_eq_size!(String, [u8; 24]);
 
-// AgentCapability: name(String) + description(String)
-static_assertions::assert_eq_size!(crate::agent::AgentCapability, [u8; 48]);
+    // ========================================================================
+    // Agent 相关 DTO 尺寸锁定（锁定于 2026-08-20，平台: 64-bit Windows）
+    // ========================================================================
 
-// AgentExecuteRequest: goal(String) + context(Option<String>) + max_steps(Option<u32>)
-static_assertions::assert_eq_size!(crate::agent::AgentExecuteRequest, [u8; 56]);
+    // AgentCapability: name(String) + description(String)
+    static_assertions::assert_eq_size!(crate::agent::AgentCapability, [u8; 48]);
 
-// AgentResult: output(String) + success(bool) + steps_taken(u32)
-static_assertions::assert_eq_size!(crate::agent::AgentResult, [u8; 32]);
+    // AgentExecuteRequest: goal(String) + context(Option<String>) + max_steps(Option<u32>)
+    static_assertions::assert_eq_size!(crate::agent::AgentExecuteRequest, [u8; 56]);
 
-// PlanStep: description(String) + agent(Option<String>)
-static_assertions::assert_eq_size!(crate::agent::PlanStep, [u8; 48]);
+    // AgentResult: output(String) + success(bool) + steps_taken(u32)
+    static_assertions::assert_eq_size!(crate::agent::AgentResult, [u8; 32]);
 
-// AgentPlan: steps(Vec<PlanStep>)
-static_assertions::assert_eq_size!(crate::agent::AgentPlan, [u8; 24]);
+    // PlanStep: description(String) + agent(Option<String>)
+    static_assertions::assert_eq_size!(crate::agent::PlanStep, [u8; 48]);
 
-// AgentInfo: name + description + capabilities(Vec<AgentCapability>)
-static_assertions::assert_eq_size!(crate::agent::AgentInfo, [u8; 72]);
+    // AgentPlan: steps(Vec<PlanStep>)
+    static_assertions::assert_eq_size!(crate::agent::AgentPlan, [u8; 24]);
+
+    // AgentInfo: name + description + capabilities(Vec<AgentCapability>)
+    static_assertions::assert_eq_size!(crate::agent::AgentInfo, [u8; 72]);
+
+    // ========================================================================
+    // Conversation 相关 DTO 尺寸锁定
+    // ========================================================================
+
+    // TokenUsage: input_tokens + output_tokens + cache_creation_input_tokens +
+    //             cache_read_input_tokens + cache_miss_input_tokens(Option<u32>)
+    static_assertions::assert_eq_size!(crate::conversation_model::TokenUsage, [u8; 24]);
+
+    // ContentBlock: 枚举（最大变体包含 tool_use_id + tool_name + output + is_error + 对齐）
+    static_assertions::assert_eq_size!(crate::conversation_model::ContentBlock, [u8; 80]);
+
+    // ConversationMessage: role(MessageRole) + blocks(Vec<ContentBlock>) + usage(Option<TokenUsage>)
+    static_assertions::assert_eq_size!(crate::conversation_model::ConversationMessage, [u8; 56]);
+
+    // SessionInfo: session_id + user_id + title(Option<String>) + timestamps + token_usage
+    static_assertions::assert_eq_size!(crate::conversation_model::SessionInfo, [u8; 112]);
+
+    // ========================================================================
+    // Workflow 相关 DTO 尺寸锁定
+    // ========================================================================
+
+    // Position: x(f64) + y(f64)
+    static_assertions::assert_eq_size!(crate::workflow_types::Position, [u8; 16]);
+
+    // BackoffType: 枚举（无数据字段）
+    static_assertions::assert_eq_size!(crate::workflow_types::BackoffType, [u8; 1]);
+
+    // RetryConfig: enabled + max_retries + backoff_type + base_delay_ms + max_delay_ms
+    static_assertions::assert_eq_size!(crate::workflow_types::RetryConfig, [u8; 24]);
+
+    // CompensationStrategy: 枚举（无数据字段）
+    static_assertions::assert_eq_size!(crate::workflow_types::CompensationStrategy, [u8; 1]);
+
+    // CompensationConfig: strategy + compensation_nodes(Vec<String>)
+    static_assertions::assert_eq_size!(crate::workflow_types::CompensationConfig, [u8; 32]);
+
+    // NodeKind: 枚举（无数据字段）
+    static_assertions::assert_eq_size!(crate::workflow_types::NodeKind, [u8; 1]);
+
+    // Variable: name + var_type + value(JsonValue) + description(Option<String>) + is_secret
+    static_assertions::assert_eq_size!(crate::workflow_types::Variable, [u8; 112]);
+
+    // WorkflowNodeBase: id + title + description + position + retry + timeout +
+    //                   enabled + parent_id + compensation + continue_on_fail
+    static_assertions::assert_eq_size!(crate::workflow_types::WorkflowNodeBase, [u8; 192]);
+}
 
 // ============================================================================
-// Conversation 相关 DTO 尺寸锁定
-// ============================================================================
-
-// TokenUsage: input_tokens + output_tokens + cache_creation_input_tokens +
-//             cache_read_input_tokens + cache_miss_input_tokens(Option<u32>)
-static_assertions::assert_eq_size!(crate::conversation_model::TokenUsage, [u8; 24]);
-
-// ContentBlock: 枚举（最大变体包含 tool_use_id + tool_name + output + is_error + 对齐）
-static_assertions::assert_eq_size!(crate::conversation_model::ContentBlock, [u8; 80]);
-
-// ConversationMessage: role(MessageRole) + blocks(Vec<ContentBlock>) + usage(Option<TokenUsage>)
-static_assertions::assert_eq_size!(crate::conversation_model::ConversationMessage, [u8; 56]);
-
-// SessionInfo: session_id + user_id + title(Option<String>) + timestamps + token_usage
-static_assertions::assert_eq_size!(crate::conversation_model::SessionInfo, [u8; 112]);
-
-// ============================================================================
-// Workflow 相关 DTO 尺寸锁定
-// ============================================================================
-
-// Position: x(f64) + y(f64)
-static_assertions::assert_eq_size!(crate::workflow_types::Position, [u8; 16]);
-
-// BackoffType: 枚举（无数据字段）
-static_assertions::assert_eq_size!(crate::workflow_types::BackoffType, [u8; 1]);
-
-// RetryConfig: enabled + max_retries + backoff_type + base_delay_ms + max_delay_ms
-static_assertions::assert_eq_size!(crate::workflow_types::RetryConfig, [u8; 24]);
-
-// CompensationStrategy: 枚举（无数据字段）
-static_assertions::assert_eq_size!(crate::workflow_types::CompensationStrategy, [u8; 1]);
-
-// CompensationConfig: strategy + compensation_nodes(Vec<String>)
-static_assertions::assert_eq_size!(crate::workflow_types::CompensationConfig, [u8; 32]);
-
-// NodeKind: 枚举（无数据字段）
-static_assertions::assert_eq_size!(crate::workflow_types::NodeKind, [u8; 1]);
-
-// Variable: name + var_type + value(JsonValue) + description(Option<String>) + is_secret
-static_assertions::assert_eq_size!(crate::workflow_types::Variable, [u8; 112]);
-
-// WorkflowNodeBase: id + title + description + position + retry + timeout +
-//                   enabled + parent_id + compensation + continue_on_fail
-static_assertions::assert_eq_size!(crate::workflow_types::WorkflowNodeBase, [u8; 192]);
-
-// ============================================================================
-// 尺寸检测工具（仅在测试时编译）
+// 尺寸检测工具（仅在测试时编译，始终可用）
 // ============================================================================
 
 #[cfg(test)]
@@ -122,9 +143,10 @@ mod size_inspector {
     #[test]
     fn inspect_dto_sizes() {
         println!("=== DTO 尺寸检测报告 ===");
-        println!();
+        println!("指针宽度: {} 位", std::mem::size_of::<*const ()>() * 8);
 
         // 基础类型
+        println!();
         println!("--- 基础类型 ---");
         println!("String:                    {} bytes", std::mem::size_of::<String>());
         println!("Option<String>:            {} bytes", std::mem::size_of::<Option<String>>());
@@ -220,7 +242,5 @@ mod size_inspector {
 
         println!();
         println!("=== 报告结束 ===");
-        println!();
-        println!("使用方法: 将上方尺寸值填入 dto_locks.rs 中对应的 assert_eq_size! 宏");
     }
 }
