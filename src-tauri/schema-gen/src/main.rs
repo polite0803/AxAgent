@@ -223,9 +223,6 @@ fn generate_ipc_types(out_dir: &Path) {
     eprintln!("Generating Tauri IPC TypeScript type definitions...");
 
     let mut output = String::new();
-    // 生成文件内含大量 IPC 类型声明，oxlint 的 no-unused-vars 会将其误报为未使用，
-    // 在文件头固化 disable 以保证 CI (oxlint --max-warnings=0) 通过
-    output.push_str("// oxlint-disable no-unused-vars\n");
     output.push_str("// 此文件由 schema-gen 自动生成，请勿手动编辑\n");
     output.push_str("// 修改 Rust DTO 后请重新运行: cargo run -p schema-gen -- ipc-types\n");
     output.push_str("//\n");

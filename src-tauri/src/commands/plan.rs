@@ -24,7 +24,6 @@ use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, QueryOrde
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
-use std::str::FromStr;
 use std::sync::{Arc, LazyLock};
 use tauri::{AppHandle, Emitter};
 use tokio::sync::Mutex;

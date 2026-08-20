@@ -644,7 +644,7 @@ fn test_token_usage_optional_field_behavior() {
         cache_read_input_tokens: 0,
         cache_miss_input_tokens: None,
     };
-    let json: serde_json::Value = serde_json::to_value(&usage_no_miss).unwrap();
+    let json: serde_json::Value = serde_json::to_value(usage_no_miss).unwrap();
     // cache_miss_input_tokens 应该存在且为 null
     assert!(json.get("cacheMissInputTokens").is_some());
     assert_eq!(json.get("cacheMissInputTokens").unwrap(), &serde_json::Value::Null);
@@ -657,6 +657,6 @@ fn test_token_usage_optional_field_behavior() {
         cache_read_input_tokens: 0,
         cache_miss_input_tokens: Some(5),
     };
-    let json: serde_json::Value = serde_json::to_value(&usage_with_miss).unwrap();
+    let json: serde_json::Value = serde_json::to_value(usage_with_miss).unwrap();
     assert_eq!(json.get("cacheMissInputTokens").unwrap(), &serde_json::json!(5));
 }
