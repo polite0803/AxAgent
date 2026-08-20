@@ -26,6 +26,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 #[cfg(not(target_os = "android"))]
 use tokio::sync::Mutex;
 #[cfg(not(target_os = "android"))]
+use tokio::time::{Duration, timeout};
+#[cfg(not(target_os = "android"))]
 use tracing::info;
 
 use crate::mcp_oauth::McpOAuthStore;
@@ -618,13 +620,13 @@ async fn spawn_stdio_client(
         AxAgentError::Gateway(format!("Failed to spawn MCP server '{}': {}", command, e))
     })?;
 
-    let service = ()
-        .serve(transport)
-        .await
-        .map_err(|e| {
+    // 添加握手超时：防止子进程异常退出时 rmcp 库无限期等待
+    let service = match timeout(Duration::from_secs(10), ().serve(transport)).await {
+        Ok(Ok(service)) => service,
+        Ok(Err(e)) => {
             let err_str = e.to_string();
-            // Provide more helpful error messages for common handshake failures
-            let hint = if err_str.contains("connection closed") || err_str.contains("UnexpectedEof") {
+            let hint = if err_str.contains("connection closed") || err_str.contains("UnexpectedEof")
+            {
                 format!(
                     "{}\n\nThe MCP server process exited unexpectedly during initialization. \
                     Possible causes:\n\
@@ -632,13 +634,22 @@ async fn spawn_stdio_client(
                     - Node.js / Python / runtime may not be in PATH\n\
                     - The server package version may be incompatible\n\
                     - Check the server's stderr output for details",
-                    err_str, command, args.join(" ")
+                    err_str,
+                    command,
+                    args.join(" ")
                 )
             } else {
                 err_str
             };
-            AxAgentError::Gateway(format!("MCP handshake failed: {}", hint))
-        })?;
+            return Err(AxAgentError::Gateway(format!("MCP handshake failed: {}", hint)));
+        },
+        Err(_elapsed) => {
+            return Err(AxAgentError::Gateway(
+                "MCP handshake timed out (10s). The server process did not respond with valid MCP initialize response. \
+                The command may have exited prematurely or is not an MCP server.".into(),
+            ));
+        },
+    };
 
     let peer = service.peer().clone();
     let cancel_token = service.cancellation_token();
@@ -732,22 +743,33 @@ pub async fn call_tool_stdio(
         AxAgentError::Gateway(format!("Failed to spawn MCP server '{}': {}", command, e))
     })?;
 
-    let client = ().serve(transport).await.map_err(|e| {
-        let err_str = e.to_string();
-        let hint = if err_str.contains("connection closed") || err_str.contains("UnexpectedEof") {
-            format!(
-                "{}\n\nThe MCP server process exited unexpectedly during initialization. \
+    // 添加握手超时：防止子进程异常退出时 rmcp 库无限期等待
+    let client = match timeout(Duration::from_secs(10), ().serve(transport)).await {
+        Ok(Ok(client)) => client,
+        Ok(Err(e)) => {
+            let err_str = e.to_string();
+            let hint = if err_str.contains("connection closed") || err_str.contains("UnexpectedEof")
+            {
+                format!(
+                    "{}\n\nThe MCP server process exited unexpectedly during initialization. \
                     Possible causes:\n\
                     - The command or package may not be installed\n\
                     - Node.js / Python / runtime may not be in PATH\n\
                     - The server package version may be incompatible",
+                    err_str
+                )
+            } else {
                 err_str
-            )
-        } else {
-            err_str
-        };
-        AxAgentError::Gateway(format!("MCP handshake failed: {}", hint))
-    })?;
+            };
+            return Err(AxAgentError::Gateway(format!("MCP handshake failed: {}", hint)));
+        },
+        Err(_elapsed) => {
+            return Err(AxAgentError::Gateway(
+                "MCP handshake timed out (10s). The server process did not respond with valid MCP initialize response. \
+                The command may have exited prematurely or is not an MCP server.".into(),
+            ));
+        },
+    };
 
     // Generate a unique progress token so the server can send progress notifications
     let mut progress_meta = serde_json::Map::new();
@@ -778,25 +800,35 @@ pub async fn discover_tools_stdio(
         AxAgentError::Gateway(format!("Failed to spawn MCP server '{}': {}", command, e))
     })?;
 
-    let client = ()
-        .serve(transport)
-        .await
-        .map_err(|e| {
+    // 添加握手超时：防止子进程异常退出时 rmcp 库无限期等待
+    let client = match timeout(Duration::from_secs(10), ().serve(transport)).await {
+        Ok(Ok(client)) => client,
+        Ok(Err(e)) => {
             let err_str = e.to_string();
-            let hint = if err_str.contains("connection closed") || err_str.contains("UnexpectedEof") {
+            let hint = if err_str.contains("connection closed") || err_str.contains("UnexpectedEof")
+            {
                 format!(
                     "{}\n\nThe MCP server process exited unexpectedly during initialization. \
                     Possible causes:\n\
                     - The command or package may not be installed (run `{} {}` manually to verify)\n\
                     - Node.js / Python / runtime may not be in PATH\n\
                     - The server package version may be incompatible",
-                    err_str, command, args.join(" ")
+                    err_str,
+                    command,
+                    args.join(" ")
                 )
             } else {
                 err_str
             };
-            AxAgentError::Gateway(format!("MCP handshake failed: {}", hint))
-        })?;
+            return Err(AxAgentError::Gateway(format!("MCP handshake failed: {}", hint)));
+        },
+        Err(_elapsed) => {
+            return Err(AxAgentError::Gateway(
+                "MCP handshake timed out (10s). The server process did not respond with valid MCP initialize response. \
+                The command may have exited prematurely or is not an MCP server.".into(),
+            ));
+        },
+    };
 
     let tools = client
         .list_all_tools()
