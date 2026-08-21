@@ -136,6 +136,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     });
 
     let shared_trajectory_storage: Arc<axagent_trajectory::TrajectoryStorage> = {
+        let t_ts = std::time::Instant::now();
         // PostgreSQL 下 FTS5（基于 rusqlite）不可用，直接用无 FTS 的存储
         // （trajectory 全文检索降级为空结果；基表的 tsvector 列已在 v001 预留）。
         // SQLite 下走 with_fts_path 构建 FTS5 虚拟表。
@@ -153,6 +154,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
                 axagent_trajectory::TrajectoryStorage::new(Arc::new(sea_db.clone()))
             })
         };
+        tracing::info!("[startup] TrajectoryStorage 初始化完成 ({}ms)", t_ts.elapsed().as_millis());
         Arc::new(storage)
     };
 
@@ -216,10 +218,15 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let webhook_subscription_manager: Option<
         Arc<axagent_runtime::webhook_subscription::WebhookSubscriptionManager>,
     > = {
+        let t_wh = std::time::Instant::now();
         let mgr = axagent_runtime::webhook_subscription::WebhookSubscriptionManager::new()
             .with_persistence(webhook_persistence)
             .await
             .map_err(|e| format!("初始化 WebhookSubscriptionManager 失败: {}", e))?;
+        tracing::info!(
+            "[startup] WebhookSubscriptionManager 初始化完成 ({}ms)",
+            t_wh.elapsed().as_millis()
+        );
         Some(Arc::new(mgr))
     };
     let webhook_dispatcher: Option<Arc<axagent_rt_webhook::webhook_dispatcher::WebhookDispatcher>> =
@@ -391,9 +398,14 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     );
     let shared_memory: Arc<TokioRwLock<axagent_runtime::shared_memory::SharedMemory>> =
         Arc::new(TokioRwLock::new(axagent_runtime::shared_memory::SharedMemory::new()));
-    let sub_agent_registry: Arc<TokioRwLock<axagent_trajectory::SubAgentRegistry>> = Arc::new(
-        TokioRwLock::new(axagent_trajectory::SubAgentRegistry::new().await.unwrap_or_default()),
-    );
+    let sub_agent_registry: Arc<TokioRwLock<axagent_trajectory::SubAgentRegistry>> = {
+        let t_sar = std::time::Instant::now();
+        let reg = Arc::new(TokioRwLock::new(
+            axagent_trajectory::SubAgentRegistry::new().await.unwrap_or_default(),
+        ));
+        tracing::info!("[startup] SubAgentRegistry 初始化完成 ({}ms)", t_sar.elapsed().as_millis());
+        reg
+    };
     let nudge_service: Arc<tokio::sync::Mutex<axagent_trajectory::NudgeService>> =
         Arc::new(tokio::sync::Mutex::new(axagent_trajectory::NudgeService::new()));
     let closed_loop_service =
@@ -493,13 +505,18 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let parallel_execution_service: Arc<
         tokio::sync::RwLock<axagent_trajectory::ParallelExecutionService>,
     > = Arc::new(tokio::sync::RwLock::new(axagent_trajectory::ParallelExecutionService::new(10)));
-    let cron_job_store: Arc<axagent_runtime_core::CronJobStore> =
-        Arc::new(axagent_runtime_core::CronJobStore::new(Arc::new(sea_db.clone())).await);
+    let cron_job_store: Arc<axagent_runtime_core::CronJobStore> = {
+        let t_cron = std::time::Instant::now();
+        let store =
+            Arc::new(axagent_runtime_core::CronJobStore::new(Arc::new(sea_db.clone())).await);
+        tracing::info!("[startup] CronJobStore 初始化完成 ({}ms)", t_cron.elapsed().as_millis());
+        store
+    };
     let user_profile: Arc<TokioRwLock<axagent_trajectory::UserProfile>> =
         Arc::new(TokioRwLock::new(axagent_trajectory::UserProfile::new()));
     let local_tool_registry: Arc<tokio::sync::Mutex<axagent_tools::registry::UnifiedToolRegistry>> = {
         let mut registry = axagent_tools::registry::UnifiedToolRegistry::new();
-        registry.load_enabled_state(&sea_db).await;
+        // P0-OPT: load_enabled_state 推迟到后台（DB 查询，非关键路径）
         // 挂载 RL 策略工具排名器，每次 get_chat_tools() 实时读取最新权重。
         // 受 settings.rl_optimizer_enabled 门控：关闭时回退到默认工具顺序。
         registry.tool_ranker = if app_settings.rl_optimizer_enabled {
@@ -722,42 +739,20 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
             },
         )));
     // 注：webhook_subscription_manager 已在 PlatformBridge 之前创建（见上方 P0 修复块）
+    // P0-OPT: SemanticCache 初始化推迟到后台 —— 先用内存 SQLite 占位（微秒级），
+    // 真实文件缓存（CREATE TABLE + FTS5）在 run_deferred_init 中完成。
     let semantic_cache: Arc<tokio::sync::Mutex<SemanticCacheState>> = {
-        let cache = match SemanticCache::new(sea_db.clone(), CacheConfig::default()).await {
-            Ok(c) => c,
-            Err(e) => {
-                tracing::error!("Semantic cache init failed: {} — retrying once", e);
-                match SemanticCache::new(sea_db.clone(), CacheConfig::default()).await {
-                    Ok(c) => c,
-                    Err(e2) => {
-                        // 数据库初始化已成功，两次失败表明 CREATE TABLE 持续出错。
-                        // 回退到内存 SQLite，应用正常运行但缓存不持久化。
-                        tracing::error!(
-                            "Semantic cache failed permanently: {} — using in-memory fallback (non-persistent cache)",
-                            e2
-                        );
-                        let fallback_db = sea_orm::Database::connect("sqlite::memory:").await;
-                        match fallback_db {
-                            Ok(mem_db) => SemanticCache::new(mem_db, CacheConfig::default())
-                                .await
-                                .map_err(|e3| {
-                                    crate::android_utils::report_fatal_error(&format!(
-                                        "SemanticCache in-memory fallback failed: {}",
-                                        e3,
-                                    ));
-                                    format!("SemanticCache in-memory fallback failed: {}", e3)
-                                })?,
-                            Err(e3) => {
-                                let msg =
-                                    format!("SemanticCache in-memory DB connect failed: {}", e3,);
-                                crate::android_utils::report_fatal_error(&msg);
-                                return Err(msg);
-                            },
-                        }
-                    },
-                }
-            },
-        };
+        let t0 = std::time::Instant::now();
+        let mem_db = sea_orm::Database::connect("sqlite::memory:")
+            .await
+            .map_err(|e| format!("内存 SQLite 连接失败: {}", e))?;
+        let cache = SemanticCache::new(mem_db, CacheConfig::default())
+            .await
+            .map_err(|e| format!("内存 SemanticCache 初始化失败: {}", e))?;
+        tracing::info!(
+            "[startup] SemanticCache 内存占位初始化完成 ({}ms)",
+            t0.elapsed().as_millis()
+        );
         Arc::new(tokio::sync::Mutex::new(SemanticCacheState {
             cache: Arc::new(cache),
             enabled: true,
@@ -801,10 +796,11 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         axagent_trajectory::DreamConsolidator::new()
             .with_data_provider(dream_data_provider.clone()),
     );
-    // Smart Router：ML 成本感知路由器实例化（带 DB 持久化，加载历史决策与统计）
+    // Smart Router：ML 成本感知路由器实例化
+    // P0-OPT: load_from_db 推迟到后台（读取历史决策），不阻塞首帧
     let cost_aware_router =
         Arc::new(crate::smart_router::CostAwareRouter::with_db(Arc::new(sea_db.clone())));
-    cost_aware_router.load_from_db().await.map_err(|e| format!("加载路由历史失败: {}", e))?;
+    tracing::info!("[startup] CostAwareRouter 实例化完成（load_from_db 推迟到后台）");
     // Orchestrator 流式报告器初始化（暂不绑定 AppHandle，后续按需注入）
     let stream_reporter: Arc<
         TokioRwLock<Option<Arc<dyn axagent_harness::streaming::AgentStreamReporter>>>,
@@ -1009,58 +1005,9 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         axagent_dao::memory_repository::DaoMemoryRepository::new(Arc::new(sea_db.clone())),
     ));
 
-    // 自进化闭环:启动时确保 "Reflector Insights" namespace 存在。
-    //
-    // Reflector::reflect 完成高价值任务复盘后,会通过 harness trait 把经验
-    // 沉淀到名为 "Reflector Insights" 的 global namespace。
-    // 这里启动时幂等创建(scope=global,使其自动被 RAG fallback 检索)。
-    //
-    // 失败仅日志,不阻塞启动(沉淀是辅助,失败不影响业务)。
-    const REFLECTOR_INSIGHTS_NS_NAME: &str = "Reflector Insights";
-    match axagent_dao::repo::memory::list_namespaces(&sea_db).await {
-        Ok(list) => {
-            let exists = list.iter().any(|ns| ns.name == REFLECTOR_INSIGHTS_NS_NAME);
-            if !exists {
-                match axagent_dao::repo::memory::create_namespace(
-                    &sea_db,
-                    axagent_harness::types::CreateMemoryNamespaceInput {
-                        name: REFLECTOR_INSIGHTS_NS_NAME.to_string(),
-                        scope: "global".to_string(),
-                        embedding_provider: None,
-                        embedding_dimensions: None,
-                        retrieval_threshold: None,
-                        retrieval_top_k: None,
-                        icon_type: Some("bulb".to_string()),
-                        icon_value: None,
-                    },
-                )
-                .await
-                {
-                    Ok(ns) => {
-                        tracing::info!("[init] created Reflector Insights namespace: id={}", ns.id)
-                    },
-                    Err(e) => tracing::warn!(
-                        "[init] failed to create Reflector Insights namespace: {} (Reflector will skip persisting)",
-                        e
-                    ),
-                }
-            }
-        },
-        Err(e) => tracing::warn!(
-            "[init] list_memory_namespaces failed, skip Reflector Insights setup: {}",
-            e
-        ),
-    }
-
-    // 启动时加载历史反思(P0-3 修复:进程重启后历史不丢失)。
-    // reflect() 落盘由 Reflector::persist_reflection 自动处理,
-    // 这里只需启动时从 `app_dir/reflections.jsonl` 加载到内存即可。
-    match reflector.load_persistence().await {
-        Ok(n) => tracing::info!("[reflector] loaded {n} reflections from disk"),
-        Err(e) => tracing::warn!(
-            "[reflector] load_persistence failed: {e} (will start with empty history)"
-        ),
-    }
+    // P0-OPT: 自进化闭环 namespace 创建 + Reflector 历史加载 推迟到后台
+    // 这些是非关键路径初始化，不阻塞首帧渲染
+    tracing::info!("[startup] Reflector Insights namespace + load_persistence 推迟到后台");
 
     // ── 股票业务客户端与交易引擎 ──
     // C5.1: 注入 NewsArchiveSink，使 get_news/search_news 的结果自动写入 news_archive 表
@@ -2188,6 +2135,91 @@ pub async fn run_deferred_init(app_state: &crate::app_state::AppState) {
         tracing::error!("[startup] 主 DAG 加载失败: {}", e);
     } else {
         tracing::info!("[startup] 主 DAG 已加载进 WorkEngine 内存");
+    }
+
+    // ── 8. SemanticCache 真实文件缓存替换 ──
+    // P0-OPT: 用真实文件 SQLite 替换启动时的内存占位符
+    {
+        let t_sc = std::time::Instant::now();
+        let db = app_state.harness.db();
+        match SemanticCache::new(db.clone(), CacheConfig::default()).await {
+            Ok(real_cache) => {
+                let mut sc_state = app_state.semantic_cache.lock().await;
+                sc_state.cache = Arc::new(real_cache);
+                tracing::info!(
+                    "[startup] SemanticCache 文件缓存替换完成 ({}ms)",
+                    t_sc.elapsed().as_millis()
+                );
+            },
+            Err(e) => {
+                tracing::warn!("[startup] SemanticCache 文件缓存初始化失败 (保持内存占位): {}", e);
+            },
+        }
+    }
+
+    // ── 9. CostAwareRouter 历史加载 ──
+    {
+        let t_router = std::time::Instant::now();
+        match app_state.cost_aware_router.load_from_db().await {
+            Ok(_) => tracing::info!(
+                "[startup] CostAwareRouter 历史加载完成 ({}ms)",
+                t_router.elapsed().as_millis()
+            ),
+            Err(e) => tracing::warn!("[startup] CostAwareRouter 历史加载失败: {}", e),
+        }
+    }
+
+    // ── 10. Reflector Insights namespace 创建 + 历史加载 ──
+    {
+        let t_ref = std::time::Instant::now();
+        let db = app_state.harness.db();
+        const REFLECTOR_INSIGHTS_NS_NAME: &str = "Reflector Insights";
+        if let Ok(list) = axagent_dao::repo::memory::list_namespaces(&db).await {
+            let exists = list.iter().any(|ns| ns.name == REFLECTOR_INSIGHTS_NS_NAME);
+            if !exists {
+                match axagent_dao::repo::memory::create_namespace(
+                    &db,
+                    axagent_harness::types::CreateMemoryNamespaceInput {
+                        name: REFLECTOR_INSIGHTS_NS_NAME.to_string(),
+                        scope: "global".to_string(),
+                        embedding_provider: None,
+                        embedding_dimensions: None,
+                        retrieval_threshold: None,
+                        retrieval_top_k: None,
+                        icon_type: Some("bulb".to_string()),
+                        icon_value: None,
+                    },
+                )
+                .await
+                {
+                    Ok(ns) => tracing::info!(
+                        "[startup] created Reflector Insights namespace: id={}",
+                        ns.id
+                    ),
+                    Err(e) => tracing::warn!(
+                        "[startup] failed to create Reflector Insights namespace: {}",
+                        e
+                    ),
+                }
+            }
+        }
+
+        // Reflector 历史加载
+        match app_state.reflector.load_persistence().await {
+            Ok(n) => tracing::info!(
+                "[startup] Reflector 加载 {n} 条历史反思 ({}ms)",
+                t_ref.elapsed().as_millis()
+            ),
+            Err(e) => tracing::warn!("[startup] Reflector load_persistence 失败: {}", e),
+        }
+    }
+
+    // ── 11. 工具注册表启用状态加载 ──
+    {
+        let t_reg = std::time::Instant::now();
+        let mut registry = app_state.local_tool_registry.lock().await;
+        registry.load_enabled_state(&app_state.harness.db()).await;
+        tracing::info!("[startup] 工具注册表启用状态加载完成 ({}ms)", t_reg.elapsed().as_millis());
     }
 
     tracing::info!(

@@ -1,3 +1,4 @@
+// i18n-exempt: 业务逻辑/格式化/日志字符串，非 UI 展示文本
 import { cleanToolCallTags, extractReadableFromRiskReport } from "@/components/stock-analysis/utils";
 import { getWorkflowNodeLabel } from "@/utils/workflowNodeLabel";
 import { Card, Progress, Tag } from "antd";

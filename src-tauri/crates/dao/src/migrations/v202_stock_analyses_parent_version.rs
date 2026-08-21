@@ -34,8 +34,12 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
         Ok(_) => {},
         Err(e) => {
             // 列已存在是预期情况，不阻塞迁移
+            // 兼容中英文错误消息：PostgreSQL 中文本地化返回 "已经存在"
             let msg = e.to_string();
-            if !msg.contains("duplicate column") && !msg.contains("already exists") {
+            if !msg.contains("duplicate column")
+                && !msg.contains("already exists")
+                && !msg.contains("已经存在")
+            {
                 return Err(e);
             }
         },

@@ -1,3 +1,4 @@
+// i18n-exempt: 业务逻辑/API 描述/日志字符串，非 UI 展示文本
 import { List } from "@/components/common/AntdList";
 import { invoke } from "@/lib/invoke";
 import { useStockAnalysisStore } from "@/stores";

@@ -1,3 +1,4 @@
+// i18n-exempt: 业务逻辑判断字符串，非 UI 展示文本
 /**
  * ExperimentSidebar — 实验模式侧栏
  *

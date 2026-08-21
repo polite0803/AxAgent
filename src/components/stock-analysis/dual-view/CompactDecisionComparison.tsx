@@ -1,3 +1,4 @@
+// i18n-exempt: 业务逻辑/API 描述/日志字符串，非 UI 展示文本
 /**
  * CompactDecisionComparison — 双视角决策对比的 chat bubble 紧凑版
  *

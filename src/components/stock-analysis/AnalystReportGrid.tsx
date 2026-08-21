@@ -1,3 +1,4 @@
+// i18n-exempt: 业务逻辑判断字符串，非 UI 展示文本
 import { classifySentiment } from "@/lib/stock-analysis-utils";
 import { useStockAnalysisStore } from "@/stores";
 import { Button, Card, Table, Tag, Tooltip } from "antd";

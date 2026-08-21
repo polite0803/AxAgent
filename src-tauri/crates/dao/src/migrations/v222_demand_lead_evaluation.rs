@@ -32,14 +32,18 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     ];
 
     for stmt in &alter_statements {
-        // SQLite 的 ALTER TABLE 限制：只能 ADD COLUMN
+        // SQLite/PG 的 ALTER TABLE 限制：只能 ADD COLUMN
         // 使用 try-catch 模式，字段已存在时跳过
         match db.execute_unprepared(stmt).await {
             Ok(_) => tracing::info!("[v222] 执行成功: {}", stmt),
             Err(e) => {
                 let err_str = e.to_string();
                 // 忽略 "duplicate column name" 错误（字段已存在）
-                if err_str.contains("duplicate column") || err_str.contains("already exists") {
+                // 兼容中英文错误消息：PostgreSQL 中文本地化返回 "已经存在"
+                if err_str.contains("duplicate column")
+                    || err_str.contains("already exists")
+                    || err_str.contains("已经存在")
+                {
                     tracing::warn!("[v222] 字段可能已存在，跳过: {} ({})", stmt, err_str);
                 } else {
                     return Err(e);

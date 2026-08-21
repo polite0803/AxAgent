@@ -1,3 +1,4 @@
+// i18n-exempt: 业务逻辑/格式化/日志字符串，非 UI 展示文本
 import { PageErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { ScheduledAnalysisPanel } from "@/components/stock-analysis/ScheduledAnalysisPanel";
 import { invoke } from "@/lib/invoke";

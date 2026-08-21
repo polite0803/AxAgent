@@ -1,3 +1,4 @@
+// i18n-exempt: 配置映射表/业务数据字符串，非用户可见 UI 文案
 import { useSettingsStore } from "@/stores";
 import type { Catalyst, ChecklistItem, DashboardReport, RiskAlert } from "@/types";
 import { AlertOutlined, BulbOutlined, CheckCircleOutlined, SafetyCertificateOutlined } from "@ant-design/icons";

@@ -1,3 +1,4 @@
+// i18n-exempt: 业务逻辑/API 描述/日志字符串，非 UI 展示文本
 import type { AttentionMetrics, Catalyst, ExitSignals, SerenityCandidate } from "@/stores/feature/serenityStore";
 import { AimOutlined, AlertOutlined, FireOutlined, ThunderboltOutlined } from "@ant-design/icons";
 import { Card, Progress, Tag, Typography } from "antd";

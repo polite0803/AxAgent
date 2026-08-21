@@ -1,3 +1,4 @@
+// i18n-exempt: 业务逻辑/格式化/日志字符串，非 UI 展示文本
 import { classifySentiment } from "@/lib/stock-analysis-utils";
 import { useSettingsStore, useStockAnalysisStore } from "@/stores";
 import { ExpandOutlined, ReloadOutlined, WarningOutlined } from "@ant-design/icons";

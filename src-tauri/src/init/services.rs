@@ -5,9 +5,27 @@ use crate::commands::recommendation_cron::run_recommendation_cron;
 use crate::index_queue::IndexJobService;
 use chrono;
 use notify::{Event, RecursiveMode, Watcher};
+use std::future::Future;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::Emitter;
+use tokio::task::block_in_place;
+
+/// 安全地在同步上下文中阻塞执行异步 Future。
+///
+/// 当 `start_background_services` 被 `lib.rs` 中的 `tauri::async_runtime::spawn`
+/// 包裹调用时，直接调用 `tauri::async_runtime::block_on` 会触发
+/// Tokio 的 "Cannot start a runtime from within a runtime" panic。
+///
+/// 此函数检测当前是否在 Tokio runtime 上下文中：
+/// - 在 runtime 中：使用 `block_in_place` + `Handle::block_on` 安全阻塞
+/// - 不在 runtime 中（历史路径）：直接调用 `tauri::async_runtime::block_on`
+fn block_on_safe<F: Future>(fut: F) -> F::Output {
+    match tokio::runtime::Handle::try_current() {
+        Ok(handle) => block_in_place(|| handle.block_on(fut)),
+        Err(_) => tauri::async_runtime::block_on(fut),
+    }
+}
 
 pub fn start_background_services(
     app: &tauri::AppHandle,
@@ -2359,7 +2377,7 @@ fn start_cron_scheduler(app: &tauri::AppHandle, state: &AppState) {
         );
         // 复用 Tauri 全局 runtime，避免一次性创建/销毁 runtime 的开销。
         tracing::info!("[start_cron_scheduler] 即将调用 set_tool_resolver");
-        tauri::async_runtime::block_on(state.work_engine.set_tool_resolver(resolver));
+        block_on_safe(state.work_engine.set_tool_resolver(resolver));
         tracing::info!("[start_cron_scheduler] set_tool_resolver 已完成");
     }
 
@@ -2394,7 +2412,7 @@ fn start_cron_scheduler(app: &tauri::AppHandle, state: &AppState) {
             },
         );
         // 复用 Tauri 全局 runtime，避免一次性创建/销毁 runtime 的开销。
-        tauri::async_runtime::block_on(state.work_engine.set_rag_callback(rag_callback));
+        block_on_safe(state.work_engine.set_rag_callback(rag_callback));
     }
 
     let work_engine = state.work_engine.clone();
@@ -2609,7 +2627,7 @@ fn start_cron_scheduler(app: &tauri::AppHandle, state: &AppState) {
 
     // 保存到 AppState 以便外部控制（停止/重启）
     {
-        let mut state_scheduler = tauri::async_runtime::block_on(state.cron_scheduler.write());
+        let mut state_scheduler = block_on_safe(state.cron_scheduler.write());
         *state_scheduler = Some(scheduler.clone());
     }
 
@@ -2930,7 +2948,7 @@ fn start_realtime_monitor(app: &tauri::AppHandle, state: &AppState) {
     let aggregator = Arc::new(CrossStockSignalAggregator::new(AggregatorConfig::default()));
     let monitor_for_agg = monitor.clone();
     let agg_for_monitor = aggregator.clone();
-    tauri::async_runtime::block_on(async move {
+    block_on_safe(async move {
         monitor_for_agg.set_aggregator(agg_for_monitor).await;
     });
     tracing::info!(
@@ -2944,7 +2962,7 @@ fn start_realtime_monitor(app: &tauri::AppHandle, state: &AppState) {
         state.notification_dispatcher.clone(),
     ));
     let monitor_clone = monitor.clone();
-    tauri::async_runtime::block_on(async move {
+    block_on_safe(async move {
         monitor_clone.set_event_emitter(emitter).await;
     });
 
@@ -2966,7 +2984,7 @@ fn start_realtime_monitor(app: &tauri::AppHandle, state: &AppState) {
         })
     });
     let monitor_for_t0 = monitor.clone();
-    tauri::async_runtime::block_on(async move {
+    block_on_safe(async move {
         monitor_for_t0.set_t0_callback(t0_callback).await;
     });
     tracing::info!("[realtime_monitor] T+0 callback 已注入（后端自动重跑）");

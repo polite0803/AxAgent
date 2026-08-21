@@ -1,3 +1,4 @@
+// i18n-exempt: 业务逻辑/API 描述/日志字符串，非 UI 展示文本
 /**
  * What-If Backtest — 结构化参数方案 Phase 4
  *

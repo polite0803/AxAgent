@@ -1,3 +1,4 @@
+// i18n-exempt: 业务逻辑判断字符串，非 UI 展示文本
 import { invoke } from "@/lib/invoke";
 import { CheckCircleFilled, CloseCircleFilled, ExclamationCircleFilled, ThunderboltFilled } from "@ant-design/icons";
 import { Button, Col, Modal, Progress, Row, Table, Tag, Tooltip, Typography } from "antd";

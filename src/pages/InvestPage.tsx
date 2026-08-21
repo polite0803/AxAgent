@@ -1,3 +1,4 @@
+// i18n-exempt: 业务逻辑/API 描述/日志字符串，非 UI 展示文本
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { InvestHub } from "@/components/invest/InvestHub";

@@ -1,3 +1,4 @@
+// i18n-exempt: 配置映射表/业务数据字符串，非用户可见 UI 文案
 import { useSettingsStore, useStockAnalysisStore } from "@/stores";
 import { DownloadOutlined, ExpandOutlined } from "@ant-design/icons";
 import { Button, Card, Modal, Spin, Tag } from "antd";

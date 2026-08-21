@@ -1,3 +1,4 @@
+// i18n-exempt: 配置映射表/业务数据字符串，非用户可见 UI 文案
 /**
  * 股票分析 AgentProfile 列表编辑器。
  * 编辑模板节点 exposed_tools（暴露给 LLM 的工具），持久化到 workflow_templates 表。

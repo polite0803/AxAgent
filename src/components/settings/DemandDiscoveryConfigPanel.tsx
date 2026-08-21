@@ -1,3 +1,4 @@
+// i18n-exempt: 配置映射表/业务数据字符串，非用户可见 UI 文案
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import type { Variable, WorkflowTemplateInput, WorkflowTemplateResponse } from "@/components/workflow/types";

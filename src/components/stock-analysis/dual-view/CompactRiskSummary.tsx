@@ -1,3 +1,4 @@
+// i18n-exempt: 业务逻辑/API 描述/日志字符串，非 UI 展示文本
 /**
  * CompactRiskSummary — RiskMatrix 在 chat 中的紧凑版本
  * 输入:风险评估文本(键为节点 ID,值为报告)

@@ -85,7 +85,11 @@ async fn add_column_if_not_exists(
         Ok(_) => Ok(()),
         Err(e) => {
             let msg = e.to_string();
-            if msg.contains("duplicate column") || msg.contains("already exists") {
+            // 兼容中英文错误消息：PostgreSQL 中文本地化返回 "已经存在"
+            if msg.contains("duplicate column")
+                || msg.contains("already exists")
+                || msg.contains("已经存在")
+            {
                 Ok(())
             } else {
                 Err(e)
