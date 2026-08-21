@@ -217,11 +217,23 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     try {
       const rawDto = await invoke<Record<string, unknown>>("get_settings");
 
+      console.debug("[settingsStore.fetchSettings] 从后端获取原始设置", {
+        keys: Object.keys(rawDto),
+        defaultProviderId: rawDto.defaultProviderId,
+        defaultModelId: rawDto.defaultModelId,
+      });
+
       // 开发环境断言：验证后端数据的结构正确性
       validateDtoConsistency(rawDto as never);
 
       // 转换为前端强类型
       const appSettings = fromDto(rawDto as never);
+
+      console.debug("[settingsStore.fetchSettings] 转换后的设置", {
+        defaultModel: appSettings.defaultModel,
+        titleSummaryModel: appSettings.titleSummaryModel,
+        compressionModel: appSettings.compressionModel,
+      });
 
       set({
         settings: { ...DEFAULT_SETTINGS, ...appSettings },
@@ -230,6 +242,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         error: null,
       });
     } catch (e) {
+      console.error("[settingsStore.fetchSettings] 获取设置失败", e);
       set({ error: String(e), loading: false, _loaded: true });
     }
   },
@@ -243,22 +256,48 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
    * 3. 转换层保证：如果 NullableModelRef 有效，拆分后的字段一定有效
    */
   saveSettings: async (partial) => {
+    console.log("[settingsStore.saveSettings] 被调用", {
+      _loaded: get()._loaded,
+      partialKeys: Object.keys(partial),
+      partialDefaultModel: (partial as Record<string, unknown>).defaultModel,
+    });
+
     if (!get()._loaded) {
-      console.warn(
-        "[settingsStore] saveSettings called before fetchSettings finished — skipping",
-        { keys: Object.keys(partial) },
-      );
+      console.warn("[settingsStore] saveSettings called before fetchSettings finished — skipping");
       return;
     }
 
     // 更新本地状态
     set((s) => ({ settings: { ...s.settings, ...partial }, error: null }));
 
+    const currentSettings = get().settings;
+    console.log("[settingsStore.saveSettings] 更新后的 settings", {
+      defaultModel: currentSettings.defaultModel,
+      defaultModel_a: currentSettings.defaultModel?.a,
+      defaultModel_b: currentSettings.defaultModel?.b,
+    });
+
     try {
       // 转换为后端 DTO 格式并保存
-      const dto = toDto(get().settings);
-      await invoke("save_settings", { settings: dto });
+      const dto = toDto(currentSettings);
+      console.log("[settingsStore.saveSettings] toDto 转换后的 DTO", {
+        defaultProviderId: dto.defaultProviderId,
+        defaultModelId: dto.defaultModelId,
+        dtoKeys: Object.keys(dto).filter((k) => k.includes("Model") || k.includes("Provider")),
+      });
+
+      // 打印即将发送给后端的完整 JSON
+      console.log("[settingsStore.saveSettings] 即将调用 invoke save_settings", {
+        settings_param: {
+          defaultProviderId: dto.defaultProviderId,
+          defaultModelId: dto.defaultModelId,
+        },
+      });
+
+      const result = await invoke<unknown>("save_settings", { settings: dto });
+      console.log("[settingsStore.saveSettings] invoke 返回结果", { result });
     } catch (e) {
+      console.error("[settingsStore.saveSettings] invoke 失败", e);
       set({ error: String(e) });
     }
   },
@@ -286,6 +325,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       // 持久化清理后的设置到后端
       try {
         const dto = toDto(result.cleanedSettings);
+        console.debug("[settingsStore.validateAndCleanModels] 保存清理后的设置", {
+          defaultProviderId: dto.defaultProviderId,
+          defaultModelId: dto.defaultModelId,
+        });
         await invoke("save_settings", { settings: dto });
         console.info("[settingsStore] 已保存清理后的设置到后端");
       } catch (e) {
