@@ -75,14 +75,20 @@ pub async fn download_file(state: State<'_, AppState>, file_id: String) -> Resul
             ))
         })?;
 
-    let file_store = axagent_storage::file_store::FileStore::new();
-
-    let data = file_store.read_file(&file.storage_path).map_err(|e| {
-        String::from(crate::commands::error::ErrorResponse::from_error(
-            e,
-            crate::commands::error::ErrorCategory::Unrecoverable,
-        ))
-    })?;
+    let storage_path = file.storage_path.clone();
+    // 同步磁盘 IO（std::fs::read / mobile 分支 fetch_file）放入 spawn_blocking，
+    // 避免阻塞 tokio runtime worker 线程。
+    let data = tokio::task::spawn_blocking(move || {
+        let file_store = axagent_storage::file_store::FileStore::new();
+        file_store.read_file(&storage_path).map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })
+    })
+    .await
+    .map_err(|e| format!("spawn_blocking join error: {e}"))??;
 
     Ok(base64::engine::general_purpose::STANDARD.encode(&data))
 }
