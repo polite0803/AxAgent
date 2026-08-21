@@ -42,9 +42,9 @@ pub async fn get_settings(db: &DatabaseConnection) -> Result<AppSettings> {
 
     let mut map = serde_json::Map::new();
     for row in &rows {
-        // 尝试解析 JSON 值；如果是残留的 "null" 字符串（之前错误存储的），
-        // 当作 Value::Null 处理，避免将字符串 "null" 误读为有效值。
-        let val = if row.value == "null" {
+        // 尝试解析 JSON 值；如果是残留的 "null" 字符串或空字符串，
+        // 当作 Value::Null 处理，避免将无效值误读为有效值。
+        let val = if row.value == "null" || row.value.is_empty() {
             serde_json::Value::Null
         } else {
             serde_json::from_str::<serde_json::Value>(&row.value)
@@ -64,35 +64,42 @@ pub async fn save_settings(db: &DatabaseConnection, settings: &AppSettings) -> R
     let value = serde_json::to_value(settings).unwrap_or_default();
 
     if let serde_json::Value::Object(map) = value {
-        // 保存前先清理数据库中可能存在的旧 snake_case 键，避免重复数据。
-        // 新版使用 camelCase 键存储，旧版使用 snake_case 键，需要迁移清理。
+        // 保存前先清理数据库中可能存在的旧 snake_case 键和空字符串值。
+        // 旧版使用 snake_case 键或空字符串值存储，需要彻底清理。
         let existing_rows = settings::Entity::find().all(db).await?;
         for row in &existing_rows {
             let camel_key = snake_to_camel(&row.key);
-            if camel_key != row.key {
-                // 旧 snake_case 键：无论新 map 中是否存在对应 camelCase 键，
-                // 都必须删除，避免旧数据干扰（如 value="null" 的残留记录）。
+            let is_snake_case = camel_key != row.key;
+            let is_empty_value = row.value == "null" || row.value.is_empty();
+            if is_snake_case || is_empty_value {
                 settings::Entity::delete_by_id(row.key.clone()).exec(db).await?;
             }
         }
 
-        // 清理值为 null 的字段在数据库中可能存在的旧 snake_case 记录。
-        // 即使 snake_case 键已被上面清理，这里也处理新的 camelCase 键对应的 snake_case 旧记录。
+        // 清理值为 null 或空字符串的字段对应的旧 snake_case 记录
         for (key, val) in &map {
-            if val.is_null() {
+            let should_skip = val.is_null()
+                || (val.is_string() && val.as_str().map(|s| s.is_empty()).unwrap_or(false));
+            if should_skip {
                 let snake_key = camel_to_snake(key);
                 if snake_key != *key {
                     settings::Entity::delete_by_id(snake_key).exec(db).await?;
                 }
+                settings::Entity::delete_by_id(key.clone()).exec(db).await?;
             }
         }
 
         db.transaction::<_, _, sea_orm::DbErr>(|txn| {
             Box::pin(async move {
                 for (key, val) in &map {
-                    // 跳过 null 值：Option::None 不应存入数据库
+                    // 跳过 null 值和空字符串值：Option::None 不应存入数据库
                     if val.is_null() {
                         continue;
+                    }
+                    if let Some(s) = val.as_str() {
+                        if s.is_empty() {
+                            continue;
+                        }
                     }
                     let val_str = match val {
                         serde_json::Value::String(s) => s.clone(),
