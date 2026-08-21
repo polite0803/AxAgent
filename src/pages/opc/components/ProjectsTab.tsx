@@ -48,18 +48,22 @@ export function ProjectsTab() {
   const [milestoneForm] = Form.useForm();
   const [form] = Form.useForm();
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     setLoading(true);
-    Promise.all([
-      invoke<Project[]>("opc_list_projects", { filter: {} }),
-      invoke<Customer[]>("opc_list_customers", { filter: {} }),
-    ])
-      .then(([proj, cust]) => {
-        setProjects(proj);
-        setCustomers(cust);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    try {
+      const [proj, cust] = await Promise.all([
+        invoke<Project[]>("opc_list_projects", { filter: {} }),
+        invoke<Customer[]>("opc_list_customers", { filter: {} }),
+      ]);
+      setProjects(proj);
+      setCustomers(cust);
+    } catch (e) {
+      message.error(t("opc.common.loadFailed", { error: String(e) }));
+      setProjects([]);
+      setCustomers([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

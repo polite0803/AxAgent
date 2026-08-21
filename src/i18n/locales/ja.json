@@ -4243,7 +4243,9 @@
       "search": "Search",
       "batchSuccess": "Batch operation succeeded",
       "batchMarkRead": "Mark {{count}} as read",
-      "exportSuccess": "Exported {{count}}"
+      "exportSuccess": "Exported {{count}}",
+      "loadFailed": "読み込み失敗: {{error}}",
+      "loading": "読み込み中..."
     },
     "dashboard": {
       "loadFailed": "无法加载仪表盘",
@@ -4352,7 +4354,8 @@
       "sourceLabel": "来源",
       "sourcePlaceholder": "选择来源",
       "filterStatus": "Filter by status",
-      "filterSource": "Filter by source"
+      "filterSource": "Filter by source",
+      "emptyTip": "顧客データがありません。上の「新規顧客」をクリックして最初の顧客を追加してください"
     },
     "project": {
       "updated": "项目已更新",

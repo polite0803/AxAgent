@@ -4243,7 +4243,9 @@
       "search": "Search",
       "batchSuccess": "Batch operation succeeded",
       "batchMarkRead": "Mark {{count}} as read",
-      "exportSuccess": "Exported {{count}}"
+      "exportSuccess": "Exported {{count}}",
+      "loadFailed": "فشل التحميل: {{error}}",
+      "loading": "جارٍ التحميل..."
     },
     "dashboard": {
       "loadFailed": "无法加载仪表盘",
@@ -4352,7 +4354,8 @@
       "sourceLabel": "来源",
       "sourcePlaceholder": "选择来源",
       "filterStatus": "Filter by status",
-      "filterSource": "Filter by source"
+      "filterSource": "Filter by source",
+      "emptyTip": "لا توجد بيانات عملاء. انقر فوق « عميل جديد » أعلاه لإضافة أول عميل"
     },
     "project": {
       "updated": "项目已更新",

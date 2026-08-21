@@ -4243,7 +4243,9 @@
       "search": "搜索",
       "batchSuccess": "批量操作成功",
       "batchMarkRead": "标记 {{count}} 条已读",
-      "exportSuccess": "已导出 {{count}} 条"
+      "exportSuccess": "已导出 {{count}} 条",
+      "loadFailed": "載入失敗: {{error}}",
+      "loading": "載入中..."
     },
     "dashboard": {
       "loadFailed": "无法加载仪表盘",
@@ -4352,7 +4354,8 @@
       "sourceLabel": "来源",
       "sourcePlaceholder": "选择来源",
       "filterStatus": "按状态筛选",
-      "filterSource": "按来源筛选"
+      "filterSource": "按来源筛选",
+      "emptyTip": "暫無客戶資料，點擊上方「新建客戶」添加第一個客戶"
     },
     "project": {
       "updated": "项目已更新",

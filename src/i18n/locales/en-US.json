@@ -5744,7 +5744,9 @@
       "search": "Search",
       "batchSuccess": "Batch operation succeeded",
       "batchMarkRead": "Mark {{count}} as read",
-      "exportSuccess": "Exported {{count}}"
+      "exportSuccess": "Exported {{count}}",
+      "loadFailed": "Load failed: {{error}}",
+      "loading": "Loading..."
     },
     "dashboard": {
       "loadFailed": "Unable to load dashboard",
@@ -5853,7 +5855,8 @@
       "sourceLabel": "Source",
       "sourcePlaceholder": "Select source",
       "filterStatus": "Filter by status",
-      "filterSource": "Filter by source"
+      "filterSource": "Filter by source",
+      "emptyTip": "No customer data yet. Click \"New Customer\" above to add your first customer"
     },
     "project": {
       "updated": "Project updated",

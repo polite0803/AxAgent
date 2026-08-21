@@ -14,12 +14,17 @@ export function MarketPackTab() {
   const [packs, setPacks] = useState<MarketPack[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const refresh = useCallback(() => {
+  const refresh = useCallback(async () => {
     setLoading(true);
-    invoke<MarketPack[]>("opc_market_list")
-      .then(setPacks)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    try {
+      const data = await invoke<MarketPack[]>("opc_market_list");
+      setPacks(data);
+    } catch (e) {
+      message.error(t("opc.common.loadFailed", { error: String(e) }));
+      setPacks([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

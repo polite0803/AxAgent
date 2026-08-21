@@ -8,7 +8,7 @@ import {
   TeamOutlined,
   VideoCameraOutlined,
 } from "@ant-design/icons";
-import { Button, Card, Col, Empty, Row, Space, Spin, Statistic, Tag, Timeline } from "antd";
+import { Button, Card, Col, Empty, message, Row, Space, Spin, Statistic, Tag, Timeline } from "antd";
 import * as echarts from "echarts";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -71,21 +71,29 @@ export function DashboardTab() {
   const scheduleStatusChartInstance = useRef<echarts.ECharts | null>(null);
 
   useEffect(() => {
-    invoke<DashboardSummary>("opc_get_dashboard_summary")
-      .then(setSummary)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    (async () => {
+      try {
+        const data = await invoke<DashboardSummary>("opc_get_dashboard_summary");
+        setSummary(data);
+      } catch (e) {
+        message.error(t("opc.common.loadFailed", { error: String(e) }));
+        setSummary(null);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([
-      invoke<ContentAsset[]>("opc_list_content_assets").catch(() => []),
-      invoke<PublishSchedule[]>("opc_list_publish_schedules").catch(() => []),
-      invoke<BlogPost[]>("opc_list_blog_posts").catch(() => []),
-      invoke<LandingPage[]>("opc_list_landing_pages").catch(() => []),
-    ])
-      .then(([assets, schedules, posts, pages]) => {
+    (async () => {
+      try {
+        const [assets, schedules, posts, pages] = await Promise.all([
+          invoke<ContentAsset[]>("opc_list_content_assets").catch(() => []),
+          invoke<PublishSchedule[]>("opc_list_publish_schedules").catch(() => []),
+          invoke<BlogPost[]>("opc_list_blog_posts").catch(() => []),
+          invoke<LandingPage[]>("opc_list_landing_pages").catch(() => []),
+        ]);
         if (cancelled) { return; }
         const typeCounts: Record<string, number> = {};
         for (const a of assets) {
@@ -145,11 +153,14 @@ export function DashboardTab() {
             ],
           });
         }
-      })
-      .catch(console.error)
-      .finally(() => {
+      } catch (e) {
+        if (!cancelled) {
+          message.error(t("opc.common.loadFailed", { error: String(e) }));
+        }
+      } finally {
         if (!cancelled) { setCmLoading(false); }
-      });
+      }
+    })();
 
     return () => {
       cancelled = true;

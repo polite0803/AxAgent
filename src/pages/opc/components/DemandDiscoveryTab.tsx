@@ -202,12 +202,17 @@ function LeadsPanel() {
   const [platformFilter] = useState<string | undefined>();
   const [form] = Form.useForm();
 
-  const loadLeads = useCallback(() => {
+  const loadLeads = useCallback(async () => {
     setLoading(true);
-    invoke<DemandLead[]>("opc_list_leads", { status: statusFilter, platform: platformFilter })
-      .then((rows) => setLeads(rows.map(mapLead)))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    try {
+      const rows = await invoke<DemandLead[]>("opc_list_leads", { status: statusFilter, platform: platformFilter });
+      setLeads(rows.map(mapLead));
+    } catch (e) {
+      message.error(t("opc.common.loadFailed", { error: String(e) }));
+      setLeads([]);
+    } finally {
+      setLoading(false);
+    }
   }, [statusFilter, platformFilter]);
 
   useEffect(() => {
@@ -610,12 +615,17 @@ function CapabilitiesPanel() {
   const [inventory, setInventory] = useState<CapabilityInventory | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     setLoading(true);
-    invoke<CapabilityInventory>("opc_scan_capabilities")
-      .then(setInventory)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    try {
+      const data = await invoke<CapabilityInventory>("opc_scan_capabilities");
+      setInventory(data);
+    } catch (e) {
+      message.error(t("opc.common.loadFailed", { error: String(e) }));
+      setInventory(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -690,12 +700,17 @@ function DeliveriesPanel() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [currentDelivery, setCurrentDelivery] = useState<Delivery | null>(null);
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     setLoading(true);
-    invoke<Delivery[]>("opc_list_deliveries", {})
-      .then(setDeliveries)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    try {
+      const data = await invoke<Delivery[]>("opc_list_deliveries", {});
+      setDeliveries(data);
+    } catch (e) {
+      message.error(t("opc.common.loadFailed", { error: String(e) }));
+      setDeliveries([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -1018,12 +1033,17 @@ function PlatformsPanel() {
   const [editing, setEditing] = useState<MarketPlatform | null>(null);
   const [form] = Form.useForm();
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     setLoading(true);
-    invoke<MarketPlatform[]>("opc_list_platforms")
-      .then(setPlatforms)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    try {
+      const data = await invoke<MarketPlatform[]>("opc_list_platforms");
+      setPlatforms(data);
+    } catch (e) {
+      message.error(t("opc.common.loadFailed", { error: String(e) }));
+      setPlatforms([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -1196,12 +1216,17 @@ function CapabilityGapsPanel() {
   const [gaps, setGaps] = useState<CapabilityGap[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     setLoading(true);
-    invoke<CapabilityGap[]>("opc_list_capability_gaps", {})
-      .then(setGaps)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    try {
+      const data = await invoke<CapabilityGap[]>("opc_list_capability_gaps", {});
+      setGaps(data);
+    } catch (e) {
+      message.error(t("opc.common.loadFailed", { error: String(e) }));
+      setGaps([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -1299,12 +1324,17 @@ function CronPanel() {
   const [executing, setExecuting] = useState(false);
   const [form] = Form.useForm();
 
-  const loadJobs = useCallback(() => {
+  const loadJobs = useCallback(async () => {
     setLoading(true);
-    invoke<CronJobData[]>("list_scheduled_tasks")
-      .then(setJobs)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    try {
+      const data = await invoke<CronJobData[]>("list_scheduled_tasks");
+      setJobs(data);
+    } catch (e) {
+      message.error(t("opc.common.loadFailed", { error: String(e) }));
+      setJobs([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

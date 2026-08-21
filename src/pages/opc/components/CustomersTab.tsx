@@ -20,12 +20,17 @@ export function CustomersTab() {
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
   const [form] = Form.useForm();
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     setLoading(true);
-    invoke<Customer[]>("opc_list_customers", { filter: {} })
-      .then(setCustomers)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    try {
+      const data = await invoke<Customer[]>("opc_list_customers", { filter: {} });
+      setCustomers(data);
+    } catch (e) {
+      message.error(t("opc.common.loadFailed", { error: String(e) }));
+      setCustomers([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -230,6 +235,9 @@ export function CustomersTab() {
           rowSelection={{
             selectedRowKeys,
             onChange: (keys) => setSelectedRowKeys(keys.map(String)),
+          }}
+          locale={{
+            emptyText: loading ? t("opc.common.loading") : t("opc.customer.emptyTip"),
           }}
         />
       </Card>

@@ -4243,7 +4243,9 @@
       "search": "Search",
       "batchSuccess": "Batch operation succeeded",
       "batchMarkRead": "Mark {{count}} as read",
-      "exportSuccess": "Exported {{count}}"
+      "exportSuccess": "Exported {{count}}",
+      "loadFailed": "Error al cargar: {{error}}",
+      "loading": "Cargando..."
     },
     "dashboard": {
       "loadFailed": "无法加载仪表盘",
@@ -4352,7 +4354,8 @@
       "sourceLabel": "来源",
       "sourcePlaceholder": "选择来源",
       "filterStatus": "Filter by status",
-      "filterSource": "Filter by source"
+      "filterSource": "Filter by source",
+      "emptyTip": "No hay datos de clientes. Haga clic en « Nuevo cliente » arriba para agregar el primer cliente"
     },
     "project": {
       "updated": "项目已更新",

@@ -20,12 +20,17 @@ export function KanbanTab() {
   const [sirResult, setSirResult] = useState<SirResult | null>(null);
   const [sirModalOpen, setSirModalOpen] = useState(false);
 
-  const refresh = useCallback(() => {
+  const refresh = useCallback(async () => {
     setLoading(true);
-    invoke<KanbanBoard>("opc_kanban_board")
-      .then(setBoard)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    try {
+      const data = await invoke<KanbanBoard>("opc_kanban_board");
+      setBoard(data);
+    } catch (e) {
+      message.error(t("opc.common.loadFailed", { error: String(e) }));
+      setBoard({});
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

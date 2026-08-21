@@ -65,9 +65,17 @@ function LandingPagesPanel() {
 
   const load = () => {
     setLoading(true);
-    invoke<LandingPage[]>("opc_list_landing_pages").then(setPages).catch(console.error).finally(() =>
-      setLoading(false)
-    );
+    (async () => {
+      try {
+        const data = await invoke<LandingPage[]>("opc_list_landing_pages");
+        setPages(data);
+      } catch (e) {
+        message.error(t("opc.common.loadFailed", { error: String(e) }));
+        setPages([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
   };
   useEffect(() => {
     load();
@@ -229,7 +237,17 @@ function BlogPostsPanel() {
 
   const load = () => {
     setLoading(true);
-    invoke<BlogPost[]>("opc_list_blog_posts").then(setPosts).catch(console.error).finally(() => setLoading(false));
+    (async () => {
+      try {
+        const data = await invoke<BlogPost[]>("opc_list_blog_posts");
+        setPosts(data);
+      } catch (e) {
+        message.error(t("opc.common.loadFailed", { error: String(e) }));
+        setPosts([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
   };
   useEffect(() => {
     load();
@@ -394,9 +412,17 @@ function ContactsPanel() {
 
   const load = () => {
     setLoading(true);
-    invoke<ContactSubmission[]>("opc_list_contacts").then(setContacts).catch(console.error).finally(() =>
-      setLoading(false)
-    );
+    (async () => {
+      try {
+        const data = await invoke<ContactSubmission[]>("opc_list_contacts");
+        setContacts(data);
+      } catch (e) {
+        message.error(t("opc.common.loadFailed", { error: String(e) }));
+        setContacts([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
   };
   useEffect(() => {
     load();

@@ -42,18 +42,22 @@ export function InvoicesTab() {
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
   const [form] = Form.useForm();
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     setLoading(true);
-    Promise.all([
-      invoke<Invoice[]>("opc_list_invoices", { filter: {} }),
-      invoke<Customer[]>("opc_list_customers", { filter: {} }),
-    ])
-      .then(([inv, cust]) => {
-        setInvoices(inv);
-        setCustomers(cust);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    try {
+      const [inv, cust] = await Promise.all([
+        invoke<Invoice[]>("opc_list_invoices", { filter: {} }),
+        invoke<Customer[]>("opc_list_customers", { filter: {} }),
+      ]);
+      setInvoices(inv);
+      setCustomers(cust);
+    } catch (e) {
+      message.error(t("opc.common.loadFailed", { error: String(e) }));
+      setInvoices([]);
+      setCustomers([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

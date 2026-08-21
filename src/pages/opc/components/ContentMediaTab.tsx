@@ -82,10 +82,17 @@ function ContentAssetsPanel() {
 
   const load = () => {
     setLoading(true);
-    invoke<ContentAsset[]>("opc_list_content_assets")
-      .then(setAssets)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    (async () => {
+      try {
+        const data = await invoke<ContentAsset[]>("opc_list_content_assets");
+        setAssets(data);
+      } catch (e) {
+        message.error(t("opc.common.loadFailed", { error: String(e) }));
+        setAssets([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
   };
 
   useEffect(() => {
@@ -345,14 +352,27 @@ function PublishSchedulesPanel() {
 
   const load = () => {
     setLoading(true);
-    invoke<PublishSchedule[]>("opc_list_publish_schedules")
-      .then(setSchedules)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    (async () => {
+      try {
+        const data = await invoke<PublishSchedule[]>("opc_list_publish_schedules");
+        setSchedules(data);
+      } catch (e) {
+        message.error(t("opc.common.loadFailed", { error: String(e) }));
+        setSchedules([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
   };
 
-  const loadAssets = () => {
-    invoke<ContentAsset[]>("opc_list_content_assets").then(setAssets).catch(console.error);
+  const loadAssets = async () => {
+    try {
+      const data = await invoke<ContentAsset[]>("opc_list_content_assets");
+      setAssets(data);
+    } catch (e) {
+      message.error(t("opc.common.loadFailed", { error: String(e) }));
+      setAssets([]);
+    }
   };
 
   useEffect(() => {
