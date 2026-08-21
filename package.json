@@ -89,6 +89,7 @@
     "skill:validate": "node scripts/validate-skill.mjs"
   },
   "dependencies": {
+    "@antv/infographic": "^0.2.17",
     "@ant-design/icons": "^6.1.1",
     "@ant-design/x": "^2.9.0",
     "@antv/infographic": "^0.2.20",
