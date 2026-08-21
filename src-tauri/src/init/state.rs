@@ -430,7 +430,9 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
                 ))
                 .await;
             // P0-OPT: LLM 变异器注入移到后台异步，加速首帧显示
-            tracing::debug!("SkillEvolutionEngine created (LLM injection deferred to background)");
+            tracing::debug!(
+                "SkillEvolutionEngine created (LLM mutator injection deferred to background)"
+            );
             Arc::new(tokio::sync::Mutex::new(engine))
         }
         #[cfg(target_os = "android")]
@@ -1206,8 +1208,12 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         embedding_provider.clone(),
     ));
 
-    // P0-OPT: restore_metadata_from_store + register_all_capabilities + ensure_cognitive_router_templates + load_workflow_template
-    // 全部移到后台异步，加速首帧显示。索引器/检索器/路由器仍需构造（后续代码引用）。
+    // P0-OPT: 元数据恢复 + 护照批量注册移到后台异步，加速首帧显示
+    tracing::debug!(
+        "CapabilityIndexer created (metadata restore + passport registration deferred)"
+    );
+
+    // 转为 trait 对象供 Retriever 使用
     let capability_indexer_trait: Arc<dyn axagent_harness::CapabilityIndexer> =
         capability_indexer_impl.clone();
     let capability_retriever = Arc::new(axagent_tools::CapabilityRetrieverImpl::new(
@@ -1220,7 +1226,11 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     ));
     let capability_indexer = capability_indexer_impl;
 
-    tracing::info!("[capability] 能力发现系统初始化完成（元数据恢复/能力注册推迟到后台）");
+    tracing::info!("[capability] 能力发现系统初始化完成");
+
+    // P0-OPT: 能力护照注册 + 认知编排器初始化 + 主 DAG 加载全部移到后台异步，
+    // 加速首帧显示（见 run_deferred_init）
+    tracing::debug!("Cognitive router templates + main DAG load deferred to background");
 
     // ── 认知编排器初始化（三层路由树协调器） ──────────────────────
     // 全局用户消息唯一入口：L1 域路由 → L2 簇路由 → L3 RAR+图谱路由 → 执行模式决策。
@@ -2076,9 +2086,9 @@ impl axagent_harness::WebhookPersistence for DbWebhookPersistence {
 /// 被推迟的操作：
 /// 1. MemoryService FTS5 索引构建（最耗时）
 /// 2. SkillEvolutionEngine LLM 变异器注入（需 DB 查询）
-/// 3. WorkflowEvolver LLM 变异器 + 沙箱注入（需 DB 查询）
+/// 3. WorkflowEvolver LLM 变异器注入（需 DB 查询）
 /// 4. CapabilityIndexer 元数据恢复（向量存储读取）
-/// 5. 能力护照批量注册 register_all_capabilities（~500 行，多表查询 + 向量索引）
+/// 5. 能力护照批量注册 register_all_capabilities（多表查询 + 向量索引）
 /// 6. 认知编排器工作流模板初始化
 /// 7. WorkEngine 主 DAG 加载
 pub async fn run_deferred_init(app_state: &crate::app_state::AppState) {

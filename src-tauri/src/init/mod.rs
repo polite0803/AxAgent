@@ -24,4 +24,4 @@ pub use cognitive_router_init::{
 };
 pub use database::init_database_with_dir;
 pub use plugins::register_plugins;
-pub use state::create_app_state;
+pub use state::{create_app_state, run_deferred_init};

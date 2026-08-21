@@ -342,10 +342,10 @@ pub fn run() {
             }
 
             // ── 异步启动：所有种子化/初始化操作在后台执行，不阻塞 UI ──
-            // 提取 'static 安全的 Arc/PathBuf 字段进 async 闭包
+            // 提取 'static 安全的 Arc/PathBuf 字段进 async 闭包（State 借用本身不可跨闭包）
             let init_state = app.state::<AppState>();
             let init_sea_db = init_state.harness.db().clone();
-            let init_app_dir = app_dir.clone();
+            let init_app_dir = app_data_dir.clone();
             let init_cron_store = init_state.cron_job_store.clone();
             let init_user_profile = init_state.user_profile.clone();
             let init_pattern_learner = init_state.pattern_learner.clone();
@@ -362,7 +362,7 @@ pub fn run() {
                 let t_async = std::time::Instant::now();
                 tracing::info!("[startup] 异步初始化开始");
 
-                // 1. reset 会话
+                // 1. 直接在 Tauri 主 runtime 上 reset 会话（避免连接池跨 runtime 孤儿化）
                 if let Err(e) = axagent_dao::repo::agent_session::reset_running_sessions(&sea_db).await {
                     tracing::error!("Session reset failed: {:?}", e);
                 }
@@ -388,10 +388,10 @@ pub fn run() {
                     tracing::error!("[opc-cron] Seed failed: {e}");
                 }
 
-                // 7. Initialize pricing configuration
+                // 7. Initialize pricing configuration from pricing.toml
                 commands::agent::init_pricing_config(&app_handle);
 
-                // 8. 注入 Orchestrator 流式报告器
+                // 8. 注入 Orchestrator 流式报告器（绑定 AppHandle 以便推送事件到前端）
                 {
                     let reporter = commands::orchestrator::create_stream_reporter(app_handle.clone());
                     let mut stream_reporter_guard = init_stream_reporter.write().await;
@@ -429,7 +429,7 @@ pub fn run() {
                     }
                 }
 
-                // 10. 加载 USER.md profile
+                // 10. 加载 USER.md profile（若存在）
                 if let Some(home) = dirs::home_dir() {
                     let user_md_path = home.join(".axinvest").join("USER.md");
                     if user_md_path.exists() {
@@ -496,12 +496,43 @@ pub fn run() {
                 }
                 // 14. 同步内置 SKILL.md
                 crate::commands::skills::seed_builtin_skills();
-                // 15. Multi-Agent 固定角色种子化
+
+                // 15. 移动端云同步连接检查
+                #[cfg(mobile)]
+                if let Some(ref sync_engine) = app_state.sync_engine {
+                    tracing::info!("[mobile] Starting cloud sync engine...");
+                    let engine = sync_engine.clone();
+                    spawn_block_on("cloud_sync", async move {
+                        match engine.backend.check_connection().await {
+                            Ok(true) => tracing::info!("[mobile] Cloud sync backend connected"),
+                            Ok(false) => tracing::warn!("[mobile] Cloud sync backend unreachable"),
+                            Err(e) => tracing::warn!("[mobile] Cloud sync connection check failed: {}", e),
+                        }
+                    }).unwrap_or_else(|e| {
+                        tracing::error!("Mobile sync thread panicked: {:?}", e);
+                    });
+                }
+
+                // 16. 获取 tray_language
+                #[cfg(not(mobile))]
+                let tray_language = {
+                    axagent_dao::repo::settings::get_settings(&sea_db)
+                        .await
+                        .map(|s| s.language)
+                        .unwrap_or_else(|e| {
+                            tracing::error!("Failed to get tray language: {}", e);
+                            "en".to_string()
+                        })
+                };
+                #[cfg(mobile)]
+                let tray_language = "en".to_string();
+
+                // 17. Multi-Agent 固定角色（analyst/implementer/reviewer）种子化
                 if let Err(e) = crate::commands::multi_agent_setup::seed_multi_agent_roles::seed_multi_agent_roles(&sea_db).await {
                     tracing::warn!("[multi_agent_setup] 种子化 Multi-Agent 角色失败: {}", e);
                 }
 
-                // 16. 启动 OPC notify worker（独立 spawn，避免无限循环阻塞后续初始化）
+                // 18. 启动 OPC notify worker（独立 spawn，避免无限循环阻塞后续初始化）
                 {
                     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
                     axagent_tools::tools::opc::set_opc_notify_tx(tx);
@@ -528,7 +559,7 @@ pub fn run() {
                     tracing::info!("[opc] Started OPC notify worker");
                 }
 
-                // 17. 加载持久化 runtime_evolution 工具
+                // 19. 加载持久化 runtime_evolution 工具（幂等，source=runtime_evolution）
                 if let Err(e) = crate::commands::evolution_engine::
                     load_evolution_execution_stats_impl(&sea_db, &init_evolution_stats)
                     .await
@@ -548,41 +579,11 @@ pub fn run() {
                         "启动加载持久化运行时工具失败: {}", e);
                 }
 
-                // 18. 移动端云同步连接检查
-                #[cfg(mobile)]
-                if let Some(ref sync_engine) = app_state.sync_engine {
-                    tracing::info!("[mobile] Starting cloud sync engine...");
-                    let engine = sync_engine.clone();
-                    spawn_block_on("cloud_sync", async move {
-                        match engine.backend.check_connection().await {
-                            Ok(true) => tracing::info!("[mobile] Cloud sync backend connected"),
-                            Ok(false) => tracing::warn!("[mobile] Cloud sync backend unreachable"),
-                            Err(e) => tracing::warn!("[mobile] Cloud sync connection check failed: {}", e),
-                        }
-                    }).unwrap_or_else(|e| {
-                        tracing::error!("Mobile sync thread panicked: {:?}", e);
-                    });
-                }
-
-                // 19. 获取 tray_language
-                #[cfg(not(mobile))]
-                let tray_language = {
-                    axagent_dao::repo::settings::get_settings(&sea_db)
-                        .await
-                        .map(|s| s.language)
-                        .unwrap_or_else(|e| {
-                            tracing::error!("Failed to get tray language: {}", e);
-                            "en".to_string()
-                        })
-                };
-                #[cfg(mobile)]
-                let tray_language = "en".to_string();
-
-                // P0-OPT 新增: 执行被推迟到后台的重型初始化
+                // 20. P0-OPT 新增: 执行被推迟到后台的重型初始化
                 // （MemoryService FTS5、能力索引、LLM 注入、认知模板等）
                 init::state::run_deferred_init(&app_state).await;
 
-                // 20. 启动后台服务
+                // 21. 启动后台服务
                 init::services::start_background_services(
                     &app_handle,
                     &app_state,
