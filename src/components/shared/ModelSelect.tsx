@@ -16,7 +16,22 @@ export function parseModelValue(value: string | undefined) {
   if (idx < 0) {
     return null;
   }
-  return { providerId: value.slice(0, idx), modelId: value.slice(idx + 2) };
+  const providerId = value.slice(0, idx);
+  const modelId = value.slice(idx + 2);
+  // 防御：解析出的 ID 不能是 undefined/null/空字符串字面量
+  // 这是为了防止后端传来或中间件生成的脏数据污染前端
+  if (
+    !providerId
+    || !modelId
+    || providerId === "undefined"
+    || providerId === "null"
+    || modelId === "undefined"
+    || modelId === "null"
+  ) {
+    console.warn("[parseModelValue] 检测到无效值", { value, providerId, modelId });
+    return null;
+  }
+  return { providerId, modelId };
 }
 
 /** Hook: returns grouped Select options (Provider → Models) */
@@ -41,8 +56,20 @@ export function useGroupedModelOptions() {
               </span>
             ),
             title: p.name,
-            options: p.models.flatMap((m) =>
-              m.enabled
+            options: p.models.flatMap((m) => {
+              // 防御：过滤无效的 modelId，防止 "undefined"/"null" 字符串污染
+              if (
+                !m.modelId
+                || m.modelId === "undefined"
+                || m.modelId === "null"
+                || m.modelId.trim() === ""
+              ) {
+                console.warn(
+                  `[ModelSelect] 跳过无效模型选项: provider=${p.name}, modelId=${String(m.modelId)}`,
+                );
+                return [];
+              }
+              return m.enabled
                 ? [
                   {
                     label: m.name,
@@ -51,8 +78,8 @@ export function useGroupedModelOptions() {
                     providerName: p.name,
                   },
                 ]
-                : []
-            ),
+                : [];
+            }),
           },
         ]
         : []

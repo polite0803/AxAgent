@@ -48,9 +48,15 @@ pub async fn get_settings(db: &DatabaseConnection) -> Result<AppSettings> {
 
     let mut map = serde_json::Map::new();
     for row in &rows {
-        // 尝试解析 JSON 值；如果是残留的 "null" 字符串或空字符串，
+        // 尝试解析 JSON 值；如果是残留的 "null" 字符串、空字符串或 "undefined" 字符串，
         // 当作 Value::Null 处理，避免将无效值误读为有效值。
-        let val = if row.value == "null" || row.value.is_empty() {
+        let val = if row.value == "null" || row.value.is_empty() || row.value == "undefined" {
+            if row.value == "undefined" {
+                tracing::warn!(
+                    "[get_settings] 发现无效值 'undefined' key={}，将其视为 null",
+                    row.key
+                );
+            }
             serde_json::Value::Null
         } else {
             serde_json::from_str::<serde_json::Value>(&row.value)
@@ -140,6 +146,14 @@ pub async fn save_settings(db: &DatabaseConnection, settings: &AppSettings) -> R
                     && s.is_empty()
                 {
                     tracing::debug!("[save_settings] 跳过空字符串 key={}", key);
+                    return None;
+                }
+                // 防御：跳过 "undefined" 和 "null" 字面量字符串
+                // 这是前端传来的脏数据，不能存入数据库
+                if let Some(s) = val.as_str()
+                    && (s == "undefined" || s == "null")
+                {
+                    tracing::warn!("[save_settings] 跳过无效字符串 key={} value={}", key, s);
                     return None;
                 }
                 let val_str = match val {
