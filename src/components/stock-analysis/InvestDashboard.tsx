@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 import { invoke } from "@/lib/invoke";
 import { ReloadOutlined } from "@ant-design/icons";
 import { Button, Card, Table, Tag, Typography } from "antd";
@@ -270,7 +271,7 @@ async function loadMarketRegime(): Promise<MarketRegimeInfo | null> {
         regime: "bull",
         confidence: Math.min(pctAbove60 * 2, 0.95),
         volatility: "normal",
-        description: `站上60日均线${(pctAbove60 * 100).toFixed(1)}%`,
+        description: i18n.t("stockAnalysis.dashboard.regimeAboveMa60", { pct: (pctAbove60 * 100).toFixed(1) }),
       };
     }
     if (pctAbove60 < -0.03 && slope < -0.005) {
@@ -278,10 +279,17 @@ async function loadMarketRegime(): Promise<MarketRegimeInfo | null> {
         regime: "bear",
         confidence: Math.min(Math.abs(pctAbove60) * 2, 0.95),
         volatility: "normal",
-        description: `跌破60日均线${(Math.abs(pctAbove60) * 100).toFixed(1)}%`,
+        description: i18n.t("stockAnalysis.dashboard.regimeBelowMa60", {
+          pct: (Math.abs(pctAbove60) * 100).toFixed(1),
+        }),
       };
     }
-    return { regime: "sideways", confidence: 0.5, volatility: "normal", description: "均线交叉/粘合，方向不明确" };
+    return {
+      regime: "sideways",
+      confidence: 0.5,
+      volatility: "normal",
+      description: i18n.t("stockAnalysis.dashboard.regimeSideways"),
+    };
   } catch {
     return null;
   }

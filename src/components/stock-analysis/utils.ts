@@ -5,6 +5,7 @@
  * 所有组件通过 `./utils` 导入保持向后兼容。
  */
 export { cleanToolCallTags, tryBeautifyJson } from "@/lib/agentOutput";
+import i18n from "@/i18n";
 import { cleanToolCallTags } from "@/lib/agentOutput";
 
 function looksLikeJson(text: string): boolean {
@@ -41,24 +42,24 @@ export function extractReadableFromRiskReport(report: string): string {
 
     // 1. 立场/风格（支持顶层 + verdict 嵌套）
     if (typeof v.stance === "string") {
-      parts.push(`**立场**: ${v.stance}`);
+      parts.push(i18n.t("stockAnalysis.riskReport.stance", { stance: v.stance }));
     }
 
     // 2. 仓位/头寸（支持 positionPct / position_pct）
     const posPct = v.positionPct ?? v.position_pct;
     if (typeof posPct === "number") {
-      parts.push(`**建议仓位**: ${posPct}%`);
+      parts.push(i18n.t("stockAnalysis.riskReport.positionPct", { posPct }));
     }
 
     // 3. 信心度
     if (typeof v.confidence === "number") {
-      parts.push(`**信心度**: ${v.confidence}%`);
+      parts.push(i18n.t("stockAnalysis.riskReport.confidence", { confidence: v.confidence }));
     }
 
     // 4. 风险等级（支持 riskLevel / risk_level / converged_risk_level）
     const riskLevel = v.riskLevel ?? v.risk_level ?? v.converged_risk_level;
     if (typeof riskLevel === "string") {
-      parts.push(`**风险等级**: ${riskLevel}`);
+      parts.push(i18n.t("stockAnalysis.riskReport.riskLevel", { riskLevel }));
     }
 
     // 5. 摘要/分析/推理
@@ -73,46 +74,54 @@ export function extractReadableFromRiskReport(report: string): string {
     if (parsed.kelly_inputs && typeof parsed.kelly_inputs === "object") {
       const k = parsed.kelly_inputs;
       const kParts: string[] = [];
-      if (typeof k.win_rate === "number") { kParts.push(`胜率 ${(k.win_rate * 100).toFixed(0)}%`); }
-      if (typeof k.payoff_ratio === "number") { kParts.push(`赔率 ${k.payoff_ratio}`); }
-      if (typeof k.raw_kelly === "number") { kParts.push(`原始 Kelly ${(k.raw_kelly * 100).toFixed(1)}%`); }
-      if (typeof k.scale_factor === "number") { kParts.push(`缩放因子 ${k.scale_factor}`); }
+      if (typeof k.win_rate === "number") {
+        kParts.push(i18n.t("stockAnalysis.riskReport.kellyWinRate", { pct: (k.win_rate * 100).toFixed(0) }));
+      }
+      if (typeof k.payoff_ratio === "number") {
+        kParts.push(i18n.t("stockAnalysis.riskReport.kellyPayoff", { ratio: k.payoff_ratio }));
+      }
+      if (typeof k.raw_kelly === "number") {
+        kParts.push(i18n.t("stockAnalysis.riskReport.kellyRaw", { pct: (k.raw_kelly * 100).toFixed(1) }));
+      }
+      if (typeof k.scale_factor === "number") {
+        kParts.push(i18n.t("stockAnalysis.riskReport.kellyScale", { factor: k.scale_factor }));
+      }
       if (kParts.length > 0) {
-        parts.push(`**Kelly 参数**: ${kParts.join("，")}`);
+        parts.push(i18n.t("stockAnalysis.riskReport.kellyParams", { params: kParts.join("，") }));
       }
     }
 
     // 7. 非对称机会
     if (Array.isArray(parsed.asymmetric_opportunities) && parsed.asymmetric_opportunities.length > 0) {
-      parts.push("**非对称机会**:");
+      parts.push(i18n.t("stockAnalysis.riskReport.asymOpportunities"));
       for (const opp of parsed.asymmetric_opportunities) {
         if (typeof opp.opportunity === "string") {
           parts.push(`- ${opp.opportunity}`);
         }
         if (Array.isArray(opp.evidence_refs)) {
           for (const ref of opp.evidence_refs) {
-            if (typeof ref === "string") { parts.push(`  - 依据: ${ref}`); }
+            if (typeof ref === "string") { parts.push(i18n.t("stockAnalysis.riskReport.evidenceRef", { ref })); }
           }
         }
         if (typeof opp.expected_value === "string") {
-          parts.push(`  - 预期价值: ${opp.expected_value}`);
+          parts.push(i18n.t("stockAnalysis.riskReport.expectedValue", { value: opp.expected_value }));
         }
       }
     }
 
     // 8. 执行备注
     if (Array.isArray(parsed.execution_notes) && parsed.execution_notes.length > 0) {
-      parts.push("**执行要点**:");
+      parts.push(i18n.t("stockAnalysis.riskReport.executionNotes"));
       for (const note of parsed.execution_notes) {
         if (typeof note === "string") { parts.push(`- ${note}`); }
       }
     } else if (typeof parsed.execution_notes === "string" && parsed.execution_notes.length > 5) {
-      parts.push(`**执行要点**: ${parsed.execution_notes}`);
+      parts.push(i18n.t("stockAnalysis.riskReport.executionNotesInline", { notes: parsed.execution_notes }));
     }
 
     // 9. 风险项列表
     if (Array.isArray(parsed.risk_items) && parsed.risk_items.length > 0) {
-      parts.push("**风险项**:");
+      parts.push(i18n.t("stockAnalysis.riskReport.riskItems"));
       for (const item of parsed.risk_items) {
         if (typeof item.risk === "string") {
           const severity = typeof item.severity === "string" ? `（${item.severity}）` : "";
@@ -120,7 +129,7 @@ export function extractReadableFromRiskReport(report: string): string {
         }
         if (Array.isArray(item.evidence_refs)) {
           for (const ref of item.evidence_refs) {
-            if (typeof ref === "string") { parts.push(`  - 依据: ${ref}`); }
+            if (typeof ref === "string") { parts.push(i18n.t("stockAnalysis.riskReport.evidenceRef", { ref })); }
           }
         }
       }
@@ -128,7 +137,7 @@ export function extractReadableFromRiskReport(report: string): string {
 
     // 10. 关键条件跟踪
     if (Array.isArray(parsed.key_conditions_to_track) && parsed.key_conditions_to_track.length > 0) {
-      parts.push("**关键跟踪条件**:");
+      parts.push(i18n.t("stockAnalysis.riskReport.keyConditions"));
       for (const cond of parsed.key_conditions_to_track) {
         if (typeof cond === "string") { parts.push(`- ${cond}`); }
       }
@@ -136,13 +145,13 @@ export function extractReadableFromRiskReport(report: string): string {
 
     // 11. 多空核心论据
     if (Array.isArray(parsed.decisive_bull_acks) && parsed.decisive_bull_acks.length > 0) {
-      parts.push("**核心做多论据**:");
+      parts.push(i18n.t("stockAnalysis.riskReport.bullArgs"));
       for (const ack of parsed.decisive_bull_acks) {
         if (typeof ack === "string") { parts.push(`- ${ack}`); }
       }
     }
     if (Array.isArray(parsed.decisive_bear_acks) && parsed.decisive_bear_acks.length > 0) {
-      parts.push("**核心做空论据**:");
+      parts.push(i18n.t("stockAnalysis.riskReport.bearArgs"));
       for (const ack of parsed.decisive_bear_acks) {
         if (typeof ack === "string") { parts.push(`- ${ack}`); }
       }
@@ -150,10 +159,10 @@ export function extractReadableFromRiskReport(report: string): string {
 
     // 12. 止损/止盈
     if (typeof parsed.stopLossPct === "number") {
-      parts.push(`**止损**: -${parsed.stopLossPct}%`);
+      parts.push(i18n.t("stockAnalysis.riskReport.stopLoss", { pct: parsed.stopLossPct }));
     }
     if (typeof parsed.takeProfitPct === "number") {
-      parts.push(`**止盈**: +${parsed.takeProfitPct}%`);
+      parts.push(i18n.t("stockAnalysis.riskReport.takeProfit", { pct: parsed.takeProfitPct }));
     }
 
     if (parts.length > 0) {

@@ -75,7 +75,7 @@ export function VizBlockRenderer({
   if (errors.length > 0) {
     return (
       <div style={{ padding: 16, color: "#ff4d4f" }}>
-        <div>{t("viz.invalidBlock", { defaultValue: "VizBlock 数据非法" })}</div>
+        <div>{t("viz.invalidBlock")}</div>
         <ul>
           {errors.map((e) => <li key={e}>{e}</li>)}
         </ul>
@@ -87,10 +87,7 @@ export function VizBlockRenderer({
   if (!renderer) {
     return (
       <Empty
-        description={t("viz.unsupportedKind", {
-          defaultValue: "未支持的可视化类型: {{kind}}",
-          kind: block.kind,
-        })}
+        description={t("viz.unsupportedKind", { kind: block.kind })}
       />
     );
   }
@@ -721,6 +718,7 @@ const tableRenderer: VizBlockKindRenderer = {
 };
 
 const TableFull: React.FC<{ block: VizBlock; compact?: boolean }> = ({ block, compact }) => {
+  const { t } = useTranslation();
   const data = asArray<Record<string, unknown>>(block.data);
   const opts = (block.options ?? {}) as {
     columns?: VizTableColumn[];
@@ -768,7 +766,7 @@ const TableFull: React.FC<{ block: VizBlock; compact?: boolean }> = ({ block, co
   }, [opts.columns, data]);
 
   if (data.length === 0) {
-    return <Empty description="无数据" />;
+    return <Empty description={t("viz.noData")} />;
   }
 
   return (
@@ -844,7 +842,7 @@ export function VizBlockListRenderer({
   }, [blocks, sortByScene]);
 
   if (sorted.length === 0) {
-    return <Empty description={t("viz.noBlocks", { defaultValue: "暂无可视化块" })} />;
+    return <Empty description={t("viz.noBlocks")} />;
   }
 
   return (

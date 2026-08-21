@@ -14,6 +14,7 @@
 import { useOfficeStore, usePaperPortfolioStore } from "@/stores";
 import type { FleetMember } from "@/types";
 import { Button, Empty, Spin, Table, Tag, theme, Typography } from "antd";
+import type { TFunction } from "i18next";
 import { Briefcase, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -26,12 +27,12 @@ function formatTokens(n: number) {
   return String(n);
 }
 
-function formatMoney(n: number): string {
+function formatMoney(n: number, t: TFunction): string {
   const abs = Math.abs(n);
   const sign = n >= 0 ? "" : "-";
-  if (abs >= 100_000_000) { return `${sign}${(abs / 100_000_000).toFixed(2)}亿`; }
-  if (abs >= 10_000) { return `${sign}${(abs / 10_000).toFixed(2)}万`; }
-  if (abs >= 1_000) { return `${sign}${(abs / 1_000).toFixed(1)}千`; }
+  if (abs >= 100_000_000) { return `${sign}${(abs / 100_000_000).toFixed(2)}${t("office.token.unitYi")}`; }
+  if (abs >= 10_000) { return `${sign}${(abs / 10_000).toFixed(2)}${t("office.token.unitWan")}`; }
+  if (abs >= 1_000) { return `${sign}${(abs / 1_000).toFixed(1)}${t("office.token.unitQian")}`; }
   return `${sign}${abs.toFixed(2)}`;
 }
 
@@ -162,12 +163,12 @@ export function TokenPanel({ fleetId }: { fleetId: string }) {
             />
             <PortfolioMetric
               label={t("office.token.totalMarketValue")}
-              value={formatMoney(portfolioSummary.totalMarketValue)}
-              hint={`${t("office.token.totalCost")}：${formatMoney(portfolioSummary.totalCost)}`}
+              value={formatMoney(portfolioSummary.totalMarketValue, t)}
+              hint={`${t("office.token.totalCost")}：${formatMoney(portfolioSummary.totalCost, t)}`}
             />
             <PortfolioMetric
               label={t("office.token.unrealizedPnl")}
-              value={formatMoney(portfolioSummary.totalUnrealizedPnl)}
+              value={formatMoney(portfolioSummary.totalUnrealizedPnl, t)}
               valueColor={portfolioSummary.totalUnrealizedPnl > 0
                 ? "#52c41a"
                 : portfolioSummary.totalUnrealizedPnl < 0
@@ -182,7 +183,7 @@ export function TokenPanel({ fleetId }: { fleetId: string }) {
                 : portfolioSummary.totalReturnPct < 0
                 ? "#ff4d4f"
                 : themeToken.colorText}
-              hint={`${t("office.token.realizedPnl")}：${formatMoney(portfolioSummary.totalRealizedPnl)}`}
+              hint={`${t("office.token.realizedPnl")}：${formatMoney(portfolioSummary.totalRealizedPnl, t)}`}
             />
           </div>
         </div>

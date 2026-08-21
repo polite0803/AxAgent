@@ -92,21 +92,20 @@ function VendorCard(props: VendorCardProps) {
       title={status === "untouched"
         ? (
           <div className="text-xs">
-            {t("stockAnalysis.settings.vendorUntouchedHint", "本运行周期未被调用，无健康数据")}
+            {t("stockAnalysis.settings.vendorUntouchedHint")}
           </div>
         )
         : (
           <div className="text-xs space-y-1">
             <div>
-              {t("stockAnalysis.settings.vendorTotalSuccess", "总成功")}: {(totalSuccesses ?? 0).toLocaleString()}
+              {t("stockAnalysis.settings.vendorTotalSuccess")}: {(totalSuccesses ?? 0).toLocaleString()}
             </div>
             <div>
-              {t("stockAnalysis.settings.vendorTotalFailures", "总失败")}: {(totalFailures ?? 0).toLocaleString()}
+              {t("stockAnalysis.settings.vendorTotalFailures")}: {(totalFailures ?? 0).toLocaleString()}
             </div>
-            <div>{t("stockAnalysis.settings.vendorConsecutiveFailures", "连续失败")}: {consecutiveFailures ?? 0}</div>
-            {lastError && (
-              <div className="text-red-300">{t("stockAnalysis.settings.vendorLastError", "最后错误")}: {lastError}</div>
-            )}
+            <div>{t("stockAnalysis.settings.vendorConsecutiveFailures")}: {consecutiveFailures ?? 0}</div>
+            {lastError && <div className="text-red-300">{t("stockAnalysis.settings.vendorLastError")}: {lastError}
+            </div>}
           </div>
         )}
     >
@@ -138,10 +137,10 @@ function VendorCard(props: VendorCardProps) {
         <div className="text-gray-500 text-[10px] text-right shrink-0 ml-2">
           {status !== "untouched" && (
             <>
-              <div>{t("stockAnalysis.settings.vendorLastSuccess", "成功")}: {formatTime(lastSuccessAt ?? null)}</div>
+              <div>{t("stockAnalysis.settings.vendorLastSuccess")}: {formatTime(lastSuccessAt ?? null)}</div>
               {lastFailureAt && (
                 <div className="text-red-400/60">
-                  {t("stockAnalysis.settings.vendorLastFailure", "失败")}: {formatTime(lastFailureAt)}
+                  {t("stockAnalysis.settings.vendorLastFailure")}: {formatTime(lastFailureAt)}
                 </div>
               )}
             </>
@@ -172,7 +171,7 @@ export function VendorHealthDashboard() {
           ? e
           : e instanceof Error
           ? e.message
-          : t("stockAnalysis.settings.vendor.loadFailed", "加载失败"),
+          : t("stockAnalysis.settings.vendor.loadFailed"),
       );
     } finally {
       setLoading(false);
@@ -197,9 +196,9 @@ export function VendorHealthDashboard() {
     const d = new Date(ms);
     const now = Date.now();
     const diffMin = Math.floor((now - ms) / 60000);
-    if (diffMin < 1) { return t("stockAnalysis.settings.vendor.justNow", "刚刚"); }
+    if (diffMin < 1) { return t("stockAnalysis.settings.vendor.justNow"); }
     if (diffMin < 60) {
-      return t("stockAnalysis.settings.vendor.minutesAgo", { count: diffMin, defaultValue: "{{count}} 分钟前" });
+      return t("stockAnalysis.settings.vendor.minutesAgo", { count: diffMin });
     }
     return d.toLocaleString("zh-CN", {
       month: "2-digit",
@@ -219,18 +218,16 @@ export function VendorHealthDashboard() {
           className="flex items-center gap-3 w-full text-left bg-transparent border-none cursor-pointer p-0 hover:opacity-80 transition-opacity"
         >
           <span>{collapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}</span>
-          <span>{t("stockAnalysis.settings.vendorHealth", "数据源健康状态")}</span>
+          <span>{t("stockAnalysis.settings.vendorHealth")}</span>
           <div className="flex gap-2 text-xs">
-            <Tag color="green">{healthyCount} {t("stockAnalysis.settings.vendor.status.healthy", "正常")}</Tag>
+            <Tag color="green">{healthyCount} {t("stockAnalysis.settings.vendor.status.healthy")}</Tag>
             {degradedCount > 0 && (
-              <Tag color="orange">{degradedCount} {t("stockAnalysis.settings.vendor.status.degraded", "降级")}</Tag>
+              <Tag color="orange">{degradedCount} {t("stockAnalysis.settings.vendor.status.degraded")}</Tag>
             )}
             {disabledCount > 0 && (
-              <Tag color="red">{disabledCount} {t("stockAnalysis.settings.vendor.status.disabled", "禁用")}</Tag>
+              <Tag color="red">{disabledCount} {t("stockAnalysis.settings.vendor.status.disabled")}</Tag>
             )}
-            {untouchedCount > 0 && (
-              <Tag>{untouchedCount} {t("stockAnalysis.settings.vendor.status.untouched", "未探测")}</Tag>
-            )}
+            {untouchedCount > 0 && <Tag>{untouchedCount} {t("stockAnalysis.settings.vendor.status.untouched")}</Tag>}
           </div>
         </button>
       }
@@ -240,7 +237,7 @@ export function VendorHealthDashboard() {
           className="text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50"
           disabled={loading}
         >
-          {loading ? t("common.loading", "刷新中...") : t("common.refresh", "刷新")}
+          {loading ? t("common.loading") : t("common.refresh")}
         </button>
       }
       className="bg-gray-900/50"

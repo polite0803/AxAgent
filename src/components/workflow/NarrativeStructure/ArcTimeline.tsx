@@ -16,11 +16,11 @@ const ARC_TYPE_COLORS: Record<ArcType, string> = {
 };
 
 const ARC_TYPE_LABELS: Record<ArcType, string> = {
-  transformative: "转换型",
-  steadfast: "坚定型",
-  flat: "扁平型",
-  tragic: "悲剧型",
-  comedic: "喜剧型",
+  transformative: "workflow.narrative.arcTypeTransformative",
+  steadfast: "workflow.narrative.arcTypeSteadfast",
+  flat: "workflow.narrative.arcTypeFlat",
+  tragic: "workflow.narrative.arcTypeTragic",
+  comedic: "workflow.narrative.arcTypeComedic",
 };
 
 interface ArcTimelineProps {
@@ -44,7 +44,7 @@ export function ArcTimeline({ arcs, selectedArcId, onSelectArc }: ArcTimelinePro
   if (!activeArc) {
     return (
       <div className="text-center py-8">
-        <Text type="secondary">{t("workflow.narrative.noArcs", "暂无弧线定义")}</Text>
+        <Text type="secondary">{t("workflow.narrative.noArcs")}</Text>
       </div>
     );
   }
@@ -73,7 +73,7 @@ export function ArcTimeline({ arcs, selectedArcId, onSelectArc }: ArcTimelinePro
             label: (
               <span className="flex items-center gap-1">
                 <Tag color={ARC_TYPE_COLORS[arc.arcType]} className="text-xs">
-                  {ARC_TYPE_LABELS[arc.arcType]}
+                  {t(ARC_TYPE_LABELS[arc.arcType])}
                 </Tag>
                 {arc.subject}
               </span>
@@ -90,7 +90,7 @@ export function ArcTimeline({ arcs, selectedArcId, onSelectArc }: ArcTimelinePro
         title={
           <div className="flex items-center gap-2">
             <Tag color={ARC_TYPE_COLORS[activeArc.arcType]}>
-              {ARC_TYPE_LABELS[activeArc.arcType]}
+              {t(ARC_TYPE_LABELS[activeArc.arcType])}
             </Tag>
             <Title level={5} style={{ margin: 0 }}>
               {activeArc.subject}
@@ -101,11 +101,11 @@ export function ArcTimeline({ arcs, selectedArcId, onSelectArc }: ArcTimelinePro
         {/* 基本信息 */}
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div>
-            <Text type="secondary" className="text-xs">Want（外部目标）</Text>
+            <Text type="secondary" className="text-xs">{t("workflow.narrative.wantExternalGoal")}</Text>
             <div className="text-sm">{activeArc.want || "-"}</div>
           </div>
           <div>
-            <Text type="secondary" className="text-xs">Need（内部缺失）</Text>
+            <Text type="secondary" className="text-xs">{t("workflow.narrative.needInternalMissing")}</Text>
             <div className="text-sm">{activeArc.need || "-"}</div>
           </div>
         </div>
@@ -113,7 +113,7 @@ export function ArcTimeline({ arcs, selectedArcId, onSelectArc }: ArcTimelinePro
         {/* 推进度 */}
         <div className="mb-4">
           <div className="flex justify-between text-xs mb-1">
-            <Text type="secondary">{t("workflow.narrative.progress", "推进度")}</Text>
+            <Text type="secondary">{t("workflow.narrative.progress")}</Text>
             <Text>{activeArc.currentProgress}%</Text>
           </div>
           <Progress
@@ -128,12 +128,12 @@ export function ArcTimeline({ arcs, selectedArcId, onSelectArc }: ArcTimelinePro
         {/* 阶段时间轴 */}
         <div>
           <Text strong className="text-sm mb-2 block">
-            {t("workflow.narrative.stages", "弧线阶段")}
+            {t("workflow.narrative.stages")}
           </Text>
           {sortedStages.length === 0
             ? (
               <Text type="secondary" className="text-sm">
-                {t("workflow.narrative.noStages", "未定义阶段")}
+                {t("workflow.narrative.noStages")}
               </Text>
             )
             : (
@@ -160,8 +160,8 @@ export function ArcTimeline({ arcs, selectedArcId, onSelectArc }: ArcTimelinePro
         {maxChapter > 0 && (
           <div className="mt-4 pt-3 border-t border-gray-100">
             <div className="flex justify-between text-xs text-gray-400">
-              <span>第1章</span>
-              <span>第{maxChapter}章</span>
+              <span>{t("workflow.narrative.chapterLabel", { chapter: 1 })}</span>
+              <span>{t("workflow.narrative.chapterLabel", { chapter: maxChapter })}</span>
             </div>
           </div>
         )}
@@ -181,6 +181,7 @@ function StageNode({
   total: number;
   progress: number;
 }) {
+  const { t } = useTranslation();
   const isCompleted = (index / Math.max(total, 1)) * 100 < progress;
   const isCurrent = !isCompleted && (index / Math.max(total, 1)) * 100 >= progress - 20;
 
@@ -218,7 +219,7 @@ function StageNode({
             {stage.name}
           </Text>
           <Tag color={isCompleted ? "green" : isCurrent ? "blue" : "default"} className="text-xs">
-            第{stage.chapter}章
+            {t("workflow.narrative.chapterLabel", { chapter: stage.chapter })}
           </Tag>
         </div>
         <Text type="secondary" className="text-xs">

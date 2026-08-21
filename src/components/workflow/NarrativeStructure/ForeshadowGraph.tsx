@@ -18,9 +18,9 @@ const STATUS_COLORS: Record<ForeshadowStatus, string> = {
 };
 
 const STATUS_LABELS: Record<ForeshadowStatus, string> = {
-  setup: "已埋设",
-  payoff: "已回收",
-  abandoned: "已废弃",
+  setup: "workflow.narrative.foreshadowStatusSetup",
+  payoff: "workflow.narrative.foreshadowStatusPayoff",
+  abandoned: "workflow.narrative.foreshadowStatusAbandoned",
 };
 
 export function ForeshadowGraph({ foreshadows }: ForeshadowGraphProps) {
@@ -47,7 +47,7 @@ export function ForeshadowGraph({ foreshadows }: ForeshadowGraphProps) {
     return (
       <div className="text-center py-8">
         <Text type="secondary">
-          {t("workflow.narrative.noForeshadows", "暂无伏笔定义")}
+          {t("workflow.narrative.noForeshadows")}
         </Text>
       </div>
     );
@@ -62,7 +62,7 @@ export function ForeshadowGraph({ foreshadows }: ForeshadowGraphProps) {
             key={status}
             className="flex items-center gap-1 rounded border px-2 py-1 text-xs"
           >
-            <Tag color={STATUS_COLORS[status]}>{STATUS_LABELS[status]}</Tag>
+            <Tag color={STATUS_COLORS[status]}>{t(STATUS_LABELS[status])}</Tag>
             <span className="font-semibold">{statusCounts[status] || 0}</span>
           </div>
         ))}
@@ -80,36 +80,36 @@ export function ForeshadowGraph({ foreshadows }: ForeshadowGraphProps) {
       </div>
 
       {/* 章节分布统计 */}
-      <Card size="small" title={t("workflow.narrative.chapterDistribution", "章节分布")}>
+      <Card size="small" title={t("workflow.narrative.chapterDistribution")}>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <Text type="secondary" className="text-xs block mb-1">
-              {t("workflow.narrative.setupChapters", "埋设章节")}
+              {t("workflow.narrative.setupChapters")}
             </Text>
             <div className="flex flex-wrap gap-1">
               {setupChapters.map((ch, i) => (
                 <Tag key={i} color="blue" className="text-xs">
-                  第{ch}章
+                  {t("workflow.narrative.chapterLabel", { chapter: ch })}
                 </Tag>
               ))}
             </div>
           </div>
           <div>
             <Text type="secondary" className="text-xs block mb-1">
-              {t("workflow.narrative.payoffChapters", "回收章节")}
+              {t("workflow.narrative.payoffChapters")}
             </Text>
             <div className="flex flex-wrap gap-1">
               {payoffChapters.length > 0
                 ? (
                   payoffChapters.map((ch, i) => (
                     <Tag key={i} color="green" className="text-xs">
-                      第{ch}章
+                      {t("workflow.narrative.chapterLabel", { chapter: ch })}
                     </Tag>
                   ))
                 )
                 : (
                   <Text type="secondary" className="text-xs">
-                    {t("workflow.narrative.noPayoff", "尚未安排回收")}
+                    {t("workflow.narrative.noPayoff")}
                   </Text>
                 )}
             </div>
@@ -159,7 +159,7 @@ function ForeshadowNode({ foreshadow }: { foreshadow: ForeshadowType }) {
           )
           : (
             <Tag color={statusColor} className="text-xs mx-auto block w-fit">
-              {STATUS_LABELS[foreshadow.status]}
+              {t(STATUS_LABELS[foreshadow.status])}
             </Tag>
           )}
       </div>
@@ -168,11 +168,11 @@ function ForeshadowNode({ foreshadow }: { foreshadow: ForeshadowType }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1 mb-0.5">
           <Tag color={statusColor} className="text-xs">
-            {STATUS_LABELS[foreshadow.status]}
+            {t(STATUS_LABELS[foreshadow.status])}
           </Tag>
           {foreshadow.relatedArcs.length > 0 && (
             <span className="text-xs text-gray-400">
-              {t("workflow.narrative.relatedArcs", "关联弧线")}: {foreshadow.relatedArcs.length}
+              {t("workflow.narrative.relatedArcs")}: {foreshadow.relatedArcs.length}
             </span>
           )}
         </div>

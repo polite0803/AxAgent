@@ -1,8 +1,8 @@
 {
   "version": "2",
   "generated": "2026-08-20",
-  "total_entries": 426,
-  "total_files": 426,
+  "total_entries": 432,
+  "total_files": 432,
   "entries": [
     {
       "file": "src/App.tsx",
@@ -2279,6 +2279,12 @@
       "phase": 3
     },
     {
+      "file": "src/stores/feature/pipelineStore.ts",
+      "lines": "29",
+      "reason": "console.error 日志",
+      "phase": 3
+    },
+    {
       "file": "src/stores/feature/planStore.ts",
       "lines": "133",
       "reason": "硬编码中文字符串",
@@ -2336,6 +2342,18 @@
       "file": "src/stores/feature/sourceStore.ts",
       "lines": "63,68,73,157,166,208",
       "reason": "硬编码中文字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/stores/feature/stockAnalysisStore.ts",
+      "lines": "961,968,1023,1051,1080,1107,1108,1109,1110,1111,1373,1437,1438,1439,1440,1441,1471,1558,2095,2116,2151,2156,2234,2235,2236,2237,2238,2334,2341,2348,2483,2487,2492",
+      "reason": "console 日志 + LLM 输出关键词匹配（技术字符串，非 UI）",
+      "phase": 3
+    },
+    {
+      "file": "src/stores/feature/stockWorkflowChatBridge.ts",
+      "lines": "304",
+      "reason": "console.error 日志",
       "phase": 3
     },
     {
@@ -2558,6 +2576,24 @@
       "file": "src/types/workflow.ts",
       "lines": "2,4,7,19,28,42,49,57,71,74,84,97,106,115,125,133,136,143,166,173,183,186,193,200,209",
       "reason": "硬编码中文字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/components/settings/StockAnalysisConfigPanel.tsx",
+      "lines": "765",
+      "reason": "后端数据契约值（Select 选项 value 为后端枚举值）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/ExperimentSidebar.tsx",
+      "lines": "262,263,264,265,273,274,275,276,284,285,286,287",
+      "reason": "后端数据契约值（Select 选项 value 为后端枚举值）",
+      "phase": 3
+    },
+    {
+      "file": "src/components/stock-analysis/WhatIfBacktest.tsx",
+      "lines": "553,554,555,556,564,565,566,567",
+      "reason": "后端数据契约值（Select 选项 value 为后端枚举值）",
       "phase": 3
     }
   ]

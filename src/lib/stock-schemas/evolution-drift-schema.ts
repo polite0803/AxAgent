@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// i18n-exempt: EvolutionDriftPanel 的 DynamicUI Schema 纯数据定义，非用户可见 UI 文案。
 
 import type { UISchema } from "@/types";
 

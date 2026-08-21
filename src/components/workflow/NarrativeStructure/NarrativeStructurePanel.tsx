@@ -40,11 +40,11 @@ const ARC_TYPE_COLORS: Record<ArcType, string> = {
 };
 
 const ARC_TYPE_LABELS: Record<ArcType, string> = {
-  transformative: "转换型",
-  steadfast: "坚定型",
-  flat: "扁平型",
-  tragic: "悲剧型",
-  comedic: "喜剧型",
+  transformative: "workflow.narrative.arcTypeTransformative",
+  steadfast: "workflow.narrative.arcTypeSteadfast",
+  flat: "workflow.narrative.arcTypeFlat",
+  tragic: "workflow.narrative.arcTypeTragic",
+  comedic: "workflow.narrative.arcTypeComedic",
 };
 
 export function NarrativeStructurePanel({
@@ -87,31 +87,31 @@ export function NarrativeStructurePanel({
 
   const handleSave = async () => {
     if (!saveName.trim()) {
-      message.warning(t("workflow.narrative.saveNameRequired", "请输入名称"));
+      message.warning(t("workflow.narrative.saveNameRequired"));
       return;
     }
     const id = await saveNarrativeStructure(saveName, saveDesc || undefined, saveGenre);
     if (id) {
-      message.success(t("workflow.narrative.saveSuccess", "保存成功"));
+      message.success(t("workflow.narrative.saveSuccess"));
       setSaveModalOpen(false);
       setSaveName("");
       setSaveDesc("");
     } else {
-      message.error(t("workflow.narrative.saveFailed", "保存失败"));
+      message.error(t("workflow.narrative.saveFailed"));
     }
   };
 
   const handleLoad = async (record: NarrativeStructureRecord) => {
     await loadNarrativeStructure(record.id);
-    message.success(t("workflow.narrative.loadSuccess", "加载成功"));
+    message.success(t("workflow.narrative.loadSuccess"));
   };
 
   const handleDelete = async (id: string) => {
     Modal.confirm({
-      title: t("workflow.narrative.confirmDelete", "确认删除"),
-      content: t("workflow.narrative.confirmDeleteDesc", "确定要删除此叙事结构记录吗？"),
-      okText: t("common.confirm", "确认"),
-      cancelText: t("common.cancel", "取消"),
+      title: t("workflow.narrative.confirmDelete"),
+      content: t("workflow.narrative.confirmDeleteDesc"),
+      okText: t("common.confirm"),
+      cancelText: t("common.cancel"),
       onOk: () => deleteNarrativeStructure(id),
     });
   };
@@ -123,14 +123,14 @@ export function NarrativeStructurePanel({
           image={Empty.PRESENTED_IMAGE_SIMPLE}
           description={
             <Text type="secondary">
-              {t("workflow.narrative.noStructure", "暂无叙事结构数据")}
+              {t("workflow.narrative.noStructure")}
             </Text>
           }
         />
         {narrativeRecords.length > 0 && (
           <div className="mt-4">
             <Text type="secondary" className="text-xs mb-2 block">
-              {t("workflow.narrative.savedRecords", "已保存的结构")}
+              {t("workflow.narrative.savedRecords")}
             </Text>
             <div className="space-y-2 max-h-40 overflow-auto">
               {narrativeRecords.map((record) => (
@@ -165,14 +165,14 @@ export function NarrativeStructurePanel({
     <div className={compact ? "p-2" : "p-4"}>
       {/* 操作栏 */}
       <div className="flex justify-between items-center mb-3">
-        <Text strong>{t("workflow.narrative.title", "叙事结构")}</Text>
+        <Text strong>{t("workflow.narrative.title")}</Text>
         <Space size="small">
           <Button
             size="small"
             icon={<HardDrive size={14} />}
             onClick={() => setSaveModalOpen(true)}
           >
-            {t("workflow.narrative.save", "保存")}
+            {t("workflow.narrative.save")}
           </Button>
         </Space>
       </div>
@@ -181,7 +181,7 @@ export function NarrativeStructurePanel({
       {narrativeRecords.length > 0 && (
         <div className="mb-3">
           <Select
-            placeholder={t("workflow.narrative.loadFromHistory", "从历史记录加载")}
+            placeholder={t("workflow.narrative.loadFromHistory")}
             allowClear
             size="small"
             className="w-full"
@@ -203,25 +203,25 @@ export function NarrativeStructurePanel({
       <div className="grid grid-cols-2 gap-3 mb-4">
         <StatCard
           icon={<GitBranch size={16} />}
-          label={t("workflow.narrative.arcs", "角色弧线")}
+          label={t("workflow.narrative.arcs")}
           value={stats.totalArcs}
           color="purple"
         />
         <StatCard
           icon={<Network size={16} />}
-          label={t("workflow.narrative.foreshadows", "伏笔")}
+          label={t("workflow.narrative.foreshadows")}
           value={stats.totalForeshadows}
           color="blue"
         />
         <StatCard
           icon={<BookOpen size={16} />}
-          label={t("workflow.narrative.confluences", "交汇点")}
+          label={t("workflow.narrative.confluences")}
           value={stats.totalConfluences}
           color="orange"
         />
         <StatCard
           icon={<GitBranch size={16} />}
-          label={t("workflow.narrative.progress", "平均推进")}
+          label={t("workflow.narrative.progress")}
           value={`${stats.avgProgress}%`}
           color="green"
         />
@@ -232,9 +232,9 @@ export function NarrativeStructurePanel({
         value={viewMode}
         onChange={(val) => setViewMode(val as ViewMode)}
         options={[
-          { label: t("workflow.narrative.viewOverview", "概览"), value: "overview" },
-          { label: t("workflow.narrative.viewArcs", "弧线"), value: "arcs" },
-          { label: t("workflow.narrative.viewForeshadows", "伏笔"), value: "foreshadows" },
+          { label: t("workflow.narrative.viewOverview"), value: "overview" },
+          { label: t("workflow.narrative.viewArcs"), value: "arcs" },
+          { label: t("workflow.narrative.viewForeshadows"), value: "foreshadows" },
         ]}
         className="mb-3 w-full"
       />
@@ -252,48 +252,48 @@ export function NarrativeStructurePanel({
 
       {/* 保存对话框 */}
       <Modal
-        title={t("workflow.narrative.saveTitle", "保存叙事结构")}
+        title={t("workflow.narrative.saveTitle")}
         open={saveModalOpen}
         onOk={handleSave}
         onCancel={() => setSaveModalOpen(false)}
-        okText={t("common.confirm", "确认")}
-        cancelText={t("common.cancel", "取消")}
+        okText={t("common.confirm")}
+        cancelText={t("common.cancel")}
       >
         <div className="space-y-3">
           <div>
             <Text type="secondary" className="text-xs block mb-1">
-              {t("workflow.narrative.saveName", "名称")}
+              {t("workflow.narrative.saveName")}
             </Text>
             <Input
               value={saveName}
               onChange={(e) => setSaveName(e.target.value)}
-              placeholder={t("workflow.narrative.saveNamePlaceholder", "输入结构名称")}
+              placeholder={t("workflow.narrative.saveNamePlaceholder")}
             />
           </div>
           <div>
             <Text type="secondary" className="text-xs block mb-1">
-              {t("workflow.narrative.saveDesc", "描述（可选）")}
+              {t("workflow.narrative.saveDesc")}
             </Text>
             <Input
               value={saveDesc}
               onChange={(e) => setSaveDesc(e.target.value)}
-              placeholder={t("workflow.narrative.saveDescPlaceholder", "简要描述此结构的特点")}
+              placeholder={t("workflow.narrative.saveDescPlaceholder")}
             />
           </div>
           <div>
             <Text type="secondary" className="text-xs block mb-1">
-              {t("workflow.narrative.saveGenre", "类型")}
+              {t("workflow.narrative.saveGenre")}
             </Text>
             <Select
               value={saveGenre}
               onChange={setSaveGenre}
               className="w-full"
               options={[
-                { value: "novel", label: t("workflow.narrative.genreNovel", "小说") },
-                { value: "short_story", label: t("workflow.narrative.genreShortStory", "短篇故事") },
-                { value: "screenplay", label: t("workflow.narrative.genreScreenplay", "剧本") },
-                { value: "poetry", label: t("workflow.narrative.genrePoetry", "诗歌") },
-                { value: "other", label: t("workflow.narrative.genreOther", "其他") },
+                { value: "novel", label: t("workflow.narrative.genreNovel") },
+                { value: "short_story", label: t("workflow.narrative.genreShortStory") },
+                { value: "screenplay", label: t("workflow.narrative.genreScreenplay") },
+                { value: "poetry", label: t("workflow.narrative.genrePoetry") },
+                { value: "other", label: t("workflow.narrative.genreOther") },
               ]}
             />
           </div>
@@ -354,7 +354,7 @@ function OverviewView({
         title={
           <span className="flex items-center gap-2">
             <GitBranch size={14} />
-            {t("workflow.narrative.arcList", "角色弧线")}
+            {t("workflow.narrative.arcList")}
           </span>
         }
         className="narrative-card"
@@ -362,7 +362,7 @@ function OverviewView({
         {arcs.length === 0
           ? (
             <Text type="secondary" className="text-sm">
-              {t("workflow.narrative.noArcs", "暂无弧线定义")}
+              {t("workflow.narrative.noArcs")}
             </Text>
           )
           : (
@@ -379,7 +379,7 @@ function OverviewView({
           title={
             <span className="flex items-center gap-2">
               <BookOpen size={14} />
-              {t("workflow.narrative.confluenceList", "交汇点")}
+              {t("workflow.narrative.confluenceList")}
             </span>
           }
           className="narrative-card"
@@ -387,7 +387,7 @@ function OverviewView({
           <Space wrap size={[8, 8]}>
             {confluences.map((cp) => (
               <Tag key={cp.id} color="orange">
-                第{cp.triggerChapter}章: {cp.confluenceType}
+                {t("workflow.narrative.confluenceLabel", { chapter: cp.triggerChapter, type: cp.confluenceType })}
               </Tag>
             ))}
           </Space>
@@ -401,7 +401,7 @@ function OverviewView({
           title={
             <span className="flex items-center gap-2">
               <Network size={14} />
-              {t("workflow.narrative.foreshadowList", "伏笔网络")}
+              {t("workflow.narrative.foreshadowList")}
             </span>
           }
           className="narrative-card"
@@ -415,7 +415,8 @@ function OverviewView({
                   {fs.status}
                 </Tag>
                 <span className="text-xs text-gray-500">
-                  第{fs.setupChapter}章{fs.payoffChapter ? `→第${fs.payoffChapter}章` : ""}
+                  {t("workflow.narrative.chapterLabel", { chapter: fs.setupChapter })}
+                  {fs.payoffChapter ? `→${t("workflow.narrative.chapterLabel", { chapter: fs.payoffChapter })}` : ""}
                 </span>
                 <span className="truncate">{fs.description}</span>
               </div>
@@ -434,12 +435,12 @@ function ArcListItem({ arc }: { arc: NarrativeArc }) {
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           <Tag color={ARC_TYPE_COLORS[arc.arcType]}>
-            {ARC_TYPE_LABELS[arc.arcType]}
+            {t(ARC_TYPE_LABELS[arc.arcType])}
           </Tag>
           <Text strong>{arc.subject}</Text>
         </div>
         <Text type="secondary" className="text-xs">
-          {t("workflow.narrative.progress", "推进")}: {arc.currentProgress}%
+          {t("workflow.narrative.progress")}: {arc.currentProgress}%
         </Text>
       </div>
       {arc.want && (

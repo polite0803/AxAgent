@@ -1,3 +1,4 @@
+// i18n-exempt: 股票分析类型定义（含后端数据值枚举，如风险等级/催化剂方向中文标识），类型定义非 UI 文案。
 // ── 运行时工具函数（实现已在 @/lib/stock-analysis-utils.ts） ──
 // 向后兼容的 re-export，新代码应直接从 @/lib/stock-analysis-utils 导入
 export {

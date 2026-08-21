@@ -23,6 +23,7 @@
 import { useStockAnalysisStore } from "@/stores";
 import type { PortfolioStressResult } from "@/stores";
 import { Button, Empty, Spin, Tag, theme, Tooltip, Typography } from "antd";
+import type { TFunction } from "i18next";
 import { AlertTriangle, ChevronRight, RefreshCw, ShieldAlert } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -51,11 +52,11 @@ function pnlPctColor(pct: number, token: ReturnType<typeof theme.useToken>["toke
 }
 
 /** 格式化金额（元） */
-function formatYuan(v: number): string {
+function formatYuan(v: number, t: TFunction): string {
   const abs = Math.abs(v);
   const sign = v < 0 ? "-" : "";
-  if (abs >= 1e8) { return `${sign}${(abs / 1e8).toFixed(2)} 亿`; }
-  if (abs >= 1e4) { return `${sign}${(abs / 1e4).toFixed(2)} 万`; }
+  if (abs >= 1e8) { return `${sign}${(abs / 1e8).toFixed(2)} ${t("office.roomMiniBar.risk.unitYi")}`; }
+  if (abs >= 1e4) { return `${sign}${(abs / 1e4).toFixed(2)} ${t("office.roomMiniBar.risk.unitWan")}`; }
   return `${sign}${abs.toFixed(0)}`;
 }
 
@@ -272,7 +273,7 @@ function ScenarioItem({ scenario }: { scenario: PortfolioStressResult }) {
           {formatPct(scenario.portfolioPnlPct)}
         </Text>
         <Text type="secondary" style={{ fontSize: 10 }}>
-          {formatYuan(scenario.portfolioPnl)}
+          {formatYuan(scenario.portfolioPnl, t)}
         </Text>
       </div>
       {scenario.topHit && (

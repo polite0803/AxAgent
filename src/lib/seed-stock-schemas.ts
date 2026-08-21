@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// i18n-exempt: DynamicUI Schema 种子化脚本，schema 数据定义，非用户可见 UI 文案。
 
 /**
  * 内置股票的 DynamicUI Schema 种子化脚本。

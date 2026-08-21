@@ -831,10 +831,10 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
       // 早期实现读 result.analysis_id / result.stock_code 等 snake_case 键
       // 会得到 undefined,导致前端 stockCode 永远是 ""。
       if (result.status === "skipped") {
-        const reason = (result.reason as string) || "数据质量不足";
+        const reason = (result.reason as string) || i18n.t("stockAnalysis.workflow.insufficientDataQuality");
         set({
           status: "error",
-          error: `数据不足，跳过分析: ${reason}`,
+          error: i18n.t("stockAnalysis.workflow.skipAnalysisError", { reason }),
           errorCode: "DATA_QUALITY_INSUFFICIENT",
           analysisId: result.analysisId as string,
           stockCode: result.stockCode as string || stockCode,
@@ -1380,7 +1380,7 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
           grade: "N/A",
           score: 0,
           stale_record: true,
-          summary: "该记录为旧版数据（blackboardSnapshot 缺失），建议重跑分析以补全数据质量诊断",
+          summary: i18n.t("stockAnalysis.dataQuality.staleRecordSummary"),
         }),
       });
     }
@@ -1883,8 +1883,14 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
         const safeText = text && text.trim().length > 0
           ? text
           : JSON.stringify({
-            report: "## ⚠️ 无分析数据\n\n该分析师节点未能返回有效分析内容（可能因 LLM 服务限流/超时）。",
-            verdict: { verdict: "数据不足", confidence: 0, bull_score: 0, bear_score: 0, position_pct: 0 },
+            report: i18n.t("stockAnalysis.analystReport.noAnalysisData"),
+            verdict: {
+              verdict: i18n.t("stockAnalysis.analystReport.verdictInsufficient"),
+              confidence: 0,
+              bull_score: 0,
+              bear_score: 0,
+              position_pct: 0,
+            },
             __untrusted: true,
             __empty_fallback: true,
           });
@@ -2002,10 +2008,14 @@ export const useStockAnalysisStore = create<StockAnalysisState>((set, get) => ({
             || (typeof outputValue === "string" && (outputValue === "[]" || outputValue.trim() === ""))
             || (Array.isArray(outputValue) && outputValue.length === 0);
           if (isEmpty) {
-            const label = nodeId === "t-news-data" ? "新闻" : nodeId === "t-sentiment-data" ? "舆情" : "公告";
+            const label = nodeId === "t-news-data"
+              ? i18n.t("stockAnalysis.dataWarning.news")
+              : nodeId === "t-sentiment-data"
+              ? i18n.t("stockAnalysis.dataWarning.sentiment")
+              : i18n.t("stockAnalysis.dataWarning.announcement");
             // M16 守卫：dataWarnings 可能为 undefined（旧快照路径），兜底为空数组避免 .includes 崩溃
             const warnings = get().dataWarnings ?? [];
-            const msg = `⚠️ ${label}数据获取为空，相关分析师将基于有限数据分析`;
+            const msg = i18n.t("stockAnalysis.dataWarning.emptyData", { label });
             if (!warnings.includes(msg)) {
               set({ dataWarnings: [...warnings, msg] });
             }

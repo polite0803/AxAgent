@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// i18n-exempt: 市场主线类型定义（含后端数据值枚举，如主题大类中文标识），类型定义非 UI 文案。
 /**
  * G4 市场主线（Market Mainline）前端类型定义
  *

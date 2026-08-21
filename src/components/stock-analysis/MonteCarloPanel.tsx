@@ -25,11 +25,11 @@ interface ScenarioConfig {
 }
 
 const DEFAULT_SCENARIOS: ScenarioConfig[] = [
-  { key: "normal", label: "正常市场", enabled: true, paths: 20 },
-  { key: "bull", label: "牛市", enabled: true, paths: 20 },
-  { key: "bear", label: "熊市", enabled: true, paths: 20 },
-  { key: "flash_crash", label: "闪崩", enabled: false, paths: 15 },
-  { key: "high_vol", label: "高波动", enabled: false, paths: 15 },
+  { key: "normal", label: "stockAnalysis.monteCarlo.normal", enabled: true, paths: 20 },
+  { key: "bull", label: "stockAnalysis.monteCarlo.bull", enabled: true, paths: 20 },
+  { key: "bear", label: "stockAnalysis.monteCarlo.bear", enabled: true, paths: 20 },
+  { key: "flash_crash", label: "stockAnalysis.monteCarlo.flashCrash", enabled: false, paths: 15 },
+  { key: "high_vol", label: "stockAnalysis.monteCarlo.highVol", enabled: false, paths: 15 },
 ];
 
 export function MonteCarloPanel() {

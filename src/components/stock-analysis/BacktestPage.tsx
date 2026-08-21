@@ -62,22 +62,22 @@ export function BacktestPage() {
               },
               {
                 key: "simulation",
-                label: "🏭 市场模拟",
+                label: `🏭 ${t("stockAnalysis.backtest.tabSimulation")}`,
                 children: <MarketSimPanel />,
               },
               {
                 key: "mc",
-                label: "🎲 蒙特卡洛",
+                label: `🎲 ${t("stockAnalysis.backtest.tabMonteCarlo")}`,
                 children: <MonteCarloPanel />,
               },
               {
                 key: "quant_sim",
-                label: "🤖 策略模拟",
+                label: `🤖 ${t("stockAnalysis.backtest.tabQuantSim")}`,
                 children: <QuantSimPanel />,
               },
               {
                 key: "charts",
-                label: t("stockAnalysis.backtest.tabCharts", "📊 可视化"),
+                label: t("stockAnalysis.backtest.tabCharts"),
                 children: (
                   <div className="space-y-4">
                     <BacktestChart

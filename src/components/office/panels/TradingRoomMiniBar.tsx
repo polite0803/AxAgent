@@ -19,6 +19,7 @@
 import { useStockAnalysisStore } from "@/stores";
 import type { StockSearchResult } from "@/types";
 import { Button, Modal, Spin, Switch, Tag, theme, Tooltip, Typography } from "antd";
+import type { TFunction } from "i18next";
 import { Activity, AlertTriangle, RefreshCw, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -40,12 +41,14 @@ function formatPrice(n: number): string {
  * - shares: volume（股）
  * - currency: amount / mv（元）
  */
-function formatBigNumber(n: number, kind: "shares" | "currency"): string {
+function formatBigNumber(n: number, kind: "shares" | "currency", t: TFunction): string {
   if (!Number.isFinite(n)) { return "—"; }
   const abs = Math.abs(n);
-  const unit = kind === "currency" ? "元" : "股";
-  if (abs >= 1e8) { return `${(n / 1e8).toFixed(2)} 亿${unit}`; }
-  if (abs >= 1e4) { return `${(n / 1e4).toFixed(2)} 万${unit}`; }
+  const unit = kind === "currency"
+    ? t("office.roomMiniBar.trading.unitYuan")
+    : t("office.roomMiniBar.trading.unitShares");
+  if (abs >= 1e8) { return `${(n / 1e8).toFixed(2)} ${t("office.roomMiniBar.trading.unitYi")}${unit}`; }
+  if (abs >= 1e4) { return `${(n / 1e4).toFixed(2)} ${t("office.roomMiniBar.trading.unitWan")}${unit}`; }
   return `${n.toFixed(0)} ${unit}`;
 }
 
@@ -311,11 +314,11 @@ export function TradingRoomMiniBar({ sceneTemplateSlug }: TradingRoomMiniBarProp
             />
             <Field
               label={t("office.roomMiniBar.trading.volume")}
-              value={formatBigNumber(quote.volume, "shares")}
+              value={formatBigNumber(quote.volume, "shares", t)}
             />
             <Field
               label={t("office.roomMiniBar.trading.amount")}
-              value={formatBigNumber(quote.amount, "currency")}
+              value={formatBigNumber(quote.amount, "currency", t)}
             />
             <Field
               label={t("office.roomMiniBar.trading.pe")}
@@ -327,12 +330,12 @@ export function TradingRoomMiniBar({ sceneTemplateSlug }: TradingRoomMiniBarProp
             />
             <Field
               label={t("office.roomMiniBar.trading.totalMv")}
-              value={quote.totalMv != null ? formatBigNumber(quote.totalMv, "currency") : "—"}
+              value={quote.totalMv != null ? formatBigNumber(quote.totalMv, "currency", t) : "—"}
             />
             <Field
               label={t("office.roomMiniBar.trading.circulatingMv")}
               value={quote.circulatingMv != null
-                ? formatBigNumber(quote.circulatingMv, "currency")
+                ? formatBigNumber(quote.circulatingMv, "currency", t)
                 : "—"}
             />
             <Field

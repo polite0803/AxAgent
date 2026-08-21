@@ -27,8 +27,8 @@ export function ComparePage() {
                 comparisons: [],
                 backtestTrades: 0,
                 simTrades: 0,
-                backtestSummary: "运行回测和市场模拟后显示对比结果",
-                simSummary: "需要同时运行回测和市场模拟才能生成对比报告",
+                backtestSummary: t("stockAnalysis.compare.backtestPlaceholder"),
+                simSummary: t("stockAnalysis.compare.simPlaceholder"),
               }}
             />
           </div>

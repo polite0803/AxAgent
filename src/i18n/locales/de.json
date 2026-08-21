@@ -377,11 +377,9 @@
   "app": {
     "name": "AxAgent",
     "newSkillProposal": "Neuer Fähigkeitsvorschlag: {name}",
-    "title": "Intelligenter Arbeitsbereich",
-    "quickBar": "Schnellleiste",
-    "description": "智能工作助手",
     "title": "Agenten-Workstation",
-    "quickBar": "Schnellleiste"
+    "quickBar": "Schnellleiste",
+    "description": "智能工作助手"
   },
   "appHeader": {
     "closeAgentPanel": "Agent-Panel schließen",
@@ -905,12 +903,11 @@
     },
     "messageArea": "Nachrichtenbereich",
     "mode": {
-      "title": "Switch Mode",
+      "title": "Ausführungsmodus",
       "ask": "Ask",
       "plan": "Plan",
       "action": "Action",
       "auto": "Auto",
-      "title": "Ausführungsmodus",
       "gateway": "Gateway"
     },
     "moveToWorkspace": "In Arbeitsbereich verschieben",
@@ -12478,6 +12475,49 @@
         "runningEngines": "\nRunning evolution engines: {{engines}}"
       },
       "unnamed": "Unnamed"
+    },
+    "narrative": {
+      "noArcs": "Keine Bögen definiert",
+      "progress": "Fortschritt",
+      "stages": "Bogenphasen",
+      "noStages": "Keine Phasen definiert",
+      "noForeshadows": "Keine Vorausdeutungen",
+      "chapterDistribution": "Kapitelverteilung",
+      "setupChapters": "Einführungskapitel",
+      "payoffChapters": "Auflösungskapitel",
+      "noPayoff": "Kein Auflösen geplant",
+      "relatedArcs": "Verwandte Bögen",
+      "saveNameRequired": "Name erforderlich",
+      "saveSuccess": "Speichern erfolgreich",
+      "saveFailed": "Speichern fehlgeschlagen",
+      "loadSuccess": "Laden erfolgreich",
+      "confirmDelete": "Löschen bestätigen",
+      "confirmDeleteDesc": "Diese narrative Struktur löschen?",
+      "noStructure": "Keine narrativen Strukturdaten",
+      "savedRecords": "Gespeicherte Strukturen",
+      "title": "Narrative Struktur",
+      "save": "Speichern",
+      "loadFromHistory": "Aus Verlauf laden",
+      "arcs": "Bögen",
+      "foreshadows": "Vorausdeutungen",
+      "confluences": "Konvergenzen",
+      "viewOverview": "Übersicht",
+      "viewArcs": "Bögen",
+      "viewForeshadows": "Vorausdeutungen",
+      "saveTitle": "Narrative Struktur speichern",
+      "saveName": "Name",
+      "saveNamePlaceholder": "Strukturnamen eingeben",
+      "saveDesc": "Beschreibung (optional)",
+      "saveDescPlaceholder": "Beschreiben Sie diese Struktur kurz",
+      "saveGenre": "Genre",
+      "genreNovel": "Roman",
+      "genreShortStory": "Kurzgeschichte",
+      "genreScreenplay": "Drehbuch",
+      "genrePoetry": "Poesie",
+      "genreOther": "Andere",
+      "arcList": "Figurenbögen",
+      "confluenceList": "Konvergenzen",
+      "foreshadowList": "Vorausdeutungsnetz"
     }
   },
   "voiceChat": {
@@ -13614,7 +13654,27 @@
       "sampleInterval": "Sample Interval",
       "startDate": "Start Date",
       "totalRuns": "Total Runs",
-      "winRate": "Win Rate"
+      "winRate": "Win Rate",
+      "chart": {
+        "equity": "Eigenkapital",
+        "cash": "Bargeld",
+        "positionValue": "Positionswert",
+        "benchmark": "Referenz",
+        "equityCurve": "Equity-Kurve",
+        "drawdown": "Verlustkurve",
+        "trades": "Trades",
+        "tradeDate": "Datum",
+        "tradeType": "Richtung",
+        "tradePrice": "Preis",
+        "tradeReason": "Grund"
+      },
+      "metrics": {
+        "totalReturn": "Gesamtrendite",
+        "sharpe": "Sharpe-Ratio",
+        "maxDrawdown": "Max. Verlust",
+        "winRate": "Gewinnrate"
+      },
+      "tabCharts": "📊 Grafiken"
     },
     "export": {
       "analystReports": "analystReports",
@@ -14074,7 +14134,15 @@
       "statAuthor": "Author",
       "statSource": "Source",
       "neodataRefreshHint": "请在 WorkBuddy 对话中输入「刷新 NeoData token」自动完成连接",
-      "neodataRefreshBtn": "🔗 Über WorkBuddy verbinden"
+      "neodataRefreshBtn": "🔗 Über WorkBuddy verbinden",
+      "vendorUntouchedHint": "In diesem Zyklus nicht aufgerufen, keine Statusdaten",
+      "vendorTotalSuccess": "Gesamterfolge",
+      "vendorTotalFailures": "Gesamtfehler",
+      "vendorConsecutiveFailures": "Aufeinanderfolgende Fehler",
+      "vendorLastError": "Letzter Fehler",
+      "vendorLastSuccess": "Letzter Erfolg",
+      "vendorLastFailure": "Letzter Fehler",
+      "vendorHealth": "Datenquellen-Status"
     },
     "experiment": {
       "executeTrade": "执行交易 →",
@@ -15444,6 +15512,44 @@
       "limitUpThMed": "Limit-Up-Potenzial - Mittelpotenzial-Schwellenwert",
       "limitUpThLow": "Limit-Up-Potenzial - Niedrigpotenzial-Schwellenwert",
       "analysisDryRun": "Trockenlauf-Modus: Kein LLM-Aufruf, Mock-Ausgabe zur Prozessvalidierung"
+    },
+    "evidenceCitation": {
+      "loading": "Extrahiere Belegzitate...",
+      "error": "Extraktion fehlgeschlagen",
+      "noData": "Keine Belegzitatdaten",
+      "title": "Belegzitat-Audit",
+      "supportRate": "Datenunterstützungsrate",
+      "analystCount": "Quellenanalysten",
+      "claimCount": "Entscheidungsgründe",
+      "supported": "Mit Daten",
+      "unsupported": "Ohne Daten",
+      "source": "Quelle"
+    },
+    "charts": {
+      "noSectorData": "Keine Sektorallokationsdaten",
+      "sectorAllocation": "Sektorallokation",
+      "needMoreStocks": "Mindestens 2 gehaltene Aktien erforderlich",
+      "correlationMatrix": "Korrelationsmatrix",
+      "noTradeData": "Keine Handelsdaten",
+      "pnlDistribution": "PnL-Verteilung",
+      "portfolio": "Portfolio",
+      "benchmark": "Referenz",
+      "needMoreData": "Unzureichende Daten",
+      "portfolioVsBenchmark": "Portfolio vs Referenz"
+    },
+    "simVsBacktest": {
+      "title": "Simulation vs Backtest",
+      "backtestTrades": "Backtest-Trades",
+      "simTrades": "Simulations-Trades",
+      "metric": "Metrik",
+      "backtest": "Backtest",
+      "simulation": "Simulation",
+      "diff": "Differenz",
+      "judgment": "Urteil",
+      "backtestBetter": "Backtest gewinnt",
+      "simBetter": "Simulation gewinnt",
+      "backtestSummary": "Backtest-Zusammenfassung",
+      "simSummary": "Simulations-Zusammenfassung"
     }
   },
   "pipeline": {

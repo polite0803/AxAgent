@@ -377,11 +377,9 @@
   "app": {
     "name": "AxAgent",
     "newSkillProposal": "New skill suggestion: {name}",
-    "title": "स्मार्ट वर्कस्पेस",
-    "quickBar": "त्वरित पट्टी",
-    "description": "智能工作助手",
     "title": "एजेंट वर्कस्टेशन",
-    "quickBar": "त्वरित पट्टी"
+    "quickBar": "त्वरित पट्टी",
+    "description": "智能工作助手"
   },
   "appHeader": {
     "closeAgentPanel": "एजेंट पैनल बंद करें",
@@ -905,15 +903,11 @@
     },
     "messageArea": "संदेश क्षेत्र",
     "mode": {
-      "title": "Switch Mode",
-      "ask": "Ask",
-      "plan": "Plan",
-      "action": "Action",
-      "action": "निष्पादित करें",
-      "ask": "पूछें",
-      "auto": "स्वचालित",
-      "plan": "योजना",
       "title": "निष्पादन मोड",
+      "ask": "पूछें",
+      "plan": "योजना",
+      "action": "निष्पादित करें",
+      "auto": "स्वचालित",
       "gateway": "गेटवे"
     },
     "moveToWorkspace": "कार्यक्षेत्र में ले जाएं",
@@ -12481,6 +12475,49 @@
         "runningEngines": "\nRunning evolution engines: {{engines}}"
       },
       "unnamed": "Unnamed"
+    },
+    "narrative": {
+      "noArcs": "कोई चाप परिभाषित नहीं",
+      "progress": "प्रगति",
+      "stages": "चाप चरण",
+      "noStages": "कोई चरण परिभाषित नहीं",
+      "noForeshadows": "कोई पूर्वसंकेत नहीं",
+      "chapterDistribution": "अध्याय वितरण",
+      "setupChapters": "सेटअप अध्याय",
+      "payoffChapters": "परिणाम अध्याय",
+      "noPayoff": "कोई परिणाम निर्धारित नहीं",
+      "relatedArcs": "संबंधित चाप",
+      "saveNameRequired": "नाम आवश्यक है",
+      "saveSuccess": "सहेजना सफल",
+      "saveFailed": "सहेजना विफल",
+      "loadSuccess": "लोड सफल",
+      "confirmDelete": "हटाने की पुष्टि",
+      "confirmDeleteDesc": "क्या यह कथा संरचना रिकॉर्ड हटाएं?",
+      "noStructure": "कोई कथा संरचना डेटा नहीं",
+      "savedRecords": "सहेजी गई संरचनाएं",
+      "title": "कथा संरचना",
+      "save": "सहेजें",
+      "loadFromHistory": "इतिहास से लोड करें",
+      "arcs": "चाप",
+      "foreshadows": "पूर्वसंकेत",
+      "confluences": "संगम",
+      "viewOverview": "अवलोकन",
+      "viewArcs": "चाप",
+      "viewForeshadows": "पूर्वसंकेत",
+      "saveTitle": "कथा संरचना सहेजें",
+      "saveName": "नाम",
+      "saveNamePlaceholder": "संरचना का नाम दर्ज करें",
+      "saveDesc": "विवरण (वैकल्पिक)",
+      "saveDescPlaceholder": "इस संरचना का संक्षेप में वर्णन करें",
+      "saveGenre": "शैली",
+      "genreNovel": "उपन्यास",
+      "genreShortStory": "लघु कथा",
+      "genreScreenplay": "पटकथा",
+      "genrePoetry": "कविता",
+      "genreOther": "अन्य",
+      "arcList": "चरित्र चाप",
+      "confluenceList": "संगम",
+      "foreshadowList": "पूर्वसंकेत नेटवर्क"
     }
   },
   "voiceChat": {
@@ -13617,7 +13654,27 @@
       "sampleInterval": "Sample Interval",
       "startDate": "Start Date",
       "totalRuns": "Total Runs",
-      "winRate": "Win Rate"
+      "winRate": "Win Rate",
+      "chart": {
+        "equity": "इक्विटी",
+        "cash": "नकद",
+        "positionValue": "पोजीशन मूल्य",
+        "benchmark": "बेंचमार्क",
+        "equityCurve": "इक्विटी वक्र",
+        "drawdown": "ड्रॉडाउन वक्र",
+        "trades": "ट्रेड",
+        "tradeDate": "तिथि",
+        "tradeType": "दिशा",
+        "tradePrice": "मूल्य",
+        "tradeReason": "कारण"
+      },
+      "metrics": {
+        "totalReturn": "कुल रिटर्न",
+        "sharpe": "शार्प अनुपात",
+        "maxDrawdown": "अधिकतम गिरावट",
+        "winRate": "जीत दर"
+      },
+      "tabCharts": "📊 विज़ुअल"
     },
     "export": {
       "analystReports": "analystReports",
@@ -14077,7 +14134,15 @@
       "statAuthor": "Author",
       "statSource": "Source",
       "neodataRefreshHint": "请在 WorkBuddy 对话中输入「刷新 NeoData token」自动完成连接",
-      "neodataRefreshBtn": "🔗 WorkBuddy के माध्यम से कनेक्ट करें"
+      "neodataRefreshBtn": "🔗 WorkBuddy के माध्यम से कनेक्ट करें",
+      "vendorUntouchedHint": "इस चक्र में कॉल नहीं हुआ, कोई स्थिति डेटा नहीं",
+      "vendorTotalSuccess": "कुल सफलताएं",
+      "vendorTotalFailures": "कुल विफलताएं",
+      "vendorConsecutiveFailures": "लगातार विफलताएं",
+      "vendorLastError": "अंतिम त्रुटि",
+      "vendorLastSuccess": "अंतिम सफलता",
+      "vendorLastFailure": "अंतिम विफलता",
+      "vendorHealth": "डेटा स्रोत स्थिति"
     },
     "experiment": {
       "executeTrade": "执行交易 →",
@@ -15447,6 +15512,44 @@
       "limitUpThMed": "सर्किट लिमिट संभावना - मध्यम संभावना थ्रेशोल्ड",
       "limitUpThLow": "सर्किट लिमिट संभावना - निम्न संभावना थ्रेशोल्ड",
       "analysisDryRun": "ड्राई रन मोड: LLM को कॉल न करें, प्रक्रिया सत्यापन के लिए मॉक आउटपुट का उपयोग करें"
+    },
+    "evidenceCitation": {
+      "loading": "साक्ष्य उद्धरण निकाल रहा है...",
+      "error": "निष्कर्षण विफल",
+      "noData": "कोई उद्धरण डेटा नहीं",
+      "title": "साक्ष्य उद्धरण ऑडिट",
+      "supportRate": "डेटा समर्थन दर",
+      "analystCount": "स्रोत विश्लेषक",
+      "claimCount": "निर्णय कारण",
+      "supported": "डेटा सहित",
+      "unsupported": "डेटा रहित",
+      "source": "स्रोत"
+    },
+    "charts": {
+      "noSectorData": "कोई क्षेत्र डेटा नहीं",
+      "sectorAllocation": "क्षेत्र आवंटन",
+      "needMoreStocks": "कम से कम 2 स्टॉक आवश्यक",
+      "correlationMatrix": "सहसंबंध मैट्रिक्स",
+      "noTradeData": "कोई ट्रेड डेटा नहीं",
+      "pnlDistribution": "PnL वितरण",
+      "portfolio": "पोर्टफोलियो",
+      "benchmark": "बेंचमार्क",
+      "needMoreData": "अपर्याप्त डेटा",
+      "portfolioVsBenchmark": "पोर्टफोलियो बनाम बेंचमार्क"
+    },
+    "simVsBacktest": {
+      "title": "सिमुलेशन बनाम बैकटेस्ट",
+      "backtestTrades": "बैकटेस्ट ट्रेड",
+      "simTrades": "सिमुलेशन ट्रेड",
+      "metric": "मीट्रिक",
+      "backtest": "बैकटेस्ट",
+      "simulation": "सिमुलेशन",
+      "diff": "अंतर",
+      "judgment": "निर्णय",
+      "backtestBetter": "बैकटेस्ट बेहतर",
+      "simBetter": "सिमुलेशन बेहतर",
+      "backtestSummary": "बैकटेस्ट सारांश",
+      "simSummary": "सिमुलेशन सारांश"
     }
   },
   "pipeline": {

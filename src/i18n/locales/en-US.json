@@ -377,11 +377,9 @@
   "app": {
     "name": "AxAgent",
     "newSkillProposal": "New Skill Proposal Found: {name}",
-    "title": "Smart Chat Assistant",
-    "quickBar": "QuickBar",
-    "description": "AI-Powered Work Assistant",
     "title": "Agent Workstation",
-    "quickBar": "QuickBar"
+    "quickBar": "QuickBar",
+    "description": "AI-Powered Work Assistant"
   },
   "appHeader": {
     "closeAgentPanel": "Close Agent Panel",
@@ -896,7 +894,6 @@
       "plan": "Plan",
       "action": "Action",
       "auto": "Auto",
-      "title": "Switch Mode",
       "title": "Execution Mode",
       "gateway": "Gateway"
     },
@@ -12478,7 +12475,50 @@
     "nestingsuffix": ",nestingSuffix:",
     "ellipsis": "...",
     "ok": "ok",
-    "foo": "foo"
+    "foo": "foo",
+    "narrative": {
+      "noArcs": "No arcs defined",
+      "progress": "Progress",
+      "stages": "Arc Stages",
+      "noStages": "No stages defined",
+      "noForeshadows": "No foreshadows defined",
+      "chapterDistribution": "Chapter Distribution",
+      "setupChapters": "Setup Chapters",
+      "payoffChapters": "Payoff Chapters",
+      "noPayoff": "No payoff scheduled",
+      "relatedArcs": "Related Arcs",
+      "saveNameRequired": "Name is required",
+      "saveSuccess": "Save Successful",
+      "saveFailed": "Save Failed",
+      "loadSuccess": "Load Successful",
+      "confirmDelete": "Confirm Delete",
+      "confirmDeleteDesc": "Delete this narrative structure record?",
+      "noStructure": "No narrative structure data",
+      "savedRecords": "Saved Structures",
+      "title": "Narrative Structure",
+      "save": "Save",
+      "loadFromHistory": "Load from History",
+      "arcs": "Arcs",
+      "foreshadows": "Foreshadows",
+      "confluences": "Confluences",
+      "viewOverview": "Overview",
+      "viewArcs": "Arcs",
+      "viewForeshadows": "Foreshadows",
+      "saveTitle": "Save Narrative Structure",
+      "saveName": "Name",
+      "saveNamePlaceholder": "Enter structure name",
+      "saveDesc": "Description (optional)",
+      "saveDescPlaceholder": "Briefly describe this structure",
+      "saveGenre": "Genre",
+      "genreNovel": "Novel",
+      "genreShortStory": "Short Story",
+      "genreScreenplay": "Screenplay",
+      "genrePoetry": "Poetry",
+      "genreOther": "Other",
+      "arcList": "Character Arcs",
+      "confluenceList": "Confluences",
+      "foreshadowList": "Foreshadow Network"
+    }
   },
   "voiceChat": {
     "noTicket": "No ticket available. Please start again."
@@ -13842,7 +13882,27 @@
       "decisionAction": "Decision",
       "confidence": "Confidence",
       "winsAndLosses": "Win/Loss Stats",
-      "winRate": "Win Rate"
+      "winRate": "Win Rate",
+      "chart": {
+        "equity": "Equity",
+        "cash": "Cash",
+        "positionValue": "Position Value",
+        "benchmark": "Benchmark",
+        "equityCurve": "Equity Curve",
+        "drawdown": "Drawdown Curve",
+        "trades": "Trades",
+        "tradeDate": "Date",
+        "tradeType": "Direction",
+        "tradePrice": "Price",
+        "tradeReason": "Reason"
+      },
+      "metrics": {
+        "totalReturn": "Total Return",
+        "sharpe": "Sharpe Ratio",
+        "maxDrawdown": "Max Drawdown",
+        "winRate": "Win Rate"
+      },
+      "tabCharts": "📊 Visuals"
     },
     "export": {
       "analystReports": "Analyst Reports",
@@ -14302,7 +14362,15 @@
       "statAuthor": "Author",
       "statSource": "Source",
       "neodataRefreshHint": "请在 WorkBuddy 对话中输入「刷新 NeoData token」自动完成连接",
-      "neodataRefreshBtn": "🔗 通过 WorkBuddy 连接"
+      "neodataRefreshBtn": "🔗 通过 WorkBuddy 连接",
+      "vendorUntouchedHint": "Not called in this run cycle, no health data",
+      "vendorTotalSuccess": "Total Successes",
+      "vendorTotalFailures": "Total Failures",
+      "vendorConsecutiveFailures": "Consecutive Failures",
+      "vendorLastError": "Last Error",
+      "vendorLastSuccess": "Last Success",
+      "vendorLastFailure": "Last Failure",
+      "vendorHealth": "Data Source Health"
     },
     "experiment": {
       "executeTrade": "Execute Trade →",
@@ -15671,6 +15739,44 @@
       "limitUpThMed": "涨停潜力 - 中潜力阈值",
       "limitUpThLow": "涨停潜力 - 低潜力阈值",
       "analysisDryRun": "干跑模式：不调用 LLM，用 mock 输出验证流程"
+    },
+    "evidenceCitation": {
+      "loading": "Extracting Evidence Citations...",
+      "error": "Extraction Failed",
+      "noData": "No Evidence Citation Data",
+      "title": "Evidence Citation Audit",
+      "supportRate": "Data Support Rate",
+      "analystCount": "Source Analysts",
+      "claimCount": "Decision Reasons",
+      "supported": "With Data",
+      "unsupported": "No Data",
+      "source": "Source"
+    },
+    "charts": {
+      "noSectorData": "No Sector Allocation Data",
+      "sectorAllocation": "Sector Allocation",
+      "needMoreStocks": "At least 2 held stocks required",
+      "correlationMatrix": "Correlation Matrix",
+      "noTradeData": "No Trade Data",
+      "pnlDistribution": "PnL Distribution",
+      "portfolio": "Portfolio",
+      "benchmark": "Benchmark",
+      "needMoreData": "Insufficient Data",
+      "portfolioVsBenchmark": "Portfolio vs Benchmark"
+    },
+    "simVsBacktest": {
+      "title": "Simulation vs Backtest",
+      "backtestTrades": "Backtest Trades",
+      "simTrades": "Simulation Trades",
+      "metric": "Metric",
+      "backtest": "Backtest",
+      "simulation": "Simulation",
+      "diff": "Difference",
+      "judgment": "Judgment",
+      "backtestBetter": "Backtest Wins",
+      "simBetter": "Simulation Wins",
+      "backtestSummary": "Backtest Summary",
+      "simSummary": "Simulation Summary"
     }
   },
   "pipeline": {

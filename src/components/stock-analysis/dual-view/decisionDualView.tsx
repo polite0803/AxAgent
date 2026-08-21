@@ -4,13 +4,14 @@
 // 数据契约:`data` 是 CompactDecisionShape 子集(decisionAction / positionPct /
 // confidence / llmDecisionAction / llmDecisionPositionPct / llmConfidence /
 // decisionAgreementScore 等)。任何这些字段集合的对象都能塞进来。
+import i18n from "@/i18n";
 import { registerDualView } from "@/lib/dualView";
 import { CompactDecisionComparison, type CompactDecisionShape } from "./CompactDecisionComparison";
 import { DecisionComparisonPanel } from "./DecisionComparisonPanel";
 
 registerDualView<CompactDecisionShape>({
   id: "decision-comparison",
-  title: "决策双视角",
+  title: i18n.t("dualView.titles.decision"),
   icon: "SplitSquareHorizontal",
   defaultTab: "analyze",
   compact: (data) => <CompactDecisionComparison data={data} />,

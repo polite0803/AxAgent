@@ -107,7 +107,7 @@ function MainlineCard({
           onClick={() => onArchive(mainline.id)}
           disabled={mainline.status === "archived"}
         >
-          {t("marketMainline.archive", "归档")}
+          {t("marketMainline.archive")}
         </Button>
       }
     >
@@ -116,7 +116,7 @@ function MainlineCard({
       <Row gutter={16}>
         <Col span={8}>
           <Statistic
-            title={t("marketMainline.strength", "强度")}
+            title={t("marketMainline.strength")}
             value={mainline.strengthScore}
             styles={{ content: { color: strengthColor(mainline.strengthScore), fontSize: 18 } }}
             suffix="/100"
@@ -124,7 +124,7 @@ function MainlineCard({
         </Col>
         <Col span={16}>
           <div style={{ marginBottom: 4 }}>
-            <Text type="secondary">{t("marketMainline.representativeSymbols", "代表标的")}：</Text>
+            <Text type="secondary">{t("marketMainline.representativeSymbols")}：</Text>
             <Space wrap size={[4, 4]} style={{ marginTop: 4 }}>
               {symbols.length === 0 ? <Text type="secondary">—</Text> : (
                 symbols.map((s) => <Tag key={s}>{s}</Tag>)
@@ -132,7 +132,7 @@ function MainlineCard({
             </Space>
           </div>
           <div>
-            <Text type="secondary">{t("marketMainline.evidence", "证据")}：</Text>
+            <Text type="secondary">{t("marketMainline.evidence")}：</Text>
             <Text code style={{ fontSize: 12 }}>
               {Object.keys(evidence).length === 0
                 ? "—"
@@ -209,7 +209,7 @@ export function MarketMainlineDashboard() {
   const handleArchive = async (id: string) => {
     try {
       await archiveMainline(id);
-      message.success(t("marketMainline.archiveSuccess", "已归档"));
+      message.success(t("marketMainline.archiveSuccess"));
     } catch (e) {
       message.error(String(e));
     }
@@ -217,7 +217,7 @@ export function MarketMainlineDashboard() {
 
   const handleCreate = async () => {
     if (!createForm.theme.trim() || !createForm.narrative.trim()) {
-      message.warning(t("marketMainline.createRequired", "主题和叙述不能为空"));
+      message.warning(t("marketMainline.createRequired"));
       return;
     }
     try {
@@ -235,7 +235,7 @@ export function MarketMainlineDashboard() {
         evidence: {},
         sourceWorkflowExecutionId: null,
       });
-      message.success(t("marketMainline.createSuccess", "创建成功"));
+      message.success(t("marketMainline.createSuccess"));
       setCreateModalOpen(false);
       setCreateForm({
         mainlineDate: dayjs().format("YYYY-MM-DD"),
@@ -253,12 +253,9 @@ export function MarketMainlineDashboard() {
 
   return (
     <div style={{ padding: 16 }}>
-      <Title level={3}>{t("marketMainline.title", "市场主线")}</Title>
+      <Title level={3}>{t("marketMainline.title")}</Title>
       <Paragraph type="secondary">
-        {t(
-          "marketMainline.subtitle",
-          "每日 18:00 自动提炼市场主题（由 daily-market-events 工作流触发），含主题、叙述、代表标的、强度评分、持续性",
-        )}
+        {t("marketMainline.subtitle")}
       </Paragraph>
 
       <Space style={{ marginBottom: 16 }} wrap>
@@ -267,14 +264,14 @@ export function MarketMainlineDashboard() {
           onClick={() => setCreateModalOpen(true)}
           loading={submitting}
         >
-          {t("marketMainline.create", "手动创建主线")}
+          {t("marketMainline.create")}
         </Button>
         <Button onClick={() => fetchRecentMainlines(7)} loading={loadingRecent}>
-          {t("marketMainline.refresh", "刷新最近 7 天")}
+          {t("marketMainline.refresh")}
         </Button>
         <Select
           style={{ width: 140 }}
-          placeholder={t("marketMainline.statusFilter", "状态过滤")}
+          placeholder={t("marketMainline.statusFilter")}
           value={statusFilter}
           onChange={setStatusFilter}
           options={[
@@ -285,7 +282,7 @@ export function MarketMainlineDashboard() {
         />
         <Select
           style={{ width: 140 }}
-          placeholder={t("marketMainline.categoryFilter", "大类过滤")}
+          placeholder={t("marketMainline.categoryFilter")}
           value={categoryFilter}
           onChange={setCategoryFilter}
           allowClear
@@ -302,7 +299,7 @@ export function MarketMainlineDashboard() {
         <DatePicker
           value={selectedDate}
           onChange={handleSelectDate}
-          placeholder={t("marketMainline.selectDate", "按日期查看")}
+          placeholder={t("marketMainline.selectDate")}
         />
       </Space>
 
@@ -310,12 +307,12 @@ export function MarketMainlineDashboard() {
         ? (
           <div data-testid="mainlines-by-date">
             <Title level={5}>
-              {t("marketMainline.dateTitle", "日期")}：{selectedDate.format("YYYY-MM-DD")}
+              {t("marketMainline.dateTitle")}：{selectedDate.format("YYYY-MM-DD")}
             </Title>
             {loadingDate
               ? <Card loading />
               : dateMainlines.length === 0
-              ? <Empty description={t("marketMainline.noDataForDate", "该日无主线")} />
+              ? <Empty description={t("marketMainline.noDataForDate")} />
               : (
                 <Row gutter={[12, 12]}>
                   {dateMainlines.map((m) => (
@@ -332,7 +329,7 @@ export function MarketMainlineDashboard() {
             {loadingRecent
               ? <Card loading />
               : filteredMainlines.length === 0
-              ? <Empty description={t("marketMainline.noData", "暂无主线数据")} />
+              ? <Empty description={t("marketMainline.noData")} />
               : (
                 <Row gutter={[12, 12]}>
                   {filteredMainlines.map((m) => (
@@ -347,7 +344,7 @@ export function MarketMainlineDashboard() {
 
       <Modal
         open={createModalOpen}
-        title={t("marketMainline.createTitle", "手动创建市场主线")}
+        title={t("marketMainline.createTitle")}
         onCancel={() => setCreateModalOpen(false)}
         onOk={handleCreate}
         confirmLoading={submitting}
@@ -356,7 +353,7 @@ export function MarketMainlineDashboard() {
         <Space orientation="vertical" style={{ width: "100%" }} size="middle">
           <Row gutter={8}>
             <Col span={12}>
-              <Text>{t("marketMainline.form.date", "日期")}</Text>
+              <Text>{t("marketMainline.form.date")}</Text>
               <Input
                 value={createForm.mainlineDate}
                 onChange={(e) => setCreateForm({ ...createForm, mainlineDate: e.target.value })}
@@ -364,7 +361,7 @@ export function MarketMainlineDashboard() {
               />
             </Col>
             <Col span={12}>
-              <Text>{t("marketMainline.form.category", "主题大类")}</Text>
+              <Text>{t("marketMainline.form.category")}</Text>
               <Select
                 style={{ width: "100%" }}
                 value={createForm.themeCategory}
@@ -382,25 +379,25 @@ export function MarketMainlineDashboard() {
             </Col>
           </Row>
           <div>
-            <Text>{t("marketMainline.form.theme", "主题名")}</Text>
+            <Text>{t("marketMainline.form.theme")}</Text>
             <Input
               value={createForm.theme}
               onChange={(e) => setCreateForm({ ...createForm, theme: e.target.value })}
-              placeholder="如：AI 算力 / 光模块 / 新能源车"
+              placeholder={t("marketMainline.form.themePlaceholder")}
             />
           </div>
           <div>
-            <Text>{t("marketMainline.form.narrative", "叙述")}</Text>
+            <Text>{t("marketMainline.form.narrative")}</Text>
             <Input.TextArea
               rows={3}
               value={createForm.narrative}
               onChange={(e) => setCreateForm({ ...createForm, narrative: e.target.value })}
-              placeholder="1-2 句话故事线（说明今日该主题为何强 / 弱，关键催化）"
+              placeholder={t("marketMainline.form.narrativePlaceholder")}
             />
           </div>
           <Row gutter={8}>
             <Col span={12}>
-              <Text>{t("marketMainline.form.symbols", "代表标的（逗号分隔）")}</Text>
+              <Text>{t("marketMainline.form.symbols")}</Text>
               <Input
                 value={createForm.representativeSymbols}
                 onChange={(e) => setCreateForm({ ...createForm, representativeSymbols: e.target.value })}
@@ -408,7 +405,7 @@ export function MarketMainlineDashboard() {
               />
             </Col>
             <Col span={6}>
-              <Text>{t("marketMainline.form.score", "强度 0-100")}</Text>
+              <Text>{t("marketMainline.form.score")}</Text>
               <Input
                 type="number"
                 min={0}
@@ -422,7 +419,7 @@ export function MarketMainlineDashboard() {
               />
             </Col>
             <Col span={6}>
-              <Text>{t("marketMainline.form.persistence", "持续性")}</Text>
+              <Text>{t("marketMainline.form.persistence")}</Text>
               <Select
                 style={{ width: "100%" }}
                 value={createForm.persistence}

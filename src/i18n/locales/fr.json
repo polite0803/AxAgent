@@ -377,11 +377,9 @@
   "app": {
     "name": "AxAgent",
     "newSkillProposal": "Nouvelle suggestion de compétence: {name}",
-    "title": "Espace de Travail Intelligent",
-    "quickBar": "Barre rapide",
-    "description": "智能工作助手",
     "title": "Station de Travail d'Agents",
-    "quickBar": "Barre rapide"
+    "quickBar": "Barre rapide",
+    "description": "智能工作助手"
   },
   "appHeader": {
     "closeAgentPanel": "Fermer le panneau d'agent",
@@ -905,12 +903,11 @@
     },
     "messageArea": "Zone de messages",
     "mode": {
-      "title": "Switch Mode",
+      "title": "Mode d'exécution",
       "ask": "Ask",
       "plan": "Plan",
       "action": "Action",
       "auto": "Auto",
-      "title": "Mode d'exécution",
       "gateway": "Passerelle"
     },
     "moveToWorkspace": "Déplacer vers l'espace de travail",
@@ -12478,6 +12475,49 @@
         "runningEngines": "\nRunning evolution engines: {{engines}}"
       },
       "unnamed": "Unnamed"
+    },
+    "narrative": {
+      "noArcs": "Aucun arc défini",
+      "progress": "Progression",
+      "stages": "Étapes de l'arc",
+      "noStages": "Aucune étape définie",
+      "noForeshadows": "Aucun indice défini",
+      "chapterDistribution": "Répartition des chapitres",
+      "setupChapters": "Chapitres de mise en place",
+      "payoffChapters": "Chapitres de résolution",
+      "noPayoff": "Aucun aboutissement prévu",
+      "relatedArcs": "Arcs liés",
+      "saveNameRequired": "Le nom est requis",
+      "saveSuccess": "Enregistrement réussi",
+      "saveFailed": "Échec de l'enregistrement",
+      "loadSuccess": "Chargement réussi",
+      "confirmDelete": "Confirmer la suppression",
+      "confirmDeleteDesc": "Supprimer cet enregistrement de structure narrative ?",
+      "noStructure": "Aucune donnée de structure narrative",
+      "savedRecords": "Structures enregistrées",
+      "title": "Structure narrative",
+      "save": "Enregistrer",
+      "loadFromHistory": "Charger depuis l'historique",
+      "arcs": "Arcs",
+      "foreshadows": "Indices",
+      "confluences": "Confluences",
+      "viewOverview": "Aperçu",
+      "viewArcs": "Arcs",
+      "viewForeshadows": "Indices",
+      "saveTitle": "Enregistrer la structure narrative",
+      "saveName": "Nom",
+      "saveNamePlaceholder": "Entrez le nom de la structure",
+      "saveDesc": "Description (optionnel)",
+      "saveDescPlaceholder": "Décrivez brièvement cette structure",
+      "saveGenre": "Genre",
+      "genreNovel": "Roman",
+      "genreShortStory": "Nouvelle",
+      "genreScreenplay": "Scénario",
+      "genrePoetry": "Poésie",
+      "genreOther": "Autre",
+      "arcList": "Arcs de personnages",
+      "confluenceList": "Confluences",
+      "foreshadowList": "Réseau d'indices"
     }
   },
   "voiceChat": {
@@ -13614,7 +13654,27 @@
       "sampleInterval": "Sample Interval",
       "startDate": "Start Date",
       "totalRuns": "Total Runs",
-      "winRate": "Win Rate"
+      "winRate": "Win Rate",
+      "chart": {
+        "equity": "Capitaux propres",
+        "cash": "Trésorerie",
+        "positionValue": "Valeur de position",
+        "benchmark": "Référence",
+        "equityCurve": "Courbe de capitaux",
+        "drawdown": "Courbe de repli",
+        "trades": "Transactions",
+        "tradeDate": "Date",
+        "tradeType": "Direction",
+        "tradePrice": "Prix",
+        "tradeReason": "Raison"
+      },
+      "metrics": {
+        "totalReturn": "Rendement total",
+        "sharpe": "Ratio de Sharpe",
+        "maxDrawdown": "Repli maximal",
+        "winRate": "Taux de victoire"
+      },
+      "tabCharts": "📊 Graphiques"
     },
     "export": {
       "analystReports": "analystReports",
@@ -14074,7 +14134,15 @@
       "statAuthor": "Author",
       "statSource": "Source",
       "neodataRefreshHint": "请在 WorkBuddy 对话中输入「刷新 NeoData token」自动完成连接",
-      "neodataRefreshBtn": "🔗 Connecter via WorkBuddy"
+      "neodataRefreshBtn": "🔗 Connecter via WorkBuddy",
+      "vendorUntouchedHint": "Non appelé dans ce cycle, aucune donnée de santé",
+      "vendorTotalSuccess": "Succès totaux",
+      "vendorTotalFailures": "Échecs totaux",
+      "vendorConsecutiveFailures": "Échecs consécutifs",
+      "vendorLastError": "Dernière erreur",
+      "vendorLastSuccess": "Dernier succès",
+      "vendorLastFailure": "Dernier échec",
+      "vendorHealth": "Santé des sources de données"
     },
     "experiment": {
       "executeTrade": "执行交易 →",
@@ -15444,6 +15512,44 @@
       "limitUpThMed": "Potentiel d'arrêt à la hausse - Seuil de potentiel moyen",
       "limitUpThLow": "Potentiel d'arrêt à la hausse - Seuil de faible potentiel",
       "analysisDryRun": "Mode dry run : n'appelle pas le LLM, utilise un mock pour vérifier le processus"
+    },
+    "evidenceCitation": {
+      "loading": "Extraction des citations...",
+      "error": "Échec de l'extraction",
+      "noData": "Aucune donnée de citation",
+      "title": "Audit des citations",
+      "supportRate": "Taux de support des données",
+      "analystCount": "Analystes sources",
+      "claimCount": "Raisons de décision",
+      "supported": "Avec données",
+      "unsupported": "Sans données",
+      "source": "Source"
+    },
+    "charts": {
+      "noSectorData": "Aucune donnée de répartition sectorielle",
+      "sectorAllocation": "Allocation sectorielle",
+      "needMoreStocks": "Au moins 2 titres détenus requis",
+      "correlationMatrix": "Matrice de corrélation",
+      "noTradeData": "Aucune donnée de transaction",
+      "pnlDistribution": "Distribution PnL",
+      "portfolio": "Portefeuille",
+      "benchmark": "Référence",
+      "needMoreData": "Données insuffisantes",
+      "portfolioVsBenchmark": "Portefeuille vs Référence"
+    },
+    "simVsBacktest": {
+      "title": "Simulation vs Backtest",
+      "backtestTrades": "Transactions du backtest",
+      "simTrades": "Transactions de la simulation",
+      "metric": "Métrique",
+      "backtest": "Backtest",
+      "simulation": "Simulation",
+      "diff": "Différence",
+      "judgment": "Jugement",
+      "backtestBetter": "Backtest gagne",
+      "simBetter": "Simulation gagne",
+      "backtestSummary": "Résumé du backtest",
+      "simSummary": "Résumé de la simulation"
     }
   },
   "pipeline": {

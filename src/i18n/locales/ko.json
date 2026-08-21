@@ -377,11 +377,9 @@
   "app": {
     "name": "AxAgent",
     "newSkillProposal": "새 스킬 제안: {name}",
-    "title": "스마트 워크스페이스",
-    "quickBar": "퀵바",
-    "description": "智能工作助手",
     "title": "에이전트 워크스테이션",
-    "quickBar": "퀵바"
+    "quickBar": "퀵바",
+    "description": "智能工作助手"
   },
   "appHeader": {
     "closeAgentPanel": "에이전트 패널 닫기",
@@ -905,15 +903,11 @@
     },
     "messageArea": "메시지 영역",
     "mode": {
-      "title": "Switch Mode",
-      "ask": "Ask",
-      "plan": "Plan",
-      "action": "Action",
-      "action": "실행",
-      "ask": "질문",
-      "auto": "자동",
-      "plan": "계획",
       "title": "실행 모드",
+      "ask": "질문",
+      "plan": "계획",
+      "action": "실행",
+      "auto": "자동",
       "gateway": "게이트웨이"
     },
     "moveToWorkspace": "작업 영역으로 이동",
@@ -12481,6 +12475,49 @@
         "runningEngines": "\nRunning evolution engines: {{engines}}"
       },
       "unnamed": "Unnamed"
+    },
+    "narrative": {
+      "noArcs": "아크 정의 없음",
+      "progress": "진행도",
+      "stages": "아크 단계",
+      "noStages": "단계 정의 없음",
+      "noForeshadows": "복선 정의 없음",
+      "chapterDistribution": "챕터 분포",
+      "setupChapters": "설정 챕터",
+      "payoffChapters": "회수 챕터",
+      "noPayoff": "회수 예정 없음",
+      "relatedArcs": "관련 아크",
+      "saveNameRequired": "이름은 필수입니다",
+      "saveSuccess": "저장 성공",
+      "saveFailed": "저장 실패",
+      "loadSuccess": "불러오기 성공",
+      "confirmDelete": "삭제 확인",
+      "confirmDeleteDesc": "이 내러티브 구조 기록을 삭제하시겠습니까?",
+      "noStructure": "내러티브 구조 데이터 없음",
+      "savedRecords": "저장된 구조",
+      "title": "내러티브 구조",
+      "save": "저장",
+      "loadFromHistory": "기록에서 불러오기",
+      "arcs": "아크",
+      "foreshadows": "복선",
+      "confluences": "교차점",
+      "viewOverview": "개요",
+      "viewArcs": "아크",
+      "viewForeshadows": "복선",
+      "saveTitle": "내러티브 구조 저장",
+      "saveName": "이름",
+      "saveNamePlaceholder": "구조 이름 입력",
+      "saveDesc": "설명 (선택)",
+      "saveDescPlaceholder": "이 구조의 특징을 간단히",
+      "saveGenre": "장르",
+      "genreNovel": "소설",
+      "genreShortStory": "단편",
+      "genreScreenplay": "각본",
+      "genrePoetry": "시",
+      "genreOther": "기타",
+      "arcList": "캐릭터 아크",
+      "confluenceList": "교차점",
+      "foreshadowList": "복선 네트워크"
     }
   },
   "voiceChat": {
@@ -13617,7 +13654,27 @@
       "sampleInterval": "Sample Interval",
       "startDate": "Start Date",
       "totalRuns": "Total Runs",
-      "winRate": "Win Rate"
+      "winRate": "Win Rate",
+      "chart": {
+        "equity": "순자산",
+        "cash": "현금",
+        "positionValue": "포지션 가치",
+        "benchmark": "기준",
+        "equityCurve": "순자산 곡선",
+        "drawdown": "손실 곡선",
+        "trades": "거래 기록",
+        "tradeDate": "날짜",
+        "tradeType": "방향",
+        "tradePrice": "가격",
+        "tradeReason": "이유"
+      },
+      "metrics": {
+        "totalReturn": "총 수익",
+        "sharpe": "샤프 비율",
+        "maxDrawdown": "최대 손실",
+        "winRate": "승률"
+      },
+      "tabCharts": "📊 시각화"
     },
     "export": {
       "analystReports": "analystReports",
@@ -14077,7 +14134,15 @@
       "statAuthor": "Author",
       "statSource": "Source",
       "neodataRefreshHint": "请在 WorkBuddy 对话中输入「刷新 NeoData token」自动完成连接",
-      "neodataRefreshBtn": "🔗 WorkBuddy로 연결"
+      "neodataRefreshBtn": "🔗 WorkBuddy로 연결",
+      "vendorUntouchedHint": "이 실행 주기에 호출되지 않음, 상태 데이터 없음",
+      "vendorTotalSuccess": "총 성공",
+      "vendorTotalFailures": "총 실패",
+      "vendorConsecutiveFailures": "연속 실패",
+      "vendorLastError": "마지막 오류",
+      "vendorLastSuccess": "마지막 성공",
+      "vendorLastFailure": "마지막 실패",
+      "vendorHealth": "데이터 소스 상태"
     },
     "experiment": {
       "executeTrade": "执行交易 →",
@@ -15447,6 +15512,44 @@
       "limitUpThMed": "상한가 잠재력 - 중잠재력 임계값",
       "limitUpThLow": "상한가 잠재력 - 저잠재력 임계값",
       "analysisDryRun": "모의 실행 모드: LLM 미호출, mock 출력으로 프로세스 검증"
+    },
+    "evidenceCitation": {
+      "loading": "증거 인용 추출 중...",
+      "error": "추출 실패",
+      "noData": "증거 인용 데이터 없음",
+      "title": "증거 인용 감사",
+      "supportRate": "데이터 지지율",
+      "analystCount": "출처 분석가",
+      "claimCount": "결정 근거",
+      "supported": "데이터 있음",
+      "unsupported": "데이터 없음",
+      "source": "출처"
+    },
+    "charts": {
+      "noSectorData": "섹터 배분 데이터 없음",
+      "sectorAllocation": "섹터 배분",
+      "needMoreStocks": "최소 2종목 보유 필요",
+      "correlationMatrix": "상관 행렬",
+      "noTradeData": "거래 데이터 없음",
+      "pnlDistribution": "손익 분포",
+      "portfolio": "포트폴리오",
+      "benchmark": "기준",
+      "needMoreData": "데이터 부족",
+      "portfolioVsBenchmark": "포트폴리오 vs 기준"
+    },
+    "simVsBacktest": {
+      "title": "시뮬레이션 vs 백테스트",
+      "backtestTrades": "백테스트 거래",
+      "simTrades": "시뮬레이션 거래",
+      "metric": "지표",
+      "backtest": "백테스트",
+      "simulation": "시뮬레이션",
+      "diff": "차이",
+      "judgment": "판단",
+      "backtestBetter": "백테스트 우세",
+      "simBetter": "시뮬레이션 우세",
+      "backtestSummary": "백테스트 요약",
+      "simSummary": "시뮬레이션 요약"
     }
   },
   "pipeline": {

@@ -389,12 +389,12 @@ export function EvolutionDriftPanel() {
         width={720}
         footer={calibrateResult?.bestParams
           ? [
-            <Button key="close" onClick={() => setCalibrateModalOpen(false)}>关闭</Button>,
+            <Button key="close" onClick={() => setCalibrateModalOpen(false)}>{t("common.close")}</Button>,
             <Button key="apply" type="primary" onClick={handleApplyBest}>
               {t("stockAnalysis.evolutionDrift.calibrateApplyBest")}
             </Button>,
           ]
-          : [<Button key="close" onClick={() => setCalibrateModalOpen(false)}>关闭</Button>]}
+          : [<Button key="close" onClick={() => setCalibrateModalOpen(false)}>{t("common.close")}</Button>]}
       >
         {calibrateResult?.bestParams && (
           <div>
@@ -433,7 +433,7 @@ export function EvolutionDriftPanel() {
               dataSource={calibrateResult.grid}
               columns={[
                 {
-                  title: "评分",
+                  title: t("stockAnalysis.evolutionDrift.calibrateScore"),
                   dataIndex: "score",
                   key: "score",
                   width: 60,

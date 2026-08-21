@@ -114,7 +114,7 @@ export function SectorAllocationDonut({ data, height = 250 }: SectorAllocationDo
   if (sorted.length === 0) {
     return (
       <div className="text-gray-400 text-xs text-center py-8">
-        {t("stockAnalysis.charts.noSectorData", "无行业配置数据")}
+        {t("stockAnalysis.charts.noSectorData")}
       </div>
     );
   }
@@ -122,7 +122,7 @@ export function SectorAllocationDonut({ data, height = 250 }: SectorAllocationDo
   return (
     <div className="bg-gray-900/50 rounded-lg p-3">
       <h4 className="text-sm font-medium text-gray-300 mb-2">
-        {t("stockAnalysis.charts.sectorAllocation", "行业配置")}
+        {t("stockAnalysis.charts.sectorAllocation")}
       </h4>
       <div ref={ref} style={{ width: "100%", height }} />
       {/* 图例 */}
@@ -137,7 +137,9 @@ export function SectorAllocationDonut({ data, height = 250 }: SectorAllocationDo
             <span className="text-gray-300 font-mono">{item.pct.toFixed(1)}%</span>
           </div>
         ))}
-        {sorted.length > 9 && <div className="text-xs text-gray-500">+{sorted.length - 9} 更多</div>}
+        {sorted.length > 9 && (
+          <div className="text-xs text-gray-500">+{t("stockAnalysis.charts.more", { count: sorted.length - 9 })}</div>
+        )}
       </div>
     </div>
   );
@@ -166,7 +168,7 @@ export function CorrelationHeatmap({ stocks, correlations, height = 200 }: Corre
   if (stocks.length < 2) {
     return (
       <div className="text-gray-400 text-xs text-center py-4">
-        {t("stockAnalysis.charts.needMoreStocks", "至少需要 2 只持仓股票")}
+        {t("stockAnalysis.charts.needMoreStocks")}
       </div>
     );
   }
@@ -190,7 +192,7 @@ export function CorrelationHeatmap({ stocks, correlations, height = 200 }: Corre
   return (
     <div className="bg-gray-900/50 rounded-lg p-3">
       <h4 className="text-sm font-medium text-gray-300 mb-2">
-        {t("stockAnalysis.charts.correlationMatrix", "相关性矩阵")}
+        {t("stockAnalysis.charts.correlationMatrix")}
       </h4>
       <div className="overflow-x-auto" style={{ height }}>
         <table className="text-xs">
@@ -288,7 +290,7 @@ export function PnLHistogram({ data, height = 200 }: PnLHistogramProps) {
   if (data.length === 0) {
     return (
       <div className="text-gray-400 text-xs text-center py-8">
-        {t("stockAnalysis.charts.noTradeData", "无交易数据")}
+        {t("stockAnalysis.charts.noTradeData")}
       </div>
     );
   }
@@ -296,7 +298,7 @@ export function PnLHistogram({ data, height = 200 }: PnLHistogramProps) {
   return (
     <div className="bg-gray-900/50 rounded-lg p-3">
       <h4 className="text-sm font-medium text-gray-300 mb-2">
-        {t("stockAnalysis.charts.pnlDistribution", "盈亏分布")}
+        {t("stockAnalysis.charts.pnlDistribution")}
       </h4>
       <div ref={ref} style={{ width: "100%", height }} />
     </div>
@@ -334,8 +336,8 @@ export function PortfolioPerformanceLine({ data, height = 250 }: PortfolioPerfor
           formatter: (params: unknown) => {
             const ps = params as { seriesName: string; value: number; axisValue: string }[];
             const labels: Record<string, string> = {
-              portfolio: t("stockAnalysis.charts.portfolio", "组合"),
-              benchmark: t("stockAnalysis.charts.benchmark", "基准"),
+              portfolio: t("stockAnalysis.charts.portfolio"),
+              benchmark: t("stockAnalysis.charts.benchmark"),
             };
             let result = ps[0]?.axisValue ?? "";
             for (const p of ps) {
@@ -397,7 +399,7 @@ export function PortfolioPerformanceLine({ data, height = 250 }: PortfolioPerfor
   if (data.length < 2) {
     return (
       <div className="text-gray-400 text-xs text-center py-8">
-        {t("stockAnalysis.charts.needMoreData", "数据不足")}
+        {t("stockAnalysis.charts.needMoreData")}
       </div>
     );
   }
@@ -405,7 +407,7 @@ export function PortfolioPerformanceLine({ data, height = 250 }: PortfolioPerfor
   return (
     <div className="bg-gray-900/50 rounded-lg p-3">
       <h4 className="text-sm font-medium text-gray-300 mb-2">
-        {t("stockAnalysis.charts.portfolioVsBenchmark", "组合 vs 基准")}
+        {t("stockAnalysis.charts.portfolioVsBenchmark")}
       </h4>
       <div ref={ref} style={{ width: "100%", height }} />
     </div>

@@ -34,18 +34,6 @@ interface Props {
   report: SimulationVsBacktestReport;
 }
 
-/** 指标中文名 */
-const METRIC_LABELS: Record<string, string> = {
-  totalReturn: "总收益率",
-  annualizedReturn: "年化收益",
-  sharpe: "夏普比率",
-  maxDrawdown: "最大回撤",
-  winRate: "胜率",
-  profitFactor: "盈亏比",
-  avgReturn: "平均单笔收益",
-  avgHoldingDays: "平均持仓天数",
-};
-
 /** 哪个方向更好 */
 const BETTER_DIRECTION: Record<string, "higher" | "lower"> = {
   totalReturn: "higher",
@@ -61,13 +49,24 @@ const BETTER_DIRECTION: Record<string, "higher" | "lower"> = {
 export function SimulationVsBacktestCompare({ report }: Props) {
   const { t } = useTranslation();
 
+  const metricLabels: Record<string, string> = {
+    totalReturn: t("stockAnalysis.simVsBacktest.metricLabel.totalReturn"),
+    annualizedReturn: t("stockAnalysis.simVsBacktest.metricLabel.annualizedReturn"),
+    sharpe: t("stockAnalysis.simVsBacktest.metricLabel.sharpe"),
+    maxDrawdown: t("stockAnalysis.simVsBacktest.metricLabel.maxDrawdown"),
+    winRate: t("stockAnalysis.simVsBacktest.metricLabel.winRate"),
+    profitFactor: t("stockAnalysis.simVsBacktest.metricLabel.profitFactor"),
+    avgReturn: t("stockAnalysis.simVsBacktest.metricLabel.avgReturn"),
+    avgHoldingDays: t("stockAnalysis.simVsBacktest.metricLabel.avgHoldingDays"),
+  };
+
   return (
     <div className="space-y-4">
       {/* 概览头部 */}
       <div className="flex items-center justify-between mb-2">
         <div>
           <h3 className="text-sm font-medium text-gray-200">
-            {t("stockAnalysis.simVsBacktest.title", "模拟 vs 回测对比")}
+            {t("stockAnalysis.simVsBacktest.title")}
           </h3>
           <p className="text-xs text-gray-500 mt-0.5">
             {report.strategyName} — {report.stockCode} — {report.period}
@@ -75,10 +74,10 @@ export function SimulationVsBacktestCompare({ report }: Props) {
         </div>
         <div className="flex gap-3 text-xs text-gray-400">
           <span>
-            {t("stockAnalysis.simVsBacktest.backtestTrades", "回测交易")}: {report.backtestTrades}
+            {t("stockAnalysis.simVsBacktest.backtestTrades")}: {report.backtestTrades}
           </span>
           <span>
-            {t("stockAnalysis.simVsBacktest.simTrades", "模拟交易")}: {report.simTrades}
+            {t("stockAnalysis.simVsBacktest.simTrades")}: {report.simTrades}
           </span>
         </div>
       </div>
@@ -89,19 +88,19 @@ export function SimulationVsBacktestCompare({ report }: Props) {
           <thead>
             <tr className="border-b border-gray-700 text-gray-400">
               <th className="text-left py-2 px-3">
-                {t("stockAnalysis.simVsBacktest.metric", "指标")}
+                {t("stockAnalysis.simVsBacktest.metric")}
               </th>
               <th className="text-right py-2 px-3">
-                {t("stockAnalysis.simVsBacktest.backtest", "回测")}
+                {t("stockAnalysis.simVsBacktest.backtest")}
               </th>
               <th className="text-right py-2 px-3">
-                {t("stockAnalysis.simVsBacktest.simulation", "模拟")}
+                {t("stockAnalysis.simVsBacktest.simulation")}
               </th>
               <th className="text-right py-2 px-3">
-                {t("stockAnalysis.simVsBacktest.diff", "差值")}
+                {t("stockAnalysis.simVsBacktest.diff")}
               </th>
               <th className="text-center py-2 px-3">
-                {t("stockAnalysis.simVsBacktest.judgment", "判断")}
+                {t("stockAnalysis.simVsBacktest.judgment")}
               </th>
             </tr>
           </thead>
@@ -130,7 +129,7 @@ export function SimulationVsBacktestCompare({ report }: Props) {
                   className="border-b border-gray-800 hover:bg-gray-800/30"
                 >
                   <td className="py-2 px-3 text-gray-300">
-                    {METRIC_LABELS[row.metric] ?? row.metric}
+                    {metricLabels[row.metric] ?? row.metric}
                   </td>
                   <td className="py-2 px-3 text-right font-mono text-gray-200">
                     {fmtVal(row.backtest, row.metric)}
@@ -153,8 +152,8 @@ export function SimulationVsBacktestCompare({ report }: Props) {
                       }`}
                     >
                       {better === "backtest"
-                        ? t("stockAnalysis.simVsBacktest.backtestBetter", "回测胜")
-                        : t("stockAnalysis.simVsBacktest.simBetter", "模拟胜")}
+                        ? t("stockAnalysis.simVsBacktest.backtestBetter")
+                        : t("stockAnalysis.simVsBacktest.simBetter")}
                     </span>
                   </td>
                 </tr>
@@ -168,7 +167,7 @@ export function SimulationVsBacktestCompare({ report }: Props) {
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-blue-900/20 rounded-lg p-2.5 border border-blue-800/30">
           <div className="text-[10px] text-blue-400 mb-1 font-medium">
-            {t("stockAnalysis.simVsBacktest.backtestSummary", "回测结论")}
+            {t("stockAnalysis.simVsBacktest.backtestSummary")}
           </div>
           <div className="text-xs text-gray-300 leading-relaxed">
             {report.backtestSummary}
@@ -176,7 +175,7 @@ export function SimulationVsBacktestCompare({ report }: Props) {
         </div>
         <div className="bg-orange-900/20 rounded-lg p-2.5 border border-orange-800/30">
           <div className="text-[10px] text-orange-400 mb-1 font-medium">
-            {t("stockAnalysis.simVsBacktest.simSummary", "模拟结论")}
+            {t("stockAnalysis.simVsBacktest.simSummary")}
           </div>
           <div className="text-xs text-gray-300 leading-relaxed">
             {report.simSummary}

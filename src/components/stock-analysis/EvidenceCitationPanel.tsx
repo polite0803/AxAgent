@@ -55,11 +55,13 @@ export function EvidenceCitationPanel({ analysisId, visible = true }: Props) {
       });
       setReport(result);
     } catch (e: unknown) {
-      setError(typeof e === "string" ? e : e instanceof Error ? e.message : "提取引用失败");
+      setError(
+        typeof e === "string" ? e : e instanceof Error ? e.message : t("stockAnalysis.evidenceCitation.extractFailed"),
+      );
     } finally {
       setLoading(false);
     }
-  }, [analysisId]);
+  }, [analysisId, t]);
 
   useEffect(() => {
     if (visible && analysisId) {
@@ -72,7 +74,7 @@ export function EvidenceCitationPanel({ analysisId, visible = true }: Props) {
   if (loading) {
     return (
       <div className="flex justify-center py-8">
-        <Spin description={t("stockAnalysis.evidenceCitation.loading", "提取证据引用中...")} />
+        <Spin description={t("stockAnalysis.evidenceCitation.loading")} />
       </div>
     );
   }
@@ -81,7 +83,7 @@ export function EvidenceCitationPanel({ analysisId, visible = true }: Props) {
     return (
       <Alert
         type="error"
-        title={t("stockAnalysis.evidenceCitation.error", "提取失败")}
+        title={t("stockAnalysis.evidenceCitation.error")}
         description={error}
         showIcon
       />
@@ -91,7 +93,7 @@ export function EvidenceCitationPanel({ analysisId, visible = true }: Props) {
   if (!report || report.citations.length === 0) {
     return (
       <div className="text-gray-400 text-sm text-center py-6">
-        {t("stockAnalysis.evidenceCitation.noData", "无可用证据引用数据")}
+        {t("stockAnalysis.evidenceCitation.noData")}
       </div>
     );
   }
@@ -102,14 +104,14 @@ export function EvidenceCitationPanel({ analysisId, visible = true }: Props) {
       <div className="flex items-center justify-between">
         <div>
           <span className="text-sm font-medium text-gray-200">
-            {t("stockAnalysis.evidenceCitation.title", "证据引用审计")}
+            {t("stockAnalysis.evidenceCitation.title")}
           </span>
           <span className="text-xs text-gray-500 ml-2">
             {report.stockCode} · {report.analysisDate}
           </span>
         </div>
         <Button size="small" onClick={loadCitations}>
-          {t("common.refresh", "刷新")}
+          {t("common.refresh")}
         </Button>
       </div>
 
@@ -120,19 +122,19 @@ export function EvidenceCitationPanel({ analysisId, visible = true }: Props) {
             {Math.round(report.supportRate * 100)}%
           </div>
           <div className="text-[10px] text-gray-400">
-            {t("stockAnalysis.evidenceCitation.supportRate", "数据支撑率")}
+            {t("stockAnalysis.evidenceCitation.supportRate")}
           </div>
         </div>
         <div className="bg-gray-800/60 rounded p-2 text-center">
           <div className="text-lg font-semibold text-blue-400">{report.analystCount}</div>
           <div className="text-[10px] text-gray-400">
-            {t("stockAnalysis.evidenceCitation.analystCount", "来源分析师")}
+            {t("stockAnalysis.evidenceCitation.analystCount")}
           </div>
         </div>
         <div className="bg-gray-800/60 rounded p-2 text-center">
           <div className="text-lg font-semibold text-yellow-400">{report.totalClaims}</div>
           <div className="text-[10px] text-gray-400">
-            {t("stockAnalysis.evidenceCitation.claimCount", "决策理由")}
+            {t("stockAnalysis.evidenceCitation.claimCount")}
           </div>
         </div>
       </div>
@@ -163,8 +165,8 @@ export function EvidenceCitationPanel({ analysisId, visible = true }: Props) {
                 color={citation.hasDataSupport ? "green" : "orange"}
               >
                 {citation.hasDataSupport
-                  ? t("stockAnalysis.evidenceCitation.supported", "有数据")
-                  : t("stockAnalysis.evidenceCitation.unsupported", "无数据")}
+                  ? t("stockAnalysis.evidenceCitation.supported")
+                  : t("stockAnalysis.evidenceCitation.unsupported")}
               </Tag>
             </div>
           ),
@@ -172,10 +174,14 @@ export function EvidenceCitationPanel({ analysisId, visible = true }: Props) {
             <div className="text-xs space-y-2">
               <div className="flex items-center gap-2">
                 <span className="text-gray-400">
-                  {t("stockAnalysis.evidenceCitation.source", "来源")}:
+                  {t("stockAnalysis.evidenceCitation.source")}:
                 </span>
                 <Tag className="text-xs">{citation.sourceAnalystName}</Tag>
-                <Tooltip title={`匹配度 ${(citation.matchConfidence * 100).toFixed(0)}%`}>
+                <Tooltip
+                  title={t("stockAnalysis.evidenceCitation.matchConfidence", {
+                    percent: (citation.matchConfidence * 100).toFixed(0),
+                  })}
+                >
                   <div className="h-1.5 w-16 bg-gray-700 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full"

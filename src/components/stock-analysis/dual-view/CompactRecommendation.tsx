@@ -4,6 +4,7 @@
  * 输出:Top 3 最高信心度股票 + 风格标签
  */
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 interface RecoPick {
   stockCode: string;
@@ -21,12 +22,12 @@ interface RecoResponseShape {
   picks?: Record<string, RecoPick[]>;
 }
 
-const STYLE_LABEL: Record<string, string> = {
-  trend: "趋势",
-  value: "价值",
-  capital: "资金",
-  reversion: "反转",
-  serenity: "瓶颈",
+const STYLE_LABEL_KEY: Record<string, string> = {
+  trend: "stockAnalysis.recommendation.styleLabelTrend",
+  value: "stockAnalysis.recommendation.styleLabelValue",
+  capital: "stockAnalysis.recommendation.styleLabelCapital",
+  reversion: "stockAnalysis.recommendation.styleLabelReversion",
+  serenity: "stockAnalysis.recommendation.styleLabelSerenity",
 };
 
 const STYLE_COLOR: Record<string, string> = {
@@ -49,6 +50,7 @@ function normalize(data: CompactRecommendationProps["data"]): RecoResponseShape 
 }
 
 export function CompactRecommendation({ data }: CompactRecommendationProps) {
+  const { t } = useTranslation();
   const response = useMemo(() => normalize(data), [data]);
   const picks = useMemo(() => {
     if (!response.picks) { return []; }
@@ -62,7 +64,7 @@ export function CompactRecommendation({ data }: CompactRecommendationProps) {
   if (picks.length === 0) {
     return (
       <div className="text-[12px] italic" style={{ color: "var(--muted)" }}>
-        暂无推荐
+        {t("workflow.aiPanel.noRecommendations")}
       </div>
     );
   }
@@ -73,13 +75,17 @@ export function CompactRecommendation({ data }: CompactRecommendationProps) {
         <span style={{ color: "var(--muted)" }}>Top {picks.length}</span>
         {response.period && (
           <span style={{ color: "var(--muted)" }}>
-            {response.period === "short" ? "短线" : response.period === "mid" ? "中线" : "长线"}
+            {response.period === "short"
+              ? t("stockAnalysis.period.short")
+              : response.period === "mid"
+              ? t("stockAnalysis.period.mid")
+              : t("stockAnalysis.period.long")}
           </span>
         )}
       </div>
       <div className="space-y-0.5">
         {picks.map((p, i) => {
-          const styleLabel = STYLE_LABEL[p.style] ?? p.style;
+          const styleLabel = STYLE_LABEL_KEY[p.style] ? t(STYLE_LABEL_KEY[p.style]) : p.style;
           const styleColor = STYLE_COLOR[p.style] ?? "default";
           return (
             <div

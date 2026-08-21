@@ -377,11 +377,9 @@
   "app": {
     "name": "AxAgent",
     "newSkillProposal": "Новое предложение навыка: {name}",
-    "title": "Умное рабочее пространство",
-    "quickBar": "QuickBar",
-    "description": "智能工作助手",
     "title": "Рабочая станция агентов",
-    "quickBar": "QuickBar"
+    "quickBar": "QuickBar",
+    "description": "智能工作助手"
   },
   "appHeader": {
     "closeAgentPanel": "Закрыть панель агента",
@@ -905,15 +903,11 @@
     },
     "messageArea": "Область сообщений",
     "mode": {
-      "title": "Switch Mode",
-      "ask": "Ask",
-      "plan": "Plan",
-      "action": "Action",
-      "action": "Выполнить",
-      "ask": "Спросить",
-      "auto": "Авто",
-      "plan": "План",
       "title": "Режим выполнения",
+      "ask": "Спросить",
+      "plan": "План",
+      "action": "Выполнить",
+      "auto": "Авто",
       "gateway": "Шлюз"
     },
     "moveToWorkspace": "Переместить в рабочую область",
@@ -12481,6 +12475,49 @@
         "runningEngines": "\nRunning evolution engines: {{engines}}"
       },
       "unnamed": "Unnamed"
+    },
+    "narrative": {
+      "noArcs": "Нет определенных дуг",
+      "progress": "Прогресс",
+      "stages": "Этапы дуги",
+      "noStages": "Нет определенных этапов",
+      "noForeshadows": "Нет предзнаменований",
+      "chapterDistribution": "Распределение глав",
+      "setupChapters": "Главы завязки",
+      "payoffChapters": "Главы отдачи",
+      "noPayoff": "Нет запланированной отдачи",
+      "relatedArcs": "Связанные дуги",
+      "saveNameRequired": "Требуется название",
+      "saveSuccess": "Сохранение успешно",
+      "saveFailed": "Ошибка сохранения",
+      "loadSuccess": "Загрузка успешна",
+      "confirmDelete": "Подтвердить удаление",
+      "confirmDeleteDesc": "Удалить эту запись нарративной структуры?",
+      "noStructure": "Нет данных нарративной структуры",
+      "savedRecords": "Сохранённые структуры",
+      "title": "Нарративная структура",
+      "save": "Сохранить",
+      "loadFromHistory": "Загрузить из истории",
+      "arcs": "Дуги",
+      "foreshadows": "Предзнаменования",
+      "confluences": "Слияния",
+      "viewOverview": "Обзор",
+      "viewArcs": "Дуги",
+      "viewForeshadows": "Предзнаменования",
+      "saveTitle": "Сохранить нарративную структуру",
+      "saveName": "Название",
+      "saveNamePlaceholder": "Введите название структуры",
+      "saveDesc": "Описание (необязательно)",
+      "saveDescPlaceholder": "Кратко опишите эту структуру",
+      "saveGenre": "Жанр",
+      "genreNovel": "Роман",
+      "genreShortStory": "Рассказ",
+      "genreScreenplay": "Сценарий",
+      "genrePoetry": "Поэзия",
+      "genreOther": "Другое",
+      "arcList": "Дуги персонажей",
+      "confluenceList": "Слияния",
+      "foreshadowList": "Сеть предзнаменований"
     }
   },
   "voiceChat": {
@@ -13617,7 +13654,27 @@
       "sampleInterval": "Sample Interval",
       "startDate": "Start Date",
       "totalRuns": "Total Runs",
-      "winRate": "Win Rate"
+      "winRate": "Win Rate",
+      "chart": {
+        "equity": "Собственный капитал",
+        "cash": "Наличные",
+        "positionValue": "Стоимость позиции",
+        "benchmark": "Базис",
+        "equityCurve": "Кривая капитала",
+        "drawdown": "Кривая просадки",
+        "trades": "Сделки",
+        "tradeDate": "Дата",
+        "tradeType": "Направление",
+        "tradePrice": "Цена",
+        "tradeReason": "Причина"
+      },
+      "metrics": {
+        "totalReturn": "Общая доходность",
+        "sharpe": "Коэффициент Шарпа",
+        "maxDrawdown": "Макс. просадка",
+        "winRate": "Процент выигрышей"
+      },
+      "tabCharts": "📊 Графики"
     },
     "export": {
       "analystReports": "analystReports",
@@ -14077,7 +14134,15 @@
       "statAuthor": "Author",
       "statSource": "Source",
       "neodataRefreshHint": "请在 WorkBuddy 对话中输入「刷新 NeoData token」自动完成连接",
-      "neodataRefreshBtn": "🔗 Подключиться через WorkBuddy"
+      "neodataRefreshBtn": "🔗 Подключиться через WorkBuddy",
+      "vendorUntouchedHint": "Не вызывался в этом цикле, нет данных о состоянии",
+      "vendorTotalSuccess": "Всего успехов",
+      "vendorTotalFailures": "Всего сбоев",
+      "vendorConsecutiveFailures": "Последовательные сбои",
+      "vendorLastError": "Последняя ошибка",
+      "vendorLastSuccess": "Последний успех",
+      "vendorLastFailure": "Последний сбой",
+      "vendorHealth": "Состояние источников данных"
     },
     "experiment": {
       "executeTrade": "执行交易 →",
@@ -15447,6 +15512,44 @@
       "limitUpThMed": "Порог среднего потенциала роста до предела",
       "limitUpThLow": "Порог низкого потенциала роста до предела",
       "analysisDryRun": "Режим сухого прогона: не вызывать LLM, использовать mock-вывод для проверки процесса"
+    },
+    "evidenceCitation": {
+      "loading": "Извлечение цитат...",
+      "error": "Ошибка извлечения",
+      "noData": "Нет данных цитат",
+      "title": "Аудит цитат",
+      "supportRate": "Доля поддержки данными",
+      "analystCount": "Аналитики-источники",
+      "claimCount": "Причины решения",
+      "supported": "С данными",
+      "unsupported": "Без данных",
+      "source": "Источник"
+    },
+    "charts": {
+      "noSectorData": "Нет данных по секторам",
+      "sectorAllocation": "Распределение по секторам",
+      "needMoreStocks": "Требуется минимум 2 акции",
+      "correlationMatrix": "Матрица корреляции",
+      "noTradeData": "Нет данных по сделкам",
+      "pnlDistribution": "Распределение PnL",
+      "portfolio": "Портфель",
+      "benchmark": "Базис",
+      "needMoreData": "Недостаточно данных",
+      "portfolioVsBenchmark": "Портфель против базиса"
+    },
+    "simVsBacktest": {
+      "title": "Симуляция против бэктеста",
+      "backtestTrades": "Сделки бэктеста",
+      "simTrades": "Сделки симуляции",
+      "metric": "Метрика",
+      "backtest": "Бэктест",
+      "simulation": "Симуляция",
+      "diff": "Разница",
+      "judgment": "Оценка",
+      "backtestBetter": "Бэктест выигрывает",
+      "simBetter": "Симуляция выигрывает",
+      "backtestSummary": "Итоги бэктеста",
+      "simSummary": "Итоги симуляции"
     }
   },
   "pipeline": {

@@ -43,24 +43,24 @@ interface RecoCronRow {
 }
 
 const CRON_PRESETS = [
-  { label: "每日 09:00 (开盘前)", value: "0 9 * * *" },
-  { label: "每日 15:30 (收盘)", value: "30 15 * * *" },
-  { label: "每周一 09:00", value: "0 9 * * 1" },
-  { label: "每周一 15:30", value: "30 15 * * 1" },
-  { label: "每小时", value: "0 * * * *" },
+  { labelKey: "settings.scheduled-recommendation.preset-daily-open", value: "0 9 * * *" },
+  { labelKey: "settings.scheduled-recommendation.preset-daily-close", value: "30 15 * * *" },
+  { labelKey: "settings.scheduled-recommendation.preset-monday-open", value: "0 9 * * 1" },
+  { labelKey: "settings.scheduled-recommendation.preset-monday-close", value: "30 15 * * 1" },
+  { labelKey: "settings.scheduled-recommendation.preset-hourly", value: "0 * * * *" },
 ];
 
 const INTERVAL_PRESETS = [
-  { label: "每 30 分钟", value: "*/30 * * * *" },
-  { label: "每 1 小时", value: "0 * * * *" },
-  { label: "每 2 小时", value: "0 */2 * * *" },
-  { label: "每 4 小时", value: "0 */4 * * *" },
+  { labelKey: "settings.scheduled-recommendation.interval-30min", value: "*/30 * * * *" },
+  { labelKey: "settings.scheduled-recommendation.interval-1h", value: "0 * * * *" },
+  { labelKey: "settings.scheduled-recommendation.interval-2h", value: "0 */2 * * *" },
+  { labelKey: "settings.scheduled-recommendation.interval-4h", value: "0 */4 * * *" },
 ];
 
-const ALL_PERIODS: { value: PeriodKey; label: string }[] = [
-  { value: "short", label: "短线 (1-2 周)" },
-  { value: "mid", label: "中线 (3-8 周)" },
-  { value: "long", label: "长线 (3 个月+)" },
+const ALL_PERIODS: { value: PeriodKey; labelKey: string }[] = [
+  { value: "short", labelKey: "settings.scheduled-recommendation.period-short" },
+  { value: "mid", labelKey: "settings.scheduled-recommendation.period-mid" },
+  { value: "long", labelKey: "settings.scheduled-recommendation.period-long" },
 ];
 
 export function ScheduledRecommendationTab() {
@@ -150,7 +150,7 @@ export function ScheduledRecommendationTab() {
         render: (_: unknown, r: RecoCronRow) => (
           <div className="flex flex-col gap-0.5 text-[11px]">
             <span className="text-gray-600">
-              {r.config.periods.map((p) => ALL_PERIODS.find((x) => x.value === p)?.label ?? p).join(" / ")}
+              {r.config.periods.map((p) => t(ALL_PERIODS.find((x) => x.value === p)?.labelKey ?? p)).join(" / ")}
             </span>
             <span className="text-gray-400">
               {t("settings.scheduled-recommendation.min-confidence-and-top-n", {
@@ -273,12 +273,12 @@ export function ScheduledRecommendationTab() {
                   options={[
                     {
                       label: t("settings.scheduled-recommendation.group-presets"),
-                      options: CRON_PRESETS,
+                      options: CRON_PRESETS.map((p) => ({ ...p, label: t(p.labelKey) })),
                       disabled: true,
                     },
                     {
                       label: t("settings.scheduled-recommendation.group-custom-interval"),
-                      options: INTERVAL_PRESETS,
+                      options: INTERVAL_PRESETS.map((p) => ({ ...p, label: t(p.labelKey) })),
                       disabled: true,
                     },
                   ].flatMap((g) => g.options)}
@@ -296,7 +296,7 @@ export function ScheduledRecommendationTab() {
               >
                 <Select
                   mode="multiple"
-                  options={ALL_PERIODS}
+                  options={ALL_PERIODS.map((p) => ({ ...p, label: t(p.labelKey) }))}
                   placeholder={t("settings.scheduled-recommendation.placeholder-periods")}
                   maxTagCount="responsive"
                 />

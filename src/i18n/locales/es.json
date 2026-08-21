@@ -377,11 +377,9 @@
   "app": {
     "name": "AxAgent",
     "newSkillProposal": "Nueva sugerencia de habilidad: {name}",
-    "title": "Espacio de Trabajo Inteligente",
-    "quickBar": "QuickBar",
-    "description": "智能工作助手",
     "title": "Estación de Trabajo de Agentes",
-    "quickBar": "QuickBar"
+    "quickBar": "QuickBar",
+    "description": "智能工作助手"
   },
   "appHeader": {
     "closeAgentPanel": "Cerrar Panel de Agente",
@@ -905,12 +903,11 @@
     },
     "messageArea": "Área de mensajes",
     "mode": {
-      "title": "Switch Mode",
+      "title": "Modo de ejecución",
       "ask": "Ask",
       "plan": "Plan",
       "action": "Action",
       "auto": "Auto",
-      "title": "Modo de ejecución",
       "gateway": "Pasarela"
     },
     "moveToWorkspace": "Mover al espacio de trabajo",
@@ -12478,6 +12475,49 @@
         "runningEngines": "\nRunning evolution engines: {{engines}}"
       },
       "unnamed": "Unnamed"
+    },
+    "narrative": {
+      "noArcs": "Sin arcos definidos",
+      "progress": "Progreso",
+      "stages": "Etapas del arco",
+      "noStages": "Sin etapas definidas",
+      "noForeshadows": "Sin presagios definidos",
+      "chapterDistribution": "Distribución de capítulos",
+      "setupChapters": "Capítulos de preparación",
+      "payoffChapters": "Capítulos de resolución",
+      "noPayoff": "Sin resolución programada",
+      "relatedArcs": "Arcos relacionados",
+      "saveNameRequired": "El nombre es obligatorio",
+      "saveSuccess": "Guardado exitoso",
+      "saveFailed": "Error al guardar",
+      "loadSuccess": "Carga exitosa",
+      "confirmDelete": "Confirmar eliminación",
+      "confirmDeleteDesc": "¿Eliminar este registro de estructura narrativa?",
+      "noStructure": "Sin datos de estructura narrativa",
+      "savedRecords": "Estructuras guardadas",
+      "title": "Estructura narrativa",
+      "save": "Guardar",
+      "loadFromHistory": "Cargar desde historial",
+      "arcs": "Arcos",
+      "foreshadows": "Presagios",
+      "confluences": "Confluencias",
+      "viewOverview": "Resumen",
+      "viewArcs": "Arcos",
+      "viewForeshadows": "Presagios",
+      "saveTitle": "Guardar estructura narrativa",
+      "saveName": "Nombre",
+      "saveNamePlaceholder": "Ingrese el nombre de la estructura",
+      "saveDesc": "Descripción (opcional)",
+      "saveDescPlaceholder": "Describa brevemente esta estructura",
+      "saveGenre": "Género",
+      "genreNovel": "Novela",
+      "genreShortStory": "Cuento",
+      "genreScreenplay": "Guion",
+      "genrePoetry": "Poesía",
+      "genreOther": "Otro",
+      "arcList": "Arcos de personajes",
+      "confluenceList": "Confluencias",
+      "foreshadowList": "Red de presagios"
     }
   },
   "voiceChat": {
@@ -13614,7 +13654,27 @@
       "sampleInterval": "Sample Interval",
       "startDate": "Start Date",
       "totalRuns": "Total Runs",
-      "winRate": "Win Rate"
+      "winRate": "Win Rate",
+      "chart": {
+        "equity": "Patrimonio",
+        "cash": "Efectivo",
+        "positionValue": "Valor de posición",
+        "benchmark": "Referencia",
+        "equityCurve": "Curva de patrimonio",
+        "drawdown": "Curva de caída",
+        "trades": "Operaciones",
+        "tradeDate": "Fecha",
+        "tradeType": "Dirección",
+        "tradePrice": "Precio",
+        "tradeReason": "Motivo"
+      },
+      "metrics": {
+        "totalReturn": "Rentabilidad total",
+        "sharpe": "Ratio de Sharpe",
+        "maxDrawdown": "Caída máxima",
+        "winRate": "Tasa de victoria"
+      },
+      "tabCharts": "📊 Visuales"
     },
     "export": {
       "analystReports": "analystReports",
@@ -14074,7 +14134,15 @@
       "statAuthor": "Author",
       "statSource": "Source",
       "neodataRefreshHint": "请在 WorkBuddy 对话中输入「刷新 NeoData token」自动完成连接",
-      "neodataRefreshBtn": "🔗 Conectar mediante WorkBuddy"
+      "neodataRefreshBtn": "🔗 Conectar mediante WorkBuddy",
+      "vendorUntouchedHint": "No llamado en este ciclo, sin datos de estado",
+      "vendorTotalSuccess": "Éxitos totales",
+      "vendorTotalFailures": "Fallos totales",
+      "vendorConsecutiveFailures": "Fallos consecutivos",
+      "vendorLastError": "Último error",
+      "vendorLastSuccess": "Último éxito",
+      "vendorLastFailure": "Último fallo",
+      "vendorHealth": "Estado de fuentes de datos"
     },
     "experiment": {
       "executeTrade": "执行交易 →",
@@ -15444,6 +15512,44 @@
       "limitUpThMed": "Umbral de medio potencial de límite diario",
       "limitUpThLow": "Umbral de bajo potencial de límite diario",
       "analysisDryRun": "Modo de simulación sin LLM: usar salida simulada para verificar el flujo"
+    },
+    "evidenceCitation": {
+      "loading": "Extrayendo citas...",
+      "error": "Error de extracción",
+      "noData": "Sin datos de citas",
+      "title": "Auditoría de citas",
+      "supportRate": "Tasa de soporte de datos",
+      "analystCount": "Analistas fuente",
+      "claimCount": "Razones de decisión",
+      "supported": "Con datos",
+      "unsupported": "Sin datos",
+      "source": "Fuente"
+    },
+    "charts": {
+      "noSectorData": "Sin datos de asignación sectorial",
+      "sectorAllocation": "Asignación sectorial",
+      "needMoreStocks": "Se requieren al menos 2 acciones",
+      "correlationMatrix": "Matriz de correlación",
+      "noTradeData": "Sin datos de operaciones",
+      "pnlDistribution": "Distribución de PnL",
+      "portfolio": "Cartera",
+      "benchmark": "Referencia",
+      "needMoreData": "Datos insuficientes",
+      "portfolioVsBenchmark": "Cartera vs Referencia"
+    },
+    "simVsBacktest": {
+      "title": "Simulación vs Backtest",
+      "backtestTrades": "Operaciones del backtest",
+      "simTrades": "Operaciones de la simulación",
+      "metric": "Métrica",
+      "backtest": "Backtest",
+      "simulation": "Simulación",
+      "diff": "Diferencia",
+      "judgment": "Juicio",
+      "backtestBetter": "Backtest gana",
+      "simBetter": "Simulación gana",
+      "backtestSummary": "Resumen del backtest",
+      "simSummary": "Resumen de la simulación"
     }
   },
   "pipeline": {

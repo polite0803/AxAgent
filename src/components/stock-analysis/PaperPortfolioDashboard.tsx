@@ -335,9 +335,9 @@ function AddPositionModal({ portfolioId, onClose }: AddPositionModalProps) {
         <Form.Item name="market" label={t("paperPortfolio.marketLabel")}>
           <Select
             options={[
-              { value: "A", label: "A 股" },
-              { value: "US", label: "美股" },
-              { value: "HK", label: "港股" },
+              { value: "A", label: t("paperPortfolio.marketA") },
+              { value: "US", label: t("paperPortfolio.marketUS") },
+              { value: "HK", label: t("paperPortfolio.marketHK") },
               { value: "ETF", label: "ETF" },
             ]}
           />

@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 import { invoke } from "@/lib/invoke";
 import type { StockQuote } from "@/types/stock-analysis";
 import { SwapOutlined } from "@ant-design/icons";
@@ -286,8 +287,8 @@ export function CompareView() {
 
 function fmtMv(v?: number | null): string {
   if (!v || v === 0) { return "—"; }
-  if (v >= 1e8) { return `${(v / 1e8).toFixed(0)}亿`; }
-  return `${(v / 1e4).toFixed(0)}万`;
+  if (v >= 1e8) { return `${(v / 1e8).toFixed(0)}${i18n.t("stockAnalysis.yiUnit")}`; }
+  return `${(v / 1e4).toFixed(0)}${i18n.t("stockAnalysis.wanUnit")}`;
 }
 
 function fmtPct(v?: number | null): string {

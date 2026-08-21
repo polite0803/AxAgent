@@ -199,21 +199,57 @@ export function DecisionBanner({ embeddedInWorkspace = false }: { embeddedInWork
     // 2. 旧版降级：构造 10 个分析师的固定列表
     //    前 good_count 个标 normal（按固定顺序），其余标 missing
     //    旧版无法区分 low/normal，统一按 gap_count/missing 重建
-    const fallbackOrder: Array<{ abbr: string; name: string; expected: string }> = [
-      { abbr: "mk", name: "技术面分析师", expected: "K线形态、MACD/RSI、支撑阻力位、成交量（t-market-data）" },
-      { abbr: "sent", name: "情绪面分析师", expected: "市场情绪、资金流向、散户/机构态度（t-sentiment-data）" },
-      { abbr: "news", name: "新闻面分析师", expected: "新闻公告影响评估（t-news-data: get_stock_news）" },
-      { abbr: "fund", name: "基本面分析师", expected: "PE/PB/ROE、营收利润、资产负债（t-fundamentals-data）" },
-      { abbr: "pol", name: "政策面分析师", expected: "宏观政策与行业政策影响（t-policy-data）" },
+    const fallbackOrder: Array<{ abbr: string; nameKey: string; expectedKey: string }> = [
+      {
+        abbr: "mk",
+        nameKey: "stockAnalysis.workflow.analyst.a-market-analyst",
+        expectedKey: "stockAnalysis.dataQuality.expectedMarket",
+      },
+      {
+        abbr: "sent",
+        nameKey: "stockAnalysis.workflow.analyst.a-sentiment",
+        expectedKey: "stockAnalysis.dataQuality.expectedSentiment",
+      },
+      {
+        abbr: "news",
+        nameKey: "stockAnalysis.dataQuality.fallbackNewsAnalyst",
+        expectedKey: "stockAnalysis.dataQuality.expectedNews",
+      },
+      {
+        abbr: "fund",
+        nameKey: "stockAnalysis.workflow.analyst.a-fundamentals",
+        expectedKey: "stockAnalysis.dataQuality.expectedFundamentals",
+      },
+      {
+        abbr: "pol",
+        nameKey: "stockAnalysis.workflow.analyst.a-policy",
+        expectedKey: "stockAnalysis.dataQuality.expectedPolicy",
+      },
       {
         abbr: "hm",
-        name: "资金面分析师",
-        expected: "游资动向、主力资金净流入（t-hotmoney-data: get_stock_money_flow）",
+        nameKey: "stockAnalysis.workflow.analyst.a-hot-money",
+        expectedKey: "stockAnalysis.dataQuality.expectedHotMoney",
       },
-      { abbr: "lk", name: "解禁观察员", expected: "解禁减持、质押风险、大宗交易（t-lockup-data）" },
-      { abbr: "res", name: "研报分析师", expected: "券商研报观点汇总、目标价（t-research-data）" },
-      { abbr: "sec", name: "行业分析师", expected: "行业景气度、轮动分析（t-sector-data）" },
-      { abbr: "cat", name: "催化剂分析师", expected: "催化剂与叙事完整度、公告关键词（t-catalyst-data）" },
+      {
+        abbr: "lk",
+        nameKey: "stockAnalysis.workflow.analyst.a-lockup",
+        expectedKey: "stockAnalysis.dataQuality.expectedLockup",
+      },
+      {
+        abbr: "res",
+        nameKey: "stockAnalysis.analystRoles.researchAnalyst",
+        expectedKey: "stockAnalysis.dataQuality.expectedResearch",
+      },
+      {
+        abbr: "sec",
+        nameKey: "stockAnalysis.workflow.analyst.a-sector",
+        expectedKey: "stockAnalysis.dataQuality.expectedSector",
+      },
+      {
+        abbr: "cat",
+        nameKey: "stockAnalysis.dataQuality.fallbackCatalystAnalyst",
+        expectedKey: "stockAnalysis.dataQuality.expectedCatalyst",
+      },
     ];
     const totalAnalysts = Number(parsed.total_analysts) || fallbackOrder.length;
     const goodCount = Number(parsed.good_count) || 0;
@@ -223,27 +259,26 @@ export function DecisionBanner({ embeddedInWorkspace = false }: { embeddedInWork
     const diagnostics: Record<string, any> = {};
     const missingList: string[] = [];
     for (let i = 0; i < fallbackOrder.length && i < totalAnalysts; i++) {
-      const { abbr, name, expected } = fallbackOrder[i];
+      const { abbr, nameKey, expectedKey } = fallbackOrder[i];
       if (i < goodCount) {
         diagnostics[abbr] = {
-          name,
-          expected_data: expected,
+          name: t(nameKey),
+          expected_data: t(expectedKey),
           confidence: avgConf,
           status: avgConf < 50 ? "low" : "normal",
           gap_reason: i < goodCount && gapCount === 0 && avgConf < 50
-            ? `置信度自评 ${avgConf}（旧版数据无 detail，置信度来自平均）`
+            ? t("stockAnalysis.dataQuality.gapReasonLegacyConfidence", { avgConf })
             : "",
         };
       } else {
         diagnostics[abbr] = {
-          name,
-          expected_data: expected,
+          name: t(nameKey),
+          expected_data: t(expectedKey),
           confidence: -1,
           status: "missing",
-          gap_reason:
-            "旧版 data-quality 输出未提供 diagnostics 字段，仅由 gap_count 推断。建议重跑分析以获取详细信息。",
+          gap_reason: t("stockAnalysis.dataQuality.gapReasonLegacy"),
         };
-        missingList.push(name);
+        missingList.push(t(nameKey));
       }
     }
 
@@ -257,10 +292,14 @@ export function DecisionBanner({ embeddedInWorkspace = false }: { embeddedInWork
       diagnostics,
       missing_analysts: missingList,
       low_confidence_analysts: [],
-      summary:
-        `数据质量 ${parsed.grade} 级（得分 ${parsed.score}，旧版输出未提供 summary）：${gapCount} 个分析师数据缺失，${goodCount} 个有数据。建议重跑分析以获取完整的诊断信息。`,
+      summary: t("stockAnalysis.dataQuality.legacySummary", {
+        grade: parsed.grade,
+        score: parsed.score,
+        gapCount,
+        goodCount,
+      }),
     };
-  }, [dataQualitySummary]);
+  }, [dataQualitySummary, t]);
 
   // V66 修复(2026-07-29): 检测 stale_record 标记（snapshot 为空时 store 设置的占位 JSON）
   // 用于在降级面板中显示「重跑分析」按钮，而非静默展示空字符串
@@ -1920,14 +1959,14 @@ export function DecisionBanner({ embeddedInWorkspace = false }: { embeddedInWork
               style={{ background: "var(--surface)", borderLeft: "3px solid var(--sa-amber, #f59e0b)" }}
             >
               <div className="font-semibold mb-1" style={{ color: "#f59e0b" }}>
-                ⚠️ 数据质量诊断未渲染
+                {t("stockAnalysis.dataQuality.renderFailed")}
               </div>
               <div style={{ color: "var(--muted)" }}>
-                dataQualitySummary 长度:
+                {t("stockAnalysis.dataQuality.summaryLength")}
                 <span className="font-mono ml-1">{dataQualitySummary.length}</span>
                 {dataQualitySummary.length > 0 && (
                   <>
-                    <span className="ml-2">前 200 字符:</span>
+                    <span className="ml-2">{t("stockAnalysis.dataQuality.first200Chars")}</span>
                     <pre
                       className="mt-1 p-2 rounded font-mono"
                       style={{ background: "var(--background)", whiteSpace: "pre-wrap", wordBreak: "break-all" }}
@@ -1955,7 +1994,7 @@ export function DecisionBanner({ embeddedInWorkspace = false }: { embeddedInWork
                   </div>
                 )}
                 {dataQualitySummary.length === 0 && !staleRecordSummary && (
-                  <div className="mt-1">（空字符串 — store 未填充 dataQualitySummary 字段）</div>
+                  <div className="mt-1">{t("stockAnalysis.dataQuality.emptySummaryHint")}</div>
                 )}
               </div>
             </div>

@@ -225,7 +225,7 @@ export function AnalystReportGrid() {
       } else {
         // Bug #P0 修复: 工作流已完成但节点无有效数据也未标记失败，
         // 显示失败状态（无数据），避免卡片消失或永远卡在"等待中"
-        result.push({ nodeId, expertId, status: "failed", error: "该节点未返回有效分析数据" });
+        result.push({ nodeId, expertId, status: "failed", error: t("stockAnalysis.analystReport.nodeNoData") });
       }
     }
 
@@ -241,7 +241,7 @@ export function AnalystReportGrid() {
     }
 
     return result;
-  }, [analystReports, failedNodes, failedNodeErrors, workflowStatus]);
+  }, [analystReports, failedNodes, failedNodeErrors, workflowStatus, t]);
 
   // 空态：工作流未启动 / 无任何分析师数据 → 不渲染（保持原行为）
   if (entries.length === 0) { return null; }
@@ -401,18 +401,18 @@ export function AnalystReportGrid() {
       render: (avail: boolean) =>
         avail
           ? (
-            <Tooltip title="数据可用">
+            <Tooltip title={t("stockAnalysis.analystReport.dataAvailable")}>
               <span style={{ color: "#52c41a" }}>✅</span>
             </Tooltip>
           )
           : (
-            <Tooltip title="无数据">
+            <Tooltip title={t("stockAnalysis.viz.noData")}>
               <span>❌</span>
             </Tooltip>
           ),
     },
     {
-      title: "判断",
+      title: t("stockAnalysis.simVsBacktest.judgment"),
       dataIndex: "verdict",
       key: "verdict",
       width: 60,
@@ -449,7 +449,7 @@ export function AnalystReportGrid() {
           : <span style={{ color: "var(--muted)", fontSize: 11 }}>-</span>,
     },
     {
-      title: "共识",
+      title: t("stockAnalysis.consensusAbbr"),
       dataIndex: "consensusScore",
       key: "consensusScore",
       width: 48,
@@ -461,7 +461,7 @@ export function AnalystReportGrid() {
       },
     },
     {
-      title: "置信",
+      title: t("stockAnalysis.experiment.conf"),
       dataIndex: "confidence",
       key: "confidence",
       width: 44,
@@ -472,28 +472,28 @@ export function AnalystReportGrid() {
           : <span style={{ color: "var(--muted)", fontSize: 11 }}>-</span>,
     },
     {
-      title: "多方论据",
+      title: t("stockAnalysis.analystReport.bullArgument"),
       key: "hasBullPoints",
       width: 40,
       align: "center",
       render: (_: unknown, row: AnalystVerdictRow) =>
         row.hasBullPoints
           ? (
-            <Tooltip title="含多方论据">
+            <Tooltip title={t("stockAnalysis.analystReport.hasBullArgument")}>
               <span style={{ color: "#f5222d" }}>✅</span>
             </Tooltip>
           )
           : <span style={{ color: "var(--muted)" }}>➖</span>,
     },
     {
-      title: "空方论据",
+      title: t("stockAnalysis.analystReport.bearArgument"),
       key: "hasBearPoints",
       width: 40,
       align: "center",
       render: (_: unknown, row: AnalystVerdictRow) =>
         row.hasBearPoints
           ? (
-            <Tooltip title="含空方论据">
+            <Tooltip title={t("stockAnalysis.analystReport.hasBearArgument")}>
               <span style={{ color: "#52c41a" }}>✅</span>
             </Tooltip>
           )
@@ -614,9 +614,10 @@ export function AnalystReportGrid() {
             onClick={() => setShowBrief((v) => !v)}
             style={{ fontSize: 12 }}
           >
-            {showBrief ? "🔼" : "🔽"} 分析师数据明细
+            {showBrief ? "🔼" : "🔽"} {t("stockAnalysis.analystReport.dataDetail")}
             <span style={{ color: "var(--muted)", marginLeft: 6, fontSize: 11 }}>
-              ({analystVerdicts.filter((r) => r.available).length}/{analystVerdicts.length} 有数据)
+              ({analystVerdicts.filter((r) => r.available).length}/{analystVerdicts.length}{" "}
+              {t("stockAnalysis.evidenceCitation.supported")})
             </span>
           </Button>
           {showBrief && (

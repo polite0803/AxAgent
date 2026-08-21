@@ -377,11 +377,9 @@
   "app": {
     "name": "AxAgent",
     "newSkillProposal": "New skill suggestion: {name}",
-    "title": "مساحة العمل الذكية",
-    "quickBar": "شريط سريع",
-    "description": "智能工作助手",
     "title": "محطة عمل الوكلاء",
-    "quickBar": "شريط سريع"
+    "quickBar": "شريط سريع",
+    "description": "智能工作助手"
   },
   "appHeader": {
     "closeAgentPanel": "إغلاق لوحة الوكيل",
@@ -905,15 +903,11 @@
     },
     "messageArea": "منطقة الرسائل",
     "mode": {
-      "title": "Switch Mode",
-      "ask": "Ask",
-      "plan": "Plan",
-      "action": "Action",
-      "action": "تنفيذ",
-      "ask": "اسأل",
-      "auto": "تلقائي",
-      "plan": "خطة",
       "title": "وضع التنفيذ",
+      "ask": "اسأل",
+      "plan": "خطة",
+      "action": "تنفيذ",
+      "auto": "تلقائي",
       "gateway": "بوابة"
     },
     "moveToWorkspace": "نقل إلى مساحة العمل",
@@ -12481,6 +12475,49 @@
         "runningEngines": "\nRunning evolution engines: {{engines}}"
       },
       "unnamed": "Unnamed"
+    },
+    "narrative": {
+      "noArcs": "لا توجد أقواس",
+      "progress": "التقدم",
+      "stages": "مراحل القوس",
+      "noStages": "لا توجد مراحل",
+      "noForeshadows": "لا توجد تلميحات",
+      "chapterDistribution": "توزيع الفصول",
+      "setupChapters": "فصول التأسيس",
+      "payoffChapters": "فصول الإنهاء",
+      "noPayoff": "لا يوجد إنهاء مجدول",
+      "relatedArcs": "أقواس ذات صلة",
+      "saveNameRequired": "الاسم مطلوب",
+      "saveSuccess": "تم الحفظ بنجاح",
+      "saveFailed": "فشل الحفظ",
+      "loadSuccess": "تم التحميل بنجاح",
+      "confirmDelete": "تأكيد الحذف",
+      "confirmDeleteDesc": "حذف سجل البنية السردية؟",
+      "noStructure": "لا توجد بيانات البنية السردية",
+      "savedRecords": "البنيات المحفوظة",
+      "title": "البنية السردية",
+      "save": "حفظ",
+      "loadFromHistory": "تحميل من السجل",
+      "arcs": "الأقواس",
+      "foreshadows": "التلميحات",
+      "confluences": "التقاءات",
+      "viewOverview": "نظرة عامة",
+      "viewArcs": "الأقواس",
+      "viewForeshadows": "التلميحات",
+      "saveTitle": "حفظ البنية السردية",
+      "saveName": "الاسم",
+      "saveNamePlaceholder": "أدخل اسم البنية",
+      "saveDesc": "الوصف (اختياري)",
+      "saveDescPlaceholder": "صف هذه البنية باختصار",
+      "saveGenre": "النوع",
+      "genreNovel": "رواية",
+      "genreShortStory": "قصة قصيرة",
+      "genreScreenplay": "سيناريو",
+      "genrePoetry": "شعر",
+      "genreOther": "أخرى",
+      "arcList": "أقواس الشخصيات",
+      "confluenceList": "التقاءات",
+      "foreshadowList": "شبكة التلميحات"
     }
   },
   "voiceChat": {
@@ -13617,7 +13654,27 @@
       "sampleInterval": "Sample Interval",
       "startDate": "Start Date",
       "totalRuns": "Total Runs",
-      "winRate": "Win Rate"
+      "winRate": "Win Rate",
+      "chart": {
+        "equity": "حقوق الملكية",
+        "cash": "النقدية",
+        "positionValue": "قيمة المركز",
+        "benchmark": "المعيار",
+        "equityCurve": "منحنى حقوق الملكية",
+        "drawdown": "منحنى التراجع",
+        "trades": "الصفقات",
+        "tradeDate": "التاريخ",
+        "tradeType": "الاتجاه",
+        "tradePrice": "السعر",
+        "tradeReason": "السبب"
+      },
+      "metrics": {
+        "totalReturn": "العائد الإجمالي",
+        "sharpe": "نسبة شارب",
+        "maxDrawdown": "أقصى تراجع",
+        "winRate": "معدل الفوز"
+      },
+      "tabCharts": "📊 الرسوم"
     },
     "export": {
       "analystReports": "analystReports",
@@ -14077,7 +14134,15 @@
       "statAuthor": "Author",
       "statSource": "Source",
       "neodataRefreshHint": "请在 WorkBuddy 对话中输入「刷新 NeoData token」自动完成连接",
-      "neodataRefreshBtn": "🔗 الاتصال عبر WorkBuddy"
+      "neodataRefreshBtn": "🔗 الاتصال عبر WorkBuddy",
+      "vendorUntouchedHint": "لم يتم استدعاؤه في هذه الدورة، لا توجد بيانات",
+      "vendorTotalSuccess": "إجمالي النجاحات",
+      "vendorTotalFailures": "إجمالي الإخفاقات",
+      "vendorConsecutiveFailures": "إخفاقات متتالية",
+      "vendorLastError": "آخر خطأ",
+      "vendorLastSuccess": "آخر نجاح",
+      "vendorLastFailure": "آخر فشل",
+      "vendorHealth": "حالة مصادر البيانات"
     },
     "experiment": {
       "executeTrade": "Execute Trade →",
@@ -15447,6 +15512,44 @@
       "limitUpThMed": "عتبة الإمكانية المتوسطة للتوقف اليومي",
       "limitUpThLow": "عتبة الإمكانية المنخفضة للتوقف اليومي",
       "analysisDryRun": "وضع الجفاف: لا يتم استدعاء LLM، يتم استخدام إخراج وهمي للتحقق من العملية"
+    },
+    "evidenceCitation": {
+      "loading": "جارٍ استخراج الاستشهادات...",
+      "error": "فشل الاستخراج",
+      "noData": "لا توجد بيانات استشهاد",
+      "title": "تدقيق الاستشهادات",
+      "supportRate": "معدل دعم البيانات",
+      "analystCount": "محللون المصدر",
+      "claimCount": "أسباب القرار",
+      "supported": "مع بيانات",
+      "unsupported": "بدون بيانات",
+      "source": "المصدر"
+    },
+    "charts": {
+      "noSectorData": "لا توجد بيانات القطاع",
+      "sectorAllocation": "تخصيص القطاع",
+      "needMoreStocks": "مطلوب سهمان على الأقل",
+      "correlationMatrix": "مصفوفة الارتباط",
+      "noTradeData": "لا توجد بيانات صفقات",
+      "pnlDistribution": "توزيع الأرباح",
+      "portfolio": "المحفظة",
+      "benchmark": "المعيار",
+      "needMoreData": "بيانات غير كافية",
+      "portfolioVsBenchmark": "المحفظة مقابل المعيار"
+    },
+    "simVsBacktest": {
+      "title": "المحاكاة مقابل الاختبار",
+      "backtestTrades": "صفقات الاختبار",
+      "simTrades": "صفقات المحاكاة",
+      "metric": "المقياس",
+      "backtest": "اختبار رجعي",
+      "simulation": "المحاكاة",
+      "diff": "الفرق",
+      "judgment": "الحكم",
+      "backtestBetter": "التفوق للاختبار",
+      "simBetter": "التفوق للمحاكاة",
+      "backtestSummary": "ملخص الاختبار",
+      "simSummary": "ملخص المحاكاة"
     }
   },
   "pipeline": {

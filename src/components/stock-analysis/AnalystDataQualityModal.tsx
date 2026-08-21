@@ -35,16 +35,16 @@ function detectNodeType(nodeId: string): NodeType {
   return "other";
 }
 
-/** 获取节点类型的中文名称 */
+/** 获取节点类型的 i18n key */
 function getNodeTypeName(nodeType: NodeType): string {
   const names: Record<NodeType, string> = {
-    analyst: "分析师",
-    debate: "辩论节点",
-    decision: "决策节点",
-    tool: "工具/算法节点",
-    valuation: "估值节点",
-    risk: "风险节点",
-    other: "通用节点",
+    analyst: "stockAnalysis.analystReport.nodeTypeAnalyst",
+    debate: "stockAnalysis.analystReport.nodeTypeDebate",
+    decision: "stockAnalysis.analystReport.nodeTypeDecision",
+    tool: "stockAnalysis.analystReport.nodeTypeTool",
+    valuation: "stockAnalysis.analystReport.nodeTypeValuation",
+    risk: "stockAnalysis.analystReport.nodeTypeRisk",
+    other: "stockAnalysis.analystReport.nodeTypeOther",
   };
   return names[nodeType];
 }
@@ -160,7 +160,12 @@ interface QualityResult {
   issueCount: number;
 }
 
-function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertId: string): QualityResult {
+function analyzeDataQuality(
+  parsed: ParsedReport | null,
+  report: string,
+  expertId: string,
+  t: (key: string, opts?: Record<string, unknown>) => string,
+): QualityResult {
   const checks: QualityCheck[] = [];
   let score = 100;
   let goodCount = 0;
@@ -174,7 +179,9 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
       category: "dataQualityOverall",
       field: "parsed_json",
       status: "issue",
-      detail: hasJson ? "JSON 格式存在但前端解析失败" : "非结构化文本，无法执行结构化数据质量分析",
+      detail: hasJson
+        ? t("stockAnalysis.analystReport.dqParseFailed")
+        : t("stockAnalysis.analystReport.dqUnstructuredText"),
     });
     issueCount++;
     score = hasJson ? 30 : 10;
@@ -195,9 +202,9 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
     if (jsonEnd === -1) {
       checks.push({
         category: "dataQualityFieldCompleteness",
-        field: "VERDICT 格式",
+        field: t("stockAnalysis.analystReport.dqVerdictFormat"),
         status: "issue",
-        detail: "VERDICT 标签存在但缺少 --> 闭合标记，JSON 不完整",
+        detail: t("stockAnalysis.analystReport.dqVerdictIncomplete"),
       });
       issueCount++;
       score -= 15;
@@ -210,7 +217,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
           category: "dataQualityFieldCompleteness",
           field: "VERDICT JSON",
           status: "good",
-          detail: "VERDICT 标签格式完整，JSON 解析成功",
+          detail: t("stockAnalysis.analystReport.dqVerdictParsed"),
         });
         goodCount++;
 
@@ -237,7 +244,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
               category: "dataQualityFieldCompleteness",
               field: `VERDICT.${f.name}`,
               status: "issue",
-              detail: "字段缺失",
+              detail: t("stockAnalysis.analystReport.dqFieldMissing"),
             });
             issueCount++;
             score -= 8;
@@ -246,9 +253,12 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
         if (extraVerdictKeys.length > 0) {
           checks.push({
             category: "dataQualityFieldCompleteness",
-            field: "VERDICT 扩展字段",
+            field: t("stockAnalysis.analystReport.dqVerdictExtraFields"),
             status: "good",
-            detail: `VERDICT 含 ${extraVerdictKeys.length} 个扩展字段：${extraVerdictKeys.join("、")}`,
+            detail: t("stockAnalysis.analystReport.dqVerdictExtraKeys", {
+              count: extraVerdictKeys.length,
+              keys: extraVerdictKeys.join("、"),
+            }),
           });
           goodCount++;
         }
@@ -259,14 +269,16 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
           if (f.name in verdictData) {
             const actualType = typeof (verdictData as Record<string, unknown>)[f.name];
             if (actualType !== f.type) {
-              typeIssues.push(`${f.name} 应为 ${f.type}，实际为 ${actualType}`);
+              typeIssues.push(
+                t("stockAnalysis.analystReport.dqTypeMismatch", { name: f.name, type: f.type, actual: actualType }),
+              );
             }
           }
         }
         if (typeIssues.length > 0) {
           checks.push({
             category: "dataQualityValueQuality",
-            field: "VERDICT 类型",
+            field: t("stockAnalysis.analystReport.dqVerdictType"),
             status: "warning",
             detail: typeIssues.join("；"),
           });
@@ -275,9 +287,9 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
         } else {
           checks.push({
             category: "dataQualityValueQuality",
-            field: "VERDICT 类型",
+            field: t("stockAnalysis.analystReport.dqVerdictType"),
             status: "good",
-            detail: "VERDICT 各字段类型正确",
+            detail: t("stockAnalysis.analystReport.dqVerdictTypeOk"),
           });
           goodCount++;
         }
@@ -286,7 +298,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
           category: "dataQualityFieldCompleteness",
           field: "VERDICT JSON",
           status: "issue",
-          detail: "VERDICT 标签内的 JSON 解析失败，可能含格式错误",
+          detail: t("stockAnalysis.analystReport.dqVerdictJsonFail"),
         });
         issueCount++;
         score -= 10;
@@ -297,26 +309,26 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
       if (freeTextLen > 50) {
         checks.push({
           category: "dataQualityContentQuality",
-          field: "VERDICT 文本",
+          field: t("stockAnalysis.analystReport.dqVerdictText"),
           status: "good",
-          detail: `VERDICT 前自由文本 ${freeTextLen} 字符，分析内容充实`,
+          detail: t("stockAnalysis.analystReport.dqFreeTextRich", { len: freeTextLen }),
         });
         goodCount++;
       } else if (freeTextLen > 10) {
         checks.push({
           category: "dataQualityContentQuality",
-          field: "VERDICT 文本",
+          field: t("stockAnalysis.analystReport.dqVerdictText"),
           status: "warning",
-          detail: `VERDICT 前自由文本仅 ${freeTextLen} 字符，分析偏简略`,
+          detail: t("stockAnalysis.analystReport.dqFreeTextBrief", { len: freeTextLen }),
         });
         warningCount++;
         score -= 3;
       } else {
         checks.push({
           category: "dataQualityContentQuality",
-          field: "VERDICT 文本",
+          field: t("stockAnalysis.analystReport.dqVerdictText"),
           status: "warning",
-          detail: "VERDICT 前无实质自由文本，纯 JSON 输出",
+          detail: t("stockAnalysis.analystReport.dqFreeTextNone"),
         });
         warningCount++;
         score -= 3;
@@ -328,17 +340,17 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
     if (isJson) {
       checks.push({
         category: "dataQualityFieldCompleteness",
-        field: "输出格式",
+        field: t("stockAnalysis.analystReport.dqOutputFormat"),
         status: "good",
-        detail: "纯 JSON 格式（非 VERDICT 标签）",
+        detail: t("stockAnalysis.analystReport.dqPureJson"),
       });
       goodCount++;
     } else {
       checks.push({
         category: "dataQualityFieldCompleteness",
-        field: "输出格式",
+        field: t("stockAnalysis.analystReport.dqOutputFormat"),
         status: "warning",
-        detail: "非标准格式（既非 VERDICT 标签也非纯 JSON）",
+        detail: t("stockAnalysis.analystReport.dqNonStandard"),
       });
       warningCount++;
       score -= 3;
@@ -359,7 +371,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
       category: "dataQualityFieldCompleteness",
       field: "summary/analysis",
       status: "issue",
-      detail: "无摘要或分析文本",
+      detail: t("stockAnalysis.analystReport.dqNoSummary"),
     });
     issueCount++;
     score -= 15;
@@ -368,7 +380,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
       category: "dataQualityFieldCompleteness",
       field: "summary",
       status: "good",
-      detail: `摘要存在（${(parsed.summary?.length ?? 0)} 字符）`,
+      detail: t("stockAnalysis.analystReport.dqSummaryExists", { len: parsed.summary?.length ?? 0 }),
     });
     goodCount++;
   }
@@ -378,7 +390,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
       category: "dataQualityFieldCompleteness",
       field: "confidence",
       status: "warning",
-      detail: "缺失置信度评分",
+      detail: t("stockAnalysis.analystReport.dqNoConfidence"),
     });
     warningCount++;
     score -= 5;
@@ -387,7 +399,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
       category: "dataQualityFieldCompleteness",
       field: "confidence",
       status: "good",
-      detail: `置信度=${parsed.confidence}`,
+      detail: t("stockAnalysis.analystReport.dqConfidenceValue", { value: parsed.confidence }),
     });
     goodCount++;
   }
@@ -397,7 +409,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
       category: "dataQualityFieldCompleteness",
       field: "verdict/stance",
       status: "warning",
-      detail: "缺失看多/看空判断",
+      detail: t("stockAnalysis.analystReport.dqNoVerdict"),
     });
     warningCount++;
     score -= 5;
@@ -406,7 +418,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
       category: "dataQualityFieldCompleteness",
       field: "verdict/stance",
       status: "good",
-      detail: `判断=${parsed.verdict ?? parsed.stance}`,
+      detail: t("stockAnalysis.analystReport.dqVerdictValue", { value: parsed.verdict ?? parsed.stance }),
     });
     goodCount++;
   }
@@ -419,7 +431,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
       category: "dataQualityFieldCompleteness",
       field: "key_points/evidence",
       status: "warning",
-      detail: "缺失要点或证据列表",
+      detail: t("stockAnalysis.analystReport.dqNoPoints"),
     });
     warningCount++;
     score -= 5;
@@ -429,7 +441,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
       category: "dataQualityFieldCompleteness",
       field: "key_points/evidence",
       status: "good",
-      detail: `存在 ${ptCount} 条要点`,
+      detail: t("stockAnalysis.analystReport.dqPointsCount", { count: ptCount }),
     });
     goodCount++;
   }
@@ -442,7 +454,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
         category: "dataQualityValueQuality",
         field: "bull_score",
         status: "good",
-        detail: `看多评分=${bs}（合法范围 0-100）`,
+        detail: t("stockAnalysis.analystReport.dqBullScoreValid", { value: bs }),
       });
       goodCount++;
     } else {
@@ -450,13 +462,18 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
         category: "dataQualityValueQuality",
         field: "bull_score",
         status: "warning",
-        detail: `看多评分=${bs}，超出常见范围`,
+        detail: t("stockAnalysis.analystReport.dqBullScoreOutOfRange", { value: bs }),
       });
       warningCount++;
       score -= 3;
     }
   } else {
-    checks.push({ category: "dataQualityValueQuality", field: "bull_score", status: "warning", detail: "无看多评分" });
+    checks.push({
+      category: "dataQualityValueQuality",
+      field: "bull_score",
+      status: "warning",
+      detail: t("stockAnalysis.analystReport.dqNoBullScore"),
+    });
     warningCount++;
     score -= 3;
   }
@@ -468,7 +485,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
         category: "dataQualityValueQuality",
         field: "bear_score",
         status: "good",
-        detail: `看空评分=${bs}（合法范围 0-100）`,
+        detail: t("stockAnalysis.analystReport.dqBearScoreValid", { value: bs }),
       });
       goodCount++;
     } else {
@@ -476,13 +493,18 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
         category: "dataQualityValueQuality",
         field: "bear_score",
         status: "warning",
-        detail: `看空评分=${bs}，超出常见范围`,
+        detail: t("stockAnalysis.analystReport.dqBearScoreOutOfRange", { value: bs }),
       });
       warningCount++;
       score -= 3;
     }
   } else {
-    checks.push({ category: "dataQualityValueQuality", field: "bear_score", status: "warning", detail: "无看空评分" });
+    checks.push({
+      category: "dataQualityValueQuality",
+      field: "bear_score",
+      status: "warning",
+      detail: t("stockAnalysis.analystReport.dqNoBearScore"),
+    });
     warningCount++;
     score -= 3;
   }
@@ -495,7 +517,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
         category: "dataQualityConsistency",
         field: "score_sum",
         status: "good",
-        detail: `评分总和 ${scoreSum}，符合 100 基准（±10 容差）`,
+        detail: t("stockAnalysis.analystReport.dqScoreSumOk", { sum: scoreSum }),
       });
       goodCount++;
     } else {
@@ -503,7 +525,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
         category: "dataQualityConsistency",
         field: "score_sum",
         status: "issue",
-        detail: `评分总和 ${scoreSum}，偏离 100 基准（±10 容差外），存在评分不自洽问题`,
+        detail: t("stockAnalysis.analystReport.dqScoreSumInconsistent", { sum: scoreSum }),
       });
       issueCount++;
       score -= 10;
@@ -518,7 +540,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
         category: "dataQualityValueQuality",
         field: "confidence_range",
         status: "issue",
-        detail: `置信度 ${conf} 超出合法范围 0-100`,
+        detail: t("stockAnalysis.analystReport.dqConfidenceRange", { value: conf }),
       });
       issueCount++;
       score -= 5;
@@ -527,7 +549,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
         category: "dataQualityValueQuality",
         field: "confidence_range",
         status: "warning",
-        detail: `置信度 ${conf} 极低（< 10），数据可靠性存疑`,
+        detail: t("stockAnalysis.analystReport.dqConfidenceLow", { value: conf }),
       });
       warningCount++;
       score -= 3;
@@ -541,7 +563,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
       category: "dataQualityContentQuality",
       field: "summary_length",
       status: "good",
-      detail: `分析文本长度=${summaryText.length} 字符，内容充实`,
+      detail: t("stockAnalysis.analystReport.dqTextLengthRich", { len: summaryText.length }),
     });
     goodCount++;
   } else if (summaryText.length > 20) {
@@ -549,7 +571,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
       category: "dataQualityContentQuality",
       field: "summary_length",
       status: "warning",
-      detail: `分析文本较短（${summaryText.length} 字符）`,
+      detail: t("stockAnalysis.analystReport.dqTextLengthBrief", { len: summaryText.length }),
     });
     warningCount++;
     score -= 5;
@@ -558,7 +580,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
       category: "dataQualityContentQuality",
       field: "summary_length",
       status: "issue",
-      detail: "分析文本过短或无实质内容",
+      detail: t("stockAnalysis.analystReport.dqTextTooShort"),
     });
     issueCount++;
     score -= 10;
@@ -573,7 +595,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
         category: "dataQualityEvidence",
         field: "evidence",
         status: "good",
-        detail: `共 ${total} 条证据，${withData} 条含数据支撑`,
+        detail: t("stockAnalysis.analystReport.dqEvidenceWithData", { total, withData }),
       });
       goodCount++;
     } else {
@@ -581,7 +603,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
         category: "dataQualityEvidence",
         field: "evidence",
         status: "warning",
-        detail: `共 ${total} 条证据，仅 ${withData} 条含数据支撑`,
+        detail: t("stockAnalysis.analystReport.dqEvidenceLimited", { total, withData }),
       });
       warningCount++;
       score -= 5;
@@ -591,7 +613,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
       category: "dataQualityEvidence",
       field: "key_events",
       status: "good",
-      detail: `共 ${parsed.key_events.length} 条关键事件`,
+      detail: t("stockAnalysis.analystReport.dqKeyEventsCount", { count: parsed.key_events.length }),
     });
     goodCount++;
   } else {
@@ -603,7 +625,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
   const hasNarrativeMissing = parsed.narrative_missing && parsed.narrative_missing.length > 0;
   if (hasDataGaps || hasNarrativeMissing) {
     const gapCount = (parsed.data_gaps?.length ?? 0) + (parsed.narrative_missing?.length ?? 0);
-    let detail = `${gapCount} 个数据缺口`;
+    let detail = t("stockAnalysis.analystReport.dqGapCount", { count: gapCount });
     if (parsed.data_gaps?.length) {
       detail += `：${parsed.data_gaps.slice(0, 3).join("、")}`;
       if (parsed.data_gaps.length > 3) { detail += "…"; }
@@ -612,7 +634,12 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
     warningCount++;
     score -= gapCount * 3;
   } else {
-    checks.push({ category: "dataQualityDataGaps", field: "data_gaps", status: "good", detail: "无数据缺口" });
+    checks.push({
+      category: "dataQualityDataGaps",
+      field: "data_gaps",
+      status: "good",
+      detail: t("stockAnalysis.analystReport.dqNoGaps"),
+    });
     goodCount++;
   }
 
@@ -626,7 +653,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
         category: "dataQualityConsistency",
         field: "verdict_vs_scores",
         status: "good",
-        detail: "看多判断与评分一致",
+        detail: t("stockAnalysis.analystReport.dqBullConsistent"),
       });
       goodCount++;
     } else if (isBear && parsed.bear_score! > parsed.bull_score!) {
@@ -634,7 +661,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
         category: "dataQualityConsistency",
         field: "verdict_vs_scores",
         status: "good",
-        detail: "看空判断与评分一致",
+        detail: t("stockAnalysis.analystReport.dqBearConsistent"),
       });
       goodCount++;
     } else if (isBull && parsed.bull_score! <= parsed.bear_score!) {
@@ -642,7 +669,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
         category: "dataQualityConsistency",
         field: "verdict_vs_scores",
         status: "warning",
-        detail: `看多判断但 bull_score(${parsed.bull_score}) ≤ bear_score(${parsed.bear_score})`,
+        detail: t("stockAnalysis.analystReport.dqBullConflict", { bull: parsed.bull_score, bear: parsed.bear_score }),
       });
       warningCount++;
       score -= 5;
@@ -651,7 +678,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
         category: "dataQualityConsistency",
         field: "verdict_vs_scores",
         status: "warning",
-        detail: `看空判断但 bear_score(${parsed.bear_score}) ≤ bull_score(${parsed.bull_score})`,
+        detail: t("stockAnalysis.analystReport.dqBearConflict", { bull: parsed.bull_score, bear: parsed.bear_score }),
       });
       warningCount++;
       score -= 5;
@@ -660,7 +687,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
         category: "dataQualityConsistency",
         field: "verdict_vs_scores",
         status: "good",
-        detail: "中性判断，无冲突",
+        detail: t("stockAnalysis.analystReport.dqNeutralOk"),
       });
       goodCount++;
     }
@@ -669,7 +696,7 @@ function analyzeDataQuality(parsed: ParsedReport | null, report: string, expertI
       category: "dataQualityConsistency",
       field: "verdict_vs_scores",
       status: "warning",
-      detail: "缺少 verdict 或评分，无法做一致性检查",
+      detail: t("stockAnalysis.analystReport.dqNoConsistency"),
     });
     warningCount++;
     score -= 3;
@@ -723,11 +750,11 @@ export function AnalystDataQualityModal({
   executionId = "",
 }: Props) {
   const { t } = useTranslation();
-  const result = analyzeDataQuality(parsed as ParsedReport | null, report, expertId);
+  const result = analyzeDataQuality(parsed as ParsedReport | null, report, expertId, t);
 
   // 检测节点类型
   const nodeType = detectNodeType(expertId);
-  const nodeTypeName = getNodeTypeName(nodeType);
+  const nodeTypeName = t(getNodeTypeName(nodeType));
   const nodeTypeUiName = t(
     `stockAnalysis.analystReport.nodeType${nodeType.charAt(0).toUpperCase() + nodeType.slice(1)}`,
   );

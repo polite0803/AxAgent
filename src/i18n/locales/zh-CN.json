@@ -377,11 +377,9 @@
   "app": {
     "name": "AxAgent",
     "newSkillProposal": "发现新的技能建议: {name}",
-    "title": "智聊助手",
-    "quickBar": "快速栏",
-    "description": "智能工作助手",
     "title": "智能体工作站",
-    "quickBar": "快速栏"
+    "quickBar": "快速栏",
+    "description": "智能工作助手"
   },
   "appHeader": {
     "closeAgentPanel": "关闭 Agent 面板",
@@ -894,11 +892,9 @@
     "mode": {
       "action": "执行",
       "ask": "提问",
-      "plan": "规划",
-      "title": "模式",
-      "auto": "自动",
       "plan": "计划",
       "title": "执行模式",
+      "auto": "自动",
       "gateway": "网关"
     },
     "moveToWorkspace": "移到工作区",
@@ -12479,7 +12475,50 @@
     "nestingsuffix": ",嵌套后缀：",
     "ellipsis": "...",
     "ok": "确定",
-    "foo": "foo"
+    "foo": "foo",
+    "narrative": {
+      "noArcs": "暂无弧线定义",
+      "progress": "推进度",
+      "stages": "弧线阶段",
+      "noStages": "未定义阶段",
+      "noForeshadows": "暂无伏笔定义",
+      "chapterDistribution": "章节分布",
+      "setupChapters": "埋设章节",
+      "payoffChapters": "回收章节",
+      "noPayoff": "尚未安排回收",
+      "relatedArcs": "关联弧线",
+      "saveNameRequired": "请输入名称",
+      "saveSuccess": "保存成功",
+      "saveFailed": "保存失败",
+      "loadSuccess": "加载成功",
+      "confirmDelete": "确认删除",
+      "confirmDeleteDesc": "确定要删除此叙事结构记录吗？",
+      "noStructure": "暂无叙事结构数据",
+      "savedRecords": "已保存的结构",
+      "title": "叙事结构",
+      "save": "保存",
+      "loadFromHistory": "从历史记录加载",
+      "arcs": "角色弧线",
+      "foreshadows": "伏笔",
+      "confluences": "交汇点",
+      "viewOverview": "概览",
+      "viewArcs": "弧线",
+      "viewForeshadows": "伏笔",
+      "saveTitle": "保存叙事结构",
+      "saveName": "名称",
+      "saveNamePlaceholder": "输入结构名称",
+      "saveDesc": "描述（可选）",
+      "saveDescPlaceholder": "简要描述此结构的特点",
+      "saveGenre": "类型",
+      "genreNovel": "小说",
+      "genreShortStory": "短篇故事",
+      "genreScreenplay": "剧本",
+      "genrePoetry": "诗歌",
+      "genreOther": "其他",
+      "arcList": "角色弧线",
+      "confluenceList": "交汇点",
+      "foreshadowList": "伏笔网络"
+    }
   },
   "voiceChat": {
     "noTicket": "无可用的票据，请重新开始。"
@@ -13835,7 +13874,27 @@
       "decisionAction": "决策",
       "confidence": "置信度",
       "winsAndLosses": "盈亏统计",
-      "winRate": "胜率"
+      "winRate": "胜率",
+      "chart": {
+        "equity": "净资产",
+        "cash": "现金",
+        "positionValue": "持仓市值",
+        "benchmark": "基准",
+        "equityCurve": "权益曲线",
+        "drawdown": "回撤曲线",
+        "trades": "交易记录",
+        "tradeDate": "日期",
+        "tradeType": "方向",
+        "tradePrice": "价格",
+        "tradeReason": "原因"
+      },
+      "metrics": {
+        "totalReturn": "总收益",
+        "sharpe": "夏普比率",
+        "maxDrawdown": "最大回撤",
+        "winRate": "胜率"
+      },
+      "tabCharts": "📊 可视化"
     },
     "export": {
       "analystReports": "分析师报告",
@@ -14295,7 +14354,15 @@
       "statAuthor": "Author",
       "statSource": "Source",
       "neodataRefreshHint": "请在 WorkBuddy 对话中输入「刷新 NeoData token」自动完成连接",
-      "neodataRefreshBtn": "🔗 通过 WorkBuddy 连接"
+      "neodataRefreshBtn": "🔗 通过 WorkBuddy 连接",
+      "vendorUntouchedHint": "本运行周期未被调用，无健康数据",
+      "vendorTotalSuccess": "总成功",
+      "vendorTotalFailures": "总失败",
+      "vendorConsecutiveFailures": "连续失败",
+      "vendorLastError": "最后错误",
+      "vendorLastSuccess": "成功",
+      "vendorLastFailure": "失败",
+      "vendorHealth": "数据源健康状态"
     },
     "experiment": {
       "executeTrade": "执行交易 →",
@@ -15672,6 +15739,44 @@
       "limitUpThMed": "涨停潜力 - 中潜力阈值",
       "limitUpThLow": "涨停潜力 - 低潜力阈值",
       "analysisDryRun": "干跑模式：不调用 LLM，用 mock 输出验证流程"
+    },
+    "evidenceCitation": {
+      "loading": "提取证据引用中...",
+      "error": "提取失败",
+      "noData": "无可用证据引用数据",
+      "title": "证据引用审计",
+      "supportRate": "数据支撑率",
+      "analystCount": "来源分析师",
+      "claimCount": "决策理由",
+      "supported": "有数据",
+      "unsupported": "无数据",
+      "source": "来源"
+    },
+    "charts": {
+      "noSectorData": "无行业配置数据",
+      "sectorAllocation": "行业配置",
+      "needMoreStocks": "至少需要 2 只持仓股票",
+      "correlationMatrix": "相关性矩阵",
+      "noTradeData": "无交易数据",
+      "pnlDistribution": "盈亏分布",
+      "portfolio": "组合",
+      "benchmark": "基准",
+      "needMoreData": "数据不足",
+      "portfolioVsBenchmark": "组合 vs 基准"
+    },
+    "simVsBacktest": {
+      "title": "模拟 vs 回测对比",
+      "backtestTrades": "回测交易",
+      "simTrades": "模拟交易",
+      "metric": "指标",
+      "backtest": "回测",
+      "simulation": "模拟",
+      "diff": "差值",
+      "judgment": "判断",
+      "backtestBetter": "回测胜",
+      "simBetter": "模拟胜",
+      "backtestSummary": "回测结论",
+      "simSummary": "模拟结论"
     }
   },
   "pipeline": {

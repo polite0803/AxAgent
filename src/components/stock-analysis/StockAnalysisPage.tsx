@@ -74,7 +74,7 @@ function DashboardTabContent() {
   if (!dashboardReport) {
     return (
       <div style={{ padding: 24, textAlign: "center", color: "#8c8c8c" }}>
-        {t("stockAnalysis.dashboard.empty", "暂无仪表盘报告，请先运行决策分析或重跑决策")}
+        {t("stockAnalysis.dashboard.empty")}
       </div>
     );
   }
@@ -84,7 +84,7 @@ function DashboardTabContent() {
       {dashboardMd && (
         <details style={{ marginTop: 16, padding: "0 16px" }}>
           <summary style={{ cursor: "pointer", color: "#8c8c8c" }}>
-            {t("stockAnalysis.dashboard.viewMarkdown", "查看 Markdown 源码")}
+            {t("stockAnalysis.dashboard.viewMarkdown")}
           </summary>
           <pre style={{ background: "#f5f5f5", padding: 12, borderRadius: 8, overflow: "auto", fontSize: 12 }}>
             {dashboardMd}

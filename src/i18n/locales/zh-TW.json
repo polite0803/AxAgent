@@ -377,11 +377,9 @@
   "app": {
     "name": "AxAgent",
     "newSkillProposal": "發現新的技能建議: {name}",
-    "title": "智慧聊天助手",
-    "quickBar": "快速工具列",
-    "description": "智能工作助手",
     "title": "智能體工作站",
-    "quickBar": "快速工具列"
+    "quickBar": "快速工具列",
+    "description": "智能工作助手"
   },
   "appHeader": {
     "closeAgentPanel": "關閉 Agent 面板",
@@ -906,15 +904,11 @@
     },
     "messageArea": "消息區域",
     "mode": {
-      "ask": "Ask",
-      "plan": "Plan",
-      "action": "Action",
-      "title": "Switch Mode",
-      "action": "執行",
       "ask": "提問",
-      "auto": "自動",
       "plan": "計畫",
+      "action": "執行",
       "title": "執行模式",
+      "auto": "自動",
       "gateway": "網關"
     },
     "moveToWorkspace": "移到工作區",
@@ -12481,6 +12475,49 @@
         "runningEngines": "\n运行中的进化引擎：{{engines}}"
       },
       "unnamed": "未命名"
+    },
+    "narrative": {
+      "noArcs": "暫無弧線定義",
+      "progress": "推進度",
+      "stages": "弧線階段",
+      "noStages": "未定義階段",
+      "noForeshadows": "暫無伏筆定義",
+      "chapterDistribution": "章節分布",
+      "setupChapters": "埋設章節",
+      "payoffChapters": "回收章節",
+      "noPayoff": "尚未安排回收",
+      "relatedArcs": "關聯弧線",
+      "saveNameRequired": "請輸入名稱",
+      "saveSuccess": "儲存成功",
+      "saveFailed": "儲存失敗",
+      "loadSuccess": "載入成功",
+      "confirmDelete": "確認刪除",
+      "confirmDeleteDesc": "確定要刪除此敘事結構記錄嗎？",
+      "noStructure": "暫無敘事結構資料",
+      "savedRecords": "已儲存的結構",
+      "title": "敘事結構",
+      "save": "儲存",
+      "loadFromHistory": "從歷史記錄載入",
+      "arcs": "角色弧線",
+      "foreshadows": "伏筆",
+      "confluences": "交匯點",
+      "viewOverview": "概覽",
+      "viewArcs": "弧線",
+      "viewForeshadows": "伏筆",
+      "saveTitle": "儲存敘事結構",
+      "saveName": "名稱",
+      "saveNamePlaceholder": "輸入結構名稱",
+      "saveDesc": "描述（可選）",
+      "saveDescPlaceholder": "簡要描述此結構的特點",
+      "saveGenre": "類型",
+      "genreNovel": "小說",
+      "genreShortStory": "短篇故事",
+      "genreScreenplay": "劇本",
+      "genrePoetry": "詩歌",
+      "genreOther": "其他",
+      "arcList": "角色弧線",
+      "confluenceList": "交匯點",
+      "foreshadowList": "伏筆網路"
     }
   },
   "voiceChat": {
@@ -13774,7 +13811,27 @@
       "sampleInterval": "采样间隔(日)",
       "startDate": "开始日期",
       "totalRuns": "测试次数",
-      "winRate": "胜率"
+      "winRate": "胜率",
+      "chart": {
+        "equity": "淨資產",
+        "cash": "現金",
+        "positionValue": "持倉市值",
+        "benchmark": "基準",
+        "equityCurve": "權益曲線",
+        "drawdown": "回撤曲線",
+        "trades": "交易記錄",
+        "tradeDate": "日期",
+        "tradeType": "方向",
+        "tradePrice": "價格",
+        "tradeReason": "原因"
+      },
+      "metrics": {
+        "totalReturn": "總收益",
+        "sharpe": "夏普比率",
+        "maxDrawdown": "最大回撤",
+        "winRate": "勝率"
+      },
+      "tabCharts": "📊 視覺化"
     },
     "export": {
       "analystReports": "analystReports",
@@ -14234,7 +14291,15 @@
       "statAuthor": "Author",
       "statSource": "Source",
       "neodataRefreshHint": "请在 WorkBuddy 对话中输入「刷新 NeoData token」自动完成连接",
-      "neodataRefreshBtn": "🔗 通过 WorkBuddy 连接"
+      "neodataRefreshBtn": "🔗 通过 WorkBuddy 连接",
+      "vendorUntouchedHint": "本執行週期未被呼叫，無健康資料",
+      "vendorTotalSuccess": "總成功",
+      "vendorTotalFailures": "總失敗",
+      "vendorConsecutiveFailures": "連續失敗",
+      "vendorLastError": "最後錯誤",
+      "vendorLastSuccess": "成功",
+      "vendorLastFailure": "失敗",
+      "vendorHealth": "資料源健康狀態"
     },
     "experiment": {
       "executeTrade": "執行交易 →",
@@ -15674,6 +15739,44 @@
       "limitUpThMed": "涨停潜力 - 中潜力阈值",
       "limitUpThLow": "涨停潜力 - 低潜力阈值",
       "analysisDryRun": "干跑模式：不调用 LLM，用 mock 输出验证流程"
+    },
+    "evidenceCitation": {
+      "loading": "提取證據引用中...",
+      "error": "提取失敗",
+      "noData": "無可用證據引用資料",
+      "title": "證據引用稽核",
+      "supportRate": "資料支撐率",
+      "analystCount": "來源分析師",
+      "claimCount": "決策理由",
+      "supported": "有資料",
+      "unsupported": "無資料",
+      "source": "來源"
+    },
+    "charts": {
+      "noSectorData": "無產業配置資料",
+      "sectorAllocation": "產業配置",
+      "needMoreStocks": "至少需要 2 檔持倉股票",
+      "correlationMatrix": "相關性矩陣",
+      "noTradeData": "無交易資料",
+      "pnlDistribution": "盈虧分布",
+      "portfolio": "組合",
+      "benchmark": "基準",
+      "needMoreData": "資料不足",
+      "portfolioVsBenchmark": "組合 vs 基準"
+    },
+    "simVsBacktest": {
+      "title": "模擬 vs 回測對比",
+      "backtestTrades": "回測交易",
+      "simTrades": "模擬交易",
+      "metric": "指標",
+      "backtest": "回測",
+      "simulation": "模擬",
+      "diff": "差值",
+      "judgment": "判斷",
+      "backtestBetter": "回測勝",
+      "simBetter": "模擬勝",
+      "backtestSummary": "回測結論",
+      "simSummary": "模擬結論"
     }
   },
   "pipeline": {

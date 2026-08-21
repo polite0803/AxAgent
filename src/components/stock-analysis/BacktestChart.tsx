@@ -113,8 +113,12 @@ export function BacktestChart({
 
   // 格式化金额
   const fmtMoney = (v: number) => {
-    if (Math.abs(v) >= 1_0000_0000) { return `¥${(v / 1_0000_0000).toFixed(2)}亿`; }
-    if (Math.abs(v) >= 1_0000) { return `¥${(v / 1_0000).toFixed(2)}万`; }
+    if (Math.abs(v) >= 1_0000_0000) {
+      return `¥${(v / 1_0000_0000).toFixed(2)}${t("stockAnalysis.backtest.chart.moneyYi")}`;
+    }
+    if (Math.abs(v) >= 1_0000) {
+      return `¥${(v / 1_0000).toFixed(2)}${t("stockAnalysis.backtest.chart.moneyWan")}`;
+    }
     return `¥${v.toFixed(2)}`;
   };
 
@@ -187,7 +191,7 @@ export function BacktestChart({
           symbol: "triangle",
           symbolSize: 10,
           itemStyle: { color: "#ef4444" },
-          tooltip: { show: true, formatter: () => "买入" },
+          tooltip: { show: true, formatter: () => t("stockAnalysis.backtest.chart.buy") },
         });
       }
       if (sellTrades.length > 0) {
@@ -199,15 +203,15 @@ export function BacktestChart({
           symbolRotate: 180,
           symbolSize: 10,
           itemStyle: { color: "#22c55e" },
-          tooltip: { show: true, formatter: () => "卖出" },
+          tooltip: { show: true, formatter: () => t("stockAnalysis.backtest.chart.sell") },
         });
       }
 
       const labels: Record<string, string> = {
-        equity: t("stockAnalysis.backtest.chart.equity", "净资产"),
-        cash: t("stockAnalysis.backtest.chart.cash", "现金"),
-        positionValue: t("stockAnalysis.backtest.chart.positionValue", "持仓市值"),
-        benchmark: t("stockAnalysis.backtest.chart.benchmark", "基准"),
+        equity: t("stockAnalysis.backtest.chart.equity"),
+        cash: t("stockAnalysis.backtest.chart.cash"),
+        positionValue: t("stockAnalysis.backtest.chart.positionValue"),
+        benchmark: t("stockAnalysis.backtest.chart.benchmark"),
       };
 
       return {
@@ -317,22 +321,22 @@ export function BacktestChart({
       {metrics && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 rounded-lg bg-gray-800/60">
           <MetricItem
-            label={t("stockAnalysis.backtest.metrics.totalReturn", "总收益")}
+            label={t("stockAnalysis.backtest.metrics.totalReturn")}
             value={`${(metrics.totalReturn * 100).toFixed(2)}%`}
             color={metrics.totalReturn >= 0 ? "#22c55e" : "#ef4444"}
           />
           <MetricItem
-            label={t("stockAnalysis.backtest.metrics.sharpe", "夏普比率")}
+            label={t("stockAnalysis.backtest.metrics.sharpe")}
             value={metrics.sharpe.toFixed(3)}
             color={metrics.sharpe >= 1 ? "#22c55e" : metrics.sharpe >= 0 ? "#eab308" : "#ef4444"}
           />
           <MetricItem
-            label={t("stockAnalysis.backtest.metrics.maxDrawdown", "最大回撤")}
+            label={t("stockAnalysis.backtest.metrics.maxDrawdown")}
             value={`${(metrics.maxDrawdown * 100).toFixed(2)}%`}
             color="#ef4444"
           />
           <MetricItem
-            label={t("stockAnalysis.backtest.metrics.winRate", "胜率")}
+            label={t("stockAnalysis.backtest.metrics.winRate")}
             value={`${(metrics.winRate * 100).toFixed(1)}%`}
             color={metrics.winRate >= 0.5 ? "#22c55e" : "#eab308"}
           />
@@ -342,7 +346,7 @@ export function BacktestChart({
       {/* 权益曲线 + 交易标记合成图 */}
       <div className="bg-gray-900/50 rounded-lg p-3">
         <h4 className="text-sm font-medium text-gray-300 mb-2">
-          {t("stockAnalysis.backtest.chart.equityCurve", "权益曲线")}
+          {t("stockAnalysis.backtest.chart.equityCurve")}
           {metrics && (
             <span className="text-xs text-gray-500 ml-2">
               {metrics.strategyName}
@@ -355,7 +359,7 @@ export function BacktestChart({
       {/* 回撤曲线 */}
       <div className="bg-gray-900/50 rounded-lg p-3">
         <h4 className="text-sm font-medium text-gray-300 mb-2">
-          {t("stockAnalysis.backtest.chart.drawdown", "回撤曲线")}
+          {t("stockAnalysis.backtest.chart.drawdown")}
         </h4>
         <div ref={drawdownRef} style={{ width, height: height * 0.35 }} />
       </div>
@@ -364,24 +368,26 @@ export function BacktestChart({
       {trades && trades.length > 0 && (
         <div className="bg-gray-900/50 rounded-lg p-3">
           <h4 className="text-sm font-medium text-gray-300 mb-2">
-            {t("stockAnalysis.backtest.chart.trades", "交易记录")}
-            <span className="text-xs text-gray-500 ml-2">({trades.length} 笔)</span>
+            {t("stockAnalysis.backtest.chart.trades")}
+            <span className="text-xs text-gray-500 ml-2">
+              ({t("stockAnalysis.backtest.chart.tradeCount", { count: trades.length })})
+            </span>
           </h4>
           <div className="max-h-48 overflow-y-auto text-xs">
             <table className="w-full">
               <thead>
                 <tr className="text-gray-400 border-b border-gray-700">
                   <th className="text-left py-1 px-2">
-                    {t("stockAnalysis.backtest.chart.tradeDate", "日期")}
+                    {t("stockAnalysis.backtest.chart.tradeDate")}
                   </th>
                   <th className="text-left py-1 px-2">
-                    {t("stockAnalysis.backtest.chart.tradeType", "方向")}
+                    {t("stockAnalysis.backtest.chart.tradeType")}
                   </th>
                   <th className="text-right py-1 px-2">
-                    {t("stockAnalysis.backtest.chart.tradePrice", "价格")}
+                    {t("stockAnalysis.backtest.chart.tradePrice")}
                   </th>
                   <th className="text-left py-1 px-2">
-                    {t("stockAnalysis.backtest.chart.tradeReason", "原因")}
+                    {t("stockAnalysis.backtest.chart.tradeReason")}
                   </th>
                 </tr>
               </thead>
@@ -397,7 +403,9 @@ export function BacktestChart({
                             : "bg-green-900/40 text-green-400"
                         }`}
                       >
-                        {trade.type === "buy" ? "买入" : "卖出"}
+                        {trade.type === "buy"
+                          ? t("stockAnalysis.backtest.chart.buy")
+                          : t("stockAnalysis.backtest.chart.sell")}
                       </span>
                     </td>
                     <td className="py-1 px-2 text-right text-gray-300">

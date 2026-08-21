@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// i18n-exempt: viz_blocks 可视化协议 schema 定义与注册器，数据定义，非用户可见 UI 文案。
 
 /**
  * G15 可视化协议（viz_blocks）— 11 种 chart kind 统一 schema + 注册器

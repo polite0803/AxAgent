@@ -377,11 +377,9 @@
   "app": {
     "name": "AxAgent",
     "newSkillProposal": "新しいスキル提案: {name}",
-    "title": "スマートワークスペース",
-    "quickBar": "クイックバー",
-    "description": "智能工作助手",
     "title": "エージェントワークステーション",
-    "quickBar": "クイックバー"
+    "quickBar": "クイックバー",
+    "description": "智能工作助手"
   },
   "appHeader": {
     "closeAgentPanel": "エージェントパネルを閉じる",
@@ -905,15 +903,11 @@
     },
     "messageArea": "メッセージエリア",
     "mode": {
-      "title": "Switch Mode",
-      "ask": "Ask",
-      "plan": "Plan",
-      "action": "Action",
-      "action": "実行",
-      "ask": "質問",
-      "auto": "自動",
-      "plan": "計画",
       "title": "実行モード",
+      "ask": "質問",
+      "plan": "計画",
+      "action": "実行",
+      "auto": "自動",
       "gateway": "ゲートウェイ"
     },
     "moveToWorkspace": "ワークスペースに移動",
@@ -12481,6 +12475,49 @@
         "runningEngines": "\nRunning evolution engines: {{engines}}"
       },
       "unnamed": "Unnamed"
+    },
+    "narrative": {
+      "noArcs": "アーク定義なし",
+      "progress": "進捗",
+      "stages": "アーク段階",
+      "noStages": "段階定義なし",
+      "noForeshadows": "伏線定義なし",
+      "chapterDistribution": "章分布",
+      "setupChapters": "伏線設置章",
+      "payoffChapters": "回収章",
+      "noPayoff": "回収未設定",
+      "relatedArcs": "関連アーク",
+      "saveNameRequired": "名前は必須です",
+      "saveSuccess": "保存成功",
+      "saveFailed": "保存失敗",
+      "loadSuccess": "読み込み成功",
+      "confirmDelete": "削除の確認",
+      "confirmDeleteDesc": "この叙事構造レコードを削除しますか？",
+      "noStructure": "叙事構造データなし",
+      "savedRecords": "保存済み構造",
+      "title": "叙事構造",
+      "save": "保存",
+      "loadFromHistory": "履歴から読み込む",
+      "arcs": "アーク",
+      "foreshadows": "伏線",
+      "confluences": "合流点",
+      "viewOverview": "概要",
+      "viewArcs": "アーク",
+      "viewForeshadows": "伏線",
+      "saveTitle": "叙事構造を保存",
+      "saveName": "名前",
+      "saveNamePlaceholder": "構造名を入力",
+      "saveDesc": "説明（任意）",
+      "saveDescPlaceholder": "この構造の特徴を簡単に",
+      "saveGenre": "ジャンル",
+      "genreNovel": "小説",
+      "genreShortStory": "短編小説",
+      "genreScreenplay": "脚本",
+      "genrePoetry": "詩",
+      "genreOther": "その他",
+      "arcList": "キャラクターアーク",
+      "confluenceList": "合流点",
+      "foreshadowList": "伏線ネットワーク"
     }
   },
   "voiceChat": {
@@ -13617,7 +13654,27 @@
       "sampleInterval": "Sample Interval",
       "startDate": "Start Date",
       "totalRuns": "Total Runs",
-      "winRate": "Win Rate"
+      "winRate": "Win Rate",
+      "chart": {
+        "equity": "純資産",
+        "cash": "現金",
+        "positionValue": "ポジション評価額",
+        "benchmark": "ベンチマーク",
+        "equityCurve": "エクイティカーブ",
+        "drawdown": "ドローダウン曲線",
+        "trades": "取引記録",
+        "tradeDate": "日付",
+        "tradeType": "方向",
+        "tradePrice": "価格",
+        "tradeReason": "理由"
+      },
+      "metrics": {
+        "totalReturn": "総収益",
+        "sharpe": "シャープレシオ",
+        "maxDrawdown": "最大ドローダウン",
+        "winRate": "勝率"
+      },
+      "tabCharts": "📊 ビジュアル"
     },
     "export": {
       "analystReports": "分析师报告",
@@ -14077,7 +14134,15 @@
       "statAuthor": "Author",
       "statSource": "Source",
       "neodataRefreshHint": "请在 WorkBuddy 对话中输入「刷新 NeoData token」自动完成连接",
-      "neodataRefreshBtn": "🔗 WorkBuddy経由で接続"
+      "neodataRefreshBtn": "🔗 WorkBuddy経由で接続",
+      "vendorUntouchedHint": "この実行サイクルで未呼び出し、健全性データなし",
+      "vendorTotalSuccess": "総成功",
+      "vendorTotalFailures": "総失敗",
+      "vendorConsecutiveFailures": "連続失敗",
+      "vendorLastError": "最終エラー",
+      "vendorLastSuccess": "最終成功",
+      "vendorLastFailure": "最終失敗",
+      "vendorHealth": "データソース健全性"
     },
     "experiment": {
       "executeTrade": "执行交易 →",
@@ -15447,6 +15512,44 @@
       "limitUpThMed": "ストップ高ポテンシャル - 中ポテンシャル閾値",
       "limitUpThLow": "ストップ高ポテンシャル - 低ポテンシャル閾値",
       "analysisDryRun": "ドライランモード：LLMを呼び出さず、モック出力でフローを検証"
+    },
+    "evidenceCitation": {
+      "loading": "証拠引用を抽出中...",
+      "error": "抽出失敗",
+      "noData": "証拠引用データなし",
+      "title": "証拠引用監査",
+      "supportRate": "データ支持率",
+      "analystCount": "ソースアナリスト",
+      "claimCount": "意思決定理由",
+      "supported": "データあり",
+      "unsupported": "データなし",
+      "source": "ソース"
+    },
+    "charts": {
+      "noSectorData": "セクター配分データなし",
+      "sectorAllocation": "セクター配分",
+      "needMoreStocks": "最低2銘柄の保有が必要です",
+      "correlationMatrix": "相関行列",
+      "noTradeData": "取引データなし",
+      "pnlDistribution": "損益分布",
+      "portfolio": "ポートフォリオ",
+      "benchmark": "ベンチマーク",
+      "needMoreData": "データ不足",
+      "portfolioVsBenchmark": "ポートフォリオ vs ベンチマーク"
+    },
+    "simVsBacktest": {
+      "title": "シミュレーション vs バックテスト",
+      "backtestTrades": "バックテスト取引",
+      "simTrades": "シミュレーション取引",
+      "metric": "指標",
+      "backtest": "バックテスト",
+      "simulation": "シミュレーション",
+      "diff": "差",
+      "judgment": "判断",
+      "backtestBetter": "バックテスト勝ち",
+      "simBetter": "シミュレーション勝ち",
+      "backtestSummary": "バックテスト結論",
+      "simSummary": "シミュレーション結論"
     }
   },
   "pipeline": {
