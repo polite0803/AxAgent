@@ -89,6 +89,7 @@
     "skill:validate": "node scripts/validate-skill.mjs"
   },
   "dependencies": {
+    "@antv/infographic": "^0.2.17",
     "@ant-design/icons": "^6.1.1",
     "@ant-design/x": "^2.9.0",
     "@dnd-kit/core": "^6.3.1",
@@ -185,8 +186,5 @@
   "simple-git-hooks": {
     "pre-commit": "npx dprint check && npx tsc --noEmit && cd src-tauri && cargo fmt --check",
     "pre-push": "npm run ci:check:quick"
-  },
-  "optionalDependencies": {
-    "@antv/infographic": "^0.2.17"
   }
 }
