@@ -47,7 +47,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "2.9.6"
+version = "2.9.7"
 edition = "2024"
 license = "AGPL-3.0-only"
 
@@ -91,7 +91,7 @@ xcap = "0.9.8"
 
 [package]
 name = "axagent"
-version = "2.9.6"
+version = "2.9.7"
 authors = ["刘小平 <polite0803@outlook.com>"]
 default-run = "AxInvest"
 edition = "2024"

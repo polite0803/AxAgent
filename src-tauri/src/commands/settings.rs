@@ -3,6 +3,7 @@
 use crate::AppState;
 use agent_macro::agent_command;
 use axagent_harness::types::*;
+use serde_json;
 use tauri::AppHandle;
 use tauri::State;
 
@@ -26,6 +27,20 @@ pub async fn get_settings(state: State<'_, AppState>) -> Result<AppSettings, Str
         axagent_storage::path_vars::decode_path_opt(&settings.gateway_ssl_cert_path);
     settings.gateway_ssl_key_path =
         axagent_storage::path_vars::decode_path_opt(&settings.gateway_ssl_key_path);
+
+    // 调试日志：检查返回的设置
+    let settings_json = serde_json::to_string_pretty(&settings)
+        .unwrap_or_else(|_| String::from("无法序列化 settings"));
+    tracing::info!("[get_settings] 返回完整 settings JSON:\n{}", settings_json);
+
+    tracing::info!(
+        "[get_settings] 关键模型字段 default_provider_id={:?} default_model_id={:?} title_summary_provider_id={:?} compression_provider_id={:?}",
+        settings.default_provider_id,
+        settings.default_model_id,
+        settings.title_summary_provider_id,
+        settings.compression_provider_id,
+    );
+
     Ok(settings)
 }
 
@@ -41,6 +56,19 @@ pub async fn save_settings(
     state: State<'_, AppState>,
     mut settings: AppSettings,
 ) -> Result<(), String> {
+    // 调试日志：检查接收到的设置
+    let settings_json = serde_json::to_string_pretty(&settings)
+        .unwrap_or_else(|_| String::from("无法序列化 settings"));
+    tracing::info!("[save_settings] 接收到完整 settings JSON:\n{}", settings_json);
+
+    tracing::info!(
+        "[save_settings] 关键模型字段 default_provider_id={:?} default_model_id={:?} title_summary_provider_id={:?} compression_provider_id={:?}",
+        settings.default_provider_id,
+        settings.default_model_id,
+        settings.title_summary_provider_id,
+        settings.compression_provider_id,
+    );
+
     settings.backup_dir = axagent_storage::path_vars::encode_path_opt(&settings.backup_dir);
     settings.gateway_ssl_cert_path =
         axagent_storage::path_vars::encode_path_opt(&settings.gateway_ssl_cert_path);

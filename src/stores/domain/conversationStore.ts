@@ -792,6 +792,13 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         }
 
         // 优先级 3: 设置中的全局默认值
+        console.debug("[createConversation] 检查设置默认模型", {
+          currentTemplateProviderId: templateProviderId,
+          currentTemplateModelId: templateModelId,
+          settingsDefaultModel: settings.defaultModel,
+          settingsDefaultProviderId: settings.defaultModel?.a,
+          settingsDefaultModelId: settings.defaultModel?.b,
+        });
         if (!templateProviderId && settings.defaultModel?.a) {
           templateProviderId = settings.defaultModel.a;
         }
@@ -840,6 +847,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         templateProviderId = templateProviderId || "builtin-openai";
         templateModelId = templateModelId || "gpt-4o";
       }
+
+      console.info("[createConversation] 使用的最终模型参数", {
+        templateProviderId,
+        templateModelId,
+      });
+
       const createdConversation = await invoke<Conversation>(
         "create_conversation",
         {
