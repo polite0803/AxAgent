@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { SmartProviderIcon } from "@/lib/providerIcons";
+import { safeJoinIds, safeParseIdPair } from "@/lib/validators";
 import { useProviderStore } from "@/stores";
 import { ModelIcon } from "@lobehub/icons";
 import { Select, theme } from "antd";
@@ -9,29 +10,14 @@ import { useCallback, useMemo } from "react";
 /** Parse a combined `providerId::modelId` value. */
 // eslint-disable-next-line react-refresh/only-export-components
 export function parseModelValue(value: string | undefined) {
-  if (!value) {
+  const result = safeParseIdPair(value, "::");
+  if (!result) {
+    if (value && typeof value === "string" && (value.includes("undefined") || value.includes("null"))) {
+      console.warn("[parseModelValue] 检测到无效值", { value });
+    }
     return null;
   }
-  const idx = value.indexOf("::");
-  if (idx < 0) {
-    return null;
-  }
-  const providerId = value.slice(0, idx);
-  const modelId = value.slice(idx + 2);
-  // 防御：解析出的 ID 不能是 undefined/null/空字符串字面量
-  // 这是为了防止后端传来或中间件生成的脏数据污染前端
-  if (
-    !providerId
-    || !modelId
-    || providerId === "undefined"
-    || providerId === "null"
-    || modelId === "undefined"
-    || modelId === "null"
-  ) {
-    console.warn("[parseModelValue] 检测到无效值", { value, providerId, modelId });
-    return null;
-  }
-  return { providerId, modelId };
+  return { providerId: result.first, modelId: result.second };
 }
 
 /** Hook: returns grouped Select options (Provider → Models) */
@@ -57,23 +43,29 @@ export function useGroupedModelOptions() {
             ),
             title: p.name,
             options: p.models.flatMap((m) => {
-              // 防御：过滤无效的 modelId，防止 "undefined"/"null" 字符串污染
+              // 防御：只过滤明显会导致问题的脏数据
+              // 不过滤 undefined/null，因为可能是暂时的状态
               if (
-                !m.modelId
-                || m.modelId === "undefined"
+                m.modelId === "undefined"
                 || m.modelId === "null"
-                || m.modelId.trim() === ""
+                || (typeof m.modelId === "string" && m.modelId.trim() === "")
               ) {
                 console.warn(
                   `[ModelSelect] 跳过无效模型选项: provider=${p.name}, modelId=${String(m.modelId)}`,
                 );
                 return [];
               }
+              // 使用 safeJoinIds 生成 value，自动过滤 undefined/null
+              const safeValue = safeJoinIds([p.id, m.modelId], "::");
+              // 如果生成的 value 不包含 ::，说明 modelId 无效
+              if (!safeValue.includes("::")) {
+                return [];
+              }
               return m.enabled
                 ? [
                   {
                     label: m.name,
-                    value: `${p.id}::${m.modelId}`,
+                    value: safeValue,
                     modelId: m.modelId,
                     providerName: p.name,
                   },

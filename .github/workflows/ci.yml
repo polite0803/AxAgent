@@ -83,6 +83,9 @@ jobs:
       - name: Check i18n hardcoded strings
         run: bash scripts/check-hardcoded-i18n.sh --strict
 
+      - name: Check ID validation (prevent undefined/null string corruption)
+        run: node scripts/check-id-validation.mjs
+
       - name: Check backend error code i18n alignment
         run: node scripts/check-errorcode-alignment.mjs
 
