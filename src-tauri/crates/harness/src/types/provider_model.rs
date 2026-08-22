@@ -21,6 +21,7 @@ where
 // === Provider System ===
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct ProviderConfig {
     pub id: String,
@@ -85,6 +86,7 @@ pub fn provider_registry_key(pt: &ProviderType) -> &'static str {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct ProviderKey {
     pub id: String,
     pub provider_id: String,
@@ -98,6 +100,7 @@ pub struct ProviderKey {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct ProviderProxyConfig {
     pub proxy_type: Option<String>,
     pub proxy_address: Option<String>,
@@ -152,6 +155,7 @@ pub struct CreateProviderInput {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateProviderInput {
     pub name: Option<String>,
     pub provider_type: Option<ProviderType>,
@@ -171,6 +175,7 @@ pub struct UpdateProviderInput {
 // === Model System ===
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct Model {
     pub provider_id: String,
     pub model_id: String,
