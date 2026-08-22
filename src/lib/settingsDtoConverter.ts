@@ -14,6 +14,7 @@
  * - 转换层是唯一允许做这种转换的地方
  */
 
+import { sanitizeId, validateModelRef } from "@/lib/validators";
 import type { AppSettings } from "@/types";
 import { ModelRef, type NullableModelRef } from "@/types/paired";
 
@@ -52,35 +53,24 @@ const MODEL_FIELD_MAP = {
 export function fromDto(dto: Partial<SettingsDto>): AppSettings {
   const settings = { ...dto } as Record<string, unknown>;
 
-  // 验证 ID 是否为有效值的辅助函数
-  const isValidId = (id: unknown): id is string => {
-    if (typeof id !== "string") { return false; }
-    if (id === "undefined" || id === "null" || id.trim() === "") { return false; }
-    return true;
-  };
-
   // 将分离字段合并为 NullableModelRef
   for (const [targetKey, { providerKey, modelKey }] of Object.entries(MODEL_FIELD_MAP)) {
-    let providerId = dto[providerKey] as string | null | undefined;
-    let modelId = dto[modelKey] as string | null | undefined;
+    const rawProviderId = dto[providerKey];
+    const rawModelId = dto[modelKey];
 
-    // 防御：清理无效的 ID 值
-    // 如果数据库中存的是 "undefined" 或 "null" 字符串，将其视为 null
-    if (!isValidId(providerId)) {
-      if (providerId !== null && providerId !== undefined && providerId !== "") {
-        console.warn(`[fromDto] 清理无效 providerId: ${providerKey}=${String(providerId)}`);
-      }
-      providerId = null;
-    }
-    if (!isValidId(modelId)) {
-      if (modelId !== null && modelId !== undefined && modelId !== "") {
-        console.warn(`[fromDto] 清理无效 modelId: ${modelKey}=${String(modelId)}`);
-      }
-      modelId = null;
+    // 使用统一验证工具清洗 ID 值
+    const validation = validateModelRef(rawProviderId, rawModelId);
+
+    if (!validation && (sanitizeId(rawProviderId) || sanitizeId(rawModelId))) {
+      // 数据不一致（一个有效一个无效），记录警告
+      console.warn(
+        `[fromDto] 数据不一致: ${providerKey}=${String(rawProviderId)}, ${modelKey}=${String(rawModelId)}`,
+      );
     }
 
-    // 使用 ModelRef.fromNullable 进行结构一致性检查
-    const modelRef = ModelRef.fromNullable(providerId, modelId);
+    const modelRef = validation
+      ? ModelRef.fromNullable(validation.providerId, validation.modelId)
+      : ModelRef.fromNullable(null, null);
 
     // 设置合并后的字段
     settings[targetKey] = modelRef;
@@ -107,24 +97,16 @@ export function toDto(settings: AppSettings): SettingsDto {
     const modelRef = settings[sourceKey as keyof AppSettings] as NullableModelRef;
 
     if (modelRef) {
-      const providerId = modelRef.a;
-      const modelId = modelRef.b;
+      // 使用统一验证工具检查
+      const validation = validateModelRef(modelRef.a, modelRef.b);
 
-      // 防御：检查 providerId 和 modelId 是否为有效值
-      // 排除 "undefined", "null", 空字符串等脏数据
-      const isValid = (id: unknown): id is string => {
-        if (typeof id !== "string") { return false; }
-        if (id === "undefined" || id === "null" || id.trim() === "") { return false; }
-        return true;
-      };
-
-      if (isValid(providerId) && isValid(modelId)) {
-        dto[providerKey] = providerId;
-        dto[modelKey] = modelId;
+      if (validation) {
+        dto[providerKey] = validation.providerId;
+        dto[modelKey] = validation.modelId;
       } else {
         console.warn(
           `[toDto] 检测到无效模型引用 ${sourceKey}`,
-          { providerId, modelId },
+          { providerId: modelRef.a, modelId: modelRef.b },
         );
         dto[providerKey] = null;
         dto[modelKey] = null;

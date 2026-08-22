@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { safeJoinIds } from "@/lib/validators";
 import { useProviderStore } from "@/stores";
 import { ModelIcon } from "@lobehub/icons";
 import { Select, theme } from "antd";
@@ -31,12 +32,33 @@ function useEmbeddingModelOptions() {
             </span>
           ),
           title: p.name,
-          options: embeddingModels.map((m) => ({
-            label: m.name,
-            value: `${p.id}::${m.modelId}`,
-            modelId: m.modelId,
-            providerName: p.name,
-          })),
+          options: embeddingModels
+            .filter((m) => {
+              // 过滤明显的脏数据（undefined/null 字符串）
+              // 不过滤 undefined/null 值，让 safeJoinIds 处理
+              if (
+                m.modelId === "undefined"
+                || m.modelId === "null"
+                || (typeof m.modelId === "string" && m.modelId.trim() === "")
+              ) {
+                console.warn(
+                  `[EmbeddingModelSelect] 跳过无效模型: ${p.name}/${String(m.modelId)}`,
+                );
+                return false;
+              }
+              // 使用 safeJoinIds 生成 value，如果不包含 :: 说明 modelId 无效
+              const safeValue = safeJoinIds([p.id, m.modelId], "::");
+              if (!safeValue.includes("::")) {
+                return false;
+              }
+              return true;
+            })
+            .map((m) => ({
+              label: m.name,
+              value: safeJoinIds([p.id, m.modelId], "::"),
+              modelId: m.modelId,
+              providerName: p.name,
+            })),
         },
       ];
     });
