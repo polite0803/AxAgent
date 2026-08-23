@@ -238,6 +238,10 @@ pub struct ExecutionState {
     /// 执行器通过它按 credential_id 懒加载并解密 DatabaseConnection / Smtp / ApiKey 等凭证。
     #[serde(skip, default)]
     pub credential_manager: Option<axagent_harness::SharedCredentialService>,
+    /// 数据库查询服务（可选，None = 不支持 DatabaseQuery 节点）。
+    /// 执行器通过它执行跨数据库的通用 SQL 查询。
+    #[serde(skip, default)]
+    pub database_query_service: Option<Arc<dyn axagent_harness::DatabaseQueryService>>,
     /// 工具注册表（可选，设置后 tool_executor 优先通过 ToolRegistry.execute_tool() 执行工具）
     #[serde(skip, default)]
     pub tool_registry: Option<Arc<dyn axagent_harness::ToolRegistry>>,

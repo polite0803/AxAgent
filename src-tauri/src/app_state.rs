@@ -353,6 +353,7 @@ pub struct AppState {
     pub plugin_manager: Arc<tokio::sync::RwLock<PluginManager>>,
     pub file_authorizer: Arc<FileAuthorizer>,
     pub credential_manager: Arc<CredentialManager>,
+    pub database_query_service: Arc<dyn axagent_harness::DatabaseQueryService>,
     pub session_share_manager: SessionShareStore,
     /// PTY 伪终端管理器，管理所有终端会话（仅桌面端可用）
     #[cfg(not(mobile))]

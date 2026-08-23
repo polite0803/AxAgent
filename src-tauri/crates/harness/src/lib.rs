@@ -688,6 +688,10 @@ pub use platform_manager::{PlatformConnectionInfo, PlatformManager, PlatformMess
 pub mod credential_service;
 pub use credential_service::{CredentialService, SharedCredentialService, SmtpServiceConfig};
 
+// ── 数据库查询服务契约 ──
+pub mod database_query_service;
+pub use database_query_service::{DatabaseQueryResult, DatabaseQueryService};
+
 // ── P9: 安全防护契约（限流 / SSRF / 内容过滤 / 工具指标 / 熔断 / 访问控制） ──
 pub mod rate_limiter;
 pub use rate_limiter::{RateLimitConfig, RateLimitResult, RateLimitStatus, RateLimiter};

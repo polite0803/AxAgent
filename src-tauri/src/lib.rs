@@ -8,6 +8,7 @@ mod android_utils;
 mod capability_embedding;
 mod commands;
 mod context_manager;
+mod database_query_impl;
 mod index_queue;
 mod indexing;
 mod indexing_triggers;
