@@ -12,8 +12,9 @@ use async_trait::async_trait;
 use axagent_harness::PluginAgentProvider;
 use axagent_harness::feature_flag_provider::SharedFeatureFlagProvider;
 use axagent_harness::tool_service::HookEventFirer;
+use parking_lot::{Mutex, RwLock};
 use serde_json::{Value, json};
-use std::sync::{Arc, LazyLock, Mutex, OnceLock, RwLock};
+use std::sync::{Arc, LazyLock, OnceLock};
 
 pub(crate) static PLUGIN_PROVIDER: OnceLock<Arc<dyn PluginAgentProvider>> = OnceLock::new();
 pub(crate) static HOOK_FIRER: OnceLock<Arc<dyn HookEventFirer>> = OnceLock::new();
@@ -47,7 +48,7 @@ static PENDING_SUB_AGENT_CARDS: LazyLock<
 > = LazyLock::new(|| Mutex::new(std::collections::HashMap::new()));
 
 fn store_pending_card(parent_id: &str, child_id: &str, agent_type: &str, description: &str) {
-    let mut m = PENDING_SUB_AGENT_CARDS.lock().unwrap_or_else(|e| e.into_inner());
+    let mut m = PENDING_SUB_AGENT_CARDS.lock();
     m.insert(
         parent_id.to_string(),
         (child_id.to_string(), agent_type.to_string(), description.to_string()),
@@ -187,29 +188,23 @@ pub fn refresh_agent_registry(cwd: &std::path::Path) {
         }
     }
 
-    if let Ok(mut guard) = AGENT_REGISTRY.write() {
-        *guard = merged;
-    }
+    let mut guard = AGENT_REGISTRY.write();
+    *guard = merged;
 }
 
 /// 列出所有已注册 Agent
 pub fn list_agents() -> Vec<AgentDefinition> {
-    AGENT_REGISTRY.read().unwrap_or_else(|e| e.into_inner()).clone()
+    AGENT_REGISTRY.read().clone()
 }
 
 /// 查找指定类型的 Agent
 pub fn find_agent(agent_type: &str) -> Option<AgentDefinition> {
-    AGENT_REGISTRY
-        .read()
-        .unwrap_or_else(|e| e.into_inner())
-        .iter()
-        .find(|a| a.agent_type == agent_type)
-        .cloned()
+    AGENT_REGISTRY.read().iter().find(|a| a.agent_type == agent_type).cloned()
 }
 
 /// 注册自定义 Agent（运行时动态添加）
 pub fn register_agent(def: AgentDefinition) {
-    AGENT_REGISTRY.write().unwrap_or_else(|e| e.into_inner()).push(def);
+    AGENT_REGISTRY.write().push(def);
 }
 
 pub struct AgentTool;

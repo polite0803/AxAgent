@@ -2,13 +2,13 @@
 
 //! In-memory task registry for sub-agent task lifecycle management.
 
+use parking_lot::Mutex;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
-use crate::util::lock_or_recover;
 use crate::{TaskPacket, TaskPacketValidationError, validate_packet};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -93,7 +93,7 @@ impl TaskRegistry {
         description: Option<String>,
         task_packet: Option<TaskPacket>,
     ) -> Task {
-        let mut inner = lock_or_recover(self.inner.lock(), "task_registry");
+        let mut inner = self.inner.lock();
         inner.counter += 1;
         let ts = now_secs();
         let task_id = format!("task_{:08x}_{}", ts, inner.counter);
@@ -114,12 +114,12 @@ impl TaskRegistry {
     }
 
     pub fn get(&self, task_id: &str) -> Option<Task> {
-        let inner = lock_or_recover(self.inner.lock(), "task_registry");
+        let inner = self.inner.lock();
         inner.tasks.get(task_id).cloned()
     }
 
     pub fn list(&self, status_filter: Option<RegistryTaskStatus>) -> Vec<Task> {
-        let inner = lock_or_recover(self.inner.lock(), "task_registry");
+        let inner = self.inner.lock();
         inner
             .tasks
             .values()
@@ -129,7 +129,7 @@ impl TaskRegistry {
     }
 
     pub fn stop(&self, task_id: &str) -> Result<Task, String> {
-        let mut inner = lock_or_recover(self.inner.lock(), "task_registry");
+        let mut inner = self.inner.lock();
         let task =
             inner.tasks.get_mut(task_id).ok_or_else(|| format!("task not found: {task_id}"))?;
 
@@ -151,7 +151,7 @@ impl TaskRegistry {
     }
 
     pub fn update(&self, task_id: &str, message: &str) -> Result<Task, String> {
-        let mut inner = lock_or_recover(self.inner.lock(), "task_registry");
+        let mut inner = self.inner.lock();
         let task =
             inner.tasks.get_mut(task_id).ok_or_else(|| format!("task not found: {task_id}"))?;
 
@@ -165,13 +165,13 @@ impl TaskRegistry {
     }
 
     pub fn output(&self, task_id: &str) -> Result<String, String> {
-        let inner = lock_or_recover(self.inner.lock(), "task_registry");
+        let inner = self.inner.lock();
         let task = inner.tasks.get(task_id).ok_or_else(|| format!("task not found: {task_id}"))?;
         Ok(task.output.clone())
     }
 
     pub fn append_output(&self, task_id: &str, output: &str) -> Result<(), String> {
-        let mut inner = lock_or_recover(self.inner.lock(), "task_registry");
+        let mut inner = self.inner.lock();
         let task =
             inner.tasks.get_mut(task_id).ok_or_else(|| format!("task not found: {task_id}"))?;
         task.output.push_str(output);
@@ -180,7 +180,7 @@ impl TaskRegistry {
     }
 
     pub fn set_status(&self, task_id: &str, status: RegistryTaskStatus) -> Result<(), String> {
-        let mut inner = lock_or_recover(self.inner.lock(), "task_registry");
+        let mut inner = self.inner.lock();
         let task =
             inner.tasks.get_mut(task_id).ok_or_else(|| format!("task not found: {task_id}"))?;
         task.status = status;
@@ -189,7 +189,7 @@ impl TaskRegistry {
     }
 
     pub fn assign_team(&self, task_id: &str, team_id: &str) -> Result<(), String> {
-        let mut inner = lock_or_recover(self.inner.lock(), "task_registry");
+        let mut inner = self.inner.lock();
         let task =
             inner.tasks.get_mut(task_id).ok_or_else(|| format!("task not found: {task_id}"))?;
         task.team_id = Some(team_id.to_owned());
@@ -198,13 +198,13 @@ impl TaskRegistry {
     }
 
     pub fn remove(&self, task_id: &str) -> Option<Task> {
-        let mut inner = lock_or_recover(self.inner.lock(), "task_registry");
+        let mut inner = self.inner.lock();
         inner.tasks.remove(task_id)
     }
 
     #[must_use]
     pub fn len(&self) -> usize {
-        let inner = lock_or_recover(self.inner.lock(), "task_registry");
+        let inner = self.inner.lock();
         inner.tasks.len()
     }
 

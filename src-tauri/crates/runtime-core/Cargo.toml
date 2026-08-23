@@ -11,6 +11,7 @@ axagent-harness = { path = "../harness" }
 chrono = { workspace = true }
 futures = "0.3"
 hex = { workspace = true }
+parking_lot = "0.12"
 reqwest = { workspace = true }
 sea-orm = { workspace = true }
 serde = { workspace = true }

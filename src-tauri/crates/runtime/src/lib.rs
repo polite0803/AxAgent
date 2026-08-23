@@ -224,9 +224,7 @@ pub use worker_boot::{
 };
 
 #[cfg(test)]
-pub(crate) fn test_env_lock() -> std::sync::MutexGuard<'static, ()> {
-    static LOCK: std::sync::OnceLock<std::sync::Mutex<()>> = std::sync::OnceLock::new();
-    LOCK.get_or_init(|| std::sync::Mutex::new(()))
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner)
+pub(crate) fn test_env_lock() -> parking_lot::MutexGuard<'static, ()> {
+    static LOCK: std::sync::OnceLock<parking_lot::Mutex<()>> = std::sync::OnceLock::new();
+    LOCK.get_or_init(|| parking_lot::Mutex::new(())).lock()
 }

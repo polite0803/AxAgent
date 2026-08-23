@@ -6,9 +6,9 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-// SAFETY: 此处 std::sync::RwLock 不跨 await 使用，get_active_personality() 为同步函数。
+// SAFETY: 此处 parking_lot::RwLock 不跨 await 使用，get_active_personality() 为同步函数。
 #[allow(clippy::disallowed_types)]
-use std::sync::RwLock;
+use parking_lot::RwLock;
 
 static PERSONALITIES_DIR: std::sync::LazyLock<PathBuf> = std::sync::LazyLock::new(|| {
     dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")).join(".axagent").join("personalities")
@@ -22,15 +22,15 @@ static ACTIVE_FILE: std::sync::LazyLock<PathBuf> = std::sync::LazyLock::new(|| {
         .join(".active")
 });
 
-// SAFETY: 此处 std::sync::RwLock 不跨 await 使用，仅在同步 get_active_personality() 内读取。
+// SAFETY: 此处 parking_lot::RwLock 不跨 await 使用，仅在同步 get_active_personality() 内读取。
 #[allow(clippy::disallowed_types)]
 static ACTIVE_PERSONALITY: RwLock<Option<String>> = RwLock::new(None);
 
 /// 获取当前激活的人格名称（线程安全的内存读取）
-// SAFETY: 此处 std::sync::RwLock 不跨 await 使用，读取为同步操作。
+// SAFETY: 此处 parking_lot::RwLock 不跨 await 使用，读取为同步操作。
 #[allow(clippy::disallowed_types)]
 pub fn get_active_personality() -> Option<String> {
-    ACTIVE_PERSONALITY.read().ok().and_then(|guard| guard.clone())
+    ACTIVE_PERSONALITY.read().clone()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -324,9 +324,9 @@ impl PersonalityManager {
         fs::write(&*ACTIVE_FILE, name)
             .map_err(|e| format!("Failed to write active personality: {}", e))?;
         // 线程安全的内存写入（主通道）
-        if let Ok(mut guard) = ACTIVE_PERSONALITY.write() {
-            *guard = Some(name.to_string());
-        }
+        let mut guard = ACTIVE_PERSONALITY.write();
+        *guard = Some(name.to_string());
+
         // AXAGENT_PERSONALITY 已统一通过 get_active_personality() 读取
         Ok(())
     }
@@ -337,9 +337,9 @@ impl PersonalityManager {
                 .map_err(|e| format!("Failed to clear active personality: {}", e))?;
         }
         // 线程安全的内存清理
-        if let Ok(mut guard) = ACTIVE_PERSONALITY.write() {
-            *guard = None;
-        }
+        let mut guard = ACTIVE_PERSONALITY.write();
+        *guard = None;
+
         // AXAGENT_PERSONALITY 已统一通过 get_active_personality() 读取
         Ok(())
     }

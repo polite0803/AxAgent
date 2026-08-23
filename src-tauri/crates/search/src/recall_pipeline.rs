@@ -22,9 +22,9 @@
 
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，execute() 为同步方法。
+// SAFETY: 此处 parking_lot::Mutex 不跨 await 使用，execute() 为同步方法。
 #[allow(clippy::disallowed_types)]
-use std::sync::Mutex;
+use parking_lot::Mutex;
 
 use crate::ast_index::AstIndex;
 use crate::file_index::FileIndex;
@@ -72,7 +72,7 @@ pub struct RecallResult {
 }
 
 #[derive(Debug, Clone)]
-// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，execute() 为同步方法。
+// SAFETY: 此处 parking_lot::Mutex 不跨 await 使用，execute() 为同步方法。
 #[allow(clippy::disallowed_types)]
 pub struct RecallPipeline<'a> {
     file_index: &'a FileIndex,
@@ -100,20 +100,21 @@ impl<'a> RecallPipeline<'a> {
         query: &str,
         vector_search_fn: Option<&VectorSearchFn>,
     ) -> Result<Vec<RecallResult>, String> {
-        if let Some(ref cache) = self.semantic_cache
-            && let Ok(mut cache_guard) = cache.lock()
-            && cache_guard.is_enabled()
-            && let Some(cached_entry) = cache_guard.search_by_text(query)
-        {
-            tracing::debug!(
-                query = %query,
-                access_count = cached_entry.access_count,
-                "Semantic cache hit in recall pipeline"
-            );
-            if let Ok(cached_results) =
-                serde_json::from_str::<Vec<RecallResult>>(&cached_entry.result)
+        if let Some(ref cache) = self.semantic_cache {
+            let mut cache_guard = cache.lock();
+            if cache_guard.is_enabled()
+                && let Some(cached_entry) = cache_guard.search_by_text(query)
             {
-                return Ok(cached_results);
+                tracing::debug!(
+                    query = %query,
+                    access_count = cached_entry.access_count,
+                    "Semantic cache hit in recall pipeline"
+                );
+                if let Ok(cached_results) =
+                    serde_json::from_str::<Vec<RecallResult>>(&cached_entry.result)
+                {
+                    return Ok(cached_results);
+                }
             }
         }
 
@@ -200,20 +201,27 @@ impl<'a> RecallPipeline<'a> {
         };
         results.truncate(limit);
 
-        if let Some(ref cache) = self.semantic_cache
-            && let Ok(mut cache_guard) = cache.lock()
-            && cache_guard.is_enabled()
-            && !results.is_empty()
-            && let Ok(serialized) = serde_json::to_string(&results)
-        {
-            let chunk_ids: Vec<String> = results.iter().map(|r| r.file_path.clone()).collect();
-            let best_score = results.first().map(|r| r.combined_score).unwrap_or(0.0);
-            cache_guard.insert_by_text(query.to_string(), serialized, chunk_ids, best_score, 3600);
-            tracing::debug!(
-                query = %query,
-                result_count = results.len(),
-                "Stored recall results in semantic cache"
-            );
+        if let Some(ref cache) = self.semantic_cache {
+            let mut cache_guard = cache.lock();
+            if cache_guard.is_enabled()
+                && !results.is_empty()
+                && let Ok(serialized) = serde_json::to_string(&results)
+            {
+                let chunk_ids: Vec<String> = results.iter().map(|r| r.file_path.clone()).collect();
+                let best_score = results.first().map(|r| r.combined_score).unwrap_or(0.0);
+                cache_guard.insert_by_text(
+                    query.to_string(),
+                    serialized,
+                    chunk_ids,
+                    best_score,
+                    3600,
+                );
+                tracing::debug!(
+                    query = %query,
+                    result_count = results.len(),
+                    "Stored recall results in semantic cache"
+                );
+            }
         }
 
         Ok(results)

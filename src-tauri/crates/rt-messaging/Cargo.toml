@@ -14,6 +14,7 @@ chrono = { workspace = true }
 flate2 = "1"
 futures = "0.3"
 hex = { workspace = true }
+parking_lot = "0.12"
 regex = "1"
 reqwest = { workspace = true, features = ["multipart", "cookies"] }
 roxmltree = "0.21"

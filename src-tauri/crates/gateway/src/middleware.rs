@@ -4,10 +4,10 @@
 
 use std::net::SocketAddr;
 use std::num::NonZero;
-// SAFETY: 此处 std::sync::RwLock 不跨 await 使用，rate_limit_middleware 中 guard 已在块内释放。
+// SAFETY: 此处 parking_lot::RwLock 不跨 await 使用，rate_limit_middleware 中 guard 已在块内释放。
 // SAFETY: 后台重建线程使用同步 RwLock，临界区内无 await。
 #[allow(clippy::disallowed_types)]
-use std::sync::RwLock;
+use parking_lot::RwLock;
 
 use axum::{
     extract::{ConnectInfo, Request},
@@ -48,13 +48,12 @@ static RATE_LIMITER: std::sync::LazyLock<RwLock<KeyedLimiter>> = std::sync::Lazy
     std::thread::spawn(|| {
         loop {
             std::thread::sleep(std::time::Duration::from_secs(3600));
-            if let Ok(mut guard) = RATE_LIMITER.write() {
-                *guard = create_limiter();
-                tracing::info!(
-                    target: "axagent.gateway.rate_limit",
-                    "Recreated rate limiter to clear stale entries"
-                );
-            }
+            let mut guard = RATE_LIMITER.write();
+            *guard = create_limiter();
+            tracing::info!(
+                target: "axagent.gateway.rate_limit",
+                "Recreated rate limiter to clear stale entries"
+            );
         }
     });
     limiter
@@ -72,7 +71,7 @@ pub async fn rate_limit_middleware(request: Request, next: Next) -> Response {
 
     // RwLockReadGuard 是 !Send，不能跨 await 持有，放入块中提前释放。
     let is_limited = {
-        let limiter = RATE_LIMITER.read().unwrap_or_else(|e| e.into_inner());
+        let limiter = RATE_LIMITER.read();
         limiter.check_key(&key).is_err()
     };
     if is_limited {

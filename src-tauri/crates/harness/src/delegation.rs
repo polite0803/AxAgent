@@ -7,10 +7,11 @@
 //! - TLS 审批回调: 线程本地存储的审批回调机制
 //! - 生命周期管理: 子代理的创建、运行、完成、取消等生命周期
 
+use parking_lot::Mutex;
 use std::cell::RefCell;
 use std::collections::HashSet;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
 
@@ -181,9 +182,8 @@ pub fn execute_approval(request: ApprovalRequest) -> ApprovalResponse {
     }
 
     // 如果有回调，使用回调
-    if let Some(callback_arc) = get_approval_callback()
-        && let Ok(callback) = callback_arc.lock()
-    {
+    if let Some(callback_arc) = get_approval_callback() {
+        let callback = callback_arc.lock();
         return callback(request);
     }
 
@@ -278,12 +278,11 @@ impl SubAgentLifecycleManager {
             reason: reason.map(|s| s.to_string()),
         };
 
-        if let Ok(mut events) = self.events.lock() {
-            events.push(event.clone());
-            // 限制历史长度
-            while events.len() > self.max_history {
-                events.remove(0);
-            }
+        let mut events = self.events.lock();
+        events.push(event.clone());
+        // 限制历史长度
+        while events.len() > self.max_history {
+            events.remove(0);
         }
 
         event
@@ -291,27 +290,20 @@ impl SubAgentLifecycleManager {
 
     /// 获取指定子代理的事件历史
     pub fn get_history(&self, sub_agent_id: &str) -> Vec<LifecycleEvent> {
-        if let Ok(events) = self.events.lock() {
-            events.iter().filter(|e| e.sub_agent_id == sub_agent_id).cloned().collect()
-        } else {
-            Vec::new()
-        }
+        let events = self.events.lock();
+        events.iter().filter(|e| e.sub_agent_id == sub_agent_id).cloned().collect()
     }
 
     /// 获取所有事件
     pub fn get_all_events(&self) -> Vec<LifecycleEvent> {
-        if let Ok(events) = self.events.lock() {
-            events.clone()
-        } else {
-            Vec::new()
-        }
+        let events = self.events.lock();
+        events.clone()
     }
 
     /// 清理历史
     pub fn clear_history(&self) {
-        if let Ok(mut events) = self.events.lock() {
-            events.clear();
-        }
+        let mut events = self.events.lock();
+        events.clear();
     }
 }
 

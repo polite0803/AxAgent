@@ -82,8 +82,8 @@ pub fn process_slash_command(text: &str) -> Option<SlashCommandAction> {
 type BundleCache = Option<(Vec<String>, Instant)>;
 // SAFETY: BUNDLE_NAMES_CACHE 中的 Mutex 用于同步缓存访问，所有访问点均为同步函数，不跨 await。
 #[allow(clippy::disallowed_types)]
-static BUNDLE_NAMES_CACHE: LazyLock<std::sync::Mutex<BundleCache>> =
-    LazyLock::new(|| std::sync::Mutex::new(None));
+static BUNDLE_NAMES_CACHE: LazyLock<parking_lot::Mutex<BundleCache>> =
+    LazyLock::new(|| parking_lot::Mutex::new(None));
 
 const BUNDLE_CACHE_TTL_SECS: u64 = 60;
 
@@ -100,9 +100,9 @@ fn is_bundle_name(name: &str) -> bool {
 
 fn get_cached_bundle_names() -> Vec<String> {
     // SAFETY: 本函数及所有 BUNDLE_NAMES_CACHE 访问点（is_bundle_name）均为
-    // 同步函数，guard 不跨 await 点。使用 std::sync::Mutex 是正确的；
+    // 同步函数，guard 不跨 await 点。使用 parking_lot::Mutex 是正确的；
     // unwrap_or_else 处理 poison 以避免 panic 连锁。
-    let mut guard = BUNDLE_NAMES_CACHE.lock().unwrap_or_else(|e| e.into_inner());
+    let mut guard = BUNDLE_NAMES_CACHE.lock();
     if let Some((ref names, built_at)) = *guard
         && built_at.elapsed().as_secs() < BUNDLE_CACHE_TTL_SECS
     {

@@ -29,6 +29,7 @@ base64 = "0.22"
 getrandom = "0.2"
 hex = "0.4"
 hmac = "0.13"
+parking_lot = "0.12"
 sha2 = "0.11"
 tracing = { workspace = true }
 zeroize = "1"

@@ -21,10 +21,11 @@ use async_trait::async_trait;
 use axagent_harness::ToolExecutionAudit;
 use axagent_harness::runtime_types::conversation::ToolExecutor as RuntimeToolExecutor;
 // serde_json::Value used for JSON Schema in MCP tool configs
+use parking_lot::Mutex;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Instant;
 
 pub type SkillToolHandler = Box<dyn Fn(&str) -> Result<String, crate::ToolError> + Send + Sync>;
@@ -1156,11 +1157,7 @@ impl UnifiedToolRegistry {
 
         // ── 权限检查（集成 PermissionPolicy） ──
         // 锁中毒时恢复内部数据：即使前一个线程 panic，我们仍能继续执行权限检查
-        let decision = self
-            .permission_policy
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .authorize(tool_name, &sanitized_input);
+        let decision = self.permission_policy.lock().authorize(tool_name, &sanitized_input);
         if decision.is_denied() {
             return Err(ToolError::permission_denied(tool_name, &decision.reason));
         }

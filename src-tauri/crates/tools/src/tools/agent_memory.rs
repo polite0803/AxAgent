@@ -9,9 +9,9 @@
 
 use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
+use parking_lot::Mutex;
 use sea_orm::ConnectionTrait;
 use serde_json::Value;
-use std::sync::Mutex;
 
 fn truncate_text(s: &str, max: usize) -> String {
     if s.len() <= max {
@@ -287,11 +287,7 @@ impl Tool for AgentCheckpointTool {
         let label = input.get("label").and_then(|v| v.as_str()).unwrap_or("checkpoint");
         let data = input.get("data").and_then(|v| v.as_str()).unwrap_or("");
         let ts = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
-        CHECKPOINTS.lock().map_err(|e| ToolError::execution_failed(e.to_string()))?.push((
-            label.to_string(),
-            data.to_string(),
-            ts.clone(),
-        ));
+        CHECKPOINTS.lock().push((label.to_string(), data.to_string(), ts.clone()));
         Ok(ToolResult::success(format!("检查点已保存: {} ({})", label, ts)))
     }
 }
@@ -324,9 +320,8 @@ impl Tool for AgentStatusTool {
     }
 
     async fn call(&self, _input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let checkpoints =
-            CHECKPOINTS.lock().map_err(|e| ToolError::execution_failed(e.to_string()))?;
-        let memory = AGENT_MEMORY.lock().map_err(|e| ToolError::execution_failed(e.to_string()))?;
+        let checkpoints = CHECKPOINTS.lock();
+        let memory = AGENT_MEMORY.lock();
         let mut lines = vec!["## Agent 会话状态\n".to_string()];
         lines.push(format!("检查点: {}", checkpoints.len()));
         lines.push(format!("记忆条目: {}", memory.len()));
@@ -376,10 +371,7 @@ impl Tool for AgentRememberTool {
         if key.is_empty() {
             return Ok(ToolResult::error("Error: key 是必需的"));
         }
-        AGENT_MEMORY
-            .lock()
-            .map_err(|e| ToolError::execution_failed(e.to_string()))?
-            .insert(key.to_string(), value.to_string());
+        AGENT_MEMORY.lock().insert(key.to_string(), value.to_string());
         Ok(ToolResult::success(format!("已记住: {} = {}", key, truncate_text(value, 200))))
     }
 }

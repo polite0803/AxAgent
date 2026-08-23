@@ -2,12 +2,13 @@
 
 #![allow(clippy::disallowed_types)]
 
+use parking_lot::Mutex;
 use std::fmt::{Debug, Formatter};
 use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
@@ -300,28 +301,28 @@ impl std::fmt::Display for TelemetryLevel {
 ///
 /// 运行时切换级别:`FilteringSink::set_level` 接受 `Arc<RwLock<TelemetryLevel>>`,
 /// 用户在前端修改级别后,后端立即更新共享级别,sink 链无需重建。
-// SAFETY: 此处 std::sync::RwLock 不跨 await 使用，临界区内仅同步操作（record 为同步方法）。
+// SAFETY: 此处 parking_lot::RwLock 不跨 await 使用，临界区内仅同步操作（record 为同步方法）。
 #[allow(clippy::disallowed_types)]
 pub struct FilteringSink {
     inner: Arc<dyn TelemetrySink>,
-    level: Arc<std::sync::RwLock<TelemetryLevel>>,
+    level: Arc<parking_lot::RwLock<TelemetryLevel>>,
 }
 
-// SAFETY: 此处 std::sync::RwLock 不跨 await 使用，临界区内仅同步操作。
+// SAFETY: 此处 parking_lot::RwLock 不跨 await 使用，临界区内仅同步操作。
 #[allow(clippy::disallowed_types)]
 impl Debug for FilteringSink {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let level = self.level.read().map(|l| *l).unwrap_or(TelemetryLevel::Off);
+        let level = *self.level.read();
         f.debug_struct("FilteringSink").field("level", &level).finish_non_exhaustive()
     }
 }
 
-// SAFETY: 此处 std::sync::RwLock 不跨 await 使用，临界区内仅同步操作。
+// SAFETY: 此处 parking_lot::RwLock 不跨 await 使用，临界区内仅同步操作。
 #[allow(clippy::disallowed_types)]
 impl FilteringSink {
     #[must_use]
     pub fn new(inner: Arc<dyn TelemetrySink>, level: TelemetryLevel) -> Self {
-        Self { inner, level: Arc::new(std::sync::RwLock::new(level)) }
+        Self { inner, level: Arc::new(parking_lot::RwLock::new(level)) }
     }
 
     /// 用外部已存在的级别句柄构造，使 wiring 层可以把同一个 `Arc<RwLock<TelemetryLevel>>`
@@ -332,31 +333,30 @@ impl FilteringSink {
     #[must_use]
     pub fn new_with_handle(
         inner: Arc<dyn TelemetrySink>,
-        level: Arc<std::sync::RwLock<TelemetryLevel>>,
+        level: Arc<parking_lot::RwLock<TelemetryLevel>>,
     ) -> Self {
         Self { inner, level }
     }
 
     /// 返回共享级别句柄,调用方可用于运行时切换级别。
     #[must_use]
-    pub fn level_handle(&self) -> Arc<std::sync::RwLock<TelemetryLevel>> {
+    pub fn level_handle(&self) -> Arc<parking_lot::RwLock<TelemetryLevel>> {
         self.level.clone()
     }
 
     /// 运行时切换级别(立即生效,无需重建 sink 链)。
     ///
-    /// 使用 `std::sync::RwLock` 而非 `tokio::sync::RwLock`,因为
+    /// 使用 `parking_lot::RwLock` 而非 `tokio::sync::RwLock`,因为
     /// `TelemetrySink::record` 是同步方法,不能在内部 await。
     /// 写锁持有时间极短(仅赋值),不会阻塞异步运行时。
     pub fn set_level(&self, level: TelemetryLevel) {
-        if let Ok(mut guard) = self.level.write() {
-            *guard = level;
-        }
+        let mut guard = self.level.write();
+        *guard = level;
     }
 
     /// 读取当前级别(读锁失败时回退到 `Off`,保守保护用户隐私)。
     pub fn current_level(&self) -> TelemetryLevel {
-        self.level.read().map(|g| *g).unwrap_or(TelemetryLevel::Off)
+        *self.level.read()
     }
 }
 
@@ -370,31 +370,31 @@ impl TelemetrySink for FilteringSink {
     }
 }
 
-// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，仅在同步 record() 内操作 Vec。
+// SAFETY: 此处 parking_lot::Mutex 不跨 await 使用，仅在同步 record() 内操作 Vec。
 #[allow(clippy::disallowed_types)]
 #[derive(Default)]
 pub struct MemoryTelemetrySink {
     events: Mutex<Vec<TelemetryEvent>>,
 }
 
-// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，仅在同步方法内操作。
+// SAFETY: 此处 parking_lot::Mutex 不跨 await 使用，仅在同步方法内操作。
 #[allow(clippy::disallowed_types)]
 impl MemoryTelemetrySink {
     #[must_use]
     pub fn events(&self) -> Vec<TelemetryEvent> {
-        self.events.lock().unwrap_or_else(std::sync::PoisonError::into_inner).clone()
+        self.events.lock().clone()
     }
 }
 
-// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，record 为同步方法。
+// SAFETY: 此处 parking_lot::Mutex 不跨 await 使用，record 为同步方法。
 #[allow(clippy::disallowed_types)]
 impl TelemetrySink for MemoryTelemetrySink {
     fn record(&self, event: TelemetryEvent) {
-        self.events.lock().unwrap_or_else(std::sync::PoisonError::into_inner).push(event);
+        self.events.lock().push(event);
     }
 }
 
-// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，仅在同步 record() 内写文件。
+// SAFETY: 此处 parking_lot::Mutex 不跨 await 使用，仅在同步 record() 内写文件。
 #[allow(clippy::disallowed_types)]
 pub struct JsonlTelemetrySink {
     path: PathBuf,
@@ -407,7 +407,7 @@ impl Debug for JsonlTelemetrySink {
     }
 }
 
-// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，构造与读取均为同步操作。
+// SAFETY: 此处 parking_lot::Mutex 不跨 await 使用，构造与读取均为同步操作。
 #[allow(clippy::disallowed_types)]
 impl JsonlTelemetrySink {
     pub fn new(path: impl AsRef<Path>) -> Result<Self, std::io::Error> {
@@ -425,14 +425,14 @@ impl JsonlTelemetrySink {
     }
 }
 
-// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，record 为同步方法。
+// SAFETY: 此处 parking_lot::Mutex 不跨 await 使用，record 为同步方法。
 #[allow(clippy::disallowed_types)]
 impl TelemetrySink for JsonlTelemetrySink {
     fn record(&self, event: TelemetryEvent) {
         let Ok(line) = serde_json::to_string(&event) else {
             return;
         };
-        let mut file = self.file.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut file = self.file.lock();
         let _ = writeln!(file, "{line}");
         let _ = file.flush();
     }
@@ -815,7 +815,7 @@ mod tests_2_7 {
         let handle = filtering.level_handle();
 
         // 通过共享句柄切换级别
-        *handle.write().unwrap_or_else(|e| e.into_inner()) = TelemetryLevel::Full;
+        *handle.write() = TelemetryLevel::Full;
         assert_eq!(filtering.current_level(), TelemetryLevel::Full);
 
         filtering.record(analytics_event());

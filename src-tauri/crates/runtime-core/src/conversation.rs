@@ -2,10 +2,10 @@
 
 #![allow(clippy::disallowed_types)]
 
+use parking_lot::{Condvar, Mutex};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Condvar, Mutex};
 use std::time::Duration;
 
 use crate::session::ConversationMessageExt;
@@ -46,45 +46,38 @@ impl PauseState {
     }
 
     pub fn pause(&self) {
-        let mut paused = self.is_paused.lock().unwrap_or_else(|e| e.into_inner());
+        let mut paused = self.is_paused.lock();
         *paused = true;
         self.condvar.notify_all();
     }
 
     pub fn resume(&self) {
-        let mut paused = self.is_paused.lock().unwrap_or_else(|e| e.into_inner());
+        let mut paused = self.is_paused.lock();
         *paused = false;
         self.condvar.notify_all();
     }
 
     pub fn wait_while_paused(&self, cancel_token: Option<&AtomicBool>) {
-        let mut paused = self.is_paused.lock().unwrap_or_else(|e| e.into_inner());
+        let mut paused = self.is_paused.lock();
         while *paused {
             if let Some(token) = cancel_token
                 && token.load(Ordering::Relaxed)
             {
                 return;
             }
-            let result = self.condvar.wait_timeout(paused, Duration::from_secs(1));
-            match result {
-                Ok((guard, wait_result)) => {
-                    paused = guard;
-                    if wait_result.timed_out()
-                        && let Some(token) = cancel_token
-                        && token.load(Ordering::Relaxed)
-                    {
-                        return;
-                    }
-                },
-                Err(_) => {
-                    return;
-                },
+            let deadline = std::time::Instant::now() + Duration::from_secs(1);
+            let wait_result = self.condvar.wait_until(&mut paused, deadline);
+            if wait_result.timed_out()
+                && let Some(token) = cancel_token
+                && token.load(Ordering::Relaxed)
+            {
+                return;
             }
         }
     }
 
     pub fn is_paused(&self) -> bool {
-        *self.is_paused.lock().unwrap_or_else(|e| e.into_inner())
+        *self.is_paused.lock()
     }
 }
 
@@ -486,7 +479,7 @@ where
         }
 
         let probe_input = r#"{"pattern": "*.health-check-probe-"}"#;
-        let mut executor = self.tool_executor.lock().map_err(|e| format!("Lock error: {}", e))?;
+        let mut executor = self.tool_executor.lock();
         match executor.execute("glob_search", probe_input) {
             Ok(_) => Ok(()),
             Err(e) => Err(format!("Tool executor probe failed: {e}")),
@@ -517,10 +510,7 @@ where
         let rt_handle = tokio::runtime::Handle::try_current().ok();
         std::thread::spawn(move || {
             let _guard = rt_handle.as_ref().map(|h| h.enter());
-            let result = match t_executor.lock() {
-                Ok(mut ex) => ex.execute(&t_name, &t_input),
-                Err(e) => Err(ToolError::new(format!("Lock error: {}", e))),
-            };
+            let result = t_executor.lock().execute(&t_name, &t_input);
             let _ = tx.send(result);
         });
         let scope_result = tokio::task::block_in_place(|| rx.recv_timeout(t_timeout));
@@ -1762,21 +1752,21 @@ type ToolHandler = Box<dyn Fn(&str) -> Result<String, ToolError> + Send + Sync>;
 
 /// Simple in-memory tool executor for tests and lightweight integrations.
 /// 使用 `Mutex` 实现内部可变性，支持 `&self` 并发调用。
-// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，register/execute 均为同步方法。
+// SAFETY: 此处 parking_lot::Mutex 不跨 await 使用，register/execute 均为同步方法。
 #[allow(clippy::disallowed_types)]
 pub struct StaticToolExecutor {
-    handlers: std::sync::Mutex<BTreeMap<String, ToolHandler>>,
+    handlers: parking_lot::Mutex<BTreeMap<String, ToolHandler>>,
 }
 
-// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，仅在同步方法内操作。
+// SAFETY: 此处 parking_lot::Mutex 不跨 await 使用，仅在同步方法内操作。
 #[allow(clippy::disallowed_types)]
 impl Default for StaticToolExecutor {
     fn default() -> Self {
-        Self { handlers: std::sync::Mutex::new(BTreeMap::new()) }
+        Self { handlers: parking_lot::Mutex::new(BTreeMap::new()) }
     }
 }
 
-// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，register 为同步方法。
+// SAFETY: 此处 parking_lot::Mutex 不跨 await 使用，register 为同步方法。
 #[allow(clippy::disallowed_types)]
 impl StaticToolExecutor {
     #[must_use]
@@ -1790,19 +1780,16 @@ impl StaticToolExecutor {
         tool_name: impl Into<String>,
         handler: impl Fn(&str) -> Result<String, ToolError> + Send + Sync + 'static,
     ) -> Self {
-        self.handlers
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .insert(tool_name.into(), Box::new(handler));
+        self.handlers.lock().insert(tool_name.into(), Box::new(handler));
         self
     }
 }
 
-// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，execute 为同步方法。
+// SAFETY: 此处 parking_lot::Mutex 不跨 await 使用，execute 为同步方法。
 #[allow(clippy::disallowed_types)]
 impl ToolExecutor for StaticToolExecutor {
     fn execute(&mut self, tool_name: &str, input: &str) -> Result<String, ToolError> {
-        let guard = self.handlers.lock().unwrap_or_else(|e| e.into_inner());
+        let guard = self.handlers.lock();
         let handler = guard
             .get(tool_name)
             .ok_or_else(|| ToolError::new(format!("unknown tool: {tool_name}")))?;

@@ -176,7 +176,7 @@ mod tests {
         std::env::temp_dir().join(format!("runtime-git-context-{label}-{nanos}"))
     }
 
-    fn env_lock() -> std::sync::MutexGuard<'static, ()> {
+    fn env_lock() -> parking_lot::MutexGuard<'static, ()> {
         crate::test_env_lock()
     }
 

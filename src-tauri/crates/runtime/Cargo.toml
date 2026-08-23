@@ -40,6 +40,7 @@ dirs = "6"
 futures = "0.3"
 glob = "0.3"
 hex = { workspace = true }
+parking_lot = "0.12"
 regex = "1"
 reqwest = { workspace = true }
 sea-orm = { workspace = true }

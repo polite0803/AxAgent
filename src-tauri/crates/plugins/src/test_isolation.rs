@@ -7,28 +7,28 @@
 
 use std::env;
 use std::path::PathBuf;
-// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，仅在同步 lock() 内操作。
+// SAFETY: 此处 parking_lot::Mutex 不跨 await 使用，仅在同步 lock() 内操作。
 #[allow(clippy::disallowed_types)]
-use std::sync::Mutex;
+use parking_lot::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static TEST_COUNTER: AtomicU64 = AtomicU64::new(0);
-// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，测试环境锁为同步临界区。
+// SAFETY: 此处 parking_lot::Mutex 不跨 await 使用，测试环境锁为同步临界区。
 #[allow(clippy::disallowed_types)]
 static ENV_LOCK: Mutex<()> = Mutex::new(());
 
 /// Lock for test environment isolation
 pub struct EnvLock {
-    // SAFETY: 此处 std::sync::MutexGuard 不跨 await 使用，仅在持有锁期间操作。
+    // SAFETY: 此处 parking_lot::MutexGuard 不跨 await 使用，仅在持有锁期间操作。
     #[allow(clippy::disallowed_types)]
-    _guard: std::sync::MutexGuard<'static, ()>,
+    _guard: parking_lot::MutexGuard<'static, ()>,
     temp_home: PathBuf,
 }
 
 impl EnvLock {
     /// Acquire environment lock for test isolation
     pub fn lock() -> Self {
-        let guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let guard = ENV_LOCK.lock();
         let count = TEST_COUNTER.fetch_add(1, Ordering::SeqCst);
         let temp_home = std::env::temp_dir().join(format!("plugin-test-{count}"));
 

@@ -13,7 +13,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc};
+use parking_lot::{RwLock};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Checkpoint {
@@ -104,7 +105,7 @@ impl CheckpointManager {
             let mut checkpoints = self
                 .checkpoints
                 .write()
-                .map_err(|_| CheckpointError::LockError)?;
+                ;
             checkpoints.insert(checkpoint_id, checkpoint.clone());
         }
 
@@ -119,7 +120,7 @@ impl CheckpointManager {
         let checkpoints = self
             .checkpoints
             .read()
-            .map_err(|_| CheckpointError::LockError)?;
+            ;
         checkpoints
             .get(id)
             .cloned()
@@ -135,7 +136,7 @@ impl CheckpointManager {
         let checkpoints = self
             .checkpoints
             .read()
-            .map_err(|_| CheckpointError::LockError)?;
+            ;
         let mut list: Vec<Checkpoint> = checkpoints.values().cloned().collect();
         list.sort_by(|a, b| b.created_at.cmp(&a.created_at));
         Ok(list)
@@ -152,7 +153,7 @@ impl CheckpointManager {
         let mut checkpoints = self
             .checkpoints
             .write()
-            .map_err(|_| CheckpointError::LockError)?;
+            ;
         checkpoints.remove(id);
 
         Ok(())
@@ -162,7 +163,7 @@ impl CheckpointManager {
         let mut checkpoints = self
             .checkpoints
             .write()
-            .map_err(|_| CheckpointError::LockError)?;
+            ;
 
         if checkpoints.len() <= self.max_checkpoints {
             return Ok(0);
@@ -200,7 +201,7 @@ impl CheckpointManager {
         let checkpoints = self
             .checkpoints
             .read()
-            .map_err(|_| CheckpointError::LockError)?;
+            ;
         let mut result: Vec<Checkpoint> = checkpoints
             .values()
             .filter(|cp| cp.metadata.session_id == session_id)
@@ -224,7 +225,7 @@ impl CheckpointManager {
         let checkpoints = self
             .checkpoints
             .read()
-            .map_err(|_| CheckpointError::LockError)?;
+            ;
         Ok(checkpoints.values().map(|cp| cp.size_bytes).sum())
     }
 
@@ -295,7 +296,7 @@ impl CheckpointManager {
             let mut checkpoints = self
                 .checkpoints
                 .write()
-                .map_err(|_| CheckpointError::LockError)?;
+                ;
             checkpoints.insert(incremental_id, checkpoint.clone());
         }
 
@@ -344,7 +345,7 @@ impl CheckpointManager {
         let mut checkpoints = self
             .checkpoints
             .write()
-            .map_err(|_| CheckpointError::LockError)?;
+            ;
         checkpoints.insert(checkpoint.id.clone(), checkpoint.clone());
 
         Ok(checkpoint)

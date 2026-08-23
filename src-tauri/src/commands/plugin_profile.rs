@@ -94,7 +94,7 @@ pub struct PluginProfileDumpResponse {
 /// JSON 文件持久化的插件组合 Profile 存储（惰性全局单例，按 app_data_dir 初始化）。
 struct PluginProfileStore {
     path: PathBuf,
-    inner: std::sync::Mutex<BTreeMap<String, PluginBundleProfileDto>>,
+    inner: parking_lot::Mutex<BTreeMap<String, PluginBundleProfileDto>>,
 }
 
 impl PluginProfileStore {
@@ -103,34 +103,34 @@ impl PluginProfileStore {
             .ok()
             .and_then(|s| serde_json::from_str::<BTreeMap<String, PluginBundleProfileDto>>(&s).ok())
             .unwrap_or_default();
-        Self { path, inner: std::sync::Mutex::new(inner) }
+        Self { path, inner: parking_lot::Mutex::new(inner) }
     }
 
     fn persist(&self) -> io::Result<()> {
-        let guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let guard = self.inner.lock();
         let json = serde_json::to_string_pretty(&*guard)
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
         std::fs::write(&self.path, json)
     }
 
     fn list(&self) -> Vec<PluginBundleProfileDto> {
-        let guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let guard = self.inner.lock();
         guard.values().cloned().collect()
     }
 
     fn get(&self, id: &str) -> Option<PluginBundleProfileDto> {
-        let guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let guard = self.inner.lock();
         guard.get(id).cloned()
     }
 
     fn insert(&self, profile: PluginBundleProfileDto) -> io::Result<()> {
-        self.inner.lock().unwrap_or_else(|e| e.into_inner()).insert(profile.id.clone(), profile);
+        self.inner.lock().insert(profile.id.clone(), profile);
         self.persist()
     }
 
     /// 返回是否真删除了某 id。
     fn remove(&self, id: &str) -> io::Result<bool> {
-        let removed = self.inner.lock().unwrap_or_else(|e| e.into_inner()).remove(id).is_some();
+        let removed = self.inner.lock().remove(id).is_some();
         if removed {
             self.persist()?;
         }

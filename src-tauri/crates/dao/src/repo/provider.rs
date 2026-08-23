@@ -9,8 +9,8 @@ use axagent_entities::{models, provider_keys, providers};
 use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::types::*;
 use axagent_harness::util_fns::{gen_id, now_ts};
+use parking_lot::Mutex;
 use std::collections::HashMap;
-use std::sync::Mutex;
 use std::sync::OnceLock;
 
 fn parse_provider_type(s: &str) -> ProviderType {
@@ -534,9 +534,9 @@ pub async fn get_active_key(db: &DatabaseConnection, provider_id: &str) -> Resul
     }
 
     // 多个 key 时使用 RoundRobin 轮询
-    // SAFETY: 此处使用 std::sync::Mutex 而非 tokio::sync::Mutex 是安全的：
+    // SAFETY: 此处使用 parking_lot::Mutex 而非 tokio::sync::Mutex 是安全的：
     // `map` guard 在 `Ok(selected.clone())` 返回前 drop，不跨越任何 await 点，
-    // 因此不会触发 std::sync::Mutex guard 跨 await 的 UB 风险。
+    // 因此不会触发 parking_lot::Mutex guard 跨 await 的 UB 风险。
     // `try_lock_or_log!` 宏已处理 poison 情况（恢复为 inner 值而非 panic）。
     #[allow(clippy::disallowed_types)]
     static ROUND_ROBIN: OnceLock<Mutex<HashMap<String, u32>>> = OnceLock::new();

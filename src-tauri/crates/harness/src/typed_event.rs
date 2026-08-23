@@ -29,8 +29,9 @@ use crate::EffectScope;
 use crate::event_bus::{DomainEvent, EventCategory};
 use crate::reversible_effect::EffectHandle;
 use async_trait::async_trait;
+use parking_lot::RwLock;
 use serde_json::Value;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 /// 派发模式。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -165,7 +166,7 @@ impl EventDispatchBus {
         subscriber: Arc<dyn EventSubscriber>,
     ) -> EffectHandle {
         let id = {
-            let mut g = self.inner.write().unwrap_or_else(|e| e.into_inner());
+            let mut g = self.inner.write();
             let id = g.next_id;
             g.next_id += 1;
             g.subscriptions.push(Subscription { id, matcher, subscriber });
@@ -173,14 +174,14 @@ impl EventDispatchBus {
         };
         let inner = self.inner.clone();
         self.effects.register(format!("event-subscriber:{id}"), move || {
-            let mut g = inner.write().unwrap_or_else(|e| e.into_inner());
+            let mut g = inner.write();
             g.subscriptions.retain(|s| s.id != id);
         })
     }
 
     /// 当前订阅者数量（含未匹配当前事件的）。
     pub fn subscriber_count(&self) -> usize {
-        self.inner.read().unwrap_or_else(|e| e.into_inner()).subscriptions.len()
+        self.inner.read().subscriptions.len()
     }
 
     /// 是否有订阅者可能匹配该事件（热路径读取前的廉价短路）。
@@ -188,12 +189,7 @@ impl EventDispatchBus {
     /// 用于流式路径：构造/序列化 payload 前先判断有没有匹配订阅者，
     /// 避免无订阅时仍为每个 chunk 做 JSON 序列化的开销。
     pub fn would_dispatch(&self, event: &DomainEvent) -> bool {
-        self.inner
-            .read()
-            .unwrap_or_else(|e| e.into_inner())
-            .subscriptions
-            .iter()
-            .any(|s| s.matcher.matches(event))
+        self.inner.read().subscriptions.iter().any(|s| s.matcher.matches(event))
     }
 
     /// 按派发模式派发一个事件。
@@ -201,7 +197,7 @@ impl EventDispatchBus {
     /// 仅匹配的订阅者参与回调；无匹配订阅者时优雅返回（不 panic）。
     pub async fn dispatch(&self, event: &mut DomainEvent, mode: DispatchMode) -> DispatchOutcome {
         let subs: Vec<Arc<dyn EventSubscriber>> = {
-            let g = self.inner.read().unwrap_or_else(|e| e.into_inner());
+            let g = self.inner.read();
             g.subscriptions
                 .iter()
                 .filter(|s| s.matcher.matches(event))

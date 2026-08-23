@@ -190,9 +190,9 @@ impl FileRoleRegistry {
     /// 从 YAML 或 JSON 文件加载角色定义。
     /// 支持 .yaml / .yml / .json 扩展名。
     ///
-    /// 修复问题 9：原实现使用 `std::fs::read_to_string`（阻塞 I/O）和 `std::sync::RwLock`。
+    /// 修复问题 9：原实现使用 `std::fs::read_to_string`（阻塞 I/O）和 `parking_lot::RwLock`。
     /// - 阻塞 I/O 在 async 上下文中会阻塞 tokio runtime，违反 project_memory 约束
-    /// - `std::sync::RwLock` 违反 AGENTS.md 禁区 8（必须 tokio::sync::RwLock）
+    /// - `parking_lot::RwLock` 违反 AGENTS.md 禁区 8（必须 tokio::sync::RwLock）
     ///
     /// 现改为 async fn + `tokio::fs::read_to_string`。
     pub async fn load_from_file(&self, path: &Path) -> Result<usize, String> {

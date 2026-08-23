@@ -947,7 +947,7 @@ mod tests_conversation {
             webhook_event_emitter: None,
             #[cfg(not(mobile))]
             pty_manager: Arc::new(axagent_runtime::pty::PtyManager::new()),
-            telemetry_level_handle: Arc::new(std::sync::RwLock::new(
+            telemetry_level_handle: Arc::new(parking_lot::RwLock::new(
                 axagent_telemetry::TelemetryLevel::default(),
             )),
             telemetry_sink: Arc::new(axagent_telemetry::MemoryTelemetrySink::default())

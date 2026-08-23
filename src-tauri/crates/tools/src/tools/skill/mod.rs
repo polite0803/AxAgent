@@ -10,9 +10,10 @@ use async_trait::async_trait;
 pub mod env_config;
 use axagent_kit::secure_store::SecureStore;
 pub use env_config::{SkillConfigTool, SkillEnvCheckTool};
+use parking_lot::Mutex;
 use serde_json::Value;
 use std::path::{Path, PathBuf};
-use std::sync::{LazyLock, Mutex};
+use std::sync::LazyLock;
 use std::time::Instant;
 
 static SKILL_INDEX: LazyLock<Mutex<SkillIndex>> = LazyLock::new(|| Mutex::new(SkillIndex::new()));
@@ -21,12 +22,11 @@ static AVAILABLE_TOOLSETS: LazyLock<Mutex<HashSet<String>>> =
     LazyLock::new(|| Mutex::new(HashSet::new()));
 
 pub fn set_available_toolsets(toolsets: HashSet<String>) {
-    if let Ok(mut guard) = AVAILABLE_TOOLSETS.lock() {
-        *guard = toolsets;
-    }
-    if let Ok(mut index) = SKILL_INDEX.lock() {
-        index.invalidate();
-    }
+    let mut guard = AVAILABLE_TOOLSETS.lock();
+    *guard = toolsets;
+
+    let mut index = SKILL_INDEX.lock();
+    index.invalidate();
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -98,7 +98,7 @@ impl SkillIndex {
     }
 
     fn is_toolset_available(toolset_name: &str) -> bool {
-        AVAILABLE_TOOLSETS.lock().map(|guard| guard.contains(toolset_name)).unwrap_or(false)
+        AVAILABLE_TOOLSETS.lock().contains(toolset_name)
     }
 
     fn should_include_entry(entry: &SkillIndexEntry) -> bool {
@@ -518,9 +518,7 @@ impl Tool for SkillsListTool {
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
         let category_filter = input["category"].as_str();
-        let mut index = SKILL_INDEX
-            .lock()
-            .map_err(|_| ToolError::execution_failed("Failed to acquire skill index lock"))?;
+        let mut index = SKILL_INDEX.lock();
         let skills = index.list_skills(category_filter);
 
         if skills.is_empty() {
@@ -612,9 +610,7 @@ impl Tool for SkillViewTool {
         }
 
         let (source_kind, skill_dir) = {
-            let mut index = SKILL_INDEX
-                .lock()
-                .map_err(|_| ToolError::execution_failed("Failed to acquire skill index lock"))?;
+            let mut index = SKILL_INDEX.lock();
 
             let Some((source_kind, skill_dir)) = index.find_skill(skill_name) else {
                 let available: Vec<String> =
@@ -633,16 +629,12 @@ impl Tool for SkillViewTool {
         };
 
         let refs = {
-            let mut index = SKILL_INDEX
-                .lock()
-                .map_err(|_| ToolError::execution_failed("Failed to acquire skill index lock"))?;
+            let mut index = SKILL_INDEX.lock();
             index.list_reference_files(skill_name)
         };
 
         let entry = {
-            let mut index = SKILL_INDEX
-                .lock()
-                .map_err(|_| ToolError::execution_failed("Failed to acquire skill index lock"))?;
+            let mut index = SKILL_INDEX.lock();
             index.find_skill_entry(skill_name).cloned()
         };
 
@@ -795,9 +787,7 @@ impl Tool for SkillReferenceTool {
             return Err(ToolError::invalid_input("Both skill name and path are required"));
         }
 
-        let mut index = SKILL_INDEX
-            .lock()
-            .map_err(|_| ToolError::execution_failed("Failed to acquire skill index lock"))?;
+        let mut index = SKILL_INDEX.lock();
 
         let Some((_source_kind, skill_dir)) = index.find_skill(skill_name) else {
             return Err(ToolError::execution_failed(format!("Skill '{}' 未找到", skill_name)));
@@ -881,9 +871,7 @@ impl Tool for DiscoverSkillsTool {
             return Err(ToolError::invalid_input("Query is required"));
         }
 
-        let mut index = SKILL_INDEX
-            .lock()
-            .map_err(|_| ToolError::execution_failed("Failed to acquire skill index lock"))?;
+        let mut index = SKILL_INDEX.lock();
         index.ensure_built();
 
         let results: Vec<&SkillIndexEntry> = index
@@ -1166,9 +1154,7 @@ impl Tool for SkillBundleLoadTool {
             )));
         };
 
-        let mut index = SKILL_INDEX
-            .lock()
-            .map_err(|_| ToolError::execution_failed("Failed to acquire skill index lock"))?;
+        let mut index = SKILL_INDEX.lock();
 
         let mut loaded = Vec::new();
         let mut skipped = Vec::new();

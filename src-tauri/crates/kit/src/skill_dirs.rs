@@ -2,8 +2,8 @@
 // SAFETY: 本文件中 RwLock 用于技能目录路径缓存，纯同步读写不跨 await（铁律 #8 例外）
 #![allow(clippy::disallowed_types)]
 
+use parking_lot::RwLock;
 use std::path::PathBuf;
-use std::sync::RwLock;
 
 const SKILL_DIR_PRIORITY: &[&str] =
     &["axagent", "claude", "trae", "codebuddy", "workbuddy", "agents"];
@@ -79,17 +79,17 @@ static EXTERNAL_DIRS: RwLock<Option<Vec<PathBuf>>> = RwLock::new(None);
 
 fn init_if_needed() {
     {
-        let dirs = SKILL_DIRS.read().unwrap_or_else(|e| e.into_inner());
+        let dirs = SKILL_DIRS.read();
         if dirs.is_some() {
             return;
         }
     }
-    let mut dirs = SKILL_DIRS.write().unwrap_or_else(|e| e.into_inner());
+    let mut dirs = SKILL_DIRS.write();
     if dirs.is_some() {
         return;
     }
     let ext = load_external_dirs_from_config();
-    *EXTERNAL_DIRS.write().unwrap_or_else(|e| e.into_inner()) = Some(ext.clone());
+    *EXTERNAL_DIRS.write() = Some(ext.clone());
     *dirs = Some(compute_skill_dirs(&ext));
 }
 
@@ -108,8 +108,8 @@ pub fn self_source_kind() -> &'static str {
 pub fn reload_skill_dirs() -> Vec<(String, PathBuf)> {
     let ext = load_external_dirs_from_config();
     let computed = compute_skill_dirs(&ext);
-    *EXTERNAL_DIRS.write().unwrap_or_else(|e| e.into_inner()) = Some(ext);
-    *SKILL_DIRS.write().unwrap_or_else(|e| e.into_inner()) = Some(computed.clone());
+    *EXTERNAL_DIRS.write() = Some(ext);
+    *SKILL_DIRS.write() = Some(computed.clone());
     computed
 }
 
@@ -117,7 +117,6 @@ pub fn skill_dirs() -> Vec<(String, PathBuf)> {
     init_if_needed();
     SKILL_DIRS
         .read()
-        .unwrap_or_else(|e| e.into_inner())
         .as_ref()
         .map(|d| d.iter().map(|(label, dir)| (label.clone(), dir.clone())).collect())
         .unwrap_or_default()
@@ -127,7 +126,6 @@ pub fn all_skills_dirs() -> Vec<PathBuf> {
     init_if_needed();
     SKILL_DIRS
         .read()
-        .unwrap_or_else(|e| e.into_inner())
         .as_ref()
         .map(|d| d.iter().map(|(_, dir)| dir.clone()).collect())
         .unwrap_or_default()
@@ -135,5 +133,5 @@ pub fn all_skills_dirs() -> Vec<PathBuf> {
 
 pub fn external_skill_dirs() -> Vec<PathBuf> {
     init_if_needed();
-    EXTERNAL_DIRS.read().unwrap_or_else(|e| e.into_inner()).clone().unwrap_or_default()
+    EXTERNAL_DIRS.read().clone().unwrap_or_default()
 }

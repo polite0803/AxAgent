@@ -10,10 +10,10 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
-// SAFETY: std::sync::Mutex 用于回滚栈的同步访问，该字段在同步上下文中使用，
-// 不跨越任何 await 点，因此不会触发 std::sync::Mutex guard 跨 await 的 UB 风险。
+// SAFETY: parking_lot::Mutex 用于回滚栈的同步访问，该字段在同步上下文中使用，
+// 不跨越任何 await 点，因此不会触发 parking_lot::Mutex guard 跨 await 的 UB 风险。
 #[allow(clippy::disallowed_types)]
-use std::sync::Mutex;
+use parking_lot::Mutex;
 use tracing::warn;
 
 /// 工具所处功能域 — 用于按需加载工具 schema 给 LLM
@@ -135,7 +135,7 @@ pub trait AskUserBridge: Send + Sync + std::fmt::Debug {
 /// 工具执行上下文
 #[derive(Debug, Clone)]
 // SAFETY: ToolContext 中的 Mutex 用于回滚栈的同步访问，该结构体在同步上下文中使用，
-// 不跨越任何 await 点，因此不会触发 std::sync::Mutex guard 跨 await 的 UB 风险。
+// 不跨越任何 await 点，因此不会触发 parking_lot::Mutex guard 跨 await 的 UB 风险。
 #[allow(clippy::disallowed_types)]
 pub struct ToolContext {
     /// 工作目录

@@ -5,9 +5,10 @@
 use crate::exporter::TraceExport;
 use crate::span::{Span, TraceMetadata};
 use chrono::{DateTime, Utc};
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 /// 内存中保存的 trace 最大数量。超过此值时按 `exported_at` 移除最旧 trace，
 /// 避免无限增长内存泄漏。
@@ -133,8 +134,7 @@ impl Default for InMemoryTraceStorage {
 
 impl TraceStorage for InMemoryTraceStorage {
     fn store(&self, trace: TraceExport) -> Result<(), StorageError> {
-        let mut traces =
-            self.traces.write().map_err(|_| StorageError::new("Failed to acquire write lock"))?;
+        let mut traces = self.traces.write();
         traces.insert(trace.trace_id.clone(), trace);
         // 容量限制：超过上限时按 exported_at 移除最旧 trace，避免无限增长内存泄漏
         if traces.len() > MAX_TRACES {
@@ -148,14 +148,12 @@ impl TraceStorage for InMemoryTraceStorage {
     }
 
     fn get(&self, trace_id: &str) -> Result<Option<TraceExport>, StorageError> {
-        let traces =
-            self.traces.read().map_err(|_| StorageError::new("Failed to acquire read lock"))?;
+        let traces = self.traces.read();
         Ok(traces.get(trace_id).cloned())
     }
 
     fn list(&self, filter: &TraceFilter) -> Result<Vec<TraceSummary>, StorageError> {
-        let traces =
-            self.traces.read().map_err(|_| StorageError::new("Failed to acquire read lock"))?;
+        let traces = self.traces.read();
 
         let mut summaries: Vec<TraceSummary> = traces
             .values()
@@ -212,15 +210,13 @@ impl TraceStorage for InMemoryTraceStorage {
     }
 
     fn delete(&self, trace_id: &str) -> Result<(), StorageError> {
-        let mut traces =
-            self.traces.write().map_err(|_| StorageError::new("Failed to acquire write lock"))?;
+        let mut traces = self.traces.write();
         traces.remove(trace_id);
         Ok(())
     }
 
     fn clear(&self) -> Result<(), StorageError> {
-        let mut traces =
-            self.traces.write().map_err(|_| StorageError::new("Failed to acquire write lock"))?;
+        let mut traces = self.traces.write();
         traces.clear();
         Ok(())
     }

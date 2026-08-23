@@ -91,9 +91,8 @@ pub async fn save_settings(
     {
         let new_level =
             axagent_telemetry::TelemetryLevel::from_str_or_off(&settings.telemetry_level);
-        if let Ok(mut guard) = state.telemetry_level_handle.write() {
-            *guard = new_level;
-        }
+        let mut guard = state.telemetry_level_handle.write();
+        *guard = new_level;
     }
 
     #[cfg(not(mobile))]

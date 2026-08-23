@@ -9,9 +9,10 @@
 //! - Atomic operations
 //! - Pub/sub notifications
 
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -378,7 +379,7 @@ impl SharedMemory {
     }
 
     pub fn set(&self, key: &str, value: &str, namespace: &str) -> Result<MemoryEntry, MemoryError> {
-        let mut pool = self.pool.write().unwrap_or_else(|e| e.into_inner());
+        let mut pool = self.pool.write();
         pool.cleanup_expired();
         let old_value = pool.get(key, namespace, None).ok().map(|e| e.value);
         let entry = pool.set(key, value, namespace, None)?;
@@ -403,7 +404,7 @@ impl SharedMemory {
     }
 
     pub fn get(&self, key: &str, namespace: &str) -> Result<MemoryEntry, MemoryError> {
-        let pool = self.pool.read().unwrap_or_else(|e| e.into_inner());
+        let pool = self.pool.read();
         pool.get(key, namespace, None)
     }
 
@@ -413,12 +414,12 @@ impl SharedMemory {
         namespace: &str,
         agent_id: &str,
     ) -> Result<MemoryEntry, MemoryError> {
-        let pool = self.pool.read().unwrap_or_else(|e| e.into_inner());
+        let pool = self.pool.read();
         pool.get(key, namespace, Some(agent_id))
     }
 
     pub fn delete(&self, key: &str, namespace: &str) -> Result<(), MemoryError> {
-        let mut pool = self.pool.write().unwrap_or_else(|e| e.into_inner());
+        let mut pool = self.pool.write();
         let old_value = pool.get(key, namespace, None).ok().map(|e| e.value);
         pool.delete(key, namespace)?;
 
@@ -439,22 +440,22 @@ impl SharedMemory {
     }
 
     pub fn list(&self, namespace: &str) -> Vec<MemoryEntry> {
-        let pool = self.pool.read().unwrap_or_else(|e| e.into_inner());
+        let pool = self.pool.read();
         pool.list_namespace(namespace)
     }
 
     pub fn subscribe(&self, pattern: &str, agent_id: &str) {
-        let mut pool = self.pool.write().unwrap_or_else(|e| e.into_inner());
+        let mut pool = self.pool.write();
         pool.subscribe(pattern, agent_id);
     }
 
     pub fn unsubscribe(&self, pattern: &str, agent_id: &str) {
-        let mut pool = self.pool.write().unwrap_or_else(|e| e.into_inner());
+        let mut pool = self.pool.write();
         pool.unsubscribe(pattern, agent_id);
     }
 
     pub fn notify(&self, key: &str, namespace: &str) -> Vec<String> {
-        let pool = self.pool.read().unwrap_or_else(|e| e.into_inner());
+        let pool = self.pool.read();
         pool.notify_subscribers(key, namespace)
     }
 
@@ -465,7 +466,7 @@ impl SharedMemory {
         expected: &str,
         new: &str,
     ) -> Result<bool, MemoryError> {
-        let mut pool = self.pool.write().unwrap_or_else(|e| e.into_inner());
+        let mut pool = self.pool.write();
         pool.compare_and_set(key, namespace, expected, new, None)
     }
 
@@ -477,18 +478,18 @@ impl SharedMemory {
         new: &str,
         agent_id: &str,
     ) -> Result<bool, MemoryError> {
-        let mut pool = self.pool.write().unwrap_or_else(|e| e.into_inner());
+        let mut pool = self.pool.write();
         pool.compare_and_set(key, namespace, expected, new, Some(agent_id))
     }
 
     pub fn cleanup(&self) -> usize {
-        let mut pool = self.pool.write().unwrap_or_else(|e| e.into_inner());
+        let mut pool = self.pool.write();
         pool.cleanup_expired()
     }
 
     fn send_notification(&self, notification: MemoryNotification) -> Result<(), MemoryError> {
-        if let Ok(tx_guard) = self.notification_tx.read()
-            && let Some(ref tx) = *tx_guard
+        let tx_guard = self.notification_tx.read();
+        if let Some(ref tx) = *tx_guard
             && let Err(e) = tx.try_send(notification)
         {
             tracing::debug!("Notification channel full, dropping notification: {}", e);
@@ -497,12 +498,12 @@ impl SharedMemory {
     }
 
     pub fn stats(&self) -> MemoryStats {
-        let pool = self.pool.read().unwrap_or_else(|e| e.into_inner());
+        let pool = self.pool.read();
         MemoryStats { total_entries: pool.size(), namespaces: pool.list_all_namespaces().len() }
     }
 
     pub fn save_snapshot(&self, path: &std::path::Path) -> Result<(), String> {
-        let pool = self.pool.read().unwrap_or_else(|e| e.into_inner());
+        let pool = self.pool.read();
         // Clean up expired entries first
         let snapshot: Vec<&MemoryEntry> =
             pool.entries.values().filter(|e| !e.is_expired()).collect();
@@ -522,7 +523,7 @@ impl SharedMemory {
         let entries: Vec<MemoryEntry> = serde_json::from_str(&json)
             .map_err(|e| format!("Failed to deserialize shared memory: {}", e))?;
 
-        let mut pool = self.pool.write().unwrap_or_else(|e| e.into_inner());
+        let mut pool = self.pool.write();
         let mut loaded = 0;
         for entry in entries {
             if entry.is_expired() {

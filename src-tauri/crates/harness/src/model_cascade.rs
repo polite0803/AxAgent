@@ -878,7 +878,7 @@ mod tests {
     /// 用于测试的 mock 执行器
     struct MockCascadeExecutor {
         /// 模拟每个模型的调用结果（model_id -> 结果）
-        results: std::sync::Mutex<Vec<ModelCallSummary>>,
+        results: parking_lot::Mutex<Vec<ModelCallSummary>>,
         /// 调用计数
         call_count: std::sync::atomic::AtomicU32,
     }
@@ -886,7 +886,7 @@ mod tests {
     impl MockCascadeExecutor {
         fn new(results: Vec<ModelCallSummary>) -> Self {
             Self {
-                results: std::sync::Mutex::new(results),
+                results: parking_lot::Mutex::new(results),
                 call_count: std::sync::atomic::AtomicU32::new(0),
             }
         }
@@ -900,7 +900,7 @@ mod tests {
             _request_payload: &serde_json::Value,
         ) -> Result<ModelCallSummary, String> {
             let count = self.call_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-            let results = self.results.lock().unwrap_or_else(|e| e.into_inner());
+            let results = self.results.lock();
             if (count as usize) < results.len() {
                 let mut summary = results[count as usize].clone();
                 // 覆盖 model_id/provider_id 以匹配实际调用的模型

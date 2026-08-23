@@ -13,11 +13,11 @@
 
 #![allow(clippy::disallowed_types)]
 
+use parking_lot::{Mutex, RwLock};
 use std::any::Any;
 use std::collections::HashMap;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, RwLock};
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -102,22 +102,17 @@ impl InMemorySessionLog {
 
     /// 某 session 已记录条数（测试 / 检视辅助）。
     pub fn count(&self, session_id: &str) -> usize {
-        self.inner.read().unwrap_or_else(|e| e.into_inner()).get(session_id).map_or(0, |v| v.len())
+        self.inner.read().get(session_id).map_or(0, |v| v.len())
     }
 }
 
 impl SessionLogInvariant for InMemorySessionLog {
     fn record_model_visible(&self, session_id: &str, content: ModelVisibleContent) {
-        self.inner
-            .write()
-            .unwrap_or_else(|e| e.into_inner())
-            .entry(session_id.to_string())
-            .or_default()
-            .push(content);
+        self.inner.write().entry(session_id.to_string()).or_default().push(content);
     }
 
     fn assert_replayable(&self, session_id: &str) -> Result<(), InvariantViolation> {
-        let entries = self.inner.read().unwrap_or_else(|e| e.into_inner());
+        let entries = self.inner.read();
         let Some(list) = entries.get(session_id) else {
             return Ok(());
         };
@@ -236,7 +231,7 @@ impl SessionLogInvariant for DiskSessionLog {
                 return;
             },
         };
-        let _guard = self.write_lock.lock().unwrap_or_else(|e| e.into_inner());
+        let _guard = self.write_lock.lock();
         if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&path) {
             let _ = writeln!(f, "{line}");
         }

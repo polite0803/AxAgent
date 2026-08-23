@@ -253,9 +253,9 @@ pub struct AppState {
     /// 前端 SteerInput 指令队列。conversationId → Vec<instruction>
     pub steer_queue: Arc<tokio::sync::Mutex<std::collections::HashMap<String, Vec<String>>>>,
     pub reflector: Arc<axagent_agent::Reflector>,
-    // 以下字段从 std::sync::RwLock 改为 tokio::sync::RwLock
-    // 原因：std::sync::RwLock 的 guard 是 !Send，在异步上下文中跨 await 持有会导致未定义行为
-    // 且 std::sync::RwLock 在 panic 时会毒化，后续所有 .unwrap() 都会崩溃
+    // 以下字段从 parking_lot::RwLock 改为 tokio::sync::RwLock
+    // 原因：parking_lot::RwLock 的 guard 是 !Send，在异步上下文中跨 await 持有会导致未定义行为
+    // 且 parking_lot::RwLock 在 panic 时会毒化，后续所有 .unwrap() 都会崩溃
     pub shared_memory: Arc<TokioRwLock<axagent_runtime::shared_memory::SharedMemory>>,
     pub sub_agent_registry: Arc<TokioRwLock<axagent_trajectory::SubAgentRegistry>>,
     pub memory_service: Arc<TokioRwLock<axagent_trajectory::MemoryService>>,
@@ -361,7 +361,7 @@ pub struct AppState {
     /// 2.7 P1:遥测级别共享句柄 — 启动时从 `AppSettings.telemetry_level`
     /// 读取初值,`save_settings` 命令检测到变更后更新此句柄;运行中的
     /// `FilteringSink` 通过 `level_handle()` 引用同一 `Arc` 实现热更新。
-    pub telemetry_level_handle: Arc<std::sync::RwLock<TelemetryLevel>>,
+    pub telemetry_level_handle: Arc<parking_lot::RwLock<TelemetryLevel>>,
     /// 2.7 P1:生产实例化的遥测 sink 链根节点。
     ///
     /// 由 wiring 层(`init/state.rs`)在构造 AppState 时实例化:

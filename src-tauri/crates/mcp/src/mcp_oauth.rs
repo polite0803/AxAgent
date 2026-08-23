@@ -7,10 +7,11 @@
 
 #![allow(clippy::disallowed_types)]
 
+use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use base64::Engine;
 use rand::RngExt;
@@ -442,7 +443,6 @@ pub fn begin_oauth_authorization(
     PENDING_OAUTH
         .get_or_init(|| Mutex::new(HashMap::new()))
         .lock()
-        .map_err(|_| "OAuth pending 锁已损坏".to_string())?
         .insert(server_id.to_string(), pending);
 
     let scope_str = scopes.join(" ");
@@ -466,7 +466,6 @@ pub async fn complete_oauth_authorization(
     let pending = PENDING_OAUTH
         .get_or_init(|| Mutex::new(HashMap::new()))
         .lock()
-        .map_err(|_| "OAuth pending 锁已损坏".to_string())?
         .get(server_id)
         .cloned()
         .ok_or_else(|| {
@@ -487,7 +486,7 @@ pub async fn complete_oauth_authorization(
         McpOAuthStore::try_global().ok_or_else(|| "MCP OAuth 存储尚未初始化".to_string())?;
     store.store(server_id, creds).await;
 
-    if let Some(mut map) = PENDING_OAUTH.get().and_then(|m| m.lock().ok()) {
+    if let Some(mut map) = PENDING_OAUTH.get().map(|m| m.lock()) {
         map.remove(server_id);
     }
 

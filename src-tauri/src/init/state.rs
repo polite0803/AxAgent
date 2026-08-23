@@ -1037,7 +1037,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     // 通过 `level_handle()` 引用同一 `Arc` 实现热更新。
     let telemetry_level =
         axagent_telemetry::TelemetryLevel::from_str_or_off(&app_settings.telemetry_level);
-    let telemetry_level_handle = Arc::new(std::sync::RwLock::new(telemetry_level));
+    let telemetry_level_handle = Arc::new(parking_lot::RwLock::new(telemetry_level));
 
     // 2.7 P1:构造生产 sink 链 — JsonlTelemetrySink(落盘) + FilteringSink(级别过滤)。
     //
@@ -1049,10 +1049,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     // (供同进程内 SessionTracer 消费),并通过 warn 日志告知用户。
     let telemetry_sink: Arc<dyn axagent_telemetry::TelemetrySink> = {
         let jsonl_path = app_dir.join("telemetry.jsonl");
-        let initialized_level = telemetry_level_handle
-            .read()
-            .map(|g| *g)
-            .unwrap_or(axagent_telemetry::TelemetryLevel::Off);
+        let initialized_level = *telemetry_level_handle.read();
         match axagent_telemetry::JsonlTelemetrySink::new(&jsonl_path) {
             Ok(jsonl_sink) => {
                 let filtering = axagent_telemetry::FilteringSink::new_with_handle(

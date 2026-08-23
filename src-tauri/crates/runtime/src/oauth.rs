@@ -482,7 +482,7 @@ mod tests {
         }
     }
 
-    fn env_lock() -> std::sync::MutexGuard<'static, ()> {
+    fn env_lock() -> parking_lot::MutexGuard<'static, ()> {
         crate::test_env_lock()
     }
 

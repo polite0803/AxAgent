@@ -4,9 +4,10 @@
 
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
-// SAFETY: 此处 std::sync::RwLock 不跨 await 使用，所有方法均为同步操作。
+// SAFETY: 此处 parking_lot::RwLock 不跨 await 使用，所有方法均为同步操作。
+use parking_lot::RwLock;
 #[allow(clippy::disallowed_types)]
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 pub type ServiceFactory = Box<dyn Fn() -> Box<dyn Any + Send + Sync> + Send + Sync>;
 

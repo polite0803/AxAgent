@@ -68,9 +68,7 @@ impl Tool for SkillEnvCheckTool {
                     ));
                 }
 
-                let mut index = SKILL_INDEX.lock().map_err(|_| {
-                    ToolError::execution_failed("Failed to acquire skill index lock")
-                })?;
+                let mut index = SKILL_INDEX.lock();
 
                 let entry = index.find_skill_entry(skill_name).cloned();
                 let Some(entry) = entry else {
@@ -140,9 +138,7 @@ impl Tool for SkillEnvCheckTool {
                 })
             },
             "list" => {
-                let mut index = SKILL_INDEX.lock().map_err(|_| {
-                    ToolError::execution_failed("Failed to acquire skill index lock")
-                })?;
+                let mut index = SKILL_INDEX.lock();
 
                 let entries = index.all_entries().to_vec();
 
@@ -287,9 +283,7 @@ impl Tool for SkillConfigTool {
                     return Err(ToolError::invalid_input("skill name is required for show action"));
                 }
 
-                let mut index = SKILL_INDEX.lock().map_err(|_| {
-                    ToolError::execution_failed("Failed to acquire skill index lock")
-                })?;
+                let mut index = SKILL_INDEX.lock();
 
                 let entry = index.find_skill_entry(skill_name).cloned();
                 let Some(entry) = entry else {
@@ -405,9 +399,7 @@ impl Tool for SkillConfigTool {
                         progress: Vec::new(),
                     }),
                     None => {
-                        let mut index = SKILL_INDEX.lock().map_err(|_| {
-                            ToolError::execution_failed("Failed to acquire skill index lock")
-                        })?;
+                        let mut index = SKILL_INDEX.lock();
                         if let Some(entry) = index.find_skill_entry(skill_name)
                             && let Some(setting) =
                                 entry.config_settings.iter().find(|s| s.key == key)
@@ -452,9 +444,7 @@ impl Tool for SkillConfigTool {
                     ));
                 }
 
-                let mut index = SKILL_INDEX.lock().map_err(|_| {
-                    ToolError::execution_failed("Failed to acquire skill index lock")
-                })?;
+                let mut index = SKILL_INDEX.lock();
 
                 let entry = index.find_skill_entry(skill_name).cloned();
                 let Some(entry) = entry else {

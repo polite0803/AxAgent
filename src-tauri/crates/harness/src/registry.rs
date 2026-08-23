@@ -86,8 +86,8 @@ pub trait ToolRegistry: Send + Sync {
         // 将回滚记录推入栈
         if let Some(record) = rollback_record
             && let Some(ref stack) = ctx.rollback_stack
-            && let Ok(mut guard) = stack.lock()
         {
+            let mut guard = stack.lock();
             tracing::debug!(
                 tool_name = %tool.name(),
                 "Rollback: record pushed to stack"

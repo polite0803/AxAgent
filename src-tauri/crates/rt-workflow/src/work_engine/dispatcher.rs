@@ -26,15 +26,15 @@ use super::node_executor_trait::{
 /// 锁策略（对齐 engine/mod.rs 的 BE-S1 统一约定）：
 /// - `executors` 为异步访问状态 → `tokio::sync::RwLock`，可在 async 上下文 await。
 /// - `hook_sink` / `permission_checker` 为同步注入态（setter 非 async、读取时
-///   先 clone Arc 再释放 guard、不跨 await）→ `std::sync::Mutex`。
+///   先 clone Arc 再释放 guard、不跨 await）→ `parking_lot::Mutex`。
 pub struct NodeDispatcher {
     executors: Arc<tokio::sync::RwLock<HashMap<&'static str, Arc<dyn NodeExecutorTrait>>>>,
     /// 工作流 Hook 接收端(可选)。注入后,节点执行前后会触发对应 HookEvent。
     /// 由 wiring 层通过 `with_hook_sink` 注入实际实现。
-    hook_sink: Arc<std::sync::Mutex<Option<SharedWorkflowHookSink>>>,
+    hook_sink: Arc<parking_lot::Mutex<Option<SharedWorkflowHookSink>>>,
     /// 权限检查器(可选)。注入后,对白名单节点类型在执行前做权限检查。
     /// 由 wiring 层通过 `set_permission_checker` 注入实际实现。
-    permission_checker: Arc<std::sync::Mutex<Option<Arc<dyn PermissionChecker>>>>,
+    permission_checker: Arc<parking_lot::Mutex<Option<Arc<dyn PermissionChecker>>>>,
 }
 
 impl Default for NodeDispatcher {
@@ -47,32 +47,32 @@ impl NodeDispatcher {
     pub fn new() -> Self {
         Self {
             executors: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
-            hook_sink: Arc::new(std::sync::Mutex::new(None)),
-            permission_checker: Arc::new(std::sync::Mutex::new(None)),
+            hook_sink: Arc::new(parking_lot::Mutex::new(None)),
+            permission_checker: Arc::new(parking_lot::Mutex::new(None)),
         }
     }
 
     /// 注入工作流 Hook 接收端。
     /// 必须在 tokio runtime 中调用(因为 dispatch 中的 hook emit 是 async)。
     pub fn set_hook_sink(&self, sink: SharedWorkflowHookSink) {
-        let mut guard = self.hook_sink.lock().unwrap_or_else(|e| e.into_inner());
+        let mut guard = self.hook_sink.lock();
         *guard = Some(sink);
     }
 
     /// 获取当前注入的 hook sink 克隆(若有)。
     fn hook_sink_clone(&self) -> Option<SharedWorkflowHookSink> {
-        self.hook_sink.lock().ok()?.as_ref().cloned()
+        self.hook_sink.lock().as_ref().cloned()
     }
 
     /// 注入权限检查器。注入后,对白名单节点类型在执行前调用 `check` 做权限检查。
     pub fn set_permission_checker(&self, checker: Arc<dyn PermissionChecker>) {
-        let mut guard = self.permission_checker.lock().unwrap_or_else(|e| e.into_inner());
+        let mut guard = self.permission_checker.lock();
         *guard = Some(checker);
     }
 
     /// 获取当前注入的 permission_checker 克隆(若有)。
     fn permission_checker_clone(&self) -> Option<Arc<dyn PermissionChecker>> {
-        self.permission_checker.lock().ok()?.as_ref().cloned()
+        self.permission_checker.lock().as_ref().cloned()
     }
 
     /// 一次性注册所有内置 executor（异步版本）。

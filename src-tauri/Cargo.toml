@@ -181,6 +181,7 @@ inventory = "0.3"
 lazy_static = { workspace = true }
 notify = "9.0.0-rc.4"
 open = "5"
+parking_lot = "0.12"
 rcgen = "0.14"
 regex = { workspace = true }
 reqwest = { workspace = true }

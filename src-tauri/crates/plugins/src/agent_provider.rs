@@ -58,12 +58,12 @@ pub fn global_plugin_agents() -> &'static PluginAgentRegistry {
 
 #[cfg(test)]
 #[allow(clippy::disallowed_types)]
-static TEST_PLUGIN_AGENTS: std::sync::Mutex<Option<&'static PluginAgentRegistry>> =
-    std::sync::Mutex::new(None);
+static TEST_PLUGIN_AGENTS: parking_lot::Mutex<Option<&'static PluginAgentRegistry>> =
+    parking_lot::Mutex::new(None);
 
 #[cfg(test)]
 pub fn global_plugin_agents() -> &'static PluginAgentRegistry {
-    let guard = TEST_PLUGIN_AGENTS.lock().unwrap_or_else(|e| e.into_inner());
+    let guard = TEST_PLUGIN_AGENTS.lock();
     match *guard {
         // 测试显式注册时，把 registry leak 成 'static 后存入 Mutex，
         // 引用生命周期独立于锁的临时 guard，可安全返回。
@@ -77,13 +77,12 @@ pub fn global_plugin_agents() -> &'static PluginAgentRegistry {
 pub fn set_test_plugin_agents(registry: PluginAgentRegistry) {
     // 把所有权转移给堆，再 leak 为 'static 引用，存入 Mutex。
     // 该进程的所有测试结束后会随进程退出而释放。
-    *TEST_PLUGIN_AGENTS.lock().unwrap_or_else(|e| e.into_inner()) =
-        Some(Box::leak(Box::new(registry)));
+    *TEST_PLUGIN_AGENTS.lock() = Some(Box::leak(Box::new(registry)));
 }
 
 #[cfg(test)]
 pub fn reset_test_plugin_agents() {
-    *TEST_PLUGIN_AGENTS.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    *TEST_PLUGIN_AGENTS.lock() = None;
 }
 
 pub async fn register_plugin_agents(plugin_id: &str, agents: &[PluginAgentDefInternal]) {
