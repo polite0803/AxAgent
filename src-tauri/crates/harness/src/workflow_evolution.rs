@@ -19,7 +19,6 @@ use std::sync::Arc;
 
 /// 工作流模板的可进化表示(同构于 `SkillGenome`)。
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct WorkflowGenome {
     pub template_id: String,
     pub name: String,

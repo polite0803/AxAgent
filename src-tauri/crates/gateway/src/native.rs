@@ -1079,6 +1079,8 @@ pub async fn gemini_model_operation(
     handle_native_request(protocol, state, gateway_key, request, Some(parsed.model)).await
 }
 #[cfg(test)]
+#[allow(clippy::disallowed_types)]
+// SAFETY: 测试模块使用 std::sync::Mutex 保护 mock 状态，仅在同步测试场景中使用，无跨 await 风险。
 mod tests {
     use super::*;
     use async_trait::async_trait;

@@ -1429,6 +1429,8 @@ impl HookProgressReporter for TauriHookProgressReporter {
 }
 
 #[cfg(test)]
+#[allow(clippy::disallowed_types)]
+// SAFETY: 测试模块使用 std::sync::Mutex 保护测试桩数据，仅在同步测试场景中使用，无跨 await 风险。
 mod tests {
     use super::*;
     use axagent_harness::conversation_model::MessageRole as HarnessMessageRole;
