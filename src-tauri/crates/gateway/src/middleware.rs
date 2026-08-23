@@ -1,7 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+#![allow(clippy::disallowed_types)]
+
 use std::net::SocketAddr;
 use std::num::NonZero;
+// SAFETY: 此处 std::sync::RwLock 不跨 await 使用，rate_limit_middleware 中 guard 已在块内释放。
+// SAFETY: 后台重建线程使用同步 RwLock，临界区内无 await。
+#[allow(clippy::disallowed_types)]
 use std::sync::RwLock;
 
 use axum::{
@@ -35,6 +40,7 @@ fn create_limiter() -> KeyedLimiter {
 /// 修复：包装在 `RwLock` 中，后台线程每 60 分钟重建一次 limiter 以清除累积状态。
 /// 运行时开销：O(1) —— 仅丢弃旧 limiter，新 limiter 从空状态开始。
 #[allow(clippy::type_complexity)]
+#[allow(clippy::disallowed_types)]
 static RATE_LIMITER: std::sync::LazyLock<RwLock<KeyedLimiter>> = std::sync::LazyLock::new(|| {
     let limiter = RwLock::new(create_limiter());
     // Background cleanup: recreate limiter every hour to prevent unbounded

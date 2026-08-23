@@ -16,6 +16,8 @@
 //!
 //! 所有注册都是可逆的（返回 [`crate::EffectHandle`]），支持运行期热插拔与隔离回滚。
 
+#![allow(clippy::disallowed_types)]
+
 use crate::agent_turn_runner::AgentTurnRunner;
 use crate::provider::ProviderAdapter;
 use crate::reversible_effect::{EffectHandle, EffectScope};

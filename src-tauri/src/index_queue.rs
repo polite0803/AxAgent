@@ -640,6 +640,7 @@ pub(crate) async fn run_entity_extraction_core(
     Ok(aggregate)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn enqueue_job_sync(
     state: &AppState,
     app: &AppHandle,

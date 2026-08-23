@@ -10,6 +10,8 @@
 //! 注意：本模块始终编译，但内部仅导出"返回 None / 空实现"的轻量辅助函数，
 //! 不会引入运行时依赖，也不会进入生产热路径（仅测试代码使用）。
 
+#![allow(clippy::disallowed_types)]
+
 use std::sync::Arc;
 
 use std::collections::HashMap;

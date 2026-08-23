@@ -28,6 +28,7 @@ pub mod mcp_manager;
 pub mod mermaid;
 pub mod mock_embedding;
 pub mod orchestration;
+pub mod parser;
 pub mod permissions;
 pub mod plugin_sdk;
 pub mod recorder;

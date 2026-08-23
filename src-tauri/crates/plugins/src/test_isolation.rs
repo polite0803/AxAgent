@@ -3,16 +3,24 @@
 // Test isolation utilities for plugin tests
 // ROADMAP #41: Stop ambient plugin state from skewing CLI regression checks
 
+#![allow(clippy::disallowed_types)]
+
 use std::env;
 use std::path::PathBuf;
+// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，仅在同步 lock() 内操作。
+#[allow(clippy::disallowed_types)]
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static TEST_COUNTER: AtomicU64 = AtomicU64::new(0);
+// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，测试环境锁为同步临界区。
+#[allow(clippy::disallowed_types)]
 static ENV_LOCK: Mutex<()> = Mutex::new(());
 
 /// Lock for test environment isolation
 pub struct EnvLock {
+    // SAFETY: 此处 std::sync::MutexGuard 不跨 await 使用，仅在持有锁期间操作。
+    #[allow(clippy::disallowed_types)]
     _guard: std::sync::MutexGuard<'static, ()>,
     temp_home: PathBuf,
 }

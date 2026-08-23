@@ -3193,6 +3193,9 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         ))),
         shutdown_token: tokio_util::sync::CancellationToken::new(),
         file_authorizer: Arc::new(axagent_storage::file_authorizer::FileAuthorizer::new()),
+        database_query_service: Arc::new(
+            crate::database_query_impl::SqlxDatabaseQueryService::new(),
+        ),
         session_share_manager: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
         // ── Phase 3 P1 Task 3.1: domain sub-states ──
         infra: crate::state::InfraState::new(

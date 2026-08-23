@@ -535,6 +535,8 @@ impl LlmReasoningProvider for LlmDrivenReasoningProvider {
     }
 }
 
+// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，goal_evaluator 仅在同步 evaluate() 调用期间持有。
+#[allow(clippy::disallowed_types)]
 pub struct ReActEngine {
     executor: Arc<ActionExecutor>,
     verifier: Arc<SelfVerifier>,
@@ -557,6 +559,8 @@ pub struct ReActEngine {
     enable_self_improvement: bool,
 }
 
+// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，goal_evaluator 的 lock 不跨 await。
+#[allow(clippy::disallowed_types)]
 impl ReActEngine {
     pub fn new() -> Self {
         let executor = Arc::new(ActionExecutor::new());

@@ -2320,8 +2320,10 @@ pub fn build_default_dispatcher() -> CommandDispatcher {
 ///
 /// 优先从宏注册表获取，补充 build.rs 索引
 pub fn list_available_commands() -> Vec<String> {
-    let mut commands: Vec<String> =
-        axagent_agent_command_types::registry::get_all().iter().map(|mc| mc.name.to_string()).collect();
+    let mut commands: Vec<String> = axagent_agent_command_types::registry::get_all()
+        .iter()
+        .map(|mc| mc.name.to_string())
+        .collect();
 
     commands.sort();
     commands.dedup();
@@ -2514,7 +2516,9 @@ async fn invoke_command_direct(
 
     // 根据 call_mode 选择调用方式
     match meta.call_mode {
-        axagent_agent_command_types::CallMode::StateOnly => invoke_state_only(full_path, app_handle).await,
+        axagent_agent_command_types::CallMode::StateOnly => {
+            invoke_state_only(full_path, app_handle).await
+        },
         axagent_agent_command_types::CallMode::StateInput => {
             let invoke_args = build_invoke_args(args);
             invoke_state_input(full_path, invoke_args, app_handle).await

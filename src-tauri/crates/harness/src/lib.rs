@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+// SAFETY: harness crate 中的 std::sync 锁用于同步上下文，不跨 await。
+#![allow(clippy::disallowed_types)]
+
 //! axagent-harness — Harness 契约层
 //!
 //! 自底而上：本 crate 是 AxAgent 架构中最底层的非数据层，
@@ -417,7 +420,7 @@ pub use consistency_check::{
 pub use hallucination_guard::{AnchorResult, HallucinationGuardConfig, check_anchor};
 
 // ── InferenceEngine 契约 ──
-pub use inference_engine::{InferenceEngine, SparseVectorEntry};
+pub use inference_engine::{InferenceEngine, LoRATrainConfig, LoRATrainResult, SparseVectorEntry};
 
 // ── Error 重导出 ──
 pub use error::{ToolError, ToolErrorKind};

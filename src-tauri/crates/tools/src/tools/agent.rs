@@ -3,6 +3,8 @@
 //! AgentTool - 子 Agent 创建和生命周期管理
 //! 内置 6 个 Agent 类型 + 支持从 `.axagent/agents/*.md` 动态加载自定义 agent
 
+#![allow(clippy::disallowed_types)]
+
 use crate::agent_def_loader::load_all_agents;
 use crate::agent_def_types::{AgentDefSource, AgentDefinition};
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};

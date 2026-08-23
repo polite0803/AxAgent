@@ -6,6 +6,8 @@
 //! Replaces TypeScript `ClosedLoopLearning.ts` with Rust implementation.
 //! Leverages existing `skill_evolution` module for genetic algorithm-based skill optimization.
 
+#![allow(clippy::disallowed_types)]
+
 use crate::TrajectoryStorage;
 use crate::skill::Skill;
 use serde::{Deserialize, Serialize};

@@ -1031,6 +1031,8 @@ pub struct ChannelPermissionPrompter {
     inner: Arc<ChannelPermissionPrompterInner>,
 }
 
+// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，所有方法均为同步操作。
+#[allow(clippy::disallowed_types)]
 struct ChannelPermissionPrompterInner {
     /// Maps request_id → Sender that agent_approve will use to unblock.
     pending_senders: std::sync::Mutex<
@@ -1042,6 +1044,8 @@ struct ChannelPermissionPrompterInner {
     workspace_root: std::sync::Mutex<String>,
 }
 
+// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，所有方法均为同步操作。
+#[allow(clippy::disallowed_types)]
 impl ChannelPermissionPrompter {
     pub fn new(
         app_handle: AppHandle,

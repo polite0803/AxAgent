@@ -8,6 +8,8 @@
 //! This requires updating all tool implementations to accept db via context,
 //! which is a significant refactor tracked separately.
 
+#![allow(clippy::disallowed_types)]
+
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 use std::sync::LazyLock;

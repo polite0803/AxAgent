@@ -13,9 +13,5 @@ pub struct DatabaseQueryResult {
 
 #[async_trait]
 pub trait DatabaseQueryService: Send + Sync {
-    async fn execute_query(
-        &self,
-        conn_str: &str,
-        query: &str,
-    ) -> Result<DatabaseQueryResult>;
+    async fn execute_query(&self, conn_str: &str, query: &str) -> Result<DatabaseQueryResult>;
 }

@@ -5,8 +5,9 @@
 use async_trait::async_trait;
 use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::{DatabaseQueryResult, DatabaseQueryService};
-use sqlx::any::AnyPoolOptions;
+use sqlx::Column;
 use sqlx::Row;
+use sqlx::any::AnyPoolOptions;
 
 pub struct SqlxDatabaseQueryService;
 
@@ -24,23 +25,19 @@ impl Default for SqlxDatabaseQueryService {
 
 #[async_trait]
 impl DatabaseQueryService for SqlxDatabaseQueryService {
-    async fn execute_query(
-        &self,
-        conn_str: &str,
-        query: &str,
-    ) -> Result<DatabaseQueryResult> {
+    async fn execute_query(&self, conn_str: &str, query: &str) -> Result<DatabaseQueryResult> {
         let pool = AnyPoolOptions::new()
             .max_connections(1)
             .connect(conn_str)
             .await
             .map_err(|e| AxAgentError::internal(e.to_string()))?;
 
-        let rows = sqlx::query(query)
+        // sqlx::query 需要 &'static str，使用 leak 延长生命周期
+        let query_static: &'static str = query.to_string().leak();
+        let rows = sqlx::query(query_static)
             .fetch_all(&pool)
             .await
-            .map_err(|e| {
-                AxAgentError::internal(format!("Database query failed: {}", e))
-            })?;
+            .map_err(|e| AxAgentError::internal(format!("Database query failed: {}", e)))?;
 
         let mut columns = Vec::new();
         if let Some(first_row) = rows.first() {
@@ -69,9 +66,6 @@ impl DatabaseQueryService for SqlxDatabaseQueryService {
             result_rows.push(vals);
         }
 
-        Ok(DatabaseQueryResult {
-            columns,
-            rows: result_rows,
-        })
+        Ok(DatabaseQueryResult { columns, rows: result_rows })
     }
 }

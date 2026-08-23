@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+#![allow(clippy::disallowed_types)]
+
 use std::fmt::{Debug, Formatter};
 use std::fs::{File, OpenOptions};
 use std::io::Write;
@@ -298,11 +300,15 @@ impl std::fmt::Display for TelemetryLevel {
 ///
 /// 运行时切换级别:`FilteringSink::set_level` 接受 `Arc<RwLock<TelemetryLevel>>`,
 /// 用户在前端修改级别后,后端立即更新共享级别,sink 链无需重建。
+// SAFETY: 此处 std::sync::RwLock 不跨 await 使用，临界区内仅同步操作（record 为同步方法）。
+#[allow(clippy::disallowed_types)]
 pub struct FilteringSink {
     inner: Arc<dyn TelemetrySink>,
     level: Arc<std::sync::RwLock<TelemetryLevel>>,
 }
 
+// SAFETY: 此处 std::sync::RwLock 不跨 await 使用，临界区内仅同步操作。
+#[allow(clippy::disallowed_types)]
 impl Debug for FilteringSink {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let level = self.level.read().map(|l| *l).unwrap_or(TelemetryLevel::Off);
@@ -310,6 +316,8 @@ impl Debug for FilteringSink {
     }
 }
 
+// SAFETY: 此处 std::sync::RwLock 不跨 await 使用，临界区内仅同步操作。
+#[allow(clippy::disallowed_types)]
 impl FilteringSink {
     #[must_use]
     pub fn new(inner: Arc<dyn TelemetrySink>, level: TelemetryLevel) -> Self {
@@ -362,11 +370,15 @@ impl TelemetrySink for FilteringSink {
     }
 }
 
+// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，仅在同步 record() 内操作 Vec。
+#[allow(clippy::disallowed_types)]
 #[derive(Default)]
 pub struct MemoryTelemetrySink {
     events: Mutex<Vec<TelemetryEvent>>,
 }
 
+// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，仅在同步方法内操作。
+#[allow(clippy::disallowed_types)]
 impl MemoryTelemetrySink {
     #[must_use]
     pub fn events(&self) -> Vec<TelemetryEvent> {
@@ -374,12 +386,16 @@ impl MemoryTelemetrySink {
     }
 }
 
+// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，record 为同步方法。
+#[allow(clippy::disallowed_types)]
 impl TelemetrySink for MemoryTelemetrySink {
     fn record(&self, event: TelemetryEvent) {
         self.events.lock().unwrap_or_else(std::sync::PoisonError::into_inner).push(event);
     }
 }
 
+// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，仅在同步 record() 内写文件。
+#[allow(clippy::disallowed_types)]
 pub struct JsonlTelemetrySink {
     path: PathBuf,
     file: Mutex<File>,
@@ -391,6 +407,8 @@ impl Debug for JsonlTelemetrySink {
     }
 }
 
+// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，构造与读取均为同步操作。
+#[allow(clippy::disallowed_types)]
 impl JsonlTelemetrySink {
     pub fn new(path: impl AsRef<Path>) -> Result<Self, std::io::Error> {
         let path = path.as_ref().to_path_buf();
@@ -407,6 +425,8 @@ impl JsonlTelemetrySink {
     }
 }
 
+// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，record 为同步方法。
+#[allow(clippy::disallowed_types)]
 impl TelemetrySink for JsonlTelemetrySink {
     fn record(&self, event: TelemetryEvent) {
         let Ok(line) = serde_json::to_string(&event) else {

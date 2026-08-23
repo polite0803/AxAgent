@@ -6,7 +6,6 @@ publish = false
 
 [dependencies]
 async-trait = "0.1"
-axagent-document-parser = { path = "../document-parser" }
 axagent-harness = { path = "../harness" }
 axagent-kit = { path = "../kit" }
 axagent-mcp = { path = "../mcp" }

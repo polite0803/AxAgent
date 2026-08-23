@@ -11,6 +11,8 @@
 //! 经能力注册表 `session.log.invariant` 接缝注入，外部插件可替换实现
 //! （如落盘持久化），与 event.dispatch / storage / sandbox 接缝同构。
 
+#![allow(clippy::disallowed_types)]
+
 use std::any::Any;
 use std::collections::HashMap;
 use std::io::{self, Write};

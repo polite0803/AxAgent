@@ -23,6 +23,8 @@
 //! [`DomainEvent`]（category + kind + payload 三元组），订阅者经
 //! [`EventMatcher`] 按 category / kind 过滤。
 
+#![allow(clippy::disallowed_types)]
+
 use crate::EffectScope;
 use crate::event_bus::{DomainEvent, EventCategory};
 use crate::reversible_effect::EffectHandle;

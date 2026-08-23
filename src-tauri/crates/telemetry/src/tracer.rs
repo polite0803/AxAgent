@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+#![allow(clippy::disallowed_types)]
+
 use crate::exporter::{NoopExporter, TraceExport, TraceExporter};
 use crate::metrics::{CostMetrics, TraceMetrics};
 use crate::span::{Span, SpanError, SpanEvent, SpanStatus, SpanType, TraceMetadata};

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+#![allow(clippy::disallowed_types)]
+
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -1760,16 +1762,22 @@ type ToolHandler = Box<dyn Fn(&str) -> Result<String, ToolError> + Send + Sync>;
 
 /// Simple in-memory tool executor for tests and lightweight integrations.
 /// 使用 `Mutex` 实现内部可变性，支持 `&self` 并发调用。
+// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，register/execute 均为同步方法。
+#[allow(clippy::disallowed_types)]
 pub struct StaticToolExecutor {
     handlers: std::sync::Mutex<BTreeMap<String, ToolHandler>>,
 }
 
+// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，仅在同步方法内操作。
+#[allow(clippy::disallowed_types)]
 impl Default for StaticToolExecutor {
     fn default() -> Self {
         Self { handlers: std::sync::Mutex::new(BTreeMap::new()) }
     }
 }
 
+// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，register 为同步方法。
+#[allow(clippy::disallowed_types)]
 impl StaticToolExecutor {
     #[must_use]
     pub fn new() -> Self {
@@ -1790,6 +1798,8 @@ impl StaticToolExecutor {
     }
 }
 
+// SAFETY: 此处 std::sync::Mutex 不跨 await 使用，execute 为同步方法。
+#[allow(clippy::disallowed_types)]
 impl ToolExecutor for StaticToolExecutor {
     fn execute(&mut self, tool_name: &str, input: &str) -> Result<String, ToolError> {
         let guard = self.handlers.lock().unwrap_or_else(|e| e.into_inner());

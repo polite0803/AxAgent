@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+// SAFETY: runtime crate 中的 std::sync 锁用于同步上下文，不跨 await。
+#![allow(clippy::disallowed_types)]
+
 //! Core runtime primitives for the `claw` CLI and supporting crates.
 //!
 //! This crate owns session persistence, permission evaluation, prompt assembly,

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use axagent_agent_macro::agent_command;
 use axagent_agent::tool_recommender::patterns::{UsagePattern, UsagePatternDB};
 use axagent_agent::tool_recommender::{ContextAnalyzer, ToolRecommendation, ToolRecommender};
+use axagent_agent_macro::agent_command;
 use serde::{Deserialize, Serialize};
 use tauri::command;
 

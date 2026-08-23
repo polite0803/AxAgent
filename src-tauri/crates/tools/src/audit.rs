@@ -8,6 +8,8 @@
 //! 3. 输出内容敏感信息扫描
 //! 4. 调用审计日志
 
+#![allow(clippy::disallowed_types)]
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};

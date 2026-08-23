@@ -134,10 +134,10 @@ required-features = ["server"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-axagent-agent-command-types = { path = "crates/axagent-agent-command-types" }
-axagent-agent-macro = { path = "crates/axagent-agent-macro" }
 async-trait = "0.1"
 axagent-agent = { path = "crates/agent" }
+axagent-agent-command-types = { path = "crates/axagent-agent-command-types" }
+axagent-agent-macro = { path = "crates/axagent-agent-macro" }
 axagent-cache = { path = "crates/cache" }
 axagent-credential = { path = "crates/credential" }
 axagent-crypto = { path = "crates/crypto" }

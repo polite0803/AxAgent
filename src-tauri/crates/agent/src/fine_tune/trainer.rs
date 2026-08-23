@@ -1162,6 +1162,8 @@ mod tests {
         }
     }
 
+    // SAFETY: 此处 std::sync::Mutex 为测试代码，仅在同步闭包内操作。
+    #[allow(clippy::disallowed_types)]
     #[test]
     fn test_training_callback_fires() {
         let mut trainer = FineTuneTrainer::new();

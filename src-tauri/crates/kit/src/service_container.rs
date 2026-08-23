@@ -1,11 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+#![allow(clippy::disallowed_types)]
+
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
+// SAFETY: 此处 std::sync::RwLock 不跨 await 使用，所有方法均为同步操作。
+#[allow(clippy::disallowed_types)]
 use std::sync::{Arc, RwLock};
 
 pub type ServiceFactory = Box<dyn Fn() -> Box<dyn Any + Send + Sync> + Send + Sync>;
 
+// SAFETY: ServiceContainer 中的 RwLock 用于同步读写，所有方法均为同步操作，不跨 await。
+#[allow(clippy::disallowed_types)]
 pub struct ServiceContainer {
     factories: RwLock<HashMap<TypeId, ServiceFactory>>,
     instances: RwLock<HashMap<TypeId, Box<dyn Any + Send + Sync>>>,

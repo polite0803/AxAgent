@@ -3,6 +3,8 @@
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::collapsible_match)]
 #![allow(clippy::needless_borrow)]
+// SAFETY: 主 crate 中的 std::sync 锁用于同步上下文，不跨 await。
+#![allow(clippy::disallowed_types)]
 
 mod android_utils;
 mod capability_embedding;

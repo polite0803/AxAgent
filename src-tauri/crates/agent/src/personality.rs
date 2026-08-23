@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+#![allow(clippy::disallowed_types)]
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+// SAFETY: 此处 std::sync::RwLock 不跨 await 使用，get_active_personality() 为同步函数。
+#[allow(clippy::disallowed_types)]
 use std::sync::RwLock;
 
 static PERSONALITIES_DIR: std::sync::LazyLock<PathBuf> = std::sync::LazyLock::new(|| {
@@ -18,9 +22,13 @@ static ACTIVE_FILE: std::sync::LazyLock<PathBuf> = std::sync::LazyLock::new(|| {
         .join(".active")
 });
 
+// SAFETY: 此处 std::sync::RwLock 不跨 await 使用，仅在同步 get_active_personality() 内读取。
+#[allow(clippy::disallowed_types)]
 static ACTIVE_PERSONALITY: RwLock<Option<String>> = RwLock::new(None);
 
 /// 获取当前激活的人格名称（线程安全的内存读取）
+// SAFETY: 此处 std::sync::RwLock 不跨 await 使用，读取为同步操作。
+#[allow(clippy::disallowed_types)]
 pub fn get_active_personality() -> Option<String> {
     ACTIVE_PERSONALITY.read().ok().and_then(|guard| guard.clone())
 }

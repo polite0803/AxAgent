@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use axagent_agent_macro::agent_command;
-use axagent_agent::fine_tune::candle_trainer::train_with_embeddings;
 use axagent_agent::fine_tune::dataset::{
     DatasetMetadata, FineTuneDataset, FineTuneSample, SampleMetadata,
 };
@@ -10,8 +8,10 @@ use axagent_agent::fine_tune::trainer::TrainingStats;
 use axagent_agent::fine_tune::{
     ActiveModelConfig, BaseModelInfo, FineTuneTrainer, ModelManager, TrainingJob,
 };
+use axagent_agent_macro::agent_command;
 use axagent_harness::types::{EmbedRequest, ModelType};
-use axagent_harness::{ProviderRequestContext, resolve_base_url_for_type};
+use axagent_harness::{LoRATrainConfig, ProviderRequestContext, resolve_base_url_for_type};
+use axagent_search::inference::global_engine;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -261,7 +261,7 @@ pub async fn start_training_job(
     }
 
     // 提取训练所需数据后立即释放锁
-    let (config, ds_id, samples, num_samples, cancel_flag) = {
+    let (config, ds_id, samples, num_samples, _cancel_flag) = {
         let mut guard = state().lock().map_err(|e| format!("Lock error: {e}"))?;
         let job =
             guard.trainer.get_job(&job_id).ok_or_else(|| format!("Job '{job_id}' not found"))?;
@@ -329,52 +329,71 @@ pub async fn start_training_job(
     let embed_result = try_compute_embeddings_internal(db, &app_state, &samples).await;
 
     // 准备后台训练
-    let jid = job_id.clone();
     let jid2 = job_id.clone();
 
     tokio::task::spawn(async move {
-        // 进度回调：更新 trainer 中的 job progress
-        let progress_cb = move |progress: f32, loss: f64| {
-            if cancel_flag.load(Ordering::SeqCst) {
-                return;
-            }
-            if let Ok(mut guard) = state().lock() {
-                let _ =
-                    guard.trainer.update_progress(&jid, (progress * 10.0) as u32, 0, loss as f32);
-            }
-        };
-
         let result = match embed_result {
             Ok(Some((input_emb, target_emb, dim))) => {
                 tracing::info!(
                     "[fine_tune] Background training with real embeddings (dim={})",
                     dim
                 );
-                train_with_embeddings(
-                    input_emb,
-                    target_emb,
-                    &config,
-                    &output_dir,
-                    dim,
-                    Some(progress_cb),
-                )
+                let lora_config = LoRATrainConfig {
+                    rank: config.rank,
+                    alpha: config.alpha,
+                    learning_rate: config.learning_rate,
+                    batch_size: config.batch_size,
+                    epochs: config.epochs,
+                    target_modules: config.target_modules.clone(),
+                };
+                global_engine()
+                    .train_lora_with_embeddings(
+                        input_emb,
+                        target_emb,
+                        &lora_config,
+                        output_dir.to_str().unwrap_or("."),
+                        dim,
+                    )
+                    .map(|r| r.safetensors_path)
             },
             _ => {
                 tracing::info!("[fine_tune] Background char-level training");
-                axagent_agent::fine_tune::candle_trainer::train_lora(
-                    &ft_dataset,
-                    &config,
-                    &output_dir,
-                    None::<fn(f32, f64)>,
-                )
+                let vocab_size: usize = 256;
+                let input_embeddings: Vec<Vec<f32>> = ft_dataset
+                    .samples
+                    .iter()
+                    .map(|s| text_to_feature_vec(&s.input, vocab_size))
+                    .collect();
+                let target_embeddings: Vec<Vec<f32>> = ft_dataset
+                    .samples
+                    .iter()
+                    .map(|s| text_to_feature_vec(&s.output, vocab_size))
+                    .collect();
+                let lora_config = LoRATrainConfig {
+                    rank: config.rank,
+                    alpha: config.alpha,
+                    learning_rate: config.learning_rate,
+                    batch_size: config.batch_size,
+                    epochs: config.epochs,
+                    target_modules: config.target_modules.clone(),
+                };
+                global_engine()
+                    .train_lora_with_embeddings(
+                        input_embeddings,
+                        target_embeddings,
+                        &lora_config,
+                        output_dir.to_str().unwrap_or("."),
+                        vocab_size,
+                    )
+                    .map(|r| r.safetensors_path)
             },
         };
 
         match result {
             Ok(path) => {
-                tracing::info!("[fine_tune] Background training done: {}", path.display());
+                tracing::info!("[fine_tune] Background training done: {}", path);
                 if let Ok(mut guard) = state().lock() {
-                    let _ = guard.trainer.complete_job(&jid2, path.to_string_lossy().to_string());
+                    let _ = guard.trainer.complete_job(&jid2, path);
                     guard.job_cancel_flags.remove(&jid2);
                 }
             },
@@ -533,4 +552,23 @@ pub fn get_active_model() -> Result<Option<ActiveModelConfig>, String> {
     } else {
         Ok(Some(config))
     }
+}
+
+/// 将文本转换为固定长度 float 特征向量（基于字符频率）。
+fn text_to_feature_vec(text: &str, size: usize) -> Vec<f32> {
+    let mut features = vec![0.0_f32; size];
+    for (i, ch) in text.chars().enumerate() {
+        let idx = (ch as usize) % size;
+        features[idx] += 1.0;
+        if i >= 2000 {
+            break;
+        }
+    }
+    let sum: f32 = features.iter().sum();
+    if sum > 0.0 {
+        for v in &mut features {
+            *v /= sum;
+        }
+    }
+    features
 }

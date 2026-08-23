@@ -1332,7 +1332,7 @@ pub async fn sync_knowledge_document_to_wiki(
     let content = {
         let path = std::path::Path::new(&doc.source_path);
         if path.exists() {
-            axagent_document_parser::extract_text(path, &doc.mime_type).map_err(|e| {
+            axagent_search::sources::parser().extract_text(path, &doc.mime_type).map_err(|e| {
                 crate::commands::error::ErrorResponse::err_with_detail(
                     crate::commands::error_code::wiki::IMPORT_FAILED,
                     format!("Failed to extract text: {e}"),

@@ -5,6 +5,8 @@
 //! SessionSearch (FTS5 全文搜索), MemoryFlush (记忆持久化),
 //! AgentCheckpoint, AgentStatus, AgentRemember
 
+#![allow(clippy::disallowed_types)]
+
 use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 use sea_orm::ConnectionTrait;

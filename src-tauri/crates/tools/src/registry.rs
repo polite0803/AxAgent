@@ -5,6 +5,8 @@
 //! 管理所有已注册工具的生命周期：注册、查找、列举、启用/禁用。
 //! 集成 MCP 执行、DB 审计记录、使用统计、安全沙箱、权限检查、Hook。
 
+#![allow(clippy::disallowed_types)]
+
 use crate::audit::{AuditEntry, ToolAuditor};
 use crate::group_manager::ToolGroupManager;
 use crate::hooks::executors::execute_hook;

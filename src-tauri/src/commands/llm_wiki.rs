@@ -2,11 +2,11 @@
 
 use crate::AppState;
 use crate::commands::spawn_guard::catch_unwind_logged;
-use axagent_agent_macro::agent_command;
 use axagent_agent::{
     ingest_pipeline, ingest_queue, lint_checker, purpose_manager, query_engine, schema_manager,
     wiki_compiler,
 };
+use axagent_agent_macro::agent_command;
 use axagent_dao::repo::note_backlink_repository::DaoNoteBacklinkRepository;
 use axagent_dao::repo::note_repository::DaoNoteRepository;
 use axagent_dao::repo::wiki;

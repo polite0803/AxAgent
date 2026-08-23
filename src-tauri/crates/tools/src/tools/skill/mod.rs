@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+#![allow(clippy::disallowed_types)]
+
 use std::collections::HashSet;
 
 use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};

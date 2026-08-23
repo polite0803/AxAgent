@@ -107,6 +107,11 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         std::sync::Arc::new(axagent_document_parser::parser_impl::DefaultDocumentParser),
     );
 
+    // 同步注入 tools 层的 DocumentParser
+    axagent_tools::parser::set_parser(std::sync::Arc::new(
+        axagent_document_parser::parser_impl::DefaultDocumentParser,
+    ));
+
     // 注册统一知识源实现（v2）：RAG / Wiki / Memory / Obsidian 四类知识源
     axagent_search::sources::set_unified_sources(vec![
         std::sync::Arc::new(RagUnifiedSource { db: sea_db.clone() }),
@@ -847,6 +852,8 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let credential_manager = Arc::new(axagent_credential::CredentialManager::new(credential_store));
     let session_share_manager: crate::app_state::SessionShareStore =
         Arc::new(TokioRwLock::new(std::collections::HashMap::new()));
+    let database_query_service: Arc<dyn axagent_harness::DatabaseQueryService> =
+        Arc::new(crate::database_query_impl::SqlxDatabaseQueryService);
     #[cfg(not(mobile))]
     let pty_manager = Arc::new(axagent_runtime::pty::PtyManager::new());
     let sandbox_executor_field: SandboxExecutorField = {
@@ -1320,6 +1327,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         plugin_manager,
         file_authorizer,
         credential_manager,
+        database_query_service,
         session_share_manager,
         #[cfg(not(mobile))]
         pty_manager,

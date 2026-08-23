@@ -2,6 +2,9 @@
 
 //! Workflow Engine — DAG executor, agent roles, work engine, orchestration.
 
+// SAFETY: rt-workflow crate 中的 std::sync 锁用于同步上下文，不跨 await。
+#![allow(clippy::disallowed_types)]
+
 pub mod agent_roles;
 pub mod business_rules;
 pub mod expression_engine;

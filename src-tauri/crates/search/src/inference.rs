@@ -15,10 +15,10 @@
 
 use async_trait::async_trait;
 use axagent_harness::InferenceEngine as InferenceEngineTrait;
-use axagent_harness::SparseVectorEntry;
 use axagent_harness::core_error::{AxAgentError, Result};
+use axagent_harness::{LoRATrainConfig, LoRATrainResult, SparseVectorEntry};
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::OnceLock;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -206,6 +206,26 @@ impl InferenceEngine {
     pub async fn loaded_model_names(&self) -> Vec<String> {
         self.workers.read().await.keys().cloned().collect()
     }
+
+    /// 使用预计算的真实 embedding 向量执行 LoRA 训练。
+    pub fn train_lora_with_embeddings(
+        &self,
+        input_embeddings: Vec<Vec<f32>>,
+        target_embeddings: Vec<Vec<f32>>,
+        config: &LoRATrainConfig,
+        output_dir: &str,
+        embedding_model_dim: usize,
+    ) -> Result<LoRATrainResult> {
+        let output_path = PathBuf::from(output_dir);
+        crate::lora_trainer::train_with_embeddings(
+            input_embeddings,
+            target_embeddings,
+            config,
+            &output_path,
+            embedding_model_dim,
+        )
+        .map_err(AxAgentError::Inference)
+    }
 }
 
 impl Default for InferenceEngine {
@@ -231,6 +251,23 @@ impl InferenceEngineTrait for InferenceEngine {
         text: &str,
     ) -> Result<Vec<SparseVectorEntry>> {
         self.embed_sparse(model_filename, text).await
+    }
+
+    async fn train_lora_with_embeddings(
+        &self,
+        input_embeddings: Vec<Vec<f32>>,
+        target_embeddings: Vec<Vec<f32>>,
+        config: &LoRATrainConfig,
+        output_dir: &str,
+        embedding_model_dim: usize,
+    ) -> Result<LoRATrainResult> {
+        self.train_lora_with_embeddings(
+            input_embeddings,
+            target_embeddings,
+            config,
+            output_dir,
+            embedding_model_dim,
+        )
     }
 }
 

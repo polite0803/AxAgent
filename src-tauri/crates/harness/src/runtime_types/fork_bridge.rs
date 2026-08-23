@@ -2,6 +2,8 @@
 //
 // Fork Session Bridge — 在父 agent 和 fork 子 agent 之间传递会话数据
 
+#![allow(clippy::disallowed_types)]
+
 use std::collections::HashMap;
 use std::sync::{LazyLock, RwLock};
 

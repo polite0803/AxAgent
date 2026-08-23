@@ -5,6 +5,10 @@
 //! 将 `repositories.rs` 中分散的 8 组 `OnceLock<RwLock<Option<Arc<T>>>>`
 //! 全局可变状态集中到单一结构体，便于初始化管理、测试替换和未来迁移到真正 DI。
 
+// SAFETY: std::sync::RwLock 用于全局服务注册表的同步读写，
+// ServiceRegistry 在初始化阶段同步注入 repository 实例，运行时读取不跨越 await 点，
+// 因此不会触发 std::sync::RwLock guard 跨 await 的 UB 风险。
+#[allow(clippy::disallowed_types)]
 use std::sync::{Arc, OnceLock, RwLock};
 
 use crate::repositories::{
@@ -22,6 +26,9 @@ use crate::repositories::{
 ///
 /// 每个字段为 `OnceLock<RwLock<Option<Arc<T>>>>`，与原 scattered 模式保持
 /// 相同的线程安全语义。
+// SAFETY: ServiceRegistry 中的 RwLock 用于全局服务注册表的同步读写，
+// 初始化阶段同步注入 repository 实例，运行时读取不跨越 await 点。
+#[allow(clippy::disallowed_types)]
 pub struct ServiceRegistry {
     pub note_repo: OnceLock<RwLock<Option<Arc<dyn NoteRepository>>>>,
     pub wiki_repo: OnceLock<RwLock<Option<Arc<dyn WikiRepository>>>>,
