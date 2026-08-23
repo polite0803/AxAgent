@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// SAFETY: 本文件中 Mutex 用于操作审计记录同步写入，不跨 await（铁律 #8 例外）
+#![allow(clippy::disallowed_types)]
 
 use axagent_harness::util_fns::current_rfc3339;
 use serde::{Deserialize, Serialize};

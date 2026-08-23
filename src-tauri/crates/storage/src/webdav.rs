@@ -1,5 +1,7 @@
 #![allow(clippy::result_large_err)]
 // SPDX-License-Identifier: AGPL-3.0-only
+// SAFETY: 本文件中 Mutex 用于 WebDAV 客户端同步状态，不跨 await（铁律 #8 例外）
+#![allow(clippy::disallowed_types)]
 
 use reqwest::{Client, Method, StatusCode};
 use serde::{Deserialize, Serialize};

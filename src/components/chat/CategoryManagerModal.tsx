@@ -3,8 +3,7 @@
 import { Tooltip } from "@/components/layout/Tooltip";
 import { message } from "@/lib/toast";
 import { useCategoryStore, useConversationStore } from "@/stores";
-import type { ConversationCategory } from "@/types";
-import { ModelRef, type NullableModelRef } from "@/types/paired";
+import { type ConversationCategory, ModelRef, type NullableModelRef } from "@/types";
 import { Avatar, Button, Empty, Modal, Popconfirm, theme } from "antd";
 import { FolderOpen, Pencil, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";

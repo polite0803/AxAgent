@@ -14,9 +14,14 @@
  * - 运行时验证数据有效性（provider/model 是否真实存在）
  */
 
-import type { AppSettings, ProviderConfig } from "@/types";
-import { ModelSelection, ModelValidator, type NullableModelSelection } from "@/types/modelSelection";
-import type { NullableModelRef } from "@/types/paired";
+import {
+  type AppSettings,
+  ModelSelection,
+  ModelValidator,
+  type NullableModelRef,
+  type NullableModelSelection,
+  type ProviderConfig,
+} from "@/types";
 
 /** 需要验证的模型选择字段对 */
 interface FieldPair {

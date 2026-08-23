@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-#![allow(clippy::too_many_arguments)]
+// TODO(M9): 以下三个 lint 待运行 clippy 后局部化到具体触发点
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::collapsible_match)]
 #![allow(clippy::needless_borrow)]

@@ -64,27 +64,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "agent-command-types"
-version = "2.9.7"
-dependencies = [
- "inventory",
- "serde",
- "serde_json",
- "tauri",
-]
-
-[[package]]
-name = "agent-macro"
-version = "2.9.7"
-dependencies = [
- "agent-command-types",
- "inventory",
- "proc-macro2",
- "quote",
- "syn 2.0.118",
-]
-
-[[package]]
 name = "ahash"
 version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -797,11 +776,11 @@ dependencies = [
 name = "axagent"
 version = "2.9.7"
 dependencies = [
- "agent-command-types",
- "agent-macro",
  "android_logger",
  "async-trait",
  "axagent-agent",
+ "axagent-agent-command-types",
+ "axagent-agent-macro",
  "axagent-cache",
  "axagent-credential",
  "axagent-crypto",
@@ -924,6 +903,27 @@ dependencies = [
  "url",
  "urlencoding",
  "uuid",
+]
+
+[[package]]
+name = "axagent-agent-command-types"
+version = "2.9.7"
+dependencies = [
+ "inventory",
+ "serde",
+ "serde_json",
+ "tauri",
+]
+
+[[package]]
+name = "axagent-agent-macro"
+version = "2.9.7"
+dependencies = [
+ "axagent-agent-command-types",
+ "inventory",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.118",
 ]
 
 [[package]]

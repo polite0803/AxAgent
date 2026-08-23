@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Tauri 命令参数数量由框架约束，too_many_arguments 在命令模块级别允许
+#![allow(clippy::too_many_arguments)]
 
 pub mod _shared_state;
 pub(crate) mod _workflow_ai_protocol;

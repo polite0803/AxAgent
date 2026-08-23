@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { invoke } from "@/lib/invoke";
-import type { ConversationCategory } from "@/types";
-import type { NullableModelRef } from "@/types/paired";
+import type { ConversationCategory, NullableModelRef } from "@/types";
 import { create } from "zustand";
 
 interface CategoryState {

@@ -264,8 +264,6 @@ export default defineConfig(async () => ({
     pool: "forks",
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
-    // TODO: 这些测试需要修复 CI 兼容性问题后重新启用
-    // 已知问题：mock 依赖缺失、异步竞态导致 CI 环境偶发失败
     exclude: [],
     coverage: {
       provider: "v8",

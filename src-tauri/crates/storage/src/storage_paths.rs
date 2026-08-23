@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// SAFETY: 本文件中所有 RwLock 使用都在纯同步上下文中，不跨 await（铁律 #8 例外）
+#![allow(clippy::disallowed_types)]
 
 use std::path::{Path, PathBuf};
 use std::sync::RwLock;

@@ -12,9 +12,7 @@
  * 3. 在 code review 中检查是否遵循这些模式
  */
 
-import type { AppSettings, ProviderConfig } from "@/types";
-import { ModelSelection, ModelValidator } from "@/types/modelSelection";
-import type { NullableModelRef } from "@/types/paired";
+import { type AppSettings, ModelSelection, ModelValidator, type NullableModelRef, type ProviderConfig } from "@/types";
 
 /**
  * 类型断言：检查 AppSettings 中的模型选择字段是否有效

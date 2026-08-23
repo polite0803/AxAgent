@@ -15,8 +15,7 @@
  */
 
 import { sanitizeId, validateModelRef } from "@/lib/validators";
-import type { AppSettings } from "@/types";
-import { ModelRef, type NullableModelRef } from "@/types/paired";
+import { type AppSettings, ModelRef, type NullableModelRef } from "@/types";
 
 /**
  * 后端 DTO 格式的设置（分离字段）

@@ -72,4 +72,4 @@ axagent-search = { path = "../search" }
 tempfile = "3"
 
 [lints]
-# workspace = true
+workspace = true

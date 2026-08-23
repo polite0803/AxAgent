@@ -1,0 +1,16 @@
+# clippy.toml — 禁用类型配置
+#
+# 铁律 #8：异步上下文禁止 std::sync 锁，必须使用 tokio::sync::RwLock/Mutex
+# std guard 跨 await 是 UB，panic 会毒化锁
+#
+# 合法例外规则：
+#   不跨 await 的同步临界区需标注 #[allow(clippy::disallowed_types)] + SAFETY 注释
+#   注释模板：// SAFETY: 此处 std::sync::RwLock 不跨 await 使用，临界区内仅同步操作。
+
+disallowed-types = [
+  "std::sync::RwLock",
+  "std::sync::Mutex",
+  "std::sync::RwLockReadGuard",
+  "std::sync::RwLockWriteGuard",
+  "std::sync::MutexGuard",
+]
