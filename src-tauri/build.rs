@@ -145,6 +145,45 @@ fn main() {
         }
     }
 
+    // 3. 扫描 src/scheduler/ 目录（独立模块，不在 commands/ 下）
+    let scheduler_dir = PathBuf::from(&manifest_dir).join("src").join("scheduler");
+    if scheduler_dir.is_dir() {
+        let scheduler_mod = scheduler_dir.join("mod.rs");
+        eprintln!("[build.rs] 扫描 scheduler 目录");
+
+        // 扫描 scheduler/mod.rs 中的命令
+        if scheduler_mod.exists() {
+            let before = handlers.len();
+            scan_file_for_commands(&scheduler_mod, "scheduler", &mut handlers);
+            if handlers.len() > before {
+                eprintln!(
+                    "[build.rs]   在 scheduler/mod.rs 中发现 {} 个命令",
+                    handlers.len() - before
+                );
+            }
+        }
+
+        // 扫描 scheduler/ 下的子模块
+        for sub_file in &["gate", "queue", "report", "restore"] {
+            let sub_path = scheduler_dir.join(format!("{}.rs", sub_file));
+            if sub_path.exists() {
+                let before = handlers.len();
+                scan_file_for_commands(
+                    &sub_path,
+                    &format!("scheduler::{}", sub_file),
+                    &mut handlers,
+                );
+                if handlers.len() > before {
+                    eprintln!(
+                        "[build.rs]   在 scheduler/{}.rs 中发现 {} 个命令",
+                        sub_file,
+                        handlers.len() - before
+                    );
+                }
+            }
+        }
+    }
+
     handlers.sort_by(|a, b| a.path.cmp(&b.path));
 
     eprintln!("[build.rs] 共发现 {} 个命令", handlers.len());
@@ -163,7 +202,12 @@ fn main() {
     let output_path = Path::new(&out_dir).join("register_commands.rs");
     fs::write(&output_path, &generated).unwrap();
 
+    // 同时生成 src/register_commands.rs 供契约检查脚本使用
+    let src_register_path = PathBuf::from(&manifest_dir).join("src").join("register_commands.rs");
+    fs::write(&src_register_path, &generated).unwrap();
+
     println!("cargo:rerun-if-changed=src/commands");
+    println!("cargo:rerun-if-changed=src/scheduler");
     println!("cargo:rerun-if-changed=src/knowledge_integration.rs");
     println!("cargo:rerun-if-changed=src/tray.rs");
     println!("cargo:rerun-if-changed=build.rs");
