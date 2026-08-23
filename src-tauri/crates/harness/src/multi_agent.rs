@@ -52,7 +52,6 @@ pub struct BlackboardMessage {
 
 /// 冲突解决结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub enum ConflictResolution {
     MajorityVote { winner: String, vote_count: usize },
     TieBreak { chosen: String, reason: String },

@@ -57,6 +57,7 @@ pub fn global_plugin_agents() -> &'static PluginAgentRegistry {
 }
 
 #[cfg(test)]
+#[allow(clippy::disallowed_types)]
 static TEST_PLUGIN_AGENTS: std::sync::Mutex<Option<&'static PluginAgentRegistry>> =
     std::sync::Mutex::new(None);
 
