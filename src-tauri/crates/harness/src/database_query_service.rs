@@ -3,7 +3,7 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
-use crate::core_error::{AxAgentError, Result};
+use crate::core_error::Result;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DatabaseQueryResult {

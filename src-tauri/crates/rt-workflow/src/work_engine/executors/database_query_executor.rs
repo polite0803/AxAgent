@@ -7,7 +7,6 @@
 //! node config (via `CredentialManager::get_database_connection_string`).
 
 use async_trait::async_trait;
-use axagent_harness::DatabaseQueryService;
 use axagent_harness::workflow_types::WorkflowNode;
 
 use crate::work_engine::execution_state::ExecutionState;
