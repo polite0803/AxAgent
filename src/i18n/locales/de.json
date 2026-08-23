@@ -2064,6 +2064,14 @@
     "waitingForJson": "Warte auf gültiges JSON..."
   },
   "error": {
+    "settings": {
+      "modelRefInvalid": "Ungültige NullableModelRef-Struktur: {{label}}",
+      "cleanupInvalid": "[SettingsAdaptor] Ungültiges {{label}} bereinigt: {{reason}}",
+      "modelConsistencyInvalid": "[ModelConsistency] {{label}}: {{reason}} (providerId={{providerId}}, modelId={{modelId}})",
+      "dataInconsistency": "[fromDto] Dateninkonsistenz: {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}",
+      "invalidModelRefDetected": "[toDto] Ungültige Modellreferenz erkannt {{sourceKey}}",
+      "mustBeSetTogether": "[SettingsDto] {{providerKey}} und {{modelKey}} müssen entweder beide gesetzt oder beide null sein. Aktuell {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}"
+    },
     "deleteFailed": "Löschen fehlgeschlagen, bitte erneut versuchen",
     "gatewayStartFailed": "Gateway-Start fehlgeschlagen",
     "invalidFormat": "Ungültiges Format",
@@ -3934,6 +3942,11 @@
     "apiKey": "API-Schlüssel"
   },
   "settings": {
+    "modelLabels": {
+      "defaultModel": "Standard-Konversationsmodell",
+      "titleSummaryModel": "Titel-Zusammenfassungsmodell",
+      "compressionModel": "Kompressionsmodell"
+    },
     "activeProfile": "Aktives Profil",
     "addKey": "Schlüssel hinzufügen",
     "addModel": "Modell hinzufügen",

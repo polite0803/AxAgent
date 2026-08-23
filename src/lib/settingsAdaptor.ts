@@ -22,19 +22,25 @@ import {
   type NullableModelSelection,
   type ProviderConfig,
 } from "@/types";
+import i18next from "i18next";
 
 /** 需要验证的模型选择字段对 */
 interface FieldPair {
   modelKey: keyof AppSettings;
-  label: string;
+  labelKey: string;
 }
 
 /** AppSettings 中所有需要验证的模型选择字段 */
 const MODEL_FIELD_PAIRS: FieldPair[] = [
-  { modelKey: "defaultModel", label: "默认对话模型" },
-  { modelKey: "titleSummaryModel", label: "标题摘要模型" },
-  { modelKey: "compressionModel", label: "压缩模型" },
+  { modelKey: "defaultModel", labelKey: "settings.modelLabels.defaultModel" },
+  { modelKey: "titleSummaryModel", labelKey: "settings.modelLabels.titleSummaryModel" },
+  { modelKey: "compressionModel", labelKey: "settings.modelLabels.compressionModel" },
 ];
+
+/** 获取模型字段的本地化标签 */
+function getLabel(labelKey: string): string {
+  return i18next.t(labelKey);
+}
 
 /** 验证结果统计 */
 export interface AdaptResult {
@@ -72,7 +78,9 @@ export function adaptSettings(
       if (modelRef !== null && modelRef !== undefined) {
         if (typeof modelRef.a !== "string" || typeof modelRef.b !== "string") {
           console.error(
-            `[SettingsAdaptor] ${pair.label}: NullableModelRef 结构无效`,
+            i18next.t("error.settings.modelRefInvalid", {
+              label: getLabel(pair.labelKey),
+            }),
             modelRef,
           );
         }
@@ -92,8 +100,8 @@ export function adaptSettings(
       // 记录无效字段
       invalidFields.push({
         field: String(pair.modelKey),
-        label: pair.label,
-        reason: validationResult.reason ?? "未知原因",
+        label: getLabel(pair.labelKey),
+        reason: validationResult.reason ?? i18next.t("error.unknown"),
       });
 
       // 清理无效引用
@@ -101,7 +109,10 @@ export function adaptSettings(
       changed = true;
 
       console.warn(
-        `[SettingsAdaptor] 清理无效的${pair.label}: ${validationResult.reason}`,
+        i18next.t("error.settings.cleanupInvalid", {
+          label: getLabel(pair.labelKey),
+          reason: validationResult.reason,
+        }),
         { providerId: modelRef.a, modelId: modelRef.b },
       );
     }

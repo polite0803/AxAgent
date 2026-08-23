@@ -2064,6 +2064,14 @@
     "waitingForJson": "Esperando JSON válido..."
   },
   "error": {
+    "settings": {
+      "modelRefInvalid": "Estructura NullableModelRef inválida: {{label}}",
+      "cleanupInvalid": "[SettingsAdaptor] Limpiando {{label}} inválido: {{reason}}",
+      "modelConsistencyInvalid": "[ModelConsistency] {{label}}: {{reason}} (providerId={{providerId}}, modelId={{modelId}})",
+      "dataInconsistency": "[fromDto] Inconsistencia de datos: {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}",
+      "invalidModelRefDetected": "[toDto] Referencia de modelo inválida detectada {{sourceKey}}",
+      "mustBeSetTogether": "[SettingsDto] {{providerKey}} y {{modelKey}} deben configurarse juntos o ambos ser null. Actualmente {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}"
+    },
     "deleteFailed": "Error al eliminar, inténtelo de nuevo",
     "gatewayStartFailed": "Error al iniciar la pasarela",
     "invalidFormat": "Formato inválido",
@@ -3934,6 +3942,11 @@
     "apiKey": "Clave API"
   },
   "settings": {
+    "modelLabels": {
+      "defaultModel": "Modelo de conversación predeterminado",
+      "titleSummaryModel": "Modelo de resumen de título",
+      "compressionModel": "Modelo de compresión"
+    },
     "activeProfile": "Perfil activo",
     "addKey": "Añadir clave",
     "addModel": "Agregar modelo",

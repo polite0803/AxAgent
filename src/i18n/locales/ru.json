@@ -2064,6 +2064,14 @@
     "waitingForJson": "Ожидание валидного JSON..."
   },
   "error": {
+    "settings": {
+      "modelRefInvalid": "Неверная структура NullableModelRef: {{label}}",
+      "cleanupInvalid": "[SettingsAdaptor] Очищено недействительное {{label}}: {{reason}}",
+      "modelConsistencyInvalid": "[ModelConsistency] {{label}}: {{reason}} (providerId={{providerId}}, modelId={{modelId}})",
+      "dataInconsistency": "[fromDto] Несогласованность данных: {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}",
+      "invalidModelRefDetected": "[toDto] Обнаружена недействительная ссылка на модель {{sourceKey}}",
+      "mustBeSetTogether": "[SettingsDto] {{providerKey}} и {{modelKey}} должны быть заданы вместе или оба быть null. Текущее {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}"
+    },
     "deleteFailed": "Ошибка удаления, повторите попытку",
     "gatewayStartFailed": "Ошибка запуска шлюза",
     "invalidFormat": "Неверный формат",
@@ -3934,6 +3942,11 @@
     "apiKey": "API-ключ"
   },
   "settings": {
+    "modelLabels": {
+      "defaultModel": "Модель конфигурации по умолчанию",
+      "titleSummaryModel": "Модель сводки заголовка",
+      "compressionModel": "Модель сжатия"
+    },
     "activeProfile": "Активный профиль",
     "addKey": "Добавить ключ",
     "addModel": "Добавить модель",

@@ -13,6 +13,7 @@
  */
 
 import { type AppSettings, ModelSelection, ModelValidator, type NullableModelRef, type ProviderConfig } from "@/types";
+import i18next from "i18next";
 
 /**
  * 类型断言：检查 AppSettings 中的模型选择字段是否有效
@@ -79,22 +80,26 @@ export function assertModelSelectionConsistency(
 ): void {
   if (process.env.NODE_ENV !== "development") { return; }
 
-  const pairs: Array<[keyof AppSettings, string]> = [
-    ["defaultModel", "默认对话模型"],
-    ["titleSummaryModel", "标题摘要模型"],
-    ["compressionModel", "压缩模型"],
+  const pairs: Array<{ key: keyof AppSettings; labelKey: string }> = [
+    { key: "defaultModel", labelKey: "settings.modelLabels.defaultModel" },
+    { key: "titleSummaryModel", labelKey: "settings.modelLabels.titleSummaryModel" },
+    { key: "compressionModel", labelKey: "settings.modelLabels.compressionModel" },
   ];
 
-  for (const [modelKey, label] of pairs) {
-    const modelRef = settings[modelKey] as NullableModelRef;
+  for (const { key, labelKey } of pairs) {
+    const modelRef = settings[key] as NullableModelRef;
 
     // 检查: 如果有值，必须在 providers 列表中有效
     if (modelRef) {
       const result = ModelValidator.validate(modelRef, providers);
       if (!result.valid) {
         throw new Error(
-          `[ModelConsistency] ${label}: ${result.reason} `
-            + `（providerId=${modelRef.a}, modelId=${modelRef.b}）`,
+          i18next.t("error.settings.modelConsistencyInvalid", {
+            label: i18next.t(labelKey),
+            reason: result.reason,
+            providerId: modelRef.a,
+            modelId: modelRef.b,
+          }),
         );
       }
     }

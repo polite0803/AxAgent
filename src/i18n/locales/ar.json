@@ -2064,6 +2064,14 @@
     "waitingForJson": "في انتظار JSON صالح..."
   },
   "error": {
+    "settings": {
+      "modelRefInvalid": "هيكل NullableModelRef غير صالح: {{label}}",
+      "cleanupInvalid": "[SettingsAdaptor] تم تنظيف {{label}} غير الصالح: {{reason}}",
+      "modelConsistencyInvalid": "[ModelConsistency] {{label}}: {{reason}} (providerId={{providerId}}, modelId={{modelId}})",
+      "dataInconsistency": "[fromDto] عدم اتساق البيانات: {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}",
+      "invalidModelRefDetected": "[toDto] تم اكتشاف مرجع نموذج غير صالح {{sourceKey}}",
+      "mustBeSetTogether": "[SettingsDto] يجب تعيين {{providerKey}} و {{modelKey}} معًا أو أن يكونا فارغين معًا. حاليًا {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}"
+    },
     "deleteFailed": "فشل الحذف، يرجى المحاولة مجدداً",
     "gatewayStartFailed": "فشل تشغيل البوابة",
     "invalidFormat": "تنسيق غير صالح",
@@ -3934,6 +3942,11 @@
     "apiKey": "مفتاح API"
   },
   "settings": {
+    "modelLabels": {
+      "defaultModel": "نموذج المحادثة الافتراضي",
+      "titleSummaryModel": "نموذج تلخيص العنوان",
+      "compressionModel": "نموذج ضغط"
+    },
     "activeProfile": "الملف النشط",
     "addKey": "إضافة مفتاح",
     "addModel": "إضافة نموذج",

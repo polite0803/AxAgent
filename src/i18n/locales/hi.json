@@ -2064,6 +2064,14 @@
     "waitingForJson": "मान्य JSON की प्रतीक्षा कर रहा है..."
   },
   "error": {
+    "settings": {
+      "modelRefInvalid": "अमान्य NullableModelRef संरचना: {{label}}",
+      "cleanupInvalid": "[SettingsAdaptor] अमान्य {{label}} साफ़ किया गया: {{reason}}",
+      "modelConsistencyInvalid": "[ModelConsistency] {{label}}: {{reason}} (providerId={{providerId}}, modelId={{modelId}})",
+      "dataInconsistency": "[fromDto] डेटा असंगति: {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}",
+      "invalidModelRefDetected": "[toDto] अमान्य मॉडल संदर्भ पहचाना गया {{sourceKey}}",
+      "mustBeSetTogether": "[SettingsDto] {{providerKey}} और {{modelKey}} या तो एक साथ सेट होने चाहिए या दोनों null होने चाहिए। वर्तमान में {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}"
+    },
     "deleteFailed": "हटाने में विफल, कृपया पुनः प्रयास करें",
     "gatewayStartFailed": "गेटवे शुरू करने में विफल",
     "invalidFormat": "अमान्य प्रारूप",
@@ -3934,6 +3942,11 @@
     "apiKey": "API कुंजी"
   },
   "settings": {
+    "modelLabels": {
+      "defaultModel": "डिफ़ॉल्ट कंversेशन मॉडल",
+      "titleSummaryModel": "शीर्षक सारांश मॉडल",
+      "compressionModel": "संपीड़न मॉडल"
+    },
     "activeProfile": "सक्रिय प्रोफ़ाइल",
     "addKey": "कुंजी जोड़ें",
     "addModel": "मॉडल जोड़ें",

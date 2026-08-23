@@ -2064,6 +2064,14 @@
     "waitingForJson": "有効なJSONを待機中..."
   },
   "error": {
+    "settings": {
+      "modelRefInvalid": "NullableModelRef 構造が無効です: {{label}}",
+      "cleanupInvalid": "[SettingsAdaptor] 無効な{{label}}をクリーンアップ: {{reason}}",
+      "modelConsistencyInvalid": "[ModelConsistency] {{label}}: {{reason}}（providerId={{providerId}}, modelId={{modelId}}）",
+      "dataInconsistency": "[fromDto] データの不整合: {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}",
+      "invalidModelRefDetected": "[toDto] 無効なモデル参照を検出しました {{sourceKey}}",
+      "mustBeSetTogether": "[SettingsDto] {{providerKey}}と{{modelKey}}は同時に設定するか、同時にnullである必要があります。現在 {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}"
+    },
     "deleteFailed": "削除に失敗しました。もう一度お試しください",
     "gatewayStartFailed": "ゲートウェイの起動に失敗しました",
     "invalidFormat": "無効なフォーマット",
@@ -3934,6 +3942,11 @@
     "apiKey": "APIキー"
   },
   "settings": {
+    "modelLabels": {
+      "defaultModel": "デフォルト対話モデル",
+      "titleSummaryModel": "タイトル要約モデル",
+      "compressionModel": "圧縮モデル"
+    },
     "activeProfile": "現在の設定",
     "addKey": "キーを追加",
     "addModel": "モデルを追加",

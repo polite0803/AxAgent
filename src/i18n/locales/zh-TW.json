@@ -2064,6 +2064,14 @@
     "waitingForJson": "等待有效的 JSON..."
   },
   "error": {
+    "settings": {
+      "modelRefInvalid": "NullableModelRef 結構無效: {{label}}",
+      "cleanupInvalid": "[SettingsAdaptor] 清理無效的{{label}}: {{reason}}",
+      "modelConsistencyInvalid": "[ModelConsistency] {{label}}: {{reason}}（providerId={{providerId}}, modelId={{modelId}}）",
+      "dataInconsistency": "[fromDto] 資料不一致: {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}",
+      "invalidModelRefDetected": "[toDto] 偵測到無效模型參考 {{sourceKey}}",
+      "mustBeSetTogether": "[SettingsDto] {{providerKey}} 和 {{modelKey}} 必須同時設定或同時為 null，目前 {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}"
+    },
     "deleteFailed": "刪除失敗，請重試",
     "gatewayStartFailed": "閘道啟動失敗",
     "invalidFormat": "格式無效",
@@ -3934,6 +3942,11 @@
     "apiKey": "API密钥"
   },
   "settings": {
+    "modelLabels": {
+      "defaultModel": "預設對話模型",
+      "titleSummaryModel": "標題摘要模型",
+      "compressionModel": "壓縮模型"
+    },
     "activeProfile": "當前配置",
     "addKey": "新增金鑰",
     "addModel": "新增模型",

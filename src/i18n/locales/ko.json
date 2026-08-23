@@ -2064,6 +2064,14 @@
     "waitingForJson": "유효한 JSON을 기다리는 중..."
   },
   "error": {
+    "settings": {
+      "modelRefInvalid": "NullableModelRef 구조가 유효하지 않습니다: {{label}}",
+      "cleanupInvalid": "[SettingsAdaptor] 유효하지 않는 {{label}} 정리: {{reason}}",
+      "modelConsistencyInvalid": "[ModelConsistency] {{label}}: {{reason}} (providerId={{providerId}}, modelId={{modelId}})",
+      "dataInconsistency": "[fromDto] 데이터 불일치: {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}",
+      "invalidModelRefDetected": "[toDto] 유효하지 않은 모델 참조 감지 {{sourceKey}}",
+      "mustBeSetTogether": "[SettingsDto] {{providerKey}}와 {{modelKey}}는 동시에 설정하거나 동시에 null이어야 합니다. 현재 {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}"
+    },
     "deleteFailed": "삭제에 실패했습니다. 다시 시도하세요",
     "gatewayStartFailed": "게이트웨이 시작에 실패했습니다",
     "invalidFormat": "잘못된 형식",
@@ -3934,6 +3942,11 @@
     "apiKey": "API 키"
   },
   "settings": {
+    "modelLabels": {
+      "defaultModel": "기본 대화 모델",
+      "titleSummaryModel": "제목 요약 모델",
+      "compressionModel": "압축 모델"
+    },
     "activeProfile": "활성 프로필",
     "addKey": "키 추가",
     "addModel": "모델 추가",
