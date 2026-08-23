@@ -2,7 +2,7 @@
 
 use crate::AppState;
 use crate::paths::axagent_home;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_trajectory::{Skill, SkillsHubAdapter};
 use serde::{Deserialize, Serialize};
 use tauri::State;

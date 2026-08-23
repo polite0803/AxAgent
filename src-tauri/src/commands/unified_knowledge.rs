@@ -8,7 +8,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::{common, knowledge_source as ks_err};
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_harness::search_sources::{KnowledgeSourceType, SearchResult};
 use axagent_search::sources::unified_sources;
 use serde::Deserialize;

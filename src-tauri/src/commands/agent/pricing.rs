@@ -7,7 +7,7 @@
 
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::agent as agent_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use serde::Deserialize;
 use std::sync::OnceLock;
 use std::sync::atomic::AtomicBool;

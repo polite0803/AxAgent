@@ -3,7 +3,7 @@
 //! 上下文 token 占用分解，为前端 ContextClassificationBar 提供数据。
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use serde::Serialize;
 use tauri::State;
 

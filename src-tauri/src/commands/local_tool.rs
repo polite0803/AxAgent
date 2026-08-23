@@ -2,7 +2,7 @@
 
 use crate::AppState;
 use crate::commands::agent::resolve_profile_tool_context;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_harness::ToolDomain;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;

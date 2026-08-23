@@ -22,7 +22,7 @@ use crate::commands::error_code::common as common_err;
 use crate::commands::error_code::file as file_err;
 use crate::commands::error_code::security as sec_err;
 use crate::commands::error_code::storage as storage_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 
 /// 目录条目（与前端 DirEntry 对齐，camelCase 序列化）
 #[derive(Debug, Clone, Serialize)]

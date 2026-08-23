@@ -14,7 +14,7 @@
 
 use crate::AppState;
 use crate::commands::provider_ctx::build_vision_context;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_dao::repo::agent_role;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::{DelegateTaskInput, DelegateTaskResult, DelegateTaskRunner};

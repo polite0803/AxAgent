@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_credential::{Credential, CredentialType};
 use serde::{Deserialize, Serialize};
 use std::fs;

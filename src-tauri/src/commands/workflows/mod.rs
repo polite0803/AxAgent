@@ -6,7 +6,7 @@ use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::agent as agent_err;
 use crate::commands::spawn_guard::SpawnGuard;
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_dao::repo::{conversation, message, workflow_template};
 use axagent_harness::types::{MessageRole, UpdateConversationInput};
 use axagent_harness::workflow_types::{Variable, Workflow};

@@ -19,7 +19,7 @@
 //! 协议层 ChatAction 的 `data` 字段在这里展开。
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_dao::repo::workflow_template as db_repo;
 use axagent_dao::workflow_conversions::workflow_template_response_from_model;
 use axagent_harness::workflow_types::*;

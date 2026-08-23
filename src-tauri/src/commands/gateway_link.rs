@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_crypto::platform_adapter_impl::DefaultCryptoService;
 use axagent_harness::types::*;
 use tauri::State;

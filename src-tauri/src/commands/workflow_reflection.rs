@@ -12,7 +12,7 @@
 //! 前端按 `t("error.${code}")` 翻译,详见 `commands/error_code.rs::workflow_reflection`。
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_dao::repo::workflow_template as db_repo;
 use axagent_harness::reflection_types::Reflection;
 use axagent_harness::workflow_evolution::{EvolutionStats, WorkflowModification};

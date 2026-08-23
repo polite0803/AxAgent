@@ -6,7 +6,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::task as task_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_runtime_core::{CronJob, CronJobStatus, ExecutionRecord, TaskConfig};
 use serde::{Deserialize, Serialize};
 use tauri::State;

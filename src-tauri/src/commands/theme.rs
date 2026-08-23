@@ -2,7 +2,7 @@
 
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::skill as skill_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_runtime::theme_engine::{Theme, ThemeEngine, ThemeMetadata, XTermTheme};
 use std::sync::Arc;
 use tauri::State;

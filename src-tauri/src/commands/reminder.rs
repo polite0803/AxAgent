@@ -6,7 +6,7 @@
 //! ReminderManager 实例以 once_cell::sync::OnceLock 方式持有，线程安全。
 //! 数据持久化到 JSON 文件，应用重启后自动恢复。
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 
 use axagent_trajectory::{Reminder, ReminderManager, ReminderNotification, ReminderRecurrence};
 use chrono::{DateTime, Utc};

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 
 #[cfg(not(target_os = "android"))]
 use axagent_kit::browser_automation::{

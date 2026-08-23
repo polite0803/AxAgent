@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_agent::fine_tune::candle_trainer::train_with_embeddings;
 use axagent_agent::fine_tune::dataset::{
     DatasetMetadata, FineTuneDataset, FineTuneSample, SampleMetadata,

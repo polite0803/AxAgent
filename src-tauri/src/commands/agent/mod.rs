@@ -7,7 +7,7 @@ use crate::commands::error_code::agent_input as agent_input_err;
 use crate::commands::error_code::agent_status as agent_status_err;
 use crate::commands::error_code::steer as steer_err;
 use crate::commands::spawn_guard::catch_unwind_logged;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_agent::{
     AxAgentApiClient, DefaultToTReasoningProvider, FallbackProviderAdapter, TreeOfThoughtsEngine,
 };

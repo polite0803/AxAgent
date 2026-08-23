@@ -3,7 +3,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::provider as provider_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_harness::types::*;
 use std::time::Instant;
 use tauri::State;

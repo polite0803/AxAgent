@@ -1,5 +1,5 @@
 [package]
-name = "agent-command-types"
+name = "axagent-agent-command-types"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

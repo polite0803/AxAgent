@@ -2,7 +2,7 @@
 
 use std::sync::OnceLock;
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use tauri::{AppHandle, Manager, Url, WebviewUrl, WebviewWindowBuilder};
 
 const QUICKBAR_LABEL: &str = "quickbar";

@@ -3,7 +3,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::proxy as proxy_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use serde::Serialize;
 use std::sync::atomic::Ordering;
 use tauri::Manager;

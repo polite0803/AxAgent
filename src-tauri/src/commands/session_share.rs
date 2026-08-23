@@ -4,7 +4,7 @@ use crate::AppState;
 use crate::app_state::{ShareParticipant, SharePermissions, ShareSessionRecord};
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::session_share as session_share_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use serde::Serialize;
 use tauri::State;
 

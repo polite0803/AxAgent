@@ -1,6 +1,6 @@
 use super::manage::{generate_ai_title, update_conversation};
 use super::messages::build_message_content;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use crate::commands::spawn_guard::SpawnGuard;
 #[agent_command(domain = conversations, safety = Caution, call_mode = StateInput, description = "重新生成对话标题")]
 #[tauri::command]

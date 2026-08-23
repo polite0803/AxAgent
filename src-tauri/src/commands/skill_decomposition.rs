@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 use tauri::State;
 
 use crate::app_state::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 
 #[derive(Debug, Clone)]
 pub struct CachedDecomposition {

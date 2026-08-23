@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
 use crate::app_state::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_harness::streaming::{AgentStreamChunk, AgentStreamReporter};
 use axagent_harness::workflow_types::WorkflowNode;
 use axagent_orchestrator::{DynamicSubGraph, OrchestrationStrategy, OrchestratorExecutor};

@@ -2,7 +2,7 @@
 
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::terminal as terminal_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 

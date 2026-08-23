@@ -8,7 +8,7 @@
 //! 真实命令路径上。
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_crypto::decrypt_key;
 use axagent_dao::repo::provider;
 use axagent_entities::provider_keys;

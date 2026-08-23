@@ -18,7 +18,7 @@ use crate::commands::error_code::title as title_err;
 #[cfg(test)]
 use crate::commands::proactive::ProactiveService;
 use crate::commands::spawn_guard::catch_unwind_logged;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 #[cfg(test)]
 use axagent_dao::repo::agent_session_repo::DaoAgentSessionRepository;
 #[cfg(test)]

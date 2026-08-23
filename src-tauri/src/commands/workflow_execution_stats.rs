@@ -10,7 +10,7 @@
 
 use crate::AppState;
 use crate::commands::error::{ErrorCategory, ErrorResponse};
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_dao::repo::workflow_execution_stats as db_repo;
 use axagent_dao::repo::workflow_execution_stats::TemplateEffectSummary;
 use axagent_harness::repo_dtos::WorkflowExecutionStatsDto;

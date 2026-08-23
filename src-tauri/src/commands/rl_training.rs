@@ -6,7 +6,7 @@
 //! 对接真实 RLEngine + TrajectoryStorage，替代旧版的纯内存模拟。
 //! 训练数据从 TrajectoryStorage 实时采集，奖励由 RLEngine 计算。
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 
 use crate::AppState;
 use axagent_harness::trajectory_types::RewardType;

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_trajectory::ProactiveSuggestionType;
 use axagent_trajectory::{
     ContextFeatures, ContextPredictor, PredictionResult as TrajectoryPredictionResult,

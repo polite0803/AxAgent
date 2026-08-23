@@ -6,7 +6,7 @@
 //! 单用户桌面场景下「市场」= 本地工作流模板 + 本地技能目录的统一浏览。
 //! 评分/评论 CRUD 走 `MarketplaceService` trait（`get_marketplace_item_stats` 复用其 `get_stats`）。
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_dao::marketplace_service::{MarketplaceCatalogServiceImpl, MarketplaceServiceImpl};
 use axagent_harness::marketplace::{CatalogItem, CatalogPage, CatalogQuery, MarketplaceStats};
 use axagent_harness::{MarketplaceCatalogService, MarketplaceService};

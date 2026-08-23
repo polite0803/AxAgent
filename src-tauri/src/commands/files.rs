@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_dao::repo::stored_file::StoredFile;
 use axagent_storage::file_authorizer::{
     AuthorizationRequest, AuthorizationResponse, PermissionLevel,

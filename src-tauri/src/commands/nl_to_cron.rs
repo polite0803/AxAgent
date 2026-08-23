@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::nl_to_cron as nl_to_cron_err;

@@ -4,7 +4,7 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::backup as backup_err;
 use crate::commands::spawn_guard::panic_message;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_crypto::{decrypt_key, encrypt_key};
 use axagent_dao::repo::{backup, settings as settings_repo};
 use axagent_storage::webdav::{self, WebDavClient, WebDavConfig, WebDavFileInfo};

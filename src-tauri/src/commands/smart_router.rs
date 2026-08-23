@@ -2,7 +2,7 @@
 
 use crate::AppState;
 use crate::smart_router::{RouteDecision, RouteHistoryEntry, RouteOutcome, RouteStats};
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};

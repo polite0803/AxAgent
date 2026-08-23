@@ -6,7 +6,7 @@
 //! 错误用 ErrorResponse 包装带错误码。
 
 use crate::commands::error::{ErrorCategory, ErrorResponse};
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_harness::core_error::AxAgentError;
 use axagent_harness::types::*;
 use tauri::State;

@@ -13,7 +13,7 @@
 //! - `get_retrieval_feedback_stats`：查询反馈统计（RAG 自适应优化的输入）
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_dao::repo::retrieval_hit::{
     self, FEEDBACK_IRRELEVANT, FEEDBACK_NEGATIVE, FEEDBACK_POSITIVE, FeedbackStats, RetrievalHit,
 };

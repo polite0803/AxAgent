@@ -3,7 +3,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::dashboard as dashboard_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_runtime::dashboard_plugin::{DashboardPluginAdapter, DashboardPluginManifest};
 use axagent_runtime::dashboard_registry::DashboardPluginInfo;
 use sea_orm::entity::prelude::*;

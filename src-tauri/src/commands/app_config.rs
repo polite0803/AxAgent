@@ -7,7 +7,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::storage as storage_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use tauri::State;
 
 #[agent_command(domain = settings, safety = Safe, call_mode = StateOnly, description = "获取应用配置")]

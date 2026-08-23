@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_kit::permission::ensure_computer_control_granted;
 use axagent_kit::screen_vision::UIElementInfo;
 use serde::{Deserialize, Serialize};

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use sea_orm::ConnectionTrait;
 use serde::{Deserialize, Serialize};
 use tauri::State;

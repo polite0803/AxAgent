@@ -5,7 +5,7 @@ use crate::app_state::{
     InMemoryCacheEntry, PlannerAction, PlannerSession, PlannerVersion, PlannerVersionDiff, TotNode,
     TotSession,
 };
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use serde_json::Value;
 use std::collections::{HashMap, VecDeque};
 use std::time::{SystemTime, UNIX_EPOCH};

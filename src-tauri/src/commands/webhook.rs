@@ -3,7 +3,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::platform as platform_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_runtime::webhook_subscription::{WebhookEvent, WebhookSubscription, assert_url_safe};
 use tauri::State;
 

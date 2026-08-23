@@ -15,7 +15,7 @@
 use crate::AppState;
 use crate::commands::error::{ErrorCategory, ErrorResponse};
 use crate::commands::error_code::local_model as lm_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_harness::core_error::Result as HarnessResult;
 use axagent_harness::types::*;
 use serde::{Deserialize, Serialize};

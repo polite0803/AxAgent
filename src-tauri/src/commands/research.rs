@@ -9,7 +9,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::research as research_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_agent::deep_research::{DeepResearchConfig, DeepResearcher};
 use axagent_agent::ingest_pipeline::IngestPipeline;
 use axagent_agent::noop_kit::NoopHtmlCleaner;

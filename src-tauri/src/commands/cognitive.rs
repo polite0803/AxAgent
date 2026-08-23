@@ -32,7 +32,7 @@ use crate::AppState;
 use crate::commands::agent::{AgentContextPayload, AgentOptions, AgentQueryRequest};
 use crate::commands::error::{CommandError, ErrorCategory, ErrorResponse};
 use crate::init::COGNITIVE_ROUTER_MAIN_ID;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_harness::workflow_evolution::ToolExecutionStats;
 use axagent_harness::workflow_types::Variable;
 use axagent_harness::{

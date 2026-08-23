@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 
 use axagent_entities::dynamic_ui_form_data::Column as FormDataColumn;
 use axagent_entities::dynamic_ui_form_data::{
