@@ -14090,7 +14090,9 @@
       "vValidate": "验证",
       "aggRisk": "激进风险",
       "notifyResult": "通知结果",
-      "analystFallback": "分析师"
+      "analystFallback": "分析师",
+      "insufficientDataQuality": "数据质量不足",
+      "skipAnalysisError": "数据不足，跳过分析: {{reason}}"
     },
     "debugPanel": {
       "show": "🔍 显示",
@@ -15325,7 +15327,9 @@
       "evolutionFailed": "{{nodeName}}进化失败",
       "evolutionTrigger": "触发{{nodeName}}自我进化",
       "evolutionSuggestion": "🧬 {{nodeName}}自我进化建议",
-      "close": "关闭"
+      "close": "关闭",
+      "noAnalysisData": "## ⚠️ 无分析数据\n\n该分析师节点未能返回有效分析内容（可能因 LLM 服务限流/超时）。",
+      "verdictInsufficient": "数据不足"
     },
     "analysisDebug": {
       "node": "节点",
@@ -15780,6 +15784,15 @@
       "simBetter": "模拟胜",
       "backtestSummary": "回测结论",
       "simSummary": "模拟结论"
+    },
+    "dataQuality": {
+      "staleRecordSummary": "该记录为旧版数据（blackboardSnapshot 缺失），建议重跑分析以补全数据质量诊断"
+    },
+    "dataWarning": {
+      "news": "新闻",
+      "sentiment": "舆情",
+      "announcement": "公告",
+      "emptyData": "⚠️ {{label}}数据获取为空，相关分析师将基于有限数据分析"
     }
   },
   "pipeline": {

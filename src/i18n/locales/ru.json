@@ -13870,7 +13870,9 @@
       "vValidate": "验证",
       "aggRisk": "激进风险",
       "notifyResult": "通知结果",
-      "analystFallback": "分析师"
+      "analystFallback": "分析师",
+      "insufficientDataQuality": "Insufficient data quality",
+      "skipAnalysisError": "Insufficient data, skipping analysis: {{reason}}"
     },
     "debugPanel": {
       "show": "🔍 Show",
@@ -15057,7 +15059,9 @@
       "evolutionFailed": "Эволюция {{nodeName}} не удалась",
       "evolutionTrigger": "Триггер самоэволюции {{nodeName}}",
       "evolutionSuggestion": "🧬 Предложение по самоэволюции {{nodeName}}",
-      "close": "Закрыть"
+      "close": "Закрыть",
+      "noAnalysisData": "## ⚠️ No analysis data\n\nThe analyst node failed to return valid analysis (possibly due to LLM rate limit/timeout).",
+      "verdictInsufficient": "Insufficient data"
     },
     "analysisDebug": {
       "node": "Node",
@@ -15553,6 +15557,15 @@
       "simBetter": "Симуляция выигрывает",
       "backtestSummary": "Итоги бэктеста",
       "simSummary": "Итоги симуляции"
+    },
+    "dataQuality": {
+      "staleRecordSummary": "This record is legacy data (blackboardSnapshot missing). Re-run analysis to complete data quality diagnostics."
+    },
+    "dataWarning": {
+      "news": "News",
+      "sentiment": "Sentiment",
+      "announcement": "Announcement",
+      "emptyData": "⚠️ {{label}} data fetch is empty; related analysts will analyze based on limited data"
     }
   },
   "pipeline": {
