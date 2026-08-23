@@ -1,8 +1,8 @@
 {
   "version": "2",
-  "generated": "2026-08-20",
-  "total_entries": 426,
-  "total_files": 426,
+  "generated": "2026-08-23",
+  "total_entries": 428,
+  "total_files": 428,
   "entries": [
     {
       "file": "src/App.tsx",
@@ -863,8 +863,14 @@
       "phase": 3
     },
     {
+      "file": "src/components/shared/EmbeddingModelSelect.tsx",
+      "lines": "45",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
+      "phase": 3
+    },
+    {
       "file": "src/components/shared/ModelSelect.tsx",
-      "lines": "75,76,78,79,80,96,102",
+      "lines": "16,54,75,76,78,79,80,96,102",
       "reason": "硬编码中文字符串",
       "phase": 3
     },
@@ -1872,7 +1878,7 @@
     },
     {
       "file": "src/lib/settingsDtoConverter.ts",
-      "lines": "152,153",
+      "lines": "67,108,152,153,176,177",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
@@ -1928,6 +1934,12 @@
       "file": "src/lib/toast.ts",
       "lines": "6,7,8,10,11,12,14,16,25,31,40,41,42,70",
       "reason": "硬编码中文字符串",
+      "phase": 3
+    },
+    {
+      "file": "src/lib/validators.ts",
+      "lines": "72",
+      "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
     {
@@ -2526,7 +2538,7 @@
     },
     {
       "file": "src/types/paired.ts",
-      "lines": "92,95,117,118,156,159,184,185,308,309",
+      "lines": "92,94,95,97,117,118,119,120,156,158,159,161,184,185,186,187,308,309,310,311",
       "reason": "历史硬编码基线（注释/内部日志/数据/技术字符串）",
       "phase": 3
     },
