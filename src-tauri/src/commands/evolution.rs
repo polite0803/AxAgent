@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use tauri::command;
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EvolutionEngineStatus {
     pub name: String,
     pub running: bool,
@@ -14,6 +15,7 @@ pub struct EvolutionEngineStatus {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EvolutionStats {
     pub skill_count: usize,
     pub total_trajectories: usize,

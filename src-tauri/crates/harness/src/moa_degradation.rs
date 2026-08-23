@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 /// MoA 降级配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MoADegradationConfig {
     /// 是否启用降级
     pub enabled: bool,
@@ -61,6 +62,7 @@ pub enum DegradationStrategy {
 
 /// 降级触发条件
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum DegradationTrigger {
     /// 错误率超过阈值
     ErrorRate(f64),
@@ -74,6 +76,7 @@ pub enum DegradationTrigger {
 
 /// 降级状态
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct DegradationState {
     /// 当前降级深度
     pub current_depth: u32,

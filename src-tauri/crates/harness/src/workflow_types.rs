@@ -24,6 +24,7 @@ impl Default for Position {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct RetryConfig {
     pub enabled: bool,
     pub max_retries: u32,
@@ -52,6 +53,7 @@ pub enum BackoffType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct JsonSchema {
     #[serde(rename = "type")]
     pub schema_type: String,

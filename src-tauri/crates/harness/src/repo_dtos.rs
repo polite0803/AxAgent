@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 /// Settings DTO
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SettingsEntry {
     pub key: String,
     pub value: String,
@@ -15,6 +16,7 @@ pub struct SettingsEntry {
 
 /// Session DTO
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SessionRecord {
     pub id: String,
     pub title: Option<String>,
@@ -26,6 +28,7 @@ pub struct SessionRecord {
 // ── WorkflowEngine 系列 ─────────────────────
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkflowExecutionData {
     pub id: String,
     pub workflow_id: String,
@@ -44,6 +47,7 @@ pub struct WorkflowExecutionData {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkflowTemplateData {
     pub id: String,
     pub name: String,
@@ -67,6 +71,7 @@ pub struct WorkflowTemplateData {
 
 /// 后台任务 DTO
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BackgroundTask {
     pub id: String,
     pub title: String,
@@ -92,6 +97,7 @@ pub struct BackgroundTask {
 
 /// 创建后台任务的输入 DTO
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateBackgroundTaskInput {
     pub title: String,
     pub description: String,
@@ -104,6 +110,7 @@ pub struct CreateBackgroundTaskInput {
 
 /// 更新后台任务状态的输入 DTO
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateBackgroundTaskInput {
     pub id: String,
     pub status: Option<String>,
@@ -116,6 +123,7 @@ pub struct UpdateBackgroundTaskInput {
 
 /// 已存储文件 DTO
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct StoredFile {
     pub id: String,
     pub hash: String,
@@ -129,6 +137,7 @@ pub struct StoredFile {
 
 /// 创建存储文件的输入 DTO
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateStoredFileInput {
     pub id: String,
     pub hash: String,
@@ -143,6 +152,7 @@ pub struct CreateStoredFileInput {
 
 /// 知识实体 DTO
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct KnowledgeEntityDto {
     pub id: String,
     pub knowledge_base_id: String,
@@ -161,6 +171,7 @@ pub struct KnowledgeEntityDto {
 
 /// 创建知识实体的输入
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateKnowledgeEntityInput {
     pub knowledge_base_id: String,
     pub name: String,
@@ -175,6 +186,7 @@ pub struct CreateKnowledgeEntityInput {
 
 /// 知识流程 DTO
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct KnowledgeFlowDto {
     pub id: String,
     pub knowledge_base_id: String,
@@ -194,6 +206,7 @@ pub struct KnowledgeFlowDto {
 
 /// 创建知识流程的输入
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateKnowledgeFlowInput {
     pub knowledge_base_id: String,
     pub name: String,
@@ -209,6 +222,7 @@ pub struct CreateKnowledgeFlowInput {
 
 /// 知识接口 DTO
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct KnowledgeInterfaceDto {
     pub id: String,
     pub knowledge_base_id: String,
@@ -228,6 +242,7 @@ pub struct KnowledgeInterfaceDto {
 
 /// 创建知识接口的输入
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateKnowledgeInterfaceInput {
     pub knowledge_base_id: String,
     pub name: String,
@@ -242,6 +257,7 @@ pub struct CreateKnowledgeInterfaceInput {
 
 /// 知识文档 DTO（用于 CRUD trait）
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct KnowledgeDocumentDto {
     pub id: String,
     pub knowledge_base_id: String,
@@ -259,6 +275,7 @@ pub struct KnowledgeDocumentDto {
 
 /// 创建知识文档的输入
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateKnowledgeDocumentInput {
     pub knowledge_base_id: String,
     pub title: String,
@@ -356,6 +373,7 @@ pub enum InsightType {
 
 /// Reference to a source item from an integration insight.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SourceRef {
     pub container_id: String,
     pub container_type: String,

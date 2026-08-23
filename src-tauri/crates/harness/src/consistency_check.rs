@@ -5,6 +5,7 @@ use ts_rs::TS;
 
 /// 一致性检查配置
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct ConsistencyCheckConfig {
     /// 是否启用
     pub enabled: bool,
@@ -29,6 +30,7 @@ impl Default for ConsistencyCheckConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
 pub enum ConsistencyMode {
     /// 相同模型执行 2 次对比
     #[serde(rename = "sameModelRepeated")]
@@ -40,6 +42,7 @@ pub enum ConsistencyMode {
 
 /// 一致性检查结果
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct ConsistencyResult {
     pub passed: bool,
     pub deviation: f64,

@@ -13,6 +13,7 @@ use std::collections::HashMap;
 
 /// 成本报告
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CostReport {
     /// 报告 ID
     pub id: String,
@@ -49,6 +50,7 @@ pub enum ReportPeriod {
 
 /// Token 使用统计
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TokenUsageStats {
     pub total_input_tokens: u64,
     pub total_output_tokens: u64,
@@ -60,6 +62,7 @@ pub struct TokenUsageStats {
 
 /// 成本数据点
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CostDataPoint {
     pub timestamp: String,
     pub cost_usd: f64,
@@ -69,6 +72,7 @@ pub struct CostDataPoint {
 
 /// 效率指标
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EfficiencyMetrics {
     /// 每 1000 token 成本
     pub cost_per_1k_tokens: f64,
@@ -86,6 +90,7 @@ pub struct EfficiencyMetrics {
 
 /// 用量报告
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UsageReport {
     /// 报告 ID
     pub id: String,
@@ -115,6 +120,7 @@ pub struct UsageReport {
 
 /// 技能使用统计
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SkillUsage {
     pub skill_id: String,
     pub skill_name: String,
@@ -129,6 +135,7 @@ pub struct SkillUsage {
 
 /// 洞察建议
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct InsightRecommendation {
     pub id: String,
     pub recommendation_type: RecommendationType,

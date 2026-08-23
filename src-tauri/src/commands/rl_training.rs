@@ -21,6 +21,7 @@ use tokio::sync::Mutex;
 // ── Types ──
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RLTrainingConfig {
     pub algorithm: String,
     pub learning_rate: f64,
@@ -30,6 +31,7 @@ pub struct RLTrainingConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TrainingMetrics {
     pub step: u64,
     pub loss: f64,
@@ -40,6 +42,7 @@ pub struct TrainingMetrics {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CheckpointInfo {
     pub id: String,
     pub name: String,
@@ -50,6 +53,7 @@ pub struct CheckpointInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RlTrainingState {
     pub training_id: String,
     pub status: String,

@@ -21,6 +21,7 @@ use tokio::sync::Mutex;
 // ── Types ──
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EngineLog {
     pub timestamp: i64,
     pub level: String,
@@ -28,6 +29,7 @@ pub struct EngineLog {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EngineStatus {
     pub name: String,
     pub display_name: String,

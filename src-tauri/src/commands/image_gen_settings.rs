@@ -14,6 +14,7 @@ const CRED_NAME_FLUX: &str = "Flux (Replicate) API Token";
 const CRED_NAME_OPENAI: &str = "OpenAI (DALL-E) API Key";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ImageGenConfig {
     pub default_provider: String,
     pub flux_api_token: String,

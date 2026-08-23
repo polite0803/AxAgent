@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 /// LLM 请求缓存键
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LlmCacheKey {
     pub model: String,
     pub messages_hash: String,
@@ -25,6 +26,7 @@ pub trait HarnessCache: Send + Sync {
 
 /// 可序列化的单条向量搜索缓存条目（用于持久化快照）
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CacheEntrySnapshot {
     pub key: String,
     pub results_json: String,

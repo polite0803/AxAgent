@@ -13,6 +13,7 @@ use std::collections::HashMap;
 
 /// 配对授权请求
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PairingAuthorization {
     /// 授权 ID
     pub id: String,
@@ -50,6 +51,7 @@ pub enum AuthorizationStatus {
 ///
 /// 记录网关的生命周期事件
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LifecycleLedger {
     /// 账本 ID
     pub id: String,
@@ -65,6 +67,7 @@ pub struct LifecycleLedger {
 
 /// 生命周期事件
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LifecycleEvent {
     pub id: String,
     pub event_type: LifecycleEventType,
@@ -105,6 +108,7 @@ pub enum GatewayOpsStatus {
 
 /// 优雅关停配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GracefulShutdownConfig {
     /// 优雅关停超时时间（秒）
     pub timeout_seconds: u64,
@@ -149,6 +153,7 @@ pub enum ShutdownPhase {
 
 /// 关停进度
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ShutdownProgress {
     pub phase: ShutdownPhase,
     pub status: ShutdownPhaseStatus,

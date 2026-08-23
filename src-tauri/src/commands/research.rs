@@ -28,6 +28,7 @@ use tauri::State;
 
 /// 报告节结构
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ReportSection {
     pub id: String,
     pub title: String,
@@ -36,6 +37,7 @@ pub struct ReportSection {
 
 /// 报告引用
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ReportCitation {
     pub id: String,
     #[serde(rename = "sourceUrl")]
@@ -55,6 +57,7 @@ pub struct ReportCitation {
 
 /// 研究报告完整产出
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ResearchReport {
     pub id: String,
     pub topic: String,

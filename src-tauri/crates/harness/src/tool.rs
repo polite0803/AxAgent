@@ -27,6 +27,7 @@ pub use crate::capability::CapabilityDomain as ToolDomain;
 
 /// 工具所属类别
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum ToolCategory {
     /// 只读文件操作 (read, glob, grep, list)
     FileRead,
@@ -184,6 +185,7 @@ impl ToolContext {
 
 /// 工具执行结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ToolResult {
     pub content: String,
     pub truncated: bool,
@@ -272,6 +274,7 @@ impl ToolResult {
 
 /// 流式进度报告条目
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProgressEntry {
     /// 阶段标识: "searching"|"fetching"|"rendering"|"cleaning"|"done"
     pub phase: String,
@@ -288,6 +291,7 @@ pub struct ProgressEntry {
 ///
 /// 每个 destructive 工具可在执行成功后创建一个记录，包含恢复原状所需的负载数据。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RollbackRecord {
     /// 工具名
     pub tool_name: String,
@@ -307,6 +311,7 @@ pub struct RollbackContext<'a> {
 
 /// 工具单次调用的预估成本
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EstimatedCost {
     /// 预估消耗的 token 数（输入 + 输出）
     pub tokens: Option<u64>,
@@ -318,6 +323,7 @@ pub struct EstimatedCost {
 
 /// 工具元信息（用于注册表和前端展示）
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ToolInfo {
     pub name: String,
     pub description: String,

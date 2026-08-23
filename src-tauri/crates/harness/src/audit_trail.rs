@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 /// 单条审计日志条目
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AuditEntry {
     pub id: String,
     pub timestamp: u64,

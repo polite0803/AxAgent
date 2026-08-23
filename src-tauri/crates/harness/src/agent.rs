@@ -14,6 +14,7 @@ pub struct AgentCapability {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentExecuteRequest {
     pub goal: String,
     pub context: Option<String>,
@@ -21,6 +22,7 @@ pub struct AgentExecuteRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentResult {
     pub output: String,
     pub success: bool,

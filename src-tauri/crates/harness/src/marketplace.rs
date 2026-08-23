@@ -11,6 +11,7 @@ use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateReviewRequest {
     pub marketplace_id: String,
     pub user_id: String,
@@ -19,12 +20,14 @@ pub struct CreateReviewRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateReviewRequest {
     pub rating: Option<i32>,
     pub comment: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ReviewResponse {
     pub id: String,
     pub marketplace_id: String,
@@ -35,6 +38,7 @@ pub struct ReviewResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MarketplaceStats {
     pub marketplace_id: String,
     pub total_reviews: i32,
@@ -107,6 +111,7 @@ pub const CATALOG_ITEM_TYPE_SKILL: &str = "skill";
 ///
 /// 同时承载工作流模板与本地技能的元数据，前端按 `item_type` 分流展示。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CatalogItem {
     pub id: String,
     /// `"workflow_template"` 或 `"skill"`，参考 `CATALOG_ITEM_TYPE_*` 常量
@@ -127,6 +132,7 @@ pub struct CatalogItem {
 
 /// 市场目录查询参数。
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct CatalogQuery {
     /// 关键词：在 name/description/tags 中模糊匹配
     pub keyword: Option<String>,
@@ -140,6 +146,7 @@ pub struct CatalogQuery {
 
 /// 市场目录分页结果。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CatalogPage {
     pub items: Vec<CatalogItem>,
     pub total: u64,

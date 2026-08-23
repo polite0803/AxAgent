@@ -11,6 +11,7 @@ use tracing::warn;
 
 /// 权限范围定义
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ToolPermissions {
     /// 允许调用的工具名白名单（空 = 允许全部）
     #[serde(default, skip_serializing_if = "Option::is_none")]

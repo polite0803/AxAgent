@@ -7,6 +7,7 @@ use std::sync::{LazyLock, RwLock};
 
 /// Fork 上下文 — 当 fork 子 agent 创建时存储父会话信息
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ForkSessionData {
     /// 父会话 ID
     pub parent_conversation_id: String,

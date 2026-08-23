@@ -37,6 +37,7 @@ use crate::workflow_types::ToolDef;
 
 /// Agent 单轮 ReAct 执行请求(2.5 P1)。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentTurnRequest {
     /// 执行 ID(对应工作流 execution_id),用于 trajectory 关联。
     pub execution_id: String,
@@ -70,6 +71,7 @@ pub struct AgentTurnRequest {
 
 /// Agent 单轮 ReAct 执行结果(2.5 P1)。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentTurnResult {
     /// 最终输出内容(LLM 最后一轮的文本)。
     pub content: String,
@@ -90,6 +92,7 @@ pub struct AgentTurnResult {
 /// 注意:与 `tool_metrics::ToolCallRecord` 不同 — 后者用于指标统计(轻量),
 /// 本类型用于 trajectory 完整记录(含 input/output)。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentToolCallRecord {
     /// 工具调用 ID(LLM 生成)。
     pub call_id: String,

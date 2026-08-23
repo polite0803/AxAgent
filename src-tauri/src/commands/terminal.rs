@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GitStatusInfo {
     pub branch: String,
     pub ahead: u32,
@@ -17,6 +18,7 @@ pub struct GitStatusInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SystemInfo {
     pub cpu_usage: f32,
     pub memory_usage: f32,

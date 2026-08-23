@@ -39,6 +39,7 @@ pub const DELEGATE_BLOCKED_TOOLS: &[&str] = &[
 
 /// 工具过滤配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ToolFilterConfig {
     /// 阻止的工具列表
     pub blocked_tools: HashSet<String>,
@@ -99,6 +100,7 @@ pub type ApprovalCallback = Box<dyn Fn(ApprovalRequest) -> ApprovalResponse + Se
 
 /// 审批请求
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ApprovalRequest {
     /// 请求 ID
     pub id: String,
@@ -135,6 +137,7 @@ impl RiskLevel {
 
 /// 审批响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ApprovalResponse {
     pub approved: bool,
     pub reason: Option<String>,
@@ -229,6 +232,7 @@ pub enum SubAgentLifecycleState {
 
 /// 子代理生命周期事件
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LifecycleEvent {
     pub id: String,
     pub sub_agent_id: String,
@@ -317,6 +321,7 @@ impl SubAgentLifecycleManager {
 
 /// 子代理委托配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DelegationConfig {
     /// 工具过滤配置
     pub tool_filter: ToolFilterConfig,

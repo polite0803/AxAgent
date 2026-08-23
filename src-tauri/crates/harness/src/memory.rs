@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 // ── 基础 DTO ───────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MemoryAddRequest {
     pub content: String,
     pub namespace: Option<String>,
@@ -22,6 +23,7 @@ pub struct MemoryAddRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MemorySearchItem {
     pub id: String,
     pub content: String,
@@ -32,6 +34,7 @@ pub struct MemorySearchItem {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MemorySearchRequest {
     pub query: String,
     pub namespace: Option<String>,
@@ -39,6 +42,7 @@ pub struct MemorySearchRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MemoryTreeItem {
     pub id: String,
     pub content: String,
@@ -46,6 +50,7 @@ pub struct MemoryTreeItem {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MemoryUpdateRequest {
     pub id: String,
     pub content: Option<String>,
@@ -54,18 +59,21 @@ pub struct MemoryUpdateRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MemoryFeedbackRequest {
     pub memory_id: String,
     pub helpful: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MemoryActionResultDto {
     pub success: bool,
     pub error: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MemoryGroupedDto {
     pub date: String,
     pub items: Vec<MemorySearchItem>,
@@ -247,6 +255,7 @@ impl SkillScaffoldStripper {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct StrippedContent {
     pub original: String,
     pub stripped: String,
@@ -258,6 +267,7 @@ pub struct StrippedContent {
 
 /// 记忆生命周期事件
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 #[serde(tag = "hook_type")]
 pub enum MemoryLifecycleEvent {
     /// 会话开始
@@ -294,6 +304,7 @@ impl MemoryLifecycleHook for NoopMemoryHook {
 
 /// 记忆写审批请求
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MemoryWriteApprovalRequest {
     pub id: String,
     pub content: String,
@@ -314,6 +325,7 @@ pub enum MemoryWriteApprovalStatus {
 
 /// 记忆写审批门配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MemoryWriteApprovalConfig {
     /// 启用审批门
     pub enabled: bool,

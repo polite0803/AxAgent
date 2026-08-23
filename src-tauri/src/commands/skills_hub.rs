@@ -10,6 +10,7 @@ use tauri::State;
 // ── review / export / import — 纯本地操作（无网络依赖） ──
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SkillsHubReviewResult {
     pub skill_name: String,
     pub action: String,

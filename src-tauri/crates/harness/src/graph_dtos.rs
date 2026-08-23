@@ -34,6 +34,7 @@ pub struct GraphEdge {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GraphData {
     pub nodes: Vec<GraphNode>,
     pub edges: Vec<GraphEdge>,
@@ -43,6 +44,7 @@ pub struct GraphData {
 
 /// Raw relevance signals between two graph nodes.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RelevanceSignal {
     pub direct_link: f64,
     pub source_overlap: f64,
@@ -52,6 +54,7 @@ pub struct RelevanceSignal {
 
 /// A scored relevance edge between two nodes.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RelevanceEdge {
     pub source: String,
     pub target: String,

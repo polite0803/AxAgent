@@ -112,6 +112,7 @@ invent your own.
 "#;
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkflowGenerationResult {
     pub nodes: Vec<WorkflowNode>,
     pub edges: Vec<WorkflowEdge>,
@@ -119,6 +120,7 @@ pub struct WorkflowGenerationResult {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NodeRecommendation {
     pub node_type: String,
     pub label: String,
@@ -127,6 +129,7 @@ pub struct NodeRecommendation {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AiChatMessage {
     pub role: String,
     pub content: String,

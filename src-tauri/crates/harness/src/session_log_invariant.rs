@@ -27,6 +27,7 @@ use crate::types::{ChatContent, ChatMessage};
 /// 记录 `role` + 原文 + 命中的工具名 + 内容指纹。`content_hash` 用于
 /// 可重建校验：`assert_replayable` 时按原文重算指纹比对，防缺失 / 篡改。
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ModelVisibleContent {
     pub role: String,
     pub text: String,

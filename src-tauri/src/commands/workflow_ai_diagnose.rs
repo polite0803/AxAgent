@@ -93,6 +93,7 @@ You apply these rules; you do not invent them.
 "#;
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LlmDiagnoseRequest {
     pub nodes: Vec<WorkflowNode>,
     pub workflow_name: String,

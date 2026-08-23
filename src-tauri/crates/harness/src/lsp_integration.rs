@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 
 /// LSP 配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LspConfig {
     /// 是否启用 LSP 集成
     pub enabled: bool,
@@ -40,6 +41,7 @@ impl Default for LspConfig {
 
 /// LSP 服务器
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LspServer {
     /// 服务器 ID
     pub id: String,
@@ -93,6 +95,7 @@ pub enum LspConnectionType {
 
 /// LSP 请求
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LspRequest {
     /// 请求 ID
     pub id: String,
@@ -129,6 +132,7 @@ pub enum LspMethod {
 
 /// LSP 响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LspResponse {
     /// 响应 ID
     pub id: String,
@@ -146,6 +150,7 @@ pub struct LspResponse {
 
 /// LSP 错误
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LspError {
     pub code: i32,
     pub message: String,
@@ -158,6 +163,7 @@ pub struct LspError {
 
 /// LSP 代码上下文（用于增强 AI 的代码理解能力）
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LspCodeContext {
     /// 文件路径
     pub file_path: String,
@@ -181,6 +187,7 @@ pub struct LspCodeContext {
 
 /// 光标位置
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CursorPosition {
     pub line: u32,
     pub character: u32,
@@ -188,6 +195,7 @@ pub struct CursorPosition {
 
 /// LSP 诊断信息
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LspDiagnostic {
     pub range: LspRange,
     pub severity: DiagnosticSeverity,
@@ -208,6 +216,7 @@ pub enum DiagnosticSeverity {
 
 /// LSP 范围
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LspRange {
     pub start: CursorPosition,
     pub end: CursorPosition,
@@ -215,6 +224,7 @@ pub struct LspRange {
 
 /// LSP 补全项
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LspCompletionItem {
     pub label: String,
     pub kind: CompletionItemKind,
@@ -256,6 +266,7 @@ pub enum CompletionItemKind {
 
 /// LSP 悬停信息
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LspHoverInfo {
     pub content: String,
     pub range: Option<LspRange>,
@@ -263,6 +274,7 @@ pub struct LspHoverInfo {
 
 /// LSP 位置
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LspLocation {
     pub uri: String,
     pub range: LspRange,

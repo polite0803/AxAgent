@@ -24,6 +24,7 @@ use std::fmt;
 
 /// 级联模型条目 — 定义级联链中的一个模型节点
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CascadeModel {
     /// 模型标识（如 "gpt-4o-mini"）
     pub model_id: String,
@@ -56,6 +57,7 @@ impl CascadeModel {
 
 /// 升级触发规则 — 定义何时从当前模型升级到下一个模型
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EscalationRule {
     /// 置信度阈值（0.0-1.0），低于此值触发升级
     pub min_confidence: Option<f64>,
@@ -128,6 +130,7 @@ impl EscalationRuleBuilder {
 
 /// 级联策略 — 定义多模型协同的整体规则
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum ModelCascadeStrategy {
     /// 单模型模式（禁用级联，仅用第一个模型）
     Single { model: CascadeModel },
@@ -265,6 +268,7 @@ pub enum EscalationDecision {
 
 /// 升级原因
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum EscalationReason {
     LowConfidence,
     Timeout,
@@ -448,6 +452,7 @@ impl CascadeOutcome {
 
 /// 单次升级记录
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EscalationRecord {
     pub from_model: String,
     pub to_model: String,

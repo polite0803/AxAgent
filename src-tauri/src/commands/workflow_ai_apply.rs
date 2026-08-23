@@ -268,6 +268,7 @@ pub async fn apply_update_input_mapping(
 }
 
 #[derive(Debug, Clone, Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct InputMappingEntryDto {
     pub target: String,
     pub source: String,

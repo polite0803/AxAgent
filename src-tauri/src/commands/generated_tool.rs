@@ -10,6 +10,7 @@ use crate::app_state::AppState;
 
 /// Generated tool info for frontend display
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GeneratedToolInfo {
     pub id: String,
     #[serde(rename = "toolName")]

@@ -3,6 +3,7 @@
 import { ModelParamSliders, type ModelParamValues } from "@/components/common/ModelParamSliders";
 import { IconEditor } from "@/components/shared/IconEditor";
 import { ModelSelect, parseModelValue } from "@/components/shared/ModelSelect";
+import { safeJoinIds } from "@/lib/validators";
 import { useSettingsStore } from "@/stores";
 import { Avatar, Divider, Input, Modal, theme, Typography } from "antd";
 import { FolderOpen } from "lucide-react";
@@ -108,7 +109,7 @@ export function CategoryEditModal({
   ]);
 
   const selectedModelValue = defaultProviderId && defaultModelId
-    ? `${defaultProviderId}::${defaultModelId}`
+    ? safeJoinIds([defaultProviderId, defaultModelId], "::")
     : undefined;
 
   const handleDefaultModelChange = useCallback((value: string | undefined) => {

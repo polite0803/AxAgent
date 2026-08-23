@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use tauri::command;
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RecommendationResult {
     pub tools: Vec<ToolScoreInfo>,
     pub reasoning: String,
@@ -15,6 +16,7 @@ pub struct RecommendationResult {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ToolScoreInfo {
     pub tool_id: String,
     pub tool_name: String,
@@ -23,6 +25,7 @@ pub struct ToolScoreInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AlternativeSetInfo {
     pub description: String,
     pub tools: Vec<String>,
@@ -101,6 +104,7 @@ pub fn get_available_tools() -> Result<Vec<ToolInfo>, String> {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ToolInfo {
     pub id: String,
     pub name: String,

@@ -8,6 +8,7 @@
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DetectedPlatform {
     pub name: String,
     pub base_path: PathBuf,
@@ -23,6 +24,7 @@ pub struct DetectedPlatform {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MigrationItem {
     pub source: PathBuf,
     pub destination: PathBuf,
@@ -32,6 +34,7 @@ pub struct MigrationItem {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MigrationReport {
     pub platform: String,
     pub timestamp: String,
@@ -41,6 +44,7 @@ pub struct MigrationReport {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MigrationEntry {
     pub source: String,
     pub destination: String,
@@ -50,6 +54,7 @@ pub struct MigrationEntry {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BackupInfo {
     pub backup_path: PathBuf,
     pub timestamp: String,

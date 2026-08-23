@@ -14,6 +14,7 @@ use std::sync::Arc;
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DreamConsolidationConfig {
     pub enabled: bool,
     pub min_interval_hours: i64,
@@ -49,6 +50,7 @@ impl Default for DreamConsolidationConfig {
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExperienceRecord {
     pub id: String,
     pub session_id: String,
@@ -65,6 +67,7 @@ pub struct ExperienceRecord {
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub enum KnowledgeType {
     ToolUsagePattern,
     ReasoningStrategy,
@@ -74,6 +77,7 @@ pub enum KnowledgeType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DistilledKnowledge {
     pub id: String,
     pub source_session_ids: Vec<String>,
@@ -89,6 +93,7 @@ pub struct DistilledKnowledge {
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub enum SuggestionType {
     SkillImprovement,
     NewSkillProposal,
@@ -98,6 +103,7 @@ pub enum SuggestionType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ConsolidationSuggestion {
     pub id: String,
     pub suggestion_type: SuggestionType,
@@ -112,6 +118,7 @@ pub struct ConsolidationSuggestion {
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ContrastivePair {
     pub success: ExperienceRecord,
     pub failure: ExperienceRecord,
@@ -125,6 +132,7 @@ pub struct ContrastivePair {
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DreamConsolidationResult {
     pub executed: bool,
     pub skip_reason: Option<String>,
@@ -162,6 +170,7 @@ impl DreamConsolidationResult {
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct DreamConsolidationState {
     pub last_consolidation_at: Option<DateTime<Utc>>,
     pub sessions_since_last: u32,

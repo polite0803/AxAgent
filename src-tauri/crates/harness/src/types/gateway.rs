@@ -3,12 +3,14 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GatewayCertResult {
     pub cert_path: String,
     pub key_path: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GatewayStatus {
     pub is_running: bool,
     pub listen_address: String,

@@ -15,6 +15,7 @@ use tauri::State;
 
 /// 分类 HTTP 错误请求
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ClassifyHttpErrorRequest {
     pub status: u16,
     pub message: String,
@@ -23,6 +24,7 @@ pub struct ClassifyHttpErrorRequest {
 
 /// 分类非 HTTP 错误请求
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ClassifyNonHttpErrorRequest {
     pub message: String,
 }

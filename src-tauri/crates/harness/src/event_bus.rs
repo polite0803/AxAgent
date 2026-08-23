@@ -40,6 +40,7 @@ use serde::{Deserialize, Serialize};
 /// 三方各自把自己的事件结构序列化为 `payload`,用 `category + kind` 表征分类。
 /// `trace_id` 可选,用于跨 crate 链路追踪。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DomainEvent {
     /// 事件来源分类(粗粒度)
     pub category: EventCategory,

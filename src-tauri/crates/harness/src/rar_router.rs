@@ -37,6 +37,7 @@ use std::sync::Arc;
 
 /// RAR 检索候选 — 向量检索返回的工作流候选项
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RarCandidate {
     /// 工作流/能力 ID（对应 document_id）
     pub workflow_id: String,
@@ -114,6 +115,7 @@ impl RarCandidate {
 
 /// RAR 检索结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RarSearchResult {
     /// 候选列表（已通过过滤）
     pub candidates: Vec<RarCandidate>,
@@ -129,6 +131,7 @@ pub struct RarSearchResult {
 
 /// 候选被过滤的原因
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FilteredReason {
     pub capability_id: String,
     pub reason: RarFilterReason,
@@ -167,6 +170,7 @@ impl std::fmt::Display for RarFilterReason {
 
 /// RAR 检索错误
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum RarError {
     /// Embedding 生成失败
     EmbeddingFailed { message: String },

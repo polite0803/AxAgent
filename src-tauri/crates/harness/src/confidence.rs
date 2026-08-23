@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 /// LLM 在执行分类或路由判断时，可以通过结构化输出同时返回结果和置信度。
 /// 当配置了 `confidence_threshold` 时，执行器会尝试从 LLM 响应中提取此结构。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ConfidenceOutput {
     /// 分类/判断结果（如分类名 "positive"、分支名 "true"）
     pub result: serde_json::Value,
@@ -117,6 +118,7 @@ mod tests {
 
 /// 低置信度时的行为
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum ConfidenceAction {
     /// 拦截 LLM 输出，返回错误
     Block,
@@ -128,6 +130,7 @@ pub enum ConfidenceAction {
 
 /// 置信度配置 — 定义低置信度时的行为和默认输出
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ConfidenceConfig {
     /// 低置信度时的处理动作
     pub on_low_confidence: ConfidenceAction,

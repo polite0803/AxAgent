@@ -25,6 +25,7 @@ use serde::{Deserialize, Serialize};
 
 /// L2 簇路由规则 — 在已确定业务域的基础上，进一步确定功能集群
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ClusterRoutingRule {
     /// 规则 ID（唯一）
     pub rule_id: String,
@@ -124,6 +125,7 @@ impl ClusterRoutingRule {
 
 /// L2 簇路由结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ClusterRoutingResult {
     /// 命中的业务域（来自 L1）
     pub domain: CapabilityDomain,

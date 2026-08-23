@@ -7,6 +7,7 @@ use std::time::Instant;
 
 /// 单条工具执行记录
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ToolExecutionRecord {
     #[serde(rename = "toolName")]
     pub tool_name: String,
@@ -24,6 +25,7 @@ pub struct ToolExecutionRecord {
 
 /// Agent 执行进度快照
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentExecutionProgressSnapshot {
     #[serde(rename = "running")]
     pub running: bool,

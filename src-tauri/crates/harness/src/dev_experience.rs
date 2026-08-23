@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EnvironmentInfo {
     pub os: String,
     pub arch: String,
@@ -14,6 +15,7 @@ pub struct EnvironmentInfo {
     pub workspace_path: Option<String>,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum LogLevel {
     Trace,
     Debug,

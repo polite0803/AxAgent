@@ -22,6 +22,7 @@ use serde::{Deserialize, Serialize};
 /// 字段与 rt-workflow 的 `Workflow` + `NodeExecutionRecord` 对齐,
 /// 但纯 DTO,不含方法。rt-workflow 负责构造本结构。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkflowExecutionRecord {
     pub workflow_id: String,
     pub execution_id: String,
@@ -50,6 +51,7 @@ pub enum WorkflowRunStatus {
 
 /// 反思场景的节点执行快照(简化自 `NodeExecutionRecord`)。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NodeExecutionSnapshot {
     pub node_id: String,
     pub node_type: String,
@@ -69,6 +71,7 @@ pub struct NodeExecutionSnapshot {
 
 /// 工作流反思专有结构化数据,序列化后写入 `Reflection::metadata`。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkflowReflectionMetadata {
     pub workflow_id: String,
     pub execution_id: String,
@@ -79,6 +82,7 @@ pub struct WorkflowReflectionMetadata {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BottleneckNode {
     pub node_id: String,
     pub node_type: String,
@@ -97,6 +101,7 @@ pub enum BottleneckReason {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkflowPattern {
     pub id: String,
     pub name: String,
@@ -107,6 +112,7 @@ pub struct WorkflowPattern {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NodeFailureAnalysis {
     pub node_id: String,
     pub root_cause: String,

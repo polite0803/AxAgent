@@ -59,6 +59,7 @@ impl WebhookEvent {
 // ── Webhook 订阅 DTO ─────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WebhookSubscription {
     pub id: String,
     pub url: String,
@@ -79,6 +80,7 @@ pub struct WebhookPayload {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DispatchResult {
     pub success_count: usize,
     pub failure_count: usize,

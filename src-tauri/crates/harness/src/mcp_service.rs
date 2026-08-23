@@ -13,6 +13,7 @@ use crate::mcp_types::{McpPrompt, McpPromptResult, McpResource, McpResourceConte
 /// 与 SeaORM。字段对齐 `mcp_client::discover_tools_unified` / `call_tool_unified`
 /// 所需的 transport/command/args/env/endpoint。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct McpServerConfig {
     pub id: String,
     pub name: String,
@@ -29,6 +30,7 @@ pub struct McpServerConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DiscoveredMcpTool {
     pub name: String,
     pub description: String,
@@ -36,6 +38,7 @@ pub struct DiscoveredMcpTool {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct McpToolCallResult {
     pub success: bool,
     pub content: serde_json::Value,

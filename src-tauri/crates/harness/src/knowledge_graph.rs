@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 /// 知识图谱节点来源类型
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum GraphSourceType {
     /// RAG 知识库实体
     KnowledgeBase,
@@ -46,6 +47,7 @@ impl std::str::FromStr for GraphSourceType {
 
 /// 知识图谱节点类型
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum GraphNodeType {
     /// 知识库实体（原有）
     Entity,
@@ -72,6 +74,7 @@ impl GraphNodeType {
 
 /// 创建多源实体输入
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateMultiSourceEntityInput {
     /// 实体 ID（可选，不提供则自动生成）
     pub id: Option<String>,
@@ -188,6 +191,7 @@ pub trait EntityGraphProvider: Send + Sync {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExtractedEntity {
     pub name: String,
     pub entity_type: String,
@@ -195,6 +199,7 @@ pub struct ExtractedEntity {
     pub description: String,
 }
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExtractedRelation {
     pub source: String,
     pub target: String,

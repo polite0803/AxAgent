@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// 定义主代理和辅助模型之间的温度/任务分配契约
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TemperatureContract {
     /// 契约 ID
     pub id: String,

@@ -12,6 +12,7 @@ pub struct BrowserNavigateResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BrowserScreenshotResult {
     pub data: Vec<u8>,
     pub mime_type: String,

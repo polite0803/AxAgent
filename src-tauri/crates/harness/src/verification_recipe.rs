@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 
 /// 验证配方
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct VerificationRecipe {
     /// 配方 ID
     pub id: String,

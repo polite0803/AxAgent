@@ -31,6 +31,7 @@ use serde::{Deserialize, Serialize};
 
 /// Agent 的一次决策
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentDecision {
     pub agent_id: String,
     pub timestamp_ms: u64,
@@ -41,6 +42,7 @@ pub struct AgentDecision {
 
 /// Blackboard 消息
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BlackboardMessage {
     pub from: String,
     pub to: Option<String>,
@@ -50,6 +52,7 @@ pub struct BlackboardMessage {
 
 /// 冲突解决结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum ConflictResolution {
     MajorityVote { winner: String, vote_count: usize },
     TieBreak { chosen: String, reason: String },
@@ -57,6 +60,7 @@ pub enum ConflictResolution {
 
 /// 冲突记录
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ConflictRecord {
     pub task_id: String,
     pub field: String,
@@ -174,6 +178,7 @@ pub trait MultiAgentCoordination: Send + Sync {
 
 /// 协作结果(共识/收敛状态)
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CoordinationOutcome {
     pub session_id: String,
     pub mode: CoordinationMode,

@@ -13,6 +13,7 @@ use async_trait::async_trait;
 /// BGE-M3 sparse 输出格式：仅保留非零项，token_id 对应模型词表中的 token，
 /// weight 为激活强度（经 sigmoid + 归一化后的分数）。
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct SparseVectorEntry {
     pub token_id: u32,
     pub weight: f32,

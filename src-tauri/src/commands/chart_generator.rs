@@ -10,6 +10,7 @@ use std::sync::Arc;
 use tauri::command;
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ChartGenResult {
     pub option: Value,
     pub chart_type: String,

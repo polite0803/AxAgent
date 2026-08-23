@@ -4,6 +4,7 @@ import { Tooltip } from "@/components/layout/Tooltip";
 import { getVisibleModelCapabilities } from "@/lib/modelCapabilities";
 import { SmartProviderIcon } from "@/lib/providerIcons";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
+import { safeJoinIds } from "@/lib/validators";
 import { useConversationStore, useProviderStore, useSettingsStore, useUIStore } from "@/stores";
 import type { Model, ModelCapability } from "@/types";
 import { ModelRef } from "@/types/paired";
@@ -142,7 +143,7 @@ function ModelItemCard({
 }) {
   const { t } = useTranslation();
   const { token } = theme.useToken();
-  const key = `${providerId}::${modelId}`;
+  const key = safeJoinIds([providerId, modelId], "::");
   const isActive = multiSelect
     ? multiSelectedKeys.has(key)
     : currentValue === key;
@@ -325,7 +326,7 @@ export function ModelSelector({
     if (open && multiSelect) {
       const initial = new Set(
         (defaultSelectedModels ?? []).map(
-          (m) => `${m.providerId}::${m.modelId}`,
+          (m) => safeJoinIds([m.providerId, m.modelId], "::"),
         ),
       );
       setMultiSelectedKeys(initial);
@@ -382,9 +383,9 @@ export function ModelSelector({
   ]);
 
   const currentValue = overrideCurrentModel
-    ? `${overrideCurrentModel.providerId}::${overrideCurrentModel.modelId}`
+    ? safeJoinIds([overrideCurrentModel.providerId, overrideCurrentModel.modelId], "::")
     : currentModel
-    ? `${currentModel.pid}::${currentModel.mid}`
+    ? safeJoinIds([currentModel.pid, currentModel.mid], "::")
     : undefined;
 
   // All enabled models flat list (for pinned section)
@@ -405,7 +406,7 @@ export function ModelSelector({
         if (!m.enabled) {
           continue;
         }
-        const key = `${p.id}::${m.modelId}`;
+        const key = safeJoinIds([p.id, m.modelId], "::");
         if (excludeSet.has(key)) {
           continue;
         }
@@ -425,7 +426,7 @@ export function ModelSelector({
   const pinnedItems = useMemo(() => {
     const q = search.toLowerCase().trim();
     return pinnedModels.flatMap((key) => {
-      const model = allEnabledModels.find((m) => `${m.pid}::${m.mid}` === key);
+      const model = allEnabledModels.find((m) => safeJoinIds([m.pid, m.mid], "::") === key);
       if (!model) {
         return [];
       }
@@ -452,7 +453,7 @@ export function ModelSelector({
         if (!m.enabled) {
           return false;
         }
-        if (excludeModelKeys?.includes(`${p.id}::${m.modelId}`)) {
+        if (excludeModelKeys?.includes(safeJoinIds([p.id, m.modelId], "::"))) {
           return false;
         }
         if (!q) {
@@ -471,7 +472,7 @@ export function ModelSelector({
   const handleSelect = useCallback(
     async (providerId: string, modelId: string) => {
       if (multiSelect) {
-        const key = `${providerId}::${modelId}`;
+        const key = safeJoinIds([providerId, modelId], "::");
         setMultiSelectedKeys((prev) => {
           const next = new Set(prev);
           if (next.has(key)) {
@@ -659,7 +660,7 @@ export function ModelSelector({
         case "group":
           return `g-${row.provider.id}`;
         case "model":
-          return `m-${row.providerId}::${row.model.modelId}`;
+          return `m-${safeJoinIds([row.providerId, row.model.modelId], "::")}`;
       }
     },
     overscan: 10,
@@ -1062,7 +1063,7 @@ export function ModelSelector({
 
               // type === 'model'
               const isPinned = pinnedModels.includes(
-                `${row.providerId}::${row.model.modelId}`,
+                safeJoinIds([row.providerId, row.model.modelId], "::"),
               );
               return (
                 <div

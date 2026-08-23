@@ -7,6 +7,7 @@ use serde_json::Value;
 
 /// 前端注入的 Agent 上下文 — 供后端构建系统提示
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentContextPayload {
     /// 当前页面标识（如 "settings", "chat"）
     pub page: String,
@@ -22,6 +23,7 @@ pub struct AgentContextPayload {
 
 /// 前端快捷操作定义
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentQuickActionPayload {
     /// 操作唯一标识符
     pub id: String,
@@ -82,6 +84,7 @@ pub struct AgentContentBlock {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentUsagePayload {
     pub input_tokens: u64,
     pub output_tokens: u64,

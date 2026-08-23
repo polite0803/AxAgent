@@ -86,6 +86,7 @@ fn enqueue_wiki_note_indexing(
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BacklinkInfo {
     pub note_id: String,
     pub title: String,

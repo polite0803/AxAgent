@@ -64,6 +64,7 @@ pub trait DocumentParser: Send + Sync {
 
 /// 知识源类型标识
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum KnowledgeSourceType {
     /// RAG 知识库（knowledge_base + 文档 + KG 实体）
     KnowledgeBase,
@@ -88,6 +89,7 @@ impl KnowledgeSourceType {
 
 /// 统一搜索结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SearchResult {
     /// 结果来源类型
     pub source_type: KnowledgeSourceType,
@@ -107,6 +109,7 @@ pub struct SearchResult {
 
 /// 统一内容项
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ContentItem {
     /// 来源类型
     pub source_type: KnowledgeSourceType,
@@ -124,6 +127,7 @@ pub struct ContentItem {
 
 /// 统一知识源元数据
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct KnowledgeSourceMeta {
     /// 源类型
     pub source_type: KnowledgeSourceType,

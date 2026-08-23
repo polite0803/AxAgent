@@ -35,6 +35,7 @@ fn validate_command(cmd: &str) -> Result<(), String> {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BackgroundTaskInfo {
     pub id: String,
     pub title: String,

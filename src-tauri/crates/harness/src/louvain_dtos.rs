@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 const LOW_COHESION_THRESHOLD: f64 = 0.15;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LouvainResult {
     pub communities: HashMap<String, i32>,
     pub cohesion_scores: HashMap<i32, f64>,

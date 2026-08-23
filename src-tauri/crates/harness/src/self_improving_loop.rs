@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 
 /// 一轮"执行 + 评估 + 决策"的完整回合结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RoundResult {
     /// 回合序号（由执行器填充，业务层实现时填 0 即可）
     pub round: u32,
@@ -28,6 +29,7 @@ pub struct RoundResult {
 
 /// 单步轨迹摘要
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RoundStep {
     pub index: u32,
     /// 步骤类型："think" | "act" | "observe" | "reflect" 等
@@ -38,6 +40,7 @@ pub struct RoundStep {
 
 /// 一轮输出的自我评估结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RoundEvaluation {
     /// 质量分数，范围 0.0 ~ 1.0，越高越好
     pub score: f64,
@@ -62,6 +65,7 @@ pub struct RoundEvaluation {
 
 /// 下一轮的动作决策
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub enum NextAction {
     /// 接受当前输出，结束循环
     Accept,

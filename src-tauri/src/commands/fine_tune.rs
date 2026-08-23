@@ -34,6 +34,7 @@ fn samples_file() -> PathBuf {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DatasetInfo {
     pub id: String,
     pub name: String,
@@ -43,6 +44,7 @@ pub struct DatasetInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TrainingJobInfo {
     pub id: String,
     pub status: String,

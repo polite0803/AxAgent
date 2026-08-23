@@ -17,6 +17,7 @@ use std::collections::HashMap;
 
 /// 学习图
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LearningGraph {
     /// 图 ID
     pub id: String,
@@ -34,6 +35,7 @@ pub struct LearningGraph {
 
 /// 学习节点
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LearningNode {
     /// 节点 ID
     pub id: String,
@@ -83,6 +85,7 @@ pub enum LearningNodeType {
 
 /// 学习边（关系）
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LearningEdge {
     /// 边 ID
     pub id: String,
@@ -118,6 +121,7 @@ pub enum LearningEdgeType {
 
 /// 节点位置（用于布局）
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NodePosition {
     pub x: f64,
     pub y: f64,
@@ -127,6 +131,7 @@ pub struct NodePosition {
 
 /// 图谱布局
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GraphLayout {
     /// 布局算法
     pub algorithm: LayoutAlgorithm,
@@ -232,6 +237,7 @@ impl LearningGraph {
 
 /// 学习图统计
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LearningGraphStats {
     pub total_nodes: usize,
     pub total_edges: usize,
@@ -245,6 +251,7 @@ pub struct LearningGraphStats {
 
 /// 学习条目（从会话中提取的知识点）
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LearnedItem {
     /// 条目 ID
     pub id: String,
@@ -291,6 +298,7 @@ impl LearnedItem {
 
 /// 学习统计
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LearningStats {
     /// 总学习条目数
     pub total_items: u64,
@@ -312,6 +320,7 @@ pub struct LearningStats {
 
 /// 标签计数
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GraphTagCount {
     pub tag: String,
     pub count: u64,
