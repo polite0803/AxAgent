@@ -1,9 +1,10 @@
 // OPC 行业数据接入层 —— Vendor 体系
 // 对齐 astock-data 的 StockVendor + FallbackChain 降级模式
 
+use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -275,7 +276,7 @@ impl OpIndustryClient {
 
     /// 各 vendor 健康状态
     pub fn health_snapshot(&self) -> HashMap<String, serde_json::Value> {
-        let health = self.health.lock().unwrap();
+        let health = self.health.lock();
         health
             .iter()
             .map(|(k, v)| {
@@ -288,11 +289,11 @@ impl OpIndustryClient {
     }
 
     fn is_degraded(&self, vendor_name: &str) -> bool {
-        self.health.lock().unwrap().get(vendor_name).map(|s| s.degraded).unwrap_or(false)
+        self.health.lock().get(vendor_name).map(|s| s.degraded).unwrap_or(false)
     }
 
     fn record_success(&self, vendor_name: &str) {
-        let mut health = self.health.lock().unwrap();
+        let mut health = self.health.lock();
         let entry = health
             .entry(vendor_name.to_string())
             .or_insert(VendorHealthState { consecutive_failures: 0, degraded: false });
@@ -301,7 +302,7 @@ impl OpIndustryClient {
     }
 
     fn record_failure(&self, vendor_name: &str) {
-        let mut health = self.health.lock().unwrap();
+        let mut health = self.health.lock();
         let entry = health
             .entry(vendor_name.to_string())
             .or_insert(VendorHealthState { consecutive_failures: 0, degraded: false });

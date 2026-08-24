@@ -166,7 +166,7 @@ async fn filter_one(client: &AStockClient, item: SeedItem) -> Option<SeedItem> {
 }
 
 /// 缓存 vendor 启用集合（5 min）
-use std::sync::Mutex;
+use parking_lot::Mutex;
 use std::time::{Duration, Instant};
 
 static VENDOR_CACHE: Mutex<Option<(HashSet<String>, Instant)>> = Mutex::new(None);
@@ -245,7 +245,7 @@ pub fn load_enabled_vendors_from_template(
 
 /// 读取缓存（命中且未过期直接返回）
 pub fn get_cached_vendors() -> Option<HashSet<String>> {
-    let guard = VENDOR_CACHE.lock().ok()?;
+    let guard = VENDOR_CACHE.lock();
     if let Some((set, ts)) = guard.as_ref() {
         if ts.elapsed() < VENDOR_TTL {
             return Some(set.clone());
@@ -255,15 +255,13 @@ pub fn get_cached_vendors() -> Option<HashSet<String>> {
 }
 
 pub fn set_cached_vendors(set: HashSet<String>) {
-    if let Ok(mut g) = VENDOR_CACHE.lock() {
-        *g = Some((set, Instant::now()));
-    }
+    let mut g = VENDOR_CACHE.lock();
+    *g = Some((set, Instant::now()));
 }
 
 pub fn clear_cached_vendors() {
-    if let Ok(mut g) = VENDOR_CACHE.lock() {
-        *g = None;
-    }
+    let mut g = VENDOR_CACHE.lock();
+    *g = None;
 }
 
 /// 评估一组必需 vendor 中是否至少有一个启用

@@ -16,6 +16,7 @@ axagent-trajectory = { path = "../trajectory" }
 chrono = { workspace = true }
 csv = "1"
 futures = "0.3"
+parking_lot = "0.12"
 regex = "1"
 sea-orm = { workspace = true }
 serde = { workspace = true }

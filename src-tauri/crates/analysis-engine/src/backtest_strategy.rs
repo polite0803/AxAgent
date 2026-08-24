@@ -20,10 +20,10 @@
 use crate::recommender::indicators;
 use crate::recommender::types::Period;
 use axagent_harness::market_data::{AdjType, KLine, MarketDataProvider};
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
-use std::sync::Mutex;
 
 // ── 类型 ──
 
@@ -1213,7 +1213,7 @@ pub fn update_signal_quality_cache(positive_stats: &HashMap<String, StrategyStat
             tracing::warn!("[signal_quality] SystemTime 早于 UNIX_EPOCH（时钟倒流）: {e}");
             0
         });
-    let mut cache = SIGNAL_QUALITY_CACHE.lock().unwrap_or_else(|e| e.into_inner());
+    let mut cache = SIGNAL_QUALITY_CACHE.lock();
     for (sid, stats) in positive_stats {
         if stats.total_signals < 5 {
             continue;
@@ -1244,7 +1244,7 @@ pub fn update_signal_quality_cache(positive_stats: &HashMap<String, StrategyStat
 /// 查询策略信号质量（自动注入 as-of 后缀隔离 live/replay）
 pub fn get_signal_quality(strategy_id: &str) -> Option<SignalQualityStats> {
     let suffix = axagent_astock_data::as_of::cache_suffix();
-    let cache = SIGNAL_QUALITY_CACHE.lock().unwrap_or_else(|e| e.into_inner());
+    let cache = SIGNAL_QUALITY_CACHE.lock();
     cache.get(&(strategy_id.to_string(), suffix)).cloned()
 }
 

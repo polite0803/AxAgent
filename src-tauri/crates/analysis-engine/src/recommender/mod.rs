@@ -78,9 +78,10 @@ pub(crate) const FALLBACK_STOCKS: &[(&str, &str)] = &[
 
 use axagent_astock_data::as_of;
 use axagent_astock_data::AStockClient;
+use parking_lot::RwLock;
 use serde_json::Value;
 use std::collections::HashMap;
-use std::sync::{Arc, LazyLock, RwLock};
+use std::sync::{Arc, LazyLock};
 use std::time::{Duration, Instant};
 // `HashSet` 在 Rust 2024 edition 已加入 prelude
 
@@ -109,10 +110,9 @@ const SERENITY_CACHE_TTL: Duration = Duration::from_secs(3600);
 
 /// 检查 Serenity 缓存是否过期
 fn is_serenity_cache_fresh() -> bool {
-    if let Ok(guard) = SERENITY_CACHE_TIME.read() {
-        if let Some(ts) = *guard {
-            return ts.elapsed() < SERENITY_CACHE_TTL;
-        }
+    let guard = SERENITY_CACHE_TIME.read();
+    if let Some(ts) = *guard {
+        return ts.elapsed() < SERENITY_CACHE_TTL;
     }
     false
 }
@@ -120,12 +120,10 @@ fn is_serenity_cache_fresh() -> bool {
 /// 设置 serenity 候选种子（由 run_serenity_screening 命令写入）
 pub fn set_serenity_seed(seed: Vec<SeedItem>) {
     tracing::info!("[serenity] 注入 {} 条候选到全局种子", seed.len());
-    if let Ok(mut guard) = SERENITY_SEED.write() {
-        *guard = seed;
-    }
-    if let Ok(mut guard) = SERENITY_CACHE_TIME.write() {
-        *guard = Some(Instant::now());
-    }
+    let mut guard = SERENITY_SEED.write();
+    *guard = seed;
+    let mut guard = SERENITY_CACHE_TIME.write();
+    *guard = Some(Instant::now());
 }
 
 /// 读取 serenity 候选种子（缓存过期返回空）
@@ -133,7 +131,7 @@ pub fn get_serenity_seed() -> Vec<SeedItem> {
     if !is_serenity_cache_fresh() {
         return Vec::new();
     }
-    SERENITY_SEED.read().map(|g| g.clone()).unwrap_or_default()
+    SERENITY_SEED.read().clone()
 }
 
 /// Serenity 候选全量数据缓存（serenity_score / catalysts / exit_signals / attention_metrics），
@@ -144,12 +142,10 @@ static SERENITY_CANDIDATE_CACHE: LazyLock<RwLock<HashMap<String, serde_json::Val
 /// 设置全量候选数据缓存（由 run_serenity_screening 写入）
 pub fn set_serenity_candidate_cache(cache: HashMap<String, serde_json::Value>) {
     tracing::info!("[serenity] 注入 {} 条候选全量数据到缓存", cache.len());
-    if let Ok(mut guard) = SERENITY_CANDIDATE_CACHE.write() {
-        *guard = cache;
-    }
-    if let Ok(mut guard) = SERENITY_CACHE_TIME.write() {
-        *guard = Some(Instant::now());
-    }
+    let mut guard = SERENITY_CANDIDATE_CACHE.write();
+    *guard = cache;
+    let mut guard = SERENITY_CACHE_TIME.write();
+    *guard = Some(Instant::now());
 }
 
 /// 读取单个候选的全量数据（缓存过期返回 None）
@@ -157,20 +153,17 @@ pub fn get_serenity_candidate_detail(code: &str) -> Option<serde_json::Value> {
     if !is_serenity_cache_fresh() {
         return None;
     }
-    SERENITY_CANDIDATE_CACHE.read().ok().and_then(|g| g.get(code).cloned())
+    SERENITY_CANDIDATE_CACHE.read().get(code).cloned()
 }
 
 /// 清空候选全量数据缓存（同时清时间戳）
 pub fn clear_serenity_candidate_cache() {
-    if let Ok(mut guard) = SERENITY_CANDIDATE_CACHE.write() {
-        guard.clear();
-    }
-    if let Ok(mut guard) = SERENITY_CACHE_TIME.write() {
-        *guard = None;
-    }
-    if let Ok(mut guard) = SERENITY_SEED.write() {
-        guard.clear();
-    }
+    let mut guard = SERENITY_CANDIDATE_CACHE.write();
+    guard.clear();
+    let mut guard = SERENITY_CACHE_TIME.write();
+    *guard = None;
+    let mut guard = SERENITY_SEED.write();
+    guard.clear();
 }
 
 /// 从 template_vars 中解析 "reco_strategy_weights" 权重表。
@@ -328,7 +321,7 @@ fn parse_reco_config(template_vars: &[(String, serde_json::Value)]) -> RecoConfi
 
 fn cache_get(period: Period) -> Option<RecoResponse> {
     let suffix = as_of::cache_suffix();
-    let g = RESULT_CACHE.read().unwrap_or_else(|e| e.into_inner());
+    let g = RESULT_CACHE.read();
     g.get(&(period, suffix.clone()))
         .filter(|(_, ts)| ts.elapsed() < CACHE_TTL)
         .map(|(resp, _)| resp.clone())
@@ -339,7 +332,7 @@ fn cache_put(period: Period, resp: RecoResponse) {
     // 空结果也缓存（同 60s TTL），避免 vendor 故障时每次请求都全量扫描 vendor
     // 旧逻辑跳过了空结果的缓存，导致 vendor 故障期间形成
     // "请求→扫描→空→不缓存→请求"的死循环。
-    let mut g = RESULT_CACHE.write().unwrap_or_else(|e| e.into_inner());
+    let mut g = RESULT_CACHE.write();
     g.insert((period, suffix), (resp, Instant::now()));
 }
 
@@ -348,7 +341,7 @@ fn cache_put(period: Period, resp: RecoResponse) {
 /// 同时清 vendor 启用集合缓存 + 推荐结果缓存 + Serenity 候选缓存，
 /// 保证下次调用立即反映新 vendor 状态和干净的候选池
 pub fn invalidate_cache() {
-    let mut g = RESULT_CACHE.write().unwrap_or_else(|e| e.into_inner());
+    let mut g = RESULT_CACHE.write();
     g.clear();
     clear_cached_vendors();
     clear_serenity_candidate_cache();
