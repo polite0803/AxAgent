@@ -1044,6 +1044,10 @@ impl VectorStore {
     }
 
     /// 插入仅包含元数据的行（不写入向量，用于存储自定义元信息）
+    ///
+    /// 使用 INSERT 并忽略唯一约束冲突——如果 id 已存在则直接跳过。
+    /// 这在能力索引器多次注册同一 capability 时很重要（启动时 register_all_capabilities
+    /// 会先 restore_metadata_from_store 再 index_passport，导致同一个 id 被写入两次）。
     pub async fn insert_metadata_only_chunk(
         &self,
         collection_id: &str,
@@ -1074,9 +1078,10 @@ impl VectorStore {
 
         let max_rid = self
             .db
-            .query_one_raw(Statement::from_string(
+            .query_one_raw(Statement::from_sql_and_values(
                 self.be(),
                 format!("SELECT COALESCE(MAX(rowid), 0) AS max_rid FROM {meta_table}"),
+                vec![],
             ))
             .await
             .map_err(Self::wrap)?

@@ -186,6 +186,7 @@ interface SettingsState {
   _loaded: boolean;
   error: string | null;
   globalShortcutStatus: GlobalShortcutStatus;
+  _fetchPromise: Promise<void> | null;
   fetchSettings: () => Promise<void>;
   saveSettings: (settings: Partial<AppSettings>) => Promise<void>;
   validateAndCleanModels: (providers: readonly ProviderConfig[]) => Promise<AdaptResult>;
@@ -204,47 +205,46 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     diagnostics: [],
   },
 
+  // 用于防止并发调用 fetchSettings
+  _fetchPromise: null as Promise<void> | null,
+
   /**
-   * 从后端加载设置
-   *
-   * 关键变化：
-   * 1. 后端返回的是分离字段格式（providerId + modelId）
-   * 2. 使用 fromDto() 转换为前端强类型格式（NullableModelRef）
-   * 3. 类型系统保证：转换后的 AppSettings 不可能存在不一致
+   * 从后端加载设置（防重复调用：并发请求复用同一个 Promise）
    */
   fetchSettings: async () => {
-    set({ loading: true });
-    try {
-      const rawDto = await invoke<Record<string, unknown>>("get_settings");
-
-      console.debug("[settingsStore.fetchSettings] 从后端获取原始设置", {
-        keys: Object.keys(rawDto),
-        defaultProviderId: rawDto.defaultProviderId,
-        defaultModelId: rawDto.defaultModelId,
-      });
-
-      // 开发环境断言：验证后端数据的结构正确性
-      validateDtoConsistency(rawDto as never);
-
-      // 转换为前端强类型
-      const appSettings = fromDto(rawDto as never);
-
-      console.debug("[settingsStore.fetchSettings] 转换后的设置", {
-        defaultModel: appSettings.defaultModel,
-        titleSummaryModel: appSettings.titleSummaryModel,
-        compressionModel: appSettings.compressionModel,
-      });
-
-      set({
-        settings: { ...DEFAULT_SETTINGS, ...appSettings },
-        loading: false,
-        _loaded: true,
-        error: null,
-      });
-    } catch (e) {
-      console.error("[settingsStore.fetchSettings] 获取设置失败", e);
-      set({ error: String(e), loading: false, _loaded: true });
+    // 如果已经有正在进行的请求，直接复用
+    const state = get();
+    if (state._fetchPromise) {
+      return state._fetchPromise;
     }
+
+    const promise = (async () => {
+      set({ loading: true });
+      try {
+        const rawDto = await invoke<Record<string, unknown>>("get_settings");
+
+        validateDtoConsistency(rawDto as never);
+
+        const appSettings = fromDto(rawDto as never);
+
+        set({
+          settings: { ...DEFAULT_SETTINGS, ...appSettings },
+          loading: false,
+          _loaded: true,
+          error: null,
+        });
+      } catch (e) {
+        console.error("[settingsStore.fetchSettings] 获取设置失败", e);
+        set({ error: String(e), loading: false, _loaded: true });
+      } finally {
+        // 清除 promise 引用
+        set((s) => ({ ...s, _fetchPromise: null }));
+      }
+    })();
+
+    // 存储 promise 以供复用
+    set({ _fetchPromise: promise });
+    return promise;
   },
 
   /**

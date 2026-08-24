@@ -27,7 +27,7 @@ fn block_on_safe<F: Future>(fut: F) -> F::Output {
     }
 }
 
-pub fn start_background_services(
+pub async fn start_background_services(
     app: &tauri::AppHandle,
     state: &AppState,
     app_dir: std::path::PathBuf,
@@ -59,7 +59,7 @@ pub fn start_background_services(
     start_insight_generator_task_executor(state);
     start_auto_tool_observation(state);
     start_text_grad_analysis(state);
-    start_cron_scheduler(app, state);
+    start_cron_scheduler(state).await;
     start_trigger_recovery(state);
     start_scheduler_recovery(app, state);
     start_approval_event_bridge(app, state);
@@ -2188,7 +2188,7 @@ fn start_text_grad_analysis(state: &AppState) {
     });
 }
 
-fn start_cron_scheduler(app: &tauri::AppHandle, state: &AppState) {
+async fn start_cron_scheduler(state: &AppState) {
     use axagent_runtime::cron::{CronExecutor, CronScheduler};
     use std::sync::Arc;
 
@@ -2376,9 +2376,7 @@ fn start_cron_scheduler(app: &tauri::AppHandle, state: &AppState) {
             },
         );
         // 复用 Tauri 全局 runtime，避免一次性创建/销毁 runtime 的开销。
-        tracing::info!("[start_cron_scheduler] 即将调用 set_tool_resolver");
-        block_on_safe(state.work_engine.set_tool_resolver(resolver));
-        tracing::info!("[start_cron_scheduler] set_tool_resolver 已完成");
+        state.work_engine.set_tool_resolver(resolver).await;
     }
 
     // 设置 RAG 知识源检索回调（供工作流 Agent 节点从知识库/记忆/Wiki 检索上下文）
@@ -2412,7 +2410,7 @@ fn start_cron_scheduler(app: &tauri::AppHandle, state: &AppState) {
             },
         );
         // 复用 Tauri 全局 runtime，避免一次性创建/销毁 runtime 的开销。
-        block_on_safe(state.work_engine.set_rag_callback(rag_callback));
+        state.work_engine.set_rag_callback(rag_callback).await;
     }
 
     let work_engine = state.work_engine.clone();
@@ -2627,7 +2625,7 @@ fn start_cron_scheduler(app: &tauri::AppHandle, state: &AppState) {
 
     // 保存到 AppState 以便外部控制（停止/重启）
     {
-        let mut state_scheduler = block_on_safe(state.cron_scheduler.write());
+        let mut state_scheduler = state.cron_scheduler.write().await;
         *state_scheduler = Some(scheduler.clone());
     }
 
