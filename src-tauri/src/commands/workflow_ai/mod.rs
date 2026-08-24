@@ -8,5 +8,4 @@ mod helpers;
 pub use chat::*;
 pub use compile::*;
 pub use generate::*;
-pub use helpers::NODE_SCHEMAS_DOC;
-pub use helpers::UPSTREAM_EXTENSION_FOR_CHAT;
+pub use helpers::*;

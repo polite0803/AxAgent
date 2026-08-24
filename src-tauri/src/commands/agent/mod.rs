@@ -43,6 +43,7 @@ mod payloads;
 pub use payloads::*;
 
 pub mod pricing;
+#[allow(unused_imports)]
 pub use pricing::init_pricing_config;
 // 供本模块内其他函数调用（pricing.rs 中为 pub(super)，对本模块可见）
 #[allow(unused_imports)]

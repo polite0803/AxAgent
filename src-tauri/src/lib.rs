@@ -49,6 +49,7 @@ mod windows_utils;
 mod app_state;
 mod config_validator;
 
+#[allow(unused_imports)]
 use tauri::{Emitter, Manager};
 
 pub use app_state::AppState;

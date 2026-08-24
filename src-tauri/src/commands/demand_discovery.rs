@@ -738,6 +738,8 @@ async fn send_high_value_notification(
         .map(|(_, score, title)| format!("{} (评分: {:.1})", title, score))
         .collect();
 
+    #[allow(unused_variables)]
+    #[cfg(not(mobile))]
     let body = if count > 3 {
         format!("{} 条高价值需求: {} ...等", count, titles.join(", "))
     } else {
