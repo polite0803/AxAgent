@@ -20,24 +20,33 @@ struct CommandHandler {
 }
 
 fn main() {
-    // Tauri 2.x 必需：解析 tauri.conf.json 并设置平台特定环境变量（如 TAURI_ANDROID_PACKAGE_NAME_APP_NAME）
-    tauri_build::build();
-
-    // Windows: 嵌入 Common Controls v6 manifest，规避 STATUS_ENTRYPOINT_NOT_FOUND (0xc0000139)
+    // Windows MSVC: 使用 tauri-build API 嵌入自定义 manifest，
+    // 禁用默认 manifest 生成以避免重复资源错误
     // 参考: https://github.com/tauri-apps/tauri/issues/11028
     #[cfg(target_os = "windows")]
     {
         let target_env = std::env::var("CARGO_CFG_TARGET_ENV").unwrap_or_default();
         if target_env == "msvc" {
-            let manifest = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("common-controls.manifest");
-            println!("cargo:rerun-if-changed={}", manifest.display());
-            // rust-lld 链接器需要通过 rustc-link-arg 传递 manifest 嵌入参数
-            println!("cargo:rustc-link-arg=/MANIFEST:EMBED");
-            println!("cargo:rustc-link-arg=/MANIFESTINPUT:{}", manifest.display());
             // 增加主线程栈到 8MB（Windows 默认仅 1MB，不足 deep call chain）
             println!("cargo:rustc-link-arg=/STACK:8388608");
+            // 通知 cargo manifest 变更时重新运行构建脚本
+            println!("cargo:rerun-if-changed=common-controls.manifest");
+
+            // 使用 tauri-build 的 WindowsAttributes API 嵌入自定义 manifest
+            // 禁用默认 manifest（new_without_app_manifest），避免与自定义 manifest 重复
+            let manifest_content = include_str!("common-controls.manifest");
+            let windows_attrs = tauri_build::WindowsAttributes::new_without_app_manifest()
+                .app_manifest(manifest_content);
+            let attrs = tauri_build::Attributes::new().windows_attributes(windows_attrs);
+            tauri_build::try_build(attrs).expect("failed to run tauri build script");
+        } else {
+            tauri_build::build();
         }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        tauri_build::build();
     }
 
     let out_dir = env::var("OUT_DIR").unwrap();
