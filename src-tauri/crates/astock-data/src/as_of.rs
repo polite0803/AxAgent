@@ -19,9 +19,10 @@
 //! 写入时 `with_optional_asof` 同步写全局，spawn 出去的 future 即可读到。
 
 use chrono::{Duration, Utc};
+use parking_lot::Mutex;
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Mutex, OnceLock};
+use std::sync::OnceLock;
 
 // 共享 DTO 类型（AsOfContext / AsOfSource / AsOfDataScope / AsOfDataKind /
 // DegradationEntry / AsOfError）的权威定义在 `axagent_harness::as_of`，
@@ -39,7 +40,7 @@ tokio::task_local! {
 // ─── 进程级全局回退 ─────────────────────────────────────────────
 //
 // 设计要点：
-// 1. 用 `std::sync::Mutex`（同步锁），不持锁跨 await，不会破坏
+// 1. 用 `parking_lot::Mutex`（同步锁），不持锁跨 await，不会破坏
 //    tokio 调度器，也不会出现"未来日期 guard 跨越 await"之类问题。
 // 2. `OnceLock<Mutex<...>>` 延迟初始化，避免构造期全局状态问题。
 // 3. `current_as_of()` 优先 task_local，再回退全局。这样嵌套调用
@@ -60,14 +61,8 @@ fn global_lock() -> &'static Mutex<Option<AsOfContext>> {
 /// 注意：这是同步调用，**不**会跨 await 持锁；用于在 `tokio::spawn`
 /// 之前先同步写入，使 spawn 出去的 future 通过 `current_as_of()`
 /// 也能读到截止日。
-///
-/// 容忍 `std::sync::Mutex` poison：如果另一个持有锁的线程/任务 panic，
-/// 我们仍然恢复全局状态（防止测试/工作流 panic 后污染后续调用）。
 pub fn set_global_asof(ctx: Option<AsOfContext>) -> Option<AsOfContext> {
-    let mut g = match global_lock().lock() {
-        Ok(g) => g,
-        Err(poisoned) => poisoned.into_inner(),
-    };
+    let mut g = global_lock().lock();
     let prev = *g;
     *g = ctx;
     prev
@@ -75,10 +70,7 @@ pub fn set_global_asof(ctx: Option<AsOfContext>) -> Option<AsOfContext> {
 
 /// 同步读取全局 AsOfContext（不影响 task_local 优先级）
 pub fn peek_global_asof() -> Option<AsOfContext> {
-    let g = match global_lock().lock() {
-        Ok(g) => g,
-        Err(poisoned) => poisoned.into_inner(),
-    };
+    let g = global_lock().lock();
     *g
 }
 
@@ -238,7 +230,8 @@ pub fn record_degradation(vendor: &str, method: &str, reason: &str) {
         cell.borrow_mut().push(entry.clone());
     });
     // 全局环形缓冲: 累计总数 + 保留最近 N 条详情
-    if let Ok(mut g) = GLOBAL_DEGRADATION_LOG.lock() {
+    {
+        let mut g = GLOBAL_DEGRADATION_LOG.lock();
         if g.len() >= GLOBAL_DEGRADATION_CAP {
             g.pop_front();
         }
@@ -294,10 +287,8 @@ pub fn take_asof_degradation_report() -> Vec<DegradationEntry> {
 /// 仅快照全局降级日志(不清空,供前端 poll 显示)。
 /// 返回按时间顺序排列(旧 → 新)的最近 256 条。
 pub fn peek_global_degradation_report() -> Vec<DegradationEntry> {
-    GLOBAL_DEGRADATION_LOG.lock().map(|g| g.iter().cloned().collect()).unwrap_or_else(|e| {
-        tracing::warn!("[as_of] GLOBAL_DEGRADATION_LOG 中毒: {e}");
-        Vec::new()
-    })
+    let g = GLOBAL_DEGRADATION_LOG.lock();
+    g.iter().cloned().collect()
 }
 
 /// 当前累计降级总数(从进程启动起算,跨 live/replay 切换)。
@@ -307,9 +298,8 @@ pub fn global_degradation_count() -> u64 {
 
 /// 清空全局降级缓冲(切换到 live 模式时由前端触发,避免过期条目一直显示)。
 pub fn reset_global_degradation_log() {
-    if let Ok(mut g) = GLOBAL_DEGRADATION_LOG.lock() {
-        g.clear();
-    }
+    let mut g = GLOBAL_DEGRADATION_LOG.lock();
+    g.clear();
     // total 不重置,保留"曾经降级过多少项"作为历史指标
 }
 

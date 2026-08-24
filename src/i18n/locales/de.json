@@ -16404,6 +16404,9 @@
       "rejectSuccess": "Trade abgelehnt",
       "modeChanged": "Ausführungsmodus aktualisiert",
       "riskRejected": "Risikoprüfung nicht bestanden: {reason}"
+    },
+    "time": {
+      "minutesAgo": "vor {minutes} Min."
     }
   }
 }

@@ -2607,6 +2607,12 @@
       "lines": "553,554,555,556,564,565,566,567",
       "reason": "后端数据契约值（Select 选项 value 为后端枚举值）",
       "phase": 3
+    },
+    {
+      "file": "src/components/executionBridge/PendingSignalsList.tsx",
+      "lines": "32,34",
+      "reason": "后端数据契约值（风险等级中文枚举值，用于类型映射）",
+      "phase": 3
     }
   ]
 }

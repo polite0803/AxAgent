@@ -16404,6 +16404,9 @@
       "rejectSuccess": "Operación rechazada",
       "modeChanged": "Modo de ejecución actualizado",
       "riskRejected": "Control de riesgos fallido: {reason}"
+    },
+    "time": {
+      "minutesAgo": "hace {minutes} min"
     }
   }
 }

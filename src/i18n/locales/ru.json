@@ -16404,6 +16404,9 @@
       "rejectSuccess": "Сделка отклонена",
       "modeChanged": "Режим исполнения обновлен",
       "riskRejected": "Проверка рисков не пройдена: {reason}"
+    },
+    "time": {
+      "minutesAgo": "{minutes} мин назад"
     }
   }
 }

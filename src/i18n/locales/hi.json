@@ -16404,6 +16404,9 @@
       "rejectSuccess": "ट्रेड अस्वीकृत",
       "modeChanged": "निष्पादन मोड अपडेट किया गया",
       "riskRejected": "जोखिम जांच विफल: {reason}"
+    },
+    "time": {
+      "minutesAgo": "{minutes} मिनट पहले"
     }
   }
 }

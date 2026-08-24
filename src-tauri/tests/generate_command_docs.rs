@@ -15,7 +15,7 @@ fn generate_command_docs() {
     let output_dir = Path::new("docs/commands");
     fs::create_dir_all(output_dir).expect("无法创建文档输出目录");
 
-    let commands = agent_command_types::registry::get_all();
+    let commands = axagent_agent_command_types::registry::get_all();
 
     if commands.is_empty() {
         println!("⚠ 警告: 没有找到任何注册的命令。请确保已添加 #[agent_command] 宏。");
@@ -23,7 +23,7 @@ fn generate_command_docs() {
     }
 
     // 按域分组
-    let mut by_domain: Vec<(&str, Vec<&agent_command_types::CommandMetadata>)> = Vec::new();
+    let mut by_domain: Vec<(&str, Vec<&axagent_agent_command_types::CommandMetadata>)> = Vec::new();
     let mut domains = std::collections::HashSet::new();
 
     for cmd in &commands {
@@ -63,7 +63,7 @@ fn generate_command_docs() {
 /// 生成单个域的文档
 fn generate_domain_document(
     domain: &str,
-    commands: &[&agent_command_types::CommandMetadata],
+    commands: &[&axagent_agent_command_types::CommandMetadata],
 ) -> String {
     let mut doc = String::new();
 
@@ -73,13 +73,17 @@ fn generate_domain_document(
     doc.push_str(&format!("> 命令数量: {}\n\n", commands.len()));
 
     // 安全级别统计
-    let safe_count =
-        commands.iter().filter(|c| c.safety == agent_command_types::CommandSafety::Safe).count();
-    let caution_count =
-        commands.iter().filter(|c| c.safety == agent_command_types::CommandSafety::Caution).count();
+    let safe_count = commands
+        .iter()
+        .filter(|c| c.safety == axagent_agent_command_types::CommandSafety::Safe)
+        .count();
+    let caution_count = commands
+        .iter()
+        .filter(|c| c.safety == axagent_agent_command_types::CommandSafety::Caution)
+        .count();
     let dangerous_count = commands
         .iter()
-        .filter(|c| c.safety == agent_command_types::CommandSafety::Dangerous)
+        .filter(|c| c.safety == axagent_agent_command_types::CommandSafety::Dangerous)
         .count();
 
     doc.push_str("## 安全级别分布\n\n");
@@ -96,15 +100,15 @@ fn generate_domain_document(
 
     for cmd in commands {
         let safety_icon = match cmd.safety {
-            agent_command_types::CommandSafety::Safe => "✓",
-            agent_command_types::CommandSafety::Caution => "⚠",
-            agent_command_types::CommandSafety::Dangerous => "✗",
+            axagent_agent_command_types::CommandSafety::Safe => "✓",
+            axagent_agent_command_types::CommandSafety::Caution => "⚠",
+            axagent_agent_command_types::CommandSafety::Dangerous => "✗",
         };
 
         let call_mode_display = match cmd.call_mode {
-            agent_command_types::CallMode::StateOnly => "StateOnly (仅状态)",
-            agent_command_types::CallMode::StateInput => "StateInput (状态+输入)",
-            agent_command_types::CallMode::Manual => "Manual (手动)",
+            axagent_agent_command_types::CallMode::StateOnly => "StateOnly (仅状态)",
+            axagent_agent_command_types::CallMode::StateInput => "StateInput (状态+输入)",
+            axagent_agent_command_types::CallMode::Manual => "Manual (手动)",
         };
 
         doc.push_str(&format!(
@@ -138,7 +142,7 @@ fn generate_domain_document(
 
 /// 生成索引文档
 fn generate_index_document(
-    by_domain: &[(&str, Vec<&agent_command_types::CommandMetadata>)],
+    by_domain: &[(&str, Vec<&axagent_agent_command_types::CommandMetadata>)],
     total_count: usize,
 ) -> String {
     let mut doc = String::new();
@@ -211,20 +215,24 @@ fn get_domain_display_name(domain: &str) -> &'static str {
 }
 
 /// 获取安全级别的显示名称
-fn get_safety_display_name(safety: agent_command_types::CommandSafety) -> &'static str {
+fn get_safety_display_name(safety: axagent_agent_command_types::CommandSafety) -> &'static str {
     match safety {
-        agent_command_types::CommandSafety::Safe => "✓ Safe (安全)",
-        agent_command_types::CommandSafety::Caution => "⚠ Caution (需确认)",
-        agent_command_types::CommandSafety::Dangerous => "✗ Dangerous (危险)",
+        axagent_agent_command_types::CommandSafety::Safe => "✓ Safe (安全)",
+        axagent_agent_command_types::CommandSafety::Caution => "⚠ Caution (需确认)",
+        axagent_agent_command_types::CommandSafety::Dangerous => "✗ Dangerous (危险)",
     }
 }
 
 /// 获取调用模式的显示名称
-fn get_call_mode_display_name(call_mode: agent_command_types::CallMode) -> &'static str {
+fn get_call_mode_display_name(call_mode: axagent_agent_command_types::CallMode) -> &'static str {
     match call_mode {
-        agent_command_types::CallMode::StateOnly => "StateOnly — 仅使用应用状态，无需额外输入",
-        agent_command_types::CallMode::StateInput => "StateInput — 使用应用状态和用户输入参数",
-        agent_command_types::CallMode::Manual => "Manual — 需要专用 Handler 手动处理",
+        axagent_agent_command_types::CallMode::StateOnly => {
+            "StateOnly — 仅使用应用状态，无需额外输入"
+        },
+        axagent_agent_command_types::CallMode::StateInput => {
+            "StateInput — 使用应用状态和用户输入参数"
+        },
+        axagent_agent_command_types::CallMode::Manual => "Manual — 需要专用 Handler 手动处理",
     }
 }
 

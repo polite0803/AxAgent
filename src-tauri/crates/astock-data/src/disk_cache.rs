@@ -11,11 +11,12 @@
 //!
 //! 路径: `~/.axagent/astock_l2_cache.json` (与 L1 内存缓存同生命周期)
 
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicI64, AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const DEFAULT_CAPACITY: usize = 10_000;
@@ -36,20 +37,16 @@ struct DiskSnapshot {
     entries: HashMap<String, CacheEntry>,
 }
 
-// H1.3 说明:DiskCache 用 std::sync::Mutex 而非 tokio::sync::Mutex 的理由
+// H1.3 说明:DiskCache 用 parking_lot::Mutex 而非 tokio::sync::Mutex 的理由
 //
 // 设计要点(参照 as_of.rs C1.5 的处理方式):
 // 1. 所有锁都不持锁跨 await —— `get/set/flush_to_disk/clear/len` 中 lock()
 //    仅在同步操作内持有,锁内不调任何 await,不会破坏 tokio 调度器,
 //    也不会出现"MutexGuard 跨越 await"的未定义行为。
 // 2. `flush_to_disk` 在锁内仅 clone entries,释放锁后再做磁盘 IO,锁外做 IO。
-// 3. 容忍 poison:如果另一个持有锁的线程 panic,我们仍然恢复 inner
-//    (用 `into_inner()` 取出内部 HashMap),防止后续调用全部失败。
+// 3. parking_lot::Mutex 不会中毒(poison),无需额外处理。
 // 4. spawn_flush_loop 是后台异步任务,调用 should_flush/flush_to_disk 时
 //    都走同步 lock,不会与未来可能新增的 await 调用产生冲突。
-//
-// 因此保留 std::sync::Mutex,违反 AGENTS.md 规则 8 是有意的例外,后续如新增
-// 跨 await 的方法必须改用 tokio::sync::Mutex。
 pub struct DiskCache {
     path: PathBuf,
     inner: Arc<Mutex<HashMap<String, CacheEntry>>>,
@@ -107,13 +104,9 @@ impl DiskCache {
     }
 
     /// 查缓存;命中且未过期返回 Some(value),否则 None(顺便清理过期项)。
-    /// H1.3:poison 时也恢复 inner(参照 as_of.rs C1.5),避免后续调用全部失败。
     pub fn get(&self, key: &str) -> Option<String> {
         let now = Self::now_unix();
-        let mut inner = match self.inner.lock() {
-            Ok(g) => g,
-            Err(poisoned) => poisoned.into_inner(),
-        };
+        let mut inner = self.inner.lock();
         let entry = inner.get_mut(key)?;
         if entry.expires_at > 0 && entry.expires_at < now {
             // 过期
@@ -137,7 +130,7 @@ impl DiskCache {
         } else {
             now + ttl_secs
         };
-        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let mut inner = self.inner.lock();
 
         // 容量满时 LRU 淘汰
         if inner.len() >= self.capacity {
@@ -173,10 +166,7 @@ impl DiskCache {
 
     /// 同步 flush 到磁盘;失败仅 warn,不阻塞。
     pub fn flush_to_disk(&self) {
-        let inner = match self.inner.lock() {
-            Ok(g) => g,
-            Err(e) => e.into_inner(),
-        };
+        let inner = self.inner.lock();
         let snap = DiskSnapshot { entries: inner.clone() };
         match serde_json::to_string(&snap) {
             Ok(json) => {
@@ -202,12 +192,8 @@ impl DiskCache {
     }
 
     /// 缓存条目数(供测试和监控用)
-    /// H1.3:poison 时也恢复 inner(参照 as_of.rs C1.5)。
     pub fn len(&self) -> usize {
-        let g = match self.inner.lock() {
-            Ok(g) => g,
-            Err(poisoned) => poisoned.into_inner(),
-        };
+        let g = self.inner.lock();
         g.len()
     }
 
@@ -216,12 +202,8 @@ impl DiskCache {
     }
 
     /// 清空所有条目(测试用)
-    /// H1.3:poison 时也恢复 inner(参照 as_of.rs C1.5)。
     pub fn clear(&self) {
-        let mut g = match self.inner.lock() {
-            Ok(g) => g,
-            Err(poisoned) => poisoned.into_inner(),
-        };
+        let mut g = self.inner.lock();
         g.clear();
         self.dirty_count.store(0, Ordering::Relaxed);
     }

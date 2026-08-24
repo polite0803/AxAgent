@@ -13,8 +13,20 @@ const storeState: Record<string, unknown> = {
   decision: null,
 };
 
+const executionBridgeState: Record<string, unknown> = {
+  mode: "manual",
+  loading: false,
+  pendings: [],
+  error: null,
+  setMode: vi.fn(),
+  fetchPendings: vi.fn().mockResolvedValue([]),
+  confirmPending: vi.fn().mockResolvedValue({}),
+  rejectPending: vi.fn().mockResolvedValue({}),
+};
+
 vi.mock("@/stores", () => ({
   useStockAnalysisStore: (selector: (s: typeof storeState) => unknown) => selector(storeState),
+  useExecutionBridgeStore: (selector: (s: typeof executionBridgeState) => unknown) => selector(executionBridgeState),
 }));
 
 vi.mock("@/lib/invoke", () => ({

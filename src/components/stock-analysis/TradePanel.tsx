@@ -1,8 +1,10 @@
+import { ExecutionModeSelector } from "@/components/executionBridge/ExecutionModeSelector";
+import { PendingSignalsList } from "@/components/executionBridge/PendingSignalsList";
 import { invoke } from "@/lib/invoke";
 import { getActionColor, StockAction } from "@/lib/stock-analysis-utils";
 import { useStockAnalysisStore } from "@/stores";
 import { PlusOutlined, ReloadOutlined } from "@ant-design/icons";
-import { App, Button, Card, Input, InputNumber, Select, Space, Statistic, Switch, Table, Tag } from "antd";
+import { App, Button, Card, Divider, Input, InputNumber, Select, Space, Statistic, Switch, Table, Tag } from "antd";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -258,6 +260,20 @@ export function TradePanel() {
         </div>
       }
     >
+      {/* 执行模式切换 */}
+      <div className="mb-2">
+        <ExecutionModeSelector compact />
+      </div>
+
+      <Divider className="!my-2" />
+
+      {/* 待执行信号列表 */}
+      <div className="mb-2">
+        <PendingSignalsList autoRefreshInterval={30_000} />
+      </div>
+
+      <Divider className="!my-2" />
+
       {/* 绩效统计 */}
       {trades.length > 0 && (
         <div className="grid grid-cols-3 gap-1 mb-2 p-1 rounded" style={{ background: "var(--surface)" }}>

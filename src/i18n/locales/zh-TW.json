@@ -16404,6 +16404,9 @@
       "rejectSuccess": "交易已駁回",
       "modeChanged": "執行模式已更新",
       "riskRejected": "風控檢查未通過：{reason}"
+    },
+    "time": {
+      "minutesAgo": "{minutes} 分鐘前"
     }
   }
 }

@@ -16404,6 +16404,9 @@
       "rejectSuccess": "Trade rejected",
       "modeChanged": "Execution mode updated",
       "riskRejected": "Risk check failed: {reason}"
+    },
+    "time": {
+      "minutesAgo": "{minutes} min ago"
     }
   }
 }

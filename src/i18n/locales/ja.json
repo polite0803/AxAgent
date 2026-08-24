@@ -16404,6 +16404,9 @@
       "rejectSuccess": "取引が拒否されました",
       "modeChanged": "執行モードを更新しました",
       "riskRejected": "リスクチェック不合格：{reason}"
+    },
+    "time": {
+      "minutesAgo": "{minutes} 分前"
     }
   }
 }

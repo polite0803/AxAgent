@@ -26,18 +26,31 @@ function directionTagColor(direction: TradeDirection): string {
   }
 }
 
-function riskTagColor(level: ExecutionRiskLevel): string {
+// 中文风险等级 → 英文键（用于 i18n 和颜色映射）
+function riskLevelToKey(level: ExecutionRiskLevel): "low" | "medium" | "high" {
   switch (level) {
     case "高":
-      return "red";
+      return "high";
     case "中":
+      return "medium";
+    default:
+      return "low";
+  }
+}
+
+function riskTagColor(level: ExecutionRiskLevel): string {
+  const key = riskLevelToKey(level);
+  switch (key) {
+    case "high":
+      return "red";
+    case "medium":
       return "orange";
     default:
       return "green";
   }
 }
 
-function formatTime(timestamp: number, t: (key: string) => string): string {
+function formatTime(timestamp: number, t: (key: string, params?: Record<string, unknown>) => string): string {
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now.getTime() - timestamp;
@@ -48,7 +61,7 @@ function formatTime(timestamp: number, t: (key: string) => string): string {
   }
   // 1 小时内显示分钟
   if (diff < 3_600_000) {
-    return `${Math.floor(diff / 60_000)} 分钟前`;
+    return t("executionBridge.time.minutesAgo", { minutes: Math.floor(diff / 60_000) });
   }
   // 当天显示时间
   if (date.toDateString() === now.toDateString()) {
@@ -197,7 +210,7 @@ export function PendingSignalsList({
       render: (level: ExecutionRiskLevel, record) => (
         <Space>
           <Tag color={riskTagColor(level)}>
-            {t(`executionBridge.risk.${level === "高" ? "high" : level === "中" ? "medium" : "low"}`)}
+            {t(`executionBridge.risk.${riskLevelToKey(level)}`)}
           </Tag>
           {record.riskWarning && (
             <span

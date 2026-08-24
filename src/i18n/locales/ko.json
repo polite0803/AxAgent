@@ -16404,6 +16404,9 @@
       "rejectSuccess": "거래가 거부되었습니다",
       "modeChanged": "실행 모드가 업데이트되었습니다",
       "riskRejected": "리스크 체크 실패: {reason}"
+    },
+    "time": {
+      "minutesAgo": "{minutes}분 전"
     }
   }
 }
