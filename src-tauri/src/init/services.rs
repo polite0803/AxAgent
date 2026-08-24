@@ -59,7 +59,7 @@ pub async fn start_background_services(
     start_insight_generator_task_executor(state);
     start_auto_tool_observation(state);
     start_text_grad_analysis(state);
-    start_cron_scheduler(state).await;
+    start_cron_scheduler(app, state).await;
     start_trigger_recovery(state);
     start_scheduler_recovery(app, state);
     start_approval_event_bridge(app, state);
@@ -2188,7 +2188,7 @@ fn start_text_grad_analysis(state: &AppState) {
     });
 }
 
-async fn start_cron_scheduler(state: &AppState) {
+async fn start_cron_scheduler(app: &tauri::AppHandle, state: &AppState) {
     use axagent_runtime::cron::{CronExecutor, CronScheduler};
     use std::sync::Arc;
 
