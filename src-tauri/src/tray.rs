@@ -6,7 +6,7 @@ use tauri::{
     AppHandle, Manager,
     image::Image,
     menu::{Menu, MenuItem},
-    tray::TrayIconBuilder,
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
 
 const TRAY_ID: &str = "axagent-tray";
@@ -14,6 +14,7 @@ const TRAY_ID: &str = "axagent-tray";
 static TRAY_LABELS: LazyLock<Mutex<(String, String)>> =
     LazyLock::new(|| Mutex::new(("显示主窗口".to_string(), "退出".to_string())));
 
+#[cfg(desktop)]
 #[tauri::command]
 pub fn set_tray_labels(
     app: AppHandle,
@@ -27,6 +28,12 @@ pub fn set_tray_labels(
     Ok(())
 }
 
+#[cfg(not(desktop))]
+#[tauri::command]
+#[allow(dead_code)]
+pub fn set_tray_labels(_app: AppHandle, _show_label: String, _quit_label: String) {}
+
+#[cfg(desktop)]
 fn build_menu(app: &AppHandle) -> Result<Menu<tauri::Wry>, Box<dyn std::error::Error>> {
     let (show_label, quit_label) = TRAY_LABELS.lock().clone();
     let show = MenuItem::with_id(app, "show", &show_label, true, None::<&str>)?;
@@ -35,6 +42,7 @@ fn build_menu(app: &AppHandle) -> Result<Menu<tauri::Wry>, Box<dyn std::error::E
     Ok(menu)
 }
 
+#[cfg(desktop)]
 fn sync_tray_menu(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let menu = build_menu(app)?;
     if let Some(tray) = app.tray_by_id(TRAY_ID) {
@@ -45,11 +53,19 @@ fn sync_tray_menu(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
+#[cfg(desktop)]
 pub fn create_tray(app: &AppHandle, _language: &str) -> Result<(), Box<dyn std::error::Error>> {
     // 忽略传入的 language 参数，实际标签由前端 set_tray_labels 设置
     create_tray_inner(app)
 }
 
+#[cfg(not(desktop))]
+#[allow(dead_code)]
+pub fn create_tray(_app: &AppHandle, _language: &str) -> Result<(), Box<dyn std::error::Error>> {
+    Ok(())
+}
+
+#[cfg(desktop)]
 fn create_tray_inner(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let menu = build_menu(app)?;
     // 直接嵌入 32x32.png（实心品牌图标）。生产模式下 Tauri 资源目录没有 icons/icon.png，
@@ -77,9 +93,9 @@ fn create_tray_inner(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> 
             _ => {},
         })
         .on_tray_icon_event(|tray, event| {
-            if let tauri::tray::TrayIconEvent::Click {
-                button: tauri::tray::MouseButton::Left,
-                button_state: tauri::tray::MouseButtonState::Up,
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
                 ..
             } = event
             {
@@ -100,10 +116,20 @@ fn create_tray_inner(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> 
 }
 
 /// 前端语言变更时调用（保持兼容）
+#[cfg(desktop)]
 pub fn sync_tray_language(
     app: &AppHandle,
     _language: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // 不依赖 language 参数，实际标签经 set_tray_labels 已更新
     sync_tray_menu(app)
+}
+
+#[cfg(not(desktop))]
+#[allow(dead_code)]
+pub fn sync_tray_language(
+    _app: &AppHandle,
+    _language: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    Ok(())
 }

@@ -26,6 +26,23 @@ fn main() {
 
     // 注册自定义 cfg 条件，消除 unexpected_cfg 警告
     println!("cargo::rustc-check-cfg=cfg(mobile)");
+    println!("cargo::rustc-check-cfg=cfg(desktop)");
+
+    // 主 crate 在 Android/iOS 目标下设置 mobile cfg 标志。
+    // Tauri 的 build.rs 会在编译 tauri crate 本身时设置 mobile cfg，
+    // 但不会自动传递给依赖者，这里在主 crate 级别补齐。
+    let target = env::var("TARGET").unwrap_or_default();
+    let is_mobile = target.contains("android")
+        || (target.contains("apple")
+            && (target.contains("ios")
+                || target.contains("tvos")
+                || target.contains("watchos")
+                || target.contains("visionos")));
+    if is_mobile {
+        println!("cargo:rustc-cfg=mobile");
+    } else {
+        println!("cargo:rustc-cfg=desktop");
+    }
 
     let mut handlers: Vec<CommandHandler> = Vec::new();
 

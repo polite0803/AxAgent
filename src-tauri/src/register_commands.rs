@@ -1473,6 +1473,7 @@ macro_rules! register_all_commands {
             scheduler::restore::restore_pending_tasks,
             scheduler::set_budget,
             scheduler::set_task_priority,
+            tray::set_tray_labels,
             tray::set_tray_labels
         ]
     };

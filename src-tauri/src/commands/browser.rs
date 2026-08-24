@@ -13,9 +13,10 @@ use tauri::State;
 use crate::AppState;
 #[cfg(not(target_os = "android"))]
 use crate::commands::error::ErrorCategory;
-#[cfg(not(target_os = "android"))]
 use crate::commands::error::ErrorResponse;
 #[cfg(not(target_os = "android"))]
+use crate::commands::error_code::browser as browser_err;
+#[cfg(target_os = "android")]
 use crate::commands::error_code::browser as browser_err;
 
 #[cfg(not(target_os = "android"))]
