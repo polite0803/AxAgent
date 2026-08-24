@@ -30,9 +30,9 @@
 //! ctrl.record_call("get_stock_quote", r#"{"stock_code":"600519"}"#, false);
 //! ```
 
+use parking_lot::Mutex;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
-use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 // 注意：Serialize 通过 derive 使用，无需显式 use
@@ -188,7 +188,7 @@ impl ToolCallGuardrailController {
     /// 检查是否允许调用工具
     pub fn check_allowed(&self, tool_name: &str, args: &str) -> GuardrailDecision {
         let args_hash = Self::hash_args(args);
-        let stats = self.stats.lock().unwrap();
+        let stats = self.stats.lock();
 
         let tool_stat = match stats.get(tool_name) {
             Some(s) => s,
@@ -237,7 +237,7 @@ impl ToolCallGuardrailController {
     pub fn record_call(&self, tool_name: &str, args: &str, success: bool) {
         let args_hash = Self::hash_args(args);
         let now = Self::now_ms();
-        let mut stats = self.stats.lock().unwrap();
+        let mut stats = self.stats.lock();
 
         let tool_stat = stats.entry(tool_name.to_string()).or_default();
         tool_stat.total_calls += 1;
@@ -259,7 +259,7 @@ impl ToolCallGuardrailController {
 
     /// 获取工具的统计快照
     pub fn get_stats(&self, tool_name: &str) -> Option<ToolStatsSnapshot> {
-        let stats = self.stats.lock().unwrap();
+        let stats = self.stats.lock();
         stats.get(tool_name).map(|s| ToolStatsSnapshot {
             total_calls: s.total_calls,
             total_failures: s.total_failures,
@@ -269,13 +269,13 @@ impl ToolCallGuardrailController {
 
     /// 清除工具的统计记录（用于重置）
     pub fn reset_tool(&self, tool_name: &str) {
-        let mut stats = self.stats.lock().unwrap();
+        let mut stats = self.stats.lock();
         stats.remove(tool_name);
     }
 
     /// 清除所有统计记录
     pub fn reset_all(&self) {
-        let mut stats = self.stats.lock().unwrap();
+        let mut stats = self.stats.lock();
         stats.clear();
     }
 }
