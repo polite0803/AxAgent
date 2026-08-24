@@ -20,35 +20,12 @@ struct CommandHandler {
 }
 
 fn main() {
-    // Windows MSVC: 使用 tauri-build API 嵌入自定义 manifest，
-    // 禁用默认 manifest 生成以避免重复资源错误
-    // 参考: https://github.com/tauri-apps/tauri/issues/11028
-    #[cfg(target_os = "windows")]
-    {
-        let target_env = std::env::var("CARGO_CFG_TARGET_ENV").unwrap_or_default();
-        if target_env == "msvc" {
-            // 通知 cargo manifest 变更时重新运行构建脚本
-            println!("cargo:rerun-if-changed=common-controls.manifest");
-
-            // 使用 tauri-build 的 WindowsAttributes API 嵌入自定义 manifest
-            // new_without_app_manifest() 禁用默认 manifest，避免与自定义 manifest 重复
-            // app_manifest() 嵌入自定义 manifest（含 Common Controls v6 依赖）
-            let windows_attrs = tauri_build::WindowsAttributes::new_without_app_manifest()
-                .app_manifest(include_str!("common-controls.manifest"));
-            let attrs = tauri_build::Attributes::new().windows_attributes(windows_attrs);
-            tauri_build::try_build(attrs).expect("failed to run tauri build script");
-        } else {
-            tauri_build::build();
-        }
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        tauri_build::build();
-    }
+    // Tauri 2.x 默认 manifest 已包含 Common Controls v6 依赖，
+    // 无需自定义 manifest。参考: https://github.com/tauri-apps/tauri/issues/11028
+    tauri_build::build();
 
     // Windows MSVC: 增加主线程栈到 8MB（默认 1MB，不足 deep call chain）
-    // 注意: /STACK 是链接器选项，manifest XML 不支持设置，需通过 rustc-link-arg 传递
+    // /STACK 是链接器选项，需通过 rustc-link-arg 传递
     #[cfg(all(target_os = "windows", target_env = "msvc"))]
     {
         println!("cargo:rustc-link-arg=/STACK:8388608");

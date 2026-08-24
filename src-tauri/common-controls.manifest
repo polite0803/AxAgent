@@ -6,47 +6,18 @@
   comctl32 v6 依赖时，tauri/wry 引用的 v6 入口点找不到。
   参考: https://github.com/tauri-apps/tauri/issues/11028
        https://github.com/tauri-apps/tauri/pull/4383#issuecomment-1212221864
-
-  AppUserModelID / DPI 感知配置：
-  Tauri v2 默认 manifest 会包含 AppUserModelID，但项目使用
-  WindowsAttributes::new_without_app_manifest() 跳过了默认生成。
-  这里补齐任务栏图标识别和 DPI 缩放所需的兼容性声明。
 -->
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
-    <assemblyIdentity type="win32" name="AxInvest" version="2.9.0.0" processorArchitecture="amd64"/>
-    <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
-        <security>
-            <requestedPrivileges>
-                <requestedExecutionLevel level="asInvoker" uiAccess="false"/>
-            </requestedPrivileges>
-        </security>
-    </trustInfo>
-    <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
-        <application>
-            <!-- Windows 10 / Windows 11（含 Server 2016+）兼容性 GUID -->
-            <supportedOS Id="{1f676c76-80e1-4239-95bb-83d0f6d0da78}"/>
-            <!-- Windows 8.1 -->
-            <supportedOS Id="{4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38}"/>
-            <!-- Windows 7 -->
-            <supportedOS Id="{35138b9a-5d96-4fbd-8e2d-a2440225f93a}"/>
-        </application>
-    </compatibility>
-    <application xmlns="urn:schemas-microsoft-com:asm.v3">
-        <windowsSettings>
-            <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true</dpiAware>
-            <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">permonitorv2</dpiAwareness>
-        </windowsSettings>
-    </application>
-    <dependency>
-        <dependentAssembly>
-            <assemblyIdentity
-                type="win32"
-                name="Microsoft.Windows.Common-Controls"
-                version="6.0.0.0"
-                processorArchitecture="*"
-                publicKeyToken="6595b64144ccf1df"
-                language="*"
-            />
-        </dependentAssembly>
-    </dependency>
+  <dependency>
+    <dependentAssembly>
+      <assemblyIdentity
+        type="win32"
+        name="Microsoft.Windows.Common-Controls"
+        version="6.0.0.0"
+        processorArchitecture="*"
+        publicKeyToken="6595b64144ccf1df"
+        language="*"
+      />
+    </dependentAssembly>
+  </dependency>
 </assembly>
