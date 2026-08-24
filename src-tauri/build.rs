@@ -20,21 +20,35 @@ struct CommandHandler {
 }
 
 fn main() {
-    // Windows: 嵌入 Common Controls v6 manifest，规避 STATUS_ENTRYPOINT_NOT_FOUND (0xc0000139)
-    // 参考: https://github.com/tauri-apps/tauri/issues/11028
+    // 使用 tauri-build 官方 API 配置 Windows manifest
+    // 参考: https://docs.rs/tauri-build/latest/tauri_build/struct.WindowsAttributes.html
     #[cfg(target_os = "windows")]
     {
         let target_env = std::env::var("CARGO_CFG_TARGET_ENV").unwrap_or_default();
         if target_env == "msvc" {
-            let manifest = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("common-controls.manifest");
-            println!("cargo:rerun-if-changed={}", manifest.display());
-            // rust-lld 链接器需要通过 rustc-link-arg 传递 manifest 嵌入参数
-            println!("cargo:rustc-link-arg=/MANIFEST:EMBED");
-            println!("cargo:rustc-link-arg=/MANIFESTINPUT:{}", manifest.display());
-            // 增加主线程栈到 8MB（Windows 默认仅 1MB，不足 deep call chain）
-            println!("cargo:rustc-link-arg=/STACK:8388608");
+            // 确保 manifest 文件变更时触发重新构建
+            println!("cargo:rerun-if-changed=common-controls.manifest");
+            // 1. new_without_app_manifest() 禁用默认 manifest 生成，避免冲突
+            // 2. app_manifest() 嵌入自定义 manifest（含 Common Controls v6）
+            let windows_attrs = tauri_build::WindowsAttributes::new_without_app_manifest()
+                .app_manifest(include_str!("common-controls.manifest"));
+            let attrs = tauri_build::Attributes::new().windows_attributes(windows_attrs);
+            tauri_build::try_build(attrs).expect("failed to run tauri build script");
+        } else {
+            tauri_build::build();
         }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        tauri_build::build();
+    }
+
+    // Windows MSVC: 增加主线程栈到 8MB（默认 1MB，不足 deep call chain）
+    // 注意: /STACK 是链接器选项，manifest XML 不支持设置，需通过 rustc-link-arg 传递
+    #[cfg(all(target_os = "windows", target_env = "msvc"))]
+    {
+        println!("cargo:rustc-link-arg=/STACK:8388608");
     }
 
     let out_dir = env::var("OUT_DIR").unwrap();
