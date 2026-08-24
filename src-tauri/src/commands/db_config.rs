@@ -18,7 +18,7 @@ use axagent_crypto::{decrypt_key, encrypt_key};
 use axagent_dao::config::DbConfig;
 use axagent_dao::migrations::SchemaMigrationStatus;
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 
 use crate::AppState;
 

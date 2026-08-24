@@ -38,6 +38,7 @@ use crate::workflow_types::ToolDef;
 /// 使用 `system_prompt`（若有）覆盖默认角色 prompt，
 /// 使用 `tools` 限制可用工具集，执行 `mission` 描述的任务。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DispatchRequest {
     /// 对应 orchestrator SubTask 的 id
     pub sub_task_id: String,
@@ -55,6 +56,7 @@ pub struct DispatchRequest {
 
 /// 派发执行结果。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SubTaskDispatchResult {
     /// 对应的 sub_task_id
     pub sub_task_id: String,

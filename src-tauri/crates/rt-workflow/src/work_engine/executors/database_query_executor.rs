@@ -8,8 +8,6 @@
 
 use async_trait::async_trait;
 use axagent_harness::workflow_types::WorkflowNode;
-use sqlx::Row;
-use sqlx::any::AnyPoolOptions;
 
 use crate::work_engine::execution_state::ExecutionState;
 use crate::work_engine::node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};
@@ -26,44 +24,6 @@ impl Default for DatabaseQueryExecutor {
     fn default() -> Self {
         Self::new()
     }
-}
-
-/// P1-15: 检测 SQL 字符串中是否含危险字符（用于拒绝未参数化的字符串拼接）。
-/// 允许的参数占位符：?、$1..$N、:name。
-fn contains_unsafe_concat(sql: &str) -> bool {
-    // 简单启发式：查找单引号内嵌的"+"号、或 SQL 字符串中有 " ' " + " 模式。
-    // 这里不期望完美 —— 真正的防御是强制占位符 + AST 解析。
-    let mut in_quote = false;
-    let mut prev = '\0';
-    for c in sql.chars() {
-        if c == '\'' {
-            in_quote = !in_quote;
-        } else if in_quote && c == '+' && prev == '\'' {
-            return true;
-        } else if !in_quote && c == '"' {
-            // 字符串字面量外的双引号：可能是 SQL 注入载体
-            return true;
-        }
-        prev = c;
-    }
-    false
-}
-
-/// P1-15: DDL/DML 关键字检查（只允许 SELECT 等只读查询；INSERT/UPDATE/DELETE
-/// 必须显式开启 `allow_writes` 配置）。
-const DDL_DML_KEYWORDS: &[&str] = &[
-    "INSERT", "UPDATE", "DELETE", "DROP", "TRUNCATE", "ALTER", "CREATE", "REPLACE", "GRANT",
-    "REVOKE",
-];
-
-/// 去掉 SQL 注释和多余空白，便于做关键字匹配。
-fn normalize_sql(sql: &str) -> String {
-    let mut s = sql.to_string();
-    // 去掉行注释
-    if let Some(idx) = s.find("--") {
-        s.truncate(idx);
-    }
-    s.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 /// Build the connection string, preferring credential manager when
@@ -123,65 +83,26 @@ impl NodeExecutorTrait for DatabaseQueryExecutor {
         )
         .await?;
 
-        let pool = AnyPoolOptions::new()
-            .max_connections(1)
-            .connect(&conn_str)
-            .await
-            .map_err(|e| NodeError::exec_failed("DATABASE_CONNECT_FAILED", e.to_string()))?;
-
-        // P1-15: SQL 注入防御 —— 拒绝未参数化的字符串拼接
-        if contains_unsafe_concat(&c.query) {
-            let _ = pool.close().await;
-            return Err(NodeError::exec_failed(
-                "DATABASE_UNSAFE_QUERY",
-                "Query contains unsafe string concatenation (e.g. 'foo' + bar). \
-                 Use parameterized placeholders (? / $1 / :name) instead."
-                    .to_string(),
-            ));
-        }
-
-        // P1-15: DDL/DML 权限校验 —— 只允许 SELECT 除非显式 allow_writes
-        // 注：当前 DatabaseQueryNode 配置未必有 allow_writes 字段，按 SELECT-only 默认
-        let normalized = normalize_sql(&c.query);
-        let upper_first = normalized.split_whitespace().next().unwrap_or("").to_ascii_uppercase();
-        if DDL_DML_KEYWORDS.iter().any(|kw| upper_first == *kw) {
-            let _ = pool.close().await;
-            return Err(NodeError::exec_failed(
-                "DATABASE_WRITE_NOT_ALLOWED",
-                format!(
-                    "DDL/DML keyword '{upper_first}' is not allowed in databaseQuery node. \
-                     Use a dedicated write node if needed."
-                ),
-            ));
-        }
+        // 注入式：通过 DatabaseQueryService trait 执行查询，连接、SQL 注入防御、权限校验均由 trait 实现方负责
+        let db_service = ctx.database_query_service.as_ref().ok_or_else(|| {
+            NodeError::exec_failed(
+                "DATABASE_SERVICE_UNAVAILABLE",
+                "database_query_service not injected into ExecutionState",
+            )
+        })?;
 
         let query_str = c.query.clone();
-        let rows = sqlx::query(sqlx::AssertSqlSafe(query_str))
-            .fetch_all(&pool)
+        let result = db_service
+            .execute_query(&conn_str, &query_str)
             .await
-            .map_err(|e| NodeError::exec_failed("DATABASE_QUERY_FAILED", e.to_string()));
+            .map_err(|e| NodeError::exec_failed("DATABASE_QUERY_FAILED", e.to_string()))?;
 
-        // Drop pool connection explicitly
-        drop(pool);
-
-        let rows = rows?;
-
-        let mut results: Vec<serde_json::Value> = Vec::with_capacity(rows.len());
-        for row in &rows {
+        let mut results: Vec<serde_json::Value> = Vec::with_capacity(result.rows.len());
+        for row in &result.rows {
             let mut map = serde_json::Map::new();
-            for (i, col) in row.columns().iter().enumerate() {
-                let val: serde_json::Value = if let Ok(v) = row.try_get::<i64, _>(i) {
-                    serde_json::json!(v)
-                } else if let Ok(v) = row.try_get::<f64, _>(i) {
-                    serde_json::json!(v)
-                } else if let Ok(v) = row.try_get::<String, _>(i) {
-                    serde_json::json!(v)
-                } else if let Ok(v) = row.try_get::<bool, _>(i) {
-                    serde_json::json!(v)
-                } else {
-                    serde_json::Value::Null
-                };
-                map.insert(col.name.to_string(), val);
+            for (i, col_name) in result.columns.iter().enumerate() {
+                let val = row.get(i).cloned().unwrap_or(serde_json::Value::Null);
+                map.insert(col_name.clone(), val);
             }
             results.push(serde_json::Value::Object(map));
         }

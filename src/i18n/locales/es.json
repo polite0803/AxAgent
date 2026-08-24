@@ -2460,6 +2460,14 @@
     "title": "Vista previa de UI dinámica"
   },
   "error": {
+    "settings": {
+      "modelRefInvalid": "Estructura NullableModelRef inválida: {{label}}",
+      "cleanupInvalid": "[SettingsAdaptor] Limpiando {{label}} inválido: {{reason}}",
+      "modelConsistencyInvalid": "[ModelConsistency] {{label}}: {{reason}} (providerId={{providerId}}, modelId={{modelId}})",
+      "dataInconsistency": "[fromDto] Inconsistencia de datos: {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}",
+      "invalidModelRefDetected": "[toDto] Referencia de modelo inválida detectada {{sourceKey}}",
+      "mustBeSetTogether": "[SettingsDto] {{providerKey}} y {{modelKey}} deben configurarse juntos o ambos ser null. Actualmente {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}"
+    },
     "deleteFailed": "Error al eliminar, inténtelo de nuevo",
     "gatewayStartFailed": "Error al iniciar la pasarela",
     "invalidFormat": "Formato inválido",
@@ -7391,6 +7399,11 @@
     "apiKey": "Clave API"
   },
   "settings": {
+    "modelLabels": {
+      "defaultModel": "Modelo de conversación predeterminado",
+      "titleSummaryModel": "Modelo de resumen de título",
+      "compressionModel": "Modelo de compresión"
+    },
     "activeProfile": "Perfil activo",
     "addKey": "Añadir clave",
     "addModel": "Agregar modelo",
@@ -16331,5 +16344,66 @@
     "approve": "Aprobar",
     "reject": "Rechazar",
     "rejectedToast": "Operación de alto riesgo rechazada"
+  },
+  "executionBridge": {
+    "mode": {
+      "title": "Modo de ejecución",
+      "manual": "Confirmación manual",
+      "manualDesc": "Todas las operaciones requieren confirmación manual antes de ejecutarse",
+      "semiAuto": "Semiautomático",
+      "semiAutoDesc": "Ejecución automática después de pasar el control de riesgos",
+      "fullAuto": "Totalmente automático",
+      "fullAutoDesc": "Todas las señales se ejecutan automáticamente, sin confirmación"
+    },
+    "pending": {
+      "title": "Señales pendientes",
+      "empty": "No hay señales pendientes",
+      "refresh": "Actualizar",
+      "noData": "No hay señales de trading",
+      "stockCode": "Código de acción",
+      "stockName": "Nombre de la acción",
+      "direction": "Dirección",
+      "price": "Precio",
+      "quantity": "Cantidad",
+      "reason": "Razón",
+      "riskLevel": "Nivel de riesgo",
+      "createdAt": "Creado en",
+      "actions": "Acciones",
+      "buy": "Comprar",
+      "sell": "Vender",
+      "hold": "Mantener"
+    },
+    "risk": {
+      "low": "Riesgo bajo",
+      "medium": "Riesgo medio",
+      "high": "Riesgo alto",
+      "warning": "Advertencia de riesgo",
+      "checkFailed": "Control de riesgos fallido",
+      "level": "Nivel de riesgo"
+    },
+    "confirm": {
+      "title": "Confirmar operación",
+      "message": "Está a punto de {direction} {stockName}, cantidad {quantity}, precio {price}. ¿Confirmar ejecución?",
+      "quantityPlaceholder": "Ingresar cantidad",
+      "quantityLabel": "Cantidad",
+      "submit": "Confirmar ejecución",
+      "cancel": "Cancelar"
+    },
+    "reject": {
+      "title": "Rechazar operación",
+      "message": "¿Está seguro de rechazar la señal de trading para {stockName}?",
+      "reasonPlaceholder": "Ingresar razón del rechazo",
+      "reasonLabel": "Razón del rechazo",
+      "submit": "Confirmar rechazo",
+      "cancel": "Cancelar"
+    },
+    "toast": {
+      "submitSuccess": "Señal enviada con éxito",
+      "submitFailed": "Error al enviar la señal",
+      "confirmSuccess": "Operación confirmada y ejecutada",
+      "rejectSuccess": "Operación rechazada",
+      "modeChanged": "Modo de ejecución actualizado",
+      "riskRejected": "Control de riesgos fallido: {reason}"
+    }
   }
 }

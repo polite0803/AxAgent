@@ -11,7 +11,7 @@
 #![allow(dead_code)]
 #![allow(clippy::type_complexity)]
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use std::sync::Arc;
 use tokio::sync::Semaphore;
 

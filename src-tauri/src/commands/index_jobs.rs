@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_dao::repo::index_jobs::{
     self, INDEX_JOB_STATUS_CANCELLED, INDEX_JOB_STATUS_COMPLETED, INDEX_JOB_STATUS_FAILED,
     INDEX_JOB_STATUS_PENDING, INDEX_JOB_STATUS_PROCESSING, IndexJob, JOB_TYPE_INDEX_DOCUMENT,

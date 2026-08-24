@@ -2460,6 +2460,14 @@
     "title": "Dynamische UI-Vorschau"
   },
   "error": {
+    "settings": {
+      "modelRefInvalid": "Ungültige NullableModelRef-Struktur: {{label}}",
+      "cleanupInvalid": "[SettingsAdaptor] Ungültiges {{label}} bereinigt: {{reason}}",
+      "modelConsistencyInvalid": "[ModelConsistency] {{label}}: {{reason}} (providerId={{providerId}}, modelId={{modelId}})",
+      "dataInconsistency": "[fromDto] Dateninkonsistenz: {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}",
+      "invalidModelRefDetected": "[toDto] Ungültige Modellreferenz erkannt {{sourceKey}}",
+      "mustBeSetTogether": "[SettingsDto] {{providerKey}} und {{modelKey}} müssen entweder beide gesetzt oder beide null sein. Aktuell {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}"
+    },
     "deleteFailed": "Löschen fehlgeschlagen, bitte erneut versuchen",
     "gatewayStartFailed": "Gateway-Start fehlgeschlagen",
     "invalidFormat": "Ungültiges Format",
@@ -7391,6 +7399,11 @@
     "apiKey": "API-Schlüssel"
   },
   "settings": {
+    "modelLabels": {
+      "defaultModel": "Standard-Konversationsmodell",
+      "titleSummaryModel": "Titel-Zusammenfassungsmodell",
+      "compressionModel": "Kompressionsmodell"
+    },
     "activeProfile": "Aktives Profil",
     "addKey": "Schlüssel hinzufügen",
     "addModel": "Modell hinzufügen",
@@ -16331,5 +16344,66 @@
     "approve": "Genehmigen",
     "reject": "Ablehnen",
     "rejectedToast": "Risikoreicher Vorgang abgelehnt"
+  },
+  "executionBridge": {
+    "mode": {
+      "title": "Ausführungsmodus",
+      "manual": "Manuelle Bestätigung",
+      "manualDesc": "Alle Trades erfordern eine manuelle Bestätigung vor der Ausführung",
+      "semiAuto": "Halbautomatisch",
+      "semiAutoDesc": "Automatische Ausführung nach bestandener Risikoprüfung",
+      "fullAuto": "Vollautomatisch",
+      "fullAutoDesc": "Alle Signale werden automatisch ausgeführt, keine Bestätigung erforderlich"
+    },
+    "pending": {
+      "title": "Ausstehende Signale",
+      "empty": "Keine ausstehenden Signale",
+      "refresh": "Aktualisieren",
+      "noData": "Keine Handelssignale",
+      "stockCode": "Aktuencode",
+      "stockName": "Aktienname",
+      "direction": "Richtung",
+      "price": "Preis",
+      "quantity": "Menge",
+      "reason": "Grund",
+      "riskLevel": "Risikoniveau",
+      "createdAt": "Erstellt am",
+      "actions": "Aktionen",
+      "buy": "Kaufen",
+      "sell": "Verkaufen",
+      "hold": "Halten"
+    },
+    "risk": {
+      "low": "Niedriges Risiko",
+      "medium": "Mittleres Risiko",
+      "high": "Hohes Risiko",
+      "warning": "Risikowarnung",
+      "checkFailed": "Risikoprüfung nicht bestanden",
+      "level": "Risikoniveau"
+    },
+    "confirm": {
+      "title": "Trade bestätigen",
+      "message": "Sie werden {direction} {stockName}, Menge {quantity}, Preis {price}. Ausführung bestätigen?",
+      "quantityPlaceholder": "Menge eingeben",
+      "quantityLabel": "Menge",
+      "submit": "Ausführung bestätigen",
+      "cancel": "Abbrechen"
+    },
+    "reject": {
+      "title": "Trade ablehnen",
+      "message": "Möchten Sie das Handelssignal für {stockName} wirklich ablehnen?",
+      "reasonPlaceholder": "Ablehnungsgrund eingeben",
+      "reasonLabel": "Ablehnungsgrund",
+      "submit": "Ablehnung bestätigen",
+      "cancel": "Abbrechen"
+    },
+    "toast": {
+      "submitSuccess": "Signal erfolgreich gesendet",
+      "submitFailed": "Signal konnte nicht gesendet werden",
+      "confirmSuccess": "Trade bestätigt und ausgeführt",
+      "rejectSuccess": "Trade abgelehnt",
+      "modeChanged": "Ausführungsmodus aktualisiert",
+      "riskRejected": "Risikoprüfung nicht bestanden: {reason}"
+    }
   }
 }

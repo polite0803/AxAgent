@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest, ChatResponse};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use axagent_providers::openai::OpenAIAdapter;
@@ -10,6 +10,7 @@ use std::sync::Arc;
 use tauri::command;
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ChartGenResult {
     pub option: Value,
     pub chart_type: String,

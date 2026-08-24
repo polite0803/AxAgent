@@ -2460,6 +2460,14 @@
     "title": "동적 UI 미리보기"
   },
   "error": {
+    "settings": {
+      "modelRefInvalid": "NullableModelRef 구조가 유효하지 않습니다: {{label}}",
+      "cleanupInvalid": "[SettingsAdaptor] 유효하지 않는 {{label}} 정리: {{reason}}",
+      "modelConsistencyInvalid": "[ModelConsistency] {{label}}: {{reason}} (providerId={{providerId}}, modelId={{modelId}})",
+      "dataInconsistency": "[fromDto] 데이터 불일치: {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}",
+      "invalidModelRefDetected": "[toDto] 유효하지 않은 모델 참조 감지 {{sourceKey}}",
+      "mustBeSetTogether": "[SettingsDto] {{providerKey}}와 {{modelKey}}는 동시에 설정하거나 동시에 null이어야 합니다. 현재 {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}"
+    },
     "deleteFailed": "삭제에 실패했습니다. 다시 시도하세요",
     "gatewayStartFailed": "게이트웨이 시작에 실패했습니다",
     "invalidFormat": "잘못된 형식",
@@ -7391,6 +7399,11 @@
     "apiKey": "API 키"
   },
   "settings": {
+    "modelLabels": {
+      "defaultModel": "기본 대화 모델",
+      "titleSummaryModel": "제목 요약 모델",
+      "compressionModel": "압축 모델"
+    },
     "activeProfile": "활성 프로필",
     "addKey": "키 추가",
     "addModel": "모델 추가",
@@ -16331,5 +16344,66 @@
     "approve": "승인",
     "reject": "거부",
     "rejectedToast": "고위험 작업이 거부되었습니다"
+  },
+  "executionBridge": {
+    "mode": {
+      "title": "실행 모드",
+      "manual": "수동 확인",
+      "manualDesc": "모든 거래는 수동 확인 후 실행됩니다",
+      "semiAuto": "반자동",
+      "semiAutoDesc": "리스크 체크 통과 후 자동 실행",
+      "fullAuto": "전자동",
+      "fullAutoDesc": "모든 신호가 자동 실행, 확인 불필요"
+    },
+    "pending": {
+      "title": "대기 신호",
+      "empty": "대기 신호 없음",
+      "refresh": "새로고침",
+      "noData": "거래 신호 없음",
+      "stockCode": "주식 코드",
+      "stockName": "주식 이름",
+      "direction": "방향",
+      "price": "가격",
+      "quantity": "수량",
+      "reason": "이유",
+      "riskLevel": "리스크 레벨",
+      "createdAt": "생성 시간",
+      "actions": "작업",
+      "buy": "매수",
+      "sell": "매도",
+      "hold": "보유"
+    },
+    "risk": {
+      "low": "저리스크",
+      "medium": "중리스크",
+      "high": "고리스크",
+      "warning": "리스크 경고",
+      "checkFailed": "리스크 체크 실패",
+      "level": "리스크 레벨"
+    },
+    "confirm": {
+      "title": "거래 확인",
+      "message": "{direction} {stockName}, 수량 {quantity}, 가격 {price}을 실행하시겠습니까?",
+      "quantityPlaceholder": "수량 입력",
+      "quantityLabel": "수량",
+      "submit": "실행 확인",
+      "cancel": "취소"
+    },
+    "reject": {
+      "title": "거래 거부",
+      "message": "{stockName}의 거래 신호를 거부하시겠습니까?",
+      "reasonPlaceholder": "거부 이유 입력",
+      "reasonLabel": "거부 이유",
+      "submit": "거부 확인",
+      "cancel": "취소"
+    },
+    "toast": {
+      "submitSuccess": "신호가 제출되었습니다",
+      "submitFailed": "신호 제출 실패",
+      "confirmSuccess": "거래가 확인되었습니다",
+      "rejectSuccess": "거래가 거부되었습니다",
+      "modeChanged": "실행 모드가 업데이트되었습니다",
+      "riskRejected": "리스크 체크 실패: {reason}"
+    }
   }
 }

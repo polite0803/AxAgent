@@ -9,7 +9,7 @@ use std::sync::Arc;
 use tauri::State;
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_analysis_engine::opc::{IndustryLearningManager, OpcIndustryAnalysisRound};
 use axagent_orchestrator::{ReinforcementLearningConfig, RewardWeightConfig};
 

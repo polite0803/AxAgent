@@ -16,7 +16,7 @@
 //!   2. QuantStrategyAgent 已就绪
 //!   3. WalkForward 基线评分已建立 (MaCross 5/20: 9 folds, Sharpe=-7.14, MaxDD=10.16%)
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use serde::{Deserialize, Serialize};
 
 use axagent_market_sim::{

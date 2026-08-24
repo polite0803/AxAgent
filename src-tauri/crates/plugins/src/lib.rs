@@ -32,11 +32,9 @@ mod tests {
     use std::fs;
     use std::path::{Path, PathBuf};
 
-    fn env_guard() -> std::sync::MutexGuard<'static, ()> {
-        crate::manager::env_lock().lock().unwrap_or_else(|e| {
-            tracing::warn!("env lock poisoned, recovering");
-            e.into_inner()
-        })
+    #[allow(clippy::disallowed_types)]
+    fn env_guard() -> parking_lot::MutexGuard<'static, ()> {
+        crate::manager::env_lock().lock()
     }
 
     fn temp_dir(label: &str) -> PathBuf {

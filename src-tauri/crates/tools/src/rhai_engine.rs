@@ -5,11 +5,13 @@
 //! 编译（工作流创建时）→ 缓存 AST → 执行时注册为 tool_handler
 //! 脚本中可通过 `tool("name", args_map)` 调用已注册的工具
 
+#![allow(clippy::disallowed_types)]
+
+use parking_lot::Mutex;
 use rhai::{AST, Engine, Scope};
 use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
@@ -268,7 +270,7 @@ impl Default for RhaiEngine {
 impl HarnessRhaiEngineAdapter for RhaiEngine {
     fn register_scripts(&self, scripts: &[JsonValue]) {
         let engine = create_rhai_engine();
-        let mut cache = self.cache.lock().unwrap_or_else(|e| e.into_inner());
+        let mut cache = self.cache.lock();
         for script in scripts {
             let tool_name = script.get("tool_name").and_then(|v| v.as_str()).unwrap_or("");
             let code = script.get("code").and_then(|v| v.as_str()).unwrap_or("");
@@ -293,7 +295,7 @@ impl HarnessRhaiEngineAdapter for RhaiEngine {
         tool_fns: &HashMap<String, RhaiToolFn>,
     ) -> Result<JsonValue, String> {
         let ast = {
-            let cache = self.cache.lock().unwrap_or_else(|e| e.into_inner());
+            let cache = self.cache.lock();
             cache
                 .get(script_name)
                 .cloned()

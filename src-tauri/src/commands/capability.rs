@@ -6,7 +6,7 @@
 
 use crate::AppState;
 use crate::commands::error::{CommandError, ErrorCategory, ErrorResponse};
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_dao::repo::agent_profile as agent_profile_repo;
 use axagent_dao::repo::agent_role as agent_role_repo;
 use axagent_entities::{agency_experts, agent_roles};

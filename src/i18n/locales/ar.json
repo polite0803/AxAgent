@@ -2460,6 +2460,14 @@
     "title": "معاينة واجهة ديناميكية"
   },
   "error": {
+    "settings": {
+      "modelRefInvalid": "هيكل NullableModelRef غير صالح: {{label}}",
+      "cleanupInvalid": "[SettingsAdaptor] تم تنظيف {{label}} غير الصالح: {{reason}}",
+      "modelConsistencyInvalid": "[ModelConsistency] {{label}}: {{reason}} (providerId={{providerId}}, modelId={{modelId}})",
+      "dataInconsistency": "[fromDto] عدم اتساق البيانات: {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}",
+      "invalidModelRefDetected": "[toDto] تم اكتشاف مرجع نموذج غير صالح {{sourceKey}}",
+      "mustBeSetTogether": "[SettingsDto] يجب تعيين {{providerKey}} و {{modelKey}} معًا أو أن يكونا فارغين معًا. حاليًا {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}"
+    },
     "deleteFailed": "فشل الحذف، يرجى المحاولة مجدداً",
     "gatewayStartFailed": "فشل تشغيل البوابة",
     "invalidFormat": "تنسيق غير صالح",
@@ -7391,6 +7399,11 @@
     "apiKey": "مفتاح API"
   },
   "settings": {
+    "modelLabels": {
+      "defaultModel": "نموذج المحادثة الافتراضي",
+      "titleSummaryModel": "نموذج تلخيص العنوان",
+      "compressionModel": "نموذج ضغط"
+    },
     "activeProfile": "الملف النشط",
     "addKey": "إضافة مفتاح",
     "addModel": "إضافة نموذج",
@@ -16331,5 +16344,66 @@
     "approve": "موافقة",
     "reject": "رفض",
     "rejectedToast": "تم رفض العملية عالية المخاطر"
+  },
+  "executionBridge": {
+    "mode": {
+      "title": "وضع التنفيذ",
+      "manual": "تأكيد يدوي",
+      "manualDesc": "تتطلب جميع الصفقات تأكيداً يدوياً قبل التنفيذ",
+      "semiAuto": "شبه تلقائي",
+      "semiAutoDesc": "التنفيذ التلقائي بعد اجتياز فحص المخاطر",
+      "fullAuto": "تلقائي كامل",
+      "fullAutoDesc": "تنفيذ جميع الإشارات تلقائياً، لا يحتاج تأكيد"
+    },
+    "pending": {
+      "title": "الإشارات المعلقة",
+      "empty": "لا توجد إشارات معلقة",
+      "refresh": "تحديث",
+      "noData": "لا توجد إشارات تداول",
+      "stockCode": "رمز السهم",
+      "stockName": "اسم السهم",
+      "direction": "الاتجاه",
+      "price": "السعر",
+      "quantity": "الكمية",
+      "reason": "السبب",
+      "riskLevel": "مستوى المخاطر",
+      "createdAt": "تاريخ الإنشاء",
+      "actions": "الإجراءات",
+      "buy": "شراء",
+      "sell": "بيع",
+      "hold": "احتفاظ"
+    },
+    "risk": {
+      "low": "مخاطر منخفضة",
+      "medium": "مخاطر متوسطة",
+      "high": "مخاطر عالية",
+      "warning": "تحذير المخاطر",
+      "checkFailed": "فشل فحص المخاطر",
+      "level": "مستوى المخاطر"
+    },
+    "confirm": {
+      "title": "تأكيد الصفقة",
+      "message": "أنت على وشك {direction} {stockName}، الكمية {quantity}، السعر {price}. هل تؤكد التنفيذ؟",
+      "quantityPlaceholder": "أدخل الكمية",
+      "quantityLabel": "الكمية",
+      "submit": "تأكيد التنفيذ",
+      "cancel": "إلغاء"
+    },
+    "reject": {
+      "title": "رفض الصفقة",
+      "message": "هل أنت متأكد من رفض إشارة التداول لـ {stockName}؟",
+      "reasonPlaceholder": "أدخل سبب الرفض",
+      "reasonLabel": "سبب الرفض",
+      "submit": "تأكيد الرفض",
+      "cancel": "إلغاء"
+    },
+    "toast": {
+      "submitSuccess": "تم إرسال الإشارة بنجاح",
+      "submitFailed": "فشل إرسال الإشارة",
+      "confirmSuccess": "تم تأكيد الصفقة وتنفيذها",
+      "rejectSuccess": "تم رفض الصفقة",
+      "modeChanged": "تم تحديث وضع التنفيذ",
+      "riskRejected": "فشل فحص المخاطر: {reason}"
+    }
   }
 }

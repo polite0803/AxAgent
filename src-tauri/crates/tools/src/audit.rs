@@ -8,9 +8,12 @@
 //! 3. 输出内容敏感信息扫描
 //! 4. 调用审计日志
 
+#![allow(clippy::disallowed_types)]
+
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 
@@ -278,7 +281,7 @@ impl ToolAuditor {
             let e = entry.clone();
             let db = db.clone();
             let _ = tokio::task::spawn_blocking(move || {
-                let conn = db.lock().unwrap_or_else(|e| e.into_inner());
+                let conn = db.lock();
                 let _ = conn.execute(
                     "INSERT INTO audit_log (timestamp, tool_name, conversation_id, success, duration_ms, output_preview, has_sensitive_input, has_sensitive_output)
                      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",

@@ -18,7 +18,7 @@
 use std::path::PathBuf;
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_harness::types::{Conversation, Message, MessageRole};
 use serde::{Deserialize, Serialize};
 use tauri::State;

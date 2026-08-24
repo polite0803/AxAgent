@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { safeJoinIds } from "@/lib/validators";
+
 /**
  * Paired — 全局"必须同步的多字段对"类型工具
  *
@@ -218,7 +220,7 @@ export const ModelRef = {
    * 序列化为 "providerId::modelId" 字符串
    */
   toValue(ref: ModelRef): string {
-    return `${ref.a}::${ref.b}`;
+    return safeJoinIds([ref.a, ref.b], "::");
   },
 
   /**

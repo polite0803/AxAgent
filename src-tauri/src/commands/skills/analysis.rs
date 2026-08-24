@@ -3,7 +3,7 @@ use super::install::skills_dir;
 use crate::app_state::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::skill_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_crypto::decrypt_key;
 use axagent_harness::types::provider_model::ProviderType;
 use axagent_harness::types::settings_chat::ChatContent;

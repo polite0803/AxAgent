@@ -12,7 +12,7 @@
 //! 前端按 `t("error.${code}")` 翻译,详见 `commands/error_code.rs::workflow_reflection`。
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_dao::repo::workflow_template as db_repo;
 use axagent_harness::reflection_types::Reflection;
 use axagent_harness::workflow_evolution::{EvolutionStats, WorkflowModification};
@@ -28,18 +28,21 @@ use super::error_code::workflow_reflection as wf_reflect_err;
 // ── 命令请求 / 响应 DTO ──
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkflowOptimizeSuggestRequest {
     pub template: WorkflowTemplateData,
     pub reflection: Reflection,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkflowOptimizeApplyRequest {
     pub template: WorkflowTemplateData,
     pub suggestions: Vec<WorkflowSuggestion>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkflowEvolveRequest {
     pub template_id: String,
     pub reflections: Vec<Reflection>,
@@ -50,6 +53,7 @@ pub struct WorkflowEvolveRequest {
 /// `template` 为用户审核时看到的原始模板（未修改），`suggestions` 为用户同意的建议，
 /// 命令内部经 `apply_suggestions` 生成新模板并持久化 + 注册护照/图谱。
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkflowSuggestionConfirmRequest {
     pub template: WorkflowTemplateData,
     pub suggestions: Vec<WorkflowSuggestion>,
@@ -59,6 +63,7 @@ pub struct WorkflowSuggestionConfirmRequest {
 ///
 /// 拒绝即丢弃 + 记决策标签（拒绝即证据）。
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkflowSuggestionRejectRequest {
     pub template_id: String,
     pub suggestion_ids: Vec<String>,

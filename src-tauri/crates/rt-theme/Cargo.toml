@@ -9,4 +9,4 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 
 [lints]
-# workspace = true
+workspace = true

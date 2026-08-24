@@ -4,12 +4,14 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExtractedCodePatterns {
     pub function_patterns: Vec<FunctionPattern>,
     pub naming_patterns: Vec<NamingPattern>,
     pub structural_patterns: Vec<StructurePattern>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FunctionPattern {
     pub name: String,
     pub avg_length: f64,
@@ -23,11 +25,13 @@ pub struct NamingPattern {
     pub examples: Vec<String>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct StructurePattern {
     pub pattern_type: String,
     pub code: String,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DocumentStyleProfile {
     pub format: String,
     pub line_length: u16,
@@ -54,12 +58,14 @@ impl StyleVector {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CodeStyleTemplate {
     pub name: String,
     pub patterns: Vec<StylePattern>,
     pub code_sample: String,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct StylePattern {
     pub pattern_type: StylePatternType,
     pub content: String,

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_kit::computer_control;
 use axagent_kit::permission;
 use axagent_kit::screen_capture::CaptureRegion;

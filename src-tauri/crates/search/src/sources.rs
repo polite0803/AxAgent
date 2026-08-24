@@ -63,7 +63,7 @@ pub(crate) fn settings() -> &'static Arc<dyn SettingsSource> {
     SETTINGS.get().expect("SettingsSource not initialized — call axagent_search::sources::set_sources() in wiring layer")
 }
 
-pub(crate) fn parser() -> &'static Arc<dyn DocumentParser> {
+pub fn parser() -> &'static Arc<dyn DocumentParser> {
     PARSER.get().expect("DocumentParser not initialized — call axagent_search::sources::set_sources() in wiring layer")
 }
 

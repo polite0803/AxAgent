@@ -26,10 +26,10 @@
 //!
 //! This data flows into the ML layer to continuously improve routing decisions.
 
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 // ─── Task Feature Vector ───
@@ -474,15 +474,15 @@ impl CostAwareRouter {
         // 写入内存状态（lock 后批量替换，不跨 await 持有锁）
         // 使用 into_inner() 避免锁毒化后级联 panic（HashMap/Vec 内部一致性不受影响）
         {
-            let mut history = self.history.lock().unwrap_or_else(|e| e.into_inner());
+            let mut history = self.history.lock();
             *history = entries;
         }
         {
-            let mut global_lock = self.global_stats.lock().unwrap_or_else(|e| e.into_inner());
+            let mut global_lock = self.global_stats.lock();
             *global_lock = global;
         }
         {
-            let mut buckets_lock = self.bucket_stats.lock().unwrap_or_else(|e| e.into_inner());
+            let mut buckets_lock = self.bucket_stats.lock();
             *buckets_lock = buckets;
         }
 
@@ -536,7 +536,7 @@ impl CostAwareRouter {
         heuristic: &RouteDecision,
     ) -> Option<RouteDecision> {
         let bucket = self.compute_bucket(features);
-        let stats = self.bucket_stats.lock().unwrap_or_else(|e| e.into_inner());
+        let stats = self.bucket_stats.lock();
         let bucket_data = stats.get(&bucket)?;
 
         // Check if we have enough data for any tier
@@ -663,7 +663,7 @@ impl CostAwareRouter {
     /// 不影响路由决策主流程。
     pub fn record_decision(&self, entry: RouteHistoryEntry) {
         let entry_for_db = entry.clone();
-        self.history.lock().unwrap_or_else(|e| e.into_inner()).push(entry);
+        self.history.lock().push(entry);
 
         if let Some(ref db) = self.db {
             let db = db.clone();
@@ -677,7 +677,7 @@ impl CostAwareRouter {
 
     /// Record feedback after LLM call. Updates ML statistics.
     pub fn record_feedback(&self, prompt_hash: &str, outcome: RouteOutcome) -> Option<RouteStats> {
-        let mut history = self.history.lock().unwrap_or_else(|e| e.into_inner());
+        let mut history = self.history.lock();
 
         // Find the entry and update it
         let entry = history.iter_mut().find(|e| e.prompt_hash == prompt_hash)?;
@@ -692,7 +692,7 @@ impl CostAwareRouter {
 
         // Update global stats
         {
-            let mut global = self.global_stats.lock().unwrap_or_else(|e| e.into_inner());
+            let mut global = self.global_stats.lock();
             let stats = global.entry(selected_tier).or_default();
             stats.sample_count += 1;
             stats.total_latency_ms += latency_ms;
@@ -707,7 +707,7 @@ impl CostAwareRouter {
         // Update bucket stats
         if let Some(features) = &features {
             let bucket = self.compute_bucket(features);
-            let mut buckets = self.bucket_stats.lock().unwrap_or_else(|e| e.into_inner());
+            let mut buckets = self.bucket_stats.lock();
             let stats = buckets.entry(bucket).or_default().entry(selected_tier).or_default();
             stats.sample_count += 1;
             stats.total_latency_ms += latency_ms;
@@ -767,8 +767,8 @@ impl CostAwareRouter {
 
     /// Compute aggregate routing statistics.
     pub fn compute_stats(&self) -> RouteStats {
-        let history = self.history.lock().unwrap_or_else(|e| e.into_inner());
-        let global = self.global_stats.lock().unwrap_or_else(|e| e.into_inner());
+        let history = self.history.lock();
+        let global = self.global_stats.lock();
 
         let total_routes = history.len() as u64;
         let total_feedback = history.iter().filter(|e| e.outcome.is_some()).count() as u64;

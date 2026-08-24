@@ -2460,6 +2460,14 @@
     "title": "Предпросмотр динамического UI"
   },
   "error": {
+    "settings": {
+      "modelRefInvalid": "Неверная структура NullableModelRef: {{label}}",
+      "cleanupInvalid": "[SettingsAdaptor] Очищено недействительное {{label}}: {{reason}}",
+      "modelConsistencyInvalid": "[ModelConsistency] {{label}}: {{reason}} (providerId={{providerId}}, modelId={{modelId}})",
+      "dataInconsistency": "[fromDto] Несогласованность данных: {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}",
+      "invalidModelRefDetected": "[toDto] Обнаружена недействительная ссылка на модель {{sourceKey}}",
+      "mustBeSetTogether": "[SettingsDto] {{providerKey}} и {{modelKey}} должны быть заданы вместе или оба быть null. Текущее {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}"
+    },
     "deleteFailed": "Ошибка удаления, повторите попытку",
     "gatewayStartFailed": "Ошибка запуска шлюза",
     "invalidFormat": "Неверный формат",
@@ -7391,6 +7399,11 @@
     "apiKey": "API-ключ"
   },
   "settings": {
+    "modelLabels": {
+      "defaultModel": "Модель конфигурации по умолчанию",
+      "titleSummaryModel": "Модель сводки заголовка",
+      "compressionModel": "Модель сжатия"
+    },
     "activeProfile": "Активный профиль",
     "addKey": "Добавить ключ",
     "addModel": "Добавить модель",
@@ -16331,5 +16344,66 @@
     "approve": "Утвердить",
     "reject": "Отклонить",
     "rejectedToast": "Высокорискованная операция отклонена"
+  },
+  "executionBridge": {
+    "mode": {
+      "title": "Режим исполнения",
+      "manual": "Ручное подтверждение",
+      "manualDesc": "Все сделки требуют ручного подтверждения перед исполнением",
+      "semiAuto": "Полуавтоматический",
+      "semiAutoDesc": "Автоматическое исполнение после прохождения проверки рисков",
+      "fullAuto": "Полностью автоматический",
+      "fullAutoDesc": "Все сигналы исполняются автоматически, без подтверждения"
+    },
+    "pending": {
+      "title": "Ожидающие сигналы",
+      "empty": "Нет ожидающих сигналов",
+      "refresh": "Обновить",
+      "noData": "Нет торговых сигналов",
+      "stockCode": "Код акции",
+      "stockName": "Название акции",
+      "direction": "Направление",
+      "price": "Цена",
+      "quantity": "Количество",
+      "reason": "Причина",
+      "riskLevel": "Уровень риска",
+      "createdAt": "Создано",
+      "actions": "Действия",
+      "buy": "Купить",
+      "sell": "Продать",
+      "hold": "Держать"
+    },
+    "risk": {
+      "low": "Низкий риск",
+      "medium": "Средний риск",
+      "high": "Высокий риск",
+      "warning": "Предупреждение о риске",
+      "checkFailed": "Проверка рисков не пройдена",
+      "level": "Уровень риска"
+    },
+    "confirm": {
+      "title": "Подтверждение сделки",
+      "message": "Вы собираетесь {direction} {stockName}, количество {quantity}, цена {price}. Подтвердить исполнение?",
+      "quantityPlaceholder": "Введите количество",
+      "quantityLabel": "Количество",
+      "submit": "Подтвердить исполнение",
+      "cancel": "Отмена"
+    },
+    "reject": {
+      "title": "Отклонение сделки",
+      "message": "Вы уверены, что хотите отклонить торговый сигнал для {stockName}?",
+      "reasonPlaceholder": "Введите причину отклонения",
+      "reasonLabel": "Причина отклонения",
+      "submit": "Подтвердить отклонение",
+      "cancel": "Отмена"
+    },
+    "toast": {
+      "submitSuccess": "Сигнал успешно отправлен",
+      "submitFailed": "Не удалось отправить сигнал",
+      "confirmSuccess": "Сделка подтверждена и исполнена",
+      "rejectSuccess": "Сделка отклонена",
+      "modeChanged": "Режим исполнения обновлен",
+      "riskRejected": "Проверка рисков не пройдена: {reason}"
+    }
   }
 }

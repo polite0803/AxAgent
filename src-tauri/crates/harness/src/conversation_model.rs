@@ -78,6 +78,7 @@ impl TokenUsage {
 
 /// Minimal session info that agent needs — full Session stays in runtime-core.
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct SessionInfo {
     pub session_id: String,
     pub user_id: String,

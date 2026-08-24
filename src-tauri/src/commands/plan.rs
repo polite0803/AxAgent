@@ -13,7 +13,7 @@ use crate::app_state::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::provider as provider_err;
 use crate::commands::error_code::workflow as workflow_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_harness::runtime_types::permissions::PermissionPolicy;
 use axagent_harness::types::{
     ChatContent, ChatMessage, ChatRequest, ChatTool, ChatToolFunction, MessageRole,

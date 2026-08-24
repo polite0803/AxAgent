@@ -10,6 +10,7 @@ use serde_json::Value;
 
 /// A tool discovered from an MCP server via tools/list.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DiscoveredTool {
     pub name: String,
     pub description: Option<String>,
@@ -18,6 +19,7 @@ pub struct DiscoveredTool {
 
 /// MCP resource (from resources/list)
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct McpResource {
     pub uri: String,
     pub name: String,
@@ -27,6 +29,7 @@ pub struct McpResource {
 
 /// MCP resource content block (from resources/read)
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct McpResourceContent {
     pub uri: String,
     pub mime_type: Option<String>,
@@ -36,6 +39,7 @@ pub struct McpResourceContent {
 
 /// MCP prompt (from prompts/list)
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct McpPrompt {
     pub name: String,
     pub description: Option<String>,
@@ -44,6 +48,7 @@ pub struct McpPrompt {
 
 /// Argument definition for an MCP prompt.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct McpPromptArgument {
     pub name: String,
     pub description: Option<String>,
@@ -52,6 +57,7 @@ pub struct McpPromptArgument {
 
 /// MCP get_prompt result (messages array as JSON for flexibility).
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct McpPromptResult {
     pub description: Option<String>,
     pub messages: serde_json::Value,

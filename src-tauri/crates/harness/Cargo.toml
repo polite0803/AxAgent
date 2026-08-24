@@ -11,6 +11,7 @@ async-trait = "0.1"
 chrono = { workspace = true, features = ["serde"] }
 futures = "0.3"
 hex = { workspace = true }
+parking_lot = "0.12"
 regex = "1"
 reqwest = { workspace = true }
 rhai = { workspace = true }

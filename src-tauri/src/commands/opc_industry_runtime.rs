@@ -7,7 +7,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use tauri::State;
 
 use axagent_analysis_engine::opc::*;

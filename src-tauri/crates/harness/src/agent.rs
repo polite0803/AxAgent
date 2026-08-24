@@ -21,6 +21,7 @@ pub struct AgentExecuteRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentResult {
     pub output: String,
     pub success: bool,

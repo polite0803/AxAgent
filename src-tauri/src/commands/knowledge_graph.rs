@@ -6,7 +6,7 @@
 
 use crate::app_state::AppState;
 use crate::commands::error::{ErrorCategory, ErrorResponse};
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_harness::core_error::AxAgentError;
 use axagent_harness::prompt_provider::PromptLang;
 use axagent_harness::util_fns::truncate_to_char_boundary;

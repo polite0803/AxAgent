@@ -38,6 +38,7 @@ pub struct WorkflowGenome {
 // ── 进化配置(与 trajectory::EvolutionConfig 字段对齐,便于转换) ──
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EvolutionConfig {
     pub population_size: usize,
     pub elite_count: usize,
@@ -73,6 +74,7 @@ impl Default for EvolutionConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EvolutionPopulation {
     pub generation: u32,
     pub individuals: Vec<WorkflowGenome>,
@@ -82,6 +84,7 @@ pub struct EvolutionPopulation {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EvolutionStats {
     pub generation: u32,
     pub best_fitness: f32,
@@ -93,6 +96,7 @@ pub struct EvolutionStats {
 // ── 进化结果 ──
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkflowModification {
     pub template_id: String,
     pub generation: u32,

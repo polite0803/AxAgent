@@ -2,7 +2,7 @@
 
 use crate::AppState;
 use crate::smart_router::{RouteDecision, RouteHistoryEntry, RouteOutcome, RouteStats};
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -10,12 +10,14 @@ use tauri::State;
 
 /// 路由分类请求
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ClassifyRouteRequest {
     pub prompt: String,
 }
 
 /// 路由结果（含决策和 prompt_hash，用于后续 feedback 关联）
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RouteResult {
     pub decision: RouteDecision,
     /// prompt 哈希，前端在 LLM 调用后用此值关联 feedback

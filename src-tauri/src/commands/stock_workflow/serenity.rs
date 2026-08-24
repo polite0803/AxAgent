@@ -2,7 +2,7 @@ use super::decision::{load_and_inject_template, parse_asof_param, resolve_runtim
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_workflow as wf_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_astock_data::as_of::{self};
 use axagent_entities::reco_picks;
 use axagent_harness::response_normalizer::ResponseNormalizer;

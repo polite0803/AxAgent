@@ -21,7 +21,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_workflow as wf_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_market_sim::{
     ExchangeAgent, MarketMakerAgent, MomentumAgent, NoiseAgent, SimConfig, SimKernel, SimResult,
     ValueAgent,

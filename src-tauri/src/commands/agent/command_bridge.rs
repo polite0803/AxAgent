@@ -13,7 +13,7 @@
 //! - 动态生成命令索引，支持运行时配置
 //! - 完善安全分级校验逻辑
 
-use agent_command_types;
+use axagent_agent_command_types;
 use axagent_harness::CapabilityDomain;
 use axagent_harness::path_vars::PathEncoder;
 use axagent_harness::types::{ChatTool, ChatToolFunction};
@@ -119,7 +119,7 @@ impl CommandRegistry {
     ///
     /// 所有命令都通过 #[agent_command] 宏注册，元数据由宏在编译时收集。
     pub fn from_registry() -> Self {
-        let macro_commands = agent_command_types::registry::get_all();
+        let macro_commands = axagent_agent_command_types::registry::get_all();
 
         let mut commands = Vec::with_capacity(macro_commands.len());
         for mc in &macro_commands {
@@ -146,11 +146,11 @@ impl CommandRegistry {
         domain_str.parse().unwrap_or(CapabilityDomain::General)
     }
 
-    fn map_safety(s: agent_command_types::CommandSafety) -> CommandSafety {
+    fn map_safety(s: axagent_agent_command_types::CommandSafety) -> CommandSafety {
         match s {
-            agent_command_types::CommandSafety::Safe => CommandSafety::Safe,
-            agent_command_types::CommandSafety::Caution => CommandSafety::Caution,
-            agent_command_types::CommandSafety::Dangerous => CommandSafety::Dangerous,
+            axagent_agent_command_types::CommandSafety::Safe => CommandSafety::Safe,
+            axagent_agent_command_types::CommandSafety::Caution => CommandSafety::Caution,
+            axagent_agent_command_types::CommandSafety::Dangerous => CommandSafety::Dangerous,
         }
     }
 
@@ -2320,8 +2320,10 @@ pub fn build_default_dispatcher() -> CommandDispatcher {
 ///
 /// 优先从宏注册表获取，补充 build.rs 索引
 pub fn list_available_commands() -> Vec<String> {
-    let mut commands: Vec<String> =
-        agent_command_types::registry::get_all().iter().map(|mc| mc.name.to_string()).collect();
+    let mut commands: Vec<String> = axagent_agent_command_types::registry::get_all()
+        .iter()
+        .map(|mc| mc.name.to_string())
+        .collect();
 
     commands.sort();
     commands.dedup();
@@ -2342,14 +2344,14 @@ async fn dispatch_proxy_command(
     debug!("Dispatching command: {}", command);
 
     // 从宏注册表查询元数据
-    if let Some(meta) = agent_command_types::registry::find_by_name(command) {
+    if let Some(meta) = axagent_agent_command_types::registry::find_by_name(command) {
         debug!(
             "Macro registry hit: {} (domain={}, call_mode={:?}, safety={:?})",
             command, meta.domain, meta.call_mode, meta.safety
         );
 
         // Manual 模式返回诊断信息
-        if meta.call_mode == agent_command_types::CallMode::Manual {
+        if meta.call_mode == axagent_agent_command_types::CallMode::Manual {
             return Err(format!(
                 "命令 '{}' 标记为 Manual 模式，需要创建专用 Handler。\n\
                  \n\
@@ -2476,7 +2478,7 @@ fn resolve_command_path(short_name: &str) -> Result<String, String> {
     }
 
     // 从宏注册表查找 full_path
-    if let Some(meta) = agent_command_types::registry::find_by_name(short_name) {
+    if let Some(meta) = axagent_agent_command_types::registry::find_by_name(short_name) {
         // 去除 crate:: 前缀，Tauri 命令路径不需要
         let path = meta.full_path();
         return Ok(path);
@@ -2509,17 +2511,19 @@ async fn invoke_command_direct(
     // 从宏注册表获取命令元数据
     let cmd_name = full_path.split("::").last().unwrap_or(full_path);
 
-    let meta = agent_command_types::registry::find_by_name(cmd_name)
+    let meta = axagent_agent_command_types::registry::find_by_name(cmd_name)
         .ok_or_else(|| format!("命令 '{}' 未在宏注册表中找到", full_path))?;
 
     // 根据 call_mode 选择调用方式
     match meta.call_mode {
-        agent_command_types::CallMode::StateOnly => invoke_state_only(full_path, app_handle).await,
-        agent_command_types::CallMode::StateInput => {
+        axagent_agent_command_types::CallMode::StateOnly => {
+            invoke_state_only(full_path, app_handle).await
+        },
+        axagent_agent_command_types::CallMode::StateInput => {
             let invoke_args = build_invoke_args(args);
             invoke_state_input(full_path, invoke_args, app_handle).await
         },
-        agent_command_types::CallMode::Manual => Err(format!(
+        axagent_agent_command_types::CallMode::Manual => Err(format!(
             "命令 '{}' 标记为 Manual 模式，需要专用 Handler。\n命令路径: {}",
             cmd_name, full_path
         )),

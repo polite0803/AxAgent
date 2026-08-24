@@ -8,6 +8,8 @@
 //! This requires updating all tool implementations to accept db via context,
 //! which is a significant refactor tracked separately.
 
+#![allow(clippy::disallowed_types)]
+
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 use std::sync::LazyLock;
@@ -16,7 +18,7 @@ use std::sync::LazyLock;
 // .await boundary, and all access goes through the module-level functions
 // which are themselves synchronous. Using tokio::sync::RwLock would require
 // async everywhere and break ~10+ callers in the tools crate.
-use std::sync::RwLock;
+use parking_lot::RwLock;
 
 // ── AStock 全局客户端 ──────────────────────────────────────────────────────
 
@@ -40,12 +42,12 @@ pub fn get_astock_client() -> Option<&'static Arc<AStockClient>> {
 static GLOBAL_DB_PATH: LazyLock<RwLock<Option<String>>> = LazyLock::new(|| RwLock::new(None));
 
 pub fn set_db_path(path: &str) {
-    let mut db_path = GLOBAL_DB_PATH.write().unwrap_or_else(|e| e.into_inner());
+    let mut db_path = GLOBAL_DB_PATH.write();
     *db_path = Some(path.to_string());
 }
 
 pub fn get_db_path() -> Option<String> {
-    GLOBAL_DB_PATH.read().unwrap_or_else(|e| e.into_inner()).clone()
+    GLOBAL_DB_PATH.read().clone()
 }
 
 // ── SeaORM 数据库连接 ─────────────────────────────────────────────────────
@@ -54,10 +56,10 @@ static GLOBAL_SEA_DB: LazyLock<RwLock<Option<Arc<DatabaseConnection>>>> =
     LazyLock::new(|| RwLock::new(None));
 
 pub fn set_sea_db(db: Arc<DatabaseConnection>) {
-    let mut sea_db = GLOBAL_SEA_DB.write().unwrap_or_else(|e| e.into_inner());
+    let mut sea_db = GLOBAL_SEA_DB.write();
     *sea_db = Some(db);
 }
 
 pub fn get_sea_db() -> Option<Arc<DatabaseConnection>> {
-    GLOBAL_SEA_DB.read().unwrap_or_else(|e| e.into_inner()).clone()
+    GLOBAL_SEA_DB.read().clone()
 }

@@ -6,7 +6,7 @@ use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::agent as agent_err;
 
 use crate::commands::spawn_guard::SpawnGuard;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_dao::repo::{conversation, message, workflow_template};
 use axagent_harness::types::{MessageRole, UpdateConversationInput};
 use axagent_harness::workflow_types::{Variable, Workflow};
@@ -249,8 +249,8 @@ pub async fn workflow_execute(
         // ── 对话驱动模式：创建 assistant 占位消息 + 桥接步骤事件 ──
         // 步骤文本累积缓冲：与前端实时事件同格式，最终与结果一并写入 DB 消息，
         // 保证 fetchMessages 回读的内容与对话区显示一致（步骤保留 + 结果在尾部）。
-        let steps_buf: Arc<std::sync::Mutex<String>> =
-            Arc::new(std::sync::Mutex::new(String::new()));
+        let steps_buf: Arc<parking_lot::Mutex<String>> =
+            Arc::new(parking_lot::Mutex::new(String::new()));
         let assistant_message_id: Option<String> = if let Some(conv) = &conversation_id {
             match message::create_message_with_parts(
                 &db,
@@ -274,9 +274,9 @@ pub async fn workflow_execute(
                             "assistantMessageId": m.id,
                         }),
                     );
-                    if let Ok(mut buf) = steps_buf.lock() {
-                        buf.push_str(&format!("\n[Workflow Started: {}]\n", wid));
-                    }
+                    let mut buf = steps_buf.lock();
+                    buf.push_str(&format!("\n[Workflow Started: {}]\n", wid));
+
                     let _ = app_for_emit.emit(
                         "agent-stream-text",
                         serde_json::json!({
@@ -323,9 +323,9 @@ pub async fn workflow_execute(
                         .unwrap_or_else(|| (evt.node_id.clone(), "node".to_string()));
                     match evt.status.as_str() {
                         "running" => {
-                            if let Ok(mut buf) = steps.lock() {
-                                buf.push_str(&format!("\n[Step Start] {}: {}\n", kind, title));
-                            }
+                            let mut buf = steps.lock();
+                            buf.push_str(&format!("\n[Step Start] {}: {}\n", kind, title));
+
                             let _ = app.emit(
                                 "agent-stream-text",
                                 serde_json::json!({
@@ -339,9 +339,9 @@ pub async fn workflow_execute(
                             );
                         },
                         "completed" => {
-                            if let Ok(mut buf) = steps.lock() {
-                                buf.push_str(&format!("[Step Complete] {}: ✓\n", title));
-                            }
+                            let mut buf = steps.lock();
+                            buf.push_str(&format!("[Step Complete] {}: ✓\n", title));
+
                             let _ = app.emit(
                                 "agent-stream-text",
                                 serde_json::json!({
@@ -355,12 +355,9 @@ pub async fn workflow_execute(
                             );
                         },
                         "failed" => {
-                            if let Ok(mut buf) = steps.lock() {
-                                buf.push_str(&format!(
-                                    "[Step Error] {}: 节点执行失败\n",
-                                    evt.node_id
-                                ));
-                            }
+                            let mut buf = steps.lock();
+                            buf.push_str(&format!("[Step Error] {}: 节点执行失败\n", evt.node_id));
+
                             let _ = app.emit(
                                 "agent-stream-text",
                                 serde_json::json!({
@@ -460,7 +457,7 @@ pub async fn workflow_execute(
                 // 对话驱动模式：步骤文本保留 + 结果追加尾部，写入 DB 与 agent-done
                 if let (Some(conv), Some(msg_id)) = (&conversation_id, &assistant_message_id) {
                     let output_text = format_workflow_output(&workflow);
-                    let steps_text = steps_buf.lock().map(|b| b.clone()).unwrap_or_default();
+                    let steps_text = steps_buf.lock().clone();
                     let full_text = if steps_text.trim().is_empty() {
                         output_text.clone()
                     } else {

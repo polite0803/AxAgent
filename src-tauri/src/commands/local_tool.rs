@@ -2,7 +2,7 @@
 
 use crate::AppState;
 use crate::commands::agent::resolve_profile_tool_context;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_harness::ToolDomain;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -10,6 +10,7 @@ use tauri::State;
 
 /// 单个本地工具信息（前端 DTO）
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LocalToolInfo {
     #[serde(rename = "name")]
     pub name: String,
@@ -28,6 +29,7 @@ pub struct LocalToolInfo {
 
 /// 本地工具组信息（前端 DTO）
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LocalToolGroupInfo {
     #[serde(rename = "groupId")]
     pub group_id: String,

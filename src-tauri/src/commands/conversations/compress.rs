@@ -948,7 +948,7 @@ mod tests_conversation {
             webhook_event_emitter: None,
             #[cfg(not(mobile))]
             pty_manager: Arc::new(axagent_runtime::pty::PtyManager::new()),
-            telemetry_level_handle: Arc::new(std::sync::RwLock::new(
+            telemetry_level_handle: Arc::new(parking_lot::RwLock::new(
                 axagent_telemetry::TelemetryLevel::default(),
             )),
             telemetry_sink: Arc::new(axagent_telemetry::MemoryTelemetrySink::default())
@@ -1047,6 +1047,9 @@ mod tests_conversation {
             )),
             shutdown_token: tokio_util::sync::CancellationToken::new(),
             file_authorizer: Arc::new(axagent_storage::file_authorizer::FileAuthorizer::new()),
+            database_query_service: Arc::new(
+                crate::database_query_impl::SqlxDatabaseQueryService::new(),
+            ),
             session_share_manager: Arc::new(tokio::sync::RwLock::new(
                 std::collections::HashMap::new(),
             )),

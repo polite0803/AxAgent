@@ -5,7 +5,7 @@ use super::install::{
 use crate::app_state::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::skill as skill_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_harness::types::*;
 use chrono::Utc;
 use std::path::{Path, PathBuf};

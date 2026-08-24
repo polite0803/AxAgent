@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 //! 熔断器契约
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CircuitState {
     Closed,
     Open,
@@ -16,7 +18,8 @@ impl CircuitState {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CircuitBreakerConfig {
     pub failure_threshold: u32,
     pub recovery_timeout_secs: u64,
@@ -28,7 +31,8 @@ impl Default for CircuitBreakerConfig {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CircuitBreakerSnapshot {
     pub state: CircuitState,
     pub failure_count: u32,

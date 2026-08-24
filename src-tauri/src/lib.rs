@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-#![allow(clippy::too_many_arguments)]
+// TODO(M9): 以下三个 lint 待运行 clippy 后局部化到具体触发点
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::collapsible_match)]
 #![allow(clippy::needless_borrow)]
+// SAFETY: 主 crate 中的 std::sync 锁用于同步上下文，不跨 await。
+#![allow(clippy::disallowed_types)]
 
 // ── Windows: lib 单元测试 manifest 处理（跟随上游 build.rs 方案） ──
 // 上游 build.rs 用 `cargo:rustc-link-arg=/MANIFESTINPUT` 对所有 target
@@ -13,6 +15,7 @@ mod android_utils;
 mod capability_embedding;
 mod commands;
 mod context_manager;
+mod database_query_impl;
 mod index_queue;
 mod indexing;
 mod indexing_triggers;

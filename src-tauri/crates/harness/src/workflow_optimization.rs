@@ -16,6 +16,7 @@ use serde::{Deserialize, Serialize};
 // ── 优化建议 ──
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkflowSuggestion {
     pub id: String,
     pub category: SuggestionCategory,

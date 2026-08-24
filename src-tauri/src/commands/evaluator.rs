@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::app_state::AppState;
-use agent_macro::agent_command;
 use axagent_agent::evaluator::{
     Benchmark, BenchmarkReport, BenchmarkResult, BenchmarkSuite, Dataset, DatasetLoader,
     DatasetRegistry, EvaluationRunner, ReportGenerator, RunnerConfig,
 };
+use axagent_agent_macro::agent_command;
 use axagent_harness::trajectory_scorer::TrajectoryScorer;
 use axagent_harness::trajectory_types::TrajectoryOutcome;
 use serde::Serialize;
@@ -167,11 +167,11 @@ pub struct AbTestMetric {
     pub unit: String,
 }
 
-static AB_TEST_STORAGE: std::sync::OnceLock<std::sync::Mutex<HashMap<String, AbTestReport>>> =
+static AB_TEST_STORAGE: std::sync::OnceLock<parking_lot::Mutex<HashMap<String, AbTestReport>>> =
     std::sync::OnceLock::new();
 
-fn ab_test_store() -> &'static std::sync::Mutex<HashMap<String, AbTestReport>> {
-    AB_TEST_STORAGE.get_or_init(|| std::sync::Mutex::new(HashMap::new()))
+fn ab_test_store() -> &'static parking_lot::Mutex<HashMap<String, AbTestReport>> {
+    AB_TEST_STORAGE.get_or_init(|| parking_lot::Mutex::new(HashMap::new()))
 }
 
 async fn resolve_benchmark_provider(
@@ -362,7 +362,7 @@ pub async fn evaluator_run_ab_test(
         ),
     };
 
-    ab_test_store().lock().map_err(|e| format!("Lock error: {}", e))?.insert(test_id, report);
+    ab_test_store().lock().insert(test_id, report);
 
     Ok(result)
 }
@@ -371,7 +371,7 @@ pub async fn evaluator_run_ab_test(
 #[command]
 pub fn evaluator_get_ab_results(skill_id: String) -> Result<Option<AbTestReport>, String> {
     // 通过 skill_id 遍历查找最近一次测试报告
-    let store = ab_test_store().lock().map_err(|e| format!("Lock error: {}", e))?;
+    let store = ab_test_store().lock();
     let all: Vec<&AbTestReport> = store.values().collect();
     Ok(all.into_iter().rev().find(|r| r.skill_id == skill_id).cloned())
 }

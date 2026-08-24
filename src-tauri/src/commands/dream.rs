@@ -7,7 +7,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::agent as agent_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use tauri::State;
 
 /// 手动触发一次梦境巩固（忽略门控条件）

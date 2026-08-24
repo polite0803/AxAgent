@@ -313,12 +313,12 @@ pub struct WorkEngine {
     //    workflow_reflector / workflow_evolver / workflow_optimizer / tool_registry /
     //    audit_recorder / db / event_bus / agent_turn_runner 等）→ 使用
     //    `std::sync::{Mutex,RwLock}`，避免无谓的 async 锁开销。
-    // 3. 铁律：std guard 一律不得跨 `.await` 持有 —— `std::sync::RwLock` guard 跨
-    //    await 是 UB，`std::sync::Mutex` panic 会毒化。所有 std 锁读取点必须先取
+    // 3. 铁律：std guard 一律不得跨 `.await` 持有 —— `parking_lot::RwLock` guard 跨
+    //    await 是 UB，`parking_lot::Mutex` panic 会毒化。所有 std 锁读取点必须先取
     //    Arc clone 再释放 guard，再执行异步逻辑。
     // ─────────────────────────────────────────────────────────────────────────
     /// Plan 模式：PlannerAdapter（由外部注入，None = 未启用 Plan 模式）
-    planner: Option<Arc<std::sync::Mutex<dyn axagent_harness::PlannerAdapter>>>,
+    planner: Option<Arc<parking_lot::Mutex<dyn axagent_harness::PlannerAdapter>>>,
     /// 按 `execution_id` 索引的取消令牌（修复：原本按 `workflow_id` 索引，
     /// 导致同一模板的并发执行会互相覆盖 cancel_token，无法独立取消）。
     cancel_tokens: Arc<Mutex<HashMap<String, CancellationToken>>>,
@@ -337,15 +337,15 @@ pub struct WorkEngine {
     ///
     /// 字段类型与 `set_rag_callback` 行为完全对齐：
     /// - `Arc<Mutex<Option<...>>>`：支持热更新与多 owner（dispatcher / 共享 Arc）
-    /// - 使用 `std::sync::Mutex`：回调在 setup 阶段同步注册，调用频率极低，
+    /// - 使用 `parking_lot::Mutex`：回调在 setup 阶段同步注册，调用频率极低，
     ///   无需 async 锁；后续 `domain_constraints()` getter 在 agent 节点执行
     ///   时取 Arc clone，持有时间极短。
-    domain_constraints: Arc<std::sync::Mutex<Option<DomainConstraintsFn>>>,
+    domain_constraints: Arc<parking_lot::Mutex<Option<DomainConstraintsFn>>>,
     /// 业务规则引擎（可选，None = 不执行任何业务规则检查）。
     /// 硬约束，在执行层直接拦截违规操作。
     /// 通过 `set_business_rule_engine` 注入。
     business_rule_engine:
-        Arc<std::sync::Mutex<Option<Arc<crate::business_rules::BusinessRuleEngine>>>>,
+        Arc<parking_lot::Mutex<Option<Arc<crate::business_rules::BusinessRuleEngine>>>>,
     /// Agent executor 共享缓存（跨节点复用，每次 run_workflow 开始时清空）
     agent_provider_cache: Arc<tokio::sync::Mutex<ProviderCache>>,
     agent_profile_cache: Arc<tokio::sync::Mutex<ProfileCache>>,
@@ -369,24 +369,25 @@ pub struct WorkEngine {
     /// 触发器管理器（Schedule / Webhook / Event）
     pub trigger_manager: Arc<crate::trigger::TriggerManager>,
     /// 审计记录器（可选，None = 不记录审计日志）
-    pub audit_recorder: Arc<std::sync::Mutex<Option<Arc<dyn axagent_harness::AuditRecorder>>>>,
+    pub audit_recorder: Arc<parking_lot::Mutex<Option<Arc<dyn axagent_harness::AuditRecorder>>>>,
     /// 工作流反思器(可选,None = 不反思)。
     ///
     /// 阶段 3 注入:在工作流整体执行完成或节点级失败时触发 `reflect`/`reflect_node`,
     /// 异步 spawn 后台执行,不阻塞主流程。
     pub workflow_reflector:
-        Arc<std::sync::Mutex<Option<Arc<dyn axagent_harness::WorkflowReflector>>>>,
+        Arc<parking_lot::Mutex<Option<Arc<dyn axagent_harness::WorkflowReflector>>>>,
     /// 工作流模板进化器(可选,None = 不进化)。
     ///
     /// 阶段 3 注入:在反思质量分过低时异步触发 `should_auto_evolve` + `run`。
-    pub workflow_evolver: Arc<std::sync::Mutex<Option<Arc<dyn axagent_harness::WorkflowEvolver>>>>,
+    pub workflow_evolver:
+        Arc<parking_lot::Mutex<Option<Arc<dyn axagent_harness::WorkflowEvolver>>>>,
     /// 工作流优化器(可选,None = 不生成优化建议)。
     ///
     /// 阶段 3 注入:基于反思结果生成 `WorkflowSuggestion`,不修改模板。
     pub workflow_optimizer:
-        Arc<std::sync::Mutex<Option<Arc<dyn axagent_harness::WorkflowOptimizer>>>>,
+        Arc<parking_lot::Mutex<Option<Arc<dyn axagent_harness::WorkflowOptimizer>>>>,
     /// 工具注册表（可选，设置后 tool_executor 优先通过 ToolRegistry.execute_tool() 执行工具）
-    tool_registry: Arc<std::sync::Mutex<Option<Arc<dyn axagent_harness::ToolRegistry>>>>,
+    tool_registry: Arc<parking_lot::Mutex<Option<Arc<dyn axagent_harness::ToolRegistry>>>>,
     /// per-execution partial_result 广播器。LoopExecutor 通过 ExecutionState.partial_result_tx
     /// 拿到 sender，每次迭代完成时 broadcast 一个 PartialResultEvent。
     /// 外部通过 `subscribe_partial_results(execution_id)` 拿到 Receiver 实时观察进度。
@@ -410,20 +411,20 @@ pub struct WorkEngine {
     /// 重复执行。这里用 execution_id 粒度维护在途集合，调度前排重，杜绝重复调度。
     in_flight_nodes: Arc<tokio::sync::Mutex<HashMap<String, HashSet<String>>>>,
     /// 数据库连接（用于 ApprovalOps 回调持久化审批记录等）。
-    db: Arc<std::sync::Mutex<Option<sea_orm::DatabaseConnection>>>,
+    db: Arc<parking_lot::Mutex<Option<sea_orm::DatabaseConnection>>>,
     /// 统一事件总线（可选，由 wiring 层注入）。
     ///
     /// 注入后,WorkEngine 在节点执行完成等关键节点额外 publish `DomainEvent`
     /// 到统一总线,供跨 crate 订阅者消费。未注入时保持原有行为。
-    /// 用 `std::sync::RwLock` 包裹:仅 setter 写一次,publish 时先 clone Arc
+    /// 用 `parking_lot::RwLock` 包裹:仅 setter 写一次,publish 时先 clone Arc
     /// 再释放锁,不跨 await 持有读锁。
-    event_bus: Arc<std::sync::RwLock<Option<Arc<dyn axagent_harness::EventBus>>>>,
+    event_bus: Arc<parking_lot::RwLock<Option<Arc<dyn axagent_harness::EventBus>>>>,
     /// 2.5 P1:Agent 单轮 ReAct 执行器(可选,None = 走 inline ReAct fallback)。
     ///
     /// 由 wiring 层把 SessionManager 适配器注入;AgentExecutor 在执行前检查
     /// 此字段,有则委托 trait(支持 trajectory / 权限询问 / 压缩),
     /// 无则走 inline ReAct(向后兼容,不破坏旧测试)。
-    agent_turn_runner: Arc<std::sync::RwLock<Option<Arc<dyn axagent_harness::AgentTurnRunner>>>>,
+    agent_turn_runner: Arc<parking_lot::RwLock<Option<Arc<dyn axagent_harness::AgentTurnRunner>>>>,
 }
 
 /// P1-14: 提取节点的类型字符串（用于白名单校验）。
@@ -544,7 +545,7 @@ impl WorkEngine {
 
     /// 注入数据库连接（供 ApprovalOps 回调使用）。
     pub fn set_db(&self, db: sea_orm::DatabaseConnection) {
-        *self.db.lock().unwrap_or_else(|e| e.into_inner()) = Some(db);
+        *self.db.lock() = Some(db);
     }
 
     /// 从模板 tool_defs 预编译 Rhai 工具（覆盖 DAG 扫描结果）
@@ -628,7 +629,7 @@ impl WorkEngine {
     #[must_use]
     pub fn with_planner(
         mut self,
-        planner: Arc<std::sync::Mutex<dyn axagent_harness::PlannerAdapter>>,
+        planner: Arc<parking_lot::Mutex<dyn axagent_harness::PlannerAdapter>>,
     ) -> Self {
         // 同时注入到 WorkEngine 自身和 AgentExecutor
         self.planner = Some(planner.clone());
@@ -644,9 +645,8 @@ impl WorkEngine {
         self,
         reflector: Arc<dyn axagent_harness::WorkflowReflector>,
     ) -> Self {
-        if let Ok(mut guard) = self.workflow_reflector.lock() {
-            *guard = Some(reflector);
-        }
+        *self.workflow_reflector.lock() = Some(reflector);
+
         self
     }
 
@@ -655,9 +655,8 @@ impl WorkEngine {
     /// 注入后,当反思质量分过低且 `should_auto_evolve` 返回 true 时,异步触发进化。
     #[must_use]
     pub fn with_workflow_evolver(self, evolver: Arc<dyn axagent_harness::WorkflowEvolver>) -> Self {
-        if let Ok(mut guard) = self.workflow_evolver.lock() {
-            *guard = Some(evolver);
-        }
+        *self.workflow_evolver.lock() = Some(evolver);
+
         self
     }
 
@@ -669,9 +668,8 @@ impl WorkEngine {
         self,
         optimizer: Arc<dyn axagent_harness::WorkflowOptimizer>,
     ) -> Self {
-        if let Ok(mut guard) = self.workflow_optimizer.lock() {
-            *guard = Some(optimizer);
-        }
+        *self.workflow_optimizer.lock() = Some(optimizer);
+
         self
     }
 
@@ -769,7 +767,7 @@ impl WorkEngine {
     ///
     /// 多次调用：后者覆盖前者（标准 setter 语义）。
     pub async fn set_domain_constraints(&self, f: DomainConstraintsFn) {
-        *self.domain_constraints.lock().unwrap_or_else(|e| e.into_inner()) = Some(f);
+        *self.domain_constraints.lock() = Some(f);
     }
 
     /// 取出当前注册的领域约束（用于在执行 agent 节点时转发给 `AgentExecutor`）。
@@ -777,7 +775,7 @@ impl WorkEngine {
     /// 内部 clone 出 Arc，避免锁长时间持有。仅暴露给 crate 内部消费
     /// （engine.rs 的 run_workflow 中转发给 agent_executor）。
     pub(crate) fn domain_constraints(&self) -> Option<DomainConstraintsFn> {
-        self.domain_constraints.lock().unwrap_or_else(|e| e.into_inner()).clone()
+        self.domain_constraints.lock().clone()
     }
 
     /// 注册业务规则引擎。
@@ -790,22 +788,22 @@ impl WorkEngine {
         &self,
         engine: Arc<crate::business_rules::BusinessRuleEngine>,
     ) {
-        *self.business_rule_engine.lock().unwrap_or_else(|e| e.into_inner()) = Some(engine);
+        *self.business_rule_engine.lock() = Some(engine);
     }
 
     /// 取出当前注册的业务规则引擎（用于在执行节点时注入到 ExecutionState）。
     fn business_rule_engine(&self) -> Option<Arc<crate::business_rules::BusinessRuleEngine>> {
-        self.business_rule_engine.lock().unwrap_or_else(|e| e.into_inner()).clone()
+        self.business_rule_engine.lock().clone()
     }
 
     /// 注册工具注册表（可选，设置后 tool_executor 优先走 ToolRegistry 中心化路径）
     pub async fn set_tool_registry(&self, registry: Arc<dyn axagent_harness::ToolRegistry>) {
-        *self.tool_registry.lock().unwrap_or_else(|e| e.into_inner()) = Some(registry);
+        *self.tool_registry.lock() = Some(registry);
     }
 
     /// 取出当前注册的工具注册表（用于在执行节点时注入到 ExecutionState）
     fn tool_registry(&self) -> Option<Arc<dyn axagent_harness::ToolRegistry>> {
-        self.tool_registry.lock().unwrap_or_else(|e| e.into_inner()).clone()
+        self.tool_registry.lock().clone()
     }
 }
 
@@ -869,8 +867,8 @@ impl WorkEngine {
             tool_fallback: Arc::new(Mutex::new(None)),
             tool_resolver: Arc::new(Mutex::new(None)),
             rag_callback: Arc::new(Mutex::new(None)),
-            domain_constraints: Arc::new(std::sync::Mutex::new(None)),
-            business_rule_engine: Arc::new(std::sync::Mutex::new(None)),
+            domain_constraints: Arc::new(parking_lot::Mutex::new(None)),
+            business_rule_engine: Arc::new(parking_lot::Mutex::new(None)),
             agent_provider_cache,
             agent_profile_cache,
             breakpoints: Arc::new(Mutex::new(HashSet::new())),
@@ -878,17 +876,17 @@ impl WorkEngine {
             agent_executor: agent_exec,
             pending_dispatcher_registrations,
             trigger_manager: Arc::new(crate::trigger::TriggerManager::new()),
-            audit_recorder: Arc::new(std::sync::Mutex::new(None)),
-            workflow_reflector: Arc::new(std::sync::Mutex::new(None)),
-            workflow_evolver: Arc::new(std::sync::Mutex::new(None)),
-            workflow_optimizer: Arc::new(std::sync::Mutex::new(None)),
-            tool_registry: Arc::new(std::sync::Mutex::new(None)),
+            audit_recorder: Arc::new(parking_lot::Mutex::new(None)),
+            workflow_reflector: Arc::new(parking_lot::Mutex::new(None)),
+            workflow_evolver: Arc::new(parking_lot::Mutex::new(None)),
+            workflow_optimizer: Arc::new(parking_lot::Mutex::new(None)),
+            tool_registry: Arc::new(parking_lot::Mutex::new(None)),
             loop_partial_txs: Arc::new(Mutex::new(HashMap::new())),
             loop_interrupt_signals: Arc::new(Mutex::new(HashMap::new())),
             in_flight_nodes: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
-            db: Arc::new(std::sync::Mutex::new(None)),
-            event_bus: Arc::new(std::sync::RwLock::new(None)),
-            agent_turn_runner: Arc::new(std::sync::RwLock::new(None)),
+            db: Arc::new(parking_lot::Mutex::new(None)),
+            event_bus: Arc::new(parking_lot::RwLock::new(None)),
+            agent_turn_runner: Arc::new(parking_lot::RwLock::new(None)),
         }
     }
 
@@ -897,11 +895,7 @@ impl WorkEngine {
     /// 注入后,WorkEngine 在节点执行完成等关键节点自动 publish `DomainEvent`
     /// 到统一总线。未注入时保持原有行为。通常由 wiring 层调用。
     pub fn set_event_bus(&self, bus: Arc<dyn axagent_harness::EventBus>) {
-        if let Ok(mut guard) = self.event_bus.write() {
-            *guard = Some(bus);
-        } else {
-            tracing::warn!("WorkEngine::set_event_bus: RwLock poisoned, 注入失败");
-        }
+        *self.event_bus.write() = Some(bus);
     }
 
     /// 2.5 P1:注入 Agent 单轮 ReAct 执行器。
@@ -912,20 +906,16 @@ impl WorkEngine {
     ///
     /// 通常由 wiring 层在 `create_app_state` 中调用,把 SessionManager 适配器注入。
     pub fn set_agent_turn_runner(&self, runner: Arc<dyn axagent_harness::AgentTurnRunner>) {
-        if let Ok(mut guard) = self.agent_turn_runner.write() {
-            *guard = Some(runner);
-        } else {
-            tracing::warn!("WorkEngine::set_agent_turn_runner: RwLock poisoned, 注入失败");
-        }
+        *self.agent_turn_runner.write() = Some(runner);
     }
 
     /// 2.5 P1:获取已注入的 AgentTurnRunner(供 AgentExecutor fallback 决策)。
     ///
     /// 返回 `Option<Arc<dyn AgentTurnRunner>>` 的 clone — `Some` 表示已注入,
     /// `None` 表示未注入(AgentExecutor 应走 inline ReAct)。
-    /// 用 `std::sync::RwLock::read()` 同步读取,guard 不跨 await。
+    /// 用 `parking_lot::RwLock::read()` 同步读取,guard 不跨 await。
     pub fn get_agent_turn_runner(&self) -> Option<Arc<dyn axagent_harness::AgentTurnRunner>> {
-        self.agent_turn_runner.read().ok().and_then(|g| g.clone())
+        self.agent_turn_runner.read().clone()
     }
 
     /// 发布一个工作流领域事件到统一总线(若已注入)。
@@ -934,13 +924,8 @@ impl WorkEngine {
     /// `kind` 为事件类型字符串(如 `"NodeCompleted"`、`"WorkflowStarted"`)。
     async fn publish_workflow_event(&self, kind: &str, payload: serde_json::Value) {
         let bus_clone = {
-            match self.event_bus.read() {
-                Ok(guard) => guard.as_ref().map(Arc::clone),
-                Err(_) => {
-                    tracing::warn!("WorkEngine::publish_workflow_event: RwLock poisoned");
-                    None
-                },
-            }
+            let guard = self.event_bus.read();
+            guard.as_ref().map(Arc::clone)
         };
         if let Some(bus) = bus_clone {
             let event = axagent_harness::DomainEvent::new(
@@ -3063,8 +3048,7 @@ impl WorkEngine {
                             // 持久化审批请求到 workflow_approvals 表
                             {
                                 let db_clone = {
-                                    let db_guard =
-                                        self.db.lock().unwrap_or_else(|e| e.into_inner());
+                                    let db_guard = self.db.lock();
                                     db_guard.clone()
                                 };
                                 if let Some(db) = db_clone.as_ref() {
@@ -3166,10 +3150,7 @@ impl WorkEngine {
                                             // 自动批准：落库标记（若仍 pending），并继续后续节点
                                             {
                                                 let db_clone = {
-                                                    let db_guard = self
-                                                        .db
-                                                        .lock()
-                                                        .unwrap_or_else(|e| e.into_inner());
+                                                    let db_guard = self.db.lock();
                                                     db_guard.clone()
                                                 };
                                                 if let Some(db) = db_clone.as_ref() {
@@ -3193,10 +3174,7 @@ impl WorkEngine {
                                         // 更新审批记录为 rejected（仅仍 pending 时生效，与 DAO 侧幂等）
                                         {
                                             let db_clone = {
-                                                let db_guard = self
-                                                    .db
-                                                    .lock()
-                                                    .unwrap_or_else(|e| e.into_inner());
+                                                let db_guard = self.db.lock();
                                                 db_guard.clone()
                                             };
                                             if let Some(db) = db_clone.as_ref() {
@@ -4541,49 +4519,42 @@ impl WorkEngine {
         // 引擎层在每次工作流执行完成后自动写入：status / duration_ms / template_id / execution_id。
         // input_tokens / output_tokens 引擎层无感知（需上游 LLM hook 注入），暂记 0；
         // 如有 LlmUsage 上报链路，可后续扩展在 llm_executor 节点写入。
-        {
-            let db_clone = {
-                let db_guard = self.db.lock().expect("db mutex poisoned");
-                db_guard.clone()
-            };
-            if let Some(db) = db_clone.as_ref() {
-                // WorkflowStatus 已是 snake_case serde，直接序列化取字符串
-                let status_str = serde_json::to_string(&wf.status)
-                    .unwrap_or_else(|_| "\"unknown\"".to_string())
-                    .trim_matches('"')
-                    .to_string();
-                // 提取第一个节点 error 作为 error_message（best-effort）
-                let error_message: Option<String> =
-                    wf.node_states.iter().find_map(|(_, s)| s.error.clone());
-                let stat_id = uuid::Uuid::new_v4().to_string();
-                if let Err(e) = axagent_dao::repo::workflow_execution_stats::record_execution(
-                    db,
-                    &stat_id,
-                    None, // mission_hash 引擎层无概念
-                    template_id,
-                    Some(execution_id),
-                    &status_str,
-                    total_time_ms as i64,
-                    0, // input_tokens
-                    0, // output_tokens
-                    error_message.as_deref(),
-                    None, // user_rating
-                )
-                .await
-                {
-                    tracing::warn!("[Stats] record_workflow_execution failed: {e}");
-                }
+        let db_clone: Option<sea_orm::DatabaseConnection> = {
+            let db_guard = self.db.lock();
+            db_guard.as_ref().cloned()
+        };
+        // 锁在这里被释放
+        if let Some(db) = db_clone {
+            // WorkflowStatus 已是 snake_case serde，直接序列化取字符串
+            let status_str = serde_json::to_string(&wf.status)
+                .unwrap_or_else(|_| "\"unknown\"".to_string())
+                .trim_matches('"')
+                .to_string();
+            // 提取第一个节点 error 作为 error_message（best-effort）
+            let error_message: Option<String> =
+                wf.node_states.iter().find_map(|(_, s)| s.error.clone());
+            let stat_id = uuid::Uuid::new_v4().to_string();
+            if let Err(e) = axagent_dao::repo::workflow_execution_stats::record_execution(
+                &db,
+                &stat_id,
+                None, // mission_hash 引擎层无概念
+                template_id,
+                Some(execution_id),
+                &status_str,
+                total_time_ms as i64,
+                0, // input_tokens
+                0, // output_tokens
+                error_message.as_deref(),
+                None, // user_rating
+            )
+            .await
+            {
+                tracing::warn!("[Stats] record_workflow_execution failed: {e}");
             }
         }
 
         let reflector = {
-            let guard = match self.workflow_reflector.lock() {
-                Ok(g) => g,
-                Err(poisoned) => {
-                    tracing::error!("[Reflection] workflow_reflector mutex poisoned, recovering");
-                    poisoned.into_inner()
-                },
-            };
+            let guard = self.workflow_reflector.lock();
             match guard.clone() {
                 Some(r) => r,
                 None => return,
@@ -4651,12 +4622,12 @@ impl WorkEngine {
 
         // 克隆所需句柄,在 spawn 中使用
         let evolver = {
-            let guard = self.workflow_evolver.lock().ok();
-            guard.and_then(|g| g.clone())
+            let guard = self.workflow_evolver.lock();
+            guard.clone()
         };
         let optimizer = {
-            let guard = self.workflow_optimizer.lock().ok();
-            guard.and_then(|g| g.clone())
+            let guard = self.workflow_optimizer.lock();
+            guard.clone()
         };
         let template_id_owned = template_id.map(|s| s.to_string());
 
@@ -4736,13 +4707,7 @@ impl WorkEngine {
         failed_node_snapshot: &axagent_harness::NodeExecutionSnapshot,
     ) {
         let reflector = {
-            let guard = match self.workflow_reflector.lock() {
-                Ok(g) => g,
-                Err(poisoned) => {
-                    tracing::error!("[Reflection] workflow_reflector mutex poisoned, recovering");
-                    poisoned.into_inner()
-                },
-            };
+            let guard = self.workflow_reflector.lock();
             match guard.clone() {
                 Some(r) => r,
                 None => return,
@@ -4809,13 +4774,7 @@ impl WorkEngine {
         output_str.hash(&mut hasher);
         let output_hash = hasher.finish().to_string();
 
-        let recorder_guard = match self.audit_recorder.lock() {
-            Ok(guard) => guard,
-            Err(poisoned) => {
-                tracing::error!("[Audit] Mutex poisoned, clearing and recovering");
-                poisoned.into_inner()
-            },
-        };
+        let recorder_guard = self.audit_recorder.lock();
         if let Some(ref recorder) = *recorder_guard {
             recorder.record(axagent_harness::AuditEntry {
                 id: uuid::Uuid::new_v4().to_string(),

@@ -18,7 +18,7 @@ use tauri::{Emitter, State};
 use axagent_entities::trades;
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 
 /// 执行模式
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]

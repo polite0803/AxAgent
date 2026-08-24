@@ -1079,6 +1079,8 @@ pub async fn gemini_model_operation(
     handle_native_request(protocol, state, gateway_key, request, Some(parsed.model)).await
 }
 #[cfg(test)]
+#[allow(clippy::disallowed_types)]
+// SAFETY: 测试模块使用 parking_lot::Mutex 保护 mock 状态，仅在同步测试场景中使用，无跨 await 风险。
 mod tests {
     use super::*;
     use async_trait::async_trait;
@@ -1098,9 +1100,10 @@ mod tests {
         http::{HeaderMap, Method, Request, Response, StatusCode, header},
         routing::any,
     };
+    use parking_lot::Mutex;
     use sea_orm::Database;
     use serde_json::json;
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
     use tower::ServiceExt;
 
     use crate::{routes::create_router, server::GatewayAppState};
@@ -1136,7 +1139,7 @@ mod tests {
             serde_json::from_slice(&bytes).expect("测试应成功")
         };
 
-        state.captures.lock().unwrap_or_else(|e| e.into_inner()).push(CapturedUpstreamRequest {
+        state.captures.lock().push(CapturedUpstreamRequest {
             method: parts.method.to_string(),
             path_and_query: parts
                 .uri
@@ -1623,7 +1626,7 @@ mod tests {
             serde_json::from_str::<serde_json::Value>(&upstream_body).expect("测试应成功")
         );
 
-        let captured = captures.lock().unwrap_or_else(|e| e.into_inner());
+        let captured = captures.lock();
         assert_eq!(captured.len(), 1);
         assert_eq!(captured[0].method, "POST");
         assert_eq!(captured[0].path_and_query, "/v1/responses");
@@ -1686,7 +1689,7 @@ mod tests {
         assert_eq!(content_type.expect("测试应成功"), "text/event-stream");
         assert_eq!(body_text, upstream_body);
 
-        let captured = captures.lock().unwrap_or_else(|e| e.into_inner());
+        let captured = captures.lock();
         assert_eq!(captured.len(), 1);
         assert_eq!(captured[0].path_and_query, "/v1/messages");
         assert_eq!(captured[0].x_api_key.as_deref(), Some("upstream-secret"));
@@ -1739,7 +1742,7 @@ mod tests {
             serde_json::from_str::<serde_json::Value>(&upstream_body).expect("测试应成功")
         );
 
-        let captured = captures.lock().unwrap_or_else(|e| e.into_inner());
+        let captured = captures.lock();
         assert_eq!(captured.len(), 1);
         // Gemini 现在通过 x-goog-api-key header 传递 key，而非 query param
         assert_eq!(captured[0].path_and_query, "/v1beta/models/gemini-2.5-pro:countTokens");
@@ -1808,7 +1811,7 @@ mod tests {
             .expect("测试应成功");
 
         assert_eq!(response.status(), StatusCode::OK);
-        let captured = captures.lock().unwrap_or_else(|e| e.into_inner());
+        let captured = captures.lock();
         assert_eq!(captured.len(), 1);
         assert_eq!(captured[0].path_and_query, "/v1/responses");
 
@@ -1858,7 +1861,7 @@ mod tests {
             .expect("测试应成功");
 
         assert_eq!(response.status(), StatusCode::OK);
-        let captured = captures.lock().unwrap_or_else(|e| e.into_inner());
+        let captured = captures.lock();
         assert_eq!(captured.len(), 1);
         assert_eq!(captured[0].path_and_query, "/v1/responses");
 

@@ -5,7 +5,7 @@
 //! 所有领域工作流已迁移到各领域 seed 文件手动定义 WorkflowNode/Edge 并写入数据库。
 //! 本模块从 DB 读取。旧代码 DomainAdapterFactory/DomainWorkflowGenerator 已彻底移除。
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_entities::workflow_template;
 use axagent_harness::workflow_types::WorkflowTemplateResponse;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};

@@ -1,7 +1,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_workflow as wf_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_entities::stock_analyses;
 use axagent_harness::{ToolContext, ToolRegistry};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};

@@ -5,7 +5,7 @@
 //! 支持所有节点类型（分析师/辩论/决策/工具/估值/风险）的质量反馈存储和查询。
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_entities::analyst_feedback;
 use axagent_entities::analyst_feedback::Entity as AnalystFeedback;
 use sea_orm::{

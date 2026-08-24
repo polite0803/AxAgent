@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// i18n-exempt: 包含调试日志字符串，非 UI 展示文本
 
 /**
  * SettingsDtoConverter — IPC 边界转换层
@@ -15,8 +16,8 @@
  */
 
 import { sanitizeId, validateModelRef } from "@/lib/validators";
-import type { AppSettings } from "@/types";
-import { ModelRef, type NullableModelRef } from "@/types/paired";
+import { type AppSettings, ModelRef, type NullableModelRef } from "@/types";
+import i18next from "i18next";
 
 /**
  * 后端 DTO 格式的设置（分离字段）
@@ -64,7 +65,12 @@ export function fromDto(dto: Partial<SettingsDto>): AppSettings {
     if (!validation && (sanitizeId(rawProviderId) || sanitizeId(rawModelId))) {
       // 数据不一致（一个有效一个无效），记录警告
       console.warn(
-        `[fromDto] 数据不一致: ${providerKey}=${String(rawProviderId)}, ${modelKey}=${String(rawModelId)}`,
+        i18next.t("error.settings.dataInconsistency", {
+          providerKey,
+          providerId: String(rawProviderId),
+          modelKey,
+          modelId: String(rawModelId),
+        }),
       );
     }
 
@@ -105,7 +111,7 @@ export function toDto(settings: AppSettings): SettingsDto {
         dto[modelKey] = validation.modelId;
       } else {
         console.warn(
-          `[toDto] 检测到无效模型引用 ${sourceKey}`,
+          i18next.t("error.settings.invalidModelRefDetected", { sourceKey }),
           { providerId: modelRef.a, modelId: modelRef.b },
         );
         dto[providerKey] = null;
@@ -173,8 +179,12 @@ export function validateDtoConsistency(dto: SettingsDto): void {
 
     if (hasProvider !== hasModel) {
       throw new Error(
-        `[SettingsDto] ${providerKey} 和 ${modelKey} 必须同时设置或同时为 null，`
-          + `当前 ${providerKey}=${String(providerId)}, ${modelKey}=${String(modelId)}`,
+        i18next.t("error.settings.mustBeSetTogether", {
+          providerKey,
+          modelKey,
+          providerId: String(providerId),
+          modelId: String(modelId),
+        }),
       );
     }
   }

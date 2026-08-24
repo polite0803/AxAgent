@@ -529,13 +529,13 @@ impl SkillEvolutionEngine {
     }
 
     pub async fn set_llm_provider(&self, provider: Arc<dyn LlmEvolutionProvider>) {
-        // tokio::sync::RwLock: 符合 AGENTS.md 第 8 条（禁止 std::sync::RwLock）。
+        // tokio::sync::RwLock: 符合 AGENTS.md 第 8 条（禁止 parking_lot::RwLock）。
         *self.llm_provider.write().await = Some(provider);
     }
 
     pub async fn set_sandbox(&mut self, executor: Arc<dyn SandboxExecutor>) {
         self.config.use_execution_validation = true;
-        // tokio::sync::RwLock: 符合 AGENTS.md 第 8 条（禁止 std::sync::RwLock）。
+        // tokio::sync::RwLock: 符合 AGENTS.md 第 8 条（禁止 parking_lot::RwLock）。
         *self.sandbox.write().await = Some(executor);
     }
 

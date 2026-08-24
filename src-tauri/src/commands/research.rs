@@ -9,11 +9,11 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::research as research_err;
-use agent_macro::agent_command;
 use axagent_agent::deep_research::{DeepResearchConfig, DeepResearcher};
 use axagent_agent::ingest_pipeline::IngestPipeline;
 use axagent_agent::noop_kit::NoopHtmlCleaner;
 use axagent_agent::web_search::WebSearchProvider;
+use axagent_agent_macro::agent_command;
 use axagent_crypto::decrypt_key;
 use axagent_dao::repo::conversation as conversation_repo;
 use axagent_dao::repo::message as message_repo;
@@ -28,6 +28,7 @@ use tauri::State;
 
 /// 报告节结构
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ReportSection {
     pub id: String,
     pub title: String,
@@ -36,6 +37,7 @@ pub struct ReportSection {
 
 /// 报告引用
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ReportCitation {
     pub id: String,
     #[serde(rename = "sourceUrl")]
@@ -55,6 +57,7 @@ pub struct ReportCitation {
 
 /// 研究报告完整产出
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ResearchReport {
     pub id: String,
     pub topic: String,

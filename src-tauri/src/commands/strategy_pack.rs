@@ -9,7 +9,7 @@
 //! 命令设计为无状态：每次调用直接从内存（内置）或文件系统（用户）加载，
 //! 不在 AppState 中维护全局注册表，避免状态同步复杂度。
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use std::path::PathBuf;
 
 use axagent_analysis_engine::strategy_pack::{LoadedStrategyPack, load_pack_from_file};

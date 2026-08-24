@@ -110,6 +110,11 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         std::sync::Arc::new(axagent_document_parser::parser_impl::DefaultDocumentParser),
     );
 
+    // 同步注入 tools 层的 DocumentParser
+    axagent_tools::parser::set_parser(std::sync::Arc::new(
+        axagent_document_parser::parser_impl::DefaultDocumentParser,
+    ));
+
     // 注册统一知识源实现（v2）：RAG / Wiki / Memory / Obsidian 四类知识源
     axagent_search::sources::set_unified_sources(vec![
         std::sync::Arc::new(RagUnifiedSource { db: sea_db.clone() }),
@@ -860,6 +865,8 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let credential_manager = Arc::new(axagent_credential::CredentialManager::new(credential_store));
     let session_share_manager: crate::app_state::SessionShareStore =
         Arc::new(TokioRwLock::new(std::collections::HashMap::new()));
+    let database_query_service: Arc<dyn axagent_harness::DatabaseQueryService> =
+        Arc::new(crate::database_query_impl::SqlxDatabaseQueryService);
     #[cfg(not(mobile))]
     let pty_manager = Arc::new(axagent_runtime::pty::PtyManager::new());
     let sandbox_executor_field: SandboxExecutorField = {
@@ -1083,7 +1090,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     // 通过 `level_handle()` 引用同一 `Arc` 实现热更新。
     let telemetry_level =
         axagent_telemetry::TelemetryLevel::from_str_or_off(&app_settings.telemetry_level);
-    let telemetry_level_handle = Arc::new(std::sync::RwLock::new(telemetry_level));
+    let telemetry_level_handle = Arc::new(parking_lot::RwLock::new(telemetry_level));
 
     // 2.7 P1:构造生产 sink 链 — JsonlTelemetrySink(落盘) + FilteringSink(级别过滤)。
     //
@@ -1095,10 +1102,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     // (供同进程内 SessionTracer 消费),并通过 warn 日志告知用户。
     let telemetry_sink: Arc<dyn axagent_telemetry::TelemetrySink> = {
         let jsonl_path = app_dir.join("telemetry.jsonl");
-        let initialized_level = telemetry_level_handle
-            .read()
-            .map(|g| *g)
-            .unwrap_or(axagent_telemetry::TelemetryLevel::Off);
+        let initialized_level = *telemetry_level_handle.read();
         match axagent_telemetry::JsonlTelemetrySink::new(&jsonl_path) {
             Ok(jsonl_sink) => {
                 let filtering = axagent_telemetry::FilteringSink::new_with_handle(
@@ -1369,6 +1373,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         plugin_manager,
         file_authorizer,
         credential_manager,
+        database_query_service,
         session_share_manager,
         astock_client,
         concept_index: Arc::new(TokioRwLock::new(

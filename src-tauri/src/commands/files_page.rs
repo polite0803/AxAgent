@@ -10,7 +10,7 @@ use tauri::State;
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::file as file_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 
 // ── Shared row type sent to the frontend ─────────────────────────────────────
 

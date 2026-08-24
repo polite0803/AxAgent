@@ -3,7 +3,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::agent as agent_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use serde_json::Value;
 use tauri::State;
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use tauri::State;
 
 #[agent_command(domain = agent, safety = Safe, call_mode = StateOnly, description = "获取洞察列表")]

@@ -5,6 +5,7 @@ use ts_rs::TS;
 
 /// 防幻觉锚定配置
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct HallucinationGuardConfig {
     pub enabled: bool,
     /// 引用匹配阈值（0-1），低于此值判定为幻觉
@@ -19,6 +20,7 @@ impl Default for HallucinationGuardConfig {
 
 /// 锚定检查结果
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct AnchorResult {
     pub passed: bool,
     pub score: f64,

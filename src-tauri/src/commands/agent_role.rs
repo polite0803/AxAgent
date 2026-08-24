@@ -3,7 +3,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::agent_role as agent_role_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_dao::repo::agent_role;
 use axagent_harness::types::AgentRoleDef;
 use serde::Serialize;

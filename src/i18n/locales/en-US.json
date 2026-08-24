@@ -2460,6 +2460,14 @@
     "title": "Dynamic UI Preview"
   },
   "error": {
+    "settings": {
+      "modelRefInvalid": "Invalid NullableModelRef structure: {{label}}",
+      "cleanupInvalid": "[SettingsAdaptor] Cleaned invalid {{label}}: {{reason}}",
+      "modelConsistencyInvalid": "[ModelConsistency] {{label}}: {{reason}} (providerId={{providerId}}, modelId={{modelId}})",
+      "dataInconsistency": "[fromDto] Data inconsistency: {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}",
+      "invalidModelRefDetected": "[toDto] Invalid model reference detected {{sourceKey}}",
+      "mustBeSetTogether": "[SettingsDto] {{providerKey}} and {{modelKey}} must be set together or both null, current {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}"
+    },
     "deleteFailed": "Delete failed, please retry",
     "gatewayStartFailed": "Gateway start failed",
     "invalidFormat": "Invalid format",
@@ -7391,6 +7399,11 @@
     "apiKey": "API Key"
   },
   "settings": {
+    "modelLabels": {
+      "defaultModel": "Default Conversation Model",
+      "titleSummaryModel": "Title Summary Model",
+      "compressionModel": "Compression Model"
+    },
     "activeProfile": "Active Profile",
     "addKey": "Add Key",
     "addModel": "Add model",
@@ -16331,5 +16344,66 @@
     "approve": "Approve",
     "reject": "Reject",
     "rejectedToast": "High-risk operation rejected"
+  },
+  "executionBridge": {
+    "mode": {
+      "title": "Execution Mode",
+      "manual": "Manual Confirmation",
+      "manualDesc": "All trades require manual confirmation before execution",
+      "semiAuto": "Semi-Auto",
+      "semiAutoDesc": "Auto-execute after risk check passes",
+      "fullAuto": "Full Auto",
+      "fullAutoDesc": "All signals execute automatically, no confirmation needed"
+    },
+    "pending": {
+      "title": "Pending Signals",
+      "empty": "No pending signals",
+      "refresh": "Refresh",
+      "noData": "No pending trade signals",
+      "stockCode": "Stock Code",
+      "stockName": "Stock Name",
+      "direction": "Direction",
+      "price": "Price",
+      "quantity": "Quantity",
+      "reason": "Reason",
+      "riskLevel": "Risk Level",
+      "createdAt": "Created At",
+      "actions": "Actions",
+      "buy": "Buy",
+      "sell": "Sell",
+      "hold": "Hold"
+    },
+    "risk": {
+      "low": "Low Risk",
+      "medium": "Medium Risk",
+      "high": "High Risk",
+      "warning": "Risk Warning",
+      "checkFailed": "Risk check failed",
+      "level": "Risk Level"
+    },
+    "confirm": {
+      "title": "Confirm Trade",
+      "message": "You are about to {direction} {stockName}, quantity {quantity}, price {price}. Confirm execution?",
+      "quantityPlaceholder": "Enter quantity",
+      "quantityLabel": "Quantity",
+      "submit": "Confirm Execution",
+      "cancel": "Cancel"
+    },
+    "reject": {
+      "title": "Reject Trade",
+      "message": "Are you sure you want to reject the trade signal for {stockName}?",
+      "reasonPlaceholder": "Enter rejection reason",
+      "reasonLabel": "Rejection Reason",
+      "submit": "Confirm Rejection",
+      "cancel": "Cancel"
+    },
+    "toast": {
+      "submitSuccess": "Signal submitted successfully",
+      "submitFailed": "Failed to submit signal",
+      "confirmSuccess": "Trade confirmed and executed",
+      "rejectSuccess": "Trade rejected",
+      "modeChanged": "Execution mode updated",
+      "riskRejected": "Risk check failed: {reason}"
+    }
   }
 }

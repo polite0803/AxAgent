@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_trajectory::{
     CodeSample, MessageSample, StyleApplier, StyleExtractor, StyleVectorizer, UserProfile,
 };
@@ -15,6 +15,7 @@ use crate::AppState;
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TrajectoryProfileResponse {
     pub id: String,
     pub user_id: String,
@@ -28,6 +29,7 @@ pub struct TrajectoryProfileResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CodingStylePreferences {
     pub naming_convention: String,
     pub indentation_style: String,
@@ -40,6 +42,7 @@ pub struct CodingStylePreferences {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CommunicationPreferences {
     pub detail_level: String,
     pub tone: String,
@@ -50,6 +53,7 @@ pub struct CommunicationPreferences {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkHabitPreferences {
     pub peak_hours: TimeRange,
     pub low_activity_hours: TimeRange,
@@ -61,12 +65,14 @@ pub struct WorkHabitPreferences {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TimeRange {
     pub start: u32,
     pub end: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DomainKnowledgeProfile {
     pub expertise_areas: Vec<ExpertiseArea>,
     pub interest_topics: Vec<String>,
@@ -74,6 +80,7 @@ pub struct DomainKnowledgeProfile {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExpertiseArea {
     pub name: String,
     pub level: String,
@@ -81,6 +88,7 @@ pub struct ExpertiseArea {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LearningStateProfile {
     pub total_interactions: u64,
     pub explicit_settings: Vec<String>,
@@ -89,6 +97,7 @@ pub struct LearningStateProfile {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UserProfileUpdates {
     pub coding_style: Option<CodingStylePreferences>,
     pub communication: Option<CommunicationPreferences>,
@@ -236,6 +245,7 @@ pub async fn clear_user_profile_data(app_state: State<'_, AppState>) -> Result<(
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct StyleVectorResponse {
     pub dimensions: StyleDimensionsResponse,
     pub source_confidence: f32,
@@ -244,6 +254,7 @@ pub struct StyleVectorResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct StyleDimensionsResponse {
     pub naming_score: f32,
     pub density_score: f32,
@@ -256,6 +267,7 @@ pub struct StyleDimensionsResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UserStyleProfileResponse {
     pub id: String,
     pub user_id: String,
@@ -270,6 +282,7 @@ pub struct UserStyleProfileResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DocumentStyleProfileResponse {
     pub formality_level: f32,
     pub structure_level: f32,
@@ -279,6 +292,7 @@ pub struct DocumentStyleProfileResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CodeTemplateResponse {
     pub name: String,
     pub template: String,
@@ -286,6 +300,7 @@ pub struct CodeTemplateResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LearnedPatternResponse {
     pub id: String,
     pub pattern_type: String,
@@ -297,6 +312,7 @@ pub struct LearnedPatternResponse {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CodeSampleInput {
     pub code: String,
     pub language: String,
@@ -304,6 +320,7 @@ pub struct CodeSampleInput {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MessageSampleInput {
     pub content: String,
     pub role: String,
@@ -311,6 +328,7 @@ pub struct MessageSampleInput {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct StyleMigratorStatsResponse {
     pub total_profiles: u32,
     pub total_samples: u32,

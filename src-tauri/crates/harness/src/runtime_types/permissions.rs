@@ -12,6 +12,7 @@ use std::collections::BTreeMap;
 
 /// 权限级别，含最大属性合集。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum PermissionMode {
     ReadOnly = 0,
     WorkspaceWrite = 1,

@@ -3,7 +3,7 @@
 // 消息续写 — 从截断/partial 消息处继续生成
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_entities::messages;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde::Serialize;

@@ -1031,17 +1031,21 @@ pub struct ChannelPermissionPrompter {
     inner: Arc<ChannelPermissionPrompterInner>,
 }
 
+// SAFETY: 此处 parking_lot::Mutex 不跨 await 使用，所有方法均为同步操作。
+#[allow(clippy::disallowed_types)]
 struct ChannelPermissionPrompterInner {
     /// Maps request_id → Sender that agent_approve will use to unblock.
-    pending_senders: std::sync::Mutex<
+    pending_senders: parking_lot::Mutex<
         std::collections::HashMap<String, std::sync::mpsc::Sender<PermissionPromptDecision>>,
     >,
     /// Tools the user has marked "always allow" for this conversation.
-    always_allowed: std::sync::Mutex<HashSet<String>>,
+    always_allowed: parking_lot::Mutex<HashSet<String>>,
     /// Workspace root directory for file write boundary checks.
-    workspace_root: std::sync::Mutex<String>,
+    workspace_root: parking_lot::Mutex<String>,
 }
 
+// SAFETY: 此处 parking_lot::Mutex 不跨 await 使用，所有方法均为同步操作。
+#[allow(clippy::disallowed_types)]
 impl ChannelPermissionPrompter {
     pub fn new(
         app_handle: AppHandle,
@@ -1053,27 +1057,24 @@ impl ChannelPermissionPrompter {
             app_handle,
             conversation_id,
             inner: Arc::new(ChannelPermissionPrompterInner {
-                pending_senders: std::sync::Mutex::new(std::collections::HashMap::new()),
-                always_allowed: std::sync::Mutex::new(always_allowed),
-                workspace_root: std::sync::Mutex::new(workspace_root),
+                pending_senders: parking_lot::Mutex::new(std::collections::HashMap::new()),
+                always_allowed: parking_lot::Mutex::new(always_allowed),
+                workspace_root: parking_lot::Mutex::new(workspace_root),
             }),
         }
     }
 
     /// Returns the number of pending permission requests.
     pub fn pending_count(&self) -> usize {
-        self.inner.pending_senders.lock().unwrap_or_else(|e| e.into_inner()).len()
+        self.inner.pending_senders.lock().len()
     }
 
     /// Register a sender for a pending request. Called by `agent_approve` command
     /// to deliver the user's decision.
     pub fn deliver_decision(&self, request_id: &str, decision: PermissionPromptDecision) -> bool {
-        if let Ok(mut map) = self.inner.pending_senders.lock() {
-            if let Some(sender) = map.remove(request_id) {
-                sender.send(decision).is_ok()
-            } else {
-                false
-            }
+        let mut map = self.inner.pending_senders.lock();
+        if let Some(sender) = map.remove(request_id) {
+            sender.send(decision).is_ok()
         } else {
             false
         }
@@ -1081,21 +1082,19 @@ impl ChannelPermissionPrompter {
 
     /// Add a tool to the "always allowed" set for this conversation.
     pub fn add_always_allowed(&self, tool_name: &str) {
-        if let Ok(mut set) = self.inner.always_allowed.lock() {
-            set.insert(tool_name.to_string());
-        }
+        let mut set = self.inner.always_allowed.lock();
+        set.insert(tool_name.to_string());
     }
 
     /// Get the current "always allowed" set.
     pub fn get_always_allowed(&self) -> HashSet<String> {
-        self.inner.always_allowed.lock().map(|s| s.clone()).unwrap_or_default()
+        self.inner.always_allowed.lock().clone()
     }
 
     /// Clean up any stale pending senders (e.g. on conversation switch).
     pub fn clear_pending(&self) {
-        if let Ok(mut map) = self.inner.pending_senders.lock() {
-            map.clear();
-        }
+        let mut map = self.inner.pending_senders.lock();
+        map.clear();
     }
 }
 
@@ -1112,9 +1111,8 @@ impl Clone for ChannelPermissionPrompter {
 impl PermissionPrompter for ChannelPermissionPrompter {
     fn decide(&mut self, request: &PermissionRequest) -> PermissionPromptDecision {
         // Check "always allowed" first — match by tool_name
-        if let Ok(set) = self.inner.always_allowed.lock()
-            && set.contains(&request.tool_name)
-        {
+        let set = self.inner.always_allowed.lock();
+        if set.contains(&request.tool_name) {
             info!(
                 "[ChannelPermissionPrompter] Auto-allowing '{}' (always allowed)",
                 request.tool_name
@@ -1146,8 +1144,7 @@ impl PermissionPrompter for ChannelPermissionPrompter {
                     .unwrap_or("");
                 if !path.is_empty() {
                     // Use the cwd as workspace root if available
-                    let workspace_root =
-                        self.inner.workspace_root.lock().map(|s| s.clone()).unwrap_or_default();
+                    let workspace_root = self.inner.workspace_root.lock().clone();
                     if !workspace_root.is_empty() {
                         let result = enforcer.check_file_write(path, &workspace_root);
                         if let axagent_harness::runtime_types::permission_enforcer::EnforcementResult::Denied {
@@ -1224,13 +1221,8 @@ impl PermissionPrompter for ChannelPermissionPrompter {
 
         // Create a synchronous channel and register the sender
         let (tx, rx) = std::sync::mpsc::channel::<PermissionPromptDecision>();
-        if let Ok(mut map) = self.inner.pending_senders.lock() {
-            map.insert(request_id.clone(), tx);
-        } else {
-            return PermissionPromptDecision::Deny {
-                reason: "Internal error: failed to register permission sender".to_string(),
-            };
-        }
+        let mut map = self.inner.pending_senders.lock();
+        map.insert(request_id.clone(), tx);
 
         // Block until the frontend responds via agent_approve command
         // Use a 5-minute timeout to prevent indefinite blocking if the user
@@ -1256,9 +1248,9 @@ impl PermissionPrompter for ChannelPermissionPrompter {
                     request.tool_name, PERMISSION_TIMEOUT_SECS
                 );
                 // Clean up the pending entry
-                if let Ok(mut map) = self.inner.pending_senders.lock() {
-                    map.remove(&request_id);
-                }
+                let mut map = self.inner.pending_senders.lock();
+                map.remove(&request_id);
+
                 // Notify frontend that the permission was auto-denied due to timeout
                 let _ = self.app_handle.emit(
                     "agent-permission-timeout",
@@ -1278,9 +1270,9 @@ impl PermissionPrompter for ChannelPermissionPrompter {
             Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
                 // Sender was dropped (e.g. agent cancelled) — deny by default
                 // Clean up the pending entry
-                if let Ok(mut map) = self.inner.pending_senders.lock() {
-                    map.remove(&request_id);
-                }
+                let mut map = self.inner.pending_senders.lock();
+                map.remove(&request_id);
+
                 PermissionPromptDecision::Deny {
                     reason: "Permission request cancelled (agent disconnected)".to_string(),
                 }
@@ -1425,6 +1417,8 @@ impl HookProgressReporter for TauriHookProgressReporter {
 }
 
 #[cfg(test)]
+#[allow(clippy::disallowed_types)]
+// SAFETY: 测试模块使用 parking_lot::Mutex 保护测试桩数据，仅在同步测试场景中使用，无跨 await 风险。
 mod tests {
     use super::*;
     use axagent_harness::conversation_model::MessageRole as HarnessMessageRole;
@@ -1911,28 +1905,28 @@ mod tests {
     #[tokio::test]
     async fn test_channel_permission_prompter_inner_pending_count() {
         let inner = ChannelPermissionPrompterInner {
-            pending_senders: std::sync::Mutex::new(std::collections::HashMap::new()),
-            always_allowed: std::sync::Mutex::new(HashSet::new()),
-            workspace_root: std::sync::Mutex::new("/workspace".to_string()),
+            pending_senders: parking_lot::Mutex::new(std::collections::HashMap::new()),
+            always_allowed: parking_lot::Mutex::new(HashSet::new()),
+            workspace_root: parking_lot::Mutex::new("/workspace".to_string()),
         };
         let inner = Arc::new(inner);
-        assert_eq!(inner.pending_senders.lock().unwrap_or_else(|e| e.into_inner()).len(), 0);
+        assert_eq!(inner.pending_senders.lock().len(), 0);
     }
 
     #[test]
     fn test_channel_permission_prompter_inner_add_always_allowed() {
         let inner = ChannelPermissionPrompterInner {
-            pending_senders: std::sync::Mutex::new(std::collections::HashMap::new()),
-            always_allowed: std::sync::Mutex::new(HashSet::new()),
-            workspace_root: std::sync::Mutex::new("/workspace".to_string()),
+            pending_senders: parking_lot::Mutex::new(std::collections::HashMap::new()),
+            always_allowed: parking_lot::Mutex::new(HashSet::new()),
+            workspace_root: parking_lot::Mutex::new("/workspace".to_string()),
         };
         let inner = Arc::new(inner);
         {
-            let mut set = inner.always_allowed.lock().unwrap_or_else(|e| e.into_inner());
+            let mut set = inner.always_allowed.lock();
             set.insert("read_file".to_string());
             set.insert("bash".to_string());
         }
-        let set = inner.always_allowed.lock().unwrap_or_else(|e| e.into_inner());
+        let set = inner.always_allowed.lock();
         assert_eq!(set.len(), 2);
         assert!(set.contains("read_file"));
         assert!(set.contains("bash"));
@@ -1941,13 +1935,13 @@ mod tests {
     #[test]
     fn test_channel_permission_prompter_inner_deliver_decision_no_pending() {
         let inner = ChannelPermissionPrompterInner {
-            pending_senders: std::sync::Mutex::new(std::collections::HashMap::new()),
-            always_allowed: std::sync::Mutex::new(HashSet::new()),
-            workspace_root: std::sync::Mutex::new(String::new()),
+            pending_senders: parking_lot::Mutex::new(std::collections::HashMap::new()),
+            always_allowed: parking_lot::Mutex::new(HashSet::new()),
+            workspace_root: parking_lot::Mutex::new(String::new()),
         };
         let inner = Arc::new(inner);
         let result = {
-            let mut map = inner.pending_senders.lock().unwrap_or_else(|e| e.into_inner());
+            let mut map = inner.pending_senders.lock();
             if let Some(sender) = map.remove("nonexistent") {
                 sender.send(PermissionPromptDecision::Allow).is_ok()
             } else {
@@ -1960,23 +1954,23 @@ mod tests {
     #[test]
     fn test_channel_permission_prompter_inner_clear_pending() {
         let inner = ChannelPermissionPrompterInner {
-            pending_senders: std::sync::Mutex::new(std::collections::HashMap::new()),
-            always_allowed: std::sync::Mutex::new(HashSet::new()),
-            workspace_root: std::sync::Mutex::new(String::new()),
+            pending_senders: parking_lot::Mutex::new(std::collections::HashMap::new()),
+            always_allowed: parking_lot::Mutex::new(HashSet::new()),
+            workspace_root: parking_lot::Mutex::new(String::new()),
         };
         let inner = Arc::new(inner);
         let (tx, rx) = std::sync::mpsc::channel::<PermissionPromptDecision>();
         {
-            let mut map = inner.pending_senders.lock().unwrap_or_else(|e| e.into_inner());
+            let mut map = inner.pending_senders.lock();
             map.insert("req-1".to_string(), tx);
         }
         {
-            let mut map = inner.pending_senders.lock().unwrap_or_else(|e| e.into_inner());
+            let mut map = inner.pending_senders.lock();
             assert_eq!(map.len(), 1);
             map.clear();
         }
         {
-            let map = inner.pending_senders.lock().unwrap_or_else(|e| e.into_inner());
+            let map = inner.pending_senders.lock();
             assert!(map.is_empty());
         }
         drop(rx);
@@ -1985,18 +1979,18 @@ mod tests {
     #[test]
     fn test_channel_permission_prompter_inner_deliver_decision_success() {
         let inner = ChannelPermissionPrompterInner {
-            pending_senders: std::sync::Mutex::new(std::collections::HashMap::new()),
-            always_allowed: std::sync::Mutex::new(HashSet::new()),
-            workspace_root: std::sync::Mutex::new(String::new()),
+            pending_senders: parking_lot::Mutex::new(std::collections::HashMap::new()),
+            always_allowed: parking_lot::Mutex::new(HashSet::new()),
+            workspace_root: parking_lot::Mutex::new(String::new()),
         };
         let inner = Arc::new(inner);
         let (tx, rx) = std::sync::mpsc::channel::<PermissionPromptDecision>();
         {
-            let mut map = inner.pending_senders.lock().unwrap_or_else(|e| e.into_inner());
+            let mut map = inner.pending_senders.lock();
             map.insert("req-1".to_string(), tx);
         }
         let result = {
-            let mut map = inner.pending_senders.lock().unwrap_or_else(|e| e.into_inner());
+            let mut map = inner.pending_senders.lock();
             if let Some(sender) = map.remove("req-1") {
                 sender.send(PermissionPromptDecision::Allow).is_ok()
             } else {
@@ -2013,12 +2007,12 @@ mod tests {
         let mut allowed_set = HashSet::new();
         allowed_set.insert("read_file".to_string());
         let inner = ChannelPermissionPrompterInner {
-            pending_senders: std::sync::Mutex::new(std::collections::HashMap::new()),
-            always_allowed: std::sync::Mutex::new(allowed_set),
-            workspace_root: std::sync::Mutex::new(String::new()),
+            pending_senders: parking_lot::Mutex::new(std::collections::HashMap::new()),
+            always_allowed: parking_lot::Mutex::new(allowed_set),
+            workspace_root: parking_lot::Mutex::new(String::new()),
         };
         let inner = Arc::new(inner);
-        let set = inner.always_allowed.lock().unwrap_or_else(|e| e.into_inner());
+        let set = inner.always_allowed.lock();
         assert!(set.contains("read_file"));
         assert!(!set.contains("bash"));
     }
@@ -2026,12 +2020,12 @@ mod tests {
     #[test]
     fn test_channel_permission_prompter_inner_workspace_root() {
         let inner = ChannelPermissionPrompterInner {
-            pending_senders: std::sync::Mutex::new(std::collections::HashMap::new()),
-            always_allowed: std::sync::Mutex::new(HashSet::new()),
-            workspace_root: std::sync::Mutex::new("/my/workspace".to_string()),
+            pending_senders: parking_lot::Mutex::new(std::collections::HashMap::new()),
+            always_allowed: parking_lot::Mutex::new(HashSet::new()),
+            workspace_root: parking_lot::Mutex::new("/my/workspace".to_string()),
         };
         let inner = Arc::new(inner);
-        let root = inner.workspace_root.lock().unwrap_or_else(|e| e.into_inner());
+        let root = inner.workspace_root.lock();
         assert_eq!(*root, "/my/workspace");
     }
 

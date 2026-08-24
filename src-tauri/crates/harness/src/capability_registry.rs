@@ -16,11 +16,14 @@
 //!
 //! 所有注册都是可逆的（返回 [`crate::EffectHandle`]），支持运行期热插拔与隔离回滚。
 
+#![allow(clippy::disallowed_types)]
+
 use crate::agent_turn_runner::AgentTurnRunner;
 use crate::provider::ProviderAdapter;
 use crate::reversible_effect::{EffectHandle, EffectScope};
+use parking_lot::RwLock;
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 /// 能力接缝的接口契约声明（ServiceDefinition）。
 ///
@@ -346,16 +349,12 @@ impl CapabilityRegistry {
 
     /// 记录一条内置注册句柄，供外部插件替换该接缝时撤销。
     fn note_builtin_handle(&self, id: &str, handle: EffectHandle) {
-        self.builtin_handles
-            .write()
-            .unwrap_or_else(|e| e.into_inner())
-            .insert(id.to_string(), handle);
+        self.builtin_handles.write().insert(id.to_string(), handle);
     }
 
     /// 撤销并移除同 id 的内置句柄（外部插件替换内置的前置动作）。
     fn evict_builtin_for_external(&self, id: &str) {
-        if let Some(h) = self.builtin_handles.write().unwrap_or_else(|e| e.into_inner()).remove(id)
-        {
+        if let Some(h) = self.builtin_handles.write().remove(id) {
             h.undo();
         }
     }
@@ -370,7 +369,7 @@ impl CapabilityRegistry {
         if origin == CapabilityOrigin::ExternalPlugin {
             self.evict_builtin_for_external(id);
         }
-        if self.inner.read().unwrap_or_else(|e| e.into_inner()).contains_key(id) {
+        if self.inner.read().contains_key(id) {
             return Err(CapabilityError::Duplicate { id: id.to_string() });
         }
         Ok(())
@@ -388,7 +387,7 @@ impl CapabilityRegistry {
         let id = definition.id.clone();
         let undo_id = id.clone();
         self.prepare_registration(&id, origin)?;
-        let mut slot = self.inner.write().unwrap_or_else(|e| e.into_inner());
+        let mut slot = self.inner.write();
         slot.insert(id.clone(), CapabilityRegistration { definition, origin, provider });
         drop(slot);
 
@@ -396,7 +395,7 @@ impl CapabilityRegistry {
         let this = self.clone();
         let undo = this.inner.clone();
         let handle = self.effects.register(format!("capability:{id}"), move || {
-            let mut guard = undo.write().unwrap_or_else(|e| e.into_inner());
+            let mut guard = undo.write();
             guard.remove(&undo_id);
         });
         if origin == CapabilityOrigin::BuiltIn {
@@ -448,12 +447,8 @@ impl CapabilityRegistry {
     ) -> Result<EffectHandle, CapabilityError> {
         let id = definition.id.clone();
         if idempotent && origin == CapabilityOrigin::BuiltIn {
-            let is_dup_builtin = self
-                .inner
-                .read()
-                .unwrap_or_else(|e| e.into_inner())
-                .get(&id)
-                .is_some_and(|r| r.origin == CapabilityOrigin::BuiltIn);
+            let is_dup_builtin =
+                self.inner.read().get(&id).is_some_and(|r| r.origin == CapabilityOrigin::BuiltIn);
             if is_dup_builtin {
                 // 同键内置适配器已注册：幂等跳过，撤销亦为空操作。
                 return Ok(self
@@ -464,25 +459,22 @@ impl CapabilityRegistry {
         // 通用侧（检视 / contains / len 用）
         {
             self.prepare_registration(&id, origin)?;
-            let mut slot = self.inner.write().unwrap_or_else(|e| e.into_inner());
+            let mut slot = self.inner.write();
             slot.insert(
                 id.clone(),
                 CapabilityRegistration { definition, origin, provider: provider.clone() },
             );
         }
         // 特化侧（trait object 检索用）
-        self.model_providers
-            .write()
-            .unwrap_or_else(|e| e.into_inner())
-            .insert(id.clone(), provider);
+        self.model_providers.write().insert(id.clone(), provider);
 
         // 合并可逆效果：撤销时同时清理两处存储。
         let undo_inner = self.inner.clone();
         let undo_mp = self.model_providers.clone();
         let undo_id = id.clone();
         let handle = self.effects.register(format!("capability:{id}:model-provider"), move || {
-            undo_inner.write().unwrap_or_else(|e| e.into_inner()).remove(&undo_id);
-            undo_mp.write().unwrap_or_else(|e| e.into_inner()).remove(&undo_id);
+            undo_inner.write().remove(&undo_id);
+            undo_mp.write().remove(&undo_id);
         });
         if origin == CapabilityOrigin::BuiltIn {
             self.note_builtin_handle(&id, handle.clone());
@@ -519,7 +511,7 @@ impl CapabilityRegistry {
         provider_type: &str,
     ) -> Option<Arc<dyn ProviderAdapter>> {
         let id = format!("model.provider.{provider_type}");
-        self.model_providers.read().unwrap_or_else(|e| e.into_inner()).get(&id).cloned()
+        self.model_providers.read().get(&id).cloned()
     }
 
     pub fn register_plugin_capability(
@@ -537,28 +529,28 @@ impl CapabilityRegistry {
 
     /// 注销一个能力（直接移除，不走可逆效果）。
     pub fn unregister(&self, id: &str) -> Result<(), CapabilityError> {
-        let mut slot = self.inner.write().unwrap_or_else(|e| e.into_inner());
+        let mut slot = self.inner.write();
         if slot.remove(id).is_none() {
             return Err(CapabilityError::NotFound { id: id.to_string() });
         }
-        self.model_providers.write().unwrap_or_else(|e| e.into_inner()).remove(id);
-        self.agent_turn_runners.write().unwrap_or_else(|e| e.into_inner()).remove(id);
-        self.workflow_reflectors.write().unwrap_or_else(|e| e.into_inner()).remove(id);
-        self.workflow_evolvers.write().unwrap_or_else(|e| e.into_inner()).remove(id);
-        self.workflow_optimizers.write().unwrap_or_else(|e| e.into_inner()).remove(id);
-        self.business_rules.write().unwrap_or_else(|e| e.into_inner()).remove(id);
-        self.message_callbacks.write().unwrap_or_else(|e| e.into_inner()).remove(id);
-        self.webhook_dispatchers.write().unwrap_or_else(|e| e.into_inner()).remove(id);
-        self.event_dispatchers.write().unwrap_or_else(|e| e.into_inner()).remove(id);
-        self.platform_adapters.write().unwrap_or_else(|e| e.into_inner()).remove(id);
-        self.storage_backends.write().unwrap_or_else(|e| e.into_inner()).remove(id);
-        self.sandboxes.write().unwrap_or_else(|e| e.into_inner()).remove(id);
+        self.model_providers.write().remove(id);
+        self.agent_turn_runners.write().remove(id);
+        self.workflow_reflectors.write().remove(id);
+        self.workflow_evolvers.write().remove(id);
+        self.workflow_optimizers.write().remove(id);
+        self.business_rules.write().remove(id);
+        self.message_callbacks.write().remove(id);
+        self.webhook_dispatchers.write().remove(id);
+        self.event_dispatchers.write().remove(id);
+        self.platform_adapters.write().remove(id);
+        self.storage_backends.write().remove(id);
+        self.sandboxes.write().remove(id);
         Ok(())
     }
 
     /// 按 ID 取回类型擦除的 Provider。
     pub fn get(&self, id: &str) -> Option<Arc<dyn std::any::Any + Send + Sync>> {
-        self.inner.read().unwrap_or_else(|e| e.into_inner()).get(id).map(|r| r.provider.clone())
+        self.inner.read().get(id).map(|r| r.provider.clone())
     }
 
     /// 按 ID + 类型约束向下转型取回 Provider（Consumer 入口）。
@@ -572,11 +564,7 @@ impl CapabilityRegistry {
 
     /// 取回 model-provider 接缝上的 LLM 适配器（若已注册）。
     pub fn get_provider_adapter(&self) -> Option<Arc<dyn ProviderAdapter>> {
-        self.model_providers
-            .read()
-            .unwrap_or_else(|e| e.into_inner())
-            .get("model.provider")
-            .cloned()
+        self.model_providers.read().get("model.provider").cloned()
     }
 
     /// 注册一个内置 Agent 主循环（P1 试点接缝 `agent.loop`）。
@@ -616,25 +604,22 @@ impl CapabilityRegistry {
         // 通用侧（检视 / contains / len 用）
         {
             self.prepare_registration(&id, origin)?;
-            let mut slot = self.inner.write().unwrap_or_else(|e| e.into_inner());
+            let mut slot = self.inner.write();
             slot.insert(
                 id.clone(),
                 CapabilityRegistration { definition, origin, provider: runner.clone() },
             );
         }
         // 特化侧（trait object 检索用）
-        self.agent_turn_runners
-            .write()
-            .unwrap_or_else(|e| e.into_inner())
-            .insert(id.clone(), runner);
+        self.agent_turn_runners.write().insert(id.clone(), runner);
 
         // 合并可逆效果：撤销时同时清理两处存储。
         let undo_inner = self.inner.clone();
         let undo_atr = self.agent_turn_runners.clone();
         let undo_id = id.clone();
         let handle = self.effects.register(format!("capability:{id}:agent-loop"), move || {
-            undo_inner.write().unwrap_or_else(|e| e.into_inner()).remove(&undo_id);
-            undo_atr.write().unwrap_or_else(|e| e.into_inner()).remove(&undo_id);
+            undo_inner.write().remove(&undo_id);
+            undo_atr.write().remove(&undo_id);
         });
         if origin == CapabilityOrigin::BuiltIn {
             self.note_builtin_handle(&id, handle.clone());
@@ -644,7 +629,7 @@ impl CapabilityRegistry {
 
     /// 取回 agent-loop 接缝上的 Agent 主循环（若已注册）。
     pub fn get_agent_turn_runner(&self) -> Option<Arc<dyn AgentTurnRunner>> {
-        self.agent_turn_runners.read().unwrap_or_else(|e| e.into_inner()).get("agent.loop").cloned()
+        self.agent_turn_runners.read().get("agent.loop").cloned()
     }
 
     // ── storage 接缝 ────────────────────────────────────────────────────────
@@ -678,23 +663,20 @@ impl CapabilityRegistry {
         let id = definition.id.clone();
         {
             self.prepare_registration(&id, origin)?;
-            let mut slot = self.inner.write().unwrap_or_else(|e| e.into_inner());
+            let mut slot = self.inner.write();
             slot.insert(
                 id.clone(),
                 CapabilityRegistration { definition, origin, provider: backend.clone() },
             );
         }
-        self.storage_backends
-            .write()
-            .unwrap_or_else(|e| e.into_inner())
-            .insert(id.clone(), backend);
+        self.storage_backends.write().insert(id.clone(), backend);
 
         let undo_inner = self.inner.clone();
         let undo_storage = self.storage_backends.clone();
         let undo_id = id.clone();
         let handle = self.effects.register(format!("capability:{id}:storage"), move || {
-            undo_inner.write().unwrap_or_else(|e| e.into_inner()).remove(&undo_id);
-            undo_storage.write().unwrap_or_else(|e| e.into_inner()).remove(&undo_id);
+            undo_inner.write().remove(&undo_id);
+            undo_storage.write().remove(&undo_id);
         });
         if origin == CapabilityOrigin::BuiltIn {
             self.note_builtin_handle(&id, handle.clone());
@@ -704,11 +686,7 @@ impl CapabilityRegistry {
 
     /// 取回 storage 接缝上的对象存储后端（若已注册）。
     pub fn get_storage(&self) -> Option<Arc<dyn crate::StorageBackend>> {
-        self.storage_backends
-            .read()
-            .unwrap_or_else(|e| e.into_inner())
-            .get("storage.backend")
-            .cloned()
+        self.storage_backends.read().get("storage.backend").cloned()
     }
 
     // ── sandbox 接缝 ────────────────────────────────────────────────────────
@@ -742,20 +720,20 @@ impl CapabilityRegistry {
         let id = definition.id.clone();
         {
             self.prepare_registration(&id, origin)?;
-            let mut slot = self.inner.write().unwrap_or_else(|e| e.into_inner());
+            let mut slot = self.inner.write();
             slot.insert(
                 id.clone(),
                 CapabilityRegistration { definition, origin, provider: sandbox.clone() },
             );
         }
-        self.sandboxes.write().unwrap_or_else(|e| e.into_inner()).insert(id.clone(), sandbox);
+        self.sandboxes.write().insert(id.clone(), sandbox);
 
         let undo_inner = self.inner.clone();
         let undo_sandbox = self.sandboxes.clone();
         let undo_id = id.clone();
         let handle = self.effects.register(format!("capability:{id}:sandbox"), move || {
-            undo_inner.write().unwrap_or_else(|e| e.into_inner()).remove(&undo_id);
-            undo_sandbox.write().unwrap_or_else(|e| e.into_inner()).remove(&undo_id);
+            undo_inner.write().remove(&undo_id);
+            undo_sandbox.write().remove(&undo_id);
         });
         if origin == CapabilityOrigin::BuiltIn {
             self.note_builtin_handle(&id, handle.clone());
@@ -765,7 +743,7 @@ impl CapabilityRegistry {
 
     /// 取回 sandbox 接缝上的工作流沙箱（若已注册）。
     pub fn get_sandbox(&self) -> Option<Arc<dyn crate::WorkflowSandbox>> {
-        self.sandboxes.read().unwrap_or_else(|e| e.into_inner()).get("workflow.sandbox").cloned()
+        self.sandboxes.read().get("workflow.sandbox").cloned()
     }
 
     // ── workflow-reflector 接缝 ─────────────────────────────────────────────
@@ -803,16 +781,13 @@ impl CapabilityRegistry {
         let id = definition.id.clone();
         {
             self.prepare_registration(&id, origin)?;
-            let mut slot = self.inner.write().unwrap_or_else(|e| e.into_inner());
+            let mut slot = self.inner.write();
             slot.insert(
                 id.clone(),
                 CapabilityRegistration { definition, origin, provider: reflector.clone() },
             );
         }
-        self.workflow_reflectors
-            .write()
-            .unwrap_or_else(|e| e.into_inner())
-            .insert(id.clone(), reflector);
+        self.workflow_reflectors.write().insert(id.clone(), reflector);
         let handle =
             self.register_rollback(&id, origin, "workflow-reflector", &self.workflow_reflectors);
         Ok(handle)
@@ -820,11 +795,7 @@ impl CapabilityRegistry {
 
     /// 取回 workflow-reflector 接缝上的反思实现（若已注册）。
     pub fn get_workflow_reflector(&self) -> Option<Arc<dyn crate::WorkflowReflector>> {
-        self.workflow_reflectors
-            .read()
-            .unwrap_or_else(|e| e.into_inner())
-            .get("workflow.reflector")
-            .cloned()
+        self.workflow_reflectors.read().get("workflow.reflector").cloned()
     }
 
     // ── workflow-evolver 接缝 ───────────────────────────────────────────────
@@ -862,16 +833,13 @@ impl CapabilityRegistry {
         let id = definition.id.clone();
         {
             self.prepare_registration(&id, origin)?;
-            let mut slot = self.inner.write().unwrap_or_else(|e| e.into_inner());
+            let mut slot = self.inner.write();
             slot.insert(
                 id.clone(),
                 CapabilityRegistration { definition, origin, provider: evolver.clone() },
             );
         }
-        self.workflow_evolvers
-            .write()
-            .unwrap_or_else(|e| e.into_inner())
-            .insert(id.clone(), evolver);
+        self.workflow_evolvers.write().insert(id.clone(), evolver);
         let handle =
             self.register_rollback(&id, origin, "workflow-evolver", &self.workflow_evolvers);
         Ok(handle)
@@ -879,11 +847,7 @@ impl CapabilityRegistry {
 
     /// 取回 workflow-evolver 接缝上的进化实现（若已注册）。
     pub fn get_workflow_evolver(&self) -> Option<Arc<dyn crate::WorkflowEvolver>> {
-        self.workflow_evolvers
-            .read()
-            .unwrap_or_else(|e| e.into_inner())
-            .get("workflow.evolver")
-            .cloned()
+        self.workflow_evolvers.read().get("workflow.evolver").cloned()
     }
 
     // ── workflow-optimizer 接缝 ─────────────────────────────────────────────
@@ -921,16 +885,13 @@ impl CapabilityRegistry {
         let id = definition.id.clone();
         {
             self.prepare_registration(&id, origin)?;
-            let mut slot = self.inner.write().unwrap_or_else(|e| e.into_inner());
+            let mut slot = self.inner.write();
             slot.insert(
                 id.clone(),
                 CapabilityRegistration { definition, origin, provider: optimizer.clone() },
             );
         }
-        self.workflow_optimizers
-            .write()
-            .unwrap_or_else(|e| e.into_inner())
-            .insert(id.clone(), optimizer);
+        self.workflow_optimizers.write().insert(id.clone(), optimizer);
         let handle =
             self.register_rollback(&id, origin, "workflow-optimizer", &self.workflow_optimizers);
         Ok(handle)
@@ -938,11 +899,7 @@ impl CapabilityRegistry {
 
     /// 取回 workflow-optimizer 接缝上的优化实现（若已注册）。
     pub fn get_workflow_optimizer(&self) -> Option<Arc<dyn crate::WorkflowOptimizer>> {
-        self.workflow_optimizers
-            .read()
-            .unwrap_or_else(|e| e.into_inner())
-            .get("workflow.optimizer")
-            .cloned()
+        self.workflow_optimizers.read().get("workflow.optimizer").cloned()
     }
 
     // ── business-rule 接缝 ──────────────────────────────────────────────────
@@ -980,27 +937,20 @@ impl CapabilityRegistry {
         let id = definition.id.clone();
         {
             self.prepare_registration(&id, origin)?;
-            let mut slot = self.inner.write().unwrap_or_else(|e| e.into_inner());
+            let mut slot = self.inner.write();
             slot.insert(
                 id.clone(),
                 CapabilityRegistration { definition, origin, provider: evaluator.clone() },
             );
         }
-        self.business_rules
-            .write()
-            .unwrap_or_else(|e| e.into_inner())
-            .insert(id.clone(), evaluator);
+        self.business_rules.write().insert(id.clone(), evaluator);
         let handle = self.register_rollback(&id, origin, "business-rule", &self.business_rules);
         Ok(handle)
     }
 
     /// 取回 workflow.business_rule 接缝上的规则评估器（若已注册）。
     pub fn get_business_rule(&self) -> Option<Arc<dyn crate::BusinessRuleEvaluator>> {
-        self.business_rules
-            .read()
-            .unwrap_or_else(|e| e.into_inner())
-            .get("workflow.business_rule")
-            .cloned()
+        self.business_rules.read().get("workflow.business_rule").cloned()
     }
 
     // ── message.callback 接缝 ───────────────────────────────────────────────
@@ -1041,26 +991,19 @@ impl CapabilityRegistry {
         let id = definition.id.clone();
         {
             self.prepare_registration(&id, origin)?;
-            let mut slot = self.inner.write().unwrap_or_else(|e| e.into_inner());
+            let mut slot = self.inner.write();
             slot.insert(
                 id.clone(),
                 CapabilityRegistration { definition, origin, provider: callback.clone() },
             );
         }
-        self.message_callbacks
-            .write()
-            .unwrap_or_else(|e| e.into_inner())
-            .insert(id.clone(), callback);
+        self.message_callbacks.write().insert(id.clone(), callback);
         Ok(self.register_rollback(&id, origin, "message-callback", &self.message_callbacks))
     }
 
     /// 取回 message.callback 接缝上的消息回调（若已注册）。
     pub fn get_message_callback(&self) -> Option<Arc<dyn crate::PlatformMessageCallback>> {
-        self.message_callbacks
-            .read()
-            .unwrap_or_else(|e| e.into_inner())
-            .get("message.callback")
-            .cloned()
+        self.message_callbacks.read().get("message.callback").cloned()
     }
 
     // ── webhook.dispatch 接缝 ───────────────────────────────────────────────
@@ -1101,26 +1044,19 @@ impl CapabilityRegistry {
         let id = definition.id.clone();
         {
             self.prepare_registration(&id, origin)?;
-            let mut slot = self.inner.write().unwrap_or_else(|e| e.into_inner());
+            let mut slot = self.inner.write();
             slot.insert(
                 id.clone(),
                 CapabilityRegistration { definition, origin, provider: dispatcher.clone() },
             );
         }
-        self.webhook_dispatchers
-            .write()
-            .unwrap_or_else(|e| e.into_inner())
-            .insert(id.clone(), dispatcher);
+        self.webhook_dispatchers.write().insert(id.clone(), dispatcher);
         Ok(self.register_rollback(&id, origin, "webhook-dispatch", &self.webhook_dispatchers))
     }
 
     /// 取回 webhook.dispatch 接缝上的派发器（若已注册）。
     pub fn get_webhook_dispatch(&self) -> Option<Arc<dyn crate::WebhookDispatch>> {
-        self.webhook_dispatchers
-            .read()
-            .unwrap_or_else(|e| e.into_inner())
-            .get("webhook.dispatch")
-            .cloned()
+        self.webhook_dispatchers.read().get("webhook.dispatch").cloned()
     }
 
     // ── event.dispatch 接缝（单例类型化事件派发总线） ──────────────────────
@@ -1159,26 +1095,19 @@ impl CapabilityRegistry {
         let id = definition.id.clone();
         {
             self.prepare_registration(&id, origin)?;
-            let mut slot = self.inner.write().unwrap_or_else(|e| e.into_inner());
+            let mut slot = self.inner.write();
             slot.insert(
                 id.clone(),
                 CapabilityRegistration { definition, origin, provider: dispatcher.clone() },
             );
         }
-        self.event_dispatchers
-            .write()
-            .unwrap_or_else(|e| e.into_inner())
-            .insert(id.clone(), dispatcher);
+        self.event_dispatchers.write().insert(id.clone(), dispatcher);
         Ok(self.register_rollback(&id, origin, "event-dispatch", &self.event_dispatchers))
     }
 
     /// 取回 event.dispatch 接缝上的类型化事件派发总线（若已注册）。
     pub fn get_event_dispatcher(&self) -> Option<Arc<crate::EventDispatchBus>> {
-        self.event_dispatchers
-            .read()
-            .unwrap_or_else(|e| e.into_inner())
-            .get("event.dispatch")
-            .cloned()
+        self.event_dispatchers.read().get("event.dispatch").cloned()
     }
 
     // ── session.log.invariant 接缝（单例会话日志不变量） ─────────────────────
@@ -1217,23 +1146,19 @@ impl CapabilityRegistry {
         let id = definition.id.clone();
         {
             self.prepare_registration(&id, origin)?;
-            let mut slot = self.inner.write().unwrap_or_else(|e| e.into_inner());
+            let mut slot = self.inner.write();
             slot.insert(
                 id.clone(),
                 CapabilityRegistration { definition, origin, provider: log.clone() },
             );
         }
-        self.session_logs.write().unwrap_or_else(|e| e.into_inner()).insert(id.clone(), log);
+        self.session_logs.write().insert(id.clone(), log);
         Ok(self.register_rollback(&id, origin, "session-log", &self.session_logs))
     }
 
     /// 取回 session.log.invariant 接缝上的会话日志不变量（若已注册）。
     pub fn get_session_log_invariant(&self) -> Option<Arc<dyn crate::SessionLogInvariant>> {
-        self.session_logs
-            .read()
-            .unwrap_or_else(|e| e.into_inner())
-            .get("session.log.invariant")
-            .cloned()
+        self.session_logs.read().get("session.log.invariant").cloned()
     }
 
     // ── platform.adapter 接缝（多实例，按平台名注册） ──────────────────────
@@ -1278,16 +1203,13 @@ impl CapabilityRegistry {
         let id = definition.id.clone();
         {
             self.prepare_registration(&id, origin)?;
-            let mut slot = self.inner.write().unwrap_or_else(|e| e.into_inner());
+            let mut slot = self.inner.write();
             slot.insert(
                 id.clone(),
                 CapabilityRegistration { definition, origin, provider: adapter.clone() },
             );
         }
-        self.platform_adapters
-            .write()
-            .unwrap_or_else(|e| e.into_inner())
-            .insert(id.clone(), adapter);
+        self.platform_adapters.write().insert(id.clone(), adapter);
         Ok(self.register_rollback(&id, origin, "platform-adapter", &self.platform_adapters))
     }
 
@@ -1297,14 +1219,13 @@ impl CapabilityRegistry {
         platform_name: &str,
     ) -> Option<Arc<dyn crate::MessagePlatformAdapter>> {
         let id = format!("platform.adapter.{platform_name}");
-        self.platform_adapters.read().unwrap_or_else(|e| e.into_inner()).get(&id).cloned()
+        self.platform_adapters.read().get(&id).cloned()
     }
 
     /// 列出所有已注册的平台名（去掉 `platform.adapter.` 前缀）。
     pub fn list_platform_adapters(&self) -> Vec<String> {
         self.platform_adapters
             .read()
-            .unwrap_or_else(|e| e.into_inner())
             .keys()
             .map(|k| k.trim_start_matches("platform.adapter.").to_string())
             .collect()
@@ -1326,8 +1247,8 @@ impl CapabilityRegistry {
         let undo_inner = self.inner.clone();
         let undo_slot = slot.clone();
         let handle = self.effects.register(format!("capability:{id_owned}:{suffix}"), move || {
-            undo_inner.write().unwrap_or_else(|e| e.into_inner()).remove(&id_owned);
-            undo_slot.write().unwrap_or_else(|e| e.into_inner()).remove(&id_owned);
+            undo_inner.write().remove(&id_owned);
+            undo_slot.write().remove(&id_owned);
         });
         if origin == CapabilityOrigin::BuiltIn {
             self.note_builtin_handle(id, handle.clone());
@@ -1337,12 +1258,12 @@ impl CapabilityRegistry {
 
     /// 是否已注册指定 ID。
     pub fn contains(&self, id: &str) -> bool {
-        self.inner.read().unwrap_or_else(|e| e.into_inner()).contains_key(id)
+        self.inner.read().contains_key(id)
     }
 
     /// 已注册能力数量。
     pub fn len(&self) -> usize {
-        self.inner.read().unwrap_or_else(|e| e.into_inner()).len()
+        self.inner.read().len()
     }
 
     /// 是否为空。
@@ -1352,22 +1273,12 @@ impl CapabilityRegistry {
 
     /// 列出全部能力定义（用于检视 / `dump-config`）。
     pub fn list_definitions(&self) -> Vec<ServiceDefinition> {
-        self.inner
-            .read()
-            .unwrap_or_else(|e| e.into_inner())
-            .values()
-            .map(|r| r.definition.clone())
-            .collect()
+        self.inner.read().values().map(|r| r.definition.clone()).collect()
     }
 
     /// 列出全部能力来源（用于检视 / `dump-config`）。
     pub fn list_origins(&self) -> Vec<(String, CapabilityOrigin)> {
-        self.inner
-            .read()
-            .unwrap_or_else(|e| e.into_inner())
-            .values()
-            .map(|r| (r.definition.id.clone(), r.origin))
-            .collect()
+        self.inner.read().values().map(|r| (r.definition.id.clone(), r.origin)).collect()
     }
 
     /// 列出带详细来源的能力注册（用于检视 / `dump-config`）。
@@ -1377,7 +1288,6 @@ impl CapabilityRegistry {
     pub fn list_with_details(&self) -> Vec<CapabilityRegistrationDetail> {
         self.inner
             .read()
-            .unwrap_or_else(|e| e.into_inner())
             .values()
             .map(|r| {
                 let plugin_id = r

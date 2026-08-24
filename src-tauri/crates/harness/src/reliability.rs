@@ -47,21 +47,11 @@ macro_rules! try_unwrap_or_return {
     };
 }
 
-/// Try to acquire a `RwLock`/`Mutex` lock, recovering the guard from
-/// poisoning and logging a WARN instead of panicking.
+/// Acquire a `RwLock`/`Mutex` lock. `parking_lot` locks never poison, so this
+/// is an identity expansion of the expression (which already yields the guard).
 #[macro_export]
 macro_rules! try_lock_or_log {
     ($expr:expr, $($msg:tt)+) => {
-        match $expr {
-            Ok(guard) => guard,
-            Err(poisoned) => {
-                tracing::warn!(
-                    target: "axagent.reliability",
-                    "{} (recovering from poison)",
-                    format!($($msg)+)
-                );
-                poisoned.into_inner()
-            },
-        }
+        $expr
     };
 }

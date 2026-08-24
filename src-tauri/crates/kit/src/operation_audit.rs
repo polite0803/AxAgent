@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// SAFETY: 本文件中 Mutex 用于操作审计记录同步写入，不跨 await（铁律 #8 例外）
+#![allow(clippy::disallowed_types)]
 
 use axagent_harness::util_fns::current_rfc3339;
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
-use std::sync::Mutex;
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum RiskLevel {
@@ -33,7 +35,7 @@ impl OperationAuditor {
     }
 
     pub fn record(&self, entry: AuditEntry) {
-        let mut entries = self.entries.lock().unwrap_or_else(|e| e.into_inner());
+        let mut entries = self.entries.lock();
         entries.push(entry);
         if entries.len() > 1000 {
             entries.drain(0..100);
@@ -41,7 +43,7 @@ impl OperationAuditor {
     }
 
     pub fn needs_confirmation(&self, risk: &RiskLevel) -> bool {
-        let threshold = self.confirm_threshold.lock().unwrap_or_else(|e| e.into_inner());
+        let threshold = self.confirm_threshold.lock();
         matches!(
             (risk, &*threshold),
             (RiskLevel::High, _)
@@ -51,17 +53,17 @@ impl OperationAuditor {
     }
 
     pub fn recent(&self, n: usize) -> Vec<AuditEntry> {
-        let entries = self.entries.lock().unwrap_or_else(|e| e.into_inner());
+        let entries = self.entries.lock();
         entries.iter().rev().take(n).cloned().collect()
     }
 
     pub fn set_confirm_threshold(&self, level: RiskLevel) {
-        let mut threshold = self.confirm_threshold.lock().unwrap_or_else(|e| e.into_inner());
+        let mut threshold = self.confirm_threshold.lock();
         *threshold = level;
     }
 
     pub fn clear(&self) {
-        let mut entries = self.entries.lock().unwrap_or_else(|e| e.into_inner());
+        let mut entries = self.entries.lock();
         entries.clear();
     }
 }

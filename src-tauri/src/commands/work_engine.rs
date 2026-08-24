@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_harness::repo_dtos::WorkflowExecutionData;
 use axagent_harness::workflow_types::NodeStatus;
 use serde::{Deserialize, Serialize};

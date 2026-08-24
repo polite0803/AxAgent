@@ -143,5 +143,18 @@ data/
 # 微调模型运行时数据（按 UUID 目录生成，不入库）
 /src-tauri/crates/agent/fine_tuned_models/
 
+# Rust 临时测试文件
+temp_test.exe
+temp_test.pdb
+
 # Trae IDE 权限检查临时文件
 .trae_permission_check_*
+
+# 临时调试/分析输出（根目录）
+/my_errors.txt
+/typecheck_out.txt
+/typecheck_output.txt
+/manual_errors.txt
+/errfiles.txt
+/dto_sizes.txt
+/axagent_dto_fix.ps1

@@ -16,7 +16,7 @@
 //! - `paper_portfolio_list_active_details` —— 列出所有 active 组合详情（Dashboard 用）
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_analysis_engine::paper_portfolio::{
     self, AddPositionInput, ClosePositionInput, CreatePortfolioInput, PortfolioDetail,
 };

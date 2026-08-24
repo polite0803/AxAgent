@@ -2460,6 +2460,14 @@
     "title": "動的 UI プレビュー"
   },
   "error": {
+    "settings": {
+      "modelRefInvalid": "NullableModelRef 構造が無効です: {{label}}",
+      "cleanupInvalid": "[SettingsAdaptor] 無効な{{label}}をクリーンアップ: {{reason}}",
+      "modelConsistencyInvalid": "[ModelConsistency] {{label}}: {{reason}}（providerId={{providerId}}, modelId={{modelId}}）",
+      "dataInconsistency": "[fromDto] データの不整合: {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}",
+      "invalidModelRefDetected": "[toDto] 無効なモデル参照を検出しました {{sourceKey}}",
+      "mustBeSetTogether": "[SettingsDto] {{providerKey}}と{{modelKey}}は同時に設定するか、同時にnullである必要があります。現在 {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}"
+    },
     "deleteFailed": "削除に失敗しました。もう一度お試しください",
     "gatewayStartFailed": "ゲートウェイの起動に失敗しました",
     "invalidFormat": "無効なフォーマット",
@@ -7391,6 +7399,11 @@
     "apiKey": "APIキー"
   },
   "settings": {
+    "modelLabels": {
+      "defaultModel": "デフォルト対話モデル",
+      "titleSummaryModel": "タイトル要約モデル",
+      "compressionModel": "圧縮モデル"
+    },
     "activeProfile": "現在の設定",
     "addKey": "キーを追加",
     "addModel": "モデルを追加",
@@ -16331,5 +16344,66 @@
     "approve": "承認",
     "reject": "拒否",
     "rejectedToast": "高リスク操作は拒否されました"
+  },
+  "executionBridge": {
+    "mode": {
+      "title": "執行モード",
+      "manual": "手動確認",
+      "manualDesc": "すべての取引は手動確認後に実行されます",
+      "semiAuto": "セミオート",
+      "semiAutoDesc": "リスクチェック通過後に自動実行",
+      "fullAuto": "フルオート",
+      "fullAutoDesc": "すべてのシグナルが自動実行、確認不要"
+    },
+    "pending": {
+      "title": "ペンディングシグナル",
+      "empty": "ペンディングシグナルなし",
+      "refresh": "リフレッシュ",
+      "noData": "取引シグナルなし",
+      "stockCode": "株式コード",
+      "stockName": "株式名",
+      "direction": "方向",
+      "price": "価格",
+      "quantity": "数量",
+      "reason": "理由",
+      "riskLevel": "リスクレベル",
+      "createdAt": "作成時間",
+      "actions": "操作",
+      "buy": "買い",
+      "sell": "売り",
+      "hold": "保有"
+    },
+    "risk": {
+      "low": "低リスク",
+      "medium": "中リスク",
+      "high": "高リスク",
+      "warning": "リスク警告",
+      "checkFailed": "リスクチェック不合格",
+      "level": "リスクレベル"
+    },
+    "confirm": {
+      "title": "取引確認",
+      "message": "{direction} {stockName}、数量 {quantity}、価格 {price} を実行します。確認しますか？",
+      "quantityPlaceholder": "数量を入力",
+      "quantityLabel": "数量",
+      "submit": "実行確認",
+      "cancel": "キャンセル"
+    },
+    "reject": {
+      "title": "取引拒否",
+      "message": "{stockName} の取引シグナルを拒否しますか？",
+      "reasonPlaceholder": "拒否理由を入力",
+      "reasonLabel": "拒否理由",
+      "submit": "拒否確認",
+      "cancel": "キャンセル"
+    },
+    "toast": {
+      "submitSuccess": "シグナル送信成功",
+      "submitFailed": "シグナル送信失敗",
+      "confirmSuccess": "取引が確認されました",
+      "rejectSuccess": "取引が拒否されました",
+      "modeChanged": "執行モードを更新しました",
+      "riskRejected": "リスクチェック不合格：{reason}"
+    }
   }
 }

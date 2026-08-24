@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import type { CognitiveDecisionInfo, TaskShapeDecision } from "@/types";
-import { strategyKind } from "@/types/taskShape";
+import { type CognitiveDecisionInfo, strategyKind, type TaskShapeDecision } from "@/types";
 import { Tag, theme, Tooltip, Typography } from "antd";
 import { Bot, GitBranch, Route, Shield, SplitSquareHorizontal } from "lucide-react";
 import { useTranslation } from "react-i18next";

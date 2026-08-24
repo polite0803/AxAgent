@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use std::sync::{LazyLock, Mutex};
+use parking_lot::Mutex;
+use std::sync::LazyLock;
 use tauri::{
     AppHandle, Manager,
     image::Image,
@@ -19,7 +20,7 @@ pub fn set_tray_labels(
     show_label: String,
     quit_label: String,
 ) -> Result<(), String> {
-    *TRAY_LABELS.lock().map_err(|e| e.to_string())? = (show_label.clone(), quit_label.clone());
+    *TRAY_LABELS.lock() = (show_label.clone(), quit_label.clone());
     if let Err(e) = sync_tray_menu(&app) {
         tracing::warn!("Failed to sync tray menu: {}", e);
     }
@@ -27,8 +28,7 @@ pub fn set_tray_labels(
 }
 
 fn build_menu(app: &AppHandle) -> Result<Menu<tauri::Wry>, Box<dyn std::error::Error>> {
-    let (show_label, quit_label) =
-        TRAY_LABELS.lock().map_err(Box::<dyn std::error::Error>::from)?.clone();
+    let (show_label, quit_label) = TRAY_LABELS.lock().clone();
     let show = MenuItem::with_id(app, "show", &show_label, true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", &quit_label, true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&show, &quit])?;

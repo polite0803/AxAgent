@@ -34,6 +34,7 @@ pub enum StreamChunkKind {
 
 /// Agent 流式输出 chunk —— 单个流式事件的载体
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentStreamChunk {
     /// 产生此 chunk 的 agent 标识
     pub agent_id: String,

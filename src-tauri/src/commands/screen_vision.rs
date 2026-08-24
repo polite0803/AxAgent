@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_kit::permission::ensure_computer_control_granted;
 use axagent_kit::screen_vision::UIElementInfo;
 use serde::{Deserialize, Serialize};
@@ -10,6 +10,7 @@ use crate::AppState;
 use crate::commands::provider_ctx::{VisionContext, build_vision_context};
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ScreenAnalysisResult {
     pub elements: Vec<UIElementInfo>,
     pub suggested_actions: Vec<SuggestedActionInfo>,
@@ -18,6 +19,7 @@ pub struct ScreenAnalysisResult {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SuggestedActionInfo {
     pub action_type: String,
     pub target_element: String,

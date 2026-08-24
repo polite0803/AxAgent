@@ -6,6 +6,7 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ScannerConfig {
     pub ical_paths: Vec<String>,
     pub file_paths: Vec<String>,
@@ -19,6 +20,7 @@ impl Default for ScannerConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ScannedItem {
     pub external_id: String,
     pub title: String,
@@ -30,6 +32,7 @@ pub struct ScannedItem {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct ScanResult {
     pub items: Vec<ScannedItem>,
     pub errors: Vec<String>,

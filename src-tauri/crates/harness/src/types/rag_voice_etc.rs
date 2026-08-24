@@ -5,6 +5,7 @@ use serde_json::Value;
 
 /// A single retrieved chunk from RAG search.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RagRetrievedItem {
     pub content: String,
     pub score: f32,
@@ -22,6 +23,7 @@ pub struct RagRetrievedItem {
 
 /// Results from a single RAG source (knowledge base or memory namespace).
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RagSourceResult {
     /// "knowledge" or "memory"
     pub source_type: String,
@@ -35,6 +37,7 @@ pub struct RagSourceResult {
 
 /// Combined results of RAG context collection.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RagContextResult {
     /// Formatted context parts for injection into system prompt.
     pub context_parts: Vec<String>,
@@ -47,6 +50,7 @@ pub struct RagContextResult {
 
 /// Tauri event emitted after RAG context retrieval completes.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RagContextRetrievedEvent {
     pub conversation_id: String,
     pub sources: Vec<RagSourceResult>,

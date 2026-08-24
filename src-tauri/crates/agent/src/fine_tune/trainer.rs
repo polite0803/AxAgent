@@ -1162,13 +1162,15 @@ mod tests {
         }
     }
 
+    // SAFETY: 此处 parking_lot::Mutex 为测试代码，仅在同步闭包内操作。
+    #[allow(clippy::disallowed_types)]
     #[test]
     fn test_training_callback_fires() {
         let mut trainer = FineTuneTrainer::new();
-        let called = std::sync::Arc::new(std::sync::Mutex::new(false));
+        let called = std::sync::Arc::new(parking_lot::Mutex::new(false));
         let called_clone = called.clone();
         trainer.set_callback(Box::new(move |status| {
-            *called_clone.lock().unwrap_or_else(|e| e.into_inner()) = true;
+            *called_clone.lock() = true;
             if status.phase == TrainingPhase::Training {
                 assert!(status.loss > 0.0, "training loss should be positive");
             }
@@ -1177,9 +1179,6 @@ mod tests {
         let job =
             trainer.create_job("ds1".to_string(), "model1".to_string(), LoRAConfig::default());
         trainer.start_training(&job.id).expect("测试：start_training 应成功");
-        assert!(
-            *called.lock().unwrap_or_else(|e| e.into_inner()),
-            "callback should have been called during training"
-        );
+        assert!(*called.lock(), "callback should have been called during training");
     }
 }

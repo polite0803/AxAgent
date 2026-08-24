@@ -5,10 +5,13 @@
 //! 管理 MCP 服务器的 OAuth 凭据：持久化到磁盘、加载、刷新。
 //! 用于 `mcp_client.rs` 中在发起 HTTP/SSE 请求前注入 Authorization 头。
 
+#![allow(clippy::disallowed_types)]
+
+use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use base64::Engine;
 use rand::RngExt;
@@ -397,6 +400,9 @@ struct PendingOAuthState {
     scopes: Vec<String>,
 }
 
+// SAFETY: 此处 std::sync::OnceLock<Mutex<...>> 不跨 await 使用，PENDING_OAUTH 锁仅在同步或 scoped 临界区内操作。
+// SAFETY: guard 在 async 函数中已在 .await 前释放（complete_oauth_authorization 第 461-469 行）。
+#[allow(clippy::disallowed_types)]
 static PENDING_OAUTH: std::sync::OnceLock<Mutex<HashMap<String, PendingOAuthState>>> =
     std::sync::OnceLock::new();
 
@@ -437,7 +443,6 @@ pub fn begin_oauth_authorization(
     PENDING_OAUTH
         .get_or_init(|| Mutex::new(HashMap::new()))
         .lock()
-        .map_err(|_| "OAuth pending 锁已损坏".to_string())?
         .insert(server_id.to_string(), pending);
 
     let scope_str = scopes.join(" ");
@@ -461,7 +466,6 @@ pub async fn complete_oauth_authorization(
     let pending = PENDING_OAUTH
         .get_or_init(|| Mutex::new(HashMap::new()))
         .lock()
-        .map_err(|_| "OAuth pending 锁已损坏".to_string())?
         .get(server_id)
         .cloned()
         .ok_or_else(|| {
@@ -482,7 +486,7 @@ pub async fn complete_oauth_authorization(
         McpOAuthStore::try_global().ok_or_else(|| "MCP OAuth 存储尚未初始化".to_string())?;
     store.store(server_id, creds).await;
 
-    if let Some(mut map) = PENDING_OAUTH.get().and_then(|m| m.lock().ok()) {
+    if let Some(mut map) = PENDING_OAUTH.get().map(|m| m.lock()) {
         map.remove(server_id);
     }
 

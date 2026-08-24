@@ -2460,6 +2460,14 @@
     "title": "डायनामिक UI पूर्वावलोकन"
   },
   "error": {
+    "settings": {
+      "modelRefInvalid": "अमान्य NullableModelRef संरचना: {{label}}",
+      "cleanupInvalid": "[SettingsAdaptor] अमान्य {{label}} साफ़ किया गया: {{reason}}",
+      "modelConsistencyInvalid": "[ModelConsistency] {{label}}: {{reason}} (providerId={{providerId}}, modelId={{modelId}})",
+      "dataInconsistency": "[fromDto] डेटा असंगति: {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}",
+      "invalidModelRefDetected": "[toDto] अमान्य मॉडल संदर्भ पहचाना गया {{sourceKey}}",
+      "mustBeSetTogether": "[SettingsDto] {{providerKey}} और {{modelKey}} या तो एक साथ सेट होने चाहिए या दोनों null होने चाहिए। वर्तमान में {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}"
+    },
     "deleteFailed": "हटाने में विफल, कृपया पुनः प्रयास करें",
     "gatewayStartFailed": "गेटवे शुरू करने में विफल",
     "invalidFormat": "अमान्य प्रारूप",
@@ -7391,6 +7399,11 @@
     "apiKey": "API कुंजी"
   },
   "settings": {
+    "modelLabels": {
+      "defaultModel": "डिफ़ॉल्ट कंversेशन मॉडल",
+      "titleSummaryModel": "शीर्षक सारांश मॉडल",
+      "compressionModel": "संपीड़न मॉडल"
+    },
     "activeProfile": "सक्रिय प्रोफ़ाइल",
     "addKey": "कुंजी जोड़ें",
     "addModel": "मॉडल जोड़ें",
@@ -16331,5 +16344,66 @@
     "approve": "स्वीकृत",
     "reject": "अस्वीकार",
     "rejectedToast": "उच्च जोखिम संचालन अस्वीकृत"
+  },
+  "executionBridge": {
+    "mode": {
+      "title": "निष्पादन मोड",
+      "manual": "मैनुअल पुष्टिकरण",
+      "manualDesc": "सभी ट्रेडों को निष्पादन से पहले मैनुअल पुष्टिकरण की आवश्यकता होती है",
+      "semiAuto": "सेमी-ऑटो",
+      "semiAutoDesc": "जोखिम जांच पास होने के बाद स्वचालित निष्पादन",
+      "fullAuto": "फुल ऑटो",
+      "fullAutoDesc": "सभी सिग्नल स्वचालित रूप से निष्पादित होते हैं, कोई पुष्टिकरण नहीं"
+    },
+    "pending": {
+      "title": "लंबित सिग्नल",
+      "empty": "कोई लंबित सिग्नल नहीं",
+      "refresh": "रीफ्रेश",
+      "noData": "कोई ट्रेडिंग सिग्नल नहीं",
+      "stockCode": "स्टॉक कोड",
+      "stockName": "स्टॉक नाम",
+      "direction": "दिशा",
+      "price": "मूल्य",
+      "quantity": "मात्रा",
+      "reason": "कारण",
+      "riskLevel": "जोखिम स्तर",
+      "createdAt": "बनाया गया",
+      "actions": "कार्रवाई",
+      "buy": "खरीदें",
+      "sell": "बेचें",
+      "hold": "रोकें"
+    },
+    "risk": {
+      "low": "कम जोखिम",
+      "medium": "मध्यम जोखिम",
+      "high": "उच्च जोखिम",
+      "warning": "जोखिम चेतावनी",
+      "checkFailed": "जोखिम जांच विफल",
+      "level": "जोखिम स्तर"
+    },
+    "confirm": {
+      "title": "ट्रेड पुष्टिकरण",
+      "message": "आप {direction} {stockName}, मात्रा {quantity}, मूल्य {price} करने वाले हैं। निष्पादन की पुष्टि करें?",
+      "quantityPlaceholder": "मात्रा दर्ज करें",
+      "quantityLabel": "मात्रा",
+      "submit": "निष्पादन पुष्टिकरण",
+      "cancel": "रद्द करें"
+    },
+    "reject": {
+      "title": "ट्रेड अस्वीकार",
+      "message": "क्या आप वाकई {stockName} के लिए ट्रेडिंग सिग्नल अस्वीकार करना चाहते हैं?",
+      "reasonPlaceholder": "अस्वीकार कारण दर्ज करें",
+      "reasonLabel": "अस्वीकार कारण",
+      "submit": "अस्वीकार पुष्टिकरण",
+      "cancel": "रद्द करें"
+    },
+    "toast": {
+      "submitSuccess": "सिग्नल सफलतापूर्वक जमा किया गया",
+      "submitFailed": "सिग्नल जमा करने में विफल",
+      "confirmSuccess": "ट्रेड पुष्टि और निष्पादित",
+      "rejectSuccess": "ट्रेड अस्वीकृत",
+      "modeChanged": "निष्पादन मोड अपडेट किया गया",
+      "riskRejected": "जोखिम जांच विफल: {reason}"
+    }
   }
 }

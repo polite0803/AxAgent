@@ -112,7 +112,7 @@ pub async fn run_recommendation_cron(
 
 // ── Tauri 命令：荐股定时任务 CRUD ──
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_runtime_core::{CronJob, CronJobStatus};
 use serde::Serialize;
 use tauri::State;

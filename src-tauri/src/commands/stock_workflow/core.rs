@@ -7,7 +7,7 @@ use super::decision::{
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_workflow as wf_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_analysis_engine::blackboard::build_blackboard_snapshot;
 use axagent_analysis_engine::stock_reflection::{AnalysisStepResult, StockAnalysisOutcome};
 use axagent_astock_data::as_of::{self, AsOfContext};

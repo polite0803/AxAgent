@@ -7,14 +7,15 @@
 //! - FailoverReason 枚举供前端精确提示
 
 use crate::AppState;
-use agent_macro::agent_command;
 use axagent_agent::recovery_strategies::ErrorClassifier;
+use axagent_agent_macro::agent_command;
 use axagent_harness::error_classifier::ClassifiedError;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
 /// 分类 HTTP 错误请求
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ClassifyHttpErrorRequest {
     pub status: u16,
     pub message: String,
@@ -23,6 +24,7 @@ pub struct ClassifyHttpErrorRequest {
 
 /// 分类非 HTTP 错误请求
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ClassifyNonHttpErrorRequest {
     pub message: String,
 }

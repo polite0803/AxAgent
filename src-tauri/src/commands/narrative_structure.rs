@@ -2,7 +2,7 @@
 
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_dao::repo::narrative_structure as db_repo;
 use axagent_harness::narrative::NarrativeStructure;
 use serde::Deserialize;

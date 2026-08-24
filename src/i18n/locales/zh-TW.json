@@ -2460,6 +2460,14 @@
     "title": "動態 UI 預覽"
   },
   "error": {
+    "settings": {
+      "modelRefInvalid": "NullableModelRef 結構無效: {{label}}",
+      "cleanupInvalid": "[SettingsAdaptor] 清理無效的{{label}}: {{reason}}",
+      "modelConsistencyInvalid": "[ModelConsistency] {{label}}: {{reason}}（providerId={{providerId}}, modelId={{modelId}}）",
+      "dataInconsistency": "[fromDto] 資料不一致: {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}",
+      "invalidModelRefDetected": "[toDto] 偵測到無效模型參考 {{sourceKey}}",
+      "mustBeSetTogether": "[SettingsDto] {{providerKey}} 和 {{modelKey}} 必須同時設定或同時為 null，目前 {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}"
+    },
     "deleteFailed": "刪除失敗，請重試",
     "gatewayStartFailed": "閘道啟動失敗",
     "invalidFormat": "格式無效",
@@ -7391,6 +7399,11 @@
     "apiKey": "API密钥"
   },
   "settings": {
+    "modelLabels": {
+      "defaultModel": "預設對話模型",
+      "titleSummaryModel": "標題摘要模型",
+      "compressionModel": "壓縮模型"
+    },
     "activeProfile": "當前配置",
     "addKey": "新增金鑰",
     "addModel": "新增模型",
@@ -16331,5 +16344,66 @@
     "approve": "批准執行",
     "reject": "拒絕",
     "rejectedToast": "高風險操作已拒絕"
+  },
+  "executionBridge": {
+    "mode": {
+      "title": "執行模式",
+      "manual": "手動確認",
+      "manualDesc": "所有交易需手動確認後執行",
+      "semiAuto": "半自動",
+      "semiAutoDesc": "風控通過後自動執行",
+      "fullAuto": "全自動",
+      "fullAutoDesc": "所有信號自動執行，無需確認"
+    },
+    "pending": {
+      "title": "待執行信號",
+      "empty": "暫無待執行信號",
+      "refresh": "刷新",
+      "noData": "沒有待執行的交易信號",
+      "stockCode": "股票代碼",
+      "stockName": "股票名稱",
+      "direction": "方向",
+      "price": "價格",
+      "quantity": "數量",
+      "reason": "交易原因",
+      "riskLevel": "風控等級",
+      "createdAt": "創建時間",
+      "actions": "操作",
+      "buy": "買入",
+      "sell": "賣出",
+      "hold": "持有"
+    },
+    "risk": {
+      "low": "低風險",
+      "medium": "中風險",
+      "high": "高風險",
+      "warning": "風控警告",
+      "checkFailed": "風控檢查未通過",
+      "level": "風控等級"
+    },
+    "confirm": {
+      "title": "確認交易",
+      "message": "您即將{direction} {stockName}，數量 {quantity}，價格 {price}。確認執行？",
+      "quantityPlaceholder": "請輸入數量",
+      "quantityLabel": "數量",
+      "submit": "確認執行",
+      "cancel": "取消"
+    },
+    "reject": {
+      "title": "駁回交易",
+      "message": "確定要駁回{stockName}的交易信號？",
+      "reasonPlaceholder": "請輸入駁回原因",
+      "reasonLabel": "駁回原因",
+      "submit": "確認駁回",
+      "cancel": "取消"
+    },
+    "toast": {
+      "submitSuccess": "信號已提交",
+      "submitFailed": "信號提交失敗",
+      "confirmSuccess": "交易已確認執行",
+      "rejectSuccess": "交易已駁回",
+      "modeChanged": "執行模式已更新",
+      "riskRejected": "風控檢查未通過：{reason}"
+    }
   }
 }

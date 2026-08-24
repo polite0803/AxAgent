@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// i18n-exempt: 包含调试日志字符串，非 UI 展示文本
 
 import { SmartProviderIcon } from "@/lib/providerIcons";
 import { safeJoinIds, safeParseIdPair } from "@/lib/validators";

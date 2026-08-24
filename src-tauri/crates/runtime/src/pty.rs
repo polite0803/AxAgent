@@ -139,7 +139,7 @@ impl PtySession {
         let status = Arc::clone(&self.status);
         let inner = Arc::clone(&self.inner);
 
-        let reader = Arc::new(std::sync::Mutex::new(reader));
+        let reader = Arc::new(parking_lot::Mutex::new(reader));
         let buf = Arc::new(vec![0u8; 4096]);
 
         std::thread::spawn({
@@ -151,7 +151,7 @@ impl PtySession {
                 let mut buf = buf.as_ref().clone();
                 loop {
                     let n = {
-                        let mut reader = reader.lock().unwrap_or_else(|e| e.into_inner());
+                        let mut reader = reader.lock();
                         reader.read(&mut buf)
                     };
 

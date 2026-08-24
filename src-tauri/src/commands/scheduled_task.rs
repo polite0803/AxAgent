@@ -6,7 +6,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::task as task_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_runtime_core::{CronJob, CronJobStatus, ExecutionRecord, TaskConfig};
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -67,6 +67,7 @@ fn validate_cron_expression(cron: &str) -> Result<(), String> {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ScheduledTaskDto {
     pub id: String,
     pub name: String,
@@ -86,6 +87,7 @@ pub struct ScheduledTaskDto {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TaskRunResultDto {
     pub success: bool,
     pub output: Option<String>,
@@ -94,6 +96,7 @@ pub struct TaskRunResultDto {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TaskConfigDto {
     pub timeout_seconds: u32,
     pub retry_on_failure: bool,

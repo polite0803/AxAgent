@@ -49,13 +49,13 @@ pub fn agent_command(attr: TokenStream, item: TokenStream) -> TokenStream {
         // 命令元数据常量（唯一命名避免冲突）
         #[doc(hidden)]
         #[allow(non_upper_case_globals)]
-        pub const #meta_const_name: agent_command_types::CommandMetadata =
-            agent_command_types::CommandMetadata::new(
+        pub const #meta_const_name: axagent_agent_command_types::CommandMetadata =
+            axagent_agent_command_types::CommandMetadata::new(
                 stringify!(#cmd_name),
                 module_path!(),
                 #domain_lit,
-                agent_command_types::CommandSafety::#safety,
-                agent_command_types::CallMode::#call_mode,
+                axagent_agent_command_types::CommandSafety::#safety,
+                axagent_agent_command_types::CallMode::#call_mode,
                 #description,
             );
 

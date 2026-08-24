@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 /// 工作流反思器(`WorkflowReflector`)不直接使用本结构,
 /// 而是使用 `crate::workflow_reflection::WorkflowExecutionRecord`。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TaskExecutionRecord {
     pub task_id: String,
     pub task_description: String,
@@ -90,6 +91,7 @@ impl TaskExecutionRecord {
 ///
 /// `overall_weighted_score` 范围 0.0-10.0,与 `Reflection::quality_score` 对齐。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct QualityMetrics {
     pub task_success_score: f32,
     pub tool_efficiency_score: f32,
@@ -109,6 +111,7 @@ pub struct QualityMetrics {
 /// - `error_patterns` / `reusable_patterns` / `improvement_suggestions` 直接复用
 /// - 工作流专有的结构化数据(瓶颈节点、节点级模式等)通过 `metadata` 承载
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Reflection {
     pub task_id: String,
     pub timestamp: DateTime<Utc>,
@@ -195,6 +198,7 @@ impl Reflection {
 // ── 反思配置 ──
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ReflectionConfig {
     pub enabled: bool,
     pub min_quality_threshold: u8,

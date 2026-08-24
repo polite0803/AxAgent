@@ -9,7 +9,7 @@
 //! - 手动触发条件单评估
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_analysis_engine::conditional_order::{ConditionalOrder, OrderAction};
 use axagent_analysis_engine::conditional_order_bridge::ConditionalOrderBridge;
 use axagent_analysis_engine::risk_inspection;

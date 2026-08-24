@@ -21,6 +21,12 @@ const SRC_DIR = join(process.cwd(), "src");
 // 需要检查的文件模式
 const FILE_EXTENSIONS = [".ts", ".tsx"];
 
+// 已知的误报文件（注释或模板字符串中包含危险模式，但实际不是 ID 拼接）
+const FALSE_POSITIVE_FILES = [
+  "src/lib/validators.ts", // safeJoinIds 函数的文档注释
+  "src/sdk/sandboxTemplate.ts", // HTML 模板字符串
+];
+
 // 危险模式定义
 const DANGEROUS_PATTERNS = [
   {
@@ -88,6 +94,37 @@ function checkFile(filePath) {
   ) {
     return violations;
   }
+  
+  // 跳过已知的误报文件
+  const normalizedPath = relativePath.replace(/\\/g, "/");
+  if (FALSE_POSITIVE_FILES.some((f) => normalizedPath.endsWith(f))) {
+    return violations;
+  }
+
+  // 找出注释行（单行注释 // 和块注释 /* ... */）
+  const commentLineSet = new Set();
+  let inBlockComment = false;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (inBlockComment) {
+      commentLineSet.add(i);
+      if (trimmed.includes("*/")) {
+        inBlockComment = false;
+      }
+      continue;
+    }
+    if (trimmed.startsWith("//")) {
+      commentLineSet.add(i);
+      continue;
+    }
+    if (trimmed.startsWith("/*") || trimmed.startsWith("*")) {
+      commentLineSet.add(i);
+      if (!trimmed.includes("*/")) {
+        inBlockComment = true;
+      }
+    }
+  }
 
   for (const pattern of DANGEROUS_PATTERNS) {
     const regex = new RegExp(pattern.regex.source, "g");
@@ -97,6 +134,12 @@ function checkFile(filePath) {
       // 找到匹配的行号
       const matchStart = match.index;
       const lineNumber = content.substring(0, matchStart).split("\n").length;
+      const lineIndex = lineNumber - 1;
+
+      // 跳过注释行
+      if (commentLineSet.has(lineIndex)) {
+        continue;
+      }
 
       violations.push({
         file: relativePath,

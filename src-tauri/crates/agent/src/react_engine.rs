@@ -535,6 +535,8 @@ impl LlmReasoningProvider for LlmDrivenReasoningProvider {
     }
 }
 
+// SAFETY: 此处 parking_lot::Mutex 不跨 await 使用，goal_evaluator 仅在同步 evaluate() 调用期间持有。
+#[allow(clippy::disallowed_types)]
 pub struct ReActEngine {
     executor: Arc<ActionExecutor>,
     verifier: Arc<SelfVerifier>,
@@ -547,7 +549,7 @@ pub struct ReActEngine {
     checkpoint_manager: Option<Arc<crate::checkpoint::CheckpointManager>>,
     checkpoint_session_id: Option<String>,
     checkpoint_interval: usize,
-    goal_evaluator: Option<std::sync::Mutex<crate::goal_evaluator::GoalEvaluator>>,
+    goal_evaluator: Option<parking_lot::Mutex<crate::goal_evaluator::GoalEvaluator>>,
     /// 结构化反思器：注入后在 Reflecting/Synthesizing 阶段做质量门检查。
     /// None 时回退到 `LlmReasoningProvider::reflect()` 的内省逻辑。
     reflector: Option<Arc<Reflector>>,
@@ -557,6 +559,8 @@ pub struct ReActEngine {
     enable_self_improvement: bool,
 }
 
+// SAFETY: 此处 parking_lot::Mutex 不跨 await 使用，goal_evaluator 的 lock 不跨 await。
+#[allow(clippy::disallowed_types)]
 impl ReActEngine {
     pub fn new() -> Self {
         let executor = Arc::new(ActionExecutor::new());
@@ -622,7 +626,7 @@ impl ReActEngine {
     }
 
     pub fn with_goal_evaluation(mut self, max_not_achieved: usize) -> Self {
-        self.goal_evaluator = Some(std::sync::Mutex::new(
+        self.goal_evaluator = Some(parking_lot::Mutex::new(
             crate::goal_evaluator::GoalEvaluator::new(max_not_achieved),
         ));
         self
@@ -679,7 +683,7 @@ impl ReActEngine {
         // 根据配置自动启用目标达成判定
         if self.config.goal_evaluation_enabled && self.goal_evaluator.is_none() {
             self.goal_evaluator =
-                Some(std::sync::Mutex::new(crate::goal_evaluator::GoalEvaluator::new(3)));
+                Some(parking_lot::Mutex::new(crate::goal_evaluator::GoalEvaluator::new(3)));
         }
 
         while !state.is_terminal() {
@@ -1249,7 +1253,7 @@ impl ReActEngine {
                     if verification.is_valid {
                         // 目标达成判定
                         if let Some(ref evaluator) = self.goal_evaluator {
-                            let mut guard = evaluator.lock().unwrap_or_else(|e| e.into_inner());
+                            let mut guard = evaluator.lock();
                             let evaluation = guard.evaluate(chain, context);
                             if !evaluation.achieved {
                                 let reasoning = format!(

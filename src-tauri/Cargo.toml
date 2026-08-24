@@ -2,10 +2,10 @@
 members = [
   ".",
   "crates/agent",
-  "crates/agent-command-types",
-  "crates/agent-macro",
   "crates/analysis-engine",
   "crates/astock-data",
+  "crates/axagent-agent-command-types",
+  "crates/axagent-agent-macro",
   "crates/axagent-mobile",
   "crates/cache",
   "crates/company-runtime",
@@ -89,6 +89,14 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4"] }
 xcap = "0.9.8"
 
+# 统一 lint 基线（铁律：cargo clippy -- -D warnings）
+# 各子 crate 通过 [lints] workspace = true 继承此配置
+[workspace.lints.clippy]
+# 禁用 std::sync 锁类型（铁律 #8），由 clippy.toml 的 disallowed-types 列表配合
+disallowed_types = "deny"
+# axagent- 前缀导致模块名天然重复，允许 module_name_repetitions
+module_name_repetitions = "allow"
+
 [package]
 name = "axagent"
 version = "2.9.7"
@@ -101,7 +109,12 @@ description = "AxInvest - AI Investment Desktop App"
 [features]
 default = ["notification", "computer-use"]
 notification = ["dep:tauri-plugin-notification"]
+browser-use = []
 computer-use = ["axagent-kit/computer-use", "axagent-providers/computer-use"]
+channel-platforms = []
+server = []
+# devtools 仅开发时启用，release 构建不带（减小体积、避免暴露内部信息）
+devtools = ["tauri/devtools"]
 
 [package.metadata.cargo-machete]
 # All declared axagent-* path deps are referenced in src/app_state.rs as
@@ -134,10 +147,10 @@ path = "src/main.rs"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-agent-command-types = { path = "crates/agent-command-types" }
-agent-macro = { path = "crates/agent-macro" }
 async-trait = "0.1"
 axagent-agent = { path = "crates/agent" }
+axagent-agent-command-types = { path = "crates/axagent-agent-command-types" }
+axagent-agent-macro = { path = "crates/axagent-agent-macro" }
 axagent-astock-data = { path = "crates/astock-data" }
 axagent-cache = { path = "crates/cache" }
 axagent-company-runtime = { path = "crates/company-runtime" }
@@ -188,20 +201,22 @@ inventory = "0.3"
 lazy_static = { workspace = true }
 notify = "9.0.0-rc.4"
 open = "5"
+parking_lot = "0.12"
 rcgen = "0.14"
 regex = { workspace = true }
 reqwest = { workspace = true }
 rhai = { workspace = true }
 rusqlite = { version = "0.39", features = ["bundled"] }
-rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "ring"] }
+rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs"] }
 sea-orm = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 sha2 = { workspace = true }
+sqlx = { version = "0.9", features = ["runtime-tokio", "postgres", "mysql", "sqlite"] }
 sysinfo = "0.39"
 tar = "0.4"
-tauri = { version = "2.11.5", features = ["tray-icon", "image-png", "devtools"] }
+tauri = { version = "2.11.5", features = ["tray-icon", "image-png"] }
 tauri-plugin-autostart = "2"
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-dialog = "2.7"

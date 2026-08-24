@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 
 use axagent_entities::dynamic_ui_form_data::Column as FormDataColumn;
 use axagent_entities::dynamic_ui_form_data::{
@@ -32,6 +32,7 @@ use crate::commands::error_code::dynamic_ui as dynamic_ui_err;
 // ── DTOs ──
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct DynamicUISchemaDTO {
     pub id: String,
     pub title: String,
@@ -46,6 +47,7 @@ pub struct DynamicUISchemaDTO {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct DynamicUISchemaVersionDTO {
     pub id: i64,
     pub schema_id: String,
@@ -60,6 +62,7 @@ pub struct DynamicUISchemaVersionDTO {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct DynamicUIFormDataDTO {
     pub id: String,
     pub schema_id: String,
@@ -69,6 +72,7 @@ pub struct DynamicUIFormDataDTO {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateSchemaRequest {
     pub title: String,
     pub description: String,
@@ -78,6 +82,7 @@ pub struct CreateSchemaRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateSchemaRequest {
     pub title: Option<String>,
     pub description: Option<String>,
@@ -92,6 +97,7 @@ pub struct UpdateSchemaRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct SaveFormDataRequest {
     pub schema_id: String,
     pub form_data_json: String,
@@ -101,6 +107,7 @@ pub struct SaveFormDataRequest {
 // ── 版本管理 DTO ──
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct ListVersionsResponse {
     pub versions: Vec<DynamicUISchemaVersionDTO>,
     pub current_version: String,
@@ -628,6 +635,7 @@ pub async fn delete_dynamic_ui_form_data(
 
 /// NL2UI 编辑结果：修改后的完整 Schema + AI 简述
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct EditSchemaNlResult {
     /// 修改后的完整 Schema JSON 字符串
     pub schema: String,
@@ -751,6 +759,7 @@ pub async fn edit_dynamic_ui_schema_nl(
 
 /// NL2UI 创建结果：生成的完整 Schema + 标题 + 描述
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct GenerateSchemaNlResult {
     /// 生成的完整 Schema JSON 字符串
     pub schema: String,
@@ -867,6 +876,7 @@ pub async fn generate_dynamic_ui_schema_nl(
 
 /// 导航钉入配置 DTO
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct DynamicUIPinDTO {
     pub schema_id: String,
     pub title: String,

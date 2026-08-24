@@ -11,7 +11,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::evolution_engine as evolution_engine_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_harness::runtime_types::runtime_mutation::{MutationResult, RuntimeMutationAccess};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -22,6 +22,7 @@ use tokio::sync::Mutex;
 // ── Types ──
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EngineLog {
     pub timestamp: i64,
     pub level: String,
@@ -29,6 +30,7 @@ pub struct EngineLog {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EngineStatus {
     pub name: String,
     pub display_name: String,

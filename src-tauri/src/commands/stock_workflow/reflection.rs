@@ -4,7 +4,7 @@ use super::serenity::extract_agent_output;
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::stock_workflow as wf_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_astock_data::as_of::{self, AsOfContext};
 use axagent_entities::stock_analyses;
 use sea_orm::DatabaseConnection;

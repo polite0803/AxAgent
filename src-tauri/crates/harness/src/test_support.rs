@@ -10,6 +10,8 @@
 //! 注意：本模块始终编译，但内部仅导出"返回 None / 空实现"的轻量辅助函数，
 //! 不会引入运行时依赖，也不会进入生产热路径（仅测试代码使用）。
 
+#![allow(clippy::disallowed_types)]
+
 use std::sync::Arc;
 
 use std::collections::HashMap;
@@ -1280,17 +1282,17 @@ pub enum TelemetryEvent {
 /// 所有锁操作均通过 `PoisonError::into_inner` 恢复，避免测试中 panic。
 #[derive(Default, Debug)]
 pub struct MemoryTelemetrySink {
-    events: std::sync::Mutex<Vec<TelemetryEvent>>,
+    events: parking_lot::Mutex<Vec<TelemetryEvent>>,
 }
 
 impl MemoryTelemetrySink {
     #[must_use]
     pub fn events(&self) -> Vec<TelemetryEvent> {
-        self.events.lock().unwrap_or_else(std::sync::PoisonError::into_inner).clone()
+        self.events.lock().clone()
     }
 
     fn push(&self, event: TelemetryEvent) {
-        self.events.lock().unwrap_or_else(std::sync::PoisonError::into_inner).push(event);
+        self.events.lock().push(event);
     }
 }
 

@@ -2209,3 +2209,21 @@ export type {
   RiskLevel,
   SkillLearningConfig,
 } from "./skillLearning";
+
+// === 交易执行桥接（AxInvest 独有） ===
+export type {
+  ConfirmPendingParams,
+  ExecutionConfirmedEvent,
+  ExecutionFilledEvent,
+  ExecutionMode,
+  ExecutionPendingEvent,
+  ExecutionRejectedEvent,
+  ExecutionRiskLevel,
+  ExecutionRiskRejectedEvent,
+  PendingExecution,
+  RejectPendingParams,
+  RiskCheckResult,
+  SetExecutionModeParams,
+  SubmitSignalParams,
+  TradeDirection,
+} from "./execution";

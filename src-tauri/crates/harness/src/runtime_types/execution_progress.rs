@@ -2,11 +2,14 @@
 //
 // Agent 执行进度追踪器
 
-use std::sync::Mutex;
+#![allow(clippy::disallowed_types)]
+
+use parking_lot::Mutex;
 use std::time::Instant;
 
 /// 单条工具执行记录
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ToolExecutionRecord {
     #[serde(rename = "toolName")]
     pub tool_name: String,
@@ -24,6 +27,7 @@ pub struct ToolExecutionRecord {
 
 /// Agent 执行进度快照
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentExecutionProgressSnapshot {
     #[serde(rename = "running")]
     pub running: bool,
@@ -88,25 +92,25 @@ impl AgentExecutionProgress {
     }
 
     pub fn start(&self) {
-        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let mut inner = self.inner.lock();
         inner.running = true;
         inner.phase = "init".into();
         inner.status_message = "正在初始化...".into();
     }
 
     pub fn set_phase(&self, phase: &str, msg: &str) {
-        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let mut inner = self.inner.lock();
         inner.phase = phase.to_string();
         inner.status_message = msg.to_string();
     }
 
     pub fn set_iteration(&self, iter: usize) {
-        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let mut inner = self.inner.lock();
         inner.current_iteration = iter;
     }
 
     pub fn begin_tool(&self, tool_name: &str, input: Option<&str>) {
-        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let mut inner = self.inner.lock();
         inner.current_tool = Some(tool_name.to_string());
         inner.tool_started_at = Some(Instant::now());
         inner.phase = "tool_exec".into();
@@ -133,7 +137,7 @@ impl AgentExecutionProgress {
     }
 
     pub fn end_tool(&self, is_error: bool, output: Option<&str>) {
-        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let mut inner = self.inner.lock();
         inner.executed_tool_count += 1;
         if is_error {
             inner.failed_tool_count += 1;
@@ -164,20 +168,20 @@ impl AgentExecutionProgress {
     }
 
     pub fn record_error(&self, error: &str) {
-        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let mut inner = self.inner.lock();
         inner.last_error = Some(error.to_string());
         inner.status_message = format!("错误: {}", error);
     }
 
     pub fn finish(&self) {
-        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let mut inner = self.inner.lock();
         inner.running = false;
         inner.phase = "done".into();
         inner.status_message = "Agent 执行完成".into();
     }
 
     pub fn fail(&self, error: &str) {
-        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let mut inner = self.inner.lock();
         inner.running = false;
         inner.phase = "error".into();
         inner.last_error = Some(error.to_string());
@@ -185,7 +189,7 @@ impl AgentExecutionProgress {
     }
 
     pub fn snapshot(&self) -> AgentExecutionProgressSnapshot {
-        let inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let inner = self.inner.lock();
         AgentExecutionProgressSnapshot {
             running: inner.running,
             phase: inner.phase.clone(),

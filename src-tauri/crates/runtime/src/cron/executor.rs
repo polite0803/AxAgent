@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+#![allow(clippy::disallowed_types)]
+
 use std::sync::Arc;
 
 use super::job_store::CronJob;
@@ -46,7 +48,7 @@ impl Default for CronExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Mutex;
+    use parking_lot::Mutex;
 
     #[tokio::test]
     async fn test_executor_calls_handler() {
@@ -56,13 +58,13 @@ mod tests {
 
         executor.set_handler(move |job| {
             assert_eq!(job.name, "test");
-            let mut c = called_clone.lock().unwrap_or_else(|e| e.into_inner());
+            let mut c = called_clone.lock();
             *c = true;
         });
 
         let job = CronJob::new("test", "* * * * *", "test prompt", "test description");
         executor.execute(job).await;
 
-        assert!(*called.lock().unwrap_or_else(|e| e.into_inner()));
+        assert!(*called.lock());
     }
 }

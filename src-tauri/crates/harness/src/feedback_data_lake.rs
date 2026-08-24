@@ -14,6 +14,7 @@ use crate::core_error::Result;
 
 /// 反馈事件类型
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum FeedbackEventType {
     /// 检索命中（retrieval_hits）
     RetrievalHit,
@@ -40,6 +41,7 @@ impl FeedbackEventType {
 
 /// 统一反馈事件
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FeedbackEvent {
     /// 事件 ID
     pub id: String,
@@ -67,6 +69,7 @@ pub struct FeedbackEvent {
 
 /// 检索命中记录（与 retrieval_hits 表对应）
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RetrievalHitRecord {
     /// 检索 ID（UUID）
     pub id: String,
@@ -100,6 +103,7 @@ pub struct RetrievalHitRecord {
 
 /// 工具调用记录
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ToolCallRecord {
     /// 调用 ID（UUID）
     pub id: String,
@@ -129,6 +133,7 @@ pub struct ToolCallRecord {
 
 /// 记忆访问记录
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MemoryAccessRecord {
     /// 访问 ID（UUID）
     pub id: String,
@@ -154,6 +159,7 @@ pub struct MemoryAccessRecord {
 
 /// Wiki 编辑记录
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WikiEditRecord {
     /// 编辑 ID（UUID）
     pub id: String,
@@ -181,6 +187,7 @@ pub struct WikiEditRecord {
 
 /// 反馈查询过滤器
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FeedbackQuery {
     /// 事件类型过滤
     pub event_types: Option<Vec<FeedbackEventType>>,

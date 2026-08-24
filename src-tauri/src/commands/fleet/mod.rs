@@ -32,7 +32,7 @@
 use crate::AppState;
 use crate::commands::error::{ErrorCategory, ErrorResponse};
 use crate::commands::error_code::fleet as fleet_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_harness::fleet::{
     DispatchChatMessage, DispatchEvent, Fleet, FleetMember, FleetMemberStatus, FleetMetadata,
     FleetStatus,

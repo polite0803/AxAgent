@@ -2390,8 +2390,10 @@ fn ensure_object<'a>(root: &'a mut Map<String, Value>, key: &str) -> &'a mut Map
 /// Environment variable lock for test isolation.
 /// Guards against concurrent modification of `CLAW_CONFIG_HOME`.
 #[cfg(test)]
-pub(crate) fn env_lock() -> &'static std::sync::Mutex<()> {
-    static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+#[allow(clippy::disallowed_types)]
+pub(crate) fn env_lock() -> &'static parking_lot::Mutex<()> {
+    #[allow(clippy::disallowed_types)]
+    static ENV_LOCK: parking_lot::Mutex<()> = parking_lot::Mutex::new(());
     &ENV_LOCK
 }
 

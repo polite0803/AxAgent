@@ -31,6 +31,7 @@ fn default_rar_top_k() -> usize {
 
 /// 能力发现请求（从用户输入开始的完整管线）
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CapabilityDiscoveryRequest {
     /// 用户原始输入
     pub user_input: String,

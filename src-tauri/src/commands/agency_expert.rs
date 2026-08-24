@@ -3,7 +3,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::expert as expert_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_dao::repo::provider::{self as provider_repo, get_active_key};
 use axagent_dao::repo::settings::get_settings;
 use axagent_entities::agency_experts;

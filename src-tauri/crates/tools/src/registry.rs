@@ -5,6 +5,8 @@
 //! 管理所有已注册工具的生命周期：注册、查找、列举、启用/禁用。
 //! 集成 MCP 执行、DB 审计记录、使用统计、安全沙箱、权限检查、Hook。
 
+#![allow(clippy::disallowed_types)]
+
 use crate::audit::{AuditEntry, ToolAuditor};
 use crate::group_manager::ToolGroupManager;
 use crate::hooks::executors::execute_hook;
@@ -19,10 +21,11 @@ use async_trait::async_trait;
 use axagent_harness::ToolExecutionAudit;
 use axagent_harness::runtime_types::conversation::ToolExecutor as RuntimeToolExecutor;
 // serde_json::Value used for JSON Schema in MCP tool configs
+use parking_lot::Mutex;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Instant;
 
 pub type SkillToolHandler = Box<dyn Fn(&str) -> Result<String, crate::ToolError> + Send + Sync>;
@@ -1159,11 +1162,7 @@ impl UnifiedToolRegistry {
 
         // ── 权限检查（集成 PermissionPolicy） ──
         // 锁中毒时恢复内部数据：即使前一个线程 panic，我们仍能继续执行权限检查
-        let decision = self
-            .permission_policy
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .authorize(tool_name, &sanitized_input);
+        let decision = self.permission_policy.lock().authorize(tool_name, &sanitized_input);
         if decision.is_denied() {
             return Err(ToolError::permission_denied(tool_name, &decision.reason));
         }

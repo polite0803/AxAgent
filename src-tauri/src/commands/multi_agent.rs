@@ -15,7 +15,7 @@
 use crate::AppState;
 #[cfg(not(mobile))]
 use crate::commands::provider_ctx::build_vision_context;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_dao::repo::agent_role;
 #[cfg(not(mobile))]
 use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};

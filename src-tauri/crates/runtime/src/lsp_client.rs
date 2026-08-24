@@ -2,15 +2,15 @@
 
 //! LSP (Language Server Protocol) client registry for tool dispatch.
 
+use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::path::Path;
 use std::str::FromStr;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
 use super::lsp_process::{LspProcess, LspProcessManager, LspServerConfig};
-use crate::util::lock_or_recover;
 
 /// Supported LSP actions.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -151,7 +151,7 @@ impl LspRegistry {
                 .unwrap_or_default()
         };
 
-        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let mut inner = self.inner.lock();
         inner.servers.insert(
             language.clone(),
             LspServerState {
@@ -168,7 +168,7 @@ impl LspRegistry {
 
     pub async fn stop_server(&self, language: &str) -> Result<(), String> {
         {
-            let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+            let mut inner = self.inner.lock();
             inner.servers.remove(language);
         }
         self.process_manager.stop_server(language).await
@@ -185,7 +185,7 @@ impl LspRegistry {
         root_path: Option<&str>,
         capabilities: Vec<String>,
     ) {
-        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let mut inner = self.inner.lock();
         inner.servers.insert(
             language.to_owned(),
             LspServerState {
@@ -199,7 +199,7 @@ impl LspRegistry {
     }
 
     pub fn get(&self, language: &str) -> Option<LspServerState> {
-        let inner = lock_or_recover(self.inner.lock(), "lsp_client");
+        let inner = self.inner.lock();
         inner.servers.get(language).cloned()
     }
 
@@ -226,7 +226,7 @@ impl LspRegistry {
 
     /// List all registered servers.
     pub fn list_servers(&self) -> Vec<LspServerState> {
-        let inner = lock_or_recover(self.inner.lock(), "lsp_client");
+        let inner = self.inner.lock();
         inner.servers.values().cloned().collect()
     }
 
@@ -236,7 +236,7 @@ impl LspRegistry {
         language: &str,
         diagnostics: Vec<LspDiagnostic>,
     ) -> Result<(), String> {
-        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let mut inner = self.inner.lock();
         let server = inner
             .servers
             .get_mut(language)
@@ -247,7 +247,7 @@ impl LspRegistry {
 
     /// Get diagnostics for a specific file path.
     pub fn get_diagnostics(&self, path: &str) -> Vec<LspDiagnostic> {
-        let inner = lock_or_recover(self.inner.lock(), "lsp_client");
+        let inner = self.inner.lock();
         inner
             .servers
             .values()
@@ -259,7 +259,7 @@ impl LspRegistry {
 
     /// Clear diagnostics for a language server.
     pub fn clear_diagnostics(&self, language: &str) -> Result<(), String> {
-        let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let mut inner = self.inner.lock();
         let server = inner
             .servers
             .get_mut(language)
@@ -278,7 +278,7 @@ impl LspRegistry {
 
     #[must_use]
     pub fn len(&self) -> usize {
-        let inner = lock_or_recover(self.inner.lock(), "lsp_client");
+        let inner = self.inner.lock();
         inner.servers.len()
     }
 
@@ -311,7 +311,7 @@ impl LspRegistry {
                 }));
             }
             // All diagnostics across all servers
-            let inner = lock_or_recover(self.inner.lock(), "lsp_client");
+            let inner = self.inner.lock();
             let all_diags: Vec<_> = inner.servers.values().flat_map(|s| &s.diagnostics).collect();
             return Ok(serde_json::json!({
                 "action": "diagnostics",

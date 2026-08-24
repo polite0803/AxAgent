@@ -13,6 +13,7 @@ use crate::core_error::Result;
 // ─── Storage Object Types ─────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct StorageObject {
     pub key: String,
     pub data: Vec<u8>,
@@ -23,6 +24,7 @@ pub struct StorageObject {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct StorageObjectMeta {
     pub key: String,
     pub etag: Option<String>,
@@ -31,6 +33,7 @@ pub struct StorageObjectMeta {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ListResult {
     pub objects: Vec<StorageObjectMeta>,
     pub is_truncated: bool,

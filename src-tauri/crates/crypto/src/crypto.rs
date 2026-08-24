@@ -146,12 +146,12 @@ fn derive_backup_key_v2(salt: &[u8]) -> Result<[u8; 32]> {
 // 测试专用覆盖：设为 Some(id) 后，get_machine_fingerprint 直接返回该 id，
 // 不再读写全局 machine-id 文件，使依赖它的加密/解密测试完全确定性、不跨进程竞争。
 #[cfg(test)]
-static TEST_MACHINE_ID: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
+static TEST_MACHINE_ID: parking_lot::Mutex<Option<String>> = parking_lot::Mutex::new(None);
 
 fn get_machine_fingerprint() -> String {
     #[cfg(test)]
     {
-        if let Some(id) = TEST_MACHINE_ID.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
+        if let Some(id) = TEST_MACHINE_ID.lock().as_ref() {
             return id.clone();
         }
     }
@@ -576,7 +576,7 @@ mod tests {
     #[serial(crypto_machine_id)]
     fn backup_key_encrypt_decrypt_roundtrip() {
         // 固定 machine-id，使 Argon2 派生密钥确定性，规避全局文件跨进程竞争。
-        *super::TEST_MACHINE_ID.lock().unwrap_or_else(|e| e.into_inner()) = Some("0".repeat(64));
+        *super::TEST_MACHINE_ID.lock() = Some("0".repeat(64));
         let data = b"super-secret-backup-material-1234567890";
         let enc = encrypt_backup_key(data).expect("备份加密应成功");
         assert_eq!(enc[0], BACKUP_VERSION_BYTE, "应为 v2 版本字节 0x02");
@@ -592,7 +592,7 @@ mod tests {
     #[test]
     #[serial(crypto_machine_id)]
     fn auto_upgrade_passthrough_for_v2() {
-        *super::TEST_MACHINE_ID.lock().unwrap_or_else(|e| e.into_inner()) = Some("0".repeat(64));
+        *super::TEST_MACHINE_ID.lock() = Some("0".repeat(64));
         let data = b"already-v2-material";
         let enc = encrypt_backup_key(data).expect("测试应成功");
         let upgraded = auto_upgrade_backup_to_v2(&enc).expect("升级应成功");
@@ -613,7 +613,7 @@ mod tests {
     #[test]
     #[serial(crypto_machine_id)]
     fn storage_master_key_is_usable_aes_key() {
-        *super::TEST_MACHINE_ID.lock().unwrap_or_else(|e| e.into_inner()) = Some("0".repeat(64));
+        *super::TEST_MACHINE_ID.lock() = Some("0".repeat(64));
         let master = derive_storage_master_key();
         // 派生的密钥必须是 32 字节且非全零
         assert_eq!(master.len(), 32);

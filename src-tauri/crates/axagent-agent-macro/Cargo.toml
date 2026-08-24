@@ -1,5 +1,5 @@
 [package]
-name = "agent-macro"
+name = "axagent-agent-macro"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,7 +8,7 @@ license.workspace = true
 proc-macro = true
 
 [dependencies]
-agent-command-types = { path = "../agent-command-types" }
+axagent-agent-command-types = { path = "../axagent-agent-command-types" }
 inventory = "0.3"
 proc-macro2 = "1"
 quote = "1"

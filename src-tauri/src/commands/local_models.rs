@@ -3,7 +3,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorCategory;
 use crate::commands::error::ErrorResponse;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_search::model_downloader::{LocalModelInfo, ModelDownloader, PresetModel};
 use tauri::State;
 

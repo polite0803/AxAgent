@@ -2,7 +2,7 @@
 
 use crate::AppState;
 use crate::paths::axagent_home;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_trajectory::{Skill, SkillsHubAdapter};
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -10,6 +10,7 @@ use tauri::State;
 // ── review / export / import — 纯本地操作（无网络依赖） ──
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SkillsHubReviewResult {
     pub skill_name: String,
     pub action: String,

@@ -1,6 +1,9 @@
 #![allow(clippy::result_large_err)]
 // SPDX-License-Identifier: AGPL-3.0-only
+// SAFETY: 本文件中 Mutex 用于 WebDAV 客户端同步状态，不跨 await（铁律 #8 例外）
+#![allow(clippy::disallowed_types)]
 
+use parking_lot::Mutex;
 use reqwest::{Client, Method, StatusCode};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -8,7 +11,6 @@ use std::collections::HashSet;
 use std::future::Future;
 use std::io::{Read, Write};
 use std::path::Path;
-use std::sync::Mutex;
 use zip::write::SimpleFileOptions;
 
 use axagent_harness::core_error::{AxAgentError, Result};
@@ -120,7 +122,7 @@ impl WebDavClient {
         }
 
         {
-            let cache = self.mkdir_cache.lock().unwrap_or_else(|e| e.into_inner());
+            let cache = self.mkdir_cache.lock();
             if cache.contains(path) {
                 return Ok(());
             }
@@ -137,7 +139,7 @@ impl WebDavClient {
             };
 
             {
-                let cache = self.mkdir_cache.lock().unwrap_or_else(|e| e.into_inner());
+                let cache = self.mkdir_cache.lock();
                 if cache.contains(&current) {
                     continue;
                 }
@@ -165,7 +167,7 @@ impl WebDavClient {
                 },
             }
 
-            self.mkdir_cache.lock().unwrap_or_else(|e| e.into_inner()).insert(current.clone());
+            self.mkdir_cache.lock().insert(current.clone());
         }
         Ok(())
     }
@@ -183,7 +185,7 @@ impl WebDavClient {
             };
 
             {
-                let cache = self.mkdir_cache.lock().unwrap_or_else(|e| e.into_inner());
+                let cache = self.mkdir_cache.lock();
                 if cache.contains(&full_parent) {
                     return Ok(());
                 }
@@ -200,7 +202,7 @@ impl WebDavClient {
                 };
 
                 {
-                    let cache = self.mkdir_cache.lock().unwrap_or_else(|e| e.into_inner());
+                    let cache = self.mkdir_cache.lock();
                     if cache.contains(&current) {
                         continue;
                     }
@@ -228,7 +230,7 @@ impl WebDavClient {
                     },
                 }
 
-                self.mkdir_cache.lock().unwrap_or_else(|e| e.into_inner()).insert(current.clone());
+                self.mkdir_cache.lock().insert(current.clone());
             }
         }
         Ok(())
@@ -1053,7 +1055,8 @@ pub fn url_decode(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::{Arc, Mutex};
+    use parking_lot::Mutex;
+    use std::sync::Arc;
 
     #[tokio::test]
     async fn run_after_directory_ready_checks_before_action() {
@@ -1063,18 +1066,18 @@ mod tests {
 
         let result = run_after_directory_ready(
             move || async move {
-                check_events.lock().unwrap_or_else(|e| e.into_inner()).push("check");
+                check_events.lock().push("check");
                 Ok(true)
             },
             move || async move {
-                action_events.lock().unwrap_or_else(|e| e.into_inner()).push("action");
+                action_events.lock().push("action");
                 Ok::<_, AxAgentError>("done")
             },
         )
         .await;
 
         assert!(matches!(result, Ok("done")));
-        assert_eq!(*events.lock().unwrap_or_else(|e| e.into_inner()), vec!["check", "action"]);
+        assert_eq!(*events.lock(), vec!["check", "action"]);
     }
 
     #[tokio::test]
@@ -1085,18 +1088,18 @@ mod tests {
 
         let result: Result<&'static str> = run_after_directory_ready(
             move || async move {
-                check_events.lock().unwrap_or_else(|e| e.into_inner()).push("check");
+                check_events.lock().push("check");
                 Err(AxAgentError::Gateway("probe failed".into()))
             },
             move || async move {
-                action_events.lock().unwrap_or_else(|e| e.into_inner()).push("action");
+                action_events.lock().push("action");
                 Ok("done")
             },
         )
         .await;
 
         assert!(result.is_err(), "check failures must stop the action");
-        assert_eq!(*events.lock().unwrap_or_else(|e| e.into_inner()), vec!["check"]);
+        assert_eq!(*events.lock(), vec!["check"]);
     }
 
     #[test]

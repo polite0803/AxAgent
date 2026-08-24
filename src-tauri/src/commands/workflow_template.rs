@@ -4,7 +4,7 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::workflow as workflow_err;
 use crate::init::COGNITIVE_ROUTER_TAG;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_dao::repo::workflow_template as db_repo;
 use axagent_dao::workflow_conversions::workflow_template_response_from_model;
 use axagent_harness::workflow_types::*;

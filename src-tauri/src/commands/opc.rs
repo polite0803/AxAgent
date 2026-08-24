@@ -6,7 +6,7 @@
 
 use std::str::FromStr;
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 
 use crate::AppState;
 use sea_orm::ActiveModelTrait;

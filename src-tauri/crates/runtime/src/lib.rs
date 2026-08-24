@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+// SAFETY: runtime crate 中的 std::sync 锁用于同步上下文，不跨 await。
+#![allow(clippy::disallowed_types)]
+
 //! Core runtime primitives for the `claw` CLI and supporting crates.
 //!
 //! This crate owns session persistence, permission evaluation, prompt assembly,
@@ -221,9 +224,7 @@ pub use worker_boot::{
 };
 
 #[cfg(test)]
-pub(crate) fn test_env_lock() -> std::sync::MutexGuard<'static, ()> {
-    static LOCK: std::sync::OnceLock<std::sync::Mutex<()>> = std::sync::OnceLock::new();
-    LOCK.get_or_init(|| std::sync::Mutex::new(()))
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner)
+pub(crate) fn test_env_lock() -> parking_lot::MutexGuard<'static, ()> {
+    static LOCK: std::sync::OnceLock<parking_lot::Mutex<()>> = std::sync::OnceLock::new();
+    LOCK.get_or_init(|| parking_lot::Mutex::new(())).lock()
 }

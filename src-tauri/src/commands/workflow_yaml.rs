@@ -4,7 +4,7 @@
 //! Delegates to `rt_workflow::yaml_io` for serialization/deserialization.
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_rt_workflow::workflow_engine::Workflow;
 use axagent_rt_workflow::yaml_io::{
     WorkflowYamlMetadata, YamlIoError, export_workflow_yaml as io_export,

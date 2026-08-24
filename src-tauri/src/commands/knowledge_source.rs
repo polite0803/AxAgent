@@ -14,7 +14,7 @@
 use crate::AppState;
 use crate::commands::error::{ErrorCategory, ErrorResponse};
 use crate::commands::error_code::knowledge_source as ks_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_dao::repo::index_jobs as jobs;
 use axagent_dao::repo::note::{CreateNoteInput, list_notes};
 use axagent_dao::repo::wiki::{

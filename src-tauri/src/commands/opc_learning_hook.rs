@@ -22,7 +22,7 @@
 //! ).await;
 //! ```
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use tauri::State;
 use tracing::{debug, info, warn};
 

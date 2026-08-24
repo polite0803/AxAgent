@@ -20,6 +20,7 @@ pub enum McpTransport {
 
 /// CronJob 数据 DTO —— tools 通过此 DTO 与调度器交互。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CronJobData {
     pub name: String,
     pub schedule: String,

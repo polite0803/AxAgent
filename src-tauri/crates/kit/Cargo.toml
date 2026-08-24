@@ -14,6 +14,7 @@ enigo = { workspace = true, optional = true }
 image = { workspace = true }
 keyring = "4"
 libc = "0.2"
+parking_lot = "0.12"
 regex = "1"
 reqwest = { workspace = true }
 scraper = "0.27"

@@ -4,7 +4,7 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::storage as storage_err;
 use crate::commands::error_code::storage_path as storage_path_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_storage::storage_inventory::{self, StorageInventory};
 use axagent_storage::storage_paths;
 use serde::Serialize;

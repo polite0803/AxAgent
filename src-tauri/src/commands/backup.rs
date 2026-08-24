@@ -5,7 +5,7 @@ use crate::commands::error::ErrorResponse;
 use crate::commands::error_code;
 use crate::commands::error_code::backup as backup_err;
 use crate::commands::spawn_guard::panic_message;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_dao::repo::backup;
 use axagent_dao::repo::settings::get_settings;
 use axagent_harness::types::*;

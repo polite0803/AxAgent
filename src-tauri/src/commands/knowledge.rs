@@ -2,7 +2,7 @@
 
 use crate::AppState;
 use crate::commands::spawn_guard::catch_unwind_logged;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_dao::repo::index_jobs as jobs;
 use axagent_entities::{
     knowledge_bases, knowledge_documents, knowledge_entities, knowledge_relations,

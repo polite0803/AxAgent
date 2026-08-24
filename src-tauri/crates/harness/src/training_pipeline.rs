@@ -16,6 +16,7 @@ use std::collections::HashMap;
 
 /// 批量轨迹生成配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BatchGenerationConfig {
     /// 会话 ID 列表
     pub session_ids: Vec<String>,
@@ -58,6 +59,7 @@ impl Default for BatchGenerationConfig {
 
 /// 时间范围过滤
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TimeRangeFilter {
     pub from_timestamp_ms: Option<i64>,
     pub to_timestamp_ms: Option<i64>,

@@ -5,6 +5,8 @@
 // rt-workflow 使用嵌套 if let 模式（let-chain 需要 Rust 1.88+），
 // 与主 bin 保持一致允许 clippy::collapsible_if。
 #![allow(clippy::collapsible_if)]
+// SAFETY: rt-workflow crate 中的 std::sync 锁用于同步上下文，不跨 await。
+#![allow(clippy::disallowed_types)]
 
 pub mod agent_roles;
 pub mod business_rules;

@@ -17,7 +17,7 @@
 //! - `market_mainline_delete_by_date` —— 清除某日所有主线
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_analysis_engine::market_mainline::{
     self, BatchUpsertInput, BatchUpsertResult, CreateMainlineInput, UpdateMainlineInput,
 };

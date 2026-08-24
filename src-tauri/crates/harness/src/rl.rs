@@ -80,6 +80,7 @@ fn default_weight_pattern_match() -> f64 {
 // - 所有字段都有 `#[serde(default)]`，反序列化时缺失字段自动填默认值
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RLConfig {
     // ===== 基础训练参数 =====
     #[serde(default = "default_learning_rate")]
@@ -146,6 +147,7 @@ impl Default for RLConfig {
 // tool_efficiency/error_recovery/user_feedback 替代。
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RewardWeights {
     #[serde(default = "default_weight_task_completion")]
     pub task_completion: f64,
@@ -182,6 +184,7 @@ impl Default for RewardWeights {
 // ── Training DTOs（harness 契约层通用） ────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TrainingEpisode {
     pub episode_id: String,
     pub steps: Vec<TrainingStep>,
@@ -190,6 +193,7 @@ pub struct TrainingEpisode {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TrainingStep {
     pub observation: String,
     pub action: String,
@@ -198,6 +202,7 @@ pub struct TrainingStep {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TrainingReport {
     pub episodes_trained: usize,
     pub avg_reward: f64,

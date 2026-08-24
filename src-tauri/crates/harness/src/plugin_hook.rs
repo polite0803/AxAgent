@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ToolCallContext {
     pub tool_name: String,
     pub tool_namespace: Option<String>,
@@ -18,6 +19,7 @@ pub struct ToolCallContext {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ToolCallResult {
     pub tool_name: String,
     pub result: serde_json::Value,
@@ -26,6 +28,7 @@ pub struct ToolCallResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LlmCallContext {
     pub model: String,
     pub message_count: usize,
@@ -35,6 +38,7 @@ pub struct LlmCallContext {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LlmCallResult {
     pub content: String,
     pub tool_calls: Option<Vec<String>>,
@@ -125,6 +129,7 @@ pub struct ApiCallResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct HookContext {
     pub hook_name: String,
     pub session_id: Option<String>,
@@ -143,6 +148,7 @@ impl HookContext {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum HookDecision {
     Allow,
     Veto { reason: String },

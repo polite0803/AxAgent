@@ -9,12 +9,14 @@
 //! Export:
 //!   `RuntimeMetrics::export_json()`      — returns a `serde_json::Value` JSON snapshot
 
+#![allow(clippy::disallowed_types)]
+
 use lazy_static::lazy_static;
+use parking_lot::Mutex;
 use prometheus::{
     Encoder, HistogramOpts, HistogramVec, IntCounterVec, Opts, Registry, TextEncoder,
 };
 use serde_json::{Map, Value};
-use std::sync::Mutex;
 
 lazy_static! {
     static ref REGISTRY: Registry = Registry::new();
@@ -106,7 +108,7 @@ impl RuntimeMetrics {
     /// Export all metrics as a JSON object, suitable for a `/metrics` endpoint
     /// or writing to `metrics.json`.
     pub fn export_json() -> Value {
-        let mut buf = EXPORT_BUF.lock().unwrap_or_else(|e| e.into_inner());
+        let mut buf = EXPORT_BUF.lock();
         buf.clear();
 
         let encoder = TextEncoder::new();

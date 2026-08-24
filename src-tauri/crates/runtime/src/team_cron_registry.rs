@@ -6,13 +6,12 @@
 //! Cron registry was removed — use crates/runtime/src/cron/ engine
 //! or tools/src/tools/cron.rs for cron functionality.
 
+use parking_lot::Mutex;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
-
-use crate::util::lock_or_recover;
 
 fn now_secs() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()
@@ -66,7 +65,7 @@ impl TeamRegistry {
     }
 
     pub fn create(&self, name: &str, task_ids: Vec<String>) -> Team {
-        let mut inner = lock_or_recover(self.inner.lock(), "team_cron_registry");
+        let mut inner = self.inner.lock();
         inner.counter += 1;
         let ts = now_secs();
         let team_id = format!("team_{:08x}_{}", ts, inner.counter);
@@ -83,17 +82,17 @@ impl TeamRegistry {
     }
 
     pub fn get(&self, team_id: &str) -> Option<Team> {
-        let inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let inner = self.inner.lock();
         inner.teams.get(team_id).cloned()
     }
 
     pub fn list(&self) -> Vec<Team> {
-        let inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let inner = self.inner.lock();
         inner.teams.values().cloned().collect()
     }
 
     pub fn delete(&self, team_id: &str) -> Result<Team, String> {
-        let mut inner = lock_or_recover(self.inner.lock(), "team_cron_registry");
+        let mut inner = self.inner.lock();
         let team =
             inner.teams.get_mut(team_id).ok_or_else(|| format!("team not found: {team_id}"))?;
         team.status = TeamStatus::Deleted;
@@ -102,13 +101,13 @@ impl TeamRegistry {
     }
 
     pub fn remove(&self, team_id: &str) -> Option<Team> {
-        let mut inner = lock_or_recover(self.inner.lock(), "team_cron_registry");
+        let mut inner = self.inner.lock();
         inner.teams.remove(team_id)
     }
 
     #[must_use]
     pub fn len(&self) -> usize {
-        let inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let inner = self.inner.lock();
         inner.teams.len()
     }
 

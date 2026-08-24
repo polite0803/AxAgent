@@ -10,7 +10,7 @@
 //! - 触发分析完成后的自动记录
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_analysis_engine::trade_intent::{
     ReviewTradeIntentRequest, TradeIntentItem, TradeIntentService,
 };

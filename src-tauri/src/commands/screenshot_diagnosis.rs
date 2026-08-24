@@ -25,7 +25,7 @@
 //! 7. 返回完整诊断记录给前端
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_analysis_engine::screenshot_diagnosis::{
     self, CreateScreenshotDiagnosisInput, UpdateScreenshotDiagnosisInput,
 };

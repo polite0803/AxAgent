@@ -18,7 +18,7 @@ use crate::commands::error_code::title as title_err;
 #[cfg(test)]
 use crate::commands::proactive::ProactiveService;
 use crate::commands::spawn_guard::catch_unwind_logged;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 #[cfg(test)]
 use axagent_dao::repo::agent_session_repo::DaoAgentSessionRepository;
 #[cfg(test)]
@@ -3098,7 +3098,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         webhook_event_emitter: None,
         #[cfg(not(mobile))]
         pty_manager: Arc::new(axagent_runtime::pty::PtyManager::new()),
-        telemetry_level_handle: Arc::new(std::sync::RwLock::new(
+        telemetry_level_handle: Arc::new(parking_lot::RwLock::new(
             axagent_telemetry::TelemetryLevel::default(),
         )),
         telemetry_sink: Arc::new(axagent_telemetry::MemoryTelemetrySink::default())
@@ -3194,6 +3194,9 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         ))),
         shutdown_token: tokio_util::sync::CancellationToken::new(),
         file_authorizer: Arc::new(axagent_storage::file_authorizer::FileAuthorizer::new()),
+        database_query_service: Arc::new(
+            crate::database_query_impl::SqlxDatabaseQueryService::new(),
+        ),
         session_share_manager: Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new())),
         astock_client: Arc::new(axagent_astock_data::AStockClient::new()),
         concept_index: Arc::new(tokio::sync::RwLock::new(

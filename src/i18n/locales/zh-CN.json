@@ -2460,6 +2460,14 @@
     "title": "动态 UI 预览"
   },
   "error": {
+    "settings": {
+      "modelRefInvalid": "NullableModelRef 结构无效: {{label}}",
+      "cleanupInvalid": "[SettingsAdaptor] 清理无效的{{label}}: {{reason}}",
+      "modelConsistencyInvalid": "[ModelConsistency] {{label}}: {{reason}}（providerId={{providerId}}, modelId={{modelId}}）",
+      "dataInconsistency": "[fromDto] 数据不一致: {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}",
+      "invalidModelRefDetected": "[toDto] 检测到无效模型引用 {{sourceKey}}",
+      "mustBeSetTogether": "[SettingsDto] {{providerKey}} 和 {{modelKey}} 必须同时设置或同时为 null，当前 {{providerKey}}={{providerId}}, {{modelKey}}={{modelId}}"
+    },
     "deleteFailed": "删除失败，请重试",
     "gatewayStartFailed": "网关启动失败",
     "invalidFormat": "格式无效",
@@ -7391,6 +7399,11 @@
     "apiKey": "API 密钥"
   },
   "settings": {
+    "modelLabels": {
+      "defaultModel": "默认对话模型",
+      "titleSummaryModel": "标题摘要模型",
+      "compressionModel": "压缩模型"
+    },
     "activeProfile": "当前配置",
     "addKey": "添加密钥",
     "addModel": "添加模型",
@@ -16333,5 +16346,66 @@
     "approve": "批准执行",
     "reject": "拒绝",
     "rejectedToast": "高危操作已拒绝"
+  },
+  "executionBridge": {
+    "mode": {
+      "title": "执行模式",
+      "manual": "手动确认",
+      "manualDesc": "所有交易需手动确认后执行",
+      "semiAuto": "半自动",
+      "semiAutoDesc": "风控通过后自动执行",
+      "fullAuto": "全自动",
+      "fullAutoDesc": "所有信号自动执行，无需确认"
+    },
+    "pending": {
+      "title": "待执行信号",
+      "empty": "暂无待执行信号",
+      "refresh": "刷新",
+      "noData": "没有待执行的交易信号",
+      "stockCode": "股票代码",
+      "stockName": "股票名称",
+      "direction": "方向",
+      "price": "价格",
+      "quantity": "数量",
+      "reason": "交易原因",
+      "riskLevel": "风控等级",
+      "createdAt": "创建时间",
+      "actions": "操作",
+      "buy": "买入",
+      "sell": "卖出",
+      "hold": "持有"
+    },
+    "risk": {
+      "low": "低风险",
+      "medium": "中风险",
+      "high": "高风险",
+      "warning": "风控警告",
+      "checkFailed": "风控检查未通过",
+      "level": "风控等级"
+    },
+    "confirm": {
+      "title": "确认交易",
+      "message": "您即将{direction} {stockName}，数量 {quantity}，价格 {price}。确认执行？",
+      "quantityPlaceholder": "请输入数量",
+      "quantityLabel": "数量",
+      "submit": "确认执行",
+      "cancel": "取消"
+    },
+    "reject": {
+      "title": "驳回交易",
+      "message": "确定要驳回{stockName}的交易信号？",
+      "reasonPlaceholder": "请输入驳回原因",
+      "reasonLabel": "驳回原因",
+      "submit": "确认驳回",
+      "cancel": "取消"
+    },
+    "toast": {
+      "submitSuccess": "信号已提交",
+      "submitFailed": "信号提交失败",
+      "confirmSuccess": "交易已确认执行",
+      "rejectSuccess": "交易已驳回",
+      "modeChanged": "执行模式已更新",
+      "riskRejected": "风控检查未通过：{reason}"
+    }
   }
 }

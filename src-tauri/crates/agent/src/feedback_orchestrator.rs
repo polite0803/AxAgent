@@ -29,6 +29,8 @@ pub enum OrchestratorAction {
 /// - 达到阈值时触发对应的优化动作
 /// - 支持可选定时检查
 /// - 桥接 tracer FeedbackRecord → orchestrator（process_feedback_record）
+// SAFETY: 此处 parking_lot::Mutex 不跨 await 使用，所有方法均为同步操作。
+#[allow(clippy::disallowed_types)]
 pub struct FeedbackOrchestrator {
     /// 负反馈阈值（默认 5）
     negative_threshold: usize,
@@ -43,9 +45,11 @@ pub struct FeedbackOrchestrator {
     /// 经验池规模检查阈值（默认 100）
     pool_size_threshold: usize,
     /// 已处理的反馈记录 trace_id 集合（用于去重）
-    seen_traces: std::sync::Mutex<std::collections::HashSet<String>>,
+    seen_traces: parking_lot::Mutex<std::collections::HashSet<String>>,
 }
 
+// SAFETY: 此处 parking_lot::Mutex 不跨 await 使用，所有方法均为同步操作。
+#[allow(clippy::disallowed_types)]
 impl FeedbackOrchestrator {
     pub fn new() -> Self {
         Self {
@@ -55,7 +59,7 @@ impl FeedbackOrchestrator {
             positive_count: AtomicUsize::new(0),
             total_feedback: AtomicUsize::new(0),
             pool_size_threshold: 100,
-            seen_traces: std::sync::Mutex::new(std::collections::HashSet::new()),
+            seen_traces: parking_lot::Mutex::new(std::collections::HashSet::new()),
         }
     }
 
@@ -152,7 +156,7 @@ impl FeedbackOrchestrator {
     ) -> Option<(u8, OrchestratorAction)> {
         // 去重：同 trace_id 只处理一次
         {
-            let mut seen = self.seen_traces.lock().unwrap_or_else(|e| e.into_inner());
+            let mut seen = self.seen_traces.lock();
             if !seen.insert(trace_id.to_string()) {
                 tracing::debug!("[FeedbackOrchestrator] skipping duplicate trace_id={}", trace_id);
                 return None;
@@ -191,7 +195,7 @@ impl FeedbackOrchestrator {
 
     /// 获取已处理 trace_id 数量（去重计数）。
     pub fn seen_count(&self) -> usize {
-        self.seen_traces.lock().unwrap_or_else(|e| e.into_inner()).len()
+        self.seen_traces.lock().len()
     }
 
     /// 重置负反馈计数器（RL 训练完成后调用）。

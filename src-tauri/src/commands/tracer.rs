@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_telemetry::{
     CostMetrics, Span, SpanError, SpanEvent, SpanStatus, SpanType, TraceExport, TraceFilter,
     TraceMetrics, TraceSummary,
     storage::{InMemoryTraceStorage, TraceStorage},
 };
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::Mutex;
 use tauri::command;
 
 // ── Request / Response types ──
@@ -168,7 +168,7 @@ pub fn tracer_record_error(request: RecordErrorRequest) -> Result<(), String> {
 #[agent_command(domain = tracer, safety = Caution, call_mode = Manual, description = "记录 Span 数据")]
 #[command]
 pub fn tracer_record_span(request: RecordSpanRequest) -> Result<(), String> {
-    let storage = TRACE_STORAGE.lock().map_err(|e| format!("Lock error: {}", e))?;
+    let storage = TRACE_STORAGE.lock();
 
     let span_status: SpanStatus = match request.span.status.as_str() {
         "ok" => SpanStatus::Ok,
@@ -230,14 +230,14 @@ pub fn tracer_record_span(request: RecordSpanRequest) -> Result<(), String> {
 #[agent_command(domain = tracer, safety = Safe, call_mode = Manual, description = "列出追踪记录")]
 #[command]
 pub fn tracer_list_traces(filter: TraceFilter) -> Result<Vec<TraceSummary>, String> {
-    let storage = TRACE_STORAGE.lock().map_err(|e| format!("Lock error: {}", e))?;
+    let storage = TRACE_STORAGE.lock();
     storage.list(&filter).map_err(|e| format!("{}", e))
 }
 
 #[agent_command(domain = tracer, safety = Safe, call_mode = Manual, description = "获取追踪详情")]
 #[command]
 pub fn tracer_get_trace(trace_id: String) -> Result<Option<TraceExport>, String> {
-    let storage = TRACE_STORAGE.lock().map_err(|e| format!("Lock error: {}", e))?;
+    let storage = TRACE_STORAGE.lock();
     storage.get(&trace_id).map_err(|e| format!("{}", e))
 }
 
@@ -251,7 +251,7 @@ pub fn tracer_get_span(_span_id: String) -> Result<Option<Span>, String> {
 #[agent_command(domain = tracer, safety = Safe, call_mode = Manual, description = "获取追踪指标")]
 #[command]
 pub fn tracer_get_metrics(trace_id: String) -> Result<Option<TraceMetrics>, String> {
-    let storage = TRACE_STORAGE.lock().map_err(|e| format!("Lock error: {}", e))?;
+    let storage = TRACE_STORAGE.lock();
 
     let trace = storage.get(&trace_id).map_err(|e| format!("{}", e))?;
     match trace {
@@ -287,7 +287,7 @@ pub fn tracer_get_metrics(trace_id: String) -> Result<Option<TraceMetrics>, Stri
 #[agent_command(domain = tracer, safety = Safe, call_mode = Manual, description = "导出追踪数据")]
 #[command]
 pub fn tracer_export_traces(trace_ids: Vec<String>, _format: String) -> Result<Vec<u8>, String> {
-    let storage = TRACE_STORAGE.lock().map_err(|e| format!("Lock error: {}", e))?;
+    let storage = TRACE_STORAGE.lock();
 
     let mut exports = Vec::new();
     for id in &trace_ids {
@@ -302,7 +302,7 @@ pub fn tracer_export_traces(trace_ids: Vec<String>, _format: String) -> Result<V
 #[agent_command(domain = tracer, safety = Dangerous, call_mode = Manual, description = "删除追踪记录")]
 #[command]
 pub fn tracer_delete_trace(trace_id: String) -> Result<(), String> {
-    let storage = TRACE_STORAGE.lock().map_err(|e| format!("Lock error: {}", e))?;
+    let storage = TRACE_STORAGE.lock();
     storage.delete(&trace_id).map_err(|e| format!("{}", e))
 }
 
@@ -318,7 +318,7 @@ pub fn tracer_delete_old_traces(_older_than_days: u32) -> Result<u64, String> {
 #[agent_command(domain = tracer, safety = Safe, call_mode = Manual, description = "获取瓶颈分析")]
 #[command]
 pub fn tracer_get_bottlenecks(trace_id: String) -> Result<BottleneckResult, String> {
-    let storage = TRACE_STORAGE.lock().map_err(|e| format!("Lock error: {}", e))?;
+    let storage = TRACE_STORAGE.lock();
 
     let trace = storage
         .get(&trace_id)
@@ -413,7 +413,7 @@ pub fn tracer_get_bottlenecks(trace_id: String) -> Result<BottleneckResult, Stri
 #[agent_command(domain = tracer, safety = Safe, call_mode = Manual, description = "生成优化建议")]
 #[command]
 pub fn tracer_generate_suggestions(trace_id: String) -> Result<Vec<SuggestionItem>, String> {
-    let storage = TRACE_STORAGE.lock().map_err(|e| format!("Lock error: {}", e))?;
+    let storage = TRACE_STORAGE.lock();
 
     let trace = storage
         .get(&trace_id)
@@ -512,7 +512,7 @@ pub fn tracer_submit_feedback(
     };
 
     // 1. 持久化落盘
-    let mut feedback = FEEDBACK_STORAGE.lock().map_err(|e| format!("Lock error: {}", e))?;
+    let mut feedback = FEEDBACK_STORAGE.lock();
     feedback.push(record);
     // 容量限制：超过上限时丢弃最旧记录，保留最近 MAX_FEEDBACK_RECORDS 条
     if feedback.len() > MAX_FEEDBACK_RECORDS {
@@ -661,7 +661,7 @@ pub fn tracer_submit_feedback(
 #[agent_command(domain = tracer, safety = Safe, call_mode = Manual, description = "获取反馈记录")]
 #[command]
 pub fn tracer_get_feedback(trace_id: Option<String>) -> Result<Vec<FeedbackRecord>, String> {
-    let feedback = FEEDBACK_STORAGE.lock().map_err(|e| format!("Lock error: {}", e))?;
+    let feedback = FEEDBACK_STORAGE.lock();
 
     if let Some(ref tid) = trace_id {
         Ok(feedback.iter().filter(|r| r.trace_id == *tid).cloned().collect())

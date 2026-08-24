@@ -5,7 +5,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::onboarding as onboarding_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_dao::repo::provider::{
     add_provider_key, create_provider, list_providers, toggle_provider,
 };

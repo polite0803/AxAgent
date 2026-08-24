@@ -4,7 +4,7 @@
 //!
 //! 暴露能力扫描、市场线索发现、需求确认、交付工作流执行等核心命令。
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use sea_orm::sea_query::Expr;
 use tauri::State;
 

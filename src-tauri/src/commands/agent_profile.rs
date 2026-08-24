@@ -2,7 +2,7 @@
 
 use crate::AppState;
 use crate::commands::error::{CommandError, ErrorCategory};
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_dao::repo::agent_profile;
 use axagent_harness::types::{AgentProfile, CreateAgentProfileInput, UpdateAgentProfileInput};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, Set};

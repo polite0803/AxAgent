@@ -24,6 +24,7 @@ impl std::cmp::PartialOrd for Difficulty {
     }
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BenchmarkTask {
     pub id: String,
     pub name: String,
@@ -34,6 +35,7 @@ pub struct BenchmarkTask {
     pub expected_output: Option<serde_json::Value>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TaskResult {
     pub task_id: String,
     pub success: bool,
@@ -43,6 +45,7 @@ pub struct TaskResult {
     pub token_count: Option<u64>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BenchmarkReport {
     pub suite_name: String,
     pub total_tasks: usize,

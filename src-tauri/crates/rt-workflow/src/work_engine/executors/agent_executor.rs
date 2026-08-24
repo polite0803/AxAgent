@@ -9,7 +9,7 @@
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::{Arc, PoisonError};
+use std::sync::Arc;
 use std::time::Duration;
 
 use async_trait::async_trait;
@@ -18,26 +18,6 @@ use axagent_harness::workflow_types::WorkflowNode;
 use futures::StreamExt;
 use serde_json::Value;
 use tokio::sync::Mutex;
-
-// Panic-safety helper: std::sync::Mutex poisons on panics.  When a worker
-// thread panics while holding the lock, every subsequent .lock() call
-// returns PoisonError and our previous `.expect()` would take the entire
-// daemon down.  Instead we recover the inner guard and log a warning so
-// the rest of the executor keeps running.
-#[inline]
-fn lock_or_recover<T>(guard: Result<T, PoisonError<T>>) -> T {
-    match guard {
-        Ok(g) => g,
-        Err(pe) => {
-            tracing::warn!(
-                target: "axagent.reliability",
-                "agent_executor mutex poisoned, recovering: {}",
-                pe
-            );
-            pe.into_inner()
-        },
-    }
-}
 
 use crate::work_engine::WorkEngine;
 use crate::work_engine::execution_state::ExecutionState;
@@ -154,13 +134,14 @@ pub struct PlanStepEvent {
 pub struct AgentExecutor {
     master_key: [u8; 32],
     /// RAG 知识源检索回调（由 WorkEngine.set_rag_callback 共享注入，None = 未启用）
-    rag_callback: Arc<std::sync::Mutex<Option<RagCallback>>>,
+    rag_callback: Arc<parking_lot::Mutex<Option<RagCallback>>>,
     /// Plan 模式：注入 WorkEngine 引用（set_engine 共享槽，None = 未启用）
-    engine: Arc<std::sync::Mutex<Option<Arc<super::super::WorkEngine>>>>,
+    engine: Arc<parking_lot::Mutex<Option<Arc<super::super::WorkEngine>>>>,
     #[allow(clippy::type_complexity)]
     /// Plan 模式：注入 PlannerAdapter（set_planner 共享槽，None = 未启用 Plan 模式）
-    planner:
-        Arc<std::sync::Mutex<Option<Arc<std::sync::Mutex<dyn axagent_harness::PlannerAdapter>>>>>,
+    planner: Arc<
+        parking_lot::Mutex<Option<Arc<parking_lot::Mutex<dyn axagent_harness::PlannerAdapter>>>>,
+    >,
     /// 默认 provider 缓存（同一次工作流执行内复用）
     default_provider_cache: Arc<Mutex<ProviderCache>>,
     /// Agent profile 缓存（同一工作流内多个节点共用同 profile 时复用）
@@ -172,14 +153,14 @@ pub struct AgentExecutor {
     ///
     /// 由 WorkEngine 在每次 run_workflow 开始时通过 set_rag_callback 模式
     /// 同步转发当前注册的 DomainConstraintsFn。
-    domain_constraints: Arc<std::sync::Mutex<Option<DomainConstraintsFn>>>,
+    domain_constraints: Arc<parking_lot::Mutex<Option<DomainConstraintsFn>>>,
     /// 内建变量提供器（可选，None 时不注入任何内建变量，行为与现状完全一致）。
     ///
     /// 返回的 HashMap 中每个 key 对应 `{{key}}` 模板占位符。主 crate 在
     /// `as_of` 模式时通过 WorkEngine.set_builtin_vars_provider 注入
     /// `data_freshness` / `as_of_date` / `is_replay` / `data_scope` 等
     /// 跨领域通用状态。
-    builtin_vars_provider: Arc<std::sync::Mutex<Option<BuiltinVarsProvider>>>,
+    builtin_vars_provider: Arc<parking_lot::Mutex<Option<BuiltinVarsProvider>>>,
 }
 
 impl AgentExecutor {
@@ -192,14 +173,14 @@ impl AgentExecutor {
     fn empty(master_key: [u8; 32]) -> Self {
         Self {
             master_key,
-            rag_callback: Arc::new(std::sync::Mutex::new(None)),
-            engine: Arc::new(std::sync::Mutex::new(None)),
-            planner: Arc::new(std::sync::Mutex::new(None)),
+            rag_callback: Arc::new(parking_lot::Mutex::new(None)),
+            engine: Arc::new(parking_lot::Mutex::new(None)),
+            planner: Arc::new(parking_lot::Mutex::new(None)),
             default_provider_cache: Arc::new(Mutex::new(None)),
             profile_cache: Arc::new(Mutex::new(HashMap::new())),
             provider_registry: None,
-            domain_constraints: Arc::new(std::sync::Mutex::new(None)),
-            builtin_vars_provider: Arc::new(std::sync::Mutex::new(None)),
+            domain_constraints: Arc::new(parking_lot::Mutex::new(None)),
+            builtin_vars_provider: Arc::new(parking_lot::Mutex::new(None)),
         }
     }
 
@@ -208,14 +189,13 @@ impl AgentExecutor {
     /// 主 crate 在 as-of 模式下调用此方法，传入从 `axagent_astock_data::as_of`
     /// 拉取 `data_freshness` 等跨领域通用状态的闭包。
     pub fn set_builtin_vars_provider(&self, provider: BuiltinVarsProvider) {
-        if let Ok(mut slot) = self.builtin_vars_provider.lock() {
-            *slot = Some(provider);
-        }
+        let mut slot = self.builtin_vars_provider.lock();
+        *slot = Some(provider);
     }
 
     /// 设置 Plan 模式用的 WorkEngine 引用（共享槽，热更新）
     pub fn set_engine(&self, engine: Arc<WorkEngine>) {
-        *lock_or_recover(self.engine.lock()) = Some(engine);
+        *self.engine.lock() = Some(engine);
     }
 
     /// Builder 形式（保留向后兼容；内部走共享槽）
@@ -303,14 +283,17 @@ impl AgentExecutor {
     }
 
     /// 设置 Plan 模式用的 PlannerAdapter（共享槽，热更新）
-    pub fn set_planner(&self, planner: Arc<std::sync::Mutex<dyn axagent_harness::PlannerAdapter>>) {
-        *lock_or_recover(self.planner.lock()) = Some(planner);
+    pub fn set_planner(
+        &self,
+        planner: Arc<parking_lot::Mutex<dyn axagent_harness::PlannerAdapter>>,
+    ) {
+        *self.planner.lock() = Some(planner);
     }
 
     /// Builder 形式
     pub fn with_planner(
         self,
-        planner: Arc<std::sync::Mutex<dyn axagent_harness::PlannerAdapter>>,
+        planner: Arc<parking_lot::Mutex<dyn axagent_harness::PlannerAdapter>>,
     ) -> Self {
         self.set_planner(planner);
         self
@@ -318,7 +301,7 @@ impl AgentExecutor {
 
     /// 设置 RAG 回调（共享槽，热更新；传 None 表示清空）
     pub fn set_rag_callback(&self, cb: Option<RagCallback>) {
-        *lock_or_recover(self.rag_callback.lock()) = cb;
+        *self.rag_callback.lock() = cb;
     }
 
     /// Builder 形式（保留向后兼容；内部走共享槽）
@@ -337,12 +320,12 @@ impl AgentExecutor {
     /// 纯 API 扩展点，不修改现有 4a-4f 段拼装逻辑。stock-analysis 等领域
     /// 后续 PR 自行迁移 STOCK_HARD_CONSTRAINTS / STOCK_COLLAB_REMINDER 常量。
     pub fn set_domain_constraints(&self, f: DomainConstraintsFn) {
-        *lock_or_recover(self.domain_constraints.lock()) = Some(f);
+        *self.domain_constraints.lock() = Some(f);
     }
 
     /// 由 WorkEngine 在每次 run_workflow 开始前转发 domain_constraints。
     pub fn set_domain_constraints_option(&self, f: Option<DomainConstraintsFn>) {
-        *lock_or_recover(self.domain_constraints.lock()) = f;
+        *self.domain_constraints.lock() = f;
     }
 
     /// 构造使用共享缓存的 executor（WorkEngine 内部使用，跨执行复用缓存）。
@@ -400,10 +383,10 @@ impl NodeExecutorTrait for AgentExecutor {
         // 注意:此处只做"入口委托",不替换 inline ReAct — streaming.rs 等自由对话
         // 路径不受影响。未来三套 ReAct 合并时再统一入口。
         //
-        // 安全性:先 clone Arc<WorkEngine> 出来,释放 std::sync::RwLock guard
+        // 安全性:先 clone Arc<WorkEngine> 出来,释放 parking_lot::RwLock guard
         // (guard 是 !Send,不能跨 await 持有)。
         let engine_clone = {
-            let guard = lock_or_recover(self.engine.lock());
+            let guard = self.engine.lock();
             guard.as_ref().cloned()
         };
         // P1 缺陷修复：agent-loop 接缝消费改为「注册表优先、字段回退」——
@@ -515,7 +498,7 @@ impl NodeExecutorTrait for AgentExecutor {
 
         // 4a. 角色前缀 + 领域头部约束（primacy 锚定）
         all_segments.push(TemplateSegment::Static(format!("你是 {role_desc}。\n")));
-        if let Some(dc_fn) = lock_or_recover(self.domain_constraints.lock()).as_ref() {
+        if let Some(dc_fn) = self.domain_constraints.lock().as_ref() {
             let blocks = dc_fn(role_name);
             if let Some(ref head) = blocks.head {
                 all_segments.push(TemplateSegment::Static(format!("\n{head}\n")));
@@ -660,7 +643,7 @@ impl NodeExecutorTrait for AgentExecutor {
 
         // 4e. RAG 知识源检索（从知识库/记忆/Wiki 检索相关内容注入 system prompt）
         if !an.config.rag_source_ids.is_empty() {
-            let rag_cb = lock_or_recover(self.rag_callback.lock()).clone();
+            let rag_cb = self.rag_callback.lock().clone();
             if let Some(rag_cb) = rag_cb {
                 let rag_query = user_prompt_for_rag(&an.config, &context.variables);
                 let (kb_ids, mem_ids, wiki_ids) = parse_rag_source_ids(&an.config.rag_source_ids);
@@ -775,7 +758,7 @@ impl NodeExecutorTrait for AgentExecutor {
         }
 
         // 4h. 领域尾部约束（recency 锚定）
-        if let Some(dc_fn) = lock_or_recover(self.domain_constraints.lock()).as_ref() {
+        if let Some(dc_fn) = self.domain_constraints.lock().as_ref() {
             let blocks = dc_fn(role_name);
             if let Some(ref tail) = blocks.tail {
                 all_segments.push(TemplateSegment::Static(format!("\n\n{tail}")));
@@ -834,7 +817,7 @@ impl NodeExecutorTrait for AgentExecutor {
         // 拉取内建变量(可选)。由主 crate 在 as-of 模式下注入 data_freshness / as_of_date 等
         // 跨领域通用状态;None 时行为与历史完全一致。
         let builtin_vars: Option<std::collections::HashMap<String, String>> =
-            lock_or_recover(self.builtin_vars_provider.lock()).as_ref().map(|provider| provider());
+            self.builtin_vars_provider.lock().as_ref().map(|provider| provider());
         // 内建变量注入 variables（若有），确保模板渲染时 `{{data_freshness}}` 等占位符可解析
         let mut enriched_variables = context.variables.clone();
         if let Some(ref vars) = builtin_vars {
@@ -2371,7 +2354,7 @@ impl AgentExecutor {
 
         // 2. PlannerAdapter 接管：验证、执行管理、重规划
         let planner_arc = {
-            let data = lock_or_recover(self.planner.lock());
+            let data = self.planner.lock();
             data.as_ref()
                 .ok_or_else(|| {
                     NodeError::exec_failed(
@@ -2396,7 +2379,7 @@ impl AgentExecutor {
             .collect();
         // Bundle planner operations into a single lock scope to avoid TOCTOU
         {
-            let mut planner = lock_or_recover(planner_arc.lock());
+            let mut planner = planner_arc.lock();
             planner.create_plan(&an.config.system_prompt, &phases_json).map_err(|e| {
                 NodeError::exec_failed(error_code::VALIDATION_FAILED, format!("Plan 创建失败: {e}"))
             })?;
@@ -2410,7 +2393,7 @@ impl AgentExecutor {
 
         let phase_count = plan.phases.len();
         let task_count: u32 = plan.phases.iter().map(|p| p.tasks.len() as u32).sum();
-        let engine_available = lock_or_recover(self.engine.lock()).is_some();
+        let engine_available = self.engine.lock().is_some();
 
         // 3. 编译 DAG → WorkEngine 执行，失败时重规划
         let mut current_plan = plan;
@@ -2423,14 +2406,13 @@ impl AgentExecutor {
                         .to_string(),
                 ));
             }
-            let engine =
-                lock_or_recover(self.engine.lock()).as_ref().cloned().ok_or_else(|| {
-                    NodeError::exec_failed(
-                        error_code::VALIDATION_FAILED,
-                        "Plan 模式需要 WorkEngine 引用，请通过 AgentExecutor::with_engine() 注入"
-                            .to_string(),
-                    )
-                })?;
+            let engine = self.engine.lock().as_ref().cloned().ok_or_else(|| {
+                NodeError::exec_failed(
+                    error_code::VALIDATION_FAILED,
+                    "Plan 模式需要 WorkEngine 引用，请通过 AgentExecutor::with_engine() 注入"
+                        .to_string(),
+                )
+            })?;
             let (wf_nodes, wf_edges) =
                 compile_plan_to_dag(&current_plan, &tool_names, an.config.agent_profile_id.clone());
             let wf_name = format!("plan_{}_{}", uuid::Uuid::new_v4(), attempt);
@@ -2447,7 +2429,7 @@ impl AgentExecutor {
                 Ok((wf_result, _wf)) => {
                     // Bundle all mark_task_completed calls into a single lock scope
                     {
-                        let mut planner = lock_or_recover(planner_arc.lock());
+                        let mut planner = planner_arc.lock();
                         for (pi, phase) in current_plan.phases.iter().enumerate() {
                             for (ti, task) in phase.tasks.iter().enumerate() {
                                 let key = format!("r_p{pi}_t{ti}_{}", task.id);
@@ -2462,7 +2444,8 @@ impl AgentExecutor {
                         && let Some(ref on_step) = cbs.on_step_update
                     {
                         let phases_snapshot = {
-                            lock_or_recover(planner_arc.lock())
+                            planner_arc
+                                .lock()
                                 .current_plan()
                                 .and_then(|v| serde_json::from_value::<Plan>(v).ok())
                         };
@@ -2492,10 +2475,8 @@ impl AgentExecutor {
                 Err(e) if attempt < replan_max_retries => {
                     attempt += 1;
                     // 从 planner 获取真实的失败/待处理任务 ID
-                    let failed_ids: Vec<String> =
-                        lock_or_recover(planner_arc.lock()).get_failed_steps();
-                    let pending_ids: Vec<String> =
-                        lock_or_recover(planner_arc.lock()).get_pending_steps();
+                    let failed_ids: Vec<String> = planner_arc.lock().get_failed_steps();
+                    let pending_ids: Vec<String> = planner_arc.lock().get_pending_steps();
                     let task_ids_to_retry: Vec<String> = if failed_ids.is_empty() {
                         pending_ids
                     } else {
@@ -2522,12 +2503,11 @@ impl AgentExecutor {
                         })
                         .collect();
 
-                    match lock_or_recover(planner_arc.lock())
-                        .request_replan("StepFailed", &[reason_json])
-                    {
+                    match planner_arc.lock().request_replan("StepFailed", &[reason_json]) {
                         Ok(()) => {
                             // Re-read from the same planner lock scope
-                            current_plan = lock_or_recover(planner_arc.lock())
+                            current_plan = planner_arc
+                                .lock()
                                 .current_plan()
                                 .and_then(|v| serde_json::from_value::<Plan>(v).ok())
                                 .unwrap_or_else(|| current_plan.clone());

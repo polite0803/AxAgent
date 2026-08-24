@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use agent_macro::agent_command;
-use axagent_agent::fine_tune::candle_trainer::train_with_embeddings;
 use axagent_agent::fine_tune::dataset::{
     DatasetMetadata, FineTuneDataset, FineTuneSample, SampleMetadata,
 };
@@ -10,14 +8,17 @@ use axagent_agent::fine_tune::trainer::TrainingStats;
 use axagent_agent::fine_tune::{
     ActiveModelConfig, BaseModelInfo, FineTuneTrainer, ModelManager, TrainingJob,
 };
+use axagent_agent_macro::agent_command;
 use axagent_harness::types::{EmbedRequest, ModelType};
-use axagent_harness::{ProviderRequestContext, resolve_base_url_for_type};
+use axagent_harness::{LoRATrainConfig, ProviderRequestContext, resolve_base_url_for_type};
+use axagent_search::inference::global_engine;
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
 use tauri::command;
 use tracing::warn;
 
@@ -34,6 +35,7 @@ fn samples_file() -> PathBuf {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DatasetInfo {
     pub id: String,
     pub name: String,
@@ -43,6 +45,7 @@ pub struct DatasetInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TrainingJobInfo {
     pub id: String,
     pub status: String,
@@ -141,21 +144,21 @@ impl From<&TrainingJob> for TrainingJobInfo {
 #[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description = "列出所有微调数据集")]
 #[command]
 pub fn list_datasets() -> Result<Vec<DatasetInfo>, String> {
-    let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    let s = state().lock();
     Ok(s.datasets.values().cloned().collect())
 }
 
 #[agent_command(domain = "general", safety = Safe, call_mode = StateInput, description = "获取指定数据集")]
 #[command]
 pub fn get_dataset(dataset_id: String) -> Result<DatasetInfo, String> {
-    let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    let s = state().lock();
     s.datasets.get(&dataset_id).cloned().ok_or_else(|| "Dataset not found".to_string())
 }
 
 #[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "创建微调数据集")]
 #[command]
 pub fn create_dataset(name: String, description: String) -> Result<DatasetInfo, String> {
-    let mut s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    let mut s = state().lock();
     let dataset = DatasetInfo {
         id: uuid::Uuid::new_v4().to_string(),
         name,
@@ -177,7 +180,7 @@ pub fn add_sample(
     output: String,
     system_prompt: Option<String>,
 ) -> Result<(), String> {
-    let mut s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    let mut s = state().lock();
     let samples = s.samples.get_mut(&dataset_id).ok_or_else(|| "Dataset not found".to_string())?;
     samples.push(Sample { input, output, system_prompt });
     let new_count = samples.len();
@@ -191,7 +194,7 @@ pub fn add_sample(
 #[agent_command(domain = "general", safety = Dangerous, call_mode = StateInput, description = "删除微调数据集")]
 #[command]
 pub fn delete_dataset(dataset_id: String) -> Result<(), String> {
-    let mut s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    let mut s = state().lock();
     s.datasets.remove(&dataset_id);
     s.samples.remove(&dataset_id);
     let _ = persist_datasets(&s); // Best-effort persist
@@ -201,14 +204,14 @@ pub fn delete_dataset(dataset_id: String) -> Result<(), String> {
 #[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description = "列出所有训练任务")]
 #[command]
 pub fn list_training_jobs() -> Result<Vec<TrainingJobInfo>, String> {
-    let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    let s = state().lock();
     Ok(s.trainer.list_jobs().iter().map(|j| TrainingJobInfo::from(*j)).collect())
 }
 
 #[agent_command(domain = "general", safety = Safe, call_mode = StateInput, description = "获取指定训练任务")]
 #[command]
 pub fn get_training_job(job_id: String) -> Result<TrainingJobInfo, String> {
-    let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    let s = state().lock();
     s.trainer
         .get_job(&job_id)
         .map(TrainingJobInfo::from)
@@ -226,7 +229,7 @@ pub fn create_training_job(
     batch_size: u32,
     epochs: u32,
 ) -> Result<TrainingJobInfo, String> {
-    let mut s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    let mut s = state().lock();
 
     let config = LoRAConfigBuilder::new()
         .rank(rank)
@@ -259,8 +262,8 @@ pub async fn start_training_job(
     }
 
     // 提取训练所需数据后立即释放锁
-    let (config, ds_id, samples, num_samples, cancel_flag) = {
-        let mut guard = state().lock().map_err(|e| format!("Lock error: {e}"))?;
+    let (config, ds_id, samples, num_samples, _cancel_flag) = {
+        let mut guard = state().lock();
         let job =
             guard.trainer.get_job(&job_id).ok_or_else(|| format!("Job '{job_id}' not found"))?;
         let config = job.config.clone();
@@ -284,7 +287,7 @@ pub async fn start_training_job(
     };
 
     if samples.is_empty() {
-        let mut guard = state().lock().map_err(|e| format!("Lock error: {e}"))?;
+        let mut guard = state().lock();
         let _ = guard.trainer.fail_job(&job_id);
         guard.job_cancel_flags.remove(&job_id);
         return Err("Dataset has no samples".to_string());
@@ -327,61 +330,78 @@ pub async fn start_training_job(
     let embed_result = try_compute_embeddings_internal(db, &app_state, &samples).await;
 
     // 准备后台训练
-    let jid = job_id.clone();
     let jid2 = job_id.clone();
 
     tokio::task::spawn(async move {
-        // 进度回调：更新 trainer 中的 job progress
-        let progress_cb = move |progress: f32, loss: f64| {
-            if cancel_flag.load(Ordering::SeqCst) {
-                return;
-            }
-            if let Ok(mut guard) = state().lock() {
-                let _ =
-                    guard.trainer.update_progress(&jid, (progress * 10.0) as u32, 0, loss as f32);
-            }
-        };
-
         let result = match embed_result {
             Ok(Some((input_emb, target_emb, dim))) => {
                 tracing::info!(
                     "[fine_tune] Background training with real embeddings (dim={})",
                     dim
                 );
-                train_with_embeddings(
-                    input_emb,
-                    target_emb,
-                    &config,
-                    &output_dir,
-                    dim,
-                    Some(progress_cb),
-                )
+                let lora_config = LoRATrainConfig {
+                    rank: config.rank,
+                    alpha: config.alpha,
+                    learning_rate: config.learning_rate,
+                    batch_size: config.batch_size,
+                    epochs: config.epochs,
+                    target_modules: config.target_modules.clone(),
+                };
+                global_engine()
+                    .train_lora_with_embeddings(
+                        input_emb,
+                        target_emb,
+                        &lora_config,
+                        output_dir.to_str().unwrap_or("."),
+                        dim,
+                    )
+                    .map(|r| r.safetensors_path)
             },
             _ => {
                 tracing::info!("[fine_tune] Background char-level training");
-                axagent_agent::fine_tune::candle_trainer::train_lora(
-                    &ft_dataset,
-                    &config,
-                    &output_dir,
-                    None::<fn(f32, f64)>,
-                )
+                let vocab_size: usize = 256;
+                let input_embeddings: Vec<Vec<f32>> = ft_dataset
+                    .samples
+                    .iter()
+                    .map(|s| text_to_feature_vec(&s.input, vocab_size))
+                    .collect();
+                let target_embeddings: Vec<Vec<f32>> = ft_dataset
+                    .samples
+                    .iter()
+                    .map(|s| text_to_feature_vec(&s.output, vocab_size))
+                    .collect();
+                let lora_config = LoRATrainConfig {
+                    rank: config.rank,
+                    alpha: config.alpha,
+                    learning_rate: config.learning_rate,
+                    batch_size: config.batch_size,
+                    epochs: config.epochs,
+                    target_modules: config.target_modules.clone(),
+                };
+                global_engine()
+                    .train_lora_with_embeddings(
+                        input_embeddings,
+                        target_embeddings,
+                        &lora_config,
+                        output_dir.to_str().unwrap_or("."),
+                        vocab_size,
+                    )
+                    .map(|r| r.safetensors_path)
             },
         };
 
         match result {
             Ok(path) => {
-                tracing::info!("[fine_tune] Background training done: {}", path.display());
-                if let Ok(mut guard) = state().lock() {
-                    let _ = guard.trainer.complete_job(&jid2, path.to_string_lossy().to_string());
-                    guard.job_cancel_flags.remove(&jid2);
-                }
+                tracing::info!("[fine_tune] Background training done: {}", path);
+                let mut guard = state().lock();
+                let _ = guard.trainer.complete_job(&jid2, path);
+                guard.job_cancel_flags.remove(&jid2);
             },
             Err(e) => {
                 tracing::warn!("[fine_tune] Background training failed: {e}");
-                if let Ok(mut guard) = state().lock() {
-                    let _ = guard.trainer.fail_job(&jid2);
-                    guard.job_cancel_flags.remove(&jid2);
-                }
+                let mut guard = state().lock();
+                let _ = guard.trainer.fail_job(&jid2);
+                guard.job_cancel_flags.remove(&jid2);
             },
         }
     });
@@ -465,7 +485,7 @@ async fn try_compute_embeddings_internal(
 #[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "取消微调训练任务")]
 #[command]
 pub fn cancel_training_job(job_id: String) -> Result<(), String> {
-    let mut s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    let mut s = state().lock();
     // 设置取消标志（后台任务会检测并提前退出）
     if let Some(flag) = s.job_cancel_flags.get(&job_id) {
         flag.store(true, Ordering::SeqCst);
@@ -477,7 +497,7 @@ pub fn cancel_training_job(job_id: String) -> Result<(), String> {
 #[agent_command(domain = "general", safety = Dangerous, call_mode = StateInput, description = "删除微调训练任务")]
 #[command]
 pub fn delete_training_job(job_id: String) -> Result<(), String> {
-    let mut s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    let mut s = state().lock();
     s.trainer.delete_job(&job_id).map_err(|e| {
         crate::commands::error::ErrorResponse::err_with_detail(
             crate::commands::error_code::fine_tune::DELETE_FAILED,
@@ -490,28 +510,28 @@ pub fn delete_training_job(job_id: String) -> Result<(), String> {
 #[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description = "获取训练统计信息")]
 #[command]
 pub fn get_training_stats() -> Result<TrainingStats, String> {
-    let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    let s = state().lock();
     Ok(s.trainer.get_training_stats())
 }
 
 #[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description = "列出所有基础模型")]
 #[command]
 pub fn list_base_models() -> Result<Vec<BaseModelInfo>, String> {
-    let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    let s = state().lock();
     Ok(s.model_manager.get_base_models().iter().cloned().cloned().collect())
 }
 
 #[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description = "列出所有 LoRA 适配器")]
 #[command]
 pub fn list_lora_adapters() -> Result<Vec<LoRAAdapterInfo>, String> {
-    let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    let s = state().lock();
     Ok(s.model_manager.get_lora_adapters().iter().cloned().cloned().collect())
 }
 
 #[agent_command(domain = "general", safety = Caution, call_mode = StateInput, description = "设置活跃模型配置")]
 #[command]
 pub fn set_active_model(base_model: String, adapter_ids: Vec<String>) -> Result<(), String> {
-    let mut s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    let mut s = state().lock();
     s.model_manager.set_active_config(ActiveModelConfig {
         base_model,
         lora_adapters: adapter_ids,
@@ -524,11 +544,30 @@ pub fn set_active_model(base_model: String, adapter_ids: Vec<String>) -> Result<
 #[agent_command(domain = "general", safety = Safe, call_mode = StateOnly, description = "获取当前活跃模型")]
 #[command]
 pub fn get_active_model() -> Result<Option<ActiveModelConfig>, String> {
-    let s = state().lock().map_err(|e| format!("Lock error: {}", e))?;
+    let s = state().lock();
     let config = s.model_manager.active_config.clone();
     if config.base_model.is_empty() {
         Ok(None)
     } else {
         Ok(Some(config))
     }
+}
+
+/// 将文本转换为固定长度 float 特征向量（基于字符频率）。
+fn text_to_feature_vec(text: &str, size: usize) -> Vec<f32> {
+    let mut features = vec![0.0_f32; size];
+    for (i, ch) in text.chars().enumerate() {
+        let idx = (ch as usize) % size;
+        features[idx] += 1.0;
+        if i >= 2000 {
+            break;
+        }
+    }
+    let sum: f32 = features.iter().sum();
+    if sum > 0.0 {
+        for v in &mut features {
+            *v /= sum;
+        }
+    }
+    features
 }

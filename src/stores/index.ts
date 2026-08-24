@@ -139,3 +139,6 @@ export type {
   OpcProject,
   OpcState,
 } from "./feature/opcStore";
+
+// ── AxInvest 交易执行桥接（Execution Bridge） ──
+export { setupExecutionBridgeEventListeners, useExecutionBridgeStore } from "./feature/executionBridgeStore";

@@ -229,6 +229,7 @@ pub struct ConversationSummary {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateConversationInput {
     pub title: Option<String>,
     pub provider_id: Option<String>,

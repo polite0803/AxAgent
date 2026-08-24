@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { safeJoinIds } from "../validators";
+
 /** Permission level */
 export type PermissionLevel = "read" | "write" | "execute" | "admin";
 
@@ -241,7 +243,7 @@ export class PermissionGuard {
   }
 
   private makeKey(request: PermissionRequest): string {
-    return `${request.resourceType}::${request.action}`;
+    return safeJoinIds([request.resourceType, request.action], "::");
   }
 }
 

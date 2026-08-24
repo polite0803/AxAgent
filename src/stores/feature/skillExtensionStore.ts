@@ -3,6 +3,7 @@
 import i18n from "@/i18n";
 import { invoke, logIpcError } from "@/lib/invoke";
 import { extractRequiredCommands, validateSkillPermissions } from "@/lib/skillPermissions";
+import { safeJoinIds } from "@/lib/validators";
 import type {
   DeclarativeActionType,
   Skill,
@@ -113,7 +114,7 @@ interface SkillExtensionState {
 }
 
 function namespaceId(skillName: string, id: string): string {
-  return `${skillName}::${id}`;
+  return safeJoinIds([skillName, id], "::");
 }
 
 function rewriteDeclarativeAction(
@@ -121,7 +122,7 @@ function rewriteDeclarativeAction(
   skillName: string,
 ): DeclarativeActionType {
   if (action.type === "handler") {
-    return { ...action, name: `${skillName}::${action.name}` };
+    return { ...action, name: safeJoinIds([skillName, action.name], "::") };
   }
   if (action.type === "chain") {
     return {

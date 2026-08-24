@@ -9,7 +9,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::storage as storage_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 

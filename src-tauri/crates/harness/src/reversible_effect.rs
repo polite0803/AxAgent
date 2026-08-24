@@ -9,7 +9,8 @@
 //! 本模块提供**通用**、与具体工具无关的可逆抽象，可覆盖注册表条目、事件订阅、
 //! 服务挂载等任意副作用。
 
-use std::sync::{Arc, Mutex};
+use parking_lot::Mutex;
+use std::sync::Arc;
 
 /// 可撤销的副作用。
 ///
@@ -87,7 +88,7 @@ impl EffectScope {
 
     /// 注册一个可逆效果，返回可单独撤销的句柄。
     pub fn register_effect(&self, effect: Arc<dyn ReversibleEffect>) -> EffectHandle {
-        let mut slot = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let mut slot = self.inner.lock();
         slot.push(effect);
         EffectHandle { scope: self.clone(), index: slot.len() - 1, name: "effect".to_string() }
     }
@@ -100,14 +101,14 @@ impl EffectScope {
     ) -> EffectHandle {
         let handling = NamedEffect::new(name, undo);
         let name = handling.name.to_string();
-        let mut slot = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let mut slot = self.inner.lock();
         slot.push(Arc::new(handling));
         EffectHandle { scope: self.clone(), index: slot.len() - 1, name }
     }
 
     /// 逆序回滚全部已注册效果，并清空作用域。
     pub fn rollback_all(&self) {
-        let mut slot = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let mut slot = self.inner.lock();
         for effect in slot.iter().rev() {
             effect.undo();
         }
@@ -116,7 +117,7 @@ impl EffectScope {
 
     /// 已注册效果数量。
     pub fn len(&self) -> usize {
-        self.inner.lock().unwrap_or_else(|e| e.into_inner()).len()
+        self.inner.lock().len()
     }
 
     /// 是否为空。
@@ -136,7 +137,7 @@ impl EffectHandle {
     ///
     /// 注意：若作用域已被 [`EffectScope::rollback_all`] 清空，本操作将变为空操作。
     pub fn undo(&self) {
-        let mut slot = self.scope.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let mut slot = self.scope.inner.lock();
         if self.index < slot.len() {
             let effect = slot.remove(self.index);
             effect.undo();
@@ -168,13 +169,13 @@ mod tests {
         let scope = EffectScope::new();
         let order = Arc::new(Mutex::new(Vec::new()));
         let order2 = order.clone();
-        scope.register("a", move || order2.lock().unwrap().push("a_undo"));
+        scope.register("a", move || order2.lock().push("a_undo"));
         let order3 = order.clone();
-        scope.register("b", move || order3.lock().unwrap().push("b_undo"));
+        scope.register("b", move || order3.lock().push("b_undo"));
 
         scope.rollback_all();
 
-        let seq = order.lock().unwrap().clone();
+        let seq = order.lock().clone();
         assert_eq!(seq, vec!["b_undo", "a_undo"], "应逆序回放");
         assert!(scope.is_empty());
     }

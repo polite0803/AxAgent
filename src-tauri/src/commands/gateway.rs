@@ -3,7 +3,7 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::gateway as gateway_err;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_crypto::platform_adapter_impl::DefaultCryptoService;
 use axagent_dao::repo::cli_config::CliTool;
 use axagent_harness::types::*;

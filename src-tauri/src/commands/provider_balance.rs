@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_crypto::decrypt_key;
 use axagent_dao::repo::provider;
 use axagent_runtime_core::fetch_deepseek_balance;

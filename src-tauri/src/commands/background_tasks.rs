@@ -4,7 +4,7 @@ use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::task as task_err;
 use crate::commands::spawn_guard::panic_message;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_entities::background_tasks;
 use chrono::Utc;
 use futures::FutureExt;
@@ -35,6 +35,7 @@ fn validate_command(cmd: &str) -> Result<(), String> {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BackgroundTaskInfo {
     pub id: String,
     pub title: String,

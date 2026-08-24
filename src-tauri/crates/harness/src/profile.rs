@@ -16,6 +16,7 @@ use crate::adaptation::{ContentFormat, TechnicalLevel, Verbosity};
 
 /// 用户画像（完整实现版）
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UserProfile {
     pub id: String,
     pub user_id: String,
@@ -254,6 +255,7 @@ impl Default for UserProfile {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct CodingStyleProfile {
     pub naming_convention: NamingConvention,
     pub code_patterns: Vec<CodePattern>,
@@ -276,6 +278,7 @@ pub enum NamingConvention {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct CodePattern {
     pub pattern_type: String,
     pub pattern: String,
@@ -313,6 +316,7 @@ pub enum ModuleOrgStyle {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct CommunicationProfile {
     pub detail_level: DetailLevel,
     pub tone: Tone,
@@ -342,6 +346,7 @@ pub enum Tone {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct FormatPreference {
     pub use_markdown: bool,
     pub use_bullets: bool,
@@ -368,6 +373,7 @@ pub enum ExplanationDepth {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkHabitProfile {
     pub active_hours: TimeRange,
     pub task_preferences: Vec<LearningTaskType>,
@@ -378,6 +384,7 @@ pub struct WorkHabitProfile {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct TimeRange {
     pub start_hour: u8,
     pub end_hour: u8,
@@ -403,6 +410,7 @@ pub enum LearningTaskType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct ToolUsagePattern {
     pub tool_name: String,
     pub usage_count: u32,
@@ -420,6 +428,7 @@ pub enum WorkflowPreference {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct DomainKnowledgeProfile {
     pub expertise_areas: Vec<ExpertiseArea>,
     pub interest_topics: Vec<String>,
@@ -429,6 +438,7 @@ pub struct DomainKnowledgeProfile {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExpertiseArea {
     pub name: String,
     pub level: SkillLevel,
@@ -459,6 +469,7 @@ pub enum ExpertiseLevel {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RecentTopic {
     pub topic: String,
     pub frequency: u32,
@@ -466,6 +477,7 @@ pub struct RecentTopic {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct LearningState {
     pub total_interactions: u64,
     pub last_updated: DateTime<Utc>,
@@ -500,6 +512,7 @@ impl LearningState {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProfileUpdate {
     pub field_changed: String,
     pub old_value: serde_json::Value,

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+#![allow(clippy::disallowed_types)]
+
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -14,7 +16,7 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 
 static RPC_REQUEST_COUNT: AtomicU64 = AtomicU64::new(0);
-static RPC_WINDOW_START: std::sync::Mutex<Option<Instant>> = std::sync::Mutex::new(None);
+static RPC_WINDOW_START: parking_lot::Mutex<Option<Instant>> = parking_lot::Mutex::new(None);
 const RATE_LIMIT_PER_MINUTE: u64 = 100;
 
 #[async_trait]
@@ -62,10 +64,7 @@ fn audit_log_path() -> PathBuf {
 }
 
 fn check_rate_limit() -> bool {
-    let mut guard = match RPC_WINDOW_START.lock() {
-        Ok(g) => g,
-        Err(_) => return false,
-    };
+    let mut guard = RPC_WINDOW_START.lock();
     let now = Instant::now();
     match *guard {
         None => {

@@ -6,7 +6,7 @@
 
 use std::sync::Arc;
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 
 use crate::AppState;
 use crate::commands::error::{ErrorCategory, ErrorResponse};

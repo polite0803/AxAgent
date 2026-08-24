@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+#![allow(clippy::disallowed_types)]
+
 use crate::exporter::{NoopExporter, TraceExport, TraceExporter};
 use crate::metrics::{CostMetrics, TraceMetrics};
 use crate::span::{Span, SpanError, SpanEvent, SpanStatus, SpanType, TraceMetadata};
 use crate::storage::{InMemoryTraceStorage, TraceStorage};
 use chrono::Utc;
-use std::sync::{Arc, RwLock};
+use parking_lot::RwLock;
+use std::sync::Arc;
 use uuid::Uuid;
 
 fn generate_trace_id() -> String {
@@ -127,14 +130,14 @@ impl Tracer {
         }
 
         let span_clone = span.clone();
-        self.spans.write().unwrap_or_else(|e| e.into_inner()).push(span);
+        self.spans.write().push(span);
         self.current_span = Some(span_id.clone());
 
         SpanGuard { tracer: self, span_id, span_type, _span: span_clone }
     }
 
     pub fn end_span(&mut self, span_id: &str, status: SpanStatus) {
-        let mut spans = self.spans.write().unwrap_or_else(|e| e.into_inner());
+        let mut spans = self.spans.write();
         if let Some(span) = spans.iter_mut().find(|s| s.id == span_id) {
             span.end_time = Some(Utc::now());
             span.duration_ms = span
@@ -146,7 +149,7 @@ impl Tracer {
         drop(spans);
 
         if self.current_span.as_deref() == Some(span_id) {
-            let spans = self.spans.read().unwrap_or_else(|e| e.into_inner());
+            let spans = self.spans.read();
             let current = spans
                 .iter()
                 .rfind(|s| s.parent_span_id.as_deref() == Some(span_id))
@@ -160,14 +163,14 @@ impl Tracer {
         if !self.config.include_events {
             return;
         }
-        let mut spans = self.spans.write().unwrap_or_else(|e| e.into_inner());
+        let mut spans = self.spans.write();
         if let Some(span) = spans.iter_mut().find(|s| s.id == span_id) {
             span.add_event(event);
         }
     }
 
     pub fn record_error(&mut self, span_id: &str, error: SpanError) {
-        let mut spans = self.spans.write().unwrap_or_else(|e| e.into_inner());
+        let mut spans = self.spans.write();
         if let Some(span) = spans.iter_mut().find(|s| s.id == span_id) {
             span.record_error(error);
         }
@@ -177,7 +180,7 @@ impl Tracer {
         if !self.config.include_inputs {
             return;
         }
-        let mut spans = self.spans.write().unwrap_or_else(|e| e.into_inner());
+        let mut spans = self.spans.write();
         if let Some(span) = spans.iter_mut().find(|s| s.id == span_id) {
             span.inputs = Some(inputs);
         }
@@ -187,26 +190,26 @@ impl Tracer {
         if !self.config.include_outputs {
             return;
         }
-        let mut spans = self.spans.write().unwrap_or_else(|e| e.into_inner());
+        let mut spans = self.spans.write();
         if let Some(span) = spans.iter_mut().find(|s| s.id == span_id) {
             span.outputs = Some(outputs);
         }
     }
 
     pub fn set_attribute(&mut self, span_id: &str, key: &str, value: serde_json::Value) {
-        let mut spans = self.spans.write().unwrap_or_else(|e| e.into_inner());
+        let mut spans = self.spans.write();
         if let Some(span) = spans.iter_mut().find(|s| s.id == span_id) {
             span.set_attribute(key, value);
         }
     }
 
     pub fn get_span(&self, span_id: &str) -> Option<Span> {
-        let spans = self.spans.read().unwrap_or_else(|e| e.into_inner());
+        let spans = self.spans.read();
         spans.iter().find(|s| s.id == span_id).cloned()
     }
 
     pub fn get_all_spans(&self) -> Vec<Span> {
-        let spans = self.spans.read().unwrap_or_else(|e| e.into_inner());
+        let spans = self.spans.read();
         spans.clone()
     }
 
@@ -215,19 +218,19 @@ impl Tracer {
     }
 
     pub fn export(&self) -> Result<(), crate::exporter::TracerError> {
-        let spans = self.spans.read().unwrap_or_else(|e| e.into_inner());
+        let spans = self.spans.read();
         let trace = TraceExport::new(self.trace_id.clone(), spans.clone(), self.metadata.clone());
         self.exporter.export(trace)
     }
 
     pub fn store(&self) -> Result<(), crate::storage::StorageError> {
-        let spans = self.spans.read().unwrap_or_else(|e| e.into_inner());
+        let spans = self.spans.read();
         let trace = TraceExport::new(self.trace_id.clone(), spans.clone(), self.metadata.clone());
         self.storage.store(trace)
     }
 
     pub fn metrics(&self) -> TraceMetrics {
-        let spans = self.spans.read().unwrap_or_else(|e| e.into_inner());
+        let spans = self.spans.read();
         let total_duration: u64 = spans.iter().filter_map(|s| s.duration_ms).sum();
         let errors_count = spans.iter().map(|s| s.errors.len()).sum();
 
@@ -415,17 +418,17 @@ impl GlobalTracer {
     }
 
     pub fn set(&self, tracer: Tracer) {
-        let mut guard = self.tracer.write().unwrap_or_else(|e| e.into_inner());
+        let mut guard = self.tracer.write();
         *guard = Some(tracer);
     }
 
     pub fn get(&self) -> Option<Tracer> {
-        let guard = self.tracer.read().unwrap_or_else(|e| e.into_inner());
+        let guard = self.tracer.read();
         guard.clone()
     }
 
     pub fn clear(&self) {
-        let mut guard = self.tracer.write().unwrap_or_else(|e| e.into_inner());
+        let mut guard = self.tracer.write();
         *guard = None;
     }
 }

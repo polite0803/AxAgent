@@ -5,11 +5,12 @@
 //! 同时提供 `TauriEventStreamReporter` 实现，桥接 `AgentStreamReporter` trait
 //! 与 Tauri 事件系统，使子任务执行过程的流式 chunk 可推送到前端。
 
+use parking_lot::RwLock;
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use crate::app_state::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_harness::streaming::{AgentStreamChunk, AgentStreamReporter};
 use axagent_harness::workflow_types::WorkflowNode;
 use axagent_orchestrator::{DynamicSubGraph, OrchestrationStrategy, OrchestratorExecutor};
@@ -33,7 +34,7 @@ pub struct TauriEventStreamReporter {
     /// Tauri 应用句柄，用于向前端 emit 事件
     app_handle: Option<AppHandle>,
     /// 每个 agent_id 对应一个 broadcast sender
-    // 注意：此处使用 std::sync::RwLock 而非 tokio::sync::RwLock，
+    // 注意：此处使用 parking_lot::RwLock 而非 tokio::sync::RwLock，
     // 因为 AgentStreamReporter trait 的 report_chunk/subscribe 方法是同步签名，
     // 无法在方法体内 .await。此锁仅保护 HashMap 查找，不跨 await，
     // 操作极快，不存在 std guard 跨 await 的 UB 风险。
@@ -65,13 +66,7 @@ impl AgentStreamReporter for TauriEventStreamReporter {
     fn report_chunk(&self, chunk: AgentStreamChunk) {
         // 1. 广播给内部订阅者
         {
-            let channels = self.channels.read().unwrap_or_else(|e| {
-                tracing::warn!(
-                    "TauriEventStreamReporter channels lock poisoned, recovering: {}",
-                    e
-                );
-                e.into_inner()
-            });
+            let channels = self.channels.read();
             if let Some(sender) = channels.get(&chunk.agent_id) {
                 // broadcast::send 是同步方法，返回接收者数量
                 let _ = sender.send(chunk.clone());
@@ -88,13 +83,7 @@ impl AgentStreamReporter for TauriEventStreamReporter {
 
     fn subscribe(&self, agent_id: &str) -> mpsc::Receiver<AgentStreamChunk> {
         let broadcast_rx = {
-            let mut channels = self.channels.write().unwrap_or_else(|e| {
-                tracing::warn!(
-                    "TauriEventStreamReporter channels lock poisoned, recovering: {}",
-                    e
-                );
-                e.into_inner()
-            });
+            let mut channels = self.channels.write();
             let sender = channels.entry(agent_id.to_string()).or_insert_with(|| {
                 let (tx, _rx) = broadcast::channel(256);
                 tx

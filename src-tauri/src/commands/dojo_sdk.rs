@@ -19,7 +19,7 @@
 //! 完成注册。注册后所有 MCP 工具调用 `dojo_*` / `sector_precomputed_*` 都会路由到这里。
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_astock_data::mcp_tools::DojoSdkExecutor;
 use axagent_harness::plan_types::{
     ActionType, Phase, PhaseStatus, PlannedTask, ReplanAction, ReplanReason, TaskStatus,

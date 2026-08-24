@@ -804,7 +804,7 @@ pub fn default_domain_rules() -> Vec<DomainRoutingRule> {
 ///
 /// # 线程安全
 /// 规则集合由 `tokio::sync::RwLock` 保护，支持运行时增删改与优先级调整，
-/// 满足 AGENTS.md 铁律 8（禁止 `std::sync::RwLock` 跨 await 持锁）。
+/// 满足 AGENTS.md 铁律 8（禁止 `parking_lot::RwLock` 跨 await 持锁）。
 pub struct DomainRouterImpl {
     rules: tokio::sync::RwLock<Vec<DomainRoutingRule>>,
 }

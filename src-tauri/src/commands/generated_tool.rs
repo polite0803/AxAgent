@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
@@ -10,6 +10,7 @@ use crate::app_state::AppState;
 
 /// Generated tool info for frontend display
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GeneratedToolInfo {
     pub id: String,
     #[serde(rename = "toolName")]

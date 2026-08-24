@@ -12,4 +12,4 @@ tokio = { workspace = true }
 tracing = { workspace = true }
 
 [lints]
-# workspace = true
+workspace = true

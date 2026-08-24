@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use crate::AppState;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_harness::types::*;
 use serde_json;
 use tauri::AppHandle;
@@ -91,9 +91,8 @@ pub async fn save_settings(
     {
         let new_level =
             axagent_telemetry::TelemetryLevel::from_str_or_off(&settings.telemetry_level);
-        if let Ok(mut guard) = state.telemetry_level_handle.write() {
-            *guard = new_level;
-        }
+        let mut guard = state.telemetry_level_handle.write();
+        *guard = new_level;
     }
 
     #[cfg(not(mobile))]

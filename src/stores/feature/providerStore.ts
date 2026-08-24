@@ -138,8 +138,8 @@ export const useProviderStore = create<ProviderState>((set) => ({
   addProviderKey: async (providerId, rawKey) => {
     try {
       const key = await invoke<ProviderKey>("add_provider_key", {
-        providerId,
-        rawKey,
+        provider_id: providerId,
+        raw_key: rawKey,
       });
       set((s) => ({
         providers: s.providers.map((p) => p.id === providerId ? { ...p, keys: [...p.keys, key] } : p),
@@ -155,8 +155,8 @@ export const useProviderStore = create<ProviderState>((set) => ({
   updateProviderKey: async (keyId, rawKey) => {
     try {
       const key = await invoke<ProviderKey>("update_provider_key", {
-        keyId,
-        rawKey,
+        key_id: keyId,
+        raw_key: rawKey,
       });
       set((s) => ({
         providers: s.providers.map((p) => ({
@@ -173,7 +173,7 @@ export const useProviderStore = create<ProviderState>((set) => ({
 
   deleteProviderKey: async (keyId) => {
     try {
-      await invoke("delete_provider_key", { keyId });
+      await invoke("delete_provider_key", { key_id: keyId });
       set((s) => ({
         providers: s.providers.map((p) => ({
           ...p,
@@ -189,7 +189,7 @@ export const useProviderStore = create<ProviderState>((set) => ({
 
   toggleProviderKey: async (keyId, enabled) => {
     try {
-      await invoke("toggle_provider_key", { keyId, enabled });
+      await invoke("toggle_provider_key", { key_id: keyId, enabled });
       set((s) => ({
         providers: s.providers.map((p) => ({
           ...p,
@@ -205,7 +205,7 @@ export const useProviderStore = create<ProviderState>((set) => ({
 
   validateProviderKey: async (keyId) => {
     try {
-      return await invoke<boolean>("validate_provider_key", { keyId });
+      return await invoke<boolean>("validate_provider_key", { key_id: keyId });
     } catch (e) {
       set({ error: String(e) });
       throw e;
@@ -214,7 +214,7 @@ export const useProviderStore = create<ProviderState>((set) => ({
 
   saveModels: async (providerId, models) => {
     try {
-      await invoke("save_models", { providerId, models });
+      await invoke("save_models", { provider_id: providerId, models });
       set((s) => ({
         providers: s.providers.map((p) => p.id === providerId ? { ...p, models } : p),
         error: null,
@@ -228,8 +228,8 @@ export const useProviderStore = create<ProviderState>((set) => ({
   toggleModel: async (providerId, modelId, enabled) => {
     try {
       const model = await invoke<Model>("toggle_model", {
-        providerId,
-        modelId: modelId,
+        provider_id: providerId,
+        model_id: modelId,
         enabled,
       });
       set((s) => ({
@@ -253,8 +253,8 @@ export const useProviderStore = create<ProviderState>((set) => ({
   updateModelParams: async (providerId, modelId, overrides) => {
     try {
       const model = await invoke<Model>("update_model_params", {
-        providerId,
-        modelId: modelId,
+        provider_id: providerId,
+        model_id: modelId,
         overrides,
       });
       set((s) => ({
@@ -277,7 +277,7 @@ export const useProviderStore = create<ProviderState>((set) => ({
 
   fetchRemoteModels: async (providerId) => {
     try {
-      return await invoke<Model[]>("fetch_remote_models", { providerId });
+      return await invoke<Model[]>("fetch_remote_models", { provider_id: providerId });
     } catch (e) {
       set({ error: String(e) });
       throw e;
@@ -286,8 +286,8 @@ export const useProviderStore = create<ProviderState>((set) => ({
 
   testModel: async (providerId, modelId) => {
     return await invoke<number>("test_model", {
-      providerId,
-      modelId: modelId,
+      provider_id: providerId,
+      model_id: modelId,
     });
   },
 }));

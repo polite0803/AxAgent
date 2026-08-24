@@ -2,7 +2,7 @@
 
 use crate::AppState;
 use crate::commands::spawn_guard::catch_unwind_logged;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_dao::repo::index_jobs as jobs;
 use axagent_dao::repo::louvain;
 use axagent_dao::repo::note::{CreateNoteInput, GraphData, Note, NoteLink, UpdateNoteInput};
@@ -86,6 +86,7 @@ fn enqueue_wiki_note_indexing(
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BacklinkInfo {
     pub note_id: String,
     pub title: String,
@@ -1331,7 +1332,7 @@ pub async fn sync_knowledge_document_to_wiki(
     let content = {
         let path = std::path::Path::new(&doc.source_path);
         if path.exists() {
-            axagent_document_parser::extract_text(path, &doc.mime_type).map_err(|e| {
+            axagent_search::sources::parser().extract_text(path, &doc.mime_type).map_err(|e| {
                 crate::commands::error::ErrorResponse::err_with_detail(
                     crate::commands::error_code::wiki::IMPORT_FAILED,
                     format!("Failed to extract text: {e}"),

@@ -4,7 +4,7 @@ use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::provider as provider_err;
 use crate::commands::workflow_ai::NODE_SCHEMAS_DOC;
 use crate::commands::workflow_ai::UPSTREAM_EXTENSION_FOR_CHAT;
-use agent_macro::agent_command;
+use axagent_agent_macro::agent_command;
 use axagent_harness::types::settings_chat::ChatContent;
 use axagent_harness::types::{
     ChatMessage, ChatRequest, ChatStreamChunk, ChatStreamErrorEvent, ChatStreamEvent,

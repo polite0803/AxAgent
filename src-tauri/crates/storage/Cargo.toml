@@ -13,6 +13,7 @@ chrono = { workspace = true }
 dirs = "6"
 hex = "0.4"
 md5 = "0.8"
+parking_lot = "0.12"
 reqwest = { workspace = true }
 roxmltree = "0.21"
 sea-orm = { workspace = true }
