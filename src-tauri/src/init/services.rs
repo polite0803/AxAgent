@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::Emitter;
 
-pub fn start_background_services(
+pub async fn start_background_services(
     app: &tauri::AppHandle,
     state: &AppState,
     app_dir: std::path::PathBuf,
@@ -34,7 +34,7 @@ pub fn start_background_services(
     start_insight_generator_task_executor(state);
     start_auto_tool_observation(state);
     start_text_grad_analysis(state);
-    start_cron_scheduler(state);
+    start_cron_scheduler(state).await;
     start_trigger_recovery(state);
     start_scheduler_recovery(app, state);
     start_approval_event_bridge(app, state);
@@ -1798,7 +1798,7 @@ fn start_text_grad_analysis(state: &AppState) {
     });
 }
 
-fn start_cron_scheduler(state: &AppState) {
+async fn start_cron_scheduler(state: &AppState) {
     use axagent_runtime::cron::{CronExecutor, CronScheduler};
     use std::sync::Arc;
 
@@ -1871,7 +1871,7 @@ fn start_cron_scheduler(state: &AppState) {
                 })
             });
         // 复用 Tauri 全局 runtime，避免一次性创建/销毁 runtime 的开销。
-        tauri::async_runtime::block_on(state.work_engine.set_tool_resolver(resolver));
+        state.work_engine.set_tool_resolver(resolver).await;
     }
 
     // 设置 RAG 知识源检索回调（供工作流 Agent 节点从知识库/记忆/Wiki 检索上下文）
@@ -1905,7 +1905,7 @@ fn start_cron_scheduler(state: &AppState) {
             },
         );
         // 复用 Tauri 全局 runtime，避免一次性创建/销毁 runtime 的开销。
-        tauri::async_runtime::block_on(state.work_engine.set_rag_callback(rag_callback));
+        state.work_engine.set_rag_callback(rag_callback).await;
     }
 
     let work_engine = state.work_engine.clone();
@@ -2013,7 +2013,7 @@ fn start_cron_scheduler(state: &AppState) {
 
     // 保存到 AppState 以便外部控制（停止/重启）
     {
-        let mut state_scheduler = tauri::async_runtime::block_on(state.cron_scheduler.write());
+        let mut state_scheduler = state.cron_scheduler.write().await;
         *state_scheduler = Some(scheduler.clone());
     }
 

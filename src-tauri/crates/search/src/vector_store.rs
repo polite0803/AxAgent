@@ -1006,6 +1006,10 @@ impl VectorStore {
     }
 
     /// 插入仅包含元数据的行（不写入向量，用于存储自定义元信息）
+    ///
+    /// 使用 INSERT 并忽略唯一约束冲突——如果 id 已存在则直接跳过。
+    /// 这在能力索引器多次注册同一 capability 时很重要（启动时 register_all_capabilities
+    /// 会先 restore_metadata_from_store 再 index_passport，导致同一个 id 被写入两次）。
     pub async fn insert_metadata_only_chunk(
         &self,
         collection_id: &str,
@@ -1021,28 +1025,34 @@ impl VectorStore {
             return Err(AxAgentError::NotFound("Collection not found".into()));
         }
 
-        let max_rid = self
+        // 先查询是否已存在，避免唯一约束冲突
+        let exists = self
             .db
-            .query_one_raw(Statement::from_string(
+            .query_one_raw(Statement::from_sql_and_values(
                 self.be(),
-                format!("SELECT COALESCE(MAX(rowid), 0) AS max_rid FROM {meta_table}"),
+                format!("SELECT 1 FROM {meta_table} WHERE id = $1 LIMIT 1"),
+                vec![chunk_id.to_string().into()],
             ))
             .await
             .map_err(Self::wrap)?
-            .and_then(|r| r.try_get::<i64>("", "max_rid").ok())
-            .unwrap_or(0);
+            .is_some();
 
-        let new_rid = max_rid + 1;
+        if exists {
+            tracing::trace!(
+                "[vector_store] insert_metadata_only_chunk: id={} 已存在，跳过",
+                chunk_id
+            );
+            return Ok(());
+        }
 
         self.db
             .execute_raw(Statement::from_sql_and_values(
                 self.be(),
                 format!(
-                    "INSERT INTO {meta_table} (rowid, id, document_id, chunk_index, content) \
-                     VALUES ($1, $2, $3, 0, $4)"
+                    "INSERT INTO {meta_table} (id, document_id, chunk_index, content) \
+                     VALUES ($1, $2, 0, $3)"
                 ),
                 vec![
-                    new_rid.into(),
                     chunk_id.to_string().into(),
                     document_id.to_string().into(),
                     content.to_string().into(),

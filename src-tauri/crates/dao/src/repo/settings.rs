@@ -6,6 +6,31 @@ use sea_query::OnConflict;
 use axagent_entities::settings;
 use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::types::AppSettings;
+use std::sync::OnceLock;
+use tokio::sync::RwLock;
+
+/// 进程内设置缓存 —— 避免每次调用 get_settings 都查询数据库
+///
+/// 启动阶段 get_settings 会被并发调用数十次（build_embed_context、
+/// capability_indexer、各后台服务等），每次都执行全表查询。
+/// 此缓存确保只有第一次调用真正访问数据库，后续调用直接返回缓存。
+///
+/// save_settings 会调用 invalidate_cache() 使缓存失效。
+static SETTINGS_CACHE: OnceLock<RwLock<Option<AppSettings>>> = OnceLock::new();
+
+fn get_cache() -> &'static RwLock<Option<AppSettings>> {
+    SETTINGS_CACHE.get_or_init(|| RwLock::new(None))
+}
+
+/// 使设置缓存失效（在 save_settings 成功写入后调用）
+pub fn invalidate_settings_cache() {
+    let cache = get_cache();
+    if let Ok(mut guard) = cache.try_write() {
+        *guard = None;
+        tracing::debug!("[settings_cache] 缓存已失效");
+    }
+    // 无法获取锁是可接受的降级：缓存将在下一次写入时被覆盖
+}
 
 /// 将 snake_case 键转换为 camelCase，兼容数据库中旧版 snake_case 存储。
 /// 新版（添加 rename_all = "camelCase" 后）存储使用 camelCase 键。
@@ -38,18 +63,33 @@ fn camel_to_snake(s: &str) -> String {
 }
 
 pub async fn get_settings(db: &DatabaseConnection) -> Result<AppSettings> {
+    let cache = get_cache();
+
+    // 快速路径：尝试读取缓存
+    {
+        let guard = cache.read().await;
+        if let Some(ref cached) = *guard {
+            tracing::trace!("[get_settings] 命中缓存");
+            return Ok(cached.clone());
+        }
+    }
+
+    // 缓存未命中：获取写锁，执行数据库查询
+    let mut write_guard = cache.write().await;
+
+    // 双重检查：在获取写锁期间可能已有其他任务填充了缓存
+    if let Some(ref cached) = *write_guard {
+        tracing::trace!("[get_settings] 命中缓存（二次检查）");
+        return Ok(cached.clone());
+    }
+
+    // 从数据库读取
     let rows = settings::Entity::find().all(db).await?;
 
-    // 打印数据库中所有记录
-    tracing::info!("[get_settings] 数据库中共有 {} 条记录", rows.len());
-    for row in &rows {
-        tracing::info!("[get_settings] DB记录 key={} value={}", row.key, row.value);
-    }
+    tracing::debug!("[get_settings] 缓存未命中，从数据库读取 {} 条记录", rows.len());
 
     let mut map = serde_json::Map::new();
     for row in &rows {
-        // 尝试解析 JSON 值；如果是残留的 "null" 字符串、空字符串或 "undefined" 字符串，
-        // 当作 Value::Null 处理，避免将无效值误读为有效值。
         let val = if row.value == "null" || row.value.is_empty() || row.value == "undefined" {
             if row.value == "undefined" {
                 tracing::warn!(
@@ -62,37 +102,24 @@ pub async fn get_settings(db: &DatabaseConnection) -> Result<AppSettings> {
             serde_json::from_str::<serde_json::Value>(&row.value)
                 .unwrap_or_else(|_| serde_json::Value::String(row.value.clone()))
         };
-        // 兼容旧版 snake_case 键：统一转换为 camelCase
         let camel_key = snake_to_camel(&row.key);
-        tracing::debug!(
-            "[get_settings] 处理记录 key={} camel_key={} value={} parsed={:?}",
-            row.key,
-            camel_key,
-            row.value,
-            val
-        );
         map.insert(camel_key, val);
     }
 
-    // 打印构建的 map 中的关键字段
     let dp_id = map.get("defaultProviderId").and_then(|v| v.as_str());
     let dm_id = map.get("defaultModelId").and_then(|v| v.as_str());
     tracing::info!(
-        "[get_settings] 构建的map中 defaultProviderId={:?} defaultModelId={:?}",
+        "[get_settings] 从数据库读取 {} 条记录 defaultProviderId={:?} defaultModelId={:?}",
+        rows.len(),
         dp_id,
         dm_id
     );
 
-    tracing::info!("[get_settings] 从数据库读取 {} 条记录", rows.len());
-
     let settings: AppSettings =
         serde_json::from_value(serde_json::Value::Object(map)).unwrap_or_default();
 
-    tracing::info!(
-        "[get_settings] 反序列化后 default_provider_id={:?} default_model_id={:?}",
-        settings.default_provider_id,
-        settings.default_model_id,
-    );
+    // 写入缓存
+    *write_guard = Some(settings.clone());
 
     Ok(settings)
 }
@@ -193,6 +220,9 @@ pub async fn save_settings(db: &DatabaseConnection, settings: &AppSettings) -> R
         for row in &saved_rows {
             tracing::debug!("[save_settings] 已保存 key={} value={}", row.key, row.value);
         }
+
+        // 使缓存失效，下次 get_settings 将重新从数据库读取
+        invalidate_settings_cache();
     }
     Ok(())
 }

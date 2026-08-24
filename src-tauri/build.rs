@@ -20,6 +20,23 @@ struct CommandHandler {
 }
 
 fn main() {
+    // Windows: 嵌入 Common Controls v6 manifest，规避 STATUS_ENTRYPOINT_NOT_FOUND (0xc0000139)
+    // 参考: https://github.com/tauri-apps/tauri/issues/11028
+    #[cfg(target_os = "windows")]
+    {
+        let target_env = std::env::var("CARGO_CFG_TARGET_ENV").unwrap_or_default();
+        if target_env == "msvc" {
+            let manifest = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("common-controls.manifest");
+            println!("cargo:rerun-if-changed={}", manifest.display());
+            // rust-lld 链接器需要通过 rustc-link-arg 传递 manifest 嵌入参数
+            println!("cargo:rustc-link-arg=/MANIFEST:EMBED");
+            println!("cargo:rustc-link-arg=/MANIFESTINPUT:{}", manifest.display());
+            // 增加主线程栈到 8MB（Windows 默认仅 1MB，不足 deep call chain）
+            println!("cargo:rustc-link-arg=/STACK:8388608");
+        }
+    }
+
     let out_dir = env::var("OUT_DIR").unwrap();
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
     let commands_dir = PathBuf::from(&manifest_dir).join("src").join("commands");

@@ -48,39 +48,78 @@ use tauri::{Emitter, Manager};
 
 pub use app_state::AppState;
 
-/// 在独立线程中创建 current_thread tokio runtime 并执行 async 任务。
+/// 在独立线程中创建 current_thread tokio runtime 并执行 async 任务（阻塞等待完成）。
 ///
-/// 消除 setup 阶段 7 处重复的 `Builder::new_current_thread().enable_all().build()` 模式。
+/// 用于必须等待结果的场景。
 /// 不能在 Tauri 的 tokio runtime 内直接 block_on，需要在独立线程+独立 runtime 中执行。
 fn spawn_block_on<F, T>(task_name: &'static str, f: F) -> std::thread::Result<T>
 where
     F: Send + 'static + std::future::Future<Output = T>,
     T: Send + 'static,
 {
-    std::thread::spawn(move || {
+    // Windows 默认线程栈仅 1MB，深度调用链会超出此限制导致 stack overflow。显式分配 8MB。
+    const LARGE_STACK: usize = 8 * 1024 * 1024;
+    let handle = std::thread::Builder::new()
+        .name(format!("axagent:{task_name}"))
+        .stack_size(LARGE_STACK)
+        .spawn(move || {
+            let rt = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
+                Ok(rt) => rt,
+                Err(e) => {
+                    let msg = format!("Fatal: tokio runtime creation failed for {task_name}: {e}");
+                    android_utils::report_fatal_error(&msg);
+                    #[cfg(not(target_os = "android"))]
+                    {
+                        eprintln!("{msg}");
+                        if let Ok(mut log_dir) =
+                            std::env::var("APPDATA").or_else(|_| std::env::var("HOME"))
+                        {
+                            log_dir.push_str("/axagent-crash.log");
+                            let _ = std::fs::write(&log_dir, &msg);
+                        }
+                    }
+                    panic!("{msg}");
+                },
+            };
+            rt.block_on(f)
+        })
+        .map_err(|e| Box::new(e) as Box<dyn std::any::Any + Send>)?;
+    handle.join()
+}
+
+/// Fire-and-forget: 在独立线程中执行 async 任务，不等待完成。
+///
+/// 用于后台初始化（如能力索引、FTS5 构建等耗时操作），
+/// 这些操作不应阻塞启动流程。
+/// Windows 默认线程栈仅 1MB，因此显式分配 8MB 栈。
+fn spawn_fire_and_forget<F, T>(task_name: &'static str, f: F)
+where
+    F: Send + 'static + std::future::Future<Output = T>,
+    T: Send + 'static,
+{
+    const LARGE_STACK: usize = 8 * 1024 * 1024;
+    let thread_name = format!("axagent:{task_name}");
+    match std::thread::Builder::new().name(thread_name).stack_size(LARGE_STACK).spawn(move || {
         let rt = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
             Ok(rt) => rt,
             Err(e) => {
-                let msg = format!("Fatal: tokio runtime creation failed for {task_name}: {e}");
-                // m6: 非 Android 平台 report_fatal_error 可能为空实现，
-                // 额外写入 crash 日志文件确保崩溃原因可追溯。
-                android_utils::report_fatal_error(&msg);
-                #[cfg(not(target_os = "android"))]
-                {
-                    eprintln!("{msg}");
-                    if let Ok(mut log_dir) =
-                        std::env::var("APPDATA").or_else(|_| std::env::var("HOME"))
-                    {
-                        log_dir.push_str("/axagent-crash.log");
-                        let _ = std::fs::write(&log_dir, &msg);
-                    }
-                }
-                panic!("{msg}");
+                tracing::error!(target: "startup",
+                        "Failed to create tokio runtime for {}: {}", task_name, e);
+                return;
             },
         };
-        rt.block_on(f)
-    })
-    .join()
+        rt.block_on(f);
+    }) {
+        Ok(_handle) => {
+            tracing::info!(target: "startup",
+                "Spawned background task: {} (stack=8MB, fire-and-forget)", task_name);
+            // 不 .join() —— 让它在后台跑
+        },
+        Err(e) => {
+            tracing::error!(target: "startup",
+                "Failed to spawn thread for {}: {}", task_name, e);
+        },
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -450,9 +489,30 @@ pub fn run() {
                         "启动加载持久化运行时工具失败: {}", e);
                 }
 
-                // 11. P0-OPT 新增: 执行被推迟到后台的重型初始化
+                // 11. P0-OPT: 执行被推迟到后台的重型初始化（Fire-and-Forget）
                 // （MemoryService FTS5、能力索引、LLM 注入、认知模板等）
-                init::state::run_deferred_init(&app_state).await;
+                //
+                // 关键优化：
+                // - 使用 spawn_fire_and_forget 而非 spawn_block_on
+                // - 不等待 run_deferred_init 完成，立即继续后续启动步骤
+                // - run_deferred_init 在独立 8MB 栈线程中运行，
+                //   不会阻塞 UI、不会阻塞其他启动流程
+                //
+                // 这是启动缓慢的根本原因修复：
+                // register_all_capabilities 需要 10-20 秒索引数百个能力护照
+                // （嵌入生成 + 元数据持久化 + 向量索引），如果阻塞启动会导致
+                // 用户看到界面卡住。改为后台运行，首帧后立即可交互。
+                {
+                    let app_handle_for_deferred = app_handle.clone();
+                    spawn_fire_and_forget("deferred_init", async move {
+                        tracing::info!(target: "startup",
+                            "[deferred_init] 后台初始化开始（fire-and-forget）");
+                        let state = app_handle_for_deferred.state::<AppState>();
+                        init::state::run_deferred_init(state.inner()).await;
+                        tracing::info!(target: "startup",
+                            "[deferred_init] 后台初始化完成");
+                    });
+                }
 
                 // 12. 启动后台服务
                 init::services::start_background_services(
@@ -460,7 +520,8 @@ pub fn run() {
                     &app_state,
                     init_app_dir,
                     tray_language,
-                );
+                )
+                .await;
 
                 android_utils::mark_startup_phase("setup_async_complete");
                 tracing::info!(
