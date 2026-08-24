@@ -68,6 +68,7 @@ fn main() {
             scan_file_for_commands(
                 &module_path,
                 &format!("commands::{}", module_decl.name),
+                module_decl.cfg.clone(),
                 &mut handlers,
             );
         } else if module_dir.is_dir() {
@@ -92,6 +93,7 @@ fn main() {
                 scan_file_for_commands(
                     &sub_mod_path,
                     &format!("commands::{}", module_decl.name),
+                    module_decl.cfg.clone(),
                     &mut handlers,
                 );
                 if handlers.len() > before {
@@ -111,6 +113,7 @@ fn main() {
                     scan_file_for_commands(
                         &sub_file,
                         &format!("commands::{}::{}", module_decl.name, sub_mod.name),
+                        module_decl.cfg.clone(),
                         &mut handlers,
                     );
                     if handlers.len() > before {
@@ -132,6 +135,7 @@ fn main() {
                     scan_file_for_commands(
                         &sub_file,
                         &format!("commands::{}", module_decl.name),
+                        module_decl.cfg.clone(),
                         &mut handlers,
                     );
                     if handlers.len() > before {
@@ -154,7 +158,13 @@ fn main() {
         if file_path.exists() {
             eprintln!("[build.rs] 扫描根目录文件: {}", file_name);
             let before = handlers.len();
-            scan_file_for_commands(&file_path, file_name, &mut handlers);
+            // tray 在 lib.rs 中声明为 `#[cfg(desktop)]`，其余根文件无模块级 cfg
+            let root_cfg: Option<String> = if *file_name == "tray" {
+                Some("desktop".to_string())
+            } else {
+                None
+            };
+            scan_file_for_commands(&file_path, file_name, root_cfg, &mut handlers);
             if handlers.len() > before {
                 eprintln!(
                     "[build.rs]   在 {} 中发现 {} 个命令",
@@ -174,7 +184,7 @@ fn main() {
         // 扫描 scheduler/mod.rs 中的命令
         if scheduler_mod.exists() {
             let before = handlers.len();
-            scan_file_for_commands(&scheduler_mod, "scheduler", &mut handlers);
+            scan_file_for_commands(&scheduler_mod, "scheduler", None, &mut handlers);
             if handlers.len() > before {
                 eprintln!(
                     "[build.rs]   在 scheduler/mod.rs 中发现 {} 个命令",
@@ -191,6 +201,7 @@ fn main() {
                 scan_file_for_commands(
                     &sub_path,
                     &format!("scheduler::{}", sub_file),
+                    None,
                     &mut handlers,
                 );
                 if handlers.len() > before {
@@ -323,9 +334,12 @@ fn parse_submodule_mod_rs(path: &Path) -> (Vec<SubModuleDecl>, Vec<ReExport>) {
 }
 
 /// 扫描单个文件中的 #[tauri::command] 或 #[command] 函数
+/// `module_cfg` 为模块级条件编译（来自 commands/mod.rs 的 `#[cfg(...)]` 或根文件声明），
+/// 当函数自身无独立 cfg 时继承之，确保移动端（mobile）构建不会引用被排除的模块。
 fn scan_file_for_commands(
     file_path: &Path,
     module_prefix: &str,
+    module_cfg: Option<String>,
     handlers: &mut Vec<CommandHandler>,
 ) {
     let Ok(content) = fs::read_to_string(file_path) else {
@@ -421,7 +435,18 @@ fn scan_file_for_commands(
 
                 if !func_name.is_empty() {
                     let full_path = format!("{}::{}", module_prefix, func_name);
-                    handlers.push(CommandHandler { path: full_path, cfg: pending_cfg.take() });
+                    let func_cfg = pending_cfg.take();
+                    // 合并模块级 cfg 与函数级 cfg：
+                    // - 函数无独立 cfg → 继承模块级 cfg（覆盖移动端被排除的模块）
+                    // - 二者都有且不同 → all(module, func)
+                    let effective_cfg = match (func_cfg, module_cfg.clone()) {
+                        (Some(f), Some(m)) if f == m => Some(f),
+                        (Some(f), Some(m)) => Some(format!("all({}, {})", m, f)),
+                        (Some(f), None) => Some(f),
+                        (None, Some(m)) => Some(m),
+                        (None, None) => None,
+                    };
+                    handlers.push(CommandHandler { path: full_path, cfg: effective_cfg });
                     found_in_file += 1;
                 }
             } else if has_tauri_cmd || has_cmd {

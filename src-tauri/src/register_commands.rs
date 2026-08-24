@@ -126,27 +126,49 @@ macro_rules! register_all_commands {
             commands::branches::get_workspace_snapshot,
             commands::branches::list_branches,
             commands::branches::update_workspace_snapshot,
+            #[cfg(not(mobile))]
             commands::browser::browser_click,
+            #[cfg(not(mobile))]
             commands::browser::browser_click,
+            #[cfg(not(mobile))]
             commands::browser::browser_close,
+            #[cfg(not(mobile))]
             commands::browser::browser_close,
+            #[cfg(not(mobile))]
             commands::browser::browser_extract_all,
+            #[cfg(not(mobile))]
             commands::browser::browser_extract_all,
+            #[cfg(not(mobile))]
             commands::browser::browser_extract_text,
+            #[cfg(not(mobile))]
             commands::browser::browser_extract_text,
+            #[cfg(not(mobile))]
             commands::browser::browser_fill,
+            #[cfg(not(mobile))]
             commands::browser::browser_fill,
+            #[cfg(not(mobile))]
             commands::browser::browser_get_content,
+            #[cfg(not(mobile))]
             commands::browser::browser_get_content,
+            #[cfg(not(mobile))]
             commands::browser::browser_navigate,
+            #[cfg(not(mobile))]
             commands::browser::browser_navigate,
+            #[cfg(not(mobile))]
             commands::browser::browser_screenshot,
+            #[cfg(not(mobile))]
             commands::browser::browser_screenshot,
+            #[cfg(not(mobile))]
             commands::browser::browser_select,
+            #[cfg(not(mobile))]
             commands::browser::browser_select,
+            #[cfg(not(mobile))]
             commands::browser::browser_type,
+            #[cfg(not(mobile))]
             commands::browser::browser_type,
+            #[cfg(not(mobile))]
             commands::browser::browser_wait_for,
+            #[cfg(not(mobile))]
             commands::browser::browser_wait_for,
             commands::capability::capability_discover,
             commands::capability::capability_evolve,
@@ -171,15 +193,25 @@ macro_rules! register_all_commands {
             commands::cognitive::cognitive_query,
             commands::cognitive::cognitive_route_l1,
             commands::cognitive::respond_task_shape_approval,
+            #[cfg(not(mobile))]
             commands::computer_control::find_ui_elements,
+            #[cfg(not(mobile))]
             commands::computer_control::grant_computer_control_permission,
+            #[cfg(not(mobile))]
             commands::computer_control::is_computer_control_granted,
+            #[cfg(not(mobile))]
             commands::computer_control::mouse_click,
+            #[cfg(not(mobile))]
             commands::computer_control::mouse_move,
+            #[cfg(not(mobile))]
             commands::computer_control::mouse_scroll,
+            #[cfg(not(mobile))]
             commands::computer_control::press_key,
+            #[cfg(not(mobile))]
             commands::computer_control::revoke_computer_control_permission,
+            #[cfg(not(mobile))]
             commands::computer_control::screen_capture,
+            #[cfg(not(mobile))]
             commands::computer_control::type_text,
             commands::conditional_order::create_conditional_order,
             commands::conditional_order::disable_conditional_order,
@@ -264,19 +296,31 @@ macro_rules! register_all_commands {
             commands::demand_discovery::opc_scan_capabilities,
             commands::demand_discovery::opc_test_platform_connection,
             commands::demand_discovery::opc_update_delivery,
+            #[cfg(not(mobile))]
             commands::desktop::apply_startup_settings,
+            #[cfg(not(mobile))]
             commands::desktop::force_quit,
+            #[cfg(not(mobile))]
             commands::desktop::get_desktop_capabilities,
+            #[cfg(not(mobile))]
             commands::desktop::get_window_state,
-            #[cfg(not(target_os = "android"))]
+            #[cfg(all(not(mobile), not(target_os = "android")))]
             commands::desktop::list_system_fonts,
+            #[cfg(not(mobile))]
             commands::desktop::minimize_window,
+            #[cfg(not(mobile))]
             commands::desktop::open_devtools,
+            #[cfg(not(mobile))]
             commands::desktop::open_devtools,
+            #[cfg(not(mobile))]
             commands::desktop::send_desktop_notification,
+            #[cfg(not(mobile))]
             commands::desktop::set_always_on_top,
+            #[cfg(not(mobile))]
             commands::desktop::set_close_to_tray,
+            #[cfg(not(mobile))]
             commands::desktop::test_proxy,
+            #[cfg(not(mobile))]
             commands::desktop::toggle_maximize_window,
             commands::device_sync::accept_pairing,
             commands::device_sync::create_sync_policy,
@@ -936,20 +980,30 @@ macro_rules! register_all_commands {
             commands::providers::update_provider,
             commands::providers::update_provider_key,
             commands::providers::validate_provider_key,
+            #[cfg(not(mobile))]
             commands::pty::pty_analyze_output,
+            #[cfg(not(mobile))]
             commands::pty::pty_create_session,
+            #[cfg(not(mobile))]
             commands::pty::pty_get_suggestions,
+            #[cfg(not(mobile))]
             commands::pty::pty_kill_session,
+            #[cfg(not(mobile))]
             commands::pty::pty_list_sessions,
+            #[cfg(not(mobile))]
             commands::pty::pty_remove_session,
+            #[cfg(not(mobile))]
             commands::pty::pty_resize,
+            #[cfg(not(mobile))]
             commands::pty::pty_write,
             commands::quant_backtest::quant_backtest_run,
             commands::quant_backtest::quant_metrics_compare,
             commands::quant_backtest::quant_run_get,
             commands::quant_backtest::quant_strategies_list,
             commands::quant_backtest::quant_strategy_register_rhai,
+            #[cfg(not(mobile))]
             commands::quickbar::hide_quickbar,
+            #[cfg(not(mobile))]
             commands::quickbar::show_quickbar,
             commands::recommendation_cron::create_recommendation_cron,
             commands::recommendation_cron::delete_recommendation_cron,
@@ -999,11 +1053,17 @@ macro_rules! register_all_commands {
             commands::scheduled_task::pause_scheduled_task,
             commands::scheduled_task::resume_scheduled_task,
             commands::scheduled_task::update_scheduled_task,
+            #[cfg(not(mobile))]
             commands::screen_vision::analyze_image,
+            #[cfg(not(mobile))]
             commands::screen_vision::analyze_screen,
+            #[cfg(not(mobile))]
             commands::screen_vision::click_element_at_position,
+            #[cfg(not(mobile))]
             commands::screen_vision::execute_vision_action,
+            #[cfg(not(mobile))]
             commands::screen_vision::find_element_on_screen,
+            #[cfg(not(mobile))]
             commands::screen_vision::suggest_screen_action,
             commands::screenshot_diagnosis::screenshot_diagnosis_archive,
             commands::screenshot_diagnosis::screenshot_diagnosis_create,
@@ -1285,10 +1345,15 @@ macro_rules! register_all_commands {
             commands::sub_agent::sub_agent_get_children,
             commands::sub_agent::sub_agent_get_messages,
             commands::sub_agent::sub_agent_list,
+            #[cfg(not(mobile))]
             commands::terminal::git_get_branch,
+            #[cfg(not(mobile))]
             commands::terminal::git_status,
+            #[cfg(not(mobile))]
             commands::terminal::path_complete,
+            #[cfg(not(mobile))]
             commands::terminal::session_get_status,
+            #[cfg(not(mobile))]
             commands::terminal::system_get_info,
             commands::theme::delete_theme,
             commands::theme::get_theme,
@@ -1474,7 +1539,9 @@ macro_rules! register_all_commands {
             scheduler::restore::restore_pending_tasks,
             scheduler::set_budget,
             scheduler::set_task_priority,
+            #[cfg(desktop)]
             tray::set_tray_labels,
+            #[cfg(desktop)]
             tray::set_tray_labels
         ]
     };
