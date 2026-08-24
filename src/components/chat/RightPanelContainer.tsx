@@ -241,8 +241,8 @@ export function RightPanelContainer({
         key: "cognitiveRoute",
         icon: <GitBranch size={ICON} />,
         labelKey: "chatRightPanel.cognitiveRoute",
-        category: "agent",
-        shouldRender: isAgent,
+        category: "core",
+        shouldRender: true,
         render: () => <CognitiveRoutePanel />,
       },
 
