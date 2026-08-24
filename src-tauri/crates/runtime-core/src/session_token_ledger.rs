@@ -21,9 +21,9 @@
 //! - 触发的消息范围
 
 use axagent_harness::conversation_model::TokenUsage;
+use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::Mutex;
 
 /// 上下文压缩事件
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -149,11 +149,11 @@ impl SessionTokenLedger {
             ts,
         };
 
-        self.records.lock().unwrap().push(record);
+        self.records.lock().push(record);
 
         // 更新统计缓存
         let key = format!("{provider_id}/{model_id}");
-        let mut stats = self.stats_cache.lock().unwrap();
+        let mut stats = self.stats_cache.lock();
         let entry = stats.entry(key).or_default();
         entry.total_input_tokens += usage.input_tokens as u64;
         entry.total_output_tokens += usage.output_tokens as u64;
@@ -170,8 +170,8 @@ impl SessionTokenLedger {
         event.ts = now_ms();
 
         let saved = event.tokens_saved;
-        *self.compaction_saved_tokens.lock().unwrap() += saved;
-        self.compaction_events.lock().unwrap().push(event);
+        *self.compaction_saved_tokens.lock() += saved;
+        self.compaction_events.lock().push(event);
     }
 
     /// 获取累计 token 用量
@@ -183,7 +183,7 @@ impl SessionTokenLedger {
             cache_read_input_tokens: 0,
             cache_miss_input_tokens: None,
         };
-        for record in self.records.lock().unwrap().iter() {
+        for record in self.records.lock().iter() {
             total.input_tokens += record.usage.input_tokens;
             total.output_tokens += record.usage.output_tokens;
             total.cache_creation_input_tokens += record.usage.cache_creation_input_tokens;
@@ -194,40 +194,40 @@ impl SessionTokenLedger {
 
     /// 获取累计成本（美元）
     pub fn total_cost_usd(&self) -> f64 {
-        self.records.lock().unwrap().iter().map(|r| r.cost_usd).sum()
+        self.records.lock().iter().map(|r| r.cost_usd).sum()
     }
 
     /// 获取压缩节省的 token 数
     pub fn compaction_saved_tokens(&self) -> u64 {
-        *self.compaction_saved_tokens.lock().unwrap()
+        *self.compaction_saved_tokens.lock()
     }
 
     /// 获取所有调用记录
     pub fn records(&self) -> Vec<TokenRecord> {
-        self.records.lock().unwrap().clone()
+        self.records.lock().clone()
     }
 
     /// 获取按 provider+model 分组的统计
     pub fn provider_model_stats(&self) -> HashMap<String, ProviderModelStats> {
-        self.stats_cache.lock().unwrap().clone()
+        self.stats_cache.lock().clone()
     }
 
     /// 获取所有压缩事件
     pub fn compaction_events(&self) -> Vec<ContextCompactedEvent> {
-        self.compaction_events.lock().unwrap().clone()
+        self.compaction_events.lock().clone()
     }
 
     /// 获取调用次数
     pub fn call_count(&self) -> usize {
-        self.records.lock().unwrap().len()
+        self.records.lock().len()
     }
 
     /// 清空账本
     pub fn clear(&self) {
-        self.records.lock().unwrap().clear();
-        self.stats_cache.lock().unwrap().clear();
-        *self.compaction_saved_tokens.lock().unwrap() = 0;
-        self.compaction_events.lock().unwrap().clear();
+        self.records.lock().clear();
+        self.stats_cache.lock().clear();
+        *self.compaction_saved_tokens.lock() = 0;
+        self.compaction_events.lock().clear();
     }
 }
 
@@ -257,7 +257,7 @@ impl SessionLedgerRegistry {
 
     /// 获取或创建会话账本
     pub fn get_or_create(&self, session_id: &str) -> std::sync::Arc<SessionTokenLedger> {
-        let mut ledgers = self.ledgers.lock().unwrap();
+        let mut ledgers = self.ledgers.lock();
         ledgers
             .entry(session_id.to_string())
             .or_insert_with(|| std::sync::Arc::new(SessionTokenLedger::new(session_id)))
@@ -266,17 +266,17 @@ impl SessionLedgerRegistry {
 
     /// 获取会话账本（不创建）
     pub fn get(&self, session_id: &str) -> Option<std::sync::Arc<SessionTokenLedger>> {
-        self.ledgers.lock().unwrap().get(session_id).cloned()
+        self.ledgers.lock().get(session_id).cloned()
     }
 
     /// 移除会话账本
     pub fn remove(&self, session_id: &str) -> bool {
-        self.ledgers.lock().unwrap().remove(session_id).is_some()
+        self.ledgers.lock().remove(session_id).is_some()
     }
 
     /// 列出所有会话 ID
     pub fn list_sessions(&self) -> Vec<String> {
-        self.ledgers.lock().unwrap().keys().cloned().collect()
+        self.ledgers.lock().keys().cloned().collect()
     }
 }
 
