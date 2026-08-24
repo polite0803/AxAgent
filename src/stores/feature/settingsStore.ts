@@ -234,7 +234,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           error: null,
         });
       } catch (e) {
-        console.error("[settingsStore.fetchSettings] 获取设置失败", e);
+        console.error("[settingsStore.fetchSettings] Failed to fetch settings", e);
         set({ error: String(e), loading: false, _loaded: true });
       } finally {
         // 清除 promise 引用
