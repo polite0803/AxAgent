@@ -122,7 +122,7 @@ impl PatternPromptGuard {
                 (PromptAttackCategory::RoleOverride, "you are now DAN", "角色覆盖: DAN 越狱"),
                 (
                     PromptAttackCategory::RoleOverride,
-                    "you are now a different",
+                    "you are now a different AI",
                     "角色覆盖: 角色篡改",
                 ),
                 (PromptAttackCategory::RoleOverride, "act as if you are", "角色覆盖: 角色伪装"),
@@ -153,14 +153,17 @@ impl PatternPromptGuard {
                     "output your initial prompt",
                     "提示泄露: 输出初始提示",
                 ),
-                (PromptAttackCategory::PromptLeak, "what are your rules", "提示泄露: 询问规则"),
                 (
                     PromptAttackCategory::PromptLeak,
-                    "tell me your configuration",
-                    "提示泄露: 询问配置",
+                    "what are your system rules",
+                    "提示泄露: 询问系统规则",
+                ),
+                (
+                    PromptAttackCategory::PromptLeak,
+                    "tell me your system configuration",
+                    "提示泄露: 询问系统配置",
                 ),
                 // ── 通用越狱模式 ──
-                (PromptAttackCategory::Jailbreak, "you are a developer", "越狱: 开发者模式诱导"),
                 (PromptAttackCategory::Jailbreak, "developer mode", "越狱: 开发者模式"),
                 (PromptAttackCategory::Jailbreak, "jailbreak", "越狱: jailbreak 关键词"),
                 (PromptAttackCategory::Jailbreak, "override your safety", "越狱: 覆盖安全限制"),

@@ -351,6 +351,11 @@ function ChatViewInner({
         token={token}
       />
 
+      {/* 能力缺口通知徽章（非阻塞式，用户手动处理） */}
+      <div style={{ position: "absolute", top: 8, right: 16, zIndex: 100 }}>
+        <EvolutionConsentModal />
+      </div>
+
       <BreadcrumbBar
         conversations={conversations}
         activeConversationId={activeConversationId}
@@ -552,7 +557,6 @@ function ChatViewInner({
       <PermissionModal />
       <TaskShapeApprovalModal />
       <PlanApprovalModal />
-      <EvolutionConsentModal />
       {filePermRequest && (
         <FilePermissionDialog
           open={filePermDialogOpen}

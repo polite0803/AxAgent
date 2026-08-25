@@ -20,9 +20,33 @@ struct CommandHandler {
 }
 
 fn main() {
-    // Tauri 2.x 默认 manifest 已包含 Common Controls v6 依赖，
-    // 无需自定义 manifest。参考: https://github.com/tauri-apps/tauri/issues/11028
-    tauri_build::build();
+    // Windows MSVC manifest 策略：
+    //   主程序 (AxAgent.exe) 使用 tauri-build 默认 manifest，
+    //   该 manifest 已包含 Common Controls v6 依赖，可正常启动。
+    //
+    //   测试二进制 (cargo test) 场景：
+    //   axagent-agent crate 的 build.rs 会在 __TAURI_WORKSPACE__=true 时
+    //   通过 rustc-link-arg 附加 Common Controls v6 manifest，规避
+    //   STATUS_ENTRYPOINT_NOT_FOUND (0xc0000139)。
+    //   参考: https://github.com/tauri-apps/tauri/issues/11028
+    //
+    //   注意：此处不再为 AxAgent 主程序添加 /MANIFEST:EMBED / /MANIFESTINPUT，
+    //   否则会与 tauri-build::build() 生成的默认 MANIFEST 资源冲突，
+    //   导致链接错误：duplicate resource: type MANIFEST。
+    #[cfg(target_os = "windows")]
+    {
+        let target_env = std::env::var("CARGO_CFG_TARGET_ENV").unwrap_or_default();
+        if target_env == "msvc" {
+            tauri_build::build();
+        } else {
+            tauri_build::build();
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        tauri_build::build();
+    }
 
     // Windows MSVC: 增加主线程栈到 8MB（默认 1MB，不足 deep call chain）
     // /STACK 是链接器选项，需通过 rustc-link-arg 传递

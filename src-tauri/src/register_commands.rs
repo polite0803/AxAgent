@@ -192,6 +192,8 @@ macro_rules! register_all_commands {
             commands::cognitive::cognitive_list_execution_modes,
             commands::cognitive::cognitive_query,
             commands::cognitive::cognitive_route_l1,
+            commands::cognitive::list_pending_gaps,
+            commands::cognitive::resolve_capability_gap,
             commands::cognitive::respond_task_shape_approval,
             #[cfg(not(mobile))]
             commands::computer_control::find_ui_elements,

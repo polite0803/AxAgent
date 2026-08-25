@@ -833,6 +833,9 @@ mod tests_conversation {
             agent_prompters: Arc::new(Mutex::new(std::collections::HashMap::new())),
             agent_plan_approvals: Arc::new(Mutex::new(std::collections::HashMap::new())),
             evolution_consent_senders: Arc::new(Mutex::new(std::collections::HashMap::new())),
+            pending_capability_gaps: Arc::new(tokio::sync::Mutex::new(
+                std::collections::HashMap::new(),
+            )),
             agent_session_manager: Arc::new(axagent_agent::SessionManager::new_for_test(Arc::new(
                 DaoAgentSessionRepository::new(Arc::new(db.clone())),
             )

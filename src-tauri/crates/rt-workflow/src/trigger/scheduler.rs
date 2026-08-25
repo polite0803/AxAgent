@@ -18,14 +18,11 @@ pub(crate) async fn spawn_schedule(
     timezone: &str,
     input_params: Option<serde_json::Value>,
 ) -> Result<tokio::task::JoinHandle<()>, String> {
-    // cron 0.17 的 Schedule::from_str 要求 6 字段（含秒）。兼容旧的 5 字段表达式
-    // （min hour dom month dow，如 '0 18 * * *'），自动补秒=0，避免解析失败。
-    let cron_expr_normalized = if cron_expr.split_whitespace().count() == 5 {
-        format!("0 {cron_expr}")
-    } else {
-        cron_expr.to_string()
-    };
-    let schedule = cron::Schedule::from_str(&cron_expr_normalized)
+    // cron crate 0.17 的 Schedule 类型要求 6 字段格式（秒 分 时 日 月 周）
+    // 传统 5 字段格式（分 时 日 月 周）需要在前面补 "0" 作为秒
+    let normalized_cron = normalize_cron_expression(cron_expr)?;
+
+    let schedule = cron::Schedule::from_str(&normalized_cron)
         .map_err(|e| format!("无效的 cron 表达式 '{cron_expr}': {e}"))?;
 
     // 解析时区（纯 chrono_tz，无 powershell 依赖）
@@ -134,4 +131,90 @@ fn parse_timezone(tz_name: &str) -> Result<chrono_tz::Tz, String> {
         other => other,
     };
     normalized.parse::<chrono_tz::Tz>().map_err(|_| format!("无法识别的时区: {tz_name}"))
+}
+
+/// 将传统 5 字段 cron 表达式转换为 cron crate 0.17 所需的 6 字段格式。
+///
+/// cron crate 0.17 的 `Schedule` 类型要求 6 字段格式（秒 分 时 日 月 周），
+/// 而传统 cron 表达式使用 5 字段格式（分 时 日 月 周）。
+/// 此函数检测 5 字段格式并在前面添加 "0" 作为秒字段。
+///
+/// 支持的转换：
+/// - "0 18 * * *" (5 字段) → "0 0 18 * * *" (6 字段)
+/// - "@daily", "@hourly" 等关键字保持不变
+/// - 已经是 6 字段格式的表达式保持不变
+fn normalize_cron_expression(expr: &str) -> Result<String, String> {
+    let expr = expr.trim();
+
+    // 处理 cron 关键字（@daily, @hourly 等）
+    if expr.starts_with('@') {
+        return Ok(expr.to_string());
+    }
+
+    // 分割字段
+    let fields: Vec<&str> = expr.split_whitespace().collect();
+
+    match fields.len() {
+        5 => {
+            // 5 字段格式：分 时 日 月 周 → 转换为 6 字段：秒 分 时 日 月 周
+            // 在前面添加 "0" 作为秒
+            Ok(format!("0 {}", expr))
+        },
+        6 => {
+            // 已经是 6 字段格式
+            Ok(expr.to_string())
+        },
+        _ => {
+            Err(format!("cron 表达式必须是 5 或 6 个字段，当前为 {} 个: '{}'", fields.len(), expr))
+        },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_normalize_cron_expression() {
+        // 5 字段转换为 6 字段
+        assert_eq!(normalize_cron_expression("0 18 * * *").unwrap(), "0 0 18 * * *");
+        assert_eq!(normalize_cron_expression("* * * * *").unwrap(), "0 * * * * *");
+        assert_eq!(normalize_cron_expression("0 0 12 * *").unwrap(), "0 0 0 12 * *");
+
+        // 6 字段保持不变
+        assert_eq!(normalize_cron_expression("0 0 18 * * *").unwrap(), "0 0 18 * * *");
+        assert_eq!(normalize_cron_expression("*/5 * * * * *").unwrap(), "*/5 * * * * *");
+
+        // 关键字保持不变
+        assert_eq!(normalize_cron_expression("@daily").unwrap(), "@daily");
+        assert_eq!(normalize_cron_expression("@hourly").unwrap(), "@hourly");
+
+        // 无效格式
+        assert!(normalize_cron_expression("").is_err());
+        assert!(normalize_cron_expression("invalid").is_err());
+    }
+
+    #[test]
+    fn test_cron_schedule_parsing() {
+        // 测试转换后的 cron 表达式
+        let test_cases = vec![
+            ("0 18 * * *", "5 fields → should convert to 6"),
+            ("0 18 * * * *", "6 fields (explicit seconds)"),
+            ("@daily", "keyword"),
+            ("@hourly", "keyword"),
+        ];
+
+        for (expr, desc) in test_cases {
+            let normalized = normalize_cron_expression(expr).unwrap_or_else(|_| expr.to_string());
+            let result = cron::Schedule::from_str(&normalized);
+            assert!(
+                result.is_ok(),
+                "Expected '{}' ({}) to be valid after normalization to '{}', got: {:?}",
+                expr,
+                desc,
+                normalized,
+                result.err()
+            );
+        }
+    }
 }

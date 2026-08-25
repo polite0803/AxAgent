@@ -356,8 +356,9 @@ export const useEvolutionStore = create<EvolutionState>((set, get) => ({
 
   respondConsent: async (proposalId, approved) => {
     try {
-      await invoke("capability_gap_consent", {
-        request: { proposalId, approved },
+      await invoke("resolve_capability_gap", {
+        proposalId,
+        approved,
       });
     } catch (e) {
       console.warn("[evolutionStore] respondConsent failed", e);

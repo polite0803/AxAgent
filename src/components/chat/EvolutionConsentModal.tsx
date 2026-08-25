@@ -3,7 +3,7 @@
 import { logIpcError } from "@/lib/invoke";
 import { useEvolutionStore } from "@/stores";
 import type { CapabilityGapProposal, CapabilityGapType } from "@/types";
-import { Button, Modal, Space, Tag, Tooltip, Typography } from "antd";
+import { Badge, Button, Popover, Space, Tag, Typography } from "antd";
 import { AlertTriangle, CheckCircle, Lightbulb, Shield, ShieldOff, Sparkles, XCircle } from "lucide-react";
 import React, { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -41,12 +41,16 @@ const GAP_TYPE_CONFIG: Record<
 };
 
 /**
- * 能力补齐/进化改进提议同意弹窗（T0.13）
+ * 能力缺口通知徽章（非阻塞式）
  *
- * 后端三触发点（安全拦截 / NO_CANDIDATE / Clarify 兜底无候选）生成提议后，
- * 经 `evolution-consent-request` 事件下发，本组件弹窗展示提议内容。
- * 用户同意则调用 `capability_gap_consent` 命令回传，后端执行补齐；
- * 拒绝则回传 false，后端保持原安全行为。
+ * 认知编排器触发能力补齐时不再即时弹窗，而是：
+ * 1. 后端静默存储缺口，emit 事件通知前端
+ * 2. 本组件显示一个带计数的徽章（头部工具栏）
+ * 3. 用户点击后展开 Popover 查看详情并手动处理
+ *
+ * 与旧 EvolutionConsentModal 的区别：
+ * - 旧：auto-popup Modal 阻塞请求流程
+ * - 新：badge + Popover，不阻塞，用户主动处理
  */
 export const EvolutionConsentModal: React.FC = () => {
   const { t } = useTranslation();
@@ -55,13 +59,9 @@ export const EvolutionConsentModal: React.FC = () => {
   const [loading, setLoading] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
 
-  // 取 pending 列表中的第一个
   const entries = useMemo(() => Object.entries(pendingConsent), [pendingConsent]);
   const currentEntry = entries.length > 0 ? entries[0] : null;
   const [proposalId, proposal] = currentEntry ?? [null, null as CapabilityGapProposal | null];
-  const visible = entries.length > 0 && proposal != null;
-
-  const gapCfg = proposal ? GAP_TYPE_CONFIG[proposal.gapType] ?? GAP_TYPE_CONFIG.capability_missing : null;
 
   const handleDecision = useCallback(
     async (approved: boolean) => {
@@ -80,209 +80,136 @@ export const EvolutionConsentModal: React.FC = () => {
     [proposalId, respondConsent],
   );
 
-  if (!visible || !proposal) {
-    return null;
-  }
+  const content = entries.length === 0
+    ? (
+      <div style={{ padding: "12px 16px", color: "var(--ant-color-text-secondary)" }}>
+        {t("evolutionConsentModal.noPending")}
+      </div>
+    )
+    : (
+      <Space orientation="vertical" size={12} style={{ width: 380 }}>
+        {entries.map(([id, p]) => {
+          const cfg = GAP_TYPE_CONFIG[p.gapType] ?? GAP_TYPE_CONFIG.capability_missing;
+          return (
+            <div
+              key={id}
+              style={{
+                padding: "10px 14px",
+                backgroundColor: cfg.bg,
+                borderRadius: 8,
+                borderLeft: "3px solid var(--ant-color-primary)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                <Tag color={cfg.color} style={{ margin: 0 }}>
+                  {cfg.icon}
+                  {t(cfg.labelKey)}
+                </Tag>
+                <Text strong style={{ fontSize: 13 }}>
+                  {p.title}
+                </Text>
+              </div>
+              <Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 6 }}>
+                {p.reason}
+              </Text>
+              {id === proposalId && (
+                <>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <Button
+                      size="small"
+                      danger
+                      icon={<XCircle size={12} />}
+                      loading={loading === "reject"}
+                      onClick={() => handleDecision(false)}
+                    >
+                      {t("evolutionConsentModal.reject")}
+                    </Button>
+                    <Button
+                      size="small"
+                      type="primary"
+                      icon={<CheckCircle size={12} />}
+                      loading={loading === "approve"}
+                      onClick={() => handleDecision(true)}
+                    >
+                      {t("evolutionConsentModal.approve")}
+                    </Button>
+                  </div>
+                  <div
+                    onClick={() => setShowDetails(!showDetails)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setShowDetails(!showDetails);
+                      }
+                    }}
+                    style={{
+                      cursor: "pointer",
+                      marginTop: 8,
+                    }}
+                  >
+                    <Text type="secondary" style={{ fontSize: 11 }}>
+                      {showDetails
+                        ? t("evolutionConsentModal.collapseDetails")
+                        : t("evolutionConsentModal.expandDetails")}
+                    </Text>
+                  </div>
+                  {showDetails && (
+                    <pre
+                      style={{
+                        margin: "4px 0 0",
+                        padding: 8,
+                        fontSize: 11,
+                        fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
+                        backgroundColor: "var(--ant-color-fill-tertiary)",
+                        borderRadius: 6,
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-all",
+                        maxHeight: 150,
+                        overflow: "auto",
+                      }}
+                    >
+                      {JSON.stringify(proposal, null, 2)}
+                    </pre>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })}
+        {entries.length > 1 && (
+          <Text type="secondary" style={{ fontSize: 11, textAlign: "center", display: "block" }}>
+            {t("evolutionConsentModal.pendingCount", {
+              count: String(entries.length),
+              current: "1",
+            })}
+          </Text>
+        )}
+      </Space>
+    );
 
   return (
-    <Modal
-      title={
-        <Space size={8}>
-          <AlertTriangle size={18} style={{ color: "var(--ant-color-warning)" }} />
-          <span id="evolution-consent-modal-title">{t("evolutionConsentModal.title")}</span>
-          {gapCfg && (
-            <Tag
-              color={gapCfg.color}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                margin: 0,
-              }}
-            >
-              {gapCfg.icon}
-              {t(gapCfg.labelKey)}
-            </Tag>
-          )}
-        </Space>
-      }
-      open={visible}
-      closable={false}
-      mask={{ closable: false }}
-      width={580}
-      aria-labelledby="evolution-consent-modal-title"
-      footer={
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            width: "100%",
-          }}
-        >
-          <div style={{ fontSize: 12, color: "var(--ant-color-text-secondary)" }}>
-            {entries.length > 1
-              ? t("evolutionConsentModal.pendingCount", {
-                count: String(entries.length),
-                current: "1",
-              })
-              : t("evolutionConsentModal.pendingOne")}
-          </div>
-          <Space size={8}>
-            <Button
-              danger
-              icon={<XCircle size={14} />}
-              loading={loading === "reject"}
-              onClick={() => handleDecision(false)}
-            >
-              {t("evolutionConsentModal.reject")}
-            </Button>
-            <Button
-              type="primary"
-              icon={<CheckCircle size={14} />}
-              loading={loading === "approve"}
-              onClick={() => handleDecision(true)}
-            >
-              {t("evolutionConsentModal.approve")}
-            </Button>
-          </Space>
-        </div>
-      }
-      onCancel={() => handleDecision(false)}
-      destroyOnHidden
+    <Popover
+      content={content}
+      trigger="click"
+      placement="bottomRight"
+      arrow={false}
     >
-      <Space orientation="vertical" size={16} style={{ width: "100%" }}>
-        {/* 提议标题和原因 */}
-        <div
+      <Badge
+        count={entries.length}
+        offset={[-4, 4]}
+        style={{ cursor: entries.length > 0 ? "pointer" : "default" }}
+      >
+        <AlertTriangle
+          size={18}
           style={{
-            padding: "10px 14px",
-            backgroundColor: gapCfg?.bg ?? "var(--ant-color-primary-bg)",
-            borderRadius: 8,
-            borderLeft: "3px solid var(--ant-color-primary)",
+            color: entries.length > 0
+              ? "var(--ant-color-warning)"
+              : "var(--ant-color-text-quaternary)",
           }}
-        >
-          <Text strong style={{ fontSize: 14, display: "block" }}>
-            {proposal.title}
-          </Text>
-          <Text type="secondary" style={{ fontSize: 13, display: "block", marginTop: 4 }}>
-            {proposal.reason}
-          </Text>
-        </div>
-
-        {/* 具体改动 */}
-        <div>
-          <Text strong style={{ fontSize: 13, display: "block", marginBottom: 4 }}>
-            {t("evolutionConsentModal.proposal")}
-          </Text>
-          <Text type="secondary" style={{ fontSize: 13 }}>
-            {proposal.proposal}
-          </Text>
-        </div>
-
-        {/* 影响范围和回滚方式 */}
-        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-          <Tooltip title={proposal.impact}>
-            <div
-              style={{
-                flex: 1,
-                minWidth: 200,
-                padding: "8px 12px",
-                backgroundColor: "var(--ant-color-fill-tertiary)",
-                borderRadius: 6,
-              }}
-            >
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                {t("evolutionConsentModal.impact")}
-              </Text>
-              <Text style={{ fontSize: 13, display: "block", marginTop: 2 }}>
-                {proposal.impact}
-              </Text>
-            </div>
-          </Tooltip>
-          <Tooltip title={proposal.rollback}>
-            <div
-              style={{
-                flex: 1,
-                minWidth: 200,
-                padding: "8px 12px",
-                backgroundColor: "var(--ant-color-fill-tertiary)",
-                borderRadius: 6,
-              }}
-            >
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                {t("evolutionConsentModal.rollback")}
-              </Text>
-              <Text style={{ fontSize: 13, display: "block", marginTop: 2 }}>
-                {proposal.rollback}
-              </Text>
-            </div>
-          </Tooltip>
-        </div>
-
-        {/* 原始提议 JSON 详情 */}
-        <div>
-          <div
-            onClick={() => setShowDetails(!showDetails)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                setShowDetails(!showDetails);
-              }
-            }}
-            style={{
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-              marginBottom: showDetails ? 8 : 0,
-            }}
-          >
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              {showDetails
-                ? t("evolutionConsentModal.collapseDetails")
-                : t("evolutionConsentModal.expandDetails")}
-            </Text>
-          </div>
-          {showDetails && (
-            <pre
-              style={{
-                margin: 0,
-                padding: 10,
-                fontSize: 12,
-                fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
-                backgroundColor: "var(--ant-color-fill-tertiary)",
-                borderRadius: 6,
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-all",
-                maxHeight: 200,
-                overflow: "auto",
-                lineHeight: 1.5,
-              }}
-            >
-              {JSON.stringify(proposal, null, 2)}
-            </pre>
-          )}
-          {!showDetails && (
-            <Text
-              type="secondary"
-              ellipsis
-              style={{
-                fontSize: 12,
-                fontFamily: "var(--font-mono, 'JetBrains Mono', ui-monospace, monospace)",
-                backgroundColor: "var(--ant-color-fill-tertiary)",
-                padding: "6px 10px",
-                borderRadius: 6,
-                display: "block",
-                maxWidth: "100%",
-              }}
-            >
-              {JSON.stringify(proposal).slice(0, 200)}
-            </Text>
-          )}
-        </div>
-      </Space>
-    </Modal>
+        />
+      </Badge>
+    </Popover>
   );
 };
