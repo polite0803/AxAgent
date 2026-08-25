@@ -190,12 +190,22 @@ pub struct ManualTriggerConfig {}
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
 pub struct ScheduleTriggerConfig {
+    #[serde(default)]
     pub cron: String,
+    #[serde(default)]
     pub timezone: String,
+    #[serde(default = "default_true")]
     pub enabled: bool,
     /// 触发时注入工作流的输入参数（JSON）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub input_params: Option<serde_json::Value>,
+}
+
+impl ScheduleTriggerConfig {
+    /// 检查配置是否有效（cron 表达式非空）
+    pub fn is_valid(&self) -> bool {
+        !self.cron.trim().is_empty()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]

@@ -5,9 +5,16 @@
 
 /* eslint-disable react-refresh/only-export-components */
 import { DropdownMenu } from "@/components/layout/DropdownMenu";
-import { addNotification, getNotifications, type Notification } from "@/lib/notification";
+import {
+  addNotification,
+  clearAllNotifications,
+  getNotifications,
+  markAllAsRead,
+  type Notification,
+} from "@/lib/notification";
 import { BellOutlined } from "@ant-design/icons";
 import { Badge, Empty, theme, Typography } from "antd";
+import { CheckCheck, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -41,7 +48,33 @@ export function NotificationBell() {
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const items = notifications.length === 0
+  const handleMarkAllRead = useCallback(() => {
+    setNotifications(markAllAsRead());
+  }, []);
+
+  const handleClearAll = useCallback(() => {
+    setNotifications(clearAllNotifications());
+  }, []);
+
+  const actionItems = notifications.length === 0 ? [] : [
+    {
+      key: "markAllRead",
+      label: <span>{t("notification.markAllRead")}</span>,
+      icon: <CheckCheck size={14} />,
+      onClick: handleMarkAllRead,
+      disabled: unreadCount === 0,
+    },
+    {
+      key: "clearAll",
+      label: <span style={{ color: token.colorError }}>{t("notification.clear")}</span>,
+      icon: <Trash2 size={14} color={token.colorError} />,
+      onClick: handleClearAll,
+      danger: true,
+    },
+    { key: "divider-actions", divider: true },
+  ];
+
+  const notificationItems = notifications.length === 0
     ? [
       {
         key: "empty",
@@ -78,6 +111,8 @@ export function NotificationBell() {
         </div>
       ),
     }));
+
+  const items = [...actionItems, ...notificationItems];
 
   return (
     <DropdownMenu items={items} open={open} onOpenChange={setOpen} trigger={["click"]}>

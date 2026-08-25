@@ -7,27 +7,27 @@ import type { ProviderType } from "./ProviderType";
 export type ProviderConfig = {
   id: string;
   name: string;
-  provider_type: ProviderType;
-  api_host: string;
-  api_path: string | null;
+  providerType: ProviderType;
+  apiHost: string;
+  apiPath: string | null;
   enabled: boolean;
   models: Array<Model>;
   keys: Array<ProviderKey>;
-  proxy_config: ProviderProxyConfig | null;
+  proxyConfig: ProviderProxyConfig | null;
   /**
    * 工具调用模式：None=按 provider_type 推断；"native"=模型原生 function calling；
    * "managed"=由 AxAgent 通过提示词注入 + 文本解析模拟（用于 Chat2API 等无原生 tool 接口的网关）
    */
-  tool_adaptation: string | null;
+  toolAdaptation: string | null;
   /**
    * 托管模式下的 marker 前缀（仅 tool_adaptation="managed" 时生效）。
    * None 或空字符串 = 使用默认值 "CHAT2API"。
    */
-  tool_adaptation_marker_prefix: string | null;
-  custom_headers: string | null;
+  toolAdaptationMarkerPrefix: string | null;
+  customHeaders: string | null;
   icon: string | null;
-  builtin_id: string | null;
-  sort_order: number;
-  created_at: bigint;
-  updated_at: bigint;
+  builtinId: string | null;
+  sortOrder: number;
+  createdAt: bigint;
+  updatedAt: bigint;
 };

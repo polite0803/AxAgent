@@ -10,11 +10,14 @@
 //! 持久化在 DB 中,无需额外落盘。
 
 use axagent_dao::repo::workflow_template as db_repo;
+use axagent_entities::workflow_template as entity;
 use axagent_harness::workflow_types::{
-    EventTriggerConfig, ScheduleTriggerConfig, TriggerConfig, TriggerType, WebhookTriggerConfig,
+    EventTriggerConfig, ManualTriggerConfig, ScheduleTriggerConfig, TriggerConfig, TriggerType,
+    WebhookTriggerConfig,
 };
 use axagent_rt_workflow::trigger::TriggerManager;
-use sea_orm::DatabaseConnection;
+use chrono::Utc;
+use sea_orm::{ActiveModelTrait, DatabaseConnection, Set};
 use std::sync::Arc;
 
 /// 从 DB 恢复所有非 Manual 触发器到运行时 `TriggerManager`。
@@ -38,6 +41,7 @@ pub async fn recover_workflow_triggers(
     let mut sched_count = 0;
     let mut webhook_count = 0;
     let mut event_count = 0;
+    let mut corrupted_ids: Vec<String> = Vec::new();
 
     for tpl in templates {
         let Some(cfg_str) = tpl.trigger_config.as_ref() else {
@@ -47,10 +51,11 @@ pub async fn recover_workflow_triggers(
             Ok(c) => c,
             Err(e) => {
                 tracing::warn!(
-                    "[trigger_recovery] 模板 {} 的 trigger_config 解析失败,跳过: {}",
+                    "[trigger_recovery] 模板 {} 的 trigger_config 解析失败,将重置为 Manual: {}",
                     tpl.id,
                     e
                 );
+                corrupted_ids.push(tpl.id.clone());
                 continue;
             },
         };
@@ -62,13 +67,22 @@ pub async fn recover_workflow_triggers(
                     Ok(s) => s,
                     Err(e) => {
                         tracing::warn!(
-                            "[trigger_recovery] 模板 {} 的 schedule config 解析失败: {}",
+                            "[trigger_recovery] 模板 {} 的 schedule config 解析失败,将重置为 Manual: {}",
                             tpl.id,
                             e
                         );
+                        corrupted_ids.push(tpl.id.clone());
                         continue;
                     },
                 };
+                if !sched.is_valid() {
+                    tracing::warn!(
+                        "[trigger_recovery] 模板 {} 的 schedule config 无效 (cron 为空),将重置为 Manual",
+                        tpl.id
+                    );
+                    corrupted_ids.push(tpl.id.clone());
+                    continue;
+                }
                 if !sched.enabled {
                     tracing::debug!(
                         "[trigger_recovery] 模板 {} 的 schedule 触发器已禁用,跳过",
@@ -108,10 +122,11 @@ pub async fn recover_workflow_triggers(
                     Ok(w) => w,
                     Err(e) => {
                         tracing::warn!(
-                            "[trigger_recovery] 模板 {} 的 webhook config 解析失败: {}",
+                            "[trigger_recovery] 模板 {} 的 webhook config 解析失败,将重置为 Manual: {}",
                             tpl.id,
                             e
                         );
+                        corrupted_ids.push(tpl.id.clone());
                         continue;
                     },
                 };
@@ -130,10 +145,11 @@ pub async fn recover_workflow_triggers(
                     Ok(e) => e,
                     Err(e) => {
                         tracing::warn!(
-                            "[trigger_recovery] 模板 {} 的 event config 解析失败: {}",
+                            "[trigger_recovery] 模板 {} 的 event config 解析失败,将重置为 Manual: {}",
                             tpl.id,
                             e
                         );
+                        corrupted_ids.push(tpl.id.clone());
                         continue;
                     },
                 };
@@ -148,6 +164,19 @@ pub async fn recover_workflow_triggers(
         }
     }
 
+    // 修复损坏的模板：将 trigger_config 重置为 Manual 类型
+    if !corrupted_ids.is_empty() {
+        tracing::warn!(
+            "[trigger_recovery] 发现 {} 个损坏的触发器配置,正在修复为 Manual 模式",
+            corrupted_ids.len()
+        );
+        for template_id in &corrupted_ids {
+            if let Err(e) = reset_trigger_to_manual(db, template_id).await {
+                tracing::error!("[trigger_recovery] 修复模板 {} 失败: {}", template_id, e);
+            }
+        }
+    }
+
     tracing::info!(
         "[trigger_recovery] 恢复完成: {} schedule, {} webhook, {} event",
         sched_count,
@@ -156,6 +185,34 @@ pub async fn recover_workflow_triggers(
     );
 
     (sched_count, webhook_count, event_count)
+}
+
+/// 将指定模板的触发器配置重置为 Manual 类型。
+async fn reset_trigger_to_manual(db: &DatabaseConnection, template_id: &str) -> Result<(), String> {
+    // 先获取模板的完整数据
+    let template = db_repo::get_workflow_template(db, template_id)
+        .await
+        .map_err(|e| format!("查询模板失败: {}", e))?
+        .ok_or_else(|| format!("模板 {} 不存在", template_id))?;
+
+    // 创建 Manual 类型的 trigger_config
+    let manual_config = TriggerConfig {
+        trigger_type: TriggerType::Manual,
+        config: serde_json::json!(ManualTriggerConfig {}),
+    };
+
+    // 直接使用 ActiveModel 只更新 trigger_config 字段
+    let trigger_config_str = serde_json::to_string(&manual_config)
+        .map_err(|e| format!("序列化 trigger_config 失败: {}", e))?;
+
+    let mut active_model: entity::ActiveModel = template.clone().into();
+    active_model.trigger_config = Set(Some(trigger_config_str));
+    active_model.updated_at = Set(Utc::now().timestamp_millis());
+    active_model.update(db).await.map_err(|e| format!("更新模板失败: {}", e))?;
+
+    tracing::info!("[trigger_recovery] 已将模板 {} 的触发器重置为 Manual 模式", template_id);
+
+    Ok(())
 }
 
 /// 同步单个模板的触发器到运行时 (供 create/update 命令调用)。
@@ -206,7 +263,7 @@ pub async fn sync_workflow_trigger(
         TriggerType::Manual => {},
         TriggerType::Schedule => {
             match serde_json::from_value::<ScheduleTriggerConfig>(cfg.config.clone()) {
-                Ok(sched) if sched.enabled => {
+                Ok(sched) if sched.is_valid() && sched.enabled => {
                     if let Err(e) = trigger_manager
                         .register_schedule(
                             template_id,
@@ -225,7 +282,7 @@ pub async fn sync_workflow_trigger(
                 },
                 Ok(_) => {
                     tracing::debug!(
-                        "[trigger_sync] schedule 触发器已禁用,不注册 (workflow={})",
+                        "[trigger_sync] schedule 触发器无效或已禁用,不注册 (workflow={})",
                         template_id
                     );
                 },
