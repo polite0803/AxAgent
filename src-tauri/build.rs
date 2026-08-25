@@ -20,23 +20,24 @@ struct CommandHandler {
 }
 
 fn main() {
-    // 使用 tauri-build 官方 API 配置 Windows manifest
-    // 参考: https://docs.rs/tauri-build/latest/tauri_build/struct.WindowsAttributes.html
+    // Windows MSVC manifest 策略：
+    //   主程序 (AxAgent.exe) 使用 tauri-build 默认 manifest，
+    //   该 manifest 已包含 Common Controls v6 依赖，可正常启动。
+    //
+    //   测试二进制 (cargo test) 场景：
+    //   axagent-agent crate 的 build.rs 会在 __TAURI_WORKSPACE__=true 时
+    //   通过 rustc-link-arg 附加 Common Controls v6 manifest，规避
+    //   STATUS_ENTRYPOINT_NOT_FOUND (0xc0000139)。
+    //   参考: https://github.com/tauri-apps/tauri/issues/11028
+    //
+    //   注意：此处不再为 AxAgent 主程序添加 /MANIFEST:EMBED / /MANIFESTINPUT，
+    //   否则会与 tauri-build::build() 生成的默认 MANIFEST 资源冲突，
+    //   导致链接错误：duplicate resource: type MANIFEST。
     #[cfg(target_os = "windows")]
     {
         let target_env = std::env::var("CARGO_CFG_TARGET_ENV").unwrap_or_default();
         if target_env == "msvc" {
-            // 确保 manifest 文件变更时触发重新构建
-            println!("cargo:rerun-if-changed=common-controls.manifest");
-            // 1. new_without_app_manifest() 禁用默认 manifest 生成，避免冲突
-            // 2. app_manifest() 将自定义 manifest 写入 .rc 资源文件
-            // 3. /MANIFEST:EMBED 必须显式传递，否则 .rc 中的 manifest 不会被嵌入 EXE
-            let windows_attrs = tauri_build::WindowsAttributes::new_without_app_manifest()
-                .app_manifest(include_str!("common-controls.manifest"));
-            let attrs = tauri_build::Attributes::new().windows_attributes(windows_attrs);
-            tauri_build::try_build(attrs).expect("failed to run tauri build script");
-            // /MANIFEST:EMBED 是链接器选项，tauri-build 不会自动添加
-            println!("cargo:rustc-link-arg=/MANIFEST:EMBED");
+            tauri_build::build();
         } else {
             tauri_build::build();
         }

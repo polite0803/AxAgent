@@ -5,7 +5,7 @@
   STATUS_ENTRYPOINT_NOT_FOUND (0xc0000139)：cargo test 生成的 exe 未声明
   comctl32 v6 依赖时，tauri/wry 引用的 v6 入口点找不到。
   参考: https://github.com/tauri-apps/tauri/issues/11028
-       https://github.com/tauri-apps/tauri/pull/4383#issuecomment-1212221864
+       https://github.com/tauri-apps/tauri/discussions/11179
 -->
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
   <dependency>
