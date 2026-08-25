@@ -106,41 +106,41 @@ impl TraceRecorder {
     /// 记录节点完成
     pub fn complete_node(&self, node_id: &str, output: serde_json::Value) {
         let mut state = self.state.write();
-        if let Some(idx) = state.node_index.get(node_id).copied() {
-            if let Some(node) = state.trace.node_traces.get_mut(idx) {
-                node.mark_completed(output);
-            }
+        if let Some(idx) = state.node_index.get(node_id).copied()
+            && let Some(node) = state.trace.node_traces.get_mut(idx)
+        {
+            node.mark_completed(output);
         }
     }
 
     /// 记录节点失败
     pub fn fail_node(&self, node_id: &str, error_type: NodeErrorType, message: impl Into<String>) {
         let mut state = self.state.write();
-        if let Some(idx) = state.node_index.get(node_id).copied() {
-            if let Some(node) = state.trace.node_traces.get_mut(idx) {
-                let error = NodeErrorDetail::new(error_type, message);
-                node.mark_failed(error);
-            }
+        if let Some(idx) = state.node_index.get(node_id).copied()
+            && let Some(node) = state.trace.node_traces.get_mut(idx)
+        {
+            let error = NodeErrorDetail::new(error_type, message);
+            node.mark_failed(error);
         }
     }
 
     /// 记录输入校验结果
     pub fn record_input_validation(&self, node_id: &str, result: SchemaValidationResult) {
         let mut state = self.state.write();
-        if let Some(idx) = state.node_index.get(node_id).copied() {
-            if let Some(node) = state.trace.node_traces.get_mut(idx) {
-                node.input_validation = Some(result);
-            }
+        if let Some(idx) = state.node_index.get(node_id).copied()
+            && let Some(node) = state.trace.node_traces.get_mut(idx)
+        {
+            node.input_validation = Some(result);
         }
     }
 
     /// 记录输出校验结果
     pub fn record_output_validation(&self, node_id: &str, result: SchemaValidationResult) {
         let mut state = self.state.write();
-        if let Some(idx) = state.node_index.get(node_id).copied() {
-            if let Some(node) = state.trace.node_traces.get_mut(idx) {
-                node.output_validation = Some(result);
-            }
+        if let Some(idx) = state.node_index.get(node_id).copied()
+            && let Some(node) = state.trace.node_traces.get_mut(idx)
+        {
+            node.output_validation = Some(result);
         }
     }
 
@@ -152,12 +152,11 @@ impl TraceRecorder {
         arguments: Option<serde_json::Value>,
     ) {
         let mut state = self.state.write();
-        if let Some(idx) = state.node_index.get(node_id).copied() {
-            if let Some(node) = state.trace.node_traces.get_mut(idx) {
-                let call =
-                    axagent_harness::execution_trace::ToolCallTrace::new(tool_name, arguments);
-                node.add_tool_call(call);
-            }
+        if let Some(idx) = state.node_index.get(node_id).copied()
+            && let Some(node) = state.trace.node_traces.get_mut(idx)
+        {
+            let call = axagent_harness::execution_trace::ToolCallTrace::new(tool_name, arguments);
+            node.add_tool_call(call);
         }
     }
 
@@ -170,16 +169,16 @@ impl TraceRecorder {
         model: Option<String>,
     ) {
         let mut state = self.state.write();
-        if let Some(idx) = state.node_index.get(node_id).copied() {
-            if let Some(node) = state.trace.node_traces.get_mut(idx) {
-                node.token_usage = Some(axagent_harness::execution_trace::TokenUsageTrace {
-                    input_tokens,
-                    output_tokens,
-                    total_tokens: input_tokens + output_tokens,
-                    model,
-                    estimated_cost_usd: None,
-                });
-            }
+        if let Some(idx) = state.node_index.get(node_id).copied()
+            && let Some(node) = state.trace.node_traces.get_mut(idx)
+        {
+            node.token_usage = Some(axagent_harness::execution_trace::TokenUsageTrace {
+                input_tokens,
+                output_tokens,
+                total_tokens: input_tokens + output_tokens,
+                model,
+                estimated_cost_usd: None,
+            });
         }
     }
 
@@ -187,12 +186,12 @@ impl TraceRecorder {
     pub fn batch_add_tool_calls(&self, calls: Vec<(&str, String, Option<serde_json::Value>)>) {
         let mut state = self.state.write();
         for (node_id, tool_name, arguments) in calls {
-            if let Some(idx) = state.node_index.get(node_id).copied() {
-                if let Some(node) = state.trace.node_traces.get_mut(idx) {
-                    let call =
-                        axagent_harness::execution_trace::ToolCallTrace::new(tool_name, arguments);
-                    node.add_tool_call(call);
-                }
+            if let Some(idx) = state.node_index.get(node_id).copied()
+                && let Some(node) = state.trace.node_traces.get_mut(idx)
+            {
+                let call =
+                    axagent_harness::execution_trace::ToolCallTrace::new(tool_name, arguments);
+                node.add_tool_call(call);
             }
         }
     }

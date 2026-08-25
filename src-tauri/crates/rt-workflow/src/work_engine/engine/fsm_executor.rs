@@ -20,6 +20,9 @@ use tokio::sync::RwLock;
 
 use super::guard_evaluator::GuardEvaluator;
 
+/// 状态变更监听器类型
+type StateListener = Box<dyn Fn(&FsmRuntimeState) + Send + Sync>;
+
 /// FSM 执行器
 ///
 /// 负责驱动业务状态机的状态转移，同时支持在状态内部
@@ -32,7 +35,7 @@ pub struct FsmExecutor {
     /// 守卫条件评估器
     guard_evaluator: Arc<GuardEvaluator>,
     /// 状态变更监听器
-    listeners: Vec<Box<dyn Fn(&FsmRuntimeState) + Send + Sync>>,
+    listeners: Vec<StateListener>,
 }
 
 impl FsmExecutor {

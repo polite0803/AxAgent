@@ -179,7 +179,7 @@ fn validate_json_schema(
         Ok(()) => SchemaValidationResult::Valid,
         Err(err) => {
             // 将 jsonschema::ValidationError 转换为 SchemaValidationError
-            let path = err.instance_path().to_string().replace('\'', "").replace('"', "");
+            let path = err.instance_path().to_string().replace(['\'', '"'], "");
             let message = format!("{direction} 校验失败: {err}");
             let schema_error = SchemaValidationError {
                 path: if path.is_empty() {
