@@ -58,27 +58,54 @@ pub async fn recover_workflow_triggers(
         match cfg.trigger_type {
             TriggerType::Manual => {},
             TriggerType::Schedule => {
-                // AxInvest 兼容：stock-analysis 等模板使用 `schedules` 多时段格式
-                // （{ "schedules": { "morning": "0 9 * * 1-5", ... } }），由独立调度器
-                // （如 start_stock_pipeline）管理，不通过 TriggerManager 注册。
-                // 上游 ScheduleTriggerConfig 要求单个 `cron` 字段，解析会失败。
-                // 此处检测到 `schedules` 字段时记 debug 跳过，不记 warn。
-                if cfg.config.get("schedules").is_some() {
-                    tracing::debug!(
-                        "[trigger_recovery] 模板 {} 使用 AxInvest schedules 多时段格式,由独立调度器管理,跳过 TriggerManager 注册",
-                        tpl.id
-                    );
-                    continue;
-                }
-                let sched: ScheduleTriggerConfig = match serde_json::from_value(cfg.config) {
+                // ScheduleTriggerConfig 现已支持 `cron`（标准单时段）和 `schedules`（多时段 map）
+                // 两种格式，直接反序列化即可。兼容旧数据：若只有 `schedules` 无 `cron`，
+                // 则取第一个 schedule 的 cron 用于 TriggerManager 注册。
+                let sched: ScheduleTriggerConfig = match serde_json::from_value(cfg.config.clone())
+                {
                     Ok(s) => s,
-                    Err(e) => {
-                        tracing::warn!(
-                            "[trigger_recovery] 模板 {} 的 schedule config 解析失败: {}",
-                            tpl.id,
-                            e
-                        );
-                        continue;
+                    Err(_) => {
+                        // 旧格式兼容：仅有 schedules 无 cron
+                        if let Some(schedules) = cfg.config.get("schedules") {
+                            if let Some(first_cron) = schedules
+                                .as_object()
+                                .and_then(|m| m.iter().next().and_then(|(_, v)| v.as_str()))
+                            {
+                                tracing::info!(
+                                    "[trigger_recovery] 模板 {} 使用旧 schedules 格式,提取首个 cron='{}' 注册",
+                                    tpl.id,
+                                    first_cron
+                                );
+                                ScheduleTriggerConfig {
+                                    cron: first_cron.to_string(),
+                                    schedules: None,
+                                    timezone: cfg
+                                        .config
+                                        .get("timezone")
+                                        .and_then(|v| v.as_str())
+                                        .unwrap_or("UTC")
+                                        .to_string(),
+                                    enabled: cfg
+                                        .config
+                                        .get("enabled")
+                                        .and_then(|v| v.as_bool())
+                                        .unwrap_or(true),
+                                    input_params: None,
+                                }
+                            } else {
+                                tracing::warn!(
+                                    "[trigger_recovery] 模板 {} 的 schedules 格式无效,跳过",
+                                    tpl.id
+                                );
+                                continue;
+                            }
+                        } else {
+                            tracing::warn!(
+                                "[trigger_recovery] 模板 {} 的 schedule config 解析失败,跳过",
+                                tpl.id
+                            );
+                            continue;
+                        }
                     },
                 };
                 if !sched.enabled {

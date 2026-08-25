@@ -3331,13 +3331,13 @@ let score = (tech * w_tech + fund * w_fund + sent * w_sent + flow * w_flow + pol
             serde_json::to_string(&TriggerConfig {
                 trigger_type: TriggerType::Schedule,
                 config: serde_json::json!({
+                    // 标准单 cron 字段，供 ScheduleTriggerConfig 反序列化使用
+                    "cron": "0 9 * * 1-5",
+                    // 多时段 map，供独立调度器（start_stock_pipeline）使用
                     "schedules": {
                         "morning": "0 9 * * 1-5",
                         "afternoon": "0 14 * * 1-5",
                     },
-                    // F-9 修复: 原 enabled=false 导致工作流不会自动调度。
-                    //   既然有 schedule 配置,就应该是自动跑。改为 true,
-                    //   用户仍可在 UI 切换到 "未启用" 状态临时停止。
                     "enabled": true,
                     "timezone": "Asia/Shanghai",
                 }),

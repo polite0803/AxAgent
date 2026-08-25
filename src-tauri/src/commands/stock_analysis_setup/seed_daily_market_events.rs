@@ -41,6 +41,7 @@ pub async fn seed_daily_market_events_template(
     // ── 触发器：每日 18:00（北京时间）──
     let schedule_cfg = ScheduleTriggerConfig {
         cron: "0 18 * * *".into(),
+        schedules: None,
         timezone: "Asia/Shanghai".into(),
         enabled: true,
         input_params: Some(serde_json::json!({ "mainline_date": "{{today_cn}}" })),

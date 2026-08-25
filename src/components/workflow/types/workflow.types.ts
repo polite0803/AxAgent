@@ -67,8 +67,10 @@ export type ManualTriggerConfig = Record<string, never>;
 
 export interface ScheduleTriggerConfig {
   cron: string;
+  schedules?: Record<string, string>;
   timezone: string;
   enabled: boolean;
+  input_params?: unknown;
 }
 
 export interface WebhookTriggerConfig {
