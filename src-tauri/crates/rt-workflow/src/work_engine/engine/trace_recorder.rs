@@ -338,6 +338,7 @@ pub fn create_error_summary(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axagent_harness::workflow_types::NodeStatus;
 
     #[test]
     fn test_recorder_creation() {

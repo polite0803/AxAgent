@@ -282,6 +282,7 @@ pub fn create_fsm_transition_record(
 mod tests {
     use super::*;
     use axagent_harness::business_state_machine::BusinessStateMachine;
+    use axagent_harness::workflow_types::NodeStatus;
 
     #[tokio::test]
     async fn test_fsm_executor_creation() {
