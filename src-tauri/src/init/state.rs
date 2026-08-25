@@ -373,6 +373,11 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let evolution_consent_senders: Arc<
         Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<bool>>>,
     > = Arc::new(Mutex::new(std::collections::HashMap::new()));
+    let pending_capability_gaps: Arc<
+        tokio::sync::Mutex<
+            std::collections::HashMap<String, axagent_harness::CapabilityGapProposal>,
+        >,
+    > = Arc::new(tokio::sync::Mutex::new(std::collections::HashMap::new()));
     let agent_session_repo: Arc<dyn AgentSessionRepository> =
         Arc::new(DaoAgentSessionRepository::new(Arc::new(sea_db.clone())));
     let agent_session_manager = Arc::new(axagent_agent::SessionManager::new(agent_session_repo));
@@ -1255,6 +1260,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         agent_prompters,
         agent_plan_approvals,
         evolution_consent_senders,
+        pending_capability_gaps,
         agent_session_manager,
         agent_cancel_tokens,
         agent_paused,

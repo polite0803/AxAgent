@@ -531,43 +531,25 @@ async fn cognitive_query_inner(
             .with_param("field", "input"));
     }
 
-    // ── 前置 1：安全拦截（拒绝分支 → 能力补齐提议双通道，T0.3）──
-    // 检测注入/越狱/敏感指令。命中后：① 保留硬阻断（绝不透传给下游执行器，仍写安全日志）；
-    // ② 归类为结构化缺口提议征求用户同意；③ 同意则执行补齐（防护规则/有界豁免/工作流）；
-    // ④ 拒绝则保持原拒绝行为，并把拒绝记录为证据（拒绝即证据）。
+    // ── 前置 1：安全拦截（非阻塞式：存缺口 → 返回错误提示，T0.3）──
+    // 检测注入/越狱/敏感指令。命中后：① 保留硬阻断（绝不透传给下游执行器）；
+    // ② 生成结构化缺口提议，静默存储（不弹窗）；③ 返回错误提示，用户可在能力管理中审核后重新发送。
     let prompt_guard = PatternPromptGuard::new();
     let input = match prompt_guard.process_user_input_structured(&input) {
         Ok(processed) => processed,
         Err(rejection) => {
-            tracing::error!(%rejection.reason, "🛡️ 安全拦截命中，进入能力补齐提议通道");
+            tracing::error!(%rejection.reason, "🛡️ 安全拦截命中，存储能力缺口（非阻塞）");
             let proposal = build_capability_gap_proposal(Some(&rejection), &input);
-            // 征求用户同意（复用授权事件通道，前端 EvolutionConsentModal 弹窗）
-            if !await_user_consent(app, &state, &proposal).await? {
-                // 用户拒绝 → 保持原拒绝行为（不透传）。
-                // 注意：该分支直接返回 Err，未生成任何 assistant 消息，决策标签无处可挂，
-                // 故不再调用 persist_decision_to_message（此前误把 conversation_id 当 message_id，必然静默失败）。
-                return Err(CommandError::new(
-                    axagent_harness::error_codes::cognitive::PROMPT_REJECTED,
-                )
-                .with_category(ErrorCategory::Unrecoverable)
-                .with_detail(rejection.reason));
-            }
-            // 用户同意 → 执行补齐（挂 disposer 可回滚）。
-            // 补齐返回 Err 时同样无 assistant 消息可挂决策，故此处不持久化。
-            apply_capability_gap_proposal(&state, &proposal, &input).await?;
-            // 补齐后输入按安全化语义继续：
-            // - 误伤豁免（ExemptAuthorize）→ 放行原始输入（有界豁免已生效），继续走三层路由
-            // - 其余（GuardRule / CapabilityMissing）→ 提示重新发送，避免绕过防护
-            if proposal.gap_type == CapabilityGapType::ExemptAuthorize {
-                tracing::info!(%rejection.pattern, "🛡️ 用户同意有界豁免，放行该合法诉求");
-                input
-            } else {
-                return Err(CommandError::new(
-                    axagent_harness::error_codes::cognitive::GAP_PROPOSAL_APPLIED,
-                )
-                .with_category(ErrorCategory::General)
-                .with_detail("已按用户同意补齐能力，请重新发送请求".to_string()));
-            }
+            store_capability_gap(app, &state, &proposal).await?;
+            // 默认拒绝：安全策略优先，用户审核通过后需重新发送
+            return Err(CommandError::new(
+                axagent_harness::error_codes::cognitive::PROMPT_REJECTED,
+            )
+            .with_category(ErrorCategory::Unrecoverable)
+            .with_detail(format!(
+                "{}。能力缺口已存储，可在能力管理中审核通过后重新发送请求。",
+                rejection.reason
+            )));
         },
     };
 
@@ -879,50 +861,64 @@ async fn cognitive_query_inner(
         })?;
 
     // 4. 解析 l3_result（主 DAG EndNode 输出）
-    // 主 DAG 无产出时不再静默报错：进入能力补齐提议通道（T0.4），用户同意后补齐
-    // 能力并提示重发；拒绝则保持原 NO_CANDIDATE 可恢复错误。
+    // 主 DAG 无产出时：
+    // - 若 L1 预路由判定为 general 域 → 构造合成 l3_result 降级为 Ask 模式
+    //   （通用问答无需触发能力补齐，保持认知编排的业务分支语义）
+    // - 其他域 → 进入能力补齐提议通道，用户同意后补齐能力并提示重发
     let l3_value = match workflow.output {
         Some(v) => v,
         None => {
-            let proposal = build_capability_gap_proposal(None, &input);
-            if await_user_consent(app, &state, &proposal).await? {
-                apply_capability_gap_proposal(&state, &proposal, &input).await?;
-                return Err(CommandError::new(
-                    axagent_harness::error_codes::cognitive::GAP_PROPOSAL_APPLIED,
-                )
-                .with_category(ErrorCategory::General)
-                .with_detail("已按用户同意补齐能力，请重新发送请求".to_string()));
+            if l1_pre == CapabilityDomain::General {
+                tracing::info!(
+                    input_len = input.len(),
+                    "🧭 L1=general 且主 DAG 无产出，降级为 Ask 模式（通用问答）"
+                );
+                serde_json::json!({
+                    "route_path": "fallback:general_qa",
+                    "domain": "general",
+                    "cluster": "",
+                    "capability_id": "",
+                    "confidence": 0.5,
+                    "execution_mode": "ask",
+                    "is_circuit_broken": false,
+                    "candidates": [],
+                    "raw_count": 0,
+                    "is_llm_fallback": true,
+                    "fallback_path": "general_domain_ask_degrade",
+                    "stage_records": [],
+                })
+            } else {
+                let proposal = build_capability_gap_proposal(None, &input);
+                store_capability_gap(app, &state, &proposal).await?;
+                tracing::info!("🧭 主 DAG 无产出，能力缺口已存储，降级为 Ask 模式回答用户");
+                return execute_general_ask(app, state, request, &input).await;
             }
-            return Err(CommandError::new(axagent_harness::error_codes::cognitive::NO_CANDIDATE)
-                .with_category(ErrorCategory::Retryable)
-                .with_detail("认知编排器主 DAG 未产出路由决策".to_string()));
         },
     };
     let l3 = l3_value.as_object().cloned().unwrap_or_default();
 
-    // B1: 验证 l3_result 必须包含关键字段，缺失时触发能力补齐提议通道
+    // B1: 验证 l3_result 必须包含关键字段
+    // 字段缺失时：
+    // - 若 L1 预路由判定为 general 域 → 直接走 Ask 模式执行（通用问答兜底）
+    // - 其他域 → 触发能力补齐提议通道
     const REQUIRED_L3_FIELDS: &[&str] =
         &["route_path", "capability_id", "confidence", "execution_mode"];
     let missing_fields: Vec<&str> =
         REQUIRED_L3_FIELDS.iter().filter(|f| !l3.contains_key(**f)).copied().collect();
     if !missing_fields.is_empty() {
-        tracing::error!(
+        tracing::warn!(
             missing = ?missing_fields,
             l3_value = %l3_value,
             "认知编排主 DAG 输出缺少关键字段"
         );
-        let proposal = build_capability_gap_proposal(None, &input);
-        if await_user_consent(app, &state, &proposal).await? {
-            apply_capability_gap_proposal(&state, &proposal, &input).await?;
-            return Err(CommandError::new(
-                axagent_harness::error_codes::cognitive::GAP_PROPOSAL_APPLIED,
-            )
-            .with_category(ErrorCategory::General)
-            .with_detail("已按用户同意补齐能力，请重新发送请求".to_string()));
+        if l1_pre == CapabilityDomain::General {
+            tracing::info!("🧭 字段缺失但 L1=general，降级为 Ask 模式（通用问答）");
+            return execute_general_ask(app, state, request, &input).await;
         }
-        return Err(CommandError::new(axagent_harness::error_codes::cognitive::NO_CANDIDATE)
-            .with_category(ErrorCategory::Retryable)
-            .with_detail("认知编排器主 DAG 输出缺少关键字段，无法生成路由决策".to_string()));
+        let proposal = build_capability_gap_proposal(None, &input);
+        store_capability_gap(app, &state, &proposal).await?;
+        tracing::info!("🧭 字段缺失，能力缺口已存储，降级为 Ask 模式回答用户");
+        return execute_general_ask(app, state, request, &input).await;
     }
 
     let get_str = |key: &str, default: &str| {
@@ -994,17 +990,20 @@ async fn cognitive_query_inner(
         // 熔断 + 无候选（非自指）→ 进入能力补齐提议通道（T0.5）
         // 自指熔断是系统保护机制，不应触发能力补齐；其余场景（全部候选被拦截/无可用路径）
         // 表明系统当前无对应能力，征求用户同意后自动补齐。
+        // 但若 domain=general，说明是通用问答场景，应直接降级为 Ask 模式而非触发补齐。
         if candidate_details.is_empty() && circuit_break_reason_str != "self_reference" {
-            let proposal = build_capability_gap_proposal(None, &input);
-            if await_user_consent(app, &state, &proposal).await? {
-                apply_capability_gap_proposal(&state, &proposal, &input).await?;
-                return Err(CommandError::new(
-                    axagent_harness::error_codes::cognitive::GAP_PROPOSAL_APPLIED,
-                )
-                .with_category(ErrorCategory::General)
-                .with_detail("已按用户同意补齐能力，请重新发送请求".to_string()));
+            if domain == "general" {
+                tracing::info!(
+                    reason = %circuit_break_reason_str,
+                    "🧭 熔断无候选但 domain=general，降级为 Ask 模式"
+                );
+                return execute_general_ask(app, state, request, &input).await;
             }
-            tracing::info!("🧭 熔断无候选且用户拒绝补齐，返回熔断错误");
+            let proposal = build_capability_gap_proposal(None, &input);
+            store_capability_gap(app, &state, &proposal).await?;
+            tracing::info!(reason = %circuit_break_reason_str,
+                "🧭 熔断无候选，能力缺口已存储，降级为 Ask 模式回答用户");
+            return execute_general_ask(app, state, request, &input).await;
         }
 
         let mut params = HashMap::new();
@@ -1084,26 +1083,26 @@ async fn cognitive_query_inner(
     // 主 DAG 决策为 Clarify（置信度模糊）但候选为空（RAR/图谱兜底无命中）时，
     // 不进入空候选展示，而是生成 capability_missing 提议征求用户同意；
     // 拒绝则保持原 Clarify 空候选行为（返回空候选，前端自行兜底）。
+    // 但若 domain=general，说明是通用问答场景，应直接降级为 Ask 模式。
     if mode == ExecutionMode::Clarify && response.candidate_details.is_empty() {
-        let proposal = build_capability_gap_proposal(None, &input);
-        if await_user_consent(app, &state, &proposal).await? {
-            apply_capability_gap_proposal(&state, &proposal, &input).await?;
-            return Err(CommandError::new(
-                axagent_harness::error_codes::cognitive::GAP_PROPOSAL_APPLIED,
-            )
-            .with_category(ErrorCategory::General)
-            .with_detail("已按用户同意补齐能力，请重新发送请求".to_string()));
+        if response.domain == "general" {
+            tracing::info!("🧭 Clarify 空候选但 domain=general，降级为 Ask 模式");
+            return execute_general_ask(app, state, request, &input).await;
         }
-        tracing::info!("🧭 Clarify 兜底无候选且用户拒绝补齐，返回空候选（前端自行兜底）");
+        let proposal = build_capability_gap_proposal(None, &input);
+        store_capability_gap(app, &state, &proposal).await?;
+        tracing::info!("🧭 Clarify 空候选，能力缺口已存储，降级为 Ask 模式回答用户");
+        return execute_general_ask(app, state, request, &input).await;
     }
 
     response.execution = Some(match mode {
         // Workflow / Direct：capability_id 即工作流模板 ID，交给 WorkEngine 执行
+        // 执行失败 → 存缺口 + 降级 LLM 回答（分支 1）
         ExecutionMode::Workflow | ExecutionMode::Direct => {
             let workflow_id = response.capability_id.clone();
-            let execution_id = crate::commands::workflows::workflow_execute(
+            match crate::commands::workflows::workflow_execute(
                 app.clone(),
-                state,
+                state.clone(),
                 workflow_id.clone(),
                 request.model_id.clone(),
                 request.provider_id.clone(),
@@ -1114,28 +1113,37 @@ async fn cognitive_query_inner(
                 Some(decision),
             )
             .await
-            .map_err(|e| {
-                executor_error(e, axagent_harness::error_codes::cognitive::ROUTE_FAILED)
-            })?;
-            // 记录补齐工作流命中执行（evolution:workflow: 前缀的为补齐产物）
-            if workflow_id.starts_with("evolution:workflow:") {
-                tracing::info!(
-                    capability_id = %workflow_id,
-                    execution_mode = ?mode,
-                    "补齐工作流已被命中执行"
-                );
-                // 可选：后续可扩展为持久化统计记录
+            {
+                Ok(execution_id) => {
+                    // 记录补齐工作流命中执行（evolution:workflow: 前缀的为补齐产物）
+                    if workflow_id.starts_with("evolution:workflow:") {
+                        tracing::info!(
+                            capability_id = %workflow_id,
+                            execution_mode = ?mode,
+                            "补齐工作流已被命中执行"
+                        );
+                    }
+                    CognitiveExecutionView::Workflow { workflow_id, execution_id }
+                },
+                Err(e) => {
+                    tracing::warn!(
+                        workflow_id = %workflow_id,
+                        error = %e,
+                        "🧭 工作流执行失败，存储能力缺口并降级为 LLM 回答"
+                    );
+                    let proposal = build_capability_gap_proposal(None, &input);
+                    store_capability_gap(app, &state, &proposal).await?;
+                    return execute_general_ask(app, state, request, &input).await;
+                },
             }
-
-            CognitiveExecutionView::Workflow { workflow_id, execution_id }
         },
-        // ParameterExtract：精准命中（置信度 > 0.90），跳过澄清直接执行目标工作流；
-        // 文本输入交给 WorkEngine 内置规则抽取参数（JSON 对象已在快速路径直发）
+        // ParameterExtract：精准命中（置信度 > 0.90），跳过澄清直接执行目标工作流
+        // 执行失败 → 存缺口 + 降级 LLM 回答（分支 2）
         ExecutionMode::ParameterExtract => {
             let workflow_id = response.capability_id.clone();
-            let execution_id = crate::commands::workflows::workflow_execute(
+            match crate::commands::workflows::workflow_execute(
                 app.clone(),
-                state,
+                state.clone(),
                 workflow_id.clone(),
                 request.model_id.clone(),
                 request.provider_id.clone(),
@@ -1146,31 +1154,49 @@ async fn cognitive_query_inner(
                 Some(decision),
             )
             .await
-            .map_err(|e| {
-                executor_error(e, axagent_harness::error_codes::cognitive::ROUTE_FAILED)
-            })?;
-            CognitiveExecutionView::Workflow { workflow_id, execution_id }
+            {
+                Ok(execution_id) => CognitiveExecutionView::Workflow { workflow_id, execution_id },
+                Err(e) => {
+                    tracing::warn!(
+                        workflow_id = %workflow_id,
+                        error = %e,
+                        "🧭 参数抽取工作流执行失败，存储能力缺口并降级为 LLM 回答"
+                    );
+                    let proposal = build_capability_gap_proposal(None, &input);
+                    store_capability_gap(app, &state, &proposal).await?;
+                    return execute_general_ask(app, state, request, &input).await;
+                },
+            }
         },
-        // Plan：域明确但无具体工作流命中，触发 plan_generate 拆解任务（前端监听 plan-generated）
+        // Plan：域明确但无具体工作流命中，触发 plan_generate 拆解任务
+        // 执行失败 → 存缺口 + 降级 LLM 回答（分支 3）
         ExecutionMode::Plan => {
             let conversation_id = request.conversation_id.clone().ok_or_else(|| {
                 CommandError::new(axagent_harness::error_codes::cognitive::ROUTE_FAILED)
                     .with_category(ErrorCategory::Validation)
                     .with_param("field", "conversation_id")
             })?;
-            let plan = crate::commands::plan::plan_generate(
-                state,
+            match crate::commands::plan::plan_generate(
+                state.clone(),
                 app.clone(),
                 crate::commands::plan::PlanGenerateRequest {
                     conversation_id: conversation_id.clone(),
-                    content: input,
+                    content: input.clone(),
                 },
             )
             .await
-            .map_err(|e| {
-                executor_error(e, axagent_harness::error_codes::cognitive::ROUTE_FAILED)
-            })?;
-            CognitiveExecutionView::Plan { conversation_id, plan_id: plan.id }
+            {
+                Ok(plan) => CognitiveExecutionView::Plan { conversation_id, plan_id: plan.id },
+                Err(e) => {
+                    tracing::warn!(
+                        error = %e,
+                        "🧭 Plan 生成失败，存储能力缺口并降级为 LLM 回答"
+                    );
+                    let proposal = build_capability_gap_proposal(None, &input);
+                    store_capability_gap(app, &state, &proposal).await?;
+                    return execute_general_ask(app, state, request, &input).await;
+                },
+            }
         },
         // Clarify：模糊命中（置信度 0.60 ~ 0.90），返回 Top2 候选交用户选择，前端二次路由
         ExecutionMode::Clarify => {
@@ -1296,7 +1322,7 @@ async fn cognitive_query_inner(
 
             let agent_request = AgentQueryRequest {
                 conversation_id,
-                input,
+                input: input.clone(),
                 provider_id: request.provider_id.clone().unwrap_or_default(),
                 model_id: request.model_id.clone().unwrap_or_default(),
                 enabled_mcp_server_ids: None,
@@ -1317,12 +1343,26 @@ async fn cognitive_query_inner(
                 // P1: 透传任务形态决策（原则三标尺），运行时按任务而非按会话覆盖权限初值
                 task_shape: task_shape_decision.clone(),
             };
-            let agent_resp =
-                crate::commands::agent::agent_query(app.clone(), state.clone(), agent_request)
-                    .await
-                    .map_err(|e| {
-                        executor_error(e, axagent_harness::error_codes::cognitive::ROUTE_FAILED)
-                    })?;
+            // Agent 执行失败 → 存缺口 + 降级 LLM 回答（分支 5）
+            let agent_resp = match crate::commands::agent::agent_query(
+                app.clone(),
+                state.clone(),
+                agent_request,
+            )
+            .await
+            {
+                Ok(resp) => resp,
+                Err(e) => {
+                    tracing::warn!(
+                        capability_id = %response.capability_id,
+                        error = %e,
+                        "🧭 Agent 执行失败，存储能力缺口并降级为 LLM 回答"
+                    );
+                    let proposal = build_capability_gap_proposal(None, &input);
+                    store_capability_gap(app, &state, &proposal).await?;
+                    return execute_general_ask(app, state, request, &input).await;
+                },
+            };
             persist_decision_to_message(
                 state.harness.db(),
                 &agent_resp.assistant_message_id,
@@ -1394,6 +1434,78 @@ pub async fn cognitive_list_execution_modes() -> Result<Vec<&'static str>, Comma
 }
 
 // ── 双通道闭环：能力补齐（T0.6 / T0.7）────────────────
+
+/// 通用问答降级执行器：当 L1 预路由判定为 general 域但三层路由无法产出有效决策时，
+/// 直接以 Ask 模式委派 agent 执行，避免触发不必要的能力补齐弹窗。
+///
+/// 适用场景：用户询问通用知识（如「什么是量子力学」），业务域判定为 general，
+/// 但 general 域内无对应业务工作流/Agent 可路由——这不是「能力缺失」，
+/// 而是「通用问答」的正确降级路径。
+async fn execute_general_ask(
+    app: &tauri::AppHandle,
+    state: State<'_, AppState>,
+    request: &CognitiveQueryRequest,
+    input: &str,
+) -> Result<CognitiveQueryResponse, CommandError> {
+    let conversation_id = request.conversation_id.clone().ok_or_else(|| {
+        CommandError::new(axagent_harness::error_codes::cognitive::ROUTE_FAILED)
+            .with_category(ErrorCategory::Validation)
+            .with_param("field", "conversation_id")
+    })?;
+
+    tracing::info!(input_len = input.len(), "🧭 通用问答降级：以 Ask 模式委派 agent 执行");
+
+    let agent_request = AgentQueryRequest {
+        conversation_id: conversation_id.clone(),
+        input: input.to_string(),
+        provider_id: request.provider_id.clone().unwrap_or_default(),
+        model_id: request.model_id.clone().unwrap_or_default(),
+        enabled_mcp_server_ids: None,
+        enabled_knowledge_base_ids: None,
+        enabled_memory_namespace_ids: None,
+        enabled_wiki_ids: None,
+        system_prompt: request.system_prompt.clone(),
+        thinking_budget: None,
+        search_provider_id: request.search_provider_id.clone(),
+        attachments: None,
+        options: request.options.clone(),
+        agent_profile_id: None,
+        expert_id: None,
+        agent_context: request.agent_context.clone(),
+        execution_mode: Some(ExecutionMode::Ask.as_str().to_string()),
+        task_shape: None,
+    };
+
+    let agent_resp = crate::commands::agent::agent_query(app.clone(), state.clone(), agent_request)
+        .await
+        .map_err(|e| executor_error(e, axagent_harness::error_codes::cognitive::ROUTE_FAILED))?;
+
+    Ok(CognitiveQueryResponse {
+        route_path: "fallback:general_qa".to_string(),
+        domain: "general".to_string(),
+        cluster: String::new(),
+        capability_id: String::new(),
+        confidence: 0.5,
+        is_llm_fallback: true,
+        circuit_broken: false,
+        circuit_break_reason: None,
+        fallback_path: Some("general_domain_ask_degrade".to_string()),
+        candidates: Vec::new(),
+        candidate_details: Vec::new(),
+        filtered_count: 0,
+        execution_mode: ExecutionMode::Ask.as_str().to_string(),
+        selected_workflow_name: None,
+        selected_agent_profile: None,
+        stage_records: Vec::new(),
+        total_elapsed_ms: 0,
+        execution: Some(CognitiveExecutionView::Agent {
+            conversation_id: agent_resp.conversation_id,
+            assistant_message_id: agent_resp.assistant_message_id,
+            status: agent_resp.status,
+        }),
+        task_shape: None,
+    })
+}
 
 /// 能力补齐提议的归类分析器（通道一：能力补齐）。
 ///
@@ -1603,13 +1715,75 @@ pub(crate) async fn await_capability_consent(
     Ok(approved)
 }
 
-/// 认知编排器的用户同意封装（拒绝 / NO_CANDIDATE / Clarify 兜底三触发点调用）。
-async fn await_user_consent(
+/// 非阻塞存储能力缺口提议（替代 await_user_consent 的即时弹窗模式）。
+///
+/// 将提议存入 `pending_capability_gaps`，同时 emit 事件通知前端显示徽章提示，
+/// 但**不阻塞**请求主流程。用户可在能力管理面板中手动审核处理。
+pub(crate) async fn store_capability_gap(
     app: &tauri::AppHandle,
     state: &AppState,
     proposal: &CapabilityGapProposal,
-) -> Result<bool, CommandError> {
-    await_capability_consent(app, &state.evolution_consent_senders, proposal).await
+) -> Result<(), CommandError> {
+    let mut gaps = state.pending_capability_gaps.lock().await;
+    let existed = gaps.insert(proposal.id.clone(), proposal.clone()).is_some();
+    drop(gaps);
+    // 事件下发失败不阻断存储 — 前端可通过 list_pending_gaps 主动拉取
+    if let Err(e) = app.emit(EVOLUTION_CONSENT_EVENT, proposal) {
+        tracing::warn!(%e, proposal_id = %proposal.id, "🧭 能力缺口通知事件下发失败");
+    }
+    if existed {
+        tracing::info!(proposal_id = %proposal.id, "🧭 能力缺口已更新（已存在）");
+    } else {
+        tracing::info!(proposal_id = %proposal.id, "🧭 能力缺口已存储（等待用户手动处理）");
+    }
+    Ok(())
+}
+
+/// 列出所有待处理的能力缺口提议
+#[agent_command(
+    domain = cognitive,
+    safety = Safe,
+    call_mode = StateOnly,
+    description = "列出所有待处理的能力缺口提议"
+)]
+#[tauri::command]
+pub async fn list_pending_gaps(
+    state: State<'_, AppState>,
+) -> Result<Vec<CapabilityGapProposal>, CommandError> {
+    let gaps = state.pending_capability_gaps.lock().await;
+    Ok(gaps.values().cloned().collect())
+}
+
+/// 处理能力缺口提议（用户手动审核：同意或拒绝）
+#[agent_command(
+    domain = cognitive,
+    safety = Caution,
+    call_mode = StateInput,
+    description = "处理能力缺口提议（同意则执行补齐，拒绝则移除）"
+)]
+#[tauri::command]
+pub async fn resolve_capability_gap(
+    state: State<'_, AppState>,
+    proposal_id: String,
+    approved: bool,
+) -> Result<(), CommandError> {
+    let proposal = {
+        let gaps = state.pending_capability_gaps.lock().await;
+        gaps.get(&proposal_id).cloned()
+    };
+    let proposal = proposal.ok_or_else(|| {
+        CommandError::new(axagent_harness::error_codes::cognitive::NO_CANDIDATE)
+            .with_detail(format!("能力缺口提议不存在: {}", proposal_id))
+    })?;
+    if approved {
+        tracing::info!(proposal_id = %proposal_id, "🧭 用户同意能力补齐，开始执行");
+        apply_capability_gap_proposal(&state, &proposal, "").await?;
+    } else {
+        tracing::info!(proposal_id = %proposal_id, "🧭 用户拒绝能力补齐");
+    }
+    let mut gaps = state.pending_capability_gaps.lock().await;
+    gaps.remove(&proposal_id);
+    Ok(())
 }
 
 /// 能力补齐提议的用户审批回传请求

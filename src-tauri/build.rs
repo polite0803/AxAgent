@@ -29,11 +29,14 @@ fn main() {
             // 确保 manifest 文件变更时触发重新构建
             println!("cargo:rerun-if-changed=common-controls.manifest");
             // 1. new_without_app_manifest() 禁用默认 manifest 生成，避免冲突
-            // 2. app_manifest() 嵌入自定义 manifest（含 Common Controls v6）
+            // 2. app_manifest() 将自定义 manifest 写入 .rc 资源文件
+            // 3. /MANIFEST:EMBED 必须显式传递，否则 .rc 中的 manifest 不会被嵌入 EXE
             let windows_attrs = tauri_build::WindowsAttributes::new_without_app_manifest()
                 .app_manifest(include_str!("common-controls.manifest"));
             let attrs = tauri_build::Attributes::new().windows_attributes(windows_attrs);
             tauri_build::try_build(attrs).expect("failed to run tauri build script");
+            // /MANIFEST:EMBED 是链接器选项，tauri-build 不会自动添加
+            println!("cargo:rustc-link-arg=/MANIFEST:EMBED");
         } else {
             tauri_build::build();
         }

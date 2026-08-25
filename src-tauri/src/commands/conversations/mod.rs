@@ -2990,6 +2990,9 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         evolution_consent_senders: Arc::new(tokio::sync::Mutex::new(
             std::collections::HashMap::new(),
         )),
+        pending_capability_gaps: Arc::new(
+            tokio::sync::Mutex::new(std::collections::HashMap::new()),
+        ),
         agent_session_manager: {
             let repo: Arc<dyn AgentSessionRepository> =
                 Arc::new(DaoAgentSessionRepository::new(Arc::new(db.clone())));

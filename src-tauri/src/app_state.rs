@@ -7,6 +7,7 @@ use crate::state::{
     ToolState,
 };
 use axagent_credential::CredentialManager;
+use axagent_harness::CapabilityGapProposal;
 use axagent_harness::DefaultCapabilityRouter;
 use axagent_harness::PatternPromptGuard;
 use axagent_harness::fleet::FleetRepository;
@@ -238,11 +239,14 @@ pub struct AppState {
     /// `agent_query` 在闸门触发时插入 sender 并 await；`agent_approve_plan` 取出并发送。
     pub agent_plan_approvals:
         Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<bool>>>>,
-    /// 能力补齐/进化改进提议的挂起审批槽：proposalId → 同意信号发送端。
-    /// 认知编排器三触发点（拒绝 / NO_CANDIDATE / Clarify 兜底）生成提议后插入 sender 并
-    /// await；前端 EvolutionConsentModal 同意/拒绝后由 `capability_gap_consent` 取出并发送。
+    /// 能力补齐/进化改进提议的挂起审批槽：proposalId → 同意信号发送端（阻塞式，保留供超时兼容）。
     pub evolution_consent_senders:
         Arc<Mutex<std::collections::HashMap<String, tokio::sync::oneshot::Sender<bool>>>>,
+    /// 待处理的能力缺口提议（非阻塞式，静默存储，用户手动处理）。
+    /// 认知编排器触发能力补齐时不再即时弹窗，而是将提议存入此处，
+    /// 前端通过通知徽章提示，用户在能力管理面板中审核处理。
+    pub pending_capability_gaps:
+        Arc<tokio::sync::Mutex<std::collections::HashMap<String, CapabilityGapProposal>>>,
     pub agent_session_manager: Arc<axagent_agent::SessionManager>,
     pub agent_cancel_tokens: Arc<DashMap<String, Arc<AtomicBool>>>,
     pub agent_paused: Arc<Mutex<std::collections::HashSet<String>>>,
