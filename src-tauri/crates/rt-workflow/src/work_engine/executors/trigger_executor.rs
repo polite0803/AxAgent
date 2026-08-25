@@ -64,7 +64,8 @@ impl NodeExecutorTrait for TriggerExecutor {
             TriggerType::Schedule => {
                 if let Ok(cfg) = serde_json::from_value::<ScheduleTriggerConfig>(
                     trigger_node.config.config.clone(),
-                ) && let Some(tm) = tm
+                ) && cfg.is_valid()
+                    && let Some(tm) = tm
                 {
                     tm.register_schedule(
                         trigger_node.base.id.as_str(),

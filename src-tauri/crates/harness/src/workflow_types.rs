@@ -191,15 +191,25 @@ pub struct ManualTriggerConfig {}
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
 pub struct ScheduleTriggerConfig {
     /// 单个 cron 表达式（5 或 6 字段），标准调度器使用
+    #[serde(default)]
     pub cron: String,
     /// 多时段 cron 表达式（named → cron），stock-analysis 等模板使用
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub schedules: Option<std::collections::HashMap<String, String>>,
+    #[serde(default)]
     pub timezone: String,
+    #[serde(default = "default_true")]
     pub enabled: bool,
     /// 触发时注入工作流的输入参数（JSON）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub input_params: Option<serde_json::Value>,
+}
+
+impl ScheduleTriggerConfig {
+    /// 检查配置是否有效（cron 表达式非空）
+    pub fn is_valid(&self) -> bool {
+        !self.cron.trim().is_empty()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]

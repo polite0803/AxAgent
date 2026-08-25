@@ -26,9 +26,18 @@ use axagent_harness::repositories::{
 use rhai::{EvalAltResult, Position};
 
 pub mod dag_store;
+pub mod fsm_executor;
+pub mod fsm_manager;
+pub mod guard_evaluator;
 pub mod node_state;
 pub mod output_builder;
 pub mod rhai_runtime;
+pub mod schema_validator;
+pub mod trace_recorder;
+
+#[cfg(test)]
+mod integration_test;
+
 use output_builder::{
     build_workflow_output, collect_workflow_tool_names, extract_end_output, validate_input,
 };

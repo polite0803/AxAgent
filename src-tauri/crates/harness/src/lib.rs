@@ -879,5 +879,26 @@ pub use industry_orchestration::{
     WorkflowEvolverConfig,
 };
 
+// ── 协议层：强类型 Schema 系统（刚性协议 + 柔性节点架构核心）──
+pub mod schema;
+pub use schema::{
+    NodeContract, PrimitiveType, SchemaFormat, SchemaValidationError, SchemaValidationResult,
+};
+
+// ── 执行层：业务状态机（刚性轨道 + 柔性节点）──
+pub mod business_state_machine;
+pub use business_state_machine::{
+    BusinessState, BusinessStateMachine, FsmContext, FsmRuntimeState, FsmTransitionError,
+    FsmTransitionRecord, FsmValidationError, StateTransition,
+};
+
+// ── 观测层：执行轨迹系统（时间旅行调试）──
+pub mod execution_trace;
+pub use execution_trace::{
+    ExecutionTrace, NodeErrorDetail, NodeErrorType, NodeExecutionTrace, SchemaDiffReport,
+    SchemaDiffType, TimelinePosition, TokenUsageTrace, ToolCallStatus, ToolCallTrace,
+    TraceErrorSummary, TraceStatistics, TraceStatus,
+};
+
 // ── 类型驱动设计：DTO 尺寸锁定（编译时断言） ──
 pub mod dto_locks;

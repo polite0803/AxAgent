@@ -2,12 +2,12 @@
 
 export type ProviderKey = {
   id: string;
-  provider_id: string;
-  key_encrypted: string;
-  key_prefix: string;
+  providerId: string;
+  keyEncrypted: string;
+  keyPrefix: string;
   enabled: boolean;
-  last_validated_at: bigint | null;
-  last_error: string | null;
-  rotation_index: number;
-  created_at: bigint;
+  lastValidatedAt: bigint | null;
+  lastError: string | null;
+  rotationIndex: number;
+  createdAt: bigint;
 };
