@@ -601,9 +601,7 @@ pub struct TraceStatistics {
 impl TraceStatistics {
     /// 从 ExecutionTrace 计算统计
     pub fn from_trace(trace: &ExecutionTrace) -> Self {
-        let mut stats = Self::default();
-
-        stats.total_nodes = trace.node_traces.len() as u32;
+        let mut stats = Self { total_nodes: trace.node_traces.len() as u32, ..Default::default() };
 
         let mut total_duration: u64 = 0;
         let mut slowest_duration: u64 = 0;

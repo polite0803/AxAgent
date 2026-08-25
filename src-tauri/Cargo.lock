@@ -774,7 +774,7 @@ dependencies = [
 
 [[package]]
 name = "axagent"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "android_logger",
  "async-trait",
@@ -870,7 +870,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-agent"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "async-trait",
  "axagent-harness",
@@ -908,7 +908,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-agent-command-types"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "inventory",
  "serde",
@@ -918,7 +918,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-agent-macro"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "axagent-agent-command-types",
  "inventory",
@@ -929,7 +929,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-cache"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "axagent-harness",
  "quick_cache",
@@ -940,7 +940,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-crdt"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "axagent-harness",
  "chrono",
@@ -952,7 +952,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-credential"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "aes-gcm",
  "async-trait",
@@ -973,7 +973,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-crypto"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -991,7 +991,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-dao"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "async-trait",
  "axagent-entities",
@@ -1016,7 +1016,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-device"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "aes-gcm",
  "async-trait",
@@ -1041,7 +1041,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-disk-cache"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "rusqlite",
  "serde",
@@ -1049,7 +1049,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-document-parser"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "axagent-harness",
  "pdf-extract",
@@ -1060,7 +1060,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-entities"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "axagent-harness",
  "chrono",
@@ -1071,7 +1071,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-gateway"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "async-trait",
  "axagent-harness",
@@ -1104,7 +1104,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-harness"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1129,7 +1129,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-kit"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "anyhow",
  "axagent-harness",
@@ -1160,7 +1160,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-mcp"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "async-trait",
  "axagent-harness",
@@ -1181,7 +1181,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-migration"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "axagent-dao",
  "axagent-harness",
@@ -1196,14 +1196,14 @@ dependencies = [
 
 [[package]]
 name = "axagent-mobile"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "axagent",
 ]
 
 [[package]]
 name = "axagent-npm"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "async-trait",
  "axagent-harness",
@@ -1217,7 +1217,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-orchestrator"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "async-trait",
  "axagent-harness",
@@ -1232,7 +1232,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-plugins"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "axagent-harness",
  "hex",
@@ -1247,7 +1247,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-prompt-guard"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "axagent-harness",
  "regex",
@@ -1258,7 +1258,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-providers"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1277,7 +1277,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-rt-dashboard"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "async-trait",
  "serde",
@@ -1288,7 +1288,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-rt-messaging"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1318,7 +1318,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-rt-theme"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "serde",
  "serde_json",
@@ -1326,7 +1326,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-rt-webhook"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "async-trait",
  "axagent-harness",
@@ -1344,7 +1344,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-rt-workflow"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "async-trait",
  "axagent-crypto",
@@ -1383,7 +1383,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-runtime"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1444,7 +1444,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-runtime-core"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1468,7 +1468,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-search"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "async-trait",
  "axagent-harness",
@@ -1500,7 +1500,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-storage"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "async-trait",
  "axagent-dao",
@@ -1528,7 +1528,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-telemetry"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "axagent-harness",
  "chrono",
@@ -1547,7 +1547,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-tools"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "async-trait",
  "axagent-harness",
@@ -1595,7 +1595,7 @@ dependencies = [
 
 [[package]]
 name = "axagent-trajectory"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -9163,7 +9163,7 @@ dependencies = [
 
 [[package]]
 name = "schema-gen"
-version = "2.9.7"
+version = "2.9.8"
 dependencies = [
  "axagent-harness",
  "schemars 1.2.1",
