@@ -363,7 +363,7 @@ mod tests {
         let result = validate_against_schema(&serde_json::json!(42), &schema, "test");
         assert!(result.is_valid());
 
-        let result = validate_against_schema(&serde_json::json!(3.14), &schema, "test");
+        let result = validate_against_schema(&serde_json::json!(3.15), &schema, "test");
         assert!(result.is_invalid());
     }
 
