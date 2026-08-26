@@ -7290,7 +7290,11 @@
       "skipped": "Пропущено",
       "cancelled": "Отменено",
       "success": "Успех",
-      "waiting": "Ожидание"
+      "waiting": "Ожидание",
+      "reExecute": "Перезапустить",
+      "secret": "Секрет",
+      "required": "Обязательно",
+      "requiredField": "Введите {{name}}"
     },
     "existingSkill": "Существующий навык",
     "expandLeftPanel": "Развернуть левую панель",
@@ -8297,7 +8301,10 @@
       "version": "Версия",
       "community": "Сообщество",
       "recommended": "Рекомендуемые",
-      "all": "Все"
+      "all": "Все",
+      "run": "Запустить",
+      "domainPlaceholder": "Фильтр по домену...",
+      "allDomains": "Все домены"
     },
     "systemTemplateList": {
       "edit": "Изменить",

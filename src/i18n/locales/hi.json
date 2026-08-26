@@ -7290,7 +7290,11 @@
       "skipped": "छोड़ा गया",
       "cancelled": "रद्द",
       "success": "सफल",
-      "waiting": "प्रतीक्षारत"
+      "waiting": "प्रतीक्षारत",
+      "reExecute": "फिर से चलाएँ",
+      "secret": "गुप्त",
+      "required": "आवश्यक",
+      "requiredField": "कृपया {{name}} दर्ज करें"
     },
     "existingSkill": "मौजूदा स्किल",
     "expandLeftPanel": "बायाँ पैनल विस्तृत करें",
@@ -8297,7 +8301,10 @@
       "version": "संस्करण",
       "community": "समुदाय",
       "recommended": "अनुशंसित",
-      "all": "सभी"
+      "all": "सभी",
+      "run": "चलाएँ",
+      "domainPlaceholder": "डोमेन से फ़िल्टर करें...",
+      "allDomains": "सभी डोमेन"
     },
     "systemTemplateList": {
       "edit": "संपादित करें",

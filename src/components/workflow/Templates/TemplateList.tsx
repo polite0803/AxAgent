@@ -5,7 +5,7 @@ import { invoke } from "@/lib/invoke";
 import { message } from "@/lib/toast";
 import { useWorkflowEditorStore } from "@/stores";
 import { Button, Card, Empty, Input, Modal, Select, Spin, Tag, theme } from "antd";
-import { Copy, Download, Edit2, Eye, History, MoreVertical, Plus, Search, Trash2 } from "lucide-react";
+import { Copy, Download, Edit2, Eye, History, MoreVertical, Play, Plus, Search, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { WorkflowTemplateResponse } from "../types";
@@ -77,6 +77,7 @@ interface TemplateListProps {
   onSelectTemplate: (template: WorkflowTemplateResponse) => void;
   onCreateNew: () => void;
   onEditTemplate?: (template: WorkflowTemplateResponse) => void;
+  onRunTemplate?: (template: WorkflowTemplateResponse) => void;
 }
 
 const TAG_COLORS: Record<string, string> = {
@@ -104,6 +105,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
   onSelectTemplate,
   onCreateNew,
   onEditTemplate,
+  onRunTemplate,
 }) => {
   const { t } = useTranslation("translation");
   const { token } = theme.useToken();
@@ -150,6 +152,12 @@ export const TemplateList: React.FC<TemplateListProps> = ({
     return Array.from(tagSet).sort();
   }, [templates]);
 
+  const handleRunTemplate = (template: WorkflowTemplateResponse) => {
+    if (onRunTemplate) {
+      onRunTemplate(template);
+    }
+  };
+
   const filteredTemplates = React.useMemo(() => {
     return templates.filter((template) => {
       const matchesSearch = !searchText
@@ -186,6 +194,12 @@ export const TemplateList: React.FC<TemplateListProps> = ({
 
   const renderTemplateCard = (template: WorkflowTemplateResponse) => {
     const menuItems = [
+      {
+        key: "run",
+        icon: <Play size={14} style={{ color: token.colorSuccess }} />,
+        label: t("workflow.templateList.run"),
+        onClick: () => handleRunTemplate(template),
+      },
       {
         key: "view",
         icon: <Eye size={14} />,
@@ -382,13 +396,16 @@ export const TemplateList: React.FC<TemplateListProps> = ({
             allowClear
           />
           <Select
-            placeholder={t("workflow.templateList.tagPlaceholder")}
+            placeholder={t("workflow.templateList.domainPlaceholder")}
             value={filterTag}
             onChange={setFilterTag}
             allowClear
             size="small"
-            style={{ width: 100 }}
-            options={allTags.map((tag) => ({ value: tag, label: tag }))}
+            style={{ width: 140 }}
+            options={[
+              { value: undefined, label: t("workflow.templateList.allDomains") },
+              ...allTags.map((tag) => ({ value: tag, label: tag })),
+            ]}
           />
           <Select
             placeholder={t("workflow.templateList.typePlaceholder")}

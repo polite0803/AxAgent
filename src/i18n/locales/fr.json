@@ -7290,7 +7290,11 @@
       "skipped": "Ignoré",
       "cancelled": "Annulé",
       "success": "Succès",
-      "waiting": "En attente"
+      "waiting": "En attente",
+      "reExecute": "Ré-exécuter",
+      "secret": "Secret",
+      "required": "Requis",
+      "requiredField": "Veuillez saisir {{name}}"
     },
     "existingSkill": "Compétence existante",
     "expandLeftPanel": "Développer le panneau de gauche",
@@ -8297,7 +8301,10 @@
       "version": "Version",
       "community": "Communauté",
       "recommended": "Recommandé",
-      "all": "Tous"
+      "all": "Tous",
+      "run": "Exécuter",
+      "domainPlaceholder": "Filtrer par domaine...",
+      "allDomains": "Tous les domaines"
     },
     "systemTemplateList": {
       "edit": "Modifier",

@@ -7290,7 +7290,11 @@
       "skipped": "건너뜀",
       "cancelled": "취소됨",
       "success": "성공",
-      "waiting": "대기 중"
+      "waiting": "대기 중",
+      "reExecute": "다시 실행",
+      "secret": "비밀",
+      "required": "필수",
+      "requiredField": "{{name}}을(를) 입력하세요"
     },
     "existingSkill": "기존 스킬",
     "expandLeftPanel": "왼쪽 패널 펼치기",
@@ -8297,7 +8301,10 @@
       "version": "버전",
       "community": "커뮤니티",
       "recommended": "추천",
-      "all": "전체"
+      "all": "전체",
+      "run": "실행",
+      "domainPlaceholder": "도메인 필터...",
+      "allDomains": "모든 도메인"
     },
     "systemTemplateList": {
       "edit": "편집",

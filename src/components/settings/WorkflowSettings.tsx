@@ -12,12 +12,15 @@ interface WorkflowSettingsProps {
   /** 打开系统模板（认知编排器等）到工作流编辑器 */
   onOpenSystemEditor?: (templateId: string) => void;
   onCreateNew?: () => void;
+  /** 运行工作流（打开执行面板） */
+  onRunWorkflow?: (template: WorkflowTemplateResponse) => void;
 }
 
 export function WorkflowSettings({
   onOpenEditor,
   onOpenSystemEditor,
   onCreateNew,
+  onRunWorkflow,
 }: WorkflowSettingsProps) {
   const { t } = useTranslation();
 
@@ -49,6 +52,7 @@ export function WorkflowSettings({
         onSelectTemplate={handleSelectTemplate}
         onCreateNew={handleCreateNew}
         onEditTemplate={handleEditTemplate}
+        onRunTemplate={onRunWorkflow}
       />
     </div>
   );

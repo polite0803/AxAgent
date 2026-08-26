@@ -7290,7 +7290,11 @@
       "skipped": "Übersprungen",
       "cancelled": "Abgebrochen",
       "success": "Erfolgreich",
-      "waiting": "Wartend"
+      "waiting": "Wartend",
+      "reExecute": "Erneut ausführen",
+      "secret": "Geheim",
+      "required": "Erforderlich",
+      "requiredField": "Bitte {{name}} eingeben"
     },
     "existingSkill": "Vorhandener Skill",
     "expandLeftPanel": "Linken Bereich ausklappen",
@@ -8297,7 +8301,10 @@
       "version": "Version",
       "community": "Community",
       "recommended": "Empfohlen",
-      "all": "Alle"
+      "all": "Alle",
+      "run": "Ausführen",
+      "domainPlaceholder": "Nach Bereich filtern...",
+      "allDomains": "Alle Bereiche"
     },
     "systemTemplateList": {
       "edit": "Bearbeiten",

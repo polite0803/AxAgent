@@ -7290,7 +7290,11 @@
       "skipped": "تم تخطيه",
       "cancelled": "ملغى",
       "success": "نجاح",
-      "waiting": "بانتظار"
+      "waiting": "بانتظار",
+      "reExecute": "إعادة تشغيل",
+      "secret": "سرّي",
+      "required": "مطلوب",
+      "requiredField": "يرجى إدخال {{name}}"
     },
     "existingSkill": "المهارة الموجودة",
     "expandLeftPanel": "توسيع اللوحة اليسرى",
@@ -8297,7 +8301,10 @@
       "version": "الإصدار",
       "community": "المجتمع",
       "recommended": "موصى به",
-      "all": "الكل"
+      "all": "الكل",
+      "run": "تشغيل",
+      "domainPlaceholder": "تصفية حسب المجال...",
+      "allDomains": "جميع المجالات"
     },
     "systemTemplateList": {
       "edit": "تعديل",

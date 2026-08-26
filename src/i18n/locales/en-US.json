@@ -7298,7 +7298,11 @@
       "skipped": "Skipped",
       "cancelled": "Cancelled",
       "success": "Success",
-      "waiting": "Waiting"
+      "waiting": "Waiting",
+      "reExecute": "Re-execute",
+      "secret": "Secret",
+      "required": "Required",
+      "requiredField": "Please enter {{name}}"
     },
     "existingSkill": "Existing Skill",
     "expandLeftPanel": "Expand Left Panel",
@@ -8305,7 +8309,10 @@
       "version": "Version",
       "community": "Community",
       "recommended": "Recommended",
-      "all": "All"
+      "all": "All",
+      "run": "Run",
+      "domainPlaceholder": "Filter by domain",
+      "allDomains": "All domains"
     },
     "systemTemplateList": {
       "edit": "Edit",
