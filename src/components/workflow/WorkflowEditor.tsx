@@ -1676,7 +1676,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       const { invoke } = await import("@/lib/invoke");
       let subCount = 0;
       for (const subNode of subWorkflowNodes) {
-        const subId = subNode.data?.subWorkflowId || subNode.data?.subWorkflowId;
+        const subId = subNode.data?.subWorkflowId;
         if (!subId) { continue; }
         try {
           const tmpl: Record<string, unknown> = await invoke("get_workflow_template", { id: subId });
