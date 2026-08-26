@@ -803,7 +803,6 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
     },
 
     loadTemplate: async (id: string, includeSystem?: boolean) => {
-      console.warn("[workflowEditorStore] loadTemplate called: id=", id, "includeSystem=", includeSystem);
       set((state) => {
         state.isLoading = true;
         state.error = null;
@@ -818,41 +817,15 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         const params: Record<string, unknown> = { id };
         // includeSystem=true（系统模板页）时允许读取系统模板
         if (includeSystem) { params.include_system = includeSystem; }
-        console.warn("[workflowEditorStore] Invoking get_workflow_template with params:", params);
-        const template = await invoke<WorkflowTemplateResponse | null>(
+        const template = await invoke<WorkflowTemplateResponse>(
           "get_workflow_template",
           params,
         );
-        console.warn(
-          "[workflowEditorStore] get_workflow_template returned:",
-          template
-            ? `template found: ${template.name}, nodes=${template.nodes.length}, edges=${template.edges.length}`
-            : "null",
-        );
         // 如果在等待期间有新的 loadTemplate 调用，放弃本次结果
         if (get()._loadRequestId !== requestId) {
-          console.warn("[workflowEditorStore] Request superseded, ignoring result");
           return;
         }
 
-        // 检查模板是否存在
-        if (!template) {
-          console.warn("[workflowEditorStore] Template not found, setting error");
-          set((state) => {
-            state.error = `模板 "${id}" 不存在`;
-            state.isLoading = false;
-            state.currentTemplate = null;
-            state.nodes = [];
-            state.edges = [];
-            state.parentRefs = {};
-          });
-          return;
-        }
-
-        console.warn("[workflowEditorStore] Setting template data:", {
-          nodesCount: template.nodes.length,
-          edgesCount: template.edges.length,
-        });
         set((state) => {
           state.currentTemplate = template;
           state.nodes = template.nodes;
