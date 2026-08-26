@@ -102,14 +102,14 @@ export function GatewayKeys() {
     },
     {
       title: t("gateway.created"),
-      dataIndex: "created_at",
-      key: "created_at",
+      dataIndex: "createdAt",
+      key: "createdAt",
       render: (ts: number) => new Date(ts * 1000).toLocaleDateString(),
     },
     {
       title: t("gateway.lastUsed"),
-      dataIndex: "last_used_at",
-      key: "last_used_at",
+      dataIndex: "lastUsedAt",
+      key: "lastUsedAt",
       render: (ts: number | null) => ts ? new Date(ts * 1000).toLocaleDateString() : "-",
     },
     {

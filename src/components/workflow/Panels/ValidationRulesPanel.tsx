@@ -26,25 +26,25 @@ export interface ValidationRule {
   id: string;
   name: string;
   enabled: boolean;
-  rule_type: RuleType;
+  ruleType: RuleType;
   description: string;
   // JSON Schema 规则
   schema?: string;
   // 路径断言规则
-  source_node_id?: string;
-  expected_path?: string;
-  assertion_op?: AssertionOp;
-  expected_value?: string;
+  sourceNodeId?: string;
+  expectedPath?: string;
+  assertionOp?: AssertionOp;
+  expectedValue?: string;
   // 阈值规则
   metric?: ThresholdMetric;
-  max_value?: number;
-  min_value?: number;
+  maxValue?: number;
+  minValue?: number;
 }
 
 export interface WorkflowValidationConfig {
   enabled: boolean;
   rules: ValidationRule[];
-  on_fail: "warn" | "block" | "continue";
+  onFail: "warn" | "block" | "continue";
 }
 
 interface ValidationRulesPanelProps {
@@ -60,7 +60,7 @@ function defaultRule(): ValidationRule {
     id: generateId(),
     name: "",
     enabled: true,
-    rule_type: "json_schema",
+    ruleType: "json_schema",
     description: "",
     schema: JSON.stringify({ type: "object", properties: {} }, null, 2),
   };
@@ -107,7 +107,7 @@ export function ValidationRulesPanel({ onClose }: ValidationRulesPanelProps) {
     } catch {
       // localStorage 不可用或 JSON 解析失败，回退到默认值
     }
-    return { enabled: true, rules: [], on_fail: "warn" };
+    return { enabled: true, rules: [], onFail: "warn" };
   });
 
   // 配置变更时自动持久化到 localStorage
@@ -189,8 +189,8 @@ export function ValidationRulesPanel({ onClose }: ValidationRulesPanelProps) {
           {t("workflow.validation.onFailStrategy")}
         </Text>
         <Select
-          value={validationConfig.on_fail}
-          onChange={(v) => setValidationConfig((p) => ({ ...p, on_fail: v }))}
+          value={validationConfig.onFail}
+          onChange={(v) => setValidationConfig((p) => ({ ...p, onFail: v }))}
           size="small"
           style={{ width: "100%" }}
           options={failOptions}
@@ -228,7 +228,7 @@ export function ValidationRulesPanel({ onClose }: ValidationRulesPanelProps) {
               <Text style={{ fontSize: 12 }} ellipsis>
                 {rule.name || `${t("workflow.validation.rule")} ${idx + 1}`}
               </Text>
-              <Tag style={{ fontSize: 9, lineHeight: "14px" }}>{rule.rule_type}</Tag>
+              <Tag style={{ fontSize: 9, lineHeight: "14px" }}>{rule.ruleType}</Tag>
             </Space>
           ),
           extra: (
@@ -265,8 +265,8 @@ export function ValidationRulesPanel({ onClose }: ValidationRulesPanelProps) {
                 <Select
                   size="small"
                   style={{ width: "100%" }}
-                  value={rule.rule_type}
-                  onChange={(v) => updateRule(rule.id, { rule_type: v as RuleType })}
+                  value={rule.ruleType}
+                  onChange={(v) => updateRule(rule.id, { ruleType: v as RuleType })}
                   options={RULE_TYPE_OPTIONS}
                 />
               </div>
@@ -285,7 +285,7 @@ export function ValidationRulesPanel({ onClose }: ValidationRulesPanelProps) {
               </div>
 
               {/* JSON Schema 编辑器 */}
-              {rule.rule_type === "json_schema" && (
+              {rule.ruleType === "json_schema" && (
                 <div>
                   <Text type="secondary" style={{ fontSize: 10, display: "block", marginBottom: 2 }}>
                     {t("workflow.validation.schema")}
@@ -301,7 +301,7 @@ export function ValidationRulesPanel({ onClose }: ValidationRulesPanelProps) {
               )}
 
               {/* 路径断言 */}
-              {rule.rule_type === "path_assertion" && (
+              {rule.ruleType === "path_assertion" && (
                 <>
                   <div>
                     <Text type="secondary" style={{ fontSize: 10, display: "block", marginBottom: 2 }}>
@@ -310,8 +310,8 @@ export function ValidationRulesPanel({ onClose }: ValidationRulesPanelProps) {
                     <Select
                       size="small"
                       style={{ width: "100%" }}
-                      value={rule.source_node_id}
-                      onChange={(v) => updateRule(rule.id, { source_node_id: v })}
+                      value={rule.sourceNodeId}
+                      onChange={(v) => updateRule(rule.id, { sourceNodeId: v })}
                       options={nodeOptions}
                       placeholder={t("workflow.validation.selectNode")}
                     />
@@ -322,8 +322,8 @@ export function ValidationRulesPanel({ onClose }: ValidationRulesPanelProps) {
                     </Text>
                     <Input
                       size="small"
-                      value={rule.expected_path}
-                      onChange={(e) => updateRule(rule.id, { expected_path: e.target.value })}
+                      value={rule.expectedPath}
+                      onChange={(e) => updateRule(rule.id, { expectedPath: e.target.value })}
                       placeholder={t("workflow.validation.expectedPathPlaceholder")}
                     />
                   </div>
@@ -334,8 +334,8 @@ export function ValidationRulesPanel({ onClose }: ValidationRulesPanelProps) {
                     <Select
                       size="small"
                       style={{ width: "100%" }}
-                      value={rule.assertion_op}
-                      onChange={(v) => updateRule(rule.id, { assertion_op: v as AssertionOp })}
+                      value={rule.assertionOp}
+                      onChange={(v) => updateRule(rule.id, { assertionOp: v as AssertionOp })}
                       options={ASSERTION_OPTS}
                     />
                   </div>
@@ -345,8 +345,8 @@ export function ValidationRulesPanel({ onClose }: ValidationRulesPanelProps) {
                     </Text>
                     <Input
                       size="small"
-                      value={rule.expected_value}
-                      onChange={(e) => updateRule(rule.id, { expected_value: e.target.value })}
+                      value={rule.expectedValue}
+                      onChange={(e) => updateRule(rule.id, { expectedValue: e.target.value })}
                       placeholder={t("workflow.validation.expectedValuePlaceholder")}
                     />
                   </div>
@@ -354,7 +354,7 @@ export function ValidationRulesPanel({ onClose }: ValidationRulesPanelProps) {
               )}
 
               {/* 阈值规则 */}
-              {rule.rule_type === "threshold" && (
+              {rule.ruleType === "threshold" && (
                 <>
                   <div>
                     <Text type="secondary" style={{ fontSize: 10, display: "block", marginBottom: 2 }}>
@@ -376,8 +376,8 @@ export function ValidationRulesPanel({ onClose }: ValidationRulesPanelProps) {
                       <Input
                         size="small"
                         type="number"
-                        value={rule.max_value ?? ""}
-                        onChange={(e) => updateRule(rule.id, { max_value: parseInt(e.target.value) || undefined })}
+                        value={rule.maxValue ?? ""}
+                        onChange={(e) => updateRule(rule.id, { maxValue: parseInt(e.target.value) || undefined })}
                       />
                     </div>
                     <div style={{ flex: 1 }}>
@@ -387,8 +387,8 @@ export function ValidationRulesPanel({ onClose }: ValidationRulesPanelProps) {
                       <Input
                         size="small"
                         type="number"
-                        value={rule.min_value ?? ""}
-                        onChange={(e) => updateRule(rule.id, { min_value: parseInt(e.target.value) || undefined })}
+                        value={rule.minValue ?? ""}
+                        onChange={(e) => updateRule(rule.id, { minValue: parseInt(e.target.value) || undefined })}
                       />
                     </div>
                   </Space>

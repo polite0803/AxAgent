@@ -196,11 +196,11 @@ export function CodeStyleSample({
                     <span
                       className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${
                         getPatternTypeColor(
-                          pattern.pattern_type,
+                          pattern.patternType,
                         )
                       }`}
                     >
-                      {pattern.pattern_type}
+                      {pattern.patternType}
                     </span>
 
                     <div className="flex-1 min-w-0">
@@ -234,7 +234,7 @@ export function CodeStyleSample({
                           •
                         </span>
                         <span className="text-[10px] text-muted-foreground">
-                          {t("style.usedCount", { count: pattern.usage_count })}
+                          {t("style.usedCount", { count: pattern.usageCount })}
                         </span>
                       </div>
                     </div>

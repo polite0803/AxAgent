@@ -323,7 +323,7 @@ export function DataVendorsTab() {
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      // 先加载全量模板，只更新 vendor_ 变量值，保留 var_type/is_secret 等字段
+      // 先加载全量模板，只更新 vendor_ 变量值，保留 varType/isSecret 等字段
       const tmpl = await invoke("get_workflow_template", { id: "stock-analysis" }) as Record<string, unknown>;
       const allVars = (tmpl?.variables as Record<string, unknown>[]) ?? [];
       const varMap = new Map<string, Record<string, unknown>>();
@@ -333,32 +333,32 @@ export function DataVendorsTab() {
         if (existing && typeof existing === "object" && "name" in existing) {
           varMap.set(k, { ...existing, value: v });
         } else {
-          varMap.set(k, { name: k, var_type: "boolean", value: v, is_secret: false });
+          varMap.set(k, { name: k, varType: "boolean", value: v, isSecret: false });
         }
       }
       const iwencaiExisting = varMap.get("vendor_iwencai_key");
       varMap.set("vendor_iwencai_key", {
         ...(iwencaiExisting && typeof iwencaiExisting === "object" ? iwencaiExisting : {}),
         name: "vendor_iwencai_key",
-        var_type: "string",
+        varType: "string",
         value: iwencaiKey,
-        is_secret: true,
+        isSecret: true,
       });
       const xueqiuExisting = varMap.get("vendor_xueqiu_token");
       varMap.set("vendor_xueqiu_token", {
         ...(xueqiuExisting && typeof xueqiuExisting === "object" ? xueqiuExisting : {}),
         name: "vendor_xueqiu_token",
-        var_type: "string",
+        varType: "string",
         value: xueqiuToken,
-        is_secret: true,
+        isSecret: true,
       });
       const neodataExisting = varMap.get("vendor_neodata_token");
       varMap.set("vendor_neodata_token", {
         ...(neodataExisting && typeof neodataExisting === "object" ? neodataExisting : {}),
         name: "vendor_neodata_token",
-        var_type: "string",
+        varType: "string",
         value: neodataToken,
-        is_secret: true,
+        isSecret: true,
       });
       const merged = Array.from(varMap.values());
       await invoke("update_workflow_template", {
@@ -369,10 +369,10 @@ export function DataVendorsTab() {
           nodes: tmpl.nodes,
           edges: tmpl.edges,
           tags: tmpl.tags,
-          trigger_config: tmpl.triggerConfig,
-          input_schema: tmpl.inputSchema,
-          output_schema: tmpl.outputSchema,
-          error_config: tmpl.errorConfig,
+          triggerConfig: tmpl.triggerConfig,
+          inputSchema: tmpl.inputSchema,
+          outputSchema: tmpl.outputSchema,
+          errorConfig: tmpl.errorConfig,
           variables: merged,
         },
       });

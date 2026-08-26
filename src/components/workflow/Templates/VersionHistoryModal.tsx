@@ -78,7 +78,7 @@ function computeDiff(
   }
 
   // 边差异
-  const edgeKey = (e: WorkflowEdge) => `${e.source}→${e.target}:${e.edge_type}`;
+  const edgeKey = (e: WorkflowEdge) => `${e.source}→${e.target}:${e.edgeType}`;
   const edgeSetA = new Set(edgesA.map(edgeKey));
   const edgeSetB = new Set(edgesB.map(edgeKey));
 
@@ -87,7 +87,7 @@ function computeDiff(
       results.push({
         type: "added",
         label: `${eb.source} → ${eb.target}`,
-        detail: t("workflow.versionHistory.diffEdgeAdded", { type: eb.edge_type }),
+        detail: t("workflow.versionHistory.diffEdgeAdded", { type: eb.edgeType }),
       });
     }
   }
@@ -96,7 +96,7 @@ function computeDiff(
       results.push({
         type: "removed",
         label: `${ea.source} → ${ea.target}`,
-        detail: t("workflow.versionHistory.diffEdgeRemoved", { type: ea.edge_type }),
+        detail: t("workflow.versionHistory.diffEdgeRemoved", { type: ea.edgeType }),
       });
     }
   }

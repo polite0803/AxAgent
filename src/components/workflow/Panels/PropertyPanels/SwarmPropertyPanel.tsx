@@ -19,17 +19,17 @@ export const SwarmPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }
   const { token } = theme.useToken();
   const n = node as unknown as SwarmNode; // SAFE: WorkflowNode union narrowed to specific node type via config field access
   const c = n.config || {
-    agent_steps: [],
-    max_rounds: 3,
-    topic_var: "",
-    output_var: "",
+    agentSteps: [],
+    maxRounds: 3,
+    topicVar: "",
+    outputVar: "",
   };
   const sc = (k: string, v: unknown) => onUpdate({ config: { ...c, [k]: v } });
 
   const allNodes = useWorkflowEditorStore((s) => s.nodes);
   const addNode = useWorkflowEditorStore((s) => s.addNode);
   const setParentRef = useWorkflowEditorStore((s) => s.setParentRef);
-  const agentSteps: string[] = c.agent_steps || [];
+  const agentSteps: string[] = c.agentSteps || [];
 
   const childNodes = agentSteps
     .map((id) => allNodes.find((n) => n.id === id))
@@ -46,7 +46,7 @@ export const SwarmPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }
       config: {
         system_prompt: "",
         context_sources: [],
-        output_var: `${id}_output`,
+        outputVar: `${id}_output`,
         tools: [],
         exposed_tools: [],
         output_mode: "text",
@@ -54,12 +54,12 @@ export const SwarmPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }
     } as unknown as WorkflowNode; // SAFE: constructing WorkflowNode-compatible object for store insertion
     addNode(newNode);
     setParentRef(id, n.id, true);
-    sc("agent_steps", [...agentSteps, id]);
+    sc("agentSteps", [...agentSteps, id]);
   };
 
   const removeAgent = (stepId: string) => {
     const updated = agentSteps.filter((id) => id !== stepId);
-    sc("agent_steps", updated);
+    sc("agentSteps", updated);
     setParentRef(stepId, null, true);
   };
 
@@ -70,8 +70,8 @@ export const SwarmPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }
           {t("workflow.nodeConfig.topic_var")}
         </label>
         <Input
-          value={c.topic_var}
-          onChange={(e) => sc("topic_var", e.target.value)}
+          value={c.topicVar}
+          onChange={(e) => sc("topicVar", e.target.value)}
           size="small"
         />
       </div>
@@ -80,8 +80,8 @@ export const SwarmPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }
           {t("workflow.nodeConfig.max_rounds")}
         </label>
         <InputNumber
-          value={c.max_rounds}
-          onChange={(v) => sc("max_rounds", v ?? 3)}
+          value={c.maxRounds}
+          onChange={(v) => sc("maxRounds", v ?? 3)}
           size="small"
           min={1}
           max={50}
@@ -140,8 +140,8 @@ export const SwarmPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }
           {t("workflow.props.outputVariable")}
         </label>
         <Input
-          value={c.output_var ?? ""}
-          onChange={(e) => sc("output_var", e.target.value)}
+          value={c.outputVar ?? ""}
+          onChange={(e) => sc("outputVar", e.target.value)}
           size="small"
         />
       </div>

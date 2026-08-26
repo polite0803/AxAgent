@@ -59,16 +59,16 @@ export interface AiChatMessage {
 }
 
 export interface SimilarWorkflow {
-  workflow_id: string;
+  workflowId: string;
   name: string;
-  skill_ids: string[];
+  skillIds: string[];
   similarity: number;
 }
 
 export interface SaveSkillWorkflowResponse {
-  needs_review: boolean;
-  workflow_id: string | null;
-  similar_workflows: SimilarWorkflow[];
+  needsReview: boolean;
+  workflowId: string | null;
+  similarWorkflows: SimilarWorkflow[];
 }
 
 interface PendingWorkflowData {
@@ -85,11 +85,11 @@ type HistoryEntry = {
   description?: string;
   icon: string;
   tags: string[];
-  input_schema?: JsonSchema;
-  output_schema?: JsonSchema;
+  inputSchema?: JsonSchema;
+  outputSchema?: JsonSchema;
   variables?: Variable[];
-  error_config?: ErrorConfig;
-  trigger_config?: TriggerConfig;
+  errorConfig?: ErrorConfig;
+  triggerConfig?: TriggerConfig;
 };
 
 interface WorkflowEditorState {
@@ -235,7 +235,7 @@ interface WorkflowEditorState {
   saveDecompositionWorkflow: (
     workflowName: string,
     workflowDescription?: string,
-  ) => Promise<{ workflow_id: string; saved_skills: number }>;
+  ) => Promise<{ workflowId: string; savedSkills: number }>;
   saveSkillWorkflowFromLlm: (
     workflowName: string,
     workflowDescription?: string,
@@ -267,7 +267,7 @@ interface WorkflowEditorState {
     context: string,
   ) => Promise<
     Array<{
-      node_type: string;
+      nodeType: string;
       label: string;
       description: string;
       confidence: number;
@@ -276,7 +276,7 @@ interface WorkflowEditorState {
   applyOptimizedPromptToNode: (nodeId: string, optimizedPrompt: string) => void;
   /**
    * 将 AI 生成结果应用到节点的指定字段。
-   * 用于 Phase 1 节点级 AI 辅助（如 LLM.prompt、Agent.system_prompt、HttpRequest.url、Email.body 等）。
+   * 用于 Phase 1 节点级 AI 辅助（如 LLM.prompt、Agent.systemPrompt、HttpRequest.url、Email.body 等）。
    * - kind = "string" 时，value 必须是字符串，写入 config[field]
    * - kind = "object" 时，value 是任意 JSON 兼容对象，写入 config[field]
    */
@@ -385,8 +385,8 @@ interface WorkflowEditorState {
 interface ConversationWorkflowPreviewResponse {
   nodes: unknown[];
   edges: unknown[];
-  skill_execution_order: string[];
-  skill_count: number;
+  skillExecutionOrder: string[];
+  skillCount: number;
 }
 
 const createEmptyTemplate = (): Omit<
@@ -439,19 +439,19 @@ const buildHistoryEntry = (state: WorkflowEditorState): HistoryEntry => ({
   description: state.currentTemplate?.description,
   icon: state.currentTemplate?.icon || "Bot",
   tags: state.currentTemplate?.tags ? [...state.currentTemplate.tags] : [],
-  input_schema: state.currentTemplate?.inputSchema
+  inputSchema: state.currentTemplate?.inputSchema
     ? safeClone(state.currentTemplate.inputSchema)
     : undefined,
-  output_schema: state.currentTemplate?.outputSchema
+  outputSchema: state.currentTemplate?.outputSchema
     ? safeClone(state.currentTemplate.outputSchema)
     : undefined,
   variables: state.currentTemplate?.variables
     ? safeClone(state.currentTemplate.variables)
     : undefined,
-  error_config: state.currentTemplate?.errorConfig
+  errorConfig: state.currentTemplate?.errorConfig
     ? safeClone(state.currentTemplate.errorConfig)
     : undefined,
-  trigger_config: state.currentTemplate?.triggerConfig
+  triggerConfig: state.currentTemplate?.triggerConfig
     ? safeClone(state.currentTemplate.triggerConfig)
     : undefined,
 });
@@ -494,10 +494,9 @@ function parseActionsFromContent(content: string): AiChatAction[] {
   while ((match = regex.exec(content)) !== null) {
     try {
       const parsed = JSON.parse(match[1].trim());
-      const actionType = parsed.action_type;
+      const actionType = parsed.actionType;
       const data = parsed.data ?? {};
-      // 只接受已知的 action_type；未知类型丢弃（避免下游 switch 出现"幽灵分支"）
-      const known: ReadonlyArray<AiChatAction["action_type"]> = [
+      const known: ReadonlyArray<AiChatAction["actionType"]> = [
         "generate_workflow",
         "add_node",
         "add_nodes",
@@ -517,7 +516,7 @@ function parseActionsFromContent(content: string): AiChatAction[] {
         "apply_diff_with_validation",
       ];
       if (known.includes(actionType)) {
-        actions.push({ action_type: actionType, data } as AiChatAction);
+        actions.push({ actionType: actionType, data } as AiChatAction);
       }
     } catch {
       // skip invalid JSON
@@ -543,14 +542,14 @@ function mergeReports(ruleReport: DiagnosticReport, llmReport: DiagnosticReport)
   const seen = new Set<string>();
   const issues: DiagnosticIssue[] = [];
   for (const iss of ruleReport.issues) {
-    const key = `${iss.id}:${iss.node_ids.join(",")}`;
+    const key = `${iss.id}:${iss.nodeIds.join(",")}`;
     if (!seen.has(key)) {
       seen.add(key);
       issues.push(iss);
     }
   }
   for (const iss of llmReport.issues) {
-    const key = `${iss.id}:${iss.node_ids?.join(",") ?? ""}`;
+    const key = `${iss.id}:${iss.nodeIds?.join(",") ?? ""}`;
     if (!seen.has(key)) {
       seen.add(key);
       issues.push(iss);
@@ -561,21 +560,21 @@ function mergeReports(ruleReport: DiagnosticReport, llmReport: DiagnosticReport)
   return {
     issues,
     summary,
-    generated_at: Date.now(),
-    duration_ms: ruleReport.duration_ms + (llmReport.duration_ms ?? 0),
+    generatedAt: Date.now(),
+    durationMs: ruleReport.durationMs + (llmReport.durationMs ?? 0),
   };
 }
 
 /**
  * V2 协议 LLM diagnose 报告原始 schema(后端 `llm_diagnose_workflow` 返回):
- * 4 档 severity + 顶层 fixes[] + auto_apply 标志
+ * 4 档 severity + 顶层 fixes[] + autoApply 标志
  */
 interface LlmDiagnoseV2 {
   summary: string;
   issues: Array<{
     severity: string;
     category: string;
-    node_id: string | null;
+    nodeId: string | null;
     title: string;
     detail: string;
     suggestion: string;
@@ -583,7 +582,7 @@ interface LlmDiagnoseV2 {
   }>;
   suggestions: string[];
   fixes?: DiagnosticFix[];
-  auto_apply?: boolean;
+  autoApply?: boolean;
 }
 
 /**
@@ -627,14 +626,14 @@ function transformLlmResult(raw: LlmDiagnoseV2): DiagnosticReport {
     id: `llm_${idx}_${iss.category}`,
     severity: normalizeSeverity(iss.severity),
     category: iss.category as DiagnosticIssue["category"],
-    title_key: "",
-    message_key: "",
-    node_ids: iss.node_id ? [iss.node_id] : [],
-    auto_fixable: !!iss.fix,
+    titleKey: "",
+    messageKey: "",
+    nodeIds: iss.nodeId ? [iss.nodeId] : [],
+    autoFixable: !!iss.fix,
     fix: iss.fix,
-    title_override: iss.title,
-    detail_override: iss.detail,
-    suggestion_override: iss.suggestion,
+    titleOverride: iss.title,
+    detailOverride: iss.detail,
+    suggestionOverride: iss.suggestion,
   }));
   const summary = { error: 0, warning: 0, info: 0 };
   for (const iss of issues) {
@@ -643,8 +642,8 @@ function transformLlmResult(raw: LlmDiagnoseV2): DiagnosticReport {
   return {
     issues,
     summary,
-    generated_at: Date.now(),
-    duration_ms: 0,
+    generatedAt: Date.now(),
+    durationMs: 0,
   };
 }
 
@@ -721,11 +720,11 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           state.currentTemplate.description = previous.description;
           state.currentTemplate.icon = previous.icon;
           state.currentTemplate.tags = previous.tags;
-          state.currentTemplate.inputSchema = previous.input_schema;
-          state.currentTemplate.outputSchema = previous.output_schema;
+          state.currentTemplate.inputSchema = previous.inputSchema;
+          state.currentTemplate.outputSchema = previous.outputSchema;
           state.currentTemplate.variables = previous.variables ?? [];
-          state.currentTemplate.errorConfig = previous.error_config;
-          state.currentTemplate.triggerConfig = previous.trigger_config;
+          state.currentTemplate.errorConfig = previous.errorConfig;
+          state.currentTemplate.triggerConfig = previous.triggerConfig;
         }
         state.past = state.past.slice(0, -1);
         state.isDirty = true;
@@ -750,11 +749,11 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           state.currentTemplate.description = next.description;
           state.currentTemplate.icon = next.icon;
           state.currentTemplate.tags = next.tags;
-          state.currentTemplate.inputSchema = next.input_schema;
-          state.currentTemplate.outputSchema = next.output_schema;
+          state.currentTemplate.inputSchema = next.inputSchema;
+          state.currentTemplate.outputSchema = next.outputSchema;
           state.currentTemplate.variables = next.variables ?? [];
-          state.currentTemplate.errorConfig = next.error_config;
-          state.currentTemplate.triggerConfig = next.trigger_config;
+          state.currentTemplate.errorConfig = next.errorConfig;
+          state.currentTemplate.triggerConfig = next.triggerConfig;
         }
         state.future = state.future.slice(0, -1);
         state.isDirty = true;
@@ -953,13 +952,13 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         description: currentTemplate.description,
         icon: currentTemplate.icon,
         tags: currentTemplate.tags,
-        trigger_config: currentTemplate.triggerConfig,
+        triggerConfig: currentTemplate.triggerConfig,
         nodes,
         edges,
-        input_schema: currentTemplate.inputSchema,
-        output_schema: currentTemplate.outputSchema,
+        inputSchema: currentTemplate.inputSchema,
+        outputSchema: currentTemplate.outputSchema,
         variables: currentTemplate.variables,
-        error_config: currentTemplate.errorConfig,
+        errorConfig: currentTemplate.errorConfig,
       };
 
       try {
@@ -1002,7 +1001,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           warnings: string[];
           errors: string[];
         }>("import_workflow_template", {
-          json_data: jsonData,
+          jsonData: jsonData,
         });
         await get().loadTemplates();
         set((state) => {
@@ -1199,7 +1198,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           let dirty = false;
           const cleanCfg = { ...cfg };
 
-          const arrayFields = ["branches", "debater_steps", "body_steps", "agent_steps", "input_sources"] as const;
+          const arrayFields = ["branches", "debaterSteps", "bodySteps", "agentSteps", "inputSources"] as const;
           for (const field of arrayFields) {
             const arr = cleanCfg[field];
             if (Array.isArray(arr)) {
@@ -1584,10 +1583,10 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
             position: { x: 250, y: 200 },
             retry: {
               enabled: false,
-              max_retries: 3,
-              backoff_type: "Exponential" as const,
-              base_delay_ms: 1000,
-              max_delay_ms: 60000,
+              maxRetries: 3,
+              backoffType: "Exponential" as const,
+              baseDelayMs: 1000,
+              maxDelayMs: 60000,
             },
             timeout: undefined,
             enabled: true,
@@ -1601,10 +1600,10 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
             position: { x: 250, y: 350 },
             retry: {
               enabled: false,
-              max_retries: 3,
-              backoff_type: "Exponential" as const,
-              base_delay_ms: 1000,
-              max_delay_ms: 60000,
+              maxRetries: 3,
+              backoffType: "Exponential" as const,
+              baseDelayMs: 1000,
+              maxDelayMs: 60000,
             },
             timeout: undefined,
             enabled: true,
@@ -1620,7 +1619,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
             sourceHandle: undefined,
             target: endId,
             targetHandle: undefined,
-            edge_type: "direct" as const,
+            edgeType: "direct" as const,
           } as WorkflowEdge,
         ];
       set((state) => {
@@ -1681,8 +1680,8 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
       try {
         const result = await invoke<{
-          workflow_id: string;
-          saved_skills: number;
+          workflowId: string;
+          savedSkills: number;
         }>("confirm_decomposition", {
           request: {
             preview: {
@@ -1755,9 +1754,9 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           state.isSaving = false;
         });
 
-        if (response.needs_review) {
+        if (response.needsReview) {
           set((state) => {
-            state.similarWorkflowsForReview = response.similar_workflows;
+            state.similarWorkflowsForReview = response.similarWorkflows;
             state.pendingWorkflowData = { workflowName, workflowDescription };
           });
           return response;
@@ -1910,7 +1909,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         const currentNodeTypes = nodes.map(n => n.type).filter(Boolean) as string[];
         const result = await invoke<
           Array<{
-            node_type: string;
+            nodeType: string;
             label: string;
             description: string;
             confidence: number;
@@ -1940,7 +1939,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         const agentNode = node as import("@/components/workflow/types").AgentNode;
         get().updateNode(nodeId, {
           ...agentNode,
-          config: { ...agentNode.config, system_prompt: optimizedPrompt },
+          config: { ...agentNode.config, systemPrompt: optimizedPrompt },
         });
       } else if (node.type === "llm") {
         const llmNode = node as import("@/components/workflow/types").LLMNode;
@@ -1986,8 +1985,8 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           s.diagnoseReport = {
             issues: [],
             summary: { error: 0, warning: 0, info: 0 },
-            generated_at: Date.now(),
-            duration_ms: 0,
+            generatedAt: Date.now(),
+            durationMs: 0,
           };
           s.diagnoseRawFixes = null;
           s.diagnoseAutoApply = false;
@@ -2019,7 +2018,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         set((s) => {
           s.diagnoseReport = merged;
           s.diagnoseRawFixes = llmRaw.fixes ?? null;
-          s.diagnoseAutoApply = llmRaw.auto_apply ?? false;
+          s.diagnoseAutoApply = llmRaw.autoApply ?? false;
           s.diagnoseLoading = false;
         });
         return merged;
@@ -2053,77 +2052,75 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       const { diagnoseReport, nodes, edges } = get();
       if (!diagnoseReport) { return false; }
       const issue = diagnoseReport.issues.find((i) => i.id === issueId);
-      if (!issue || !issue.auto_fixable || !issue.fix) { return false; }
+      if (!issue || !issue.autoFixable || !issue.fix) { return false; }
       const fix: DiagnosticFix = issue.fix;
       set((s) => {
         s.diagnoseApplying = true;
       });
       let success = false;
       try {
-        switch (fix.action_type) {
+        switch (fix.actionType) {
           case "delete_node": {
-            if (!nodes.find((n) => n.id === fix.node_id)) { break; }
-            get().deleteNode(fix.node_id);
+            if (!nodes.find((n) => n.id === fix.nodeId)) { break; }
+            get().deleteNode(fix.nodeId);
             success = true;
             break;
           }
           case "delete_edge": {
-            if (!edges.find((e) => e.id === fix.edge_id)) { break; }
-            get().deleteEdge(fix.edge_id);
+            if (!edges.find((e) => e.id === fix.edgeId)) { break; }
+            get().deleteEdge(fix.edgeId);
             success = true;
             break;
           }
           case "set_node_field": {
-            success = get().applyAIAssistToNodeField(fix.node_id, fix.field, fix.value, "string");
+            success = get().applyAIAssistToNodeField(fix.nodeId, fix.field, fix.value, "string");
             break;
           }
           case "set_timeout": {
             get().updateNode(
-              fix.node_id,
-              { timeout: fix.timeout_ms } as unknown as Partial<WorkflowNode>, // SAFE: single-field partial update on WorkflowNode union
+              fix.nodeId,
+              { timeout: fix.timeoutMs } as unknown as Partial<WorkflowNode>,
             );
             success = true;
             break;
           }
           case "enable_retry": {
             get().updateNode(
-              fix.node_id,
+              fix.nodeId,
               {
                 retry: {
-                  max_retries: fix.max_retries,
+                  maxRetries: fix.maxRetries,
                   backoff: "exponential",
-                  initial_interval_ms: 1000,
+                  initialIntervalMs: 1000,
                 },
-              } as unknown as Record<string, unknown>, // SAFE: retry config applied via generic updateNode path
+              } as unknown as Record<string, unknown>,
             );
             success = true;
             break;
           }
           case "remove_debater_step": {
-            const debate = nodes.find((n) => n.id === fix.node_id);
+            const debate = nodes.find((n) => n.id === fix.nodeId);
             if (!debate || debate.type !== "debate") { break; }
-            // SAFE: runtime type check above ensures this is a DebateNode
-            /* SAFE: runtime type check at line 1951 ensures debate is DebateNode */
             const cfg = (debate as unknown as {
               config: {
-                debater_steps: string[];
+                debaterSteps: string[];
                 subGraph?: { nodes: Array<{ id: string }>; edges: Array<{ source: string; target: string }> };
               };
             }).config;
-            if (!cfg.debater_steps.includes(fix.step_id)) { break; }
-            const newSteps = cfg.debater_steps.filter((s) => s !== fix.step_id);
-            const newSubNodes = cfg.subGraph?.nodes.filter((n) => n.id !== fix.step_id) ?? [];
+            if (!cfg.debaterSteps.includes(fix.stepId)) { break; }
+            const newSteps = cfg.debaterSteps.filter((s) => s !== fix.stepId);
+            const newSubNodes = cfg.subGraph?.nodes.filter((n) => n.id !== fix.stepId) ?? [];
             const newSubEdges = cfg.subGraph?.edges.filter(
-              (e) => e.source !== fix.step_id && e.target !== fix.step_id,
+              (e) => e.source !== fix.stepId && e.target !== fix.stepId,
             ) ?? [];
-            get().updateNode(fix.node_id, {
+            get().updateNode(fix.nodeId, {
               ...(debate as object),
               config: {
                 ...cfg,
-                debater_steps: newSteps,
+                debaterSteps: newSteps,
                 subGraph: { nodes: newSubNodes, edges: newSubEdges },
               },
-            } as unknown as Partial<WorkflowNode>); // SAFE: debate node update with modified config
+            } as unknown as Partial<WorkflowNode>);
             success = true;
             break;
           }
@@ -2332,7 +2329,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
     applyAiChatAction: async (action: AiChatAction) => {
       const { nodes, edges } = get();
-      switch (action.action_type) {
+      switch (action.actionType) {
         case "generate_workflow": {
           set((state) => {
             state.past.push(buildHistoryEntry(state));
@@ -2386,8 +2383,8 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         }
         case "update_node":
         case "modify_node": {
-          const { node_id, changes } = action.data;
-          if (node_id) {
+          const { nodeId, changes } = action.data;
+          if (nodeId) {
             set((state) => {
               const now = Date.now();
               if (now - state._lastUndoRecordTime >= 1000) {
@@ -2399,7 +2396,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
                 state._lastUndoRecordTime = now;
               }
               state.nodes = state.nodes.map(n => {
-                if (n.id !== node_id) { return n; }
+                if (n.id !== nodeId) { return n; }
                 const merged: Record<string, unknown> = { ...changes };
                 if (merged.config && typeof merged.config === "object" && n.config) {
                   merged.config = { ...n.config, ...merged.config };
@@ -2411,7 +2408,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           break;
         }
         case "delete_node": {
-          const id = action.data.node_id;
+          const id = action.data.nodeId;
           if (id) {
             set((state) => {
               state.past.push(buildHistoryEntry(state));
@@ -2427,7 +2424,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           break;
         }
         case "delete_nodes": {
-          const idsToDelete = new Set(action.data.node_ids);
+          const idsToDelete = new Set(action.data.nodeIds);
           if (idsToDelete.size > 0) {
             set((state) => {
               state.past.push(buildHistoryEntry(state));
@@ -2459,8 +2456,8 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           break;
         }
         case "update_edge": {
-          const { edge_id, changes } = action.data;
-          if (edge_id) {
+          const { edgeId, changes } = action.data;
+          if (edgeId) {
             set((state) => {
               state.past.push(buildHistoryEntry(state));
               state.future = [];
@@ -2468,13 +2465,13 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
                 state.past = state.past.slice(-50);
               }
               state._lastUndoRecordTime = Date.now();
-              state.edges = state.edges.map(e => (e.id === edge_id ? { ...e, ...changes } : e));
+              state.edges = state.edges.map(e => (e.id === edgeId ? { ...e, ...changes } : e));
             });
           }
           break;
         }
         case "delete_edge": {
-          const id = action.data.edge_id;
+          const id = action.data.edgeId;
           if (id) {
             set((state) => {
               state.past.push(buildHistoryEntry(state));
@@ -2489,30 +2486,24 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           break;
         }
         case "optimize_prompt": {
-          const { node_id, optimized_prompt } = action.data;
-          if (node_id && optimized_prompt) {
-            get().applyOptimizedPromptToNode(node_id, optimized_prompt);
+          const { nodeId, optimizedPrompt } = action.data;
+          if (nodeId && optimizedPrompt) {
+            get().applyOptimizedPromptToNode(nodeId, optimizedPrompt);
           }
           break;
         }
-        // ── v2.0 基础设施类 action(经后端 apply 命令落地)──
-        // 这些 action 改的是数据库/workflow 引擎层,不是本地 store 内的 nodes/edges。
-        // 调后端命令后,若返回最新的 WorkflowTemplateResponse 则用其刷新 currentTemplate
-        // (update_variable / rollback_to_version / update_input_mapping);
-        // edit_asset_file 改的是外部文本文件,只返回 EditAssetFileResult 给前端展示;
-        // apply_diff_with_validation 由后端调度器递归处理内嵌 actions,只返回结果摘要。
         case "update_variable":
         case "rollback_to_version":
         case "update_input_mapping":
         case "edit_asset_file":
         case "apply_diff_with_validation": {
           try {
-            switch (action.action_type) {
+            switch (action.actionType) {
               case "update_variable": {
                 const refreshed = await invoke<WorkflowTemplateResponse>(
                   "apply_update_variable",
                   {
-                    templateId: action.data.template_id,
+                    templateId: action.data.templateId,
                     name: action.data.name,
                     value: action.data.value,
                   },
@@ -2524,7 +2515,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
                 const refreshed = await invoke<WorkflowTemplateResponse>(
                   "apply_rollback_to_version",
                   {
-                    templateId: action.data.template_id,
+                    templateId: action.data.templateId,
                     version: action.data.version,
                   },
                 );
@@ -2535,7 +2526,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
                 const refreshed = await invoke<WorkflowTemplateResponse>(
                   "apply_update_input_mapping",
                   {
-                    nodeId: action.data.node_id,
+                    nodeId: action.data.nodeId,
                     mappings: action.data.mappings,
                   },
                 );
@@ -2543,14 +2534,12 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
                 break;
               }
               case "edit_asset_file": {
-                // 仅返回 diff/行号,前端用 useActionVisual 展示,
-                // 真实文件已由后端落盘,无需刷 store。
                 const _result = await invoke<EditAssetFileResult>(
                   "apply_edit_asset_file",
                   {
                     path: action.data.path,
                     operation: action.data.operation,
-                    anchorLine: action.data.anchor_line,
+                    anchorLine: action.data.anchorLine,
                     code: action.data.code,
                     description: action.data.description,
                   },
@@ -2559,15 +2548,12 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
                 break;
               }
               case "apply_diff_with_validation": {
-                // 调度器在后端跑(逐个 apply + validation hook + 可选回滚),
-                // 前端只展示结果摘要;若内嵌 action 改了 template,后端命令返回
-                // 的 WorkflowTemplateResponse 包含在 validation_metrics 里(下轮接入)。
                 const _result = await invoke<ApplyDiffValidationResult>(
                   "apply_diff_with_validation",
                   {
                     actions: action.data.actions,
                     validation: action.data.validation,
-                    rollbackOnFailure: action.data.rollback_on_failure,
+                    rollbackOnFailure: action.data.rollbackOnFailure,
                   },
                 );
                 void _result;
@@ -2579,7 +2565,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
             set((state) => {
               state.error = errMsg;
             });
-            logIpcError(`[aiChat] ${action.action_type} failed`)(error);
+            logIpcError(`[aiChat] ${action.actionType} failed`)(error);
             throw error;
           }
           break;
@@ -2688,7 +2674,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       }
 
       const match = semanticCheckResult.matches.find(
-        (m: NodeSkillMatch) => m.node_id === nodeId,
+        (m: NodeSkillMatch) => m.nodeId === nodeId,
       );
       if (!match || !match.matches || match.matches.length === 0) {
         return;
@@ -2697,7 +2683,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       // atomicSkill removed — noop
       set((state) => {
         const remainingMatches = state.semanticCheckResult?.matches.filter(
-          (m: NodeSkillMatch) => m.node_id !== nodeId,
+          (m: NodeSkillMatch) => m.nodeId !== nodeId,
         ) || [];
         if (remainingMatches.length === 0) {
           state.semanticCheckResult = null;
@@ -2721,7 +2707,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           { conversationId: conversationId },
         );
 
-        if (response.skill_count === 0) {
+        if (response.skillCount === 0) {
           throw new Error(
             "WORKFLOW_NO_SKILL_EXECUTIONS: No skill executions found in this conversation",
           );
@@ -2747,11 +2733,11 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
             nodes: validNodes,
             edges: validEdges,
             name: `Workflow from Conversation`,
-            description: `Converted from conversation with ${response.skill_count} skill(s)`,
+            description: `Converted from conversation with ${response.skillCount} skill(s)`,
             isDecompositionWorkflow: true,
             decompositionSource: {
               market: conversationId,
-              repo: response.skill_execution_order.join(", "),
+              repo: response.skillExecutionOrder.join(", "),
               content: "",
             },
           };

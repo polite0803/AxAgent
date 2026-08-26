@@ -13,7 +13,7 @@ export const ApprovalPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelet
   const { token } = theme.useToken();
   const n = node as unknown as ApprovalNode; // SAFE: WorkflowNode union narrowed to specific node type via config field access
   const c = n.config
-    || { message: "", approver: "", timeout_secs: 86400, timeout_action: "auto_reject", output_var: "" };
+    || { message: "", approver: "", timeoutSecs: 86400, timeoutAction: "auto_reject", outputVar: "" };
   const sc = (k: string, v: unknown) => onUpdate({ config: { ...c, [k]: v } });
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -28,8 +28,8 @@ export const ApprovalPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelet
       <div>
         <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>Timeout (s)</label>
         <InputNumber
-          value={c.timeout_secs}
-          onChange={(v) => sc("timeout_secs", v ?? 86400)}
+          value={c.timeoutSecs}
+          onChange={(v) => sc("timeoutSecs", v ?? 86400)}
           size="small"
           style={{ width: "100%" }}
           min={0}
@@ -38,8 +38,8 @@ export const ApprovalPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelet
       <div>
         <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>Timeout Action</label>
         <Select
-          value={c.timeout_action}
-          onChange={(v) => sc("timeout_action", v)}
+          value={c.timeoutAction}
+          onChange={(v) => sc("timeoutAction", v)}
           size="small"
           style={{ width: "100%" }}
           options={[{ value: "auto_reject", label: "Auto Reject" }, { value: "auto_approve", label: "Auto Approve" }]}

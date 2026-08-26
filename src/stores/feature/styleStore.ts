@@ -31,9 +31,9 @@ export type {
 };
 
 export interface StyleMigratorStats {
-  total_profiles: number;
-  total_samples: number;
-  average_confidence: number;
+  totalProfiles: number;
+  totalSamples: number;
+  averageConfidence: number;
 }
 
 interface StyleStore {
@@ -86,38 +86,38 @@ export const useStyleStore = create<StyleStore>((set, get) => ({
   loadStyleProfile: async (userId: string) => {
     if (!isTauri()) {
       const defaultDimensions: StyleDimensions = {
-        naming_score: 0.5,
-        density_score: 0.5,
-        comment_ratio: 0.5,
-        abstraction_level: 0.5,
-        formality_score: 0.5,
-        structure_score: 0.5,
-        technical_depth: 0.5,
-        explanation_length: 0.5,
+        namingScore: 0.5,
+        densityScore: 0.5,
+        commentRatio: 0.5,
+        abstractionLevel: 0.5,
+        formalityScore: 0.5,
+        structureScore: 0.5,
+        technicalDepth: 0.5,
+        explanationLength: 0.5,
       };
       const defaultVector: StyleVector = {
         dimensions: defaultDimensions,
-        source_confidence: 0.5,
-        learned_at: new Date().toISOString(),
-        sample_count: 0,
+        sourceConfidence: 0.5,
+        learnedAt: new Date().toISOString(),
+        sampleCount: 0,
       };
       const defaultDocumentProfile: DocumentStyleProfile = {
-        formality_level: 0.5,
-        structure_level: 0.5,
-        technical_vocabulary_ratio: 0.5,
-        explanation_detail_level: 0.5,
-        preferred_format: "Markdown",
+        formalityLevel: 0.5,
+        structureLevel: 0.5,
+        technicalVocabularyRatio: 0.5,
+        explanationDetailLevel: 0.5,
+        preferredFormat: "Markdown",
       };
       const defaultProfile: UserStyleProfile = {
         id: "default",
-        user_id: userId,
-        code_style_vector: defaultVector,
-        document_style_profile: defaultDocumentProfile,
-        code_templates: [],
-        learned_patterns: [],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        total_samples: 0,
+        userId: userId,
+        codeStyleVector: defaultVector,
+        documentStyleProfile: defaultDocumentProfile,
+        codeTemplates: [],
+        learnedPatterns: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        totalSamples: 0,
         confidence: 0.5,
       };
       set({ currentProfile: defaultProfile, isLoading: false });
@@ -187,20 +187,20 @@ export const useStyleStore = create<StyleStore>((set, get) => ({
     }
 
     const updatedDimensions = {
-      ...currentProfile.code_style_vector.dimensions,
+      ...currentProfile.codeStyleVector.dimensions,
       [dimension]: Math.max(0, Math.min(1, value)),
     };
 
     set({
       currentProfile: {
         ...currentProfile,
-        code_style_vector: {
-          ...currentProfile.code_style_vector,
+        codeStyleVector: {
+          ...currentProfile.codeStyleVector,
           dimensions: updatedDimensions,
         },
       },
       appliedStyle: {
-        ...currentProfile.code_style_vector,
+        ...currentProfile.codeStyleVector,
         dimensions: updatedDimensions,
       },
     });
@@ -208,21 +208,21 @@ export const useStyleStore = create<StyleStore>((set, get) => ({
 
   resetToDefaults: () => {
     const defaultDimensions: StyleDimensions = {
-      naming_score: 0.5,
-      density_score: 0.5,
-      comment_ratio: 0.5,
-      abstraction_level: 0.5,
-      formality_score: 0.5,
-      structure_score: 0.5,
-      technical_depth: 0.5,
-      explanation_length: 0.5,
+      namingScore: 0.5,
+      densityScore: 0.5,
+      commentRatio: 0.5,
+      abstractionLevel: 0.5,
+      formalityScore: 0.5,
+      structureScore: 0.5,
+      technicalDepth: 0.5,
+      explanationLength: 0.5,
     };
 
     const defaultVector: StyleVector = {
       dimensions: defaultDimensions,
-      source_confidence: 0,
-      learned_at: new Date().toISOString(),
-      sample_count: 0,
+      sourceConfidence: 0,
+      learnedAt: new Date().toISOString(),
+      sampleCount: 0,
     };
 
     set({
@@ -264,7 +264,7 @@ export const useStyleStore = create<StyleStore>((set, get) => ({
         set({
           currentProfile: {
             ...currentProfile,
-            document_style_profile: profile,
+            documentStyleProfile: profile,
           },
           isLoading: false,
         });
@@ -306,7 +306,7 @@ export const useStyleStore = create<StyleStore>((set, get) => ({
 
   getStats: async () => {
     if (!isTauri()) {
-      return { total_profiles: 1, total_samples: 0, average_confidence: 0.5 };
+      return { totalProfiles: 1, totalSamples: 0, averageConfidence: 0.5 };
     }
     try {
       const stats = await invoke<StyleMigratorStats>("style_get_stats");

@@ -26,9 +26,9 @@ type JsonValue =
 // Agent 相关 DTO
 // ============================================================================
 
-type AgentExecuteRequest = { goal: string; context: string | null; max_steps: number | null };
+type AgentExecuteRequest = { goal: string; context: string | null; maxSteps: number | null };
 
-type AgentResult = { output: string; success: boolean; steps_taken: number };
+type AgentResult = { output: string; success: boolean; stepsTaken: number };
 
 type AgentCapability = { name: string; description: string };
 
@@ -51,18 +51,18 @@ type TokenUsage = {
 };
 
 type ContentBlock = { "Text": { text: string } } | { "ToolUse": { id: string; name: string; input: string } } | {
-  "ToolResult": { tool_use_id: string; tool_name: string; output: string; is_error: boolean };
+  "ToolResult": { toolUseId: string; toolName: string; output: string; isError: boolean };
 };
 
 type ConversationMessage = { role: MessageRole; blocks: Array<ContentBlock>; usage: TokenUsage | null };
 
 type SessionInfo = {
-  session_id: string;
-  user_id: string;
+  sessionId: string;
+  userId: string;
   title: string | null;
-  created_at: bigint;
-  updated_at: bigint;
-  token_usage: TokenUsage | null;
+  createdAt: bigint;
+  updatedAt: bigint;
+  tokenUsage: TokenUsage | null;
 };
 
 // ============================================================================
@@ -73,10 +73,10 @@ type Position = { x: number; y: number };
 
 type RetryConfig = {
   enabled: boolean;
-  max_retries: number;
-  backoff_type: BackoffType;
-  base_delay_ms: bigint;
-  max_delay_ms: bigint;
+  maxRetries: number;
+  backoffType: BackoffType;
+  baseDelayMs: bigint;
+  maxDelayMs: bigint;
 };
 
 type BackoffType = "Linear" | "Exponential" | "Fixed";
@@ -86,14 +86,14 @@ type CompensationConfig = {
   /**
    * 需要执行补偿的节点 ID 列表（预留扩展，当前由引擎根据 DAG 自动推导下游）
    */
-  compensation_nodes: Array<string>;
+  compensationNodes: Array<string>;
 };
 
 type CompensationStrategy = "SkipWithWarning" | "Rollback" | "Escalate";
 
 type NodeKind = "Input" | "Output" | "Tool" | "Agent" | "Condition" | "Loop" | "Container" | "Storage";
 
-type Variable = { name: string; var_type: string; value: JsonValue; description: string | null; is_secret: boolean };
+type Variable = { name: string; varType: string; value: JsonValue; description: string | null; isSecret: boolean };
 
 type WorkflowNodeBase = {
   id: string;
@@ -115,7 +115,7 @@ type WorkflowNodeBase = {
   /**
    * 节点失败时不中断整个工作流，继续执行后续节点。
    */
-  continue_on_fail: boolean;
+  continueOnFail: boolean;
 };
 
 // ============================================================================

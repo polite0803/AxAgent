@@ -47,22 +47,22 @@ export function SkillLearningPanel() {
   }, [tab]);
 
   async function handleLearn(
-    values: { name?: string; description?: string; source_type: string; content: string; auto_approve?: boolean },
+    values: { name?: string; description?: string; sourceType: string; content: string; autoApprove?: boolean },
   ) {
     setLearning(true);
     try {
       const input: LearnSkillInput = {
         name: values.name,
         description: values.description,
-        source_type: values.source_type,
+        sourceType: values.sourceType,
         content: values.content,
-        auto_approve: values.auto_approve,
+        autoApprove: values.autoApprove,
       };
       const result = await invoke<LearnSkillResult>("learn_skill", { input });
-      if (result.requires_approval) {
-        message.success(t("skillLearning.learnSubmitted", { id: result.operation_id ?? "" }));
+      if (result.requiresApproval) {
+        message.success(t("skillLearning.learnSubmitted", { id: result.operationId ?? "" }));
       } else {
-        message.success(t("skillLearning.learnCreated", { name: result.skill_name }));
+        message.success(t("skillLearning.learnCreated", { name: result.skillName }));
       }
       learnForm.resetFields();
     } catch (e) {
@@ -155,7 +155,7 @@ export function SkillLearningPanel() {
             form={learnForm}
             layout="vertical"
             onFinish={handleLearn}
-            initialValues={{ source_type: "document", auto_approve: false }}
+            initialValues={{ sourceType: "document", autoApprove: false }}
           >
             <Form.Item name="name" label={t("skillLearning.learnName")}>
               <Input placeholder={t("skillLearning.learnNamePlaceholder")} allowClear />
@@ -163,7 +163,7 @@ export function SkillLearningPanel() {
             <Form.Item name="description" label={t("skillLearning.learnDesc")}>
               <Input placeholder={t("skillLearning.learnDescPlaceholder")} allowClear />
             </Form.Item>
-            <Form.Item name="source_type" label={t("skillLearning.learnSourceType")} rules={[{ required: true }]}>
+            <Form.Item name="sourceType" label={t("skillLearning.learnSourceType")} rules={[{ required: true }]}>
               <Select
                 options={[
                   { value: "document", label: t("skillLearning.sourceDocument") },
@@ -180,7 +180,7 @@ export function SkillLearningPanel() {
             >
               <Input.TextArea rows={8} placeholder={t("skillLearning.learnContentPlaceholder")} />
             </Form.Item>
-            <Form.Item name="auto_approve" label={t("skillLearning.autoApprove")} valuePropName="checked">
+            <Form.Item name="autoApprove" label={t("skillLearning.autoApprove")} valuePropName="checked">
               <Switch />
             </Form.Item>
             <Button type="primary" htmlType="submit" loading={learning} icon={<GraduationCap size={14} />}>
@@ -200,15 +200,15 @@ export function SkillLearningPanel() {
                     style={{ border: "1px solid var(--color-border-secondary)", borderRadius: 8, padding: 12 }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                      <Tag color="blue">{op.operation_type}</Tag>
-                      {op.skill_name && <b>{op.skill_name}</b>}
-                      <Tag color={op.risk_level === "critical" || op.risk_level === "high" ? "red" : "green"}>
-                        {op.risk_level}
+                      <Tag color="blue">{op.operationType}</Tag>
+                      {op.skillName && <b>{op.skillName}</b>}
+                      <Tag color={op.riskLevel === "critical" || op.riskLevel === "high" ? "red" : "green"}>
+                        {op.riskLevel}
                       </Tag>
                       <span style={{ flex: 1 }} />
                       <Tooltip title={op.reason}>
                         <span style={{ fontSize: 12, color: "var(--color-text-tertiary)" }}>
-                          {new Date(op.created_at).toLocaleString()}
+                          {new Date(op.createdAt).toLocaleString()}
                         </span>
                       </Tooltip>
                     </div>
@@ -249,22 +249,22 @@ export function SkillLearningPanel() {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <span>{t("skillLearning.cfgSkillCreation")}</span>
               <Switch
-                checked={config.enable_skill_creation}
-                onChange={(v) => handleConfigChange({ enable_skill_creation: v })}
+                checked={config.enableSkillCreation}
+                onChange={(v) => handleConfigChange({ enableSkillCreation: v })}
               />
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <span>{t("skillLearning.cfgSkillPatching")}</span>
               <Switch
-                checked={config.enable_skill_patching}
-                onChange={(v) => handleConfigChange({ enable_skill_patching: v })}
+                checked={config.enableSkillPatching}
+                onChange={(v) => handleConfigChange({ enableSkillPatching: v })}
               />
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <span>{t("skillLearning.cfgBackgroundReview")}</span>
               <Switch
-                checked={config.enable_background_review}
-                onChange={(v) => handleConfigChange({ enable_background_review: v })}
+                checked={config.enableBackgroundReview}
+                onChange={(v) => handleConfigChange({ enableBackgroundReview: v })}
               />
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -272,14 +272,15 @@ export function SkillLearningPanel() {
                 <span>{t("skillLearning.cfgWriteGate")}</span>
               </Tooltip>
               <Switch
-                checked={config.write_approval_gate}
-                onChange={(v) => handleConfigChange({ write_approval_gate: v })}
+                checked={config.writeApprovalGate}
+                onChange={(v) => handleConfigChange({ writeApprovalGate: v })}
               />
             </div>
             <Divider style={{ margin: "8px 0" }} />
             <div style={{ fontSize: 12, color: "var(--color-text-tertiary)" }}>
-              {t("skillLearning.minToolCalls")}: {config.min_tool_calls_for_creation} ·{" "}
-              {t("skillLearning.maxReviewMsgs")}: {config.max_review_messages}
+              {t("skillLearning.minToolCalls")}: {config.minToolCallsForCreation} · {t("skillLearning.maxReviewMsgs")}:
+              {" "}
+              {config.maxReviewMessages}
             </div>
           </Space>
         )}

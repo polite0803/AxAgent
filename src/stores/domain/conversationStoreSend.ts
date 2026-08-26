@@ -1023,11 +1023,11 @@ export function createSendMethods(
         );
       }
 
-      // Create placeholder for new version, preserving original created_at for position
+      // Create placeholder for new version, preserving original createdAt for position
       const tempAssistantId = tempId("temp-assistant-");
       const parentId = userMsg.id;
 
-      // Find the original active AI message to preserve its created_at
+      // Find the original active AI message to preserve its createdAt
       const originalAiMsg = msgs.find(
         (m) => m.parentMessageId === parentId && m.isActive,
       );

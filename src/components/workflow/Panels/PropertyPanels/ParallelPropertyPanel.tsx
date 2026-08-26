@@ -27,9 +27,9 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
   const parallelNode = node as ParallelNode;
   const config = parallelNode.config || {
     branches: [],
-    wait_for_all: true,
+    waitForAll: true,
     aggregation: undefined,
-    auto_input_from_parent: true,
+    autoInputFromParent: true,
   };
 
   const { nodes } = useWorkflowEditorStore();
@@ -137,12 +137,12 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
         </label>
         <Switch
           size="small"
-          checked={config.auto_input_from_parent !== false}
+          checked={config.autoInputFromParent !== false}
           onChange={(checked) =>
             onUpdate({
               config: {
                 ...config,
-                auto_input_from_parent: checked,
+                autoInputFromParent: checked,
               },
             })}
         />
@@ -163,18 +163,18 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
         </label>
         <Switch
           size="small"
-          checked={config.wait_for_all}
+          checked={config.waitForAll}
           onChange={(checked) =>
             onUpdate({
               config: {
                 ...config,
-                wait_for_all: checked,
+                waitForAll: checked,
               },
             })}
         />
       </div>
       <div style={{ color: token.colorTextTertiary, fontSize: 12 }}>
-        {config.wait_for_all
+        {config.waitForAll
           ? t("workflow.props.waitForAllHint")
           : t("workflow.props.waitForAnyHint")}
       </div>

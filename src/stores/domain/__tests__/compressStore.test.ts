@@ -32,7 +32,7 @@ function makeSummary(overrides?: Record<string, unknown>) {
     summary: "This is a compressed summary of the conversation",
     original_message_count: 50,
     compressed_message_count: 5,
-    created_at: "2025-01-01T00:00:00Z",
+    createdAt: "2025-01-01T00:00:00Z",
     ...overrides,
   };
 }

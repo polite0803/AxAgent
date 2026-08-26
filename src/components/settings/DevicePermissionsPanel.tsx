@@ -239,8 +239,8 @@ export function DevicePermissionsPanel() {
     },
     {
       title: t("deviceSync.updatedAt"),
-      dataIndex: "updated_at",
-      key: "updated_at",
+      dataIndex: "updatedAt",
+      key: "updatedAt",
       width: 160,
       render: (date: string) => <Text type="secondary">{new Date(date).toLocaleString()}</Text>,
     },

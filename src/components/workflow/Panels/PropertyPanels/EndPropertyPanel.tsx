@@ -41,8 +41,8 @@ export const EndPropertyPanel: React.FC<EndPropertyPanelProps> = ({
         </label>
         <Input
           id="end-property-panel-input-95"
-          value={config.output_var || ""}
-          onChange={(e) => handleConfigChange("output_var", e.target.value)}
+          value={config.outputVar || ""}
+          onChange={(e) => handleConfigChange("outputVar", e.target.value)}
           size="small"
           placeholder={t("workflow.props.outputVarWorkflow")}
         />

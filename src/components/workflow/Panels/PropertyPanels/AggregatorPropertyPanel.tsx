@@ -18,12 +18,12 @@ export const AggregatorPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDel
   const n = node as unknown as AggregatorNode; // SAFE: WorkflowNode union narrowed to specific node type via config field access
   const c = n.config || {
     strategy: "all",
-    input_sources: [],
-    wait_for_all: true,
+    inputSources: [],
+    waitForAll: true,
     weights: [],
-    summarize_prompt: "",
-    summarize_model: "",
-    output_var: "",
+    summarizePrompt: "",
+    summarizeModel: "",
+    outputVar: "",
   };
 
   const sc = (k: string, v: unknown) => onUpdate({ config: { ...c, [k]: v } });
@@ -100,12 +100,12 @@ export const AggregatorPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDel
         </label>
         <Switch
           size="small"
-          checked={c.wait_for_all !== false}
-          onChange={(checked) => sc("wait_for_all", checked)}
+          checked={c.waitForAll !== false}
+          onChange={(checked) => sc("waitForAll", checked)}
         />
       </div>
       <div style={{ fontSize: 11, color: token.colorTextTertiary }}>
-        {c.wait_for_all !== false
+        {c.waitForAll !== false
           ? t("workflow.props.waitForAllHint", {
             defaultValue: "Aggregate only when all inputs are ready",
           })
@@ -159,8 +159,8 @@ export const AggregatorPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDel
               {t("workflow.props.summarizePrompt")}
             </label>
             <Input.TextArea
-              value={c.summarize_prompt || ""}
-              onChange={(e) => sc("summarize_prompt", e.target.value || undefined)}
+              value={c.summarizePrompt || ""}
+              onChange={(e) => sc("summarizePrompt", e.target.value || undefined)}
               size="small"
               rows={2}
               placeholder={t("workflow.props.summarizePromptPlaceholder", {
@@ -180,8 +180,8 @@ export const AggregatorPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDel
               {t("workflow.props.summarizeModel")}
             </label>
             <Input
-              value={c.summarize_model || ""}
-              onChange={(e) => sc("summarize_model", e.target.value || undefined)}
+              value={c.summarizeModel || ""}
+              onChange={(e) => sc("summarizeModel", e.target.value || undefined)}
               size="small"
               placeholder={t("workflow.props.defaultModel")}
             />

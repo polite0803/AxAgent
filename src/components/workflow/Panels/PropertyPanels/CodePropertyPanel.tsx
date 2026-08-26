@@ -83,7 +83,7 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({
   const config = codeNode.config || {
     language: "javascript",
     code: "",
-    output_var: "",
+    outputVar: "",
   };
 
   const [aiGenerating, setAiGenerating] = useState(false);
@@ -99,7 +99,7 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({
     for (const n of nodes) {
       if (n.type === "code" && (n as CodeNode).config?.language === "rhai") {
         const cn = n as CodeNode;
-        const toolName = cn.config.tool_name ?? `code_${n.id}`;
+        const toolName = cn.config.toolName ?? `code_${n.id}`;
         if (n.id !== codeNode.id) {
           tools.push({ name: toolName, source: i18n.t("workflow.code.rhaiTemplateDesc") });
         }
@@ -347,8 +347,8 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({
           </label>
           <Input
             id="code-property-panel-input-86"
-            value={config.output_var || ""}
-            onChange={(e) => handleConfigChange("output_var", e.target.value)}
+            value={config.outputVar || ""}
+            onChange={(e) => handleConfigChange("outputVar", e.target.value)}
             size="small"
             placeholder={t("workflow.props.outputVarDefault")}
           />
@@ -359,8 +359,8 @@ export const CodePropertyPanel: React.FC<CodePropertyPanelProps> = ({
               {t("workflow.props.toolName")}
             </label>
             <Input
-              value={config.tool_name ?? ""}
-              onChange={(e) => handleConfigChange("tool_name", e.target.value || undefined)}
+              value={config.toolName ?? ""}
+              onChange={(e) => handleConfigChange("toolName", e.target.value || undefined)}
               size="small"
               placeholder={t("workflow.code.codePlaceholder")}
             />

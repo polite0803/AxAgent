@@ -16,8 +16,8 @@ interface UseFlowNodesParams {
   parentRefs: Record<string, string>;
   collapsedContainers: Record<string, boolean>;
   validationResult: {
-    errors: Array<{ node_id?: string }>;
-    warnings: Array<{ node_id?: string }>;
+    errors: Array<{ nodeId?: string }>;
+    warnings: Array<{ nodeId?: string }>;
   } | null;
   frontendValidation: ValidateIssue[];
   validationMsgMap: Map<string, string>;
@@ -50,10 +50,10 @@ export function useFlowNodes(params: UseFlowNodesParams) {
     const warningNodeIds = new Set<string>();
     if (validationResult) {
       validationResult.errors.forEach((e) => {
-        if (e.node_id) { errorNodeIds.add(e.node_id); }
+        if (e.nodeId) { errorNodeIds.add(e.nodeId); }
       });
       validationResult.warnings.forEach((w) => {
-        if (w.node_id) { warningNodeIds.add(w.node_id); }
+        if (w.nodeId) { warningNodeIds.add(w.nodeId); }
       });
     }
     for (const iss of frontendValidation) {
@@ -116,13 +116,13 @@ export function useFlowNodes(params: UseFlowNodesParams) {
             subGraphChildCount = branches.reduce((sum, b) => sum + (b.steps?.length ?? 0), 0);
           }
         } else if (node.type === "loop") {
-          subGraphChildCount = (nodeConfig?.body_steps as string[] | undefined)?.length ?? 0;
+          subGraphChildCount = (nodeConfig?.bodySteps as string[] | undefined)?.length ?? 0;
         } else if (node.type === "debate") {
-          subGraphChildCount = (nodeConfig?.debater_steps as string[] | undefined)?.length ?? 0;
+          subGraphChildCount = (nodeConfig?.debaterSteps as string[] | undefined)?.length ?? 0;
         } else if (node.type === "swarm") {
-          subGraphChildCount = (nodeConfig?.agent_steps as string[] | undefined)?.length ?? 0;
+          subGraphChildCount = (nodeConfig?.agentSteps as string[] | undefined)?.length ?? 0;
         } else if (node.type === "aggregator") {
-          subGraphChildCount = (nodeConfig?.input_sources as string[] | undefined)?.length ?? 0;
+          subGraphChildCount = (nodeConfig?.inputSources as string[] | undefined)?.length ?? 0;
         }
       }
       const isContainerCollapsed = isContainer
@@ -216,19 +216,19 @@ export function useFlowNodes(params: UseFlowNodesParams) {
             : {}),
           ...(node.type === "debate"
             ? {
-              debaterSteps: (nodeConfig?.debater_steps as string[])
+              debaterSteps: (nodeConfig?.debaterSteps as string[])
                 ?? (subGraph?.nodes as unknown[] | undefined)?.map((n) => (n as Record<string, string>).id) ?? [],
-              maxRounds: (nodeConfig?.max_rounds as number) ?? 2,
-              convergencePrompt: nodeConfig?.convergence_prompt as string | undefined,
+              maxRounds: (nodeConfig?.maxRounds as number) ?? 2,
+              convergencePrompt: nodeConfig?.convergencePrompt as string | undefined,
             }
             : {}),
           ...(node.type === "parallel"
             ? {
               branches: (nodeConfig?.branches as unknown[] | undefined)?.length
                 ?? (subGraph?.nodes as unknown[] | undefined)?.length ?? 0,
-              waitStrategy: nodeConfig?.wait_for_all === false ? "any" as const : undefined,
+              waitStrategy: nodeConfig?.waitForAll === false ? "any" as const : undefined,
               aggregation: nodeConfig?.aggregation as string | undefined,
-              autoInputFromParent: nodeConfig?.auto_input_from_parent as boolean | undefined,
+              autoInputFromParent: nodeConfig?.autoInputFromParent as boolean | undefined,
               hasBranchTimeout:
                 (nodeConfig?.branches as { branchTimeoutMs?: number; degradeStrategy?: string }[] | undefined)?.some(
                   (b) => b.branchTimeoutMs != null || (b.degradeStrategy && b.degradeStrategy !== "skip"),
@@ -237,23 +237,23 @@ export function useFlowNodes(params: UseFlowNodesParams) {
             : {}),
           ...(node.type === "loop"
             ? {
-              loopType: nodeConfig?.loop_type as string | undefined,
-              maxIterations: nodeConfig?.max_iterations as number | undefined,
-              loopCondition: nodeConfig?.continue_condition as string | undefined,
-              collectionVar: (nodeConfig?.iter_input_var ?? nodeConfig?.items_var) as string | undefined,
+              loopType: nodeConfig?.loopType as string | undefined,
+              maxIterations: nodeConfig?.maxIterations as number | undefined,
+              loopCondition: nodeConfig?.continueCondition as string | undefined,
+              collectionVar: (nodeConfig?.iterInputVar ?? nodeConfig?.itemsVar) as string | undefined,
             }
             : {}),
           ...(node.type === "swarm"
             ? {
-              agentSteps: (nodeConfig?.agent_steps as string[])
+              agentSteps: (nodeConfig?.agentSteps as string[])
                 ?? (subGraph?.nodes as unknown[] | undefined)?.map((n) => (n as Record<string, string>).id) ?? [],
-              maxRounds: (nodeConfig?.max_rounds as number) ?? 3,
+              maxRounds: (nodeConfig?.maxRounds as number) ?? 3,
             }
             : {}),
           ...(node.type === "subWorkflow"
             ? {
-              subWorkflowId: nodeConfig?.sub_workflow_id as string | undefined,
-              subWorkflowName: nodeConfig?.sub_workflow_name as string | undefined,
+              subWorkflowId: nodeConfig?.subWorkflowId as string | undefined,
+              subWorkflowName: nodeConfig?.subWorkflowName as string | undefined,
             }
             : {}),
           ...(validationState ? { validationState } : {}),
@@ -261,11 +261,11 @@ export function useFlowNodes(params: UseFlowNodesParams) {
           ...(node.type === "agent" && (node as AgentNodeType).config
             ? {
               agentProfileId: (node as AgentNodeType).config.agentProfileId,
-              systemPrompt: (node as AgentNodeType).config.system_prompt,
+              systemPrompt: (node as AgentNodeType).config.systemPrompt,
               tools: (node as AgentNodeType).config.tools,
               contextSources: (node as AgentNodeType).config
-                .context_sources,
-              outputMode: (node as AgentNodeType).config.output_mode,
+                .contextSources,
+              outputMode: (node as AgentNodeType).config.outputMode,
               model: (node as AgentNodeType).config.model,
               ...(function() {
                 const profileId = (node as AgentNodeType).config
@@ -348,7 +348,7 @@ export function useFlowNodes(params: UseFlowNodesParams) {
           }
         }
       }
-      if (node.type === "merge" && scopedConfig?.auto_inputs_from_branches) {
+      if (node.type === "merge" && scopedConfig?.autoInputsFromBranches) {
         const inputs = scopedConfig?.inputs as string[] | undefined;
         if (inputs) {
           for (const inputId of inputs) {
@@ -373,13 +373,13 @@ export function useFlowNodes(params: UseFlowNodesParams) {
       }
       let stepIds: string[] | undefined;
       if (node.type === "debate") {
-        stepIds = scopedConfig?.debater_steps as string[] | undefined;
+        stepIds = scopedConfig?.debaterSteps as string[] | undefined;
       } else if (node.type === "loop") {
-        stepIds = scopedConfig?.body_steps as string[] | undefined;
+        stepIds = scopedConfig?.bodySteps as string[] | undefined;
       } else if (node.type === "swarm") {
-        stepIds = scopedConfig?.agent_steps as string[] | undefined;
+        stepIds = scopedConfig?.agentSteps as string[] | undefined;
       } else if (node.type === "aggregator") {
-        stepIds = scopedConfig?.input_sources as string[] | undefined;
+        stepIds = scopedConfig?.inputSources as string[] | undefined;
       }
       if (stepIds && stepIds.length > 0) {
         for (const stepId of stepIds) {
@@ -590,9 +590,9 @@ export function useFlowNodes(params: UseFlowNodesParams) {
             target: edge.target,
             targetHandle: edge.targetHandle,
             type: "base",
-            animated: edge.edge_type === "loopBack",
+            animated: edge.edgeType === "loopBack",
             label: edge.label,
-            data: { edgeType: edge.edge_type },
+            data: { edgeType: edge.edgeType },
             ...(shouldHide ? { hidden: true } : {}),
           });
           continue;
@@ -606,7 +606,7 @@ export function useFlowNodes(params: UseFlowNodesParams) {
 
       // 当连线被重路由时（端点从子节点变为容器），需要处理重复连线
       if (wasRemapped) {
-        const key = `${remappedSource}→${remappedTarget}:${edge.edge_type}`;
+        const key = `${remappedSource}→${remappedTarget}:${edge.edgeType}`;
         if (seenEdgeKeys.has(key)) { continue; }
         seenEdgeKeys.add(key);
       }
@@ -624,9 +624,9 @@ export function useFlowNodes(params: UseFlowNodesParams) {
         target: remappedTarget,
         targetHandle: wasRemapped && remappedTarget !== edge.target ? undefined : edge.targetHandle,
         type: "base",
-        animated: edge.edge_type === "loopBack",
+        animated: edge.edgeType === "loopBack",
         label: edge.label,
-        data: { edgeType: edge.edge_type },
+        data: { edgeType: edge.edgeType },
         ...((sourceIsOrphanHidden || targetIsOrphanHidden) ? { hidden: true } : {}),
       });
     }
@@ -657,9 +657,9 @@ export function useFlowNodes(params: UseFlowNodesParams) {
           target: subEdge.target,
           targetHandle: subEdge.targetHandle,
           type: "base",
-          animated: subEdge.edge_type === "loopBack",
+          animated: subEdge.edgeType === "loopBack",
           label: subEdge.label,
-          data: { edgeType: subEdge.edge_type },
+          data: { edgeType: subEdge.edgeType },
         });
       }
     }

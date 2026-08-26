@@ -22,20 +22,20 @@ export const SwitchPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
   const [messageApi, contextHolder] = message.useMessage();
   const sw = node as unknown as SwitchNode; // SAFE: WorkflowNode union narrowed to specific node type via config field access
   const config = sw.config || {
-    input_var: "",
+    inputVar: "",
     cases: [],
-    default_case: "",
-    match_mode: "exact" as const,
-    output_var: "",
-    use_llm: false,
-    llm_prompt: "",
-    llm_model: "",
+    defaultCase: "",
+    matchMode: "exact" as const,
+    outputVar: "",
+    useLlm: false,
+    llmPrompt: "",
+    llmModel: "",
   };
 
   const setCfg = (key: string, val: unknown) => onUpdate({ config: { ...config, [key]: val } });
 
-  const isExpressionMode = config.match_mode === "expression";
-  const isLlmMode = config.use_llm === true;
+  const isExpressionMode = config.matchMode === "expression";
+  const isLlmMode = config.useLlm === true;
 
   const handleAISuggestCases = async () => {
     const result = await aiGenerate({
@@ -44,7 +44,7 @@ export const SwitchPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
       }),
       userPrompt: t("workflow.aiAssist.switch.casesHint", {
         current: config.cases.length,
-        input: config.input_var,
+        input: config.inputVar,
       }),
     });
     if (!result) {
@@ -71,8 +71,8 @@ export const SwitchPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
           {t("workflow.props.inputVariable")}
         </label>
         <Input
-          value={config.input_var}
-          onChange={(e) => setCfg("input_var", e.target.value)}
+          value={config.inputVar}
+          onChange={(e) => setCfg("inputVar", e.target.value)}
           size="small"
           placeholder={t("workflow.props.switchInputVarPlaceholder")}
         />
@@ -86,8 +86,8 @@ export const SwitchPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
           {t("workflow.props.matchMode")}
         </label>
         <Select
-          value={config.match_mode}
-          onChange={(v) => setCfg("match_mode", v)}
+          value={config.matchMode}
+          onChange={(v) => setCfg("matchMode", v)}
           size="small"
           style={{ width: "100%" }}
           options={[
@@ -122,8 +122,8 @@ export const SwitchPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
         </label>
         <Switch
           size="small"
-          checked={config.use_llm === true}
-          onChange={(checked) => setCfg("use_llm", checked || undefined)}
+          checked={config.useLlm === true}
+          onChange={(checked) => setCfg("useLlm", checked || undefined)}
         />
       </div>
       {isLlmMode && (
@@ -140,8 +140,8 @@ export const SwitchPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
               {t("workflow.props.llmRoutingPrompt")}
             </label>
             <Input.TextArea
-              value={config.llm_prompt || ""}
-              onChange={(e) => setCfg("llm_prompt", e.target.value || undefined)}
+              value={config.llmPrompt || ""}
+              onChange={(e) => setCfg("llmPrompt", e.target.value || undefined)}
               size="small"
               rows={2}
               placeholder={t("workflow.props.llmRoutingPromptPlaceholder", {
@@ -161,8 +161,8 @@ export const SwitchPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
               {t("workflow.props.llmRoutingModel")}
             </label>
             <Input
-              value={config.llm_model || ""}
-              onChange={(e) => setCfg("llm_model", e.target.value || undefined)}
+              value={config.llmModel || ""}
+              onChange={(e) => setCfg("llmModel", e.target.value || undefined)}
               size="small"
               placeholder={t("workflow.props.defaultModel")}
             />
@@ -270,8 +270,8 @@ export const SwitchPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
           {t("workflow.props.defaultCase")}
         </label>
         <Input
-          value={config.default_case || ""}
-          onChange={(e) => setCfg("default_case", e.target.value || undefined)}
+          value={config.defaultCase || ""}
+          onChange={(e) => setCfg("defaultCase", e.target.value || undefined)}
           size="small"
           placeholder={t("workflow.props.notSet")}
         />
@@ -283,7 +283,7 @@ export const SwitchPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
         >
           {t("workflow.props.outputVariable")}
         </label>
-        <Input value={config.output_var} onChange={(e) => setCfg("output_var", e.target.value)} size="small" />
+        <Input value={config.outputVar} onChange={(e) => setCfg("outputVar", e.target.value)} size="small" />
       </div>
 
       <Divider style={{ margin: "8px 0", borderColor: token.colorBorderSecondary }} />

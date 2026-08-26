@@ -7,7 +7,7 @@
  * - 严重度统计（error / warning / info）
  * - 类别筛选
  * - 单条 issue 跳转、查看详情
- * - 一键自动修复（auto_fixable=true 时显示修复按钮）
+ * - 一键自动修复（autoFixable=true 时显示修复按钮）
  */
 import { useWorkflowEditorStore } from "@/stores/feature/workflowEditorStore";
 import { App, Button, Drawer, Empty, Segmented, Space, Spin, Statistic, Tag, Tooltip, Typography } from "antd";
@@ -81,7 +81,7 @@ export function DiagnosticDrawer({ open, onClose, onJumpToNode }: DiagnosticDraw
   }, [filtered]);
 
   const handleFix = (issue: DiagnosticIssue) => {
-    if (!issue.auto_fixable) { return; }
+    if (!issue.autoFixable) { return; }
     const ok = applyFix(issue.id);
     if (ok) {
       message.success(t("workflow.diagnostic.fix.applied"));
@@ -91,7 +91,7 @@ export function DiagnosticDrawer({ open, onClose, onJumpToNode }: DiagnosticDraw
   };
 
   const handleJump = (issue: DiagnosticIssue) => {
-    const first = issue.node_ids?.[0];
+    const first = issue.nodeIds?.[0];
     if (first && onJumpToNode) { onJumpToNode(first); }
   };
 
@@ -202,15 +202,15 @@ export function DiagnosticDrawer({ open, onClose, onJumpToNode }: DiagnosticDraw
                 return (
                   <div key={sev} className="flex flex-col gap-2">
                     {list.map((iss) => {
-                      const title = iss.title_override
+                      const title = iss.titleOverride
                         || t(`workflow.diagnostic.issues.${iss.id}.title`, { defaultValue: iss.id });
-                      const msgTpl = iss.detail_override
+                      const msgTpl = iss.detailOverride
                         || t(`workflow.diagnostic.issues.${iss.id}.message`, { defaultValue: "" });
-                      const msg = msgTpl ? renderMessage(msgTpl, iss.message_params) : "";
+                      const msg = msgTpl ? renderMessage(msgTpl, iss.messageParams) : "";
                       const sevColor = sev === "error" ? "red" : sev === "warning" ? "gold" : "blue";
                       return (
                         <div
-                          key={iss.id + ":" + (iss.node_ids?.[0] ?? "")}
+                          key={iss.id + ":" + (iss.nodeIds?.[0] ?? "")}
                           className="rounded-md border border-gray-200 p-2 dark:border-gray-700"
                         >
                           <div className="flex items-start justify-between gap-2">
@@ -223,7 +223,7 @@ export function DiagnosticDrawer({ open, onClose, onJumpToNode }: DiagnosticDraw
                               </Tag>
                             </Space>
                             <Space size={4}>
-                              {iss.node_ids?.[0] && (
+                              {iss.nodeIds?.[0] && (
                                 <Tooltip title={t("workflow.diagnostic.jump")}>
                                   <Button
                                     size="small"
@@ -233,7 +233,7 @@ export function DiagnosticDrawer({ open, onClose, onJumpToNode }: DiagnosticDraw
                                   />
                                 </Tooltip>
                               )}
-                              {iss.auto_fixable && (
+                              {iss.autoFixable && (
                                 <Tooltip title={t("workflow.diagnostic.fix.apply")}>
                                   <Button
                                     size="small"
@@ -250,10 +250,10 @@ export function DiagnosticDrawer({ open, onClose, onJumpToNode }: DiagnosticDraw
                           </div>
                           <div className="mt-1 text-sm font-medium">{title}</div>
                           {msg && <div className="text-xs text-gray-500 dark:text-gray-400">{msg}</div>}
-                          {iss.suggestion_override && (
+                          {iss.suggestionOverride && (
                             <div className="text-xs text-blue-500 dark:text-blue-400 mt-1 flex items-start gap-1">
                               <Info size={12} aria-hidden="true" className="mt-0.5 shrink-0" />
-                              <span>{iss.suggestion_override}</span>
+                              <span>{iss.suggestionOverride}</span>
                             </div>
                           )}
                         </div>

@@ -170,10 +170,10 @@ function buildVariables(workflowId: string): Variable[] {
     if (!def) { continue; }
     vars.push({
       name: def.name,
-      var_type: def.type === "enum" ? "enum" : def.type,
+      varType: def.type === "enum" ? "enum" : def.type,
       value: def.default,
       description: def.description,
-      is_secret: false,
+      isSecret: false,
     });
   }
   return vars;
@@ -277,13 +277,13 @@ export function CodeRefactorConfigPanel({ workflowId, onVariablesChange }: Props
             description: rsp.description,
             icon: rsp.icon,
             tags: rsp.tags,
-            trigger_config: rsp.triggerConfig,
+            triggerConfig: rsp.triggerConfig,
             nodes: rsp.nodes,
             edges: rsp.edges,
-            input_schema: rsp.inputSchema,
-            output_schema: rsp.outputSchema,
+            inputSchema: rsp.inputSchema,
+            outputSchema: rsp.outputSchema,
             variables: defaults,
-            error_config: rsp.errorConfig,
+            errorConfig: rsp.errorConfig,
           };
           invoke<boolean>("update_workflow_template", { id: templateId, input }).catch(() => {});
           rsp.variables = defaults;
@@ -331,14 +331,14 @@ export function CodeRefactorConfigPanel({ workflowId, onVariablesChange }: Props
       description: template.description,
       icon: template.icon,
       tags: template.tags,
-      trigger_config: template.triggerConfig,
+      triggerConfig: template.triggerConfig,
       nodes: template.nodes,
       edges: template.edges,
-      input_schema: template.inputSchema,
-      output_schema: template.outputSchema,
+      inputSchema: template.inputSchema,
+      outputSchema: template.outputSchema,
       variables: updatedVars,
-      error_config: template.errorConfig,
-      tool_defs: (template as WorkflowTemplateResponse & { toolDefs?: unknown[] }).toolDefs,
+      errorConfig: template.errorConfig,
+      toolDefs: (template as WorkflowTemplateResponse & { toolDefs?: unknown[] }).toolDefs,
     };
     try {
       await invoke<boolean>("update_workflow_template", { id: templateId, input });

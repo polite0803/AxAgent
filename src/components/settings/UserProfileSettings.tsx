@@ -33,8 +33,8 @@ export function UserProfileSettings() {
 
   const [stats, setStats] = useState<
     {
-      total_profiles: number;
-      total_samples: number;
+      totalProfiles: number;
+      totalSamples: number;
     } | null
   >(null);
 
@@ -261,14 +261,14 @@ export function UserProfileSettings() {
           <div style={rowStyle} className="flex items-center justify-between">
             <span>{t("style.totalProfiles")}</span>
             <span style={{ fontSize: 18, fontWeight: 600 }}>
-              {stats.total_profiles}
+              {stats.totalProfiles}
             </span>
           </div>
           <Divider style={{ margin: "4px 0" }} />
           <div style={rowStyle} className="flex items-center justify-between">
             <span>{t("style.totalSamples")}</span>
             <span style={{ fontSize: 18, fontWeight: 600 }}>
-              {stats.total_samples}
+              {stats.totalSamples}
             </span>
           </div>
         </SettingsGroup>

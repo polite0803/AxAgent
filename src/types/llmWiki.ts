@@ -36,8 +36,8 @@ export type WikiSource = {
 // ── Ingest / Query 结果类型（此前定义在 store 内，统一收归 @/types） ──
 
 export interface IngestResult {
-  source_id: string;
-  raw_path: string;
+  sourceId: string;
+  rawPath: string;
   title: string;
 }
 
@@ -47,11 +47,11 @@ export interface QueryResult {
 }
 
 export interface PageResult {
-  note_id: string;
+  noteId: string;
   title: string;
-  content_snippet: string;
-  relevance_score: number;
-  link_paths: string[];
+  contentSnippet: string;
+  relevanceScore: number;
+  linkPaths: string[];
 }
 
 export type WikiPage = {
@@ -83,20 +83,20 @@ export type WikiOperation = {
 };
 
 export type CompileResult = {
-  new_pages: CompiledPage[];
-  updated_pages: CompiledPage[];
+  newPages: CompiledPage[];
+  updatedPages: CompiledPage[];
   errors: string[];
 };
 
 export type CompiledPage = {
   title: string;
   content: string;
-  page_type: string;
-  source_ids: string[];
+  pageType: string;
+  sourceIds: string[];
 };
 
 export type LintResult = {
-  note_id: string;
+  noteId: string;
   issues: LintIssue[];
   score: number;
 };
@@ -172,15 +172,15 @@ export type CapacityInfo = {
 };
 
 export type FolderImportPreviewItem = {
-  file_name: string;
-  file_path: string;
-  folder_context: string;
-  file_type: string;
-  estimated_size: number;
+  fileName: string;
+  filePath: string;
+  folderContext: string;
+  fileType: string;
+  estimatedSize: number;
 };
 
 export type FolderImportResult = {
-  task_ids: string[];
-  imported_count: number;
-  failed_files: string[];
+  taskIds: string[];
+  importedCount: number;
+  failedFiles: string[];
 };

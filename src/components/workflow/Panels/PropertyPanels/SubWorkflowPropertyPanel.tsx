@@ -22,10 +22,10 @@ export const SubWorkflowPropertyPanel: React.FC<
   const { token } = theme.useToken();
   const subWorkflowNode = node as SubWorkflowNode;
   const config = subWorkflowNode.config || {
-    sub_workflow_id: "",
-    input_mapping: {},
-    output_var: "",
-    is_async: false,
+    subWorkflowId: "",
+    inputMapping: {},
+    outputVar: "",
+    isAsync: false,
   };
 
   const { templates, loadTemplates, currentTemplate, expandedSubWorkflows } = useWorkflowEditorStore();
@@ -41,7 +41,7 @@ export const SubWorkflowPropertyPanel: React.FC<
   const isLoading = !!expandedData?.isLoading;
 
   const handleToggleExpand = () => {
-    useWorkflowEditorStore.getState().toggleExpandSubWorkflow(node.id, config.sub_workflow_id);
+    useWorkflowEditorStore.getState().toggleExpandSubWorkflow(node.id, config.subWorkflowId);
   };
 
   const workflowOptions = useMemo(
@@ -57,7 +57,7 @@ export const SubWorkflowPropertyPanel: React.FC<
   const [messageApi, contextHolder] = message.useMessage();
 
   const handleAISuggestInputMapping = async () => {
-    if (!config.sub_workflow_id) {
+    if (!config.subWorkflowId) {
       messageApi.warning(t("workflow.aiAssist.subWorkflow.needPick"));
       return;
     }
@@ -65,7 +65,7 @@ export const SubWorkflowPropertyPanel: React.FC<
       systemPrompt:
         "你是一个工作流编排助手。根据当前节点的子工作流 id，输出建议的 input_mapping（一个 JSON 对象），键名为子工作流入参，值为上游变量路径（如 ${nodeId.output}）。"
         + "只输出 JSON 字符串，不要任何解释或 Markdown 标记。",
-      userPrompt: JSON.stringify({ current_mapping: config.input_mapping, sub_workflow_id: config.sub_workflow_id }),
+      userPrompt: JSON.stringify({ current_mapping: config.inputMapping, sub_workflow_id: config.subWorkflowId }),
     });
     if (!result) {
       messageApi.error(t("workflow.aiAssist.failed"));
@@ -74,7 +74,7 @@ export const SubWorkflowPropertyPanel: React.FC<
     try {
       const cleaned = result.replace(/^```\w*\s*|\s*```$/g, "").trim();
       const parsed = JSON.parse(cleaned) as Record<string, string>;
-      onUpdate({ config: { ...config, input_mapping: { ...config.input_mapping, ...parsed } } });
+      onUpdate({ config: { ...config, inputMapping: { ...config.inputMapping, ...parsed } } });
       messageApi.success(t("workflow.aiAssist.applied"));
     } catch {
       messageApi.error(t("workflow.aiAssist.subWorkflow.parseFailed"));
@@ -82,19 +82,18 @@ export const SubWorkflowPropertyPanel: React.FC<
   };
 
   const handleAddInputMapping = () => {
-    const existingKeys = Object.keys(config.input_mapping || {});
+    const existingKeys = Object.keys(config.inputMapping || {});
     let nextIndex = existingKeys.length + 1;
     let newKey = t("workflow.paramKey", { n: nextIndex, defaultValue: `param_${nextIndex}` });
-    // 避免与既有键冲突（用户可能手动改名或删除中间键）
-    while (Object.prototype.hasOwnProperty.call(config.input_mapping || {}, newKey)) {
+    while (Object.prototype.hasOwnProperty.call(config.inputMapping || {}, newKey)) {
       nextIndex += 1;
       newKey = t("workflow.paramKey", { n: nextIndex, defaultValue: `param_${nextIndex}` });
     }
     onUpdate({
       config: {
         ...config,
-        input_mapping: {
-          ...config.input_mapping,
+        inputMapping: {
+          ...config.inputMapping,
           [newKey]: "",
         },
       },
@@ -105,8 +104,8 @@ export const SubWorkflowPropertyPanel: React.FC<
     onUpdate({
       config: {
         ...config,
-        input_mapping: {
-          ...config.input_mapping,
+        inputMapping: {
+          ...config.inputMapping,
           [key]: value,
         },
       },
@@ -114,12 +113,12 @@ export const SubWorkflowPropertyPanel: React.FC<
   };
 
   const handleDeleteInputMapping = (key: string) => {
-    const newMapping = { ...config.input_mapping };
+    const newMapping = { ...config.inputMapping };
     delete newMapping[key];
     onUpdate({
       config: {
         ...config,
-        input_mapping: newMapping,
+        inputMapping: newMapping,
       },
     });
   };
@@ -141,8 +140,8 @@ export const SubWorkflowPropertyPanel: React.FC<
         </label>
         <Select
           id="sub-workflow-select"
-          value={config.sub_workflow_id || undefined}
-          onChange={(value) => handleConfigChange("sub_workflow_id", value)}
+          value={config.subWorkflowId || undefined}
+          onChange={(value) => handleConfigChange("subWorkflowId", value)}
           size="small"
           style={{ width: "100%" }}
           placeholder={t("workflow.props.selectSubWorkflow")}
@@ -164,8 +163,8 @@ export const SubWorkflowPropertyPanel: React.FC<
         </label>
         <Switch
           size="small"
-          checked={config.is_async ?? false}
-          onChange={(checked) => handleConfigChange("is_async", checked)}
+          checked={config.isAsync ?? false}
+          onChange={(checked) => handleConfigChange("isAsync", checked)}
         />
       </div>
 
@@ -193,7 +192,7 @@ export const SubWorkflowPropertyPanel: React.FC<
             size="small"
             loading={isLoading}
             onClick={handleToggleExpand}
-            disabled={!config.sub_workflow_id}
+            disabled={!config.subWorkflowId}
           >
             {isExpanded ? t("workflow.subWorkflowNode.collapse") : t("workflow.subWorkflowNode.expand")}
           </Button>
@@ -228,7 +227,7 @@ export const SubWorkflowPropertyPanel: React.FC<
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {Object.entries(config.input_mapping || {}).map(([key, value]) => (
+          {Object.entries(config.inputMapping || {}).map(([key, value]) => (
             <div
               key={key}
               style={{ display: "flex", gap: 4, alignItems: "center" }}
@@ -260,7 +259,7 @@ export const SubWorkflowPropertyPanel: React.FC<
             </div>
           ))}
 
-          {Object.keys(config.input_mapping || {}).length === 0 && (
+          {Object.keys(config.inputMapping || {}).length === 0 && (
             <div
               style={{
                 color: token.colorTextTertiary,
@@ -288,8 +287,8 @@ export const SubWorkflowPropertyPanel: React.FC<
         </label>
         <Input
           id="sub-workflow-property-panel-input-109"
-          value={config.output_var || ""}
-          onChange={(e) => handleConfigChange("output_var", e.target.value)}
+          value={config.outputVar || ""}
+          onChange={(e) => handleConfigChange("outputVar", e.target.value)}
           size="small"
         />
       </div>

@@ -42,12 +42,12 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
   const [messageApi, messageContextHolder] = message.useMessage();
   const agentNode = node as AgentNode;
   const config = agentNode.config || {
-    system_prompt: "",
-    context_sources: [],
-    output_var: "",
+    systemPrompt: "",
+    contextSources: [],
+    outputVar: "",
     tools: [],
-    exposed_tools: [],
-    output_mode: "text" as OutputMode,
+    exposedTools: [],
+    outputMode: "text" as OutputMode,
   };
 
   const [expertSelectorOpen, setExpertSelectorOpen] = useState(false);
@@ -105,7 +105,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
     } catch {
       content = selectedTemplate.content;
     }
-    handleConfigChange("system_prompt", content);
+    handleConfigChange("systemPrompt", content);
     handleConfigChange("promptTemplateId", selectedTemplate.id);
     setTemplateModalOpen(false);
     setSelectedTemplate(null);
@@ -280,7 +280,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
       messageApi.warning(t("workflow.aiPanel.lockedByExpert"));
       return;
     }
-    const current = config.system_prompt || "";
+    const current = config.systemPrompt || "";
     if (!current.trim()) {
       messageApi.warning(t("workflow.aiPanel.enterPromptToOptimize"));
       return;
@@ -296,7 +296,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
       messageApi.error(t("workflow.aiAssist.failed"));
       return;
     }
-    handleConfigChange("system_prompt", result);
+    handleConfigChange("systemPrompt", result);
     messageApi.success(t("workflow.aiAssist.applied"));
   };
 
@@ -305,7 +305,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
       messageApi.warning(t("workflow.aiPanel.lockedByExpert"));
       return;
     }
-    const current = config.system_prompt || "";
+    const current = config.systemPrompt || "";
     // 获取工作流上下文
     const store = useWorkflowEditorStore.getState();
     const upstreamEdgeIds = store.edges.filter((e) => e.target === agentNode.id).map((e) => e.source);
@@ -333,7 +333,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
       messageApi.error(t("workflow.aiAssist.failed"));
       return;
     }
-    handleConfigChange("system_prompt", current ? `${current}\n\n${result}` : result);
+    handleConfigChange("systemPrompt", current ? `${current}\n\n${result}` : result);
     messageApi.success(t("workflow.aiAssist.contextCompleteApplied"));
   };
 
@@ -586,8 +586,8 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
         </div>
         <Input.TextArea
           id="agent-property-panel-input-textarea-76"
-          value={config.system_prompt || ""}
-          onChange={(e) => handleConfigChange("system_prompt", e.target.value)}
+          value={config.systemPrompt || ""}
+          onChange={(e) => handleConfigChange("systemPrompt", e.target.value)}
           readOnly={!!config.agentProfileId}
           disabled={!!config.agentProfileId}
           rows={4}
@@ -616,13 +616,13 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
           }}
         >
           {t("workflow.props.contextSourcesCount", {
-            count: config.context_sources?.length || 0,
+            count: config.contextSources?.length || 0,
           })}
         </label>
         <Select
           mode="multiple"
-          value={config.context_sources || []}
-          onChange={(value) => handleConfigChange("context_sources", value)}
+          value={config.contextSources || []}
+          onChange={(value) => handleConfigChange("contextSources", value)}
           size="small"
           style={{ width: "100%" }}
           placeholder={t("workflow.props.selectContextSources")}
@@ -640,13 +640,13 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
           }}
         >
           {t("workflow.props.ragSourceIdsCount", {
-            count: config.rag_source_ids?.length || 0,
+            count: config.ragSourceIds?.length || 0,
           })}
         </label>
         <Select
           mode="tags"
-          value={config.rag_source_ids || []}
-          onChange={(value) => handleConfigChange("rag_source_ids", value)}
+          value={config.ragSourceIds || []}
+          onChange={(value) => handleConfigChange("ragSourceIds", value)}
           size="small"
           style={{ width: "100%" }}
           placeholder={knowledgeBases.length === 0
@@ -710,8 +710,8 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
           {t("workflow.props.modelRole")}
         </label>
         <Select
-          value={config.model_role || undefined}
-          onChange={(value) => handleConfigChange("model_role", value || undefined)}
+          value={config.modelRole || undefined}
+          onChange={(value) => handleConfigChange("modelRole", value || undefined)}
           size="small"
           style={{ width: "100%" }}
           allowClear
@@ -762,8 +762,8 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
           </label>
           <InputNumber
             id="agent-property-panel-inputnumber-78"
-            value={config.max_tokens ?? 2048}
-            onChange={(value) => handleConfigChange("max_tokens", value)}
+            value={config.maxTokens ?? 2048}
+            onChange={(value) => handleConfigChange("maxTokens", value)}
             min={100}
             max={128000}
             step={100}
@@ -785,8 +785,8 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
           {t("workflow.props.outputMode")}
         </label>
         <Select
-          value={config.output_mode}
-          onChange={(value) => handleConfigChange("output_mode", value)}
+          value={config.outputMode}
+          onChange={(value) => handleConfigChange("outputMode", value)}
           size="small"
           style={{ width: "100%" }}
           options={[
@@ -802,8 +802,8 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
           {t("workflow.props.executionMode")}
         </label>
         <Select
-          value={config.execution_mode ?? "react"}
-          onChange={(v) => handleConfigChange("execution_mode", v === "react" ? undefined : v)}
+          value={config.executionMode ?? "react"}
+          onChange={(v) => handleConfigChange("executionMode", v === "react" ? undefined : v)}
           size="small"
           style={{ width: "100%" }}
           options={[
@@ -812,7 +812,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
           ]}
         />
         <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>
-          {t(`workflow.props.execution${config.execution_mode === "plan" ? "Plan" : "React"}Hint`)}
+          {t(`workflow.props.execution${config.executionMode === "plan" ? "Plan" : "React"}Hint`)}
         </div>
       </div>
 
@@ -822,8 +822,8 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
           {t("workflow.props.taskScene")}
         </label>
         <Select
-          value={config.task_scene ?? "general"}
-          onChange={(v) => handleConfigChange("task_scene", v === "general" ? undefined : v)}
+          value={config.taskScene ?? "general"}
+          onChange={(v) => handleConfigChange("taskScene", v === "general" ? undefined : v)}
           size="small"
           style={{ width: "100%" }}
           options={[
@@ -851,8 +851,8 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
         </label>
         <Input
           id="agent-property-panel-input-79"
-          value={config.output_var || ""}
-          onChange={(e) => handleConfigChange("output_var", e.target.value)}
+          value={config.outputVar || ""}
+          onChange={(e) => handleConfigChange("outputVar", e.target.value)}
           size="small"
           placeholder={t("workflow.props.outputVarDefault")}
         />
@@ -1011,15 +1011,15 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
               }}
             >
               {t("workflow.props.exposedTools", {
-                count: config.exposed_tools?.length || config.tools?.length || 0,
+                count: config.exposedTools?.length || config.tools?.length || 0,
               })}
             </label>
             <Select
               mode="multiple"
-              value={config.exposed_tools?.length
-                ? config.exposed_tools
+              value={config.exposedTools?.length
+                ? config.exposedTools
                 : (config.tools || []).map((td) => typeof td === "string" ? td : td.name)}
-              onChange={(values: string[]) => handleConfigChange("exposed_tools", values)}
+              onChange={(values: string[]) => handleConfigChange("exposedTools", values)}
               size="small"
               style={{ width: "100%" }}
               placeholder={t("workflow.props.exposedToolsPlaceholder")}
@@ -1032,9 +1032,9 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
                 if (templateToolDefs && templateToolDefs.length > 0) {
                   items.push({ value: "", label: t("workflow.code.templateRhaiTools"), disabled: true });
                   templateToolDefs.forEach((td) => {
-                    if (!names.has(td.tool_name)) {
-                      names.add(td.tool_name);
-                      items.push({ value: td.tool_name, label: `🦀 ${td.tool_name}` });
+                    if (!names.has(td.toolName)) {
+                      names.add(td.toolName);
+                      items.push({ value: td.toolName, label: `🦀 ${td.toolName}` });
                     }
                   });
                 }
@@ -1068,8 +1068,8 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
             </label>
             <InputNumber
               id="agent-property-panel-inputnumber-max-tool-rounds"
-              value={config.max_tool_rounds ?? 5}
-              onChange={(value) => handleConfigChange("max_tool_rounds", value ?? null)}
+              value={config.maxToolRounds ?? 5}
+              onChange={(value) => handleConfigChange("maxToolRounds", value ?? null)}
               min={1}
               max={50}
               step={1}

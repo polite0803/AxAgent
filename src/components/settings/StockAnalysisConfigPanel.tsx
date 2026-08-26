@@ -13,7 +13,7 @@ const TEMPLATE_ID = "stock-analysis";
 function getDefaultVariables(): Variable[] {
   const vars: Variable[] = [];
   const b = (name: string, val: unknown, desc: string, type: string) =>
-    vars.push({ name, var_type: type, value: val, description: desc, is_secret: false });
+    vars.push({ name, varType: type, value: val, description: desc, isSecret: false });
   // 分析流程
   b("analysis_depth", "standard", "stockAnalysis.configDescriptions.analysisDepth", "enum");
   b("debate_rounds", 3, "stockAnalysis.configDescriptions.debateRounds", "number");
@@ -300,7 +300,7 @@ function VariableControl({ v, value, onChange }: {
 }) {
   const { t } = useTranslation();
   const desc = t(v.description ?? "");
-  switch (v.var_type) {
+  switch (v.varType) {
     case "boolean":
       return <Switch checked={!!value} onChange={(c) => onChange(v.name, c)} />;
     case "enum": {
@@ -361,13 +361,13 @@ export function StockAnalysisConfigPanel(_props: Props) {
             description: rsp.description,
             icon: rsp.icon,
             tags: rsp.tags,
-            trigger_config: rsp.triggerConfig,
+            triggerConfig: rsp.triggerConfig,
             nodes: rsp.nodes,
             edges: rsp.edges,
-            input_schema: rsp.inputSchema,
-            output_schema: rsp.outputSchema,
+            inputSchema: rsp.inputSchema,
+            outputSchema: rsp.outputSchema,
             variables: defaults,
-            error_config: rsp.errorConfig,
+            errorConfig: rsp.errorConfig,
           };
           invoke<boolean>("update_workflow_template", { id: TEMPLATE_ID, input }).catch(() => {});
           rsp.variables = defaults;
@@ -671,14 +671,14 @@ export function StockAnalysisConfigPanel(_props: Props) {
       description: template.description,
       icon: template.icon,
       tags: template.tags,
-      trigger_config: template.triggerConfig,
+      triggerConfig: template.triggerConfig,
       nodes: template.nodes,
       edges: template.edges,
-      input_schema: template.inputSchema,
-      output_schema: template.outputSchema,
+      inputSchema: template.inputSchema,
+      outputSchema: template.outputSchema,
       variables: updatedVars,
-      error_config: template.errorConfig,
-      tool_defs: template.toolDefs,
+      errorConfig: template.errorConfig,
+      toolDefs: template.toolDefs,
     };
     try {
       // 并行保存 workflow 模板和估值参数

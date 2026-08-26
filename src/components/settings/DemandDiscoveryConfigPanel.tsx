@@ -17,7 +17,7 @@ const TEMPLATE_ID = "demand-discovery";
 function getDefaultVariables(): Variable[] {
   const vars: Variable[] = [];
   const b = (name: string, val: unknown, desc: string, type: string) =>
-    vars.push({ name, var_type: type, value: val, description: desc, is_secret: false });
+    vars.push({ name, varType: type, value: val, description: desc, isSecret: false });
 
   // ── 领域关键词匹配 ──
   b("domain_tech", "科技/AI/软件/编程/算法", "demandDiscovery.configDescriptions.domainTech", "string");
@@ -137,7 +137,7 @@ function NumberControl({ v, value, onChange }: {
     <span className="sacp-number">
       <Slider
         min={0}
-        max={v.var_type === "number" && v.name.includes("weight") ? 2 : 100}
+        max={v.varType === "number" && v.name.includes("weight") ? 2 : 100}
         step={inferStep(v)}
         className="sacp-number-slider"
         value={val}
@@ -161,7 +161,7 @@ function VariableControl({ v, value, onChange }: {
 }) {
   const { t } = useTranslation();
   const desc = t(v.description ?? "");
-  switch (v.var_type) {
+  switch (v.varType) {
     case "boolean":
       return <Switch checked={!!value} onChange={(c) => onChange(v.name, c)} />;
     case "enum": {
@@ -211,13 +211,13 @@ export function DemandDiscoveryConfigPanel(_props: Props) {
             description: rsp.description || t("opc.demand.configDefaultWorkflowDesc"),
             icon: rsp.icon || "🔍",
             tags: rsp.tags || ["opc", "demand"],
-            trigger_config: rsp.triggerConfig,
+            triggerConfig: rsp.triggerConfig,
             nodes: rsp.nodes || [],
             edges: rsp.edges || [],
-            input_schema: rsp.inputSchema,
-            output_schema: rsp.outputSchema,
+            inputSchema: rsp.inputSchema,
+            outputSchema: rsp.outputSchema,
             variables: defaults,
-            error_config: rsp.errorConfig,
+            errorConfig: rsp.errorConfig,
           };
           invoke<boolean>("update_workflow_template", { id: TEMPLATE_ID, input }).catch(() => {});
           rsp.variables = defaults;
@@ -375,14 +375,14 @@ export function DemandDiscoveryConfigPanel(_props: Props) {
       description: template.description,
       icon: template.icon,
       tags: template.tags,
-      trigger_config: template.triggerConfig,
+      triggerConfig: template.triggerConfig,
       nodes: template.nodes,
       edges: template.edges,
-      input_schema: template.inputSchema,
-      output_schema: template.outputSchema,
+      inputSchema: template.inputSchema,
+      outputSchema: template.outputSchema,
       variables: updatedVars,
-      error_config: template.errorConfig,
-      tool_defs: template.toolDefs,
+      errorConfig: template.errorConfig,
+      toolDefs: template.toolDefs,
     };
     try {
       await invoke<boolean>("update_workflow_template", { id: TEMPLATE_ID, input });

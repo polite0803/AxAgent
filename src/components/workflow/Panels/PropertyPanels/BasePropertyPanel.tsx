@@ -108,10 +108,10 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({
               </label>
               <InputNumber
                 id="base-property-panel-inputnumber-82"
-                value={node.retry.max_retries}
+                value={node.retry.maxRetries}
                 onChange={(value) =>
                   onUpdate({
-                    retry: { ...node.retry, max_retries: value || 3 },
+                    retry: { ...node.retry, maxRetries: value || 3 },
                   })}
                 min={1}
                 max={10}
@@ -124,8 +124,8 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({
                 {t("workflow.props.backoffStrategy")}
               </label>
               <Select
-                value={node.retry.backoff_type}
-                onChange={(backoff_type) => onUpdate({ retry: { ...node.retry, backoff_type } })}
+                value={node.retry.backoffType}
+                onChange={(backoffType) => onUpdate({ retry: { ...node.retry, backoffType } })}
                 size="small"
                 style={{ width: "100%" }}
                 options={[
@@ -144,10 +144,10 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({
               </label>
               <InputNumber
                 id="base-property-panel-inputnumber-83"
-                value={node.retry.base_delay_ms}
+                value={node.retry.baseDelayMs}
                 onChange={(value) =>
                   onUpdate({
-                    retry: { ...node.retry, base_delay_ms: value || 1000 },
+                    retry: { ...node.retry, baseDelayMs: value || 1000 },
                   })}
                 min={100}
                 max={60000}
@@ -160,10 +160,10 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({
                 {t("workflow.props.maxDelayMs")}
               </label>
               <InputNumber
-                value={node.retry.max_delay_ms}
+                value={node.retry.maxDelayMs}
                 onChange={(value) =>
                   onUpdate({
-                    retry: { ...node.retry, max_delay_ms: value ?? 30000 },
+                    retry: { ...node.retry, maxDelayMs: value ?? 30000 },
                   })}
                 min={1000}
                 max={300000}
@@ -185,28 +185,28 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({
           </label>
           <Switch
             size="small"
-            checked={node.circuit_breaker != null}
+            checked={node.circuitBreaker != null}
             onChange={(enabled) =>
               onUpdate({
-                circuit_breaker: enabled
-                  ? { failure_threshold: 3, reset_timeout_ms: 60000 }
+                circuitBreaker: enabled
+                  ? { failureThreshold: 3, resetTimeoutMs: 60000 }
                   : undefined,
               } as Partial<WorkflowNode>)}
           />
         </div>
-        {node.circuit_breaker && (
+        {node.circuitBreaker && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <div>
               <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
                 {t("workflow.props.failureThreshold")}
               </label>
               <InputNumber
-                value={node.circuit_breaker?.failure_threshold ?? 3}
+                value={node.circuitBreaker?.failureThreshold ?? 3}
                 onChange={(v) =>
                   onUpdate({
-                    circuit_breaker: {
-                      ...node.circuit_breaker,
-                      failure_threshold: v ?? 3,
+                    circuitBreaker: {
+                      ...node.circuitBreaker,
+                      failureThreshold: v ?? 3,
                     },
                   } as Partial<WorkflowNode>)}
                 min={1}
@@ -220,12 +220,12 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({
                 {t("workflow.props.resetTimeoutMs")}
               </label>
               <InputNumber
-                value={node.circuit_breaker?.reset_timeout_ms ?? 60000}
+                value={node.circuitBreaker?.resetTimeoutMs ?? 60000}
                 onChange={(v) =>
                   onUpdate({
-                    circuit_breaker: {
-                      ...node.circuit_breaker,
-                      reset_timeout_ms: v ?? 60000,
+                    circuitBreaker: {
+                      ...node.circuitBreaker,
+                      resetTimeoutMs: v ?? 60000,
                     },
                   } as Partial<WorkflowNode>)}
                 min={5000}

@@ -18,7 +18,7 @@ function n(
     type: type as WorkflowNode["type"],
     title: id,
     position: { x: 0, y: 0 },
-    retry: { enabled: false, max_retries: 0, backoff_type: "Fixed", base_delay_ms: 0, max_delay_ms: 0 },
+    retry: { enabled: false, maxRetries: 0, backoffType: "Fixed", baseDelayMs: 0, maxDelayMs: 0 },
     enabled: true,
     parentId,
     config: {},
@@ -30,9 +30,9 @@ function e(
   source: string,
   target: string,
   sourceHandle?: string,
-  edge_type: "direct" | "conditionTrue" | "conditionFalse" | "loopBack" | "grouping" = "direct",
+  edgeType: "direct" | "conditionTrue" | "conditionFalse" | "loopBack" | "grouping" = "direct",
 ): WorkflowEdge {
-  return { id, source, target, sourceHandle, edge_type };
+  return { id, source, target, sourceHandle, edgeType };
 }
 
 function findIssues(issues: ValidateIssue[], rule: string): ValidateIssue[] {
@@ -441,7 +441,7 @@ describe("suggestTitle", () => {
 describe("Rule 8 — workflow_ref", () => {
   it("workflowRef 未指定 target 报空引用 error", () => {
     const nodes = [
-      { ...n("r1", "workflowRef"), config: { target_workflow_id: "" } },
+      { ...n("r1", "workflowRef"), config: { targetWorkflowId: "" } },
     ];
     const result = validateWorkflow(nodes, []);
     const issues = findIssues(result.issues, "workflow_ref_empty");
@@ -454,7 +454,7 @@ describe("Rule 8 — workflow_ref", () => {
     const nodes = [
       {
         ...n("r1", "workflowRef"),
-        config: { target_workflow_id: "wf-1" },
+        config: { targetWorkflowId: "wf-1" },
         data: { templateId: "wf-1" },
       },
     ];
@@ -469,11 +469,11 @@ describe("Rule 8 — workflow_ref", () => {
     const nodes = [
       {
         ...n("r1", "workflowRef"),
-        config: { target_workflow_id: "wf-target" },
+        config: { targetWorkflowId: "wf-target" },
       },
       {
         ...n("r2", "workflowRef"),
-        config: { target_workflow_id: "wf-target" },
+        config: { targetWorkflowId: "wf-target" },
       },
     ];
     const result = validateWorkflow(nodes, []);
@@ -487,7 +487,7 @@ describe("Rule 8 — workflow_ref", () => {
     const nodes = [
       {
         ...n("r1", "workflowRef"),
-        config: { target_workflow_id: "wf-other" },
+        config: { targetWorkflowId: "wf-other" },
         data: { templateId: "wf-self" },
       },
     ];

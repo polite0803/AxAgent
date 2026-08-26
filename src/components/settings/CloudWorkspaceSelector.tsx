@@ -87,9 +87,9 @@ interface CloudConflictsResponse {
 
 interface CloudProviderPresetDto {
   key: string;
-  display_name: string;
-  endpoint_template: string;
-  default_region: string;
+  displayName: string;
+  endpointTemplate: string;
+  defaultRegion: string;
   use_path_style: boolean;
   category: string;
 }
@@ -188,8 +188,8 @@ export function CloudWorkspaceSelector() {
 
     configForm.setFieldsValue({
       s3ProviderPreset: presetKey,
-      s3Endpoint: preset.endpoint_template || undefined,
-      s3Region: preset.default_region || undefined,
+      s3Endpoint: preset.endpointTemplate || undefined,
+      s3Region: preset.defaultRegion || undefined,
       s3UsePathStyle: preset.use_path_style,
     });
     setConnectionStatus("unknown");
@@ -675,9 +675,9 @@ export function CloudWorkspaceSelector() {
           <div className="flex items-center gap-2">
             <span className="text-lg">{PROVIDER_ICON_MAP[p.key] || "☁️"}</span>
             <div>
-              <div className="font-medium text-sm">{p.display_name}</div>
+              <div className="font-medium text-sm">{p.displayName}</div>
               <div className="text-xs text-zinc-400 truncate max-w-[180px]">
-                {p.endpoint_template || t("cloudWorkspace.providerPresetPlaceholder")}
+                {p.endpointTemplate || t("cloudWorkspace.providerPresetPlaceholder")}
               </div>
             </div>
           </div>
@@ -770,7 +770,7 @@ export function CloudWorkspaceSelector() {
                     className="cursor-pointer hover:bg-blue-50"
                     onClick={openConfigModal}
                   >
-                    {PROVIDER_ICON_MAP[p.key]} {p.display_name}
+                    {PROVIDER_ICON_MAP[p.key]} {p.displayName}
                   </Tag>
                 ))}
               </div>
@@ -1011,7 +1011,7 @@ export function CloudWorkspaceSelector() {
               >
                 <Select
                   options={presets.map((p) => ({
-                    label: `${PROVIDER_ICON_MAP[p.key] || "☁️"} ${p.display_name}`,
+                    label: `${PROVIDER_ICON_MAP[p.key] || "☁️"} ${p.displayName}`,
                     value: p.key,
                   }))}
                   placeholder={t("cloudWorkspace.providerPresetPlaceholder")}

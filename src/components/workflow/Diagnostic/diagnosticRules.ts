@@ -62,10 +62,10 @@ function issue(
     id,
     severity,
     category,
-    title_key: `workflow.diagnostic.issues.${id}.title`,
-    message_key: `workflow.diagnostic.issues.${id}.message`,
-    node_ids: nodeIds,
-    auto_fixable: autoFixable,
+    titleKey: `workflow.diagnostic.issues.${id}.title`,
+    messageKey: `workflow.diagnostic.issues.${id}.message`,
+    nodeIds: nodeIds,
+    autoFixable: autoFixable,
     fix,
   };
 }
@@ -143,16 +143,16 @@ const RULE_PROMPT_QUALITY: Rule = (ctx) => {
       }
       if (!cfg.max_tokens) {
         results.push(issue("agent_no_max_tokens", "info", "cost", [id], true, {
-          action_type: "set_node_field",
-          node_id: id,
+          actionType: "set_node_field",
+          nodeId: id,
           field: "max_tokens",
           value: 2048,
         }));
       }
       if (cfg.tools && (cfg.tools as unknown[]).length > 0 && !cfg.max_tool_rounds) {
         results.push(issue("agent_no_max_tool_rounds", "info", "cost", [id], true, {
-          action_type: "set_node_field",
-          node_id: id,
+          actionType: "set_node_field",
+          nodeId: id,
           field: "max_tool_rounds",
           value: 5,
         }));
@@ -165,8 +165,8 @@ const RULE_PROMPT_QUALITY: Rule = (ctx) => {
       }
       if (!cfg.max_tokens) {
         results.push(issue("llm_no_max_tokens", "info", "cost", [id], true, {
-          action_type: "set_node_field",
-          node_id: id,
+          actionType: "set_node_field",
+          nodeId: id,
           field: "max_tokens",
           value: 2048,
         }));
@@ -187,17 +187,17 @@ const RULE_PERFORMANCE: Rule = (ctx) => {
       const timeout = cfg.timeout_secs as number | undefined;
       if (!timeout || timeout <= 0) {
         results.push(issue("http_no_timeout", "warning", "performance", [id], true, {
-          action_type: "set_node_field",
-          node_id: id,
+          actionType: "set_node_field",
+          nodeId: id,
           field: "timeout_secs",
           value: 30,
         }));
       }
       if (!b.retry?.enabled) {
         results.push(issue("http_no_retry", "info", "performance", [id], true, {
-          action_type: "enable_retry",
-          node_id: id,
-          max_retries: 2,
+          actionType: "enable_retry",
+          nodeId: id,
+          maxRetries: 2,
         }));
       }
     }
@@ -205,8 +205,8 @@ const RULE_PERFORMANCE: Rule = (ctx) => {
       const timeout = cfg.timeout_secs as number | undefined;
       if (!timeout || timeout <= 0) {
         results.push(issue("db_no_timeout", "warning", "performance", [id], true, {
-          action_type: "set_node_field",
-          node_id: id,
+          actionType: "set_node_field",
+          nodeId: id,
           field: "timeout_secs",
           value: 30,
         }));
@@ -215,8 +215,8 @@ const RULE_PERFORMANCE: Rule = (ctx) => {
     if (type === "loop") {
       if (!cfg.max_iterations) {
         results.push(issue("loop_no_max_iter", "warning", "performance", [id], true, {
-          action_type: "set_node_field",
-          node_id: id,
+          actionType: "set_node_field",
+          nodeId: id,
           field: "max_iterations",
           value: 100,
         }));
@@ -304,14 +304,14 @@ const RULE_REFERENCE: Rule = (ctx) => {
   for (const e of ctx.edges) {
     if (!knownIds.has(e.source)) {
       results.push(issue("edge_dangling_source", "error", "reference", [e.source], true, {
-        action_type: "delete_edge",
-        edge_id: e.id,
+        actionType: "delete_edge",
+        edgeId: e.id,
       }));
     }
     if (!knownIds.has(e.target)) {
       results.push(issue("edge_dangling_target", "error", "reference", [e.target], true, {
-        action_type: "delete_edge",
-        edge_id: e.id,
+        actionType: "delete_edge",
+        edgeId: e.id,
       }));
     }
   }
@@ -334,9 +334,9 @@ const RULE_DEBATE_STRUCTURE: Rule = (ctx) => {
       for (const stepId of debaterSteps) {
         if (!ctx.nodeMap.has(stepId)) {
           results.push(issue("debate_dangling_step", "error", "reference", [id], true, {
-            action_type: "remove_debater_step",
-            node_id: id,
-            step_id: stepId,
+            actionType: "remove_debater_step",
+            nodeId: id,
+            stepId: stepId,
           }));
         }
       }
@@ -367,7 +367,7 @@ export function runDiagnosticRules(nodes: WorkflowNode[], edges: WorkflowEdge[])
   }
   const seen = new Set<string>();
   const deduped = allIssues.filter((iss) => {
-    const key = `${iss.id}:${iss.node_ids.join(",")}`;
+    const key = `${iss.id}:${iss.nodeIds.join(",")}`;
     if (seen.has(key)) { return false; }
     seen.add(key);
     return true;
@@ -377,7 +377,7 @@ export function runDiagnosticRules(nodes: WorkflowNode[], edges: WorkflowEdge[])
   return {
     issues: deduped,
     summary,
-    generated_at: Date.now(),
-    duration_ms: Math.round(performance.now() - t0),
+    generatedAt: Date.now(),
+    durationMs: Math.round(performance.now() - t0),
   };
 }

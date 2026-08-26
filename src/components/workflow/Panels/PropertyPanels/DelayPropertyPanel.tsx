@@ -26,7 +26,7 @@ function DelayConfig({
   const { t } = useTranslation();
   const { token } = theme.useToken();
 
-  switch (config.delay_type) {
+  switch (config.delayType) {
     case "seconds":
       return (
         <div>
@@ -147,7 +147,7 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({
   const { token } = theme.useToken();
   const delayNode = node as DelayNode;
   const config = delayNode.config || {
-    delay_type: "seconds",
+    delayType: "seconds",
     seconds: 5,
   };
 
@@ -169,8 +169,8 @@ export const DelayPropertyPanel: React.FC<DelayPropertyPanelProps> = ({
           {t("workflow.props.delayType")}
         </label>
         <Select
-          value={config.delay_type}
-          onChange={(value) => handleConfigChange("delay_type", value)}
+          value={config.delayType}
+          onChange={(value) => handleConfigChange("delayType", value)}
           size="small"
           style={{ width: "100%" }}
           options={[

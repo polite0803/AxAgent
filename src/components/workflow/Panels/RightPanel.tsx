@@ -837,11 +837,11 @@ export const RightPanel: React.FC<RightPanelProps> = React.memo(
               {t("workflow.rightPanel.edgeType")}
             </label>
             <Select
-              value={selectedEdge.edge_type}
-              onChange={(edge_type) =>
+              value={selectedEdge.edgeType}
+              onChange={(edgeType) =>
                 useWorkflowEditorStore
                   .getState()
-                  .updateEdge(selectedEdge.id, { edge_type })}
+                  .updateEdge(selectedEdge.id, { edgeType })}
               size="small"
               style={{ width: "100%" }}
               options={[

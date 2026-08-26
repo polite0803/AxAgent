@@ -26,7 +26,7 @@ interface AIPanelProps {
   onOptimizePrompt: (prompt: string) => Promise<string | null>;
   onRecommendNodes: (
     context: string,
-  ) => Promise<Array<{ node_type: string; label: string; description: string; confidence: number }> | null>;
+  ) => Promise<Array<{ nodeType: string; label: string; description: string; confidence: number }> | null>;
   onClose: () => void;
   selectedNodeId?: string | null;
   selectedNodePrompt?: string | null;
@@ -154,7 +154,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
   const [recommendContext, setRecommendContext] = useState("");
   const [isRecommending, setIsRecommending] = useState(false);
   const [recommendedNodes, setRecommendedNodes] = useState<
-    Array<{ node_type: string; label: string; description: string; confidence: number }> | null
+    Array<{ nodeType: string; label: string; description: string; confidence: number }> | null
   >(null);
 
   const [generateError, setGenerateError] = useState<string | null>(null);
@@ -395,7 +395,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
                     onClick={() => setPendingAiChatActions(msg.id, msg.actions!)}
                     style={{ alignSelf: "flex-start" }}
                   >
-                    {getActionLabel(msg.actions[0].action_type)}
+                    {getActionLabel(msg.actions[0].actionType)}
                   </Button>
                 )
                 : (
@@ -755,7 +755,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {recommendedNodes.map((node) => (
               <Card
-                key={`${node.node_type}-${node.label}`}
+                key={`${node.nodeType}-${node.label}`}
                 size="small"
                 style={{
                   background: token.colorBgContainer,
@@ -766,14 +766,14 @@ export const AIPanel: React.FC<AIPanelProps> = ({
                 styles={{ body: { padding: "8px 12px" } }}
                 hoverable
                 onClick={() => {
-                  setDragPayload({ type: node.node_type, label: node.label });
+                  setDragPayload({ type: node.nodeType, label: node.label });
                   message.info(t("workflow.aiPanel.dragCanvasToAdd", { label: node.label }));
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                      <Tag color="blue" style={{ fontSize: 12, margin: 0, padding: "0 6px" }}>{node.node_type}</Tag>
+                      <Tag color="blue" style={{ fontSize: 12, margin: 0, padding: "0 6px" }}>{node.nodeType}</Tag>
                       <span style={{ color: token.colorText, fontSize: 12, fontWeight: 500 }}>{node.label}</span>
                     </div>
                     {node.description && (
@@ -786,8 +786,8 @@ export const AIPanel: React.FC<AIPanelProps> = ({
                     {/* Phase 3: evolution badges */}
                     {(() => {
                       try {
-                        const abResults = evolutionStore.getABTestResults(node.node_type);
-                        const historyResults = evolutionStore.getSkillEvolutionHistory(node.node_type);
+                        const abResults = evolutionStore.getABTestResults(node.nodeType);
+                        const historyResults = evolutionStore.getSkillEvolutionHistory(node.nodeType);
                         const hasABWin = abResults && abResults.length > 0;
                         const hasHistory = historyResults && historyResults.length > 0;
                         return (

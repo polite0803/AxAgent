@@ -140,9 +140,7 @@ interface EdgeLike {
   source: string;
   target: string;
   sourceHandle?: string;
-  /** 后端 WorkflowEdge 序列化为 snake_case，前端用 camelCase，兼容两种字段名 */
-  source_handle?: string;
-  edge_type?: string;
+  edgeType?: string;
 }
 
 // 容器节点类型（同步自 workflow.types.ts 的 NODE_TYPE_MAP isContainer 标记）
@@ -305,18 +303,11 @@ export function validateWorkflow(
   edges: EdgeLike[],
   t: RenderFn = defaultT,
 ): ValidationResult {
-  // 归一化：后端 WorkflowEdge 无 #[serde(rename_all = "camelCase")]，
-  // 序列化为 source_handle (snake_case)，前端用 sourceHandle (camelCase)。
-  // 兼容两种字段名，避免 sourceHandle 读取为 undefined 导致误报"出口未连接"。
-  const normalizedEdges: EdgeLike[] = edges.map((e) =>
-    e.sourceHandle || !e.source_handle
-      ? e
-      : { ...e, sourceHandle: e.source_handle }
-  );
+  const normalizedEdges: EdgeLike[] = edges;
 
   const realEdges = normalizedEdges.filter(
     (e) =>
-      e.edge_type !== "grouping"
+      e.edgeType !== "grouping"
       && ((e as unknown as Record<string, unknown>).data as Record<string, unknown> | undefined)?.edgeType
         !== "grouping",
   );
@@ -461,7 +452,7 @@ export function validateWorkflow(
       (e) =>
         sccSet.has(e.source)
         && sccSet.has(e.target)
-        && (e.edge_type === "loopBack" || e.sourceHandle === "loopBack"),
+        && (e.edgeType === "loopBack" || e.sourceHandle === "loopBack"),
     );
     if (hasBreak) { continue; }
 
@@ -533,7 +524,7 @@ export function validateWorkflow(
     if (tType !== "workflowRef") { continue; }
 
     // 8a. 空引用
-    const refId = extractConfig(n, "target_workflow_id");
+    const refId = extractConfig(n, "targetWorkflowId");
     if (!refId) {
       const key = "workflow.layout.validate.workflow_ref_empty";
       const params = { nodeId: n.id };
@@ -570,16 +561,16 @@ export function validateWorkflow(
   const refNodes = nodes.filter((n) => nodeTypeOf(n) === "workflowRef");
   const maxDepth = 3;
   for (const rn of refNodes) {
-    const refId = extractConfig(rn, "target_workflow_id");
+    const refId = extractConfig(rn, "targetWorkflowId");
     if (!refId) { continue; }
     // 模拟引用链：如果同一工作流内多个 workflowRef 互相连接形成潜在环，
     // 标记为高风险（前端仅能检测同模板内的直接自引用，完整闭环检测需后端）
     const chainCheck = new Set<string>();
     chainCheck.add(refId);
     // 检查是否有其他 workflowRef 指向当前模板中另一个 workflowRef 的相同目标
-    const otherRefs = refNodes.filter((x) => x.id !== rn.id && extractConfig(x, "target_workflow_id"));
+    const otherRefs = refNodes.filter((x) => x.id !== rn.id && extractConfig(x, "targetWorkflowId"));
     for (const or of otherRefs) {
-      const orId = extractConfig(or, "target_workflow_id");
+      const orId = extractConfig(or, "targetWorkflowId");
       if (chainCheck.has(orId!)) {
         const key = "workflow.layout.validate.workflow_ref_depth";
         const params = { maxDepth, refId };
@@ -733,17 +724,17 @@ export function toAbsolutePosition(
  *
  * @param x - 原始 X 坐标
  * @param y - 原始 Y 坐标
- * @param grid_size - 网格间距（默认 20px）
+ * @param gridSize - 网格间距（默认 20px）
  * @returns 吸附后的坐标
  */
 export function snapToGrid(
   x: number,
   y: number,
-  grid_size: number = 20,
+  gridSize: number = 20,
 ): { x: number; y: number } {
   return {
-    x: Math.round(x / grid_size) * grid_size,
-    y: Math.round(y / grid_size) * grid_size,
+    x: Math.round(x / gridSize) * gridSize,
+    y: Math.round(y / gridSize) * gridSize,
   };
 }
 
@@ -767,14 +758,14 @@ export interface SiblingInfo {
  * @param candidate - 候选位置（含可选 id）
  * @param nodeType - 候选节点类型（用于 getNodeSize）
  * @param siblings - 画布上其他节点的快照（不含自身及同组选中节点）
- * @param min_gap  - 节点间最小间隙（默认 10px）
+ * @param minGap  - 节点间最小间隙（默认 10px）
  * @returns 安全的网格吸附坐标
  */
 export function findSafePosition(
   candidate: { x: number; y: number; id?: string },
   nodeType: string,
   siblings: SiblingInfo[],
-  min_gap: number = 10,
+  minGap: number = 10,
 ): { x: number; y: number } {
   if (siblings.length === 0) {
     return snapToGrid(candidate.x, candidate.y);
@@ -823,28 +814,28 @@ export function findSafePosition(
     if (!overlaps(ox, oy)) { continue; }
 
     // 右
-    const rx = s.x + s.w + min_gap;
+    const rx = s.x + s.w + minGap;
     const rDist = Math.abs(rx - ox);
     if (!overlaps(rx, oy)) {
       dirCands.push({ x: rx, y: oy, dist: rDist });
     }
 
     // 左
-    const lx = s.x - cw - min_gap;
+    const lx = s.x - cw - minGap;
     const lDist = Math.abs(lx - ox);
     if (!overlaps(lx, oy)) {
       dirCands.push({ x: lx, y: oy, dist: lDist });
     }
 
     // 下
-    const dy = s.y + s.h + min_gap;
+    const dy = s.y + s.h + minGap;
     const dDist = Math.abs(dy - oy);
     if (!overlaps(ox, dy)) {
       dirCands.push({ x: ox, y: dy, dist: dDist });
     }
 
     // 上
-    const uy = s.y - ch - min_gap;
+    const uy = s.y - ch - minGap;
     const uDist = Math.abs(uy - oy);
     if (!overlaps(ox, uy)) {
       dirCands.push({ x: ox, y: uy, dist: uDist });
@@ -861,8 +852,8 @@ export function findSafePosition(
   // 对角线回退：右 + 下
   for (const s of sibRects) {
     if (!overlaps(ox, oy)) { continue; }
-    const fx = s.x + s.w + min_gap;
-    const fy = s.y + s.h + min_gap;
+    const fx = s.x + s.w + minGap;
+    const fy = s.y + s.h + minGap;
     if (!overlaps(fx, fy)) {
       dirCands.push({
         x: fx,

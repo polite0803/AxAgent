@@ -140,30 +140,30 @@ export function initBackendStatusListeners() {
   }).catch(logIpcError("listen:knowledge-rebuild-complete"));
 
   listen<{ execution_id: string; node_id: string; status: string }>("workflow:node-status-changed", (event) => {
-    const { node_id, status } = event.payload;
+    const { node_id: nodeId, status } = event.payload;
     const store = useBackendStatusStore.getState();
     if (status === "running") {
       store.upsertTask({
-        id: `wf-node-${node_id}`,
+        id: `wf-node-${nodeId}`,
         type: "workflow-node",
-        label: `Workflow: ${node_id}`,
+        label: `Workflow: ${nodeId}`,
         status: "running",
         startedAt: Date.now(),
       });
     } else if (status === "completed" || status === "skipped") {
       store.upsertTask({
-        id: `wf-node-${node_id}`,
+        id: `wf-node-${nodeId}`,
         type: "workflow-node",
-        label: `Workflow: ${node_id}`,
+        label: `Workflow: ${nodeId}`,
         status: "completed",
         startedAt: Date.now(),
         completedAt: Date.now(),
       });
     } else if (status === "error" || status === "failed") {
       store.upsertTask({
-        id: `wf-node-${node_id}`,
+        id: `wf-node-${nodeId}`,
         type: "workflow-node",
-        label: `Workflow: ${node_id}`,
+        label: `Workflow: ${nodeId}`,
         status: "failed",
         startedAt: Date.now(),
         completedAt: Date.now(),
@@ -172,9 +172,9 @@ export function initBackendStatusListeners() {
   }).catch(logIpcError("listen:workflow:node-status-changed"));
 
   listen<{ execution_id: string; status: string }>("workflow:execution-completed", (event) => {
-    const { execution_id, status } = event.payload;
+    const { execution_id: executionId, status } = event.payload;
     useBackendStatusStore.getState().upsertTask({
-      id: `wf-exec-${execution_id}`,
+      id: `wf-exec-${executionId}`,
       type: "workflow-execution",
       label: "Workflow execution",
       status: status === "error" || status === "failed" ? "failed" : "completed",

@@ -18,10 +18,10 @@ export const WorkflowRefPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDe
   const { token } = theme.useToken();
   const n = node as unknown as WorkflowRefNode; // SAFE: WorkflowNode union narrowed to specific node type via config field access
   const c = n.config || {
-    target_workflow_id: "",
-    input_mapping: {},
-    output_var: "",
-    context_mode: "inherit" as const,
+    targetWorkflowId: "",
+    inputMapping: {},
+    outputVar: "",
+    contextMode: "inherit" as const,
   };
   const sc = (k: string, v: unknown) => onUpdate({ config: { ...c, [k]: v } });
 
@@ -39,24 +39,24 @@ export const WorkflowRefPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDe
   );
 
   const handleAddInputMapping = () => {
-    const existingKeys = Object.keys(c.input_mapping || {});
+    const existingKeys = Object.keys(c.inputMapping || {});
     let nextIndex = existingKeys.length + 1;
     let newKey = t("workflow.paramKey", { n: nextIndex, defaultValue: `param_${nextIndex}` });
-    while (Object.prototype.hasOwnProperty.call(c.input_mapping || {}, newKey)) {
+    while (Object.prototype.hasOwnProperty.call(c.inputMapping || {}, newKey)) {
       nextIndex += 1;
       newKey = t("workflow.paramKey", { n: nextIndex, defaultValue: `param_${nextIndex}` });
     }
-    sc("input_mapping", { ...c.input_mapping, [newKey]: "" });
+    sc("inputMapping", { ...c.inputMapping, [newKey]: "" });
   };
 
   const handleUpdateInputMapping = (key: string, value: string) => {
-    sc("input_mapping", { ...c.input_mapping, [key]: value });
+    sc("inputMapping", { ...c.inputMapping, [key]: value });
   };
 
   const handleDeleteInputMapping = (key: string) => {
-    const newMapping = { ...c.input_mapping };
+    const newMapping = { ...c.inputMapping };
     delete newMapping[key];
-    sc("input_mapping", newMapping);
+    sc("inputMapping", newMapping);
   };
 
   return (
@@ -66,8 +66,8 @@ export const WorkflowRefPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDe
           {t("workflow.workflowRef.targetWorkflow")}
         </label>
         <Select
-          value={c.target_workflow_id || undefined}
-          onChange={(v) => sc("target_workflow_id", v)}
+          value={c.targetWorkflowId || undefined}
+          onChange={(v) => sc("targetWorkflowId", v)}
           size="small"
           style={{ width: "100%" }}
           placeholder={t("workflow.props.selectSubWorkflow")}
@@ -81,8 +81,8 @@ export const WorkflowRefPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDe
           {t("workflow.workflowRef.contextMode")}
         </label>
         <Select
-          value={c.context_mode || "inherit"}
-          onChange={(v) => sc("context_mode", v)}
+          value={c.contextMode || "inherit"}
+          onChange={(v) => sc("contextMode", v)}
           size="small"
           style={{ width: 140 }}
           options={[
@@ -102,7 +102,7 @@ export const WorkflowRefPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDe
           </Button>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {Object.entries(c.input_mapping || {}).map(([key, value]) => (
+          {Object.entries(c.inputMapping || {}).map(([key, value]) => (
             <div key={key} style={{ display: "flex", gap: 4, alignItems: "center" }}>
               <Input
                 value={key}
@@ -130,7 +130,7 @@ export const WorkflowRefPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDe
               </Button>
             </div>
           ))}
-          {Object.keys(c.input_mapping || {}).length === 0 && (
+          {Object.keys(c.inputMapping || {}).length === 0 && (
             <div style={{ color: token.colorTextTertiary, fontSize: 12, textAlign: "center", padding: 8 }}>
               {t("workflow.props.clickToAddMapping")}
             </div>
@@ -142,8 +142,8 @@ export const WorkflowRefPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDe
           {t("workflow.props.outputVariable")}
         </label>
         <Input
-          value={c.output_var ?? ""}
-          onChange={(e) => sc("output_var", e.target.value)}
+          value={c.outputVar ?? ""}
+          onChange={(e) => sc("outputVar", e.target.value)}
           size="small"
         />
       </div>

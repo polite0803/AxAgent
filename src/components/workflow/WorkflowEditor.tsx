@@ -524,7 +524,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         }
       }
       // Determine edge type based on sourceHandle
-      let edgeType: WorkflowEdge["edge_type"] = "direct";
+      let edgeType: WorkflowEdge["edgeType"] = "direct";
       if (sourceHandle === "true") {
         edgeType = "conditionTrue";
       } else if (sourceHandle === "false") {
@@ -543,7 +543,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         sourceHandle: sourceHandle ?? undefined,
         target: params.target,
         targetHandle: params.targetHandle ?? undefined,
-        edge_type: edgeType,
+        edgeType: edgeType,
       };
       storeAddEdge(newEdge);
       // FE-I4 修复：连边后立即同步 edgesRef，避免连续快速连边时
@@ -880,12 +880,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
     }
 
     const validation = await validateTemplate();
-    if (validation && !validation.is_valid) {
+    if (validation && !validation.isValid) {
       const errorDetails = validation.errors
         .map((e) => {
           let detail = e.message;
-          if (e.node_id) {
-            detail += t("workflow.validationNodeInfo", { nodeId: e.node_id });
+          if (e.nodeId) {
+            detail += t("workflow.validationNodeInfo", { nodeId: e.nodeId });
           }
           if (e.suggestion) {
             detail += t("workflow.validationSuggestion", { suggestion: e.suggestion });
@@ -912,13 +912,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       description: currentTemplate.description,
       icon: currentTemplate.icon,
       tags: currentTemplate.tags,
-      trigger_config: currentTemplate.triggerConfig,
+      triggerConfig: currentTemplate.triggerConfig,
       nodes: nodesWithParent,
       edges: cleanedEdges,
-      input_schema: currentTemplate.inputSchema,
-      output_schema: currentTemplate.outputSchema,
+      inputSchema: currentTemplate.inputSchema,
+      outputSchema: currentTemplate.outputSchema,
       variables: currentTemplate.variables,
-      error_config: currentTemplate.errorConfig,
+      errorConfig: currentTemplate.errorConfig,
     };
 
     if (currentTemplate.id) {
@@ -1159,13 +1159,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         description: tmpl?.description,
         icon: tmpl?.icon || "Bot",
         tags: tmpl?.tags || [],
-        trigger_config: tmpl?.triggerConfig,
+        triggerConfig: tmpl?.triggerConfig,
         nodes: nodesWithParent,
         edges,
-        input_schema: tmpl?.inputSchema,
-        output_schema: tmpl?.outputSchema,
+        inputSchema: tmpl?.inputSchema,
+        outputSchema: tmpl?.outputSchema,
         variables: tmpl?.variables || [],
-        error_config: tmpl?.errorConfig,
+        errorConfig: tmpl?.errorConfig,
       };
       const yaml = await invoke<string>("export_workflow_yaml", { workflowJson: JSON.stringify(workflowInput) });
       return yaml || null;
@@ -1676,7 +1676,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       const { invoke } = await import("@/lib/invoke");
       let subCount = 0;
       for (const subNode of subWorkflowNodes) {
-        const subId = subNode.data?.subWorkflowId || subNode.data?.sub_workflow_id;
+        const subId = subNode.data?.subWorkflowId || subNode.data?.subWorkflowId;
         if (!subId) { continue; }
         try {
           const tmpl: Record<string, unknown> = await invoke("get_workflow_template", { id: subId });
@@ -1718,10 +1718,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             nodes: updatedSubNodes,
             edges: subEdges,
             variables: tmpl.variables || [],
-            input_schema: tmpl.inputSchema || undefined,
-            output_schema: tmpl.outputSchema || undefined,
-            error_config: tmpl.errorConfig || undefined,
-            trigger_config: tmpl.triggerConfig || undefined,
+            inputSchema: tmpl.inputSchema || undefined,
+            outputSchema: tmpl.outputSchema || undefined,
+            errorConfig: tmpl.errorConfig || undefined,
+            triggerConfig: tmpl.triggerConfig || undefined,
             description: tmpl.description || undefined,
           };
           await invoke("update_workflow_template", { id: subId, input });
@@ -2091,8 +2091,8 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
               onClose={() => setAiPanelVisible(false)}
               selectedNodeId={selectedNodeId}
               selectedNodePrompt={selectedNodeId
-                ? (nodes.find(n => n.id === selectedNodeId) as unknown as { config?: { system_prompt?: string } }) // SAFE: accessing config.system_prompt on WorkflowNode union
-                  ?.config?.system_prompt ?? null
+                ? (nodes.find(n => n.id === selectedNodeId) as unknown as { config?: { systemPrompt?: string } }) // SAFE: accessing config.systemPrompt on WorkflowNode union
+                  ?.config?.systemPrompt ?? null
                 : null}
               onApplyPromptToNode={applyOptimizedPromptToNode}
               chatMessages={aiChatMessages}
@@ -2274,53 +2274,53 @@ function getDefaultNodeConfig(nodeType: string): Record<string, unknown> {
         task: "",
         role: undefined,
         model: undefined,
-        output_var: "",
+        outputVar: "",
         mode: "auto",
-        max_rounds: 3,
+        maxRounds: 3,
       };
     case "llm":
-      return { model: "", prompt: "", temperature: 0.7, max_tokens: 2048 };
+      return { model: "", prompt: "", temperature: 0.7, maxTokens: 2048 };
     case "condition":
-      return { conditions: [], logical_op: "and" };
+      return { conditions: [], logicalOp: "and" };
     case "parallel":
-      return { branches: [], wait_for_all: true, aggregation: undefined, kind: "executable" };
+      return { branches: [], waitForAll: true, aggregation: undefined, kind: "executable" };
     case "loop":
       return {
-        loop_type: "forEach",
-        max_iterations: 100,
-        continue_on_error: false,
-        body_steps: [],
+        loopType: "forEach",
+        maxIterations: 100,
+        continueOnError: false,
+        bodySteps: [],
       };
     case "tool":
-      return { tool_name: "", input_mapping: {}, output_var: "" };
+      return { toolName: "", inputMapping: {}, outputVar: "" };
     case "code":
-      return { language: "javascript", code: "", output_var: "" };
+      return { language: "javascript", code: "", outputVar: "" };
     case "merge":
-      return { merge_type: "all", inputs: [] };
+      return { mergeType: "all", inputs: [] };
     case "delay":
-      return { delay_type: "seconds", seconds: 5 };
+      return { delayType: "seconds", seconds: 5 };
     case "subWorkflow":
       return {
-        sub_workflow_id: "",
-        input_mapping: {},
-        output_var: "",
-        is_async: false,
+        subWorkflowId: "",
+        inputMapping: {},
+        outputVar: "",
+        isAsync: false,
       };
     case "workflowRef":
       return {
-        target_workflow_id: "",
-        input_mapping: {},
-        output_var: "",
-        context_mode: "inherit",
+        targetWorkflowId: "",
+        inputMapping: {},
+        outputVar: "",
+        contextMode: "inherit",
       };
     case "documentParser":
-      return { input_var: "", parser_type: "", output_var: "" };
+      return { inputVar: "", parserType: "", outputVar: "" };
     case "vectorRetrieve":
-      return { query: "", knowledge_base_id: "", top_k: 5, output_var: "" };
+      return { query: "", knowledgeBaseId: "", topK: 5, outputVar: "" };
     case "end":
       return {};
     case "validation":
-      return { assertions: [], on_fail: "stop" as const, max_retries: 0 };
+      return { assertions: [], onFail: "stop" as const, maxRetries: 0 };
     case "_phaseSeparator":
       return { label: "", width: 800 };
     case "groupFrame":
@@ -2344,10 +2344,10 @@ function createWorkflowNode(
     position,
     retry: {
       enabled: false,
-      max_retries: 3,
-      backoff_type: "Exponential" as const,
-      base_delay_ms: 1000,
-      max_delay_ms: 60000,
+      maxRetries: 3,
+      backoffType: "Exponential" as const,
+      baseDelayMs: 1000,
+      maxDelayMs: 60000,
     },
     timeout: undefined,
     enabled: true,
@@ -2366,16 +2366,16 @@ function createWorkflowNode(
         ...baseNode,
         type: "agent",
         config: {
-          system_prompt: "",
-          context_sources: [],
-          output_var: "",
+          systemPrompt: "",
+          contextSources: [],
+          outputVar: "",
           tools: [],
-          exposed_tools: [],
-          output_mode: "text",
+          exposedTools: [],
+          outputMode: "text",
           agentProfileId: undefined,
-          max_tool_rounds: undefined,
-          execution_mode: undefined,
-          rag_source_ids: [],
+          maxToolRounds: undefined,
+          executionMode: undefined,
+          ragSourceIds: [],
         },
       };
     case "multiAgent":
@@ -2386,73 +2386,73 @@ function createWorkflowNode(
           task: "",
           role: undefined,
           model: undefined,
-          output_var: "",
+          outputVar: "",
           mode: "auto",
-          max_rounds: 3,
+          maxRounds: 3,
         },
       };
     case "llm":
       return {
         ...baseNode,
         type: "llm",
-        config: { model: "", prompt: "", temperature: 0.7, max_tokens: 2048 },
+        config: { model: "", prompt: "", temperature: 0.7, maxTokens: 2048 },
       };
     case "condition":
       return {
         ...baseNode,
         type: "condition",
-        config: { conditions: [], logical_op: "and" },
+        config: { conditions: [], logicalOp: "and" },
       };
     case "parallel":
       return {
         ...baseNode,
         type: "parallel",
-        config: { branches: [], wait_for_all: true, aggregation: undefined, kind: "executable" },
+        config: { branches: [], waitForAll: true, aggregation: undefined, kind: "executable" },
       };
     case "loop":
       return {
         ...baseNode,
         type: "loop",
         config: {
-          loop_type: "forEach",
-          max_iterations: 100,
-          continue_on_error: false,
-          body_steps: [],
+          loopType: "forEach",
+          maxIterations: 100,
+          continueOnError: false,
+          bodySteps: [],
         },
       };
     case "merge":
       return {
         ...baseNode,
         type: "merge",
-        config: { merge_type: "all", inputs: [] },
+        config: { mergeType: "all", inputs: [] },
       };
     case "delay":
       return {
         ...baseNode,
         type: "delay",
-        config: { delay_type: "seconds", seconds: 5 },
+        config: { delayType: "seconds", seconds: 5 },
       };
     case "tool":
       return {
         ...baseNode,
         type: "tool",
-        config: { tool_name: "", input_mapping: {}, output_var: "" },
+        config: { toolName: "", inputMapping: {}, outputVar: "" },
       };
     case "code":
       return {
         ...baseNode,
         type: "code",
-        config: { language: "javascript", code: "", output_var: "" },
+        config: { language: "javascript", code: "", outputVar: "" },
       };
     case "subWorkflow":
       return {
         ...baseNode,
         type: "subWorkflow",
         config: {
-          sub_workflow_id: "",
-          input_mapping: {},
-          output_var: "",
-          is_async: false,
+          subWorkflowId: "",
+          inputMapping: {},
+          outputVar: "",
+          isAsync: false,
         },
       };
     case "workflowRef":
@@ -2460,23 +2460,23 @@ function createWorkflowNode(
         ...baseNode,
         type: "workflowRef",
         config: {
-          target_workflow_id: "",
-          input_mapping: {},
-          output_var: "",
-          context_mode: "inherit",
+          targetWorkflowId: "",
+          inputMapping: {},
+          outputVar: "",
+          contextMode: "inherit",
         },
       };
     case "documentParser":
       return {
         ...baseNode,
         type: "documentParser",
-        config: { input_var: "", parser_type: "", output_var: "" },
+        config: { inputVar: "", parserType: "", outputVar: "" },
       };
     case "vectorRetrieve":
       return {
         ...baseNode,
         type: "vectorRetrieve",
-        config: { query: "", knowledge_base_id: "", top_k: 5, output_var: "" },
+        config: { query: "", knowledgeBaseId: "", topK: 5, outputVar: "" },
       };
     case "end":
       return { ...baseNode, type: "end", config: {} };
@@ -2484,7 +2484,7 @@ function createWorkflowNode(
       return {
         ...baseNode,
         type: "validation",
-        config: { assertions: [], on_fail: "stop" as const, max_retries: 0 },
+        config: { assertions: [], onFail: "stop" as const, maxRetries: 0 },
       };
     case "httpRequest":
       return {
@@ -2494,9 +2494,9 @@ function createWorkflowNode(
           url: "",
           method: "GET",
           headers: {},
-          body_type: "none",
-          timeout_secs: 30,
-          output_var: "",
+          bodyType: "none",
+          timeoutSecs: 30,
+          outputVar: "",
         },
       };
     case "switch":
@@ -2504,10 +2504,10 @@ function createWorkflowNode(
         ...baseNode,
         type: "switch",
         config: {
-          input_var: "",
+          inputVar: "",
           cases: [],
-          match_mode: "exact",
-          output_var: "",
+          matchMode: "exact",
+          outputVar: "",
         },
       };
     case "databaseQuery":
@@ -2517,8 +2517,8 @@ function createWorkflowNode(
         config: {
           query: "",
           params: [],
-          timeout_secs: 30,
-          output_var: "",
+          timeoutSecs: 30,
+          outputVar: "",
         },
       };
     case "notification":
@@ -2530,7 +2530,7 @@ function createWorkflowNode(
           message: "",
           recipients: [],
           enabled: true,
-          output_var: "",
+          outputVar: "",
         },
       };
     case "approval":
@@ -2539,22 +2539,22 @@ function createWorkflowNode(
         type: "approval",
         config: {
           message: "",
-          timeout_secs: 3600,
-          timeout_action: "reject",
-          output_var: "",
+          timeoutSecs: 3600,
+          timeoutAction: "reject",
+          outputVar: "",
         },
       };
     case "fileOperation":
       return {
         ...baseNode,
         type: "fileOperation",
-        config: { operation: "read", file_path: "", output_var: "" },
+        config: { operation: "read", filePath: "", outputVar: "" },
       };
     case "dataTransformer":
       return {
         ...baseNode,
         type: "dataTransformer",
-        config: { input_var: "", expression: "", output_var: "" },
+        config: { inputVar: "", expression: "", outputVar: "" },
       };
     case "webhookSend":
       return {
@@ -2564,14 +2564,14 @@ function createWorkflowNode(
           url: "",
           method: "POST",
           headers: {},
-          output_var: "",
+          outputVar: "",
         },
       };
     case "logging":
       return {
         ...baseNode,
         type: "logging",
-        config: { level: "info", message: "", output_var: "" },
+        config: { level: "info", message: "", outputVar: "" },
       };
     case "llmClassifier":
       return {
@@ -2580,15 +2580,15 @@ function createWorkflowNode(
         config: {
           categories: [],
           prompt: "",
-          input_var: "",
-          output_var: "",
+          inputVar: "",
+          outputVar: "",
         },
       };
     case "aggregator":
       return {
         ...baseNode,
         type: "aggregator",
-        config: { strategy: "concat", input_sources: [], output_var: "" },
+        config: { strategy: "concat", inputSources: [], outputVar: "" },
       };
     case "email":
       return {
@@ -2598,7 +2598,7 @@ function createWorkflowNode(
           to: [],
           subject: "",
           body: "",
-          output_var: "",
+          outputVar: "",
         },
       };
     case "debate":
@@ -2606,10 +2606,10 @@ function createWorkflowNode(
         ...baseNode,
         type: "debate",
         config: {
-          debater_steps: [],
-          max_rounds: 3,
-          topic_var: "",
-          output_var: "",
+          debaterSteps: [],
+          maxRounds: 3,
+          topicVar: "",
+          outputVar: "",
         },
       };
     case "storage":
@@ -2619,10 +2619,10 @@ function createWorkflowNode(
         config: {
           backend: "sqlite",
           operation: "insert",
-          input_var: "",
+          inputVar: "",
           collection: "",
-          key_var: undefined,
-          output_var: "",
+          keyVar: undefined,
+          outputVar: "",
         },
       };
     case "swarm":
@@ -2630,10 +2630,10 @@ function createWorkflowNode(
         ...baseNode,
         type: "swarm",
         config: {
-          agent_steps: [],
-          max_rounds: 3,
-          topic_var: "",
-          output_var: "",
+          agentSteps: [],
+          maxRounds: 3,
+          topicVar: "",
+          outputVar: "",
         },
       };
     default:

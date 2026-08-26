@@ -53,7 +53,7 @@ export function SkillDependencyCheck() {
         // 2) Array<{ name, version_constraint, required }>（Rust 后端返回）
         if (Array.isArray(deps)) {
           for (const dep of deps) {
-            const depName = typeof dep === "string" ? dep : dep?.name ?? dep?.skill_name ?? String(dep);
+            const depName = typeof dep === "string" ? dep : dep?.name ?? dep?.skillName ?? String(dep);
             const installed = installedNames.has(depName);
             if (!installed) {
               allSatisfied = false;

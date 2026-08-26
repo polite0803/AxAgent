@@ -26,8 +26,8 @@ export const ValidationPropertyPanel: React.FC<
   const validationNode = node as ValidationNode;
   const config = validationNode.config || {
     assertions: [],
-    on_fail: "stop" as const,
-    max_retries: 0,
+    onFail: "stop" as const,
+    maxRetries: 0,
   };
 
   const handleConfigChange = (key: string, value: unknown) => {
@@ -226,8 +226,8 @@ export const ValidationPropertyPanel: React.FC<
           {t("workflow.props.failStrategy")}
         </label>
         <Select
-          value={config.on_fail || "stop"}
-          onChange={(value) => handleConfigChange("on_fail", value)}
+          value={config.onFail || "stop"}
+          onChange={(value) => handleConfigChange("onFail", value)}
           size="small"
           style={{ width: "100%" }}
           options={[
@@ -238,7 +238,7 @@ export const ValidationPropertyPanel: React.FC<
         />
       </div>
 
-      {config.on_fail === "retry" && (
+      {config.onFail === "retry" && (
         <div>
           <label
             style={{
@@ -253,8 +253,8 @@ export const ValidationPropertyPanel: React.FC<
           <Input
             id="validation-property-panel-input-119"
             type="number"
-            value={config.max_retries ?? 0}
-            onChange={(e) => handleConfigChange("max_retries", parseInt(e.target.value) || 0)}
+            value={config.maxRetries ?? 0}
+            onChange={(e) => handleConfigChange("maxRetries", parseInt(e.target.value) || 0)}
             size="small"
             min={0}
           />

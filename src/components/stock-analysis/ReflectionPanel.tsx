@@ -1250,9 +1250,9 @@ function ExpandedReflectionRow(
                         setAiSelected(next);
                       }}
                     />
-                    <Tag color={ACTION_COLOR[a.action_type] ?? "default"}>{a.action_type}</Tag>
+                    <Tag color={ACTION_COLOR[a.actionType] ?? "default"}>{a.actionType}</Tag>
                     {/* P1-10 修复: rollback_to_version 显示对比提示 */}
-                    {a.action_type === "rollback_to_version" && (
+                    {a.actionType === "rollback_to_version" && (
                       <Text type="warning" style={{ fontSize: 11 }}>
                         ⚠ {t("stockAnalysis.reflection.rollbackWarning", {
                           target: (a.data as { version?: number })?.version ?? "?",
@@ -1413,7 +1413,7 @@ function parseActionsFromAccumulated(content: string): AiChatAction[] {
   const out: AiChatAction[] = [];
   const seen = new Set<string>(); // P1-8 dedup
   let match;
-  const known = new Set<AiChatAction["action_type"]>([
+  const known = new Set<AiChatAction["actionType"]>([
     "update_variable",
     "rollback_to_version",
     "update_input_mapping",
@@ -1423,8 +1423,8 @@ function parseActionsFromAccumulated(content: string): AiChatAction[] {
   while ((match = regex.exec(content)) !== null) {
     try {
       const parsed = JSON.parse(match[1].trim());
-      const actionType = parsed.action_type;
-      if (!known.has(actionType as AiChatAction["action_type"])) { continue; }
+      const actionType = parsed.actionType;
+      if (!known.has(actionType as AiChatAction["actionType"])) { continue; }
       // 防御：LLM 可能输出 camelCase（templateId/anchorLine/rollbackOnFailure），
       // 归一化为 snake_case 以匹配上游 ChatAction enum 序列化要求。
       const data = camelToSnakeKeys(parsed.data ?? {}) as AiChatAction["data"];
@@ -1433,7 +1433,7 @@ function parseActionsFromAccumulated(content: string): AiChatAction[] {
       const dedupKey = actionType + "|" + JSON.stringify(data);
       if (seen.has(dedupKey)) { continue; }
       seen.add(dedupKey);
-      out.push({ action_type: actionType, data } as AiChatAction);
+      out.push({ actionType, data } as AiChatAction);
     } catch {
       // skip invalid JSON
     }
