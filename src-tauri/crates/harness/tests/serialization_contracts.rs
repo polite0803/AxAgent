@@ -604,15 +604,11 @@ fn test_none_fields_preserved_in_json() {
     let request = AgentExecuteRequest { goal: "test".to_string(), context: None, max_steps: None };
     let json: serde_json::Value = serde_json::to_value(&request).unwrap();
 
-    // context 和 max_steps 应该存在且为 null
+    // context 和 maxSteps 应该存在且为 null
     assert!(json.get("context").is_some(), "context 字段应该存在于 JSON 中");
     assert_eq!(json.get("context").unwrap(), &serde_json::Value::Null, "context 字段应该为 null");
-    assert!(json.get("max_steps").is_some(), "max_steps 字段应该存在于 JSON 中");
-    assert_eq!(
-        json.get("max_steps").unwrap(),
-        &serde_json::Value::Null,
-        "max_steps 字段应该为 null"
-    );
+    assert!(json.get("maxSteps").is_some(), "maxSteps 字段应该存在于 JSON 中");
+    assert_eq!(json.get("maxSteps").unwrap(), &serde_json::Value::Null, "maxSteps 字段应该为 null");
 }
 
 /// 验证 Some 值在序列化后保持不变
@@ -630,7 +626,7 @@ fn test_some_fields_preserved_in_json() {
         &serde_json::json!("important context"),
         "context 值应该保持不变"
     );
-    assert_eq!(json.get("max_steps").unwrap(), &serde_json::json!(42), "max_steps 值应该保持不变");
+    assert_eq!(json.get("maxSteps").unwrap(), &serde_json::json!(42), "maxSteps 值应该保持不变");
 }
 
 /// 验证 TokenUsage 的可选字段行为
