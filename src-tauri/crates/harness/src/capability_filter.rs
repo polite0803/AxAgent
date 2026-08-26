@@ -161,6 +161,7 @@ impl FilterDimension {
 
 /// 过滤后的候选列表
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FilteredCandidates {
     /// 通过所有闸门的候选
     pub passed: Vec<crate::capability::CapabilityPassportDto>,
@@ -169,6 +170,7 @@ pub struct FilteredCandidates {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RejectedCandidate {
     pub capability_id: String,
     pub rejected_by: FilterDimension,

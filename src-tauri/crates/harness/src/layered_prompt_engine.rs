@@ -73,6 +73,7 @@ impl PromptLayer {
 
 /// Prompt 片段 — 各层注入的最小单元
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PromptSegment {
     /// 所属层
     pub layer: PromptLayer,
@@ -134,6 +135,7 @@ impl PromptSegment {
 
 /// 分层 Prompt 组装结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LayeredPromptResult {
     /// 各层片段
     pub segments: Vec<PromptSegment>,
@@ -152,6 +154,7 @@ pub struct LayeredPromptResult {
 
 /// 各层 token 使用情况
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LayerTokenUsage {
     pub layer: PromptLayer,
     pub used_tokens: u32,
@@ -217,6 +220,7 @@ pub trait LayeredPromptEngine: Send + Sync {
 
 /// Prompt 模板
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PromptTemplate {
     /// 模板 ID（唯一）
     pub template_id: String,

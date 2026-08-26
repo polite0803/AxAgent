@@ -41,6 +41,7 @@ pub enum CronBlueprintType {
 
 /// Cron 任务蓝图
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CronBlueprint {
     /// 蓝图 ID
     pub id: String,
@@ -66,6 +67,7 @@ pub struct CronBlueprint {
 
 /// 蓝图可自定义参数
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BlueprintParam {
     pub name: String,
     pub description: String,
@@ -95,6 +97,7 @@ pub enum BlueprintRiskLevel {
 
 /// 蓝图生成的 CronJob 数据（harness 层 DTO，由实现层转换为实际 CronJob）
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BlueprintCronJobData {
     pub id: String,
     pub name: String,
@@ -341,6 +344,7 @@ impl CronBlueprint {
 
 /// 生命周期守卫 - 防止任务在错误条件下运行
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LifecycleGuard {
     /// 最小运行间隔（秒）
     pub min_interval_secs: u64,
@@ -486,6 +490,7 @@ pub enum GuardCheckResult {
 
 /// 使用模式
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UsagePattern {
     /// 模式 ID
     pub id: String,
@@ -505,6 +510,7 @@ pub struct UsagePattern {
 
 /// 频率建议
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FrequencySuggestion {
     /// 最小频率
     pub min: String,

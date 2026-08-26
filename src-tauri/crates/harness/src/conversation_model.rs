@@ -33,6 +33,7 @@ pub enum ContentBlock {
 
 /// Authoritative definition of a conversation message (role + content + optional usage).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct ConversationMessage {
     pub role: MessageRole,
     pub blocks: Vec<ContentBlock>,

@@ -12,6 +12,7 @@ use crate::consistency_check::ConsistencyCheckConfig;
 use crate::hallucination_guard::HallucinationGuardConfig;
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct Position {
     pub x: f64,
     pub y: f64,
@@ -24,6 +25,7 @@ impl Default for Position {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct RetryConfig {
     pub enabled: bool,
     pub max_retries: u32,
@@ -70,6 +72,7 @@ pub struct JsonSchema {
 ///
 /// 反序列化支持向后兼容：旧格式的纯字符串自动转为 ToolDef { name, ..Default::default() }。
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct ToolDef {
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -146,6 +149,7 @@ pub enum NodeKind {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkflowNodeBase {
     pub id: String,
     pub title: String,
@@ -179,6 +183,7 @@ pub enum TriggerType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct TriggerConfig {
     #[serde(rename = "type")]
     pub trigger_type: TriggerType,
@@ -186,9 +191,11 @@ pub struct TriggerConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct ManualTriggerConfig {}
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct ScheduleTriggerConfig {
     /// 单个 cron 表达式（5 或 6 字段），标准调度器使用
     #[serde(default)]
@@ -213,6 +220,7 @@ impl ScheduleTriggerConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct WebhookTriggerConfig {
     pub path: String,
     pub method: String,
@@ -227,6 +235,7 @@ fn default_webhook_response_mode() -> Option<String> {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct EventTriggerConfig {
     pub event_type: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -244,6 +253,7 @@ pub enum OutputMode {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentNodeConfig {
     pub system_prompt: String,
     pub context_sources: Vec<String>,
@@ -2353,6 +2363,7 @@ pub struct WorkflowTemplateInput {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkflowTemplateResponse {
     pub id: String,
     pub name: String,

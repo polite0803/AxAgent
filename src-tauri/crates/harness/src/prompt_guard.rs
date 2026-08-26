@@ -69,6 +69,7 @@ impl fmt::Display for PromptRejection {
 
 /// 动态防护规则（运行时注入，非编译期静态模式）
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DynamicGuardRule {
     pub category: PromptAttackCategory,
     pub pattern: String,

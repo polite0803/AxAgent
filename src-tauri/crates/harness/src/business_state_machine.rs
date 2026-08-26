@@ -42,6 +42,7 @@ pub type BusinessStateId = String;
 ///     .with_transition(StateTransition::new("approved", "completed"));
 /// ```
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct BusinessStateMachine {
     /// 状态机 ID
     pub id: String,
@@ -139,6 +140,7 @@ impl BusinessStateMachine {
 
 /// 业务状态定义
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct BusinessState {
     /// 状态 ID（唯一标识）
     pub id: BusinessStateId,
@@ -224,6 +226,7 @@ impl BusinessState {
 
 /// 状态转移规则
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct StateTransition {
     /// 源状态 ID
     pub from: BusinessStateId,
@@ -319,6 +322,7 @@ impl StateTransition {
 
 /// 状态机运行时上下文（用于守卫条件评估）
 #[derive(Debug, Clone, Default, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct FsmContext {
     /// 触发转移的事件
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -378,6 +382,7 @@ impl FsmContext {
 
 /// 状态机运行时状态（持久化）
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct FsmRuntimeState {
     /// 当前状态 ID
     pub current_state_id: BusinessStateId,
@@ -482,6 +487,7 @@ impl FsmRuntimeState {
 
 /// 转移记录
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct FsmTransitionRecord {
     pub from: BusinessStateId,
     pub to: BusinessStateId,
@@ -694,6 +700,7 @@ impl std::fmt::Display for FsmPersistenceError {
 
 /// 决策日志记录（用于时间旅行还原）
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct FsmDecisionLog {
     /// 决策 ID
     pub id: String,

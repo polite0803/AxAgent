@@ -257,6 +257,7 @@ impl Visibility {
 
 /// 能力调用权限 — 控制哪些角色可以调用该能力
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CallerPermissions {
     /// 允许调用的角色列表（空 = 所有人可调用）
     #[serde(default)]
@@ -482,6 +483,7 @@ impl CapabilityLevel {
 
 /// 输出格式能力声明（用于设备兼容性过滤）
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OutputCapabilities {
     #[serde(default)]
     pub supports_text: bool,

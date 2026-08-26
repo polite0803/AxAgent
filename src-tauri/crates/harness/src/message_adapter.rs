@@ -65,6 +65,7 @@ impl MediaType {
 
 /// 一条待发送的媒体附件。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MediaAttachment {
     pub path: String,
     pub media_type: MediaType,

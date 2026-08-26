@@ -97,6 +97,7 @@ pub enum SlashCommandAction {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SlashCommandPreprocessed {
     pub modified_text: String,
     pub personality_prompt: Option<String>,

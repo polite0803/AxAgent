@@ -391,7 +391,7 @@ interface ConversationWorkflowPreviewResponse {
 
 const createEmptyTemplate = (): Omit<
   WorkflowTemplateResponse,
-  "id" | "created_at" | "updated_at"
+  "id" | "createdAt" | "updatedAt"
 > => ({
   name: "Unnamed Workflow",
   description: "",
@@ -399,16 +399,16 @@ const createEmptyTemplate = (): Omit<
   tags: [],
   version: 1,
   isPreset: false,
-  is_editable: true,
-  is_public: false,
-  is_system: false,
-  trigger_config: { type: "manual", config: {} },
+  isEditable: true,
+  isPublic: false,
+  isSystem: false,
+  triggerConfig: { type: "manual", config: {} },
   nodes: [],
   edges: [],
-  input_schema: undefined,
-  output_schema: undefined,
+  inputSchema: undefined,
+  outputSchema: undefined,
   variables: [],
-  error_config: undefined,
+  errorConfig: undefined,
 });
 
 // 深克隆：优先用 JSON（避免 React Flow 节点含 React 组件引用导致 structuredClone 失败）
@@ -439,20 +439,20 @@ const buildHistoryEntry = (state: WorkflowEditorState): HistoryEntry => ({
   description: state.currentTemplate?.description,
   icon: state.currentTemplate?.icon || "Bot",
   tags: state.currentTemplate?.tags ? [...state.currentTemplate.tags] : [],
-  input_schema: state.currentTemplate?.input_schema
-    ? safeClone(state.currentTemplate.input_schema)
+  input_schema: state.currentTemplate?.inputSchema
+    ? safeClone(state.currentTemplate.inputSchema)
     : undefined,
-  output_schema: state.currentTemplate?.output_schema
-    ? safeClone(state.currentTemplate.output_schema)
+  output_schema: state.currentTemplate?.outputSchema
+    ? safeClone(state.currentTemplate.outputSchema)
     : undefined,
   variables: state.currentTemplate?.variables
     ? safeClone(state.currentTemplate.variables)
     : undefined,
-  error_config: state.currentTemplate?.error_config
-    ? safeClone(state.currentTemplate.error_config)
+  error_config: state.currentTemplate?.errorConfig
+    ? safeClone(state.currentTemplate.errorConfig)
     : undefined,
-  trigger_config: state.currentTemplate?.trigger_config
-    ? safeClone(state.currentTemplate.trigger_config)
+  trigger_config: state.currentTemplate?.triggerConfig
+    ? safeClone(state.currentTemplate.triggerConfig)
     : undefined,
 });
 
@@ -721,11 +721,11 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           state.currentTemplate.description = previous.description;
           state.currentTemplate.icon = previous.icon;
           state.currentTemplate.tags = previous.tags;
-          state.currentTemplate.input_schema = previous.input_schema;
-          state.currentTemplate.output_schema = previous.output_schema;
+          state.currentTemplate.inputSchema = previous.input_schema;
+          state.currentTemplate.outputSchema = previous.output_schema;
           state.currentTemplate.variables = previous.variables ?? [];
-          state.currentTemplate.error_config = previous.error_config;
-          state.currentTemplate.trigger_config = previous.trigger_config;
+          state.currentTemplate.errorConfig = previous.error_config;
+          state.currentTemplate.triggerConfig = previous.trigger_config;
         }
         state.past = state.past.slice(0, -1);
         state.isDirty = true;
@@ -750,11 +750,11 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           state.currentTemplate.description = next.description;
           state.currentTemplate.icon = next.icon;
           state.currentTemplate.tags = next.tags;
-          state.currentTemplate.input_schema = next.input_schema;
-          state.currentTemplate.output_schema = next.output_schema;
+          state.currentTemplate.inputSchema = next.input_schema;
+          state.currentTemplate.outputSchema = next.output_schema;
           state.currentTemplate.variables = next.variables ?? [];
-          state.currentTemplate.error_config = next.error_config;
-          state.currentTemplate.trigger_config = next.trigger_config;
+          state.currentTemplate.errorConfig = next.error_config;
+          state.currentTemplate.triggerConfig = next.trigger_config;
         }
         state.future = state.future.slice(0, -1);
         state.isDirty = true;
@@ -953,13 +953,13 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         description: currentTemplate.description,
         icon: currentTemplate.icon,
         tags: currentTemplate.tags,
-        trigger_config: currentTemplate.trigger_config,
+        trigger_config: currentTemplate.triggerConfig,
         nodes,
         edges,
-        input_schema: currentTemplate.input_schema,
-        output_schema: currentTemplate.output_schema,
+        input_schema: currentTemplate.inputSchema,
+        output_schema: currentTemplate.outputSchema,
         variables: currentTemplate.variables,
-        error_config: currentTemplate.error_config,
+        error_config: currentTemplate.errorConfig,
       };
 
       try {
@@ -1547,19 +1547,19 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
             state.currentTemplate.tags = metadata.tags;
           }
           if (metadata.triggerConfig !== undefined) {
-            state.currentTemplate.trigger_config = metadata.triggerConfig;
+            state.currentTemplate.triggerConfig = metadata.triggerConfig;
           }
           if ("inputSchema" in metadata) {
-            state.currentTemplate.input_schema = metadata.inputSchema;
+            state.currentTemplate.inputSchema = metadata.inputSchema;
           }
           if ("outputSchema" in metadata) {
-            state.currentTemplate.output_schema = metadata.outputSchema;
+            state.currentTemplate.outputSchema = metadata.outputSchema;
           }
           if (metadata.variables !== undefined) {
             state.currentTemplate.variables = metadata.variables;
           }
           if (metadata.errorConfig !== undefined) {
-            state.currentTemplate.error_config = metadata.errorConfig;
+            state.currentTemplate.errorConfig = metadata.errorConfig;
           }
           state.isDirty = true;
         }
@@ -1631,8 +1631,8 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
             description: importedData.description,
           }),
           id: "",
-          created_at: Date.now(),
-          updated_at: Date.now(),
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
         } as WorkflowTemplateResponse;
         state.nodes = nodes;
         state.edges = edges;

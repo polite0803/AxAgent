@@ -50,6 +50,7 @@ pub enum TaskAllocationStrategy {
 
 /// 成本限制
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CostLimit {
     /// 每日最大成本（美元）
     pub daily_usd: f64,
@@ -78,6 +79,7 @@ impl Default for CostLimit {
 
 /// 辅助任务（分配给辅助模型的小任务）
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AuxiliaryTask {
     /// 任务 ID
     pub id: String,

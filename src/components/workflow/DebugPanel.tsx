@@ -768,7 +768,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
 
         const inputMapping = sCfg?.input_mapping
           || (sData?.config as Record<string, unknown> | undefined)?.["input_mapping"] || {};
-        const subInputSchema = tmpl.input_schema || {};
+        const subInputSchema = tmpl.inputSchema || {};
         const mappingIssues: string[] = [];
         if (typeof inputMapping === "object" && Object.keys(inputMapping).length > 0) {
           const schemaProps = (subInputSchema as Record<string, unknown>)?.properties as Record<string, unknown> || {};

@@ -94,13 +94,13 @@ export function useWorkflowAutoSave(): AutoSaveController {
       description: currentTemplate?.description,
       icon: currentTemplate?.icon || "Bot",
       tags: currentTemplate?.tags || [],
-      trigger_config: currentTemplate?.trigger_config,
+      trigger_config: currentTemplate?.triggerConfig,
       nodes: nodesWithParent,
       edges: cleanedEdges,
-      input_schema: currentTemplate?.input_schema,
-      output_schema: currentTemplate?.output_schema,
+      input_schema: currentTemplate?.inputSchema,
+      output_schema: currentTemplate?.outputSchema,
       variables: currentTemplate?.variables || [],
-      error_config: currentTemplate?.error_config,
+      error_config: currentTemplate?.errorConfig,
     };
 
     try {

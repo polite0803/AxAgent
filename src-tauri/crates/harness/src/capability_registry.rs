@@ -222,6 +222,7 @@ impl CapabilityOrigin {
 /// 启用时以「声明描述」形式注册进能力注册表（[`CapabilityOrigin::ExternalPlugin`]），
 /// 供检视 / 路由 / 编排使用；禁用或卸载时经 [`EffectHandle::undo`] 可逆回滚。
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PluginCapabilityDescriptor {
     /// 能力接缝 ID（如 `"platform.adapter.telegram"`、`"tool.set.myplugin"`）。
     pub seam_id: String,

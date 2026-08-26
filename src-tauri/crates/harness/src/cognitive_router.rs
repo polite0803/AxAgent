@@ -90,6 +90,7 @@ impl RoutingScope {
 
 /// 自指熔断保护器配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SelfReferenceProtection {
     /// 熔断触发关键词（工作流 ID/标签包含这些词则触发熔断）
     pub protected_keywords: Vec<String>,
@@ -281,6 +282,7 @@ impl RouteStage {
 /// 从 RarCandidate 精简提取（不含大体积的 input_schema / negative_scenarios），
 /// 供前端直接渲染候选名称/描述/置信度，无需按 ID 二次查询。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CandidateSummary {
     /// 工作流/能力 ID
     pub capability_id: String,
@@ -305,6 +307,7 @@ pub struct CandidateSummary {
 
 /// 单个路由阶段的执行记录
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RouteStageRecord {
     /// 阶段标识
     pub stage: RouteStage,
@@ -322,6 +325,7 @@ pub struct RouteStageRecord {
 
 /// V2 路由决策结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RoutingDecisionV2 {
     /// 三层路由地址（确定性路径），如 "finance/stock_analysis/tech"
     pub route_path: String,
@@ -411,6 +415,7 @@ impl RoutingDecisionV2 {
 
 /// 认知路由器配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CognitiveRouterConfig {
     /// 是否启用 L1 域路由规则（关闭则直接用 LLM）
     pub enable_l1_rules: bool,

@@ -79,6 +79,7 @@
     "lint:eslint": "eslint src --max-warnings=0",
     "check:types": "node scripts/type-consistency.mjs",
     "check:paired": "node scripts/check-paired-fields.ts",
+    "check:serde": "tsx scripts/check-serde-annotations.ts",
     "docs": "typedoc --out docs src",
     "docs:watch": "typedoc --out docs --watch src",
     "ci:check": "node scripts/ci-check.mjs",

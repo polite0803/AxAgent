@@ -40,6 +40,7 @@ pub enum DomainRuleType {
 
 /// L1 域路由规则 — 将用户 Query 映射到业务域
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DomainRoutingRule {
     /// 规则 ID（唯一）
     pub rule_id: String,
@@ -436,6 +437,7 @@ fn parse_class(chars: &[char], start: usize) -> (Atom, usize) {
 
 /// L1 域路由结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DomainRoutingResult {
     /// 命中的业务域
     pub domain: CapabilityDomain,
