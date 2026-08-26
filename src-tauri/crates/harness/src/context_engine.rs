@@ -53,9 +53,11 @@ pub struct CompactionContext {
 #[serde(rename_all = "camelCase")]
 pub struct StructuredMemory {
     pub id: String,
+    #[serde(alias = "memory_type")]
     pub memory_type: MemoryType,
     pub content: String,
     pub confidence: f64,
+    #[serde(alias = "created_at")]
     pub created_at: String,
 }
 
@@ -84,6 +86,7 @@ pub struct SkillInfo {
     pub id: String,
     pub name: String,
     pub description: String,
+    #[serde(alias = "trigger_conditions")]
     pub trigger_conditions: Vec<String>,
 }
 
@@ -94,10 +97,12 @@ pub struct CompactionRecord {
     /// 记录 ID
     pub id: String,
     /// 会话 ID
+    #[serde(alias = "session_id")]
     pub session_id: String,
     /// 压缩时间
     pub timestamp: String,
     /// 使用的引擎名称
+    #[serde(alias = "engine_name")]
     pub engine_name: String,
     /// 压缩配置快照
     pub config: CompactionConfigSnapshot,
@@ -108,6 +113,7 @@ pub struct CompactionRecord {
     /// 版本号（用于追踪压缩次数）
     pub version: u32,
     /// 父记录 ID（压缩前的记录）
+    #[serde(alias = "parent_id")]
     pub parent_id: Option<String>,
 }
 
@@ -115,9 +121,13 @@ pub struct CompactionRecord {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CompactionConfigSnapshot {
+    #[serde(alias = "preserve_recent_messages")]
     pub preserve_recent_messages: usize,
+    #[serde(alias = "max_estimated_tokens")]
     pub max_estimated_tokens: usize,
+    #[serde(alias = "enable_turn_summaries")]
     pub enable_turn_summaries: bool,
+    #[serde(alias = "enable_distance_decay")]
     pub enable_distance_decay: bool,
 }
 
@@ -125,9 +135,13 @@ pub struct CompactionConfigSnapshot {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CompactionResultSummary {
+    #[serde(alias = "original_message_count")]
     pub original_message_count: usize,
+    #[serde(alias = "compacted_message_count")]
     pub compacted_message_count: usize,
+    #[serde(alias = "removed_message_count")]
     pub removed_message_count: usize,
+    #[serde(alias = "summary_length")]
     pub summary_length: usize,
 }
 
@@ -154,10 +168,13 @@ pub enum CompactionTrigger {
 #[serde(rename_all = "camelCase")]
 pub struct SessionLineage {
     /// 会话 ID
+    #[serde(alias = "session_id")]
     pub session_id: String,
     /// 压缩记录列表（按时间顺序）
+    #[serde(alias = "compaction_history")]
     pub compaction_history: Vec<CompactionRecord>,
     /// 当前版本号
+    #[serde(alias = "current_version")]
     pub current_version: u32,
 }
 

@@ -53,6 +53,7 @@ pub struct BusinessStateMachine {
     /// 转移规则列表
     pub transitions: Vec<StateTransition>,
     /// 初始状态 ID
+    #[serde(alias = "initial_state_id")]
     pub initial_state_id: BusinessStateId,
     /// 版本号
     #[serde(default = "default_fsm_version")]
@@ -147,16 +148,16 @@ pub struct BusinessState {
     /// 状态显示名称
     pub label: String,
     /// 绑定的工作流节点 ID（可选，节点执行时使用）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "node_ref")]
     pub node_ref: Option<String>,
     /// 是否为终态（不可再转移）
-    #[serde(default)]
+    #[serde(default, alias = "is_terminal")]
     pub is_terminal: bool,
     /// 状态描述
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     /// 进入该状态时可调用的工具白名单（空=不限制）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "allowed_tools")]
     pub allowed_tools: Option<Vec<String>>,
     /// 状态优先级（用于冲突解决）
     #[serde(default)]
@@ -236,7 +237,7 @@ pub struct StateTransition {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
     /// 转移条件描述（人类可读）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "guard_description")]
     pub guard_description: Option<String>,
     /// 守卫条件表达式（Rhai 脚本，返回 true 才能转移）
     ///
@@ -248,16 +249,16 @@ pub struct StateTransition {
     /// // 必须由特定角色触发
     /// user_role == "admin"
     /// ```
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "guard_expr")]
     pub guard_expr: Option<String>,
     /// 是否需要审批
-    #[serde(default)]
+    #[serde(default, alias = "requires_approval")]
     pub requires_approval: bool,
     /// 转移优先级（用于冲突解决）
     #[serde(default)]
     pub priority: u32,
     /// 转移触发事件类型（可选）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "trigger_event")]
     pub trigger_event: Option<String>,
 }
 
@@ -328,10 +329,10 @@ pub struct FsmContext {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub event: Option<String>,
     /// 触发事件的数据
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "event_data")]
     pub event_data: Option<serde_json::Value>,
     /// 当前用户角色
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "user_role")]
     pub user_role: Option<String>,
     /// 自定义变量（用于守卫条件评估）
     #[serde(default)]
@@ -385,23 +386,28 @@ impl FsmContext {
 #[serde(rename_all = "camelCase")]
 pub struct FsmRuntimeState {
     /// 当前状态 ID
+    #[serde(alias = "current_state_id")]
     pub current_state_id: BusinessStateId,
     /// 上一个状态 ID
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "previous_state_id")]
     pub previous_state_id: Option<BusinessStateId>,
     /// 转移历史（用于时间旅行）
-    #[serde(default)]
+    #[serde(default, alias = "transition_history")]
     pub transition_history: Vec<FsmTransitionRecord>,
     /// 状态机实例 ID
+    #[serde(alias = "instance_id")]
     pub instance_id: String,
     /// 状态机定义 ID
+    #[serde(alias = "fsm_id")]
     pub fsm_id: String,
     /// 创建时间戳（毫秒）
+    #[serde(alias = "created_at_ms")]
     pub created_at_ms: u64,
     /// 最后更新时间戳（毫秒）
+    #[serde(alias = "updated_at_ms")]
     pub updated_at_ms: u64,
     /// 是否完成
-    #[serde(default)]
+    #[serde(default, alias = "is_completed")]
     pub is_completed: bool,
 }
 
@@ -491,6 +497,7 @@ impl FsmRuntimeState {
 pub struct FsmTransitionRecord {
     pub from: BusinessStateId,
     pub to: BusinessStateId,
+    #[serde(alias = "timestamp_ms")]
     pub timestamp_ms: u64,
 }
 
@@ -705,15 +712,19 @@ pub struct FsmDecisionLog {
     /// 决策 ID
     pub id: String,
     /// 实例 ID
+    #[serde(alias = "instance_id")]
     pub instance_id: String,
     /// 决策时间戳
+    #[serde(alias = "timestamp_ms")]
     pub timestamp_ms: u64,
     /// 决策类型
+    #[serde(alias = "decision_type")]
     pub decision_type: FsmDecisionType,
     /// 决策前状态
+    #[serde(alias = "from_state")]
     pub from_state: String,
     /// 决策后状态
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "to_state")]
     pub to_state: Option<String>,
     /// 决策上下文（守卫条件评估等）
     #[serde(default, skip_serializing_if = "Option::is_none")]

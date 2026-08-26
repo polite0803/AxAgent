@@ -53,11 +53,15 @@ pub struct ConversationMessage {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct TokenUsage {
+    #[serde(alias = "input_tokens")]
     pub input_tokens: u32,
+    #[serde(alias = "output_tokens")]
     pub output_tokens: u32,
+    #[serde(alias = "cache_creation_input_tokens")]
     pub cache_creation_input_tokens: u32,
+    #[serde(alias = "cache_read_input_tokens")]
     pub cache_read_input_tokens: u32,
-    #[serde(default)]
+    #[serde(default, alias = "cache_miss_input_tokens")]
     pub cache_miss_input_tokens: Option<u32>,
 }
 
@@ -81,10 +85,15 @@ impl TokenUsage {
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionInfo {
+    #[serde(alias = "session_id")]
     pub session_id: String,
+    #[serde(alias = "user_id")]
     pub user_id: String,
     pub title: Option<String>,
+    #[serde(alias = "created_at")]
     pub created_at: i64,
+    #[serde(alias = "updated_at")]
     pub updated_at: i64,
+    #[serde(alias = "token_usage")]
     pub token_usage: Option<TokenUsage>,
 }

@@ -43,10 +43,13 @@ pub const DELEGATE_BLOCKED_TOOLS: &[&str] = &[
 #[serde(rename_all = "camelCase")]
 pub struct ToolFilterConfig {
     /// 阻止的工具列表
+    #[serde(alias = "blocked_tools")]
     pub blocked_tools: HashSet<String>,
     /// 允许的工具列表（空表示不限制）
+    #[serde(alias = "allowed_tools")]
     pub allowed_tools: HashSet<String>,
     /// 是否使用默认阻止列表
+    #[serde(alias = "use_default_blocked")]
     pub use_default_blocked: bool,
 }
 
@@ -106,10 +109,12 @@ pub struct ApprovalRequest {
     /// 请求 ID
     pub id: String,
     /// 子代理 ID
+    #[serde(alias = "sub_agent_id")]
     pub sub_agent_id: String,
     /// 需要审批的操作描述
     pub action: String,
     /// 风险等级
+    #[serde(alias = "risk_level")]
     pub risk_level: RiskLevel,
     /// 上下文信息
     pub context: serde_json::Value,
@@ -142,6 +147,7 @@ impl RiskLevel {
 pub struct ApprovalResponse {
     pub approved: bool,
     pub reason: Option<String>,
+    #[serde(alias = "modified_action")]
     pub modified_action: Option<String>,
 }
 
@@ -235,8 +241,11 @@ pub enum SubAgentLifecycleState {
 #[serde(rename_all = "camelCase")]
 pub struct LifecycleEvent {
     pub id: String,
+    #[serde(alias = "sub_agent_id")]
     pub sub_agent_id: String,
+    #[serde(alias = "from_state")]
     pub from_state: SubAgentLifecycleState,
+    #[serde(alias = "to_state")]
     pub to_state: SubAgentLifecycleState,
     pub timestamp: u64,
     pub reason: Option<String>,
@@ -316,18 +325,25 @@ impl SubAgentLifecycleManager {
 #[serde(rename_all = "camelCase")]
 pub struct DelegationConfig {
     /// 工具过滤配置
+    #[serde(alias = "tool_filter")]
     pub tool_filter: ToolFilterConfig,
     /// 是否启用审批回调
+    #[serde(alias = "enable_approval_callback")]
     pub enable_approval_callback: bool,
     /// 最大执行时间（秒）
+    #[serde(alias = "max_execution_time_secs")]
     pub max_execution_time_secs: u64,
     /// 是否允许嵌套委派
+    #[serde(alias = "allow_nested_delegation")]
     pub allow_nested_delegation: bool,
     /// 最大嵌套深度
+    #[serde(alias = "max_nesting_depth")]
     pub max_nesting_depth: u32,
     /// 是否记录生命周期事件
+    #[serde(alias = "record_lifecycle")]
     pub record_lifecycle: bool,
     /// 默认审批策略
+    #[serde(alias = "default_approval_strategy")]
     pub default_approval_strategy: ApprovalStrategy,
 }
 

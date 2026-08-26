@@ -1066,12 +1066,12 @@ mod tests {
         // 用 JSON 反序列化构造 WorkflowGenome(避免手工构造 WorkflowNodeBase 全字段)
         // WorkflowNode 用 #[serde(tag="type", rename_all="camelCase")] + #[serde(flatten)] base
         let json = r#"{
-            "template_id": "t1",
+            "templateId": "t1",
             "name": "test",
             "nodes": [
                 {"type": "delay",
                  "id": "n1", "title": "delay", "position": {"x": 0, "y": 0},
-                 "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "retry": {"enabled": false, "maxRetries": 3, "backoffType": "Exponential", "baseDelayMs": 1000, "maxDelayMs": 30000},
                  "enabled": true,
                  "config": {"delay_type": "seconds", "seconds": 1, "until": null}}
             ],
@@ -1095,12 +1095,12 @@ mod tests {
     #[test]
     fn test_structural_sandbox_dangling_edge() {
         let json = r#"{
-            "template_id": "t1",
+            "templateId": "t1",
             "name": "test",
             "nodes": [
                 {"type": "delay",
                  "id": "n1", "title": "delay", "position": {"x": 0, "y": 0},
-                 "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "retry": {"enabled": false, "maxRetries": 3, "backoffType": "Exponential", "baseDelayMs": 1000, "maxDelayMs": 30000},
                  "enabled": true,
                  "config": {"delay_type": "seconds", "seconds": 1, "until": null}}
             ],
@@ -1182,12 +1182,12 @@ mod tests {
     fn test_reachability_sandbox_single_node_self_loop() {
         // 单节点 + 自环边 → 可达,通过校验
         let json = r#"{
-            "template_id": "t1",
+            "templateId": "t1",
             "name": "test",
             "nodes": [
                 {"type": "delay",
                  "id": "n1", "title": "delay", "position": {"x": 0, "y": 0},
-                 "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "retry": {"enabled": false, "maxRetries": 3, "backoffType": "Exponential", "baseDelayMs": 1000, "maxDelayMs": 30000},
                  "enabled": true,
                  "config": {"delay_type": "seconds", "seconds": 1, "until": null}}
             ],
@@ -1211,22 +1211,22 @@ mod tests {
     fn test_reachability_sandbox_isolated_node() {
         // 链: trigger -> delay;孤立节点: isolated(无入边/出边)→ 应失败
         let json = r#"{
-            "template_id": "t1",
+            "templateId": "t1",
             "name": "test",
             "nodes": [
                 {"type": "trigger",
                  "id": "t", "title": "trigger", "position": {"x": 0, "y": 0},
-                 "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "retry": {"enabled": false, "maxRetries": 3, "backoffType": "Exponential", "baseDelayMs": 1000, "maxDelayMs": 30000},
                  "enabled": true,
                  "config": {"type": "manual", "config": {}}},
                 {"type": "delay",
                  "id": "d", "title": "delay", "position": {"x": 100, "y": 0},
-                 "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "retry": {"enabled": false, "maxRetries": 3, "backoffType": "Exponential", "baseDelayMs": 1000, "maxDelayMs": 30000},
                  "enabled": true,
                  "config": {"delay_type": "seconds", "seconds": 1, "until": null}},
                 {"type": "delay",
                  "id": "isolated", "title": "isolated", "position": {"x": 200, "y": 0},
-                 "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "retry": {"enabled": false, "maxRetries": 3, "backoffType": "Exponential", "baseDelayMs": 1000, "maxDelayMs": 30000},
                  "enabled": true,
                  "config": {"delay_type": "seconds", "seconds": 1, "until": null}}
             ],
@@ -1256,12 +1256,12 @@ mod tests {
         // 引用了 {{missing_var}},但 variables 中只定义了 defined_var → 应失败
         // TriggerConfig.config 是 serde_json::Value,可以放任意 JSON
         let json = r#"{
-            "template_id": "t1",
+            "templateId": "t1",
             "name": "test",
             "nodes": [
                 {"type": "trigger",
                  "id": "t", "title": "trigger", "position": {"x": 0, "y": 0},
-                 "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "retry": {"enabled": false, "maxRetries": 3, "backoffType": "Exponential", "baseDelayMs": 1000, "maxDelayMs": 30000},
                  "enabled": true,
                  "config": {"type": "manual", "config": {"prompt": "Hello {{missing_var}}"}}}
             ],
@@ -1286,12 +1286,12 @@ mod tests {
     fn test_reachability_sandbox_defined_variable_ref_passes() {
         // 引用了 {{defined_var}},variables 中已定义 → 不应因变量引用失败
         let json = r#"{
-            "template_id": "t1",
+            "templateId": "t1",
             "name": "test",
             "nodes": [
                 {"type": "trigger",
                  "id": "t", "title": "trigger", "position": {"x": 0, "y": 0},
-                 "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "retry": {"enabled": false, "maxRetries": 3, "backoffType": "Exponential", "baseDelayMs": 1000, "maxDelayMs": 30000},
                  "enabled": true,
                  "config": {"type": "manual", "config": {"prompt": "Hello {{defined_var}}"}}}
             ],
@@ -1312,12 +1312,12 @@ mod tests {
     fn make_genome_with_timeout(timeout_secs: u64) -> WorkflowGenome {
         let json = format!(
             r#"{{
-                "template_id": "t1",
+                "templateId": "t1",
                 "name": "test",
                 "nodes": [
                     {{"type": "delay",
                      "id": "n1", "title": "delay", "position": {{"x": 0, "y": 0}},
-                     "retry": {{"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000}},
+                     "retry": {{"enabled": false, "maxRetries": 3, "backoffType": "Exponential", "baseDelayMs": 1000, "maxDelayMs": 30000}},
                      "timeout": {timeout_secs},
                      "enabled": true,
                      "config": {{"delay_type": "seconds", "seconds": 1, "until": null}}}}
@@ -1365,12 +1365,12 @@ mod tests {
     async fn test_dry_run_sandbox_fails_with_excessive_retries() {
         // max_retries=20 > 10 上限 → 失败
         let json = r#"{
-            "template_id": "t1",
+            "templateId": "t1",
             "name": "test",
             "nodes": [
                 {"type": "delay",
                  "id": "n1", "title": "delay", "position": {"x": 0, "y": 0},
-                 "retry": {"enabled": true, "max_retries": 20, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "retry": {"enabled": true, "maxRetries": 20, "backoffType": "Exponential", "baseDelayMs": 1000, "maxDelayMs": 30000},
                  "enabled": true,
                  "config": {"delay_type": "seconds", "seconds": 1, "until": null}}
             ],
@@ -1395,17 +1395,17 @@ mod tests {
     async fn test_dry_run_sandbox_detects_cycle_without_loop_node() {
         // 两个 delay 节点互相连接形成环,无 Loop 节点 → 应报 cycle 错误
         let json = r#"{
-            "template_id": "t1",
+            "templateId": "t1",
             "name": "test",
             "nodes": [
                 {"type": "delay",
                  "id": "n1", "title": "delay1", "position": {"x": 0, "y": 0},
-                 "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "retry": {"enabled": false, "maxRetries": 3, "backoffType": "Exponential", "baseDelayMs": 1000, "maxDelayMs": 30000},
                  "enabled": true,
                  "config": {"delay_type": "seconds", "seconds": 1, "until": null}},
                 {"type": "delay",
                  "id": "n2", "title": "delay2", "position": {"x": 100, "y": 0},
-                 "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "retry": {"enabled": false, "maxRetries": 3, "backoffType": "Exponential", "baseDelayMs": 1000, "maxDelayMs": 30000},
                  "enabled": true,
                  "config": {"delay_type": "seconds", "seconds": 1, "until": null}}
             ],
@@ -1433,17 +1433,17 @@ mod tests {
     async fn test_dry_run_sandbox_allows_cycle_with_loop_node() {
         // 包含 Loop 节点 + 环 → 不应报 cycle 错误(环是 Loop 的预期结构)
         let json = r#"{
-            "template_id": "t1",
+            "templateId": "t1",
             "name": "test",
             "nodes": [
                 {"type": "loop",
                  "id": "loop1", "title": "loop", "position": {"x": 0, "y": 0},
-                 "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "retry": {"enabled": false, "maxRetries": 3, "backoffType": "Exponential", "baseDelayMs": 1000, "maxDelayMs": 30000},
                  "enabled": true,
                  "config": {"loop_type": "forEach", "items_var": "items", "iter_input_var": null, "iteratee_var": "item", "iter_output_var": "out"}},
                 {"type": "delay",
                  "id": "n1", "title": "delay", "position": {"x": 100, "y": 0},
-                 "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                 "retry": {"enabled": false, "maxRetries": 3, "backoffType": "Exponential", "baseDelayMs": 1000, "maxDelayMs": 30000},
                  "enabled": true,
                  "config": {"delay_type": "seconds", "seconds": 1, "until": null}}
             ],

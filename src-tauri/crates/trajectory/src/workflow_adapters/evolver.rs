@@ -692,7 +692,7 @@ mod tests {
                 "id": "n1",
                 "title": "delay",
                 "position": {"x": 0, "y": 0},
-                "retry": {"enabled": false, "max_retries": 1, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                "retry": {"enabled": false, "maxRetries": 1, "backoffType": "Exponential", "baseDelayMs": 1000, "maxDelayMs": 30000},
                 "enabled": true,
                 "config": {"delay_type": "seconds", "seconds": 1, "until": null}
             })).expect("deserialize node")],
@@ -740,7 +740,7 @@ mod tests {
                 "id": "n1",
                 "title": "delay",
                 "position": {"x": 0, "y": 0},
-                "retry": {"enabled": false, "max_retries": 1, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                "retry": {"enabled": false, "maxRetries": 1, "backoffType": "Exponential", "baseDelayMs": 1000, "maxDelayMs": 30000},
                 "enabled": true,
                 "config": {"delay_type": "seconds", "seconds": 1, "until": null}
             })).expect("deserialize node")],
@@ -769,7 +769,7 @@ mod tests {
                 "id": "n1",
                 "title": "delay",
                 "position": {"x": 0, "y": 0},
-                "retry": {"enabled": false, "max_retries": 1, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                "retry": {"enabled": false, "maxRetries": 1, "backoffType": "Exponential", "baseDelayMs": 1000, "maxDelayMs": 30000},
                 "enabled": true,
                 "config": {"delay_type": "seconds", "seconds": 1, "until": null}
             })).expect("deserialize node")],

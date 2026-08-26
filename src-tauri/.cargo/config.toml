@@ -6,8 +6,10 @@
 linker = "rust-lld"
 rustflags = ["-C", "target-feature=+crt-static"]
 
-[env]
-__TAURI_WORKSPACE__ = "true"
+# manifest 策略：
+#   主程序构建 — build.rs 中设置 TAURI_MANIFEST 环境变量，tauri_build::build() 使用自定义 manifest
+#   测试构建 — 需手动设置 __TAURI_WORKSPACE__=true，build.rs 跳过 tauri_build::build()，手动嵌入 manifest
+#   运行测试: $env:__TAURI_WORKSPACE__ = "true"; cargo test -p axagent --lib
 
 [build]
 # 16 核全利用：原 jobs=8 只用了一半核心

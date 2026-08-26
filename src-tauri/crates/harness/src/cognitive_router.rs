@@ -93,8 +93,10 @@ impl RoutingScope {
 #[serde(rename_all = "camelCase")]
 pub struct SelfReferenceProtection {
     /// 熔断触发关键词（工作流 ID/标签包含这些词则触发熔断）
+    #[serde(alias = "protected_keywords")]
     pub protected_keywords: Vec<String>,
     /// 熔断触发标签（工作流标签包含这些标签则触发熔断）
+    #[serde(alias = "protected_tags")]
     pub protected_tags: Vec<String>,
     /// 是否启用自指熔断
     pub enabled: bool,
@@ -285,6 +287,7 @@ impl RouteStage {
 #[serde(rename_all = "camelCase")]
 pub struct CandidateSummary {
     /// 工作流/能力 ID
+    #[serde(alias = "capability_id")]
     pub capability_id: String,
     /// 名称
     pub name: String,
@@ -299,7 +302,7 @@ pub struct CandidateSummary {
     /// 所属集群
     pub cluster: Option<String>,
     /// 推荐执行专家（AgentProfile ID）。认知编排 Agent 执行路径据此自动选择专家。
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "agent_profile_id")]
     pub agent_profile_id: Option<String>,
 }
 
@@ -316,6 +319,7 @@ pub struct RouteStageRecord {
     /// 置信度（0.0 - 1.0）
     pub confidence: f64,
     /// 耗时（毫秒）
+    #[serde(alias = "elapsed_ms")]
     pub elapsed_ms: u64,
     /// 阶段摘要信息
     pub summary: String,
@@ -328,41 +332,47 @@ pub struct RouteStageRecord {
 #[serde(rename_all = "camelCase")]
 pub struct RoutingDecisionV2 {
     /// 三层路由地址（确定性路径），如 "finance/stock_analysis/tech"
+    #[serde(alias = "route_path")]
     pub route_path: String,
     /// 业务域
     pub domain: String,
     /// 功能集群
     pub cluster: String,
     /// 具体能力/工作流 ID
+    #[serde(alias = "capability_id")]
     pub capability_id: String,
     /// 路由置信度（0.0 - 1.0）
     pub confidence: f64,
     /// 是否通过 LLM 兜底
+    #[serde(alias = "is_llm_fallback")]
     pub is_llm_fallback: bool,
     /// 各阶段执行记录
+    #[serde(alias = "stage_records")]
     pub stage_records: Vec<RouteStageRecord>,
     /// 总耗时（毫秒）
+    #[serde(alias = "total_elapsed_ms")]
     pub total_elapsed_ms: u64,
     /// 是否触发熔断
+    #[serde(alias = "circuit_broken")]
     pub circuit_broken: bool,
     /// 熔断原因（如果触发）
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", alias = "circuit_break_reason")]
     pub circuit_break_reason: Option<String>,
     /// 备选路径（主路径失败时使用）
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", alias = "fallback_path")]
     pub fallback_path: Option<String>,
     /// 候选列表（Top-K，仅 ID）
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub candidates: Vec<String>,
     /// 候选摘要（Top-K，含名称/描述/置信度，Clarify 分支展示用）
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty", alias = "candidate_details")]
     pub candidate_details: Vec<CandidateSummary>,
     /// 路由决策的执行模式（如何落地执行，由 route 决策）
-    #[serde(default)]
+    #[serde(default, alias = "execution_mode")]
     pub execution_mode: ExecutionMode,
     /// P0: 任务形态决策（原则三标尺输出，Step 0 产出，随路由决策留痕）。
     /// `None` 表示未启用 UNITY_P0_TASK_SHAPE flag。
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "task_shape")]
     pub task_shape: Option<crate::task_shape::TaskShapeDecision>,
 }
 
@@ -418,22 +428,31 @@ impl RoutingDecisionV2 {
 #[serde(rename_all = "camelCase")]
 pub struct CognitiveRouterConfig {
     /// 是否启用 L1 域路由规则（关闭则直接用 LLM）
+    #[serde(alias = "enable_l1_rules")]
     pub enable_l1_rules: bool,
     /// 是否启用 L2 簇路由规则
+    #[serde(alias = "enable_l2_rules")]
     pub enable_l2_rules: bool,
     /// RAR 检索 Top-K 数量
+    #[serde(alias = "rar_top_k")]
     pub rar_top_k: usize,
     /// 是否启用图谱路由
+    #[serde(alias = "enable_graph_routing")]
     pub enable_graph_routing: bool,
     /// 熔断保护配置
+    #[serde(alias = "enable_circuit_breaker")]
     pub enable_circuit_breaker: bool,
     /// 最大总耗时（毫秒），超过则降级
+    #[serde(alias = "max_total_ms")]
     pub max_total_ms: u64,
     /// 默认路由作用域（Business 用于业务请求，System 用于系统内部请求）
+    #[serde(alias = "default_scope")]
     pub default_scope: RoutingScope,
     /// 自指熔断保护配置
+    #[serde(alias = "self_reference_protection")]
     pub self_reference_protection: SelfReferenceProtection,
     /// 是否启用作用域隔离（启用后业务请求不会路由到系统能力）
+    #[serde(alias = "enable_scope_isolation")]
     pub enable_scope_isolation: bool,
 }
 

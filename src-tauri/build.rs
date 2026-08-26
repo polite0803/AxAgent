@@ -20,39 +20,44 @@ struct CommandHandler {
 }
 
 fn main() {
-    // Windows MSVC manifest 策略：
-    //   主程序 (AxAgent.exe) 使用 tauri-build 默认 manifest，
-    //   该 manifest 已包含 Common Controls v6 依赖，可正常启动。
-    //
-    //   测试二进制 (cargo test) 场景：
-    //   axagent-agent crate 的 build.rs 会在 __TAURI_WORKSPACE__=true 时
-    //   通过 rustc-link-arg 附加 Common Controls v6 manifest，规避
-    //   STATUS_ENTRYPOINT_NOT_FOUND (0xc0000139)。
+    // manifest 策略：
+    //   主程序构建 — 调用 tauri_build::build()，通过 TAURI_MANIFEST 环境变量
+    //              指定 common-controls.manifest，让 tauri-build 使用自定义 manifest。
+    //   测试构建 (__TAURI_WORKSPACE__=true) — 跳过 tauri_build::build()，
+    //              手动通过链接器参数嵌入 manifest，因为 tauri-build 在测试模式下
+    //              不会嵌入 manifest。
     //   参考: https://github.com/tauri-apps/tauri/issues/11028
-    //
-    //   注意：此处不再为 AxAgent 主程序添加 /MANIFEST:EMBED / /MANIFESTINPUT，
-    //   否则会与 tauri-build::build() 生成的默认 MANIFEST 资源冲突，
-    //   导致链接错误：duplicate resource: type MANIFEST。
-    #[cfg(target_os = "windows")]
-    {
-        let target_env = std::env::var("CARGO_CFG_TARGET_ENV").unwrap_or_default();
-        if target_env == "msvc" {
-            tauri_build::build();
-        } else {
-            tauri_build::build();
+    let ws_val = env::var("__TAURI_WORKSPACE__").unwrap_or_default();
+    let manifest_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("common-controls.manifest");
+    println!("cargo:rerun-if-changed={}", manifest_path.display());
+    eprintln!("[build.rs] __TAURI_WORKSPACE__ = '{}'", ws_val);
+    eprintln!("[build.rs] manifest_path = {}", manifest_path.display());
+    eprintln!("[build.rs] manifest exists = {}", manifest_path.exists());
+
+    if ws_val == "true" {
+        // 测试模式：手动嵌入 manifest
+        eprintln!("[build.rs] 测试模式 (__TAURI_WORKSPACE__=true)，跳过 tauri_build::build()");
+        #[cfg(all(target_os = "windows", target_env = "msvc"))]
+        {
+            eprintln!("[build.rs] 嵌入 manifest: {}", manifest_path.display());
+            println!("cargo:rustc-link-arg=/MANIFEST:EMBED");
+            println!("cargo:rustc-link-arg=/MANIFESTINPUT:{}", manifest_path.display());
+            println!("cargo:rustc-link-arg=/STACK:8388608");
         }
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    {
+    } else {
+        // 主程序构建：使用 tauri-build
+        eprintln!("[build.rs] 主程序构建模式，使用 tauri_build::build()");
+        unsafe {
+            env::set_var("TAURI_MANIFEST", &manifest_path);
+        }
         tauri_build::build();
-    }
 
-    // Windows MSVC: 增加主线程栈到 8MB（默认 1MB，不足 deep call chain）
-    // /STACK 是链接器选项，需通过 rustc-link-arg 传递
-    #[cfg(all(target_os = "windows", target_env = "msvc"))]
-    {
-        println!("cargo:rustc-link-arg=/STACK:8388608");
+        // Windows MSVC: 增加主线程栈到 8MB（默认 1MB，不足 deep call chain）
+        // /STACK 是链接器选项，需通过 rustc-link-arg 传递
+        #[cfg(all(target_os = "windows", target_env = "msvc"))]
+        {
+            println!("cargo:rustc-link-arg=/STACK:8388608");
+        }
     }
 
     let out_dir = env::var("OUT_DIR").unwrap();

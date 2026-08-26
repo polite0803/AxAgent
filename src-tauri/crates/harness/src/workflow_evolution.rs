@@ -480,7 +480,7 @@ mod validate_genome_basic_tests {
                     "id": id,
                     "title": format!("node-{id}"),
                     "position": {"x": 0, "y": 0},
-                    "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                    "retry": {"enabled": false, "maxRetries": 3, "backoffType": "Exponential", "baseDelayMs": 1000, "maxDelayMs": 30000},
                     "enabled": true,
                     "config": {"delay_type": "seconds", "seconds": 1, "until": null}
                 })
@@ -562,7 +562,7 @@ mod merge_genome_by_mask_tests {
                     "id": id,
                     "title": format!("node-{id}"),
                     "position": {"x": 0, "y": 0},
-                    "retry": {"enabled": false, "max_retries": 1, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                    "retry": {"enabled": false, "maxRetries": 1, "backoffType": "Exponential", "baseDelayMs": 1000, "maxDelayMs": 30000},
                     "enabled": true,
                     "config": {"delay_type": "seconds", "seconds": 1, "until": null}
                 })
@@ -601,7 +601,7 @@ mod merge_genome_by_mask_tests {
             "id": "n2",
             "title": "mutated-n2",
             "position": {"x": 0, "y": 0},
-            "retry": {"enabled": true, "max_retries": 5, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+            "retry": {"enabled": true, "maxRetries": 5, "backoffType": "Exponential", "baseDelayMs": 1000, "maxDelayMs": 30000},
             "enabled": true,
             "config": {"delay_type": "seconds", "seconds": 10, "until": null}
         })).expect("deserialize mutated node");
@@ -655,14 +655,14 @@ mod workflow_genome_from_generated_tests {
         let tool = GeneratedTool::with_artifact_kind(
             "wf_direct",
             &serde_json::json!({
-                "template_id": "wf-direct",
+                "templateId": "wf-direct",
                 "name": "wf_direct",
                 "nodes": [{
                     "type": "delay",
                     "id": "d1",
                     "title": "delay-1",
                     "position": {"x": 0, "y": 0},
-                    "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                    "retry": {"enabled": false, "maxRetries": 3, "backoffType": "Exponential", "baseDelayMs": 1000, "maxDelayMs": 30000},
                     "enabled": true,
                     "config": {"delay_type": "seconds", "seconds": 1, "until": null}
                 }],
@@ -695,7 +695,7 @@ mod workflow_genome_from_generated_tests {
                     "id": "d1",
                     "title": "delay-1",
                     "position": {"x": 0, "y": 0},
-                    "retry": {"enabled": false, "max_retries": 3, "backoff_type": "Exponential", "base_delay_ms": 1000, "max_delay_ms": 30000},
+                    "retry": {"enabled": false, "maxRetries": 3, "backoffType": "Exponential", "baseDelayMs": 1000, "maxDelayMs": 30000},
                     "enabled": true,
                     "config": {"delay_type": "seconds", "seconds": 1, "until": null}
                 }],

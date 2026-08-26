@@ -46,22 +46,29 @@ pub struct CronBlueprint {
     /// 蓝图 ID
     pub id: String,
     /// 蓝图类型
+    #[serde(alias = "blueprint_type")]
     pub blueprint_type: CronBlueprintType,
     /// 任务名称
     pub name: String,
     /// 任务描述
     pub description: String,
     /// 默认 cron 表达式
+    #[serde(alias = "default_schedule")]
     pub default_schedule: String,
     /// 默认 prompt
+    #[serde(alias = "default_prompt")]
     pub default_prompt: String,
     /// 可自定义的参数
+    #[serde(alias = "customizable_params")]
     pub customizable_params: Vec<BlueprintParam>,
     /// 使用说明
+    #[serde(alias = "usage_guide")]
     pub usage_guide: String,
     /// 适用场景
+    #[serde(alias = "use_cases")]
     pub use_cases: Vec<String>,
     /// 风险等级
+    #[serde(alias = "risk_level")]
     pub risk_level: BlueprintRiskLevel,
 }
 
@@ -71,8 +78,10 @@ pub struct CronBlueprint {
 pub struct BlueprintParam {
     pub name: String,
     pub description: String,
+    #[serde(alias = "default_value")]
     pub default_value: String,
     pub required: bool,
+    #[serde(alias = "param_type")]
     pub param_type: BlueprintParamType,
 }
 
@@ -104,6 +113,7 @@ pub struct BlueprintCronJobData {
     pub description: String,
     pub schedule: String,
     pub prompt: String,
+    #[serde(alias = "task_type")]
     pub task_type: Option<String>,
     pub enabled: bool,
 }
@@ -347,20 +357,28 @@ impl CronBlueprint {
 #[serde(rename_all = "camelCase")]
 pub struct LifecycleGuard {
     /// 最小运行间隔（秒）
+    #[serde(alias = "min_interval_secs")]
     pub min_interval_secs: u64,
     /// 最大并发执行数
+    #[serde(alias = "max_concurrent")]
     pub max_concurrent: u32,
     /// 是否只在工作时间运行
+    #[serde(alias = "work_hours_only")]
     pub work_hours_only: bool,
     /// 工作时间开始（小时，0-23）
+    #[serde(alias = "work_start_hour")]
     pub work_start_hour: u8,
     /// 工作时间结束（小时，0-23）
+    #[serde(alias = "work_end_hour")]
     pub work_end_hour: u8,
     /// 跳过周末
+    #[serde(alias = "skip_weekends")]
     pub skip_weekends: bool,
     /// 系统负载阈值（超过则跳过）
+    #[serde(alias = "max_system_load")]
     pub max_system_load: Option<f64>,
     /// 健康检查前置条件
+    #[serde(alias = "require_healthy_system")]
     pub require_healthy_system: bool,
 }
 
@@ -497,14 +515,17 @@ pub struct UsagePattern {
     /// 模式名称
     pub name: String,
     /// 适用的蓝图类型
+    #[serde(alias = "applicable_blueprints")]
     pub applicable_blueprints: Vec<CronBlueprintType>,
     /// 模式描述
     pub description: String,
     /// 推荐的最佳实践
+    #[serde(alias = "best_practices")]
     pub best_practices: Vec<String>,
     /// 常见陷阱
     pub pitfalls: Vec<String>,
     /// 频率建议
+    #[serde(alias = "frequency_suggestions")]
     pub frequency_suggestions: FrequencySuggestion,
 }
 
