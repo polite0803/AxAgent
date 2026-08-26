@@ -32,21 +32,16 @@ impl Default for ConsistencyCheckConfig {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, schemars::JsonSchema, TS)]
 #[serde(rename_all = "camelCase")]
 pub enum ConsistencyMode {
     /// 相同模型执行 2 次对比
     #[serde(rename = "sameModelRepeated")]
+    #[default]
     SameModelRepeated,
     /// 用不同模型交叉验证
     #[serde(rename = "crossModelCompare")]
     CrossModelCompare,
-}
-
-impl Default for ConsistencyMode {
-    fn default() -> Self {
-        Self::SameModelRepeated
-    }
 }
 
 /// 一致性检查结果
