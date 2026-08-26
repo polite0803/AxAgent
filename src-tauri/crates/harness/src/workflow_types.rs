@@ -28,9 +28,13 @@ impl Default for Position {
 #[serde(rename_all = "camelCase")]
 pub struct RetryConfig {
     pub enabled: bool,
+    #[serde(alias = "max_retries")]
     pub max_retries: u32,
+    #[serde(alias = "backoff_type")]
     pub backoff_type: BackoffType,
+    #[serde(alias = "base_delay_ms")]
     pub base_delay_ms: u64,
+    #[serde(alias = "max_delay_ms")]
     pub max_delay_ms: u64,
 }
 
@@ -166,7 +170,7 @@ pub struct WorkflowNodeBase {
     #[serde(default)]
     pub compensation: Option<CompensationConfig>,
     /// 节点失败时不中断整个工作流，继续执行后续节点。
-    #[serde(default)]
+    #[serde(default, alias = "continue_on_fail")]
     pub continue_on_fail: bool,
 }
 
@@ -204,7 +208,7 @@ pub struct ScheduleTriggerConfig {
     #[serde(default = "default_true")]
     pub enabled: bool,
     /// 触发时注入工作流的输入参数（JSON）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "input_params")]
     pub input_params: Option<serde_json::Value>,
 }
 
@@ -220,9 +224,14 @@ impl ScheduleTriggerConfig {
 pub struct WebhookTriggerConfig {
     pub path: String,
     pub method: String,
+    #[serde(alias = "auth_type")]
     pub auth_type: String,
     /// 响应模式: "sync" 等待工作流完成后再返回, "async" 立即返回 202
-    #[serde(default = "default_webhook_response_mode", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default = "default_webhook_response_mode",
+        skip_serializing_if = "Option::is_none",
+        alias = "response_mode"
+    )]
     pub response_mode: Option<String>,
 }
 
@@ -233,6 +242,7 @@ fn default_webhook_response_mode() -> Option<String> {
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct EventTriggerConfig {
+    #[serde(alias = "event_type")]
     pub event_type: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub filter: Option<serde_json::Value>,
@@ -251,49 +261,53 @@ pub enum OutputMode {
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentNodeConfig {
+    #[serde(alias = "system_prompt")]
     pub system_prompt: String,
+    #[serde(alias = "context_sources")]
     pub context_sources: Vec<String>,
     /// 输入变量映射：将工作流变量（如 trigger 输出）注入到 Agent 的 system_prompt 中。
     /// key = 注入到 prompt 的变量名，value = ExecutionState.variables 中的键。
     /// 运行时自动解析并追加 `【key】:value` 格式到 system_prompt 尾部。
     /// 示例: `{"stock_code": "trigger", "stock_name": "trigger"}` → 注入 "【stock_code】:600036\n【stock_name】:招商银行"
-    #[serde(default)]
+    #[serde(default, alias = "input_mapping")]
     pub input_mapping: std::collections::HashMap<String, String>,
+    #[serde(alias = "output_var")]
     pub output_var: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub temperature: Option<f32>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "max_tokens")]
     pub max_tokens: Option<u32>,
     /// 工具列表，支持向后兼容旧格式 `["name1", "name2"]`
     #[serde(deserialize_with = "deserialize_tool_defs")]
     pub tools: Vec<ToolDef>,
     /// 暴露给 LLM 的工具名列表（tools 的子集）。为空时暴露全部（向后兼容）。
     /// 固定工具（上游 ToolNode 结果已通过 context_sources 注入）不应暴露。
-    #[serde(default)]
+    #[serde(default, alias = "exposed_tools")]
     pub exposed_tools: Vec<String>,
+    #[serde(alias = "output_mode")]
     pub output_mode: OutputMode,
     /// AgentProfile ID — 唯一标识角色的方式，不再使用旧 role/agent_role_override
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "agent_profile_id")]
     pub agent_profile_id: Option<String>,
     /// Agent 多轮工具调用最大轮数，默认 1（不配置则仅单轮）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "max_tool_rounds")]
     pub max_tool_rounds: Option<u32>,
     /// 执行模式: "react" = 逐步思考-行动（默认）, "plan" = 先规划为工作流再执行
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "execution_mode")]
     pub execution_mode: Option<String>,
     /// RAG 知识源 ID 列表。格式: "knowledge:<kb_id>", "memory:<ns_id>", "wiki:<wiki_id>"。
     /// 执行时从这些源检索与 query 相关的内容注入 system prompt。
-    #[serde(default)]
+    #[serde(default, alias = "rag_source_ids")]
     pub rag_source_ids: Vec<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "model_role")]
     pub model_role: Option<String>,
     /// 结果一致性检查配置（可选，不配置时零影响）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "consistency_check")]
     pub consistency_check: Option<ConsistencyCheckConfig>,
     /// 防幻觉锚定检查配置（可选，不配置时零影响）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "hallucination_guard")]
     pub hallucination_guard: Option<HallucinationGuardConfig>,
     /// 3.7 P2:任务场景 — 控制 Agent 节点的输出风格指令。
     ///
@@ -304,7 +318,7 @@ pub struct AgentNodeConfig {
     ///
     /// 缺省 `None` 时按 `General` 处理;`Some(TaskScene::Auto)` 时
     /// executor 会在拼接 prompt 前对 input 文本调用 `infer` 推断。
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "task_scene")]
     pub task_scene: Option<crate::TaskScene>,
 }
 
@@ -2171,26 +2185,36 @@ pub struct WorkflowTemplateResponse {
     pub icon: String,
     pub tags: Vec<String>,
     pub version: i32,
+    #[serde(alias = "is_preset")]
     pub is_preset: bool,
+    #[serde(alias = "is_editable")]
     pub is_editable: bool,
+    #[serde(alias = "is_public")]
     pub is_public: bool,
     /// 是否为系统模板（认知编排器等）。由后端按
     /// `is_preset + cognitive_router 标签` 权威判定，前端据此
     /// 区分系统模板页与业务模板页（系统模板可查看/编辑但禁止删除/复制/导出）。
-    #[serde(default)]
+    #[serde(default, alias = "is_system")]
     pub is_system: bool,
+    #[serde(alias = "trigger_config")]
     pub trigger_config: Option<TriggerConfig>,
     pub nodes: Vec<WorkflowNode>,
     pub edges: Vec<WorkflowEdge>,
+    #[serde(alias = "input_schema")]
     pub input_schema: Option<JsonSchema>,
+    #[serde(alias = "output_schema")]
     pub output_schema: Option<JsonSchema>,
     pub variables: Vec<Variable>,
+    #[serde(alias = "error_config")]
     pub error_config: Option<ErrorConfig>,
+    #[serde(alias = "tool_defs")]
     pub tool_defs: Option<Vec<RhaiToolDef>>,
     /// mission 哈希（SHA-256），若模板由 mission 编译生成则填充
-    #[serde(default)]
+    #[serde(default, alias = "mission_hash")]
     pub mission_hash: Option<String>,
+    #[serde(alias = "created_at")]
     pub created_at: i64,
+    #[serde(alias = "updated_at")]
     pub updated_at: i64,
 }
 

@@ -35,12 +35,7 @@ fn main() {
     //   导致链接错误：duplicate resource: type MANIFEST。
     #[cfg(target_os = "windows")]
     {
-        let target_env = std::env::var("CARGO_CFG_TARGET_ENV").unwrap_or_default();
-        if target_env == "msvc" {
-            tauri_build::build();
-        } else {
-            tauri_build::build();
-        }
+        tauri_build::build();
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -53,6 +48,16 @@ fn main() {
     #[cfg(all(target_os = "windows", target_env = "msvc"))]
     {
         println!("cargo:rustc-link-arg=/STACK:8388608");
+
+        // 嵌入 Common Controls v6 manifest，规避 STATUS_ENTRYPOINT_NOT_FOUND (0xc0000139)。
+        // 依赖 crate (axagent-agent) 的 rustc-link-arg 不会传播到下游 crate 的测试二进制，
+        // 因此必须在本 crate 的 build.rs 中直接添加。
+        // 参考: https://github.com/tauri-apps/tauri/issues/11028
+        let manifest =
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("common-controls.manifest");
+        println!("cargo:rerun-if-changed={}", manifest.display());
+        println!("cargo:rustc-link-arg=/MANIFEST:EMBED");
+        println!("cargo:rustc-link-arg=/MANIFESTINPUT:{}", manifest.display());
     }
 
     let out_dir = env::var("OUT_DIR").unwrap();

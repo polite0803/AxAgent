@@ -35,33 +35,36 @@ pub struct ExecutionTrace {
     /// 轨迹 ID
     pub id: String,
     /// 工作流 ID
+    #[serde(alias = "workflow_id")]
     pub workflow_id: String,
     /// 执行实例 ID
+    #[serde(alias = "execution_id")]
     pub execution_id: String,
     /// 开始时间戳（毫秒）
+    #[serde(alias = "started_at_ms")]
     pub started_at_ms: u64,
     /// 结束时间戳（毫秒）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "completed_at_ms")]
     pub completed_at_ms: Option<u64>,
     /// 节点执行轨迹列表
-    #[serde(default)]
+    #[serde(default, alias = "node_traces")]
     pub node_traces: Vec<NodeExecutionTrace>,
     /// 业务状态机转移记录（如有）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "fsm_transitions")]
     pub fsm_transitions: Option<Vec<FsmTransitionRecord>>,
     /// 整体执行状态
     pub status: TraceStatus,
     /// 全局输入
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "global_input")]
     pub global_input: Option<serde_json::Value>,
     /// 全局输出
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "global_output")]
     pub global_output: Option<serde_json::Value>,
     /// 错误摘要（如有）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "error_summary")]
     pub error_summary: Option<TraceErrorSummary>,
     /// 决策日志列表（时间旅行核心）
-    #[serde(default)]
+    #[serde(default, alias = "decision_logs")]
     pub decision_logs: Vec<DecisionLog>,
 }
 
@@ -173,19 +176,24 @@ impl ExecutionTrace {
 #[serde(rename_all = "camelCase")]
 pub struct NodeExecutionTrace {
     /// 节点 ID
+    #[serde(alias = "node_id")]
     pub node_id: String,
     /// 节点类型（如 "agent", "tool", "llm" 等）
+    #[serde(alias = "node_type")]
     pub node_type: String,
     /// 节点名称
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "node_name")]
     pub node_name: Option<String>,
     /// 执行状态
     pub status: NodeStatus,
     /// 开始时间戳（毫秒）
+    #[serde(alias = "started_at_ms")]
     pub started_at_ms: Option<u64>,
     /// 完成时间戳（毫秒）
+    #[serde(alias = "completed_at_ms")]
     pub completed_at_ms: Option<u64>,
     /// 执行耗时（毫秒）
+    #[serde(alias = "duration_ms")]
     pub duration_ms: Option<u64>,
     /// 节点输入（原始 JSON）
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -194,28 +202,28 @@ pub struct NodeExecutionTrace {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub output: Option<serde_json::Value>,
     /// 输入 Schema 校验结果
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "input_validation")]
     pub input_validation: Option<SchemaValidationResult>,
     /// 输出 Schema 校验结果
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "output_validation")]
     pub output_validation: Option<SchemaValidationResult>,
     /// 节点内工具调用记录
-    #[serde(default)]
+    #[serde(default, alias = "tool_calls")]
     pub tool_calls: Vec<ToolCallTrace>,
     /// 重试次数
-    #[serde(default)]
+    #[serde(default, alias = "retry_count")]
     pub retry_count: u32,
     /// 错误信息（如有）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<NodeErrorDetail>,
     /// 内存使用量（字节，如有记录）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "memory_usage_bytes")]
     pub memory_usage_bytes: Option<u64>,
     /// Token 使用量（如有记录）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "token_usage")]
     pub token_usage: Option<TokenUsageTrace>,
     /// 业务状态转换（如果关联 FSM）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "business_state_transition")]
     pub business_state_transition: Option<FsmTransitionRecord>,
 }
 
@@ -306,6 +314,7 @@ impl NodeExecutionTrace {
 #[serde(rename_all = "camelCase")]
 pub struct ToolCallTrace {
     /// 工具名称
+    #[serde(alias = "tool_name")]
     pub tool_name: String,
     /// 调用参数
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -316,16 +325,19 @@ pub struct ToolCallTrace {
     /// 调用状态
     pub status: ToolCallStatus,
     /// 开始时间戳（毫秒）
+    #[serde(alias = "started_at_ms")]
     pub started_at_ms: u64,
     /// 完成时间戳（毫秒）
+    #[serde(alias = "completed_at_ms")]
     pub completed_at_ms: u64,
     /// 耗时（毫秒）
+    #[serde(alias = "duration_ms")]
     pub duration_ms: u64,
     /// 错误信息（如有）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
     /// 是否被重试
-    #[serde(default)]
+    #[serde(default, alias = "retried")]
     pub retried: bool,
 }
 
@@ -379,17 +391,18 @@ impl ToolCallTrace {
 #[serde(rename_all = "camelCase")]
 pub struct NodeErrorDetail {
     /// 错误类型
+    #[serde(alias = "error_type")]
     pub error_type: NodeErrorType,
     /// 错误消息
     pub message: String,
     /// 错误堆栈（如有）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "stack_trace")]
     pub stack_trace: Option<String>,
     /// 原始错误码（如有）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "error_code")]
     pub error_code: Option<String>,
     /// 是否可重试
-    #[serde(default)]
+    #[serde(default, alias = "retryable")]
     pub retryable: bool,
     /// 建议操作
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -443,15 +456,15 @@ impl NodeErrorDetail {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct TokenUsageTrace {
-    #[serde(default)]
+    #[serde(default, alias = "input_tokens")]
     pub input_tokens: u32,
-    #[serde(default)]
+    #[serde(default, alias = "output_tokens")]
     pub output_tokens: u32,
-    #[serde(default)]
+    #[serde(default, alias = "total_tokens")]
     pub total_tokens: u32,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "estimated_cost_usd")]
     pub estimated_cost_usd: Option<f64>,
 }
 
@@ -462,21 +475,22 @@ pub struct TokenUsageTrace {
 #[serde(rename_all = "camelCase")]
 pub struct TraceErrorSummary {
     /// 错误节点数量
+    #[serde(alias = "error_node_count")]
     pub error_node_count: u32,
     /// 错误节点 ID 列表
-    #[serde(default)]
+    #[serde(default, alias = "error_node_ids")]
     pub error_node_ids: Vec<String>,
     /// Schema 错误数量
-    #[serde(default)]
+    #[serde(default, alias = "schema_error_count")]
     pub schema_error_count: u32,
     /// 工具错误数量
-    #[serde(default)]
+    #[serde(default, alias = "tool_error_count")]
     pub tool_error_count: u32,
     /// 最早错误时间戳
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "first_error_at_ms")]
     pub first_error_at_ms: Option<u64>,
     /// 根因分析（AI 生成，如有）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "root_cause_analysis")]
     pub root_cause_analysis: Option<String>,
 }
 
@@ -498,10 +512,13 @@ pub enum TraceStatus {
 #[serde(rename_all = "camelCase")]
 pub struct TimelinePosition {
     /// 时间戳（毫秒）
+    #[serde(alias = "timestamp_ms")]
     pub timestamp_ms: u64,
     /// 节点 ID
+    #[serde(alias = "node_id")]
     pub node_id: String,
     /// 节点索引（0-based）
+    #[serde(alias = "node_index")]
     pub node_index: u32,
     /// 相对进度（0.0 - 1.0）
     pub progress: f64,
@@ -534,16 +551,19 @@ impl TimelinePosition {
 #[serde(rename_all = "camelCase")]
 pub struct SchemaDiffReport {
     /// 预期 Schema 路径
+    #[serde(alias = "expected_path")]
     pub expected_path: String,
     /// 实际输出路径
+    #[serde(alias = "actual_path")]
     pub actual_path: String,
     /// 差异类型
+    #[serde(alias = "diff_type")]
     pub diff_type: SchemaDiffType,
     /// 预期值
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "expected_value")]
     pub expected_value: Option<serde_json::Value>,
     /// 实际值
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "actual_value")]
     pub actual_value: Option<serde_json::Value>,
     /// 修复建议
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -582,28 +602,37 @@ impl SchemaDiffReport {
 #[serde(rename_all = "camelCase")]
 pub struct TraceStatistics {
     /// 总节点数
+    #[serde(alias = "total_nodes")]
     pub total_nodes: u32,
     /// 成功节点数
+    #[serde(alias = "success_nodes")]
     pub success_nodes: u32,
     /// 失败节点数
+    #[serde(alias = "failed_nodes")]
     pub failed_nodes: u32,
     /// 跳过节点数
+    #[serde(alias = "skipped_nodes")]
     pub skipped_nodes: u32,
     /// 总耗时（毫秒）
+    #[serde(alias = "total_duration_ms")]
     pub total_duration_ms: u64,
     /// 平均节点耗时（毫秒）
+    #[serde(alias = "avg_node_duration_ms")]
     pub avg_node_duration_ms: f64,
     /// 最慢节点 ID
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "slowest_node_id")]
     pub slowest_node_id: Option<String>,
     /// 最慢节点耗时（毫秒）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "slowest_duration_ms")]
     pub slowest_duration_ms: Option<u64>,
     /// 总工具调用次数
+    #[serde(alias = "total_tool_calls")]
     pub total_tool_calls: u32,
     /// 总 Token 使用量
+    #[serde(alias = "total_tokens")]
     pub total_tokens: u64,
     /// Schema 校验错误数
+    #[serde(alias = "schema_errors")]
     pub schema_errors: u32,
 }
 
@@ -689,8 +718,10 @@ pub enum DecisionLogType {
 #[serde(rename_all = "camelCase")]
 pub struct DecisionOption {
     /// 选项 ID
+    #[serde(alias = "option_id")]
     pub option_id: String,
     /// 选项名称
+    #[serde(alias = "option_name")]
     pub option_name: String,
     /// 选项描述
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -712,23 +743,25 @@ pub struct DecisionLog {
     /// 决策日志 ID
     pub id: String,
     /// 决策类型
+    #[serde(alias = "decision_type")]
     pub decision_type: DecisionLogType,
     /// 决策时间戳（毫秒）
+    #[serde(alias = "timestamp_ms")]
     pub timestamp_ms: u64,
     /// 关联的节点 ID（如有）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "node_id")]
     pub node_id: Option<String>,
     /// 关联的 FSM 实例 ID（如有）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "fsm_instance_id")]
     pub fsm_instance_id: Option<String>,
     /// 决策上下文（决策时的输入条件/状态）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub context: Option<serde_json::Value>,
     /// 考虑过的选项列表
-    #[serde(default)]
+    #[serde(default, alias = "options")]
     pub options: Vec<DecisionOption>,
     /// 最终选择的选项 ID
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "selected_option_id")]
     pub selected_option_id: Option<String>,
     /// 决策原因/解释
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -736,10 +769,10 @@ pub struct DecisionLog {
     /// 决策结果（成功/失败）
     pub result: DecisionResult,
     /// 决策耗时（毫秒，如有）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "duration_ms")]
     pub duration_ms: Option<u64>,
     /// 决策者标识（如 "system", "llm", "rule" 等）
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "decider")]
     pub decider: Option<String>,
 }
 

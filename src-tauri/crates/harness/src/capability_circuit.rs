@@ -47,9 +47,12 @@ pub trait CapabilityCircuitBreaker: Send + Sync {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CapabilityCircuitSnapshot {
+    #[serde(alias = "capability_id")]
     pub capability_id: String,
     pub state: CircuitState,
+    #[serde(alias = "failure_rate")]
     pub failure_rate: f64,
+    #[serde(alias = "last_failure_ms_ago")]
     pub last_failure_ms_ago: Option<u64>,
 }
 
@@ -74,8 +77,10 @@ pub trait CapabilityCompleter: Send + Sync {
 #[serde(rename_all = "camelCase")]
 pub struct UserContextSnapshot {
     /// 用户 ID
+    #[serde(alias = "user_id")]
     pub user_id: Option<String>,
     /// 会话 ID
+    #[serde(alias = "conversation_id")]
     pub conversation_id: Option<String>,
     /// 相关实体（订单号、产品名等）
     #[serde(default)]
@@ -91,6 +96,7 @@ pub struct UserContextSnapshot {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ContextEntity {
+    #[serde(alias = "entity_type")]
     pub entity_type: String,
     pub value: String,
 }
@@ -99,6 +105,7 @@ pub struct ContextEntity {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CapabilitySuggestion {
+    #[serde(alias = "capability_id")]
     pub capability_id: String,
     pub name: String,
     pub reason: String,
@@ -128,10 +135,15 @@ pub trait CapabilityHotSwapper: Send + Sync {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RefreshReport {
+    #[serde(alias = "last_refresh_ms")]
     pub last_refresh_ms: Option<u64>,
+    #[serde(alias = "capabilities_indexed")]
     pub capabilities_indexed: u64,
+    #[serde(alias = "capabilities_removed")]
     pub capabilities_removed: u64,
+    #[serde(alias = "next_refresh_ms")]
     pub next_refresh_ms: Option<u64>,
+    #[serde(alias = "is_refreshing")]
     pub is_refreshing: bool,
 }
 
@@ -262,12 +274,15 @@ impl std::fmt::Display for ProtectionReason {
 #[serde(rename_all = "camelCase")]
 pub struct ProtectedCapability {
     /// 能力 ID
+    #[serde(alias = "capability_id")]
     pub capability_id: String,
     /// 保护原因
     pub reason: ProtectionReason,
     /// 注册时间戳（毫秒）
+    #[serde(alias = "registered_at_ms")]
     pub registered_at_ms: u64,
     /// 是否为关键保护（紧急熔断时不可解锁）
+    #[serde(alias = "is_critical")]
     pub is_critical: bool,
 }
 
@@ -278,12 +293,13 @@ pub struct SelfReferenceCheckResult {
     /// 是否通过检查
     pub passed: bool,
     /// 被剔除的能力 ID 列表
-    #[serde(default)]
+    #[serde(default, alias = "rejected_ids")]
     pub rejected_ids: Vec<String>,
     /// 是否处于紧急熔断状态
+    #[serde(alias = "is_emergency_locked")]
     pub is_emergency_locked: bool,
     /// 熔断时间戳（如果处于紧急状态）
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", alias = "lockdown_at_ms")]
     pub lockdown_at_ms: Option<u64>,
 }
 

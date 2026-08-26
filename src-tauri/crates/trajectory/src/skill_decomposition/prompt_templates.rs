@@ -603,10 +603,10 @@ impl PromptTemplates {
                                             "type": "object",
                                             "properties": {
                                                 "enabled": { "type": "boolean" },
-                                                "max_retries": { "type": "number" },
-                                                "backoff_type": { "type": "string" },
-                                                "base_delay_ms": { "type": "number" },
-                                                "max_delay_ms": { "type": "number" }
+                                                "maxRetries": { "type": "number" },
+                                                "backoffType": { "type": "string" },
+                                                "baseDelayMs": { "type": "number" },
+                                                "maxDelayMs": { "type": "number" }
                                             }
                                         },
                                         "timeout": { "type": "number" },

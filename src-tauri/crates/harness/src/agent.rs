@@ -19,6 +19,7 @@ pub struct AgentCapability {
 pub struct AgentExecuteRequest {
     pub goal: String,
     pub context: Option<String>,
+    #[serde(alias = "max_steps")]
     pub max_steps: Option<u32>,
 }
 
@@ -27,6 +28,7 @@ pub struct AgentExecuteRequest {
 pub struct AgentResult {
     pub output: String,
     pub success: bool,
+    #[serde(alias = "steps_taken")]
     pub steps_taken: u32,
 }
 
