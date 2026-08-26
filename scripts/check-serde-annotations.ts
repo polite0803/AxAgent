@@ -31,7 +31,8 @@ const SCAN_DIRS = [
 // 允许的例外（这些结构体可以保持 snake_case）
 // 格式："文件路径::结构体名"
 const ALLOWED_EXCEPTIONS = new Set<string>([
-  // 在此添加合法的例外
+  // 内部错误类型，不跨 FFI 边界
+  "src-tauri/crates/harness/src/session_log_invariant.rs::InvariantViolation",
 ]);
 
 // 已知使用手动 rename 的结构体（不需要 rename_all）

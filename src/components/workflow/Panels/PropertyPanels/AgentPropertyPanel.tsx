@@ -196,7 +196,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
     : null;
 
   const { groups: toolGroups, loadGroups: loadToolGroups } = useLocalToolStore();
-  const templateToolDefs = useWorkflowEditorStore((s) => s.currentTemplate?.tool_defs);
+  const templateToolDefs = useWorkflowEditorStore((s) => s.currentTemplate?.toolDefs);
   const { bases: knowledgeBases, loadBases: loadKnowledgeBases } = useKnowledgeStore();
   const { providers, fetchProviders } = useProviderStore();
 

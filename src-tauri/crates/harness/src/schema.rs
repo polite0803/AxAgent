@@ -94,6 +94,7 @@ impl SchemaFormat {
 ///     })));
 /// ```
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct NodeContract {
     /// 契约版本号（用于向后兼容）
     #[serde(default = "default_contract_version")]
@@ -296,6 +297,7 @@ pub enum SchemaValidationResult {
 
 /// 单个校验错误
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct SchemaValidationError {
     /// 错误路径（JSON Pointer 格式，如 "/properties/query"）
     pub path: String,

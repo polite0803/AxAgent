@@ -73,6 +73,7 @@ impl std::fmt::Display for DeviationKind {
 
 /// 单步回放偏差记录。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct StepDeviation {
     /// 偏差发生的步骤索引（基于 golden trajectory）
     pub step_index: usize,
@@ -90,6 +91,7 @@ pub struct StepDeviation {
 
 /// 回放配置选项。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ReplayOptions {
     /// 严格模式：true=内容完全匹配；false=相似度对比
     pub strict: bool,
@@ -109,6 +111,7 @@ impl Default for ReplayOptions {
 
 /// 单条轨迹回放报告。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ReplayReport {
     /// 被回放的 golden trajectory ID
     pub trajectory_id: String,
@@ -134,6 +137,7 @@ pub struct ReplayReport {
 
 /// 标记为回归基准的 golden trajectory。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GoldenTrajectory {
     /// golden 轨迹
     pub trajectory: Trajectory,
@@ -158,6 +162,7 @@ impl GoldenTrajectory {
 
 /// 回归样本集 — 一组 golden trajectory 用于批量回放。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RegressionSuite {
     /// 样本集名称
     pub name: String,
@@ -190,6 +195,7 @@ impl RegressionSuite {
 
 /// 批量回放结果汇总。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RegressionSuiteResult {
     /// 样本集名称
     pub suite_name: String,

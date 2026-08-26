@@ -194,7 +194,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
       },
     ];
 
-    if (template.is_editable) {
+    if (template.isEditable) {
       menuItems.push(
         {
           key: "edit",
@@ -284,7 +284,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
                   {t("workflow.templateList.preset")}
                 </Tag>
               )}
-              {!template.is_editable && (
+              {!template.isEditable && (
                 <Tag color="default" style={{ fontSize: 12 }}>
                   {t("workflow.templateList.readonly")}
                 </Tag>

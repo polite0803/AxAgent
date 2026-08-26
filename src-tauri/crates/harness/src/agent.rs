@@ -8,12 +8,14 @@ use std::fmt;
 use ts_rs::TS;
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentCapability {
     pub name: String,
     pub description: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentExecuteRequest {
     pub goal: String,
     pub context: Option<String>,
@@ -29,17 +31,20 @@ pub struct AgentResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentPlan {
     pub steps: Vec<PlanStep>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct PlanStep {
     pub description: String,
     pub agent: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentInfo {
     pub name: String,
     pub description: String,

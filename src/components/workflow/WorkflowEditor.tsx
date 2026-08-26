@@ -912,13 +912,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
       description: currentTemplate.description,
       icon: currentTemplate.icon,
       tags: currentTemplate.tags,
-      trigger_config: currentTemplate.trigger_config,
+      trigger_config: currentTemplate.triggerConfig,
       nodes: nodesWithParent,
       edges: cleanedEdges,
-      input_schema: currentTemplate.input_schema,
-      output_schema: currentTemplate.output_schema,
+      input_schema: currentTemplate.inputSchema,
+      output_schema: currentTemplate.outputSchema,
       variables: currentTemplate.variables,
-      error_config: currentTemplate.error_config,
+      error_config: currentTemplate.errorConfig,
     };
 
     if (currentTemplate.id) {
@@ -1159,13 +1159,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         description: tmpl?.description,
         icon: tmpl?.icon || "Bot",
         tags: tmpl?.tags || [],
-        trigger_config: tmpl?.trigger_config,
+        trigger_config: tmpl?.triggerConfig,
         nodes: nodesWithParent,
         edges,
-        input_schema: tmpl?.input_schema,
-        output_schema: tmpl?.output_schema,
+        input_schema: tmpl?.inputSchema,
+        output_schema: tmpl?.outputSchema,
         variables: tmpl?.variables || [],
-        error_config: tmpl?.error_config,
+        error_config: tmpl?.errorConfig,
       };
       const yaml = await invoke<string>("export_workflow_yaml", { workflowJson: JSON.stringify(workflowInput) });
       return yaml || null;
@@ -1718,10 +1718,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
             nodes: updatedSubNodes,
             edges: subEdges,
             variables: tmpl.variables || [],
-            input_schema: tmpl.input_schema || undefined,
-            output_schema: tmpl.output_schema || undefined,
-            error_config: tmpl.error_config || undefined,
-            trigger_config: tmpl.trigger_config || undefined,
+            input_schema: tmpl.inputSchema || undefined,
+            output_schema: tmpl.outputSchema || undefined,
+            error_config: tmpl.errorConfig || undefined,
+            trigger_config: tmpl.triggerConfig || undefined,
             description: tmpl.description || undefined,
           };
           await invoke("update_workflow_template", { id: subId, input });

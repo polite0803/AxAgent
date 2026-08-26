@@ -393,6 +393,7 @@ impl std::fmt::Display for ErrorCode {
 
 /// Structured context for error reporting and telemetry
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ErrorContext {
     pub session_id: Option<String>,
     pub component: String,
@@ -471,6 +472,7 @@ impl ErrorContextBuilder {
 
 /// Serializable error report for telemetry and logging
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ErrorReport {
     pub error_code: ErrorCode,
     pub message: String,

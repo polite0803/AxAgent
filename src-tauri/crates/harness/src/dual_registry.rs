@@ -217,6 +217,7 @@ pub trait RouterSelfUpdateManager: Send + Sync {
 
 /// 路由规则
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RoutingRule {
     /// 规则 ID
     pub rule_id: String,
@@ -336,6 +337,7 @@ pub trait SystemPrivilegedPipeline: Send + Sync {
 
 /// 特权调用者信息
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PrivilegedCaller {
     /// 调用者 ID（系统组件标识）
     pub caller_id: String,
@@ -428,6 +430,7 @@ impl Privilege {
 
 /// 特权管道执行结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PrivilegedExecutionResult {
     /// 执行是否成功
     pub success: bool,
@@ -447,6 +450,7 @@ pub struct PrivilegedExecutionResult {
 
 /// 特权管道链式执行步骤
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PrivilegedChainStep {
     /// 步骤序号
     pub step_index: u32,
@@ -461,6 +465,7 @@ pub struct PrivilegedChainStep {
 
 /// 特权管道健康状态
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PrivilegedHealthStatus {
     /// 是否健康
     pub healthy: bool,

@@ -98,15 +98,15 @@ interface WorkflowTemplate {
   tags: string[];
   version: number;
   isPreset: boolean;
-  is_editable: boolean;
-  is_public: boolean;
+  isEditable: boolean;
+  isPublic: boolean;
   /** 是否为系统模板（认知编排器等），include_system=true 时才能读到 */
-  is_system?: boolean;
-  trigger_config: Record<string, unknown>;
+  isSystem?: boolean;
+  triggerConfig: Record<string, unknown>;
   nodes: unknown[];
   edges: unknown[];
-  created_at: number;
-  updated_at: number;
+  createdAt: number;
+  updatedAt: number;
 }
 
 interface CreateWorkflowTemplateInput {
@@ -3585,17 +3585,17 @@ async function executeCommand<T>(
           tags: ["docs", "api", "readme"],
           version: 1,
           isPreset: true,
-          is_editable: false,
-          is_public: false,
-          trigger_config: { trigger_type: "manual", config: {} },
+          isEditable: false,
+          isPublic: false,
+          triggerConfig: { trigger_type: "manual", config: {} },
           nodes: [],
           edges: [],
-          input_schema: null,
-          output_schema: null,
+          inputSchema: null,
+          outputSchema: null,
           variables: [],
-          error_config: null,
-          created_at: nowTs(),
-          updated_at: nowTs(),
+          errorConfig: null,
+          createdAt: nowTs(),
+          updatedAt: nowTs(),
         },
         {
           id: "test-gen",
@@ -3605,17 +3605,17 @@ async function executeCommand<T>(
           tags: ["testing", "tdd", "coverage"],
           version: 1,
           isPreset: true,
-          is_editable: false,
-          is_public: false,
-          trigger_config: { trigger_type: "manual", config: {} },
+          isEditable: false,
+          isPublic: false,
+          triggerConfig: { trigger_type: "manual", config: {} },
           nodes: [],
           edges: [],
-          input_schema: null,
-          output_schema: null,
+          inputSchema: null,
+          outputSchema: null,
           variables: [],
-          error_config: null,
-          created_at: nowTs(),
-          updated_at: nowTs(),
+          errorConfig: null,
+          createdAt: nowTs(),
+          updatedAt: nowTs(),
         },
         {
           id: "refactor",
@@ -3625,17 +3625,17 @@ async function executeCommand<T>(
           tags: ["refactor", "clean-code", "patterns"],
           version: 1,
           isPreset: true,
-          is_editable: false,
-          is_public: false,
-          trigger_config: { trigger_type: "manual", config: {} },
+          isEditable: false,
+          isPublic: false,
+          triggerConfig: { trigger_type: "manual", config: {} },
           nodes: [],
           edges: [],
-          input_schema: null,
-          output_schema: null,
+          inputSchema: null,
+          outputSchema: null,
           variables: [],
-          error_config: null,
-          created_at: nowTs(),
-          updated_at: nowTs(),
+          errorConfig: null,
+          createdAt: nowTs(),
+          updatedAt: nowTs(),
         },
         {
           id: "perf-opt",
@@ -3645,17 +3645,17 @@ async function executeCommand<T>(
           tags: ["performance", "optimization", "profiling"],
           version: 1,
           isPreset: true,
-          is_editable: true,
-          is_public: false,
-          trigger_config: { trigger_type: "manual", config: {} },
+          isEditable: true,
+          isPublic: false,
+          triggerConfig: { trigger_type: "manual", config: {} },
           nodes: [],
           edges: [],
-          input_schema: null,
-          output_schema: null,
+          inputSchema: null,
+          outputSchema: null,
           variables: [],
-          error_config: null,
-          created_at: nowTs(),
-          updated_at: nowTs(),
+          errorConfig: null,
+          createdAt: nowTs(),
+          updatedAt: nowTs(),
         },
         {
           id: "migration",
@@ -3665,17 +3665,17 @@ async function executeCommand<T>(
           tags: ["migration", "upgrade", "compatibility"],
           version: 1,
           isPreset: true,
-          is_editable: true,
-          is_public: false,
-          trigger_config: { trigger_type: "manual", config: {} },
+          isEditable: true,
+          isPublic: false,
+          triggerConfig: { trigger_type: "manual", config: {} },
           nodes: [],
           edges: [],
-          input_schema: null,
-          output_schema: null,
+          inputSchema: null,
+          outputSchema: null,
           variables: [],
-          error_config: null,
-          created_at: nowTs(),
-          updated_at: nowTs(),
+          errorConfig: null,
+          createdAt: nowTs(),
+          updatedAt: nowTs(),
         },
         {
           id: "api-design",
@@ -3685,17 +3685,17 @@ async function executeCommand<T>(
           tags: ["api", "rest", "design"],
           version: 1,
           isPreset: true,
-          is_editable: true,
-          is_public: false,
-          trigger_config: { trigger_type: "manual", config: {} },
+          isEditable: true,
+          isPublic: false,
+          triggerConfig: { trigger_type: "manual", config: {} },
           nodes: [],
           edges: [],
-          input_schema: null,
-          output_schema: null,
+          inputSchema: null,
+          outputSchema: null,
           variables: [],
-          error_config: null,
-          created_at: nowTs(),
-          updated_at: nowTs(),
+          errorConfig: null,
+          createdAt: nowTs(),
+          updatedAt: nowTs(),
         },
         {
           id: "env-debug",
@@ -3705,17 +3705,17 @@ async function executeCommand<T>(
           tags: ["debug", "troubleshoot", "environment"],
           version: 1,
           isPreset: true,
-          is_editable: true,
-          is_public: false,
-          trigger_config: { trigger_type: "manual", config: {} },
+          isEditable: true,
+          isPublic: false,
+          triggerConfig: { trigger_type: "manual", config: {} },
           nodes: [],
           edges: [],
-          input_schema: null,
-          output_schema: null,
+          inputSchema: null,
+          outputSchema: null,
           variables: [],
-          error_config: null,
-          created_at: nowTs(),
-          updated_at: nowTs(),
+          errorConfig: null,
+          createdAt: nowTs(),
+          updatedAt: nowTs(),
         },
         {
           id: "feature-impl",
@@ -3725,17 +3725,17 @@ async function executeCommand<T>(
           tags: ["feature", "ai", "implementation"],
           version: 1,
           isPreset: true,
-          is_editable: true,
-          is_public: false,
-          trigger_config: { trigger_type: "manual", config: {} },
+          isEditable: true,
+          isPublic: false,
+          triggerConfig: { trigger_type: "manual", config: {} },
           nodes: [],
           edges: [],
-          input_schema: null,
-          output_schema: null,
+          inputSchema: null,
+          outputSchema: null,
           variables: [],
-          error_config: null,
-          created_at: nowTs(),
-          updated_at: nowTs(),
+          errorConfig: null,
+          createdAt: nowTs(),
+          updatedAt: nowTs(),
         },
         {
           id: "knowledge-extract",
@@ -3745,17 +3745,17 @@ async function executeCommand<T>(
           tags: ["knowledge", "extraction", "nlp"],
           version: 1,
           isPreset: true,
-          is_editable: true,
-          is_public: false,
-          trigger_config: { trigger_type: "manual", config: {} },
+          isEditable: true,
+          isPublic: false,
+          triggerConfig: { trigger_type: "manual", config: {} },
           nodes: [],
           edges: [],
-          input_schema: null,
-          output_schema: null,
+          inputSchema: null,
+          outputSchema: null,
           variables: [],
-          error_config: null,
-          created_at: nowTs(),
-          updated_at: nowTs(),
+          errorConfig: null,
+          createdAt: nowTs(),
+          updatedAt: nowTs(),
         },
         {
           id: "knowledge-to-code",
@@ -3765,17 +3765,17 @@ async function executeCommand<T>(
           tags: ["knowledge", "code", "generation"],
           version: 1,
           isPreset: true,
-          is_editable: true,
-          is_public: false,
-          trigger_config: { trigger_type: "manual", config: {} },
+          isEditable: true,
+          isPublic: false,
+          triggerConfig: { trigger_type: "manual", config: {} },
           nodes: [],
           edges: [],
-          input_schema: null,
-          output_schema: null,
+          inputSchema: null,
+          outputSchema: null,
           variables: [],
-          error_config: null,
-          created_at: nowTs(),
-          updated_at: nowTs(),
+          errorConfig: null,
+          createdAt: nowTs(),
+          updatedAt: nowTs(),
         },
         {
           id: "custom-1",
@@ -3785,17 +3785,17 @@ async function executeCommand<T>(
           tags: ["custom", "user"],
           version: 1,
           isPreset: false,
-          is_editable: true,
-          is_public: false,
-          trigger_config: { trigger_type: "manual", config: {} },
+          isEditable: true,
+          isPublic: false,
+          triggerConfig: { trigger_type: "manual", config: {} },
           nodes: [],
           edges: [],
-          input_schema: null,
-          output_schema: null,
+          inputSchema: null,
+          outputSchema: null,
           variables: [],
-          error_config: null,
-          created_at: nowTs(),
-          updated_at: nowTs(),
+          errorConfig: null,
+          createdAt: nowTs(),
+          updatedAt: nowTs(),
         },
       ];
       setStore("workflow_templates", presetTemplates);
@@ -3810,7 +3810,7 @@ async function executeCommand<T>(
       }
       // 默认过滤系统模板（认知编排器等）；include_system=true 时返回
       if (!includeSystem) {
-        templates = templates.filter((t) => !t.is_system);
+        templates = templates.filter((t) => !t.isSystem);
       }
       return templates as T;
     }
@@ -3826,7 +3826,7 @@ async function executeCommand<T>(
       const templates = getStore<WorkflowTemplate[]>("workflow_templates", []);
       const found = templates.find((t) => t.id === id);
       // 系统模板默认不可见；include_system=true 时才可读取
-      if (!found || (!includeSystem && found.is_system)) {
+      if (!found || (!includeSystem && found.isSystem)) {
         return null as T;
       }
       return found as T;
@@ -3843,9 +3843,9 @@ async function executeCommand<T>(
         tags: input.tags || [],
         version: 1,
         isPreset: false,
-        is_editable: true,
-        is_public: false,
-        trigger_config: { type: "manual", config: {} },
+        isEditable: true,
+        isPublic: false,
+        triggerConfig: { type: "manual", config: {} },
         nodes: input.nodes?.length
           ? input.nodes
           : [
@@ -3858,8 +3858,8 @@ async function executeCommand<T>(
             },
           ],
         edges: input.edges || [],
-        created_at: now,
-        updated_at: now,
+        createdAt: now,
+        updatedAt: now,
       };
       const templates = getStore<WorkflowTemplate[]>("workflow_templates", []);
       templates.push(template);
@@ -3887,7 +3887,7 @@ async function executeCommand<T>(
         if (updateInput.edges !== undefined) {
           templates[idx].edges = updateInput.edges;
         }
-        templates[idx].updated_at = nowTs();
+        templates[idx].updatedAt = nowTs();
         setStore("workflow_templates", templates);
       }
       return true as T;

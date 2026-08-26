@@ -6,6 +6,7 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BrowserNavigateResult {
     pub url: String,
     pub title: String,
@@ -19,6 +20,7 @@ pub struct BrowserScreenshotResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExtractedElement {
     pub tag: String,
     pub text: String,

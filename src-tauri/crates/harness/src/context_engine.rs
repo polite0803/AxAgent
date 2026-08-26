@@ -50,6 +50,7 @@ pub struct CompactionContext {
 
 /// 结构化记忆 - 从轨迹系统提取
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct StructuredMemory {
     pub id: String,
     pub memory_type: MemoryType,
@@ -78,6 +79,7 @@ pub enum MemoryType {
 
 /// 技能信息 - 用于重注入
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SkillInfo {
     pub id: String,
     pub name: String,
@@ -87,6 +89,7 @@ pub struct SkillInfo {
 
 /// 压缩记录 - 会话谱系追踪
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CompactionRecord {
     /// 记录 ID
     pub id: String,
@@ -110,6 +113,7 @@ pub struct CompactionRecord {
 
 /// 压缩配置快照（用于记录历史）
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CompactionConfigSnapshot {
     pub preserve_recent_messages: usize,
     pub max_estimated_tokens: usize,
@@ -119,6 +123,7 @@ pub struct CompactionConfigSnapshot {
 
 /// 压缩结果摘要
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CompactionResultSummary {
     pub original_message_count: usize,
     pub compacted_message_count: usize,
@@ -146,6 +151,7 @@ pub enum CompactionTrigger {
 
 /// 会话谱系 - 追踪压缩历史
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SessionLineage {
     /// 会话 ID
     pub session_id: String,

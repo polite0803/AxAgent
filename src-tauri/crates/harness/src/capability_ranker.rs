@@ -46,6 +46,7 @@ pub struct RankedCapability {
 
 /// 排序结果
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RankingResult {
     /// 排好序的候选列表
     pub ranked: Vec<RankedCapability>,

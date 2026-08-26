@@ -35,20 +35,21 @@ interface BackendTemplateResponse {
   tags: string[];
   version: number;
   isPreset: boolean;
-  is_editable: boolean;
-  is_public: boolean;
+  isEditable: boolean;
+  isPublic: boolean;
   /** 是否为系统模板（认知编排器等） */
-  is_system?: boolean;
-  trigger_config?: unknown;
+  isSystem?: boolean;
+  triggerConfig?: unknown;
   nodes: BackendWorkflowNode[];
   edges: BackendWorkflowEdge[];
-  input_schema?: unknown;
-  output_schema?: unknown;
+  inputSchema?: unknown;
+  outputSchema?: unknown;
   variables: BackendVariable[];
-  error_config?: unknown;
-  tool_defs?: unknown[];
-  created_at: number;
-  updated_at: number;
+  errorConfig?: unknown;
+  toolDefs?: unknown[];
+  missionHash?: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
 /** 后端 WorkflowNode（serde tag = "type"，base 被 flatten） */
@@ -159,8 +160,8 @@ function templateResponseToWorkflowDefinition(
     nodes,
     edges,
     variables,
-    createdAt: resp.created_at,
-    updatedAt: resp.updated_at,
+    createdAt: resp.createdAt,
+    updatedAt: resp.updatedAt,
     status: resp.isPreset ? "active" : "draft",
   };
 }
@@ -331,8 +332,8 @@ function templateResponseToWorkflowTemplate(
     tags: resp.tags ?? [],
     workflow: templateResponseToWorkflowDefinition(resp),
     isBuiltIn: resp.isPreset,
-    createdAt: resp.created_at,
-    updatedAt: resp.updated_at,
+    createdAt: resp.createdAt,
+    updatedAt: resp.updatedAt,
   };
 }
 
@@ -876,14 +877,14 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
         description: histResp.description,
         icon: histResp.icon,
         tags: histResp.tags,
-        trigger_config: histResp.trigger_config,
+        trigger_config: histResp.triggerConfig,
         nodes: histResp.nodes,
         edges: histResp.edges,
-        input_schema: histResp.input_schema,
-        output_schema: histResp.output_schema,
+        input_schema: histResp.inputSchema,
+        output_schema: histResp.outputSchema,
         variables: histResp.variables,
-        error_config: histResp.error_config,
-        tool_defs: histResp.tool_defs,
+        error_config: histResp.errorConfig,
+        tool_defs: histResp.toolDefs,
       };
       await invoke<boolean>("update_workflow_template", { id: workflowId, input });
 

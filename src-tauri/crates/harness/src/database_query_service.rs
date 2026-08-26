@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::core_error::Result;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DatabaseQueryResult {
     pub columns: Vec<String>,
     pub rows: Vec<Vec<serde_json::Value>>,

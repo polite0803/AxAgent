@@ -748,20 +748,21 @@ export interface WorkflowTemplateResponse {
   tags: string[];
   version: number;
   isPreset: boolean;
-  is_editable: boolean;
-  is_public: boolean;
-  /** 是否为系统模板（认知编排器等），由后端按 isPreset + cognitive_router 标签权威判定 */
-  is_system: boolean;
-  trigger_config?: TriggerConfig;
+  isEditable: boolean;
+  isPublic: boolean;
+  /** 是否为系统模板（认知编排器等），由后端按 isPreset + cognitiveRouter 标签权威判定 */
+  isSystem: boolean;
+  triggerConfig?: TriggerConfig;
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
-  input_schema?: JsonSchema;
-  output_schema?: JsonSchema;
+  inputSchema?: JsonSchema;
+  outputSchema?: JsonSchema;
   variables: Variable[];
-  error_config?: ErrorConfig;
-  tool_defs?: RhaiToolDef[];
-  created_at: number;
-  updated_at: number;
+  errorConfig?: ErrorConfig;
+  toolDefs?: RhaiToolDef[];
+  missionHash?: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface TemplateFilter {

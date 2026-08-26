@@ -37,12 +37,14 @@ pub struct GatewayKey {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateGatewayKeyResult {
     pub gateway_key: GatewayKey,
     pub plain_key: String,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GatewayMetrics {
     pub total_requests: u64,
     pub total_tokens: u64,
@@ -82,6 +84,7 @@ pub struct UsageByProvider {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UsageByDay {
     pub date: String,
     pub request_count: u64,
@@ -91,6 +94,7 @@ pub struct UsageByDay {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ConnectedProgram {
     pub key_id: String,
     pub key_name: String,

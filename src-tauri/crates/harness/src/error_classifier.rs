@@ -191,6 +191,7 @@ impl FailoverReason {
 
 /// 分类后的错误（含 FailoverReason 精确原因）
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ClassifiedError {
     /// 错误类型（三级分类）
     pub error_type: ErrorType,
@@ -259,6 +260,7 @@ pub enum RecoveryAdjustment {
 
 /// 恢复执行结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RecoveryResult {
     pub success: bool,
     pub recovered: bool,
@@ -270,6 +272,7 @@ pub struct RecoveryResult {
 
 /// 恢复尝试记录
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RecoveryAttempt {
     pub attempt_number: usize,
     pub error: String,

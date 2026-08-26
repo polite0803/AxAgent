@@ -207,13 +207,13 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
         description: oldData.description,
         icon: oldData.icon,
         tags: oldData.tags,
-        trigger_config: oldData.trigger_config,
+        trigger_config: oldData.triggerConfig,
         nodes: oldData.nodes,
         edges: oldData.edges,
-        input_schema: oldData.input_schema,
-        output_schema: oldData.output_schema,
+        input_schema: oldData.inputSchema,
+        output_schema: oldData.outputSchema,
         variables: oldData.variables,
-        error_config: oldData.error_config,
+        error_config: oldData.errorConfig,
       };
       await invoke<boolean>("update_workflow_template", { id: template.id, input });
 

@@ -30,6 +30,7 @@ use crate::workflow_types::NodeStatus;
 /// 这是时间旅行调试的核心数据结构，
 /// 包含完整的执行上下文、节点轨迹和状态机转移记录。
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct ExecutionTrace {
     /// 轨迹 ID
     pub id: String,
@@ -169,6 +170,7 @@ impl ExecutionTrace {
 
 /// 单个节点的执行轨迹（时间旅行的核心单元）
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct NodeExecutionTrace {
     /// 节点 ID
     pub node_id: String,
@@ -301,6 +303,7 @@ impl NodeExecutionTrace {
 
 /// 工具调用轨迹
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct ToolCallTrace {
     /// 工具名称
     pub tool_name: String,
@@ -373,6 +376,7 @@ impl ToolCallTrace {
 
 /// 节点错误详情
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct NodeErrorDetail {
     /// 错误类型
     pub error_type: NodeErrorType,
@@ -437,6 +441,7 @@ impl NodeErrorDetail {
 
 /// Token 使用量追踪
 #[derive(Debug, Clone, Default, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct TokenUsageTrace {
     #[serde(default)]
     pub input_tokens: u32,
@@ -454,6 +459,7 @@ pub struct TokenUsageTrace {
 
 /// 执行轨迹错误摘要
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct TraceErrorSummary {
     /// 错误节点数量
     pub error_node_count: u32,
@@ -489,6 +495,7 @@ pub enum TraceStatus {
 
 /// 时间线位置（用于前端时间旅行面板）
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct TimelinePosition {
     /// 时间戳（毫秒）
     pub timestamp_ms: u64,
@@ -524,6 +531,7 @@ impl TimelinePosition {
 
 /// Schema 差异报告（用于高亮显示）
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct SchemaDiffReport {
     /// 预期 Schema 路径
     pub expected_path: String,
@@ -571,6 +579,7 @@ impl SchemaDiffReport {
 
 /// 执行轨迹聚合统计
 #[derive(Debug, Clone, Default, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct TraceStatistics {
     /// 总节点数
     pub total_nodes: u32,
@@ -677,6 +686,7 @@ pub enum DecisionLogType {
 
 /// 决策选项（被考虑过的选项）
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct DecisionOption {
     /// 选项 ID
     pub option_id: String,
@@ -697,6 +707,7 @@ pub struct DecisionOption {
 /// 用于时间旅行还原：记录每个决策点的上下文、
 /// 考虑过的选项、最终选择和决策原因。
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct DecisionLog {
     /// 决策日志 ID
     pub id: String,

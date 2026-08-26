@@ -71,6 +71,7 @@ pub trait CapabilityCompleter: Send + Sync {
 
 /// 用户上下文快照（用于补全逻辑）
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UserContextSnapshot {
     /// 用户 ID
     pub user_id: Option<String>,
@@ -88,6 +89,7 @@ pub struct UserContextSnapshot {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ContextEntity {
     pub entity_type: String,
     pub value: String,
@@ -124,6 +126,7 @@ pub trait CapabilityHotSwapper: Send + Sync {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RefreshReport {
     pub last_refresh_ms: Option<u64>,
     pub capabilities_indexed: u64,
@@ -256,6 +259,7 @@ impl std::fmt::Display for ProtectionReason {
 
 /// 受保护能力记录
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProtectedCapability {
     /// 能力 ID
     pub capability_id: String,
@@ -269,6 +273,7 @@ pub struct ProtectedCapability {
 
 /// 自指熔断检查结果
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SelfReferenceCheckResult {
     /// 是否通过检查
     pub passed: bool,

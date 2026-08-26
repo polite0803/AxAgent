@@ -53,6 +53,7 @@ impl std::fmt::Display for ActionType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Plan {
     pub id: String,
     pub goal: String,
@@ -63,6 +64,7 @@ pub struct Plan {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Phase {
     pub id: String,
     pub name: String,
@@ -73,6 +75,7 @@ pub struct Phase {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PlannedTask {
     pub id: String,
     pub description: String,
@@ -120,6 +123,7 @@ pub enum TaskStatus {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PlanVersion {
     pub version: u32,
     pub plan: Plan,
@@ -171,6 +175,7 @@ pub enum ReplanAction {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PlanProgress {
     pub total_phases: usize,
     pub completed_phases: usize,
@@ -184,6 +189,7 @@ pub struct PlanProgress {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PhaseProgress {
     pub name: String,
     pub total: usize,
