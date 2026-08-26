@@ -26,8 +26,50 @@ pub fn workflow_template_response_from_model(
     let trigger_config: Option<TriggerConfig> =
         model.trigger_config.as_ref().and_then(|t| serde_json::from_str(t).ok());
 
-    let nodes: Vec<WorkflowNode> = serde_json::from_str(&model.nodes).unwrap_or_default();
-    let edges: Vec<WorkflowEdge> = serde_json::from_str(&model.edges).unwrap_or_default();
+    // 关键：记录节点/边反序列化结果，便于排查编辑器空内容问题
+    let nodes_result: Result<Vec<WorkflowNode>, _> = serde_json::from_str(&model.nodes);
+    let edges_result: Result<Vec<WorkflowEdge>, _> = serde_json::from_str(&model.edges);
+
+    let nodes = match &nodes_result {
+        Ok(n) => {
+            tracing::warn!(
+                "[workflow_conversions] 模板 {} 节点反序列化成功: {} 个节点",
+                model.id,
+                n.len()
+            );
+            n.clone()
+        },
+        Err(e) => {
+            tracing::error!(
+                "[workflow_conversions] 模板 {} 节点反序列化失败: {e}, nodes.len={}, 前100字符: {}",
+                model.id,
+                model.nodes.len(),
+                &model.nodes[..model.nodes.len().min(200)]
+            );
+            Vec::new()
+        },
+    };
+
+    let edges = match &edges_result {
+        Ok(e) => {
+            tracing::warn!(
+                "[workflow_conversions] 模板 {} 边反序列化成功: {} 条边",
+                model.id,
+                e.len()
+            );
+            e.clone()
+        },
+        Err(e) => {
+            tracing::error!(
+                "[workflow_conversions] 模板 {} 边反序列化失败: {e}, edges.len={}, 前100字符: {}",
+                model.id,
+                model.edges.len(),
+                &model.edges[..model.edges.len().min(200)]
+            );
+            Vec::new()
+        },
+    };
+
     let input_schema: Option<JsonSchema> =
         model.input_schema.as_ref().and_then(|s| serde_json::from_str(s).ok());
     let output_schema: Option<JsonSchema> =

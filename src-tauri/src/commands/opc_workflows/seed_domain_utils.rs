@@ -8,4 +8,4 @@
 
 #[allow(dead_code)]
 /// 全局领域工作流版本号（与行业工作流一致）
-pub const DOMAIN_TEMPLATE_VERSION: i32 = 2;
+pub const DOMAIN_TEMPLATE_VERSION: i32 = 3;

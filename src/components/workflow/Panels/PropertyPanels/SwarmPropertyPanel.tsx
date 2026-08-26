@@ -44,12 +44,12 @@ export const SwarmPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }
       title: t("workflow.swarmNode.newAgent") + ` ${agentSteps.length + 1}`,
       position,
       config: {
-        system_prompt: "",
-        context_sources: [],
+        systemPrompt: "",
+        contextSources: [],
         outputVar: `${id}_output`,
         tools: [],
-        exposed_tools: [],
-        output_mode: "text",
+        exposedTools: [],
+        outputMode: "text",
       },
     } as unknown as WorkflowNode; // SAFE: constructing WorkflowNode-compatible object for store insertion
     addNode(newNode);

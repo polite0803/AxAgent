@@ -15,8 +15,8 @@ interface TriggerConfigFields {
   enabled?: boolean;
   path?: string;
   method?: string;
-  auth_type?: string;
-  event_type?: string;
+  authType?: string;
+  eventType?: string;
   filter?: Record<string, string>;
 }
 
@@ -162,8 +162,8 @@ function TriggerConfig({
               {t("workflow.props.authType")}
             </label>
             <Select
-              value={triggerConfig.config.auth_type || "none"}
-              onChange={(value) => handleConfigChange("auth_type", value)}
+              value={triggerConfig.config.authType || "none"}
+              onChange={(value) => handleConfigChange("authType", value)}
               size="small"
               style={{ width: "100%" }}
               options={[
@@ -186,8 +186,8 @@ function TriggerConfig({
             </label>
             <Input
               id="trigger-property-panel-input-115"
-              value={triggerConfig.config.event_type || ""}
-              onChange={(e) => handleConfigChange("event_type", e.target.value)}
+              value={triggerConfig.config.eventType || ""}
+              onChange={(e) => handleConfigChange("eventType", e.target.value)}
               size="small"
             />
           </div>
@@ -228,11 +228,11 @@ export const TriggerPropertyPanel: React.FC<TriggerPropertyPanelProps> = ({
       case "webhook":
         newConfig = {
           type,
-          config: { path: "", method: "GET", auth_type: "none" },
+          config: { path: "", method: "GET", authType: "none" },
         };
         break;
       case "event":
-        newConfig = { type, config: { event_type: "", filter: {} } };
+        newConfig = { type, config: { eventType: "", filter: {} } };
         break;
     }
     onUpdate({ config: newConfig });

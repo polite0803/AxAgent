@@ -135,25 +135,27 @@ const RULE_PROMPT_QUALITY: Rule = (ctx) => {
     const cfg = configOf(n);
     const id = baseOf(n).id;
     if (type === "agent") {
-      const sp = (cfg.system_prompt as string) || "";
+      const sp = (cfg.systemPrompt as string) || "";
       if (!sp.trim()) {
         results.push(issue("agent_empty_prompt", "error", "prompt_quality", [id]));
       } else if (sp.length < 30) {
         results.push(issue("agent_short_prompt", "warning", "prompt_quality", [id]));
       }
-      if (!cfg.max_tokens) {
+      const maxTokens = cfg.maxTokens;
+      if (!maxTokens) {
         results.push(issue("agent_no_max_tokens", "info", "cost", [id], true, {
           actionType: "set_node_field",
           nodeId: id,
-          field: "max_tokens",
+          field: "maxTokens",
           value: 2048,
         }));
       }
-      if (cfg.tools && (cfg.tools as unknown[]).length > 0 && !cfg.max_tool_rounds) {
+      const maxRounds = cfg.maxToolRounds;
+      if (cfg.tools && (cfg.tools as unknown[]).length > 0 && !maxRounds) {
         results.push(issue("agent_no_max_tool_rounds", "info", "cost", [id], true, {
           actionType: "set_node_field",
           nodeId: id,
-          field: "max_tool_rounds",
+          field: "maxToolRounds",
           value: 5,
         }));
       }
@@ -163,11 +165,11 @@ const RULE_PROMPT_QUALITY: Rule = (ctx) => {
       if (!prompt.trim()) {
         results.push(issue("llm_empty_prompt", "error", "prompt_quality", [id]));
       }
-      if (!cfg.max_tokens) {
+      if (!(cfg.maxTokens)) {
         results.push(issue("llm_no_max_tokens", "info", "cost", [id], true, {
           actionType: "set_node_field",
           nodeId: id,
-          field: "max_tokens",
+          field: "maxTokens",
           value: 2048,
         }));
       }
@@ -184,12 +186,12 @@ const RULE_PERFORMANCE: Rule = (ctx) => {
     const id = baseOf(n).id;
     const b = baseOf(n);
     if (type === "httpRequest") {
-      const timeout = cfg.timeout_secs as number | undefined;
+      const timeout = cfg.timeoutSecs as number | undefined;
       if (!timeout || timeout <= 0) {
         results.push(issue("http_no_timeout", "warning", "performance", [id], true, {
           actionType: "set_node_field",
           nodeId: id,
-          field: "timeout_secs",
+          field: "timeoutSecs",
           value: 30,
         }));
       }
@@ -202,31 +204,31 @@ const RULE_PERFORMANCE: Rule = (ctx) => {
       }
     }
     if (type === "databaseQuery") {
-      const timeout = cfg.timeout_secs as number | undefined;
+      const timeout = cfg.timeoutSecs as number | undefined;
       if (!timeout || timeout <= 0) {
         results.push(issue("db_no_timeout", "warning", "performance", [id], true, {
           actionType: "set_node_field",
           nodeId: id,
-          field: "timeout_secs",
+          field: "timeoutSecs",
           value: 30,
         }));
       }
     }
     if (type === "loop") {
-      if (!cfg.max_iterations) {
+      if (!cfg.maxIterations) {
         results.push(issue("loop_no_max_iter", "warning", "performance", [id], true, {
           actionType: "set_node_field",
           nodeId: id,
-          field: "max_iterations",
+          field: "maxIterations",
           value: 100,
         }));
       }
-      if (!cfg.continue_condition) {
+      if (!cfg.continueCondition) {
         results.push(issue("loop_no_condition", "warning", "performance", [id]));
       }
     }
     if (type === "documentParser") {
-      if (!cfg.parser_type) {
+      if (!cfg.parserType) {
         results.push(issue("doc_no_parser_type", "info", "performance", [id]));
       }
     }
@@ -247,7 +249,7 @@ const RULE_SECURITY: Rule = (ctx) => {
       }
     }
     if (type === "notification") {
-      const url = (cfg.webhook_url as string) || "";
+      const url = (cfg.webhookUrl as string) || "";
       if (url && url.startsWith("http://")) {
         results.push(issue("insecure_notification_url", "warning", "security", [id]));
       }
@@ -258,10 +260,10 @@ const RULE_SECURITY: Rule = (ctx) => {
       }
     }
     if (type === "vectorRetrieve") {
-      if (!cfg.similarity_threshold) {
+      if (!cfg.similarityThreshold) {
         results.push(issue("vector_no_threshold", "info", "security", [id]));
       }
-      const topK = cfg.top_k as number | undefined;
+      const topK = cfg.topK as number | undefined;
       if (topK && topK > 20) {
         results.push(issue("vector_high_top_k", "info", "cost", [id]));
       }
@@ -325,7 +327,7 @@ const RULE_DEBATE_STRUCTURE: Rule = (ctx) => {
     const cfg = configOf(n);
     const id = baseOf(n).id;
     if (type === "debate") {
-      const debaterSteps = (cfg.debater_steps as string[]) || [];
+      const debaterSteps = (cfg.debaterSteps as string[]) || [];
       if (debaterSteps.length === 0) {
         results.push(issue("debate_no_debaters", "warning", "structure", [id]));
       } else if (debaterSteps.length < 2) {

@@ -12,7 +12,7 @@ interface Props {
 export const LoggingPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }) => {
   const { token } = theme.useToken();
   const n = node as unknown as LoggingNode; // SAFE: WorkflowNode union narrowed to specific node type via config field access
-  const c = n.config || { level: "info", message: "", output_var: "" };
+  const c = n.config || { level: "info", message: "", outputVar: "" };
   const sc = (k: string, v: unknown) => onUpdate({ config: { ...c, [k]: v } });
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

@@ -674,8 +674,19 @@ pub async fn ensure_stock_analysis_experts_seeded(
     seed_agent_roles(db).await?;
     seed_stock_agent_roles(db).await?;
     seed_agent_profiles(db).await?;
-    seed_stock_analysis_workflow_template(db).await?;
-    seed_reflection_workflow_template(db).await?;
+
+    // 股票分析核心工作流模板 — 失败不阻塞主流程（独立 try）
+    // 原因：如果前置专家种子化失败，? 操作符会直接 return，
+    // 导致工作流模板永远不会被种子化，编辑器打开时无内容显示
+    tracing::warn!("[stock_analysis_setup] === 开始种子股票分析工作流模板 ===");
+    if let Err(e) = seed_stock_analysis_workflow_template(db).await {
+        tracing::error!("[stock_analysis_setup] 股票分析工作流模板种子失败 (非致命): {e}");
+    }
+    tracing::warn!("[stock_analysis_setup] === 股票分析工作流模板种子完成 ===");
+
+    if let Err(e) = seed_reflection_workflow_template(db).await {
+        tracing::error!("[stock_analysis_setup] 反思工作流模板种子失败 (非致命): {e}");
+    }
     // seed_debate_subworkflow(db).await?;  // 辩论子工作流未引用，暂不种子化
 
     // P2-2: 决策事件总线订阅方模板 — 失败不阻塞主流程（独立 try）

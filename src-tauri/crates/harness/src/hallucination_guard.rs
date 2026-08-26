@@ -7,8 +7,10 @@ use ts_rs::TS;
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct HallucinationGuardConfig {
+    #[serde(default)]
     pub enabled: bool,
     /// 引用匹配阈值（0-1），低于此值判定为幻觉
+    #[serde(default)]
     pub match_threshold: f64,
 }
 

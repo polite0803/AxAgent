@@ -13,7 +13,7 @@ interface Props {
 export const LlmClassifierPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }) => {
   const { token } = theme.useToken();
   const n = node as unknown as LlmClassifierNode; // SAFE: WorkflowNode union narrowed to specific node type via config field access
-  const c = n.config || { categories: [], prompt: "", model: "", inputVar: "", output_var: "" };
+  const c = n.config || { categories: [], prompt: "", model: "", inputVar: "", outputVar: "" };
   const sc = (k: string, v: unknown) => onUpdate({ config: { ...c, [k]: v } });
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

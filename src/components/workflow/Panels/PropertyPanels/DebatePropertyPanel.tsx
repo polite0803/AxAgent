@@ -30,7 +30,7 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
     debaterSteps: [],
     maxRounds: 2,
     topicVar: "topic",
-    output_var: "debate_result",
+    outputVar: "debate_result",
   };
   const sc = (k: string, v: unknown) => onUpdate({ config: { ...c, [k]: v } });
 
@@ -78,12 +78,12 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
       title: `${stance} Debater`,
       position,
       config: {
-        system_prompt: result || t("workflow.debateNode.stanceSystemPromptFallback", { stance }),
-        context_sources: [],
-        output_var: `${id}_output`,
+        systemPrompt: result || t("workflow.debateNode.stanceSystemPromptFallback", { stance }),
+        contextSources: [],
+        outputVar: `${id}_output`,
         tools: [],
-        exposed_tools: [],
-        output_mode: "text",
+        exposedTools: [],
+        outputMode: "text",
       },
     } as unknown as WorkflowNode; // SAFE: constructing WorkflowNode-compatible object for store insertion
     addNode(newNode);
@@ -100,12 +100,12 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
       title: t("workflow.debateNode.newDebater") + ` ${debaterSteps.length + 1}`,
       position,
       config: {
-        system_prompt: "",
-        context_sources: [],
-        output_var: `${id}_output`,
+        systemPrompt: "",
+        contextSources: [],
+        outputVar: `${id}_output`,
         tools: [],
-        exposed_tools: [],
-        output_mode: "text",
+        exposedTools: [],
+        outputMode: "text",
       },
     } as unknown as WorkflowNode; // SAFE: constructing WorkflowNode-compatible object for store insertion
     addNode(newNode);

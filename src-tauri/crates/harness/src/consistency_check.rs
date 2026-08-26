@@ -8,13 +8,16 @@ use ts_rs::TS;
 #[serde(rename_all = "camelCase")]
 pub struct ConsistencyCheckConfig {
     /// 是否启用
+    #[serde(default)]
     pub enabled: bool,
     /// 检查模式：相同模型重复执行 / 不同模型交叉验证
+    #[serde(default)]
     pub mode: ConsistencyMode,
     /// 可选：用于交叉验证的备用模型名
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secondary_model: Option<String>,
     /// 结果偏差阈值（0.0-1.0），超过则告警
+    #[serde(default)]
     pub deviation_threshold: f64,
 }
 
@@ -38,6 +41,12 @@ pub enum ConsistencyMode {
     /// 用不同模型交叉验证
     #[serde(rename = "crossModelCompare")]
     CrossModelCompare,
+}
+
+impl Default for ConsistencyMode {
+    fn default() -> Self {
+        Self::SameModelRepeated
+    }
 }
 
 /// 一致性检查结果

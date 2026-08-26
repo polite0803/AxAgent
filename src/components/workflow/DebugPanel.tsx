@@ -364,16 +364,19 @@ function resolveNodeType(n: DiagNode): string {
   if (ndata && typeof ndata.type === "string") { return ndata.type; }
 
   // 2. DAG 原始 WorkflowNode 变体：检查特化字段推断类型
+  //    后端 serde(rename_all="camelCase") 输出 camelCase 字段，编辑器内部可能用 snake_case
   const cfg = (n.config || ndata?.config || {}) as Record<string, unknown>;
-  if (cfg.trigger_type) { return "trigger"; }
-  if (cfg.system_prompt) { return "agent"; }
-  if (cfg.prompt && !cfg.system_prompt) { return "llm"; }
-  if (cfg.tool_name) { return "tool"; }
-  if (cfg.sub_workflow_id) { return "subWorkflow"; }
-  if (cfg.target_workflow_id) { return "workflowRef"; }
+  const sp = cfg.systemPrompt;
+  if (cfg.triggerType) { return "trigger"; }
+  if (sp) { return "agent"; }
+  const pr = cfg.prompt;
+  if (pr && !sp) { return "llm"; }
+  if (cfg.toolName) { return "tool"; }
+  if (cfg.subWorkflowId) { return "subWorkflow"; }
+  if (cfg.targetWorkflowId) { return "workflowRef"; }
   if (cfg.conditions) { return "condition"; }
   if (cfg.cases) { return "switch"; }
-  if (cfg.output_var) { return "end"; }
+  if (cfg.outputVar) { return "end"; }
 
   // 3. 按 base.id 中的前缀推断（如 ToolNode::xxx）
   const base = n.base as Record<string, unknown> | undefined;
@@ -417,23 +420,26 @@ function analyzeNodes(nodes: DiagNode[], edges: DiagEdge[]): NodeDiagnostic[] {
     if (isDeadEnd) { issueCount++; }
 
     if (nt === "tool") {
-      const tn = (n.config?.tool_name as string | undefined) || (ndcfg?.tool_name as string | undefined)
-        || (ndata?.tool_name as string | undefined);
+      const tn = (n.config?.toolName as string | undefined)
+        || (ndcfg?.toolName as string | undefined)
+        || (ndata?.toolName as string | undefined);
       if (!tn) {
         issueCount++;
         toolMissing = "(empty)";
       }
     }
     if (nt === "agent" || nt === "llm") {
-      const sp = (n.config?.system_prompt as string | undefined) || (ndcfg?.system_prompt as string | undefined)
-        || (ndata?.system_prompt as string | undefined);
+      const sp = (n.config?.systemPrompt as string | undefined)
+        || (ndcfg?.systemPrompt as string | undefined)
+        || (ndata?.systemPrompt as string | undefined);
       if (!sp) {
         issueCount++;
         promptEmpty = true;
       }
     }
     if (nt === "subWorkflow") {
-      const sid = (n.config?.sub_workflow_id as string | undefined) || (ndcfg?.sub_workflow_id as string | undefined)
+      const sid = (n.config?.subWorkflowId as string | undefined)
+        || (ndcfg?.subWorkflowId as string | undefined)
         || (ndata?.subWorkflowId as string | undefined);
       if (!sid) { issueCount++; }
     }
@@ -720,15 +726,15 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
       const subNode = subNodes.find((n: { config?: Record<string, unknown>; data?: Record<string, unknown> }) => {
         const cfg = n.config as Record<string, unknown> | undefined;
         const d = n.data as Record<string, unknown> | undefined;
-        const sid = (cfg?.sub_workflow_id ?? (d?.config as Record<string, unknown> | undefined)?.["sub_workflow_id"]
-          ?? d?.subWorkflowId ?? d?.sub_workflow_id) as string | undefined;
+        const sid = (cfg?.subWorkflowId ?? (d?.config as Record<string, unknown> | undefined)?.subWorkflowId
+          ?? d?.subWorkflowId) as string | undefined;
         return sid === currentId;
       });
       if (subNode) {
         const cfg = subNode.config as Record<string, unknown> | undefined;
         const d = subNode.data as Record<string, unknown> | undefined;
-        const nextId = (cfg?.sub_workflow_id ?? (d?.config as Record<string, unknown> | undefined)?.["sub_workflow_id"]
-          ?? d?.subWorkflowId ?? d?.sub_workflow_id) as string | undefined;
+        const nextId = (cfg?.subWorkflowId ?? (d?.config as Record<string, unknown> | undefined)?.subWorkflowId
+          ?? d?.subWorkflowId) as string | undefined;
         if (nextId) {
           checkRecursiveRef(nextId, [...path, currentId], new Set(pathSet));
         }
@@ -739,9 +745,8 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
       const s = sn as unknown as { [key: string]: unknown }; // SAFE: dynamic property access on sub-workflow node
       const sCfg = s["config"] as { [key: string]: unknown } | undefined;
       const sData = s["data"] as { [key: string]: unknown } | undefined;
-      const subId =
-        (sCfg?.sub_workflow_id || (sData?.config as Record<string, unknown> | undefined)?.["sub_workflow_id"]
-          || sData?.subWorkflowId || sData?.sub_workflow_id) as string | undefined;
+      const subId = (sCfg?.subWorkflowId || (sData?.config as Record<string, unknown> | undefined)?.subWorkflowId
+        || sData?.subWorkflowId) as string | undefined;
       if (!subId) { continue; }
       if (subId === workflowId) {
         recursionErrors.push(`${s["title"] || s["id"]} → self`);
@@ -754,9 +759,8 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
       const s = sn as unknown as { [key: string]: unknown }; // SAFE: dynamic property access on sub-workflow node
       const sCfg = s["config"] as { [key: string]: unknown } | undefined;
       const sData = s["data"] as { [key: string]: unknown } | undefined;
-      const subId =
-        (sCfg?.sub_workflow_id || (sData?.config as Record<string, unknown> | undefined)?.["sub_workflow_id"]
-          || sData?.subWorkflowId || sData?.sub_workflow_id) as string | undefined;
+      const subId = (sCfg?.subWorkflowId || (sData?.config as Record<string, unknown> | undefined)?.subWorkflowId
+        || sData?.subWorkflowId) as string | undefined;
       try {
         const tmpl = await invoke<Record<string, unknown>>("get_workflow_template", { id: subId });
         if (!tmpl?.nodes || !Array.isArray(tmpl.nodes)) { continue; }
@@ -766,8 +770,8 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
         const cyc = findCycles(subE).length;
         const unreach = findUnreachableNodes(subN, subE).length;
 
-        const inputMapping = sCfg?.input_mapping
-          || (sData?.config as Record<string, unknown> | undefined)?.["input_mapping"] || {};
+        const inputMapping = sCfg?.inputMapping
+          || (sData?.config as Record<string, unknown> | undefined)?.inputMapping || {};
         const subInputSchema = tmpl.inputSchema || {};
         const mappingIssues: string[] = [];
         if (typeof inputMapping === "object" && Object.keys(inputMapping).length > 0) {

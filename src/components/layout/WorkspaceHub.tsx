@@ -35,12 +35,15 @@ export function WorkspaceHub() {
 
   useEffect(() => {
     const state = location.state as { tab?: WorkspaceTab } | null;
+    console.warn("[WorkspaceHub] useEffect: location.state=", state, "activeTab=", activeTab);
     if (state?.tab && state !== handledStateRef.current) {
       handledStateRef.current = state;
+      console.warn("[WorkspaceHub] Setting activeTab to:", state.tab);
       setActiveTab(state.tab);
     }
   }, [location.state, setActiveTab]);
 
+  console.warn("[WorkspaceHub] Rendering with activeTab:", activeTab);
   switch (activeTab) {
     case "chat":
       return <ChatPage />;

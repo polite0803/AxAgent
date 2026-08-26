@@ -14,7 +14,7 @@ use axagent_harness::workflow_types::*;
 use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 
 /// 旧 3 模板版本号（保持 v2，不影响已有用户配置）
-const LEGACY_TEMPLATE_VERSION: i32 = 2;
+const LEGACY_TEMPLATE_VERSION: i32 = 3;
 /// 新文学创作模板版本号（v4：改用 ExportWord 工具 + 可配置路径 + 变量）
 const LITERARY_TEMPLATE_VERSION: i32 = 4;
 

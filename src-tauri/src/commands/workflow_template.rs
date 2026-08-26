@@ -111,7 +111,10 @@ pub async fn get_workflow_template(
     include_system: Option<bool>,
 ) -> Result<Option<WorkflowTemplateResponse>, String> {
     let db = state.harness.db();
+    tracing::warn!("[get_workflow_template] 开始: id={id}, include_system={:?}", include_system);
+
     let template = db_repo::get_workflow_template(db, &id).await.map_err(|e| {
+        tracing::error!("[get_workflow_template] 数据库查询失败: {e}");
         String::from(crate::commands::error::ErrorResponse::from_error(
             e,
             crate::commands::error::ErrorCategory::Unrecoverable,
@@ -121,9 +124,40 @@ pub async fn get_workflow_template(
     // 系统模板对业务模板页不可见：返回 None（与「不存在」等价）。
     // include_system=true（系统模板页）时允许读取系统模板。
     let include_system = include_system.unwrap_or(false);
-    Ok(template
-        .filter(|t| include_system || !is_cognitive_router_template(t))
-        .map(workflow_template_response_from_model))
+
+    let result = match template {
+        Some(t) => {
+            let is_cognitive = is_cognitive_router_template(&t);
+            tracing::warn!(
+                "[get_workflow_template] 找到模板: id={}, name={}, is_preset={}, is_cognitive_router={}, tags={:?}",
+                t.id,
+                t.name,
+                t.is_preset,
+                is_cognitive,
+                t.tags
+            );
+            if !include_system && is_cognitive {
+                tracing::warn!(
+                    "[get_workflow_template] 模板是认知路由模板且 include_system=false，返回 None"
+                );
+                None
+            } else {
+                let response = workflow_template_response_from_model(t);
+                tracing::warn!(
+                    "[get_workflow_template] 转换完成: nodes={}, edges={}",
+                    response.nodes.len(),
+                    response.edges.len()
+                );
+                Some(response)
+            }
+        },
+        None => {
+            tracing::warn!("[get_workflow_template] 模板不存在: id={id}");
+            None
+        },
+    };
+
+    Ok(result)
 }
 
 #[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "创建新工作流模板")]

@@ -13,7 +13,7 @@ use sea_orm::DatabaseConnection;
 use std::collections::HashMap;
 
 const TEMPLATE_ID: &str = "content_media_harness_workflow";
-const TEMPLATE_VERSION: i32 = 2;
+const TEMPLATE_VERSION: i32 = 3;
 
 // ── 辅助函数 ──
 

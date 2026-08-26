@@ -23,11 +23,11 @@ export const EmailPropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete }
     to: [],
     subject: "",
     body: "",
-    smtp_host: "",
-    smtp_port: 587,
-    smtp_user: "",
-    smtp_pass: "",
-    output_var: "",
+    smtpHost: "",
+    smtpPort: 587,
+    smtpUser: "",
+    smtpPass: "",
+    outputVar: "",
   };
   const sc = (k: string, v: unknown) => onUpdate({ config: { ...c, [k]: v } });
 

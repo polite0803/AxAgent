@@ -11,7 +11,7 @@ import { BUILTIN_PAGE_PATH, DEFAULT_HOME } from "@/lib/pageRegistry";
 import { Button, Result, Spin } from "antd";
 import { lazy, memo, Suspense } from "react";
 import { useTranslation } from "react-i18next";
-import { Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 
 // ── 页面 lazy 导入 ──
 const LazyWorkspaceHub = lazy(() =>
@@ -128,6 +128,17 @@ function NotFoundRoute() {
 /** 旧路由重定向到 /chat，通过 location.state.tab 传递目标功能 Tab。 */
 function redirectToChat(tab: string) {
   return <Navigate to={BUILTIN_PAGE_PATH.chat} replace state={{ tab }} />;
+}
+
+/** 重定向到 /chat 并保留当前 URL 的查询参数（如 template=xxx）。
+ * 用于 /workflow/new?template=xxx 等需要透传查询参数的场景。
+ * 必须是真正的组件，因为 useLocation 只能在组件渲染时调用，
+ * 而路由的 element 属性在路由定义时就被求值。 */
+function RedirectToChatWithParams({ tab }: { tab: string }) {
+  const location = useLocation();
+  const qs = location.search;
+  const to = qs ? `${BUILTIN_PAGE_PATH.chat}${qs}` : BUILTIN_PAGE_PATH.chat;
+  return <Navigate to={to} replace state={{ tab }} />;
 }
 
 /** 旧股票业务路由重定向到 /finance/investment?tab=xxx */
@@ -273,6 +284,7 @@ export const ContentArea = memo(function ContentArea() {
           />
           <Route path={BUILTIN_PAGE_PATH.dashboard} element={redirectToChat("dashboard")} />
           <Route path={BUILTIN_PAGE_PATH.workflow} element={redirectToChat("workflow")} />
+          <Route path={`${BUILTIN_PAGE_PATH.workflow}/new`} element={<RedirectToChatWithParams tab="workflow" />} />
           <Route path={BUILTIN_PAGE_PATH.terminal} element={redirectToChat("terminal")} />
           <Route path={BUILTIN_PAGE_PATH.files} element={redirectToChat("files")} />
           <Route path={BUILTIN_PAGE_PATH.knowledge} element={redirectToChat("knowledge")} />

@@ -27,7 +27,10 @@ export function WorkflowPage() {
     const template = searchParams.get("template");
     const industry = searchParams.get("industry");
 
+    console.warn("[WorkflowPage] URL params:", { template, industry });
+
     if (!template && !industry) {
+      console.warn("[WorkflowPage] No template or industry param, showing list view");
       urlInitDoneRef.current = true;
       return;
     }
@@ -35,9 +38,11 @@ export function WorkflowPage() {
     urlInitDoneRef.current = true;
 
     if (template) {
+      console.warn("[WorkflowPage] Setting editingTemplateId:", template);
       setEditingTemplateId(template);
     } else if (industry) {
       // 仅有 industry 参数时，进入创建模式
+      console.warn("[WorkflowPage] Setting isCreatingNew for industry:", industry);
       setIsCreatingNew(true);
     }
 

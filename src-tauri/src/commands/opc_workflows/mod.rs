@@ -74,7 +74,7 @@ pub fn industries_base_dir() -> std::path::PathBuf {
     std::path::PathBuf::from(INDUSTRIES_DIR)
 }
 
-const OPC_TEMPLATE_VERSION: i32 = 2; // 升级到 2 以覆盖旧 YAML 版本
+const OPC_TEMPLATE_VERSION: i32 = 3; // 升级到 2 以覆盖旧 YAML 版本
 
 /// 主入口：全代码驱动种子化（行业 + 领域 + 生产 + 内容媒体）。
 ///

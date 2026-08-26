@@ -311,10 +311,19 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
 
   useEffect(() => {
     hasAutoLaidOutRef.current = false;
+    console.warn("[WorkflowEditor] useEffect trigger: templateId=", templateId, "isSystemTemplate=", isSystemTemplate);
     if (templateId) {
+      console.warn("[WorkflowEditor] Loading template:", templateId, "with includeSystem:", isSystemTemplate);
       loadTemplate(templateId, isSystemTemplate)
-        .catch(logIpcError("WorkflowEditor: loadTemplate"));
+        .then(() => {
+          console.warn("[WorkflowEditor] Template loaded successfully");
+        })
+        .catch((err) => {
+          console.error("[WorkflowEditor] loadTemplate failed:", err);
+          logIpcError("WorkflowEditor: loadTemplate")(err);
+        });
     } else {
+      console.warn("[WorkflowEditor] initNewTemplate (no templateId)");
       initNewTemplate();
     }
   }, [templateId, isSystemTemplate, loadTemplate, initNewTemplate]);
@@ -338,6 +347,12 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   const updateNodeInternals = useUpdateNodeInternals();
 
   useEffect(() => {
+    console.warn(
+      "[WorkflowEditor] Layout effect trigger: computedFlowNodes.length=",
+      computedFlowNodes.length,
+      "isInitialized=",
+      isInitialized,
+    );
     if (isDraggingRef.current || suppressRebuildRef.current) { return; }
 
     setRNodes(computedFlowNodes);
