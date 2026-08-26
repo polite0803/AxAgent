@@ -143,9 +143,9 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
 
       if (result) {
         setImportResult(result);
-        if (result.imported_count > 0) {
+        if (result.importedCount > 0) {
           message.success(
-            t("wiki.llm.folderImportSuccess", { count: result.imported_count }),
+            t("wiki.llm.folderImportSuccess", { count: result.importedCount }),
           );
           onClose?.();
         } else {
@@ -166,28 +166,28 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
   const previewColumns = [
     {
       title: t("wiki.llm.fileName"),
-      dataIndex: "file_name",
-      key: "file_name",
+      dataIndex: "fileName",
+      key: "fileName",
       ellipsis: true,
     },
     {
       title: t("wiki.llm.folderContext"),
-      dataIndex: "folder_context",
-      key: "folder_context",
+      dataIndex: "folderContext",
+      key: "folderContext",
       ellipsis: true,
       render: (v: string) => v || "-",
     },
     {
       title: t("wiki.llm.fileType"),
-      dataIndex: "file_type",
-      key: "file_type",
+      dataIndex: "fileType",
+      key: "fileType",
       width: 100,
       render: (v: string) => <Tag>{v}</Tag>,
     },
     {
       title: t("wiki.llm.fileSize"),
-      dataIndex: "estimated_size",
-      key: "estimated_size",
+      dataIndex: "estimatedSize",
+      key: "estimatedSize",
       width: 100,
       render: (v: number) => {
         if (v < 1024) { return `${v} B`; }
@@ -314,14 +314,14 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
                 title={t("wiki.ingest.previewResult", { count: previewItems.length })}
                 extra={importResult
                   ? (
-                    <Tag color={importResult.failed_files.length > 0 ? "orange" : "green"}>
-                      {t("wiki.ingest.importedCount", {
-                        count: importResult.imported_count,
+                    <Tag color={importResult.failedFiles.length > 0 ? "orange" : "green"}>
+                      {t("wiki.llm.importedCount", {
+                        count: importResult.importedCount,
                       })}
-                      {importResult.failed_files.length > 0
+                      {importResult.failedFiles.length > 0
                         && ` (${
-                          t("wiki.ingest.failedCount", {
-                            count: importResult.failed_files.length,
+                          t("wiki.llm.failedCount", {
+                            count: importResult.failedFiles.length,
                           })
                         })`}
                     </Tag>
@@ -332,19 +332,19 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
                 <Table
                   dataSource={previewItems}
                   columns={previewColumns}
-                  rowKey="file_path"
+                  rowKey="filePath"
                   size="small"
                   pagination={{ pageSize: 10, size: "small" }}
                   scroll={{ y: 300 }}
                 />
 
-                {importResult?.failed_files.length && (
+                {importResult?.failedFiles.length && (
                   <div style={{ marginTop: 12 }}>
                     <Text type="danger" style={{ fontSize: 12 }}>
                       {t("wiki.ingest.failedFiles")}:
                     </Text>
                     <ul style={{ paddingLeft: 16, margin: "4px 0 0" }}>
-                      {importResult.failed_files.map((f, i) => (
+                      {importResult.failedFiles.map((f, i) => (
                         <li key={i}>
                           <Text type="danger" style={{ fontSize: 12 }}>{f}</Text>
                         </li>
@@ -423,7 +423,7 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
                         }}
                       >
                         <Text type="secondary" style={{ fontSize: 12 }}>
-                          {item.raw_path}
+                          {item.rawPath}
                         </Text>
                       </div>
                     </div>

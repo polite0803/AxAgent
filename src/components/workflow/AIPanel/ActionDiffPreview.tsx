@@ -139,7 +139,7 @@ export const ActionDiffPreview: React.FC<ActionDiffPreviewProps> = ({
             {actions.map((action, idx) => (
               // FIXME: AiChatAction 无稳定唯一标识，使用 action_type + 索引
               <ActionDiffItem
-                key={`${action.action_type}-${idx}`}
+                key={`${action.actionType}-${idx}`}
                 action={action}
                 currentNodes={currentNodes}
                 currentEdges={currentEdges}
@@ -278,11 +278,11 @@ function useActionVisual(
   t: ReturnType<typeof useTranslation>["t"],
 ): ActionVisual {
   const labelKey = `workflow.aiPanel.action${
-    action.action_type.split("_").map(s => s.charAt(0).toUpperCase() + s.slice(1)).join("")
+    action.actionType.split("_").map(s => s.charAt(0).toUpperCase() + s.slice(1)).join("")
   }`;
   const label = t(labelKey);
 
-  switch (action.action_type) {
+  switch (action.actionType) {
     case "generate_workflow": {
       return {
         label,
@@ -323,11 +323,11 @@ function useActionVisual(
     }
     case "update_node":
     case "modify_node": {
-      const existing = currentNodes.find(n => n.id === action.data.node_id);
+      const existing = currentNodes.find(n => n.id === action.data.nodeId);
       const changes = action.data.changes;
       return {
         label,
-        color: NODE_OP_COLOR[action.action_type],
+        color: NODE_OP_COLOR[action.actionType],
         beforeRender: existing
           ? <Text code>{existing.title} ({existing.type})</Text>
           : <Text type="secondary">{t("workflow.aiPanel.diffPreview.nodeNotFound")}</Text>,
@@ -335,7 +335,7 @@ function useActionVisual(
       };
     }
     case "delete_node": {
-      const existing = currentNodes.find(n => n.id === action.data.node_id);
+      const existing = currentNodes.find(n => n.id === action.data.nodeId);
       return {
         label,
         color: NODE_OP_COLOR.delete_node,
@@ -346,7 +346,7 @@ function useActionVisual(
       };
     }
     case "delete_nodes": {
-      const ids = action.data.node_ids;
+      const ids = action.data.nodeIds;
       const existing = currentNodes.filter(n => ids.includes(n.id));
       return {
         label,
@@ -363,22 +363,22 @@ function useActionVisual(
         label,
         color: EDGE_OP_COLOR.add_edge,
         beforeRender: <Text type="secondary">—</Text>,
-        afterRender: <Text code>{e.source} → {e.target} ({e.edge_type})</Text>,
+        afterRender: <Text code>{e.source} → {e.target} ({e.edgeType})</Text>,
       };
     }
     case "update_edge": {
-      const existing = currentEdges.find(e => e.id === action.data.edge_id);
+      const existing = currentEdges.find(e => e.id === action.data.edgeId);
       return {
         label,
         color: EDGE_OP_COLOR.update_edge,
         beforeRender: existing
-          ? <Text code>{existing.source} → {existing.target} ({existing.edge_type})</Text>
+          ? <Text code>{existing.source} → {existing.target} ({existing.edgeType})</Text>
           : <Text type="secondary">{t("workflow.aiPanel.diffPreview.edgeNotFound")}</Text>,
         afterRender: <Text code>{JSON.stringify(action.data.changes, null, 2)}</Text>,
       };
     }
     case "delete_edge": {
-      const existing = currentEdges.find(e => e.id === action.data.edge_id);
+      const existing = currentEdges.find(e => e.id === action.data.edgeId);
       return {
         label,
         color: EDGE_OP_COLOR.delete_edge,
@@ -389,11 +389,11 @@ function useActionVisual(
       };
     }
     case "optimize_prompt": {
-      const existing = currentNodes.find(n => n.id === action.data.node_id);
+      const existing = currentNodes.find(n => n.id === action.data.nodeId);
       const beforeLen = existing
-        ? (existing.config as Record<string, unknown>)?.system_prompt?.toString().length ?? 0
+        ? (existing.config as Record<string, unknown>)?.systemPrompt?.toString().length ?? 0
         : 0;
-      const afterLen = action.data.optimized_prompt.length;
+      const afterLen = action.data.optimizedPrompt.length;
       return {
         label,
         color: EDGE_OP_COLOR.optimize_prompt,
@@ -404,7 +404,7 @@ function useActionVisual(
             </Text>
           )
           : <Text type="secondary">{t("workflow.aiPanel.diffPreview.noBefore")}</Text>,
-        afterRender: <Text style={{ fontSize: 11 }}>{action.data.optimized_prompt}</Text>,
+        afterRender: <Text style={{ fontSize: 11 }}>{action.data.optimizedPrompt}</Text>,
       };
     }
     // ── v2.0 基础设施类 action:共用 JSON 渲染,详细 diff 等 P0 #1 后端命令实现后接入 ──
@@ -426,22 +426,21 @@ function useActionVisual(
 
 /** v2 action 的人类可读摘要,用于 diff 渲染(P0 #1 后端命令实现后可替换为更详细版本) */
 function summarizeV2Action(action: AiChatAction): string {
-  switch (action.action_type) {
+  switch (action.actionType) {
     case "update_variable":
-      return `${action.data.template_id} · ${action.data.name} = ${JSON.stringify(action.data.value)}`;
+      return `${action.data.templateId} · ${action.data.name} = ${JSON.stringify(action.data.value)}`;
     case "rollback_to_version":
-      return `${action.data.template_id} → v${action.data.version}`;
+      return `${action.data.templateId} → v${action.data.version}`;
     case "update_input_mapping":
-      return `${action.data.node_id} · ${action.data.mappings.length} mapping(s)`;
+      return `${action.data.nodeId} · ${action.data.mappings.length} mapping(s)`;
     case "edit_asset_file":
-      return `${action.data.path}:${action.data.anchor_line} · ${action.data.operation}${
+      return `${action.data.path}:${action.data.anchorLine} · ${action.data.operation}${
         action.data.code ? ` (${action.data.code.length} chars)` : ""
       }`;
     case "apply_diff_with_validation":
       return `${action.data.actions.length} action(s) · validation=${action.data.validation.type}`;
     default:
-      // 非 v2 action 不会调用本函数(由 call site 保证),兜底返回 action_type
-      return action.action_type;
+      return action.actionType;
   }
 }
 

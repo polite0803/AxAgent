@@ -25,12 +25,12 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
   const { token } = theme.useToken();
   const loopNode = node as LoopNode;
   const config = loopNode.config || {
-    loop_type: "forEach" as LoopType,
-    items_var: "",
-    iteratee_var: "",
-    max_iterations: 100,
-    continue_on_error: false,
-    body_steps: [],
+    loopType: "forEach" as LoopType,
+    itemsVar: "",
+    iterateeVar: "",
+    maxIterations: 100,
+    continueOnError: false,
+    bodySteps: [],
   };
 
   const { nodes } = useWorkflowEditorStore();
@@ -41,15 +41,15 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
   const handleAIGenerateContinueCondition = async () => {
     const result = await aiGenerate({
       systemPrompt:
-        "你是一个循环控制专家。根据用户的自然语言描述，输出一个布尔表达式字符串作为循环的 continue_condition 条件（如：'i < 10'、'${item}.status === \"active\"'）。"
+        "你是一个循环控制专家。根据用户的自然语言描述，输出一个布尔表达式字符串作为循环的 continueCondition 条件（如：'i < 10'、'${item}.status === \"active\"'）。"
         + "只输出表达式字符串本身，不要任何解释或 Markdown 标记。",
-      userPrompt: config.continue_condition || t("workflow.aiAssist.loop.continueHint", { items: config.items_var }),
+      userPrompt: config.continueCondition || t("workflow.aiAssist.loop.continueHint", { items: config.itemsVar }),
     });
     if (!result) {
       messageApi.error(t("workflow.aiAssist.failed"));
       return;
     }
-    handleConfigChange("continue_condition", result.split("\n")[0].trim());
+    handleConfigChange("continueCondition", result.split("\n")[0].trim());
     messageApi.success(t("workflow.aiAssist.applied"));
   };
 
@@ -58,20 +58,20 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
   };
 
   const handleAddStep = (nodeId: string) => {
-    if (!config.body_steps.includes(nodeId)) {
-      handleConfigChange("body_steps", [...config.body_steps, nodeId]);
+    if (!config.bodySteps.includes(nodeId)) {
+      handleConfigChange("bodySteps", [...config.bodySteps, nodeId]);
     }
   };
 
   const handleRemoveStep = (nodeId: string) => {
     handleConfigChange(
-      "body_steps",
-      config.body_steps.filter((id) => id !== nodeId),
+      "bodySteps",
+      config.bodySteps.filter((id) => id !== nodeId),
     );
   };
 
   const availableNodes = nodes.filter(
-    (n) => n.id !== node.id && !config.body_steps.includes(n.id),
+    (n) => n.id !== node.id && !config.bodySteps.includes(n.id),
   );
 
   const getNodeLabel = (nodeId: string) => {
@@ -94,8 +94,8 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
           {t("workflow.props.loopType")}
         </label>
         <Select
-          value={config.loop_type}
-          onChange={(value) => handleConfigChange("loop_type", value)}
+          value={config.loopType}
+          onChange={(value) => handleConfigChange("loopType", value)}
           size="small"
           style={{ width: "100%" }}
           options={[
@@ -107,7 +107,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
         />
       </div>
 
-      {config.loop_type === "forEach" && (
+      {config.loopType === "forEach" && (
         <>
           <div>
             <label
@@ -122,8 +122,8 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
             </label>
             <Input
               id="loop-property-panel-input-100"
-              value={config.items_var || ""}
-              onChange={(e) => handleConfigChange("items_var", e.target.value)}
+              value={config.itemsVar || ""}
+              onChange={(e) => handleConfigChange("itemsVar", e.target.value)}
               size="small"
               placeholder={t("workflow.props.itemsVarExample")}
             />
@@ -141,8 +141,8 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
             </label>
             <Input
               id="loop-property-panel-input-101"
-              value={config.iteratee_var || ""}
-              onChange={(e) => handleConfigChange("iteratee_var", e.target.value)}
+              value={config.iterateeVar || ""}
+              onChange={(e) => handleConfigChange("iterateeVar", e.target.value)}
               size="small"
               placeholder={t("workflow.props.iterateVarExample")}
             />
@@ -150,7 +150,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
         </>
       )}
 
-      {config.loop_type === "while" && (
+      {config.loopType === "while" && (
         <div>
           <label
             style={{
@@ -170,8 +170,8 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
           />
           <Input.TextArea
             id="loop-property-panel-input-textarea-102"
-            value={config.continue_condition || ""}
-            onChange={(e) => handleConfigChange("continue_condition", e.target.value)}
+            value={config.continueCondition || ""}
+            onChange={(e) => handleConfigChange("continueCondition", e.target.value)}
             rows={2}
             size="small"
             placeholder={t("workflow.props.continueConditionExample")}
@@ -179,7 +179,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
         </div>
       )}
 
-      {config.loop_type === "until" && (
+      {config.loopType === "until" && (
         <div>
           <label
             style={{
@@ -193,8 +193,8 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
           </label>
           <Input.TextArea
             id="loop-property-panel-input-textarea-103"
-            value={config.continue_condition || ""}
-            onChange={(e) => handleConfigChange("continue_condition", e.target.value)}
+            value={config.continueCondition || ""}
+            onChange={(e) => handleConfigChange("continueCondition", e.target.value)}
             rows={2}
             size="small"
             placeholder={t("workflow.props.stopConditionExample")}
@@ -215,8 +215,8 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
         </label>
         <InputNumber
           id="loop-property-panel-inputnumber-104"
-          value={config.max_iterations ?? 100}
-          onChange={(value) => handleConfigChange("max_iterations", value)}
+          value={config.maxIterations ?? 100}
+          onChange={(value) => handleConfigChange("maxIterations", value)}
           min={1}
           max={10000}
           size="small"
@@ -236,8 +236,8 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
         </label>
         <Switch
           size="small"
-          checked={config.continue_on_error ?? false}
-          onChange={(checked) => handleConfigChange("continue_on_error", checked)}
+          checked={config.continueOnError ?? false}
+          onChange={(checked) => handleConfigChange("continueOnError", checked)}
         />
       </div>
 
@@ -251,11 +251,11 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
           }}
         >
           {t("workflow.props.loopBodySteps", {
-            count: config.body_steps?.length || 0,
+            count: config.bodySteps?.length || 0,
           })}
         </label>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {config.body_steps.map((stepId) => (
+          {config.bodySteps.map((stepId) => (
             <Tag
               key={stepId}
               closable
@@ -270,7 +270,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
               {getNodeLabel(stepId)}
             </Tag>
           ))}
-          {config.body_steps.length === 0 && (
+          {config.bodySteps.length === 0 && (
             <div style={{ color: token.colorTextTertiary, fontSize: 12 }}>
               {t("workflow.props.noLoopSteps")}
             </div>

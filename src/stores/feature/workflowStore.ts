@@ -482,7 +482,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
     try {
       const input = workflowDefinitionToTemplateInput(workflow);
       const newId = await invoke<string>("create_workflow_template", { input });
-      // 拉取完整记录（后端会补充 version/created_at 等字段）
+      // 拉取完整记录（后端会补充 version/createdAt 等字段）
       const resp = await invoke<BackendTemplateResponse | null>(
         "get_workflow_template",
         { id: newId },

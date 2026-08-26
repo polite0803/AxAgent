@@ -32,42 +32,42 @@ export function StyleAdjustmentSlider({
     StyleDimensionKey,
     { lowLabel: string; highLabel: string; description: string }
   > = {
-    naming_score: {
+    namingScore: {
       lowLabel: t("style.labels.snakeCase"),
       highLabel: t("style.labels.camelCase"),
       description: t("style.descriptions.naming"),
     },
-    density_score: {
+    densityScore: {
       lowLabel: t("style.labels.compact"),
       highLabel: t("style.labels.spacious"),
       description: t("style.descriptions.density"),
     },
-    comment_ratio: {
+    commentRatio: {
       lowLabel: t("style.labels.minimal"),
       highLabel: t("style.labels.detailed"),
       description: t("style.descriptions.commentRatio"),
     },
-    abstraction_level: {
+    abstractionLevel: {
       lowLabel: t("style.labels.concrete"),
       highLabel: t("style.labels.abstract"),
       description: t("style.descriptions.abstraction"),
     },
-    formality_score: {
+    formalityScore: {
       lowLabel: t("style.labels.casual"),
       highLabel: t("style.labels.formal"),
       description: t("style.descriptions.formality"),
     },
-    structure_score: {
+    structureScore: {
       lowLabel: t("style.labels.simple"),
       highLabel: t("style.labels.structured"),
       description: t("style.descriptions.structure"),
     },
-    technical_depth: {
+    technicalDepth: {
       lowLabel: t("style.labels.basic"),
       highLabel: t("style.labels.advanced"),
       description: t("style.descriptions.technicalDepth"),
     },
-    explanation_length: {
+    explanationLength: {
       lowLabel: t("style.labels.brief"),
       highLabel: t("style.labels.comprehensive"),
       description: t("style.descriptions.explanationLength"),
@@ -194,14 +194,14 @@ export function StyleAdjustmentPanel({
   const { t } = useTranslation();
 
   const dimensionOrder: StyleDimensionKey[] = [
-    "naming_score",
-    "density_score",
-    "comment_ratio",
-    "abstraction_level",
-    "formality_score",
-    "structure_score",
-    "technical_depth",
-    "explanation_length",
+    "namingScore",
+    "densityScore",
+    "commentRatio",
+    "abstractionLevel",
+    "formalityScore",
+    "structureScore",
+    "technicalDepth",
+    "explanationLength",
   ];
 
   return (

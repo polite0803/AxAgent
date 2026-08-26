@@ -23,10 +23,10 @@ export const VectorRetrievePropertyPanel: React.FC<
   const vectorRetrieveNode = node as VectorRetrieveNode;
   const config = vectorRetrieveNode.config || {
     query: "",
-    knowledge_base_id: "",
-    top_k: 5,
-    similarity_threshold: 0.7,
-    output_var: "",
+    knowledgeBaseId: "",
+    topK: 5,
+    similarityThreshold: 0.7,
+    outputVar: "",
   };
 
   const { bases, loadBases } = useKnowledgeStore();
@@ -109,8 +109,8 @@ export const VectorRetrievePropertyPanel: React.FC<
           {t("workflow.props.knowledgeBase")}
         </label>
         <Select
-          value={config.knowledge_base_id || undefined}
-          onChange={(value) => handleConfigChange("knowledge_base_id", value)}
+          value={config.knowledgeBaseId || undefined}
+          onChange={(value) => handleConfigChange("knowledgeBaseId", value)}
           size="small"
           style={{ width: "100%" }}
           placeholder={t("workflow.props.selectKnowledgeBase")}
@@ -134,8 +134,8 @@ export const VectorRetrievePropertyPanel: React.FC<
           </label>
           <InputNumber
             id="vector-retrieve-property-panel-inputnumber-121"
-            value={config.top_k ?? 5}
-            onChange={(value) => handleConfigChange("top_k", value)}
+            value={config.topK ?? 5}
+            onChange={(value) => handleConfigChange("topK", value)}
             min={1}
             max={100}
             size="small"
@@ -155,12 +155,12 @@ export const VectorRetrievePropertyPanel: React.FC<
           </label>
           <InputNumber
             id="vector-retrieve-property-panel-inputnumber-122"
-            value={config.similarity_threshold !== undefined
-              ? Math.round(config.similarity_threshold * 100)
+            value={config.similarityThreshold !== undefined
+              ? Math.round(config.similarityThreshold * 100)
               : 70}
             onChange={(value) =>
               handleConfigChange(
-                "similarity_threshold",
+                "similarityThreshold",
                 (value != null ? value : 70) / 100,
               )}
             min={0}
@@ -186,8 +186,8 @@ export const VectorRetrievePropertyPanel: React.FC<
         </label>
         <Input
           id="vector-retrieve-property-panel-input-123"
-          value={config.output_var || ""}
-          onChange={(e) => handleConfigChange("output_var", e.target.value)}
+          value={config.outputVar || ""}
+          onChange={(e) => handleConfigChange("outputVar", e.target.value)}
           size="small"
           placeholder={t("workflow.props.outputVarRetrieved")}
         />

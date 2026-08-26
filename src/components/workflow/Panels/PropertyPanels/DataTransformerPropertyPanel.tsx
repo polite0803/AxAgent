@@ -14,15 +14,15 @@ export const DataTransformerPropertyPanel: React.FC<Props> = ({ node, onUpdate, 
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const n = node as unknown as DataTransformerNode; // SAFE: WorkflowNode union narrowed to specific node type via config field access
-  const c = n.config || { input_var: "", expression: "", output_var: "" };
+  const c = n.config || { inputVar: "", expression: "", output_var: "" };
   const sc = (k: string, v: unknown) => onUpdate({ config: { ...c, [k]: v } });
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
         <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>Input Variable</label>
         <Input
-          value={c.input_var}
-          onChange={(e) => sc("input_var", e.target.value)}
+          value={c.inputVar}
+          onChange={(e) => sc("inputVar", e.target.value)}
           size="small"
           placeholder={t("workflow.props.inputVarPlaceholder")}
         />

@@ -27,9 +27,9 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
   const { token } = theme.useToken();
   const n = node as unknown as DebateNode; // SAFE: WorkflowNode union narrowed to specific node type via config field access
   const c = n.config || {
-    debater_steps: [],
-    max_rounds: 2,
-    topic_var: "topic",
+    debaterSteps: [],
+    maxRounds: 2,
+    topicVar: "topic",
     output_var: "debate_result",
   };
   const sc = (k: string, v: unknown) => onUpdate({ config: { ...c, [k]: v } });
@@ -37,7 +37,7 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
   const allNodes = useWorkflowEditorStore((s) => s.nodes);
   const addNode = useWorkflowEditorStore((s) => s.addNode);
   const setParentRef = useWorkflowEditorStore((s) => s.setParentRef);
-  const debaterSteps: string[] = c.debater_steps || [];
+  const debaterSteps: string[] = c.debaterSteps || [];
 
   const childNodes = debaterSteps
     .map((id) => allNodes.find((n) => n.id === id))
@@ -46,19 +46,19 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
   const { generate: aiGenerate, generating: aiGenerating } = useNodeAIAssist();
 
   const handleAIOptimizeConvergence = async () => {
-    const current = c.convergence_prompt || "";
+    const current = c.convergencePrompt || "";
     const result = await aiGenerate({
-      systemPrompt: "你是一个辩论收敛提示词优化专家。改进用户提供的 convergence_prompt，"
+      systemPrompt: "你是一个辩论收敛提示词优化专家。改进用户提供的 convergencePrompt，"
         + "使收敛判断更精准、输出格式更可控。只输出优化后的提示词正文，不要解释或前缀。",
       userPrompt: current || "请生成一个通用的辩论收敛提示词，用于判断多轮辩论是否达成共识并总结结论。",
     });
     if (result) {
-      sc("convergence_prompt", result);
+      sc("convergencePrompt", result);
     }
   };
 
   const handleAIAddDebater = async () => {
-    const topicDesc = c.topic_var || "general";
+    const topicDesc = c.topicVar || "general";
     const existingCount = debaterSteps.length;
     const stance = existingCount === 0
       ? t("workflow.debateNode.stancePro")
@@ -88,7 +88,7 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
     } as unknown as WorkflowNode; // SAFE: constructing WorkflowNode-compatible object for store insertion
     addNode(newNode);
     setParentRef(id, n.id, true);
-    sc("debater_steps", [...debaterSteps, id]);
+    sc("debaterSteps", [...debaterSteps, id]);
   };
 
   const addDebater = () => {
@@ -110,12 +110,12 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
     } as unknown as WorkflowNode; // SAFE: constructing WorkflowNode-compatible object for store insertion
     addNode(newNode);
     setParentRef(id, n.id, true);
-    sc("debater_steps", [...debaterSteps, id]);
+    sc("debaterSteps", [...debaterSteps, id]);
   };
 
   const removeDebater = (stepId: string) => {
     const updated = debaterSteps.filter((id) => id !== stepId);
-    sc("debater_steps", updated);
+    sc("debaterSteps", updated);
     setParentRef(stepId, null, true);
   };
 
@@ -123,21 +123,21 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
         <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
-          {t("workflow.nodeConfig.topic_var", { defaultValue: "Topic Variable" })}
+          {t("workflow.nodeConfig.topicVar", { defaultValue: "Topic Variable" })}
         </label>
         <Input
-          value={c.topic_var}
-          onChange={(e) => sc("topic_var", e.target.value)}
+          value={c.topicVar}
+          onChange={(e) => sc("topicVar", e.target.value)}
           size="small"
         />
       </div>
       <div>
         <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
-          {t("workflow.nodeConfig.max_rounds", { defaultValue: "Max Rounds" })}
+          {t("workflow.nodeConfig.maxRounds", { defaultValue: "Max Rounds" })}
         </label>
         <InputNumber
-          value={c.max_rounds}
-          onChange={(v) => sc("max_rounds", v ?? 2)}
+          value={c.maxRounds}
+          onChange={(v) => sc("maxRounds", v ?? 2)}
           size="small"
           min={1}
           max={20}
@@ -202,7 +202,7 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
           <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>
-            {t("workflow.nodeConfig.convergence_prompt", { defaultValue: "Convergence Prompt (optional)" })}
+            {t("workflow.nodeConfig.convergencePrompt", { defaultValue: "Convergence Prompt (optional)" })}
           </label>
           <AIAssistButton
             labelKey="optimize"
@@ -212,9 +212,9 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
           />
         </div>
         <Input.TextArea
-          value={c.convergence_prompt || ""}
-          onChange={(e) => sc("convergence_prompt", e.target.value || undefined)}
-          placeholder={t("workflow.nodeConfig.convergence_prompt_placeholder", {
+          value={c.convergencePrompt || ""}
+          onChange={(e) => sc("convergencePrompt", e.target.value || undefined)}
+          placeholder={t("workflow.nodeConfig.convergencePrompt_placeholder", {
             defaultValue: "LLM prompt to judge if debate has converged",
           })}
           size="small"
@@ -223,11 +223,11 @@ export const DebatePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete 
       </div>
       <div>
         <label style={{ display: "block", color: token.colorTextTertiary, fontSize: 12, marginBottom: 4 }}>
-          {t("workflow.nodeConfig.convergence_model_role", { defaultValue: "Convergence Model Role" })}
+          {t("workflow.nodeConfig.convergenceModelRole", { defaultValue: "Convergence Model Role" })}
         </label>
         <Select
-          value={c.convergence_model_role || ""}
-          onChange={(v) => sc("convergence_model_role", v || undefined)}
+          value={c.convergenceModelRole || ""}
+          onChange={(v) => sc("convergenceModelRole", v || undefined)}
           size="small"
           options={MODEL_ROLE_OPTIONS}
           style={{ width: "100%" }}

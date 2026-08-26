@@ -16,7 +16,7 @@ export const StoragePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const sn = node as unknown as StorageNode; // SAFE: WorkflowNode union narrowed to specific node type via config field access
-  const config = sn.config || { backend: "sqlite", operation: "insert", input_var: "", collection: "", output_var: "" };
+  const config = sn.config || { backend: "sqlite", operation: "insert", inputVar: "", collection: "", outputVar: "" };
 
   const setCfg = (key: string, val: unknown) => onUpdate({ config: { ...config, [key]: val } });
 
@@ -59,8 +59,8 @@ export const StoragePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete
           {t("workflow.props.inputVariable")}
         </label>
         <Input
-          value={config.input_var ?? ""}
-          onChange={(e) => setCfg("input_var", e.target.value || undefined)}
+          value={config.inputVar ?? ""}
+          onChange={(e) => setCfg("inputVar", e.target.value || undefined)}
           size="small"
           placeholder={t("workflow.props.inputVariablePlaceholder")}
         />
@@ -82,8 +82,8 @@ export const StoragePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete
             {t("workflow.props.keyVariable")}
           </label>
           <Input
-            value={config.key_var ?? ""}
-            onChange={(e) => setCfg("key_var", e.target.value || undefined)}
+            value={config.keyVar ?? ""}
+            onChange={(e) => setCfg("keyVar", e.target.value || undefined)}
             size="small"
             placeholder={t("workflow.props.keyVariablePlaceholder")}
           />
@@ -94,8 +94,8 @@ export const StoragePropertyPanel: React.FC<Props> = ({ node, onUpdate, onDelete
           {t("workflow.props.outputVariable")}
         </label>
         <Input
-          value={config.output_var ?? ""}
-          onChange={(e) => setCfg("output_var", e.target.value)}
+          value={config.outputVar ?? ""}
+          onChange={(e) => setCfg("outputVar", e.target.value)}
           size="small"
         />
       </div>

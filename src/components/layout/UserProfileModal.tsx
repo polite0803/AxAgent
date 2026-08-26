@@ -68,7 +68,7 @@ export function UserProfileModal({ open, onClose }: UserProfileModalProps) {
   const [name, setName] = useState(profile.name);
   const [avatarType, setAvatarType] = useState<AvatarType>(profile.avatarType);
   const [avatarValue, setAvatarValue] = useState(profile.avatarValue);
-  const [stats, setStats] = useState<{ total_profiles: number; total_samples: number } | null>(null);
+  const [stats, setStats] = useState<{ totalProfiles: number; totalSamples: number } | null>(null);
   const [activeTab, setActiveTab] = useState("profile");
 
   useEffect(() => {
@@ -256,12 +256,12 @@ export function UserProfileModal({ open, onClose }: UserProfileModalProps) {
                   <div style={{ padding: "8px 0" }}>
                     <div style={rowStyle} className="flex items-center justify-between">
                       <span>{t("style.totalProfiles")}</span>
-                      <span style={{ fontSize: 18, fontWeight: 600 }}>{stats.total_profiles}</span>
+                      <span style={{ fontSize: 18, fontWeight: 600 }}>{stats.totalProfiles}</span>
                     </div>
                     <Divider style={{ margin: "4px 0" }} />
                     <div style={rowStyle} className="flex items-center justify-between">
                       <span>{t("style.totalSamples")}</span>
-                      <span style={{ fontSize: 18, fontWeight: 600 }}>{stats.total_samples}</span>
+                      <span style={{ fontSize: 18, fontWeight: 600 }}>{stats.totalSamples}</span>
                     </div>
                   </div>
                 ),

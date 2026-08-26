@@ -22,9 +22,9 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({
   const { token } = theme.useToken();
   const toolNode = node as ToolNode;
   const config = toolNode.config || {
-    tool_name: "",
-    input_mapping: {},
-    output_var: "",
+    toolName: "",
+    inputMapping: {},
+    outputVar: "",
   };
 
   const { groups: toolGroups, loadGroups } = useLocalToolStore();
@@ -59,9 +59,9 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({
     onUpdate({
       config: {
         ...config,
-        input_mapping: {
-          ...config.input_mapping,
-          [`param_${Object.keys(config.input_mapping).length + 1}`]: "",
+        inputMapping: {
+          ...config.inputMapping,
+          [`param_${Object.keys(config.inputMapping).length + 1}`]: "",
         },
       },
     });
@@ -71,8 +71,8 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({
     onUpdate({
       config: {
         ...config,
-        input_mapping: {
-          ...config.input_mapping,
+        inputMapping: {
+          ...config.inputMapping,
           [key]: value,
         },
       },
@@ -80,12 +80,12 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({
   };
 
   const handleDeleteInputMapping = (key: string) => {
-    const newMapping = { ...config.input_mapping };
+    const newMapping = { ...config.inputMapping };
     delete newMapping[key];
     onUpdate({
       config: {
         ...config,
-        input_mapping: newMapping,
+        inputMapping: newMapping,
       },
     });
   };
@@ -104,8 +104,8 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({
           {t("workflow.props.tool")}
         </label>
         <Select
-          value={config.tool_name || undefined}
-          onChange={(value) => handleConfigChange("tool_name", value)}
+          value={config.toolName || undefined}
+          onChange={(value) => handleConfigChange("toolName", value)}
           size="small"
           style={{ width: "100%" }}
           placeholder={t("workflow.props.selectTool")}
@@ -132,7 +132,7 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {Object.entries(config.input_mapping || {}).map(([key, value]) => (
+          {Object.entries(config.inputMapping || {}).map(([key, value]) => (
             <div
               key={key}
               style={{ display: "flex", gap: 4, alignItems: "center" }}
@@ -164,7 +164,7 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({
             </div>
           ))}
 
-          {Object.keys(config.input_mapping || {}).length === 0 && (
+          {Object.keys(config.inputMapping || {}).length === 0 && (
             <div
               style={{
                 color: token.colorTextTertiary,
@@ -192,8 +192,8 @@ export const ToolPropertyPanel: React.FC<ToolPropertyPanelProps> = ({
         </label>
         <Input
           id="tool-property-panel-input-112"
-          value={config.output_var || ""}
-          onChange={(e) => handleConfigChange("output_var", e.target.value)}
+          value={config.outputVar || ""}
+          onChange={(e) => handleConfigChange("outputVar", e.target.value)}
           size="small"
         />
       </div>

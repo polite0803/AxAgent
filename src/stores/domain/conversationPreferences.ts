@@ -43,27 +43,27 @@ export function getStagedPreferenceUpdate(): Partial<UpdateConversationInput> {
   const staged = loadStagedPrefs();
   const update: Record<string, unknown> = {};
   if (staged.searchEnabled !== undefined) {
-    update.search_enabled = staged.searchEnabled;
+    update.searchEnabled = staged.searchEnabled;
   }
   if (staged.searchProviderId !== undefined) {
-    update.search_provider_id = staged.searchProviderId;
+    update.searchProviderId = staged.searchProviderId;
   }
   if (staged.enabledMcpServerIds) {
-    update.enabled_mcp_server_ids = staged.enabledMcpServerIds;
+    update.enabledMcpServerIds = staged.enabledMcpServerIds;
   }
   if (staged.enabledKnowledgeBaseIds) {
-    update.enabled_knowledge_base_ids = staged.enabledKnowledgeBaseIds;
+    update.enabledKnowledgeBaseIds = staged.enabledKnowledgeBaseIds;
   }
   if (staged.activeMemoryNamespaceId) {
-    update.enabled_memory_namespace_ids = [
+    update.enabledMemoryNamespaceIds = [
       staged.activeMemoryNamespaceId as string,
     ];
   }
   if (staged.enabledWikiIds) {
-    update.enabled_wiki_ids = staged.enabledWikiIds;
+    update.enabledWikiIds = staged.enabledWikiIds;
   }
   if (staged.thinkingBudget !== undefined) {
-    update.thinking_budget = staged.thinkingBudget;
+    update.thinkingBudget = staged.thinkingBudget;
   }
   return update as Partial<UpdateConversationInput>;
 }

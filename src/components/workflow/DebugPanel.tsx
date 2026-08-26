@@ -308,15 +308,15 @@ const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
 
 interface ValidationError {
-  error_type: string;
-  node_id?: string;
+  errorType: string;
+  nodeId?: string;
   message: string;
   suggestion?: string;
 }
 
 interface ValidationWarning {
-  warning_type: string;
-  node_id?: string;
+  warningType: string;
+  nodeId?: string;
   message: string;
 }
 
@@ -965,8 +965,8 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
     },
     {
       title: t("workflow.debug.colType"),
-      dataIndex: "node_type",
-      key: "node_type",
+      dataIndex: "nodeType",
+      key: "nodeType",
       width: 100,
       render: (v: string) => <Tag>{v}</Tag>,
     },
@@ -979,7 +979,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
     },
     {
       title: t("workflow.debug.colTime"),
-      dataIndex: "execution_time_ms",
+      dataIndex: "executionTimeMs",
       key: "time",
       width: 80,
       render: (v: number | null) => formatDuration(v),
@@ -1105,7 +1105,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                           <Space>
                             <CloseCircleOutlined style={{ color: token.colorError }} />
                             <Text>{err.message}</Text>
-                            {err.node_id && <Tag>{err.node_id}</Tag>}
+                            {err.nodeId && <Tag>{err.nodeId}</Tag>}
                           </Space>
                           {err.suggestion && <Text type="secondary" className="text-xs">{err.suggestion}</Text>}
                         </Space>
@@ -1126,7 +1126,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                           <Space>
                             <WarningOutlined style={{ color: token.colorWarning }} />
                             <Text>{warn.message}</Text>
-                            {warn.node_id && <Tag>{warn.node_id}</Tag>}
+                            {warn.nodeId && <Tag>{warn.nodeId}</Tag>}
                           </Space>
                         </Space>
                       </div>
@@ -1407,7 +1407,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
                 <Table
                   columns={recordColumns}
                   dataSource={nodeRecords}
-                  rowKey="node_id"
+                  rowKey="nodeId"
                   size="small"
                   pagination={false}
                   scroll={{ y: 240 }}
@@ -1901,7 +1901,7 @@ export function DebugPanel({ workflowId }: DebugPanelProps) {
               <Table
                 columns={recordColumns}
                 dataSource={subExecutionDetail.nodeRecords}
-                rowKey="node_id"
+                rowKey="nodeId"
                 size="small"
                 pagination={false}
                 scroll={{ y: 300 }}

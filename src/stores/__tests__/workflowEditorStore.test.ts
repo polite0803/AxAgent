@@ -39,17 +39,17 @@ function makeMockWorkflowNode(
     position: { x: 0, y: 0 },
     retry: {
       enabled: false,
-      max_retries: 0,
-      backoff_type: "Fixed" as const,
-      base_delay_ms: 0,
-      max_delay_ms: 0,
+      maxRetries: 0,
+      backoffType: "Fixed" as const,
+      baseDelayMs: 0,
+      maxDelayMs: 0,
     },
     enabled: true,
   };
   return {
     ...base,
     type: "trigger" as const,
-    config: { trigger_type: "manual", config: {} },
+    config: { type: "manual", config: {} },
   } as unknown as WorkflowNode; /* SAFE: test mock data construction */
 }
 
@@ -62,7 +62,7 @@ function makeMockWorkflowEdge(
     id,
     source,
     target,
-    edge_type: "direct",
+    edgeType: "direct",
   };
 }
 
@@ -329,13 +329,13 @@ describe("WorkflowEditorStore", () => {
         description: "A new template",
         icon: "📋",
         tags: ["new"],
-        trigger_config: undefined,
+        triggerConfig: undefined,
         nodes: [],
         edges: [],
-        input_schema: undefined,
-        output_schema: undefined,
+        inputSchema: undefined,
+        outputSchema: undefined,
         variables: [],
-        error_config: undefined,
+        errorConfig: undefined,
       };
 
       const result = await store.createTemplate(input);
@@ -363,13 +363,13 @@ describe("WorkflowEditorStore", () => {
         description: "Updated description",
         icon: "📝",
         tags: ["updated"],
-        trigger_config: undefined,
+        triggerConfig: undefined,
         nodes: [],
         edges: [],
-        input_schema: undefined,
-        output_schema: undefined,
+        inputSchema: undefined,
+        outputSchema: undefined,
         variables: [],
-        error_config: undefined,
+        errorConfig: undefined,
       };
 
       const result = await store.updateTemplate("template-1", input);
@@ -442,7 +442,7 @@ describe("WorkflowEditorStore", () => {
       const result = await store.importTemplate(jsonData);
 
       expect(invokeMock).toHaveBeenCalledWith("import_workflow_template", {
-        json_data: jsonData,
+        jsonData: jsonData,
       });
       expect(result).toEqual({
         id: "imported-template-id",
@@ -543,13 +543,13 @@ describe("WorkflowEditorStore", () => {
     it("should recommend nodes based on context", async () => {
       const mockRecommendations = [
         {
-          node_type: "agent",
+          nodeType: "agent",
           label: "Agent 节点",
           description: "AI Agent",
           confidence: 0.9,
         },
         {
-          node_type: "llm",
+          nodeType: "llm",
           label: "LLM 节点",
           description: "LLM",
           confidence: 0.85,
@@ -848,8 +848,8 @@ describe("WorkflowEditorStore", () => {
         title: sid,
         description: "",
         position: { x: 0, y: 0 },
-        config: { agent_name: "a", system_prompt: "", output_var: "x" },
-        retry: { enabled: false, max_retries: 0, backoff_type: "Fixed" as const, base_delay_ms: 0, max_delay_ms: 0 },
+        config: { agentName: "a", systemPrompt: "", outputVar: "x" },
+        retry: { enabled: false, maxRetries: 0, backoffType: "Fixed" as const, baseDelayMs: 0, maxDelayMs: 0 },
         enabled: true,
       }));
       return {
@@ -859,13 +859,13 @@ describe("WorkflowEditorStore", () => {
         description: "",
         position: { x: 0, y: 0 },
         config: {
-          debater_steps: stepIds,
-          max_rounds: 3,
-          topic_var: "topic",
-          output_var: "result",
+          debaterSteps: stepIds,
+          maxRounds: 3,
+          topicVar: "topic",
+          outputVar: "result",
           subGraph: { nodes: subNodes, edges: [] },
         },
-        retry: { enabled: false, max_retries: 0, backoff_type: "Fixed" as const, base_delay_ms: 0, max_delay_ms: 0 },
+        retry: { enabled: false, maxRetries: 0, backoffType: "Fixed" as const, baseDelayMs: 0, maxDelayMs: 0 },
         enabled: true,
       };
     }
@@ -878,18 +878,18 @@ describe("WorkflowEditorStore", () => {
             id: issueId,
             severity: "warning",
             category: "structure",
-            title_key: "debate_dangling_step",
-            message_key: "debate_dangling_step",
-            title_override: "Test issue",
-            detail_override: "Test",
-            suggestion_override: "Test",
-            auto_fixable: true,
+            titleKey: "debate_dangling_step",
+            messageKey: "debate_dangling_step",
+            titleOverride: "Test issue",
+            detailOverride: "Test",
+            suggestionOverride: "Test",
+            autoFixable: true,
             fix,
-            node_ids: ["d-1"],
+            nodeIds: ["d-1"],
           }],
           summary: { error: 0, warning: 1, info: 0 },
-          generated_at: 0,
-          duration_ms: 0,
+          generatedAt: 0,
+          durationMs: 0,
         },
       });
     }
@@ -899,23 +899,23 @@ describe("WorkflowEditorStore", () => {
       const store = useWorkflowEditorStore.getState() as any;
       const debate = makeDebateNode("d-1", ["s-1", "s-2"], ["s-1", "s-2"]);
       store.addNode(debate);
-      store.addEdge({ id: "e-1", source: "d-1.s-1", target: "d-1.s-2", edge_type: "direct" } as any);
-      store.addEdge({ id: "e-2", source: "d-1.s-1", target: "d-1.s-2", edge_type: "direct" } as any);
+      store.addEdge({ id: "e-1", source: "d-1.s-1", target: "d-1.s-2", edgeType: "direct" } as any);
+      store.addEdge({ id: "e-2", source: "d-1.s-1", target: "d-1.s-2", edgeType: "direct" } as any);
 
       // 在 d-1 的 subGraph 内补一条边让 e-2 出现在 subGraph.edges
       const state = useWorkflowEditorStore.getState() as any;
       const updatedDebate = state.nodes.find((n: any) => n.id === "d-1");
-      updatedDebate.config.subGraph.edges = [{ id: "e-2", source: "s-1", target: "s-2", edge_type: "direct" }];
+      updatedDebate.config.subGraph.edges = [{ id: "e-2", source: "s-1", target: "s-2", edgeType: "direct" }];
       state.nodes = [...state.nodes];
 
-      await seedReport("issue-1", { action_type: "remove_debater_step", node_id: "d-1", step_id: "s-2" });
+      await seedReport("issue-1", { actionType: "remove_debater_step", nodeId: "d-1", stepId: "s-2" });
 
       const result = store.applyDiagnoseFix("issue-1");
       expect(result).toBe(true);
 
       const after = useWorkflowEditorStore.getState() as any;
       const node = after.nodes.find((n: any) => n.id === "d-1");
-      expect(node.config.debater_steps).toEqual(["s-1"]);
+      expect(node.config.debaterSteps).toEqual(["s-1"]);
       expect(node.config.subGraph.nodes.map((n: any) => n.id)).toEqual(["s-1"]);
       expect(node.config.subGraph.edges).toEqual([]);
     });
@@ -923,7 +923,7 @@ describe("WorkflowEditorStore", () => {
     it("returns false when the debate node does not exist", async () => {
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
       const store = useWorkflowEditorStore.getState() as any;
-      await seedReport("issue-2", { action_type: "remove_debater_step", node_id: "missing", step_id: "s-1" });
+      await seedReport("issue-2", { actionType: "remove_debater_step", nodeId: "missing", stepId: "s-1" });
       expect(store.applyDiagnoseFix("issue-2")).toBe(false);
     });
 
@@ -931,7 +931,7 @@ describe("WorkflowEditorStore", () => {
       const { useWorkflowEditorStore } = await import("@/stores/feature/workflowEditorStore");
       const store = useWorkflowEditorStore.getState() as any;
       store.addNode(makeDebateNode("d-1", ["s-1"], []));
-      await seedReport("issue-3", { action_type: "remove_debater_step", node_id: "d-1", step_id: "s-99" });
+      await seedReport("issue-3", { actionType: "remove_debater_step", nodeId: "d-1", stepId: "s-99" });
       expect(store.applyDiagnoseFix("issue-3")).toBe(false);
     });
   });
@@ -947,18 +947,18 @@ describe("WorkflowEditorStore", () => {
             id: "i-1",
             severity: "warning",
             category: "structure",
-            title_key: "r",
-            message_key: "r",
-            title_override: "t",
-            detail_override: "d",
-            suggestion_override: "s",
-            auto_fixable: true,
-            fix: { action_type: "delete_node", node_id: "n-1" },
-            node_ids: ["n-1"],
+            titleKey: "r",
+            messageKey: "r",
+            titleOverride: "t",
+            detailOverride: "d",
+            suggestionOverride: "s",
+            autoFixable: true,
+            fix: { actionType: "delete_node", nodeId: "n-1" },
+            nodeIds: ["n-1"],
           }],
           summary: { error: 0, warning: 1, info: 0 },
-          generated_at: 0,
-          duration_ms: 0,
+          generatedAt: 0,
+          durationMs: 0,
         },
       });
 

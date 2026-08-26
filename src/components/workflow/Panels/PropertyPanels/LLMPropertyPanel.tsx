@@ -36,7 +36,7 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({
     model: "",
     prompt: "",
     temperature: 0.7,
-    max_tokens: 2048,
+    maxTokens: 2048,
   };
 
   const { providers, fetchProviders } = useProviderStore();
@@ -260,8 +260,8 @@ export const LLMPropertyPanel: React.FC<LLMPropertyPanelProps> = ({
           </label>
           <InputNumber
             id="l-l-m-property-panel-inputnumber-98"
-            value={config.max_tokens ?? 2048}
-            onChange={(value) => handleConfigChange("max_tokens", value)}
+            value={config.maxTokens ?? 2048}
+            onChange={(value) => handleConfigChange("maxTokens", value)}
             min={100}
             max={128000}
             step={100}

@@ -58,36 +58,36 @@ export function StylePreviewPanel({
   };
 
   const dimensionLabels: Record<keyof StyleDimensions, string> = {
-    naming_score: "Naming Style",
-    density_score: "Code Density",
-    comment_ratio: "Comment Ratio",
-    abstraction_level: "Abstraction Level",
-    formality_score: "Formality",
-    structure_score: "Structure",
-    technical_depth: "Technical Depth",
-    explanation_length: "Explanation Length",
+    namingScore: "Naming Style",
+    densityScore: "Code Density",
+    commentRatio: "Comment Ratio",
+    abstractionLevel: "Abstraction Level",
+    formalityScore: "Formality",
+    structureScore: "Structure",
+    technicalDepth: "Technical Depth",
+    explanationLength: "Explanation Length",
   };
 
   const dimensionDescriptions: Record<keyof StyleDimensions, string> = {
-    naming_score: "snake_case ↔ camelCase",
-    density_score: "Compact ↔ Spacious",
-    comment_ratio: "Minimal ↔ Detailed",
-    abstraction_level: "Concrete ↔ Abstract",
-    formality_score: "Casual ↔ Formal",
-    structure_score: "Simple ↔ Structured",
-    technical_depth: "Basic ↔ Advanced",
-    explanation_length: "Brief ↔ Comprehensive",
+    namingScore: "snake_case ↔ camelCase",
+    densityScore: "Compact ↔ Spacious",
+    commentRatio: "Minimal ↔ Detailed",
+    abstractionLevel: "Concrete ↔ Abstract",
+    formalityScore: "Casual ↔ Formal",
+    structureScore: "Simple ↔ Structured",
+    technicalDepth: "Basic ↔ Advanced",
+    explanationLength: "Brief ↔ Comprehensive",
   };
 
   const currentDimensions = appliedStyle?.dimensions || {
-    naming_score: 0.5,
-    density_score: 0.5,
-    comment_ratio: 0.5,
-    abstraction_level: 0.5,
-    formality_score: 0.5,
-    structure_score: 0.5,
-    technical_depth: 0.5,
-    explanation_length: 0.5,
+    namingScore: 0.5,
+    densityScore: 0.5,
+    commentRatio: 0.5,
+    abstractionLevel: 0.5,
+    formalityScore: 0.5,
+    structureScore: 0.5,
+    technicalDepth: 0.5,
+    explanationLength: 0.5,
   };
 
   return (

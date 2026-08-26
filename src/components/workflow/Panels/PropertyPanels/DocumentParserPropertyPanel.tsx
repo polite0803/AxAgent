@@ -21,9 +21,9 @@ export const DocumentParserPropertyPanel: React.FC<
   const { token } = theme.useToken();
   const documentParserNode = node as DocumentParserNode;
   const config = documentParserNode.config || {
-    input_var: "",
-    parser_type: "text",
-    output_var: "",
+    inputVar: "",
+    parserType: "text",
+    outputVar: "",
   };
 
   const PARSER_TYPE_OPTIONS = [
@@ -43,14 +43,14 @@ export const DocumentParserPropertyPanel: React.FC<
   const [messageApi, messageContextHolder] = message.useMessage();
   const { generate: aiGenerate, generating: aiGenerating } = useNodeAIAssist();
   const handleAISuggestOutputVar = async () => {
-    if (!config.input_var) {
+    if (!config.inputVar) {
       messageApi.warning(t("workflow.aiAssist.failed"));
       return;
     }
     const result = await aiGenerate({
       systemPrompt: "你是一名变量命名助手。基于 input_var 名 + 解析器类型，生成一个简洁的 snake_case 输出变量名。"
         + "只输出变量名本身，不要任何前缀、解释或 Markdown 标记。",
-      userPrompt: `input_var: ${config.input_var}\nparser_type: ${config.parser_type}`,
+      userPrompt: `input_var: ${config.inputVar}\nparser_type: ${config.parserType}`,
     });
     if (!result) {
       messageApi.error(t("workflow.aiAssist.failed"));
@@ -61,7 +61,7 @@ export const DocumentParserPropertyPanel: React.FC<
       messageApi.error(t("workflow.aiAssist.failed"));
       return;
     }
-    handleConfigChange("output_var", cleaned);
+    handleConfigChange("outputVar", cleaned);
     messageApi.success(t("workflow.aiAssist.applied"));
   };
 
@@ -81,8 +81,8 @@ export const DocumentParserPropertyPanel: React.FC<
         </label>
         <Input
           id="document-parser-property-panel-input-93"
-          value={config.input_var || ""}
-          onChange={(e) => handleConfigChange("input_var", e.target.value)}
+          value={config.inputVar || ""}
+          onChange={(e) => handleConfigChange("inputVar", e.target.value)}
           size="small"
           placeholder={t("workflow.props.inputVarDocument")}
         />
@@ -100,8 +100,8 @@ export const DocumentParserPropertyPanel: React.FC<
           {t("workflow.props.parserType")}
         </label>
         <Select
-          value={config.parser_type}
-          onChange={(value) => handleConfigChange("parser_type", value)}
+          value={config.parserType}
+          onChange={(value) => handleConfigChange("parserType", value)}
           size="small"
           style={{ width: "100%" }}
           options={PARSER_TYPE_OPTIONS}
@@ -129,8 +129,8 @@ export const DocumentParserPropertyPanel: React.FC<
         </div>
         <Input
           id="document-parser-property-panel-input-94"
-          value={config.output_var || ""}
-          onChange={(e) => handleConfigChange("output_var", e.target.value)}
+          value={config.outputVar || ""}
+          onChange={(e) => handleConfigChange("outputVar", e.target.value)}
           size="small"
           placeholder={t("workflow.props.outputVarParsed")}
         />

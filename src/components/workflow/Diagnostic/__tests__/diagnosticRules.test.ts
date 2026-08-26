@@ -17,7 +17,7 @@ function n(
     type: type as WorkflowNode["type"],
     title: id,
     position: { x: 0, y: 0 },
-    retry: { enabled: false, max_retries: 0, backoff_type: "Fixed", base_delay_ms: 0, max_delay_ms: 0 },
+    retry: { enabled: false, maxRetries: 0, backoffType: "Fixed", baseDelayMs: 0, maxDelayMs: 0 },
     enabled: true,
     parentId,
     config: {},
@@ -25,11 +25,11 @@ function n(
 }
 
 function e(id: string, source: string, target: string): WorkflowEdge {
-  return { id, source, target, sourceHandle: "out", targetHandle: "in", edge_type: "direct" };
+  return { id, source, target, sourceHandle: "out", targetHandle: "in", edgeType: "direct" };
 }
 
 function orphanIds(report: ReturnType<typeof runDiagnosticRules>): string[] {
-  return report.issues.filter((i) => i.id === "orphan_node").flatMap((i) => i.node_ids);
+  return report.issues.filter((i) => i.id === "orphan_node").flatMap((i) => i.nodeIds);
 }
 
 // ── 测试 ──────────────────────────────────────────────────────

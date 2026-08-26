@@ -19,7 +19,7 @@ function makeNode(retry?: Record<string, unknown>): WorkflowNode {
 
 describe("buildBatchUpdate - #6.7", () => {
   it("returns empty updates when all options are null/undefined", () => {
-    const node = makeNode({ enabled: false, max_retries: 3 });
+    const node = makeNode({ enabled: false, maxRetries: 3 });
     expect(buildBatchUpdate(node, {})).toEqual({});
     expect(buildBatchUpdate(node, { timeout: null, retryEnabled: null, enabled: null })).toEqual({});
   });
@@ -27,18 +27,18 @@ describe("buildBatchUpdate - #6.7", () => {
   it("preserves existing retry fields when only toggling enabled", () => {
     const node = makeNode({
       enabled: false,
-      max_retries: 5,
-      backoff_type: "Exponential",
-      base_delay_ms: 1000,
-      max_delay_ms: 30000,
+      maxRetries: 5,
+      backoffType: "Exponential",
+      baseDelayMs: 1000,
+      maxDelayMs: 30000,
     });
     const update = buildBatchUpdate(node, { retryEnabled: true });
     expect(update.retry).toEqual({
       enabled: true,
-      max_retries: 5,
-      backoff_type: "Exponential",
-      base_delay_ms: 1000,
-      max_delay_ms: 30000,
+      maxRetries: 5,
+      backoffType: "Exponential",
+      baseDelayMs: 1000,
+      maxDelayMs: 30000,
     });
   });
 
@@ -46,10 +46,10 @@ describe("buildBatchUpdate - #6.7", () => {
     const node = makeNode(undefined);
     const update = buildBatchUpdate(node, { retryEnabled: true });
     expect((update.retry as any).enabled).toBe(true);
-    expect((update.retry as any).max_retries).toBe(0);
-    expect((update.retry as any).backoff_type).toBe("Fixed");
-    expect((update.retry as any).base_delay_ms).toBe(0);
-    expect((update.retry as any).max_delay_ms).toBe(0);
+    expect((update.retry as any).maxRetries).toBe(0);
+    expect((update.retry as any).backoffType).toBe("Fixed");
+    expect((update.retry as any).baseDelayMs).toBe(0);
+    expect((update.retry as any).maxDelayMs).toBe(0);
   });
 
   it("writes timeout when provided", () => {

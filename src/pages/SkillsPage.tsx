@@ -1492,7 +1492,7 @@ export function SkillsPage() {
         onClose={() => setAgentGeneratorOpen(false)}
         conversationId=""
         onSave={(config) => {
-          messageApi.success(t("skill.agentGenerated", { name: config.display_name }));
+          messageApi.success(t("skill.agentGenerated", { name: config.displayName }));
           setAgentGeneratorOpen(false);
           loadSkills();
         }}

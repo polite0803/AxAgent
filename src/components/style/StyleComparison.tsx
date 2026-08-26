@@ -17,25 +17,25 @@ export function StyleComparison({
   const { t } = useTranslation();
 
   const dimensions: StyleDimensionKey[] = [
-    "naming_score",
-    "density_score",
-    "comment_ratio",
-    "abstraction_level",
-    "formality_score",
-    "structure_score",
-    "technical_depth",
-    "explanation_length",
+    "namingScore",
+    "densityScore",
+    "commentRatio",
+    "abstractionLevel",
+    "formalityScore",
+    "structureScore",
+    "technicalDepth",
+    "explanationLength",
   ];
 
   const dimensionLabels: Record<StyleDimensionKey, string> = {
-    naming_score: t("style.dimensions.naming"),
-    density_score: t("style.dimensions.density"),
-    comment_ratio: t("style.dimensions.commentRatio"),
-    abstraction_level: t("style.dimensions.abstraction"),
-    formality_score: t("style.dimensions.formality"),
-    structure_score: t("style.dimensions.structure"),
-    technical_depth: t("style.dimensions.technicalDepth"),
-    explanation_length: t("style.dimensions.explanationLength"),
+    namingScore: t("style.dimensions.naming"),
+    densityScore: t("style.dimensions.density"),
+    commentRatio: t("style.dimensions.commentRatio"),
+    abstractionLevel: t("style.dimensions.abstraction"),
+    formalityScore: t("style.dimensions.formality"),
+    structureScore: t("style.dimensions.structure"),
+    technicalDepth: t("style.dimensions.technicalDepth"),
+    explanationLength: t("style.dimensions.explanationLength"),
   };
 
   const getDimensionDescription = (
@@ -43,24 +43,24 @@ export function StyleComparison({
     value: number,
   ): string => {
     const lowDescriptions: Record<StyleDimensionKey, string> = {
-      naming_score: "snake_case",
-      density_score: "Compact",
-      comment_ratio: "Minimal",
-      abstraction_level: "Concrete",
-      formality_score: "Casual",
-      structure_score: "Simple",
-      technical_depth: "Basic",
-      explanation_length: "Brief",
+      namingScore: "snake_case",
+      densityScore: "Compact",
+      commentRatio: "Minimal",
+      abstractionLevel: "Concrete",
+      formalityScore: "Casual",
+      structureScore: "Simple",
+      technicalDepth: "Basic",
+      explanationLength: "Brief",
     };
     const highDescriptions: Record<StyleDimensionKey, string> = {
-      naming_score: "camelCase",
-      density_score: "Spacious",
-      comment_ratio: "Detailed",
-      abstraction_level: "Abstract",
-      formality_score: "Formal",
-      structure_score: "Structured",
-      technical_depth: "Advanced",
-      explanation_length: "Comprehensive",
+      namingScore: "camelCase",
+      densityScore: "Spacious",
+      commentRatio: "Detailed",
+      abstractionLevel: "Abstract",
+      formalityScore: "Formal",
+      structureScore: "Structured",
+      technicalDepth: "Advanced",
+      explanationLength: "Comprehensive",
     };
 
     if (value < 0.35) {
@@ -140,8 +140,8 @@ export function StyleComparison({
               </div>
 
               <div className="flex justify-between text-[10px] text-muted-foreground">
-                <span>{dim === "naming_score" ? "snake" : "Low"}</span>
-                <span>{dim === "naming_score" ? "camel" : "High"}</span>
+                <span>{dim === "namingScore" ? "snake" : "Low"}</span>
+                <span>{dim === "namingScore" ? "camel" : "High"}</span>
               </div>
             </div>
           );

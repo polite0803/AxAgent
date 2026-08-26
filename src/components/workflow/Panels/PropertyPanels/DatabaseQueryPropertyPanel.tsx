@@ -20,7 +20,7 @@ export const DatabaseQueryPropertyPanel: React.FC<Props> = ({ node, onUpdate, on
   const { generate: aiGenerate, generating: aiGenerating } = useNodeAIAssist();
   const [messageApi, contextHolder] = message.useMessage();
   const dq = node as unknown as DatabaseQueryNode; // SAFE: WorkflowNode union narrowed to specific node type via config field access
-  const config = dq.config || { query: "", params: [], connection_name: "", timeout_secs: 30, output_var: "" };
+  const config = dq.config || { query: "", params: [], connectionName: "", timeoutSecs: 30, outputVar: "" };
 
   const setCfg = (key: string, val: unknown) => onUpdate({ config: { ...config, [key]: val } });
 
@@ -49,8 +49,8 @@ export const DatabaseQueryPropertyPanel: React.FC<Props> = ({ node, onUpdate, on
           {t("workflow.props.connection")}
         </label>
         <Input
-          value={config.connection_name ?? ""}
-          onChange={(e) => setCfg("connection_name", e.target.value || undefined)}
+          value={config.connectionName ?? ""}
+          onChange={(e) => setCfg("connectionName", e.target.value || undefined)}
           size="small"
           placeholder={t("workflow.props.defaultConnection")}
         />
@@ -82,8 +82,8 @@ export const DatabaseQueryPropertyPanel: React.FC<Props> = ({ node, onUpdate, on
         </label>
         <Space.Compact>
           <InputNumber
-            value={config.timeout_secs}
-            onChange={(v) => setCfg("timeout_secs", v ?? 30)}
+            value={config.timeoutSecs}
+            onChange={(v) => setCfg("timeoutSecs", v ?? 30)}
             size="small"
             style={{ width: "calc(100% - 28px)" }}
             min={1}
@@ -104,7 +104,7 @@ export const DatabaseQueryPropertyPanel: React.FC<Props> = ({ node, onUpdate, on
         <label style={{ display: "block", color: token.colorTextTertiary, fontSize: 12, marginBottom: 4 }}>
           {t("workflow.props.outputVariable")}
         </label>
-        <Input value={config.output_var} onChange={(e) => setCfg("output_var", e.target.value)} size="small" />
+        <Input value={config.outputVar} onChange={(e) => setCfg("outputVar", e.target.value)} size="small" />
       </div>
       <Divider style={{ margin: "8px 0", borderColor: token.colorBorderSecondary }} />
       <BasePropertyPanel node={node} onUpdate={onUpdate} onDelete={onDelete} />

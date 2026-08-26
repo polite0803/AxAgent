@@ -143,7 +143,7 @@ interface DeviceSyncState {
   syncPolicies: SyncPolicy[];
   loadSyncPolicy: () => Promise<void>;
   updateSyncPolicy: (update: SyncPolicyUpdate) => Promise<SyncPolicy | null>;
-  createSyncPolicy: (policy: Omit<SyncPolicy, "id" | "updated_at">) => Promise<SyncPolicy | null>;
+  createSyncPolicy: (policy: Omit<SyncPolicy, "id" | "updatedAt">) => Promise<SyncPolicy | null>;
   deleteSyncPolicy: (id: string) => Promise<void>;
   listSyncPolicies: () => Promise<void>;
 

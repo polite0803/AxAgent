@@ -57,21 +57,21 @@ export const SemanticCheckModal: React.FC<SemanticCheckModalProps> = ({
   };
 
   const getActionButton = (match: SkillMatchResult, nodeId: string) => {
-    const isReplaceSelected = isActionSelected(selectedActions, nodeId, match.existing_skill.id, "replace");
-    const isKeepSelected = isActionSelected(selectedActions, nodeId, match.existing_skill.id, "keep");
+    const isReplaceSelected = isActionSelected(selectedActions, nodeId, match.existingSkill.id, "replace");
+    const isKeepSelected = isActionSelected(selectedActions, nodeId, match.existingSkill.id, "keep");
 
     return (
       <Space orientation="vertical" style={{ width: "100%" }}>
         <Button
           type={isReplaceSelected ? "primary" : "default"}
-          onClick={() => handleSelectAction(nodeId, match.existing_skill.id, "replace")}
+          onClick={() => handleSelectAction(nodeId, match.existingSkill.id, "replace")}
           style={{ width: "100%" }}
         >
           {t("workflow.replaceWithExisting")}
         </Button>
         <Button
           type={isKeepSelected ? "primary" : "default"}
-          onClick={() => handleSelectAction(nodeId, match.existing_skill.id, "keep")}
+          onClick={() => handleSelectAction(nodeId, match.existingSkill.id, "keep")}
           style={{ width: "100%" }}
         >
           {t("workflow.keepGeneratedSkill")}
@@ -81,7 +81,7 @@ export const SemanticCheckModal: React.FC<SemanticCheckModalProps> = ({
   };
 
   const renderMatchCard = (match: SkillMatchResult, nodeId: string) => {
-    const similarityPercent = Math.round(match.similarity_score * 100);
+    const similarityPercent = Math.round(match.similarityScore * 100);
     const similarityColor = similarityPercent >= 80
       ? "green"
       : similarityPercent >= 60
@@ -90,7 +90,7 @@ export const SemanticCheckModal: React.FC<SemanticCheckModalProps> = ({
 
     return (
       <div
-        key={match.existing_skill.id}
+        key={match.existingSkill.id}
         style={{
           border: `1px solid ${token.colorBorderSecondary}`,
           borderRadius: 8,
@@ -108,7 +108,7 @@ export const SemanticCheckModal: React.FC<SemanticCheckModalProps> = ({
         >
           <Descriptions column={1} size="small" style={{ flex: 1 }}>
             <Descriptions.Item label={t("workflow.existingSkill")}>
-              <strong>{match.existing_skill.name}</strong>
+              <strong>{match.existingSkill.name}</strong>
             </Descriptions.Item>
           </Descriptions>
           <Tag
@@ -121,7 +121,7 @@ export const SemanticCheckModal: React.FC<SemanticCheckModalProps> = ({
         <div style={{ marginBottom: 8 }}>
           <strong>{t("workflow.matchReasons")}:</strong>
           <div style={{ marginTop: 4 }}>
-            {match.match_reasons.map((reason, _i) => (
+            {match.matchReasons.map((reason, _i) => (
               <Tag key={reason} color="cyan">
                 {reason}
               </Tag>
@@ -134,11 +134,11 @@ export const SemanticCheckModal: React.FC<SemanticCheckModalProps> = ({
   };
 
   const renderNodeMatches = (nodeMatch: NodeSkillMatch) => {
-    const nodeId = nodeMatch.node_id || "unknown";
+    const nodeId = nodeMatch.nodeId || "unknown";
     return (
       <div key={nodeId} style={{ marginBottom: 24 }}>
         <h4 style={{ marginBottom: 12 }}>
-          {t("workflow.generatedSkill")}: <Tag color="purple">{nodeMatch.skill_name}</Tag>
+          {t("workflow.generatedSkill")}: <Tag color="purple">{nodeMatch.skillName}</Tag>
         </h4>
         <div style={{ marginLeft: 16 }}>
           {nodeMatch.matches.map((match) => renderMatchCard(match, nodeId))}

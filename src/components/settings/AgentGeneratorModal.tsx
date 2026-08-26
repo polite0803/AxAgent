@@ -23,12 +23,12 @@ const AGENT_GENERATE_META_PROMPT = `你是一个智能体配置生成器。根�
 用户描述：`;
 
 export interface GeneratedAgentConfig {
-  agent_type: string;
-  display_name: string;
+  agentType: string;
+  displayName: string;
   description: string;
-  system_prompt: string;
+  systemPrompt: string;
   permissions: string[];
-  preferred_model: string;
+  preferredModel: string;
 }
 
 interface AgentGeneratorModalProps {
@@ -85,12 +85,12 @@ export function AgentGeneratorModal({
 
       // Validate required fields
       const requiredFields: (keyof GeneratedAgentConfig)[] = [
-        "agent_type",
-        "display_name",
+        "agentType",
+        "displayName",
         "description",
-        "system_prompt",
+        "systemPrompt",
         "permissions",
-        "preferred_model",
+        "preferredModel",
       ];
       for (const field of requiredFields) {
         if (!config[field]) {
@@ -187,11 +187,11 @@ export function AgentGeneratorModal({
             <div className="flex flex-col gap-2 p-3 rounded bg-zinc-50 dark:bg-zinc-800">
               <div>
                 <Text strong>{t("agentGenerator.field.type")}：</Text>
-                <Text code>{result.agent_type}</Text>
+                <Text code>{result.agentType}</Text>
               </div>
               <div>
                 <Text strong>{t("agentGenerator.field.name")}：</Text>
-                <Text>{result.display_name}</Text>
+                <Text>{result.displayName}</Text>
               </div>
               <div>
                 <Text strong>{t("agentGenerator.field.desc")}：</Text>
@@ -207,7 +207,7 @@ export function AgentGeneratorModal({
               </div>
               <div>
                 <Text strong>{t("agentGenerator.field.recommendedModel")}：</Text>
-                <Text code>{result.preferred_model}</Text>
+                <Text code>{result.preferredModel}</Text>
               </div>
               <div>
                 <Text strong>{t("agentGenerator.field.systemPrompt")}：</Text>
@@ -220,7 +220,7 @@ export function AgentGeneratorModal({
                   type="secondary"
                   style={{ marginTop: 4 }}
                 >
-                  {result.system_prompt}
+                  {result.systemPrompt}
                 </Paragraph>
               </div>
             </div>

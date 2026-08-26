@@ -15,28 +15,28 @@ interface EvolutionTabProps {
 }
 
 interface EvolutionEntry {
-  skill_id: string;
+  skillId: string;
   version: number;
   timestamp: number;
   type?: string;
   metrics?: {
-    success_rate?: number;
-    avg_latency_ms?: number;
+    successRate?: number;
+    avgLatencyMs?: number;
   };
-  previous_metrics?: {
-    success_rate?: number;
-    avg_latency_ms?: number;
+  previousMetrics?: {
+    successRate?: number;
+    avgLatencyMs?: number;
   };
-  ab_test_won?: boolean;
+  abTestWon?: boolean;
 }
 
 interface ABTestResult {
-  variant_a: string;
-  variant_b: string;
+  variantA: string;
+  variantB: string;
   winner: string | null;
   confidence: number;
-  metrics_a: Record<string, number>;
-  metrics_b: Record<string, number>;
+  metricsA: Record<string, number>;
+  metricsB: Record<string, number>;
 }
 
 export const EvolutionTab: React.FC<EvolutionTabProps> = React.memo(({ currentWorkflowId, nodes }) => {
@@ -155,11 +155,11 @@ export const EvolutionTab: React.FC<EvolutionTabProps> = React.memo(({ currentWo
               const latest = history?.[0];
               const prev = history?.[1];
 
-              const srDiff = latest?.metrics?.success_rate != null && prev?.metrics?.success_rate != null
-                ? latest.metrics.success_rate - prev.metrics.success_rate
+              const srDiff = latest?.metrics?.successRate != null && prev?.metrics?.successRate != null
+                ? latest.metrics.successRate - prev.metrics.successRate
                 : null;
-              const latDiff = latest?.metrics?.avg_latency_ms != null && prev?.metrics?.avg_latency_ms != null
-                ? latest.metrics.avg_latency_ms - prev.metrics.avg_latency_ms
+              const latDiff = latest?.metrics?.avgLatencyMs != null && prev?.metrics?.avgLatencyMs != null
+                ? latest.metrics.avgLatencyMs - prev.metrics.avgLatencyMs
                 : null;
 
               return (
@@ -254,7 +254,7 @@ export const EvolutionTab: React.FC<EvolutionTabProps> = React.memo(({ currentWo
                         )}
                     </div>
 
-                    {latest?.ab_test_won && (
+                    {latest?.abTestWon && (
                       <Badge
                         status="success"
                         text={t("workflow.evolution.abTestWon")}
@@ -306,7 +306,7 @@ export const EvolutionTab: React.FC<EvolutionTabProps> = React.memo(({ currentWo
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {abResults.map((res) => (
                       <Card
-                        key={`${res.variant_a}-${res.variant_b}`}
+                        key={`${res.variantA}-${res.variantB}`}
                         size="small"
                         style={{ background: token.colorFillTertiary, border: "none" }}
                         styles={{ body: { padding: "8px 10px" } }}
@@ -320,7 +320,7 @@ export const EvolutionTab: React.FC<EvolutionTabProps> = React.memo(({ currentWo
                           }}
                         >
                           <Text style={{ fontSize: 12, color: token.colorText }}>
-                            {res.variant_a} vs {res.variant_b}
+                            {res.variantA} vs {res.variantB}
                           </Text>
                           {res.winner && (
                             <Tag
@@ -335,12 +335,12 @@ export const EvolutionTab: React.FC<EvolutionTabProps> = React.memo(({ currentWo
                           <span>
                             {t("workflow.evolution.confidence", { value: (res.confidence * 100).toFixed(1) })}
                           </span>
-                          {Object.entries(res.metrics_a).map(([k, v]) => (
+                          {Object.entries(res.metricsA).map(([k, v]) => (
                             <span key={k}>
                               {k}: A={typeof v === "number" ? v.toFixed(2) : String(v)}{" "}
-                              / B={typeof res.metrics_b[k] === "number"
-                                ? (res.metrics_b[k] as number).toFixed(2)
-                                : String(res.metrics_b[k])}
+                              / B={typeof res.metricsB[k] === "number"
+                                ? (res.metricsB[k] as number).toFixed(2)
+                                : String(res.metricsB[k])}
                             </span>
                           ))}
                         </div>

@@ -21,7 +21,7 @@ export const MultiAgentPropertyPanel: React.FC<MultiAgentPropertyPanelProps> = (
   const { token } = theme.useToken();
   const n = node as unknown as MultiAgentNode;
   const c = n.config
-    || { task: "", role: undefined, model: undefined, output_var: "multiAgentOutput", mode: "auto", max_rounds: 5 };
+    || { task: "", role: undefined, model: undefined, outputVar: "multiAgentOutput", mode: "auto", maxRounds: 5 };
   const sc = (k: string, v: unknown) => onUpdate({ config: { ...c, [k]: v } });
 
   return (
@@ -68,8 +68,8 @@ export const MultiAgentPropertyPanel: React.FC<MultiAgentPropertyPanelProps> = (
           {t("workflow.property.outputVar")}
         </label>
         <Input
-          value={c.output_var}
-          onChange={(e) => sc("output_var", e.target.value)}
+          value={c.outputVar}
+          onChange={(e) => sc("outputVar", e.target.value)}
           placeholder={t("workflow.placeholder.outputVar")}
           size="small"
         />
@@ -99,8 +99,8 @@ export const MultiAgentPropertyPanel: React.FC<MultiAgentPropertyPanelProps> = (
         <InputNumber
           min={1}
           max={20}
-          value={c.max_rounds}
-          onChange={(v) => sc("max_rounds", v ?? 5)}
+          value={c.maxRounds}
+          onChange={(v) => sc("maxRounds", v ?? 5)}
           size="small"
           style={{ width: "100%" }}
         />

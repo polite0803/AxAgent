@@ -21,10 +21,10 @@ export function buildBatchUpdate(
   if (options.retryEnabled != null) {
     const baseRetry: RetryConfig = {
       enabled: false,
-      max_retries: 0,
-      backoff_type: "Fixed",
-      base_delay_ms: 0,
-      max_delay_ms: 0,
+      maxRetries: 0,
+      backoffType: "Fixed",
+      baseDelayMs: 0,
+      maxDelayMs: 0,
     };
     const existing =
       (node as unknown as { retry?: RetryConfig }).retry; /* SAFE: WorkflowNode accessed for retry config */

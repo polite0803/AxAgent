@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-/** 技能学习闭环（借鉴 Hermes Agent）前端类型，与后端 DTO 对齐（snake_case） */
+/** 技能学习闭环（借鉴 Hermes Agent）前端类型 */
 
 // SkillProposal 已有权威定义于 ./index（types/index.ts），此处复用避免重复定义
 import type { SkillProposal } from "./index";
@@ -19,60 +19,60 @@ export type RiskLevel = "low" | "medium" | "high" | "critical";
 
 export interface PendingSkillOperation {
   id: string;
-  operation_type: PendingOperationType;
-  skill_id: string | null;
-  skill_name: string | null;
-  file_path: string | null;
+  operationType: PendingOperationType;
+  skillId: string | null;
+  skillName: string | null;
+  filePath: string | null;
   proposal: SkillProposal | null;
   content: string;
   reason: string;
-  risk_level: RiskLevel;
-  created_at: string;
+  riskLevel: RiskLevel;
+  createdAt: string;
   status: ApprovalStatus;
-  approved_at: string | null;
-  rejected_at: string | null;
-  rejection_reason: string | null;
+  approvedAt: string | null;
+  rejectedAt: string | null;
+  rejectionReason: string | null;
 }
 
 export interface SkillLearningConfig {
-  min_tool_calls_for_creation: number;
-  min_steps_for_creation: number;
-  enable_skill_creation: boolean;
-  enable_skill_patching: boolean;
-  enable_background_review: boolean;
-  write_approval_gate: boolean;
-  max_review_messages: number;
-  review_interval_secs: number;
-  dedup_similarity_threshold: number;
-  storage_path: string;
-  skills_root: string;
+  minToolCallsForCreation: number;
+  minStepsForCreation: number;
+  enableSkillCreation: boolean;
+  enableSkillPatching: boolean;
+  enableBackgroundReview: boolean;
+  writeApprovalGate: boolean;
+  maxReviewMessages: number;
+  reviewIntervalSecs: number;
+  dedupSimilarityThreshold: number;
+  storagePath: string;
+  skillsRoot: string;
 }
 
 export interface LearnSkillInput {
   name?: string;
   description?: string;
-  source_type: string;
+  sourceType: string;
   content: string;
   context?: string;
-  auto_approve?: boolean;
+  autoApprove?: boolean;
 }
 
 export interface LearnSkillResult {
-  skill_name: string;
-  skill_path: string;
-  skill_content: string;
+  skillName: string;
+  skillPath: string;
+  skillContent: string;
   references: string[];
   confidence: number;
-  steps_taken: string[];
-  requires_approval: boolean;
-  operation_id: string | null;
+  stepsTaken: string[];
+  requiresApproval: boolean;
+  operationId: string | null;
 }
 
 /** 记忆写审批门 */
 export interface MemoryWriteApprovalConfig {
   enabled: boolean;
-  min_importance_for_approval: number;
-  auto_approve_namespaces: string[];
+  minImportanceForApproval: number;
+  autoApproveNamespaces: string[];
 }
 
 export interface PendingMemoryWrite {

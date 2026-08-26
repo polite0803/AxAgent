@@ -14,7 +14,7 @@ export const NotificationPropertyPanel: React.FC<Props> = ({ node, onUpdate, onD
   const { token } = theme.useToken();
   const n = node as unknown as NotificationNode; // SAFE: WorkflowNode union narrowed to specific node type via config field access
   const c = n.config
-    || { channel: "webhook", message: "", webhook_url: "", recipients: [], subject: "", enabled: true, output_var: "" };
+    || { channel: "webhook", message: "", webhookUrl: "", recipients: [], subject: "", enabled: true, outputVar: "" };
   const sc = (k: string, v: unknown) => onUpdate({ config: { ...c, [k]: v } });
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -42,12 +42,12 @@ export const NotificationPropertyPanel: React.FC<Props> = ({ node, onUpdate, onD
       {c.channel === "webhook" && (
         <div>
           <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>Webhook URL</label>
-          <Input value={c.webhook_url ?? ""} onChange={(e) => sc("webhook_url", e.target.value)} size="small" />
+          <Input value={c.webhookUrl ?? ""} onChange={(e) => sc("webhookUrl", e.target.value)} size="small" />
         </div>
       )}
       <div>
         <label style={{ color: token.colorTextTertiary, fontSize: 12 }}>Output Var</label>
-        <Input value={c.output_var} onChange={(e) => sc("output_var", e.target.value)} size="small" />
+        <Input value={c.outputVar} onChange={(e) => sc("outputVar", e.target.value)} size="small" />
       </div>
       <Divider style={{ margin: "8px 0" }} />
       <BasePropertyPanel node={node} onUpdate={onUpdate} onDelete={onDelete} />

@@ -75,8 +75,8 @@ const mockBackendTemplate = {
   nodes: [],
   edges: [],
   variables: [],
-  created_at: 1700000000000,
-  updated_at: 1700000000000,
+  createdAt: 1700000000000,
+  updatedAt: 1700000000000,
 };
 
 describe("workflowStore", () => {

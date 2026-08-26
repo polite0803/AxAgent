@@ -32,9 +32,9 @@ export const HttpRequestPropertyPanel: React.FC<HttpRequestPropertyPanelProps> =
     method: "GET",
     headers: {},
     body: undefined,
-    body_type: "json",
-    timeout_secs: 30,
-    output_var: "",
+    bodyType: "json",
+    timeoutSecs: 30,
+    outputVar: "",
   };
 
   const handleConfigChange = (key: string, value: unknown) => {
@@ -57,10 +57,10 @@ export const HttpRequestPropertyPanel: React.FC<HttpRequestPropertyPanelProps> =
       systemPrompt:
         `你是一名 HTTP 请求助手。用户配置了一个 ${config.method} ${
           config.url || "(URL 未填)"
-        } 请求，body_type=${config.body_type}。`
+        } 请求，body_type=${config.bodyType}。`
         + "基于 URL 推断意图，生成符合 body_type 的请求体（json 类型则输出严格合法的 JSON 对象；form/text 则输出相应纯文本）。"
         + "只输出 body 文本，不要任何前缀、解释或 Markdown 标记。如果已存在 body，则改写优化。",
-      userPrompt: `URL: ${config.url}\nMethod: ${config.method}\nBodyType: ${config.body_type}\n\nCurrent body:\n${
+      userPrompt: `URL: ${config.url}\nMethod: ${config.method}\nBodyType: ${config.bodyType}\n\nCurrent body:\n${
         config.body || ""
       }`,
     });
@@ -106,8 +106,8 @@ export const HttpRequestPropertyPanel: React.FC<HttpRequestPropertyPanelProps> =
           </label>
           <Space.Compact>
             <InputNumber
-              value={config.timeout_secs}
-              onChange={(v) => handleConfigChange("timeout_secs", v ?? 30)}
+              value={config.timeoutSecs}
+              onChange={(v) => handleConfigChange("timeoutSecs", v ?? 30)}
               size="small"
               style={{ width: "calc(100% - 28px)" }}
               min={5}
@@ -133,8 +133,8 @@ export const HttpRequestPropertyPanel: React.FC<HttpRequestPropertyPanelProps> =
               {t("workflow.props.bodyType")}
             </label>
             <Select
-              value={config.body_type}
-              onChange={(v) => handleConfigChange("body_type", v)}
+              value={config.bodyType}
+              onChange={(v) => handleConfigChange("bodyType", v)}
               size="small"
               style={{ width: "100%" }}
               options={BODY_TYPES.map((t) => ({ value: t, label: t }))}
@@ -164,7 +164,7 @@ export const HttpRequestPropertyPanel: React.FC<HttpRequestPropertyPanelProps> =
               onChange={(e) => handleConfigChange("body", e.target.value || undefined)}
               rows={4}
               size="small"
-              placeholder={config.body_type === "json" ? '{"key": "value"}' : "body content"}
+              placeholder={config.bodyType === "json" ? '{"key": "value"}' : "body content"}
             />
           </div>
         </>
@@ -222,8 +222,8 @@ export const HttpRequestPropertyPanel: React.FC<HttpRequestPropertyPanelProps> =
           {t("workflow.props.outputVariable")}
         </label>
         <Input
-          value={config.output_var}
-          onChange={(e) => handleConfigChange("output_var", e.target.value)}
+          value={config.outputVar}
+          onChange={(e) => handleConfigChange("outputVar", e.target.value)}
           size="small"
         />
       </div>

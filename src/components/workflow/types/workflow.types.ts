@@ -7,10 +7,10 @@ export interface Position {
 
 export interface RetryConfig {
   enabled: boolean;
-  max_retries: number;
-  backoff_type: "Linear" | "Exponential" | "Fixed";
-  base_delay_ms: number;
-  max_delay_ms: number;
+  maxRetries: number;
+  backoffType: "Linear" | "Exponential" | "Fixed";
+  baseDelayMs: number;
+  maxDelayMs: number;
 }
 
 export interface JsonSchema {
@@ -25,16 +25,16 @@ export interface JsonSchemaProperty {
   type: string;
   description?: string;
   default?: unknown;
-  enum_values?: unknown[];
+  enumValues?: unknown[];
   format?: string;
 }
 
 export interface Variable {
   name: string;
-  var_type: string;
+  varType: string;
   value: unknown;
   description?: string;
-  is_secret: boolean;
+  isSecret: boolean;
 }
 
 export interface WorkflowNodeBase {
@@ -48,9 +48,9 @@ export interface WorkflowNodeBase {
   /** 容器父节点 ID。保存时由编辑器注入，用于 Parallel/Merge 等容器子节点的定位。 */
   parentId?: string;
   /** 熔断器配置（所有节点类型可选支持） */
-  circuit_breaker?: {
-    failure_threshold: number;
-    reset_timeout_ms: number;
+  circuitBreaker?: {
+    failureThreshold: number;
+    resetTimeoutMs: number;
   };
   /** 调试断点标记 */
   _breakpoint?: boolean;
@@ -74,11 +74,11 @@ export interface ScheduleTriggerConfig {
 export interface WebhookTriggerConfig {
   path: string;
   method: string;
-  auth_type: string;
+  authType: string;
 }
 
 export interface EventTriggerConfig {
-  event_type: string;
+  eventType: string;
   filter?: unknown;
 }
 
@@ -94,25 +94,25 @@ export interface ToolDef {
 export interface AgentNodeConfig {
   /** AgentProfile ID — 唯一标识角色/专家/模型的入口 */
   agentProfileId?: string;
-  system_prompt: string;
+  systemPrompt: string;
   promptTemplateId?: string;
-  context_sources: string[];
-  output_var: string;
+  contextSources: string[];
+  outputVar: string;
   model?: string;
   temperature?: number;
-  max_tokens?: number;
+  maxTokens?: number;
   /** 工具列表，支持旧格式 `string[]` 和新格式 `ToolDef[]` */
   tools: ToolDef[];
   /** 暴露给 LLM 的工具名列表（tools 的子集）。空数组 = 暴露全部（向后兼容） */
-  exposed_tools: string[];
-  output_mode: OutputMode;
+  exposedTools: string[];
+  outputMode: OutputMode;
   /** 工具调用最大轮数（默认 5，仅 tools 非空时生效） */
-  max_tool_rounds?: number;
+  maxToolRounds?: number;
   /** 执行模式: "react" = 逐步思考-行动, "plan" = 先规划为工作流再执行 */
-  execution_mode?: "react" | "plan";
+  executionMode?: "react" | "plan";
   /** RAG 知识源 ID 列表。格式: "knowledge:<kb_id>", "memory:<ns_id>", "wiki:<wiki_id>" */
-  rag_source_ids?: string[];
-  model_role?: "quick_think" | "deep_think";
+  ragSourceIds?: string[];
+  modelRole?: "quick_think" | "deep_think";
   /**
    * 3.7 P2:任务场景 — 控制 Agent 节点的输出风格指令。
    * - `general`:无特殊约束(默认)
@@ -121,7 +121,7 @@ export interface AgentNodeConfig {
    * - `auto`:由 `TaskScene::infer(input)` 自动推断
    * 缺省 `undefined` 时按 `general` 处理。
    */
-  task_scene?: "general" | "code" | "research" | "auto";
+  taskScene?: "general" | "code" | "research" | "auto";
 }
 
 export interface AgentNode extends WorkflowNodeBase {
@@ -133,9 +133,9 @@ export interface MultiAgentNodeConfig {
   task: string;
   role?: string;
   model?: string;
-  output_var: string;
+  outputVar: string;
   mode: "auto" | "swarm" | "debate";
-  max_rounds: number;
+  maxRounds: number;
 }
 
 export interface MultiAgentNode extends WorkflowNodeBase {
@@ -149,7 +149,7 @@ export interface LLMNodeConfig {
   promptTemplateId?: string;
   messages?: unknown[];
   temperature?: number;
-  max_tokens?: number;
+  maxTokens?: number;
   tools?: string[];
   functions?: unknown[];
 }
@@ -177,20 +177,20 @@ export type CompareOperator =
 export type LogicalOperator = "and" | "or";
 
 export interface Condition {
-  var_path: string;
+  varPath: string;
   operator: CompareOperator;
   value: unknown;
 }
 
 export interface ConditionNodeConfig {
   conditions: Condition[];
-  logical_op: LogicalOperator;
+  logicalOp: LogicalOperator;
   /** 启用 LLM 动态路由：由 AI 判断走哪条分支（忽略 conditions 静态规则） */
-  judge_by_llm?: boolean;
+  judgeByLlm?: boolean;
   /** LLM 路由时的提示词（描述路由判断逻辑） */
-  routing_prompt?: string;
+  routingPrompt?: string;
   /** LLM 路由使用模型（为空则用系统默认） */
-  routing_model?: string;
+  routingModel?: string;
 }
 
 export interface ConditionNode extends WorkflowNodeBase {
@@ -228,14 +228,14 @@ export interface SubGraph {
 
 export interface ParallelNodeConfig {
   branches: Branch[];
-  wait_for_all: boolean;
+  waitForAll: boolean;
   timeout?: number;
   aggregation?: MergeStrategy;
-  auto_input_from_parent?: boolean;
+  autoInputFromParent?: boolean;
   /**
    * 容器角色标记。
    *
-   * - `"executable"`（默认）：真并行调度器。`wait_for_all` + `aggregation` 实际生效，
+   * - `"executable"`（默认）：真并行调度器。`waitForAll` + `aggregation` 实际生效，
    *   运行时引擎并行执行子分支。
    * - `"decorative"`：装饰性分组。仅供前端画分组框，调度引擎忽略。
    *   成员通过 `parentId` 引用，实际依赖通过显式的 `edge` 表达。
@@ -253,13 +253,13 @@ export interface ParallelNode extends WorkflowNodeBase {
 export type LoopType = "forEach" | "while" | "doWhile" | "until";
 
 export interface LoopNodeConfig {
-  loop_type: LoopType;
-  items_var?: string;
-  iteratee_var?: string;
-  max_iterations?: number;
-  continue_condition?: string;
-  continue_on_error: boolean;
-  body_steps: string[];
+  loopType: LoopType;
+  itemsVar?: string;
+  iterateeVar?: string;
+  maxIterations?: number;
+  continueCondition?: string;
+  continueOnError: boolean;
+  bodySteps: string[];
   /** 子图定义（可选）。编辑器渲染为可展开/折叠容器框体，内部渲染子节点网格。 */
   subGraph?: SubGraph;
 }
@@ -270,9 +270,9 @@ export interface LoopNode extends WorkflowNodeBase {
 }
 
 export interface MergeNodeConfig {
-  merge_type: MergeStrategy;
+  mergeType: MergeStrategy;
   inputs: string[];
-  auto_inputs_from_branches?: boolean;
+  autoInputsFromBranches?: boolean;
 }
 
 export interface MergeNode extends WorkflowNodeBase {
@@ -281,7 +281,7 @@ export interface MergeNode extends WorkflowNodeBase {
 }
 
 export interface DelayNodeConfig {
-  delay_type: string;
+  delayType: string;
   seconds: number;
   until?: string;
 }
@@ -292,9 +292,9 @@ export interface DelayNode extends WorkflowNodeBase {
 }
 
 export interface ToolNodeConfig {
-  tool_name: string;
-  input_mapping: Record<string, string>;
-  output_var: string;
+  toolName: string;
+  inputMapping: Record<string, string>;
+  outputVar: string;
 }
 
 export interface ToolNode extends WorkflowNodeBase {
@@ -305,9 +305,9 @@ export interface ToolNode extends WorkflowNodeBase {
 export interface CodeNodeConfig {
   language: string;
   code: string;
-  output_var: string;
+  outputVar: string;
   /** Rhai 脚本注册为工具名（language="rhai" 时生效） */
-  tool_name?: string;
+  toolName?: string;
 }
 
 export interface CodeNode extends WorkflowNodeBase {
@@ -316,10 +316,10 @@ export interface CodeNode extends WorkflowNodeBase {
 }
 
 export interface SubWorkflowNodeConfig {
-  sub_workflow_id: string;
-  input_mapping: Record<string, string>;
-  output_var: string;
-  is_async: boolean;
+  subWorkflowId: string;
+  inputMapping: Record<string, string>;
+  outputVar: string;
+  isAsync: boolean;
   /** 子图定义（可选）。与 expandedSubWorkflows 配合，编辑器可在容器内部渲染子工作流节点。 */
   subGraph?: SubGraph;
 }
@@ -332,15 +332,15 @@ export interface SubWorkflowNode extends WorkflowNodeBase {
 /** 工作流引用配置：引用另一个工作流作为子流程执行 */
 export interface WorkflowRefNodeConfig {
   /** 被引用的工作流模板 ID */
-  target_workflow_id: string;
+  targetWorkflowId: string;
   /** 参数注入映射：当前上下文变量名 → 子工作流入参名 */
-  input_mapping: Record<string, string>;
+  inputMapping: Record<string, string>;
   /** 子工作流输出变量名 */
-  output_var: string;
+  outputVar: string;
   /** 超时继承：不设置则使用当前工作流默认超时 */
   timeout?: number;
   /** 上下文传递模式 */
-  context_mode?: "inherit" | "isolated";
+  contextMode?: "inherit" | "isolated";
 }
 
 export interface WorkflowRefNode extends WorkflowNodeBase {
@@ -349,9 +349,9 @@ export interface WorkflowRefNode extends WorkflowNodeBase {
 }
 
 export interface DocumentParserNodeConfig {
-  input_var: string;
-  parser_type: string;
-  output_var: string;
+  inputVar: string;
+  parserType: string;
+  outputVar: string;
 }
 
 export interface DocumentParserNode extends WorkflowNodeBase {
@@ -361,10 +361,10 @@ export interface DocumentParserNode extends WorkflowNodeBase {
 
 export interface VectorRetrieveNodeConfig {
   query: string;
-  knowledge_base_id: string;
-  top_k: number;
-  similarity_threshold?: number;
-  output_var: string;
+  knowledgeBaseId: string;
+  topK: number;
+  similarityThreshold?: number;
+  outputVar: string;
 }
 
 export interface VectorRetrieveNode extends WorkflowNodeBase {
@@ -373,7 +373,7 @@ export interface VectorRetrieveNode extends WorkflowNodeBase {
 }
 
 export interface EndNodeConfig {
-  output_var?: string;
+  outputVar?: string;
 }
 
 export interface EndNode extends WorkflowNodeBase {
@@ -388,8 +388,8 @@ export interface ValidationNodeConfig {
     actual?: string;
     expression?: string;
   }>;
-  on_fail: "stop" | "retry" | "continue";
-  max_retries: number;
+  onFail: "stop" | "retry" | "continue";
+  maxRetries: number;
 }
 
 export interface ValidationNode extends WorkflowNodeBase {
@@ -407,9 +407,9 @@ export interface HttpRequestNodeConfig {
   method: string;
   headers: Record<string, string>;
   body?: string;
-  body_type: string;
-  timeout_secs: number;
-  output_var: string;
+  bodyType: string;
+  timeoutSecs: number;
+  outputVar: string;
 }
 
 export interface HttpRequestNode extends WorkflowNodeBase {
@@ -426,17 +426,17 @@ export interface SwitchCase {
 }
 
 export interface SwitchNodeConfig {
-  input_var: string;
+  inputVar: string;
   cases: SwitchCase[];
-  default_case?: string;
-  match_mode: SwitchMatchMode;
-  /** 使用 LLM 进行智能路由（替代 match_mode 的值匹配） */
-  use_llm?: boolean;
+  defaultCase?: string;
+  matchMode: SwitchMatchMode;
+  /** 使用 LLM 进行智能路由（替代 matchMode 的值匹配） */
+  useLlm?: boolean;
   /** LLM 路由的自定义提示词 */
-  llm_prompt?: string;
+  llmPrompt?: string;
   /** 路由使用的模型 */
-  llm_model?: string;
-  output_var: string;
+  llmModel?: string;
+  outputVar: string;
 }
 
 export interface SwitchNode extends WorkflowNodeBase {
@@ -447,9 +447,9 @@ export interface SwitchNode extends WorkflowNodeBase {
 export interface DatabaseQueryNodeConfig {
   query: string;
   params: string[];
-  connection_name?: string;
-  timeout_secs: number;
-  output_var: string;
+  connectionName?: string;
+  timeoutSecs: number;
+  outputVar: string;
 }
 
 export interface DatabaseQueryNode extends WorkflowNodeBase {
@@ -460,11 +460,11 @@ export interface DatabaseQueryNode extends WorkflowNodeBase {
 export interface NotificationNodeConfig {
   channel: string;
   message: string;
-  webhook_url?: string;
+  webhookUrl?: string;
   recipients: string[];
   subject?: string;
   enabled: boolean;
-  output_var: string;
+  outputVar: string;
 }
 export interface NotificationNode extends WorkflowNodeBase {
   type: "notification";
@@ -474,9 +474,9 @@ export interface NotificationNode extends WorkflowNodeBase {
 export interface ApprovalNodeConfig {
   message: string;
   approver?: string;
-  timeout_secs: number;
-  timeout_action: string;
-  output_var: string;
+  timeoutSecs: number;
+  timeoutAction: string;
+  outputVar: string;
 }
 export interface ApprovalNode extends WorkflowNodeBase {
   type: "approval";
@@ -485,9 +485,9 @@ export interface ApprovalNode extends WorkflowNodeBase {
 
 export interface FileOperationNodeConfig {
   operation: string;
-  file_path: string;
+  filePath: string;
   content?: string;
-  output_var: string;
+  outputVar: string;
 }
 export interface FileOperationNode extends WorkflowNodeBase {
   type: "fileOperation";
@@ -495,9 +495,9 @@ export interface FileOperationNode extends WorkflowNodeBase {
 }
 
 export interface DataTransformerNodeConfig {
-  input_var: string;
+  inputVar: string;
   expression: string;
-  output_var: string;
+  outputVar: string;
 }
 export interface DataTransformerNode extends WorkflowNodeBase {
   type: "dataTransformer";
@@ -509,7 +509,7 @@ export interface WebhookSendNodeConfig {
   method: string;
   body?: string;
   headers: Record<string, string>;
-  output_var: string;
+  outputVar: string;
 }
 export interface WebhookSendNode extends WorkflowNodeBase {
   type: "webhookSend";
@@ -519,7 +519,7 @@ export interface WebhookSendNode extends WorkflowNodeBase {
 export interface LoggingNodeConfig {
   level: string;
   message: string;
-  output_var: string;
+  outputVar: string;
 }
 export interface LoggingNode extends WorkflowNodeBase {
   type: "logging";
@@ -533,12 +533,12 @@ export interface StorageNodeConfig {
   /** 操作模式："insert" | "upsert" | "append" */
   operation: string;
   /** 要存储的数据的变量路径 */
-  input_var: string;
+  inputVar: string;
   /** 存储目标（SQLite 表名 / VectorDB collection / 文件路径） */
   collection: string;
   /** upsert 时用于匹配已有记录的 key 变量路径 */
-  key_var?: string;
-  output_var: string;
+  keyVar?: string;
+  outputVar: string;
 }
 
 export interface StorageNode extends WorkflowNodeBase {
@@ -549,15 +549,15 @@ export interface StorageNode extends WorkflowNodeBase {
 export interface LlmClassifierNodeConfig {
   categories: string[];
   /** 动态分类目录注入口：从工作流 variables 读取类别列表的变量名，优先于静态 categories */
-  categories_var?: string;
+  categoriesVar?: string;
   prompt: string;
   model?: string;
-  input_var: string;
-  output_var: string;
-  /** 置信度阈值（0.0-1.0）：LLM 返回置信度低于阈值时使用 fallback_label 降级 */
-  confidence_threshold?: number;
+  inputVar: string;
+  outputVar: string;
+  /** 置信度阈值（0.0-1.0）：LLM 返回置信度低于阈值时使用 fallbackLabel 降级 */
+  confidenceThreshold?: number;
   /** 置信度不足时的降级标签（可选） */
-  fallback_label?: string;
+  fallbackLabel?: string;
 }
 export interface LlmClassifierNode extends WorkflowNodeBase {
   type: "llmClassifier";
@@ -566,16 +566,16 @@ export interface LlmClassifierNode extends WorkflowNodeBase {
 
 export interface AggregatorNodeConfig {
   strategy: string;
-  input_sources: string[];
+  inputSources: string[];
   /** 等待策略：true=等待所有输入就绪再聚合；false=有输入即聚合 */
-  wait_for_all?: boolean;
-  /** 加权策略的权重系数（与 input_sources 一一对应） */
+  waitForAll?: boolean;
+  /** 加权策略的权重系数（与 inputSources 一一对应） */
   weights?: number[];
   /** llm_summarize 策略的自定义提示词 */
-  summarize_prompt?: string;
+  summarizePrompt?: string;
   /** llm_summarize 策略的模型 */
-  summarize_model?: string;
-  output_var: string;
+  summarizeModel?: string;
+  outputVar: string;
   /** 子图定义（可选）。编辑器渲染为可展开/折叠容器框体，内部渲染子节点网格。 */
   subGraph?: SubGraph;
 }
@@ -588,11 +588,11 @@ export interface EmailNodeConfig {
   to: string[];
   subject: string;
   body: string;
-  smtp_host?: string;
-  smtp_port?: number;
-  smtp_user?: string;
-  smtp_pass?: string;
-  output_var: string;
+  smtpHost?: string;
+  smtpPort?: number;
+  smtpUser?: string;
+  smtpPass?: string;
+  outputVar: string;
 }
 export interface EmailNode extends WorkflowNodeBase {
   type: "email";
@@ -600,13 +600,13 @@ export interface EmailNode extends WorkflowNodeBase {
 }
 
 export interface DebateNodeConfig {
-  debater_steps: string[];
-  max_rounds: number;
-  convergence_prompt?: string;
-  convergence_model?: string;
-  convergence_model_role?: string;
-  topic_var: string;
-  output_var: string;
+  debaterSteps: string[];
+  maxRounds: number;
+  convergencePrompt?: string;
+  convergenceModel?: string;
+  convergenceModelRole?: string;
+  topicVar: string;
+  outputVar: string;
   /** 子图定义（可选）。编辑器渲染为可展开/折叠容器框体，内部渲染子节点网格。 */
   subGraph?: SubGraph;
 }
@@ -619,17 +619,17 @@ export interface DebateNode extends WorkflowNodeBase {
 /** Swarm 节点配置：多 Agent 协作模式 */
 export interface SwarmNodeConfig {
   /** 参与者节点 ID 列表 */
-  agent_steps: string[];
+  agentSteps: string[];
   /** 最大协作轮数 */
-  max_rounds: number;
+  maxRounds: number;
   /** 收敛判断提示文本 */
-  convergence_prompt?: string;
+  convergencePrompt?: string;
   /** 收敛判断模型 */
-  convergence_model?: string;
+  convergenceModel?: string;
   /** 讨论主题变量 */
-  topic_var: string;
+  topicVar: string;
   /** 输出变量名 */
-  output_var: string;
+  outputVar: string;
   /** 子图定义（可选） */
   subGraph?: SubGraph;
 }
@@ -690,7 +690,7 @@ export interface WorkflowEdge {
   sourceHandle?: string;
   target: string;
   targetHandle?: string;
-  edge_type: EdgeType;
+  edgeType: EdgeType;
   label?: string;
 }
 
@@ -701,26 +701,26 @@ export type OnFailureAction =
   | "continueWithDefault";
 
 export interface RetryPolicy {
-  max_retries: number;
-  base_delay_ms: number;
-  max_delay_ms: number;
+  maxRetries: number;
+  baseDelayMs: number;
+  maxDelayMs: number;
 }
 
 export interface CompensationStep {
-  step_id: string;
-  compensate_type: string;
-  target_step: string;
+  stepId: string;
+  compensateType: string;
+  targetStep: string;
 }
 
 export interface ErrorConfig {
-  retry_policy?: RetryPolicy;
-  on_failure: OnFailureAction;
-  error_branch?: string[];
-  compensation_steps?: CompensationStep[];
+  retryPolicy?: RetryPolicy;
+  onFailure: OnFailureAction;
+  errorBranch?: string[];
+  compensationSteps?: CompensationStep[];
 }
 
 export interface RhaiToolDef {
-  tool_name: string;
+  toolName: string;
   description?: string;
   code: string;
 }
@@ -730,14 +730,14 @@ export interface WorkflowTemplateInput {
   description?: string;
   icon: string;
   tags: string[];
-  trigger_config?: TriggerConfig;
+  triggerConfig?: TriggerConfig;
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
-  input_schema?: JsonSchema;
-  output_schema?: JsonSchema;
+  inputSchema?: JsonSchema;
+  outputSchema?: JsonSchema;
   variables: Variable[];
-  error_config?: ErrorConfig;
-  tool_defs?: RhaiToolDef[];
+  errorConfig?: ErrorConfig;
+  toolDefs?: RhaiToolDef[];
 }
 
 export interface WorkflowTemplateResponse {
@@ -772,20 +772,20 @@ export interface TemplateFilter {
 }
 
 export interface ValidationError {
-  error_type: string;
-  node_id?: string;
+  errorType: string;
+  nodeId?: string;
   message: string;
   suggestion?: string;
 }
 
 export interface ValidationWarning {
-  warning_type: string;
-  node_id?: string;
+  warningType: string;
+  nodeId?: string;
   message: string;
 }
 
 export interface ValidationResult {
-  is_valid: boolean;
+  isValid: boolean;
   errors: ValidationError[];
   warnings: ValidationWarning[];
 }
@@ -827,27 +827,27 @@ export interface ValidationSpec {
 /** `apply_edit_asset_file` 命令的返回结果(后端 `EditAssetFileResult`) */
 export interface EditAssetFileResult {
   /** 改动后的完整文件内容 */
-  new_content: string;
+  newContent: string;
   /** 简单的 unified diff(无颜色,前端可展示) */
   diff: string;
   /** 改动的起始行号(1-based,用于前端高亮) */
-  changed_start_line: number;
+  changedStartLine: number;
   /** 改动的结束行号(1-based,包含) */
-  changed_end_line: number;
+  changedEndLine: number;
 }
 
 /** `apply_diff_with_validation` 命令的返回结果(后端 `ApplyDiffValidationResult`) */
 export interface ApplyDiffValidationResult {
   /** 验证是否通过 */
-  validation_passed: boolean;
+  validationPassed: boolean;
   /** 实际应用的 action 数(部分失败时可能 < inputs) */
-  applied_count: number;
+  appliedCount: number;
   /** 已应用的 action 列表(action_type 字符串) */
   applied: string[];
   /** 验证指标(由 validation hook 填) */
-  validation_metrics: Record<string, unknown>;
+  validationMetrics: Record<string, unknown>;
   /** 是否发生了回滚 */
-  rolled_back: boolean;
+  rolledBack: boolean;
   /** 错误信息(任一 action 失败时) */
   error: string | null;
 }
@@ -858,64 +858,64 @@ export interface ApplyDiagnosticFixesResult {
   received: number;
   /** 去重后的 fix 数(实际进入调度器的) */
   deduped: number;
-  /** 调度器结果:validation_passed(true/false/none) */
-  validation_passed: boolean;
+  /** 调度器结果:validationPassed(true/false/none) */
+  validationPassed: boolean;
   /** 已应用的 action 列表(action_type 字符串) */
   applied: string[];
   /** 是否发生了回滚 */
-  rolled_back: boolean;
+  rolledBack: boolean;
   /** 错误信息(任一 action 失败时) */
   error: string | null;
 }
 
 export type DiagnosticFix =
   | {
-    action_type: "set_node_field";
-    node_id: string;
+    actionType: "set_node_field";
+    nodeId: string;
     field: string;
     value: unknown;
   }
-  | { action_type: "delete_node"; node_id: string }
-  | { action_type: "delete_edge"; edge_id: string }
-  | { action_type: "enable_retry"; node_id: string; max_retries: number }
-  | { action_type: "set_timeout"; node_id: string; timeout_ms: number }
-  | { action_type: "remove_debater_step"; node_id: string; step_id: string }
+  | { actionType: "delete_node"; nodeId: string }
+  | { actionType: "delete_edge"; edgeId: string }
+  | { actionType: "enable_retry"; nodeId: string; maxRetries: number }
+  | { actionType: "set_timeout"; nodeId: string; timeoutMs: number }
+  | { actionType: "remove_debater_step"; nodeId: string; stepId: string }
   | {
-    action_type: "update_variable";
-    template_id: string;
+    actionType: "update_variable";
+    templateId: string;
     name: string;
     value: unknown;
   }
   | {
-    action_type: "update_input_mapping";
-    node_id: string;
+    actionType: "update_input_mapping";
+    nodeId: string;
     mappings: Array<{ target: string; source: string }>;
   }
   | {
-    action_type: "edit_asset_file";
+    actionType: "edit_asset_file";
     path: string;
     operation: EditAssetOperation;
-    anchor_line: number;
+    anchorLine: number;
     /** insert_after / replace 时必填;delete 时可省 */
     code?: string;
     description: string;
   }
-  | { action_type: "rollback_to_version"; template_id: string; version: number };
+  | { actionType: "rollback_to_version"; templateId: string; version: number };
 
 export interface DiagnosticIssue {
   id: string;
   severity: DiagnosticSeverity;
   category: DiagnosticCategory;
-  title_key: string;
-  message_key: string;
-  message_params?: Record<string, string | number>;
-  node_ids: string[];
-  edge_ids?: string[];
-  auto_fixable: boolean;
+  titleKey: string;
+  messageKey: string;
+  messageParams?: Record<string, string | number>;
+  nodeIds: string[];
+  edgeIds?: string[];
+  autoFixable: boolean;
   fix?: DiagnosticFix;
-  title_override?: string;
-  detail_override?: string;
-  suggestion_override?: string;
+  titleOverride?: string;
+  detailOverride?: string;
+  suggestionOverride?: string;
 }
 
 export interface DiagnosticSummary {
@@ -928,9 +928,9 @@ export interface DiagnosticReport {
   issues: DiagnosticIssue[];
   summary: DiagnosticSummary;
   /** 报告生成时间（ms epoch） */
-  generated_at: number;
+  generatedAt: number;
   /** 规则诊断耗时（毫秒） */
-  duration_ms: number;
+  durationMs: number;
 }
 
 export const NODE_CATEGORIES = [
@@ -1267,14 +1267,14 @@ export const NODE_TYPE_MAP: Record<
 };
 
 export interface SkillMatchResult {
-  existing_skill: { id: string; name: string };
-  similarity_score: number;
-  match_reasons: string[];
+  existingSkill: { id: string; name: string };
+  similarityScore: number;
+  matchReasons: string[];
 }
 
 export interface NodeSkillMatch {
-  node_id: string | null;
-  skill_name: string;
+  nodeId: string | null;
+  skillName: string;
   matches: SkillMatchResult[];
 }
 
@@ -1287,36 +1287,36 @@ export type SkillReplacementAction = "replace" | "keep" | "upgrade_existing";
 export interface SkillUpgradeSuggestion {
   name: string;
   description: string;
-  input_schema: Record<string, unknown> | null;
-  output_schema: Record<string, unknown> | null;
+  inputSchema: Record<string, unknown> | null;
+  outputSchema: Record<string, unknown> | null;
   reasoning: string;
 }
 
 export interface SkillUpgradeRequest {
-  existing_skill_id: string;
-  generated_name: string;
-  generated_description: string;
-  generated_input_schema: Record<string, unknown> | null;
-  generated_output_schema: Record<string, unknown> | null;
+  existingSkillId: string;
+  generatedName: string;
+  generatedDescription: string;
+  generatedInputSchema: Record<string, unknown> | null;
+  generatedOutputSchema: Record<string, unknown> | null;
 }
 
 export interface ToolInfo {
-  tool_name: string;
-  tool_type: string;
+  toolName: string;
+  toolType: string;
   description: string;
 }
 
 export interface ToolMatchResult {
-  tool_name: string;
-  tool_type: string;
+  toolName: string;
+  toolType: string;
   description: string;
-  similarity_score: number;
-  match_reasons: string[];
+  similarityScore: number;
+  matchReasons: string[];
 }
 
 export interface NodeToolMatch {
-  node_id: string | null;
-  tool_name: string;
+  nodeId: string | null;
+  toolName: string;
   matches: ToolMatchResult[];
 }
 
@@ -1329,21 +1329,21 @@ export type ToolReplacementAction = "replace" | "keep" | "upgrade_existing";
 export interface ToolUpgradeSuggestion {
   name: string;
   description: string;
-  input_schema: Record<string, unknown> | null;
-  output_schema: Record<string, unknown> | null;
+  inputSchema: Record<string, unknown> | null;
+  outputSchema: Record<string, unknown> | null;
   reasoning: string;
 }
 
 export interface ToolUpgradeRequest {
-  existing_tool_name: string;
-  existing_tool_description: string;
-  existing_tool_type: string;
-  existing_input_schema: Record<string, unknown> | null;
-  existing_output_schema: Record<string, unknown> | null;
-  generated_name: string;
-  generated_description: string;
-  generated_input_schema: Record<string, unknown> | null;
-  generated_output_schema: Record<string, unknown> | null;
+  existingToolName: string;
+  existingToolDescription: string;
+  existingToolType: string;
+  existingInputSchema: Record<string, unknown> | null;
+  existingOutputSchema: Record<string, unknown> | null;
+  generatedName: string;
+  generatedDescription: string;
+  generatedInputSchema: Record<string, unknown> | null;
+  generatedOutputSchema: Record<string, unknown> | null;
 }
 
 /**
@@ -1352,46 +1352,46 @@ export interface ToolUpgradeRequest {
  * 前端以 discriminated union 解析，applyAiChatAction 按 action_type 分发。
  */
 export type AiChatAction =
-  | { action_type: "generate_workflow"; data: { nodes: WorkflowNode[]; edges: WorkflowEdge[] } }
-  | { action_type: "add_node"; data: { node: WorkflowNode; position?: { x: number; y: number } } }
-  | { action_type: "add_nodes"; data: { nodes: WorkflowNode[] } }
-  | { action_type: "update_node"; data: { node_id: string; changes: Partial<WorkflowNode> } }
-  | { action_type: "modify_node"; data: { node_id: string; changes: Record<string, unknown> } }
-  | { action_type: "delete_node"; data: { node_id: string } }
-  | { action_type: "delete_nodes"; data: { node_ids: string[] } }
-  | { action_type: "add_edge"; data: { edge: WorkflowEdge } }
-  | { action_type: "update_edge"; data: { edge_id: string; changes: Partial<WorkflowEdge> } }
-  | { action_type: "delete_edge"; data: { edge_id: string } }
-  | { action_type: "optimize_prompt"; data: { node_id: string; optimized_prompt: string } }
+  | { actionType: "generate_workflow"; data: { nodes: WorkflowNode[]; edges: WorkflowEdge[] } }
+  | { actionType: "add_node"; data: { node: WorkflowNode; position?: { x: number; y: number } } }
+  | { actionType: "add_nodes"; data: { nodes: WorkflowNode[] } }
+  | { actionType: "update_node"; data: { nodeId: string; changes: Partial<WorkflowNode> } }
+  | { actionType: "modify_node"; data: { nodeId: string; changes: Record<string, unknown> } }
+  | { actionType: "delete_node"; data: { nodeId: string } }
+  | { actionType: "delete_nodes"; data: { nodeIds: string[] } }
+  | { actionType: "add_edge"; data: { edge: WorkflowEdge } }
+  | { actionType: "update_edge"; data: { edgeId: string; changes: Partial<WorkflowEdge> } }
+  | { actionType: "delete_edge"; data: { edgeId: string } }
+  | { actionType: "optimize_prompt"; data: { nodeId: string; optimizedPrompt: string } }
   // ── v2.0 基础设施类 action(与后端 workflow_ai_protocol::ChatAction 对齐)──
-  | { action_type: "update_variable"; data: { template_id: string; name: string; value: unknown } }
-  | { action_type: "rollback_to_version"; data: { template_id: string; version: number } }
+  | { actionType: "update_variable"; data: { templateId: string; name: string; value: unknown } }
+  | { actionType: "rollback_to_version"; data: { templateId: string; version: number } }
   | {
-    action_type: "update_input_mapping";
+    actionType: "update_input_mapping";
     data: {
-      node_id: string;
+      nodeId: string;
       mappings: Array<{ target: string; source: string }>;
     };
   }
   | {
-    action_type: "edit_asset_file";
+    actionType: "edit_asset_file";
     data: {
       path: string;
       operation: EditAssetOperation;
-      anchor_line: number;
+      anchorLine: number;
       /** insert_after / replace 时必填;delete 时可省 */
       code?: string;
       description: string;
     };
   }
   | {
-    action_type: "apply_diff_with_validation";
+    actionType: "apply_diff_with_validation";
     data: {
       actions: AiChatAction[];
       validation: ValidationSpec;
-      rollback_on_failure?: boolean;
+      rollbackOnFailure?: boolean;
     };
   };
 
-/** AiChatAction 的 action_type 联合类型（用于 switch 穷尽性检查） */
-export type AiChatActionType = AiChatAction["action_type"];
+/** AiChatAction 的 actionType 联合类型（用于 switch 穷尽性检查） */
+export type AiChatActionType = AiChatAction["actionType"];

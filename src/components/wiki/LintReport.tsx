@@ -55,7 +55,7 @@ export function LintReport({ wikiId }: LintReportProps) {
     const result = await lintNote(noteId);
     if (result) {
       setLintResults((prev) => {
-        const index = prev.findIndex((r) => r.note_id === noteId);
+        const index = prev.findIndex((r) => r.noteId === noteId);
         if (index >= 0) {
           const updated = [...prev];
           updated[index] = result;
@@ -103,8 +103,8 @@ export function LintReport({ wikiId }: LintReportProps) {
   const columns = [
     {
       title: t("wiki.lint.note"),
-      dataIndex: "note_id",
-      key: "note_id",
+      dataIndex: "noteId",
+      key: "noteId",
       render: (noteId: string) => {
         const note = notes.find((n) => n.id === noteId);
         return note?.title || noteId;
@@ -176,13 +176,13 @@ export function LintReport({ wikiId }: LintReportProps) {
             <Button
               size="small"
               icon={<ReloadOutlined />}
-              onClick={() => handleLintNote(record.note_id)}
+              onClick={() => handleLintNote(record.noteId)}
             />
           </Tooltip>
           <Tooltip title={t("wiki.lint.updateScore")}>
             <Button
               size="small"
-              onClick={() => handleUpdateScore(record.note_id)}
+              onClick={() => handleUpdateScore(record.noteId)}
             >
               {t("wiki.lint.updateScore")}
             </Button>
@@ -239,7 +239,7 @@ export function LintReport({ wikiId }: LintReportProps) {
 
         <Table
           dataSource={lintResults}
-          rowKey="note_id"
+          rowKey="noteId"
           columns={columns}
           loading={loading}
           pagination={{ pageSize: 10 }}
@@ -270,7 +270,7 @@ export function LintReport({ wikiId }: LintReportProps) {
             <Card size="small">
               <Space>
                 <Text strong>{t("wiki.lint.note")}:</Text>
-                <Text>{currentResult.note_id}</Text>
+                <Text>{currentResult.noteId}</Text>
                 <Progress
                   percent={currentResult.score}
                   size="small"

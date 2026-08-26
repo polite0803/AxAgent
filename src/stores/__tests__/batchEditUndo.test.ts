@@ -36,7 +36,7 @@ function makeNode(id: string): WorkflowNode {
     description: "",
     position: { x: 0, y: 0 },
     config: {},
-    retry: { enabled: false, max_retries: 0, backoff_type: "Fixed", base_delay_ms: 0, max_delay_ms: 0 },
+    retry: { enabled: false, maxRetries: 0, backoffType: "Fixed", baseDelayMs: 0, maxDelayMs: 0 },
     enabled: true,
   } as unknown as WorkflowNode; /* SAFE: test mock data construction */
 }
