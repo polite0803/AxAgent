@@ -1,13 +1,32 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <!--
   SPDX-License-Identifier: AGPL-3.0-only
-  Common Controls v6 manifest — 嵌入测试二进制，规避 tauri 已知问题
-  STATUS_ENTRYPOINT_NOT_FOUND (0xc0000139)：cargo test 生成的 exe 未声明
-  comctl32 v6 依赖时，tauri/wry 引用的 v6 入口点找不到。
+  AxAgent Windows manifest — 同时用于主程序和测试二进制
+  包含: Common Controls v6 依赖 + DPI 感知 + UTF-8 代码页
   参考: https://github.com/tauri-apps/tauri/issues/11028
-       https://github.com/tauri-apps/tauri/discussions/11179
 -->
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <assemblyIdentity
+    type="win32"
+    name="AxAgent"
+    version="2.9.8.0"
+    processorArchitecture="*"
+  />
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+    <security>
+      <requestedPrivileges>
+        <requestedExecutionLevel level="asInvoker" uiAccess="false" />
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+  <application xmlns="urn:schemas-microsoft-com:asm.v3">
+    <windowsSettings>
+      <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/PM</dpiAware>
+      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">permonitorv2</dpiAwareness>
+      <activeCodePage xmlns="http://schemas.microsoft.com/SMI/2019/WindowsSettings">UTF-8</activeCodePage>
+      <longPathAware xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">true</longPathAware>
+    </windowsSettings>
+  </application>
   <dependency>
     <dependentAssembly>
       <assemblyIdentity
