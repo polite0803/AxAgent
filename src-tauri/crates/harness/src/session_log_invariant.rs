@@ -388,7 +388,7 @@ mod tests {
         let log = DiskSessionLog::new(&root).unwrap();
         log.record_model_visible("s1", ModelVisibleContent::from_chat_message(&user("原始内容")));
         // 直接改文件内容，指纹不再匹配
-        std::fs::write(root.join("s1.jsonl"), "{\"role\":\"user\",\"text\":\"被篡改\",\"tool_names\":[],\"content_hash\":\"deadbeef\"}\n").unwrap();
+        std::fs::write(root.join("s1.jsonl"), "{\"role\":\"user\",\"text\":\"被篡改\",\"toolNames\":[],\"contentHash\":\"deadbeef\"}\n").unwrap();
         let err = log.assert_replayable("s1").unwrap_err();
         assert!(err.detail.contains("指纹不匹配"));
         std::fs::remove_dir_all(&root).unwrap();
