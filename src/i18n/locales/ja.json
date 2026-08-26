@@ -11113,7 +11113,11 @@
       "skipped": "スキップ",
       "cancelled": "キャンセル",
       "success": "成功",
-      "waiting": "待機中"
+      "waiting": "待機中",
+      "reExecute": "再実行",
+      "secret": "機密",
+      "required": "必須",
+      "requiredField": "{{name}} を入力してください"
     },
     "existingSkill": "既存スキル",
     "expandLeftPanel": "左パネルを展開",
@@ -12120,7 +12124,10 @@
       "version": "バージョン",
       "community": "コミュニティ",
       "recommended": "推奨",
-      "all": "すべて"
+      "all": "すべて",
+      "run": "実行",
+      "domainPlaceholder": "領域で絞り込む...",
+      "allDomains": "すべての領域"
     },
     "systemTemplateList": {
       "edit": "編集",

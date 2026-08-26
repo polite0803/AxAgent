@@ -8,3 +8,4 @@ export { RightPanel } from "./Panels/RightPanel";
 export { StatusBar } from "./StatusBar/EditorStatusBar";
 export * from "./types";
 export { WorkflowEditor } from "./WorkflowEditor";
+export { WorkflowExecutor } from "./WorkflowExecutor";

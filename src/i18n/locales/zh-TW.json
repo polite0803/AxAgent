@@ -11113,7 +11113,11 @@
       "skipped": "已跳過",
       "cancelled": "已取消",
       "success": "成功",
-      "waiting": "等待中"
+      "waiting": "等待中",
+      "reExecute": "重新執行",
+      "secret": "機密",
+      "required": "必填",
+      "requiredField": "請輸入 {{name}}"
     },
     "existingSkill": "現有技能",
     "expandLeftPanel": "展開左側面板",
@@ -12120,7 +12124,10 @@
       "version": "版本",
       "community": "社群",
       "recommended": "推薦",
-      "all": "全部"
+      "all": "全部",
+      "run": "執行",
+      "domainPlaceholder": "篩選領域...",
+      "allDomains": "全部領域"
     },
     "systemTemplateList": {
       "edit": "編輯",

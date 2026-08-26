@@ -11121,7 +11121,11 @@
       "skipped": "已跳过",
       "cancelled": "已取消",
       "success": "成功",
-      "waiting": "等待中"
+      "waiting": "等待中",
+      "reExecute": "重新执行",
+      "secret": "机密",
+      "required": "必填",
+      "requiredField": "请输入 {{name}}"
     },
     "existingSkill": "已有技能",
     "expandLeftPanel": "展开左侧面板",
@@ -12128,7 +12132,10 @@
       "version": "版本",
       "community": "社区",
       "recommended": "推荐",
-      "all": "全部"
+      "all": "全部",
+      "run": "运行",
+      "domainPlaceholder": "筛选领域...",
+      "allDomains": "全部领域"
     },
     "systemTemplateList": {
       "edit": "编辑",
