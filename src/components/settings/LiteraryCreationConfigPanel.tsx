@@ -123,13 +123,13 @@ export function LiteraryCreationConfigPanel(_props: Props) {
             description: rsp.description,
             icon: rsp.icon,
             tags: rsp.tags,
-            trigger_config: rsp.trigger_config,
+            trigger_config: rsp.triggerConfig,
             nodes: rsp.nodes,
             edges: rsp.edges,
-            input_schema: rsp.input_schema,
-            output_schema: rsp.output_schema,
+            input_schema: rsp.inputSchema,
+            output_schema: rsp.outputSchema,
             variables: defaults,
-            error_config: rsp.error_config,
+            error_config: rsp.errorConfig,
           };
           invoke<boolean>("update_workflow_template", { id: TEMPLATE_ID, input }).catch(() => {});
           rsp.variables = defaults;
@@ -170,14 +170,14 @@ export function LiteraryCreationConfigPanel(_props: Props) {
       description: template.description,
       icon: template.icon,
       tags: template.tags,
-      trigger_config: template.trigger_config,
+      trigger_config: template.triggerConfig,
       nodes: template.nodes,
       edges: template.edges,
-      input_schema: template.input_schema,
-      output_schema: template.output_schema,
+      input_schema: template.inputSchema,
+      output_schema: template.outputSchema,
       variables: updatedVars,
-      error_config: template.error_config,
-      tool_defs: template.tool_defs,
+      error_config: template.errorConfig,
+      tool_defs: template.toolDefs,
     };
     try {
       await invoke<boolean>("update_workflow_template", { id: TEMPLATE_ID, input });
