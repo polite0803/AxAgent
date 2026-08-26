@@ -6,6 +6,7 @@
  * 工作流采用向导模式，点击"开始"后通过分步向导引导用户配置并执行
  */
 
+import { EditOutlined } from "@ant-design/icons";
 import { Alert, Button, Card, Empty, message, Tag, Typography } from "antd";
 import { Settings } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -32,6 +33,33 @@ function findTab(config: IndustryConfig, tabKey: string): IndustryTab | undefine
   return config.tabs?.find((t) => t.key === tabKey);
 }
 
+function resolveTemplateId(
+  action: ActionItem,
+  tab?: IndustryTab,
+): string | undefined {
+  // 1. 优先使用 action 显式指定的 template_id
+  if (action.template_id) {
+    return action.template_id;
+  }
+
+  // 2. 在当前 tab 的 workflows 中查找匹配项
+  if (tab?.workflows?.length) {
+    // 尝试用 action.key 匹配 workflow.id 或 workflow.template_id
+    const wf = tab.workflows.find(
+      (w) => w.id === action.key || w.template_id === action.key,
+    );
+    if (wf?.template_id) {
+      return wf.template_id;
+    }
+    // 如果 workflow 只有一个，直接使用其 template_id
+    if (tab.workflows.length === 1 && tab.workflows[0].template_id) {
+      return tab.workflows[0].template_id;
+    }
+  }
+
+  return undefined;
+}
+
 export function IndustryTabContent({ industryId, config, tabKey }: IndustryTabContentProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -55,7 +83,12 @@ export function IndustryTabContent({ industryId, config, tabKey }: IndustryTabCo
     }
 
     if (action.type === "workflow") {
-      navigate(`/workflow/new?industry=${industryId}&template=${action.key}`);
+      const templateId = resolveTemplateId(action, tab);
+      if (templateId) {
+        navigate(`/workflow/new?industry=${industryId}&template=${templateId}`);
+      } else {
+        message.error(t("opc.industry.workflowTemplateNotFound"));
+      }
       return;
     }
 
@@ -104,6 +137,11 @@ export function IndustryTabContent({ industryId, config, tabKey }: IndustryTabCo
   const handleStartWorkflow = (wf: IndustryWorkflow) => {
     setActiveWorkflow(wf);
     setWizardOpen(true);
+  };
+
+  const handleOpenWorkflowEditor = (wf: IndustryWorkflow) => {
+    const templateId = wf.template_id || wf.id;
+    navigate(`/workflow/new?industry=${industryId}&template=${templateId}`);
   };
 
   const handleWizardClose = () => {
@@ -249,6 +287,13 @@ export function IndustryTabContent({ industryId, config, tabKey }: IndustryTabCo
                       {t("opc.refactor.settings.saveConfig")}
                     </Button>
                   )}
+                  <Button
+                    size="small"
+                    icon={<EditOutlined />}
+                    onClick={() => handleOpenWorkflowEditor(wf)}
+                  >
+                    {t("opc.industry.wizard.edit")}
+                  </Button>
                   <Button
                     size="small"
                     type="primary"

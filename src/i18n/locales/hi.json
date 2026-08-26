@@ -4877,6 +4877,7 @@
         "trend_declining": "गिरावट"
       },
       "noProviderConfig": "Please configure a default AI provider first",
+      "workflowTemplateNotFound": "वर्कफ़्लो टेम्पलेट नहीं मिला",
       "noWorkflows": "No workflows for this industry",
       "notFound": "Industry not found",
       "presetWorkflows": "Industry Preset Workflows",
@@ -5830,6 +5831,7 @@
       },
       "wizard": {
         "start": "Start",
+        "edit": "संपादित करें",
         "title": "Execute Workflow: {{name}}",
         "defaultTitle": "Workflow Wizard",
         "back": "Back",

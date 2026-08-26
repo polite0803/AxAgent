@@ -40,13 +40,27 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 .with_detail(format!("查询工作流模板失败: {e}"))
         })?
     {
-        if existing.version >= TEMPLATE_VERSION {
+        // 检查节点数据完整性：如果节点或边为空，即使版本号满足也需要强制重新种子化
+        let nodes_empty =
+            existing.nodes.is_empty() || existing.nodes == "[]" || existing.nodes == "null";
+        let edges_empty =
+            existing.edges.is_empty() || existing.edges == "[]" || existing.edges == "null";
+
+        if nodes_empty || edges_empty {
+            tracing::warn!(
+                "[stock_analysis_setup] 模板 v{} 节点/边数据为空 (nodes_empty={}, edges_empty={})，强制重新种子化",
+                existing.version,
+                nodes_empty,
+                edges_empty
+            );
+        } else if existing.version >= TEMPLATE_VERSION {
             tracing::info!(
                 "[stock_analysis_setup] 模板已是最新版本 v{}，跳过种子化以保留用户修改",
                 existing.version
             );
             return Ok(());
         }
+
         tracing::info!(
             "[stock_analysis_setup] 更新股票分析工作流模板 v{} → v{TEMPLATE_VERSION}",
             existing.version

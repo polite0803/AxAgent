@@ -4537,6 +4537,7 @@
       },
       "wizard": {
         "start": "开始",
+        "edit": "编辑",
         "title": "执行工作流：{{name}}",
         "defaultTitle": "工作流向导",
         "back": "上一步",
@@ -4575,6 +4576,7 @@
         "trend_declining": "下降趋势"
       },
       "noProviderConfig": "请先配置默认 AI 提供商",
+      "workflowTemplateNotFound": "未找到对应的工作流模板",
       "noWorkflows": "该行业暂无工作流",
       "notFound": "行业不存在",
       "nav": {

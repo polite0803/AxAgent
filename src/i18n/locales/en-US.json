@@ -4537,6 +4537,7 @@
       },
       "wizard": {
         "start": "Start",
+        "edit": "Edit",
         "title": "Execute Workflow: {{name}}",
         "defaultTitle": "Workflow Wizard",
         "back": "Back",
@@ -4575,6 +4576,7 @@
         "trend_declining": "Declining"
       },
       "noProviderConfig": "Please configure a default AI provider first",
+      "workflowTemplateNotFound": "Workflow template not found",
       "noWorkflows": "No workflows for this industry",
       "notFound": "Industry not found",
       "nav": {

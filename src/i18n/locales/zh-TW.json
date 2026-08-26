@@ -4877,6 +4877,7 @@
         "trend_declining": "下降趨勢"
       },
       "noProviderConfig": "Please configure a default AI provider first",
+      "workflowTemplateNotFound": "找不到對應的工作流模板",
       "noWorkflows": "No workflows for this industry",
       "notFound": "Industry not found",
       "presetWorkflows": "Industry Preset Workflows",
@@ -5829,7 +5830,8 @@
         }
       },
       "wizard": {
-        "start": "开始",
+        "start": "開始",
+        "edit": "編輯",
         "title": "执行工作流：{{name}}",
         "defaultTitle": "工作流向导",
         "back": "上一步",

@@ -4877,6 +4877,7 @@
         "trend_declining": "Снижение"
       },
       "noProviderConfig": "Please configure a default AI provider first",
+      "workflowTemplateNotFound": "Шаблон рабочего процесса не найден",
       "noWorkflows": "No workflows for this industry",
       "notFound": "Industry not found",
       "presetWorkflows": "Industry Preset Workflows",
@@ -5830,6 +5831,7 @@
       },
       "wizard": {
         "start": "Start",
+        "edit": "Редактировать",
         "title": "Execute Workflow: {{name}}",
         "defaultTitle": "Workflow Wizard",
         "back": "Back",

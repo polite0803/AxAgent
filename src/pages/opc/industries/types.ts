@@ -85,6 +85,8 @@ export interface IndustryWorkflow {
   name: string;
   description: string;
   version: string;
+  /** 关联的工作流模板 ID（用于在编辑器中打开，不传则通过 id 查找） */
+  template_id?: string;
   /** 用户输入字段（非空时前端渲染表单） */
   inputFields?: WorkflowInputField[];
   /**
@@ -101,6 +103,8 @@ export interface ActionItem {
   icon: ReactNode;
   type: "conversation" | "workflow";
   label?: string;
+  /** 工作流模板 ID（type=workflow 时指定要打开的模板，不传则查找关联 workflow 的 template_id） */
+  template_id?: string;
 }
 
 /** Tab 业务阶段配置 */

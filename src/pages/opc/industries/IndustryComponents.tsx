@@ -578,7 +578,8 @@ export function IndustryActionsPanel({
     }
 
     if (action.type === "workflow") {
-      navigate(`/workflow/new?industry=${industryId}&template=${action.key}`);
+      const templateId = action.template_id || action.key;
+      navigate(`/workflow/new?industry=${industryId}&template=${templateId}`);
       return;
     }
 

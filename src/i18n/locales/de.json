@@ -4877,6 +4877,7 @@
         "trend_declining": "Rückgang"
       },
       "noProviderConfig": "Please configure a default AI provider first",
+      "workflowTemplateNotFound": "Workflow-Vorlage nicht gefunden",
       "noWorkflows": "No workflows for this industry",
       "notFound": "Industry not found",
       "presetWorkflows": "Industry Preset Workflows",
@@ -5830,6 +5831,7 @@
       },
       "wizard": {
         "start": "Start",
+        "edit": "Bearbeiten",
         "title": "Execute Workflow: {{name}}",
         "defaultTitle": "Workflow Wizard",
         "back": "Back",
