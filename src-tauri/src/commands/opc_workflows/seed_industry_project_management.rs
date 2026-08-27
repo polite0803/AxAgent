@@ -1,149 +1,135 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! 项目管理行业工作流模板种子化（代码驱动，3步流程）。
-//!
-//! 流程：手动启动 → 项目启动 → 进度报告 → 项目收尾 → 完成
+//! 项目管理流程行业工作流模板种子化（v4 丰富拓扑：LLM 条件门 + 修正分支 + 汇合）。
+//! 模板 ID：project_management_harness_workflow
 
 use axagent_harness::capability::Visibility;
 use axagent_harness::workflow_types::{
-    AgentNode, AgentNodeConfig, EdgeType, EndNode, EndNodeConfig, OutputMode, ToolDef,
-    TriggerConfig, TriggerNode, TriggerType, WorkflowEdge, WorkflowNode, WorkflowTemplateData,
+    EdgeType, TriggerConfig, TriggerType, WorkflowTemplateData,
 };
 use sea_orm::DatabaseConnection;
-use std::collections::HashMap;
+
+use super::seed_domain_helpers::*;
 
 const TEMPLATE_ID: &str = "project_management_harness_workflow";
-const TEMPLATE_VERSION: i32 = 3;
+const TEMPLATE_VERSION: i32 = 4;
 
-// ── 辅助函数 ──
-
-fn make_agent_node(
-    id: &str,
-    title: &str,
-    prompt: &str,
-    tools: Vec<ToolDef>,
-    output_var: &str,
-    x: f64,
-    y: f64,
-) -> WorkflowNode {
-    WorkflowNode::Agent(AgentNode {
-        base: super::make_base(id, title, "", x, y),
-        config: AgentNodeConfig {
-            system_prompt: prompt.to_string(),
-            context_sources: vec![],
-            input_mapping: HashMap::new(),
-            output_var: output_var.to_string(),
-            model: None,
-            temperature: None,
-            max_tokens: None,
-            tools,
-            exposed_tools: vec![],
-            output_mode: OutputMode::Json,
-            agent_profile_id: None,
-            max_tool_rounds: Some(10),
-            execution_mode: None,
-            rag_source_ids: vec![],
-            model_role: Some("opc-worker".to_string()),
-            consistency_check: None,
-            hallucination_guard: None,
-            fallback_model: None,
-            task_scene: None,
-            stream_chunk_timeout_secs: None,
-        },
-    })
-}
-
-fn make_trigger(x: f64, y: f64) -> WorkflowNode {
-    WorkflowNode::Trigger(TriggerNode {
-        base: super::make_base("trigger", "开始", "手动触发", x, y),
-        config: TriggerConfig { trigger_type: TriggerType::Manual, config: serde_json::json!({}) },
-    })
-}
-
-fn make_end(x: f64, y: f64) -> WorkflowNode {
-    WorkflowNode::End(EndNode {
-        base: super::make_base("end", "完成", "工作流结束", x, y),
-        config: EndNodeConfig { output_var: None },
-    })
-}
-
-fn edge(id: &str, source: &str, target: &str) -> WorkflowEdge {
-    WorkflowEdge {
-        id: id.into(),
-        source: source.into(),
-        source_handle: None,
-        target: target.into(),
-        target_handle: None,
-        edge_type: EdgeType::Direct,
-        label: None,
-    }
-}
-
-fn td(name: &str) -> ToolDef {
-    ToolDef { name: name.into(), description: None, parameters: None }
-}
-
-/// 种子化项目管理行业工作流模板。
 pub async fn seed_industry_project_management_workflow_template(
     db: &DatabaseConnection,
 ) -> Result<(), String> {
-    // 检查版本
     let should_seed = super::check_template_version(db, TEMPLATE_ID, TEMPLATE_VERSION).await?;
     if !should_seed {
         return Ok(());
     }
 
     let nodes = vec![
-        // 1. 触发节点
-        make_trigger(250.0, 0.0),
-        // 2. 项目启动
+        make_trigger(0.0, 0.0),
         make_agent_node(
             "step_project_management",
             "项目启动",
-            "你是一名项目经理。请制定项目章程与启动计划，明确项目范围、目标、里程碑与团队角色。输出 JSON {charter, milestones, team_roles, resource_plan}",
+            "你是项目启动专家。执行「项目启动」：结合上游输入，输出结构化 JSON 结果（含关键指标、结论与建议）。",
             vec![td("OpcCreateProject"), td("OpcAddMilestone")],
-            "step_project_management_result",
-            250.0,
-            150.0,
+            None,
+            "step_project_management",
+            0.0,
+            180.0,
         ),
-        // 3. 进度报告
-        make_agent_node(
+        make_agent_node_full(
             "step2_project_management",
             "进度报告",
-            "你是一名项目进度管理员。请生成进度报告并识别风险，跟踪里程碑完成情况。输出 JSON {progress, blockers, risk_register, next_actions}",
-            vec![td("OpcListProjects"), td("OpcAddMilestone"), td("OpcSendNotification")],
-            "step2_project_management_result",
-            250.0,
-            350.0,
+            "你是进度报告专家。执行「进度报告」：结合上游输入，输出结构化 JSON 结果（含关键指标、结论与建议）。",
+            vec![td("OpcListProjects"), td("OpcAddMilestone")],
+            None,
+            "step2_project_management",
+            vec![("input", "step_project_management")],
+            vec!["step_project_management"],
+            0.0,
+            360.0,
         ),
-        // 4. 项目收尾
-        make_agent_node(
+        make_condition_node_llm(
+            "c-project_management-gate",
+            "质量门",
+            "根据项目启动结果判断：项目启动准备是否就绪（是→true 进度报告，否→false 启动补全）",
+            "step2_project_management",
+            0.0,
+            540.0,
+        ),
+        make_agent_node_full(
             "step3_project_management",
             "项目收尾",
-            "你是一名项目收尾经理。请完成项目收尾工作，包括验收、总结与绩效评估。输出 JSON {acceptance, lessons_learned, performance_review, kpi_results}",
-            vec![td("OpcListProjects"), td("OpcRecordKpi")],
-            "step3_project_management_result",
-            250.0,
-            550.0,
+            "你是项目收尾专家。执行「项目收尾」：结合上游输入，输出结构化 JSON 结果（含关键指标、结论与建议）。",
+            vec![td("OpcListProjects"), td("OpcSendNotification")],
+            None,
+            "step3_project_management",
+            vec![("input", "step2_project_management")],
+            vec!["step2_project_management"],
+            -250.0,
+            720.0,
         ),
-        // 5. 结束节点
-        make_end(250.0, 750.0),
+        make_agent_node_full(
+            "fix-project_management",
+            "启动补全",
+            "启动准备不足，补齐启动项。输出 JSON：{\"completed\":[], \"ready\":true}",
+            vec![],
+            None,
+            "fix-project_management",
+            vec![("input", "step2_project_management")],
+            vec!["step2_project_management"],
+            250.0,
+            720.0,
+        ),
+        make_merge_node("m-project_management", "汇合", 0.0, 900.0),
+        make_approval_node(
+            "ap-project_management",
+            "人工审批",
+            "项目流程结果已生成，请项目经理审批",
+            None,
+            86400,
+            "ap-project_management",
+            0.0,
+            1080.0,
+        ),
+        make_end(0.0, 1260.0),
     ];
 
     let edges = vec![
-        edge("e-trigger-step", "trigger", "step_project_management"),
-        edge("e-step-step2", "step_project_management", "step2_project_management"),
-        edge("e-step2-step3", "step2_project_management", "step3_project_management"),
-        edge("e-step3-end", "step3_project_management", "end"),
+        edge("e-trigger-step_project_management", "trigger", "step_project_management"),
+        edge(
+            "e-step_project_management-step2_project_management",
+            "step_project_management",
+            "step2_project_management",
+        ),
+        edge(
+            "e-step2_project_management-gate",
+            "step2_project_management",
+            "c-project_management-gate",
+        ),
+        edge_cond(
+            "e-gate-main",
+            "c-project_management-gate",
+            "true",
+            "step3_project_management",
+            EdgeType::ConditionTrue,
+        ),
+        edge_cond(
+            "e-gate-fix",
+            "c-project_management-gate",
+            "false",
+            "fix-project_management",
+            EdgeType::ConditionFalse,
+        ),
+        edge("e-main-merge", "step3_project_management", "m-project_management"),
+        edge("e-fix-merge", "fix-project_management", "m-project_management"),
+        edge("e-m-project_management-approval", "m-project_management", "ap-project_management"),
+        edge("e-ap-project_management-end", "ap-project_management", "end"),
     ];
 
     let now = chrono::Utc::now().timestamp_millis();
-
     let template_data = WorkflowTemplateData {
         id: TEMPLATE_ID.to_string(),
         name: "项目管理流程".to_string(),
-        description: Some("项目启动 → 进度报告 → 项目收尾。标准项目管理全流程。".to_string()),
-        icon: "⚙️".to_string(),
+        description: Some("项目启动 → 进度报告 → 项目收尾。项目管理全流程。".to_string()),
+        icon: "📋".to_string(),
         cluster_id: None,
         route_path: None,
         tags: vec!["opc".to_string(), "industry".to_string(), "project_management".to_string()],

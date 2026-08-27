@@ -31,7 +31,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
     //   P2-2: trader_direction 类型防御；P2-3: n 动态推导；P3-1/2/4: count_chars/consistency_bonus/diag_for
     const TEMPLATE_VERSION: i32 = 3;
 
-    tracing::warn!(
+    tracing::info!(
         "[stock_analysis_setup] seed_stock_analysis_workflow_template 开始: TEMPLATE_ID={TEMPLATE_ID}, TEMPLATE_VERSION={TEMPLATE_VERSION}"
     );
 
@@ -44,7 +44,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 .with_detail(format!("查询工作流模板失败: {e}"))
         })?
     {
-        tracing::warn!(
+        tracing::info!(
             "[stock_analysis_setup] 找到已有模板 v{}: nodes.len={}, edges.len={}",
             existing.version,
             existing.nodes.len(),
@@ -65,7 +65,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 edges_empty
             );
         } else if existing.version >= TEMPLATE_VERSION {
-            tracing::warn!(
+            tracing::info!(
                 "[stock_analysis_setup] 模板已是最新版本 v{}，跳过种子化 (nodes={}, edges={})",
                 existing.version,
                 existing.nodes.len(),
@@ -74,7 +74,7 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
             return Ok(());
         }
 
-        tracing::warn!(
+        tracing::info!(
             "[stock_analysis_setup] 更新股票分析工作流模板 v{} → v{TEMPLATE_VERSION}",
             existing.version
         );
@@ -113,12 +113,12 @@ pub(crate) async fn seed_stock_analysis_workflow_template(
                 ErrorResponse::new(stock_setup::INTERNAL)
                     .with_detail(format!("写入版本快照失败: {e}"))
             })?;
-            tracing::warn!("[stock_analysis_setup] 旧版本快照已保存: {ver_id}");
+            tracing::info!("[stock_analysis_setup] 旧版本快照已保存: {ver_id}");
         }
         old_variables = existing.variables.clone();
         // 用 UPDATE 替代 DELETE，保留用户自定义变量
     } else {
-        tracing::warn!("[stock_analysis_setup] 模板 {TEMPLATE_ID} 不存在，将创建新模板");
+        tracing::info!("[stock_analysis_setup] 模板 {TEMPLATE_ID} 不存在，将创建新模板");
     }
 
     let now = chrono::Utc::now().timestamp_millis();
@@ -3413,7 +3413,7 @@ let score = (tech * w_tech + fund * w_fund + sent * w_sent + flow * w_flow + pol
     .await
     .map_err(|e| ErrorResponse::new(stock_setup::INTERNAL).with_detail(format!("写入工作流模板失败: {e}")))?;
 
-    tracing::warn!(
+    tracing::info!(
         "[stock_analysis_setup] 股票分析工作流模板已种子化完成: TEMPLATE_ID={TEMPLATE_ID}, VERSION={TEMPLATE_VERSION}"
     );
     Ok(())

@@ -1,151 +1,124 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! 行业咨询工作流模板种子化（代码驱动，3步流程）。
-//!
-//! 流程：手动启动 → 行业扫描 → 进入评估 → 战略制定 → 完成
+//! 产业咨询流程行业工作流模板种子化（v4 丰富拓扑：LLM 条件门 + 修正分支 + 汇合）。
+//! 模板 ID：industry_consulting_harness_workflow
 
 use axagent_harness::capability::Visibility;
 use axagent_harness::workflow_types::{
-    AgentNode, AgentNodeConfig, EdgeType, EndNode, EndNodeConfig, OutputMode, ToolDef,
-    TriggerConfig, TriggerNode, TriggerType, WorkflowEdge, WorkflowNode, WorkflowTemplateData,
+    EdgeType, TriggerConfig, TriggerType, WorkflowTemplateData,
 };
 use sea_orm::DatabaseConnection;
-use std::collections::HashMap;
+
+use super::seed_domain_helpers::*;
 
 const TEMPLATE_ID: &str = "industry_consulting_harness_workflow";
-const TEMPLATE_VERSION: i32 = 3;
+const TEMPLATE_VERSION: i32 = 4;
 
-// ── 辅助函数 ──
-
-fn make_agent_node(
-    id: &str,
-    title: &str,
-    prompt: &str,
-    tools: Vec<ToolDef>,
-    output_var: &str,
-    x: f64,
-    y: f64,
-) -> WorkflowNode {
-    WorkflowNode::Agent(AgentNode {
-        base: super::make_base(id, title, "", x, y),
-        config: AgentNodeConfig {
-            system_prompt: prompt.to_string(),
-            context_sources: vec![],
-            input_mapping: HashMap::new(),
-            output_var: output_var.to_string(),
-            model: None,
-            temperature: None,
-            max_tokens: None,
-            tools,
-            exposed_tools: vec![],
-            output_mode: OutputMode::Json,
-            agent_profile_id: None,
-            max_tool_rounds: Some(10),
-            execution_mode: None,
-            rag_source_ids: vec![],
-            model_role: Some("opc-worker".to_string()),
-            consistency_check: None,
-            hallucination_guard: None,
-            fallback_model: None,
-            task_scene: None,
-            stream_chunk_timeout_secs: None,
-        },
-    })
-}
-
-fn make_trigger(x: f64, y: f64) -> WorkflowNode {
-    WorkflowNode::Trigger(TriggerNode {
-        base: super::make_base("trigger", "开始", "手动触发", x, y),
-        config: TriggerConfig { trigger_type: TriggerType::Manual, config: serde_json::json!({}) },
-    })
-}
-
-fn make_end(x: f64, y: f64) -> WorkflowNode {
-    WorkflowNode::End(EndNode {
-        base: super::make_base("end", "完成", "工作流结束", x, y),
-        config: EndNodeConfig { output_var: None },
-    })
-}
-
-fn edge(id: &str, source: &str, target: &str) -> WorkflowEdge {
-    WorkflowEdge {
-        id: id.into(),
-        source: source.into(),
-        source_handle: None,
-        target: target.into(),
-        target_handle: None,
-        edge_type: EdgeType::Direct,
-        label: None,
-    }
-}
-
-fn td(name: &str) -> ToolDef {
-    ToolDef { name: name.into(), description: None, parameters: None }
-}
-
-/// 种子化行业咨询工作流模板。
 pub async fn seed_industry_industry_consulting_workflow_template(
     db: &DatabaseConnection,
 ) -> Result<(), String> {
-    // 检查版本
     let should_seed = super::check_template_version(db, TEMPLATE_ID, TEMPLATE_VERSION).await?;
     if !should_seed {
         return Ok(());
     }
 
     let nodes = vec![
-        // 1. 触发节点
-        make_trigger(250.0, 0.0),
-        // 2. 行业扫描
+        make_trigger(0.0, 0.0),
         make_agent_node(
             "step_industry_consulting",
             "行业扫描",
-            "你是一名产业咨询顾问。请扫描目标行业的全景，分析市场规模、竞争格局与增长驱动因素。输出 JSON {industry_overview, market_size, competitive_landscape, growth_drivers}",
+            "你是行业扫描专家。执行「行业扫描」：结合上游输入，输出结构化 JSON 结果（含关键指标、结论与建议）。",
             vec![td("OpcSearchWiki"), td("WebSearch")],
-            "step_industry_consulting_result",
-            250.0,
-            150.0,
+            None,
+            "step_industry_consulting",
+            0.0,
+            180.0,
         ),
-        // 3. 进入评估
-        make_agent_node(
+        make_agent_node_full(
             "step2_industry_consulting",
             "进入评估",
-            "你是一名产业进入评估专家。请评估客户进入该行业的可行性与风险，识别关键成功因素与潜在障碍。输出 JSON {feasibility_assessment, risk_analysis, key_success_factors, entry_barriers}",
+            "你是进入评估专家。执行「进入评估」：结合上游输入，输出结构化 JSON 结果（含关键指标、结论与建议）。",
             vec![td("OpcSearchWiki"), td("OpcGetDashboard")],
-            "step2_industry_consulting_result",
-            250.0,
-            350.0,
+            None,
+            "step2_industry_consulting",
+            vec![("input", "step_industry_consulting")],
+            vec!["step_industry_consulting"],
+            0.0,
+            360.0,
         ),
-        // 4. 战略制定
-        make_agent_node(
+        make_condition_node_llm(
+            "c-industry_consulting-gate",
+            "质量门",
+            "根据进入评估结果判断：目标行业是否值得进入（是→true 战略制定，否→false 风险报告）",
+            "step2_industry_consulting",
+            0.0,
+            540.0,
+        ),
+        make_agent_node_full(
             "step3_industry_consulting",
             "战略制定",
-            "你是一名企业战略顾问。请根据扫描与评估结果制定进入战略与实施路线图。输出 JSON {strategy_plan, roadmap, resource_requirements, roi_projection}",
+            "你是战略制定专家。执行「战略制定」：结合上游输入，输出结构化 JSON 结果（含关键指标、结论与建议）。",
             vec![td("OpcCreateContentAsset"), td("FileWrite")],
-            "step3_industry_consulting_result",
-            250.0,
-            550.0,
+            None,
+            "step3_industry_consulting",
+            vec![("input", "step2_industry_consulting")],
+            vec!["step2_industry_consulting"],
+            -250.0,
+            720.0,
         ),
-        // 5. 结束节点
-        make_end(250.0, 750.0),
+        make_agent_node_full(
+            "fix-industry_consulting",
+            "风险报告",
+            "行业不宜进入，输出风险报告与替代建议。输出 JSON：{\"risks\":[], \"alternatives\":[], \"recommendation\":\"\"}",
+            vec![],
+            None,
+            "fix-industry_consulting",
+            vec![("input", "step2_industry_consulting")],
+            vec!["step2_industry_consulting"],
+            250.0,
+            720.0,
+        ),
+        make_merge_node("m-industry_consulting", "汇合", 0.0, 900.0),
+        make_end(0.0, 1080.0),
     ];
 
     let edges = vec![
-        edge("e-trigger-step", "trigger", "step_industry_consulting"),
-        edge("e-step-step2", "step_industry_consulting", "step2_industry_consulting"),
-        edge("e-step2-step3", "step2_industry_consulting", "step3_industry_consulting"),
-        edge("e-step3-end", "step3_industry_consulting", "end"),
+        edge("e-trigger-step_industry_consulting", "trigger", "step_industry_consulting"),
+        edge(
+            "e-step_industry_consulting-step2_industry_consulting",
+            "step_industry_consulting",
+            "step2_industry_consulting",
+        ),
+        edge(
+            "e-step2_industry_consulting-gate",
+            "step2_industry_consulting",
+            "c-industry_consulting-gate",
+        ),
+        edge_cond(
+            "e-gate-main",
+            "c-industry_consulting-gate",
+            "true",
+            "step3_industry_consulting",
+            EdgeType::ConditionTrue,
+        ),
+        edge_cond(
+            "e-gate-fix",
+            "c-industry_consulting-gate",
+            "false",
+            "fix-industry_consulting",
+            EdgeType::ConditionFalse,
+        ),
+        edge("e-main-merge", "step3_industry_consulting", "m-industry_consulting"),
+        edge("e-fix-merge", "fix-industry_consulting", "m-industry_consulting"),
+        edge("e-m-industry_consulting-end", "m-industry_consulting", "end"),
     ];
 
     let now = chrono::Utc::now().timestamp_millis();
-
     let template_data = WorkflowTemplateData {
         id: TEMPLATE_ID.to_string(),
-        name: "行业咨询流程".to_string(),
-        description: Some(
-            "行业扫描 → 进入评估 → 战略制定。快速完成行业进入分析与战略规划。".to_string(),
-        ),
-        icon: "⚙️".to_string(),
+        name: "产业咨询流程".to_string(),
+        description: Some("行业扫描 → 进入评估 → 战略制定。产业咨询全流程。".to_string()),
+        icon: "💼".to_string(),
         cluster_id: None,
         route_path: None,
         tags: vec!["opc".to_string(), "industry".to_string(), "industry_consulting".to_string()],

@@ -664,11 +664,11 @@ pub async fn ensure_stock_analysis_experts_seeded(
     db: &sea_orm::DatabaseConnection,
 ) -> Result<(), String> {
     // 先执行 Serenity 种子，独立 try 避免被前序步骤阻塞
-    tracing::warn!("[stock_analysis_setup] === 开始种子 Serenity 模板 ===");
+    tracing::info!("[stock_analysis_setup] === 开始种子 Serenity 模板 ===");
     if let Err(e) = seed_serenity_screening_workflow_template(db).await {
         tracing::error!("[stock_analysis_setup] Serenity 模板种子失败 (非致命): {e}");
     }
-    tracing::warn!("[stock_analysis_setup] === Serenity 模板种子完成 ===");
+    tracing::info!("[stock_analysis_setup] === Serenity 模板种子完成 ===");
 
     seed_agency_experts(db).await?;
     seed_agent_roles(db).await?;
@@ -678,11 +678,11 @@ pub async fn ensure_stock_analysis_experts_seeded(
     // 股票分析核心工作流模板 — 失败不阻塞主流程（独立 try）
     // 原因：如果前置专家种子化失败，? 操作符会直接 return，
     // 导致工作流模板永远不会被种子化，编辑器打开时无内容显示
-    tracing::warn!("[stock_analysis_setup] === 开始种子股票分析工作流模板 ===");
+    tracing::info!("[stock_analysis_setup] === 开始种子股票分析工作流模板 ===");
     if let Err(e) = seed_stock_analysis_workflow_template(db).await {
         tracing::error!("[stock_analysis_setup] 股票分析工作流模板种子失败 (非致命): {e}");
     }
-    tracing::warn!("[stock_analysis_setup] === 股票分析工作流模板种子完成 ===");
+    tracing::info!("[stock_analysis_setup] === 股票分析工作流模板种子完成 ===");
 
     if let Err(e) = seed_reflection_workflow_template(db).await {
         tracing::error!("[stock_analysis_setup] 反思工作流模板种子失败 (非致命): {e}");
@@ -692,46 +692,46 @@ pub async fn ensure_stock_analysis_experts_seeded(
     // P2-2: 决策事件总线订阅方模板 — 失败不阻塞主流程（独立 try）
     // 两个模板都订阅 "decision.completed" 事件，由 stock_workflow/core.rs 的
     // publish_event 自动触发，实现决策→仓位规划/止损复查的联动编排。
-    tracing::warn!("[stock_analysis_setup] === 开始种子决策事件订阅模板 ===");
+    tracing::info!("[stock_analysis_setup] === 开始种子决策事件订阅模板 ===");
     if let Err(e) = seed_auto_position_plan_template(db).await {
         tracing::error!("[stock_analysis_setup] auto-position-plan 模板种子失败 (非致命): {e}");
     }
     if let Err(e) = seed_auto_stop_loss_review_template(db).await {
         tracing::error!("[stock_analysis_setup] auto-stop-loss-review 模板种子失败 (非致命): {e}");
     }
-    tracing::warn!("[stock_analysis_setup] === 决策事件订阅模板种子完成 ===");
+    tracing::info!("[stock_analysis_setup] === 决策事件订阅模板种子完成 ===");
 
     // G4: daily-market-events 每日市场主线提炼模板 — 失败不阻塞主流程
-    tracing::warn!("[stock_analysis_setup] === 开始种子 G4 市场主线模板 ===");
+    tracing::info!("[stock_analysis_setup] === 开始种子 G4 市场主线模板 ===");
     if let Err(e) = seed_daily_market_events_template(db).await {
         tracing::error!("[stock_analysis_setup] daily-market-events 模板种子失败 (非致命): {e}");
     }
-    tracing::warn!("[stock_analysis_setup] === G4 市场主线模板种子完成 ===");
+    tracing::info!("[stock_analysis_setup] === G4 市场主线模板种子完成 ===");
 
     // G6: screenshot-portfolio-diagnosis 截图持仓诊断模板 — 失败不阻塞主流程
-    tracing::warn!("[stock_analysis_setup] === 开始种子 G6 截图诊断模板 ===");
+    tracing::info!("[stock_analysis_setup] === 开始种子 G6 截图诊断模板 ===");
     if let Err(e) = seed_screenshot_portfolio_diagnosis_template(db).await {
         tracing::error!(
             "[stock_analysis_setup] screenshot-portfolio-diagnosis 模板种子失败 (非致命): {e}"
         );
     }
-    tracing::warn!("[stock_analysis_setup] === G6 截图诊断模板种子完成 ===");
+    tracing::info!("[stock_analysis_setup] === G6 截图诊断模板种子完成 ===");
 
     // G3.3: news-to-cross-market-analysis 新闻→跨市场传导分析模板 — 失败不阻塞主流程
-    tracing::warn!("[stock_analysis_setup] === 开始种子 G3.3 跨市场传导分析模板 ===");
+    tracing::info!("[stock_analysis_setup] === 开始种子 G3.3 跨市场传导分析模板 ===");
     if let Err(e) = seed_news_cross_market::seed_news_cross_market_template(db).await {
         tracing::error!(
             "[stock_analysis_setup] news-to-cross-market-analysis 模板种子失败 (非致命): {e}"
         );
     }
-    tracing::warn!("[stock_analysis_setup] === G3.3 跨市场传导分析模板种子完成 ===");
+    tracing::info!("[stock_analysis_setup] === G3.3 跨市场传导分析模板种子完成 ===");
 
     // stock-pipeline: 股票全业务管道模板 — 失败不阻塞主流程
-    tracing::warn!("[stock_analysis_setup] === 开始种子 stock-pipeline 模板 ===");
+    tracing::info!("[stock_analysis_setup] === 开始种子 stock-pipeline 模板 ===");
     if let Err(e) = crate::commands::stock_pipeline::seed_stock_pipeline_template(db).await {
         tracing::error!("[stock_analysis_setup] stock-pipeline 模板种子失败 (非致命): {e}");
     }
-    tracing::warn!("[stock_analysis_setup] === stock-pipeline 模板种子完成 ===");
+    tracing::info!("[stock_analysis_setup] === stock-pipeline 模板种子完成 ===");
     Ok(())
 }
 

@@ -1,146 +1,103 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! 设计行业工作流模板种子化（代码驱动，3步流程）。
-//!
-//! 流程：手动启动 → 产品UI设计 → 品牌视觉设计 → 设计系统构建 → 完成
+//! 设计流程行业工作流模板种子化（v4 丰富拓扑：LLM 条件门 + 修正分支 + 汇合）。
+//! 模板 ID：design_harness_workflow
 
 use axagent_harness::capability::Visibility;
 use axagent_harness::workflow_types::{
-    AgentNode, AgentNodeConfig, EdgeType, EndNode, EndNodeConfig, OutputMode, ToolDef,
-    TriggerConfig, TriggerNode, TriggerType, WorkflowEdge, WorkflowNode, WorkflowTemplateData,
+    EdgeType, TriggerConfig, TriggerType, WorkflowTemplateData,
 };
 use sea_orm::DatabaseConnection;
-use std::collections::HashMap;
+
+use super::seed_domain_helpers::*;
 
 const TEMPLATE_ID: &str = "design_harness_workflow";
-const TEMPLATE_VERSION: i32 = 3;
+const TEMPLATE_VERSION: i32 = 4;
 
-// ── 辅助函数 ──
-
-fn make_agent_node(
-    id: &str,
-    title: &str,
-    prompt: &str,
-    tools: Vec<ToolDef>,
-    output_var: &str,
-    x: f64,
-    y: f64,
-) -> WorkflowNode {
-    WorkflowNode::Agent(AgentNode {
-        base: super::make_base(id, title, "", x, y),
-        config: AgentNodeConfig {
-            system_prompt: prompt.to_string(),
-            context_sources: vec![],
-            input_mapping: HashMap::new(),
-            output_var: output_var.to_string(),
-            model: None,
-            temperature: None,
-            max_tokens: None,
-            tools,
-            exposed_tools: vec![],
-            output_mode: OutputMode::Json,
-            agent_profile_id: None,
-            max_tool_rounds: Some(10),
-            execution_mode: None,
-            rag_source_ids: vec![],
-            model_role: Some("opc-worker".to_string()),
-            consistency_check: None,
-            hallucination_guard: None,
-            fallback_model: None,
-            task_scene: None,
-            stream_chunk_timeout_secs: None,
-        },
-    })
-}
-
-fn make_trigger(x: f64, y: f64) -> WorkflowNode {
-    WorkflowNode::Trigger(TriggerNode {
-        base: super::make_base("trigger", "开始", "手动触发设计工作流", x, y),
-        config: TriggerConfig { trigger_type: TriggerType::Manual, config: serde_json::json!({}) },
-    })
-}
-
-fn make_end(x: f64, y: f64) -> WorkflowNode {
-    WorkflowNode::End(EndNode {
-        base: super::make_base("end", "完成", "设计工作流结束", x, y),
-        config: EndNodeConfig { output_var: None },
-    })
-}
-
-fn edge(id: &str, source: &str, target: &str) -> WorkflowEdge {
-    WorkflowEdge {
-        id: id.into(),
-        source: source.into(),
-        source_handle: None,
-        target: target.into(),
-        target_handle: None,
-        edge_type: EdgeType::Direct,
-        label: None,
-    }
-}
-
-fn td(name: &str) -> ToolDef {
-    ToolDef { name: name.into(), description: None, parameters: None }
-}
-
-/// 种子化设计行业工作流模板。
 pub async fn seed_industry_design_workflow_template(db: &DatabaseConnection) -> Result<(), String> {
-    // 检查版本
     let should_seed = super::check_template_version(db, TEMPLATE_ID, TEMPLATE_VERSION).await?;
     if !should_seed {
         return Ok(());
     }
 
     let nodes = vec![
-        // 1. 触发节点
-        make_trigger(250.0, 0.0),
-        // 2. 产品UI设计
+        make_trigger(0.0, 0.0),
         make_agent_node(
             "step_design",
             "产品UI设计",
-            "你是一名 UI 设计师。请根据产品需求进行界面设计，输出设计规范与视觉稿说明。\n\n请输出 JSON：\n{\n  \"design_spec\": \"设计规范说明\",\n  \"color_palette\": [\"主色\", \"辅助色\"],\n  \"typography\": \"字体方案\",\n  \"components\": [\"组件列表\"]\n}",
-            vec![td("OpcCreateContentAsset"), td("FileWrite"), td("WebSearch")],
-            "step_design_result",
-            250.0,
-            150.0,
+            "你是产品UI设计专家。执行「产品UI设计」：结合上游输入，输出结构化 JSON 结果（含关键指标、结论与建议）。",
+            vec![td("WebSearch"), td("FileWrite")],
+            None,
+            "step_design",
+            0.0,
+            180.0,
         ),
-        // 3. 品牌视觉设计
-        make_agent_node(
+        make_agent_node_full(
             "step2_design",
             "品牌视觉设计",
-            "你是一名品牌设计师。请进行品牌视觉识别系统设计，包括标志、色彩、应用规范。\n\n请输出 JSON：\n{\n  \"brand_guidelines\": \"品牌指南\",\n  \"logo_concepts\": [\"标志概念说明\"],\n  \"brand_colors\": [\"品牌色板\"],\n  \"application_mockups\": [\"应用场景\"]\n}",
-            vec![td("OpcCreateContentAsset"), td("OpcCreateLandingPage")],
-            "step2_design_result",
-            250.0,
-            350.0,
+            "你是品牌视觉设计专家。执行「品牌视觉设计」：结合上游输入，输出结构化 JSON 结果（含关键指标、结论与建议）。",
+            vec![td("OpcCreateContentAsset"), td("WebSearch")],
+            None,
+            "step2_design",
+            vec![("input", "step_design")],
+            vec!["step_design"],
+            0.0,
+            360.0,
         ),
-        // 4. 设计系统构建
-        make_agent_node(
+        make_condition_node_llm(
+            "c-design-gate",
+            "质量门",
+            "根据品牌视觉设计结果判断：设计风格与品牌规范是否一致（是→true 构建设计系统，否→false 修正规范）",
+            "step2_design",
+            0.0,
+            540.0,
+        ),
+        make_agent_node_full(
             "step3_design",
             "设计系统构建",
-            "你是一名设计系统专家。请构建设计系统组件库与规范文档，确保跨产品一致性。\n\n请输出 JSON：\n{\n  \"component_library\": [\"组件列表\"],\n  \"design_tokens\": {\"color\": {}, \"spacing\": {}, \"typography\": {}},\n  \"usage_guidelines\": \"使用指南说明\"\n}",
-            vec![td("OpcCreateContentAsset"), td("FileWrite")],
-            "step3_design_result",
-            250.0,
-            550.0,
+            "你是设计系统构建专家。执行「设计系统构建」：结合上游输入，输出结构化 JSON 结果（含关键指标、结论与建议）。",
+            vec![td("OpcCreateContentAsset"), td("OpcCreateLandingPage")],
+            None,
+            "step3_design",
+            vec![("input", "step2_design")],
+            vec!["step2_design"],
+            -250.0,
+            720.0,
         ),
-        // 5. 结束节点
-        make_end(250.0, 750.0),
+        make_agent_node_full(
+            "fix-design",
+            "规范修正",
+            "设计不一致，修正视觉规范与品牌对齐。输出 JSON：{\"fixes\":[], \"consistent\":true}",
+            vec![],
+            None,
+            "fix-design",
+            vec![("input", "step2_design")],
+            vec!["step2_design"],
+            250.0,
+            720.0,
+        ),
+        make_merge_node("m-design", "汇合", 0.0, 900.0),
+        make_end(0.0, 1080.0),
     ];
 
     let edges = vec![
         edge("e-trigger-step_design", "trigger", "step_design"),
         edge("e-step_design-step2_design", "step_design", "step2_design"),
-        edge("e-step2_design-step3_design", "step2_design", "step3_design"),
-        edge("e-step3_design-end", "step3_design", "end"),
+        edge("e-step2_design-gate", "step2_design", "c-design-gate"),
+        edge_cond("e-gate-main", "c-design-gate", "true", "step3_design", EdgeType::ConditionTrue),
+        edge_cond("e-gate-fix", "c-design-gate", "false", "fix-design", EdgeType::ConditionFalse),
+        edge("e-main-merge", "step3_design", "m-design"),
+        edge("e-fix-merge", "fix-design", "m-design"),
+        edge("e-m-design-end", "m-design", "end"),
     ];
 
     let now = chrono::Utc::now().timestamp_millis();
-
     let template_data = WorkflowTemplateData {
         id: TEMPLATE_ID.to_string(),
-        name: "设计".to_string(),
-        description: Some("设计行业工作流：产品UI设计、品牌视觉设计、设计系统构建".to_string()),
+        name: "设计流程".to_string(),
+        description: Some(
+            "产品 UI 设计 → 品牌视觉设计 → 设计系统构建。设计交付全流程。".to_string(),
+        ),
         icon: "🎨".to_string(),
         cluster_id: None,
         route_path: None,

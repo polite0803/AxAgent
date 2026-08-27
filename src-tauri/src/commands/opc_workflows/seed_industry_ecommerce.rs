@@ -1,152 +1,115 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! 电子商务行业工作流模板种子化（代码驱动，3步流程）。
-//!
-//! 流程：手动启动 → 爆品挖掘 → 竞品监控 → 营销策划 → 完成
+//! 电商运营流程行业工作流模板种子化（v4 丰富拓扑：LLM 条件门 + 修正分支 + 汇合）。
+//! 模板 ID：ecommerce_harness_workflow
 
 use axagent_harness::capability::Visibility;
 use axagent_harness::workflow_types::{
-    AgentNode, AgentNodeConfig, EdgeType, EndNode, EndNodeConfig, OutputMode, ToolDef,
-    TriggerConfig, TriggerNode, TriggerType, WorkflowEdge, WorkflowNode, WorkflowTemplateData,
+    EdgeType, TriggerConfig, TriggerType, WorkflowTemplateData,
 };
 use sea_orm::DatabaseConnection;
-use std::collections::HashMap;
+
+use super::seed_domain_helpers::*;
 
 const TEMPLATE_ID: &str = "ecommerce_harness_workflow";
-const TEMPLATE_VERSION: i32 = 3;
+const TEMPLATE_VERSION: i32 = 4;
 
-// ── 辅助函数 ──
-
-fn make_agent_node(
-    id: &str,
-    title: &str,
-    prompt: &str,
-    tools: Vec<ToolDef>,
-    output_var: &str,
-    x: f64,
-    y: f64,
-) -> WorkflowNode {
-    WorkflowNode::Agent(AgentNode {
-        base: super::make_base(id, title, "", x, y),
-        config: AgentNodeConfig {
-            system_prompt: prompt.to_string(),
-            context_sources: vec![],
-            input_mapping: HashMap::new(),
-            output_var: output_var.to_string(),
-            model: None,
-            temperature: None,
-            max_tokens: None,
-            tools,
-            exposed_tools: vec![],
-            output_mode: OutputMode::Json,
-            agent_profile_id: None,
-            max_tool_rounds: Some(10),
-            execution_mode: None,
-            rag_source_ids: vec![],
-            model_role: Some("opc-worker".to_string()),
-            consistency_check: None,
-            hallucination_guard: None,
-            fallback_model: None,
-            task_scene: None,
-            stream_chunk_timeout_secs: None,
-        },
-    })
-}
-
-fn make_trigger(x: f64, y: f64) -> WorkflowNode {
-    WorkflowNode::Trigger(TriggerNode {
-        base: super::make_base("trigger", "开始", "手动触发电子商务工作流", x, y),
-        config: TriggerConfig { trigger_type: TriggerType::Manual, config: serde_json::json!({}) },
-    })
-}
-
-fn make_end(x: f64, y: f64) -> WorkflowNode {
-    WorkflowNode::End(EndNode {
-        base: super::make_base("end", "完成", "电子商务工作流结束", x, y),
-        config: EndNodeConfig { output_var: None },
-    })
-}
-
-fn edge(id: &str, source: &str, target: &str) -> WorkflowEdge {
-    WorkflowEdge {
-        id: id.into(),
-        source: source.into(),
-        source_handle: None,
-        target: target.into(),
-        target_handle: None,
-        edge_type: EdgeType::Direct,
-        label: None,
-    }
-}
-
-fn td(name: &str) -> ToolDef {
-    ToolDef { name: name.into(), description: None, parameters: None }
-}
-
-/// 种子化电子商务行业工作流模板。
 pub async fn seed_industry_ecommerce_workflow_template(
     db: &DatabaseConnection,
 ) -> Result<(), String> {
-    // 检查版本
     let should_seed = super::check_template_version(db, TEMPLATE_ID, TEMPLATE_VERSION).await?;
     if !should_seed {
         return Ok(());
     }
 
     let nodes = vec![
-        // 1. 触发节点
-        make_trigger(250.0, 0.0),
-        // 2. 爆品挖掘
+        make_trigger(0.0, 0.0),
         make_agent_node(
             "step_ecommerce",
             "爆品挖掘",
-            "你是一名电商选品专家。请分析市场趋势与用户需求，挖掘具有爆款潜力的商品。\n\n请输出 JSON：\n{\n  \"product_ideas\": [{\"name\": \"商品名\", \"reason\": \"爆款理由\", \"estimated_demand\": \"高\"}],\n  \"market_trends\": [\"市场趋势1\"],\n  \"target_audience\": \"目标人群\"\n}",
-            vec![td("OpcListCustomers"), td("WebSearch")],
-            "step_ecommerce_result",
-            250.0,
-            150.0,
+            "你是爆品挖掘专家。执行「爆品挖掘」：结合上游输入，输出结构化 JSON 结果（含关键指标、结论与建议）。",
+            vec![td("WebSearch"), td("OpcSearchWiki")],
+            None,
+            "step_ecommerce",
+            0.0,
+            180.0,
         ),
-        // 3. 竞品监控
-        make_agent_node(
+        make_agent_node_full(
             "step2_ecommerce",
             "竞品监控",
-            "你是一名电商竞品分析师。请分析竞争对手的产品策略、定价与市场表现。\n\n请输出 JSON：\n{\n  \"competitors\": [{\"name\": \"竞品名\", \"strength\": \"优势\", \"weakness\": \"劣势\"}],\n  \"market_positioning\": \"市场定位建议\",\n  \"differentiation\": \"差异化策略\"\n}",
-            vec![td("WebSearch"), td("OpcSearchWiki")],
-            "step2_ecommerce_result",
-            250.0,
-            350.0,
+            "你是竞品监控专家。执行「竞品监控」：结合上游输入，输出结构化 JSON 结果（含关键指标、结论与建议）。",
+            vec![td("OpcListCustomers"), td("WebSearch")],
+            None,
+            "step2_ecommerce",
+            vec![("input", "step_ecommerce")],
+            vec!["step_ecommerce"],
+            0.0,
+            360.0,
         ),
-        // 4. 营销策划
-        make_agent_node(
+        make_condition_node_llm(
+            "c-ecommerce-gate",
+            "质量门",
+            "根据竞品监控结果判断：是否发现可跟进的高潜力爆品机会（是→true 营销策划，否→false 扩展挖掘）",
+            "step2_ecommerce",
+            0.0,
+            540.0,
+        ),
+        make_agent_node_full(
             "step3_ecommerce",
             "营销策划",
-            "你是一名电商营销专家。请制定电商营销推广方案，包含渠道策略与预算分配。\n\n请输出 JSON：\n{\n  \"marketing_plan\": [{\"channel\": \"渠道\", \"budget\": \"预算\", \"kpi\": \"关键指标\"}],\n  \"campaign_schedule\": \"活动时间表\",\n  \"expected_roi\": \"预期回报率\"\n}",
-            vec![
-                td("OpcCreateContentAsset"),
-                td("OpcCreateLandingPage"),
-                td("OpcSendNotification"),
-            ],
-            "step3_ecommerce_result",
-            250.0,
-            550.0,
+            "你是营销策划专家。执行「营销策划」：结合上游输入，输出结构化 JSON 结果（含关键指标、结论与建议）。",
+            vec![td("OpcCreateContentAsset"), td("OpcCreateLandingPage")],
+            None,
+            "step3_ecommerce",
+            vec![("input", "step2_ecommerce")],
+            vec!["step2_ecommerce"],
+            -250.0,
+            720.0,
         ),
-        // 5. 结束节点
-        make_end(250.0, 750.0),
+        make_agent_node_full(
+            "fix-ecommerce",
+            "扩展挖掘",
+            "爆品机会不足，扩展挖掘渠道与候选。输出 JSON：{\"expanded\":[], \"found\":true}",
+            vec![],
+            None,
+            "fix-ecommerce",
+            vec![("input", "step2_ecommerce")],
+            vec!["step2_ecommerce"],
+            250.0,
+            720.0,
+        ),
+        make_merge_node("m-ecommerce", "汇合", 0.0, 900.0),
+        make_end(0.0, 1080.0),
     ];
 
     let edges = vec![
         edge("e-trigger-step_ecommerce", "trigger", "step_ecommerce"),
         edge("e-step_ecommerce-step2_ecommerce", "step_ecommerce", "step2_ecommerce"),
-        edge("e-step2_ecommerce-step3_ecommerce", "step2_ecommerce", "step3_ecommerce"),
-        edge("e-step3_ecommerce-end", "step3_ecommerce", "end"),
+        edge("e-step2_ecommerce-gate", "step2_ecommerce", "c-ecommerce-gate"),
+        edge_cond(
+            "e-gate-main",
+            "c-ecommerce-gate",
+            "true",
+            "step3_ecommerce",
+            EdgeType::ConditionTrue,
+        ),
+        edge_cond(
+            "e-gate-fix",
+            "c-ecommerce-gate",
+            "false",
+            "fix-ecommerce",
+            EdgeType::ConditionFalse,
+        ),
+        edge("e-main-merge", "step3_ecommerce", "m-ecommerce"),
+        edge("e-fix-merge", "fix-ecommerce", "m-ecommerce"),
+        edge("e-m-ecommerce-end", "m-ecommerce", "end"),
     ];
 
     let now = chrono::Utc::now().timestamp_millis();
-
     let template_data = WorkflowTemplateData {
         id: TEMPLATE_ID.to_string(),
-        name: "电子商务".to_string(),
-        description: Some("电子商务行业工作流：爆品挖掘、竞品监控、营销策划".to_string()),
+        name: "电商运营流程".to_string(),
+        description: Some("爆品挖掘 → 竞品监控 → 营销策划。电商运营全流程。".to_string()),
         icon: "🛒".to_string(),
         cluster_id: None,
         route_path: None,

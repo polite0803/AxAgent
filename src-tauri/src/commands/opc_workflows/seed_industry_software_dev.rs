@@ -1,149 +1,116 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! 软件开发行业工作流模板种子化（代码驱动，3步流程）。
-//!
-//! 流程：手动启动 → 需求分析 → 技术选型 → 性能优化 → 完成
+//! 软件开发流程行业工作流模板种子化（v4 丰富拓扑：LLM 条件门 + 修正分支 + 汇合）。
+//! 模板 ID：software_dev_harness_workflow
 
 use axagent_harness::capability::Visibility;
 use axagent_harness::workflow_types::{
-    AgentNode, AgentNodeConfig, EdgeType, EndNode, EndNodeConfig, OutputMode, ToolDef,
-    TriggerConfig, TriggerNode, TriggerType, WorkflowEdge, WorkflowNode, WorkflowTemplateData,
+    EdgeType, TriggerConfig, TriggerType, WorkflowTemplateData,
 };
 use sea_orm::DatabaseConnection;
-use std::collections::HashMap;
+
+use super::seed_domain_helpers::*;
 
 const TEMPLATE_ID: &str = "software_dev_harness_workflow";
-const TEMPLATE_VERSION: i32 = 3;
+const TEMPLATE_VERSION: i32 = 4;
 
-// ── 辅助函数 ──
-
-fn make_agent_node(
-    id: &str,
-    title: &str,
-    prompt: &str,
-    tools: Vec<ToolDef>,
-    output_var: &str,
-    x: f64,
-    y: f64,
-) -> WorkflowNode {
-    WorkflowNode::Agent(AgentNode {
-        base: super::make_base(id, title, "", x, y),
-        config: AgentNodeConfig {
-            system_prompt: prompt.to_string(),
-            context_sources: vec![],
-            input_mapping: HashMap::new(),
-            output_var: output_var.to_string(),
-            model: None,
-            temperature: None,
-            max_tokens: None,
-            tools,
-            exposed_tools: vec![],
-            output_mode: OutputMode::Json,
-            agent_profile_id: None,
-            max_tool_rounds: Some(10),
-            execution_mode: None,
-            rag_source_ids: vec![],
-            model_role: Some("opc-worker".to_string()),
-            consistency_check: None,
-            hallucination_guard: None,
-            fallback_model: None,
-            task_scene: None,
-            stream_chunk_timeout_secs: None,
-        },
-    })
-}
-
-fn make_trigger(x: f64, y: f64) -> WorkflowNode {
-    WorkflowNode::Trigger(TriggerNode {
-        base: super::make_base("trigger", "开始", "手动触发", x, y),
-        config: TriggerConfig { trigger_type: TriggerType::Manual, config: serde_json::json!({}) },
-    })
-}
-
-fn make_end(x: f64, y: f64) -> WorkflowNode {
-    WorkflowNode::End(EndNode {
-        base: super::make_base("end", "完成", "工作流结束", x, y),
-        config: EndNodeConfig { output_var: None },
-    })
-}
-
-fn edge(id: &str, source: &str, target: &str) -> WorkflowEdge {
-    WorkflowEdge {
-        id: id.into(),
-        source: source.into(),
-        source_handle: None,
-        target: target.into(),
-        target_handle: None,
-        edge_type: EdgeType::Direct,
-        label: None,
-    }
-}
-
-fn td(name: &str) -> ToolDef {
-    ToolDef { name: name.into(), description: None, parameters: None }
-}
-
-/// 种子化软件开发行业工作流模板。
 pub async fn seed_industry_software_dev_workflow_template(
     db: &DatabaseConnection,
 ) -> Result<(), String> {
-    // 检查版本
     let should_seed = super::check_template_version(db, TEMPLATE_ID, TEMPLATE_VERSION).await?;
     if !should_seed {
         return Ok(());
     }
 
     let nodes = vec![
-        // 1. 触发节点
-        make_trigger(250.0, 0.0),
-        // 2. 需求分析
+        make_trigger(0.0, 0.0),
         make_agent_node(
             "step_software_dev",
             "需求分析",
-            "你是一名需求分析专家。请收集并分析项目需求，编写需求规格说明书与用户故事。输出 JSON {requirements, user_stories, acceptance_criteria, project_scope}",
-            vec![td("OpcCreateProject"), td("OpcListProjects"), td("FileWrite")],
-            "step_software_dev_result",
-            250.0,
-            150.0,
+            "你是需求分析专家。执行「需求分析」：结合上游输入，输出结构化 JSON 结果（含关键指标、结论与建议）。",
+            vec![td("OpcListProjects"), td("OpcCreateProject")],
+            None,
+            "step_software_dev",
+            0.0,
+            180.0,
         ),
-        // 3. 技术选型
-        make_agent_node(
+        make_agent_node_full(
             "step2_software_dev",
             "技术选型",
-            "你是一名技术架构师。请根据需求进行技术选型与架构设计，制定开发计划与里程碑。输出 JSON {tech_stack, architecture_design, development_plan, milestones}",
-            vec![td("WebSearch"), td("OpcAddMilestone"), td("OpcListProjects")],
-            "step2_software_dev_result",
-            250.0,
-            350.0,
+            "你是技术选型专家。执行「技术选型」：结合上游输入，输出结构化 JSON 结果（含关键指标、结论与建议）。",
+            vec![td("OpcListProjects"), td("FileWrite")],
+            None,
+            "step2_software_dev",
+            vec![("input", "step_software_dev")],
+            vec!["step_software_dev"],
+            0.0,
+            360.0,
         ),
-        // 4. 性能优化
-        make_agent_node(
+        make_condition_node_llm(
+            "c-software_dev-gate",
+            "质量门",
+            "根据技术选型结果判断：技术选型是否满足需求约束（是→true 性能优化，否→false 选型调整）",
+            "step2_software_dev",
+            0.0,
+            540.0,
+        ),
+        make_agent_node_full(
             "step3_software_dev",
             "性能优化",
-            "你是一名性能优化专家。请分析现有系统性能瓶颈，制定优化方案并实施性能改进。输出 JSON {performance_bottlenecks, optimization_plan, benchmark_results, improvement_metrics}",
-            vec![td("OpcListProjects"), td("OpcAddMilestone"), td("FileRead")],
-            "step3_software_dev_result",
-            250.0,
-            550.0,
+            "你是性能优化专家。执行「性能优化」：结合上游输入，输出结构化 JSON 结果（含关键指标、结论与建议）。",
+            vec![td("WebSearch"), td("OpcAddMilestone")],
+            None,
+            "step3_software_dev",
+            vec![("input", "step2_software_dev")],
+            vec!["step2_software_dev"],
+            -250.0,
+            720.0,
         ),
-        // 5. 结束节点
-        make_end(250.0, 750.0),
+        make_agent_node_full(
+            "fix-software_dev",
+            "选型调整",
+            "选型不满足约束，调整技术选型。输出 JSON：{\"alternatives\":[], \"satisfied\":true}",
+            vec![],
+            None,
+            "fix-software_dev",
+            vec![("input", "step2_software_dev")],
+            vec!["step2_software_dev"],
+            250.0,
+            720.0,
+        ),
+        make_merge_node("m-software_dev", "汇合", 0.0, 900.0),
+        make_end(0.0, 1080.0),
     ];
 
     let edges = vec![
-        edge("e-trigger-step", "trigger", "step_software_dev"),
-        edge("e-step-step2", "step_software_dev", "step2_software_dev"),
-        edge("e-step2-step3", "step2_software_dev", "step3_software_dev"),
-        edge("e-step3-end", "step3_software_dev", "end"),
+        edge("e-trigger-step_software_dev", "trigger", "step_software_dev"),
+        edge("e-step_software_dev-step2_software_dev", "step_software_dev", "step2_software_dev"),
+        edge("e-step2_software_dev-gate", "step2_software_dev", "c-software_dev-gate"),
+        edge_cond(
+            "e-gate-main",
+            "c-software_dev-gate",
+            "true",
+            "step3_software_dev",
+            EdgeType::ConditionTrue,
+        ),
+        edge_cond(
+            "e-gate-fix",
+            "c-software_dev-gate",
+            "false",
+            "fix-software_dev",
+            EdgeType::ConditionFalse,
+        ),
+        edge("e-main-merge", "step3_software_dev", "m-software_dev"),
+        edge("e-fix-merge", "fix-software_dev", "m-software_dev"),
+        edge("e-m-software_dev-end", "m-software_dev", "end"),
     ];
 
     let now = chrono::Utc::now().timestamp_millis();
-
     let template_data = WorkflowTemplateData {
         id: TEMPLATE_ID.to_string(),
         name: "软件开发流程".to_string(),
-        description: Some("需求分析 → 技术选型 → 性能优化。完整的软件开发全流程。".to_string()),
-        icon: "⚙️".to_string(),
+        description: Some("需求分析 → 技术选型 → 性能优化。软件开发全流程。".to_string()),
+        icon: "💻".to_string(),
         cluster_id: None,
         route_path: None,
         tags: vec!["opc".to_string(), "industry".to_string(), "software_dev".to_string()],

@@ -1389,7 +1389,7 @@ pub(crate) async fn seed_serenity_screening_workflow_template(
             );
             return Ok(());
         }
-        tracing::warn!(
+        tracing::info!(
             "[stock_analysis_setup] 更新 Serenity 模板 v{} → v{TEMPLATE_VERSION}",
             existing.version
         );

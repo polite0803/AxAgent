@@ -1,28 +1,32 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! 工程与开发（engineering）领域工作流种子化 — 13 个工作流
+//! 工程与开发（engineering）领域工作流种子化 — 13 个工作流（v4 丰富拓扑）
 //!
 //! 手动定义 WorkflowNode/Edge，与行业 seed 文件模式一致。
 //!
 //! 生成的工作流：
-//! - wf-eng-api-design: API设计
-//! - wf-eng-arch-review: 架构评审
-//! - wf-eng-ci-setup: CI/CD配置
-//! - wf-eng-code-review: 代码审查流水线
-//! - wf-eng-db-migrate: 数据库迁移
-//! - wf-eng-deploy: DevOps部署流水线
-//! - wf-eng-monitor-setup: 监控告警配置
-//! - wf-eng-onboarding: 开发入职
-//! - wf-eng-perf-opt: 性能优化
-//! - wf-eng-refactor-lite: 快速追加重构
-//! - wf-eng-refactor: 大型代码项目重构
-//! - wf-eng-security-review: 安全审查
-//! - wf-eng-tech-debt: 技术债管理
+//! - wf-eng-api-design:     API设计（规格 → 设计校验分支 → 文档）
+//! - wf-eng-arch-review:    架构评审（设计 → 评审分支 → 定稿/修订）
+//! - wf-eng-ci-setup:       CI/CD配置（规划 → 配置 → 验证分支 → 修复/发布）
+//! - wf-eng-code-review:    代码审查（提交 → 审查 → 严重问题分支 → 报告）
+//! - wf-eng-db-migrate:     数据库迁移（规划 → 评审分支 → 执行/修订）
+//! - wf-eng-deploy:         DevOps部署（构建 → 测试分支 → 部署/重建 → 验证）
+//! - wf-eng-monitor-setup:  监控告警（规划 → 配置 → 告警验证分支）
+//! - wf-eng-onboarding:     开发入职（环境 → 文档 → 就绪分支 → 任务/培训）
+//! - wf-eng-perf-opt:       性能优化（剖析 → 瓶颈分支 → 优化/深度剖析）
+//! - wf-eng-refactor-lite:  快速追加重构（评估 → 计划 → 执行 → 验证）
+//! - wf-eng-refactor:       大型代码项目重构（42 节点全链路，保持精修版）
+//! - wf-eng-security-review:安全审查（扫描 → 风险分支 → 修复）
+//! - wf-eng-tech-debt:      技术债管理（扫描 → 优先级分支 → 偿还）
 
+use axagent_harness::workflow_types::{CompareOperator, Condition, EdgeType, LogicalOperator};
 use sea_orm::DatabaseConnection;
 use std::collections::HashMap;
 
 use super::seed_domain_helpers::*;
+
+/// engineering 领域模板版本（v4 丰富拓扑；wf-eng-refactor/refactor-lite 保持各自版本）
+const ENG_TEMPLATE_VERSION: i32 = 4;
 
 /// 种子化工与开发领域的全部工作流
 pub(crate) async fn seed_domain_engineering_workflows(
@@ -33,96 +37,81 @@ pub(crate) async fn seed_domain_engineering_workflows(
     // ── 1. wf-eng-api-design: API设计 ──────────────────────────────
     if seed_domain_template(
         db,
-        build_domain_template(
+        build_domain_template_rich(
             "wf-eng-api-design",
             "API设计",
-            "设计REST/GraphQL API并生成文档",
+            "API设计：定义接口规格，设计校验不通过自动补充，输出完整 API 文档",
             "🔌",
             vec!["opc".to_string(), "engineering".to_string()],
-            "opc-cto-cto-ai-engineer",
+            ENG_TEMPLATE_VERSION,
             vec![
-                make_trigger(100.0, 150.0),
-                make_agent_node_with_inputs(
-                    "a-spec", "定义规约",
-                    concat!(
-                        "你作为API设计师，定义REST/GraphQL API规约：\n",
-                        " 1. 列出全部端点（方法/路径/鉴权方式）\n",
-                        " 2. 定义请求/响应JSON Schema\n",
-                        " 3. 定义错误码与分页/过滤规范\n",
-                        " 核心要求：端点命名遵循RESTful资源约定，所有字段标注类型与必填性\n",
-                        "============== 输出格式强约束（必须严格遵守） ==============\n",
-                        " 1. 回复必须且只能包含一个代码块，开头三个反引号紧跟 tool_json。\n",
-                        " 2. 代码块内容为单一 JSON 对象：{\"name\": \"submit_result\", \"arguments\": <数据>}\n",
-                        " 3. <数据> 结构：{\"endpoints\":[{\"method\":\"GET|POST|PUT|DELETE|PATCH\",\"path\":\"/resource\",\"auth\":\"bearer|api_key|none\",\"request_schema\":{},\"response_schema\":{},\"errors\":[{\"code\":400,\"message\":\"string\"}]}],\"pagination\":{\"type\":\"offset|cursor\",\"limit_max\":100}}\n",
-                        " 4. 代码块外禁止任何文字：不要写\"以下是...\"、注释、解释。\n",
-                        " 5. 若数据不可用，返回合法空结构：{\"endpoints\":[],\"pagination\":null,\"error\":\"无可用需求\"}，禁止自然语言拒绝。\n",
-                        "============================================================\n",
-                        "\n",
-                        "[空数据降级] 若上游无有效API规约数据，请返回空结构 JSON（{\"empty\":true,\"reason\":\"无数据\"}），禁止以自然语言拒绝或编造数据。",
-                    ),
-                    vec![td("FileRead"), td("Grep")],
+                make_trigger(0.0, 0.0),
+                // Agent：接口规格
+                make_agent_node(
+                    "a-spec",
+                    "接口规格",
+                    "定义 API 规格：资源模型、端点、方法、请求/响应结构、错误码。\
+                     输出 JSON：{\"resources\":[{\"name\":\"\", \"endpoints\":[{\"method\":\"\", \"path\":\"\", \"params\":[], \"responses\":{}}]}], \"errors\":[], \"valid\":true, \"gaps\":[]}",
+                    vec![td_desc("Grep", "检索现有代码中的接口定义"), td_desc("FileRead", "读取相关文件")],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-spec_result",
-                    HashMap::from([("requirements".to_string(), "{requirements}".to_string())]),
-                    250.0, 150.0,
+                    "a-spec",
+                    0.0,
+                    180.0,
                 ),
-                make_agent_node_with_inputs(
-                    "a-validate", "验证设计",
-                    concat!(
-                        "你作为API设计评审专家，验证RESTful规范、命名一致性、错误处理、鉴权方案：\n",
-                        " 1. 检查端点命名是否符合RESTful资源约定\n",
-                        " 2. 验证HTTP方法语义正确性\n",
-                        " 3. 检查错误码规范和分页/过滤一致性\n",
-                        " 4. 评估鉴权方案的合理性和安全性\n",
-                        " 输出评审结论与修改建议\n",
-                        "============== 输出格式强约束（必须严格遵守） ==============\n",
-                        " 1. 回复必须且只能包含一个代码块，开头三个反引号紧跟 tool_json。\n",
-                        " 2. 代码块内容为单一 JSON 对象：{\"name\": \"submit_result\", \"arguments\": <数据>}\n",
-                        " 3. <数据> 结构：{\"verdict\":\"pass|fail|warn\",\"issues\":[{\"severity\":\"critical|high|medium|low\",\"endpoint\":\"string\",\"issue\":\"string\",\"suggestion\":\"string\"}],\"naming_consistency\":0.0,\"restful_compliance\":0.0,\"error_handling_score\":0.0,\"auth_scheme_score\":0.0}\n",
-                        " 4. 代码块外禁止任何文字：不要写\"以下是...\"、注释、解释。\n",
-                        " 5. 若数据不可用，返回合法空结构：{\"verdict\":\"warn\",\"issues\":[],\"error\":\"无API规约可验证\"}，禁止自然语言拒绝。\n",
-                        "============================================================\n",
-                        "\n",
-                        "[空数据降级] 若上游无有效API设计评审数据，请返回空结构 JSON（{\"empty\":true,\"reason\":\"无数据\"}），禁止以自然语言拒绝或编造数据。",
-                    ),
-                    vec![td("FileRead"), td("Grep")],
+                // 条件：规格有效性
+                make_condition_node(
+                    "c-api-valid",
+                    "规格校验",
+                    vec![Condition {
+                        var_path: "a-spec.valid".to_string(),
+                        operator: CompareOperator::Eq,
+                        value: serde_json::json!(true),
+                    }],
+                    LogicalOperator::And,
+                    0.0,
+                    360.0,
+                ),
+                // 补充分支：补齐规格
+                make_agent_node_full(
+                    "a-spec-fill",
+                    "规格补充",
+                    "规格存在缺口，补齐缺失的端点、参数与错误定义。\
+                     输出 JSON：{\"filled\":[], \"valid\":true}",
+                    vec![],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-validate_result",
-                    HashMap::from([("api_spec".to_string(), "a-spec.content".to_string())]),
-                    400.0, 150.0,
+                    "a-spec-fill",
+                    vec![("spec", "a-spec")],
+                    vec!["a-spec"],
+                    -250.0,
+                    540.0,
                 ),
-                make_agent_node_with_inputs(
-                    "a-doc", "生成文档",
-                    concat!(
-                        "你作为技术文档工程师，生成API文档与客户端SDK代码示例：\n",
-                        " 1. 生成OpenAPI 3.0/Swagger文档\n",
-                        " 2. 生成多语言客户端SDK（TypeScript/Python/Go）\n",
-                        " 3. 生成curl示例和Postman集合\n",
-                        " 4. 生成认证流程说明和最佳实践指南\n",
-                        "============== 输出格式强约束（必须严格遵守） ==============\n",
-                        " 1. 回复必须且只能包含一个代码块，开头三个反引号紧跟 tool_json。\n",
-                        " 2. 代码块内容为单一 JSON 对象：{\"name\": \"submit_result\", \"arguments\": <数据>}\n",
-                        " 3. <数据> 结构：{\"openapi_spec\":{\"version\":\"3.0.3\",\"endpoints_doc\":[]},\"sdks\":[{\"lang\":\"typescript|python|go\",\"code\":\"\"}],\"curl_examples\":[],\"auth_guide\":\"string\",\"best_practices\":[]}\n",
-                        " 4. 代码块外禁止任何文字：不要写\"以下是...\"、注释、解释。\n",
-                        " 5. 若数据不可用，返回合法空结构：{\"openapi_spec\":null,\"sdks\":[],\"error\":\"无验证通过的API规约\"}，禁止自然语言拒绝。\n",
-                        "============================================================\n",
-                        "\n",
-                        "[空数据降级] 若上游无有效API文档数据，请返回空结构 JSON（{\"empty\":true,\"reason\":\"无数据\"}），禁止以自然语言拒绝或编造数据。",
-                    ),
-                    vec![td("FileWrite")],
+                make_merge_node("m-api", "汇合", 0.0, 720.0),
+                // Agent：API 文档
+                make_agent_node_full(
+                    "a-doc",
+                    "API文档",
+                    "生成完整 API 文档：示例、调用说明、版本策略、变更日志。\
+                     输出 JSON：{\"docs\":\"\", \"examples\":[], \"versioning\":\"\", \"changelog\":[]}",
+                    vec![],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-doc_result",
-                    HashMap::from([("validation".to_string(), "a-validate.content".to_string())]),
-                    550.0, 150.0,
+                    "a-doc",
+                    vec![("spec", "a-spec"), ("fill", "a-spec-fill")],
+                    vec!["a-spec", "a-spec-fill"],
+                    0.0,
+                    900.0,
                 ),
-                make_end(700.0, 150.0),
+                make_end(0.0, 1080.0),
             ],
             vec![
-                edge("e-spec", "trigger", "a-spec"),
-                edge("e-validate", "a-spec", "a-validate"),
-                edge("e-doc", "a-validate", "a-doc"),
-                edge("e-end", "a-doc", "end"),
+                edge("e-trigger-spec", "trigger", "a-spec"),
+                edge("e-spec-valid", "a-spec", "c-api-valid"),
+                edge_cond("e-invalid-fill", "c-api-valid", "false", "a-spec-fill", EdgeType::ConditionFalse),
+                edge_cond("e-valid-merge", "c-api-valid", "true", "m-api", EdgeType::ConditionTrue),
+                edge("e-fill-merge", "a-spec-fill", "m-api"),
+                edge("e-merge-doc", "m-api", "a-doc"),
+                edge("e-doc-end", "a-doc", "end"),
             ],
+            vec![DomainInputField { key: "api_name", label: "API名称", field_type: "string", required: true }],
         ),
     )
     .await?
@@ -133,95 +122,96 @@ pub(crate) async fn seed_domain_engineering_workflows(
     // ── 2. wf-eng-arch-review: 架构评审 ────────────────────────────
     if seed_domain_template(
         db,
-        build_domain_template(
+        build_domain_template_rich(
             "wf-eng-arch-review",
             "架构评审",
-            "后端架构师评审系统设计方案的可行性",
+            "架构评审：设计方案，评审不通过自动修订，通过后定稿",
             "🏗️",
             vec!["opc".to_string(), "engineering".to_string()],
-            "opc-cto-cto-ai-engineer",
+            ENG_TEMPLATE_VERSION,
             vec![
-                make_trigger(100.0, 150.0),
-                make_agent_node_with_inputs(
-                    "a-design", "设计方案",
-                    concat!(
-                        "你作为系统架构师，设计并提交系统架构设计方案：\n",
-                        " 1. 描述系统整体架构（模块划分、技术栈选型）\n",
-                        " 2. 定义数据流和交互流程\n",
-                        " 3. 部署架构和基础设施需求\n",
-                        " 4. 关键技术决策和 trade-off 分析\n",
-                        "============== 输出格式强约束（必须严格遵守） ==============\n",
-                        " 1. 回复必须且只能包含一个代码块，开头三个反引号紧跟 tool_json。\n",
-                        " 2. 代码块内容为单一 JSON 对象：{\"name\": \"submit_result\", \"arguments\": <数据>}\n",
-                        " 3. <数据> 结构：{\"architecture\":{\"layers\":[{\"name\":\"string\",\"components\":[],\"tech_stack\":[]}],\"data_flow\":[],\"deployment\":{\"model\":\"monolith|microservices|serverless\",\"infrastructure\":[]},\"decisions\":[{\"topic\":\"string\",\"choice\":\"string\",\"rationale\":\"string\",\"alternatives\":[]}]}}\n",
-                        " 4. 代码块外禁止任何文字：不要写\"以下是...\"、注释、解释。\n",
-                        " 5. 若数据不可用，返回合法空结构：{\"architecture\":null,\"decisions\":[],\"error\":\"无架构方案\"}，禁止自然语言拒绝。\n",
-                        "============================================================\n",
-                        "\n",
-                        "[空数据降级] 若上游无有效架构设计数据，请返回空结构 JSON（{\"empty\":true,\"reason\":\"无数据\"}），禁止以自然语言拒绝或编造数据。",
-                    ),
-                    vec![td("FileRead"), td("Grep")],
+                make_trigger(0.0, 0.0),
+                // Agent：方案设计
+                make_agent_node(
+                    "a-design",
+                    "方案设计",
+                    "设计方案：架构风格、模块划分、技术选型、数据流、扩展点。\
+                     输出 JSON：{\"architecture\":\"\", \"modules\":[], \"tech_choices\":[{\"component\":\"\", \"choice\":\"\", \"rationale\":\"\"}], \"tradeoffs\":[]}",
+                    vec![td_desc("Grep", "检索现有架构"), td_desc("FileRead", "读取关键文件")],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-design_result",
-                    HashMap::from([("requirements".to_string(), "{requirements}".to_string())]),
-                    250.0, 150.0,
+                    "a-design",
+                    0.0,
+                    180.0,
                 ),
-                make_agent_node_with_inputs(
-                    "a-review-arch", "架构评审",
-                    concat!(
-                        "你作为架构评审专家，评审系统设计方案的可行性：\n",
-                        " 1. 技术选型合理性评估\n",
-                        " 2. 扩展性和可维护性分析\n",
-                        " 3. 性能和容量规划评审\n",
-                        " 4. 成本效益分析\n",
-                        " 5. 安全性和合规性检查\n",
-                        "============== 输出格式强约束（必须严格遵守） ==============\n",
-                        " 1. 回复必须且只能包含一个代码块，开头三个反引号紧跟 tool_json。\n",
-                        " 2. 代码块内容为单一 JSON 对象：{\"name\": \"submit_result\", \"arguments\": <数据>}\n",
-                        " 3. <数据> 结构：{\"verdict\":\"pass|fail|conditionally_pass\",\"scores\":{\"tech_choice\":0.0,\"scalability\":0.0,\"performance\":0.0,\"cost\":0.0,\"security\":0.0},\"issues\":[{\"severity\":\"critical|high|medium|low\",\"category\":\"string\",\"description\":\"string\",\"recommendation\":\"string\"}],\"approaches\":[{\"name\":\"string\",\"pros\":[],\"cons\":[],\"risk\":\"low|medium|high\"}]}\n",
-                        " 4. 代码块外禁止任何文字：不要写\"以下是...\"、注释、解释。\n",
-                        " 5. 若数据不可用，返回合法空结构：{\"verdict\":\"fail\",\"scores\":{},\"issues\":[],\"error\":\"无架构方案可评审\"}，禁止自然语言拒绝。\n",
-                        "============================================================\n",
-                        "\n",
-                        "[空数据降级] 若上游无有效架构评审数据，请返回空结构 JSON（{\"empty\":true,\"reason\":\"无数据\"}），禁止以自然语言拒绝或编造数据。",
-                    ),
-                    vec![td("FileRead"), td("Grep")],
+                // Agent：架构评审
+                make_agent_node_full(
+                    "a-review-arch",
+                    "架构评审",
+                    "评审架构：一致性、可扩展性、性能、安全、可维护性、风险。\
+                     输出 JSON：{\"passed\":false, \"issues\":[{\"area\":\"\", \"severity\":\"\", \"description\":\"\", \"suggestion\":\"\"}], \"score\":0}",
+                    vec![],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-review-arch_result",
-                    HashMap::from([("arch_design".to_string(), "a-design.content".to_string())]),
-                    400.0, 150.0,
+                    "a-review-arch",
+                    vec![("design", "a-design")],
+                    vec!["a-design"],
+                    0.0,
+                    360.0,
                 ),
-                make_agent_node_with_inputs(
-                    "a-finalize", "方案定稿",
-                    concat!(
-                        "你作为首席架构师，根据评审意见修改方案并定稿：\n",
-                        " 1. 逐条处理评审意见（采纳/驳回/延期）\n",
-                        " 2. 更新架构设计文档\n",
-                        " 3. 输出最终版本和实施路线图\n",
-                        "============== 输出格式强约束（必须严格遵守） ==============\n",
-                        " 1. 回复必须且只能包含一个代码块，开头三个反引号紧跟 tool_json。\n",
-                        " 2. 代码块内容为单一 JSON 对象：{\"name\": \"submit_result\", \"arguments\": <数据>}\n",
-                        " 3. <数据> 结构：{\"final_architecture\":{\"layers\":[],\"decisions\":[]},\"review_resolutions\":[{\"issue_id\":\"string\",\"action\":\"accepted|rejected|deferred\",\"comment\":\"string\"}],\"implementation_roadmap\":{\"phases\":[{\"phase\":1,\"task\":\"string\",\"deliverable\":\"string\"}]},\"risk_register\":[{\"risk\":\"string\",\"mitigation\":\"string\"}]}\n",
-                        " 4. 代码块外禁止任何文字：不要写\"以下是...\"、注释、解释。\n",
-                        " 5. 若数据不可用，返回合法空结构：{\"final_architecture\":null,\"review_resolutions\":[],\"error\":\"无评审意见\"}，禁止自然语言拒绝。\n",
-                        "============================================================\n",
-                        "\n",
-                        "[空数据降级] 若上游无有效架构定稿数据，请返回空结构 JSON（{\"empty\":true,\"reason\":\"无数据\"}），禁止以自然语言拒绝或编造数据。",
-                    ),
-                    vec![td("FileWrite")],
+                // 条件：评审是否通过
+                make_condition_node(
+                    "c-arch-passed",
+                    "评审判定",
+                    vec![Condition {
+                        var_path: "a-review-arch.passed".to_string(),
+                        operator: CompareOperator::Eq,
+                        value: serde_json::json!(true),
+                    }],
+                    LogicalOperator::And,
+                    0.0,
+                    540.0,
+                ),
+                // 修订分支
+                make_agent_node_full(
+                    "a-revise",
+                    "方案修订",
+                    "按评审意见修订方案，消除阻塞性问题。\
+                     输出 JSON：{\"revisions\":[], \"passed\":true}",
+                    vec![],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-finalize_result",
-                    HashMap::from([("review".to_string(), "a-review-arch.content".to_string())]),
-                    550.0, 150.0,
+                    "a-revise",
+                    vec![("review", "a-review-arch"), ("design", "a-design")],
+                    vec!["a-review-arch", "a-design"],
+                    -250.0,
+                    720.0,
                 ),
-                make_end(700.0, 150.0),
+                make_merge_node("m-arch", "汇合", 0.0, 900.0),
+                // Agent：定稿
+                make_agent_node_full(
+                    "a-finalize",
+                    "定稿",
+                    "架构方案定稿：版本、决策记录、实施路线图。\
+                     输出 JSON：{\"final\":\"\", \"adr\":[], \"roadmap\":[]}",
+                    vec![],
+                    Some("opc-cto-cto-ai-engineer"),
+                    "a-finalize",
+                    vec![("review", "a-review-arch"), ("revise", "a-revise")],
+                    vec!["a-review-arch", "a-revise"],
+                    0.0,
+                    1080.0,
+                ),
+                make_end(0.0, 1260.0),
             ],
             vec![
-                edge("e-design", "trigger", "a-design"),
-                edge("e-review-arch", "a-design", "a-review-arch"),
-                edge("e-finalize", "a-review-arch", "a-finalize"),
-                edge("e-end", "a-finalize", "end"),
+                edge("e-trigger-design", "trigger", "a-design"),
+                edge("e-design-review", "a-design", "a-review-arch"),
+                edge("e-review-passed", "a-review-arch", "c-arch-passed"),
+                edge_cond("e-fail-revise", "c-arch-passed", "false", "a-revise", EdgeType::ConditionFalse),
+                edge_cond("e-pass-merge", "c-arch-passed", "true", "m-arch", EdgeType::ConditionTrue),
+                edge("e-revise-merge", "a-revise", "m-arch"),
+                edge("e-merge-finalize", "m-arch", "a-finalize"),
+                edge("e-finalize-end", "a-finalize", "end"),
             ],
+            vec![DomainInputField { key: "arch_scope", label: "架构范围", field_type: "string", required: true }],
         ),
     )
     .await?
@@ -232,95 +222,96 @@ pub(crate) async fn seed_domain_engineering_workflows(
     // ── 3. wf-eng-ci-setup: CI/CD配置 ──────────────────────────────
     if seed_domain_template(
         db,
-        build_domain_template(
+        build_domain_template_rich(
             "wf-eng-ci-setup",
             "CI/CD配置",
-            "搭建持续集成/持续部署流水线",
-            "🔄",
+            "CI/CD配置：规划流水线，配置验证不通过自动修复，发布验证结果",
+            "🔧",
             vec!["opc".to_string(), "engineering".to_string()],
-            "opc-cto-cto-ai-engineer",
+            ENG_TEMPLATE_VERSION,
             vec![
-                make_trigger(100.0, 150.0),
-                make_agent_node_with_inputs(
-                    "a-ci-plan", "方案设计",
-                    concat!(
-                        "你作为DevOps工程师，设计CI/CD流水线架构：\n",
-                        " 1. 定义构建阶段（依赖安装、编译、打包）\n",
-                        " 2. 定义测试阶段（单元测试、集成测试、覆盖率）\n",
-                        " 3. 定义部署阶段（staging、production、回滚策略）\n",
-                        " 4. 选择CI/CD平台（GitHub Actions/GitLab CI/Jenkins）\n",
-                        "============== 输出格式强约束（必须严格遵守） ==============\n",
-                        " 1. 回复必须且只能包含一个代码块，开头三个反引号紧跟 tool_json。\n",
-                        " 2. 代码块内容为单一 JSON 对象：{\"name\": \"submit_result\", \"arguments\": <数据>}\n",
-                        " 3. <数据> 结构：{\"pipeline\":{\"platform\":\"github_actions|gitlab_ci|jenkins\",\"stages\":[{\"name\":\"build\",\"steps\":[{\"name\":\"string\",\"run\":\"string\"}]},{\"name\":\"test\",\"steps\":[{\"name\":\"string\",\"run\":\"string\"}]},{\"name\":\"deploy\",\"steps\":[{\"name\":\"string\",\"run\":\"string\"}]}],\"triggers\":[\"push\",\"pull_request\",\"tag\"],\"env_vars\":[],\"artifacts\":[]}}\n",
-                        " 4. 代码块外禁止任何文字：不要写\"以下是...\"、注释、解释。\n",
-                        " 5. 若数据不可用，返回合法空结构：{\"pipeline\":null,\"error\":\"无CI/CD方案\"}，禁止自然语言拒绝。\n",
-                        "============================================================\n",
-                        "\n",
-                        "[空数据降级] 若上游无有效CI/CD规划数据，请返回空结构 JSON（{\"empty\":true,\"reason\":\"无数据\"}），禁止以自然语言拒绝或编造数据。",
-                    ),
-                    vec![td("FileRead"), td("Grep")],
+                make_trigger(0.0, 0.0),
+                // Agent：CI 规划
+                make_agent_node(
+                    "a-ci-plan",
+                    "CI规划",
+                    "规划 CI/CD 流水线：阶段划分、触发条件、环境、缓存策略、通知。\
+                     输出 JSON：{\"stages\":[{\"name\":\"\", \"steps\":[], \"trigger\":\"\", \"env\":{}}], \"cache\":\"\", \"notifications\":[]}",
+                    vec![],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-ci-plan_result",
-                    HashMap::from([("requirements".to_string(), "{requirements}".to_string())]),
-                    250.0, 150.0,
+                    "a-ci-plan",
+                    0.0,
+                    180.0,
                 ),
-                make_agent_node_with_inputs(
-                    "a-ci-config", "配置",
-                    concat!(
-                        "你作为CI/CD配置专家，编写CI/CD配置文件并测试：\n",
-                        " 1. 生成完整的CI/CD配置文件（YAML格式）\n",
-                        " 2. 配置缓存策略和并行执行\n",
-                        " 3. 设置环境变量和密钥管理\n",
-                        " 4. 编写部署脚本和健康检查\n",
-                        "============== 输出格式强约束（必须严格遵守） ==============\n",
-                        " 1. 回复必须且只能包含一个代码块，开头三个反引号紧跟 tool_json。\n",
-                        " 2. 代码块内容为单一 JSON 对象：{\"name\": \"submit_result\", \"arguments\": <数据>}\n",
-                        " 3. <数据> 结构：{\"config_files\":[{\"name\":\"ci.yml\",\"content\":\"string\"}],\"deploy_scripts\":[{\"name\":\"deploy.sh\",\"content\":\"string\"}],\"env_config\":{\"secrets\":[],\"vars\":[]},\"cache_strategy\":{\"paths\":[],\"key\":\"string\"}}\n",
-                        " 4. 代码块外禁止任何文字：不要写\"以下是...\"、注释、解释。\n",
-                        " 5. 若数据不可用，返回合法空结构：{\"config_files\":[],\"deploy_scripts\":[],\"error\":\"无流水线配置方案\"}，禁止自然语言拒绝。\n",
-                        "============================================================\n",
-                        "\n",
-                        "[空数据降级] 若上游无有效CI/CD配置数据，请返回空结构 JSON（{\"empty\":true,\"reason\":\"无数据\"}），禁止以自然语言拒绝或编造数据。",
-                    ),
-                    vec![td("FileWrite")],
+                // Agent：流水线配置
+                make_agent_node_full(
+                    "a-ci-config",
+                    "流水线配置",
+                    "编写流水线配置：lint、测试、构建、制品、部署步骤。\
+                     输出 JSON：{\"config\":\"\", \"steps\":[], \"valid\":true, \"issues\":[]}",
+                    vec![td_desc("FileRead", "读取现有配置文件"), td_desc("Grep", "检索相关配置")],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-ci-config_result",
-                    HashMap::from([("plan".to_string(), "a-ci-plan.content".to_string())]),
-                    400.0, 150.0,
+                    "a-ci-config",
+                    vec![("plan", "a-ci-plan")],
+                    vec!["a-ci-plan"],
+                    0.0,
+                    360.0,
                 ),
-                make_agent_node_with_inputs(
-                    "a-ci-verify", "验证",
-                    concat!(
-                        "你作为CI/CD验证工程师，运行流水线确认各阶段正常：\n",
-                        " 1. 触发流水线执行\n",
-                        " 2. 检查各阶段状态（build/test/deploy）\n",
-                        " 3. 验证产物和部署结果\n",
-                        " 4. 检查告警和日志\n",
-                        "============== 输出格式强约束（必须严格遵守） ==============\n",
-                        " 1. 回复必须且只能包含一个代码块，开头三个反引号紧跟 tool_json。\n",
-                        " 2. 代码块内容为单一 JSON 对象：{\"name\": \"submit_result\", \"arguments\": <数据>}\n",
-                        " 3. <数据> 结构：{\"pipeline_run\":{\"status\":\"success|failure|partial\",\"stages\":[{\"name\":\"string\",\"status\":\"success|failure\",\"duration_ms\":0,\"logs\":[]}],\"artifacts\":[],\"deploy_result\":{\"env\":\"staging|production\",\"status\":\"success|failure\",\"url\":\"string\"},\"issues\":[]}}\n",
-                        " 4. 代码块外禁止任何文字：不要写\"以下是...\"、注释、解释。\n",
-                        " 5. 若数据不可用，返回合法空结构：{\"pipeline_run\":null,\"error\":\"无流水线可验证\"}，禁止自然语言拒绝。\n",
-                        "============================================================\n",
-                        "\n",
-                        "[空数据降级] 若上游无有效CI/CD验证数据，请返回空结构 JSON（{\"empty\":true,\"reason\":\"无数据\"}），禁止以自然语言拒绝或编造数据。",
-                    ),
-                    vec![td("Bash"), td("FileRead")],
+                // 条件：配置验证
+                make_condition_node(
+                    "c-ci-valid",
+                    "验证判定",
+                    vec![Condition {
+                        var_path: "a-ci-config.valid".to_string(),
+                        operator: CompareOperator::Eq,
+                        value: serde_json::json!(true),
+                    }],
+                    LogicalOperator::And,
+                    0.0,
+                    540.0,
+                ),
+                // 修复分支
+                make_agent_node_full(
+                    "a-ci-fix",
+                    "配置修复",
+                    "修复流水线配置问题：语法、步骤依赖、环境变量。\
+                     输出 JSON：{\"fixes\":[], \"valid\":true}",
+                    vec![],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-ci-verify_result",
-                    HashMap::from([("config".to_string(), "a-ci-config.content".to_string())]),
-                    550.0, 150.0,
+                    "a-ci-fix",
+                    vec![("config", "a-ci-config")],
+                    vec!["a-ci-config"],
+                    -250.0,
+                    720.0,
                 ),
-                make_end(700.0, 150.0),
+                make_merge_node("m-ci", "汇合", 0.0, 900.0),
+                // Agent：验证发布
+                make_agent_node_full(
+                    "a-ci-verify",
+                    "验证发布",
+                    "验证流水线端到端运行并发布配置。\
+                     输出 JSON：{\"verified\":true, \"run_report\":\"\", \"published\":true}",
+                    vec![td_desc("Bash", "执行流水线验证命令")],
+                    Some("opc-cto-cto-ai-engineer"),
+                    "a-ci-verify",
+                    vec![("config", "a-ci-config"), ("fix", "a-ci-fix")],
+                    vec!["a-ci-config", "a-ci-fix"],
+                    0.0,
+                    1080.0,
+                ),
+                make_end(0.0, 1260.0),
             ],
             vec![
-                edge("e-ci-plan", "trigger", "a-ci-plan"),
-                edge("e-ci-config", "a-ci-plan", "a-ci-config"),
-                edge("e-ci-verify", "a-ci-config", "a-ci-verify"),
-                edge("e-ci-end", "a-ci-verify", "end"),
+                edge("e-trigger-plan", "trigger", "a-ci-plan"),
+                edge("e-plan-config", "a-ci-plan", "a-ci-config"),
+                edge("e-config-valid", "a-ci-config", "c-ci-valid"),
+                edge_cond("e-invalid-fix", "c-ci-valid", "false", "a-ci-fix", EdgeType::ConditionFalse),
+                edge_cond("e-valid-merge", "c-ci-valid", "true", "m-ci", EdgeType::ConditionTrue),
+                edge("e-fix-merge", "a-ci-fix", "m-ci"),
+                edge("e-merge-verify", "m-ci", "a-ci-verify"),
+                edge("e-verify-end", "a-ci-verify", "end"),
             ],
+            vec![DomainInputField { key: "repo_url", label: "仓库地址", field_type: "string", required: true }],
         ),
     )
     .await?
@@ -328,98 +319,99 @@ pub(crate) async fn seed_domain_engineering_workflows(
         seeded += 1;
     }
 
-    // ── 4. wf-eng-code-review: 代码审查流水线 ──────────────────────
+    // ── 4. wf-eng-code-review: 代码审查 ────────────────────────────
     if seed_domain_template(
         db,
-        build_domain_template(
+        build_domain_template_rich(
             "wf-eng-code-review",
-            "代码审查流水线",
-            "AI工程师审查代码质量、安全、性能",
-            "👀",
+            "代码审查",
+            "代码审查：提交变更，审查发现严重问题自动生成阻塞报告",
+            "🔍",
             vec!["opc".to_string(), "engineering".to_string()],
-            "opc-cto-cto-ai-engineer",
+            ENG_TEMPLATE_VERSION,
             vec![
-                make_trigger(100.0, 150.0),
-                make_agent_node_with_inputs(
-                    "a-submit", "提交代码",
-                    concat!(
-                        "你作为代码提交者，提交代码变更供审查：\n",
-                        " 1. 指定变更范围（文件/模块）\n",
-                        " 2. 填写变更描述和关联需求\n",
-                        " 3. 标注需要重点关注的区域\n",
-                        "============== 输出格式强约束（必须严格遵守） ==============\n",
-                        " 1. 回复必须且只能包含一个代码块，开头三个反引号紧跟 tool_json。\n",
-                        " 2. 代码块内容为单一 JSON 对象：{\"name\": \"submit_result\", \"arguments\": <数据>}\n",
-                        " 3. <数据> 结构：{\"submission\":{\"files\":[{\"path\":\"string\",\"change_type\":\"new|modified|deleted\",\"lines_added\":0,\"lines_removed\":0}],\"description\":\"string\",\"related_ticket\":\"string\",\"focus_areas\":[]}}\n",
-                        " 4. 代码块外禁止任何文字：不要写\"以下是...\"、注释、解释。\n",
-                        " 5. 若数据不可用，返回合法空结构：{\"submission\":null,\"error\":\"无代码变更\"}，禁止自然语言拒绝。\n",
-                        "============================================================\n",
-                        "\n",
-                        "[空数据降级] 若上游无有效代码提交数据，请返回空结构 JSON（{\"empty\":true,\"reason\":\"无数据\"}），禁止以自然语言拒绝或编造数据。",
-                    ),
-                    vec![td("Bash"), td("FileRead")],
+                make_trigger(0.0, 0.0),
+                // Agent：提交
+                make_agent_node(
+                    "a-submit",
+                    "提交",
+                    "整理代码变更提交：变更文件、diff 摘要、关联需求。\
+                     输出 JSON：{\"files\":[], \"summary\":\"\", \"related\":\"\", \"diff_size\":0}",
+                    vec![td_desc("Grep", "检索变更内容"), td_desc("FileRead", "读取变更文件")],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-submit_result",
-                    HashMap::from([("code_diff".to_string(), "{code_diff}".to_string())]),
-                    250.0, 150.0,
+                    "a-submit",
+                    0.0,
+                    180.0,
                 ),
-                make_agent_node_with_inputs(
-                    "a-review", "AI审查",
-                    concat!(
-                        "你作为代码审查专家，审查提交的代码变更：\n",
-                        " 1. 检查逻辑错误和边界条件\n",
-                        " 2. 检查安全漏洞（SQL注入、XSS、认证缺陷）\n",
-                        " 3. 检查性能问题（N+1查询、内存泄漏、阻塞操作）\n",
-                        " 4. 检查代码规范和最佳实践\n",
-                        " 5. 给出严重程度评级和修改建议\n",
-                        "============== 输出格式强约束（必须严格遵守） ==============\n",
-                        " 1. 回复必须且只能包含一个代码块，开头三个反引号紧跟 tool_json。\n",
-                        " 2. 代码块内容为单一 JSON 对象：{\"name\": \"submit_result\", \"arguments\": <数据>}\n",
-                        " 3. <数据> 结构：{\"review_summary\":{\"verdict\":\"approved|rejected|changes_requested\",\"total_issues\":0,\"by_severity\":{\"critical\":0,\"high\":0,\"medium\":0,\"low\":0}},\"issues\":[{\"id\":\"string\",\"severity\":\"critical|high|medium|low\",\"category\":\"logic|security|performance|style\",\"file\":\"string\",\"line_start\":0,\"line_end\":0,\"description\":\"string\",\"suggestion\":\"string\",\"auto_fixable\":false}],\"metrics\":{\"complexity_change\":0.0,\"test_coverage_delta\":0.0}}\n",
-                        " 4. 代码块外禁止任何文字：不要写\"以下是...\"、注释、解释。\n",
-                        " 5. 若数据不可用，返回合法空结构：{\"review_summary\":{\"verdict\":\"approved\",\"total_issues\":0,\"by_severity\":{}},\"issues\":[],\"error\":\"无代码可审查\"}，禁止自然语言拒绝。\n",
-                        "============================================================\n",
-                        "\n",
-                        "[空数据降级] 若上游无有效代码审查数据，请返回空结构 JSON（{\"empty\":true,\"reason\":\"无数据\"}），禁止以自然语言拒绝或编造数据。",
-                    ),
-                    vec![td("FileRead"), td("Grep")],
+                // Agent：审查
+                make_agent_node_full(
+                    "a-review",
+                    "审查",
+                    "审查代码：逻辑正确性、边界处理、安全性、性能、规范。\
+                     输出 JSON：{\"comments\":[{\"file\":\"\", \"line\":0, \"severity\":\"critical|major|minor\", \"issue\":\"\", \"suggestion\":\"\"}], \"critical_count\":0}",
+                    vec![td_desc("Grep", "检索相关代码"), td_desc("FileRead", "读取上下文")],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-review_result",
-                    HashMap::from([("submission".to_string(), "a-submit.content".to_string())]),
-                    400.0, 150.0,
+                    "a-review",
+                    vec![("submit", "a-submit")],
+                    vec!["a-submit"],
+                    0.0,
+                    360.0,
                 ),
-                make_agent_node_with_inputs(
-                    "a-report", "审查报告",
-                    concat!(
-                        "你作为审查报告生成者，生成最终审查报告：\n",
-                        " 1. 按严重程度排序所有问题\n",
-                        " 2. 提供具体修改建议和代码示例\n",
-                        " 3. 标注可自动修复的问题\n",
-                        " 4. 生成修复补丁（可选）\n",
-                        "============== 输出格式强约束（必须严格遵守） ==============\n",
-                        " 1. 回复必须且只能包含一个代码块，开头三个反引号紧跟 tool_json。\n",
-                        " 2. 代码块内容为单一 JSON 对象：{\"name\": \"submit_result\", \"arguments\": <数据>}\n",
-                        " 3. <数据> 结构：{\"report\":{\"verdict\":\"approved|rejected|changes_requested\",\"summary\":\"string\",\"issues_by_severity\":{\"critical\":[],\"high\":[],\"medium\":[],\"low\":[]},\"auto_fixes\":[{\"issue_id\":\"string\",\"patch\":\"string\"}],\"stats\":{\"files_reviewed\":0,\"lines_reviewed\":0,\"issues_found\":0}}}\n",
-                        " 4. 代码块外禁止任何文字：不要写\"以下是...\"、注释、解释。\n",
-                        " 5. 若数据不可用，返回合法空结构：{\"report\":null,\"error\":\"无审查结果\"}，禁止自然语言拒绝。\n",
-                        "============================================================\n",
-                        "\n",
-                        "[空数据降级] 若上游无有效审查报告数据，请返回空结构 JSON（{\"empty\":true,\"reason\":\"无数据\"}），禁止以自然语言拒绝或编造数据。",
-                    ),
-                    vec![td("FileWrite")],
+                // 条件：严重问题
+                make_condition_node(
+                    "c-review-critical",
+                    "严重度判定",
+                    vec![Condition {
+                        var_path: "a-review.critical_count".to_string(),
+                        operator: CompareOperator::Gt,
+                        value: serde_json::json!(0),
+                    }],
+                    LogicalOperator::And,
+                    0.0,
+                    540.0,
+                ),
+                // 严重分支：阻塞报告
+                make_agent_node_full(
+                    "a-block",
+                    "阻塞报告",
+                    "存在严重问题，生成阻塞报告：阻塞项、修复要求、复核流程。\
+                     输出 JSON：{\"blockers\":[], \"fix_required\":[], \"review_again\":true}",
+                    vec![td_desc("OpcSendNotification", "通知开发者阻塞问题")],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-report_result",
-                    HashMap::from([("review".to_string(), "a-review.content".to_string())]),
-                    550.0, 150.0,
+                    "a-block",
+                    vec![("review", "a-review")],
+                    vec!["a-review"],
+                    -250.0,
+                    720.0,
                 ),
-                make_end(700.0, 150.0),
+                make_merge_node("m-review", "汇合", 0.0, 900.0),
+                // Agent：审查报告
+                make_agent_node_full(
+                    "a-report",
+                    "审查报告",
+                    "汇总审查结论：总体评价、通过状态、遗留建议。\
+                     输出 JSON：{\"verdict\":\"approve|changes_requested|blocked\", \"summary\":\"\", \"recommendations\":[]}",
+                    vec![],
+                    Some("opc-cto-cto-ai-engineer"),
+                    "a-report",
+                    vec![("review", "a-review"), ("block", "a-block")],
+                    vec!["a-review", "a-block"],
+                    0.0,
+                    1080.0,
+                ),
+                make_end(0.0, 1260.0),
             ],
             vec![
-                edge("e-submit", "trigger", "a-submit"),
-                edge("e-review", "a-submit", "a-review"),
-                edge("e-report", "a-review", "a-report"),
-                edge("e-end", "a-report", "end"),
+                edge("e-trigger-submit", "trigger", "a-submit"),
+                edge("e-submit-review", "a-submit", "a-review"),
+                edge("e-review-critical", "a-review", "c-review-critical"),
+                edge_cond("e-critical-block", "c-review-critical", "true", "a-block", EdgeType::ConditionTrue),
+                edge_cond("e-clean-merge", "c-review-critical", "false", "m-review", EdgeType::ConditionFalse),
+                edge("e-block-merge", "a-block", "m-review"),
+                edge("e-merge-report", "m-review", "a-report"),
+                edge("e-report-end", "a-report", "end"),
             ],
+            vec![DomainInputField { key: "pr_id", label: "PR编号", field_type: "string", required: true }],
         ),
     )
     .await?
@@ -430,95 +422,96 @@ pub(crate) async fn seed_domain_engineering_workflows(
     // ── 5. wf-eng-db-migrate: 数据库迁移 ───────────────────────────
     if seed_domain_template(
         db,
-        build_domain_template(
+        build_domain_template_rich(
             "wf-eng-db-migrate",
             "数据库迁移",
-            "设计并安全执行数据库模型变更",
+            "数据库迁移：规划迁移方案，评审不通过自动修订，通过后执行并回滚预案",
             "🗄️",
             vec!["opc".to_string(), "engineering".to_string()],
-            "opc-cto-cto-ai-engineer",
+            ENG_TEMPLATE_VERSION,
             vec![
-                make_trigger(100.0, 150.0),
-                make_agent_node_with_inputs(
-                    "a-plan-migrate", "迁移计划",
-                    concat!(
-                        "你作为数据库迁移工程师，分析变更影响并编写迁移脚本：\n",
-                        " 1. 分析schema变更（新增/修改/删除表和字段）\n",
-                        " 2. 评估数据迁移影响范围和风险\n",
-                        " 3. 编写向上迁移（up）和向下迁移（down）脚本\n",
-                        " 4. 制定数据备份和回滚策略\n",
-                        "============== 输出格式强约束（必须严格遵守） ==============\n",
-                        " 1. 回复必须且只能包含一个代码块，开头三个反引号紧跟 tool_json。\n",
-                        " 2. 代码块内容为单一 JSON 对象：{\"name\": \"submit_result\", \"arguments\": <数据>}\n",
-                        " 3. <数据> 结构：{\"migration_plan\":{\"version\":\"string\",\"description\":\"string\",\"changes\":[{\"type\":\"create_table|alter_table|drop_table\",\"object\":\"string\",\"details\":{}}],\"up_sql\":\"string\",\"down_sql\":\"string\",\"risk_level\":\"low|medium|high\",\"rollback_plan\":\"string\"}}\n",
-                        " 4. 代码块外禁止任何文字：不要写\"以下是...\"、注释、解释。\n",
-                        " 5. 若数据不可用，返回合法空结构：{\"migration_plan\":null,\"error\":\"无迁移需求\"}，禁止自然语言拒绝。\n",
-                        "============================================================\n",
-                        "\n",
-                        "[空数据降级] 若上游无有效数据库迁移计划数据，请返回空结构 JSON（{\"empty\":true,\"reason\":\"无数据\"}），禁止以自然语言拒绝或编造数据。",
-                    ),
-                    vec![td("FileRead"), td("Grep")],
+                make_trigger(0.0, 0.0),
+                // Agent：迁移规划
+                make_agent_node(
+                    "a-plan-migrate",
+                    "迁移规划",
+                    "规划数据库迁移：变更表结构、数据回填、索引、兼容性、回滚方案。\
+                     输出 JSON：{\"changes\":[{\"table\":\"\", \"operation\":\"\", \"ddl\":\"\", \"data_backfill\":\"\"}], \"rollback\":\"\", \"risk\":\"\"}",
+                    vec![td_desc("Grep", "检索现有模型定义"), td_desc("FileRead", "读取迁移文件")],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-plan-migrate_result",
-                    HashMap::from([("schema_change".to_string(), "{schema_change}".to_string())]),
-                    250.0, 150.0,
+                    "a-plan-migrate",
+                    0.0,
+                    180.0,
                 ),
-                make_agent_node_with_inputs(
-                    "a-review-migrate", "变更审查",
-                    concat!(
-                        "你作为数据库架构师，审查迁移方案的安全性：\n",
-                        " 1. 检查向后兼容性（新增字段是否有默认值）\n",
-                        " 2. 评估性能影响（大表DDL、索引变更）\n",
-                        " 3. 验证回滚方案的可行性\n",
-                        " 4. 检查数据完整性约束\n",
-                        "============== 输出格式强约束（必须严格遵守） ==============\n",
-                        " 1. 回复必须且只能包含一个代码块，开头三个反引号紧跟 tool_json。\n",
-                        " 2. 代码块内容为单一 JSON 对象：{\"name\": \"submit_result\", \"arguments\": <数据>}\n",
-                        " 3. <数据> 结构：{\"review\":{\"verdict\":\"approved|rejected|needs_modification\",\"compatibility\":{\"backward_compatible\":true,\"breaking_changes\":[]},\"performance_impact\":{\"level\":\"low|medium|high\",\"estimated_duration_ms\":0,\"lock_strategy\":\"string\"},\"rollback_feasible\":true,\"issues\":[{\"severity\":\"critical|high|medium\",\"description\":\"string\",\"suggestion\":\"string\"}]}}\n",
-                        " 4. 代码块外禁止任何文字：不要写\"以下是...\"、注释、解释。\n",
-                        " 5. 若数据不可用，返回合法空结构：{\"review\":{\"verdict\":\"approved\",\"compatibility\":{},\"performance_impact\":{},\"issues\":[]},\"error\":\"无迁移计划可审查\"}，禁止自然语言拒绝。\n",
-                        "============================================================\n",
-                        "\n",
-                        "[空数据降级] 若上游无有效迁移审查数据，请返回空结构 JSON（{\"empty\":true,\"reason\":\"无数据\"}），禁止以自然语言拒绝或编造数据。",
-                    ),
-                    vec![td("FileRead"), td("Grep")],
+                // Agent：迁移评审
+                make_agent_node_full(
+                    "a-review-migrate",
+                    "迁移评审",
+                    "评审迁移方案：破坏性变更、数据安全、性能影响、回滚可行性。\
+                     输出 JSON：{\"passed\":false, \"issues\":[], \"suggestions\":[]}",
+                    vec![],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-review-migrate_result",
-                    HashMap::from([("plan".to_string(), "a-plan-migrate.content".to_string())]),
-                    400.0, 150.0,
+                    "a-review-migrate",
+                    vec![("plan", "a-plan-migrate")],
+                    vec!["a-plan-migrate"],
+                    0.0,
+                    360.0,
                 ),
-                make_agent_node_with_inputs(
-                    "a-execute-migrate", "执行迁移",
-                    concat!(
-                        "你作为数据库运维工程师，执行迁移并验证数据完整性：\n",
-                        " 1. 执行数据备份\n",
-                        " 2. 在目标环境执行迁移脚本\n",
-                        " 3. 验证数据完整性（行数、约束、索引）\n",
-                        " 4. 执行冒烟测试确认应用正常\n",
-                        "============== 输出格式强约束（必须严格遵守） ==============\n",
-                        " 1. 回复必须且只能包含一个代码块，开头三个反引号紧跟 tool_json。\n",
-                        " 2. 代码块内容为单一 JSON 对象：{\"name\": \"submit_result\", \"arguments\": <数据>}\n",
-                        " 3. <数据> 结构：{\"execution\":{\"status\":\"success|failure|partial\",\"backup\":{\"created\":true,\"size_mb\":0},\"migration\":{\"applied\":true,\"duration_ms\":0},\"verification\":{\"row_counts\":[],\"constraints_ok\":true,\"indexes_ok\":true},\"smoke_test\":{\"passed\":true,\"checks\":[]},\"errors\":[]}}\n",
-                        " 4. 代码块外禁止任何文字：不要写\"以下是...\"、注释、解释。\n",
-                        " 5. 若数据不可用，返回合法空结构：{\"execution\":{\"status\":\"failure\",\"backup\":{},\"migration\":{},\"verification\":{},\"smoke_test\":{},\"error\":\"未执行迁移\"}，禁止自然语言拒绝。\n",
-                        "============================================================\n",
-                        "\n",
-                        "[空数据降级] 若上游无有效迁移执行数据，请返回空结构 JSON（{\"empty\":true,\"reason\":\"无数据\"}），禁止以自然语言拒绝或编造数据。",
-                    ),
-                    vec![td("Bash"), td("FileRead")],
+                // 条件：评审通过
+                make_condition_node(
+                    "c-migrate-passed",
+                    "评审判定",
+                    vec![Condition {
+                        var_path: "a-review-migrate.passed".to_string(),
+                        operator: CompareOperator::Eq,
+                        value: serde_json::json!(true),
+                    }],
+                    LogicalOperator::And,
+                    0.0,
+                    540.0,
+                ),
+                // 修订分支
+                make_agent_node_full(
+                    "a-revise-migrate",
+                    "方案修订",
+                    "按评审意见修订迁移方案。\
+                     输出 JSON：{\"revisions\":[], \"passed\":true}",
+                    vec![],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-execute-migrate_result",
-                    HashMap::from([("review".to_string(), "a-review-migrate.content".to_string())]),
-                    550.0, 150.0,
+                    "a-revise-migrate",
+                    vec![("review", "a-review-migrate"), ("plan", "a-plan-migrate")],
+                    vec!["a-review-migrate", "a-plan-migrate"],
+                    -250.0,
+                    720.0,
                 ),
-                make_end(700.0, 150.0),
+                make_merge_node("m-migrate", "汇合", 0.0, 900.0),
+                // Agent：执行迁移
+                make_agent_node_full(
+                    "a-execute-migrate",
+                    "执行迁移",
+                    "执行迁移：应用 DDL、回填数据、验证结构、准备回滚。\
+                     输出 JSON：{\"status\":\"success|rolled_back\", \"applied\":[], \"verify\":\"\", \"rollback_ready\":true}",
+                    vec![td_desc("Bash", "执行迁移命令")],
+                    Some("opc-cto-cto-ai-engineer"),
+                    "a-execute-migrate",
+                    vec![("plan", "a-plan-migrate"), ("revise", "a-revise-migrate")],
+                    vec!["a-plan-migrate", "a-revise-migrate"],
+                    0.0,
+                    1080.0,
+                ),
+                make_end(0.0, 1260.0),
             ],
             vec![
-                edge("e-plan-migrate", "trigger", "a-plan-migrate"),
-                edge("e-review-migrate", "a-plan-migrate", "a-review-migrate"),
-                edge("e-execute-migrate", "a-review-migrate", "a-execute-migrate"),
-                edge("e-end", "a-execute-migrate", "end"),
+                edge("e-trigger-plan", "trigger", "a-plan-migrate"),
+                edge("e-plan-review", "a-plan-migrate", "a-review-migrate"),
+                edge("e-review-passed", "a-review-migrate", "c-migrate-passed"),
+                edge_cond("e-fail-revise", "c-migrate-passed", "false", "a-revise-migrate", EdgeType::ConditionFalse),
+                edge_cond("e-pass-merge", "c-migrate-passed", "true", "m-migrate", EdgeType::ConditionTrue),
+                edge("e-revise-merge", "a-revise-migrate", "m-migrate"),
+                edge("e-merge-execute", "m-migrate", "a-execute-migrate"),
+                edge("e-execute-end", "a-execute-migrate", "end"),
             ],
+            vec![DomainInputField { key: "migration_desc", label: "迁移描述", field_type: "string", required: true }],
         ),
     )
     .await?
@@ -526,67 +519,114 @@ pub(crate) async fn seed_domain_engineering_workflows(
         seeded += 1;
     }
 
-    // ── 6. wf-eng-deploy: DevOps部署流水线 ─────────────────────────
+    // ── 6. wf-eng-deploy: DevOps部署 ───────────────────────────────
     if seed_domain_template(
         db,
-        build_domain_template(
+        build_domain_template_rich(
             "wf-eng-deploy",
-            "DevOps部署流水线",
-            "自动化构建、测试、部署到生产环境",
+            "DevOps部署",
+            "DevOps部署：构建制品，测试失败自动修复重建，部署后验证",
             "🚀",
             vec!["opc".to_string(), "engineering".to_string()],
-            "opc-cto-cto-ai-engineer",
+            ENG_TEMPLATE_VERSION,
             vec![
-                make_trigger(100.0, 150.0),
+                make_trigger(0.0, 0.0),
+                // Agent：构建
                 make_agent_node(
                     "a-build",
                     "构建",
-                    "拉取代码、安装依赖、编译构建",
-                    vec![],
+                    "构建制品：编译、打包、版本标记、制品校验。\
+                     输出 JSON：{\"artifact\":\"\", \"version\":\"\", \"build_ok\":true, \"warnings\":[]}",
+                    vec![td_desc("Bash", "执行构建命令")],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-build_result",
-                    250.0,
-                    150.0,
+                    "a-build",
+                    0.0,
+                    180.0,
                 ),
-                make_agent_node(
+                // Agent：测试
+                make_agent_node_full(
                     "a-test",
-                    "自动化测试",
-                    "运行单元测试、集成测试、性能测试",
-                    vec![],
+                    "测试",
+                    "运行测试套件：单元、集成、冒烟测试，评估通过状态。\
+                     输出 JSON：{\"passed\":0, \"failed\":0, \"skipped\":0, \"verdict\":\"pass|fail\", \"failures\":[]}",
+                    vec![td_desc("Bash", "执行测试命令")],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-test_result",
-                    400.0,
-                    150.0,
+                    "a-test",
+                    vec![("build", "a-build")],
+                    vec!["a-build"],
+                    0.0,
+                    360.0,
                 ),
-                make_agent_node(
+                // 条件：测试是否通过
+                make_condition_node(
+                    "c-deploy-test",
+                    "测试判定",
+                    vec![Condition {
+                        var_path: "a-test.verdict".to_string(),
+                        operator: CompareOperator::Eq,
+                        value: serde_json::json!("pass"),
+                    }],
+                    LogicalOperator::And,
+                    0.0,
+                    540.0,
+                ),
+                // 通过：部署
+                make_agent_node_full(
                     "a-deploy",
                     "部署",
-                    "部署到目标环境、执行数据库迁移",
+                    "执行部署：环境切换、配置下发、灰度/全量、监控联动。\
+                     输出 JSON：{\"environment\":\"\", \"strategy\":\"\", \"status\":\"success|failed\", }",
+                    vec![td_desc("Bash", "执行部署命令")],
+                    Some("opc-cto-cto-ai-engineer"),
+                    "a-deploy",
+                    vec![("build", "a-build"), ("test", "a-test")],
+                    vec!["a-build", "a-test"],
+                    -250.0,
+                    720.0,
+                ),
+                // 失败：修复重建
+                make_agent_node_full(
+                    "a-rebuild",
+                    "修复重建",
+                    "测试失败，诊断问题并修复后重新构建。\
+                     输出 JSON：{\"fixes\":[], \"rebuild_ok\":true, \"verdict\":\"pass\"}",
                     vec![],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-deploy_result",
-                    550.0,
-                    150.0,
+                    "a-rebuild",
+                    vec![("test", "a-test"), ("build", "a-build")],
+                    vec!["a-test", "a-build"],
+                    250.0,
+                    720.0,
                 ),
-                make_agent_node(
+                make_merge_node("m-deploy", "汇合", 0.0, 900.0),
+                // Agent：部署验证
+                make_agent_node_full(
                     "a-verify",
                     "验证",
-                    "检查部署状态、监控告警、健康检查",
+                    "验证部署：健康检查、关键路径冒烟、指标对比。\
+                     输出 JSON：{\"health\":\"ok|degraded\", \"smoke\":[], }",
                     vec![],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-verify_result",
-                    700.0,
-                    150.0,
+                    "a-verify",
+                    vec![("deploy", "a-deploy"), ("rebuild", "a-rebuild")],
+                    vec!["a-deploy", "a-rebuild"],
+                    0.0,
+                    1080.0,
                 ),
-                make_end(850.0, 150.0),
+                make_end(0.0, 1260.0),
             ],
             vec![
-                edge("e-build", "trigger", "a-build"),
-                edge("e-test", "a-build", "a-test"),
-                edge("e-deploy", "a-test", "a-deploy"),
-                edge("e-verify", "a-deploy", "a-verify"),
-                edge("e-end", "a-verify", "end"),
+                edge("e-trigger-build", "trigger", "a-build"),
+                edge("e-build-test", "a-build", "a-test"),
+                edge("e-test-verdict", "a-test", "c-deploy-test"),
+                edge_cond("e-pass-deploy", "c-deploy-test", "true", "a-deploy", EdgeType::ConditionTrue),
+                edge_cond("e-fail-rebuild", "c-deploy-test", "false", "a-rebuild", EdgeType::ConditionFalse),
+                edge("e-deploy-merge", "a-deploy", "m-deploy"),
+                edge("e-rebuild-merge", "a-rebuild", "m-deploy"),
+                edge("e-merge-verify", "m-deploy", "a-verify"),
+                edge("e-verify-end", "a-verify", "end"),
             ],
+            vec![DomainInputField { key: "environment", label: "目标环境", field_type: "string", required: true }],
         ),
     )
     .await?
@@ -594,56 +634,99 @@ pub(crate) async fn seed_domain_engineering_workflows(
         seeded += 1;
     }
 
-    // ── 7. wf-eng-monitor-setup: 监控告警配置 ──────────────────────
+    // ── 7. wf-eng-monitor-setup: 监控告警 ──────────────────────────
     if seed_domain_template(
         db,
-        build_domain_template(
+        build_domain_template_rich(
             "wf-eng-monitor-setup",
             "监控告警配置",
-            "搭建应用监控、日志和告警系统",
-            "📊",
+            "监控告警：规划监控指标，配置告警规则，验证失败自动调整",
+            "📡",
             vec!["opc".to_string(), "engineering".to_string()],
-            "opc-cto-cto-ai-engineer",
+            ENG_TEMPLATE_VERSION,
             vec![
-                make_trigger(100.0, 150.0),
+                make_trigger(0.0, 0.0),
+                // Agent：监控规划
                 make_agent_node(
                     "a-monitor-plan",
                     "监控规划",
-                    "设计监控指标、日志采集策略",
+                    "规划监控指标：服务健康、性能、业务指标、日志采集范围。\
+                     输出 JSON：{\"metrics\":[{\"name\":\"\", }",
                     vec![],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-monitor-plan_result",
-                    250.0,
-                    150.0,
+                    "a-monitor-plan",
+                    0.0,
+                    180.0,
                 ),
-                make_agent_node(
+                // Agent：告警配置
+                make_agent_node_full(
                     "a-monitor-setup",
-                    "配置",
-                    "配置监控工具、告警规则、仪表盘",
+                    "告警配置",
+                    "配置告警规则：阈值、聚合、静默、通知渠道、升级策略。\
+                     输出 JSON：{\"rules\":[{\"metric\":\"\", \"condition\":\"\", \"severity\":\"\", \"notify\":[]}], \"valid\":true, \"issues\":[]}",
                     vec![],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-monitor-setup_result",
-                    400.0,
-                    150.0,
+                    "a-monitor-setup",
+                    vec![("plan", "a-monitor-plan")],
+                    vec!["a-monitor-plan"],
+                    0.0,
+                    360.0,
                 ),
-                make_agent_node(
+                // 条件：告警验证
+                make_condition_node(
+                    "c-monitor-valid",
+                    "验证判定",
+                    vec![Condition {
+                        var_path: "a-monitor-setup.valid".to_string(),
+                        operator: CompareOperator::Eq,
+                        value: serde_json::json!(true),
+                    }],
+                    LogicalOperator::And,
+                    0.0,
+                    540.0,
+                ),
+                // 调整分支
+                make_agent_node_full(
+                    "a-monitor-fix",
+                    "告警调整",
+                    "修复告警配置问题：阈值不合理、渠道失效、规则冲突。\
+                     输出 JSON：{\"adjustments\":[], \"valid\":true}",
+                    vec![],
+                    Some("opc-cto-cto-ai-engineer"),
+                    "a-monitor-fix",
+                    vec![("setup", "a-monitor-setup")],
+                    vec!["a-monitor-setup"],
+                    -250.0,
+                    720.0,
+                ),
+                make_merge_node("m-monitor", "汇合", 0.0, 900.0),
+                // Agent：验证测试
+                make_agent_node_full(
                     "a-monitor-test",
-                    "测试",
-                    "验证告警触发和通知链路",
+                    "验证测试",
+                    "验证监控与告警端到端：指标上报、告警触发、通知送达。\
+                     输出 JSON：{\"verified\":true, \"test_results\":[], \"report\":\"\"}",
                     vec![],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-monitor-test_result",
-                    550.0,
-                    150.0,
+                    "a-monitor-test",
+                    vec![("setup", "a-monitor-setup"), ("fix", "a-monitor-fix")],
+                    vec!["a-monitor-setup", "a-monitor-fix"],
+                    0.0,
+                    1080.0,
                 ),
-                make_end(700.0, 150.0),
+                make_end(0.0, 1260.0),
             ],
             vec![
-                edge("e-monitor-plan", "trigger", "a-monitor-plan"),
-                edge("e-monitor-setup", "a-monitor-plan", "a-monitor-setup"),
-                edge("e-monitor-test", "a-monitor-setup", "a-monitor-test"),
-                edge("e-end", "a-monitor-test", "end"),
+                edge("e-trigger-plan", "trigger", "a-monitor-plan"),
+                edge("e-plan-setup", "a-monitor-plan", "a-monitor-setup"),
+                edge("e-setup-valid", "a-monitor-setup", "c-monitor-valid"),
+                edge_cond("e-invalid-fix", "c-monitor-valid", "false", "a-monitor-fix", EdgeType::ConditionFalse),
+                edge_cond("e-valid-merge", "c-monitor-valid", "true", "m-monitor", EdgeType::ConditionTrue),
+                edge("e-fix-merge", "a-monitor-fix", "m-monitor"),
+                edge("e-merge-test", "m-monitor", "a-monitor-test"),
+                edge("e-test-end", "a-monitor-test", "end"),
             ],
+            vec![DomainInputField { key: "service_name", label: "服务名称", field_type: "string", required: true }],
         ),
     )
     .await?
@@ -654,53 +737,128 @@ pub(crate) async fn seed_domain_engineering_workflows(
     // ── 8. wf-eng-onboarding: 开发入职 ─────────────────────────────
     if seed_domain_template(
         db,
-        build_domain_template(
+        build_domain_template_rich(
             "wf-eng-onboarding",
             "开发入职",
-            "新项目环境搭建和开发指南",
-            "📖",
+            "开发入职：准备开发环境，学习项目文档，未就绪自动补充培训，执行首个任务",
+            "🎓",
             vec!["opc".to_string(), "engineering".to_string()],
-            "opc-cto-cto-ai-engineer",
+            ENG_TEMPLATE_VERSION,
             vec![
-                make_trigger(100.0, 150.0),
+                make_trigger(0.0, 0.0),
+                // Agent：环境准备
                 make_agent_node(
                     "a-env-setup",
-                    "环境配置",
-                    "配置开发环境、安装依赖、初始化项目",
-                    vec![],
+                    "环境准备",
+                    "准备开发环境：工具链、依赖、IDE 配置、访问权限。\
+                     输出 JSON：{\"prepared\":[], \"pending\":[], \"ready\":true}",
+                    vec![td_desc("Bash", "检查环境工具链")],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-env-setup_result",
-                    250.0,
-                    150.0,
+                    "a-env-setup",
+                    0.0,
+                    180.0,
                 ),
-                make_agent_node(
+                // Agent：文档学习
+                make_agent_node_full(
                     "a-doc-read",
-                    "文档阅读",
-                    "阅读项目文档、架构图、API文档",
-                    vec![],
+                    "文档学习",
+                    "学习项目文档：架构说明、代码规范、开发流程、部署说明。\
+                     输出 JSON：{\"learned\":[], \"questions\":[], }",
+                    vec![td_desc("FileRead", "读取项目文档"), td_desc("Grep", "检索文档")],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-doc-read_result",
-                    400.0,
-                    150.0,
+                    "a-doc-read",
+                    vec![("env", "a-env-setup")],
+                    vec!["a-env-setup"],
+                    0.0,
+                    360.0,
                 ),
-                make_agent_node(
+                // 条件：就绪判定
+                make_condition_node(
+                    "c-onboard-ready",
+                    "就绪判定",
+                    vec![Condition {
+                        var_path: "a-doc-read.learned".to_string(),
+                        operator: CompareOperator::IsNotEmpty,
+                        value: serde_json::json!(null),
+                    }],
+                    LogicalOperator::And,
+                    0.0,
+                    540.0,
+                ),
+                // 就绪：首个任务
+                make_agent_node_full(
                     "a-first-task",
                     "首个任务",
-                    "完成首个开发任务验证环境",
+                    "分配并执行首个开发任务：小步交付、导师确认。\
+                     输出 JSON：{\"task\":\"\", }",
                     vec![],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-first-task_result",
-                    550.0,
-                    150.0,
+                    "a-first-task",
+                    vec![("env", "a-env-setup"), ("doc", "a-doc-read")],
+                    vec!["a-env-setup", "a-doc-read"],
+                    -250.0,
+                    720.0,
                 ),
-                make_end(700.0, 150.0),
+                // 未就绪：补充培训
+                make_agent_node_full(
+                    "a-train",
+                    "补充培训",
+                    "生成补充培训计划：针对性教程、练习任务、答疑安排。\
+                     输出 JSON：{\"plan\":[], \"materials\":[], \"mentor\":\"\"}",
+                    vec![],
+                    Some("opc-cto-cto-ai-engineer"),
+                    "a-train",
+                    vec![("doc", "a-doc-read")],
+                    vec!["a-doc-read"],
+                    250.0,
+                    720.0,
+                ),
+                make_merge_node("m-onboard-eng", "汇合", 0.0, 900.0),
+                // Agent：入职确认
+                make_agent_node_full(
+                    "a-onboard-done",
+                    "入职确认",
+                    "确认入职完成：环境就绪、任务完成、反馈收集。\
+                     输出 JSON：{\"confirmed\":true, }",
+                    vec![],
+                    Some("opc-cto-cto-ai-engineer"),
+                    "a-onboard-done",
+                    vec![("task", "a-first-task"), ("train", "a-train")],
+                    vec!["a-first-task", "a-train"],
+                    0.0,
+                    1080.0,
+                ),
+                make_end(0.0, 1260.0),
             ],
             vec![
-                edge("e-env-setup", "trigger", "a-env-setup"),
-                edge("e-doc-read", "a-env-setup", "a-doc-read"),
-                edge("e-first-task", "a-doc-read", "a-first-task"),
-                edge("e-end", "a-first-task", "end"),
+                edge("e-trigger-env", "trigger", "a-env-setup"),
+                edge("e-env-doc", "a-env-setup", "a-doc-read"),
+                edge("e-doc-ready", "a-doc-read", "c-onboard-ready"),
+                edge_cond(
+                    "e-ok-task",
+                    "c-onboard-ready",
+                    "true",
+                    "a-first-task",
+                    EdgeType::ConditionTrue,
+                ),
+                edge_cond(
+                    "e-no-train",
+                    "c-onboard-ready",
+                    "false",
+                    "a-train",
+                    EdgeType::ConditionFalse,
+                ),
+                edge("e-task-merge", "a-first-task", "m-onboard-eng"),
+                edge("e-train-merge", "a-train", "m-onboard-eng"),
+                edge("e-merge-done", "m-onboard-eng", "a-onboard-done"),
+                edge("e-done-end", "a-onboard-done", "end"),
             ],
+            vec![DomainInputField {
+                key: "developer",
+                label: "开发者",
+                field_type: "string",
+                required: true,
+            }],
         ),
     )
     .await?
@@ -711,53 +869,111 @@ pub(crate) async fn seed_domain_engineering_workflows(
     // ── 9. wf-eng-perf-opt: 性能优化 ───────────────────────────────
     if seed_domain_template(
         db,
-        build_domain_template(
+        build_domain_template_rich(
             "wf-eng-perf-opt",
             "性能优化",
-            "分析和优化系统性能瓶颈",
+            "性能优化：剖析性能瓶颈，瓶颈不明确自动深度剖析，实施优化",
             "⚡",
             vec!["opc".to_string(), "engineering".to_string()],
-            "opc-cto-cto-ai-engineer",
+            ENG_TEMPLATE_VERSION,
             vec![
-                make_trigger(100.0, 150.0),
+                make_trigger(0.0, 0.0),
+                // Agent：性能剖析
                 make_agent_node(
                     "a-profile",
-                    "性能分析",
-                    "profile代码、数据库查询、网络延迟",
-                    vec![],
+                    "性能剖析",
+                    "剖析系统性能：热点函数、耗时分布、资源占用、吞吐瓶颈。\
+                     输出 JSON：{\"hotspots\":[{\"func\":\"\", }",
+                    vec![td_desc("Bash", "执行性能剖析命令")],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-profile_result",
-                    250.0,
-                    150.0,
+                    "a-profile",
+                    0.0,
+                    180.0,
                 ),
-                make_agent_node(
+                // Agent：瓶颈定位
+                make_agent_node_full(
                     "a-identify",
-                    "瓶颈识别",
-                    "识别性能瓶颈和根因分析",
+                    "瓶颈定位",
+                    "定位性能瓶颈根因：算法、IO、锁、缓存、网络。\
+                     输出 JSON：{\"bottleneck\":\"\", \"root_cause\":\"\", \"identified\":true, \"candidates\":[]}",
                     vec![],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-identify_result",
-                    400.0,
-                    150.0,
+                    "a-identify",
+                    vec![("profile", "a-profile")],
+                    vec!["a-profile"],
+                    0.0,
+                    360.0,
                 ),
-                make_agent_node(
+                // 条件：瓶颈明确
+                make_condition_node(
+                    "c-perf-identified",
+                    "瓶颈判定",
+                    vec![Condition {
+                        var_path: "a-identify.identified".to_string(),
+                        operator: CompareOperator::Eq,
+                        value: serde_json::json!(true),
+                    }],
+                    LogicalOperator::And,
+                    0.0,
+                    540.0,
+                ),
+                // 明确：优化实施
+                make_agent_node_full(
                     "a-optimize",
                     "优化实施",
-                    "实施优化并验证效果",
+                    "实施优化方案：算法改进、缓存引入、并发调整、IO 优化。\
+                     输出 JSON：{\"changes\":[], \"expected_gain\":0, \"measure_plan\":\"\"}",
+                    vec![td_desc("FileWrite", "写入优化代码")],
+                    Some("opc-cto-cto-ai-engineer"),
+                    "a-optimize",
+                    vec![("identify", "a-identify")],
+                    vec!["a-identify"],
+                    -250.0,
+                    720.0,
+                ),
+                // 不明确：深度剖析
+                make_agent_node_full(
+                    "a-deep",
+                    "深度剖析",
+                    "瓶颈不明确，进行深度剖析：采样、火焰图、指标细分。\
+                     输出 JSON：{\"deep_analysis\":\"\", \"refined_candidates\":[]}",
                     vec![],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-optimize_result",
-                    550.0,
-                    150.0,
+                    "a-deep",
+                    vec![("profile", "a-profile")],
+                    vec!["a-profile"],
+                    250.0,
+                    720.0,
                 ),
-                make_end(700.0, 150.0),
+                make_merge_node("m-perf", "汇合", 0.0, 900.0),
+                // Agent：效果验证
+                make_agent_node_full(
+                    "a-perf-verify",
+                    "效果验证",
+                    "验证优化效果：复测对比、回归确认、结论报告。\
+                     输出 JSON：{\"before\":0, \"after\":0, \"improvement\":0, \"regression\":false}",
+                    vec![td_desc("Bash", "运行基准测试")],
+                    Some("opc-cto-cto-ai-engineer"),
+                    "a-perf-verify",
+                    vec![("optimize", "a-optimize"), ("deep", "a-deep")],
+                    vec!["a-optimize", "a-deep"],
+                    0.0,
+                    1080.0,
+                ),
+                make_end(0.0, 1260.0),
             ],
             vec![
-                edge("e-profile", "trigger", "a-profile"),
-                edge("e-identify", "a-profile", "a-identify"),
-                edge("e-optimize", "a-identify", "a-optimize"),
-                edge("e-end", "a-optimize", "end"),
+                edge("e-trigger-profile", "trigger", "a-profile"),
+                edge("e-profile-identify", "a-profile", "a-identify"),
+                edge("e-identify-bottleneck", "a-identify", "c-perf-identified"),
+                edge_cond("e-ok-optimize", "c-perf-identified", "true", "a-optimize", EdgeType::ConditionTrue),
+                edge_cond("e-no-deep", "c-perf-identified", "false", "a-deep", EdgeType::ConditionFalse),
+                edge("e-optimize-merge", "a-optimize", "m-perf"),
+                edge("e-deep-merge", "a-deep", "m-perf"),
+                edge("e-merge-verify", "m-perf", "a-perf-verify"),
+                edge("e-verify-end", "a-perf-verify", "end"),
             ],
+            vec![DomainInputField { key: "perf_target", label: "优化目标", field_type: "string", required: false }],
         ),
     )
     .await?
@@ -768,53 +984,111 @@ pub(crate) async fn seed_domain_engineering_workflows(
     // ── 10. wf-eng-security-review: 安全审查 ───────────────────────
     if seed_domain_template(
         db,
-        build_domain_template(
+        build_domain_template_rich(
             "wf-eng-security-review",
             "安全审查",
-            "代码安全审计: 漏洞扫描、依赖检查",
+            "安全审查：扫描安全漏洞，高危漏洞紧急修复，常规漏洞按计划修复",
             "🛡️",
             vec!["opc".to_string(), "engineering".to_string()],
-            "opc-cto-cto-ai-engineer",
+            ENG_TEMPLATE_VERSION,
             vec![
-                make_trigger(100.0, 150.0),
+                make_trigger(0.0, 0.0),
+                // Agent：安全扫描
                 make_agent_node(
                     "a-scan",
-                    "扫描",
-                    "代码扫描: SAST、依赖漏洞、密钥泄露",
-                    vec![],
+                    "安全扫描",
+                    "扫描安全漏洞：注入、XSS、越权、敏感信息、依赖漏洞。\
+                     输出 JSON：{\"vulns\":[{\"type\":\"\", \"severity\":\"critical|high|medium|low\", \"location\":\"\", \"description\":\"\"}], \"high_count\":0}",
+                    vec![td_desc("Grep", "检索敏感模式"), td_desc("Bash", "运行安全扫描工具")],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-scan_result",
-                    250.0,
-                    150.0,
+                    "a-scan",
+                    0.0,
+                    180.0,
                 ),
-                make_agent_node(
+                // Agent：风险分析
+                make_agent_node_full(
                     "a-analyze-s",
-                    "分析",
-                    "分析扫描结果、优先级排序",
+                    "风险分析",
+                    "分析漏洞风险：可利用性、影响面、修复优先级。\
+                     输出 JSON：{\"analysis\":[{\"vuln\":\"\", \"exploitability\":0, \"impact\":\"\", \"priority\":\"P0|P1|P2\"}], \"recommended_order\":[]}",
                     vec![],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-analyze-s_result",
-                    400.0,
-                    150.0,
+                    "a-analyze-s",
+                    vec![("scan", "a-scan")],
+                    vec!["a-scan"],
+                    0.0,
+                    360.0,
                 ),
-                make_agent_node(
+                // 条件：高危漏洞
+                make_condition_node(
+                    "c-sec-high",
+                    "高危判定",
+                    vec![Condition {
+                        var_path: "a-scan.high_count".to_string(),
+                        operator: CompareOperator::Gt,
+                        value: serde_json::json!(0),
+                    }],
+                    LogicalOperator::And,
+                    0.0,
+                    540.0,
+                ),
+                // 高危：紧急修复
+                make_agent_node_full(
                     "a-fix",
-                    "修复",
-                    "实施修复方案、验证修复效果",
+                    "紧急修复",
+                    "紧急修复高危漏洞：立即整改、复测验证、上线加固。\
+                     输出 JSON：{\"fixes\":[{\"vuln\":\"\", \"patch\":\"\", \"verified\":true}], \"advisory\":\"\"}",
+                    vec![td_desc("FileWrite", "写入修复代码"), td_desc("OpcSendNotification", "通知安全负责人")],
+                    Some("opc-cto-cto-ai-engineer"),
+                    "a-fix",
+                    vec![("scan", "a-scan")],
+                    vec!["a-scan"],
+                    -250.0,
+                    720.0,
+                ),
+                // 常规：修复计划
+                make_agent_node_full(
+                    "a-fix-plan",
+                    "修复计划",
+                    "为常规漏洞制定修复计划与排期。\
+                     输出 JSON：{\"plan\":[{\"vuln\":\"\", \"action\":\"\", \"due\":\"\"}]}",
                     vec![],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-fix_result",
-                    550.0,
-                    150.0,
+                    "a-fix-plan",
+                    vec![("scan", "a-scan")],
+                    vec!["a-scan"],
+                    250.0,
+                    720.0,
                 ),
-                make_end(700.0, 150.0),
+                make_merge_node("m-sec", "汇合", 0.0, 900.0),
+                // Agent：安全报告
+                make_agent_node_full(
+                    "a-sec-report",
+                    "安全报告",
+                    "输出安全审查报告：漏洞汇总、风险等级、修复状态。\
+                     输出 JSON：{\"summary\":\"\", \"risk_level\":\"\", \"remaining\":[], \"recommendations\":[]}",
+                    vec![],
+                    Some("opc-cto-cto-ai-engineer"),
+                    "a-sec-report",
+                    vec![("fix", "a-fix"), ("fix-plan", "a-fix-plan")],
+                    vec!["a-fix", "a-fix-plan"],
+                    0.0,
+                    1080.0,
+                ),
+                make_end(0.0, 1260.0),
             ],
             vec![
-                edge("e-scan", "trigger", "a-scan"),
-                edge("e-analyze-s", "a-scan", "a-analyze-s"),
-                edge("e-fix", "a-analyze-s", "a-fix"),
-                edge("e-end", "a-fix", "end"),
+                edge("e-trigger-scan", "trigger", "a-scan"),
+                edge("e-scan-analyze", "a-scan", "a-analyze-s"),
+                edge("e-analyze-high", "a-analyze-s", "c-sec-high"),
+                edge_cond("e-high-fix", "c-sec-high", "true", "a-fix", EdgeType::ConditionTrue),
+                edge_cond("e-low-plan", "c-sec-high", "false", "a-fix-plan", EdgeType::ConditionFalse),
+                edge("e-fix-merge", "a-fix", "m-sec"),
+                edge("e-plan-merge", "a-fix-plan", "m-sec"),
+                edge("e-merge-report", "m-sec", "a-sec-report"),
+                edge("e-report-end", "a-sec-report", "end"),
             ],
+            vec![DomainInputField { key: "scan_target", label: "扫描目标", field_type: "string", required: true }],
         ),
     )
     .await?
@@ -825,60 +1099,117 @@ pub(crate) async fn seed_domain_engineering_workflows(
     // ── 11. wf-eng-tech-debt: 技术债管理 ───────────────────────────
     if seed_domain_template(
         db,
-        build_domain_template(
+        build_domain_template_rich(
             "wf-eng-tech-debt",
             "技术债管理",
-            "识别、评估和消除代码库中的技术债务",
-            "📉",
+            "技术债管理：扫描技术债项，高优先级债务优先偿还，输出偿还计划",
+            "💳",
             vec!["opc".to_string(), "engineering".to_string()],
-            "opc-cto-cto-ai-engineer",
+            ENG_TEMPLATE_VERSION,
             vec![
-                make_trigger(100.0, 150.0),
+                make_trigger(0.0, 0.0),
+                // Agent：债项扫描
                 make_agent_node(
                     "a-debt-scan",
-                    "扫描",
-                    "扫描代码库识别技术债项",
-                    vec![],
+                    "债项扫描",
+                    "扫描技术债：遗留代码、废弃依赖、重复实现、临时方案。\
+                     输出 JSON：{\"debts\":[{\"id\":\"\", \"type\":\"\", \"location\":\"\", \"severity\":\"high|medium|low\", \"impact\":\"\"}], \"high_count\":0}",
+                    vec![td_desc("Grep", "检索遗留代码模式"), td_desc("FileRead", "读取相关文件")],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-debt-scan_result",
-                    250.0,
-                    150.0,
+                    "a-debt-scan",
+                    0.0,
+                    180.0,
                 ),
-                make_agent_node(
+                // Agent：优先级排序
+                make_agent_node_full(
                     "a-debt-prioritize",
-                    "排序",
-                    "按影响和修复成本排序",
+                    "优先级排序",
+                    "按影响/成本/风险排序技术债项，标记高优先级。\
+                     输出 JSON：{\"ranked\":[{\"debt\":\"\", \"priority\":\"P0|P1|P2\", \"rationale\":\"\"}], \"p0_count\":0}",
                     vec![],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-debt-prioritize_result",
-                    400.0,
-                    150.0,
+                    "a-debt-prioritize",
+                    vec![("scan", "a-debt-scan")],
+                    vec!["a-debt-scan"],
+                    0.0,
+                    360.0,
                 ),
-                make_agent_node(
+                // 条件：高优先级
+                make_condition_node(
+                    "c-debt-high",
+                    "优先级判定",
+                    vec![Condition {
+                        var_path: "a-debt-prioritize.p0_count".to_string(),
+                        operator: CompareOperator::Gt,
+                        value: serde_json::json!(0),
+                    }],
+                    LogicalOperator::And,
+                    0.0,
+                    540.0,
+                ),
+                // 高优先级：优先偿还
+                make_agent_node_full(
                     "a-debt-repay",
-                    "偿还",
-                    "制定还款计划并执行",
+                    "优先偿还",
+                    "制定 P0 债务偿还计划：立即行动、验证标准。\
+                     输出 JSON：{\"repay_plan\":[{\"debt\":\"\", \"action\":\"\", \"owner\":\"\", \"due\":\"\"}]}",
+                    vec![td_desc("OpcSendNotification", "通知技术债责任人")],
+                    Some("opc-cto-cto-ai-engineer"),
+                    "a-debt-repay",
+                    vec![("ranked", "a-debt-prioritize")],
+                    vec!["a-debt-prioritize"],
+                    -250.0,
+                    720.0,
+                ),
+                // 常规：偿还路线图
+                make_agent_node_full(
+                    "a-debt-roadmap",
+                    "偿还路线图",
+                    "制定常规债务偿还路线图与节奏。\
+                     输出 JSON：{\"roadmap\":[], \"quarterly_quota\":0}",
                     vec![],
                     Some("opc-cto-cto-ai-engineer"),
-                    "a-debt-repay_result",
-                    550.0,
-                    150.0,
+                    "a-debt-roadmap",
+                    vec![("ranked", "a-debt-prioritize")],
+                    vec!["a-debt-prioritize"],
+                    250.0,
+                    720.0,
                 ),
-                make_end(700.0, 150.0),
+                make_merge_node("m-debt", "汇合", 0.0, 900.0),
+                // Agent：总结
+                make_agent_node_full(
+                    "a-debt-summary",
+                    "总结",
+                    "汇总技术债治理方案：债务总量、偿还节奏、预防机制。\
+                     输出 JSON：{\"total_debt\":0, \"strategy\":\"\", \"prevention\":[]}",
+                    vec![],
+                    Some("opc-cto-cto-ai-engineer"),
+                    "a-debt-summary",
+                    vec![("repay", "a-debt-repay"), ("roadmap", "a-debt-roadmap")],
+                    vec!["a-debt-repay", "a-debt-roadmap"],
+                    0.0,
+                    1080.0,
+                ),
+                make_end(0.0, 1260.0),
             ],
             vec![
-                edge("e-debt-scan", "trigger", "a-debt-scan"),
-                edge("e-debt-prioritize", "a-debt-scan", "a-debt-prioritize"),
-                edge("e-debt-repay", "a-debt-prioritize", "a-debt-repay"),
-                edge("e-end", "a-debt-repay", "end"),
+                edge("e-trigger-scan", "trigger", "a-debt-scan"),
+                edge("e-scan-prioritize", "a-debt-scan", "a-debt-prioritize"),
+                edge("e-prioritize-high", "a-debt-prioritize", "c-debt-high"),
+                edge_cond("e-high-repay", "c-debt-high", "true", "a-debt-repay", EdgeType::ConditionTrue),
+                edge_cond("e-low-roadmap", "c-debt-high", "false", "a-debt-roadmap", EdgeType::ConditionFalse),
+                edge("e-repay-merge", "a-debt-repay", "m-debt"),
+                edge("e-roadmap-merge", "a-debt-roadmap", "m-debt"),
+                edge("e-merge-summary", "m-debt", "a-debt-summary"),
+                edge("e-summary-end", "a-debt-summary", "end"),
             ],
+            vec![DomainInputField { key: "repo_name", label: "仓库名称", field_type: "string", required: true }],
         ),
     )
     .await?
     {
         seeded += 1;
     }
-
     // ── 12. wf-eng-refactor-lite: 快速追加重构 ────────────────────
     if seed_domain_template(
         db,

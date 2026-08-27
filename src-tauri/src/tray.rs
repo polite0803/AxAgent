@@ -56,6 +56,11 @@ fn sync_tray_menu(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(desktop)]
 pub fn create_tray(app: &AppHandle, _language: &str) -> Result<(), Box<dyn std::error::Error>> {
     // 忽略传入的 language 参数，实际标签由前端 set_tray_labels 设置
+    // 幂等防护：托盘已存在则跳过，避免意外触发时在 Windows 上生成重复图标
+    if app.tray_by_id(TRAY_ID).is_some() {
+        tracing::debug!("[tray] 托盘已存在（幂等跳过）");
+        return Ok(());
+    }
     create_tray_inner(app)
 }
 
@@ -67,6 +72,13 @@ pub fn create_tray(_app: &AppHandle, _language: &str) -> Result<(), Box<dyn std:
 
 #[cfg(desktop)]
 fn create_tray_inner(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+    // 双层幂等保护：TrayIconBuilder::build 同 ID 在 Windows 上不会替换，
+    // 会静默生成第二个图标。先查一次避免重复创建。
+    if app.tray_by_id(TRAY_ID).is_some() {
+        tracing::debug!("[tray] create_tray_inner: 托盘已存在，跳过 build");
+        return Ok(());
+    }
+
     let menu = build_menu(app)?;
     // 直接嵌入 32x32.png（实心品牌图标）。生产模式下 Tauri 资源目录没有 icons/icon.png，
     // 走 Image::from_path 必然失败，故不再尝试 path fallback。

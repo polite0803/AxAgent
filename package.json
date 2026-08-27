@@ -87,13 +87,14 @@
     "contracts": "node scripts/check-contracts.mjs",
     "prepare": "simple-git-hooks",
     "skill:create": "node scripts/create-axagent-skill.mjs",
-    "skill:validate": "node scripts/validate-skill.mjs"
+    "skill:validate": "node scripts/validate-skill.mjs",
+    "check:i18n": "python scripts/check_i18n.py",
+    "check:i18n:json": "python scripts/check_i18n.py --json"
   },
   "dependencies": {
-    "@antv/infographic": "^0.2.17",
+    "@antv/infographic": "^0.2.20",
     "@ant-design/icons": "^6.1.1",
     "@ant-design/x": "^2.9.0",
-    "@antv/infographic": "^0.2.20",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
