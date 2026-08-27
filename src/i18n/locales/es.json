@@ -1016,7 +1016,8 @@
       "error": "Error en la búsqueda",
       "resultsCount": "{{count}} resultados de búsqueda",
       "searching": "Buscando en la web...",
-      "title": "搜索对话"
+      "title": "搜索对话",
+      "noProviders": "当前没有可用的模型提供商"
     },
     "searchModelOrProvider": "Buscar modelo o proveedor",
     "searchPastSessions": "Buscar sesiones anteriores",
@@ -1292,7 +1293,20 @@
         "savedRecords": "Estructuras guardadas",
         "confirmDelete": "Confirmar eliminación",
         "confirmDeleteDesc": "¿Está seguro de que desea eliminar este registro de estructura narrativa?"
-      }
+      },
+      "cancelExecution": "取消执行",
+      "executionTime": "耗时 {{duration}}s",
+      "nodeSoonTimeout": "节点即将超时",
+      "nodeSoonTimeoutSummary": "节点「{{nodeName}}」在 {{seconds}}s 内未完成，自动降级",
+      "nodeTimedOut": "节点已超时",
+      "nodeTimeoutError": "执行超时",
+      "nodeTimeoutSummary": "节点「{{nodeName}}」已超时 {{seconds}}s，跳过",
+      "nodeTimeoutWarning": "执行即将超时",
+      "timeoutLevel": {
+        "critical": "严重",
+        "warning": "警告"
+      },
+      "timeoutThreshold": "超时阈值"
     },
     "workflowLabel": "Flujo de trabajo",
     "yesterday": "Ayer",
@@ -1319,7 +1333,15 @@
     "workspaceLocked": "El directorio del espacio de trabajo no se puede cambiar después de iniciar la conversación",
     "sources": {
       "title": "Knowledge Sources",
-      "empty": "No sources available. Please add one in settings first"
+      "empty": "No sources available. Please add one in settings first",
+      "clearAll": "清空全部",
+      "docsHint": "从知识库选择文档作为上下文",
+      "loadingDocs": "正在加载文档...",
+      "noDocs": "未选择文档",
+      "selectAll": "全选",
+      "selectAllInContainer": "全选容器内",
+      "selectedCount": "已选 {{count}} 个",
+      "toggleDocs": "文档"
     },
     "connector": {
       "title": "Connector",
@@ -3668,7 +3690,11 @@
     "importInfo": "导入功能 - 选择工作流文件导入",
     "ratingRequired": "请选择评分",
     "reviewPlaceholder": "分享你的使用体验...",
-    "noTemplates": "暂无模板"
+    "noTemplates": "暂无模板",
+    "alreadyInstalled": "已安装",
+    "installSuccess": "安装成功",
+    "installed": "已安装",
+    "noDescription": "暂无描述"
   },
   "mcp": {
     "disabled": "Desactivado",
@@ -3835,7 +3861,10 @@
     "totalReturnPctAll": "Todos portafolios retorno %",
     "totalUnrealizedPnl": "Total no realizado",
     "unrealizedPnl": "G/P no realizado",
-    "actions": "Acciones"
+    "actions": "Acciones",
+    "marketA": "A股",
+    "marketHK": "港股",
+    "marketUS": "美股"
   },
   "screenshotDiagnosis": {
     "uploadTitle": "Subir captura de posiciones",
@@ -4127,7 +4156,19 @@
       "colMember": "Miembro",
       "colStatus": "Estado",
       "colToday": "Tokens de hoy",
-      "colTotal": "Tokens totales"
+      "colTotal": "Tokens totales",
+      "openClosedHint": "净空头为负、净多头为正，对冲接近零",
+      "portfolioCount": "组合数",
+      "portfolioDashboardTitle": "投资组合概览",
+      "positionCount": "持仓数",
+      "realizedPnl": "已实现盈亏",
+      "totalCost": "总成本",
+      "totalMarketValue": "总市值",
+      "totalReturn": "总收益",
+      "unitQian": "千",
+      "unitWan": "万",
+      "unitYi": "亿",
+      "unrealizedPnl": "浮动盈亏"
     },
     "room": {
       "workspace": "Espacio de trabajo",
@@ -4182,7 +4223,11 @@
         "pickerTitle": "Cambiar valor",
         "pickerPlaceholder": "Código o nombre (≥2 caracteres)",
         "pickerHint": "Escriba al menos 2 caracteres para buscar",
-        "pickerEmpty": "No se encontró ninguna acción"
+        "pickerEmpty": "No se encontró ninguna acción",
+        "unitShares": "股",
+        "unitWan": "万元",
+        "unitYi": "亿元",
+        "unitYuan": "元"
       },
       "meeting": {
         "title": "Briefing matutino · Temas de mercado",
@@ -4222,7 +4267,9 @@
           "low": "Riesgo bajo",
           "medium": "Riesgo medio",
           "high": "Riesgo alto"
-        }
+        },
+        "unitWan": "万",
+        "unitYi": "亿"
       }
     },
     "deleteFleet": {
@@ -4274,7 +4321,9 @@
       "search": "Search",
       "batchSuccess": "Batch operation succeeded",
       "batchMarkRead": "Mark {{count}} as read",
-      "exportSuccess": "Exported {{count}}"
+      "exportSuccess": "Exported {{count}}",
+      "loadFailed": "加载失败",
+      "loading": "加载中..."
     },
     "dashboard": {
       "loadFailed": "无法加载仪表盘",
@@ -4383,7 +4432,8 @@
       "sourceLabel": "来源",
       "sourcePlaceholder": "选择来源",
       "filterStatus": "Filter by status",
-      "filterSource": "Filter by source"
+      "filterSource": "Filter by source",
+      "emptyTip": "暂无客户数据"
     },
     "project": {
       "updated": "项目已更新",
@@ -4894,7 +4944,8 @@
         "avgFeedback": "Puntuación de feedback promedio",
         "trend_improving": "Mejora",
         "trend_stable": "Estable",
-        "trend_declining": "Descenso"
+        "trend_declining": "Descenso",
+        "trend_": "趋势"
       },
       "noProviderConfig": "Please configure a default AI provider first",
       "noWorkflows": "No workflows for this industry",
@@ -4930,7 +4981,8 @@
         "status_completed": "Completado",
         "status_failed": "Fallido",
         "status_partial": "Parcial",
-        "duration": "Duración"
+        "duration": "Duración",
+        "status_": "状态"
       },
       "workflowSteps": {
         "title": "Pasos del flujo de trabajo de la industria",
@@ -5873,8 +5925,14 @@
           "execute": "Execute",
           "executeDesc": "Executing workflow",
           "result": "Result"
-        }
-      }
+        },
+        "edit": "编辑"
+      },
+      "steps": {
+        "title": "步骤配置",
+        "total": "共 {{count}} 步"
+      },
+      "workflowTemplateNotFound": "未找到工作流模板"
     },
     "input_fields": {
       "software_dev": {
@@ -10390,7 +10448,18 @@
       "ingestSuccess": "Importado con éxito",
       "uploadError": "Error al subir",
       "importError": "Importación fallida",
-      "previewError": "Vista previa fallida"
+      "previewError": "Vista previa fallida",
+      "failedCount": "失败 {{count}}",
+      "fileName": "文件名",
+      "fileSize": "文件大小",
+      "fileType": "文件类型",
+      "folderContext": "文件夹上下文",
+      "folderEmpty": "文件夹为空",
+      "folderImportFailed": "导入失败",
+      "folderImportSuccess": "导入成功",
+      "folderPathRequired": "请选择文件夹",
+      "importedCount": "已导入 {{count}}",
+      "previewFound": "发现 {{count}} 个文档"
     },
     "llmNote": "Nota LLM",
     "localGraph": "Grafo local",
@@ -10572,7 +10641,8 @@
     },
     "noteLoadFailed": "No se pudo cargar la nota",
     "entityNodeInfo": "Nodo de entidad",
-    "entityNodeDesc": "Esta es una entidad del gráfico de conocimiento sin nota asociada. Ver sus relaciones a través de la vista de gráfico."
+    "entityNodeDesc": "Esta es una entidad del gráfico de conocimiento sin nota asociada. Ver sus relaciones a través de la vista de gráfico.",
+    "toggleSidebar": "切换侧栏"
   },
   "workflow": {
     "autoSave": {
@@ -11521,7 +11591,12 @@
       "convergence_prompt_placeholder": "Prompt que determina cuándo converge el debate",
       "debaters": "Debatientes",
       "max_rounds": "Rondas máx.",
-      "topic_var": "Variable del tema"
+      "topic_var": "Variable del tema",
+      "convergenceModelRole": "收敛模型角色",
+      "convergencePrompt": "收敛提示词",
+      "convergencePrompt_placeholder": "当 {{topicVar}} 收敛时，使用此提示词引导 LLM 综合多方观点...",
+      "maxRounds": "最大轮数",
+      "topicVar": "主题变量名"
     },
     "nodeCopied": "Nodo copiado",
     "nodeDropFailed": "Error al colocar el nodo: {{error}}",
@@ -12588,7 +12663,11 @@
       "genreOther": "Otro",
       "arcList": "Arcos de personajes",
       "confluenceList": "Confluencias",
-      "foreshadowList": "Red de presagios"
+      "foreshadowList": "Red de presagios",
+      "chapterLabel": "第 {{index}} 章",
+      "confluenceLabel": "融合",
+      "needInternalMissing": "需要内部节点（缺失）",
+      "wantExternalGoal": "期望外部目标"
     },
     "tools": {
       "title": "Herramientas del flujo",
@@ -12650,7 +12729,8 @@
       "jsonSuccess": "Flujo importado",
       "jsonRequired": "Primero pegue el JSON",
       "presetsBtn": "Importar predefinidos integrados",
-      "presetsHint": "Restaurar plantillas integradas; las existentes se omiten"
+      "presetsHint": "Restaurar plantillas integradas; las existentes se omiten",
+      "jsonHint": "粘贴工作流 JSON 或选择文件"
     }
   },
   "voiceChat": {
@@ -13230,6 +13310,12 @@
       "midAgreementHint": "双视角部分一致",
       "lowAgreementHint": "双视角存在分歧",
       "executionMode": "执行模式"
+    },
+    "titles": {
+      "decision": "决策面板",
+      "risk": "风险面板",
+      "screener": "选股面板",
+      "value": "估值面板"
     }
   },
   "portfolio": {
@@ -13279,7 +13365,22 @@
       "stabilityScore": "稳定性评分",
       "strategyOverwrite": "Overwrite（覆盖）",
       "strategyMerge": "Merge（合并）",
-      "strategyDryRun": "DryRun（仅验证）"
+      "strategyDryRun": "DryRun（仅验证）",
+      "annualizedVolatility": "年化波动率",
+      "averageHoldingDays": "平均持仓天数",
+      "averageLoss": "平均亏损",
+      "averageWin": "平均盈利",
+      "barsCount": "K线数量",
+      "losingTrades": "亏损交易",
+      "maxDrawdown": "最大回撤",
+      "maxDrawdownDuration": "回撤持续期",
+      "outOfSampleEquity": "样本外净值",
+      "payoffRatio": "盈亏比",
+      "profitFactor": "盈亏因子",
+      "strategyParameters": "策略参数",
+      "testRange": "样本外区间",
+      "trainRange": "样本内区间",
+      "winningTrades": "盈利交易"
     },
     "common": {
       "empty": "No data"
@@ -13415,7 +13516,8 @@
       "walkforwardTitle": "Backtest histórico Walk-Forward",
       "wakeupUs": "Intervalo de activación de la estrategia (μs)",
       "winRateDelta": "Desviación de win rate",
-      "yuan": "yuan"
+      "yuan": "yuan",
+      "endDate": "结束日期"
     },
     "strategyParams": {
       "shortPeriod": "短周期",
@@ -14173,7 +14275,12 @@
         "tradeDate": "Fecha",
         "tradeType": "Dirección",
         "tradePrice": "Precio",
-        "tradeReason": "Motivo"
+        "tradeReason": "Motivo",
+        "buy": "买入",
+        "moneyWan": "金额（万）",
+        "moneyYi": "金额（亿）",
+        "sell": "卖出",
+        "tradeCount": "交易数"
       },
       "metrics": {
         "totalReturn": "Rentabilidad total",
@@ -14181,7 +14288,11 @@
         "maxDrawdown": "Caída máxima",
         "winRate": "Tasa de victoria"
       },
-      "tabCharts": "📊 Visuales"
+      "tabCharts": "📊 Visuales",
+      "backtestHint": "回测将使用历史数据模拟策略表现",
+      "tabMonteCarlo": "蒙特卡洛",
+      "tabQuantSim": "量化仿真",
+      "tabSimulation": "仿真"
     },
     "export": {
       "analystReports": "analystReports",
@@ -14374,7 +14485,9 @@
       "vValidate": "验证",
       "aggRisk": "激进风险",
       "notifyResult": "通知结果",
-      "analystFallback": "分析师"
+      "analystFallback": "分析师",
+      "insufficientDataQuality": "数据质量不足，跳过分析",
+      "skipAnalysisError": "跳过分析时发生错误"
     },
     "debugPanel": {
       "show": "🔍 Show",
@@ -14873,7 +14986,8 @@
       "parsedNoDisplay": "(Parsed but no displayable fields)",
       "verdictOnlyLabel": "Este debatiente solo proporcionó una conclusión, sin un análisis detallado.",
       "title": "Debate Summary",
-      "loading": "辩论分析进行中..."
+      "loading": "辩论分析进行中...",
+      "evidence": "证据"
     },
     "decision": {
       "action": "操作建议",
@@ -14891,7 +15005,11 @@
       "disagreement": "Desacuerdo",
       "positionGap": "Brecha de posición {{gap}}%",
       "confidenceGap": "Brecha de confianza {{gap}}%",
-      "exportFailed": "Error al exportar: {{errMsg}}"
+      "exportFailed": "Error al exportar: {{errMsg}}",
+      "diff": "分歧",
+      "directionConflict": "方向冲突",
+      "opposite": "反向",
+      "sameDirection": "同向"
     },
     "compare": {
       "title": "Compare",
@@ -14902,7 +15020,9 @@
       "revenueGrowth": "Revenue Growth",
       "profitGrowth": "Profit Growth",
       "grossMargin": "Gross Margin",
-      "debtRatio": "Debt Ratio"
+      "debtRatio": "Debt Ratio",
+      "backtestPlaceholder": "选择回测方案进行对比",
+      "simPlaceholder": "选择仿真方案进行对比"
     },
     "dashboard": {
       "analyzeStock": "分析股票",
@@ -14932,7 +15052,10 @@
       "earningsExpectation": "Earnings Expectation",
       "integrityWarning": "Report failed integrity check",
       "empty": "Aún no hay informe del panel. Primero ejecute el análisis de decisión o vuelva a ejecutar la decisión.",
-      "viewMarkdown": "Ver fuente Markdown"
+      "viewMarkdown": "Ver fuente Markdown",
+      "regimeAboveMa60": "MA60 之上",
+      "regimeBelowMa60": "MA60 之下",
+      "regimeSideways": "横盘震荡"
     },
     "evolutionDrift": {
       "title": "Evolution Drift",
@@ -15130,7 +15253,9 @@
       "styleEarnings": "Earnings Driven",
       "styleEvent": "Event Driven",
       "stylePolicy": "Policy Driven",
-      "styleTechnical": "Technical"
+      "styleTechnical": "Technical",
+      "bannerAsOf": "数据截至 {{date}}",
+      "degradedStylesTitle": "降级策略风格"
     },
     "empty": {
       "replayDegradedTitle": "⏪ Degraded in Replay Mode",
@@ -15561,7 +15686,67 @@
       "evolutionFailed": "La evolución de {{nodeName}} falló",
       "evolutionTrigger": "Disparar la autoevolución de {{nodeName}}",
       "evolutionSuggestion": "🧬 Sugerencia de autoevolución de {{nodeName}}",
-      "close": "Cerrar"
+      "close": "Cerrar",
+      "bearArgument": "看跌论点",
+      "bullArgument": "看涨论点",
+      "dataAvailable": "数据可用",
+      "dataDetail": "数据详情",
+      "dqBearConflict": "看跌分数冲突",
+      "dqBearConsistent": "看跌分数一致",
+      "dqBearScoreOutOfRange": "看跌分数超出范围",
+      "dqBearScoreValid": "看跌分数有效",
+      "dqBullConflict": "看涨分数冲突",
+      "dqBullConsistent": "看涨分数一致",
+      "dqBullScoreOutOfRange": "看涨分数超出范围",
+      "dqBullScoreValid": "看涨分数有效",
+      "dqConfidenceLow": "置信度低",
+      "dqConfidenceRange": "置信度范围",
+      "dqConfidenceValue": "置信度值",
+      "dqEvidenceLimited": "证据有限",
+      "dqEvidenceWithData": "有数据支撑",
+      "dqFieldMissing": "字段缺失",
+      "dqFreeTextBrief": "文本简短",
+      "dqFreeTextNone": "无文本",
+      "dqFreeTextRich": "文本丰富",
+      "dqGapCount": "缺口数量",
+      "dqKeyEventsCount": "关键事件数",
+      "dqNeutralOk": "中性正常",
+      "dqNoBearScore": "无看跌分数",
+      "dqNoBullScore": "无看涨分数",
+      "dqNoConfidence": "无置信度",
+      "dqNoConsistency": "不一致",
+      "dqNoGaps": "无缺口",
+      "dqNoPoints": "无要点",
+      "dqNoSummary": "无摘要",
+      "dqNoVerdict": "无判定",
+      "dqNonStandard": "非标准",
+      "dqOutputFormat": "输出格式",
+      "dqParseFailed": "解析失败",
+      "dqPointsCount": "要点数量",
+      "dqPureJson": "纯 JSON",
+      "dqScoreSumInconsistent": "分数和不一致",
+      "dqScoreSumOk": "分数和正常",
+      "dqSummaryExists": "有摘要",
+      "dqTextLengthBrief": "文本较短",
+      "dqTextLengthRich": "文本丰富",
+      "dqTextTooShort": "文本过短",
+      "dqTypeMismatch": "类型不匹配",
+      "dqUnstructuredText": "非结构化文本",
+      "dqVerdictExtraFields": "判定含额外字段",
+      "dqVerdictExtraKeys": "判定含额外键",
+      "dqVerdictFormat": "判定格式",
+      "dqVerdictIncomplete": "判定不完整",
+      "dqVerdictJsonFail": "判定 JSON 失败",
+      "dqVerdictParsed": "判定已解析",
+      "dqVerdictText": "判定文本",
+      "dqVerdictType": "判定类型",
+      "dqVerdictTypeOk": "判定类型正常",
+      "dqVerdictValue": "判定值",
+      "hasBearArgument": "含看跌论点",
+      "hasBullArgument": "含看涨论点",
+      "noAnalysisData": "无分析数据",
+      "nodeNoData": "节点无数据",
+      "verdictInsufficient": "判定不充分"
     },
     "analysisDebug": {
       "node": "Node",
@@ -15647,7 +15832,13 @@
     "whatIf": {
       "valuationParams": "Valuation Params",
       "riskParams": "Risk Params",
-      "decisionTrail": "Decision Trail"
+      "decisionTrail": "Decision Trail",
+      "impact": "影响",
+      "liquidity": "流动性",
+      "preSimulationDecision": "仿真前判定",
+      "simulationGate": "仿真门控",
+      "stability": "稳定性",
+      "technicalVeto": "技术否决"
     },
     "riskMatrix": {
       "detailAssessment": "详细评估",
@@ -16030,7 +16221,9 @@
       "claimCount": "Razones de decisión",
       "supported": "Con datos",
       "unsupported": "Sin datos",
-      "source": "Fuente"
+      "source": "Fuente",
+      "extractFailed": "证据提取失败",
+      "matchConfidence": "匹配置信度"
     },
     "charts": {
       "noSectorData": "Sin datos de asignación sectorial",
@@ -16042,7 +16235,8 @@
       "portfolio": "Cartera",
       "benchmark": "Referencia",
       "needMoreData": "Datos insuficientes",
-      "portfolioVsBenchmark": "Cartera vs Referencia"
+      "portfolioVsBenchmark": "Cartera vs Referencia",
+      "more": "更多"
     },
     "simVsBacktest": {
       "title": "Simulación vs Backtest",
@@ -16056,8 +16250,103 @@
       "backtestBetter": "Backtest gana",
       "simBetter": "Simulación gana",
       "backtestSummary": "Resumen del backtest",
-      "simSummary": "Resumen de la simulación"
-    }
+      "simSummary": "Resumen de la simulación",
+      "metricLabel": {
+        "annualizedReturn": "年化收益",
+        "avgHoldingDays": "平均持仓天数",
+        "avgReturn": "平均收益",
+        "maxDrawdown": "最大回撤",
+        "profitFactor": "盈亏因子",
+        "sharpe": "Sharpe 比率",
+        "totalReturn": "总收益",
+        "winRate": "胜率"
+      }
+    },
+    "argument": "论点",
+    "bearAttack": "看跌攻击",
+    "convergenceSummary": "收敛摘要",
+    "coreArguments": "核心论点",
+    "counterArgument": "反向论点",
+    "dataGaps": "数据缺口",
+    "dataQuality": {
+      "emptySummaryHint": "点击生成摘要",
+      "first200Chars": "前 200 字符",
+      "gapReasonLegacy": "历史遗留",
+      "gapReasonLegacyConfidence": "历史置信度",
+      "legacySummary": "历史摘要",
+      "renderFailed": "渲染失败",
+      "staleRecordSummary": "过期记录摘要",
+      "summaryLength": "摘要长度"
+    },
+    "dataWarning": {
+      "announcement": "公告",
+      "emptyData": "数据为空",
+      "news": "新闻",
+      "sentiment": "舆情"
+    },
+    "execution": {
+      "nodes": "执行节点"
+    },
+    "expand": "展开",
+    "expandFull": "全部展开",
+    "finalVerdict": "最终判定",
+    "historyBatchExit": "历史批量退出",
+    "impact": "影响",
+    "ourResponse": "我方回应",
+    "pbRatio": "市净率 (PB)",
+    "peRatio": "市盈率 (PE)",
+    "pending": "待处理",
+    "portfolio": {
+      "importPartial": "部分导入",
+      "yuan": "元"
+    },
+    "references": "参考资料",
+    "resonancePoint": "共振点",
+    "riskReport": {
+      "asymOpportunities": "不对称机会",
+      "bearArgs": "看跌论点",
+      "bullArgs": "看涨论点",
+      "confidence": "置信度",
+      "evidenceRef": "证据引用",
+      "executionNotes": "执行备注",
+      "executionNotesInline": "内联执行备注",
+      "expectedValue": "期望值",
+      "kellyParams": "Kelly 参数",
+      "kellyPayoff": "Kelly 赔率",
+      "kellyRaw": "Kelly 原始值",
+      "kellyScale": "Kelly 缩放",
+      "kellyWinRate": "Kelly 胜率",
+      "keyConditions": "关键条件",
+      "positionPct": "仓位占比",
+      "riskItems": "风险项",
+      "riskLevel": "风险等级",
+      "stance": "立场",
+      "stopLoss": "止损",
+      "takeProfit": "止盈"
+    },
+    "roe": "净资产收益率 (ROE)",
+    "tradeStats": {
+      "avgHoldingDays": "平均持仓天数",
+      "byStrategy": "按策略",
+      "commission": "佣金",
+      "daysUnit": "天",
+      "feeEstimate": "费用预估",
+      "holdingDaysDistribution": "持仓天数分布",
+      "monthlyPl": "月度盈亏",
+      "profitFactor": "盈亏因子",
+      "stampTax": "印花税",
+      "title": "交易统计",
+      "totalPl": "总盈亏",
+      "tradeCount": "交易次数",
+      "tradeCountUnit": "次",
+      "winRate": "胜率"
+    },
+    "unnamedArgument": "未命名论点",
+    "verdictReason": "判定理由",
+    "viz": {
+      "noData": "暂无可视化数据"
+    },
+    "weight": "权重"
   },
   "pipeline": {
     "title": "Pipeline de Acciones",
@@ -16081,7 +16370,10 @@
       "untilDate": "Reproducir hasta {{date}}"
     },
     "datePicker": {
-      "placeholder": "Seleccionar fecha de reproducción"
+      "placeholder": "Seleccionar fecha de reproducción",
+      "cancel": "取消",
+      "hint": "请选择过去的交易日，今天及未来日期被禁用（封闭世界假设）。",
+      "ok": "进入回放"
     },
     "degradedMarker": {
       "tooltip": "Algunos métodos de análisis no están disponibles en modo reproducción",
@@ -16092,6 +16384,24 @@
         "chip": "{{n}} 项违规",
         "chipAria": "{{n}} violations"
       }
+    },
+    "badge": {
+      "replay": "回放 {{date}}",
+      "replayTooltip": "此视图中的所有数据、提示词与结论都以 {{date}} 为锚点，不可用于实盘交易。",
+      "sweep": "批次回测"
+    },
+    "sweep": {
+      "accuracy": "准确率",
+      "alpha": "Alpha",
+      "sharpe": "Sharpe",
+      "total": "回测总数"
+    },
+    "tour": {
+      "body": "把分析和荐股都锚定到过去的某一日，可以安全地回测策略、避免前视偏差。系统会拒绝未来日期，违反时间约束的输出会在时间线上高亮。",
+      "close": "关闭",
+      "gotIt": "知道了",
+      "stepAnchor": "随时点击「实时分析」或「历史回放」胶囊进入回放模式。",
+      "title": "时间旅行模式已上线"
     }
   },
   "workspace": {
@@ -16451,8 +16761,11 @@
       "narrative": "Narrativa",
       "symbols": "Símbolos (separados por comas)",
       "score": "Fuerza 0-100",
-      "persistence": "Persistencia"
-    }
+      "persistence": "Persistencia",
+      "narrativePlaceholder": "描述此主线的故事逻辑与演变路径...",
+      "themePlaceholder": "例如：AI算力、创新药、机器人..."
+    },
+    "subtitle": "捕捉当日市场最具持续性的主题与资金动向"
   },
   "paper": {
     "title": "Resumen del artículo",
@@ -16624,7 +16937,8 @@
       "testFailed": "Error en la prueba de cifrado",
       "lastEncryptedTitle": "Última vez de cifrado",
       "errorTitle": "Error de cifrado",
-      "recommended": "(Recomendado)"
+      "recommended": "(Recomendado)",
+      "enabled": "加密传输已启用"
     },
     "realtime": {
       "title": "Estado de publicación en tiempo real",
@@ -16644,7 +16958,13 @@
       "reconnectSuccess": "Reconectado exitosamente",
       "disconnected": "Desconectado",
       "noDevice": "Por favor, registre primero un dispositivo",
-      "registerDeviceFirst": "Por favor, registre primero un dispositivo para usar la función de publicación en tiempo real"
+      "registerDeviceFirst": "Por favor, registre primero un dispositivo para usar la función de publicación en tiempo real",
+      "status": {
+        "connected": "已连接",
+        "connecting": "连接中",
+        "disconnected": "已断开",
+        "error": "错误"
+      }
     },
     "viewDetails": "Ver detalles",
     "syncPolicy": "Política de sincronización",
@@ -16736,7 +17056,18 @@
       "knowledge": "Base de conocimientos",
       "agent": "Agente",
       "workflow": "Flujo de trabajo"
-    }
+    },
+    "conflictDetail": "冲突详情",
+    "conflictSummary": "检测到 {{count}} 项冲突",
+    "detectedAt": "检测时间",
+    "disabled": "已禁用",
+    "enabled": "已启用",
+    "localData": "本地数据",
+    "permissions": "权限",
+    "remoteData": "远端数据",
+    "resolveStrategy": "冲突解决策略",
+    "selectResolveStrategy": "请选择解决策略",
+    "updatedAt": "更新时间"
   },
   "skillLearning": {
     "title": "Skill Learning",
@@ -16822,5 +17153,107 @@
     "approve": "Aprobar",
     "reject": "Rechazar",
     "rejectedToast": "Operación de alto riesgo rechazada"
+  },
+  "api": {
+    "emit": "发送事件",
+    "invoke": "调用接口"
+  },
+  "crossMarket": {
+    "benchmarkTitle": "主要指数",
+    "changePct": "涨跌幅",
+    "code": "代码",
+    "codePlaceholder": "输入股票代码或指数",
+    "codeRequired": "请输入代码",
+    "fetchQuote": "获取行情",
+    "forexTitle": "外汇汇率",
+    "klineCount": "K线数量",
+    "klineTitle": "K线走势",
+    "latestClose": "最新收价",
+    "loading": "加载中",
+    "name": "名称",
+    "noBenchmark": "无指数数据",
+    "noForex": "无外汇数据",
+    "noKline": "无K线数据",
+    "noQuotes": "无行情",
+    "price": "现价",
+    "quoteLoaded": "行情已加载",
+    "refresh": "刷新",
+    "subtitle": "全球市场联动观察",
+    "title": "跨市场行情",
+    "totalMv": "总市值"
+  },
+  "executionBridge": {
+    "confirm": {
+      "message": "请确认执行以下交易指令。确认后将提交至券商通道。",
+      "quantityLabel": "数量",
+      "quantityPlaceholder": "请输入交易数量",
+      "submit": "确认执行",
+      "title": "确认交易"
+    },
+    "mode": {
+      "title": "执行模式"
+    },
+    "pending": {
+      "actions": "操作",
+      "createdAt": "创建时间",
+      "direction": "方向",
+      "empty": "暂无待执行信号",
+      "price": "价格",
+      "reason": "触发原因",
+      "refresh": "刷新",
+      "riskLevel": "风险等级",
+      "stockCode": "代码",
+      "stockName": "名称",
+      "title": "待执行信号"
+    },
+    "reject": {
+      "message": "输入拒单原因后可将信号标记为不执行。",
+      "reasonLabel": "拒单原因",
+      "reasonPlaceholder": "请输入拒单原因",
+      "submit": "拒绝执行",
+      "title": "拒绝交易"
+    },
+    "time": {
+      "minutesAgo": "{{minutes}} 分钟前"
+    },
+    "toast": {
+      "confirmSuccess": "已确认执行，正在提交...",
+      "rejectSuccess": "已拒绝执行"
+    }
+  },
+  "store": {
+    "read": "读取",
+    "write": "写入"
+  },
+  "ui": {
+    "getLocale": "获取语言",
+    "getTheme": "获取主题",
+    "navigate": "页面跳转",
+    "notify": "通知"
+  },
+  "agentRoleStore": {
+    "loadFailed": "智能体角色加载失败"
+  },
+  "cap": {
+    "agent": {
+      "data_analyst": "数据分析师"
+    },
+    "agent_role": {
+      "analyst": "分析师"
+    },
+    "kb": {
+      "product_docs": "产品文档"
+    },
+    "skill": {
+      "web_automation": "网页自动化"
+    },
+    "tool": {
+      "code_execution": "代码执行",
+      "web_search": "网络搜索"
+    },
+    "workflow": {
+      "image_generation": "图像生成",
+      "stock_analysis": "股票分析"
+    }
   }
 }
