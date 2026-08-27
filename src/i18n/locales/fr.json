@@ -2064,6 +2064,12 @@
     "waitingForJson": "En attente d'un JSON valide..."
   },
   "error": {
+    "LLM_TOOL_PROVIDER_NOT_CONFIGURED": "Aucun fournisseur de modèle configuré pour la génération d'outils LLM",
+    "OPC_SETUP_INTERNAL": "Erreur interne de configuration OPC",
+    "STOCK_SETUP_INTERNAL": "Erreur interne de configuration de l'analyse boursière",
+    "STOCK_WORKFLOW_INTERNAL": "Erreur interne du workflow boursier",
+    "WORKFLOW_TOOL_INVALID_STATUS": "Statut d'outil de workflow invalide",
+    "WORKFLOW_TOOL_SANDBOX_REJECTED": "L'outil généré a échoué à la validation en sandbox et a été rejeté",
     "settings": {
       "modelRefInvalid": "Structure NullableModelRef invalide: {{label}}",
       "cleanupInvalid": "[SettingsAdaptor] Nettoyage de {{label}} invalide: {{reason}}",

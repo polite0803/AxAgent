@@ -2064,6 +2064,12 @@
     "waitingForJson": "Esperando JSON válido..."
   },
   "error": {
+    "LLM_TOOL_PROVIDER_NOT_CONFIGURED": "No hay un proveedor de modelos configurado para la generación de herramientas LLM",
+    "OPC_SETUP_INTERNAL": "Error interno de configuración de OPC",
+    "STOCK_SETUP_INTERNAL": "Error interno de configuración del análisis de acciones",
+    "STOCK_WORKFLOW_INTERNAL": "Error interno del flujo de trabajo de acciones",
+    "WORKFLOW_TOOL_INVALID_STATUS": "Estado de herramienta de flujo de trabajo no válido",
+    "WORKFLOW_TOOL_SANDBOX_REJECTED": "La herramienta generada no superó la validación de sandbox y fue rechazada",
     "settings": {
       "modelRefInvalid": "Estructura NullableModelRef inválida: {{label}}",
       "cleanupInvalid": "[SettingsAdaptor] Limpiando {{label}} inválido: {{reason}}",

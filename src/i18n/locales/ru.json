@@ -2064,6 +2064,12 @@
     "waitingForJson": "Ожидание валидного JSON..."
   },
   "error": {
+    "LLM_TOOL_PROVIDER_NOT_CONFIGURED": "Не настроен поставщик моделей для генерации LLM-инструментов",
+    "OPC_SETUP_INTERNAL": "Внутренняя ошибка настройки OPC",
+    "STOCK_SETUP_INTERNAL": "Внутренняя ошибка настройки анализа акций",
+    "STOCK_WORKFLOW_INTERNAL": "Внутренняя ошибка фондового рабочего процесса",
+    "WORKFLOW_TOOL_INVALID_STATUS": "Недопустимый статус инструмента рабочего процесса",
+    "WORKFLOW_TOOL_SANDBOX_REJECTED": "Сгенерированный инструмент не прошёл проверку в песочнице и был отклонён",
     "settings": {
       "modelRefInvalid": "Неверная структура NullableModelRef: {{label}}",
       "cleanupInvalid": "[SettingsAdaptor] Очищено недействительное {{label}}: {{reason}}",

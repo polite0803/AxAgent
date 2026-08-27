@@ -2064,6 +2064,12 @@
     "waitingForJson": "等待有效 JSON..."
   },
   "error": {
+    "LLM_TOOL_PROVIDER_NOT_CONFIGURED": "未配置模型提供商，无法生成 LLM 工具",
+    "OPC_SETUP_INTERNAL": "OPC 初始化内部错误",
+    "STOCK_SETUP_INTERNAL": "股票分析初始化内部错误",
+    "STOCK_WORKFLOW_INTERNAL": "股票工作流内部错误",
+    "WORKFLOW_TOOL_INVALID_STATUS": "工作流工具状态无效",
+    "WORKFLOW_TOOL_SANDBOX_REJECTED": "生成的工具未通过沙箱验证，已拒绝保存",
     "settings": {
       "modelRefInvalid": "NullableModelRef 结构无效: {{label}}",
       "cleanupInvalid": "[SettingsAdaptor] 清理无效的{{label}}: {{reason}}",

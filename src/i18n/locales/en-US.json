@@ -2064,6 +2064,12 @@
     "waitingForJson": "Waiting for valid JSON..."
   },
   "error": {
+    "LLM_TOOL_PROVIDER_NOT_CONFIGURED": "No model provider configured for LLM tool generation",
+    "OPC_SETUP_INTERNAL": "OPC setup internal error",
+    "STOCK_SETUP_INTERNAL": "Stock analysis setup internal error",
+    "STOCK_WORKFLOW_INTERNAL": "Stock workflow internal error",
+    "WORKFLOW_TOOL_INVALID_STATUS": "Invalid workflow tool status",
+    "WORKFLOW_TOOL_SANDBOX_REJECTED": "Generated tool failed sandbox validation and was rejected",
     "settings": {
       "modelRefInvalid": "Invalid NullableModelRef structure: {{label}}",
       "cleanupInvalid": "[SettingsAdaptor] Cleaned invalid {{label}}: {{reason}}",

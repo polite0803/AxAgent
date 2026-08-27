@@ -2064,6 +2064,12 @@
     "waitingForJson": "في انتظار JSON صالح..."
   },
   "error": {
+    "LLM_TOOL_PROVIDER_NOT_CONFIGURED": "لم يتم تكوين مزود نموذج لتوليد أدوات LLM",
+    "OPC_SETUP_INTERNAL": "خطأ داخلي في إعداد OPC",
+    "STOCK_SETUP_INTERNAL": "خطأ داخلي في إعداد تحليل الأسهم",
+    "STOCK_WORKFLOW_INTERNAL": "خطأ داخلي في سير عمل الأسهم",
+    "WORKFLOW_TOOL_INVALID_STATUS": "حالة أداة سير العمل غير صالحة",
+    "WORKFLOW_TOOL_SANDBOX_REJECTED": "فشلت الأداة المولدة في التحقق في بيئة الحماية وتم رفضها",
     "settings": {
       "modelRefInvalid": "هيكل NullableModelRef غير صالح: {{label}}",
       "cleanupInvalid": "[SettingsAdaptor] تم تنظيف {{label}} غير الصالح: {{reason}}",

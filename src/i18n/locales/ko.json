@@ -2064,6 +2064,12 @@
     "waitingForJson": "유효한 JSON을 기다리는 중..."
   },
   "error": {
+    "LLM_TOOL_PROVIDER_NOT_CONFIGURED": "LLM 도구 생성을 위한 모델 공급자가 구성되지 않았습니다",
+    "OPC_SETUP_INTERNAL": "OPC 설정 내부 오류",
+    "STOCK_SETUP_INTERNAL": "주식 분석 설정 내부 오류",
+    "STOCK_WORKFLOW_INTERNAL": "주식 워크플로우 내부 오류",
+    "WORKFLOW_TOOL_INVALID_STATUS": "워크플로우 도구 상태가 유효하지 않습니다",
+    "WORKFLOW_TOOL_SANDBOX_REJECTED": "생성된 도구가 샌드박스 검증에 실패하여 거부되었습니다",
     "settings": {
       "modelRefInvalid": "NullableModelRef 구조가 유효하지 않습니다: {{label}}",
       "cleanupInvalid": "[SettingsAdaptor] 유효하지 않는 {{label}} 정리: {{reason}}",

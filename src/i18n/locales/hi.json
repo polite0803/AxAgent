@@ -2064,6 +2064,12 @@
     "waitingForJson": "मान्य JSON की प्रतीक्षा कर रहा है..."
   },
   "error": {
+    "LLM_TOOL_PROVIDER_NOT_CONFIGURED": "LLM टूल निर्माण के लिए कोई मॉडल प्रदाता कॉन्फ़िगर नहीं है",
+    "OPC_SETUP_INTERNAL": "OPC सेटअप आंतरिक त्रुटि",
+    "STOCK_SETUP_INTERNAL": "स्टॉक विश्लेषण सेटअप आंतरिक त्रुटि",
+    "STOCK_WORKFLOW_INTERNAL": "स्टॉक वर्कफ़्लो आंतरिक त्रुटि",
+    "WORKFLOW_TOOL_INVALID_STATUS": "अमान्य वर्कफ़्लो टूल स्थिति",
+    "WORKFLOW_TOOL_SANDBOX_REJECTED": "जनरेट किया गया टूल सैंडबॉक्स सत्यापन में विफल रहा और अस्वीकार कर दिया गया",
     "settings": {
       "modelRefInvalid": "अमान्य NullableModelRef संरचना: {{label}}",
       "cleanupInvalid": "[SettingsAdaptor] अमान्य {{label}} साफ़ किया गया: {{reason}}",

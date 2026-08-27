@@ -2064,6 +2064,12 @@
     "waitingForJson": "有効なJSONを待機中..."
   },
   "error": {
+    "LLM_TOOL_PROVIDER_NOT_CONFIGURED": "LLM ツール生成用のモデルプロバイダーが設定されていません",
+    "OPC_SETUP_INTERNAL": "OPC セットアップ内部エラー",
+    "STOCK_SETUP_INTERNAL": "株式分析セットアップ内部エラー",
+    "STOCK_WORKFLOW_INTERNAL": "株式ワークフロー内部エラー",
+    "WORKFLOW_TOOL_INVALID_STATUS": "ワークフローツールの状態が無効です",
+    "WORKFLOW_TOOL_SANDBOX_REJECTED": "生成されたツールはサンドボックス検証に失敗したため拒否されました",
     "settings": {
       "modelRefInvalid": "NullableModelRef 構造が無効です: {{label}}",
       "cleanupInvalid": "[SettingsAdaptor] 無効な{{label}}をクリーンアップ: {{reason}}",
