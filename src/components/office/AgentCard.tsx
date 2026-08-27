@@ -229,7 +229,7 @@ export function AgentCard({ member, highlighted, onClick, onRemove }: AgentCardP
               overflow: "hidden",
               textOverflow: "ellipsis",
               flex: 1,
-              minWidth: 0,
+              minWidth: 48,
             }}
           >
             {member.displayName}
