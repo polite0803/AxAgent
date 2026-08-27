@@ -382,6 +382,39 @@ fn is_too_large_error(msg: &str) -> bool {
         || (m.contains("token") && m.contains("exceed"))
 }
 
+/// Detect whether an embedding error is **permanent** — retry will never succeed.
+///
+/// 分类依据：
+/// - HTTP 4xx（除 429 限流外）都是客户端侧错误：模型不存在、鉴权失败、
+///   模型已 EOL、参数非法等，服务端状态不会在短时间内改变。
+/// - 本地连接失败（`connection refused` / `no such host` / `error sending request`）
+///   不属于永久错误 — 本地推理服务可能尚未启动完毕，重试有意义。
+/// - HTTP 5xx 服务器故障同样非永久，应重试。
+///
+/// 返回 `true` 时调用方应**立即上抛错误、不进入退避循环**。
+fn is_permanent_http_error(msg: &str) -> bool {
+    let m = msg.to_lowercase();
+
+    // 先定位是否为 HTTP API 错误，提取状态码
+    // 格式来源: providers/src/openai.rs → "OpenAI embed API error {status}: {body}"
+    if let Some(status_str) =
+        m.split("openai embed api error ").nth(1).and_then(|rest| rest.split(':').next())
+    {
+        if let Ok(code) = status_str.trim().parse::<u16>() {
+            return code >= 400 && code < 500 && code != 429;
+        }
+    }
+
+    // 兜底：错误消息中携带明确的永久语义
+    m.contains("end of life")
+        || m.contains("has reached its end")
+        || m.contains("model not found")
+        || m.contains("no such model")
+        || m.contains("invalid api key")
+        || m.contains("invalid api-key")
+        || m.contains("unauthorized")
+}
+
 /// Split text into two roughly equal halves at a character boundary.
 /// Returns the original text as a single-element vec if it cannot be divided further.
 fn bisect_text(text: &str) -> Vec<String> {
@@ -596,8 +629,11 @@ pub async fn generate_embeddings(
 
 /// Execute a single embedding request with retry and exponential backoff.
 ///
-/// 输入过大（`is_too_large_error`）属不可重试错误，立即上抛交由二分兜底处理，
-/// 避免空耗重试次数。
+/// 两类错误**立即上抛、不进入退避循环**：
+/// 1. 输入过大（`is_too_large_error`）— 交由上层二分兜底处理。
+/// 2. 永久性 HTTP 错误（`is_permanent_http_error`）— 4xx 非 429 类、模型 EOL、
+///    鉴权失败等，重试永远不会成功，立即失败让调用方（如 capability_provider 的
+///    跨 provider 探测）切下一个候选。
 async fn embed_with_retry(
     adapter: &dyn ProviderAdapter,
     ctx: &ProviderRequestContext,
@@ -610,14 +646,20 @@ async fn embed_with_retry(
             Ok(response) => return Ok(response),
             Err(e) => {
                 last_err_msg = e.to_string();
-                // 输入过大属不可重试错误，立即上抛交由二分兜底处理
+
+                // 不可重试错误：立即上抛
                 if is_too_large_error(&last_err_msg) {
                     return Err(AxAgentError::Provider(last_err_msg));
                 }
+                if is_permanent_http_error(&last_err_msg) {
+                    tracing::warn!("Embedding 遇到永久错误（不重试）: {}", last_err_msg);
+                    return Err(AxAgentError::Provider(last_err_msg));
+                }
+
                 if attempt + 1 < EMBED_MAX_RETRIES {
                     let delay = EMBED_RETRY_BASE_DELAY_MS
                         .saturating_mul(2u64.checked_pow(attempt).unwrap_or(u64::MAX / 2))
-                        .min(60_000); // Cap at 60 seconds to prevent excessive wait
+                        .min(60_000);
                     tracing::warn!(
                         "Embedding attempt {}/{} failed, retrying in {}ms: {}",
                         attempt + 1,

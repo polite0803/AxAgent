@@ -103,7 +103,7 @@ describe("workflowStore", () => {
       invokeMock.mockResolvedValueOnce([]);
       await useWorkflowStore.getState().fetchWorkflows();
       expect(invokeMock).toHaveBeenCalledWith("list_workflow_templates", {
-        isPreset: false,
+        is_preset: false,
       });
       expect(useWorkflowStore.getState().loading).toBe(false);
     });
@@ -267,7 +267,7 @@ describe("workflowStore", () => {
       invokeMock.mockResolvedValueOnce([]);
       await useWorkflowStore.getState().fetchTemplates();
       expect(invokeMock).toHaveBeenCalledWith("list_workflow_templates", {
-        isPreset: true,
+        is_preset: true,
       });
       expect(useWorkflowStore.getState().loading).toBe(false);
     });
