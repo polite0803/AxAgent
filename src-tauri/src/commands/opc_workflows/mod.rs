@@ -851,6 +851,7 @@ mod tests {
     #[tokio::test]
     async fn approval_edges_build_correctly() {
         // P0-1 回归：会计行业需审批流程，验证审批节点存在且有正确的边连接
+        // v4 升级：丰富拓扑（LLM 条件门 + 修正分支 + 汇合），审批节点 id 为 ap-accounting
         let h = axagent_dao::db::create_test_pool().await.unwrap();
         let db = &h.conn;
 
@@ -863,27 +864,19 @@ mod tests {
             .unwrap()
             .expect("accounting_harness_workflow 应存在");
 
-        // 会计行业 requires_approval()=true，应包含审批节点
-        assert!(wf.nodes.contains("approval_accounting"), "应包含审批节点 approval_accounting");
+        // 会计行业 requires_approval()=true，应包含审批节点（id 为 ap-accounting）
+        assert!(wf.nodes.contains("ap-accounting"), "应包含审批节点 ap-accounting");
 
-        // 审批节点应有至少一条入边和一条出边（线性链：prev → approval → next）
-        // 从 edges JSON 字符串中检查审批节点的引用
-        assert!(wf.edges.contains("approval_accounting"), "edges 应包含审批节点的引用");
+        // 审批节点应有至少一条入边和一条出边（step4_accounting → ap-accounting → end）
+        assert!(wf.edges.contains("ap-accounting"), "edges 应包含审批节点的引用");
 
-        // 所有边都是 direct 类型（当前实现审批节点作为线性链中的一环，不做条件分支）
-        // 注意：edge_type 在 JSON 中是 "direct"（小写）
+        // 审批节点的入+出边都是 Direct 类型（v4 的 conditionTrue/False 属于 LLM 质量门，与审批无关）
         let direct_count = wf.edges.matches("\"edge_type\":\"direct\"").count();
-        assert!(direct_count >= 2, "至少应有 2 条 direct 边（入+出），实际 {direct_count}");
+        assert!(direct_count >= 2, "审批节点入+出至少 2 条 direct 边，实际 {direct_count}");
 
-        // 不应有条件边（conditionTrue/conditionFalse）
-        assert!(
-            !wf.edges.contains("conditionTrue"),
-            "当前审批边应为 Direct 类型，不应有 conditionTrue"
-        );
-        assert!(
-            !wf.edges.contains("conditionFalse"),
-            "当前审批边应为 Direct 类型，不应有 conditionFalse"
-        );
+        // 验证审批节点的两条具体边：step4_accounting → ap-accounting → end
+        assert!(wf.edges.contains("e-step4_accounting-approval"), "应存在 step4→approval 边");
+        assert!(wf.edges.contains("e-ap-accounting-end"), "应存在 approval→end 边");
     }
 
     #[tokio::test]
