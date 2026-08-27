@@ -444,7 +444,7 @@ pub(crate) async fn backfill_missing_route_paths(db: &DatabaseConnection) -> Res
         let path = authoritative_route_path(&row.id);
         workflow_template::Entity::update_many()
             .col_expr(workflow_template::Column::RoutePath, sea_query::Expr::value(path))
-            .filter(workflow_template::Column::Id.eq(row.id))
+            .filter(workflow_template::Column::Id.eq(&row.id))
             .exec(db)
             .await
             .map_err(|e| format!("回填 route_path {} 失败: {e}", row.id))?;
@@ -826,13 +826,13 @@ mod tests {
             assert!(!wf.edges.is_empty(), "{id} 边不应为空");
         }
 
-        // 3. 会计行业（requires_approval=true）应包含审批节点
+        // 3. 会计行业（requires_approval=true）应包含审批节点（v4 起节点 id 为 ap-accounting）
         let acc = workflow_template::Entity::find_by_id("accounting_harness_workflow")
             .one(db)
             .await
             .unwrap()
             .expect("accounting 存在");
-        assert!(acc.nodes.contains("approval_accounting"), "accounting 应包含审批节点");
+        assert!(acc.nodes.contains("ap-accounting"), "accounting 应包含审批节点");
 
         // 4. 软件开发生意业务应有步骤节点
         let sdev = workflow_template::Entity::find_by_id("software_dev_harness_workflow")
