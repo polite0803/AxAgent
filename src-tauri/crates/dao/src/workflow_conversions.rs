@@ -27,12 +27,14 @@ pub fn workflow_template_response_from_model(
         model.trigger_config.as_ref().and_then(|t| serde_json::from_str(t).ok());
 
     // 关键：记录节点/边反序列化结果，便于排查编辑器空内容问题
+    // 成功路径用 debug!（默认 info 过滤不显示，避免启动刷屏；RUST_LOG=debug 时可复现）
+    // 失败路径保留 error! 以便定位反序列化失败
     let nodes_result: Result<Vec<WorkflowNode>, _> = serde_json::from_str(&model.nodes);
     let edges_result: Result<Vec<WorkflowEdge>, _> = serde_json::from_str(&model.edges);
 
     let nodes = match &nodes_result {
         Ok(n) => {
-            tracing::warn!(
+            tracing::debug!(
                 "[workflow_conversions] 模板 {} 节点反序列化成功: {} 个节点",
                 model.id,
                 n.len()
@@ -52,7 +54,7 @@ pub fn workflow_template_response_from_model(
 
     let edges = match &edges_result {
         Ok(e) => {
-            tracing::warn!(
+            tracing::debug!(
                 "[workflow_conversions] 模板 {} 边反序列化成功: {} 条边",
                 model.id,
                 e.len()

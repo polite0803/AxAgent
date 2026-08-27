@@ -401,7 +401,7 @@ fn is_permanent_http_error(msg: &str) -> bool {
         m.split("openai embed api error ").nth(1).and_then(|rest| rest.split(':').next())
     {
         if let Ok(code) = status_str.trim().parse::<u16>() {
-            return code >= 400 && code < 500 && code != 429;
+            return (400..500).contains(&code) && code != 429;
         }
     }
 

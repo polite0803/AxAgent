@@ -386,43 +386,117 @@ pub(crate) fn make_base(id: &str, title: &str, desc: &str, x: f64, y: f64) -> Wo
     }
 }
 
-/// 权威三层路由地址（`/{domain}/{cluster}/{capability}`）：
-/// seed 时按模板 ID 推导行业/能力路径，统一填充 `workflow_template.route_path`，
-/// 避免预设模板 route_path 为空导致认知路由/前端无法按路径定位。
-///
-/// 推导优先级：
-/// 1. 既有契约特例（content_media 专属模板，路径已上线不可变）；
-/// 2. `{industry}_harness_workflow` → `/opc/{industry}/harness`（14 行业）；
-/// 3. `wf-{domain}-{slug}` → `/opc/{domain}/{slug}`（17 领域 75 模板）；
-/// 4. `prod-{slug}` → `/opc/production/{slug}`（生产模板）；
-/// 5. 兜底 `/opc/{template_id}`（确定性路径，不产生 None）。
-pub(crate) fn authoritative_route_path(template_id: &str) -> String {
-    match template_id {
-        // content_media 专属（与 seed_content_media 既有值保持一致）
-        "workflow-cm-viral-content" => "/content_creation/media/viral".to_string(),
-        "workflow-cm-multi-platform" => "/content_creation/media/multi-platform".to_string(),
-        "workflow-cm-ip-building" => "/content_creation/media/ip-building".to_string(),
-        "workflow-cm-literary-creation" => "/content_creation/writing/literary".to_string(),
-        _ => {
-            if let Some(industry) = template_id.strip_suffix("_harness_workflow") {
-                return format!("/opc/{industry}/harness");
-            }
-            if let Some(rest) = template_id.strip_prefix("wf-") {
-                let (domain, slug) = rest.split_once('-').unwrap_or((rest, "main"));
-                return format!("/opc/{domain}/{slug}");
-            }
-            if let Some(slug) = template_id.strip_prefix("prod-") {
-                return format!("/opc/production/{slug}");
-            }
-            format!("/opc/{template_id}")
-        },
-    }
+/// OPC 行业 industry_id → CapabilityDomain L1 映射
+/// （对齐 `src/lib/domainMeta.ts` 的 `NAV_ITEM_DOMAIN_MAP` 业务本质归域）。
+const OPC_INDUSTRY_DOMAIN: &[(&str, &str)] = &[
+    ("accounting", "finance"),
+    ("ai_research", "data_analysis"),
+    ("content_media", "content_creation"),
+    ("design", "content_creation"),
+    ("ecommerce", "automation"),
+    ("education", "content_creation"),
+    ("finance_invest", "finance"),
+    ("game_dev", "ai_media"),
+    ("geospatial", "data_analysis"),
+    ("industry_consulting", "automation"),
+    ("project_management", "automation"),
+    ("sales_growth", "automation"),
+    ("security", "devops"),
+    ("software_dev", "devops"),
+];
+
+/// OPC 领域模板 wf 第二段（wf-{seg}-{slug}）→ CapabilityDomain L1 映射
+const OPC_WF_SEGMENT_DOMAIN: &[(&str, &str)] = &[
+    ("acd", "general"),          // academic
+    ("des", "content_creation"), // design
+    ("eng", "devops"),           // engineering
+    ("fin", "finance"),
+    ("gd", "ai_media"), // gamedev
+    ("gis", "data_analysis"),
+    ("mkt", "communication"), // marketing
+    ("pm", "automation"),     // project management
+    ("prod", "automation"),   // product
+    ("sal", "automation"),    // sales
+    ("sec", "devops"),        // security
+    ("spatial", "data_analysis"),
+    ("spc", "automation"),   // specialized
+    ("strat", "automation"), // strategy
+    ("sup", "automation"),   // support
+    ("tst", "devops"),       // testing
+];
+
+/// stock 域预设模板 → 权威 route_path(与各 seed 文件 `Set(Some(...))` 显式值一致,
+/// 供 backfill 覆盖存量 NULL,避免前端按 L1 归域落"未分类")。
+const STOCK_EXPLICIT_ROUTE: &[(&str, &str)] = &[
+    ("stock-analysis", "/finance/equity/multi-dim-analysis"),
+    ("stock-pipeline", "/finance/pipeline/stock-pipeline"),
+    ("stock-reflection", "/finance/equity/reflection"),
+    ("serenity-screening", "/finance/trend/serenity"),
+    ("news-to-cross-market-analysis", "/finance/cross-market/news"),
+    ("daily-market-events", "/finance/market/mainlines"),
+    ("screenshot-portfolio-diagnosis", "/finance/portfolio/diagnosis"),
+    ("auto-position-plan", "/finance/trading/position-plan"),
+    ("auto-stop-loss-review", "/finance/trading/stop-loss-review"),
+    ("opc-demand-discovery", "/automation/opc/demand-discovery"),
+];
+
+fn industry_to_domain(industry_id: &str) -> Option<&'static str> {
+    OPC_INDUSTRY_DOMAIN.iter().find(|(k, _)| *k == industry_id).map(|(_, v)| *v)
 }
 
-/// 回填存量缺失 route_path：seed 后对 `route_path IS NULL` 的 OPC 预设模板
+fn wf_segment_to_domain(seg: &str) -> Option<&'static str> {
+    OPC_WF_SEGMENT_DOMAIN.iter().find(|(k, _)| *k == seg).map(|(_, v)| *v)
+}
+
+/// 权威三层路由地址（`/{domain}/{cluster}/{capability}`）：
+/// seed 时按模板 ID 推导行业/能力路径，**L1 段必须是 CapabilityDomain
+/// 合法值**（general/finance/automation/devops/data_analysis/content_creation/
+/// ai_media/communication），以匹配前端 `TemplateList` 的 `getTemplateDomain`
+/// 严格按 routePath 归域逻辑（`src/components/workflow/Templates/TemplateList.tsx`）。
+///
+/// 推导优先级：
+/// 1. stock 域模板显式路径（`STOCK_EXPLICIT_ROUTE`，如 `/finance/equity/multi-dim-analysis`）；
+/// 2. content_media 专属特例（既有契约，L1=`content_creation`）；
+/// 3. `{industry}_harness_workflow` → `/{industry_domain}/{industry}/harness`
+///    （14 行业，按业务本质归 CapabilityDomain）；
+/// 4. `wf-{seg}-{slug}` → `/{seg_domain}/{seg}/{slug}`（17 领域 75 模板）；
+/// 5. `prod-{slug}` → `/automation/production/{slug}`（OPC 自动化运营）；
+/// 6. 兜底 `/general/{template_id}`（确定性路径，不产生未分类）。
+pub(crate) fn authoritative_route_path(template_id: &str) -> String {
+    if let Some((_, path)) = STOCK_EXPLICIT_ROUTE.iter().find(|(k, _)| *k == template_id) {
+        return path.to_string();
+    }
+    if let Some(rest) = template_id.strip_prefix("workflow-cm-") {
+        let cluster_cap = match rest {
+            "literary-creation" => "writing/literary",
+            "viral-content" => "media/viral",
+            "multi-platform" => "media/multi-platform",
+            "ip-building" => "media/ip-building",
+            _ => "media/main",
+        };
+        return format!("/content_creation/{cluster_cap}");
+    }
+    if let Some(industry) = template_id.strip_suffix("_harness_workflow") {
+        let domain = industry_to_domain(industry).unwrap_or("general");
+        return format!("/{domain}/{industry}/harness");
+    }
+    if let Some(rest) = template_id.strip_prefix("wf-") {
+        let (seg, slug) = rest.split_once('-').unwrap_or((rest, "main"));
+        let domain = wf_segment_to_domain(seg).unwrap_or("general");
+        return format!("/{domain}/{seg}/{slug}");
+    }
+    if let Some(slug) = template_id.strip_prefix("prod-") {
+        return format!("/automation/production/{slug}");
+    }
+    format!("/general/{template_id}")
+}
+
+/// 回填存量缺失 route_path：seed 后对 `route_path IS NULL` 的预设模板
 /// 按权威映射补全（幂等，非空行不动）。
 ///
-/// 只按 OPC 模板 ID 命名空间过滤，避免误标股票域/系统能力模板。
+/// 覆盖 OPC(行业 harness / wf / prod / workflow-cm) + stock 域模板
+/// （stock- / serenity- / news- / daily- / screenshot- / auto- / opc- 前缀），
+/// 排除 `cognitive_*` 系统模板（前端业务列表已过滤，归系统域）。
 pub(crate) async fn backfill_missing_route_paths(db: &DatabaseConnection) -> Result<usize, String> {
     use sea_orm::*;
     let rows = workflow_template::Entity::find()
@@ -437,7 +511,14 @@ pub(crate) async fn backfill_missing_route_paths(db: &DatabaseConnection) -> Res
         let is_opc = row.id.ends_with("_harness_workflow")
             || row.id.starts_with("wf-")
             || row.id.starts_with("prod-")
-            || row.id.starts_with("workflow-cm-");
+            || row.id.starts_with("workflow-cm-")
+            || row.id.starts_with("stock-")
+            || row.id.starts_with("serenity-")
+            || row.id.starts_with("news-")
+            || row.id.starts_with("daily-")
+            || row.id.starts_with("screenshot-")
+            || row.id.starts_with("auto-")
+            || row.id.starts_with("opc-");
         if !is_opc {
             continue;
         }
@@ -553,44 +634,49 @@ mod tests {
 
     #[test]
     fn authoritative_route_path_mapping() {
-        // 行业 harness 模板 → /opc/{industry}/harness
+        // 行业 harness → /{CapabilityDomain}/{industry}/harness
         assert_eq!(
             super::authoritative_route_path("accounting_harness_workflow"),
-            "/opc/accounting/harness"
+            "/finance/accounting/harness"
         );
         assert_eq!(
             super::authoritative_route_path("ai_research_harness_workflow"),
-            "/opc/ai_research/harness"
+            "/data_analysis/ai_research/harness"
         );
         assert_eq!(
             super::authoritative_route_path("content_media_harness_workflow"),
-            "/opc/content_media/harness"
+            "/content_creation/content_media/harness"
         );
         assert_eq!(
             super::authoritative_route_path("finance_invest_harness_workflow"),
-            "/opc/finance_invest/harness"
+            "/finance/finance_invest/harness"
+        );
+        assert_eq!(
+            super::authoritative_route_path("game_dev_harness_workflow"),
+            "/ai_media/game_dev/harness"
         );
         assert_eq!(
             super::authoritative_route_path("industry_consulting_harness_workflow"),
-            "/opc/industry_consulting/harness"
+            "/automation/industry_consulting/harness"
         );
         assert_eq!(
             super::authoritative_route_path("security_harness_workflow"),
-            "/opc/security/harness"
+            "/devops/security/harness"
         );
-        // 领域模板 wf-{domain}-{slug} → /opc/{domain}/{slug}
-        assert_eq!(super::authoritative_route_path("wf-fin-budget"), "/opc/fin/budget");
-        assert_eq!(super::authoritative_route_path("wf-eng-refactor"), "/opc/eng/refactor");
-        // 生产模板 prod-{slug} → /opc/production/{slug}
+        // 领域 wf-{seg}-{slug} → /{seg_domain}/{seg}/{slug}
+        assert_eq!(super::authoritative_route_path("wf-fin-budget"), "/finance/fin/budget");
+        assert_eq!(super::authoritative_route_path("wf-eng-refactor"), "/devops/eng/refactor");
+        assert_eq!(super::authoritative_route_path("wf-gis-mapping"), "/data_analysis/gis/mapping");
+        assert_eq!(
+            super::authoritative_route_path("wf-mkt-analytics"),
+            "/communication/mkt/analytics"
+        );
+        // 生产 prod-{slug} → /automation/production/{slug}
         assert_eq!(
             super::authoritative_route_path("prod-landing-page"),
-            "/opc/production/landing-page"
+            "/automation/production/landing-page"
         );
-        assert_eq!(
-            super::authoritative_route_path("prod-startup-mvp"),
-            "/opc/production/startup-mvp"
-        );
-        // content_media 专属特例（既有契约，值不可变）
+        // content_media 专属特例（既有契约，L1=content_creation）
         assert_eq!(
             super::authoritative_route_path("workflow-cm-literary-creation"),
             "/content_creation/writing/literary"
@@ -599,16 +685,26 @@ mod tests {
             super::authoritative_route_path("workflow-cm-viral-content"),
             "/content_creation/media/viral"
         );
+        // 兜底：/general/{template_id}，确定性路径
+        assert_eq!(super::authoritative_route_path("custom_workflow"), "/general/custom_workflow");
+        // stock 域模板显式路径（与 seed 文件一致，覆盖存量 NULL）
         assert_eq!(
-            super::authoritative_route_path("workflow-cm-multi-platform"),
-            "/content_creation/media/multi-platform"
+            super::authoritative_route_path("stock-analysis"),
+            "/finance/equity/multi-dim-analysis"
         );
         assert_eq!(
-            super::authoritative_route_path("workflow-cm-ip-building"),
-            "/content_creation/media/ip-building"
+            super::authoritative_route_path("serenity-screening"),
+            "/finance/trend/serenity"
         );
-        // 兜底：确定性路径，不产生 None
-        assert_eq!(super::authoritative_route_path("custom_workflow"), "/opc/custom_workflow");
+        assert_eq!(
+            super::authoritative_route_path("opc-demand-discovery"),
+            "/automation/opc/demand-discovery"
+        );
+        // 战略咨询领域 → automation
+        assert_eq!(
+            super::authoritative_route_path("wf-strat-biz-plan"),
+            "/automation/strat/biz-plan"
+        );
     }
 
     #[tokio::test]
