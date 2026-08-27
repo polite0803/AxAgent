@@ -304,8 +304,8 @@ pub async fn seed_daily_market_events_template(
     let _ = workflow_template::Entity::delete_by_id(TEMPLATE_ID).exec(db).await;
     workflow_template::ActiveModel {
         id: Set(TEMPLATE_ID.into()),
-        cluster_id: Set(None),
-        route_path: Set(None),
+        cluster_id: Set(Some("market".to_string())),
+        route_path: Set(Some("/finance/market/mainlines".to_string())),
         name: Set("每日市场主线提炼".into()),
         description: Set(Some(
             "每日 18:00 自动采集多源市场数据，LLM 综合提炼 3-8 条市场主线（含主题/叙述/代表标的/强度评分/持续性），持久化到 market_mainlines 表".into(),

@@ -321,8 +321,8 @@ pub async fn seed_news_cross_market_template(
     let _ = workflow_template::Entity::delete_by_id(TEMPLATE_ID).exec(db).await;
     workflow_template::ActiveModel {
         id: Set(TEMPLATE_ID.into()),
-        cluster_id: Set(None),
-        route_path: Set(None),
+        cluster_id: Set(Some("cross-market".to_string())),
+        route_path: Set(Some("/finance/cross-market/news".to_string())),
         name: Set("新闻→跨市场传导分析".into()),
         description: Set(Some(
             "输入新闻正文，匹配预定义产业链（AI 算力 / 半导体 / 光模块 / 新能源车 / 消费电子），\

@@ -43,10 +43,11 @@ pub async fn seed_content_media_workflows(
     let mut seeded_count = 0;
 
     for template_id in CM_TEMPLATE_IDS {
+        let template_id = *template_id;
         let (nodes, edges, name, description, icon, tags) = build_template_nodes_edges(template_id);
 
         // 为文学创作模板添加默认变量（可配置的输出路径和文档标题）
-        let variables = if *template_id == "workflow-cm-literary-creation" {
+        let variables = if template_id == "workflow-cm-literary-creation" {
             vec![
                 Variable {
                     name: "output_dir".to_string(),
@@ -121,8 +122,23 @@ pub async fn seed_content_media_workflows(
             name,
             description: Some(description),
             icon,
-            cluster_id: None,
-            route_path: None,
+            cluster_id: Some(
+                match template_id {
+                    "workflow-cm-literary-creation" => "writing",
+                    _ => "media",
+                }
+                .to_string(),
+            ),
+            route_path: Some(
+                match template_id {
+                    "workflow-cm-viral-content" => "/content_creation/media/viral",
+                    "workflow-cm-multi-platform" => "/content_creation/media/multi-platform",
+                    "workflow-cm-ip-building" => "/content_creation/media/ip-building",
+                    "workflow-cm-literary-creation" => "/content_creation/writing/literary",
+                    _ => "/content_creation/media/unknown",
+                }
+                .to_string(),
+            ),
             tags,
             version: get_template_version(template_id),
             is_preset: true,
@@ -180,8 +196,8 @@ async fn upsert_template_safe(
 
     let am = workflow_template::ActiveModel {
         id: Set(data.id.clone()),
-        cluster_id: Set(None),
-        route_path: Set(None),
+        cluster_id: Set(data.cluster_id.clone()),
+        route_path: Set(data.route_path.clone()),
         name: Set(data.name),
         description: Set(data.description),
         icon: Set(data.icon),

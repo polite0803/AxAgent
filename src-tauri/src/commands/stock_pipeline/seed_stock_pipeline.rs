@@ -529,8 +529,8 @@ pub async fn seed_stock_pipeline_template(db: &sea_orm::DatabaseConnection) -> R
         name: "股票全业务管道".to_string(),
         description: Some("Agent 驱动的每日自动发现 + 筛选 + 分析 + 决策管道".to_string()),
         icon: "📈".to_string(),
-        cluster_id: None,
-        route_path: None,
+        cluster_id: Some("pipeline".to_string()),
+        route_path: Some("/finance/pipeline/stock-pipeline".to_string()),
         tags: vec!["stock".to_string(), "pipeline".to_string(), "agent".to_string()],
         version: TEMPLATE_VERSION,
         is_preset: true,
@@ -577,8 +577,8 @@ async fn upsert_template(
 
     let am = workflow_template::ActiveModel {
         id: Set(data.id.clone()),
-        cluster_id: Set(None),
-        route_path: Set(None),
+        cluster_id: Set(data.cluster_id.clone()),
+        route_path: Set(data.route_path.clone()),
         name: Set(data.name),
         description: Set(data.description),
         icon: Set(data.icon),

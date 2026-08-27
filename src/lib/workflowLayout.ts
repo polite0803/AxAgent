@@ -422,9 +422,10 @@ export function validateWorkflow(
       }
     } else if (tType === "switch") {
       const outgoing = normalizedEdges.filter((e) => e.source === n.id);
-      // 分支出口可以是 "branch-*"（用户从编辑器手动连接）或 case label（后端 seed 数据，
-      // 如 quality-gate 的 "acceptable"）。"default" 是 SwitchNode 组件的默认手柄 ID，
-      // 空的 sourceHandle 也是默认出口，两者都不算分支连接。
+      // 分支出口可以是 "branch-*"（前端编辑器）、"branch_*"（后端 snake_case）
+      // 或 case label（后端 seed 数据，如 quality-gate 的 "acceptable"）。
+      // "default" 是 SwitchNode 组件的默认手柄 ID，空的 sourceHandle 也是默认出口，
+      // 两者都不算分支连接。
       const hasBranch = outgoing.some(
         (e) => e.sourceHandle && e.sourceHandle !== "default",
       );
