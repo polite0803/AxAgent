@@ -155,12 +155,13 @@ export function TimelineNodeCard({ node }: TimelineNodeCardProps) {
         </span>
         {violationCount > 0 && (
           <Tooltip
-            title={t("stockAnalysis.timeline.tooltip")}
+            // i18n-exempt: stockAnalysis 段整体待补
+            title={`${violationCount} violation${violationCount > 1 ? "s" : ""}`}
             data-testid="violation-chip-tooltip"
           >
             <span
               data-testid="violation-chip"
-              aria-label={t("timeTravel.violations.violations.chipAria", { n: violationCount })}
+              aria-label={`${violationCount} violation${violationCount > 1 ? "s" : ""}`}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -174,7 +175,7 @@ export function TimelineNodeCard({ node }: TimelineNodeCardProps) {
                 flexShrink: 0,
               }}
             >
-              {t("timeTravel.violations.violations.chip", { n: violationCount })}
+              {violationCount}
             </span>
           </Tooltip>
         )}

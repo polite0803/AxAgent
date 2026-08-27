@@ -143,6 +143,23 @@ interface EdgeLike {
   edgeType?: string;
 }
 
+/** 后端 WorkflowEdge 用 snake_case 序列化，前端 ReactFlow 用 camelCase。
+ *  把两种格式统一成 EdgeLike 接口。 */
+function normalizeEdge(e: EdgeLike | Record<string, unknown>): EdgeLike {
+  if ("sourceHandle" in e || "edgeType" in e) {
+    return e as EdgeLike;
+  }
+  const raw = e as Record<string, unknown>;
+  return {
+    id: raw.id as string | undefined,
+    source: raw.source as string,
+    target: raw.target as string,
+    sourceHandle: (raw.source_handle as string | undefined)
+      ?? (raw.sourceHandle as string | undefined),
+    edgeType: (raw.edge_type as string | undefined) ?? (raw.edgeType as string | undefined),
+  };
+}
+
 // 容器节点类型（同步自 workflow.types.ts 的 NODE_TYPE_MAP isContainer 标记）
 // 布局/校验需要区分容器节点以便正确处理子节点
 const CONTAINER_NODE_TYPES = new Set([
@@ -303,7 +320,7 @@ export function validateWorkflow(
   edges: EdgeLike[],
   t: RenderFn = defaultT,
 ): ValidationResult {
-  const normalizedEdges: EdgeLike[] = edges;
+  const normalizedEdges: EdgeLike[] = edges.map(normalizeEdge);
 
   const realEdges = normalizedEdges.filter(
     (e) =>
