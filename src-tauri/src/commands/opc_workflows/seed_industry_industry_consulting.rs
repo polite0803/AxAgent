@@ -4,9 +4,7 @@
 //! 模板 ID：industry_consulting_harness_workflow
 
 use axagent_harness::capability::Visibility;
-use axagent_harness::workflow_types::{
-    EdgeType, TriggerConfig, TriggerType, WorkflowTemplateData,
-};
+use axagent_harness::workflow_types::{EdgeType, TriggerConfig, TriggerType, WorkflowTemplateData};
 use sea_orm::DatabaseConnection;
 
 use super::seed_domain_helpers::*;

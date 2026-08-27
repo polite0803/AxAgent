@@ -99,6 +99,10 @@ pub async fn ensure_opc_workflows_seeded(
     let cm_seeded = seed_content_media_workflows(db).await?;
     tracing::info!("[opc-workflows] Content media workflows seeded: {cm_seeded}");
 
+    // 5) 回填存量缺失 route_path（幂等，保证旧版本升级后预设模板可被路由定位）
+    let backfilled = backfill_missing_route_paths(db).await?;
+    tracing::info!("[opc-workflows] Backfilled route_path: {backfilled}");
+
     tracing::info!("[opc-workflows] All workflows seeded (code-driven)");
     Ok(())
 }
@@ -382,6 +386,76 @@ pub(crate) fn make_base(id: &str, title: &str, desc: &str, x: f64, y: f64) -> Wo
     }
 }
 
+/// 权威三层路由地址（`/{domain}/{cluster}/{capability}`）：
+/// seed 时按模板 ID 推导行业/能力路径，统一填充 `workflow_template.route_path`，
+/// 避免预设模板 route_path 为空导致认知路由/前端无法按路径定位。
+///
+/// 推导优先级：
+/// 1. 既有契约特例（content_media 专属模板，路径已上线不可变）；
+/// 2. `{industry}_harness_workflow` → `/opc/{industry}/harness`（14 行业）；
+/// 3. `wf-{domain}-{slug}` → `/opc/{domain}/{slug}`（17 领域 75 模板）；
+/// 4. `prod-{slug}` → `/opc/production/{slug}`（生产模板）；
+/// 5. 兜底 `/opc/{template_id}`（确定性路径，不产生 None）。
+pub(crate) fn authoritative_route_path(template_id: &str) -> String {
+    match template_id {
+        // content_media 专属（与 seed_content_media 既有值保持一致）
+        "workflow-cm-viral-content" => "/content_creation/media/viral".to_string(),
+        "workflow-cm-multi-platform" => "/content_creation/media/multi-platform".to_string(),
+        "workflow-cm-ip-building" => "/content_creation/media/ip-building".to_string(),
+        "workflow-cm-literary-creation" => "/content_creation/writing/literary".to_string(),
+        _ => {
+            if let Some(industry) = template_id.strip_suffix("_harness_workflow") {
+                return format!("/opc/{industry}/harness");
+            }
+            if let Some(rest) = template_id.strip_prefix("wf-") {
+                let (domain, slug) = rest.split_once('-').unwrap_or((rest, "main"));
+                return format!("/opc/{domain}/{slug}");
+            }
+            if let Some(slug) = template_id.strip_prefix("prod-") {
+                return format!("/opc/production/{slug}");
+            }
+            format!("/opc/{template_id}")
+        },
+    }
+}
+
+/// 回填存量缺失 route_path：seed 后对 `route_path IS NULL` 的 OPC 预设模板
+/// 按权威映射补全（幂等，非空行不动）。
+///
+/// 只按 OPC 模板 ID 命名空间过滤，避免误标股票域/系统能力模板。
+pub(crate) async fn backfill_missing_route_paths(db: &DatabaseConnection) -> Result<usize, String> {
+    use sea_orm::*;
+    let rows = workflow_template::Entity::find()
+        .filter(workflow_template::Column::RoutePath.is_null())
+        .filter(workflow_template::Column::IsPreset.eq(true))
+        .all(db)
+        .await
+        .map_err(|e| format!("查询缺失 route_path 的模板: {e}"))?;
+
+    let mut updated = 0;
+    for row in rows {
+        let is_opc = row.id.ends_with("_harness_workflow")
+            || row.id.starts_with("wf-")
+            || row.id.starts_with("prod-")
+            || row.id.starts_with("workflow-cm-");
+        if !is_opc {
+            continue;
+        }
+        let path = authoritative_route_path(&row.id);
+        workflow_template::Entity::update_many()
+            .col_expr(workflow_template::Column::RoutePath, sea_query::Expr::value(path))
+            .filter(workflow_template::Column::Id.eq(row.id))
+            .exec(db)
+            .await
+            .map_err(|e| format!("回填 route_path {} 失败: {e}", row.id))?;
+        updated += 1;
+    }
+    if updated > 0 {
+        tracing::info!("[opc-workflows] 回填 {} 个模板缺失的 route_path", updated);
+    }
+    Ok(updated)
+}
+
 /// 将 WorkflowTemplateData 转为 ActiveModel 并写入
 pub(crate) async fn upsert_template(
     db: &DatabaseConnection,
@@ -403,7 +477,11 @@ pub(crate) async fn upsert_template(
     let am = workflow_template::ActiveModel {
         id: Set(data.id.clone()),
         cluster_id: Set(None),
-        route_path: Set(None),
+        // 显式 route_path 优先（如既有特例模板），否则走权威行业/能力映射
+        route_path: Set(data
+            .route_path
+            .clone()
+            .or_else(|| Some(authoritative_route_path(&data.id)))),
         name: Set(data.name),
         description: Set(data.description),
         icon: Set(data.icon),
@@ -441,6 +519,7 @@ pub(crate) async fn upsert_template(
                 .update_column(workflow_template::Column::Variables)
                 .update_column(workflow_template::Column::ErrorConfig)
                 .update_column(workflow_template::Column::ToolDefs)
+                .update_column(workflow_template::Column::RoutePath)
                 .update_column(workflow_template::Column::UpdatedAt)
                 .to_owned(),
         )
@@ -471,6 +550,66 @@ mod tests {
     use super::industry_pack::scan_industry_packs;
     use super::*;
     use sea_orm::{ConnectionTrait, EntityTrait, PaginatorTrait};
+
+    #[test]
+    fn authoritative_route_path_mapping() {
+        // 行业 harness 模板 → /opc/{industry}/harness
+        assert_eq!(
+            super::authoritative_route_path("accounting_harness_workflow"),
+            "/opc/accounting/harness"
+        );
+        assert_eq!(
+            super::authoritative_route_path("ai_research_harness_workflow"),
+            "/opc/ai_research/harness"
+        );
+        assert_eq!(
+            super::authoritative_route_path("content_media_harness_workflow"),
+            "/opc/content_media/harness"
+        );
+        assert_eq!(
+            super::authoritative_route_path("finance_invest_harness_workflow"),
+            "/opc/finance_invest/harness"
+        );
+        assert_eq!(
+            super::authoritative_route_path("industry_consulting_harness_workflow"),
+            "/opc/industry_consulting/harness"
+        );
+        assert_eq!(
+            super::authoritative_route_path("security_harness_workflow"),
+            "/opc/security/harness"
+        );
+        // 领域模板 wf-{domain}-{slug} → /opc/{domain}/{slug}
+        assert_eq!(super::authoritative_route_path("wf-fin-budget"), "/opc/fin/budget");
+        assert_eq!(super::authoritative_route_path("wf-eng-refactor"), "/opc/eng/refactor");
+        // 生产模板 prod-{slug} → /opc/production/{slug}
+        assert_eq!(
+            super::authoritative_route_path("prod-landing-page"),
+            "/opc/production/landing-page"
+        );
+        assert_eq!(
+            super::authoritative_route_path("prod-startup-mvp"),
+            "/opc/production/startup-mvp"
+        );
+        // content_media 专属特例（既有契约，值不可变）
+        assert_eq!(
+            super::authoritative_route_path("workflow-cm-literary-creation"),
+            "/content_creation/writing/literary"
+        );
+        assert_eq!(
+            super::authoritative_route_path("workflow-cm-viral-content"),
+            "/content_creation/media/viral"
+        );
+        assert_eq!(
+            super::authoritative_route_path("workflow-cm-multi-platform"),
+            "/content_creation/media/multi-platform"
+        );
+        assert_eq!(
+            super::authoritative_route_path("workflow-cm-ip-building"),
+            "/content_creation/media/ip-building"
+        );
+        // 兜底：确定性路径，不产生 None
+        assert_eq!(super::authoritative_route_path("custom_workflow"), "/opc/custom_workflow");
+    }
 
     #[tokio::test]
     async fn industry_pack_migration_creates_registry() {

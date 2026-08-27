@@ -129,16 +129,8 @@ pub async fn seed_content_media_workflows(
                 }
                 .to_string(),
             ),
-            route_path: Some(
-                match template_id {
-                    "workflow-cm-viral-content" => "/content_creation/media/viral",
-                    "workflow-cm-multi-platform" => "/content_creation/media/multi-platform",
-                    "workflow-cm-ip-building" => "/content_creation/media/ip-building",
-                    "workflow-cm-literary-creation" => "/content_creation/writing/literary",
-                    _ => "/content_creation/media/unknown",
-                }
-                .to_string(),
-            ),
+            // route_path 由权威映射统一推导（super::authoritative_route_path）
+            route_path: None,
             tags,
             version: get_template_version(template_id),
             is_preset: true,
@@ -197,7 +189,11 @@ async fn upsert_template_safe(
     let am = workflow_template::ActiveModel {
         id: Set(data.id.clone()),
         cluster_id: Set(data.cluster_id.clone()),
-        route_path: Set(data.route_path.clone()),
+        // 显式 route_path 优先，否则走权威行业/能力映射（与 upsert_template 一致）
+        route_path: Set(data
+            .route_path
+            .clone()
+            .or_else(|| Some(super::authoritative_route_path(&data.id)))),
         name: Set(data.name),
         description: Set(data.description),
         icon: Set(data.icon),
