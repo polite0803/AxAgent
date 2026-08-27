@@ -102,7 +102,7 @@ const TAG_COLORS: Record<string, string> = {
   coverage: "geekblue",
 };
 
-/** "未分类"哨兵：无 routePath（未填领域）的模板归入此类 */
+/** "未分类"哨兵：无法映射到权威领域的模板归入此类 */
 const DOMAIN_NONE = "__none__";
 
 /**
@@ -119,13 +119,99 @@ function extractDomainFromRoute(routePath?: string): string | undefined {
 }
 
 /**
- * 模板业务域：routePath L1 段 → 首个标签 → DOMAIN_NONE。
- * 全列表（Select 选项 / 分组 / 过滤匹配）共用同一口径，避免选项与实际分组错位。
+ * 权威领域关键词映射表 —— 对齐后端两处权威来源：
+ * 1. `harness/capability.rs` `CapabilityDomain::FromStr`（8+1 域 + 历史别名
+ *    core→general / invest→finance / opc→automation / quant→finance）
+ * 2. `init/state.rs` `domain_from_keyword`（关键词 → 域）
+ *
+ * 领域固定为 8 个业务域 + 1 个系统域（system 不提供给业务，由「系统模板」
+ * 页承载）。映射值统一为标准域名（devops / finance / automation …）。
+ */
+const DOMAIN_KEYWORDS: Record<string, string> = {
+  // FromStr 直解析（8+1）
+  general: "general",
+  devops: "devops",
+  ai_media: "ai_media",
+  data_analysis: "data_analysis",
+  content_creation: "content_creation",
+  communication: "communication",
+  finance: "finance",
+  automation: "automation",
+  system: "system",
+  // 历史别名
+  core: "general",
+  invest: "finance",
+  opc: "automation",
+  quant: "finance",
+  // domain_from_keyword：运维 / 安全 / 基础设施
+  infrastructure: "devops",
+  security: "devops",
+  engineering: "devops",
+  backend: "devops",
+  frontend: "devops",
+  sre: "devops",
+  cicd: "devops",
+  deployment: "devops",
+  development: "devops",
+  // 数据分析
+  data: "data_analysis",
+  analysis: "data_analysis",
+  analytics: "data_analysis",
+  sql: "data_analysis",
+  etl: "data_analysis",
+  bi: "data_analysis",
+  statistics: "data_analysis",
+  // 内容创作
+  writing: "content_creation",
+  content: "content_creation",
+  design: "content_creation",
+  marketing: "content_creation",
+  copywriting: "content_creation",
+  ui: "content_creation",
+  ux: "content_creation",
+  creative: "content_creation",
+  translation: "content_creation",
+  // 通信
+  im: "communication",
+  email: "communication",
+  messaging: "communication",
+  collaboration: "communication",
+  // 金融
+  trading: "finance",
+  banking: "finance",
+  stock: "finance",
+  // 自动化
+  rpa: "automation",
+  workflow: "automation",
+  orchestration: "automation",
+  // AI 媒体
+  media: "ai_media",
+  image: "ai_media",
+  video: "ai_media",
+  audio: "ai_media",
+  sound: "ai_media",
+  generation: "ai_media",
+};
+
+/** 关键词 → 权威标准域名（大小写不敏感）；无匹配返回 undefined */
+function domainFromKeyword(raw?: string): string | undefined {
+  if (!raw) { return undefined; }
+  return DOMAIN_KEYWORDS[raw.trim().toLowerCase()];
+}
+
+/**
+ * 模板业务域（权威口径，固定 8+1）：
+ * 1. routePath L1 段必须能解析为标准域（含别名）
+ * 2. 否则扫描 tags，取第一个命中关键词映射表的标签
+ * 3. 都没有 → DOMAIN_NONE（未分类）
+ *
+ * Select 选项 / 分组 / 过滤匹配三处共用本函数，保证口径一致。
  */
 function getTemplateDomain(template: WorkflowTemplateResponse): string {
-  return extractDomainFromRoute(template.routePath)
-    ?? template.tags?.[0]
-    ?? DOMAIN_NONE;
+  const routeDomain = domainFromKeyword(extractDomainFromRoute(template.routePath));
+  if (routeDomain) { return routeDomain; }
+  const tagHit = template.tags?.find((tag) => domainFromKeyword(tag));
+  return tagHit ? domainFromKeyword(tagHit)! : DOMAIN_NONE;
 }
 
 export const TemplateList: React.FC<TemplateListProps> = ({
@@ -158,13 +244,13 @@ export const TemplateList: React.FC<TemplateListProps> = ({
     loadTemplates();
   }, [loadTemplates]);
 
-  // 领域选项：与分组口径一致（routePath L1 ?? tags[0]），过滤掉「未分类」
-  // （未分类在 Select 中是独立的固定项）。
+  // 领域选项：与分组口径一致（getTemplateDomain），过滤掉「未分类」与
+  // 「system」系统域（不提供给业务，由系统模板页承载）。
   const allDomains = React.useMemo(() => {
     const domainSet = new Set<string>();
     templates.forEach((t) => {
       const domain = getTemplateDomain(t);
-      if (domain !== DOMAIN_NONE) { domainSet.add(domain); }
+      if (domain !== DOMAIN_NONE && domain !== "system") { domainSet.add(domain); }
     });
     return Array.from(domainSet).sort();
   }, [templates]);
@@ -177,6 +263,8 @@ export const TemplateList: React.FC<TemplateListProps> = ({
 
   const filteredTemplates = React.useMemo(() => {
     return templates.filter((template) => {
+      // 系统域模板（认知编排器等）只出现在「系统模板」页，业务列表不展示
+      if (template.isSystem) { return false; }
       const matchesSearch = !searchText
         || template.name.toLowerCase().includes(searchText.toLowerCase())
         || template.description?.toLowerCase().includes(searchText.toLowerCase());

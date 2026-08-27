@@ -53,8 +53,15 @@ pub async fn get_cached_graph(
     let communities_json: Option<String> = row.try_get_by("communities_json").ok().flatten();
     let computed_at: i64 = row.try_get_by("computed_at").unwrap_or(0);
 
-    let graph_data: GraphData = serde_json::from_str(&graph_data_json)
-        .map_err(|e| DbErr::Custom(format!("反序列化 graph_data 失败: {e}")))?;
+    // DTO 演进（新增字段）可能导致旧缓存 JSON 反序列化失败。
+    // 失败时清缓存、返回 None，让调用方重建，比硬报错让整个 wiki 页面挂掉强。
+    let graph_data = match serde_json::from_str::<GraphData>(&graph_data_json) {
+        Ok(g) => g,
+        Err(_) => {
+            let _ = invalidate_cache(db, vault_id).await;
+            return Ok(None);
+        },
+    };
 
     let communities = match communities_json {
         Some(json) if !json.is_empty() => serde_json::from_str::<LouvainResult>(&json).ok(),

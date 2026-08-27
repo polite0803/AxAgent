@@ -18,9 +18,14 @@ pub struct GraphNode {
     pub title: String,
     #[serde(rename = "type")]
     pub node_type: String,
+    #[serde(default)]
     pub tags: Vec<String>,
+    /// 传入/传出链接数（最近新增字段，旧版缓存 JSON 不含此字段）
+    #[serde(default)]
     pub link_count: i32,
+    #[serde(default)]
     pub backlink_count: i32,
+    #[serde(default)]
     pub path: String,
 }
 
