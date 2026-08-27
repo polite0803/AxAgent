@@ -8312,7 +8312,8 @@
       "run": "चलाएँ",
       "domainPlaceholder": "डोमेन से फ़िल्टर करें...",
       "allDomains": "सभी डोमेन",
-      "uncategorized": "अवर्गीकृत"
+      "uncategorized": "अवर्गीकृत",
+      "noDomainTemplates": "इस क्षेत्र में कोई टेम्पलेट नहीं"
     },
     "systemTemplateList": {
       "edit": "संपादित करें",

@@ -8312,7 +8312,8 @@
       "run": "تشغيل",
       "domainPlaceholder": "تصفية حسب المجال...",
       "allDomains": "جميع المجالات",
-      "uncategorized": "غير مصنف"
+      "uncategorized": "غير مصنف",
+      "noDomainTemplates": "لا توجد قوالب في هذا المجال"
     },
     "systemTemplateList": {
       "edit": "تعديل",

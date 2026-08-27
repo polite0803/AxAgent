@@ -8321,7 +8321,8 @@
       "run": "Run",
       "domainPlaceholder": "Filter by domain",
       "allDomains": "All domains",
-      "uncategorized": "Uncategorized"
+      "uncategorized": "Uncategorized",
+      "noDomainTemplates": "No templates in this domain"
     },
     "systemTemplateList": {
       "edit": "Edit",

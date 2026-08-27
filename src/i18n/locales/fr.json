@@ -8312,7 +8312,8 @@
       "run": "Exécuter",
       "domainPlaceholder": "Filtrer par domaine...",
       "allDomains": "Tous les domaines",
-      "uncategorized": "Non classé"
+      "uncategorized": "Non classé",
+      "noDomainTemplates": "Aucun modèle dans ce domaine"
     },
     "systemTemplateList": {
       "edit": "Modifier",

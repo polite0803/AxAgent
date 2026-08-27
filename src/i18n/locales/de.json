@@ -8312,7 +8312,8 @@
       "run": "Ausführen",
       "domainPlaceholder": "Nach Bereich filtern...",
       "allDomains": "Alle Bereiche",
-      "uncategorized": "Nicht kategorisiert"
+      "uncategorized": "Nicht kategorisiert",
+      "noDomainTemplates": "Keine Vorlagen in diesem Bereich"
     },
     "systemTemplateList": {
       "edit": "Bearbeiten",

@@ -37,10 +37,11 @@ export const SystemTemplateList: React.FC<SystemTemplateListProps> = ({
     })
       .then((list) => {
         if (!cancelled) {
-          // 只显示系统级模板（认知编排器等，isSystem = is_preset + cognitive_router 标签），
-          // 与「我的工作流」页（用户自定义 + 内置 preset）物理区分，避免两页内容重复。
+          // 严格按后端权威判定 `is_cognitive_router_template` 同口径：
+          // is_preset=true + tags 含 "cognitive_router"。不依赖 isSystem 字段序列化，
+          // 即便序列化异常也能正确过滤认知编排器。
           const systemOnly = (Array.isArray(list) ? list : []).filter(
-            (t) => t.isSystem,
+            (t) => t.isSystem || (t.isPreset === true && (t.tags ?? []).includes("cognitive_router")),
           );
           setTemplates(systemOnly);
         }

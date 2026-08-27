@@ -8312,7 +8312,8 @@
       "run": "執行",
       "domainPlaceholder": "篩選領域...",
       "allDomains": "全部領域",
-      "uncategorized": "未分類"
+      "uncategorized": "未分類",
+      "noDomainTemplates": "該領域暫無模板"
     },
     "systemTemplateList": {
       "edit": "編輯",

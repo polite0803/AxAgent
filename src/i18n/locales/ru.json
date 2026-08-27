@@ -8312,7 +8312,8 @@
       "run": "Запустить",
       "domainPlaceholder": "Фильтр по домену...",
       "allDomains": "Все домены",
-      "uncategorized": "Без категории"
+      "uncategorized": "Без категории",
+      "noDomainTemplates": "Нет шаблонов в этом домене"
     },
     "systemTemplateList": {
       "edit": "Изменить",

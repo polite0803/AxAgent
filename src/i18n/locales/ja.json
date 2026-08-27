@@ -8312,7 +8312,8 @@
       "run": "実行",
       "domainPlaceholder": "領域で絞り込む...",
       "allDomains": "すべての領域",
-      "uncategorized": "未分類"
+      "uncategorized": "未分類",
+      "noDomainTemplates": "この領域にはテンプレートがありません"
     },
     "systemTemplateList": {
       "edit": "編集",

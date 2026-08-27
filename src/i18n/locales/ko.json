@@ -8312,7 +8312,8 @@
       "run": "실행",
       "domainPlaceholder": "도메인 필터...",
       "allDomains": "모든 도메인",
-      "uncategorized": "미분류"
+      "uncategorized": "미분류",
+      "noDomainTemplates": "이 영역에 템플릿이 없습니다"
     },
     "systemTemplateList": {
       "edit": "편집",
