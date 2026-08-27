@@ -206,5 +206,44 @@ export interface NL2UIResult {
   alternatives?: { schema: UISchema; description: string }[];
 }
 
+// ============================================================
+// 工作流运行时工具（workflow_tools 表 DTO，与后端 camelCase 对齐）
+// ============================================================
+
+/** 工具类型 */
+export type WorkflowToolType = "rhai_script" | "workflow_dag" | "llm_function";
+
+/** 工具状态 */
+export type WorkflowToolStatus = "pending" | "active" | "disabled";
+
+/** 工作流运行时工具 —— 动态发现/生成工具的持久化表示 */
+export interface WorkflowTool {
+  id: string;
+  workflowId: string;
+  toolName: string;
+  toolType: WorkflowToolType;
+  description?: string;
+  code?: string;
+  inputSchema?: string;
+  source: string;
+  status: WorkflowToolStatus;
+  usageCount: number;
+  successRate: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** 新增/覆盖工具入参 */
+export interface WorkflowToolInput {
+  workflowId: string;
+  toolName: string;
+  toolType: WorkflowToolType;
+  description?: string;
+  code?: string;
+  inputSchema?: string;
+  source?: string;
+  status?: WorkflowToolStatus;
+}
+
 // UISchema 类型从 @/types/dynamicUI 导入，此处仅做 forward-declaration
 import type { UISchema } from "./dynamicUI";

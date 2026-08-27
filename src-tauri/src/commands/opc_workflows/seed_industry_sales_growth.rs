@@ -146,6 +146,8 @@ pub async fn seed_industry_sales_growth_workflow_template(
             "获客策略 → 转化优化 → 留存提升。完整的销售增长与营销全流程。".to_string(),
         ),
         icon: "⚙️".to_string(),
+        cluster_id: None,
+        route_path: None,
         tags: vec!["opc".to_string(), "industry".to_string(), "sales_growth".to_string()],
         version: TEMPLATE_VERSION,
         is_preset: true,

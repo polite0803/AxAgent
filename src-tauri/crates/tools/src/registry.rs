@@ -1037,6 +1037,27 @@ impl UnifiedToolRegistry {
         &self.runtime_tool_sources
     }
 
+    /// 按来源前缀批量卸载运行时工具（如删除工作流时清理 `workflow:<id>` 来源）。
+    ///
+    /// 仅卸载经 `register_runtime_tool` 注册的工具（在 `runtime_tool_sources`
+    /// 有来源记录）；原生内置与 MCP 工具不受影响。返回卸载数量。
+    /// 逐个走 `unregister_runtime_tool`，保证副作用栈（Disposer）完整回滚。
+    pub fn unregister_runtime_tools_by_source(&mut self, source_prefix: &str) -> usize {
+        let names: Vec<String> = self
+            .runtime_tool_sources
+            .iter()
+            .filter(|(_, src)| src.starts_with(source_prefix))
+            .map(|(name, _)| name.clone())
+            .collect();
+        let mut count = 0;
+        for name in names {
+            if self.unregister_runtime_tool(&name).is_some() {
+                count += 1;
+            }
+        }
+        count
+    }
+
     /// 登记一个扩展副作用（供 wiring 层附加回滚逻辑，如护照移除 / 审计清理）。
     pub fn push_effect(&mut self, disposer: Disposer) {
         self.effects.push(disposer);

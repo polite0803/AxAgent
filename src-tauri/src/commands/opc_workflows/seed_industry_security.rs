@@ -144,6 +144,8 @@ pub async fn seed_industry_security_workflow_template(
         name: "安全合规流程".to_string(),
         description: Some("安全审计 → 合规检查 → 应急响应。完整的安全合规管理流程。".to_string()),
         icon: "⚙️".to_string(),
+        cluster_id: None,
+        route_path: None,
         tags: vec!["opc".to_string(), "industry".to_string(), "security".to_string()],
         version: TEMPLATE_VERSION,
         is_preset: true,

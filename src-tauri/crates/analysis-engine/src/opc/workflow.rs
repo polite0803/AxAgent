@@ -409,6 +409,8 @@ pub fn generate_industry_template_data(
         name: format!("{} 标准工作流", industry_id),
         description: Some(format!("{} 行业工作流（代码驱动）", industry_id)),
         icon: "⚙️".to_string(),
+        cluster_id: None,
+        route_path: None,
         tags: vec![industry_id.to_string(), "opc".to_string()],
         version: 6, // v6: 直接生成 WorkflowTemplateData，移除中间层
         is_preset: true,

@@ -175,6 +175,8 @@ pub async fn seed_industry_game_dev_workflow_template(
                 .to_string(),
         ),
         icon: "⚙️".to_string(),
+        cluster_id: None,
+        route_path: None,
         tags: vec!["opc".to_string(), "industry".to_string(), "game_dev".to_string()],
         version: TEMPLATE_VERSION,
         is_preset: true,

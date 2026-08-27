@@ -529,6 +529,8 @@ pub async fn seed_stock_pipeline_template(db: &sea_orm::DatabaseConnection) -> R
         name: "股票全业务管道".to_string(),
         description: Some("Agent 驱动的每日自动发现 + 筛选 + 分析 + 决策管道".to_string()),
         icon: "📈".to_string(),
+        cluster_id: None,
+        route_path: None,
         tags: vec!["stock".to_string(), "pipeline".to_string(), "agent".to_string()],
         version: TEMPLATE_VERSION,
         is_preset: true,

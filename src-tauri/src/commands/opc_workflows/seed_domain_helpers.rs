@@ -139,6 +139,8 @@ pub fn build_domain_template(
         name: name.to_string(),
         description: Some(description.to_string()),
         icon: icon.to_string(),
+        cluster_id: None,
+        route_path: None,
         tags,
         version: DOMAIN_TEMPLATE_VERSION,
         is_preset: true,

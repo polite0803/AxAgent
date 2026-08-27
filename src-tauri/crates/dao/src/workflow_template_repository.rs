@@ -26,6 +26,8 @@ impl WorkflowTemplateRepository for DaoWorkflowTemplateRepository {
             name: m.name,
             description: m.description,
             icon: m.icon,
+            cluster_id: None,
+            route_path: None,
             tags: m.tags,
             version: m.version,
             is_preset: m.is_preset,

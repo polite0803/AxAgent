@@ -65,6 +65,10 @@ pub struct WorkflowTemplateData {
     pub output_schema: Option<String>,
     pub variables: Option<String>,
     pub error_config: Option<String>,
+    /// L2 集群 ID（三层路由第二层，对应 CapabilityCluster::cluster_id）
+    pub cluster_id: Option<String>,
+    /// 三层路由路径（格式 `/{domain}/{cluster}/{capability}`）
+    pub route_path: Option<String>,
 }
 
 // ── BackgroundTask 系列 ─────────────────────

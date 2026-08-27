@@ -142,6 +142,8 @@ async fn ensure_template(
         name: name.to_string(),
         description: Some(description.to_string()),
         icon: "🤖".to_string(),
+        cluster_id: None,
+        route_path: None,
         tags: vec![COGNITIVE_ROUTER_TAG.to_string()],
         version,
         is_preset: true,

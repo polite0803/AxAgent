@@ -409,6 +409,8 @@ const createEmptyTemplate = (): Omit<
   outputSchema: undefined,
   variables: [],
   errorConfig: undefined,
+  clusterId: undefined,
+  routePath: undefined,
 });
 
 // 深克隆：优先用 JSON（避免 React Flow 节点含 React 组件引用导致 structuredClone 失败）

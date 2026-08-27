@@ -144,6 +144,8 @@ pub async fn seed_industry_project_management_workflow_template(
         name: "项目管理流程".to_string(),
         description: Some("项目启动 → 进度报告 → 项目收尾。标准项目管理全流程。".to_string()),
         icon: "⚙️".to_string(),
+        cluster_id: None,
+        route_path: None,
         tags: vec!["opc".to_string(), "industry".to_string(), "project_management".to_string()],
         version: TEMPLATE_VERSION,
         is_preset: true,

@@ -1681,7 +1681,7 @@ pub struct RhaiToolDef {
     pub code: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, TS)]
 pub struct WorkflowTemplateData {
     pub id: String,
     pub name: String,
@@ -1713,6 +1713,14 @@ pub struct WorkflowTemplateData {
     /// 由 mission 编译生成的模板填充；手动创建的模板为 None。
     #[serde(default)]
     pub mission_hash: Option<String>,
+    /// L2 集群 ID（三层路由第二层，对应 CapabilityCluster::cluster_id）。
+    /// 与 `route_path` 协同描述模板在 L1/L2/L3 三层路由树中的位置。
+    #[serde(default)]
+    pub cluster_id: Option<String>,
+    /// 三层路由路径（格式 `/{domain}/{cluster}/{capability}`，由命令层或 mission 编译时填充）。
+    /// CapabilityPassport::domain / sub_category 从此字段拆解得到。
+    #[serde(default)]
+    pub route_path: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -2086,7 +2094,31 @@ impl crate::capability::CapabilityPassport for WorkflowTemplateData {
     }
 
     fn domain(&self) -> crate::capability::CapabilityDomain {
-        infer_domain_from_tags(&self.tags)
+        // 从 route_path 拆解 L1 domain 段（格式 `/{domain}/{cluster}/{capability}`）。
+        // 无 route_path 或解析失败时降级为 General，与旧模板兼容。
+        self.route_path
+            .as_deref()
+            .and_then(|p| {
+                let trimmed = p.trim_start_matches('/');
+                trimmed.split('/').next().and_then(crate::routing_path::parse_domain)
+            })
+            .unwrap_or(crate::capability::CapabilityDomain::General)
+    }
+
+    fn sub_category(&self) -> String {
+        // 优先用显式 cluster_id；否则从 route_path 拆解 L2 cluster 段。
+        if let Some(ref c) = self.cluster_id {
+            return c.clone();
+        }
+        self.route_path
+            .as_deref()
+            .and_then(|p| {
+                let trimmed = p.trim_start_matches('/');
+                let mut segs = trimmed.split('/');
+                segs.next()?;
+                segs.next().map(|s| s.to_string())
+            })
+            .unwrap_or_default()
     }
 
     fn input_schema(&self) -> Option<serde_json::Value> {
@@ -2126,7 +2158,7 @@ impl crate::capability::CapabilityPassport for WorkflowTemplateData {
 /// 根据工作流 tags 推断所属业务域。
 ///
 /// 匹配优先级：ContentCreation > Finance > Automation > Devops > AiMedia > DataAnalysis > Communication > General
-fn infer_domain_from_tags(tags: &[String]) -> crate::capability::CapabilityDomain {
+pub fn infer_domain_from_tags(tags: &[String]) -> crate::capability::CapabilityDomain {
     use crate::capability::CapabilityDomain;
 
     let tag_set: std::collections::HashSet<&str> = tags.iter().map(|s| s.as_str()).collect();
@@ -2352,6 +2384,8 @@ impl WorkflowTemplateData {
             error_config: self.error_config.clone(),
             tool_defs: Some(self.tool_defs.clone()),
             mission_hash: self.mission_hash.clone(),
+            cluster_id: self.cluster_id.clone(),
+            route_path: self.route_path.clone(),
         }
     }
 }
@@ -2374,6 +2408,12 @@ pub struct WorkflowTemplateInput {
     /// 仅当此模板由 mission 编译生成时填充；手动创建时为 None。
     #[serde(default)]
     pub mission_hash: Option<String>,
+    /// L2 集群 ID（三层路由第二层，可选；命令层会根据 tags 或用户选择推导）
+    #[serde(default)]
+    pub cluster_id: Option<String>,
+    /// 三层路由路径（可选；命令层会根据 tags 或用户选择推导，格式 `/{domain}/{cluster}/{capability}`）
+    #[serde(default)]
+    pub route_path: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
@@ -2412,6 +2452,12 @@ pub struct WorkflowTemplateResponse {
     /// mission 哈希（SHA-256），若模板由 mission 编译生成则填充
     #[serde(default, alias = "mission_hash")]
     pub mission_hash: Option<String>,
+    /// L2 集群 ID（三层路由第二层）
+    #[serde(default, alias = "cluster_id")]
+    pub cluster_id: Option<String>,
+    /// 三层路由路径（格式 `/{domain}/{cluster}/{capability}`）
+    #[serde(default, alias = "route_path")]
+    pub route_path: Option<String>,
     #[serde(alias = "created_at")]
     pub created_at: i64,
     #[serde(alias = "updated_at")]
@@ -2441,6 +2487,8 @@ impl From<WorkflowTemplateData> for WorkflowTemplateResponse {
             error_config: data.error_config,
             tool_defs: Some(data.tool_defs),
             mission_hash: data.mission_hash,
+            cluster_id: data.cluster_id,
+            route_path: data.route_path,
             created_at: data.created_at,
             updated_at: data.updated_at,
         }
@@ -2476,6 +2524,41 @@ pub struct ValidationResult {
     pub is_valid: bool,
     pub errors: Vec<ValidationError>,
     pub warnings: Vec<ValidationWarning>,
+}
+
+// ── 工作流运行时工具（workflow_tools 表 DTO） ──────────
+
+/// 工作流运行时工具响应 —— 动态发现/生成工具的持久化表示。
+///
+/// 与 `WorkflowTemplateResponse.tool_defs`（模板内置 Rhai 工具，随版本快照）
+/// 区分：本 DTO 承载运行时工具的生命周期（pending/active/disabled 状态机、
+/// 使用统计、来源标记），供前端工具面板展示与启停。
+///
+/// 由命令层（可同时访问 harness 与 entities）负责 `Model → Response` 转换。
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowToolResponse {
+    pub id: String,
+    #[serde(alias = "workflow_id")]
+    pub workflow_id: String,
+    #[serde(alias = "tool_name")]
+    pub tool_name: String,
+    #[serde(alias = "tool_type")]
+    pub tool_type: String,
+    pub description: Option<String>,
+    pub code: Option<String>,
+    #[serde(alias = "input_schema")]
+    pub input_schema: Option<String>,
+    pub source: String,
+    pub status: String,
+    #[serde(alias = "usage_count")]
+    pub usage_count: i32,
+    #[serde(alias = "success_rate")]
+    pub success_rate: f64,
+    #[serde(alias = "created_at")]
+    pub created_at: i64,
+    #[serde(alias = "updated_at")]
+    pub updated_at: i64,
 }
 
 #[cfg(test)]

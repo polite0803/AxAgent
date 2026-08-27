@@ -475,6 +475,8 @@ pub fn build_workflow_from_pack(w: &IndustryWorkflow, version: i32) -> WorkflowT
             } else {
                 w.icon.clone()
             },
+            cluster_id: None,
+            route_path: None,
             tags: w.tags.clone(),
             version,
             is_preset: true,
@@ -564,6 +566,8 @@ pub fn build_workflow_from_pack(w: &IndustryWorkflow, version: i32) -> WorkflowT
         } else {
             w.icon.clone()
         },
+        cluster_id: None,
+        route_path: None,
         tags: w.tags.clone(),
         version,
         is_preset: true,
@@ -960,6 +964,8 @@ pub async fn export_industry_workflows_json(
             name: t.name.clone(),
             description: t.description.clone(),
             icon: t.icon.clone(),
+            cluster_id: None,
+            route_path: None,
             tags,
             version: t.version,
             is_preset: t.is_preset,

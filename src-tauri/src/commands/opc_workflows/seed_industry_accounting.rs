@@ -160,6 +160,8 @@ pub async fn seed_industry_accounting_workflow_template(
         name: "会计与财务管理".to_string(),
         description: Some("会计财务行业工作流：发票创建、审批、通知、报表".to_string()),
         icon: "💰".to_string(),
+        cluster_id: None,
+        route_path: None,
         tags: vec!["opc".to_string(), "industry".to_string(), "accounting".to_string()],
         version: TEMPLATE_VERSION,
         is_preset: true,

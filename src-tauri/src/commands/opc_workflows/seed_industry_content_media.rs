@@ -190,6 +190,8 @@ pub async fn seed_industry_content_media_workflow_template(
             "内容媒体行业工作流：选题策划、内容创作、优化打磨、多平台发布、IP打造".to_string(),
         ),
         icon: "📱".to_string(),
+        cluster_id: None,
+        route_path: None,
         tags: vec!["opc".to_string(), "industry".to_string(), "content_media".to_string()],
         version: TEMPLATE_VERSION,
         is_preset: true,

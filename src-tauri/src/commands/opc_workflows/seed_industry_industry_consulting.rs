@@ -146,6 +146,8 @@ pub async fn seed_industry_industry_consulting_workflow_template(
             "行业扫描 → 进入评估 → 战略制定。快速完成行业进入分析与战略规划。".to_string(),
         ),
         icon: "⚙️".to_string(),
+        cluster_id: None,
+        route_path: None,
         tags: vec!["opc".to_string(), "industry".to_string(), "industry_consulting".to_string()],
         version: TEMPLATE_VERSION,
         is_preset: true,

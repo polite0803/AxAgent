@@ -142,6 +142,8 @@ pub async fn seed_industry_design_workflow_template(db: &DatabaseConnection) -> 
         name: "设计".to_string(),
         description: Some("设计行业工作流：产品UI设计、品牌视觉设计、设计系统构建".to_string()),
         icon: "🎨".to_string(),
+        cluster_id: None,
+        route_path: None,
         tags: vec!["opc".to_string(), "industry".to_string(), "design".to_string()],
         version: TEMPLATE_VERSION,
         is_preset: true,

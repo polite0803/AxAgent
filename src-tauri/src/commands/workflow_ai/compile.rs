@@ -244,6 +244,8 @@ pub async fn compile_mission_to_template(
         name: mission_to_name(&mission),
         description: Some(mission.clone()),
         icon: "mission".to_string(),
+        cluster_id: None,
+        route_path: None,
         tags: vec!["mission-compiled".to_string()],
         version: 1,
         is_preset: false,

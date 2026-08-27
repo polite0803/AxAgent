@@ -144,6 +144,8 @@ pub async fn seed_industry_geospatial_workflow_template(
         name: "地理信息".to_string(),
         description: Some("地理信息行业工作流：空间分析、地图制作、GIS应用开发".to_string()),
         icon: "🗺️".to_string(),
+        cluster_id: None,
+        route_path: None,
         tags: vec!["opc".to_string(), "industry".to_string(), "geospatial".to_string()],
         version: TEMPLATE_VERSION,
         is_preset: true,

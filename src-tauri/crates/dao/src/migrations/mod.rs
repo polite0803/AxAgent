@@ -58,6 +58,7 @@ pub mod v119_add_note_tags;
 pub mod v120_add_trajectory_invalidated;
 pub mod v121_add_trajectory_agent_name;
 pub mod v122_evolution_execution_stats;
+pub mod v123_workflow_tools;
 pub mod v200_axinvest_stock_tables;
 pub mod v201_lesson_application_tracking;
 pub mod v202_stock_analyses_parent_version;
@@ -231,6 +232,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 122,
         description: "v122_evolution_execution_stats: 创建 evolution_execution_stats 表（复合主键 (conversation_id, tool_id)），持久化进化产物真实执行反馈，重启后真实证据不丢失（阶段四后置闭环 D3）",
         up: |db| Box::pin(v122_evolution_execution_stats::up(db)),
+    },
+    Migration {
+        version: 123,
+        description: "v123_workflow_tools: 创建 workflow_tools 表（(workflow_id, tool_name) 唯一约束），持久化工作流运行时发现/生成的工具定义（rhai_script/workflow_dag/llm_function，pending/active/disabled 状态机 + 使用统计）",
+        up: |db| Box::pin(v123_workflow_tools::up(db)),
     },
     Migration {
         version: 200,

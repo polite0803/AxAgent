@@ -100,6 +100,7 @@ import { SemanticCheckModal } from "./SemanticCheckModal";
 import { StatusBar } from "./StatusBar/EditorStatusBar";
 import { ImportExportModal } from "./Templates/ImportExportModal";
 import { VersionHistoryModal } from "./Templates/VersionHistoryModal";
+import { WorkflowToolsPanel } from "./Tools/WorkflowToolsPanel";
 import { NODE_TYPE_MAP, type WorkflowEdge, type WorkflowNode } from "./types";
 import { buildNodesWithParent, getCleanedEdges } from "./utils";
 import { WorkflowLegend } from "./WorkflowLegend";
@@ -252,6 +253,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
   const [debugPanelVisible, setDebugPanelVisible] = useState(false);
   const [importExportModalVisible, setImportExportModalVisible] = useState(false);
   const [versionHistoryVisible, setVersionHistoryVisible] = useState(false);
+  const [toolsPanelVisible, setToolsPanelVisible] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null);
   const [searchVisible, setSearchVisible] = useState(false);
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
@@ -1833,6 +1835,7 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
         rightPanelCollapsed={rightPanelCollapsed}
         onOpenImportExport={() => setImportExportModalVisible(true)}
         onOpenVersionHistory={() => setVersionHistoryVisible(true)}
+        onOpenTools={() => setToolsPanelVisible(true)}
         onUndo={() => {
           if (canUndo()) {
             undo();
@@ -2181,6 +2184,13 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
           setVersionHistoryVisible(false);
           loadTemplate(tmpl.id);
         }}
+      />
+
+      <WorkflowToolsPanel
+        workflowId={currentTemplate?.id ?? templateId ?? ""}
+        workflowName={currentTemplate?.name ?? t("workflow.editor.untitled")}
+        open={toolsPanelVisible}
+        onClose={() => setToolsPanelVisible(false)}
       />
 
       <DiagnosticDrawer

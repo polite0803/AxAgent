@@ -220,6 +220,8 @@ fn model_to_response(m: workflow_template::Model) -> Result<WorkflowTemplateResp
         name: m.name,
         description: m.description,
         icon: m.icon,
+        cluster_id: m.cluster_id,
+        route_path: m.route_path,
         tags,
         version: m.version,
         is_preset: m.is_preset,

@@ -144,6 +144,8 @@ pub async fn seed_industry_education_workflow_template(
         name: "教育培训".to_string(),
         description: Some("教育培训行业工作流：课程体系设计、学习路径规划、内容开发".to_string()),
         icon: "📚".to_string(),
+        cluster_id: None,
+        route_path: None,
         tags: vec!["opc".to_string(), "industry".to_string(), "education".to_string()],
         version: TEMPLATE_VERSION,
         is_preset: true,

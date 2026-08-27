@@ -113,6 +113,19 @@ pub async fn build_llm_judge_from_db(
     Some(Box::new(bridge))
 }
 
+/// 从 DB 构建 LLM 工具生成器（`ProviderLlmBridge`，已实现 `LlmToolProvider`）。
+///
+/// 返回 `None` 表示未配置可用 provider。供「运行时工具发现闭环」使用：
+/// 工作流执行时缺少工具 → LLM 生成 Rhai 脚本 → 沙箱验证 → 写入 workflow_tools(pending)。
+pub async fn build_llm_tool_provider_from_db(
+    master_key: &[u8; 32],
+) -> Option<Box<dyn axagent_harness::trajectory_types::LlmToolProvider>> {
+    let (adapter, ctx, model) = build_llm_components_from_db(master_key).await?;
+    let bridge = ProviderLlmBridge::new(adapter, ctx, model);
+    tracing::info!("[wiring] LlmToolProvider 注入完成 (ProviderLlmBridge)");
+    Some(Box::new(bridge))
+}
+
 /// 从 DB 构建 LLM 任务分解器（`LlmBasedDecomposer`）。
 ///
 /// 返回 `None` 表示未配置可用 provider，调用方应回退到 `RuleBasedDecomposer`

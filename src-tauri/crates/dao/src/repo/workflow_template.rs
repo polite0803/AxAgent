@@ -397,6 +397,8 @@ pub fn template_model_to_data(
         name: model.name.clone(),
         description: model.description.clone(),
         icon: model.icon.clone(),
+        cluster_id: None,
+        route_path: None,
         tags: model.tags.as_ref().and_then(|s| serde_json::from_str(s).ok()).unwrap_or_default(),
         version: model.version,
         is_preset: model.is_preset,

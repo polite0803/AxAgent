@@ -687,6 +687,8 @@ pub fn convert_preset_to_workflow_template(preset: &PresetTemplate) -> WorkflowT
         name: preset.name.to_string(),
         description: Some(preset.description.to_string()),
         icon: preset.icon.to_string(),
+        cluster_id: None,
+        route_path: None,
         tags: preset.tags.iter().map(|s| s.to_string()).collect(),
         version: 1,
         is_preset: true,

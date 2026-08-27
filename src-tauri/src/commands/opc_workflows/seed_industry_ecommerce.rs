@@ -148,6 +148,8 @@ pub async fn seed_industry_ecommerce_workflow_template(
         name: "电子商务".to_string(),
         description: Some("电子商务行业工作流：爆品挖掘、竞品监控、营销策划".to_string()),
         icon: "🛒".to_string(),
+        cluster_id: None,
+        route_path: None,
         tags: vec!["opc".to_string(), "industry".to_string(), "ecommerce".to_string()],
         version: TEMPLATE_VERSION,
         is_preset: true,

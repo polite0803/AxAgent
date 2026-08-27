@@ -160,6 +160,8 @@ pub async fn seed_industry_ai_research_workflow_template(
         name: "AI 研究与咨询".to_string(),
         description: Some("AI 研究行业工作流：需求分析、文献调研、模型评测、报告输出".to_string()),
         icon: "🤖".to_string(),
+        cluster_id: None,
+        route_path: None,
         tags: vec!["opc".to_string(), "industry".to_string(), "ai_research".to_string()],
         version: TEMPLATE_VERSION,
         is_preset: true,

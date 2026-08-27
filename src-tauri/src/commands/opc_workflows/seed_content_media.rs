@@ -121,6 +121,8 @@ pub async fn seed_content_media_workflows(
             name,
             description: Some(description),
             icon,
+            cluster_id: None,
+            route_path: None,
             tags,
             version: get_template_version(template_id),
             is_preset: true,

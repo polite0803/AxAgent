@@ -346,6 +346,12 @@ pub mod workflow {
     pub const INVALID_JSON: &str = "WORKFLOW_INVALID_JSON";
     /// 系统模板受保护（认知编排器等 SystemOnly 模板禁止用户 CRUD）
     pub const SYSTEM_TEMPLATE_PROTECTED: &str = "WORKFLOW_SYSTEM_TEMPLATE_PROTECTED";
+    /// 运行时工具状态无效（update_workflow_tool_status 收到非 pending/active/disabled 值）
+    pub const TOOL_INVALID_STATUS: &str = "WORKFLOW_TOOL_INVALID_STATUS";
+    /// LLM 工具生成器未配置（无可用 provider，无法执行发现闭环）
+    pub const TOOL_PROVIDER_NOT_CONFIGURED: &str = "LLM_TOOL_PROVIDER_NOT_CONFIGURED";
+    /// 生成工具未通过沙箱编译验证（拒绝落地）
+    pub const TOOL_SANDBOX_REJECTED: &str = "WORKFLOW_TOOL_SANDBOX_REJECTED";
 }
 
 /// 股票工作流相关错误码

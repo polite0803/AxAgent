@@ -107,6 +107,8 @@ fn build_minimal_gap_template(
         name: proposal.title.trim().to_string(),
         description: Some(proposal.proposal.clone()),
         icon: "evolution".to_string(),
+        cluster_id: None,
+        route_path: None,
         tags: vec![
             "auto_evolved".to_string(),
             "capability_gap".to_string(),

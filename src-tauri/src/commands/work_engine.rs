@@ -209,6 +209,122 @@ pub fn spawn_workflow_run(
     execution_id
 }
 
+/// 工作流运行时工具的执行反馈接收器 —— 把工具真实执行成败回写到
+/// `workflow_tools` 表的 `usage_count` / `success_rate`。
+///
+/// 模式与 `EvolutionFeedbackSinkImpl` 对称：`record` 是同步回调（工具执行
+/// 完成瞬间调用），内部通过当前 tokio runtime 异步落库，不跨 await 持锁。
+/// `tool_id` 即 `GeneratedToolAdapter` 上报的 `tool.name`（= workflow_tools.tool_name），
+/// 按 `(workflow_id, tool_name)` 定位回写。
+struct WorkflowToolFeedbackSink {
+    db: sea_orm::DatabaseConnection,
+    workflow_id: String,
+}
+
+impl axagent_harness::workflow_evolution::ExecutionFeedbackSink for WorkflowToolFeedbackSink {
+    fn record(&self, _conversation_id: Option<&str>, tool_id: &str, success: bool) {
+        let db = self.db.clone();
+        let workflow_id = self.workflow_id.clone();
+        let tool_name = tool_id.to_string();
+        if let Ok(handle) = tokio::runtime::Handle::try_current() {
+            handle.spawn(async move {
+                let now = chrono::Utc::now().timestamp_millis();
+                if let Err(e) = axagent_dao::repo::workflow_tool::record_execution_feedback_by_name(
+                    &db,
+                    &workflow_id,
+                    &tool_name,
+                    success,
+                    now,
+                )
+                .await
+                {
+                    tracing::debug!("[workflow_tool] 执行反馈回写失败 {tool_name}: {e}");
+                }
+            });
+        } else {
+            tracing::debug!("[workflow_tool] 无 runtime 上下文，跳过反馈回写");
+        }
+    }
+}
+
+/// 启动工作流前，从 `workflow_tools` 表加载 active 工具并注册到运行时注册表。
+///
+/// 每个工具构造 `GeneratedTool` → `GeneratedToolAdapter`（注入反馈 sink）→
+/// `register_runtime_tool`，来源标记 `workflow:{workflow_id}`。注册幂等：同名
+/// 已存在（重复注册/重启后已在注册表）时跳过，不覆盖既有工具。注册失败仅
+/// warn，不阻塞工作流启动（工具节点执行时若缺失会走 ToolExecutor 的"未注册"
+/// 错误路径，由上层发现闭环处理）。
+async fn register_workflow_runtime_tools(state: &AppState, workflow_id: &str) {
+    use axagent_dao::repo::workflow_tool as wt_repo;
+    use axagent_harness::trajectory_types::{EvolutionArtifactKind, GeneratedTool};
+    use axagent_tools::generated_tool::GeneratedToolAdapter;
+    use std::sync::Arc;
+
+    let db = state.harness.db();
+    let Ok(tools) = wt_repo::list_by_workflow(db, workflow_id, Some(wt_repo::STATUS_ACTIVE)).await
+    else {
+        return;
+    };
+    if tools.is_empty() {
+        return;
+    }
+
+    // 反馈 sink 与 db 克隆：每个 adapter 注入同一 sink（sink 内部按 tool_name 定位）
+    let sink: Arc<dyn axagent_harness::workflow_evolution::ExecutionFeedbackSink> =
+        Arc::new(WorkflowToolFeedbackSink { db: db.clone(), workflow_id: workflow_id.to_string() });
+
+    let mut registry = state.local_tool_registry.lock().await;
+    for t in tools {
+        let Some(code) = t.code.clone() else {
+            continue;
+        };
+        let kind = if t.tool_type == wt_repo::TYPE_WORKFLOW_DAG {
+            EvolutionArtifactKind::WorkflowDag
+        } else {
+            EvolutionArtifactKind::RhaiScript
+        };
+        let gen_tool = GeneratedTool::with_artifact_kind(
+            &t.tool_name,
+            &code,
+            t.description.as_deref().unwrap_or(""),
+            kind,
+        );
+        let adapter =
+            Arc::new(GeneratedToolAdapter::new(gen_tool).with_feedback_sink(sink.clone()));
+        match registry.register_runtime_tool(adapter, format!("workflow:{workflow_id}")) {
+            Ok(()) => {
+                tracing::info!(
+                    "[workflow_tool] 已注册运行时工具 '{}'（workflow:{}）",
+                    t.tool_name,
+                    workflow_id
+                );
+            },
+            Err(e) => {
+                tracing::warn!("[workflow_tool] 注册工具 '{}' 跳过: {}", t.tool_name, e.message);
+            },
+        }
+    }
+}
+
+#[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "启动工作流执行")]
+#[tauri::command]
+pub async fn start_workflow_execution(
+    state: State<'_, AppState>,
+    workflow_id: String,
+    input: serde_json::Value,
+) -> Result<String, String> {
+    // 启动前加载并注册工作流运行时工具（幂等；失败不阻塞启动）
+    register_workflow_runtime_tools(&state, &workflow_id).await;
+
+    let engine = &*state.work_engine;
+    engine.start_workflow(&workflow_id, input, None).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
 #[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "暂停工作流执行")]
 #[tauri::command]
 pub async fn pause_workflow_execution(
