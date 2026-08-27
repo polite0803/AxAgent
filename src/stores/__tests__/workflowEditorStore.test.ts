@@ -290,9 +290,7 @@ describe("WorkflowEditorStore", () => {
 
       await store.loadTemplates();
 
-      expect(invokeMock).toHaveBeenCalledWith("list_workflow_templates", {
-        isPreset: undefined,
-      });
+      expect(invokeMock).toHaveBeenCalledWith("list_workflow_templates", {});
       const state = useWorkflowEditorStore.getState() as any;
       expect(state.templates).toEqual(mockTemplates);
       expect(state.isLoading).toBe(false);
