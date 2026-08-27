@@ -37,7 +37,12 @@ export const SystemTemplateList: React.FC<SystemTemplateListProps> = ({
     })
       .then((list) => {
         if (!cancelled) {
-          setTemplates(Array.isArray(list) ? list : []);
+          // 只显示系统级模板（认知编排器等，isSystem = is_preset + cognitive_router 标签），
+          // 与「我的工作流」页（用户自定义 + 内置 preset）物理区分，避免两页内容重复。
+          const systemOnly = (Array.isArray(list) ? list : []).filter(
+            (t) => t.isSystem,
+          );
+          setTemplates(systemOnly);
         }
       })
       .catch(() => {

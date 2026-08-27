@@ -118,6 +118,16 @@ function extractDomainFromRoute(routePath?: string): string | undefined {
   return seg ? seg : undefined;
 }
 
+/**
+ * 模板业务域：routePath L1 段 → 首个标签 → DOMAIN_NONE。
+ * 全列表（Select 选项 / 分组 / 过滤匹配）共用同一口径，避免选项与实际分组错位。
+ */
+function getTemplateDomain(template: WorkflowTemplateResponse): string {
+  return extractDomainFromRoute(template.routePath)
+    ?? template.tags?.[0]
+    ?? DOMAIN_NONE;
+}
+
 export const TemplateList: React.FC<TemplateListProps> = ({
   onSelectTemplate,
   onCreateNew,
@@ -148,12 +158,13 @@ export const TemplateList: React.FC<TemplateListProps> = ({
     loadTemplates();
   }, [loadTemplates]);
 
-  // 领域选项：从模板 routePath 的 L1 段收集（真正的领域属性，非 tags）
+  // 领域选项：与分组口径一致（routePath L1 ?? tags[0]），过滤掉「未分类」
+  // （未分类在 Select 中是独立的固定项）。
   const allDomains = React.useMemo(() => {
     const domainSet = new Set<string>();
     templates.forEach((t) => {
-      const domain = extractDomainFromRoute(t.routePath);
-      if (domain) { domainSet.add(domain); }
+      const domain = getTemplateDomain(t);
+      if (domain !== DOMAIN_NONE) { domainSet.add(domain); }
     });
     return Array.from(domainSet).sort();
   }, [templates]);
@@ -169,18 +180,37 @@ export const TemplateList: React.FC<TemplateListProps> = ({
       const matchesSearch = !searchText
         || template.name.toLowerCase().includes(searchText.toLowerCase())
         || template.description?.toLowerCase().includes(searchText.toLowerCase());
-      // 领域匹配：选择具体领域时按 routePath L1 段过滤；"未分类"只匹配无 routePath 的模板
+      // 领域匹配：与 getTemplateDomain 同口径
       let matchesDomain = true;
       if (filterDomain) {
-        const domain = extractDomainFromRoute(template.routePath);
+        const domain = getTemplateDomain(template);
         matchesDomain = filterDomain === DOMAIN_NONE
-          ? !domain
+          ? domain === DOMAIN_NONE
           : domain === filterDomain;
       }
       const matchesPreset = filterPreset === undefined || template.isPreset === filterPreset;
       return matchesSearch && matchesDomain && matchesPreset;
     });
   }, [templates, searchText, filterDomain, filterPreset]);
+
+  /**
+   * 按域分组：与 Select 选项 / 过滤口径完全一致（routePath L1 ?? tags[0] ?? 未分类）。
+   * 按域名字典序，未分类置底。
+   */
+  const groupedTemplates = React.useMemo(() => {
+    const groups = new Map<string, WorkflowTemplateResponse[]>();
+    for (const template of filteredTemplates) {
+      const domain = getTemplateDomain(template);
+      const arr = groups.get(domain) ?? [];
+      arr.push(template);
+      groups.set(domain, arr);
+    }
+    return Array.from(groups.entries()).sort((a, b) => {
+      if (a[0] === DOMAIN_NONE) { return 1; }
+      if (b[0] === DOMAIN_NONE) { return -1; }
+      return a[0].localeCompare(b[0]);
+    });
+  }, [filteredTemplates]);
 
   const handleDelete = async () => {
     if (!templateToDelete) {
@@ -472,14 +502,58 @@ export const TemplateList: React.FC<TemplateListProps> = ({
         </div>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-          gap: 12,
-        }}
-      >
-        {filteredTemplates.map(renderTemplateCard)}
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        {groupedTemplates.map(([domain, items]) => (
+          <div key={domain}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 10,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: token.colorTextSecondary,
+                }}
+              >
+                {domain === DOMAIN_NONE
+                  ? t("workflow.templateList.uncategorized")
+                  : domain}
+              </span>
+              <span
+                style={{
+                  fontSize: 12,
+                  color: token.colorTextTertiary,
+                  background: token.colorFillTertiary,
+                  borderRadius: 8,
+                  padding: "0 6px",
+                }}
+              >
+                {items.length}
+              </span>
+              <div
+                style={{
+                  flex: 1,
+                  height: 1,
+                  background: token.colorSplit,
+                }}
+              />
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                gap: 12,
+              }}
+            >
+              {items.map(renderTemplateCard)}
+            </div>
+          </div>
+        ))}
       </div>
 
       {filteredTemplates.length === 0 && !isLoading && (
