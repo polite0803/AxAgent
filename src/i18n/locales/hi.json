@@ -8672,7 +8672,6 @@
     "nestingsuffix": ",नेस्टिंगसफ़िक्स:",
     "ellipsis": "...",
     "ok": "ठीक है",
-    "foo": "फू",
     "editor": {
       "context": {
         "currentWorkflow": "Current workflow: {{name}} ({{nodes}} nodes/{{edges}} edges)",

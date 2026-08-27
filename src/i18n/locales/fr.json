@@ -8672,7 +8672,6 @@
     "nestingsuffix": ",nestingSuffix:",
     "ellipsis": "...",
     "ok": "d'accord",
-    "foo": "toto",
     "editor": {
       "context": {
         "currentWorkflow": "Current workflow: {{name}} ({{nodes}} nodes/{{edges}} edges)",

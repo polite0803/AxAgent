@@ -8672,7 +8672,6 @@
     "nestingsuffix": "суффикс вложенности:",
     "ellipsis": "...",
     "ok": "ок",
-    "foo": "фу",
     "editor": {
       "context": {
         "currentWorkflow": "Current workflow: {{name}} ({{nodes}} nodes/{{edges}} edges)",

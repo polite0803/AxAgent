@@ -8681,7 +8681,6 @@
     "nestingsuffix": ",nestingSuffix:",
     "ellipsis": "...",
     "ok": "ok",
-    "foo": "foo",
     "tools": {
       "title": "Workflow Tools",
       "create": "New Tool",
