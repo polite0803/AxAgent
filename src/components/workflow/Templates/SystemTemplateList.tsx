@@ -28,27 +28,25 @@ export const SystemTemplateList: React.FC<SystemTemplateListProps> = ({
   const [templates, setTemplates] = useState<WorkflowTemplateResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [errorInfo, setErrorInfo] = React.useState<string>("");
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
+    setErrorInfo("");
     invoke<WorkflowTemplateResponse[]>("list_workflow_templates", {
       is_preset: true,
       include_system: true,
     })
       .then((list) => {
         if (!cancelled) {
-          // 严格按后端权威判定 `is_cognitive_router_template` 同口径：
-          // is_preset=true + tags 含 "cognitive_router"。不依赖 isSystem 字段序列化，
-          // 即便序列化异常也能正确过滤认知编排器。
-          const systemOnly = (Array.isArray(list) ? list : []).filter(
-            (t) => t.isSystem || (t.isPreset === true && (t.tags ?? []).includes("cognitive_router")),
-          );
-          setTemplates(systemOnly);
+          // 诊断模式：先不过滤，全部显示，并在顶部显示命中统计
+          setTemplates(Array.isArray(list) ? list : []);
         }
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         if (!cancelled) {
           setTemplates([]);
+          setErrorInfo(typeof err === "string" ? err : JSON.stringify(err));
         }
       })
       .finally(() => {
@@ -83,6 +81,38 @@ export const SystemTemplateList: React.FC<SystemTemplateListProps> = ({
 
   return (
     <div style={{ padding: 16 }}>
+      <div
+        style={{
+          fontSize: 11,
+          color: token.colorTextTertiary,
+          marginBottom: 8,
+          fontFamily: "var(--font-mono, monospace)",
+        }}
+      >
+        DBG: invoke 返回 {templates.length} 个模板
+        {errorInfo && (
+          <span style={{ marginLeft: 8, color: token.colorError }}>
+            | 错误: {errorInfo}
+          </span>
+        )}
+        {templates.length > 0 && (() => {
+          const withIsSystem = templates.filter((t) => t.isSystem).length;
+          const withCognitiveTag = templates.filter(
+            (t) => (t.tags ?? []).includes("cognitive_router"),
+          ).length;
+          const withPreset = templates.filter((t) => t.isPreset).length;
+          const first = templates[0];
+          return (
+            <span style={{ marginLeft: 8 }}>
+              | isSystem=true: {withIsSystem}
+              | tags含cognitive_router: {withCognitiveTag}
+              | isPreset=true: {withPreset}
+              | 首条样本：id={first?.id} isPreset={String(first?.isPreset)} isSystem={String(first?.isSystem)}{" "}
+              tags={JSON.stringify(first?.tags)}
+            </span>
+          );
+        })()}
+      </div>
       <div
         style={{
           display: "grid",

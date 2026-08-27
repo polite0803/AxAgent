@@ -90,10 +90,10 @@ export const BasePropertyPanel: React.FC<BasePropertyPanelProps> = ({
         </label>
         <Switch
           size="small"
-          checked={node.retry.enabled}
+          checked={node.retry?.enabled ?? false}
           onChange={(enabled) => onUpdate({ retry: { ...node.retry, enabled } })}
         />
-        {node.retry.enabled && (
+        {(node.retry?.enabled ?? false) && (
           <div
             style={{
               marginTop: 8,

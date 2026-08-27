@@ -7,7 +7,7 @@ import { GripVertical, Plus, Trash2, X } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { AIAssistButton, useNodeAIAssist } from "../../Hooks";
-import type { Branch, DegradeStrategy, ParallelNode, WorkflowNode } from "../../types";
+import type { Branch, DegradeStrategy, ParallelNode, ParallelNodeConfig, WorkflowNode } from "../../types";
 import { DEGRADE_LABELS } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
 
@@ -25,12 +25,20 @@ export const ParallelPropertyPanel: React.FC<ParallelPropertyPanelProps> = ({
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const parallelNode = node as ParallelNode;
-  const config = parallelNode.config || {
+  // 兼容旧版数据：config 可能整体缺失、缺字段，或 branches 非数组。
+  // 归一化后再使用，避免渲染属性面板时对 undefined 调 .length/.map/.filter 抛 TypeError
+  // 导致整页进入错误边界（"页面错误"）。
+  const rawConfig = (parallelNode.config ?? {}) as Partial<ParallelNodeConfig>;
+  const config: ParallelNodeConfig = {
     branches: [],
     waitForAll: true,
     aggregation: undefined,
     autoInputFromParent: true,
+    ...rawConfig,
   };
+  if (!Array.isArray(config.branches)) {
+    config.branches = [];
+  }
 
   const { nodes } = useWorkflowEditorStore();
 

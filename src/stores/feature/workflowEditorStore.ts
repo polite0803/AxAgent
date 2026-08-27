@@ -445,6 +445,32 @@ function rebuildParentRefsFromNodes(nodes: WorkflowNode[]): Record<string, strin
 }
 
 /**
+ * 容器节点 config 数组字段归一化（数据入口层兜底）。
+ * 兼容旧版/外部导入/后端 AI 生成的工作流数据：loop 的 bodySteps、parallel 的 branches、
+ * debate 的 debaterSteps、swarm 的 agentSteps、aggregator 的 inputSources 在历史 schema 中
+ * 可能缺失或非数组，属性面板对 undefined 调 .map/.filter/.includes/.length 会抛 TypeError，
+ * 导致整页进入错误边界（"页面错误"）。缺字段补默认空数组，非数组脏值置空数组。
+ */
+function normalizeContainerConfigs(nodes: WorkflowNode[]): WorkflowNode[] {
+  return nodes.map((n) => {
+    const cfg = (n as unknown as { config?: Record<string, unknown> }).config;
+    if (!cfg || typeof cfg !== "object") { return n; }
+    const fixed: Record<string, unknown> = { ...cfg };
+    const arrayFields = ["bodySteps", "branches", "debaterSteps", "agentSteps", "inputSources"] as const;
+    let dirty = false;
+    for (const field of arrayFields) {
+      if (!Array.isArray(fixed[field])) {
+        fixed[field] = [];
+        dirty = true;
+      }
+    }
+    return dirty
+      ? { ...n, config: fixed } as unknown as WorkflowNode
+      : n;
+  });
+}
+
+/**
  * 把后端 apply_* 命令返回的最新 WorkflowTemplateResponse 同步到 store 内的
  * currentTemplate / nodes / edges。保持 history(past/future)不变 — 后端持久化
  * 后的版本历史是数据库的 workflow_template_versions,与前端 history 解耦。
@@ -455,7 +481,7 @@ function applyRefreshedTemplate(
 ): void {
   set((state) => {
     state.currentTemplate = refreshed;
-    state.nodes = refreshed.nodes;
+    state.nodes = normalizeContainerConfigs(refreshed.nodes);
     state.edges = refreshed.edges;
     state.parentRefs = rebuildParentRefsFromNodes(refreshed.nodes);
     state.isDirty = false;
@@ -798,7 +824,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
 
         set((state) => {
           state.currentTemplate = template;
-          state.nodes = template.nodes;
+          state.nodes = normalizeContainerConfigs(template.nodes);
           state.edges = template.edges;
           state.parentRefs = rebuildParentRefsFromNodes(template.nodes);
           state.isLoading = false;
@@ -1482,7 +1508,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           createdAt: Date.now(),
           updatedAt: Date.now(),
         } as WorkflowTemplateResponse;
-        state.nodes = nodes;
+        state.nodes = normalizeContainerConfigs(nodes);
         state.edges = edges;
         state.parentRefs = rebuildParentRefsFromNodes(state.nodes);
         state.isDirty = hasImportedNodes;
