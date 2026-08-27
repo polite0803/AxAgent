@@ -7389,7 +7389,11 @@
       "yamlExportFailed": "YAML export failed",
       "yamlExportSuccess": "YAML exported",
       "yamlImportFailed": "YAML import failed",
-      "yamlImportSuccess": "YAML imported"
+      "yamlImportSuccess": "YAML imported",
+      "importSummary": "Imported {{imported}}, skipped {{skipped}}, {{errors}} errors",
+      "importedNames": "Imported",
+      "showErrors": "Show error details",
+      "hideErrors": "Hide error details"
     },
     "importExportTemplates": "Import/Export Templates",
     "importFailed": "Import failed",
@@ -8316,7 +8320,8 @@
       "all": "All",
       "run": "Run",
       "domainPlaceholder": "Filter by domain",
-      "allDomains": "All domains"
+      "allDomains": "All domains",
+      "uncategorized": "Uncategorized"
     },
     "systemTemplateList": {
       "edit": "Edit",
@@ -8724,6 +8729,24 @@
       "aiGenerateAvailableToolsPlaceholder": "Type and press Enter",
       "aiGenerateHint": "The generated Rhai script passes sandbox compilation first, then is saved as Pending. Enable it from this panel to take effect.",
       "generated": "Tool generated. Review and enable it."
+    },
+    "import": {
+      "title": "Import Workflow",
+      "importExternal": "Import External",
+      "tabN8n": "n8n Directory",
+      "tabDir": "Workflow Directory",
+      "tabJson": "JSON Paste/Upload",
+      "tabPresets": "Built-in Presets",
+      "n8nHint": "Pick a folder of n8n workflow JSONs; auto-scans and imports (converts n8n nodes to AxAgent nodes)",
+      "selectWorkflowDir": "Select Workflow Directory",
+      "dirHint": "Pick a folder of AxAgent-format workflow JSONs to import in batch",
+      "pickFile": "Select JSON file",
+      "jsonPlaceholder": "Paste workflow JSON (n8n or AxAgent, auto-detected)…",
+      "jsonImportBtn": "Import",
+      "jsonSuccess": "Workflow imported",
+      "jsonRequired": "Paste JSON content first",
+      "presetsBtn": "Import built-in presets",
+      "presetsHint": "Restore built-in preset templates (code review / bug fix etc.); existing ones are skipped"
     }
   },
   "voiceChat": {

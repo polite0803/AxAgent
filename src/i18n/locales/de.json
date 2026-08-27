@@ -7380,7 +7380,11 @@
       "yamlExportFailed": "YAML-Export fehlgeschlagen",
       "yamlExportSuccess": "YAML exportiert",
       "yamlImportFailed": "YAML-Import fehlgeschlagen",
-      "yamlImportSuccess": "YAML importiert"
+      "yamlImportSuccess": "YAML importiert",
+      "importSummary": "{{imported}} importiert, {{skipped}} übersprungen, {{errors}} Fehler",
+      "importedNames": "Importiert",
+      "showErrors": "Fehlerdetails anzeigen",
+      "hideErrors": "Fehlerdetails ausblenden"
     },
     "importExportTemplates": "Vorlagen importieren/exportieren",
     "importFailed": "Import fehlgeschlagen",
@@ -8307,7 +8311,8 @@
       "all": "Alle",
       "run": "Ausführen",
       "domainPlaceholder": "Nach Bereich filtern...",
-      "allDomains": "Alle Bereiche"
+      "allDomains": "Alle Bereiche",
+      "uncategorized": "Nicht kategorisiert"
     },
     "systemTemplateList": {
       "edit": "Bearbeiten",
@@ -8724,6 +8729,24 @@
       "aiGenerateAvailableToolsPlaceholder": "Eingeben und Enter",
       "aiGenerateHint": "Das generierte Rhai-Skript besteht zuerst die Sandbox-Kompilierung und wird als ausstehend gespeichert. Hier aktivieren.",
       "generated": "Tool generiert. Prüfen und aktivieren."
+    },
+    "import": {
+      "title": "Workflow importieren",
+      "importExternal": "Extern importieren",
+      "tabN8n": "n8n-Verzeichnis",
+      "tabDir": "Workflow-Verzeichnis",
+      "tabJson": "JSON einfügen/hochladen",
+      "tabPresets": "Integrierte Vorlagen",
+      "n8nHint": "Ordner mit n8n-JSONs wählen; automatischer Scan/Import (Konvertierung n8n → AxAgent)",
+      "selectWorkflowDir": "Workflow-Verzeichnis wählen",
+      "dirHint": "Ordner mit AxAgent-JSONs zum Batch-Import wählen",
+      "pickFile": "JSON-Datei wählen",
+      "jsonPlaceholder": "Workflow-JSON einfügen (n8n oder AxAgent, automatisch erkannt)…",
+      "jsonImportBtn": "Importieren",
+      "jsonSuccess": "Workflow importiert",
+      "jsonRequired": "Zuerst JSON einfügen",
+      "presetsBtn": "Integrierte Vorlagen importieren",
+      "presetsHint": "Integrierte Vorlagen wiederherstellen; vorhandene werden übersprungen"
     }
   },
   "voiceChat": {

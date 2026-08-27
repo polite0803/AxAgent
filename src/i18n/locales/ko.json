@@ -7380,7 +7380,11 @@
       "yamlExportFailed": "YAML 내보내기 실패",
       "yamlExportSuccess": "YAML 내보내기 완료",
       "yamlImportFailed": "YAML 가져오기 실패",
-      "yamlImportSuccess": "YAML 가져오기 완료"
+      "yamlImportSuccess": "YAML 가져오기 완료",
+      "importSummary": "{{imported}}개 가져옴, {{skipped}}개 건너뜀, 오류 {{errors}}개",
+      "importedNames": "가져온 항목",
+      "showErrors": "오류 세부정보 표시",
+      "hideErrors": "오류 세부정보 숨기기"
     },
     "importExportTemplates": "템플릿 가져오기/내보내기",
     "importFailed": "가져오기 실패",
@@ -8307,7 +8311,8 @@
       "all": "전체",
       "run": "실행",
       "domainPlaceholder": "도메인 필터...",
-      "allDomains": "모든 도메인"
+      "allDomains": "모든 도메인",
+      "uncategorized": "미분류"
     },
     "systemTemplateList": {
       "edit": "편집",
@@ -8724,6 +8729,24 @@
       "aiGenerateAvailableToolsPlaceholder": "입력 후 Enter",
       "aiGenerateHint": "생성된 Rhai 스크립트는 먼저 샌드박스 컴파일 검증을 통과한 뒤 \"대기\" 상태로 저장됩니다. 이 패널에서 활성화해야 적용됩니다.",
       "generated": "도구가 생성되었습니다. 확인 후 활성화하세요"
+    },
+    "import": {
+      "title": "워크플로우 가져오기",
+      "importExternal": "외부 가져오기",
+      "tabN8n": "n8n 디렉터리",
+      "tabDir": "워크플로우 디렉터리",
+      "tabJson": "JSON 붙여넣기/업로드",
+      "tabPresets": "내장 프리셋",
+      "n8nHint": "n8n 워크플로우 JSON이 포함된 폴더를 선택하면 자동으로 스캔하여 가져옵니다 (n8n 노드를 AxAgent 노드로 변환)",
+      "selectWorkflowDir": "워크플로우 디렉터리 선택",
+      "dirHint": "AxAgent 형식 워크플로우 JSON이 포함된 폴더를 선택하여 일괄 가져오기",
+      "pickFile": "JSON 파일 선택",
+      "jsonPlaceholder": "워크플로우 JSON 붙여넣기 (n8n 또는 AxAgent 자동 감지)…",
+      "jsonImportBtn": "가져오기",
+      "jsonSuccess": "워크플로우를 가져왔습니다",
+      "jsonRequired": "먼저 JSON을 붙여넣으세요",
+      "presetsBtn": "내장 프리셋 가져오기",
+      "presetsHint": "내장 프리셋 템플릿 복원 (코드 리뷰 등). 기존 항목은 건너뜁니다"
     }
   },
   "voiceChat": {

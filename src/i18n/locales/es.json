@@ -7380,7 +7380,11 @@
       "yamlExportFailed": "Error al exportar YAML",
       "yamlExportSuccess": "YAML exportado",
       "yamlImportFailed": "Error al importar YAML",
-      "yamlImportSuccess": "YAML importado"
+      "yamlImportSuccess": "YAML importado",
+      "importSummary": "{{imported}} importados, {{skipped}} omitidos, {{errors}} errores",
+      "importedNames": "Importados",
+      "showErrors": "Mostrar detalles",
+      "hideErrors": "Ocultar detalles"
     },
     "importExportTemplates": "Importar/Exportar plantillas",
     "importFailed": "Error al importar",
@@ -8307,7 +8311,8 @@
       "all": "Todas",
       "run": "Ejecutar",
       "domainPlaceholder": "Filtrar por dominio...",
-      "allDomains": "Todos los dominios"
+      "allDomains": "Todos los dominios",
+      "uncategorized": "Sin clasificar"
     },
     "systemTemplateList": {
       "edit": "Editar",
@@ -8724,6 +8729,24 @@
       "aiGenerateAvailableToolsPlaceholder": "Escriba y pulse Enter",
       "aiGenerateHint": "El script Rhai generado pasa primero la compilación sandbox y se guarda como pendiente. Actívelo aquí.",
       "generated": "Herramienta generada. Revísela y actívela."
+    },
+    "import": {
+      "title": "Importar flujo de trabajo",
+      "importExternal": "Importar externo",
+      "tabN8n": "Directorio n8n",
+      "tabDir": "Directorio de flujos",
+      "tabJson": "Pegar/subir JSON",
+      "tabPresets": "Ajustes predefinidos",
+      "n8nHint": "Elija una carpeta de JSON de n8n; escaneo e importación automática (convierte nodos n8n → AxAgent)",
+      "selectWorkflowDir": "Seleccionar directorio de flujos",
+      "dirHint": "Elija una carpeta de JSON en formato AxAgent para importar en lote",
+      "pickFile": "Seleccionar archivo JSON",
+      "jsonPlaceholder": "Pegue el JSON del flujo (n8n o AxAgent, detección automática)…",
+      "jsonImportBtn": "Importar",
+      "jsonSuccess": "Flujo importado",
+      "jsonRequired": "Primero pegue el JSON",
+      "presetsBtn": "Importar predefinidos integrados",
+      "presetsHint": "Restaurar plantillas integradas; las existentes se omiten"
     }
   },
   "voiceChat": {

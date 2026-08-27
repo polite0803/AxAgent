@@ -32,8 +32,8 @@ export const SystemTemplateList: React.FC<SystemTemplateListProps> = ({
     let cancelled = false;
     setIsLoading(true);
     invoke<WorkflowTemplateResponse[]>("list_workflow_templates", {
-      isPreset: true,
-      includeSystem: true,
+      is_preset: true,
+      include_system: true,
     })
       .then((list) => {
         if (!cancelled) {

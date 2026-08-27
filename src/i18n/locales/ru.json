@@ -7380,7 +7380,11 @@
       "yamlExportFailed": "Ошибка экспорта YAML",
       "yamlExportSuccess": "YAML экспортирован",
       "yamlImportFailed": "Ошибка импорта YAML",
-      "yamlImportSuccess": "YAML импортирован"
+      "yamlImportSuccess": "YAML импортирован",
+      "importSummary": "Импортировано {{imported}}, пропущено {{skipped}}, ошибок {{errors}}",
+      "importedNames": "Импортировано",
+      "showErrors": "Показать детали ошибок",
+      "hideErrors": "Скрыть детали ошибок"
     },
     "importExportTemplates": "Импорт/Экспорт шаблонов",
     "importFailed": "Импорт не удался",
@@ -8307,7 +8311,8 @@
       "all": "Все",
       "run": "Запустить",
       "domainPlaceholder": "Фильтр по домену...",
-      "allDomains": "Все домены"
+      "allDomains": "Все домены",
+      "uncategorized": "Без категории"
     },
     "systemTemplateList": {
       "edit": "Изменить",
@@ -8724,6 +8729,24 @@
       "aiGenerateAvailableToolsPlaceholder": "Введите и нажмите Enter",
       "aiGenerateHint": "Сгенерированный скрипт Rhai сначала проходит компиляцию в песочнице и сохраняется как «ожидает». Включите здесь.",
       "generated": "Инструмент создан. Проверьте и включите."
+    },
+    "import": {
+      "title": "Импорт workflow",
+      "importExternal": "Внешний импорт",
+      "tabN8n": "Каталог n8n",
+      "tabDir": "Каталог workflow",
+      "tabJson": "Вставить/загрузить JSON",
+      "tabPresets": "Встроенные пресеты",
+      "n8nHint": "Выберите папку с JSON n8n; автоматическое сканирование и импорт (конвертация n8n → AxAgent)",
+      "selectWorkflowDir": "Выбрать каталог workflow",
+      "dirHint": "Выберите папку с JSON формата AxAgent для пакетного импорта",
+      "pickFile": "Выбрать файл JSON",
+      "jsonPlaceholder": "Вставьте JSON workflow (n8n или AxAgent, автоопределение)…",
+      "jsonImportBtn": "Импортировать",
+      "jsonSuccess": "Workflow импортирован",
+      "jsonRequired": "Сначала вставьте JSON",
+      "presetsBtn": "Импортировать встроенные пресеты",
+      "presetsHint": "Восстановить встроенные шаблоны; существующие пропускаются"
     }
   },
   "voiceChat": {

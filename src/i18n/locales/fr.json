@@ -7380,7 +7380,11 @@
       "yamlExportFailed": "Échec de l'export YAML",
       "yamlExportSuccess": "YAML exporté",
       "yamlImportFailed": "Échec de l'import YAML",
-      "yamlImportSuccess": "YAML importé"
+      "yamlImportSuccess": "YAML importé",
+      "importSummary": "{{imported}} importés, {{skipped}} ignorés, {{errors}} erreurs",
+      "importedNames": "Importés",
+      "showErrors": "Afficher les détails",
+      "hideErrors": "Masquer les détails"
     },
     "importExportTemplates": "Importer/Exporter des modèles",
     "importFailed": "Échec de l'importation",
@@ -8307,7 +8311,8 @@
       "all": "Tous",
       "run": "Exécuter",
       "domainPlaceholder": "Filtrer par domaine...",
-      "allDomains": "Tous les domaines"
+      "allDomains": "Tous les domaines",
+      "uncategorized": "Non classé"
     },
     "systemTemplateList": {
       "edit": "Modifier",
@@ -8724,6 +8729,24 @@
       "aiGenerateAvailableToolsPlaceholder": "Saisir puis Entrée",
       "aiGenerateHint": "Le script Rhai généré passe d'abord la compilation sandbox, puis est enregistré en attente. Activez-le ici.",
       "generated": "Outil généré. Vérifiez et activez-le."
+    },
+    "import": {
+      "title": "Importer un workflow",
+      "importExternal": "Importer externe",
+      "tabN8n": "Dossier n8n",
+      "tabDir": "Dossier workflows",
+      "tabJson": "Coller/téléverser JSON",
+      "tabPresets": "Préréglages intégrés",
+      "n8nHint": "Choisissez un dossier de JSON n8n ; scan et import automatiques (conversion n8n → AxAgent)",
+      "selectWorkflowDir": "Choisir le dossier de workflows",
+      "dirHint": "Choisissez un dossier de JSON au format AxAgent à importer en lot",
+      "pickFile": "Choisir un fichier JSON",
+      "jsonPlaceholder": "Collez le JSON du workflow (n8n ou AxAgent, détection auto)…",
+      "jsonImportBtn": "Importer",
+      "jsonSuccess": "Workflow importé",
+      "jsonRequired": "Collez d'abord le JSON",
+      "presetsBtn": "Importer les préréglages intégrés",
+      "presetsHint": "Restaurer les modèles intégrés ; les existants sont ignorés"
     }
   },
   "voiceChat": {

@@ -445,7 +445,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
     try {
       const templates = await invoke<BackendTemplateResponse[]>(
         "list_workflow_templates",
-        { isPreset: false },
+        { is_preset: false },
       );
       const workflows = templates.map(templateResponseToWorkflowDefinition);
       set({ workflows });
@@ -636,7 +636,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
     try {
       const templates = await invoke<BackendTemplateResponse[]>(
         "list_workflow_templates",
-        { isPreset: true },
+        { is_preset: true },
       );
       set({ templates: templates.map(templateResponseToWorkflowTemplate) });
     } catch (e) {

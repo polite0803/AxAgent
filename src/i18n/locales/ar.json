@@ -7380,7 +7380,11 @@
       "yamlExportFailed": "فشل تصدير YAML",
       "yamlExportSuccess": "تم تصدير YAML",
       "yamlImportFailed": "فشل استيراد YAML",
-      "yamlImportSuccess": "تم استيراد YAML"
+      "yamlImportSuccess": "تم استيراد YAML",
+      "importSummary": "تم استيراد {{imported}}، تخطي {{skipped}}، {{errors}} أخطاء",
+      "importedNames": "تم الاستيراد",
+      "showErrors": "عرض تفاصيل الأخطاء",
+      "hideErrors": "إخفاء تفاصيل الأخطاء"
     },
     "importExportTemplates": "استيراد/تصدير القوالب",
     "importFailed": "فشل الاستيراد",
@@ -8307,7 +8311,8 @@
       "all": "الكل",
       "run": "تشغيل",
       "domainPlaceholder": "تصفية حسب المجال...",
-      "allDomains": "جميع المجالات"
+      "allDomains": "جميع المجالات",
+      "uncategorized": "غير مصنف"
     },
     "systemTemplateList": {
       "edit": "تعديل",
@@ -8724,6 +8729,24 @@
       "aiGenerateAvailableToolsPlaceholder": "اكتب ثم اضغط Enter",
       "aiGenerateHint": "يخضع النص Rhai المُنشأ أولاً لتجميع بيئة الحماية، ثم يُحفظ كحالة \"قيد الانتظار\". فعّله من هنا.",
       "generated": "تم توليد الأداة. راجعها وفعّلها."
+    },
+    "import": {
+      "title": "استيراد سير العمل",
+      "importExternal": "استيراد خارجي",
+      "tabN8n": "مجلد n8n",
+      "tabDir": "مجلد سير العمل",
+      "tabJson": "لصق/رفع JSON",
+      "tabPresets": "القوالب المضمنة",
+      "n8nHint": "اختر مجلد يحتوي على JSON الخاصة بـ n8n؛ فحص واستيراد تلقائي (تحويل n8n → AxAgent)",
+      "selectWorkflowDir": "اختر مجلد سير العمل",
+      "dirHint": "اختر مجلد JSON بصيغة AxAgent للاستيراد الدفعي",
+      "pickFile": "اختر ملف JSON",
+      "jsonPlaceholder": "الصق JSON سير العمل (n8n أو AxAgent، اكتشاف تلقائي)…",
+      "jsonImportBtn": "استيراد",
+      "jsonSuccess": "تم استيراد سير العمل",
+      "jsonRequired": "الصق محتوى JSON أولاً",
+      "presetsBtn": "استيراد القوالب المضمنة",
+      "presetsHint": "استعادة القوالب المضمنة؛ يتم تخطي الموجودة"
     }
   },
   "voiceChat": {

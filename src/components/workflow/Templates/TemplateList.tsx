@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { DropdownMenu } from "@/components/layout/DropdownMenu";
-import { invoke } from "@/lib/invoke";
+import { Tooltip } from "@/components/layout/Tooltip";
 import { message } from "@/lib/toast";
 import { useWorkflowEditorStore } from "@/stores";
 import { Button, Card, Empty, Input, Modal, Select, Spin, Tag, theme } from "antd";
@@ -10,6 +10,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { WorkflowTemplateResponse } from "../types";
 import { VersionHistoryModal } from "./VersionHistoryModal";
+import { WorkflowImportModal } from "./WorkflowImportModal";
 
 /** Maps preset template IDs to exact i18n translation keys. */
 const PRESET_I18N_KEYS = {
@@ -101,6 +102,22 @@ const TAG_COLORS: Record<string, string> = {
   coverage: "geekblue",
 };
 
+/** "未分类"哨兵：无 routePath（未填领域）的模板归入此类 */
+const DOMAIN_NONE = "__none__";
+
+/**
+ * 从三层路由路径拆解 L1 领域段（对齐后端 routing_path::parse_domain）。
+ *
+ * `routePath` 格式 `/{domain}/{cluster}/{capability}`（如 `/finance/stock/pe` →
+ * `finance`）。无 routePath 或解析失败返回 `undefined`（归"未分类"）。
+ */
+function extractDomainFromRoute(routePath?: string): string | undefined {
+  if (!routePath) { return undefined; }
+  const trimmed = routePath.replace(/^\/+/, "");
+  const seg = trimmed.split("/")[0];
+  return seg ? seg : undefined;
+}
+
 export const TemplateList: React.FC<TemplateListProps> = ({
   onSelectTemplate,
   onCreateNew,
@@ -117,7 +134,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
     duplicateTemplate,
   } = useWorkflowEditorStore();
   const [searchText, setSearchText] = useState("");
-  const [filterTag, setFilterTag] = useState<string | undefined>(undefined);
+  const [filterDomain, setFilterDomain] = useState<string | undefined>(undefined);
   const [filterPreset, setFilterPreset] = useState<boolean | undefined>(
     undefined,
   );
@@ -125,31 +142,20 @@ export const TemplateList: React.FC<TemplateListProps> = ({
   const [templateToDelete, setTemplateToDelete] = useState<WorkflowTemplateResponse | null>(null);
   const [versionHistoryVisible, setVersionHistoryVisible] = useState(false);
   const [templateForVersionHistory, setTemplateForVersionHistory] = useState<WorkflowTemplateResponse | null>(null);
-  const [importingPresets, setImportingPresets] = useState(false);
-
-  const handleImportPresetTemplates = async () => {
-    setImportingPresets(true);
-    try {
-      await invoke<number>("seed_preset_templates");
-      message.success(t("workflow.templateList.presetsImported"));
-      await loadTemplates();
-    } catch {
-      message.error(t("workflow.templateList.presetsImportFailed"));
-    } finally {
-      setImportingPresets(false);
-    }
-  };
+  const [importModalVisible, setImportModalVisible] = useState(false);
 
   React.useEffect(() => {
     loadTemplates();
   }, [loadTemplates]);
 
-  const allTags = React.useMemo(() => {
-    const tagSet = new Set<string>();
+  // 领域选项：从模板 routePath 的 L1 段收集（真正的领域属性，非 tags）
+  const allDomains = React.useMemo(() => {
+    const domainSet = new Set<string>();
     templates.forEach((t) => {
-      t.tags?.forEach((tag) => tagSet.add(tag));
+      const domain = extractDomainFromRoute(t.routePath);
+      if (domain) { domainSet.add(domain); }
     });
-    return Array.from(tagSet).sort();
+    return Array.from(domainSet).sort();
   }, [templates]);
 
   const handleRunTemplate = (template: WorkflowTemplateResponse) => {
@@ -163,11 +169,18 @@ export const TemplateList: React.FC<TemplateListProps> = ({
       const matchesSearch = !searchText
         || template.name.toLowerCase().includes(searchText.toLowerCase())
         || template.description?.toLowerCase().includes(searchText.toLowerCase());
-      const matchesTag = !filterTag || template.tags?.includes(filterTag);
+      // 领域匹配：选择具体领域时按 routePath L1 段过滤；"未分类"只匹配无 routePath 的模板
+      let matchesDomain = true;
+      if (filterDomain) {
+        const domain = extractDomainFromRoute(template.routePath);
+        matchesDomain = filterDomain === DOMAIN_NONE
+          ? !domain
+          : domain === filterDomain;
+      }
       const matchesPreset = filterPreset === undefined || template.isPreset === filterPreset;
-      return matchesSearch && matchesTag && matchesPreset;
+      return matchesSearch && matchesDomain && matchesPreset;
     });
-  }, [templates, searchText, filterTag, filterPreset]);
+  }, [templates, searchText, filterDomain, filterPreset]);
 
   const handleDelete = async () => {
     if (!templateToDelete) {
@@ -339,27 +352,42 @@ export const TemplateList: React.FC<TemplateListProps> = ({
               )}
             </div>
           </div>
-          <DropdownMenu
-            items={menuItems}
-            trigger={["click"]}
-          >
-            <Button
-              type="text"
-              size="small"
-              data-testid="template-card-more-btn"
-              icon={<MoreVertical size={14} />}
-              onClick={(e) => e.stopPropagation()}
-              aria-label={t("workflow.templateList.moreActions", {
-                name: (() => {
-                  const presetI18n = PRESET_I18N_KEYS[template.id as PresetI18nKey];
-                  return presetI18n ? t(presetI18n.name) : template.name;
-                })(),
-                defaultValue: "More actions",
-              })}
-              aria-haspopup="menu"
-              style={{ color: token.colorTextTertiary }}
-            />
-          </DropdownMenu>
+          <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
+            <Tooltip title={t("workflow.templateList.run")}>
+              <Button
+                type="text"
+                size="small"
+                data-testid="template-card-run-btn"
+                icon={<Play size={15} style={{ color: token.colorSuccess }} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRunTemplate(template);
+                }}
+                aria-label={t("workflow.templateList.run")}
+              />
+            </Tooltip>
+            <DropdownMenu
+              items={menuItems}
+              trigger={["click"]}
+            >
+              <Button
+                type="text"
+                size="small"
+                data-testid="template-card-more-btn"
+                icon={<MoreVertical size={14} />}
+                onClick={(e) => e.stopPropagation()}
+                aria-label={t("workflow.templateList.moreActions", {
+                  name: (() => {
+                    const presetI18n = PRESET_I18N_KEYS[template.id as PresetI18nKey];
+                    return presetI18n ? t(presetI18n.name) : template.name;
+                  })(),
+                  defaultValue: "More actions",
+                })}
+                aria-haspopup="menu"
+                style={{ color: token.colorTextTertiary }}
+              />
+            </DropdownMenu>
+          </div>
         </div>
       </Card>
     );
@@ -397,14 +425,15 @@ export const TemplateList: React.FC<TemplateListProps> = ({
           />
           <Select
             placeholder={t("workflow.templateList.domainPlaceholder")}
-            value={filterTag}
-            onChange={setFilterTag}
+            value={filterDomain}
+            onChange={setFilterDomain}
             allowClear
             size="small"
             style={{ width: 140 }}
             options={[
               { value: undefined, label: t("workflow.templateList.allDomains") },
-              ...allTags.map((tag) => ({ value: tag, label: tag })),
+              ...allDomains.map((domain) => ({ value: domain, label: domain })),
+              { value: DOMAIN_NONE, label: t("workflow.templateList.uncategorized") },
             ]}
           />
           <Select
@@ -433,12 +462,12 @@ export const TemplateList: React.FC<TemplateListProps> = ({
           </Button>
           <Button
             icon={<Download size={14} />}
-            onClick={handleImportPresetTemplates}
-            loading={importingPresets}
+            data-testid="workflow-import-btn"
+            onClick={() => setImportModalVisible(true)}
             size="small"
-            title={t("workflow.templateList.importPresetsTitle")}
+            title={t("workflow.import.title")}
           >
-            {t("workflow.templateList.importPresets")}
+            {t("workflow.import.importExternal")}
           </Button>
         </div>
       </div>
@@ -455,7 +484,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
 
       {filteredTemplates.length === 0 && !isLoading && (
         <Empty
-          description={searchText || filterTag
+          description={searchText || filterDomain
             ? t("workflow.templateList.noMatchFound")
             : t("workflow.templateList.noTemplates")}
           style={{ marginTop: 48 }}
@@ -491,6 +520,12 @@ export const TemplateList: React.FC<TemplateListProps> = ({
           setTemplateForVersionHistory(null);
         }}
         onLoadVersion={onSelectTemplate}
+      />
+
+      <WorkflowImportModal
+        open={importModalVisible}
+        onClose={() => setImportModalVisible(false)}
+        onImported={loadTemplates}
       />
     </div>
   );

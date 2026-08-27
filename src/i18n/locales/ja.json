@@ -7380,7 +7380,11 @@
       "yamlExportFailed": "YAML エクスポートに失敗しました",
       "yamlExportSuccess": "YAMLをエクスポートしました",
       "yamlImportFailed": "YAMLのインポートに失敗しました",
-      "yamlImportSuccess": "YAMLをインポートしました"
+      "yamlImportSuccess": "YAMLをインポートしました",
+      "importSummary": "{{imported}} 件インポート、{{skipped}} 件スキップ、{{errors}} 件のエラー",
+      "importedNames": "インポート済み",
+      "showErrors": "エラー詳細を表示",
+      "hideErrors": "エラー詳細を隠す"
     },
     "importExportTemplates": "テンプレートのインポート/エクスポート",
     "importFailed": "インポート失敗",
@@ -8307,7 +8311,8 @@
       "all": "すべて",
       "run": "実行",
       "domainPlaceholder": "領域で絞り込む...",
-      "allDomains": "すべての領域"
+      "allDomains": "すべての領域",
+      "uncategorized": "未分類"
     },
     "systemTemplateList": {
       "edit": "編集",
@@ -8724,6 +8729,24 @@
       "aiGenerateAvailableToolsPlaceholder": "入力して Enter",
       "aiGenerateHint": "生成されたRhaiスクリプトはまずサンドボックスコンパイル検証を通過し、「保留中」として保存されます。このパネルで有効化すると反映されます。",
       "generated": "ツールを生成しました。確認して有効化してください"
+    },
+    "import": {
+      "title": "ワークフローインポート",
+      "importExternal": "外部インポート",
+      "tabN8n": "n8n ディレクトリ",
+      "tabDir": "ワークフローディレクトリ",
+      "tabJson": "JSON 貼り付け/アップロード",
+      "tabPresets": "内蔵プリセット",
+      "n8nHint": "n8n ワークフロー JSON を含むフォルダを選択。自動スキャンしてインポート（n8n ノードを AxAgent ノードに変換）",
+      "selectWorkflowDir": "ワークフローディレクトリを選択",
+      "dirHint": "AxAgent 形式のワークフロー JSON を含むフォルダを選択して一括インポート",
+      "pickFile": "JSON ファイルを選択",
+      "jsonPlaceholder": "ワークフロー JSON を貼り付け（n8n / AxAgent 自動判別）…",
+      "jsonImportBtn": "インポート",
+      "jsonSuccess": "ワークフローをインポートしました",
+      "jsonRequired": "先に JSON を貼り付けてください",
+      "presetsBtn": "内蔵プリセットをインポート",
+      "presetsHint": "内蔵プリセットテンプレートを復元（コードレビュー等）。既存はスキップ"
     }
   },
   "voiceChat": {

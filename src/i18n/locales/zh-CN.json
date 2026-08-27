@@ -7389,7 +7389,11 @@
       "yamlExportFailed": "YAML 导出失败",
       "yamlExportSuccess": "YAML 导出成功",
       "yamlImportFailed": "YAML 导入失败",
-      "yamlImportSuccess": "YAML 导入成功"
+      "yamlImportSuccess": "YAML 导入成功",
+      "importSummary": "已导入 {{imported}} 个，跳过 {{skipped}} 个，{{errors}} 个错误",
+      "importedNames": "已导入",
+      "showErrors": "显示错误详情",
+      "hideErrors": "隐藏错误详情"
     },
     "importExportTemplates": "导入/导出模板",
     "importFailed": "导入失败",
@@ -8316,7 +8320,8 @@
       "all": "全部",
       "run": "运行",
       "domainPlaceholder": "筛选领域...",
-      "allDomains": "全部领域"
+      "allDomains": "全部领域",
+      "uncategorized": "未分类"
     },
     "systemTemplateList": {
       "edit": "编辑",
@@ -8724,6 +8729,24 @@
       "aiGenerateAvailableToolsPlaceholder": "输入后回车添加",
       "aiGenerateHint": "LLM 生成的 Rhai 脚本将先通过沙箱编译验证，再以「待确认」状态保存，需在此面板启用后生效。",
       "generated": "工具已生成，请确认后启用"
+    },
+    "import": {
+      "title": "导入工作流",
+      "importExternal": "导入外部",
+      "tabN8n": "n8n 目录",
+      "tabDir": "工作流目录",
+      "tabJson": "JSON 粘贴/上传",
+      "tabPresets": "内置预设",
+      "n8nHint": "选择包含 n8n 工作流 JSON 的文件夹，自动扫描并导入（自动转换 n8n 节点为 AxAgent 节点）",
+      "selectWorkflowDir": "选择工作流目录",
+      "dirHint": "选择包含 AxAgent 格式工作流 JSON 的文件夹批量导入",
+      "pickFile": "选择 JSON 文件",
+      "jsonPlaceholder": "粘贴工作流 JSON（n8n 或 AxAgent 格式均可，自动识别）…",
+      "jsonImportBtn": "导入",
+      "jsonSuccess": "工作流导入成功",
+      "jsonRequired": "请先粘贴 JSON 内容",
+      "presetsBtn": "导入内置预设模板",
+      "presetsHint": "恢复内置预设模板（代码审查 / Bug 修复等），已存在的模板会被跳过"
     }
   },
   "voiceChat": {
