@@ -162,8 +162,8 @@ fn build_minimal_gap_template(
         error_workflow_id: None,
         tool_defs: vec![],
         mission_hash: None,
-        cluster_id: None,
-        route_path: None,
+        cluster_id: Some("gap_filler".to_string()),
+        route_path: Some("/automation/gap_filler".to_string()),
         created_at: now,
         updated_at: now,
     }

@@ -72,8 +72,8 @@ fn model_to_active_model(
             serde_json::to_string(&template.tool_defs).ok()
         }),
         mission_hash: Set(template.mission_hash.clone()),
-        cluster_id: Set(None),
-        route_path: Set(None),
+        cluster_id: Set(template.cluster_id.clone()),
+        route_path: Set(template.route_path.clone()),
         created_at: Set(template.created_at),
         updated_at: Set(now),
     }

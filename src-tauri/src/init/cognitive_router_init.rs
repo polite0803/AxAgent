@@ -158,8 +158,8 @@ async fn ensure_template(
         error_workflow_id: None,
         tool_defs: Vec::new(),
         mission_hash: None,
-        cluster_id: None,
-        route_path: None,
+        cluster_id: Some("cognitive_router".to_string()),
+        route_path: Some(format!("/system/cognitive_router/{id}")),
         created_at: now,
         updated_at: now,
     };
