@@ -190,6 +190,7 @@ const {
 
 vi.mock("@/stores", () => ({
   useWorkflowEditorStore: storeMockRef,
+  useProviderStore: () => ({ providers: [] }),
 }));
 
 vi.mock("reactflow", () => ({
@@ -511,5 +512,76 @@ describe("ImportExportModal Component", () => {
       expect(screen.getByPlaceholderText("粘贴模板 JSON 数据...")).toBeTruthy();
       expect(screen.getByText("导入模板")).toBeTruthy();
     });
+  });
+});
+
+describe("LoopPropertyPanel legacy data handling", () => {
+  const baseNode = {
+    id: "loop-1",
+    type: "loop",
+    title: "Loop",
+    description: "",
+    position: { x: 0, y: 0 },
+    enabled: true,
+    retry: {
+      enabled: false,
+      maxRetries: 3,
+      backoffType: "Exponential",
+      baseDelayMs: 1000,
+      maxDelayMs: 60000,
+    },
+  };
+
+  it("renders without crashing when config.bodySteps is missing (legacy schema)", async () => {
+    const { LoopPropertyPanel } = await import(
+      "@/components/workflow/Panels/PropertyPanels/LoopPropertyPanel"
+    );
+    const legacyNode = {
+      ...baseNode,
+      config: { loopType: "count", maxIterations: 5 },
+    };
+    expect(() =>
+      render(
+        <LoopPropertyPanel
+          node={legacyNode as never}
+          onUpdate={vi.fn()}
+          onDelete={vi.fn()}
+        />,
+      )
+    ).not.toThrow();
+  });
+
+  it("renders without crashing when config is missing entirely", async () => {
+    const { LoopPropertyPanel } = await import(
+      "@/components/workflow/Panels/PropertyPanels/LoopPropertyPanel"
+    );
+    expect(() =>
+      render(
+        <LoopPropertyPanel
+          node={baseNode as never}
+          onUpdate={vi.fn()}
+          onDelete={vi.fn()}
+        />,
+      )
+    ).not.toThrow();
+  });
+
+  it("renders without crashing when config.bodySteps is a non-array value", async () => {
+    const { LoopPropertyPanel } = await import(
+      "@/components/workflow/Panels/PropertyPanels/LoopPropertyPanel"
+    );
+    const dirtyNode = {
+      ...baseNode,
+      config: { loopType: "forEach", bodySteps: "node-1" as never },
+    };
+    expect(() =>
+      render(
+        <LoopPropertyPanel
+          node={dirtyNode as never}
+          onUpdate={vi.fn()}
+          onDelete={vi.fn()}
+        />,
+      )
+    ).not.toThrow();
   });
 });

@@ -7,8 +7,10 @@ import { X } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { AIAssistButton, useNodeAIAssist } from "../../Hooks";
-import type { LoopNode, LoopType, WorkflowNode } from "../../types";
+import type { LoopNode, LoopNodeConfig, LoopType, WorkflowNode } from "../../types";
 import { BasePropertyPanel } from "./BasePropertyPanel";
+
+const LOOP_TYPE_VALUES: readonly LoopType[] = ["forEach", "while", "doWhile", "until"];
 
 interface LoopPropertyPanelProps {
   node: WorkflowNode;
@@ -24,14 +26,26 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
   const { t } = useTranslation();
   const { token } = theme.useToken();
   const loopNode = node as LoopNode;
-  const config = loopNode.config || {
-    loopType: "forEach" as LoopType,
+  // 兼容旧版数据：config 可能整体缺失、缺字段，或 bodySteps 非数组（历史 schema 无该字段）。
+  // 归一化后再使用，避免渲染属性面板时对 undefined 调 .map/.includes/.filter 抛 TypeError
+  // 导致整页进入错误边界（"页面错误"）。
+  const rawConfig = (loopNode.config ?? {}) as Partial<LoopNodeConfig>;
+  const config: LoopNodeConfig = {
+    loopType: "forEach",
     itemsVar: "",
     iterateeVar: "",
     maxIterations: 100,
     continueOnError: false,
     bodySteps: [],
+    ...rawConfig,
   };
+  if (!Array.isArray(config.bodySteps)) {
+    config.bodySteps = [];
+  }
+  if (!LOOP_TYPE_VALUES.includes(config.loopType)) {
+    // 旧 schema 的 "count"/"condition" 等遗留值归一化为 forEach，保证 Select 有匹配选项
+    config.loopType = "forEach";
+  }
 
   const { nodes } = useWorkflowEditorStore();
 
