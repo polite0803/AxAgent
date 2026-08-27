@@ -8697,7 +8697,7 @@
     "nestingsuffix": ",嵌套后缀：",
     "ellipsis": "...",
     "ok": "确定",
-    "foo": "foo"
+    "foo": "foo",
     "tools": {
       "title": "工作流工具",
       "create": "新增工具",

@@ -8696,7 +8696,6 @@
         "recentExecution": "\nRecent execution: {{traceId}}, duration {{duration}}ms",
         "runningEngines": "\nRunning evolution engines: {{engines}}"
       },
-      "unnamed": "Unnamed"
       "unnamed": "Unnamed",
       "untitled": "Без названия"
     },

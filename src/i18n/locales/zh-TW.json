@@ -8696,7 +8696,6 @@
         "recentExecution": "\n最近执行：{{traceId}}，耗时 {{duration}}ms",
         "runningEngines": "\n运行中的进化引擎：{{engines}}"
       },
-      "unnamed": "未命名"
       "unnamed": "未命名",
       "untitled": "未命名"
     },
