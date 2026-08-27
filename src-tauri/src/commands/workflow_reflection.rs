@@ -276,6 +276,8 @@ mod tests {
             error_workflow_id: None,
             tool_defs: Vec::new(),
             mission_hash: None,
+            cluster_id: None,
+            route_path: None,
             created_at: 0,
             updated_at: 0,
         };
