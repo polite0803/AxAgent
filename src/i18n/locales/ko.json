@@ -3288,6 +3288,15 @@
     "memberCount": "{{count}}명",
     "membersTitle": "멤버 목록",
     "noMembers": "이 오피스에는 멤버가 없습니다. Agent 목록에서 추가하세요.",
+    "roleTag": {
+      "research": "조사",
+      "data": "데이터",
+      "strategy": "전략",
+      "trading": "트레이딩",
+      "risk": "리스크",
+      "manager": "매니저",
+      "default": "일반"
+    },
     "selectFleet": "오피스 선택",
     "tabs": {
       "chat": "그룹 채팅",

@@ -3288,6 +3288,15 @@
     "memberCount": "{{count}} Mitglieder",
     "membersTitle": "Mitglieder",
     "noMembers": "Dieses Büro hat keine Mitglieder. Füge einen aus der Agent-Liste hinzu.",
+    "roleTag": {
+      "research": "Recherche",
+      "data": "Daten",
+      "strategy": "Strategie",
+      "trading": "Handel",
+      "risk": "Risiko",
+      "manager": "Manager",
+      "default": "Allgemein"
+    },
     "selectFleet": "Büro auswählen",
     "tabs": {
       "chat": "Gruppenchat",

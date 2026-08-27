@@ -3288,6 +3288,15 @@
     "memberCount": "{{count}} miembros",
     "membersTitle": "Miembros",
     "noMembers": "Esta oficina no tiene miembros. Añade uno desde la lista de agentes.",
+    "roleTag": {
+      "research": "Investigación",
+      "data": "Datos",
+      "strategy": "Estrategia",
+      "trading": "Trading",
+      "risk": "Riesgo",
+      "manager": "Gestión",
+      "default": "General"
+    },
     "selectFleet": "Selecciona una oficina",
     "tabs": {
       "chat": "Chat grupal",

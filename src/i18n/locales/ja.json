@@ -3288,6 +3288,15 @@
     "memberCount": "{{count}} メンバー",
     "membersTitle": "メンバーリスト",
     "noMembers": "このオフィスにはメンバーがいません。Agent リストから追加してください。",
+    "roleTag": {
+      "research": "調査",
+      "data": "データ",
+      "strategy": "戦略",
+      "trading": "トレード",
+      "risk": "リスク",
+      "manager": "マネージャー",
+      "default": "汎用"
+    },
     "selectFleet": "オフィスを選択",
     "tabs": {
       "chat": "グループチャット",

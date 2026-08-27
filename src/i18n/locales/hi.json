@@ -3288,6 +3288,15 @@
     "memberCount": "{{count}} सदस्य",
     "membersTitle": "सदस्य",
     "noMembers": "इस ऑफिस में कोई सदस्य नहीं है। एजेंट सूची से जोड़ें।",
+    "roleTag": {
+      "research": "अनुसंधान",
+      "data": "डेटा",
+      "strategy": "रणनीति",
+      "trading": "ट्रेडिंग",
+      "risk": "जोखिम",
+      "manager": "प्रबंधक",
+      "default": "सामान्य"
+    },
     "selectFleet": "ऑफिस चुनें",
     "tabs": {
       "chat": "समूह चैट",

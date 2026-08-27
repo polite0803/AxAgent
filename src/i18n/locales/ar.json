@@ -3288,6 +3288,15 @@
     "memberCount": "{{count}} أعضاء",
     "membersTitle": "الأعضاء",
     "noMembers": "لا يوجد أعضاء في هذا المكتب. أضف واحداً من قائمة الوكلاء.",
+    "roleTag": {
+      "research": "بحث",
+      "data": "بيانات",
+      "strategy": "استراتيجية",
+      "trading": "تداول",
+      "risk": "مخاطر",
+      "manager": "إدارة",
+      "default": "عام"
+    },
     "selectFleet": "اختر مكتباً",
     "tabs": {
       "chat": "دردشة جماعية",

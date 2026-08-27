@@ -3288,6 +3288,15 @@
     "memberCount": "{{count}} 個成員",
     "membersTitle": "成員列表",
     "noMembers": "該辦公室尚無成員。請從 Agent 列表中新增。",
+    "roleTag": {
+      "research": "投研",
+      "data": "數據",
+      "strategy": "策略",
+      "trading": "交易",
+      "risk": "風控",
+      "manager": "管理",
+      "default": "通用"
+    },
     "selectFleet": "請選擇辦公室",
     "tabs": {
       "chat": "群聊",

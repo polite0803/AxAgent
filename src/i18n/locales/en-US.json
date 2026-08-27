@@ -3288,6 +3288,15 @@
     "memberCount": "{{count}} members",
     "membersTitle": "Members",
     "noMembers": "No members in this office. Add one from the agent list.",
+    "roleTag": {
+      "research": "Research",
+      "data": "Data",
+      "strategy": "Strategy",
+      "trading": "Trading",
+      "risk": "Risk",
+      "manager": "Manager",
+      "default": "General"
+    },
     "selectFleet": "Select an office",
     "tabs": {
       "chat": "Group Chat",
