@@ -419,7 +419,10 @@ export function validateWorkflow(
       }
     } else if (tType === "switch") {
       const outgoing = edges.filter((e) => e.source === n.id);
-      const hasBranch = outgoing.some((e) => e.sourceHandle?.startsWith("branch-"));
+      // 兼容前端编辑器的 "branch-N" 和后端实际的 "branch_N" 两种格式
+      const hasBranch = outgoing.some(
+        (e) => e.sourceHandle?.startsWith("branch-") || e.sourceHandle?.startsWith("branch_"),
+      );
       if (!hasBranch) {
         const key = "workflow.layout.validate.unconnected_port";
         const params = { nodeId: n.id, missing: "branch" };

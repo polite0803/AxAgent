@@ -220,6 +220,51 @@ describe("validateWorkflow", () => {
       const result = validateWorkflow(nodes, edges);
       expect(findIssues(result.issues, "unconnected_port")).toHaveLength(0);
     });
+
+    // ── switch 节点（多分支） ────────────────────────────────────
+    it("switch 节点无任何 branch 边被检出", () => {
+      const nodes = [n("tr", "trigger"), n("sw", "switch"), n("agent1", "agent")];
+      const edges = [
+        e("e1", "tr", "sw"),
+        e("e2", "sw", "agent1"), // 无 sourceHandle
+      ];
+      const result = validateWorkflow(nodes, edges);
+      const issues = findIssues(result.issues, "unconnected_port");
+      expect(issues).toHaveLength(1);
+      expect(issues[0].nodeIds).toContain("sw");
+    });
+
+    it("switch 节点用前端格式 branch-N 不误报", () => {
+      const nodes = [n("tr", "trigger"), n("sw", "switch"), n("a", "agent"), n("b", "agent")];
+      const edges = [
+        e("e1", "tr", "sw"),
+        e("e2", "sw", "a", "branch-0"),
+        e("e3", "sw", "b", "branch-1"),
+      ];
+      const result = validateWorkflow(nodes, edges);
+      expect(findIssues(result.issues, "unconnected_port")).toHaveLength(0);
+    });
+
+    it("switch 节点用后端 snake_case 格式 branch_N 不误报", () => {
+      const nodes = [n("tr", "trigger"), n("sw", "switch"), n("a", "agent"), n("b", "agent")];
+      const edges = [
+        e("e1", "tr", "sw"),
+        e("e2", "sw", "a", "branch_0"),
+        e("e3", "sw", "b", "branch_1"),
+      ];
+      const result = validateWorkflow(nodes, edges);
+      expect(findIssues(result.issues, "unconnected_port")).toHaveLength(0);
+    });
+
+    it("switch 节点用后端命名分支 branch_fundamental 不误报", () => {
+      const nodes = [n("tr", "trigger"), n("sw", "switch"), n("a", "agent")];
+      const edges = [
+        e("e1", "tr", "sw"),
+        e("e2", "sw", "a", "branch_fundamental"),
+      ];
+      const result = validateWorkflow(nodes, edges);
+      expect(findIssues(result.issues, "unconnected_port")).toHaveLength(0);
+    });
   });
 
   // ================================================================
