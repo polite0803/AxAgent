@@ -2457,7 +2457,10 @@
     "WORK_ENGINE_EXECUTION_NOT_FOUND": "execution_id inválido o workflow no registrado",
     "TRAJECTORY_NOT_FOUND": "Trayectoria no encontrada",
     "UNKNOWN_PRESET": "Ajuste predefinido desconocido",
-    "UNITY_P0_CLASSIFIER_FAILED": "Error en la clasificación de la forma de la tarea"
+    "UNITY_P0_CLASSIFIER_FAILED": "Error en la clasificación de la forma de la tarea",
+    "WORKFLOW_TOOL_INVALID_STATUS": "Estado de herramienta de flujo no válido",
+    "LLM_TOOL_PROVIDER_NOT_CONFIGURED": "Generador de herramientas LLM no configurado. Active un proveedor de modelos en ajustes",
+    "WORKFLOW_TOOL_SANDBOX_REJECTED": "La herramienta generada falló la validación de compilación sandbox"
   },
   "errorBoundary": {
     "copied": "Copiado",
@@ -8669,14 +8672,58 @@
     "nestingsuffix": "sufijoDeAnidamiento:",
     "ellipsis": "...",
     "ok": "vale",
-    "foo": "foo",
     "editor": {
       "context": {
         "currentWorkflow": "Current workflow: {{name}} ({{nodes}} nodes/{{edges}} edges)",
         "recentExecution": "\nRecent execution: {{traceId}}, duration {{duration}}ms",
         "runningEngines": "\nRunning evolution engines: {{engines}}"
       },
-      "unnamed": "Unnamed"
+      "unnamed": "Unnamed",
+      "untitled": "Sin título"
+    },
+    "tools": {
+      "title": "Herramientas del flujo",
+      "create": "Nueva herramienta",
+      "refresh": "Actualizar",
+      "empty": "Sin herramientas",
+      "toolName": "Nombre",
+      "toolNameRequired": "Introduzca el nombre",
+      "toolType": "Tipo",
+      "description": "Descripción",
+      "code": "Implementación",
+      "codePlaceholder": "Script Rhai / JSON DAG / definición LLM",
+      "inputSchema": "Esquema de entrada",
+      "status": "Estado",
+      "source": "Fuente",
+      "status.pending": "Pendiente",
+      "status.active": "Activo",
+      "status.disabled": "Desactivado",
+      "stats": "Estadísticas",
+      "usageCount": "Usos",
+      "successRate": "Tasa de éxito",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "editTitle": "Editar herramienta",
+      "createTitle": "Nueva herramienta",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "confirmDelete": "¿Eliminar esta herramienta?",
+      "delete": "Eliminar",
+      "toggleStatus": "Alternar",
+      "updated": "Herramienta actualizada",
+      "created": "Herramienta creada",
+      "statusUpdated": "Estado actualizado",
+      "deleted": "Herramienta eliminada",
+      "aiGenerate": "Generar IA",
+      "aiGenerateTitle": "Generar herramienta IA",
+      "aiGenerateDescription": "Descripción de la tarea",
+      "aiGenerateRequired": "Introduzca una descripción",
+      "aiGeneratePlaceholder": "Describa la herramienta, p.ej. correlación entre dos precios",
+      "aiGenerateAvailableTools": "Herramientas disponibles (opcional)",
+      "aiGenerateAvailableToolsHint": "Nombres de herramientas existentes para componer llamadas",
+      "aiGenerateAvailableToolsPlaceholder": "Escriba y pulse Enter",
+      "aiGenerateHint": "El script Rhai generado pasa primero la compilación sandbox y se guarda como pendiente. Actívelo aquí.",
+      "generated": "Herramienta generada. Revísela y actívela."
     }
   },
   "voiceChat": {

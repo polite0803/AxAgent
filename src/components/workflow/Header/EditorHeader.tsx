@@ -24,6 +24,7 @@ import {
   Shuffle,
   Sparkles,
   Undo2,
+  Wrench,
 } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -42,6 +43,7 @@ interface EditorHeaderProps {
   diagnosticLoading?: boolean;
   onOpenImportExport?: () => void;
   onOpenVersionHistory?: () => void;
+  onOpenTools?: () => void;
   onAutoLayout?: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
@@ -72,6 +74,7 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   onToggleDebugPanel,
   onOpenImportExport,
   onOpenVersionHistory,
+  onOpenTools,
   onAutoLayout,
   onUndo,
   onRedo,
@@ -500,6 +503,18 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
                   icon={<History size={18} />}
                   onClick={onOpenVersionHistory}
                   aria-label={t("workflow.versionHistory.title")}
+                  style={{ color: token.colorTextSecondary }}
+                />
+              </Tooltip>
+            )}
+            {onOpenTools && (
+              <Tooltip title={t("workflow.tools.title")}>
+                <Button
+                  type="text"
+                  data-testid="workflow-tools-btn"
+                  icon={<Wrench size={18} />}
+                  onClick={onOpenTools}
+                  aria-label={t("workflow.tools.title")}
                   style={{ color: token.colorTextSecondary }}
                 />
               </Tooltip>

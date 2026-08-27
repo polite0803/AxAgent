@@ -2457,7 +2457,10 @@
     "WORK_ENGINE_EXECUTION_NOT_FOUND": "Invalid execution_id or workflow not registered",
     "TRAJECTORY_NOT_FOUND": "Trajectory not found",
     "UNKNOWN_PRESET": "Unknown preset",
-    "UNITY_P0_CLASSIFIER_FAILED": "Task shape classification failed"
+    "UNITY_P0_CLASSIFIER_FAILED": "Task shape classification failed",
+    "WORKFLOW_TOOL_INVALID_STATUS": "Invalid workflow tool status",
+    "LLM_TOOL_PROVIDER_NOT_CONFIGURED": "LLM tool provider not configured. Enable a model provider in settings first",
+    "WORKFLOW_TOOL_SANDBOX_REJECTED": "Generated tool failed sandbox compilation validation"
   },
   "errorBoundary": {
     "copied": "Copied",
@@ -6718,7 +6721,8 @@
         "recentExecution": "\nRecent execution: {{traceId}}, duration {{duration}}ms",
         "runningEngines": "\nRunning evolution engines: {{engines}}"
       },
-      "unnamed": "Unnamed"
+      "unnamed": "Unnamed",
+      "untitled": "Untitled"
     },
     "autoSave": {
       "failed": "Auto-save failed after 3 retries"
@@ -8677,7 +8681,51 @@
     "nestingsuffix": ",nestingSuffix:",
     "ellipsis": "...",
     "ok": "ok",
-    "foo": "foo"
+    "foo": "foo",
+    "tools": {
+      "title": "Workflow Tools",
+      "create": "New Tool",
+      "refresh": "Refresh",
+      "empty": "No tools",
+      "toolName": "Tool Name",
+      "toolNameRequired": "Please enter tool name",
+      "toolType": "Tool Type",
+      "description": "Description",
+      "code": "Implementation",
+      "codePlaceholder": "Rhai script source / DAG JSON / LLM function definition",
+      "inputSchema": "Input Schema",
+      "status": "Status",
+      "source": "Source",
+      "status.pending": "Pending",
+      "status.active": "Active",
+      "status.disabled": "Disabled",
+      "stats": "Stats",
+      "usageCount": "Usage",
+      "successRate": "Success Rate",
+      "actions": "Actions",
+      "edit": "Edit",
+      "editTitle": "Edit Tool",
+      "createTitle": "New Tool",
+      "save": "Save",
+      "cancel": "Cancel",
+      "confirmDelete": "Delete this tool?",
+      "delete": "Delete",
+      "toggleStatus": "Toggle",
+      "updated": "Tool updated",
+      "created": "Tool created",
+      "statusUpdated": "Status updated",
+      "deleted": "Tool deleted",
+      "aiGenerate": "AI Generate",
+      "aiGenerateTitle": "AI Generate Tool",
+      "aiGenerateDescription": "Task Description",
+      "aiGenerateRequired": "Please enter a task description",
+      "aiGeneratePlaceholder": "Describe the tool, e.g. compute correlation between two stock prices",
+      "aiGenerateAvailableTools": "Available Tools (optional)",
+      "aiGenerateAvailableToolsHint": "Existing tool names for the LLM to compose calls with",
+      "aiGenerateAvailableToolsPlaceholder": "Type and press Enter",
+      "aiGenerateHint": "The generated Rhai script passes sandbox compilation first, then is saved as Pending. Enable it from this panel to take effect.",
+      "generated": "Tool generated. Review and enable it."
+    }
   },
   "voiceChat": {
     "noTicket": "No ticket available. Please start again."

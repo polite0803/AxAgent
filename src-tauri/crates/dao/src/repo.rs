@@ -54,6 +54,7 @@ pub mod workflow_approval;
 pub mod workflow_execution;
 pub mod workflow_execution_stats;
 pub mod workflow_template;
+pub mod workflow_tool;
 
 pub mod louvain;
 pub mod note;

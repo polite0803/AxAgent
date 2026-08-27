@@ -738,6 +738,10 @@ export interface WorkflowTemplateInput {
   variables: Variable[];
   errorConfig?: ErrorConfig;
   toolDefs?: RhaiToolDef[];
+  /** L2 集群 ID（三层路由第二层，命令层可从 tags 推导） */
+  clusterId?: string;
+  /** 三层路由路径（命令层可从 tags 推导，格式 /{domain}/{cluster}/{capability}） */
+  routePath?: string;
 }
 
 export interface WorkflowTemplateResponse {
@@ -761,6 +765,10 @@ export interface WorkflowTemplateResponse {
   errorConfig?: ErrorConfig;
   toolDefs?: RhaiToolDef[];
   missionHash?: string;
+  /** L2 集群 ID（三层路由第二层） */
+  clusterId?: string;
+  /** 三层路由路径（格式 /{domain}/{cluster}/{capability}） */
+  routePath?: string;
   createdAt: number;
   updatedAt: number;
 }

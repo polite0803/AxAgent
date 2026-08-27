@@ -62,6 +62,8 @@ pub fn workflow_template_response_from_model(
         error_config,
         tool_defs: None,
         mission_hash: model.mission_hash,
+        cluster_id: model.cluster_id,
+        route_path: model.route_path,
         created_at: model.created_at,
         updated_at: model.updated_at,
     }

@@ -2457,7 +2457,10 @@
     "WORK_ENGINE_EXECUTION_NOT_FOUND": "Ungültige execution_id oder Workflow nicht registriert",
     "TRAJECTORY_NOT_FOUND": "Verlauf nicht gefunden",
     "UNKNOWN_PRESET": "Unbekannte Vorgabe",
-    "UNITY_P0_CLASSIFIER_FAILED": "Klassifizierung der Aufgabenform fehlgeschlagen"
+    "UNITY_P0_CLASSIFIER_FAILED": "Klassifizierung der Aufgabenform fehlgeschlagen",
+    "WORKFLOW_TOOL_INVALID_STATUS": "Ungültiger Workflow-Tool-Status",
+    "LLM_TOOL_PROVIDER_NOT_CONFIGURED": "LLM-Tool-Generator nicht konfiguriert. Aktivieren Sie zuerst einen Modellanbieter",
+    "WORKFLOW_TOOL_SANDBOX_REJECTED": "Das generierte Tool hat die Sandbox-Kompilierungsprüfung nicht bestanden"
   },
   "errorBoundary": {
     "copied": "Kopiert",
@@ -8669,14 +8672,58 @@
     "nestingsuffix": ",nestingSuffix:",
     "ellipsis": "...",
     "ok": "OK",
-    "foo": "foo",
     "editor": {
       "context": {
         "currentWorkflow": "Current workflow: {{name}} ({{nodes}} nodes/{{edges}} edges)",
         "recentExecution": "\nRecent execution: {{traceId}}, duration {{duration}}ms",
         "runningEngines": "\nRunning evolution engines: {{engines}}"
       },
-      "unnamed": "Unnamed"
+      "unnamed": "Unnamed",
+      "untitled": "Unbenannt"
+    },
+    "tools": {
+      "title": "Workflow-Tools",
+      "create": "Neues Tool",
+      "refresh": "Aktualisieren",
+      "empty": "Keine Tools",
+      "toolName": "Name",
+      "toolNameRequired": "Bitte Namen eingeben",
+      "toolType": "Typ",
+      "description": "Beschreibung",
+      "code": "Implementierung",
+      "codePlaceholder": "Rhai-Skript / DAG-JSON / LLM-Definition",
+      "inputSchema": "Eingabeschema",
+      "status": "Status",
+      "source": "Quelle",
+      "status.pending": "Ausstehend",
+      "status.active": "Aktiv",
+      "status.disabled": "Deaktiviert",
+      "stats": "Statistik",
+      "usageCount": "Nutzungen",
+      "successRate": "Erfolgsquote",
+      "actions": "Aktionen",
+      "edit": "Bearbeiten",
+      "editTitle": "Tool bearbeiten",
+      "createTitle": "Neues Tool",
+      "save": "Speichern",
+      "cancel": "Abbrechen",
+      "confirmDelete": "Dieses Tool löschen?",
+      "delete": "Löschen",
+      "toggleStatus": "Umschalten",
+      "updated": "Tool aktualisiert",
+      "created": "Tool erstellt",
+      "statusUpdated": "Status aktualisiert",
+      "deleted": "Tool gelöscht",
+      "aiGenerate": "KI-Generierung",
+      "aiGenerateTitle": "KI-Tool generieren",
+      "aiGenerateDescription": "Aufgabenbeschreibung",
+      "aiGenerateRequired": "Bitte Beschreibung eingeben",
+      "aiGeneratePlaceholder": "Tool beschreiben, z.B. Korrelation zweier Kurse",
+      "aiGenerateAvailableTools": "Verfügbare Tools (optional)",
+      "aiGenerateAvailableToolsHint": "Bestehende Toolnamen für komponierte Aufrufe",
+      "aiGenerateAvailableToolsPlaceholder": "Eingeben und Enter",
+      "aiGenerateHint": "Das generierte Rhai-Skript besteht zuerst die Sandbox-Kompilierung und wird als ausstehend gespeichert. Hier aktivieren.",
+      "generated": "Tool generiert. Prüfen und aktivieren."
     }
   },
   "voiceChat": {

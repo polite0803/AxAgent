@@ -6,6 +6,7 @@ use crate::commands::error_code::workflow as workflow_err;
 use crate::init::COGNITIVE_ROUTER_TAG;
 use axagent_agent_macro::agent_command;
 use axagent_dao::repo::workflow_template as db_repo;
+use axagent_dao::repo::workflow_tool as workflow_tool_repo;
 use axagent_dao::workflow_conversions::workflow_template_response_from_model;
 use axagent_harness::workflow_types::*;
 use axagent_runtime::work_engine::node_executor_trait::node_type_name;
@@ -168,6 +169,8 @@ pub async fn create_workflow_template(
         tool_defs: input.tool_defs.unwrap_or_default(),
         error_workflow_id: None,
         mission_hash: input.mission_hash,
+        cluster_id: input.cluster_id.clone(),
+        route_path: input.route_path.clone(),
         created_at: now,
         updated_at: now,
     };
@@ -291,6 +294,20 @@ pub async fn delete_workflow_template(
     )
     .await;
 
+    // v123:级联清理工作流运行时工具 — ①卸载运行时注册(来源 workflow:<id>),
+    // ②删除 workflow_tools 表数据。失败仅 warn,不阻断模板删除主流程。
+    let removed_registry = state
+        .local_tool_registry
+        .lock()
+        .await
+        .unregister_runtime_tools_by_source(&format!("workflow:{id}"));
+    if removed_registry > 0 {
+        tracing::info!("[workflow_tool] 工作流 {id} 删除,卸载 {removed_registry} 个运行时工具");
+    }
+    if let Err(e) = workflow_tool_repo::delete_by_workflow(db, &id).await {
+        tracing::warn!("[workflow_tool] 级联删除 workflow_tools 失败: {e}");
+    }
+
     Ok(deleted)
 }
 
@@ -345,6 +362,8 @@ pub async fn duplicate_workflow_template(
         tool_defs: vec![],
         error_workflow_id: None,
         mission_hash: None,
+        cluster_id: response.cluster_id.clone(),
+        route_path: response.route_path.clone(),
         created_at: now,
         updated_at: now,
     };
@@ -2345,6 +2364,8 @@ async fn convert_n8n_to_axagent<C: ConnectionTrait>(
         tool_defs: vec![],
         error_workflow_id: None,
         mission_hash: None,
+        cluster_id: None,
+        route_path: None,
         created_at: now,
         updated_at: now,
     })
@@ -2396,6 +2417,8 @@ async fn do_import_workflow(
             tool_defs: vec![],
             error_workflow_id: None,
             mission_hash: None,
+            cluster_id: template.cluster_id.clone(),
+            route_path: template.route_path.clone(),
             created_at: now,
             updated_at: now,
         }

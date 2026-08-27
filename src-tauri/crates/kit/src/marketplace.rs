@@ -189,6 +189,8 @@ mod tests {
                 updated_at: 0,
                 error_workflow_id: None,
                 mission_hash: None,
+                cluster_id: None,
+                route_path: None,
             },
             vec![],
         );

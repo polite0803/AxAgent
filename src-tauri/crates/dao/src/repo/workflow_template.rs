@@ -63,6 +63,9 @@ pub async fn upsert_workflow_template(
                 .update_column(workflow_template::Column::OutputSchema)
                 .update_column(workflow_template::Column::Variables)
                 .update_column(workflow_template::Column::ErrorConfig)
+                .update_column(workflow_template::Column::MissionHash)
+                .update_column(workflow_template::Column::ClusterId)
+                .update_column(workflow_template::Column::RoutePath)
                 .update_column(workflow_template::Column::UpdatedAt)
                 .to_owned(),
         )
@@ -306,8 +309,8 @@ pub fn build_active_model_from_data(
         composite_source: Set(None),
         tool_defs: Set(None),
         mission_hash: Set(item.mission_hash.clone()),
-        cluster_id: Set(None),
-        route_path: Set(None),
+        cluster_id: Set(item.cluster_id.clone()),
+        route_path: Set(item.route_path.clone()),
         created_at: Set(item.created_at),
         updated_at: Set(item.updated_at),
     }
@@ -350,6 +353,8 @@ pub fn template_model_to_data(
         updated_at: model.updated_at,
         error_workflow_id: None,
         mission_hash: model.mission_hash.clone(),
+        cluster_id: model.cluster_id.clone(),
+        route_path: model.route_path.clone(),
     }
 }
 

@@ -48,6 +48,10 @@ interface BackendTemplateResponse {
   errorConfig?: unknown;
   toolDefs?: unknown[];
   missionHash?: string;
+  /** L2 集群 ID（三层路由第二层） */
+  clusterId?: string;
+  /** 三层路由路径 */
+  routePath?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -96,6 +100,10 @@ interface BackendTemplateInput {
   variables: BackendVariable[];
   error_config?: unknown;
   tool_defs?: unknown[];
+  /** L2 集群 ID（可选，命令层可从 tags 推导） */
+  cluster_id?: string;
+  /** 三层路由路径（可选，命令层可从 tags 推导） */
+  route_path?: string;
 }
 
 /** 后端 ExecutionStatusResponse */

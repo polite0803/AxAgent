@@ -162,6 +162,8 @@ fn build_minimal_gap_template(
         error_workflow_id: None,
         tool_defs: vec![],
         mission_hash: None,
+        cluster_id: None,
+        route_path: None,
         created_at: now,
         updated_at: now,
     }

@@ -2457,7 +2457,10 @@
     "WORK_ENGINE_EXECUTION_NOT_FOUND": "execution_id 无效或工作流未注册",
     "TRAJECTORY_NOT_FOUND": "轨迹未找到",
     "UNKNOWN_PRESET": "未知的预设",
-    "UNITY_P0_CLASSIFIER_FAILED": "任务形态分类失败"
+    "UNITY_P0_CLASSIFIER_FAILED": "任务形态分类失败",
+    "WORKFLOW_TOOL_INVALID_STATUS": "工作流工具状态无效",
+    "LLM_TOOL_PROVIDER_NOT_CONFIGURED": "LLM 工具生成器未配置，请先在设置中启用模型提供商",
+    "WORKFLOW_TOOL_SANDBOX_REJECTED": "生成的工具未通过沙箱编译验证"
   },
   "errorBoundary": {
     "copied": "已复制",
@@ -6718,7 +6721,8 @@
         "recentExecution": "\n最近执行：{{traceId}}，耗时 {{duration}}ms",
         "runningEngines": "\n运行中的进化引擎：{{engines}}"
       },
-      "unnamed": "未命名"
+      "unnamed": "未命名",
+      "untitled": "未命名"
     },
     "autoSave": {
       "failed": "自动保存失败，已重试 3 次"
@@ -8677,7 +8681,51 @@
     "nestingsuffix": ",嵌套后缀：",
     "ellipsis": "...",
     "ok": "确定",
-    "foo": "foo"
+    "foo": "foo",
+    "tools": {
+      "title": "工作流工具",
+      "create": "新增工具",
+      "refresh": "刷新",
+      "empty": "暂无工具",
+      "toolName": "工具名",
+      "toolNameRequired": "请输入工具名",
+      "toolType": "工具类型",
+      "description": "描述",
+      "code": "实现代码",
+      "codePlaceholder": "输入 Rhai 脚本源码 / DAG JSON / LLM 函数定义",
+      "inputSchema": "输入 Schema",
+      "status": "状态",
+      "source": "来源",
+      "status.pending": "待确认",
+      "status.active": "已启用",
+      "status.disabled": "已停用",
+      "stats": "统计",
+      "usageCount": "使用次数",
+      "successRate": "成功率",
+      "actions": "操作",
+      "edit": "编辑",
+      "editTitle": "编辑工具",
+      "createTitle": "新增工具",
+      "save": "保存",
+      "cancel": "取消",
+      "confirmDelete": "确认删除此工具？",
+      "delete": "删除",
+      "toggleStatus": "启停",
+      "updated": "工具已更新",
+      "created": "工具已创建",
+      "statusUpdated": "状态已更新",
+      "deleted": "工具已删除",
+      "aiGenerate": "AI 生成",
+      "aiGenerateTitle": "AI 生成工具",
+      "aiGenerateDescription": "任务描述",
+      "aiGenerateRequired": "请输入任务描述",
+      "aiGeneratePlaceholder": "描述需要实现的工具，如：计算两只股票价格的相关性系数",
+      "aiGenerateAvailableTools": "可用工具（可选）",
+      "aiGenerateAvailableToolsHint": "供 LLM 参考的既有工具名，可让生成工具组合调用",
+      "aiGenerateAvailableToolsPlaceholder": "输入后回车添加",
+      "aiGenerateHint": "LLM 生成的 Rhai 脚本将先通过沙箱编译验证，再以「待确认」状态保存，需在此面板启用后生效。",
+      "generated": "工具已生成，请确认后启用"
+    }
   },
   "voiceChat": {
     "noTicket": "无可用的票据，请重新开始。"

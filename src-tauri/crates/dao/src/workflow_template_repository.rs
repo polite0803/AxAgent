@@ -38,6 +38,8 @@ impl WorkflowTemplateRepository for DaoWorkflowTemplateRepository {
             output_schema: m.output_schema,
             variables: m.variables,
             error_config: m.error_config,
+            cluster_id: m.cluster_id,
+            route_path: m.route_path,
         }))
     }
 }

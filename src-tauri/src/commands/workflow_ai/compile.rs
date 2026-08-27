@@ -260,6 +260,8 @@ pub async fn compile_mission_to_template(
         tool_defs: vec![],
         error_workflow_id: None,
         mission_hash: Some(hash.clone()),
+        cluster_id: None,
+        route_path: None,
         created_at: now,
         updated_at: now,
     };

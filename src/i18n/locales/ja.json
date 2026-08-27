@@ -2457,7 +2457,10 @@
     "WORK_ENGINE_EXECUTION_NOT_FOUND": "execution_id が無効、またはワークフローが登録されていません",
     "TRAJECTORY_NOT_FOUND": "軌跡が見つかりません",
     "UNKNOWN_PRESET": "不明なプリセット",
-    "UNITY_P0_CLASSIFIER_FAILED": "タスク形状の分類に失敗しました"
+    "UNITY_P0_CLASSIFIER_FAILED": "タスク形状の分類に失敗しました",
+    "WORKFLOW_TOOL_INVALID_STATUS": "ワークフローツールのステータスが無効です",
+    "LLM_TOOL_PROVIDER_NOT_CONFIGURED": "LLM ツールジェネレーターが設定されていません。設定でモデルプロバイダーを有効にしてください",
+    "WORKFLOW_TOOL_SANDBOX_REJECTED": "生成されたツールがサンドボックスコンパイル検証に失敗しました"
   },
   "errorBoundary": {
     "copied": "コピーしました",
@@ -8669,14 +8672,58 @@
     "nestingsuffix": ",nestingSuffix:",
     "ellipsis": "...",
     "ok": "ok",
-    "foo": "foo",
     "editor": {
       "context": {
         "currentWorkflow": "Current workflow: {{name}} ({{nodes}} nodes/{{edges}} edges)",
         "recentExecution": "\nRecent execution: {{traceId}}, duration {{duration}}ms",
         "runningEngines": "\nRunning evolution engines: {{engines}}"
       },
-      "unnamed": "Unnamed"
+      "unnamed": "Unnamed",
+      "untitled": "無題"
+    },
+    "tools": {
+      "title": "ワークフローツール",
+      "create": "ツール追加",
+      "refresh": "更新",
+      "empty": "ツールなし",
+      "toolName": "ツール名",
+      "toolNameRequired": "ツール名を入力してください",
+      "toolType": "ツールタイプ",
+      "description": "説明",
+      "code": "実装コード",
+      "codePlaceholder": "Rhai スクリプト / DAG JSON / LLM 関数定義",
+      "inputSchema": "入力スキーマ",
+      "status": "ステータス",
+      "source": "ソース",
+      "status.pending": "保留中",
+      "status.active": "有効",
+      "status.disabled": "無効",
+      "stats": "統計",
+      "usageCount": "使用回数",
+      "successRate": "成功率",
+      "actions": "操作",
+      "edit": "編集",
+      "editTitle": "ツール編集",
+      "createTitle": "ツール追加",
+      "save": "保存",
+      "cancel": "キャンセル",
+      "confirmDelete": "このツールを削除しますか？",
+      "delete": "削除",
+      "toggleStatus": "切替",
+      "updated": "ツールを更新しました",
+      "created": "ツールを作成しました",
+      "statusUpdated": "ステータスを更新しました",
+      "deleted": "ツールを削除しました",
+      "aiGenerate": "AI生成",
+      "aiGenerateTitle": "AIツール生成",
+      "aiGenerateDescription": "タスク説明",
+      "aiGenerateRequired": "タスク説明を入力してください",
+      "aiGeneratePlaceholder": "実装するツールを記述（例：2つの株価の相関係数を計算）",
+      "aiGenerateAvailableTools": "利用可能なツール（任意）",
+      "aiGenerateAvailableToolsHint": "LLMが参照する既存ツール名。生成ツールから呼び出せます",
+      "aiGenerateAvailableToolsPlaceholder": "入力して Enter",
+      "aiGenerateHint": "生成されたRhaiスクリプトはまずサンドボックスコンパイル検証を通過し、「保留中」として保存されます。このパネルで有効化すると反映されます。",
+      "generated": "ツールを生成しました。確認して有効化してください"
     }
   },
   "voiceChat": {
