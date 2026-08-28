@@ -819,6 +819,12 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           "get_workflow_template",
           params,
         );
+        console.log("[workflowEditorStore.loadTemplate] 后端返回:", {
+          id: template?.id,
+          nodesCount: template?.nodes?.length,
+          edgesCount: template?.edges?.length,
+          includeSystem,
+        });
         // 如果在等待期间有新的 loadTemplate 调用，放弃本次结果
         if (get()._loadRequestId !== requestId) { return; }
 
