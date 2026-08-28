@@ -3,7 +3,6 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::workflow as workflow_err;
-use crate::init::COGNITIVE_ROUTER_TAG;
 use axagent_agent_macro::agent_command;
 use axagent_dao::repo::workflow_template as db_repo;
 use axagent_dao::repo::workflow_tool as workflow_tool_repo;
@@ -14,21 +13,16 @@ use sea_orm::{ConnectionTrait, DatabaseConnection, EntityTrait, Set, Transaction
 use serde::Deserialize;
 use tauri::State;
 
-/// 判断模板是否为认知编排器系统模板（is_preset=true + cognitive_router 标签）。
+/// 判断模板是否为系统模板（领域 = system）。
 ///
-/// 认知编排器是系统「上帝」工作流，禁止被用户发现/编辑/复制/删除。
-/// 与 CapabilityPassport 的运行时推导规则保持一致，确保系统模板在任何
-/// 用户可见 CRUD 路径上都不可达。
+/// 判定规则：route_path 的 L1 段为 `system`（即 `route_path` 以 `/system/` 开头）。
+/// 认知编排器由 cognitive_router_init 初始化时设置 `route_path: /system/cognitive_router/{id}`，
+/// route_path 是原生字符串列，不依赖 JSON 解析或 tags，稳定可靠。
+///
+/// 与前端 TemplateList.getTemplateDomain 的领域解析口径一致：前端从 route_path 拆 L1 段做业务域分组，
+/// system 域模板被排除在业务域之外；后端以同一维度判定系统模板，前后端口径对齐。
 fn is_cognitive_router_template(model: &axagent_entities::workflow_template::Model) -> bool {
-    if !model.is_preset {
-        return false;
-    }
-    model
-        .tags
-        .as_ref()
-        .and_then(|s| serde_json::from_str::<Vec<String>>(s).ok())
-        .map(|tags| tags.iter().any(|t| t == COGNITIVE_ROUTER_TAG))
-        .unwrap_or(false)
+    model.route_path.as_deref().map(|p| p.starts_with("/system/")).unwrap_or(false)
 }
 
 fn model_to_active_model(
