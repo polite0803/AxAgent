@@ -6760,7 +6760,9 @@
       "failed": "AI 生成失败",
       "generating": "AI 正在生成...",
       "loop": {
-        "continueHint": "例如：'当 index < {{items}} 长度时继续'"
+        "continueHint": "例如：'当 index < {{items}} 长度时继续'",
+
+        "systemPrompt": "你是一个循环控制专家。根据用户的自然语言描述，输出一个布尔表达式字符串作为循环的 continueCondition 条件（如：\"i < 10\"、\"${item}.status === \\\"active\\\"\"）。只输出表达式字符串本身，不要任何解释或 Markdown 标记。"
       },
       "noProvider": "暂无可用的 AI 提供商",
       "optimizing": "AI 正在优化...",

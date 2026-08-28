@@ -6751,7 +6751,9 @@
       "failed": "Error de generación",
       "generating": "Generando con IA...",
       "loop": {
-        "continueHint": "Proporcione condición de continuación del bucle, p. ej. `index < 10`."
+        "continueHint": "Proporcione condición de continuación del bucle, p. ej. `index < 10`.",
+
+        "systemPrompt": "Eres un experto en control de bucles. Salida una expresion booleana como continueCondition (ej. \"i < 10\", \"${item}.status === \\\"active\\\"\"). Salida solo la expresion, sin explicacion ni Markdown."
       },
       "noProvider": "Proveedor de IA no disponible",
       "optimizing": "Optimizando con IA...",

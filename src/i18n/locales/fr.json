@@ -6751,7 +6751,9 @@
       "failed": "Échec de la génération",
       "generating": "Génération IA...",
       "loop": {
-        "continueHint": "Indiquez la condition de continuation, ex. `index < 10`."
+        "continueHint": "Indiquez la condition de continuation, ex. `index < 10`.",
+
+        "systemPrompt": "Vous etes un expert en boucles. Produisez une expression booleenne pour continueCondition (ex. \"i < 10\", \"${item}.status === \\\"active\\\"\"). Produisez uniquement l'expression, pas d'explication ni de Markdown."
       },
       "noProvider": "Aucun fournisseur IA",
       "optimizing": "Optimisation IA...",

@@ -6751,7 +6751,9 @@
       "failed": "Generierung fehlgeschlagen",
       "generating": "Generierung läuft...",
       "loop": {
-        "continueHint": "Schleifen-Fortsetzungsbedingung angeben, z. B. `index < 10`."
+        "continueHint": "Schleifen-Fortsetzungsbedingung angeben, z. B. `index < 10`.",
+
+        "systemPrompt": "Du bist ein Schleifen-Experte. Gib einen booleschen Ausdruck fuer die continueCondition aus (z. B. \"i < 10\", \"${item}.status === \\\"active\\\"\"). Gib nur den Ausdruck selbst aus, keine Erklaerung oder Markdown."
       },
       "noProvider": "Kein KI-Anbieter verfügbar",
       "optimizing": "KI optimiert...",
