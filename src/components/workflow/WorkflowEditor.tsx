@@ -313,6 +313,10 @@ export const WorkflowEditor: React.FC<WorkflowEditorProps> = ({
 
   useEffect(() => {
     hasAutoLaidOutRef.current = false;
+    console.log("[WorkflowEditor.useEffect] 触发 loadTemplate", {
+      templateId,
+      isSystemTemplate,
+    });
     if (templateId) {
       loadTemplate(templateId, isSystemTemplate)
         .catch(logIpcError("WorkflowEditor: loadTemplate"));
