@@ -769,6 +769,15 @@ async fn cognitive_query_inner(
     let total_start = std::time::Instant::now();
     let mode_hint = ModeHint::parse_str(request.mode_hint.as_deref().unwrap_or("auto"));
 
+    tracing::info!(
+        conversation_id = %request.conversation_id.as_deref().unwrap_or("none"),
+        input_len = input.len(),
+        mode_hint = ?mode_hint,
+        provider_id = %request.provider_id.as_deref().unwrap_or("default"),
+        model_id = %request.model_id.as_deref().unwrap_or("default"),
+        "🚦 [DIAG] cognitive_query 入口 — 三层路由开始"
+    );
+
     // ── P1 Step 0：任务形态分类（原则三标尺，在三层路由前产出）──
     // 产出 `TaskShapeDecision` 注入主 DAG variables + 最终响应，
     // 供路由管线 / AgentQueryRequest / 前端决策标签消费。
@@ -853,12 +862,25 @@ async fn cognitive_query_inner(
         opts = opts.with_max_concurrent(mc.max(1));
     }
 
+    tracing::info!(
+        workflow_id = %COGNITIVE_ROUTER_MAIN_ID,
+        l1_pre = %l1_pre.as_str(),
+        variables_count = opts.variables.as_ref().map(|v| v.len()).unwrap_or(0),
+        "🚦 [DIAG] run_workflow 调用前"
+    );
     let workflow =
         state.work_engine.run_workflow(COGNITIVE_ROUTER_MAIN_ID, opts).await.map_err(|e| {
+            tracing::error!(
+                workflow_id = %COGNITIVE_ROUTER_MAIN_ID,
+                error = %e,
+                "🚦 [DIAG] run_workflow 失败!"
+            );
             CommandError::new(axagent_harness::error_codes::cognitive::ROUTE_FAILED)
                 .with_category(ErrorCategory::Retryable)
                 .with_detail(format!("认知编排器主 DAG 执行失败: {e}"))
         })?;
+
+    tracing::info!(has_output = workflow.output.is_some(), "🚦 [DIAG] run_workflow 成功返回");
 
     // 4. 解析 l3_result（主 DAG EndNode 输出）
     // 主 DAG 无产出时：
@@ -1028,6 +1050,19 @@ async fn cognitive_query_inner(
     // 观测字段：图谱路由透传 is_llm_fallback / fallback_path / stage_records，供前端观测完整路由过程
     let is_llm_fallback = l3.get("is_llm_fallback").and_then(|v| v.as_bool()).unwrap_or(false);
     let fallback_path = l3.get("fallback_path").and_then(|v| v.as_str()).map(str::to_string);
+
+    tracing::info!(
+        route_path = %route_path,
+        domain = %domain,
+        cluster = %cluster,
+        capability_id = %capability_id,
+        confidence = confidence,
+        execution_mode = %mode.as_str(),
+        is_llm_fallback = is_llm_fallback,
+        fallback_path = ?fallback_path,
+        "🚦 [DIAG] 路由决策完成"
+    );
+
     let stage_records: Vec<RouteStageView> = l3
         .get("stage_records")
         .and_then(|v| v.as_array())
@@ -1343,6 +1378,15 @@ async fn cognitive_query_inner(
                 // P1: 透传任务形态决策（原则三标尺），运行时按任务而非按会话覆盖权限初值
                 task_shape: task_shape_decision.clone(),
             };
+
+            tracing::info!(
+                conversation_id = %agent_request.conversation_id,
+                execution_mode = ?agent_request.execution_mode,
+                expert_id = ?agent_request.expert_id,
+                agent_profile_id = ?agent_request.agent_profile_id,
+                "🚦 [DIAG] 调用 agent_query 开始（同步阻塞等 LLM 回复）"
+            );
+
             // Agent 执行失败 → 存缺口 + 降级 LLM 回答（分支 5）
             let agent_resp = match crate::commands::agent::agent_query(
                 app.clone(),
@@ -1363,6 +1407,13 @@ async fn cognitive_query_inner(
                     return execute_general_ask(app, state, request, &input).await;
                 },
             };
+
+            tracing::info!(
+                assistant_message_id = %agent_resp.assistant_message_id,
+                status = ?agent_resp.status,
+                "🚦 [DIAG] agent_query 完成返回"
+            );
+
             persist_decision_to_message(
                 state.harness.db(),
                 &agent_resp.assistant_message_id,
