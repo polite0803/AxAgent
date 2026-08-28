@@ -45,7 +45,10 @@ pub async fn create_pool(db_path: &str) -> Result<DbHandle> {
     };
 
     let mut opt = ConnectOptions::new(&url);
-    opt.max_connections(8)
+    // 8 → 20：主连接池被后台任务（实体提取/索引/RAG 预热等慢操作）与命令共享，
+    // 8 连接在实体提取重载时被占满（15s acquire_timeout 后命令失败，见 index_queue WARN）。
+    // PG 默认 max_connections=100，20 安全；SQLite 为单文件读写，不受连接数影响。
+    opt.max_connections(20)
         .min_connections(2)
         .acquire_timeout(std::time::Duration::from_secs(15))
         .sqlx_logging(false);

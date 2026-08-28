@@ -142,6 +142,10 @@ pub async fn create_knowledge_entity(
         confidence: Set(0.5),
         first_seen_at: Set(None),
         last_seen_at: Set(None),
+        source_type: Set(String::from("knowledge_base")),
+        source_id: Set(String::new()),
+        node_type: Set(String::from("entity")),
+        external_id: Set(None),
     };
 
     am.insert(db).await?;
@@ -233,6 +237,8 @@ pub async fn create_knowledge_relation(
         created_at: Set(now),
         updated_at: Set(now),
         weight: Set(1.0),
+        source_type: Set(String::from("knowledge_base")),
+        source_id: Set(String::new()),
     };
 
     am.insert(db).await?;
@@ -531,6 +537,10 @@ pub async fn upsert_entity(
         confidence: Set(confidence),
         first_seen_at: Set(first_seen_at),
         last_seen_at: Set(last_seen_at),
+        source_type: Set(String::from("knowledge_base")),
+        source_id: Set(String::new()),
+        node_type: Set(String::from("entity")),
+        external_id: Set(None),
     };
 
     knowledge_entities::Entity::insert(am)
@@ -595,6 +605,8 @@ pub async fn upsert_relation(
         created_at: Set(now),
         updated_at: Set(now),
         weight: Set(weight),
+        source_type: Set(String::from("knowledge_base")),
+        source_id: Set(String::new()),
     };
 
     knowledge_relations::Entity::insert(am)
@@ -878,6 +890,10 @@ pub async fn batch_upsert_entities_and_relations(
                 confidence: Set(0.5),
                 first_seen_at: Set(None),
                 last_seen_at: Set(None),
+                source_type: Set(String::from("knowledge_base")),
+                source_id: Set(String::new()),
+                node_type: Set(String::from("entity")),
+                external_id: Set(None),
             };
             let model = am.insert(&txn).await?;
             let entity = model_to_entity(model);
@@ -926,6 +942,8 @@ pub async fn batch_upsert_entities_and_relations(
             created_at: Set(now),
             updated_at: Set(now),
             weight: Set(1.0),
+            source_type: Set(String::from("knowledge_base")),
+            source_id: Set(String::new()),
         };
         let model = am.insert(&txn).await?;
         new_relations.push(model_to_relation(model));

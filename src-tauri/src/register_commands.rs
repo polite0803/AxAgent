@@ -1520,6 +1520,7 @@ macro_rules! register_all_commands {
             commands::workflow_template::import_n8n_directory,
             commands::workflow_template::import_workflow_directory,
             commands::workflow_template::import_workflow_template,
+            commands::workflow_template::list_system_templates,
             commands::workflow_template::list_workflow_templates,
             commands::workflow_template::seed_preset_templates,
             commands::workflow_template::update_workflow_template,

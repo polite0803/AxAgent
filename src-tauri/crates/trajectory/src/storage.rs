@@ -752,6 +752,10 @@ impl TrajectoryStorage {
             confidence: Set(e.confidence),
             first_seen_at: Set(Some(e.first_seen_at.to_rfc3339())),
             last_seen_at: Set(Some(e.last_seen_at.to_rfc3339())),
+            source_type: Set(String::from("knowledge_base")),
+            source_id: Set(String::new()),
+            node_type: Set(String::from("entity")),
+            external_id: Set(None),
         })
         .on_conflict(
             OnConflict::column(knowledge_entities::Column::Id)
@@ -844,6 +848,8 @@ impl TrajectoryStorage {
             created_at: Set(now_ts),
             updated_at: Set(now_ts),
             weight: Set(rel.weight),
+            source_type: Set(String::from("knowledge_base")),
+            source_id: Set(String::new()),
         })
         .on_conflict(
             OnConflict::column(knowledge_relations::Column::Id)

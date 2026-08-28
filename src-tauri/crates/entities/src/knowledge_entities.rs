@@ -24,6 +24,11 @@ pub struct Model {
     pub confidence: f64,
     pub first_seen_at: Option<String>,
     pub last_seen_at: Option<String>,
+    // v113: 统一知识图谱 — 来源/节点类型（DB 已有列，默认值兜底）
+    pub source_type: String,
+    pub source_id: String,
+    pub node_type: String,
+    pub external_id: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
