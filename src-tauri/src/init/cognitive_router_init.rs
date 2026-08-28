@@ -43,10 +43,10 @@ pub const COGNITIVE_ROUTER_TAG: &str = "cognitive_router";
 /// 新增 l1_llm_normalize 节点升级到 v2。
 /// L2 本轮未变更保持 v1；L3 因新增 raw_count 归一化输出字段升级到 v4。
 /// 主 DAG 因 B2（l1_fallback_normalize）/ I2（l2_fallback_normalize）新增节点升级到 v2。
-const L1_TEMPLATE_VERSION: i32 = 2;
-const L2_TEMPLATE_VERSION: i32 = 1;
-const L3_TEMPLATE_VERSION: i32 = 4;
-const MAIN_TEMPLATE_VERSION: i32 = 2;
+const L1_TEMPLATE_VERSION: i32 = 3;
+const L2_TEMPLATE_VERSION: i32 = 2;
+const L3_TEMPLATE_VERSION: i32 = 5;
+const MAIN_TEMPLATE_VERSION: i32 = 3;
 
 /// 初始化认知编排器（4 个工作流模板，共 ~53 个节点）
 pub async fn ensure_cognitive_router_templates(db: &DatabaseConnection) -> Result<(), String> {

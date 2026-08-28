@@ -115,7 +115,8 @@ pub async fn list_system_templates(
     let total = templates.len();
     let cognitive_ids: Vec<_> = templates
         .iter()
-        .filter(|t| is_cognitive_router_template(t))
+        .cloned()
+        .filter(is_cognitive_router_template)
         .map(|t| t.id.clone())
         .collect();
     tracing::info!(
