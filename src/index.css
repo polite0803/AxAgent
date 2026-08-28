@@ -2492,6 +2492,13 @@ html[data-theme="dark"] .markstream-react .table-node thead {
   background: color-mix(in srgb, var(--color-primary) 8%, var(--color-bg-container));
 }
 
+/* 用户气泡：头像右置 + 内容区域 flex 右对齐 */
+.msg-row.user .msg-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
 /* 用户气泡：填色 + 右对齐 + 限制宽度 */
 .msg-row.user .msg-content {
   max-width: 80%;

@@ -1282,6 +1282,29 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     )
         as std::sync::Arc<dyn axagent_harness::RuntimeMutationAccess>);
 
+    // ── 关键路径阻塞项：认知编排器模板初始化 ──
+    // 必须在 create_app_state 同步阶段完成，不能放 run_deferred_init。
+    // 否则 cognitive_query 先于 WorkEngine.load_workflow_template 执行时，
+    // self.workflows HashMap 里没有 cognitive_router_main 模板，直接返回
+    // WorkflowNotFound，前端看到"主动停止"。
+    // 这两步都是纯 DB 操作（ensure 查/写 SQLite、load 读模板+HashMap insert），
+    // 不涉及 LLM，耗时 <100ms，对首帧几乎无感。
+    {
+        let db = harness.db();
+        if let Err(e) = crate::init::ensure_cognitive_router_templates(db).await {
+            tracing::error!("[startup] 认知编排器模板初始化失败: {}", e);
+        } else {
+            tracing::info!("[startup] 认知编排器模板已写入 DB");
+        }
+        if let Err(e) =
+            work_engine.load_workflow_template(crate::init::COGNITIVE_ROUTER_MAIN_ID).await
+        {
+            tracing::error!("[startup] 主 DAG 加载失败: {}", e);
+        } else {
+            tracing::info!("[startup] 主 DAG 已加载进 WorkEngine 内存");
+        }
+    }
+
     tracing::info!(
         elapsed = %t_start.elapsed().as_millis(),
         "[startup] create_app_state 关键路径完成（首帧可渲染）"
@@ -2132,21 +2155,8 @@ pub async fn run_deferred_init(app_state: &crate::app_state::AppState) {
         let _ = axagent_harness::get_capability_registry().register_sandbox(dry_run_sandbox);
     }
 
-    // ── 6. 认知编排器工作流模板初始化 ──
-    if let Err(e) = crate::init::ensure_cognitive_router_templates(&app_state.harness.db()).await {
-        tracing::error!("[startup] 认知编排器模板初始化失败: {}", e);
-    } else {
-        tracing::info!("[startup] 认知编排器模板初始化完成");
-    }
-
-    // ── 7. WorkEngine 主 DAG 加载 ──
-    if let Err(e) =
-        app_state.work_engine.load_workflow_template(crate::init::COGNITIVE_ROUTER_MAIN_ID).await
-    {
-        tracing::error!("[startup] 主 DAG 加载失败: {}", e);
-    } else {
-        tracing::info!("[startup] 主 DAG 已加载进 WorkEngine 内存");
-    }
+    // 注意：认知编排器模板初始化 + 主 DAG 加载已提升到 create_app_state 同步阶段
+    // （见 state.rs L1237-1258），避免 deferred_init fire-and-forget 导致的竞态窗口。
 
     // ── 8. SemanticCache 真实文件缓存替换 ──
     // P0-OPT: 用真实文件 SQLite 替换启动时的内存占位符

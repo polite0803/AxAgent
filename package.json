@@ -92,9 +92,9 @@
     "check:i18n:json": "python scripts/check_i18n.py --json"
   },
   "dependencies": {
-    "@antv/infographic": "^0.2.20",
     "@ant-design/icons": "^6.1.1",
     "@ant-design/x": "^2.9.0",
+    "@antv/infographic": "^0.2.20",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -121,6 +121,7 @@
     "@terrastruct/d2": "^0.1.33",
     "@testing-library/dom": "^10.4.1",
     "@types/dagre": "^0.7.54",
+    "@types/echarts": "^4.9.22",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/addon-search": "^0.16.0",
     "@xterm/addon-unicode11": "^0.9.0",

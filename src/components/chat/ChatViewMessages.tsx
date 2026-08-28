@@ -147,7 +147,6 @@ function AssistantFooter({
   conversationId,
   assistantCopyText,
   getModelDisplayInfo,
-  onEditMessage,
   isStreaming = false,
   displayMode,
   onDisplayModeChange,
@@ -161,11 +160,6 @@ function AssistantFooter({
     modelId?: string | null,
     providerId?: string | null,
   ) => { modelName: string; providerName: string };
-  onEditMessage: (
-    messageId: string,
-    content: string,
-    role: "user" | "assistant",
-  ) => void;
   isStreaming?: boolean;
   displayMode?: MultiModelDisplayMode;
   onDisplayModeChange?: (
@@ -414,18 +408,7 @@ function AssistantFooter({
                   },
                 ]
                 : []),
-              ...(msg.role === "assistant"
-                ? [
-                  {
-                    key: "edit",
-                    icon: <Pencil size={14} />,
-                    label: t("chat.editMessage"),
-                    onItemClick: () => {
-                      onEditMessage(msg.id, msg.content, "assistant");
-                    },
-                  },
-                ]
-                : []),
+              // 编辑消息仅对用户自己的消息有意义，AI 回复不提供编辑操作
               {
                 key: "model",
                 actionRender: () => (
@@ -1711,12 +1694,13 @@ export function useChatViewMessages({
                     <span className="ai-collapse-label">{t("chat.expandMessage")}</span>
                   </div>
                 )}
-                {!isStreaming && !!msgId && (
+                {/* 未折叠时显示 toggle 按钮允许主动折叠；折叠时由 overlay 处理展开，不再重复 */}
+                {!isStreaming && !!msgId && !isCollapsed && (
                   <button
                     className="ai-collapse-toggle"
                     onClick={handleToggleCollapse}
                   >
-                    {isCollapsed ? t("common.expand") : t("common.collapse")}
+                    {t("common.collapse")}
                   </button>
                 )}
               </div>
@@ -1866,7 +1850,6 @@ export function useChatViewMessages({
                 conversationId={activeConversationId}
                 assistantCopyText={assistantCopyText}
                 getModelDisplayInfo={getModelDisplayInfo}
-                onEditMessage={handleEditMessage}
                 isStreaming={isStreaming}
                 displayMode={effectiveDisplayMode}
                 onDisplayModeChange={handleDisplayModeOverride}
