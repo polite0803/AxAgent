@@ -26,8 +26,30 @@ pub fn workflow_template_response_from_model(
     let trigger_config: Option<TriggerConfig> =
         model.trigger_config.as_ref().and_then(|t| serde_json::from_str(t).ok());
 
-    let nodes: Vec<WorkflowNode> = serde_json::from_str(&model.nodes).unwrap_or_default();
-    let edges: Vec<WorkflowEdge> = serde_json::from_str(&model.edges).unwrap_or_default();
+    let nodes: Vec<WorkflowNode> = match serde_json::from_str(&model.nodes) {
+        Ok(v) => v,
+        Err(e) => {
+            tracing::error!(
+                "[workflow_conversions] nodes 反序列化失败 template_id={}: {} | 前200字符: {}",
+                model.id,
+                e,
+                &model.nodes[..model.nodes.len().min(500)]
+            );
+            Vec::new()
+        },
+    };
+    let edges: Vec<WorkflowEdge> = match serde_json::from_str(&model.edges) {
+        Ok(v) => v,
+        Err(e) => {
+            tracing::error!(
+                "[workflow_conversions] edges 反序列化失败 template_id={}: {} | 前200字符: {}",
+                model.id,
+                e,
+                &model.edges[..model.edges.len().min(500)]
+            );
+            Vec::new()
+        },
+    };
     let input_schema: Option<JsonSchema> =
         model.input_schema.as_ref().and_then(|s| serde_json::from_str(s).ok());
     let output_schema: Option<JsonSchema> =
