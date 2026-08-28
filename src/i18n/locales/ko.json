@@ -7990,7 +7990,8 @@
       "failed": "AI 생성 실패",
       "generating": "AI 생성 중...",
       "loop": {
-        "continueHint": "루프 계속 조건을 제공하세요 (예: `index < 10`)."
+        "continueHint": "루프 계속 조건을 제공하세요 (예: `index < 10`).",
+        "systemPrompt": "당신은 루프 제어 전문가입니다. continueCondition용 불리언 표현식 문자열을 출력하세요 (예: \"i < 10\", \"${item}.status === \\\"active\\\"\"). 표현식 문자열만 출력하고 설명이나 Markdown은 포함하지 마세요."
       },
       "noProvider": "사용 가능한 AI 제공자가 없음",
       "optimizing": "AI 최적화 중...",

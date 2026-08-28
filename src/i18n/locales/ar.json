@@ -7990,7 +7990,8 @@
       "failed": "فشل التوليد",
       "generating": "جارٍ التوليد",
       "loop": {
-        "continueHint": "حدد شرط استمرار الحلقة، مثال: `index < 10`."
+        "continueHint": "حدد شرط استمرار الحلقة، مثال: `index < 10`.",
+        "systemPrompt": "أنت خبير في التحكم في الحلقات. أخرج تعبيرًا منطقيًا كسلسلة لـ continueCondition (مثل \"i < 10\"، \"${item}.status === \\\"active\\\"\"). أخرج السلسلة فقط، بدون شرح أو Markdown."
       },
       "noProvider": "لا مزود ذكاء اصطناعي",
       "optimizing": "جارٍ التحسين",

@@ -7999,7 +7999,8 @@
       "failed": "AI generation failed",
       "generating": "AI generating...",
       "loop": {
-        "continueHint": "Provide a loop continue condition, e.g. `index < 10`."
+        "continueHint": "Provide a loop continue condition, e.g. `index < 10`.",
+        "systemPrompt": "You are a loop control expert. Based on the user description, output a boolean expression string for continueCondition (e.g. \"i < 10\", \"${item}.status === \\\"active\\\"\"). Output only the expression string itself, no explanation or Markdown."
       },
       "noProvider": "No AI provider available",
       "optimizing": "AI optimizing...",

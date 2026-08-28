@@ -7990,7 +7990,8 @@
       "failed": "AI 生成に失敗しました",
       "generating": "AI 生成中...",
       "loop": {
-        "continueHint": "ループ継続条件を指定してください（例：`index < 10`）。"
+        "continueHint": "ループ継続条件を指定してください（例：`index < 10`）。",
+        "systemPrompt": "あなたはループ制御の専門家です。continueCondition 用のブール式文字列を出力してください（例：\"i < 10\"、\"${item}.status === \\\"active\\\"\"）。式文字列のみを出力し、説明や Markdown は含めないでください。"
       },
       "noProvider": "利用可能な AI プロバイダーがありません",
       "optimizing": "AI 最適化中...",

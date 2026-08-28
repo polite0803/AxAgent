@@ -54,9 +54,7 @@ export const LoopPropertyPanel: React.FC<LoopPropertyPanelProps> = ({
 
   const handleAIGenerateContinueCondition = async () => {
     const result = await aiGenerate({
-      systemPrompt:
-        "你是一个循环控制专家。根据用户的自然语言描述，输出一个布尔表达式字符串作为循环的 continueCondition 条件（如：'i < 10'、'${item}.status === \"active\"'）。"
-        + "只输出表达式字符串本身，不要任何解释或 Markdown 标记。",
+      systemPrompt: t("workflow.aiAssist.loop.systemPrompt"),
       userPrompt: config.continueCondition || t("workflow.aiAssist.loop.continueHint", { items: config.itemsVar }),
     });
     if (!result) {

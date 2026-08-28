@@ -119,7 +119,7 @@ pub async fn list_system_templates(
     })?;
     Ok(templates
         .into_iter()
-        .filter(|t| is_cognitive_router_template(t))
+        .filter(is_cognitive_router_template)
         .map(workflow_template_response_from_model)
         .collect())
 }
