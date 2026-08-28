@@ -1686,6 +1686,10 @@ async fn import_lemonhu_graph(
             confidence: Set(0.0),
             first_seen_at: Set(None),
             last_seen_at: Set(None),
+            source_type: Set(String::from("knowledge_base")),
+            source_id: Set(String::new()),
+            node_type: Set(String::from("entity")),
+            external_id: Set(None),
             created_at: Set(now_ms),
             updated_at: Set(now_ms),
         };
@@ -1809,6 +1813,8 @@ async fn import_lemonhu_graph(
             properties: Set(None),
             metadata: Set(None),
             weight: Set(0.0),
+            source_type: Set(String::from("knowledge_base")),
+            source_id: Set(String::new()),
             created_at: Set(now_ms),
             updated_at: Set(now_ms),
         };
