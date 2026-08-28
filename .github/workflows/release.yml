@@ -473,7 +473,7 @@ jobs:
           link-to-sdk: true
 
       - name: Setup JDK 17 (Zulu)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           java-version: '17'
           distribution: 'zulu'
