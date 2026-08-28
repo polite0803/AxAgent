@@ -9,6 +9,7 @@ use ts_rs::TS;
 pub struct HallucinationGuardConfig {
     pub enabled: bool,
     /// 引用匹配阈值（0-1），低于此值判定为幻觉
+    #[serde(default)]
     pub match_threshold: f64,
 }
 

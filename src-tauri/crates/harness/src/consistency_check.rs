@@ -15,6 +15,7 @@ pub struct ConsistencyCheckConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub secondary_model: Option<String>,
     /// 结果偏差阈值（0.0-1.0），超过则告警
+    #[serde(default)]
     pub deviation_threshold: f64,
 }
 
