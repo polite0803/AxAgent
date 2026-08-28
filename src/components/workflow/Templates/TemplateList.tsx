@@ -493,7 +493,10 @@ export const TemplateList: React.FC<TemplateListProps> = ({
             style={{ width: 140 }}
             options={[
               { value: undefined, label: t("workflow.templateList.allDomains") },
-              ...BUSINESS_DOMAINS.map((domain) => ({ value: domain, label: domain })),
+              ...BUSINESS_DOMAINS.map((domain) => ({
+                value: domain,
+                label: t(`capabilityDomain.${domain}`, { defaultValue: domain }),
+              })),
               { value: DOMAIN_NONE, label: t("workflow.templateList.uncategorized") },
             ]}
           />
@@ -553,7 +556,7 @@ export const TemplateList: React.FC<TemplateListProps> = ({
               >
                 {domain === DOMAIN_NONE
                   ? t("workflow.templateList.uncategorized")
-                  : domain}
+                  : t(`capabilityDomain.${domain}`, { defaultValue: domain })}
               </span>
               <span
                 style={{
