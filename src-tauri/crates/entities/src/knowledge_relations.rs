@@ -17,6 +17,9 @@ pub struct Model {
     pub updated_at: i64,
     // v101: trajectory relationship weight
     pub weight: f64,
+    // v113: 统一知识图谱 — 来源标记（DB 已有列，默认值兜底）
+    pub source_type: String,
+    pub source_id: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

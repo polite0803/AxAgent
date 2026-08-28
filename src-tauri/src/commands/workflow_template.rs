@@ -104,6 +104,27 @@ pub async fn list_workflow_templates(
         .collect())
 }
 
+#[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "列出系统模板（认知编排器等）")]
+#[tauri::command]
+pub async fn list_system_templates(
+    state: State<'_, AppState>,
+) -> Result<Vec<WorkflowTemplateResponse>, String> {
+    // 系统模板页专用：只返回 is_preset + cognitive_router 标签的模板（认知编排器等）。
+    // 不依赖 include_system 参数传递（该参数在部分调用路径上不可靠），后端权威过滤。
+    let db = state.harness.db();
+    let templates = db_repo::list_workflow_templates(db, Some(true)).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
+    Ok(templates
+        .into_iter()
+        .filter(|t| is_cognitive_router_template(t))
+        .map(workflow_template_response_from_model)
+        .collect())
+}
+
 #[agent_command(domain = workflow, safety = Safe, call_mode = StateInput, description = "获取单个工作流模板详情")]
 #[tauri::command]
 pub async fn get_workflow_template(

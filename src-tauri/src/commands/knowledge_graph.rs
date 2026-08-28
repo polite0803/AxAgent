@@ -6,6 +6,19 @@
 
 use crate::app_state::AppState;
 use crate::commands::error::{ErrorCategory, ErrorResponse};
+
+/// 手动实体抽取串行限流：LLM 抽取是慢操作（每次调 LLM + 嵌入），
+/// 并发触发会把共享连接池占满（曾导致 Connection pool timed out，
+/// 所有 DB 命令瞬时失败）。信号量限制并发为 1，多余触发排队等待。
+static MANUAL_EXTRACT_SEMAPHORE: tokio::sync::OnceCell<std::sync::Arc<tokio::sync::Semaphore>> =
+    tokio::sync::OnceCell::const_new();
+async fn manual_extract_permit() -> Result<tokio::sync::OwnedSemaphorePermit, String> {
+    let sem = MANUAL_EXTRACT_SEMAPHORE
+        .get_or_init(|| async { std::sync::Arc::new(tokio::sync::Semaphore::new(1)) })
+        .await
+        .clone();
+    sem.acquire_owned().await.map_err(|e| format!("实体抽取并发控制失败: {e}"))
+}
 use axagent_agent_macro::agent_command;
 use axagent_harness::core_error::AxAgentError;
 use axagent_harness::prompt_provider::PromptLang;
@@ -525,6 +538,10 @@ pub async fn extract_entities_for_kb(
             ErrorCategory::Unrecoverable,
         )
     })?;
+
+    // 串行限流：并发实体抽取会占满共享连接池（曾触发 Connection pool timed out）。
+    // 拿不到 permit 时排队等待，不拒绝。
+    let _permit = manual_extract_permit().await?;
 
     // 同步执行核心抽取逻辑并返回计数
     crate::index_queue::run_entity_extraction_core(

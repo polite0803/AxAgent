@@ -460,6 +460,10 @@ pub async fn archive_to_knowledge_base(
         confidence: Set(0.5),
         first_seen_at: Set(None),
         last_seen_at: Set(None),
+        source_type: Set(String::from("knowledge_base")),
+        source_id: Set(String::new()),
+        node_type: Set(String::from("entity")),
+        external_id: Set(None),
     };
     entity_am.insert(&txn).await?;
 
@@ -653,6 +657,10 @@ pub async fn archive_to_knowledge_base(
             confidence: Set(0.5),
             first_seen_at: Set(None),
             last_seen_at: Set(None),
+            source_type: Set(String::from("knowledge_base")),
+            source_id: Set(String::new()),
+            node_type: Set(String::from("entity")),
+            external_id: Set(None),
         };
         qa_entity_am.insert(&txn).await?;
 
@@ -669,6 +677,8 @@ pub async fn archive_to_knowledge_base(
             created_at: Set(now),
             updated_at: Set(now),
             weight: Set(1.0),
+            source_type: Set(String::from("knowledge_base")),
+            source_id: Set(String::new()),
         };
         rel_am.insert(&txn).await?;
 
@@ -686,6 +696,8 @@ pub async fn archive_to_knowledge_base(
                 created_at: Set(now),
                 updated_at: Set(now),
                 weight: Set(1.0),
+                source_type: Set(String::from("knowledge_base")),
+                source_id: Set(String::new()),
             };
             seq_rel_am.insert(&txn).await?;
         }
