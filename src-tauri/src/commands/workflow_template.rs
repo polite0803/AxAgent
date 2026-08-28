@@ -117,6 +117,20 @@ pub async fn list_system_templates(
             crate::commands::error::ErrorCategory::Unrecoverable,
         ))
     })?;
+
+    let total = templates.len();
+    let cognitive_ids: Vec<_> = templates
+        .iter()
+        .filter(|t| is_cognitive_router_template(t))
+        .map(|t| t.id.clone())
+        .collect();
+    tracing::info!(
+        "[list_system_templates] preset模板总数={}, cognitive_router匹配数={}, ids={:?}",
+        total,
+        cognitive_ids.len(),
+        cognitive_ids
+    );
+
     Ok(templates
         .into_iter()
         .filter(is_cognitive_router_template)
