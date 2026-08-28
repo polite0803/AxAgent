@@ -1658,15 +1658,15 @@ pub struct WorkflowTemplateData {
 impl WorkflowTemplateData {
     /// 是否为系统模板（认知编排器等）。
     ///
-    /// 判定规则：`is_preset=true && is_public=false`。
-    /// 认知编排器由 `cognitive_router_init` 初始化时设置此组合，
-    /// OPC 行业 preset 模板设置 `is_public=true` 对用户可见。
-    ///
+    /// 判定规则：`is_preset=true` 且带 `cognitive_router` 标签。
     /// 与 [CapabilityPassport::visibility] 的运行时推导规则保持一致，
     /// 是系统模板与业务工作流物理隔离的唯一权威判定，供 CRUD 命令与
     /// 前端响应（is_system 字段）复用。
     pub fn is_system_template(&self) -> bool {
-        self.is_preset && !self.is_public
+        if !self.is_preset {
+            return false;
+        }
+        self.tags.iter().any(|t| t == "cognitive_router")
     }
 }
 
@@ -2013,9 +2013,9 @@ impl crate::capability::CapabilityPassport for WorkflowTemplateData {
     fn visibility(&self) -> crate::capability::Visibility {
         // 系统预置路由模板（认知编排器等）运行时推导为 SystemOnly：
         // workflow_templates 表未持久化 visibility 列，模板从 DB 读出时字段
-        // 会回到默认 Public，此处用 is_preset && !is_public 兜底，
-        // 保证系统模板的护照永远不被注册进业务能力注册表。
-        if self.is_preset && !self.is_public {
+        // 会回到默认 Public，此处用 is_preset + cognitive_router 标签兜底，
+        // 保证其护照永远不被注册进业务能力注册表。
+        if self.is_preset && self.tags.iter().any(|t| t == "cognitive_router") {
             crate::capability::Visibility::SystemOnly
         } else {
             self.visibility
