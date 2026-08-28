@@ -29,49 +29,45 @@ pub fn workflow_template_response_from_model(
     // 关键：记录节点/边反序列化结果，便于排查编辑器空内容问题
     // 成功路径用 debug!（默认 info 过滤不显示，避免启动刷屏；RUST_LOG=debug 时可复现）
     // 失败路径保留 error! 以便定位反序列化失败
-    let nodes_result: Result<Vec<WorkflowNode>, _> = serde_json::from_str(&model.nodes);
-    let edges_result: Result<Vec<WorkflowEdge>, _> = serde_json::from_str(&model.edges);
-
-    let nodes = match &nodes_result {
-        Ok(n) => {
+    let nodes: Vec<WorkflowNode> = match serde_json::from_str::<Vec<WorkflowNode>>(&model.nodes) {
+        Ok(v) => {
             tracing::debug!(
                 "[workflow_conversions] 模板 {} 节点反序列化成功: {} 个节点",
                 model.id,
-                n.len()
+                v.len()
             );
-            n.clone()
+            v
         },
         Err(e) => {
             tracing::error!(
-                "[workflow_conversions] 模板 {} 节点反序列化失败: {e}, nodes.len={}, 前100字符: {}",
+                "[workflow_conversions] nodes 反序列化失败 template_id={}: {} | 前200字符: {}",
                 model.id,
-                model.nodes.len(),
-                &model.nodes[..model.nodes.len().min(200)]
+                e,
+                &model.nodes[..model.nodes.len().min(500)]
             );
             Vec::new()
         },
     };
 
-    let edges = match &edges_result {
-        Ok(e) => {
+    let edges: Vec<WorkflowEdge> = match serde_json::from_str::<Vec<WorkflowEdge>>(&model.edges) {
+        Ok(v) => {
             tracing::debug!(
                 "[workflow_conversions] 模板 {} 边反序列化成功: {} 条边",
                 model.id,
-                e.len()
+                v.len()
             );
-            e.clone()
+            v
         },
         Err(e) => {
             tracing::error!(
-                "[workflow_conversions] 模板 {} 边反序列化失败: {e}, edges.len={}, 前100字符: {}",
+                "[workflow_conversions] edges 反序列化失败 template_id={}: {} | 前200字符: {}",
                 model.id,
-                model.edges.len(),
-                &model.edges[..model.edges.len().min(200)]
+                e,
+                &model.edges[..model.edges.len().min(500)]
             );
             Vec::new()
         },
     };
-
     let input_schema: Option<JsonSchema> =
         model.input_schema.as_ref().and_then(|s| serde_json::from_str(s).ok());
     let output_schema: Option<JsonSchema> =

@@ -12,18 +12,16 @@ use sea_orm::{ConnectionTrait, DatabaseConnection, EntityTrait, Set, Transaction
 use serde::Deserialize;
 use tauri::State;
 
-/// 判断模板是否为系统模板（认知编排器等）。
+/// 判断模板是否为系统模板（领域 = system）。
 ///
-/// 判定规则：`is_preset=true && is_public=false`。
-/// 认知编排器由 `cognitive_router_init` 初始化时设置此组合，
-/// OPC 行业 preset 模板设置 `is_public=true` 对用户可见。
+/// 判定规则：route_path 的 L1 段为 `system`（即 `route_path` 以 `/system/` 开头）。
+/// 认知编排器由 cognitive_router_init 初始化时设置 `route_path: /system/cognitive_router/{id}`，
+/// route_path 是原生字符串列，不依赖 JSON 解析或 tags，稳定可靠。
 ///
-/// 之所以不用 tags 过滤：tags 字段存的是 JSON 数组字符串，
-/// 数据库里若为 NULL 或格式不合法，`serde_json::from_str` 会失败
-/// 导致系统模板被误判为非系统模板。`is_public` 是原生布尔列，
-/// 可靠且直接表达「领域隔离」语义（系统内部可见 vs 用户可见）。
+/// 与前端 TemplateList.getTemplateDomain 的领域解析口径一致：前端从 route_path 拆 L1 段做业务域分组，
+/// system 域模板被排除在业务域之外；后端以同一维度判定系统模板，前后端口径对齐。
 fn is_cognitive_router_template(model: &axagent_entities::workflow_template::Model) -> bool {
-    model.is_preset && !model.is_public
+    model.route_path.as_deref().map(|p| p.starts_with("/system/")).unwrap_or(false)
 }
 
 fn model_to_active_model(
@@ -104,7 +102,7 @@ pub async fn list_workflow_templates(
 pub async fn list_system_templates(
     state: State<'_, AppState>,
 ) -> Result<Vec<WorkflowTemplateResponse>, String> {
-    // 系统模板页专用：只返回系统模板（is_preset=true && is_public=false）。
+    // 系统模板页专用：只返回 is_preset + cognitive_router 标签的模板（认知编排器等）。
     // 不依赖 include_system 参数传递（该参数在部分调用路径上不可靠），后端权威过滤。
     let db = state.harness.db();
     let templates = db_repo::list_workflow_templates(db, Some(true)).await.map_err(|e| {
@@ -113,6 +111,19 @@ pub async fn list_system_templates(
             crate::commands::error::ErrorCategory::Unrecoverable,
         ))
     })?;
+
+    let total = templates.len();
+    let cognitive_ids: Vec<_> = templates
+        .iter()
+        .filter(|t| is_cognitive_router_template(t))
+        .map(|t| t.id.clone())
+        .collect();
+    tracing::info!(
+        "[list_system_templates] preset模板总数={}, cognitive_router匹配数={}, ids={:?}",
+        total,
+        cognitive_ids.len(),
+        cognitive_ids
+    );
 
     Ok(templates
         .into_iter()
@@ -139,42 +150,20 @@ pub async fn get_workflow_template(
         ))
     })?;
 
-    // 系统模板对业务模板页不可见：返回 None（与「不存在」等价）。
-    // include_system=true（系统模板页）时允许读取系统模板。
-    let include_system = include_system.unwrap_or(false);
-
-    let result = match template {
-        Some(t) => {
-            let is_cognitive = is_cognitive_router_template(&t);
-            tracing::warn!(
-                "[get_workflow_template] 找到模板: id={}, name={}, is_preset={}, is_cognitive_router={}, tags={:?}",
-                t.id,
-                t.name,
-                t.is_preset,
-                is_cognitive,
-                t.tags
-            );
-            if !include_system && is_cognitive {
-                tracing::warn!(
-                    "[get_workflow_template] 模板是认知路由模板且 include_system=false，返回 None"
-                );
-                None
-            } else {
-                let response = workflow_template_response_from_model(t);
-                tracing::warn!(
-                    "[get_workflow_template] 转换完成: nodes={}, edges={}",
-                    response.nodes.len(),
-                    response.edges.len()
-                );
-                Some(response)
-            }
-        },
-        None => {
-            tracing::warn!("[get_workflow_template] 模板不存在: id={id}");
-            None
-        },
-    };
-
+    // get_single 按 id 精准读取，不做领域过滤（list 命令才有过滤语义）。
+    // include_system 参数保留签名兼容，但不再影响结果。
+    let result = template.map(workflow_template_response_from_model);
+    if let Some(ref r) = result {
+        tracing::info!(
+            "[get_workflow_template] id={} include_system={:?} -> nodes={} edges={}",
+            id,
+            include_system,
+            r.nodes.len(),
+            r.edges.len()
+        );
+    } else {
+        tracing::warn!("[get_workflow_template] id={} -> not found", id);
+    }
     Ok(result)
 }
 

@@ -59,7 +59,13 @@ export function WorkflowSettings({
 
   const renderSystemTemplates = () => (
     <div style={{ padding: "16px 0", flex: 1, minHeight: 0, overflowY: "auto" }}>
-      <SystemTemplateList onOpenEditor={onOpenSystemEditor} />
+      {onOpenSystemEditor ? <SystemTemplateList onOpenEditor={onOpenSystemEditor} /> : (
+        <TemplateList
+          onSelectTemplate={handleSelectTemplate}
+          onCreateNew={handleCreateNew}
+          onEditTemplate={handleEditTemplate}
+        />
+      )}
     </div>
   );
 

@@ -62,6 +62,15 @@ impl KnowledgeEntityRepository for DaoKnowledgeEntityRepository {
             metadata: Set(None),
             created_at: Set(now),
             updated_at: Set(now),
+            aliases: Set(String::new()),
+            mention_count: Set(1),
+            confidence: Set(0.5),
+            first_seen_at: Set(None),
+            last_seen_at: Set(None),
+            source_type: Set(String::from("knowledge_base")),
+            source_id: Set(String::new()),
+            node_type: Set(String::from("entity")),
+            external_id: Set(None),
         };
 
         am.insert(&self.db).await.map_err(|e| format!("insert_entity: {}", e))?;
