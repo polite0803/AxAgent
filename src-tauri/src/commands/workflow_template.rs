@@ -3,7 +3,6 @@
 use crate::AppState;
 use crate::commands::error::ErrorResponse;
 use crate::commands::error_code::workflow as workflow_err;
-use crate::init::COGNITIVE_ROUTER_TAG;
 use axagent_agent_macro::agent_command;
 use axagent_dao::repo::workflow_template as db_repo;
 use axagent_dao::workflow_conversions::workflow_template_response_from_model;
@@ -13,21 +12,18 @@ use sea_orm::{ConnectionTrait, DatabaseConnection, EntityTrait, Set, Transaction
 use serde::Deserialize;
 use tauri::State;
 
-/// 判断模板是否为认知编排器系统模板（is_preset=true + cognitive_router 标签）。
+/// 判断模板是否为系统模板（认知编排器等）。
 ///
-/// 认知编排器是系统「上帝」工作流，禁止被用户发现/编辑/复制/删除。
-/// 与 CapabilityPassport 的运行时推导规则保持一致，确保系统模板在任何
-/// 用户可见 CRUD 路径上都不可达。
+/// 判定规则：`is_preset=true && is_public=false`。
+/// 认知编排器由 `cognitive_router_init` 初始化时设置此组合，
+/// OPC 行业 preset 模板设置 `is_public=true` 对用户可见。
+///
+/// 之所以不用 tags 过滤：tags 字段存的是 JSON 数组字符串，
+/// 数据库里若为 NULL 或格式不合法，`serde_json::from_str` 会失败
+/// 导致系统模板被误判为非系统模板。`is_public` 是原生布尔列，
+/// 可靠且直接表达「领域隔离」语义（系统内部可见 vs 用户可见）。
 fn is_cognitive_router_template(model: &axagent_entities::workflow_template::Model) -> bool {
-    if !model.is_preset {
-        return false;
-    }
-    model
-        .tags
-        .as_ref()
-        .and_then(|s| serde_json::from_str::<Vec<String>>(s).ok())
-        .map(|tags| tags.iter().any(|t| t == COGNITIVE_ROUTER_TAG))
-        .unwrap_or(false)
+    model.is_preset && !model.is_public
 }
 
 fn model_to_active_model(
@@ -108,7 +104,7 @@ pub async fn list_workflow_templates(
 pub async fn list_system_templates(
     state: State<'_, AppState>,
 ) -> Result<Vec<WorkflowTemplateResponse>, String> {
-    // 系统模板页专用：只返回 is_preset + cognitive_router 标签的模板（认知编排器等）。
+    // 系统模板页专用：只返回系统模板（is_preset=true && is_public=false）。
     // 不依赖 include_system 参数传递（该参数在部分调用路径上不可靠），后端权威过滤。
     let db = state.harness.db();
     let templates = db_repo::list_workflow_templates(db, Some(true)).await.map_err(|e| {
@@ -117,19 +113,6 @@ pub async fn list_system_templates(
             crate::commands::error::ErrorCategory::Unrecoverable,
         ))
     })?;
-
-    let total = templates.len();
-    let cognitive_ids: Vec<_> = templates
-        .iter()
-        .filter(|t| is_cognitive_router_template(t))
-        .map(|t| t.id.clone())
-        .collect();
-    tracing::info!(
-        "[list_system_templates] preset模板总数={}, cognitive_router匹配数={}, ids={:?}",
-        total,
-        cognitive_ids.len(),
-        cognitive_ids
-    );
 
     Ok(templates
         .into_iter()
