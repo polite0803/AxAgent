@@ -148,26 +148,19 @@ pub async fn get_workflow_template(
         ))
     })?;
 
-    // 系统模板对业务模板页不可见：返回 None（与「不存在」等价）。
-    // include_system=true（系统模板页）时允许读取系统模板。
-    let include_system = include_system.unwrap_or(false);
-    let result = template
-        .filter(|t| include_system || !is_cognitive_router_template(t))
-        .map(workflow_template_response_from_model);
+    // get_single 按 id 精准读取，不做领域过滤（list 命令才有过滤语义）。
+    // include_system 参数保留签名兼容，但不再影响结果。
+    let result = template.map(workflow_template_response_from_model);
     if let Some(ref r) = result {
         tracing::info!(
-            "[get_workflow_template] id={} include_system={} -> nodes={} edges={}",
+            "[get_workflow_template] id={} include_system={:?} -> nodes={} edges={}",
             id,
             include_system,
             r.nodes.len(),
             r.edges.len()
         );
     } else {
-        tracing::warn!(
-            "[get_workflow_template] id={} include_system={} -> filtered out / not found",
-            id,
-            include_system
-        );
+        tracing::warn!("[get_workflow_template] id={} -> not found", id);
     }
     Ok(result)
 }
