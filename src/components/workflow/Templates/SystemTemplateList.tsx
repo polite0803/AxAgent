@@ -10,7 +10,7 @@ import type { WorkflowTemplateResponse } from "../types";
 
 interface SystemTemplateListProps {
   /** 打开系统模板（认知编排器等）到工作流编辑器查看/编辑 */
-  onOpenEditor?: (templateId: string) => void;
+  onOpenEditor: (templateId: string) => void;
 }
 
 /**
@@ -56,7 +56,7 @@ export const SystemTemplateList: React.FC<SystemTemplateListProps> = ({
 
   const handleOpen = (templateId: string) => {
     // 打开系统模板（WorkflowEditor 全屏模式会以 include_system=true 自行加载）
-    onOpenEditor?.(templateId);
+    onOpenEditor(templateId);
   };
 
   if (isLoading) {
