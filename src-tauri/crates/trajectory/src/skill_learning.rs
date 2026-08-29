@@ -134,6 +134,7 @@ pub enum RiskLevel {
     Critical,
 }
 
+#[cfg(test)]
 impl RiskLevel {
     fn as_str(&self) -> &'static str {
         match self {

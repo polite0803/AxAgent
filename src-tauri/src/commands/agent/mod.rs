@@ -56,12 +56,6 @@ use skill_execution::{
 };
 
 pub mod command_bridge;
-use crate::commands::opc_industry_bridge::{
-    build_opc_industry_chat_tools, build_opc_industry_handlers,
-};
-use crate::commands::stock_analysis_bridge::{
-    STOCK_WRITE_TOOLS, build_stock_chat_tools, build_stock_command_handlers,
-};
 use command_bridge::{
     CommandCache, CommandRegistry, build_chat_tools as build_tauri_command_chat_tools,
     build_command_handlers, build_command_index_string, preload_command_cache,
@@ -740,6 +734,42 @@ pub async fn agent_query(
     )?;
     info!("[agent_query] Got provider keys count: {}", prov.keys.len());
 
+    // model_id 占位符解析：认知编排降级路径 / 前端未选模型时 model_id 为 "default" 或空，
+    // 若原样作为 ChatRequest.model 发送，网关报 400 "Missing required field: model"，
+    // 流式回复中断 → 前端消息停在 partial（"主动停止"）。
+    // 解析顺序：settings.default_model_id（须属于该 provider）→ 该 provider 模型列表第一个。
+    if request.model_id.is_empty() || request.model_id == "default" {
+        let resolved = prov
+            .models
+            .iter()
+            .find(|m| Some(m.model_id.as_str()) == settings.default_model_id.as_deref())
+            .or_else(|| prov.models.first())
+            .map(|m| m.model_id.clone());
+        match resolved {
+            Some(real_model) => {
+                info!(
+                    "[agent_query] model_id 占位 '{}' → 解析为 '{}' (provider {})",
+                    request.model_id, real_model, prov.id
+                );
+                request.model_id = real_model;
+            },
+            None => {
+                return Err(String::from(
+                    crate::commands::error::ErrorResponse::from_error_with_code(
+                        axagent_harness::error_codes::provider::MODEL_NOT_FOUND,
+                        format!(
+                            "provider {} 无可用模型（model_id 占位 '{}' 无法解析）",
+                            prov.id, request.model_id
+                        ),
+                        crate::commands::error::ErrorCategory::Unrecoverable,
+                    )
+                    .with_param("provider_id", &prov.id)
+                    .with_param("model_id", &request.model_id),
+                ));
+            },
+        }
+    }
+
     // Get active key (使用 DAO 层的 round-robin 轮询逻辑)
     let key = provider::get_active_key(app_state.harness.db(), &request.provider_id)
         .await
@@ -1246,44 +1276,6 @@ pub async fn agent_query(
         }
         info!("[agent] Added {} Tauri command tools to chat_tools", tauri_tool_count);
         info!("[agent] Registered {} Tauri command handlers", handler_count);
-    }
-
-    // ── 股票命令桥接器：AxInvest 本地股票命令注册为 Agent 可调用工具 ──
-    // 对齐上游 Tauri 命令桥接器；股票命令依赖 AStockClient + cron_job_store，
-    // 写命令经 STOCK_WRITE_TOOLS 注入 ask 规则（见下）走权限审批，不在此处门控。
-    {
-        let stock_tools = build_stock_chat_tools();
-        let stock_tool_count = stock_tools.len();
-        chat_tools.extend(stock_tools);
-
-        let stock_handlers = build_stock_command_handlers(
-            app_state.astock_client.clone(),
-            app_state.harness.db().clone(),
-            app_state.cron_job_store.clone(),
-            app.clone(),
-        );
-        let stock_handler_count = stock_handlers.len();
-        for (tool_name, handler) in stock_handlers {
-            tool_registry.register_skill_tool(tool_name, handler);
-        }
-        info!("[agent] Added {} stock command tools to chat_tools", stock_tool_count);
-        info!("[agent] Registered {} stock command handlers", stock_handler_count);
-    }
-
-    // ── OPC 行业命令桥接器：AxInvest 本地行业命令注册为 Agent 可调用工具 ──
-    // 所有行业命令均为只读操作（获取配置、生成 prompt 等），无需权限审批。
-    {
-        let opc_industry_tools = build_opc_industry_chat_tools();
-        let opc_industry_tool_count = opc_industry_tools.len();
-        chat_tools.extend(opc_industry_tools);
-
-        let opc_industry_handlers = build_opc_industry_handlers(app.clone());
-        let opc_industry_handler_count = opc_industry_handlers.len();
-        for (tool_name, handler) in opc_industry_handlers {
-            tool_registry.register_skill_tool(tool_name, handler);
-        }
-        info!("[agent] Added {} OPC industry tools to chat_tools", opc_industry_tool_count);
-        info!("[agent] Registered {} OPC industry handlers", opc_industry_handler_count);
     }
 
     // Create API client with tool definitions, model ID and parameters
@@ -1991,7 +1983,7 @@ pub async fn agent_query(
             PermissionPolicy::new(runtime_permission_mode).with_permission_rules_from_lists(
                 Vec::new(),
                 Vec::new(),
-                STOCK_WRITE_TOOLS.iter().map(|name| name.to_string()).collect(),
+                Vec::new(),
             ),
             system_prompt,
             runtime_feature_config,

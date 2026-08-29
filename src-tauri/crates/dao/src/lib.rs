@@ -29,7 +29,6 @@ pub mod provider_repository;
 pub mod sync_storage_impl;
 pub use sync_storage_impl::SyncStorageDb;
 pub mod repo;
-pub mod rl_experience_store;
 pub mod search_sources_impl;
 pub mod settings_repository;
 pub mod stored_file_repository;

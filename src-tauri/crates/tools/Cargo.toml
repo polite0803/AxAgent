@@ -6,8 +6,6 @@ publish = false
 
 [dependencies]
 async-trait = "0.1"
-axagent-analysis-engine = { path = "../analysis-engine" }
-axagent-astock-data = { path = "../astock-data" }
 axagent-dao = { path = "../dao" }
 axagent-document-parser = { path = "../document-parser" }
 axagent-harness = { path = "../harness" }

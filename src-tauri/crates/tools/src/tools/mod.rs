@@ -24,7 +24,6 @@ pub mod file_edit;
 pub mod file_read;
 pub mod file_system;
 pub mod file_write;
-pub mod finance;
 pub mod git;
 pub mod github_discussions_scanner;
 pub mod github_issue_scanner;
@@ -46,7 +45,6 @@ pub mod multi_agent;
 pub mod network;
 pub mod obsidian;
 pub mod ocr;
-pub mod opc;
 pub mod package_ecosystem_scanner;
 pub mod personality;
 pub mod plan;
@@ -287,64 +285,6 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
         std::sync::Arc::new(rpc::RpcCallTool),
         // ── 迁移工具 ──
         std::sync::Arc::new(migration_tool::MigrationTool),
-        // ── OPC 一人公司业务 ──
-        std::sync::Arc::new(opc::OpcListInvoicesTool),
-        std::sync::Arc::new(opc::OpcCreateInvoiceTool),
-        std::sync::Arc::new(opc::OpcTransitionInvoiceTool),
-        std::sync::Arc::new(opc::OpcListCustomersTool),
-        std::sync::Arc::new(opc::OpcCreateCustomerTool),
-        std::sync::Arc::new(opc::OpcListProjectsTool),
-        std::sync::Arc::new(opc::OpcCreateProjectTool),
-        std::sync::Arc::new(opc::OpcAddMilestoneTool),
-        std::sync::Arc::new(opc::OpcGetDashboardTool),
-        std::sync::Arc::new(opc::OpcListLandingPagesTool),
-        std::sync::Arc::new(opc::OpcListBlogPostsTool),
-        std::sync::Arc::new(opc::OpcCreateLandingPageTool),
-        std::sync::Arc::new(opc::OpcCreateBlogPostTool),
-        std::sync::Arc::new(opc::OpcListContactsTool),
-        std::sync::Arc::new(opc::OpcSendNotificationTool),
-        std::sync::Arc::new(opc::OpcRecordKpiTool),
-        std::sync::Arc::new(opc::OpcListKpisTool),
-        std::sync::Arc::new(opc::OpcSearchWikiTool),
-        std::sync::Arc::new(opc::OpcGetFinancialReportTool),
-        std::sync::Arc::new(opc::OpcCreateContentAssetTool),
-        std::sync::Arc::new(opc::OpcListContentAssetsTool),
-        std::sync::Arc::new(opc::OpcUpdateContentAssetTool),
-        std::sync::Arc::new(opc::OpcDeleteContentAssetTool),
-        std::sync::Arc::new(opc::OpcCreatePublishScheduleTool),
-        std::sync::Arc::new(opc::OpcListPublishSchedulesTool),
-        std::sync::Arc::new(opc::OpcCancelPublishScheduleTool),
-        std::sync::Arc::new(opc::OpcProcessDueSchedulesTool),
-        // ── 金融计算工具 ──
-        std::sync::Arc::new(finance::CalcMaxDrawdownTool),
-        std::sync::Arc::new(finance::CalcSharpeRatioTool),
-        std::sync::Arc::new(finance::CalcVarTool),
-        std::sync::Arc::new(finance::CalcPEPercentileTool),
-        std::sync::Arc::new(finance::CalcPEGTool),
-        std::sync::Arc::new(finance::CalcKellyTool),
-        std::sync::Arc::new(finance::CalcRiskParityTool),
-        std::sync::Arc::new(finance::DetectMACrossTool),
-        std::sync::Arc::new(finance::DetectBreakoutTool),
-        std::sync::Arc::new(finance::CleanOutliersTool),
-        std::sync::Arc::new(finance::CleanFillMissingTool),
-        std::sync::Arc::new(finance::AdjustPricesTool),
-        std::sync::Arc::new(finance::ComputeATRTool),
-        std::sync::Arc::new(finance::ComputeKDJTool),
-        std::sync::Arc::new(finance::ComputeOBVTool),
-        std::sync::Arc::new(finance::CalcBetaTool),
-        std::sync::Arc::new(finance::DetectEarningsTool),
-        std::sync::Arc::new(finance::DetectPledgeRiskTool),
-        std::sync::Arc::new(finance::CalcCorrMatrixTool),
-        std::sync::Arc::new(finance::RunMonteCarloTool),
-        std::sync::Arc::new(finance::AnalyzeIndustryTool),
-        std::sync::Arc::new(finance::DetectLimitUpTool),
-        std::sync::Arc::new(finance::ResearchReportsTool),
-        std::sync::Arc::new(finance::ConceptBlocksTool),
-        std::sync::Arc::new(finance::NorthBoundFlowTool),
-        std::sync::Arc::new(finance::DragonTigerTool),
-        std::sync::Arc::new(finance::ClsFlashTool),
-        std::sync::Arc::new(finance::DetectCandlestickPatternsTool),
-        std::sync::Arc::new(finance::DetectDivergenceTool),
     ]);
 
     let available_toolsets: HashSet<String> =

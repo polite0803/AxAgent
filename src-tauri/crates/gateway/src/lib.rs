@@ -14,4 +14,3 @@ pub mod realtime_ticket;
 pub mod routes;
 pub mod routing;
 pub mod server;
-pub mod stock_ws_handler;

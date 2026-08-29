@@ -924,15 +924,6 @@ impl FTS5Search {
 
 // ── 谱系与健康检查 DTO ──────────────────────────────────────────────
 
-/// 会话谱系信息
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct SessionLineage {
-    pub session_id: String,
-    pub parent_session_id: Option<String>,
-    pub child_session_ids: Vec<String>,
-    pub lineage_depth: u32,
-}
-
 /// 带谱系的会话搜索结果
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct LineageSearchResult {

@@ -13,20 +13,14 @@
 //! - MCP 工具 `skill_view`：直接返回缓存内容，避免重复 I/O
 
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::sync::{LazyLock, Mutex};
 use std::time::Instant;
 
-/// 缓存条目：skill 内容 + 来源路径 + 加载时间
+/// 缓存条目：skill 内容
 #[derive(Clone, Debug)]
-#[allow(dead_code)]
 struct CacheEntry {
     /// SKILL.md 完整内容
     content: String,
-    /// 来源路径（用于 invalidate 时重建）
-    skill_dir: PathBuf,
-    /// 加载时间
-    loaded_at: Instant,
 }
 
 /// 全局 SkillPromptCache（单例）
@@ -147,10 +141,7 @@ impl SkillPromptCache {
                     let skill_dir = entry.path();
                     let skill_md = skill_dir.join("SKILL.md");
                     if let Ok(content) = std::fs::read_to_string(&skill_md) {
-                        self.entries.insert(
-                            name,
-                            CacheEntry { content, skill_dir, loaded_at: Instant::now() },
-                        );
+                        self.entries.insert(name, CacheEntry { content });
                     }
                 }
             }

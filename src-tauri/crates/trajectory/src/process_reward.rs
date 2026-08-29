@@ -31,13 +31,11 @@ pub struct ProcessRewardResult {
     pub weighted_reward: f64,
 }
 
-pub struct DefaultPrmProvider {
-    task_context: String,
-}
+pub struct DefaultPrmProvider {}
 
 impl DefaultPrmProvider {
-    pub fn new(task_context: &str) -> Self {
-        Self { task_context: task_context.to_string() }
+    pub fn new(_task_context: &str) -> Self {
+        Self {}
     }
 
     fn evaluate_correctness(&self, content: &str) -> f64 {
@@ -354,8 +352,7 @@ impl ProcessRewardModel {
 
         let provider: &dyn PrmLlmProvider =
             self.provider.as_ref().map(|p| p.as_ref()).unwrap_or_else(|| {
-                static DEFAULT: DefaultPrmProvider =
-                    DefaultPrmProvider { task_context: String::new() };
+                static DEFAULT: DefaultPrmProvider = DefaultPrmProvider {};
                 &DEFAULT
             });
 

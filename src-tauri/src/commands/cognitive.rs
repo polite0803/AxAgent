@@ -41,7 +41,7 @@ use axagent_harness::{
     PromptAttackCategory, PromptGuard, PromptRejection, RouteStageRecord, RoutingDecisionV2,
     TaskShapeDecision,
 };
-use axagent_runtime::work_engine::{RunOptions, SubWorkflowCallback};
+use axagent_runtime::work_engine::{RunOptions, SubWorkflowCallback, unwrap_end_envelope};
 use sea_orm::EntityTrait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -882,6 +882,16 @@ async fn cognitive_query_inner(
 
     tracing::info!(has_output = workflow.output.is_some(), "🚦 [DIAG] run_workflow 成功返回");
 
+    // 🚦 [DIAG] 打印 results keys（每个节点的 output_var → 输出）和 output keys
+    tracing::info!(
+        result_keys = ?workflow.results.keys().cloned().collect::<Vec<_>>(),
+        output_keys = ?workflow
+            .output
+            .as_ref()
+            .and_then(|v| v.as_object().map(|o| o.keys().cloned().collect::<Vec<_>>())),
+        "🚦 [DIAG] DAG results keys & output keys"
+    );
+
     // 4. 解析 l3_result（主 DAG EndNode 输出）
     // 主 DAG 无产出时：
     // - 若 L1 预路由判定为 general 域 → 构造合成 l3_result 降级为 Ask 模式
@@ -917,6 +927,14 @@ async fn cognitive_query_inner(
             }
         },
     };
+    // B0: 拆开主 DAG EndNode 的终止信封。
+    // EndNode 配置 output_var 时，EndExecutor 会把提取到的 l3_result 包装为
+    // `{status:"terminated", node_id:"end", output:<实际值>, source:"l3_result"}`，
+    // 且该信封经 apply_node_status_update 覆写 results["l3_result"]，最终
+    // workflow.output 顶层是信封而非扁平路由决策 —— 不拆包则下方 B1 必备字段
+    // 校验全部判缺失，误触发能力缺口存储 + Ask 模式降级。
+    // 与 SubWorkflowExecutor 在子工作流边界的拆包补偿同构（见其 executor 注释）。
+    let l3_value = unwrap_end_envelope(&l3_value);
     let l3 = l3_value.as_object().cloned().unwrap_or_default();
 
     // B1: 验证 l3_result 必须包含关键字段

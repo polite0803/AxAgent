@@ -18,7 +18,6 @@ export { useErrorNotificationStore } from "./shared/errorNotificationStore";
 
 export { useDecompositionStore } from "./feature/decompositionStore";
 export { useDynamicUIStore } from "./feature/dynamicUIStore";
-export { useIndustryLearningStore } from "./feature/industryLearningStore";
 export { useKnowledgeSourceStore } from "./feature/knowledgeSourceStore";
 export { useLlmWikiStore } from "./feature/llmWikiStore";
 export { useProactiveStore } from "./feature/proactiveStore";
@@ -68,7 +67,6 @@ export { useNudgeStore } from "./feature/nudgeStore";
 export { useOfficeStore } from "./feature/officeStore";
 export { useOnboardingStore } from "./feature/onboardingStore";
 export { usePaperStore } from "./feature/paperStore";
-export { usePipelineStore } from "./feature/pipelineStore";
 export { setupPlanEventListeners, usePlanStore } from "./feature/planStore";
 export { usePlatformStore } from "./feature/platformStore";
 export { usePluginStore } from "./feature/pluginStore";
@@ -99,46 +97,3 @@ export type { PausedExecutionInfo } from "./feature/workEngineStore";
 export { useWorkflowEditorStore } from "./feature/workflowEditorStore";
 export type { SaveSkillWorkflowResponse, SimilarWorkflow } from "./feature/workflowEditorStore";
 export { useWorkflowStore } from "./feature/workflowStore";
-
-// ── AxInvest stock analysis ──
-export { useStockAnalysisStore } from "./feature/stockAnalysisStore";
-export type {
-  ExperimentRecord,
-  PortfolioDashboard,
-  PortfolioStressBundle,
-  PortfolioStressResult,
-} from "./feature/stockAnalysisStore";
-// ── G2 模拟观察组合（Paper Trading Portfolio） ──
-export { usePaperPortfolioStore } from "./feature/paperPortfolioStore";
-
-// ── G4 市场主线自动提炼（Market Mainline） ──
-export { useMarketMainlineStore } from "./feature/marketMainlineStore";
-
-// ── G6 截图持仓诊断（Screenshot Diagnosis） ──
-export { useScreenshotDiagnosisStore } from "./feature/screenshotDiagnosisStore";
-
-// ── G1 跨市场数据接入（美股/港股/外汇/基准指数） ──
-export { useCrossMarketStore } from "./feature/crossMarketStore";
-export type { CrossMarketState } from "./feature/crossMarketStore";
-
-// ── AxInvest 股票工作区（激进重构：单股票全生命周期） ──
-export { useWorkspaceStore } from "./feature/workspaceStore";
-export type { RecentStock, UserMode, WorkspaceView } from "./feature/workspaceStore";
-
-// ── AxInvest quant 模块（回测 + 策略管理）──
-export { useBacktestStore } from "./feature/quant";
-export { useStrategyStore } from "./feature/quant";
-
-// ── OPC 一人公司（One-Person Company） ──
-export { useOpcStore } from "./feature/opcStore";
-export type {
-  OpcActions,
-  OpcCustomer,
-  OpcDashboardSummary,
-  OpcInvoice,
-  OpcProject,
-  OpcState,
-} from "./feature/opcStore";
-
-// ── AxInvest 交易执行桥接（Execution Bridge） ──
-export { setupExecutionBridgeEventListeners, useExecutionBridgeStore } from "./feature/executionBridgeStore";

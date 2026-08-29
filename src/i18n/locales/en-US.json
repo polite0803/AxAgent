@@ -2652,6 +2652,7 @@
     "PROVIDER_KEY_DECRYPT_FAILED": "Failed to decrypt provider key",
     "PROVIDER_MODEL_LIST_TIMEOUT": "Timed out fetching model list",
     "PROVIDER_NO_ACTIVE_KEY": "No active provider key",
+    "PROVIDER_MODEL_NOT_FOUND": "No available model found in provider {provider_id} (requested: {model_id})",
     "PROVIDER_TEST_FAILED": "Failed to test provider",
     "PROVIDER_UPDATE_FAILED": "Failed to update provider",
     "PROXY_ADDRESS_NOT_ALLOWED": "Proxy address not allowed",

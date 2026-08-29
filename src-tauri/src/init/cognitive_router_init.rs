@@ -43,10 +43,17 @@ pub const COGNITIVE_ROUTER_TAG: &str = "cognitive_router";
 /// 新增 l1_llm_normalize 节点升级到 v2。
 /// L2 本轮未变更保持 v1；L3 因新增 raw_count 归一化输出字段升级到 v4。
 /// 主 DAG 因 B2（l1_fallback_normalize）/ I2（l2_fallback_normalize）新增节点升级到 v2。
-const L1_TEMPLATE_VERSION: i32 = 3;
-const L2_TEMPLATE_VERSION: i32 = 2;
+/// v4/v3（2026-08-28）：修复 normalize 节点引用双重过时变量 ——
+///   ① llm_classifier executor 输出结构已改为 {category, confidence, ...}（无 label 字段）；
+///   ② DataTransformer 的变量注入只包含直接上游 node_id key（get_node_dependency_results），
+///     output_var 名（l1_llm_result / l1_fallback_raw）不在 Rhai scope 中，求值为 ()，
+///     访问 .label 报 "Unknown property 'label' - a getter is not registered for type '()'"，
+///     导致 L1 子工作流 PartiallyCompleted → 主 DAG 输出缺 route_path 等关键字段 → 降级 Ask。
+///   修复：normalize 表达式改引用上游 node_id key（l1_llm / l1_fallback）+ 现行字段名 category。
+const L1_TEMPLATE_VERSION: i32 = 4;
+const L2_TEMPLATE_VERSION: i32 = 4; // bump: validate_l2 expression is-not-null → != () + 新增 Rhai 表达式求值支持
 const L3_TEMPLATE_VERSION: i32 = 5;
-const MAIN_TEMPLATE_VERSION: i32 = 3;
+const MAIN_TEMPLATE_VERSION: i32 = 5; // bump: validate_l1/validate_l2 expression is-not-null → != () + 新增 Rhai 表达式求值支持
 
 /// 初始化认知编排器（4 个工作流模板，共 ~53 个节点）
 pub async fn ensure_cognitive_router_templates(db: &DatabaseConnection) -> Result<(), String> {
@@ -137,6 +144,27 @@ async fn ensure_template(
     }
 
     let now = chrono::Utc::now().timestamp_millis();
+
+    // 诊断：打印灌入的 validation 节点表达式，确认 Rhai 语法正确（!= () 而非 is not null）
+    for node in &nodes {
+        if let WorkflowNode::Validation(v) = node {
+            let exprs: Vec<String> = v
+                .config
+                .assertions
+                .iter()
+                .filter(|a| a.assertion_type == "expression")
+                .filter_map(|a| a.expression.clone())
+                .collect();
+            if !exprs.is_empty() {
+                tracing::info!(
+                    "[cognitive_router] ✅ validation node [{}] expressions: {:?}",
+                    node.base_id(),
+                    exprs
+                );
+            }
+        }
+    }
+
     let template = WorkflowTemplateData {
         id: id.to_string(),
         name: name.to_string(),
@@ -166,6 +194,7 @@ async fn ensure_template(
     let active = build_active_model_from_data(&template);
     // 幂等灌入：不存在时插入，存在（版本落后）时整表覆盖（含 nodes/edges/version）
     upsert_workflow_template(db, active).await.map_err(|e| e.to_string())?;
+
     Ok(())
 }
 
@@ -410,7 +439,7 @@ fn build_main_router_nodes() -> Vec<WorkflowNode> {
             "validate_l1",
             "L1 结果验证",
             Position { x: 250.0, y: 200.0 },
-            vec!["l1_result.category is not null", "l1_result.confidence >= 0.5"],
+            vec!["l1_result.category != ()", "l1_result.confidence >= 0.5"],
             "fallback",
         ),
         // 3. L1 低置信度兜底
@@ -445,12 +474,14 @@ fn build_main_router_nodes() -> Vec<WorkflowNode> {
             Some("general"),
         ),
         // 4b. L1 兜底归一化：LLM 输出 {label, confidence} → {category, confidence}，覆写 l1_result
+        //   v3 修复：executor 输出已是 {category, confidence}（无 label）；变量注入按上游
+        //   node_id key（l1_fallback）而非 output_var（l1_fallback_raw），见模块头部版本注释。
         data_transformer_node(
             "l1_fallback_normalize",
             "L1 兜底归一化",
             Position { x: 250.0, y: 380.0 },
-            "l1_fallback_raw",
-            r#"#{ "category": l1_fallback_raw.label, "confidence": l1_fallback_raw.confidence }"#,
+            "l1_fallback",
+            r#"#{ "category": l1_fallback.category, "confidence": l1_fallback.confidence }"#,
             "l1_result",
         ),
         // 5. L2 子工作流调用（l1_domain 取 l1_result.category；透传动态目录 __l2_categories）
@@ -473,7 +504,7 @@ fn build_main_router_nodes() -> Vec<WorkflowNode> {
             "validate_l2",
             "L2 结果验证",
             Position { x: 250.0, y: 600.0 },
-            vec!["l2_result.category is not null", "l2_result.confidence >= 0.4"],
+            vec!["l2_result.category != ()", "l2_result.confidence >= 0.4"],
             "fallback",
         ),
         // 7. L2 低置信度检查
@@ -508,19 +539,21 @@ fn build_main_router_nodes() -> Vec<WorkflowNode> {
                 "ticket_handling",
             ],
             Some("__l2_categories"),
-            "你是一个能力簇分类器。在已识别的业务域下，选择最合适的能力簇。\n\n业务域：{l1_domain}\n用户输入：{user_input}\n\n请返回 JSON：{\"cluster\": \"xxx\", \"confidence\": 0.xx}",
+            "你是一个能力簇分类器。在已识别的业务域下，选择最合适的能力簇。\n\n业务域：{l1_domain}\n用户输入：{user_input}\n\n请返回 JSON：{\"label\": \"xxx\", \"confidence\": 0.xx}",
             "user_input",
             "l2_fallback_result",
             Some(0.5),
             Some("general"),
         ),
-        // 8b. L2 兜底归一化：LLM 输出 {cluster, confidence} → {category, confidence}，覆写 l2_result
+        // 8b. L2 兜底归一化：LLM 输出 {label, confidence} → {category, confidence}，覆写 l2_result
+        //   v3 修复：executor 输出已是 {category, confidence}（无 cluster）；变量注入按上游
+        //   node_id key（l2_fallback）而非 output_var（l2_fallback_result），见模块头部版本注释。
         data_transformer_node(
             "l2_fallback_normalize",
             "L2 兜底归一化",
             Position { x: 250.0, y: 780.0 },
-            "l2_fallback_result",
-            r#"#{ "category": l2_fallback_result.cluster, "confidence": l2_fallback_result.confidence }"#,
+            "l2_fallback",
+            r#"#{ "category": l2_fallback.category, "confidence": l2_fallback.confidence }"#,
             "l2_result",
         ),
         // 9. L3 子工作流调用（RAR + 图谱 + 熔断；透传字符串 l1/l2 category）
@@ -668,12 +701,14 @@ fn build_l1_router_nodes() -> Vec<WorkflowNode> {
             Some("general"),
         ),
         // 5b. LLM 输出归一化：{label, confidence} → {category, confidence}，供下游统一消费
+        //   v4 修复：executor 输出已是 {category, confidence}（无 label）；变量注入按上游
+        //   node_id key（l1_llm）而非 output_var（l1_llm_result），见模块头部版本注释。
         data_transformer_node(
             "l1_llm_normalize",
             "LLM 输出归一化",
             Position { x: 300.0, y: 320.0 },
-            "l1_llm_result",
-            r#"#{ "category": l1_llm_result.label, "confidence": l1_llm_result.confidence }"#,
+            "l1_llm",
+            r#"#{ "category": l1_llm.category, "confidence": l1_llm.confidence }"#,
             "l1_llm_normalized",
         ),
         // 6. LLM 结果置信度检查（使用归一化后的字段名 category/confidence）

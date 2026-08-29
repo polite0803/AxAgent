@@ -2,13 +2,10 @@
 members = [
   ".",
   "crates/agent",
-  "crates/analysis-engine",
-  "crates/astock-data",
   "crates/axagent-agent-command-types",
   "crates/axagent-agent-macro",
   "crates/axagent-mobile",
   "crates/cache",
-  "crates/company-runtime",
   "crates/crdt",
   "crates/credential",
   "crates/crypto",
@@ -20,16 +17,13 @@ members = [
   "crates/gateway",
   "crates/harness",
   "crates/kit",
-  "crates/market-sim",
   "crates/mcp",
   "crates/migration",
-  "crates/notification",
   "crates/npm",
   "crates/orchestrator",
   "crates/plugins",
   "crates/prompt-guard",
   "crates/providers",
-  "crates/quant",
   "crates/rt-dashboard",
   "crates/rt-messaging",
   "crates/rt-theme",
@@ -101,10 +95,10 @@ module_name_repetitions = "allow"
 name = "axagent"
 version = "2.9.8"
 authors = ["刘小平 <polite0803@outlook.com>"]
-default-run = "AxInvest"
+default-run = "axagent"
 edition = "2024"
 license = "AGPL-3.0-only"
-description = "AxInvest - AI Investment Desktop App"
+description = "AxAgent - AI Desktop Client"
 
 [features]
 default = ["notification", "computer-use"]
@@ -121,15 +115,11 @@ devtools = ["tauri/devtools"]
 # `Arc<axagent_xxx::Type>` in struct field types — a use site that
 # cargo-machete's text-based scan cannot detect.
 ignored = [
-  "axagent-astock-data",
-  "axagent-notification",
   "axagent-prompt-guard",
-  "axagent-quant",
   "axagent-rt-dashboard",
   "axagent-rt-messaging",
   "axagent-rt-theme",
   "axagent-rt-webhook",
-  "axagent-analysis-engine",
 ]
 
 [lib]
@@ -140,7 +130,7 @@ name = "axagent_lib"
 crate-type = ["cdylib", "rlib"]
 
 [[bin]]
-name = "AxInvest"
+name = "axagent"
 path = "src/main.rs"
 
 [build-dependencies]
@@ -151,9 +141,7 @@ async-trait = "0.1"
 axagent-agent = { path = "crates/agent" }
 axagent-agent-command-types = { path = "crates/axagent-agent-command-types" }
 axagent-agent-macro = { path = "crates/axagent-agent-macro" }
-axagent-astock-data = { path = "crates/astock-data" }
 axagent-cache = { path = "crates/cache" }
-axagent-company-runtime = { path = "crates/company-runtime" }
 axagent-credential = { path = "crates/credential" }
 axagent-crypto = { path = "crates/crypto" }
 axagent-dao = { path = "crates/dao" }
@@ -164,18 +152,14 @@ axagent-entities = { path = "crates/entities" }
 axagent-gateway = { path = "crates/gateway" }
 axagent-harness = { path = "crates/harness" }
 axagent-kit = { path = "crates/kit" }
-axagent-market-sim = { path = "crates/market-sim" }
 axagent-mcp = { path = "crates/mcp" }
 axagent-migration = { path = "crates/migration" }
-axagent-notification = { path = "crates/notification" }
 axagent-npm = { path = "crates/npm" }
 
-axagent-analysis-engine = { path = "crates/analysis-engine" }
 axagent-orchestrator = { path = "crates/orchestrator" }
 axagent-plugins = { path = "crates/plugins" }
 axagent-prompt-guard = { path = "crates/prompt-guard" }
 axagent-providers = { path = "crates/providers" }
-axagent-quant = { path = "crates/quant" }
 axagent-rt-dashboard = { path = "crates/rt-dashboard" }
 axagent-rt-messaging = { path = "crates/rt-messaging" }
 axagent-rt-theme = { path = "crates/rt-theme" }

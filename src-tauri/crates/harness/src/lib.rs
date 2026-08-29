@@ -848,16 +848,6 @@ pub use vault::{
     VaultError, VaultSource,
 };
 
-// ── 叙事结构 DTO（文学创作工作流的核心数据结构） ──
-pub mod narrative;
-pub use narrative::{
-    AdjustmentPriority, AdjustmentTargetType, AdjustmentType, ArcInstruction, ArcStage, ArcType,
-    ChapterStructureInstruction, ConfluencePoint, ConfluenceType, DeviationSeverity, DeviationType,
-    Foreshadow, ForeshadowAction, ForeshadowInstruction, ForeshadowStatus, NarrativeArc,
-    NarrativeStructure, StructureAdjustmentSuggestion, StructureComplianceReport,
-    StructureDeviation,
-};
-
 // ── 设备同步契约（多端同步/管理的核心类型） ──
 pub mod device_sync;
 pub use device_sync::{

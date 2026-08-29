@@ -40,14 +40,6 @@ const MAX_AUDIO_FILE_SIZE: usize = 25 * 1024 * 1024;
 pub struct TranscriptionQuery {
     /// 必填：模型名（如 whisper-1）
     pub model: String,
-    /// 可选：语言代码（如 zh、en）—— 当前 provider trait 未接收，预留 API 兼容
-    #[serde(default)]
-    #[allow(dead_code)]
-    pub language: Option<String>,
-    /// 可选：引导提示词 —— 当前 provider trait 未接收，预留 API 兼容
-    #[serde(default)]
-    #[allow(dead_code)]
-    pub prompt: Option<String>,
     /// 可选：采样率，默认 16000
     #[serde(default)]
     pub sample_rate: Option<u32>,
@@ -72,10 +64,6 @@ pub struct SpeechRequest {
     /// 响应格式：mp3 / opus / pcm，默认 mp3
     #[serde(default)]
     pub response_format: Option<String>,
-    /// 语速（0.25 ~ 4.0）—— 当前 provider trait 未接收，预留 API 兼容
-    #[serde(default)]
-    #[allow(dead_code)]
-    pub speed: Option<f32>,
 }
 
 /// 解析编码字符串为 `AudioEncoding`，默认 Pcm16。

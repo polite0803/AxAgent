@@ -9,16 +9,8 @@
 //! - Skill optimization closed-loop
 //! - Cross-session pattern learning
 
-// P1-6 修复:移除 `#![allow(unused_imports)]`(unused imports 应当修复而非压制)。
-//
-// dead_code 策略(2026-07-24 更新):
-//   trajectory 是研究性 crate,许多模块(auto_memory / auto_tool / batch /
-//   dream_consolidation / nudge / process_reward 等)预留为未来
-//   接入点,其内部部分字段/方法/常量/枚举变体当前未被 wiring 层引用。彻底删除会
-//   丢失研究成果,逐文件加 inner attribute 工作量过大且易遗漏。保留 crate 级
-//   `#![allow(dead_code)]` 统一压制;同时按模块加 `#[allow(dead_code)]` 标注哪些
-//   模块尚未接入,后续逐个评估接入或删除。
-#![allow(dead_code)]
+// dead_code 策略(2026-08-29): 按项目规范禁止用 allow 标记绕过死代码检查,
+//   未接入代码一律删除。本 crate 已移除 crate 级与全部模块级压制。
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::result_large_err)]
 #![allow(clippy::large_enum_variant)]
@@ -26,64 +18,49 @@
 #![allow(clippy::manual_strip)]
 
 mod adaptation;
-#[allow(dead_code)]
 mod auto_memory;
-#[allow(dead_code)]
 mod auto_tool;
-#[allow(dead_code)]
 mod batch;
 mod coevolution;
 mod compactor;
 mod constitution;
 mod context;
 mod context_predictor;
-#[allow(dead_code)]
 mod dream_consolidation;
 mod dream_data_provider;
-#[allow(dead_code)]
 mod evidence;
 mod fts5;
 mod insight;
 mod intrinsic_reward;
 mod learning_graph;
 mod memory;
-#[allow(dead_code)]
 mod memory_provider;
 mod memory_providers;
-#[allow(dead_code)]
 mod nudge;
 pub mod numeric_evolution;
 mod parallel_execution;
 mod pattern;
 mod proactive_assistant;
-#[allow(dead_code)]
 mod process_reward;
 mod reminder_manager;
 mod replay;
 mod rl;
 mod sandbox_executor;
 mod skill;
-#[allow(dead_code)]
 mod skill_decomposition;
-#[allow(dead_code)]
 pub mod skill_evolution;
 mod skill_learning;
-#[allow(dead_code)]
 mod skill_proposal;
 mod skills_hub_adapter;
 mod storage;
 mod style_applier;
 mod style_extractor;
 mod style_vectorizer;
-#[allow(dead_code)]
 mod sub_agent;
-#[allow(dead_code)]
 mod suggestion_engine;
-#[allow(dead_code)]
 mod task_prefetcher;
 mod text_grad;
 mod trajectory;
-#[allow(dead_code)]
 mod trajectory_impl;
 mod user_profile;
 mod workflow_adapters;
@@ -182,7 +159,7 @@ pub use sandbox_executor::SkillSandboxExecutor;
 pub use skill::{HermesMetadata, Skill, SkillMetadata, SkillProposal};
 
 pub use skill_learning::{
-    ApprovalStatus, BackgroundReviewResult, DangerousPattern, DetectedPattern, ErrorCorrection,
+    ApprovalStatus, BackgroundReviewResult, DangerousPattern, ErrorCorrection,
     PendingOperationType, PendingSkillOperation, ReviewMessage, RiskLevel, SafetyCheckResult,
     SkillLearnEvent, SkillLearningConfig, SkillLearningManager, SkillSafetyGuard,
 };

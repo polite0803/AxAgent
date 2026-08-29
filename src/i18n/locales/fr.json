@@ -2652,6 +2652,7 @@
     "PROVIDER_KEY_DECRYPT_FAILED": "Échec du déchiffrement de la clé du fournisseur",
     "PROVIDER_MODEL_LIST_TIMEOUT": "Délai dépassé pour la liste des modèles",
     "PROVIDER_NO_ACTIVE_KEY": "Aucune clé de fournisseur active",
+    "PROVIDER_MODEL_NOT_FOUND": "Aucun modèle disponible chez le fournisseur {provider_id} (demandé : {model_id})",
     "PROVIDER_TEST_FAILED": "Échec du test du fournisseur",
     "PROVIDER_UPDATE_FAILED": "Échec de la mise à jour du fournisseur",
     "PROXY_ADDRESS_NOT_ALLOWED": "Adresse proxy non autorisée",

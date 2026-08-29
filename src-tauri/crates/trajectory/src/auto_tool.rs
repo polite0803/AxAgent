@@ -50,13 +50,11 @@ impl Default for AutoToolCreatorConfig {
     }
 }
 
-pub struct DefaultLlmToolProvider {
-    template_prefix: String,
-}
+pub struct DefaultLlmToolProvider {}
 
 impl DefaultLlmToolProvider {
     pub fn new() -> Self {
-        Self { template_prefix: "auto_tool".to_string() }
+        Self {}
     }
 
     fn build_code_from_template(&self, request: &ToolCreationRequest) -> String {

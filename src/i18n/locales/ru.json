@@ -2652,6 +2652,7 @@
     "PROVIDER_KEY_DECRYPT_FAILED": "Не удалось расшифровать ключ поставщика",
     "PROVIDER_MODEL_LIST_TIMEOUT": "Превышено время ожидания списка моделей",
     "PROVIDER_NO_ACTIVE_KEY": "Нет активного ключа поставщика",
+    "PROVIDER_MODEL_NOT_FOUND": "В провайдере {provider_id} не найдено доступной модели (запрошено: {model_id})",
     "PROVIDER_TEST_FAILED": "Не удалось протестировать поставщика",
     "PROVIDER_UPDATE_FAILED": "Не удалось обновить поставщика",
     "PROXY_ADDRESS_NOT_ALLOWED": "Адрес прокси не разрешен",

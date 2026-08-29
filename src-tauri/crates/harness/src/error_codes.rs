@@ -149,6 +149,7 @@ pub mod provider {
     pub const TEST_FAILED: &str = "PROVIDER_TEST_FAILED";
     pub const NO_ACTIVE_KEY: &str = "PROVIDER_NO_ACTIVE_KEY";
     pub const ADAPTER_NOT_FOUND: &str = "PROVIDER_ADAPTER_NOT_FOUND";
+    pub const MODEL_NOT_FOUND: &str = "PROVIDER_MODEL_NOT_FOUND";
 }
 
 /// 搜索相关错误码

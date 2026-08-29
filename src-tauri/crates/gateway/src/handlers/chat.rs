@@ -50,7 +50,6 @@ fn is_retriable_key_error(msg: &str) -> bool {
 ///
 /// 设计原则：成本估算为"尽力而为"，缺失定价时降级而非报错，
 /// 避免网关热路径因定价表滞后而拒绝记录用量。
-#[allow(dead_code)]
 fn estimate_cost_usd(model_id: &str, usage: &TokenUsage, provider_model: Option<&Model>) -> f64 {
     // 1) provider 自带价格
     if let Some(m) = provider_model
@@ -68,7 +67,6 @@ fn estimate_cost_usd(model_id: &str, usage: &TokenUsage, provider_model: Option<
 }
 
 /// 在 provider 的 models 列表中查找指定 model_id（enabled）。
-#[allow(dead_code)]
 fn find_enabled_model<'a>(provider: &'a ProviderConfig, model_id: &str) -> Option<&'a Model> {
     provider.models.iter().find(|m| m.enabled && m.model_id == model_id)
 }

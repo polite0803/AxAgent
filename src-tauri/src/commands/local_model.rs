@@ -1236,9 +1236,6 @@ use std::sync::atomic::{AtomicU64, Ordering};
 /// GitHub API: llama.cpp 最新 release
 const LLAMA_CPP_LATEST_API: &str =
     "https://api.github.com/repos/ggml-org/llama.cpp/releases/latest";
-/// 下载 URL 模板: {tag} 替换为版本号
-#[allow(dead_code)]
-const LLAMA_CPP_DOWNLOAD_TEMPLATE: &str = "https://github.com/ggml-org/llama.cpp/releases/download/{tag}/llama-{tag}-bin-{platform}.{ext}";
 
 /// 平台标识符（用于构建下载文件名）
 fn platform_suffix() -> &'static str {
@@ -1625,17 +1622,6 @@ pub async fn local_model_get_install_status(
         download_progress: progress,
         download_error: error,
     })
-}
-
-/// 从已安装的路径获取 llama-server 可执行文件路径。
-#[allow(dead_code)]
-pub fn installed_server_path(app_data_dir: &Path) -> Option<PathBuf> {
-    let dir = install_dir(app_data_dir);
-    #[cfg(windows)]
-    let exe = dir.join("llama-server.exe");
-    #[cfg(not(windows))]
-    let exe = dir.join("llama-server");
-    if exe.is_file() { Some(exe) } else { None }
 }
 
 // ── 辅助函数 ──────────────────────────────────────────────────────

@@ -28,11 +28,6 @@ pub fn set_tray_labels(
     Ok(())
 }
 
-#[cfg(not(desktop))]
-#[tauri::command]
-#[allow(dead_code)]
-pub fn set_tray_labels(_app: AppHandle, _show_label: String, _quit_label: String) {}
-
 #[cfg(desktop)]
 fn build_menu(app: &AppHandle) -> Result<Menu<tauri::Wry>, Box<dyn std::error::Error>> {
     let (show_label, quit_label) = TRAY_LABELS.lock().clone();
@@ -64,12 +59,6 @@ pub fn create_tray(app: &AppHandle, _language: &str) -> Result<(), Box<dyn std::
     create_tray_inner(app)
 }
 
-#[cfg(not(desktop))]
-#[allow(dead_code)]
-pub fn create_tray(_app: &AppHandle, _language: &str) -> Result<(), Box<dyn std::error::Error>> {
-    Ok(())
-}
-
 #[cfg(desktop)]
 fn create_tray_inner(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     // 双层幂等保护：TrayIconBuilder::build 同 ID 在 Windows 上不会替换，
@@ -91,7 +80,7 @@ fn create_tray_inner(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> 
         .icon(icon)
         .menu(&menu)
         .show_menu_on_left_click(false)
-        .tooltip("AxInvest")
+        .tooltip("AxAgent")
         .on_menu_event(|app, event| match event.id.as_ref() {
             "show" => {
                 if let Some(w) = app.get_webview_window("main") {
@@ -135,13 +124,4 @@ pub fn sync_tray_language(
 ) -> Result<(), Box<dyn std::error::Error>> {
     // 不依赖 language 参数，实际标签经 set_tray_labels 已更新
     sync_tray_menu(app)
-}
-
-#[cfg(not(desktop))]
-#[allow(dead_code)]
-pub fn sync_tray_language(
-    _app: &AppHandle,
-    _language: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
-    Ok(())
 }

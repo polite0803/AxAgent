@@ -68,7 +68,6 @@ pub fn parser() -> &'static Arc<dyn DocumentParser> {
 }
 
 /// 获取所有注册的统一知识源
-#[allow(dead_code)]
 pub fn unified_sources() -> &'static [Arc<dyn UnifiedKnowledgeSource>] {
     UNIFIED_SOURCES.get().map(|v| v.as_slice()).unwrap_or(&[])
 }

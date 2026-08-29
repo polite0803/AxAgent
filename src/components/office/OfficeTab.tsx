@@ -22,19 +22,11 @@
 
 import { useExpertStore, useOfficeStore } from "@/stores";
 import type { Fleet, FleetMember } from "@/types";
-import { App, Button, Dropdown, Empty, Input, Select, Spin, Tabs, Tag, theme, Tooltip, Typography } from "antd";
-import { Building2, CirclePlus, MessageSquare, Send, TrendingUp, UserPlus, Users, Zap } from "lucide-react";
+import { App, Button, Dropdown, Empty, Input, Select, Spin, Tag, theme, Tooltip, Typography } from "antd";
+import { Building2, CirclePlus, UserPlus, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AgentCard } from "./AgentCard";
-import { ChatPanel } from "./panels/ChatPanel";
-import { DirectMessagePanel } from "./panels/DirectMessagePanel";
-import { MeetingRoomMiniBar } from "./panels/MeetingRoomMiniBar";
-import { RiskRoomMiniBar } from "./panels/RiskRoomMiniBar";
-import { StrategyRoomMiniBar } from "./panels/StrategyRoomMiniBar";
-import { TokenPanel } from "./panels/TokenPanel";
-import { TradingRoomMiniBar } from "./panels/TradingRoomMiniBar";
-import { TrajectoryPanel } from "./panels/TrajectoryPanel";
 import { OfficeGame } from "./phaser/OfficeGame";
 import { fleetMemberToSceneMember } from "./phaser/OfficeScene";
 import { SCENE_TEMPLATES } from "./phaser/sceneTemplates";
@@ -58,9 +50,6 @@ export function OfficeTab() {
   const removeMember = useOfficeStore((s) => s.removeMember);
 
   const { modal, message: messageApi } = App.useApp();
-
-  const [rightTab, setRightTab] = useState<"chat" | "dm" | "trajectory" | "token">("chat");
-  const [dmTarget, setDmTarget] = useState<FleetMember | null>(null);
 
   // 初次加载舰队列表
   useEffect(() => {
@@ -103,20 +92,6 @@ export function OfficeTab() {
     }
     return labels;
   }, [currentTemplate, t]);
-
-  // 切换 fleet 时清空 DM 目标
-  useEffect(() => {
-    setDmTarget(null);
-    setRightTab("chat");
-  }, [activeFleetId]);
-
-  const handleAgentClick = (memberId: string) => {
-    const m = members.find((x) => x.id === memberId);
-    if (m) {
-      setDmTarget(m);
-      setRightTab("dm");
-    }
-  };
 
   /** 移除成员（带确认） */
   const handleRemoveMember = (member: FleetMember) => {
@@ -361,116 +336,28 @@ export function OfficeTab() {
           </Text>
         </div>
 
-        {/* ── 主内容区：左 Phaser + 右操作面板 ── */}
-        <div style={{ display: "flex", gap: 12, flex: 1, minHeight: 0 }}>
-          {/* 左侧：Phaser 画布 */}
-          <div
-            style={{
-              flex: "1 1 auto",
-              minWidth: 0,
-              background: token.colorBgContainer,
-              borderRadius: 8,
-              border: `1px solid ${token.colorBorderSecondary}`,
-              padding: 8,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-            }}
-          >
-            {/* Trading 房间实时行情 mini 条（仅 investment_office 场景渲染） */}
-            <TradingRoomMiniBar sceneTemplateSlug={activeFleet?.sceneTemplateSlug} />
-            {/* Meeting 房间晨会议题 mini 条（仅 investment_office 场景渲染） */}
-            <MeetingRoomMiniBar sceneTemplateSlug={activeFleet?.sceneTemplateSlug} />
-            {/* Strategy 房间策略列表 mini 条（仅 investment_office 场景渲染） */}
-            <StrategyRoomMiniBar sceneTemplateSlug={activeFleet?.sceneTemplateSlug} />
-            {/* Risk 房间压测结果 mini 条（仅 investment_office 场景渲染） */}
-            <RiskRoomMiniBar sceneTemplateSlug={activeFleet?.sceneTemplateSlug} />
-            {activeFleetId && (
-              <OfficeGame
-                sceneTemplateSlug={activeFleet?.sceneTemplateSlug}
-                members={sceneMembers}
-                roomLabels={roomLabels}
-                onAgentClick={handleAgentClick}
-              />
-            )}
-          </div>
-
-          {/* 右侧：操作面板 Tabs */}
-          <div
-            style={{
-              flex: "0 0 360px",
-              background: token.colorBgContainer,
-              borderRadius: 8,
-              border: `1px solid ${token.colorBorderSecondary}`,
-              display: "flex",
-              flexDirection: "column",
-              minHeight: 0,
-            }}
-          >
-            <Tabs
-              activeKey={rightTab}
-              onChange={(k) => setRightTab(k as typeof rightTab)}
-              size="small"
-              style={{ padding: "0 8px", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}
-              items={[
-                {
-                  key: "chat",
-                  label: (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      <MessageSquare size={12} /> {t("office.tabs.chat")}
-                    </span>
-                  ),
-                  children: activeFleetId
-                    ? (
-                      <div style={{ height: "100%", padding: "0 4px" }}>
-                        <ChatPanel fleetId={activeFleetId} />
-                      </div>
-                    )
-                    : null,
-                },
-                {
-                  key: "dm",
-                  label: (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      <Send size={12} /> {t("office.tabs.dm")}
-                    </span>
-                  ),
-                  children: activeFleetId
-                    ? (
-                      <div style={{ height: "100%", padding: "0 4px" }}>
-                        <DirectMessagePanel
-                          fleetId={activeFleetId}
-                          target={dmTarget}
-                          onBack={() => setRightTab("chat")}
-                        />
-                      </div>
-                    )
-                    : null,
-                },
-                {
-                  key: "trajectory",
-                  label: (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      <TrendingUp size={12} /> {t("office.tabs.trajectory")}
-                    </span>
-                  ),
-                  children: <TrajectoryPanel />,
-                },
-                {
-                  key: "token",
-                  label: (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      <Zap size={12} /> {t("office.tabs.token")}
-                    </span>
-                  ),
-                  children: activeFleetId
-                    ? <TokenPanel fleetId={activeFleetId} />
-                    : null,
-                },
-              ]}
-              tabBarStyle={{ marginBottom: 8 }}
+        {/* ── 主内容区：Phaser 画布 ── */}
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            background: token.colorBgContainer,
+            borderRadius: 8,
+            border: `1px solid ${token.colorBorderSecondary}`,
+            padding: 8,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
+          {activeFleetId && (
+            <OfficeGame
+              sceneTemplateSlug={activeFleet?.sceneTemplateSlug}
+              members={sceneMembers}
+              roomLabels={roomLabels}
+              onAgentClick={() => { /* TODO: 占位——原 DM 面板已移除 */ }}
             />
-          </div>
+          )}
         </div>
 
         {/* ── 底部成员列表 ── */}
@@ -498,15 +385,7 @@ export function OfficeTab() {
               <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
                 {members.map((m) => (
                   <div key={m.id} style={{ minWidth: 240, flex: "0 0 240px" }}>
-                    <AgentCard
-                      member={m}
-                      highlighted={dmTarget?.id === m.id}
-                      onClick={(member) => {
-                        setDmTarget(member);
-                        setRightTab("dm");
-                      }}
-                      onRemove={handleRemoveMember}
-                    />
+                    <AgentCard member={m} onRemove={handleRemoveMember} />
                   </div>
                 ))}
               </div>

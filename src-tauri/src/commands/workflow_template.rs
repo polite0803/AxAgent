@@ -254,87 +254,13 @@ pub async fn update_workflow_template(
     let trigger_config = input.trigger_config.take();
     let trigger_config_for_sync = trigger_config.clone();
 
-    // 如果更新的是 stock-analysis 模板，先注入 vendor 启用状态到 astock_client
-    // 必须在 input.variables 被移动到 db_repo 之前调用
-    // inject_vendor_state 仅更新内存中的过滤集合，不涉及数据库写入，即使保存失败也无副作用
-    if id == "stock-analysis" {
-        crate::commands::stock_workflow::decision::inject_vendor_state(
-            &state.astock_client,
-            Some(&input.variables),
-        );
-
-        // P1-1: 热更新 RealtimeMonitor 的告警冷却 + 轮询间隔
-        // 用户在 StockAnalysisConfigPanel 修改 monitor_alert_cooldown_secs 后立即生效，
-        // 无需重启应用。
-        if let Some(monitor) = state.stock_monitor.get() {
-            for v in &input.variables {
-                match v.name.as_str() {
-                    "monitor_alert_cooldown_secs" => {
-                        if let Some(secs) = v.value.as_i64() {
-                            monitor.set_alert_cooldown_secs(secs).await;
-                            tracing::info!(
-                                "[workflow_template] monitor_alert_cooldown_secs 热更新为 {secs}"
-                            );
-                        }
-                    },
-                    "monitor_poll_interval_secs" => {
-                        if let Some(secs) = v.value.as_u64() {
-                            monitor.set_poll_interval_secs(secs).await;
-                            tracing::info!(
-                                "[workflow_template] monitor_poll_interval_secs 热更新为 {secs}"
-                            );
-                        }
-                    },
-                    _ => {},
-                }
-            }
-        }
-
-        // P2: 热更新 CrossStockSignalAggregator 配置
-        if let Some(agg) = state.cross_stock_aggregator.get() {
-            let mut cfg = agg.config().await;
-            let mut changed = false;
-            for v in &input.variables {
-                match v.name.as_str() {
-                    "aggregator_window_secs" => {
-                        if let Some(secs) = v.value.as_i64() {
-                            cfg.window_secs = secs;
-                            changed = true;
-                        }
-                    },
-                    "aggregator_min_signal_count" => {
-                        if let Some(n) = v.value.as_u64() {
-                            cfg.min_signal_count = n as usize;
-                            changed = true;
-                        }
-                    },
-                    "aggregator_cooldown_secs" => {
-                        if let Some(secs) = v.value.as_i64() {
-                            cfg.cooldown_secs = secs;
-                            changed = true;
-                        }
-                    },
-                    "aggregator_min_strength" => {
-                        if let Some(s) = v.value.as_f64() {
-                            cfg.min_strength = s;
-                            changed = true;
-                        }
-                    },
-                    _ => {},
-                }
-            }
-            if changed {
-                agg.set_config(cfg.clone()).await;
-                tracing::info!(
-                    "[workflow_template] CrossStockSignalAggregator 配置热更新: window={}s min={} cooldown={}s strength={}",
-                    cfg.window_secs,
-                    cfg.min_signal_count,
-                    cfg.cooldown_secs,
-                    cfg.min_strength
-                );
-            }
-        }
-    }
+    // stock-analysis 模板热更新（vendor 状态注入已随 stock_workflow 模块删除）
+    // NOTE: stock_monitor 和 cross_stock_aggregator 已随下游功能清理移除
+    // if id == "stock-analysis" {
+    //     // P1-1: 热更新 RealtimeMonitor 的告警冷却 + 轮询间隔
+    //     // P2: 热更新 CrossStockSignalAggregator 配置
+    //     // ... (原实现依赖已删除的字段)
+    // }
 
     let updated = db_repo::update_workflow_template(
         db,

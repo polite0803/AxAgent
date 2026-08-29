@@ -49,8 +49,7 @@ pub(crate) struct SkillSummary {
 
 /// 技能摘要 MemoryProvider —— 把 SkillManager 缓存中的技能摘要暴露为 MemoryEntry。
 ///
-/// 通过 `Arc<RwLock<Vec<SkillSummary>>>` 与 SkillManager 共享数据；
-/// SkillManager 更新缓存后调用 `refresh()` 同步到本 provider。
+/// 通过 `Arc<RwLock<Vec<SkillSummary>>>` 与 SkillManager 共享数据。
 pub struct SkillSummaryProvider {
     /// 技能摘要快照（由 SkillManager 推送）
     skills: Arc<RwLock<Vec<SkillSummary>>>,
@@ -62,11 +61,13 @@ impl SkillSummaryProvider {
     }
 
     /// 用一份技能摘要快照初始化（构造后即可被 prefetch 检索）。
+    #[cfg(test)]
     pub(crate) fn with_skills(skills: Vec<SkillSummary>) -> Self {
         Self { skills: Arc::new(RwLock::new(skills)) }
     }
 
     /// 由 SkillManager 在缓存变更后调用，刷新本地快照。
+    #[cfg(test)]
     pub(crate) async fn refresh(&self, skills: Vec<SkillSummary>) {
         let mut guard = self.skills.write().await;
         *guard = skills;

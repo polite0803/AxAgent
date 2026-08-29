@@ -2652,6 +2652,7 @@
     "PROVIDER_KEY_DECRYPT_FAILED": "Entschlüsseln des Anbieterschlüssels fehlgeschlagen",
     "PROVIDER_MODEL_LIST_TIMEOUT": "Zeitüberschreitung beim Abrufen der Modellliste",
     "PROVIDER_NO_ACTIVE_KEY": "Kein aktiver Anbieterschlüssel",
+    "PROVIDER_MODEL_NOT_FOUND": "Kein verfügbares Modell beim Anbieter {provider_id} gefunden (angefragt: {model_id})",
     "PROVIDER_TEST_FAILED": "Testen des Anbieters fehlgeschlagen",
     "PROVIDER_UPDATE_FAILED": "Aktualisieren des Anbieters fehlgeschlagen",
     "PROXY_ADDRESS_NOT_ALLOWED": "Proxy-Adresse nicht erlaubt",

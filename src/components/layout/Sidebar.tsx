@@ -16,12 +16,11 @@ import {
   useSettingsStore,
   useUIStore,
   useUserProfileStore,
-  useWorkspaceStore,
 } from "@/stores";
 import type { AppSettings, PageKey } from "@/types";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { Avatar } from "antd";
-import { Globe, LineChart, Moon, Pin, PinOff, RotateCcw, Sun, User } from "lucide-react";
+import { Globe, Moon, Pin, PinOff, RotateCcw, Sun, User } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -271,7 +270,6 @@ export function Sidebar() {
   const toggleAgentPanel = useAgentPanelStore((s) => s.toggle);
   const isAgentPanelOpen = useAgentPanelStore((s) => s.isOpen);
   const agentInTheLoopEnabled = FEATURE_FLAGS.AGENT_IN_THE_LOOP;
-  const recentStocks = useWorkspaceStore((s) => s.recentStocks);
 
   const sections = useMemo<SidebarSection[]>(() => {
     const sections: SidebarSection[] = [];
@@ -374,37 +372,6 @@ export function Sidebar() {
               </Tooltip>
             );
           })}
-          {/* 金融域分组：展开时显示最近股票快捷列表 */}
-          {section.key === "finance" && !sidebarCollapsed && recentStocks.length > 0 && (
-            <div className="mt-0.5 mb-1 space-y-0.5">
-              {!sidebarCollapsed && (
-                <div
-                  className="text-sm px-3 pt-1 pb-0.5"
-                  style={{ color: "var(--muted)", fontSize: 11 }}
-                >
-                  {t("workspace.stockSwitcher.recent")}
-                </div>
-              )}
-              {recentStocks.slice(0, 5).map((stock) => (
-                <button
-                  key={stock.code}
-                  type="button"
-                  onClick={() =>
-                    navigate(
-                      `${BUILTIN_PAGE_PATH.financeInvestment}?tab=workspace&stockCode=${stock.code}`,
-                    )}
-                  className="w-full flex items-center gap-1.5 px-3 py-1 rounded text-left transition-colors hover:opacity-70"
-                  style={{ color: "var(--color-text-secondary)" }}
-                >
-                  <LineChart size={12} style={{ color: "var(--muted)", flexShrink: 0 }} />
-                  <span className="text-sm truncate flex-1">{stock.name}</span>
-                  <span className="text-sm font-mono" style={{ color: "var(--muted)", fontSize: 11 }}>
-                    {stock.code}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       ))}
 

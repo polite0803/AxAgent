@@ -115,11 +115,11 @@ pub fn assign_job(child: &tokio::process::Child) -> Result<JobHandle, String> {
     #[cfg(windows)]
     {
         let job = windows_impl::JobObject::new(child)?;
-        Ok(JobHandle { inner: Some(std::sync::Arc::new(job)) })
+        Ok(JobHandle { _inner: Some(std::sync::Arc::new(job)) })
     }
     #[cfg(not(windows))]
     {
-        Ok(JobHandle { inner: None })
+        Ok(JobHandle { _inner: None })
     }
 }
 
@@ -129,9 +129,7 @@ pub struct JobHandle {
     /// 此时 Arc<JobObject> 引用计数归零，JobObject 的 Drop impl 关闭句柄，
     /// 触发 JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE 终止整个进程树。
     #[cfg(windows)]
-    #[allow(dead_code)]
-    inner: Option<std::sync::Arc<windows_impl::JobObject>>,
+    _inner: Option<std::sync::Arc<windows_impl::JobObject>>,
     #[cfg(not(windows))]
-    #[allow(dead_code)]
-    inner: Option<()>,
+    _inner: Option<()>,
 }

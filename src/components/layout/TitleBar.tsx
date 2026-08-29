@@ -403,7 +403,7 @@ export function TitleBar() {
     [message, t],
   );
 
-  const GITHUB_REPO = "https://github.com/polite0803/AxInvest";
+  const GITHUB_REPO = "https://github.com/polite0803/AxAgent";
   const githubMenuItems: DropdownItem[] = [
     {
       key: "feature",

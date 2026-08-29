@@ -30,7 +30,6 @@ pub mod loop_checkpoint;
 pub mod mcp_server;
 pub mod memory;
 pub mod message;
-pub mod news_archive;
 pub mod paper_overviews;
 pub mod platform_config;
 pub mod program_policy;
@@ -39,7 +38,6 @@ pub mod provider;
 pub mod reading_list_items;
 pub mod reading_lists;
 pub mod retrieval_hit;
-pub mod rl_experience;
 pub mod search_provider;
 pub mod settings;
 pub mod skill;
@@ -58,10 +56,7 @@ pub mod workflow_execution_stats;
 pub mod workflow_template;
 pub mod workflow_tool;
 
-pub mod narrative_structure;
-
 pub mod louvain;
-pub mod market_platform;
 pub mod note;
 pub mod note_backlink_repository;
 pub mod note_graph;

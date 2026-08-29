@@ -29,7 +29,6 @@ use tracing::{debug, instrument, warn};
 
 /// Tauri 命令工具的元数据定义
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct TauriCommandToolDef {
     /// 工具名称
     pub name: &'static str,
@@ -37,7 +36,8 @@ pub struct TauriCommandToolDef {
     pub description: &'static str,
     /// 输入参数的 JSON Schema
     pub input_schema: Value,
-    /// 是否只读操作
+    /// 是否只读操作（供运行时安全过滤查询使用；当前消费方走 ToolInfo.is_read_only）
+    #[allow(dead_code)]
     pub is_read_only: bool,
 }
 

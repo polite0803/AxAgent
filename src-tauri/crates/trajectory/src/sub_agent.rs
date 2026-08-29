@@ -207,18 +207,13 @@ impl AgentMessage {
 /// 每个 agent 的 mailbox，持有收到的消息。
 /// 通过 `Arc<RwLock<>>` 实现线程安全（使用 tokio 异步锁，遵守 AGENTS.md 铁律 8）。
 pub struct AgentMailbox {
-    agent_id: String,
     messages: Arc<RwLock<std::collections::VecDeque<AgentMessage>>>,
     capacity: usize,
 }
 
 impl AgentMailbox {
-    pub fn new(agent_id: String, capacity: usize) -> Self {
-        Self {
-            agent_id,
-            messages: Arc::new(RwLock::new(std::collections::VecDeque::new())),
-            capacity,
-        }
+    pub fn new(_agent_id: String, capacity: usize) -> Self {
+        Self { messages: Arc::new(RwLock::new(std::collections::VecDeque::new())), capacity }
     }
 
     /// 投递消息到 mailbox。mailbox 满则返回 false。
@@ -839,6 +834,7 @@ impl Default for TaskDeduplicator {
 }
 
 impl TaskDeduplicator {
+    #[cfg(test)]
     pub(crate) fn new(similarity_threshold: f64) -> Self {
         Self { similarity_threshold, known_tasks: Vec::new(), max_capacity: 10_000 }
     }
@@ -890,20 +886,6 @@ impl TaskDeduplicator {
     pub(crate) fn register_task(&mut self, task: &str) {
         let tokens = Self::tokenize(task);
         self.known_tasks.push((task.to_string(), tokens));
-    }
-
-    /// Remove a task from the known set.
-    pub(crate) fn unregister_task(&mut self, task: &str) {
-        self.known_tasks.retain(|(t, _)| t != task);
-    }
-
-    /// Number of known tasks.
-    pub(crate) fn len(&self) -> usize {
-        self.known_tasks.len()
-    }
-
-    pub(crate) fn is_empty(&self) -> bool {
-        self.known_tasks.is_empty()
     }
 }
 

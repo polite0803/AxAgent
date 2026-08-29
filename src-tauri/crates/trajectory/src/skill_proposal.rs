@@ -13,16 +13,6 @@ use crate::storage::TrajectoryStorage;
 use crate::trajectory::{Trajectory, TrajectoryOutcome};
 use axagent_harness::util_fns::truncate_to_char_boundary;
 
-/// 从提案创建技能的参数（原 skill_manager.rs 移入）
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub(crate) struct SkillCreationParams {
-    pub name: String,
-    pub description: String,
-    pub content: String,
-    pub category: Option<String>,
-    pub tags: Option<Vec<String>>,
-    pub platforms: Option<Vec<String>>,
-}
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -31,20 +21,19 @@ const MIN_SUCCESSFUL_TRAJECTORIES: usize = 2;
 const MAX_PROPOSALS_STORED: usize = 50;
 
 pub struct SkillProposalService {
-    storage: Arc<TrajectoryStorage>,
     recent_proposals: Vec<SkillProposal>,
     topic_trajectory_count: HashMap<String, usize>,
     persist_path: std::path::PathBuf,
 }
 
 impl SkillProposalService {
-    pub fn new(storage: Arc<TrajectoryStorage>) -> Self {
+    pub fn new(_storage: Arc<TrajectoryStorage>) -> Self {
         let persist_path = dirs::home_dir()
             .unwrap_or_else(|| std::path::PathBuf::from("."))
             .join(".axagent")
             .join("skill_proposals.json");
         let recent_proposals = Self::load_from_disk(&persist_path).unwrap_or_default();
-        Self { storage, recent_proposals, topic_trajectory_count: HashMap::new(), persist_path }
+        Self { recent_proposals, topic_trajectory_count: HashMap::new(), persist_path }
     }
 
     fn load_from_disk(path: &std::path::Path) -> Option<Vec<SkillProposal>> {
@@ -231,16 +220,5 @@ fn truncate_args(args: &str, max_len: usize) -> String {
         args.to_string()
     } else {
         format!("{}...", truncate_to_char_boundary(args, max_len))
-    }
-}
-
-pub(crate) fn create_skill_from_proposal(proposal: &SkillProposal) -> SkillCreationParams {
-    SkillCreationParams {
-        name: proposal.suggested_name.clone(),
-        description: proposal.task_description.clone(),
-        content: proposal.suggested_content.clone(),
-        category: Some("auto-generated".to_string()),
-        tags: Some(vec![proposal.trigger_event.clone(), "auto-evolved".to_string()]),
-        platforms: None,
     }
 }

@@ -3,7 +3,7 @@
   "last_reviewed": "2026-07-02T00:00:00+08:00",
   "review_cycle_days": 90,
   "last_reviewed_by": "governance-bot",
-  "description": "AxInvest 投资决策加权因子配置表 — 所有硬编码权重的外部化入口。季度人工复核，超期未复核前端标黄提醒。",
+  "description": "AxAgent 投资决策加权因子配置表 — 所有硬编码权重的外部化入口。季度人工复核，超期未复核前端标黄提醒。",
 
   "portfolio_weights": {
     "serenity_factor": {

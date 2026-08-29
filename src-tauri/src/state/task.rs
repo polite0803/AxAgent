@@ -14,7 +14,6 @@ use dashmap::DashMap;
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 
-#[allow(dead_code)]
 pub struct TaskState {
     pub task_manager: Arc<axagent_runtime::task_manager::TaskManager>,
     pub auto_backup_handle: Arc<Mutex<Option<tokio::task::JoinHandle<()>>>>,
@@ -36,7 +35,6 @@ pub struct TaskState {
     pub steer_queue: Arc<tokio::sync::Mutex<HashMap<String, Vec<String>>>>,
 }
 
-#[allow(dead_code)]
 impl TaskState {
     #[allow(clippy::too_many_arguments)]
     pub fn new(

@@ -113,6 +113,65 @@ impl WorkEngine {
             .map(|(id, _)| id.as_str())
             .collect();
 
+        // ====== 第一遍扫描：标记"被激活控制边选中的 target" ======
+        // 这些 target 已经被某个条件分支或 switch 路径"选中"，
+        // 它们剩余的 Direct 边可能来自互斥路径（如 fallback 分支），不应阻塞。
+        let mut selected_targets: HashSet<&str> = HashSet::new();
+        for edge in &workflow.edges {
+            let is_conditional = matches!(
+                edge.edge_type,
+                EdgeType::ConditionTrue | EdgeType::ConditionFalse
+            );
+            let is_switch = workflow
+                .nodes
+                .iter()
+                .any(|n| n.base_id() == edge.source && matches!(n, WorkflowNode::Switch(_)));
+
+            if !is_conditional && !is_switch {
+                continue;
+            }
+            // source 还没完成 → 条件还不能判断，跳过
+            if !done_or_skipped.contains(edge.source.as_str()) {
+                continue;
+            }
+
+            let should_follow = if is_conditional {
+                let cond_output = workflow.results.get(edge.source.as_str());
+                let result = cond_output
+                    .and_then(|o| o.get("result"))
+                    .and_then(|r| r.as_bool())
+                    .unwrap_or(false);
+                let branch = edge.source_handle.as_deref().unwrap_or(match edge.edge_type {
+                    EdgeType::ConditionTrue => "true",
+                    EdgeType::ConditionFalse => "false",
+                    _ => "true",
+                });
+                (branch == "true" && result) || (branch == "false" && !result)
+            } else {
+                // Switch 边
+                let switch_output = workflow.results.get(edge.source.as_str());
+                let matched = switch_output
+                    .and_then(|o| o.get("matched_label"))
+                    .and_then(|l| l.as_str())
+                    .unwrap_or("");
+                let label = edge.source_handle.as_deref().unwrap_or("");
+                label.is_empty() || matched == label
+            };
+
+            tracing::info!(
+                "[compute_ready] 控制边 {}({:?}) → {} should_follow={}",
+                edge.source,
+                edge.edge_type,
+                edge.target,
+                should_follow,
+            );
+
+            if should_follow {
+                selected_targets.insert(edge.target.as_str());
+            }
+        }
+
+        // ====== 第二遍扫描：计算 remaining_deps，跳过已选中 target 的互斥 Direct 边 ======
         // 计算每个未完成节点的"未完成依赖数"
         let mut remaining_deps: HashMap<&str, usize> = HashMap::new();
         for node in &workflow.nodes {
@@ -121,8 +180,25 @@ impl WorkEngine {
         for edge in &workflow.edges {
             // source 未完成 → 检查是否因容错而跳过
             if !done_or_skipped.contains(edge.source.as_str()) {
-                // 如果 source Failed 且 target 允许容错，则不计入依赖
+                // ========== 互斥路径短路 ==========
+                // 如果 target 已经被某个激活的控制边选中，说明互斥路径上的
+                // Direct 边（如 l1_fallback_normalize → call_l2）不应再阻塞。
                 let target_id = edge.target.as_str();
+                if selected_targets.contains(target_id)
+                    && !matches!(
+                        edge.edge_type,
+                        EdgeType::ConditionTrue | EdgeType::ConditionFalse
+                    )
+                {
+                    tracing::info!(
+                        "[compute_ready] 互斥短路: {} → {} (target 已被控制边选中)",
+                        edge.source,
+                        target_id,
+                    );
+                    continue;
+                }
+
+                // 如果 source Failed 且 target 允许容错，则不计入依赖
                 let source_failed = failed_nodes.contains(edge.source.as_str());
                 let target_continue_on_fail =
                     continue_on_fail_map.get(target_id).copied().unwrap_or(false);
@@ -156,6 +232,15 @@ impl WorkEngine {
                     _ => "true",
                 });
                 let should_follow = (branch == "true" && result) || (branch == "false" && !result);
+                tracing::info!(
+                    "[compute_ready] cond edge {}({:?}) → {} result={:?} branch={} should_follow={}",
+                    edge.source,
+                    edge.edge_type,
+                    edge.target,
+                    result,
+                    branch,
+                    should_follow,
+                );
                 if !should_follow {
                     continue;
                 }
@@ -178,7 +263,7 @@ impl WorkEngine {
             }
         }
 
-        workflow
+        let ready: Vec<String> = workflow
             .nodes
             .iter()
             .filter(|n| {
@@ -189,7 +274,60 @@ impl WorkEngine {
                 is_pending && deps_met && n.base_enabled() && !loop_body_steps.contains(n.base_id())
             })
             .map(|n| n.base_id().to_string())
-            .collect()
+            .collect();
+
+        // [DIAG] 当 ready 为空但存在 pending 节点时，打印 remaining_deps 精确诊断
+        if ready.is_empty() {
+            let pending_ids: Vec<String> = workflow
+                .nodes
+                .iter()
+                .filter_map(|n| {
+                    let st = workflow.node_states.get(n.base_id());
+                    (st.is_none_or(|s| matches!(s.status, NodeStatus::Pending | NodeStatus::Ready)))
+                        .then(|| n.base_id().to_string())
+                })
+                .collect();
+            if !pending_ids.is_empty() {
+                let deps_dump: Vec<String> = pending_ids
+                    .iter()
+                    .map(|id| {
+                        let deps = remaining_deps.get(id.as_str()).copied().unwrap_or(0);
+                        let node_state = workflow
+                            .node_states
+                            .get(id)
+                            .map(|s| format!("{:?}", s.status))
+                            .unwrap_or_else(|| "NO_STATE".to_string());
+                        let in_edges: Vec<String> = workflow
+                            .edges
+                            .iter()
+                            .filter(|e| e.target == *id)
+                            .map(|e| {
+                                let src_done = done_or_skipped.contains(e.source.as_str());
+                                format!(
+                                    "{}(src_done={}, type={:?})",
+                                    e.source, src_done, e.edge_type
+                                )
+                            })
+                            .collect();
+                        format!(
+                            "  {} state={} remaining={} in_edges=[{}]",
+                            id,
+                            node_state,
+                            deps,
+                            in_edges.join(", ")
+                        )
+                    })
+                    .collect();
+                tracing::warn!(
+                    workflow_id = %workflow.id,
+                    pending_nodes = ?pending_ids,
+                    deps_dump = ?deps_dump,
+                    "🔍 [DIAG] compute_ready_nodes 返回空 — 诊断 remaining_deps"
+                );
+            }
+        }
+
+        ready
     }
 
     // ── Typestate 辅助方法（阶段 B） ──
@@ -232,6 +370,53 @@ impl WorkEngine {
             .map(|(id, _)| id.as_str())
             .collect();
 
+        // ====== 第一遍扫描：标记"被激活控制边选中的 target" ======
+        let mut selected_targets: HashSet<&str> = HashSet::new();
+        for edge in &workflow.edges {
+            let is_conditional = matches!(
+                edge.edge_type,
+                EdgeType::ConditionTrue | EdgeType::ConditionFalse
+            );
+            let is_switch = workflow
+                .nodes
+                .iter()
+                .any(|n| n.base_id() == edge.source && matches!(n, WorkflowNode::Switch(_)));
+
+            if !is_conditional && !is_switch {
+                continue;
+            }
+            if !done_or_skipped.contains(edge.source.as_str()) {
+                continue;
+            }
+
+            let should_follow = if is_conditional {
+                let cond_output = workflow.results.get(edge.source.as_str());
+                let result = cond_output
+                    .and_then(|o| o.get("result"))
+                    .and_then(|r| r.as_bool())
+                    .unwrap_or(false);
+                let branch = edge.source_handle.as_deref().unwrap_or(match edge.edge_type {
+                    EdgeType::ConditionTrue => "true",
+                    EdgeType::ConditionFalse => "false",
+                    _ => "true",
+                });
+                (branch == "true" && result) || (branch == "false" && !result)
+            } else {
+                let switch_output = workflow.results.get(edge.source.as_str());
+                let matched = switch_output
+                    .and_then(|o| o.get("matched_label"))
+                    .and_then(|l| l.as_str())
+                    .unwrap_or("");
+                let label = edge.source_handle.as_deref().unwrap_or("");
+                label.is_empty() || matched == label
+            };
+
+            if should_follow {
+                selected_targets.insert(edge.target.as_str());
+            }
+        }
+
+        // ====== 第二遍扫描：计算 remaining_deps，跳过已选中 target 的互斥 Direct 边 ======
         // 计算每个未完成节点的"未完成依赖数"
         let mut remaining_deps: HashMap<&str, usize> = HashMap::new();
         for node in &workflow.nodes {
@@ -239,7 +424,17 @@ impl WorkEngine {
         }
         for edge in &workflow.edges {
             if !done_or_skipped.contains(edge.source.as_str()) {
-                *remaining_deps.entry(edge.target.as_str()).or_insert(0) += 1;
+                // 互斥路径短路：target 已被激活的控制边选中 → 来自互斥分支的 Direct 边不再阻塞
+                let target_id = edge.target.as_str();
+                if selected_targets.contains(target_id)
+                    && !matches!(
+                        edge.edge_type,
+                        EdgeType::ConditionTrue | EdgeType::ConditionFalse
+                    )
+                {
+                    continue;
+                }
+                *remaining_deps.entry(target_id).or_insert(0) += 1;
                 continue;
             }
 
@@ -330,10 +525,10 @@ impl WorkEngine {
         node_id: &str,
     ) -> Option<RunningNode> {
         let node = workflow.nodes.iter().find(|n| n.base_id() == node_id)?.clone();
-        let state = workflow.node_states.get(node_id).cloned()?;
+        let prev_state = workflow.node_states.get(node_id).cloned()?;
 
         // 只有 Ready 状态才能转换为 Running
-        if !matches!(state.status, NodeStatus::Ready) {
+        if !matches!(prev_state.status, NodeStatus::Ready) {
             return None;
         }
 
@@ -342,8 +537,13 @@ impl WorkEngine {
         let ready = pending.mark_ready();
         let running = ready.start();
 
-        // 同步回 Workflow
-        workflow.node_states.insert(node_id.to_string(), running.runtime_state().clone());
+        // 同步回 Workflow，保留旧状态的 attempts 等运行时计数
+        // （Typestate 从 Pending 重建会把 runtime_state 重置为 default，
+        // 丢掉 reset_node_for_retry 递增的 attempts，导致重试死循环）
+        let mut new_state = running.runtime_state().clone();
+        new_state.attempts = prev_state.attempts;
+        new_state.error = None;
+        workflow.node_states.insert(node_id.to_string(), new_state);
 
         Some(running)
     }
@@ -420,6 +620,18 @@ impl WorkEngine {
 // ── Condition 节点分支跳过辅助 ──
 
 /// Condition 节点完成后，将不匹配分支上的所有下游节点标记为 Skipped。
+///
+/// **汇合点保护（2026-08-28 修复）**：此前直接递归标记整棵下游子树，
+/// 当分支在下游重新汇合时（如认知编排主 DAG 中 `call_l2` 同时有
+/// `l1_low_conf(ConditionFalse)` 活跃边和 `l1_fallback_normalize` 跳过边），
+/// 汇合点会被跳过分支连坐标记为 Skipped，导致活跃路径也中断。
+///
+/// 现改为两阶段算法：
+///   1. 先收集被跳过分支的子树节点集合（不改状态）；
+///   2. 不动点收敛：子树内节点若存在任一「活跃入边」（来自子树外的
+///      follow 分支条件边 / 已完成或未决定状态的非条件上游），则视为
+///      分支汇合点，移出跳过集合并级联重估其下游；
+///   3. 最后统一把仍在集合内且处于 Pending/Ready 的节点标记 Skipped。
 pub(crate) fn skip_disabled_branch_nodes(
     workflow: &mut Workflow,
     edges: &[WorkflowEdge],
@@ -431,7 +643,11 @@ pub(crate) fn skip_disabled_branch_nodes(
 
     // 确定要跳过的分支：result==true → 跳过 "false" 分支；result==false → 跳过 "true" 分支
     let skip_branch = if result { "false" } else { "true" };
+    let follow_branch = if result { "true" } else { "false" };
 
+    // ── 阶段 1：收集跳过分支子树（不改状态，terminal 节点不展开）──
+    let mut skip_set: HashSet<String> = HashSet::new();
+    let mut stack: Vec<String> = Vec::with_capacity(16);
     for edge in edges {
         if edge.source != cond_node_id {
             continue;
@@ -441,41 +657,25 @@ pub(crate) fn skip_disabled_branch_nodes(
         }
         let actual_branch = edge.source_handle.as_deref().unwrap_or(match edge.edge_type {
             EdgeType::ConditionTrue => "true",
-            EdgeType::ConditionFalse => "false",
-            _ => "true",
+            _ => "false",
         });
         if actual_branch == skip_branch {
-            mark_subtree_skipped(workflow, edges, &edge.target);
+            stack.push(edge.target.clone());
         }
     }
-}
-
-/// P2-20: 标记节点及其所有下游节点为 Skipped —— **改用显式栈迭代**避免栈溢出。
-///
-/// 之前的递归实现在深 DAG（如 500+ 节点的 financial pipeline）上会因为
-/// Rust 默认栈大小（8MB）触发 stack overflow。改成 `Vec<String>` 显式栈：
-/// - 每个节点 push 一次
-/// - 弹栈时把每个未访问的下游 push 进去
-/// - 遇到已 terminal 状态（Completed / Failed / Skipped）就跳过
-pub(crate) fn mark_subtree_skipped(workflow: &mut Workflow, edges: &[WorkflowEdge], root_id: &str) {
-    let mut stack: Vec<String> = Vec::with_capacity(16);
-    stack.push(root_id.to_string());
-
-    // 防御性上限：单次 mark 最多处理 MAX_NODES 个节点，避免恶意/畸形 DAG 触发 DoS
+    // 防御性上限：单次标记最多处理 MAX_NODES 个节点，避免恶意/畸形 DAG 触发 DoS
     const MAX_NODES: usize = 10_000;
     let mut processed: usize = 0;
-
     while let Some(node_id) = stack.pop() {
         if processed >= MAX_NODES {
             tracing::error!(
                 processed,
-                "mark_subtree_skipped: 超过 MAX_NODES={MAX_NODES}，停止展开以防 DoS"
+                "skip_disabled_branch_nodes: 超过 MAX_NODES={MAX_NODES}，停止展开以防 DoS"
             );
             break;
         }
         processed += 1;
-
-        // 已 terminal 状态 → 不再展开
+        // 已 terminal 状态 → 不收集不再展开
         if let Some(state) = workflow.node_states.get(&node_id)
             && matches!(
                 state.status,
@@ -484,33 +684,73 @@ pub(crate) fn mark_subtree_skipped(workflow: &mut Workflow, edges: &[WorkflowEdg
         {
             continue;
         }
+        if !skip_set.insert(node_id.clone()) {
+            continue;
+        }
+        for edge in edges {
+            if edge.source == node_id {
+                stack.push(edge.target.clone());
+            }
+        }
+    }
 
-        workflow
+    // ── 阶段 2：汇合点保护（不动点收敛）──
+    loop {
+        let mut changed = false;
+        for node in skip_set.clone() {
+            // 活跃入边：来自子树外、且不会被执行跳过的上游
+            let has_active_incoming = edges.iter().any(|e| {
+                if e.target != node {
+                    return false;
+                }
+                if skip_set.contains(&e.source) {
+                    return false;
+                }
+                match e.edge_type {
+                    EdgeType::ConditionTrue | EdgeType::ConditionFalse => {
+                        // 条件边：仅 follow 分支视为活跃
+                        let branch = e.source_handle.as_deref().unwrap_or(match e.edge_type {
+                            EdgeType::ConditionTrue => "true",
+                            _ => "false",
+                        });
+                        branch == follow_branch
+                    },
+                    _ => {
+                        // 非条件边：source 非 Skipped 即视为活跃
+                        // （Completed 直连 / Pending 待执行，保守保护汇合点）
+                        workflow
+                            .node_states
+                            .get(&e.source)
+                            .map(|s| !matches!(s.status, NodeStatus::Skipped))
+                            .unwrap_or(true)
+                    },
+                }
+            });
+            if has_active_incoming {
+                skip_set.remove(&node);
+                changed = true;
+            }
+        }
+        if !changed {
+            break;
+        }
+    }
+
+    // ── 阶段 3：统一应用 Skipped（仅 Pending/Ready，不覆盖 terminal 状态）──
+    for node_id in skip_set {
+        let state = workflow
             .node_states
-            .entry(node_id.clone())
+            .entry(node_id)
             .or_insert_with(|| NodeRuntimeState {
                 status: NodeStatus::Skipped,
                 attempts: 0,
                 error: None,
                 started_at: None,
                 completed_at: Some(current_timestamp() as i64),
-            })
-            .status = NodeStatus::Skipped;
-
-        // 把所有下游未访问节点 push 到栈上（继续展开）
-        for edge in edges {
-            if edge.source == node_id {
-                let target = edge.target.clone();
-                let already_terminal = workflow.node_states.get(&target).is_some_and(|s| {
-                    matches!(
-                        s.status,
-                        NodeStatus::Completed | NodeStatus::Failed | NodeStatus::Skipped
-                    )
-                });
-                if !already_terminal {
-                    stack.push(target);
-                }
-            }
+            });
+        if matches!(state.status, NodeStatus::Pending | NodeStatus::Ready) {
+            state.status = NodeStatus::Skipped;
+            state.completed_at = Some(current_timestamp() as i64);
         }
     }
 }

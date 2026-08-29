@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "version": "1.0.0",
-  "description": "AxInvest LLM Agent 输出格式强约束 Schema。所有 LLM Agent（trader/research-mgr/catalyst/debate-convergence/risk-level/data-quality）的输出必须通过本 Schema 验证，否则触发 strict_mode 降级。",
+  "description": "AxAgent LLM Agent 输出格式强约束 Schema。所有 LLM Agent（trader/research-mgr/catalyst/debate-convergence/risk-level/data-quality）的输出必须通过本 Schema 验证，否则触发 strict_mode 降级。",
 
   "schemas": {
     "base_event": {

@@ -10,7 +10,6 @@
 use std::sync::Arc;
 use tokio::sync::RwLock as TokioRwLock;
 
-#[allow(dead_code)]
 pub struct SkillState {
     pub skill_evolution_engine: Arc<tokio::sync::Mutex<axagent_trajectory::SkillEvolutionEngine>>,
     pub skill_proposal_service: Arc<TokioRwLock<axagent_trajectory::SkillProposalService>>,

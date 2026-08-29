@@ -28,10 +28,103 @@ use crate::tools::xianyu_scanner::XianyuScanner;
 use crate::tools::zhihu_scanner::ZhihuScanner;
 use crate::tools::zhubajie_scanner::ZhubajieScanner;
 use async_trait::async_trait;
-use axagent_analysis_engine::opc::evaluator::{
-    DemandEvaluation, EvaluationConfig, evaluate_demand_value,
-};
 use serde::{Deserialize, Serialize};
+
+// ── 内联评估类型（原 axagent-analysis-engine::opc::evaluator 精简版） ──
+
+/// 需求类型
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum DemandType {
+    #[default]
+    Unknown,
+    ToolSoftware,
+    ContentCreation,
+    Design,
+    Development,
+    Operations,
+    Marketing,
+    Education,
+    EnterpriseService,
+    Outsourcing,
+    Consulting,
+}
+
+/// 价格区间
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct PriceRange {
+    min: f64,
+    max: f64,
+    currency: String,
+    confidence: f64,
+}
+
+/// 需求价值评估结果
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DemandEvaluation {
+    demand_id: String,
+    pain_score: f64,
+    existing_solutions: u32,
+    market_gap_score: f64,
+    commercial_value_score: f64,
+    opportunity_level: String,
+    confidence: f64,
+    demand_type: DemandType,
+    extracted_price_range: Option<PriceRange>,
+    market_fit_score: f64,
+}
+
+impl DemandEvaluation {
+    pub fn opportunity_level(&self) -> &str {
+        match self.commercial_value_score {
+            v if v >= 80.0 => "very_high",
+            v if v >= 60.0 => "high",
+            v if v >= 40.0 => "medium",
+            _ => "low",
+        }
+    }
+}
+
+/// 简化版需求评估：基于关键词密度返回启发式评分
+fn evaluate_demand_value(
+    demand_id: &str,
+    title: &str,
+    description: &str,
+    _known_competitors: Option<u32>,
+) -> DemandEvaluation {
+    let text = format!("{} {}", title, description).to_lowercase();
+    let pain_keywords = [
+        "urgent",
+        "critical",
+        "frustrated",
+        "painful",
+        "deadline",
+        "urgent",
+        "急需",
+        "痛点",
+        "麻烦",
+        "困难",
+    ];
+    let pain_hits = pain_keywords.iter().filter(|k| text.contains(*k)).count() as f64;
+    let pain_score = (pain_hits * 20.0).clamp(10.0, 90.0);
+    let market_gap_score = 50.0; // 无真实评估引擎时取中位
+    let commercial_value_score = (pain_score * 0.5 + market_gap_score * 0.5).round();
+
+    DemandEvaluation {
+        demand_id: demand_id.to_string(),
+        pain_score,
+        existing_solutions: 0,
+        market_gap_score,
+        commercial_value_score,
+        opportunity_level: String::new(),
+        confidence: 0.3,
+        demand_type: DemandType::Unknown,
+        extracted_price_range: None,
+        market_fit_score: 50.0,
+    }
+}
 
 // ── DTO 定义 ──────────────────────────────────────────────────
 
@@ -235,24 +328,14 @@ impl AggregateMarketplaceScanner {
     /// 搜索需求线索并执行价值评估
     ///
     /// 完整流水线：扫描 → 评估 → 筛选高价值 → 排序
-    pub async fn search_and_evaluate(
-        &self,
-        q: &str,
-        config: Option<&EvaluationConfig>,
-    ) -> Result<Vec<EvaluatedDemandLead>, String> {
+    pub async fn search_and_evaluate(&self, q: &str) -> Result<Vec<EvaluatedDemandLead>, String> {
         let leads = self.search_all(q).await?;
 
         let mut evaluated: Vec<EvaluatedDemandLead> = leads
             .into_iter()
             .map(|lead| {
                 let (id, title, desc) = lead.to_evaluation_input();
-                let evaluation = if let Some(cfg) = config {
-                    axagent_analysis_engine::opc::evaluator::evaluate_demand_with_config(
-                        &id, &title, &desc, None, cfg,
-                    )
-                } else {
-                    evaluate_demand_value(&id, &title, &desc, None)
-                };
+                let evaluation = evaluate_demand_value(&id, &title, &desc, None);
                 EvaluatedDemandLead::new(lead, evaluation)
             })
             .collect();
@@ -278,7 +361,7 @@ impl AggregateMarketplaceScanner {
         q: &str,
         min_score: f64,
     ) -> Result<Vec<EvaluatedDemandLead>, String> {
-        let evaluated = self.search_and_evaluate(q, None).await?;
+        let evaluated = self.search_and_evaluate(q).await?;
         let filtered: Vec<EvaluatedDemandLead> =
             evaluated.into_iter().filter(|e| e.value_score() >= min_score).collect();
         Ok(filtered)
@@ -936,7 +1019,7 @@ mod tests {
         let mut scanner = AggregateMarketplaceScanner::new();
         scanner.add_scanner(Box::new(MockMarketplaceScanner::new("test")));
 
-        let results = scanner.search_and_evaluate("test", None).await.unwrap();
+        let results = scanner.search_and_evaluate("test").await.unwrap();
 
         assert!(!results.is_empty(), "应返回评估后的线索");
         for evaluated in &results {
@@ -1007,12 +1090,7 @@ mod tests {
             confidence: 0.0,
         };
 
-        let evaluation = axagent_analysis_engine::opc::evaluator::evaluate_demand_value(
-            "test",
-            "Test",
-            "Description",
-            None,
-        );
+        let evaluation = evaluate_demand_value("test", "Test", "Description", None);
 
         let evaluated = EvaluatedDemandLead::new(lead, evaluation);
         assert!(evaluated.value_score() >= 0.0);

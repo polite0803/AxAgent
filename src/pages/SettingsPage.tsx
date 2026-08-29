@@ -50,9 +50,6 @@ const LazyDatabaseSettings = lazy(() =>
 const LazyStorageSpaceManager = lazy(() =>
   import("@/components/settings/StorageSpaceManager").then((m) => ({ default: m.StorageSpaceManager }))
 );
-const LazySchedulerSettings = lazy(() =>
-  import("@/components/settings/SchedulerSettings").then((m) => ({ default: m.SchedulerSettings }))
-);
 const LazyAboutPage = lazy(() => import("@/components/settings/AboutPage").then((m) => ({ default: m.AboutPage })));
 const LazySearchProviderSettings = lazy(() =>
   import("@/components/settings/SearchProviderSettings").then((m) => ({ default: m.SearchProviderSettings }))
@@ -192,11 +189,6 @@ const SECTION_COMPONENTS: Record<SettingsSection, () => React.ReactNode> = {
   storage: () => (
     <Suspense fallback={<SectionFallback />}>
       <LazyStorageSpaceManager />
-    </Suspense>
-  ),
-  scheduler: () => (
-    <Suspense fallback={<SectionFallback />}>
-      <LazySchedulerSettings />
     </Suspense>
   ),
   about: () => (

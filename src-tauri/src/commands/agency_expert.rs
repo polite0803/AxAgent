@@ -302,14 +302,6 @@ fn generate_workflow_ids(expert_id: &str, workflows: &[RecommendedWorkflow]) -> 
         .collect()
 }
 
-/// 从指定目录导入机构专家（供种子化等非 Tauri 命令场景调用）。
-pub(crate) async fn import_agency_experts_from_dir(
-    db: &sea_orm::DatabaseConnection,
-    path: &str,
-) -> Result<ImportResult, String> {
-    import_experts_impl(db, Path::new(path)).await
-}
-
 #[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "导入机构专家")]
 #[tauri::command]
 pub async fn import_agency_experts(
@@ -771,7 +763,6 @@ pub async fn clear_agency_experts(state: State<'_, AppState>) -> Result<ImportRe
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[allow(dead_code)]
 pub struct UpdateExpertRequest {
     pub id: String,
     pub name: Option<String>,

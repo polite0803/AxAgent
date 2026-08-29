@@ -63,26 +63,18 @@ pub struct MemoryExtractionResult {
 }
 
 pub struct AutoMemoryExtractor {
-    storage: Arc<TrajectoryStorage>,
     memory_service: Arc<tokio::sync::RwLock<MemoryService>>,
-    pattern_learner: Arc<tokio::sync::RwLock<PatternLearner>>,
     recent_extractions: Vec<ExtractedMemory>,
     extraction_cache: HashMap<String, Vec<ExtractedMemory>>,
 }
 
 impl AutoMemoryExtractor {
     pub fn new(
-        storage: Arc<TrajectoryStorage>,
+        _storage: Arc<TrajectoryStorage>,
         memory_service: Arc<tokio::sync::RwLock<MemoryService>>,
-        pattern_learner: Arc<tokio::sync::RwLock<PatternLearner>>,
+        _pattern_learner: Arc<tokio::sync::RwLock<PatternLearner>>,
     ) -> Self {
-        Self {
-            storage,
-            memory_service,
-            pattern_learner,
-            recent_extractions: Vec::new(),
-            extraction_cache: HashMap::new(),
-        }
+        Self { memory_service, recent_extractions: Vec::new(), extraction_cache: HashMap::new() }
     }
 
     pub fn analyze_trajectory(

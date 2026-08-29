@@ -240,16 +240,54 @@ impl NodeExecutorTrait for SubWorkflowExecutor {
         let child_eid_value = serde_json::Value::String(child_execution_id.clone());
 
         // dry_run 已在前面短路，此处不会到达；移除原 dry_run 后处理逻辑。
-        let enriched_output = if output.is_object() {
+        let mut enriched_output = if output.is_object() {
             let mut obj = output.as_object().cloned().unwrap_or_default();
-            obj.insert("_child_execution_id".to_string(), child_eid_value.clone());
+            // End 节点 wrapper 拆包：子工作流正常终止时最终输出为
+            // EndExecutor 构造的 {status:"terminated", node_id, output:<实际结果>, source}。
+            // 将实际结果平铺提升到顶层，供主 DAG 按字段直接消费
+            // （如 l1_result.category / l1_result.confidence），否则主 DAG
+            // 只能读到嵌套在 output 里的字段，条件/断言全部判 null。
+            if obj.get("status").and_then(|v| v.as_str()) == Some("terminated")
+                && let Some(inner) = obj.remove("output")
+            {
+                match inner {
+                    serde_json::Value::Object(inner_map) => {
+                        for (k, v) in inner_map {
+                            obj.entry(k).or_insert(v);
+                        }
+                    },
+                    serde_json::Value::Null => {},
+                    other => {
+                        obj.entry("result".to_string()).or_insert(other);
+                    },
+                }
+            }
             serde_json::Value::Object(obj)
         } else {
-            serde_json::json!({
-                "result": output,
-                "_child_execution_id": child_eid_value,
-            })
+            serde_json::Value::Null
         };
+        if !enriched_output.is_object() {
+            enriched_output = serde_json::json!({
+                "result": output,
+            });
+        }
+        tracing::info!(
+            sub_workflow_id = %sub_node.config.sub_workflow_id,
+            output_var = %sub_node.config.output_var,
+            output_preview = %output,
+            enriched_preview = %enriched_output,
+            "🔍 [DIAG] SubWorkflowExecutor 子工作流执行完毕 — 原始 output 和 解包后 enriched_output"
+        );
+
+        if let Some(obj) = enriched_output.as_object_mut() {
+            obj.insert("_child_execution_id".to_string(), child_eid_value.clone());
+        }
+
+        tracing::info!(
+            sub_workflow_id = %sub_node.config.sub_workflow_id,
+            final_output = %enriched_output,
+            "🔍 [DIAG] SubWorkflowExecutor 返回前 — 最终写入父工作流变量的值"
+        );
 
         Ok(NodeOutput {
             output: enriched_output,

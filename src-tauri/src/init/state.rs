@@ -10,13 +10,11 @@ use tokio::sync::RwLock as TokioRwLock;
 use super::database::DatabaseInitResult;
 use crate::AppState;
 use crate::app_state::SemanticCacheState;
-use crate::commands::opc_llm_bridge::OpcLlmBridge;
 use crate::commands::proactive::ProactiveService;
 use crate::semantic_cache::{CacheConfig, SemanticCache};
 use crate::state::{BrowserClientField, LearningEngineState, SandboxExecutorField, ToolState};
 use axagent_dao::repo::agent_session_repo::DaoAgentSessionRepository;
 use axagent_dao::repo::feedback_data_lake::FeedbackDataLakeDao;
-use axagent_dao::rl_experience_store::RlExperienceStoreImpl;
 use axagent_dao::search_sources_impl::{
     MemoryUnifiedSource, ObsidianUnifiedSource, RagUnifiedSource, WikiUnifiedSource,
 };
@@ -575,14 +573,6 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let workflow_optimizer: Arc<dyn axagent_harness::WorkflowOptimizer> =
         axagent_trajectory::WorkflowOptimizerImpl::with_defaults().into_arc();
 
-    // P1-5/P1-6: 用 AxInvest 装饰器包装默认 reflector / evolver
-    // - ReflectorDecorator: 扫描 __untrusted 标记，追加到 Reflection.metadata
-    // - EvolverDecorator: 对 stock-* 模板的自动进化做保护性阻断
-    let workflow_reflector: Arc<dyn axagent_harness::WorkflowReflector> =
-        Arc::new(super::axinvest_decorators::AxInvestReflectorDecorator::new(workflow_reflector));
-    let workflow_evolver: Arc<dyn axagent_harness::WorkflowEvolver> =
-        Arc::new(super::axinvest_decorators::AxInvestEvolverDecorator::new(workflow_evolver));
-
     // P0-OPT: LLM 变异器注入移到后台异步，加速首帧显示
     tracing::debug!("WorkflowEvolver created (LLM injection deferred to background)");
 
@@ -985,22 +975,17 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
 
     // ── M1: 新子状态分解 — 学习引擎与工具创建器 ──
     // 初始化 OPC 行业适配器注册表（P0-1-A：行业包驱动，替代 create_all_adapters 硬编码）
-    let mut industry_registry = IndustryAdapterRegistry::new();
-    for adapter in crate::commands::opc_workflows::load_industry_adapters_from_packs(Some(&app_dir))
-    {
-        industry_registry.register(adapter);
-    }
+    let industry_registry = IndustryAdapterRegistry::new();
+    // NOTE: opc_workflows 已随 AxAgent 清理移除，行业适配器暂空注册表
+    // for adapter in crate::commands::opc_workflows::load_industry_adapters_from_packs(Some(&app_dir))
+    // {
+    //     industry_registry.register(adapter);
+    // }
     let industry_adapter_registry = Arc::new(Mutex::new(industry_registry));
 
-    // 初始化 OPC 行业学习引擎（LLM 端口可选，未配置时使用规则回退；
-    // RL 经验持久化存储注入 SQLite 实现，确保状态跨重启持久化）
-    let rl_store = Arc::new(RlExperienceStoreImpl::new(Arc::new(sea_db.clone())));
-    // 注入真实 LLM 推理端口（复用默认提供商 + execute_llm），
-    // 使反思/进化/自我改进从规则占位升级为真实 LLM；无 provider 时引擎自动回退规则
-    let opc_llm_bridge = Arc::new(OpcLlmBridge::new(harness.clone()));
-    let industry_learning_engine = Arc::new(
-        IndustryLearningEngine::new().with_rl_store(rl_store).with_llm_port(opc_llm_bridge),
-    );
+    // 初始化行业学习引擎（LLM 端口可选，未配置时使用规则回退；
+    // RL 持久化存储已随 AxInvest 清理移除，使用内置内存存储）
+    let industry_learning_engine = Arc::new(IndustryLearningEngine::new());
 
     let learning_state = LearningEngineState::new(
         text_grad_engine.clone(),
@@ -1020,75 +1005,6 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     // P0-OPT: 自进化闭环 namespace 创建 + Reflector 历史加载 推迟到后台
     // 这些是非关键路径初始化，不阻塞首帧渲染
     tracing::info!("[startup] Reflector Insights namespace + load_persistence 推迟到后台");
-
-    // ── 股票业务客户端与交易引擎 ──
-    // C5.1: 注入 NewsArchiveSink，使 get_news/search_news 的结果自动写入 news_archive 表
-    let news_sink = std::sync::Arc::new(crate::init::news_archive_sink::NewsArchiveSinkImpl::new(
-        sea_db.clone(),
-    ));
-    // 注入浏览器 HTTP fetch 能力（Playwright 绕过 EastMoney JA3 封锁）
-    use axagent_astock_data::vendors::browser_eastmoney::BrowserHttpFetch;
-    #[cfg(not(mobile))]
-    let browser_fetcher: Arc<dyn BrowserHttpFetch> = Arc::new(
-        crate::init::browser_fetcher::PlaywrightBrowserFetcher::new(browser_client.clone()),
-    );
-    #[cfg(mobile)]
-    let _browser_fetcher: Arc<dyn BrowserHttpFetch> =
-        Arc::new(crate::init::browser_fetcher::NoopBrowserFetcher);
-    #[cfg(not(mobile))]
-    let astock_client = Arc::new(
-        axagent_astock_data::AStockClient::new()
-            .with_news_archive_sink(news_sink)
-            .with_browser_fetcher(browser_fetcher),
-    );
-    #[cfg(mobile)]
-    let astock_client =
-        Arc::new(axagent_astock_data::AStockClient::new().with_news_archive_sink(news_sink));
-    // 注册到 tools crate 全局状态，供 finance.rs 中的数据 API 工具（get_north_bound_flow 等）使用
-    axagent_tools::global_state::set_astock_client(astock_client.clone());
-
-    // 从 stock-analysis 模板加载 vendor 启用状态，注入到 astock_client
-    // 这样前端搜索（Tauri 命令）和工作流执行都能按启用状态过滤 vendor
-    // 修复：必须导入 sea_orm::EntityTrait，否则 Entity::find_by_id 无法解析
-    {
-        use axagent_entities::workflow_template;
-        use sea_orm::EntityTrait;
-        if let Ok(Some(template)) =
-            workflow_template::Entity::find_by_id("stock-analysis").one(&sea_db).await
-        {
-            if let Some(vars_json) = &template.variables {
-                if let Ok(vars) = serde_json::from_str::<
-                    Vec<axagent_harness::workflow_types::Variable>,
-                >(vars_json)
-                {
-                    let template_vars: Vec<(String, serde_json::Value)> =
-                        vars.iter().map(|v| (v.name.clone(), v.value.clone())).collect();
-                    let enabled_set =
-                        axagent_analysis_engine::recommender::pool::load_enabled_vendors_from_template(
-                            &template_vars,
-                        );
-                    tracing::info!("[init] vendor 启用状态已从模板加载: {:?}", enabled_set);
-                    astock_client.set_enabled_vendors(Some(enabled_set));
-                }
-            }
-        } else {
-            tracing::warn!(
-                "[init] stock-analysis 模板未种子化或查询失败，启动时未注入 vendor 状态"
-            );
-        }
-    }
-    let trading_engine =
-        Arc::new(TokioRwLock::new(axagent_analysis_engine::trading::TradingEngine::new(
-            Arc::new(sea_db.clone()),
-            astock_client.clone(),
-        )));
-
-    // ── 股票业务自适应引擎（Reflection + Evolution + Orchestration 闭环）──
-    // 整合反思、进化、编排三者为统一的自适应闭环系统，
-    // 工作流完成后自动触发自适应循环，实现参数/流程自我优化。
-    let stock_adaptive_engine =
-        Arc::new(axagent_analysis_engine::stock_adaptive_engine::StockAdaptiveEngine::new());
-    tracing::info!("[init] 股票自适应引擎已初始化");
 
     // 2.7 P1:从持久化 settings 读取遥测级别初值,构造共享句柄。
     // `save_settings` 命令在用户修改级别后会更新此句柄;`FilteringSink`
@@ -1360,7 +1276,6 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         cron_scheduler: Arc::new(tokio::sync::RwLock::new(None)),
         platform_manager,
         platform_bridge,
-        notification_dispatcher: Arc::new(axagent_notification::NotificationDispatcher::new()),
         user_profile,
         local_tool_registry,
         evolution_execution_stats,
@@ -1404,26 +1319,6 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         credential_manager,
         database_query_service,
         session_share_manager,
-        astock_client,
-        concept_index: Arc::new(TokioRwLock::new(
-            axagent_analysis_engine::concept_index::ConceptIndex::new(),
-        )),
-        trading_engine,
-        stock_adaptive_engine,
-        execution_bridge: crate::commands::execution_bridge::ExecutionBridgeState::new(Arc::new(
-            sea_db.clone(),
-        )),
-        stock_monitor: std::sync::OnceLock::new(),
-        // P3: 跨股票信号聚合器，由 start_realtime_monitor 启动时注入
-        cross_stock_aggregator: std::sync::OnceLock::new(),
-        // P1-2: 实时行情监视器，由 start_realtime_quote_watcher 启动时注入
-        quote_watcher: std::sync::OnceLock::new(),
-        // P1-2: T+0 重跑全局并发上限 5（监控 50+ 股票异动时的限流）
-        stock_workflow_t0_semaphore: Arc::new(tokio::sync::Semaphore::new(5)),
-        // P1-2: per-stock 互斥锁容器，首次触发时懒加载对应股票的锁
-        stock_workflow_t0_per_stock_locks: Arc::new(tokio::sync::Mutex::new(
-            std::collections::HashMap::new(),
-        )),
         #[cfg(not(mobile))]
         pty_manager,
         telemetry_level_handle,

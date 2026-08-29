@@ -7,7 +7,6 @@ use axagent_agent_macro::agent_command;
 use axagent_crypto::platform_adapter_impl::DefaultCryptoService;
 use axagent_dao::repo::cli_config::CliTool;
 use axagent_harness::types::*;
-use std::sync::Arc;
 use tauri::{AppHandle, Emitter, State};
 
 struct GatewayRuntimeSettings {
@@ -589,15 +588,6 @@ pub async fn start_gateway(state: State<'_, AppState>, app: AppHandle) -> Result
         std::sync::Arc::new(axagent_dao::marketplace_service::MarketplaceServiceImpl),
         axagent_dao::platform_adapter_impl::build_mcp_server_store(state.harness.db().clone()),
         axagent_mcp::client_service_impl::build_mcp_client_service(),
-        // P3: 注入 HttpPollingStreamer（通过 MarketDataStreamer trait 抽象），
-        // 供 /v1/stock/quote/stream WS 端点使用。
-        // Gateway 不依赖 astock-data，完全通过 harness trait 解耦。
-        {
-            let streamer =
-                axagent_astock_data::HttpPollingStreamer::new(state.astock_client.clone());
-            Some(std::sync::Arc::new(streamer)
-                as Arc<dyn axagent_harness::market_data::MarketDataStreamer>)
-        },
         // ACP 协议默认启用（前端已集成契约），如需禁用可通过 `ACP_PROTOCOL=false` 环境变量
         std::env::var("ACP_PROTOCOL").ok().as_deref() != Some("false"),
     )

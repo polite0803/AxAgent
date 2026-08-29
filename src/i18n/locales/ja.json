@@ -2652,6 +2652,7 @@
     "PROVIDER_KEY_DECRYPT_FAILED": "プロバイダー鍵の復号に失敗しました",
     "PROVIDER_MODEL_LIST_TIMEOUT": "モデル一覧の取得がタイムアウトしました",
     "PROVIDER_NO_ACTIVE_KEY": "アクティブなプロバイダー鍵がありません",
+    "PROVIDER_MODEL_NOT_FOUND": "プロバイダー {provider_id} に利用可能なモデルが見つかりません（リクエスト: {model_id}）",
     "PROVIDER_TEST_FAILED": "プロバイダーのテストに失敗しました",
     "PROVIDER_UPDATE_FAILED": "プロバイダーの更新に失敗しました",
     "PROXY_ADDRESS_NOT_ALLOWED": "許可されていないプロキシアドレスです",

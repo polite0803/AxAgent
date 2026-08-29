@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-#![allow(dead_code)]
-
 //! Immutable Constitution safety mechanism
 //!
 //! Provides an immutable set of constitutional rules that govern agent behavior,
@@ -137,59 +135,6 @@ impl CustomRuleRegistry {
 impl Default for CustomRuleRegistry {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-pub(crate) struct FnCustomRuleChecker {
-    name: String,
-    #[allow(clippy::type_complexity)]
-    check_fn: Box<dyn Fn(&str, &serde_json::Value) -> Option<ConstitutionViolation> + Send + Sync>,
-}
-
-impl FnCustomRuleChecker {
-    #[allow(clippy::type_complexity)]
-    pub(crate) fn new(
-        name: String,
-        check_fn: Box<
-            dyn Fn(&str, &serde_json::Value) -> Option<ConstitutionViolation> + Send + Sync,
-        >,
-    ) -> Self {
-        Self { name, check_fn }
-    }
-}
-
-impl CustomRuleChecker for FnCustomRuleChecker {
-    fn check_skill_modification(
-        &self,
-        modification: &crate::skill::SkillModification,
-    ) -> Option<ConstitutionViolation> {
-        let value = serde_json::to_value(modification).ok()?;
-        (self.check_fn)("skill_modification", &value)
-    }
-
-    fn check_tool_creation(
-        &self,
-        name: &str,
-        code: &str,
-        description: &str,
-    ) -> Option<ConstitutionViolation> {
-        let value = serde_json::json!({
-            "name": name,
-            "code": code,
-            "description": description,
-        });
-        (self.check_fn)("tool_creation", &value)
-    }
-
-    fn check_reward_hacking(&self, reward_history: &[f64]) -> Option<ConstitutionViolation> {
-        let value = serde_json::json!({
-            "reward_history": reward_history,
-        });
-        (self.check_fn)("reward_hacking", &value)
-    }
-
-    fn name(&self) -> &str {
-        &self.name
     }
 }
 

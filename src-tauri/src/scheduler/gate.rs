@@ -10,9 +10,8 @@
 //! 本模块是纯函数式协调层，只做判定，不做定时；探价频率复用 cron tick。
 
 use axagent_runtime_core::cron_job::CronJobPriority;
-use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
-use tracing::{info, warn};
+use tracing::info;
 
 // ── 预算状态 ──────────────────────────────────
 
@@ -68,15 +67,6 @@ pub enum PriceLevel {
     High,
 }
 
-/// 每分钟级的价格采样结果。
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SamplePoint {
-    pub ts_millis: i64,
-    pub price_level: PriceLevel,
-    /// 若超限则为 true（熔断信号）
-    pub tripped: bool,
-}
-
 /// 判定当前时段价格档位。
 ///
 /// 简化模型：以当前小时判断（0-6 为低价闲时，22-24 为低价，白天高峰为高价）。
@@ -126,16 +116,4 @@ pub fn set_budget_impl(
 /// 查询预算用量。
 pub fn get_budget_usage_impl(budget: &BudgetState) -> BudgetState {
     budget.clone()
-}
-
-/// 供 future：将一次探价写入 cron_job_history 成本段（当前仅打日志占位）。
-/// 预留接口，未来可把成本落库。
-#[allow(dead_code)]
-pub async fn record_sample_to_db(
-    _db: &DatabaseConnection,
-    _task: &axagent_runtime_core::CronJob,
-    sample: &SamplePoint,
-) -> Result<(), String> {
-    warn!("[scheduler.gate] (占位) 探价落库未启用: {:?}", sample.price_level);
-    Ok(())
 }

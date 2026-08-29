@@ -34,7 +34,6 @@ export { CronManager } from "./CronManager";
 export { DynamicPagesSettings } from "./DynamicPagesSettings";
 export { ImageGenSettings } from "./ImageGenSettings";
 export { PromptTemplatesSettings } from "./PromptTemplatesSettings";
-export { SchedulerSettings } from "./SchedulerSettings";
 export { StorageSpaceManager } from "./StorageSpaceManager";
 export { ThemeManager } from "./ThemeManager";
 export { UserProfileSettings } from "./UserProfileSettings";

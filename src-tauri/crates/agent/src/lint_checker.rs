@@ -368,49 +368,6 @@ impl LintChecker {
         Ok(())
     }
 
-    #[allow(dead_code)]
-    async fn check_orphan_pages(
-        &self,
-        note_ids: &[String],
-        linked_titles: &HashSet<String>,
-        results: &mut Vec<LintResult>,
-    ) -> Result<(), String> {
-        for note_id in note_ids {
-            let note_ref = self.note_repo.find_by_id(note_id).await?;
-
-            if let Some(note_ref) = note_ref {
-                if note_ref.title == "Index"
-                    || note_ref.title == "Operation Log"
-                    || note_ref.title == "Overview"
-                {
-                    continue;
-                }
-
-                if note_ref.author == "llm" && !linked_titles.contains(&note_ref.title) {
-                    let backlinks = self.backlink_repo.count_by_target_note_id(note_id).await?;
-
-                    if backlinks == 0 {
-                        results.push(LintResult {
-                            note_id: note_id.clone(),
-                            issues: vec![LintIssue {
-                                severity: IssueSeverity::Warning,
-                                code: "orphan-page".to_string(),
-                                message: format!(
-                                    "Page '{}' is not referenced by any other page",
-                                    note_ref.title
-                                ),
-                                line: None,
-                            }],
-                            score: 0.3,
-                        });
-                    }
-                }
-            }
-        }
-
-        Ok(())
-    }
-
     /// 使用预加载数据的优化版本：消除 N+1 查询
     /// 使用预加载的 notes_map 直接获取笔记 (O(1) 查找)
     /// 使用预加载的 backlink_counts 进行 O(1) 查找

@@ -13,11 +13,9 @@ pub mod agent_nudge;
 pub mod agent_profile;
 pub mod agent_role;
 pub mod analyst_evolution;
-pub mod analyst_feedback;
 pub mod app_config;
 pub mod artifacts;
 pub mod background_tasks;
-pub mod backtest_validation;
 pub mod backup;
 pub mod branches;
 #[cfg(not(mobile))]
@@ -37,7 +35,6 @@ pub mod conversations_search;
 pub mod crash_report;
 pub mod dashboard;
 pub mod db_config;
-pub mod demand_discovery;
 #[cfg(not(mobile))]
 pub mod desktop;
 pub mod device_sync;
@@ -74,7 +71,6 @@ pub mod local_model;
 pub mod local_models;
 pub mod local_tool;
 pub mod market_mainline;
-pub mod market_sim;
 pub mod marketplace;
 pub mod mcp;
 pub mod memory;
@@ -83,12 +79,10 @@ pub mod messages;
 pub mod migration;
 pub mod multi_agent;
 pub mod multi_agent_setup;
-pub mod narrative_structure;
 pub mod nl_to_cron;
 pub mod onboarding;
 pub mod orchestrator;
 pub mod paper;
-pub mod paper_portfolio;
 pub mod parallel_execution;
 pub mod personality;
 pub mod plan;
@@ -104,7 +98,6 @@ pub mod provider_ctx;
 pub mod providers;
 #[cfg(not(mobile))]
 pub mod pty;
-pub mod quant_backtest;
 #[cfg(not(mobile))]
 pub mod quickbar;
 pub mod recommendation_cron;
@@ -117,42 +110,28 @@ pub mod sandbox;
 pub mod scheduled_task;
 #[cfg(not(mobile))]
 pub mod screen_vision;
-pub mod screenshot_diagnosis;
 pub mod search;
 pub mod session_share;
 // G18: 会话多格式导出（messages.jsonl / openai_dataset_jsonl / markdown / manifest_json）
 pub mod sessions_export;
 pub mod settings;
-// simple_chat_completion 完整实现在 agent/mod.rs（stub 已删）
-pub mod conditional_order;
 pub mod skill_decomposition;
 pub mod skills;
 pub mod skills_hub;
 pub mod smart_router;
 pub mod sources;
 pub mod spawn_guard;
-pub mod stock_analysis;
-pub mod stock_analysis_bridge;
-#[cfg(test)]
-mod stock_analysis_bridge_tests;
-pub mod stock_analysis_setup;
-pub mod stock_pipeline;
-pub mod stock_workflow;
 pub mod storage;
-pub mod strategy_pack;
 pub mod sub_agent;
 #[cfg(not(mobile))]
 pub mod terminal;
 pub mod theme;
 pub mod tool_recommender;
 pub mod tracer;
-pub mod trade_intent;
 pub mod unified_knowledge;
 pub mod user_profile;
 pub mod webdav;
 pub mod webhook;
-// ── Walk-Forward + DES 对比 ──
-pub mod wf_des;
 pub mod wiki;
 // P0-5: 错误分类与故障转移
 pub mod error_classification;
@@ -169,14 +148,3 @@ pub mod workflow_template;
 pub mod workflow_tool;
 pub mod workflow_yaml;
 pub mod workflows;
-// ── OPC（AI 一人公司）─ 行业数据资产包 + 台账 ──
-pub mod opc;
-pub mod opc_data;
-pub mod opc_industry_actions;
-pub mod opc_industry_bridge;
-pub mod opc_industry_logic;
-pub mod opc_industry_runtime;
-pub mod opc_learning_hook;
-pub(crate) mod opc_llm_bridge;
-pub mod opc_setup;
-pub mod opc_workflows;

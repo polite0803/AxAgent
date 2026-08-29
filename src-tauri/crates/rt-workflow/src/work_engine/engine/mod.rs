@@ -1160,6 +1160,17 @@ impl WorkEngine {
             if let Some(result) = workflow.results.get(dep_id) {
                 results.insert(dep_id.to_string(), result.clone());
             }
+            // 同时按上游节点声明的 output_var 注入（workflow.results 中
+            // update_node_status_for_execution 已同时写入 node_id 与 output_var 两个 key），
+            // 使下游 Rhai/条件表达式可用 output_var 名引用上游输出
+            // （如 L2 置信度条件 `l2_llm_result.confidence`）。
+            if let Some(node) = workflow.nodes.iter().find(|n| n.base_id() == dep_id)
+                && let Some(var) = node.base_output_var()
+                && var != dep_id
+                && let Some(result) = workflow.results.get(var)
+            {
+                results.insert(var.to_string(), result.clone());
+            }
         }
         results
     }
@@ -2202,6 +2213,110 @@ impl WorkEngine {
             workflows.get(workflow_id).map(|w| w.nodes.len()).unwrap_or(0)
         };
         let progress_cb = options.progress_callback.clone();
+
+        // ── 在函数开头一次性构建 sub_cb，供首批节点路径和 inter-batch 路径共享 ──
+        let engine_clone = self.clone();
+        let sub_model_id = options.model_id.clone();
+        let sub_provider_id = options.provider_id.clone();
+        let sub_step_timeout = options.step_timeout;
+        let sub_cancel_token = cancel_token.clone();
+        let sub_progress_cb = progress_cb.clone();
+        let sub_dry_run = options.dry_run;
+        let sub_system_capability_cb = options.system_capability_callback.clone();
+
+        let sub_cb: SubWorkflowCallback = Arc::new(
+            move |sub_workflow_id: String,
+                  parent_execution_id: String,
+                  input_vars: std::collections::HashMap<String, serde_json::Value>| {
+                let engine = engine_clone.clone();
+                let model_id = sub_model_id.clone();
+                let provider_id = sub_provider_id.clone();
+                let cancel_token = sub_cancel_token.clone();
+                let progress_cb = sub_progress_cb.clone();
+                let dry_run = sub_dry_run;
+                let system_capability_cb = sub_system_capability_cb.clone();
+                let child_execution_id = uuid::Uuid::new_v4().to_string();
+                let child_eid_for_result = child_execution_id.clone();
+
+                let (tx, rx) = tokio::sync::oneshot::channel();
+                tokio::task::spawn_blocking(move || {
+                    SUB_WORKFLOW_RT.with(|rt| {
+                        rt.block_on(async move {
+                            let result: Result<(String, serde_json::Value), String> = async {
+                                let template = workflow_template_repository()
+                                    .get_workflow_template(&sub_workflow_id)
+                                    .await
+                                    .map_err(|e| e.to_string())?
+                                    .ok_or_else(|| {
+                                        format!("Template {} not found", sub_workflow_id)
+                                    })?;
+
+                                let nodes: Vec<WorkflowNode> = serde_json::from_str(
+                                    &template.nodes,
+                                )
+                                .map_err(|e| format!("节点解析失败: {}", e))?;
+                                let edges: Vec<WorkflowEdge> = serde_json::from_str(
+                                    &template.edges,
+                                )
+                                .map_err(|e| format!("边解析失败: {}", e))?;
+
+                                let workflow = engine
+                                    .create_workflow(&template.name, nodes, edges)
+                                    .await
+                                    .map_err(|e| e.to_string())?;
+                                let wid = workflow.id.clone();
+
+                                let input_value =
+                                    serde_json::to_value(&input_vars).unwrap_or(serde_json::json!({}));
+
+                                let mut opts = RunOptions {
+                                    execution_id: Some(child_execution_id),
+                                    input: Some(input_value),
+                                    variables: Some(
+                                        input_vars
+                                            .iter()
+                                            .map(|(k, v)| Variable {
+                                                name: k.clone(),
+                                                var_type: "any".to_string(),
+                                                value: v.clone(),
+                                                description: None,
+                                                is_secret: false,
+                                            })
+                                            .collect(),
+                                    ),
+                                    dry_run,
+                                    parent_execution_id: Some(parent_execution_id),
+                                    model_id,
+                                    provider_id,
+                                    step_timeout: sub_step_timeout,
+                                    parent_cancel_token: Some(cancel_token),
+                                    system_capability_callback: system_capability_cb,
+                                    ..Default::default()
+                                };
+                                if let Some(cb) = progress_cb {
+                                    opts = opts.with_progress_callback(cb);
+                                }
+
+                                let result =
+                                    engine.run_workflow(&wid, opts).await.map_err(|e| e.to_string())?;
+
+                                let output = result
+                                    .output
+                                    .unwrap_or_else(|| serde_json::json!({}));
+
+                                Ok((child_eid_for_result, output))
+                            }
+                            .await;
+                            let _ = tx.send(result);
+                        });
+                    });
+                });
+                Box::pin(async move {
+                    rx.await.map_err(|_| "Sub-workflow task dropped".to_string())?
+                })
+            },
+        );
+
         let mut breakers: HashMap<String, NodeCircuitBreaker> =
             { self.node_breakers.lock().await.clone() };
 
@@ -2262,6 +2377,46 @@ impl WorkEngine {
 
             // 1. 取就绪节点（支持并行调度）—— 按 execution_id 索引
             let ready_nodes = self.get_ready_steps_for_execution(&execution_id).await?;
+
+            // [DIAG] 主循环每轮打印 ready_nodes 和当前所有节点状态
+            // 对 cognitive_router_main 及其子工作流用 INFO 级别（便于定位"主动停止"根因）
+            // 其他工作流用 DEBUG 级别避免日志爆炸
+            {
+                let wf_snap = self.execution_workflows.read().await;
+                if let Some(wf) = wf_snap.get(&execution_id) {
+                    let is_cognitive = wf.id.contains("cognitive");
+                    let state_dump: Vec<String> = wf
+                        .node_states
+                        .iter()
+                        .map(|(id, s)| format!("{id}:{:?}", s.status))
+                        .collect();
+                    let results_dump: Vec<String> = wf
+                        .results
+                        .iter()
+                        .map(|(k, v)| {
+                            let preview = v.to_string().chars().take(200).collect::<String>();
+                            format!("{k}={preview}")
+                        })
+                        .collect();
+                    if is_cognitive {
+                        tracing::info!(
+                            workflow_id = %wf.id,
+                            ready_nodes = ?ready_nodes,
+                            node_states = ?state_dump,
+                            results = ?results_dump,
+                            "🔍 [DIAG] 主循环快照"
+                        );
+                    } else {
+                        tracing::debug!(
+                            workflow_id = %wf.id,
+                            ready_nodes = ?ready_nodes,
+                            node_states = ?state_dump,
+                            "🚦 MAIN LOOP"
+                        );
+                    }
+                }
+            }
+
             if ready_nodes.is_empty() {
                 // P1-17: 死锁检测 —— 增加 5s grace period，避免在节点刚完成、上游
                 // 状态尚未传播到下游时被误判为死锁；同时区分"上游 Failed/Skipped"
@@ -2276,6 +2431,10 @@ impl WorkEngine {
                     if within_grace {
                         // 仍在 grace period 内，释放锁让其他路径进展
                         drop(workflows);
+                        tracing::info!(
+                            execution_id = %execution_id,
+                            "🔍 [DIAG] 死锁检测: grace period 内，等待下一轮..."
+                        );
                         tokio::time::sleep(Duration::from_millis(500)).await;
                         continue;
                     }
@@ -2315,6 +2474,68 @@ impl WorkEngine {
                         wf.status = WorkflowStatus::PartiallyCompleted;
                         wf.completed_at = Some(current_timestamp());
                     }
+                    // 收集诊断信息后再释放锁
+                    let final_status = wf.status;
+                    let node_states_diag: Vec<String> = wf
+                        .node_states
+                        .iter()
+                        .map(|(id, s)| format!("{id}:{:?}", s.status))
+                        .collect();
+                    // pending 节点的阻塞边详情 —— 每条边 (source → target) 标注 source 当前状态
+                    let edges_diag = wf.edges.clone();
+                    let states_diag = wf.node_states.clone();
+                    let blocked_edges: Vec<String> = wf
+                        .nodes
+                        .iter()
+                        .filter(|n| {
+                            let st = states_diag.get(n.base_id());
+                            st.is_none_or(|s| {
+                                matches!(s.status, NodeStatus::Pending | NodeStatus::Ready)
+                            })
+                        })
+                        .flat_map(|n| {
+                            let tid = n.base_id().to_string();
+                            let states = states_diag.clone();
+                            edges_diag
+                                .iter()
+                                .filter(move |e| e.target == tid)
+                                .map(move |e| {
+                                    let src_st = states
+                                        .get(&e.source)
+                                        .map(|s| format!("{:?}", s.status))
+                                        .unwrap_or_else(|| "NO_STATE".to_string());
+                                    format!(
+                                        "  DEP {}({}) → {} edge_type={:?}",
+                                        e.source, src_st, e.target, e.edge_type
+                                    )
+                                })
+                        })
+                        .collect();
+                    let results_diag: Vec<String> = wf
+                        .results
+                        .iter()
+                        .map(|(k, v)| {
+                            let preview = v.to_string().chars().take(150).collect::<String>();
+                            format!("{k}={preview}")
+                        })
+                        .collect();
+                    let has_blocked_diag = has_blocked;
+                    drop(workflows);
+                    tracing::warn!(
+                        execution_id = %execution_id,
+                        workflow_status = ?final_status,
+                        has_blocked = has_blocked_diag,
+                        node_states = ?node_states_diag,
+                        blocked_edges = ?blocked_edges,
+                        results = ?results_diag,
+                        "🔍 [DIAG] ready_nodes 为空 — 主循环 break（全部完成或死锁）"
+                    );
+                } else {
+                    drop(workflows);
+                    tracing::info!(
+                        execution_id = %execution_id,
+                        "🔍 [DIAG] ready_nodes 为空 — workflow 不存在，主循环 break"
+                    );
                 }
                 break;
             };
@@ -2535,6 +2756,19 @@ impl WorkEngine {
                                     || serde_json::Value::String(other.to_string()),
                                 );
                             },
+                        }
+                    }
+                }
+                // 全量结果补充注入（or_insert，不覆盖更高优先级来源）：
+                // 修复 end/condition 等节点读取「非直接上游」的 output_var 时变量缺失
+                // （如 L1 的 l1_llm_end 读 l1_llm_normalized，其直接上游是 l1_llm_conf），
+                // 导致 output=null 并级联导致主 DAG 拿到 null 结果。
+                // workflow.results 中已包含所有已完成节点的 node_id + output_var key。
+                {
+                    let workflows = self.execution_workflows.read().await;
+                    if let Some(wf) = workflows.get(&execution_id) {
+                        for (k, v) in &wf.results {
+                            merged_vars.entry(k.clone()).or_insert_with(|| v.clone());
                         }
                     }
                 }
@@ -3799,6 +4033,16 @@ impl WorkEngine {
                                 }
                             }
                         }
+                        // 全量结果补充注入（与首批节点路径保持一致，见彼处注释）：
+                        // 修复 end/condition 读取非直接上游 output_var 时变量缺失。
+                        {
+                            let workflows = self.execution_workflows.read().await;
+                            if let Some(wf) = workflows.get(&execution_id) {
+                                for (k, v) in &wf.results {
+                                    merged_vars.entry(k.clone()).or_insert_with(|| v.clone());
+                                }
+                            }
+                        }
                         exec_ctx.variables = merged_vars;
                         exec_ctx.tool_registry = self.tool_registry();
                         exec_ctx.cancel_token = Some(cancel_token.clone());
@@ -3824,7 +4068,7 @@ impl WorkEngine {
                                     trigger_manager: Some(self.trigger_manager.clone()),
                                     tool_handlers,
                                     tool_fallback,
-                                    subworkflow: None,
+                                    subworkflow: Some(sub_cb.clone()),
                                     system_capability: options.system_capability_callback.clone(),
                                     loop_body_dispatch: Some(build_loop_body_dispatch(
                                         self.clone(),
@@ -3890,7 +4134,14 @@ impl WorkEngine {
                 WorkflowStatus::Completed
                 | WorkflowStatus::PartiallyCompleted
                 | WorkflowStatus::Failed
-                | WorkflowStatus::Cancelled => break,
+                | WorkflowStatus::Cancelled => {
+                    tracing::info!(
+                        execution_id = %execution_id,
+                        workflow_status = ?status,
+                        "🔍 [DIAG] 主循环 break — 工作流到达 terminal 状态"
+                    );
+                    break;
+                }
                 _ => {},
             }
         }
@@ -3900,30 +4151,68 @@ impl WorkEngine {
             tokens.remove(&execution_id);
         }
 
+        // ── 子工作流收尾捷径（根因修复） ──
+        // 子工作流在 spawn_blocking 的 thread_local runtime 里运行；
+        // 若在此 runtime 中调用 parking_lot::Mutex::lock()（同步阻塞），
+        // 一旦主 runtime 持有该锁，blocking 线程将永久卡死，且阻塞期间
+        // tokio::spawn 到该 current_thread runtime 的任务也永远不会被 poll。
+        // 因此子工作流跳过所有涉及 parking_lot 锁和 tokio::spawn 的
+        // best-effort 收尾（complete_execution / post_execution_reflect /
+        // task_contract / publish_workflow_event 等），仅构建 output 并 return。
+        let is_sub_workflow = options.parent_execution_id.is_some();
+        tracing::info!(
+            execution_id = %execution_id,
+            is_sub = is_sub_workflow,
+            "run_workflow 进入收尾阶段"
+        );
+        if is_sub_workflow {
+            let mut result = {
+                let workflows = self.execution_workflows.read().await;
+                workflows.get(&execution_id).cloned()
+            };
+            if let Some(ref mut wf) = result {
+                let end_output = extract_end_output(&wf.nodes, &wf.edges, &wf.results);
+                wf.output = build_workflow_output(
+                    &wf.results,
+                    end_output,
+                    options.output_schema.as_ref(),
+                );
+
+                // 写回 output 让后续查询可读
+                if wf.output.is_some() {
+                    let mut exec_wfs = self.execution_workflows.write().await;
+                    if let Some(exec_wf) = exec_wfs.get_mut(&execution_id) {
+                        exec_wf.output = wf.output.clone();
+                        exec_wf.status = wf.status;
+                        exec_wf.completed_at = wf.completed_at;
+                    }
+                }
+
+                // 清理运行时实例
+                {
+                    let mut exec_wfs = self.execution_workflows.write().await;
+                    exec_wfs.remove(&execution_id);
+                }
+            }
+            tracing::info!(execution_id = %execution_id, "子工作流收尾捷径: 已构建 output 并清理实例, 即将 return");
+            return Ok(result.expect("子工作流收尾: execution_workflows 中应存在实例"));
+        }
+
         let mut result = {
-            // 按 execution_id 索引读取运行时实例（修复：原按 workflow_id 读取共享实例，
-            // 同模板并发执行会读到其他执行的中间状态）
             let workflows = self.execution_workflows.read().await;
             workflows.get(&execution_id).cloned()
         };
+        tracing::info!(execution_id = %execution_id, "[TRACE] run_workflow break 后: 已读取 execution_workflows");
 
         if let Some(ref mut wf) = result {
             let end_output = extract_end_output(&wf.nodes, &wf.edges, &wf.results);
-            wf.output =
-                build_workflow_output(&wf.results, end_output, options.output_schema.as_ref());
-
-            // 若配置了 output_schema，校验输出并记录警告
-            if let Some(ref schema) = options.output_schema
-                && let Some(ref output) = wf.output
-                && let Err(errors) = validate_input(output, schema)
-            {
-                tracing::warn!(
-                    workflow_id = %workflow_id,
-                    execution_id = %execution_id,
-                    "Output schema validation failed: {:?}",
-                    errors
-                );
-            }
+            wf.output = build_workflow_output(&wf.results, end_output, options.output_schema.as_ref());
+            tracing::info!(
+                execution_id = %execution_id,
+                status = ?wf.status,
+                has_output = wf.output.is_some(),
+                "[TRACE] run_workflow break 后: output 已构建"
+            );
 
             let persist_output = wf.output.clone().unwrap_or_else(|| {
                 serde_json::to_value(&wf.results).unwrap_or(serde_json::json!(null))
@@ -3937,6 +4226,7 @@ impl WorkEngine {
                 WorkflowStatus::Cancelled => ExecutionStatus::Cancelled,
                 _ => ExecutionStatus::Completed,
             };
+            tracing::info!(execution_id = %execution_id, "[TRACE] run_workflow break 后: 即将调 complete_execution");
             self.complete_execution(
                 &execution_id,
                 &persist_output,
@@ -3945,9 +4235,9 @@ impl WorkEngine {
             )
             .await
             .ok();
+            tracing::info!(execution_id = %execution_id, "[TRACE] run_workflow break 后: complete_execution 已完成");
 
-            // 阶段 3:触发工作流整体反思(异步 spawn,不阻塞主响应)
-            // workflow_id 在 AxAgent 架构中即模板 ID,因此 template_id 传 Some(workflow_id)
+            tracing::info!(execution_id = %execution_id, "[TRACE] run_workflow break 后: 即将调 post_execution_reflect");
             self.post_execution_reflect(
                 wf,
                 &execution_id,
@@ -3956,6 +4246,7 @@ impl WorkEngine {
                 Some(&persist_output),
             )
             .await;
+            tracing::info!(execution_id = %execution_id, "[TRACE] run_workflow break 后: post_execution_reflect 已完成");
 
             // 写回 execution_workflows 运行时实例，确保后续查询能读到 output
             // 注意：不写回 self.workflows（模板），避免污染同模板的其他并发执行
@@ -4096,6 +4387,7 @@ impl WorkEngine {
             }),
         )
         .await;
+        tracing::info!(execution_id = %execution_id, "[TRACE] run_workflow break 后: 即将 return 结果");
 
         Ok(result.unwrap_or_else(|| Workflow {
             id: workflow_id.to_string(),

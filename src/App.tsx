@@ -444,14 +444,12 @@ function AppInner() {
       <Suspense fallback={null}>
         <LazyBuddyWidget />
       </Suspense>
-      {agentInTheLoopEnabled && isAgentMiniMode && !location.pathname.startsWith("/workspace")
-        && location.pathname !== "/invest" && (
+      {agentInTheLoopEnabled && isAgentMiniMode && !location.pathname.startsWith("/workspace") && (
         <Suspense fallback={null}>
           <LazyAgentMiniPanel />
         </Suspense>
       )}
-      {agentInTheLoopEnabled && !isAgentMiniMode && !location.pathname.startsWith("/workspace")
-        && location.pathname !== "/invest" && (
+      {agentInTheLoopEnabled && !isAgentMiniMode && !location.pathname.startsWith("/workspace") && (
         <Suspense fallback={null}>
           <LazyAgentEntryPoint />
         </Suspense>

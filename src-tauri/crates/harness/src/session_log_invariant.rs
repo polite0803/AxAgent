@@ -33,7 +33,12 @@ use crate::types::{ChatContent, ChatMessage};
 pub struct ModelVisibleContent {
     pub role: String,
     pub text: String,
+    /// `alias` 兼容 81ae885d 之前落盘的 snake_case 行（`tool_names`），
+    /// 旧日志无需迁移即可读回；两个名字都缺失才算真损坏。
+    #[serde(alias = "tool_names")]
     pub tool_names: Vec<String>,
+    /// 同上，兼容旧 `content_hash` 键名。
+    #[serde(alias = "content_hash")]
     pub content_hash: String,
 }
 
@@ -391,6 +396,29 @@ mod tests {
         std::fs::write(root.join("s1.jsonl"), "{\"role\":\"user\",\"text\":\"被篡改\",\"toolNames\":[],\"contentHash\":\"deadbeef\"}\n").unwrap();
         let err = log.assert_replayable("s1").unwrap_err();
         assert!(err.detail.contains("指纹不匹配"));
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn disk_reads_legacy_snake_case_lines() {
+        // 81ae885d（rename_all = camelCase）之前落盘的旧 schema 行必须仍可读回：
+        // alias 兼容 `tool_names` / `content_hash` 键名，指纹校验照常通过。
+        let root = temp_root("legacy");
+        let log = DiskSessionLog::new(&root).unwrap();
+        log.record_model_visible("s1", ModelVisibleContent::from_chat_message(&user("旧格式")));
+        let legacy = format!(
+            "{{\"role\":\"user\",\"text\":\"旧数据\",\"tool_names\":[],\"content_hash\":\"{}\"}}\n",
+            fingerprint("旧数据")
+        );
+        {
+            use std::io::Write as _;
+            let mut f =
+                std::fs::OpenOptions::new().append(true).open(root.join("s1.jsonl")).unwrap();
+            writeln!(f, "{legacy}").unwrap();
+        }
+        // 混杂新旧 schema 的文件整体可重建，不报「JSON 损坏」
+        assert!(log.assert_replayable("s1").is_ok());
+        assert_eq!(log.count("s1"), 2);
         std::fs::remove_dir_all(&root).unwrap();
     }
 

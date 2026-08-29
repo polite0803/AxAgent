@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-#![allow(dead_code)]
-
 use serde::{Deserialize, Serialize};
 
 use super::tool_resolver::ToolDependency;
@@ -13,16 +11,6 @@ pub struct CodeBlock {
     pub content: String,
     pub start_line: usize,
     pub end_line: usize,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub(crate) enum SkillContentType {
-    Metadata,
-    TextualInstruction,
-    CodeScript,
-    ToolConfig,
-    ContextKnowledge,
 }
 
 impl CodeBlock {

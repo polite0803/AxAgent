@@ -88,6 +88,7 @@ impl ConversationSourceResolver {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Message {
     pub id: String,
     pub conversation_id: String,
@@ -171,6 +172,7 @@ pub struct CostByProvider {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MessagePage {
     pub messages: Vec<Message>,
     pub has_older: bool,

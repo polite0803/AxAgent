@@ -25,7 +25,7 @@ pub use execution_state::{
 pub use executors::{
     AgentExecutor, PlanApprovalCallback, PlanApprovalRequest, PlanCallbacks, PlanPhaseSummary,
     PlanStepCallback, PlanStepEvent, RagCallback, SubWorkflowCallback, SubWorkflowExecutor,
-    ToolCallback,
+    ToolCallback, unwrap_end_envelope,
 };
 pub use node_executor::NodeExecutor;
 pub use node_executor_trait::{NodeError, NodeExecutorTrait, NodeOutput};

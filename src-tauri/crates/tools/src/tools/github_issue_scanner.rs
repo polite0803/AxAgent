@@ -20,7 +20,7 @@ impl GitHubIssueScanner {
     pub fn new() -> Self {
         Self {
             http: reqwest::Client::builder()
-                .user_agent("AxInvest/1.0 (demand-discovery)")
+                .user_agent("AxAgent/1.0 (demand-discovery)")
                 .timeout(std::time::Duration::from_secs(15))
                 .build()
                 .unwrap_or_default(),
@@ -33,7 +33,7 @@ impl GitHubIssueScanner {
     pub fn with_token(token: String) -> Self {
         Self {
             http: reqwest::Client::builder()
-                .user_agent("AxInvest/1.0 (demand-discovery)")
+                .user_agent("AxAgent/1.0 (demand-discovery)")
                 .timeout(std::time::Duration::from_secs(15))
                 .build()
                 .unwrap_or_default(),

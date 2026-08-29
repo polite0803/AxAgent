@@ -122,9 +122,6 @@ struct ResponsesUsage {
     #[serde(default)]
     output_tokens: u32,
     #[serde(default)]
-    #[allow(dead_code)]
-    total_tokens: u32,
-    #[serde(default)]
     input_tokens_details: Option<ResponsesInputTokensDetails>,
 }
 

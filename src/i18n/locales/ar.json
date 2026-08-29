@@ -2652,6 +2652,7 @@
     "PROVIDER_KEY_DECRYPT_FAILED": "فشل فك تشفير مفتاح الموفر",
     "PROVIDER_MODEL_LIST_TIMEOUT": "انتهت مهلة الحصول على قائمة النماذج",
     "PROVIDER_NO_ACTIVE_KEY": "لا يوجد مفتاح موفر نشط",
+    "PROVIDER_MODEL_NOT_FOUND": "لم يتم العثور على نموذج متاح في المزود {provider_id} (المطلوب: {model_id})",
     "PROVIDER_TEST_FAILED": "فشل اختبار الموفر",
     "PROVIDER_UPDATE_FAILED": "فشل تحديث الموفر",
     "PROXY_ADDRESS_NOT_ALLOWED": "عنوان الوكيل غير مسموح به",

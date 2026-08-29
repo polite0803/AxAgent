@@ -64,12 +64,11 @@ pub enum SamplingStrategy {
 
 pub struct BatchProcessor {
     storage: Arc<TrajectoryStorage>,
-    config: BatchConfig,
 }
 
 impl BatchProcessor {
-    pub fn new(storage: Arc<TrajectoryStorage>, config: BatchConfig) -> Self {
-        Self { storage, config }
+    pub fn new(storage: Arc<TrajectoryStorage>, _config: BatchConfig) -> Self {
+        Self { storage }
     }
 
     pub async fn batch_generate<S: AsRef<str>>(

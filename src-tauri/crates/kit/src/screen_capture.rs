@@ -30,8 +30,7 @@ pub struct ScreenCapture;
 
 /// 主显示器缩放因子（用于 high-DPI 坐标换算，修复 #15）。
 /// `xcap` 仅在 computer-use 特性下可用；其它构建回退为 1.0。
-#[cfg(feature = "computer-use")]
-#[allow(dead_code)]
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 fn primary_scale_factor() -> f64 {
     xcap::Monitor::all()
         .ok()
@@ -40,11 +39,6 @@ fn primary_scale_factor() -> f64 {
         .filter(|s| *s > 0.0)
         .map(|s| s as f64)
         .unwrap_or(1.0)
-}
-
-#[cfg(not(feature = "computer-use"))]
-fn primary_scale_factor() -> f64 {
-    1.0
 }
 
 #[cfg(target_os = "windows")]

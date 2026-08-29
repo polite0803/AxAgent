@@ -33,9 +33,6 @@ pub use axagent_harness::dream::{
 // 门控配置
 // ---------------------------------------------------------------------------
 
-const DEFAULT_MIN_INTERVAL_HOURS: i64 = 1;
-const DEFAULT_MIN_NEW_SESSIONS: u32 = 3;
-const DEFAULT_MAX_CONSOLIDATION_SECS: u64 = 120;
 const LOCK_TIMEOUT_SECS: u64 = 5;
 
 // ---------------------------------------------------------------------------

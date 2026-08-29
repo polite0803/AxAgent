@@ -229,6 +229,83 @@ pub(crate) fn check_round_convergence(
     matching as f64 / total as f64 >= 0.80
 }
 
+// ── 共享：EndNode 终止信封拆包 ──
+// EndExecutor 在配置 output_var 时会把提取到的变量值包装为终止信封
+// `{status:"terminated", node_id, output:<实际值>, source}`；且经
+// apply_node_status_update 写入 results 时会以 output_var 为 key 覆写同名变量，
+// 导致 extract_end_output / run_workflow 返回的顶层 workflow.output 是信封
+// 而非扁平变量值。子工作流边界（SubWorkflowExecutor）与主 DAG 边界
+// （commands/cognitive.rs）都需要拆包取回实际值，统一提供此函数避免重复实现。
+
+/// 拆开 EndNode 终止信封，取回其中的实际输出值。
+///
+/// 仅当值恰好是 4 键信封 `{status, node_id, output, source}` 且
+/// `status == "terminated"` 时返回其 `output` 字段；其余情况（非对象、
+/// 键集不符、output 缺失或为 Null）原样返回 clone，保证误判零副作用。
+pub fn unwrap_end_envelope(value: &serde_json::Value) -> serde_json::Value {
+    let Some(obj) = value.as_object() else {
+        return value.clone();
+    };
+    let is_envelope = obj.len() == 4
+        && obj.get("status").and_then(|v| v.as_str()) == Some("terminated")
+        && obj.contains_key("node_id")
+        && obj.contains_key("output")
+        && obj.contains_key("source");
+    if !is_envelope {
+        return value.clone();
+    }
+    match obj.get("output") {
+        Some(inner) if !inner.is_null() => inner.clone(),
+        _ => value.clone(),
+    }
+}
+
+#[cfg(test)]
+mod end_envelope_tests {
+    use super::unwrap_end_envelope;
+
+    #[test]
+    fn 拆开标准终止信封() {
+        let envelope = serde_json::json!({
+            "status": "terminated",
+            "node_id": "end",
+            "output": { "route_path": "a/b/c", "confidence": 0.5 },
+            "source": "l3_result",
+        });
+        let unwrapped = unwrap_end_envelope(&envelope);
+        assert_eq!(unwrapped.get("route_path").and_then(|v| v.as_str()), Some("a/b/c"));
+    }
+
+    #[test]
+    fn 非信封值原样返回() {
+        let flat = serde_json::json!({
+            "route_path": "a/b/c",
+            "status": "terminated",
+            "node_id": "l3_success",
+            "source": "l3_result",
+        });
+        // 键数不是 4 → 不是信封（子工作流拆包后的扁平结果含额外字段）
+        assert_eq!(unwrap_end_envelope(&flat), flat);
+
+        let plain = serde_json::json!({ "category": "finance", "confidence": 0.95 });
+        assert_eq!(unwrap_end_envelope(&plain), plain);
+
+        let scalar = serde_json::json!("hello");
+        assert_eq!(unwrap_end_envelope(&scalar), scalar);
+    }
+
+    #[test]
+    fn output为null的信封不拆包() {
+        let envelope = serde_json::json!({
+            "status": "terminated",
+            "node_id": "end",
+            "output": serde_json::Value::Null,
+            "source": "l3_result",
+        });
+        assert_eq!(unwrap_end_envelope(&envelope), envelope);
+    }
+}
+
 /// 从各轮输出中构建共识结果（取最后一轮各 step 输出作为 entries）。
 pub(crate) fn build_round_consensus(
     round_outputs: &[std::collections::HashMap<String, serde_json::Value>],

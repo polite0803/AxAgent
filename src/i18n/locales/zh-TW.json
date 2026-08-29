@@ -2652,6 +2652,7 @@
     "PROVIDER_KEY_DECRYPT_FAILED": "解密提供者金鑰失敗",
     "PROVIDER_MODEL_LIST_TIMEOUT": "取得模型列表逾時",
     "PROVIDER_NO_ACTIVE_KEY": "無活躍的提供者金鑰",
+    "PROVIDER_MODEL_NOT_FOUND": "提供商 {provider_id} 中未找到可用模型（請求的模型：{model_id}）",
     "PROVIDER_TEST_FAILED": "測試提供者失敗",
     "PROVIDER_UPDATE_FAILED": "更新提供者失敗",
     "PROXY_ADDRESS_NOT_ALLOWED": "不允許的代理位址",

@@ -7,16 +7,21 @@
 //! - 配置（periods / min_confidence / top_n）以 JSON 形式写入 `CronJob.prompt`
 //! - 不绑定 workflow（不走 work_engine）
 //!
+//! 注意：原荐股扫描执行引擎委托给 `axagent_analysis_engine::recommender`，
+//! 该 crate 已删除。`run_recommendation_cron` 现为存根，始终返回错误。
+//! 荐股 CRUD 命令保留（允许增删改查 cron 配置），但任务实际执行会失败。
+//!
 //! [stock_cron]: crate::commands::stock_analysis::create_stock_cron
 //! [services]: crate::init::services::start_cron_scheduler
 
-use std::sync::Arc;
-
-use axagent_analysis_engine::recommender::{Period, build_notification, run_recommendation_scan};
-use axagent_astock_data::AStockClient;
-use axagent_harness::{NotificationDispatchSummary, ReportPayload, ReportStockSummary};
-use axagent_notification::NotificationDispatcher;
-use chrono::Utc;
+/// K 线周期（原来自 axagent_analysis_engine::recommender::Period，本地兼容定义）
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Period {
+    Short,
+    Mid,
+    Long,
+}
 
 /// 推荐 cron 配置（写入 `CronJob.prompt`）
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
@@ -29,85 +34,8 @@ pub struct RecoCronConfig {
 
 impl RecoCronConfig {
     pub fn from_json(s: &str) -> Result<Self, String> {
-        serde_json::from_str(s).map_err(|e| {
-            ErrorResponse::new(wf_err::INTERNAL)
-                .with_detail(format!("解析荐股 cron 配置失败: {e}"))
-                .to_string()
-        })
+        serde_json::from_str(s).map_err(|e| format!("解析荐股 cron 配置失败: {e}"))
     }
-}
-
-/// 荐股定时任务执行入口
-///
-/// 流程：
-/// 1. 解析 `RecoCronConfig` from prompt JSON
-/// 2. 调用 `run_recommendation_scan` 扫描推荐
-/// 3. 用 `build_notification` 生成标题 + 正文
-/// 4. 构建 `ReportPayload` 并通过 `NotificationDispatcher` 推送
-///
-/// 返回推送汇总（包含成功/失败/跳过计数）
-pub async fn run_recommendation_cron(
-    client: &Arc<AStockClient>,
-    dispatcher: &NotificationDispatcher,
-    prompt: &str,
-    job_name: &str,
-) -> Result<NotificationDispatchSummary, String> {
-    let config = RecoCronConfig::from_json(prompt)?;
-
-    tracing::info!(
-        "[recommendation_cron] '{}' 开始扫描: periods={:?} min_confidence={} top_n={}",
-        job_name,
-        config.periods,
-        config.min_confidence,
-        config.top_n
-    );
-
-    // 扫描推荐（无模板变量）
-    let picks = run_recommendation_scan(
-        client.clone(),
-        &config.periods,
-        &[],
-        config.min_confidence,
-        config.top_n,
-    )
-    .await;
-
-    if picks.is_empty() {
-        tracing::info!("[recommendation_cron] '{}' 未发现符合条件推荐", job_name);
-        // 仍然推送"无推荐"通知
-        let payload = ReportPayload {
-            title: "智能荐股更新".to_string(),
-            body_md: "本次未发现符合条件的新推荐".to_string(),
-            body_html: None,
-            stocks: vec![],
-            generated_at: Utc::now(),
-        };
-        let summary = dispatcher.dispatch_report(&payload, Utc::now()).await;
-        return Ok(summary);
-    }
-
-    // 生成通知文本
-    let (title, body) = build_notification(&picks);
-
-    // 构建股票摘要
-    let stocks: Vec<ReportStockSummary> = picks
-        .iter()
-        .map(|p| ReportStockSummary {
-            stock_code: p.stock_code.clone(),
-            stock_name: p.stock_name.clone(),
-            action: format!("置信度 {}", p.confidence),
-            score: p.confidence as u32,
-            confidence: p.confidence as f64 / 100.0,
-        })
-        .collect();
-
-    let payload =
-        ReportPayload { title, body_md: body, body_html: None, stocks, generated_at: Utc::now() };
-
-    tracing::info!("[recommendation_cron] '{}' 发现 {} 只推荐，开始推送", job_name, picks.len());
-
-    let summary = dispatcher.dispatch_report(&payload, Utc::now()).await;
-    Ok(summary)
 }
 
 // ── Tauri 命令：荐股定时任务 CRUD ──
@@ -118,8 +46,6 @@ use serde::Serialize;
 use tauri::State;
 
 use crate::AppState;
-use crate::commands::error::ErrorResponse;
-use crate::commands::error_code::stock_workflow as wf_err;
 
 /// 与前端 `RecoCronRow` 对齐的响应结构
 #[derive(Debug, Serialize)]
@@ -148,7 +74,7 @@ impl RecoCronJobResponse {
             min_confidence: 60,
             top_n: 5,
         });
-        // last_result.output 是 NotificationDispatchSummary 的 JSON
+        // last_result.output 是执行结果的 JSON
         let last_picks_count = j
             .last_result
             .as_ref()
@@ -192,9 +118,8 @@ pub async fn create_recommendation_cron(
         return Err("top_n 必须大于 0".to_string());
     }
     let config = RecoCronConfig { periods, min_confidence, top_n };
-    let prompt = serde_json::to_string(&config).map_err(|e| {
-        ErrorResponse::new(wf_err::INTERNAL).with_detail(format!("序列化荐股 cron 配置失败: {e}"))
-    })?;
+    let prompt =
+        serde_json::to_string(&config).map_err(|e| format!("序列化荐股 cron 配置失败: {e}"))?;
     let desc = format!("荐股定时推送 (置信度≥{}%, 前{}只)", min_confidence, top_n);
     let job = CronJob::new(&name, &cron_expression, &prompt, &desc)
         .with_task_type("stock-recommendation");

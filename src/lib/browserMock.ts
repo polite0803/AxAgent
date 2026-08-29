@@ -1467,10 +1467,10 @@ async function executeCommand<T>(
     // ── Settings ──────────────────────────────────────────────────────
     case "get_settings":
       return getStore("settings", DEFAULT_SETTINGS) as T;
-    // AxInvest: 数据源健康仪表盘 — 后端返回 Vec<VendorHealth>，mock 返回空数组
+    // 数据源健康仪表盘 — 后端返回 Vec<VendorHealth>，mock 返回空数组
     case "get_vendor_health_all":
       return [] as unknown as T;
-    // AxInvest: 管道历史 — 后端返回 Vec<PipelineRun>，mock 返回空数组
+    // 管道历史 — 后端返回 Vec<PipelineRun>，mock 返回空数组
     case "get_pipeline_history":
       return [] as unknown as T;
     case "save_settings": {

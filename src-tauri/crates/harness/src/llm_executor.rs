@@ -272,8 +272,16 @@ pub async fn execute_llm_stream(
     // 都被记录到会话日志，并在 debug 构建下做可重建断言。经能力注册表
     // session.log.invariant 接缝取回；未注册时优雅跳过（如单元测试）。
     if let Some(session_log) = crate::get_capability_registry().get_session_log_invariant() {
-        let session_id =
-            prepared.request.conversation.clone().unwrap_or_else(|| prepared.request.model.clone());
+        // 优先取 conversation_id；如果是 None 或空字符串都回退到 model；
+        // 两个都空时兜底一个 "unknown" 避免 invariant 因空 id 报错。
+        let session_id = match prepared.request.conversation.as_deref() {
+            Some(c) if !c.is_empty() => c.to_string(),
+            _ if !prepared.request.model.is_empty() => prepared.request.model.clone(),
+            _ => format!(
+                "unknown-{}",
+                prepared.request.messages.first().map(|_| "msg").unwrap_or("empty")
+            ),
+        };
         for msg in &prepared.request.messages {
             session_log.record_model_visible(
                 &session_id,

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "version": "1.0.0",
-  "description": "AxInvest 分歧日志标准化三元组 Schema。分歧日志为审计追踪核心资产，Dao 层必须实施只读保护：CRUD 仅允许 CREATE/READ，禁止 UPDATE/DELETE。",
+  "description": "AxAgent 分歧日志标准化三元组 Schema。分歧日志为审计追踪核心资产，Dao 层必须实施只读保护：CRUD 仅允许 CREATE/READ，禁止 UPDATE/DELETE。",
 
   "divergence_log": {
     "description": "分歧日志三元组：记录系统内部不同 Agent/因子对同一决策结论的分歧情况",

@@ -1488,7 +1488,6 @@ export * from "./expert";
 export * from "./knowledge";
 export * from "./llmWiki";
 export * from "./localTool";
-export * from "./market-mainline";
 export * from "./mcp";
 export * from "./memory";
 export * from "./multi-agent";
@@ -1496,10 +1495,8 @@ export * from "./nudge";
 // Fleet（多办公室 AI 团队）— 与后端 axagent_harness::fleet 一一对应
 export * from "./office";
 export * from "./paper";
-export * from "./paper-portfolio";
 export * from "./permission";
 export * from "./persona";
-export * from "./pipeline";
 
 // === Security Module Types ===
 export type { InjectionDetection, InjectionType, SanitizationResult } from "@/lib/security/injectionDetector";
@@ -1518,9 +1515,7 @@ export * from "./narrative";
 export * from "./platform";
 export * from "./proactive";
 export * from "./scheduler";
-export * from "./screenshot-diagnosis";
 export * from "./search";
-export * from "./stock-analysis";
 export * from "./style";
 export * from "./taskShape";
 export * from "./tracer";
@@ -2045,27 +2040,6 @@ export type {
 } from "./dynamicUI";
 export { COMPONENT_REQUIRED_PROPS, VALID_DYNAMIC_COMPONENT_TYPES } from "./dynamicUI";
 
-// ── AxInvest quant types ──
-export type {
-  BacktestResult,
-  BacktestRunRequest,
-  BacktestRunResponse,
-  EquityPoint,
-  MetricsCompareResponse,
-  QuantBacktestConfig,
-  QuantBacktestSignal,
-  QuantBacktestTrade,
-  QuantFill,
-  QuantOrder,
-  QuantOrderType,
-  QuantRun,
-  RegisterRhaiRequest,
-  StrategyMeta,
-  StrategyType,
-  TradeSide,
-} from "./quant";
-export { BUILTIN_STRATEGY_IDS, DEFAULT_RHAI_TEMPLATE, DEFAULT_STRATEGY_PARAMS } from "./quant";
-
 export interface DashboardStats {
   totalConversations: number;
   totalMessages: number;
@@ -2210,7 +2184,7 @@ export type {
   SkillLearningConfig,
 } from "./skillLearning";
 
-// === 交易执行桥接（AxInvest 独有） ===
+// === 交易执行桥接 ===
 export type {
   ConfirmPendingParams,
   ExecutionConfirmedEvent,

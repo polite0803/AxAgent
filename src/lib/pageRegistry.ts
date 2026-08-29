@@ -25,8 +25,7 @@ export const DEFAULT_HOME = "/chat";
  *
  * 路径按 8 个标准能力域组织：
  *   - 通用功能路径保持顶级（/chat, /terminal, /files, /gateway 等）
- *   - 业务路径挂在对应域下（/finance/investment, /automation/operations 等）
- *   - 旧路径保留作重定向（/invest → /finance/investment, /opc → /automation/operations 等）
+ *   - 业务域路径由 CAPABILITY_DOMAIN_META 自动展开（/finance, /automation 等）
  */
 export const BUILTIN_PAGE_PATH: Record<string, string> = {
   // ── 能力域聚合入口路径（8 个业务域，路径来源 domainMeta 单一真相源） ──
@@ -49,100 +48,6 @@ export const BUILTIN_PAGE_PATH: Record<string, string> = {
   terminal: "/terminal",
   files: "/files",
   gateway: "/gateway",
-
-  // ── 金融域（finance） ──
-  // 股票业务统一入口（原 /invest，路径改为 /finance/investment）
-  financeInvestment: "/finance/investment",
-  // 行业页面
-  financeAnalysis: "/finance/analysis",
-  financeAccounting: "/finance/accounting",
-
-  // ── 自动化域（automation） ──
-  // OPC 一人公司管理（原 /opc，路径改为 /automation/operations）
-  automationOperations: "/automation/operations",
-  // OPC 管理子页面（仪表板、发票、客户、项目等）
-  automationDashboard: "/automation/operations/dashboard",
-  automationInvoices: "/automation/operations/invoices",
-  automationCustomers: "/automation/operations/customers",
-  automationProjects: "/automation/operations/projects",
-  automationSites: "/automation/operations/sites",
-  automationTalent: "/automation/operations/talent",
-  automationMarket: "/automation/operations/market",
-  automationKanban: "/automation/operations/kanban",
-  // 行业页面
-  automationSales: "/automation/sales",
-  automationProjects2: "/automation/projects",
-  automationConsulting: "/automation/consulting",
-  automationEcommerce: "/automation/ecommerce",
-
-  // ── 运维域行业页面 ──
-  devopsSoftware: "/devops/software",
-  devopsSecurity: "/devops/security",
-
-  // ── 数据分析域（data_analysis） ──
-  dataGeospatial: "/data-analysis/geospatial",
-  dataAiResearch: "/data-analysis/ai-research",
-
-  // ── 内容创作域（content_creation） ──
-  contentMedia: "/content-creation/media",
-  contentDesign: "/content-creation/design",
-  contentEducation: "/content-creation/education",
-
-  // ── AI 媒体域（ai_media） ──
-  aiMediaGame: "/ai-media/game",
-
-  // ── 通信域（communication） ──
-  communicationMessage: "/communication/message",
-
-  // ── 以下为旧路径（保留作重定向，兼容书签和外链） ──
-  // 旧股票业务路径 → 重定向到 /finance/investment
-  invest: "/invest",
-  workspace: "/workspace",
-  "stock-analysis": "/stock-analysis",
-  screener: "/screener",
-  watchlist: "/watchlist",
-  portfolio: "/portfolio",
-  "paper-portfolio": "/paper-portfolio",
-  "market-mainline": "/market-mainline",
-  "screenshot-diagnosis": "/screenshot-diagnosis",
-  trade: "/trade",
-  backtest: "/backtest",
-  compare: "/compare",
-  "scheduled-analysis": "/scheduled-analysis",
-  quant: "/quant",
-  "replay-workbench": "/replay-workbench",
-  pipeline: "/pipeline",
-  "cross-market": "/cross-market",
-
-  // 旧 OPC 路径 → 重定向到 /automation/operations
-  opc: "/opc",
-  opcDashboard: "/opc/dashboard",
-  opcInvoices: "/opc/invoices",
-  opcCustomers: "/opc/customers",
-  opcProjects: "/opc/projects",
-  opcSites: "/opc/sites",
-  opcTalent: "/opc/talent",
-  opcMarket: "/opc/market",
-  opcKanban: "/opc/kanban",
-
-  // 旧 OPC 行业路径 → 重定向到对应的域化路径
-  opcIndustryAiResearch: "/opc/industries/ai-research",
-  opcIndustrySoftwareDev: "/opc/industries/software-dev",
-  opcIndustryFinanceInvest: "/opc/industries/finance-invest",
-  opcIndustrySalesGrowth: "/opc/industries/sales-growth",
-  opcIndustryContentMedia: "/opc/industries/content-media",
-  opcIndustryIndustryConsulting: "/opc/industries/industry-consulting",
-  opcIndustryAccounting: "/opc/industries/accounting",
-  opcIndustryEcommerce: "/opc/industries/ecommerce",
-  opcIndustryEducation: "/opc/industries/education",
-  opcIndustryDesign: "/opc/industries/design",
-  opcIndustryProjectManagement: "/opc/industries/project-management",
-  opcIndustrySecurity: "/opc/industries/security",
-  opcIndustryGeospatial: "/opc/industries/geospatial",
-  opcIndustryGameDev: "/opc/industries/game-dev",
-  // 旧动态路由和导航页
-  opcIndustryDynamic: "/opc/industry",
-  opcIndustries: "/opc/industries",
 
   // ── 历史兼容入口 / devtools 等 ──
   llmWiki: "/llm-wiki",

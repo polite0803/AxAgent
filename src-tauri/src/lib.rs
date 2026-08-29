@@ -151,8 +151,8 @@ pub fn run() {
         // 注意：使用 append 而非 overwrite，防止跨启动丢失日志
         let boot_msg = "[BOOT] run() entered\n";
         let boot_paths = [
-            "/storage/emulated/0/Download/axinvest-crash.log",
-            "/storage/emulated/0/Android/data/top.axinvest.desktop/files/axinvest-crash.log",
+            "/storage/emulated/0/Download/AxAgent-crash.log",
+            "/storage/emulated/0/Android/data/top.AxAgent.desktop/files/AxAgent-crash.log",
         ];
         for bp in &boot_paths {
             // 追加而非覆盖
@@ -312,7 +312,7 @@ pub fn run() {
                     android_utils::report_fatal_error(&format!("Database init failed: {}", e));
                     #[cfg(target_os = "windows")]
                     {
-                        windows_utils::show_error_dialog("AxInvest", &format!("数据库初始化失败: {}", e));
+                        windows_utils::show_error_dialog("AxAgent", &format!("数据库初始化失败: {}", e));
                     }
                     // 不要 panic 导致栈溢出；返回 Err 让 Tauri 优雅退出
                     let err_msg = format!("数据库初始化失败: {}", e);
@@ -379,12 +379,13 @@ pub fn run() {
             let init_state = app.state::<AppState>();
             let init_sea_db = init_state.harness.db().clone();
             let init_app_dir = app_data_dir.clone();
-            let init_cron_store = init_state.cron_job_store.clone();
+            let _init_cron_store = init_state.cron_job_store.clone();
             let init_user_profile = init_state.user_profile.clone();
             let init_pattern_learner = init_state.pattern_learner.clone();
             let init_stream_reporter = init_state.stream_reporter.clone();
-            let init_concept_index = init_state.concept_index.clone();
-            let init_platform_manager = init_state.platform_manager.clone();
+            // NOTE: concept_index 已随 AxAgent 清理移除
+            // let init_concept_index = init_state.concept_index.clone();
+            let _init_platform_manager = init_state.platform_manager.clone();
             let init_local_tool_registry = init_state.local_tool_registry.clone();
             let init_work_engine = init_state.work_engine.clone();
             let init_evolution_stats = init_state.evolution_execution_stats.clone();
@@ -400,28 +401,7 @@ pub fn run() {
                     tracing::error!("Session reset failed: {:?}", e);
                 }
 
-                // 2. Seed OPC knowledge sources (Wiki + Memory)
-                init::opc_knowledge::seed_opc_knowledge(&sea_db).await;
-
-                // 3. 同步 OPC 行业包/领域包资产到用户数据目录
-                crate::commands::opc_workflows::ensure_opc_config_synced(&init_app_dir);
-
-                // 4. Seed OPC professional workflow templates
-                if let Err(e) = crate::commands::opc_workflows::ensure_opc_workflows_seeded(&sea_db, Some(&init_app_dir)).await {
-                    tracing::error!("[opc-workflows] Seed failed: {e}");
-                }
-
-                // 5. Seed OPC company architecture
-                if let Err(e) = crate::commands::opc_setup::ensure_opc_company_seeded(&sea_db).await {
-                    tracing::error!("[opc-company] Seed failed: {e}");
-                }
-
-                // 6. Seed OPC demand discovery cron jobs
-                if let Err(e) = crate::commands::opc_setup::seed_opc_cron::seed_demand_discovery_crons(&init_cron_store).await {
-                    tracing::error!("[opc-cron] Seed failed: {e}");
-                }
-
-                // 7. Initialize pricing configuration from pricing.toml
+                // 2. Initialize pricing configuration from pricing.toml
                 commands::agent::init_pricing_config(&app_handle);
 
                 // 8. 注入 Orchestrator 流式报告器（绑定 AppHandle 以便推送事件到前端）
@@ -464,7 +444,7 @@ pub fn run() {
 
                 // 10. 加载 USER.md profile（若存在）
                 if let Some(home) = dirs::home_dir() {
-                    let user_md_path = home.join(".axinvest").join("USER.md");
+                    let user_md_path = home.join(".AxAgent").join("USER.md");
                     if user_md_path.exists() {
                         if let Ok(content) = std::fs::read_to_string(&user_md_path) {
                             if let Some(profile) = axagent_trajectory::UserProfile::from_user_md(&content) {
@@ -516,18 +496,7 @@ pub fn run() {
                     }
                 }
 
-                // 12. 异步股票业务种子化（专家/角色/工作流模板）
-                if let Err(e) = crate::commands::stock_analysis_setup::ensure_stock_analysis_experts_seeded(&sea_db).await {
-                    tracing::error!("[startup] 股票业务种子化失败: {e}");
-                }
-                // 13. 构建全局 ConceptIndex
-                {
-                    let idx = crate::commands::stock_analysis_setup::seed_concept_index::ensure_concept_index(&sea_db, &init_app_dir).await;
-                    let mut w = init_concept_index.write().await;
-                    *w = idx;
-                    tracing::info!("[startup] ConceptIndex 构建完成");
-                }
-                // 14. 同步内置 SKILL.md
+                // 10. 同步内置 SKILL.md
                 crate::commands::skills::seed_builtin_skills();
 
                 // 15. 移动端云同步连接检查
@@ -563,33 +532,6 @@ pub fn run() {
                 // 17. Multi-Agent 固定角色（analyst/implementer/reviewer）种子化
                 if let Err(e) = crate::commands::multi_agent_setup::seed_multi_agent_roles::seed_multi_agent_roles(&sea_db).await {
                     tracing::warn!("[multi_agent_setup] 种子化 Multi-Agent 角色失败: {}", e);
-                }
-
-                // 18. 启动 OPC notify worker（独立 spawn，避免无限循环阻塞后续初始化）
-                {
-                    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
-                    axagent_tools::tools::opc::set_opc_notify_tx(tx);
-                    let pm = init_platform_manager.clone();
-                    let db = sea_db.clone();
-                    tauri::async_runtime::spawn(async move {
-                        while let Some(notif) = rx.recv().await {
-                            let config = axagent_dao::repo::platform_config::get_platform_config(&db).await;
-                            match pm.get_adapter(&notif.platform).await {
-                                Some(adapter) => {
-                                    if let Err(e) = adapter
-                                        .send_message(&config, &notif.chat_id, &notif.message, None)
-                                        .await
-                                    {
-                                        tracing::error!("[opc-notify] {}/{}: {e}", notif.platform, notif.chat_id);
-                                    } else {
-                                        tracing::info!("[opc-notify] Sent via {} to {}", notif.platform, notif.chat_id);
-                                    }
-                                }
-                                None => tracing::warn!("[opc-notify] Platform {} not available", notif.platform),
-                            }
-                        }
-                    });
-                    tracing::info!("[opc] Started OPC notify worker");
                 }
 
                 // 19. 加载持久化 runtime_evolution 工具（幂等，source=runtime_evolution）
@@ -725,15 +667,15 @@ pub fn run() {
                 {
                     const WEBVIEW2_DOWNLOAD_URL: &str = "https://developer.microsoft.com/en-us/microsoft-edge/webview2/?form=MA13LH#download";
                     let user_ok = windows_utils::show_warning_ok_cancel(
-                        "AxInvest",
-                        "未检测到 Microsoft Edge WebView2 Runtime，AxInvest 无法启动。\n\n点击「确定」打开下载页面进行安装，安装完成后重新启动 AxInvest。",
+                        "AxAgent",
+                        "未检测到 Microsoft Edge WebView2 Runtime，AxAgent 无法启动。\n\n点击「确定」打开下载页面进行安装，安装完成后重新启动 AxAgent。",
                     );
                     if user_ok {
                         let _ = open::that(WEBVIEW2_DOWNLOAD_URL);
                     }
                 } else {
                     windows_utils::show_error_dialog(
-                        "AxInvest",
+                        "AxAgent",
                         &format!("应用启动失败：{}", error_msg),
                     );
                 }

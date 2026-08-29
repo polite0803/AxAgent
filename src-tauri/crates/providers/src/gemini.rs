@@ -157,8 +157,6 @@ struct GeminiCandidate {
 struct GeminiUsageMetadata {
     prompt_token_count: Option<u32>,
     candidates_token_count: Option<u32>,
-    #[allow(dead_code)]
-    total_token_count: Option<u32>,
     /// Gemini 上下文缓存命中 token 数 (cachedContentTokenCount).
     #[serde(default)]
     cached_content_token_count: Option<u32>,

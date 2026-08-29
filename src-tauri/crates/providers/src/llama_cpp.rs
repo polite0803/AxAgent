@@ -133,22 +133,9 @@ struct LlamaModelEntry {
 }
 
 #[derive(Deserialize, Default)]
-#[allow(dead_code)]
 struct LlamaModelMeta {
     #[serde(default)]
-    n_embd: Option<u64>,
-    #[serde(default)]
     n_ctx: Option<u64>,
-    #[serde(default)]
-    n_ctx_train: Option<u64>,
-    #[serde(default)]
-    n_params: Option<u64>,
-    #[serde(default)]
-    size: Option<u64>,
-    #[serde(default)]
-    ftype: Option<String>,
-    #[serde(default)]
-    n_vocab: Option<u64>,
 }
 
 #[async_trait]

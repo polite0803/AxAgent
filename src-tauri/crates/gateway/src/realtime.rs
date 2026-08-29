@@ -58,16 +58,12 @@ enum RealtimeClientMessage {
 
 #[derive(Serialize)]
 #[serde(tag = "type")]
-#[allow(dead_code)]
 enum RealtimeServerMessage {
     #[serde(rename = "session.created")]
     SessionCreated { session_id: String },
     /// 用户侧语音识别结果（字幕）
     #[serde(rename = "conversation.item.input_audio_transcription.completed")]
     InputTranscript { transcript: String },
-    /// AI 文本增量（字幕）
-    #[serde(rename = "response.text.delta")]
-    TextDelta { delta: String },
     /// AI 音频增量（base64 PCM16）
     #[serde(rename = "response.audio.delta")]
     AudioDelta { delta: String },
@@ -1146,15 +1142,6 @@ mod tests {
         let v: serde_json::Value = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
         assert_eq!(v["type"], "conversation.item.input_audio_transcription.completed");
         assert_eq!(v["transcript"], "你好");
-    }
-
-    #[test]
-    fn serialize_text_delta() {
-        let msg = RealtimeServerMessage::TextDelta { delta: "Hello".into() };
-        let json = serde_json::to_string(&msg).expect("测试：JSON序列化应成功");
-        let v: serde_json::Value = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
-        assert_eq!(v["type"], "response.text.delta");
-        assert_eq!(v["delta"], "Hello");
     }
 
     #[test]

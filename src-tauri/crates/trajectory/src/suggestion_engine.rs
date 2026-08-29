@@ -6,7 +6,6 @@ use crate::proactive_assistant::{
     SuggestionType,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -65,7 +64,6 @@ pub struct WorkHabitPreference {
 
 pub struct SuggestionEngine {
     config: SuggestionEngineConfig,
-    suggestion_templates: HashMap<SuggestionType, Vec<SuggestionTemplate>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -89,15 +87,6 @@ impl Default for SuggestionEngineConfig {
     }
 }
 
-#[derive(Debug, Clone)]
-struct SuggestionTemplate {
-    suggestion_type: SuggestionType,
-    title_template: String,
-    description_template: String,
-    action: SuggestionAction,
-    priority: Priority,
-}
-
 impl Default for SuggestionEngine {
     fn default() -> Self {
         Self::new()
@@ -106,89 +95,11 @@ impl Default for SuggestionEngine {
 
 impl SuggestionEngine {
     pub fn new() -> Self {
-        Self {
-            config: SuggestionEngineConfig::default(),
-            suggestion_templates: Self::default_templates(),
-        }
+        Self { config: SuggestionEngineConfig::default() }
     }
 
     pub fn with_config(config: SuggestionEngineConfig) -> Self {
-        Self { config, suggestion_templates: Self::default_templates() }
-    }
-
-    fn default_templates() -> HashMap<SuggestionType, Vec<SuggestionTemplate>> {
-        let mut templates = HashMap::new();
-
-        templates.insert(
-            SuggestionType::Completion,
-            vec![SuggestionTemplate {
-                suggestion_type: SuggestionType::Completion,
-                title_template: "Complete {language} code".to_string(),
-                description_template: "为您准备 {language} 代码补全".to_string(),
-                action: SuggestionAction::PrefetchCompletion {
-                    language: "{language}".to_string(),
-                    context: "{context}".to_string(),
-                },
-                priority: Priority::High,
-            }],
-        );
-
-        templates.insert(
-            SuggestionType::Refactor,
-            vec![SuggestionTemplate {
-                suggestion_type: SuggestionType::Refactor,
-                title_template: "Refactor {target}".to_string(),
-                description_template: "检测到潜在的重构机会".to_string(),
-                action: SuggestionAction::ShowRefactorOptions { target: "{target}".to_string() },
-                priority: Priority::Medium,
-            }],
-        );
-
-        templates.insert(
-            SuggestionType::Documentation,
-            vec![SuggestionTemplate {
-                suggestion_type: SuggestionType::Documentation,
-                title_template: "Generate documentation for {topic}".to_string(),
-                description_template: "为您生成文档".to_string(),
-                action: SuggestionAction::GenerateDocs { topic: "{topic}".to_string() },
-                priority: Priority::Low,
-            }],
-        );
-
-        templates.insert(
-            SuggestionType::Test,
-            vec![SuggestionTemplate {
-                suggestion_type: SuggestionType::Test,
-                title_template: "Generate tests for {target}".to_string(),
-                description_template: "为您创建测试用例".to_string(),
-                action: SuggestionAction::GenerateTests { target: "{target}".to_string() },
-                priority: Priority::Medium,
-            }],
-        );
-
-        templates.insert(
-            SuggestionType::Optimization,
-            vec![SuggestionTemplate {
-                suggestion_type: SuggestionType::Optimization,
-                title_template: "Optimize {target}".to_string(),
-                description_template: "检测到性能优化机会".to_string(),
-                action: SuggestionAction::ShowOptimizations { target: "{target}".to_string() },
-                priority: Priority::Medium,
-            }],
-        );
-
-        templates.insert(
-            SuggestionType::Learning,
-            vec![SuggestionTemplate {
-                suggestion_type: SuggestionType::Learning,
-                title_template: "Learn about {topic}".to_string(),
-                description_template: "推荐学习资源".to_string(),
-                action: SuggestionAction::ShowLearningResources { topic: "{topic}".to_string() },
-                priority: Priority::Low,
-            }],
-        );
-
-        templates
+        Self { config }
     }
 
     pub fn generate_suggestions(

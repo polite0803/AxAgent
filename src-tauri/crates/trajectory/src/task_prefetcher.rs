@@ -62,7 +62,6 @@ impl Default for PrefetchResults {
 pub struct TaskPrefetcher {
     config: PrefetcherConfig,
     cache: HashMap<String, PrefetchResult>,
-    pending_prefetches: HashMap<String, PrefetchTask>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -95,15 +94,11 @@ impl Default for TaskPrefetcher {
 
 impl TaskPrefetcher {
     pub fn new() -> Self {
-        Self {
-            config: PrefetcherConfig::default(),
-            cache: HashMap::new(),
-            pending_prefetches: HashMap::new(),
-        }
+        Self { config: PrefetcherConfig::default(), cache: HashMap::new() }
     }
 
     pub fn with_config(config: PrefetcherConfig) -> Self {
-        Self { config, cache: HashMap::new(), pending_prefetches: HashMap::new() }
+        Self { config, cache: HashMap::new() }
     }
 
     pub fn get_config(&self) -> &PrefetcherConfig {
@@ -305,12 +300,4 @@ impl TaskPrefetcher {
         }
         self.cache.get(resource_id)
     }
-}
-
-#[derive(Debug, Clone)]
-struct PrefetchTask {
-    resource_id: String,
-    prefetch_type: PrefetchType,
-    started_at: DateTime<Utc>,
-    priority: u32,
 }

@@ -158,10 +158,6 @@ impl NudgeService {
         self
     }
 
-    pub(crate) fn get_session(&self) -> Option<&NudgeSession> {
-        self.session.as_ref()
-    }
-
     pub fn generate_nudges(
         &mut self,
         context: NudgeContext,

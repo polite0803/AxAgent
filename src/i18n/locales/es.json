@@ -2652,6 +2652,7 @@
     "PROVIDER_KEY_DECRYPT_FAILED": "Error al descifrar la clave del proveedor",
     "PROVIDER_MODEL_LIST_TIMEOUT": "Tiempo de espera agotado al obtener la lista de modelos",
     "PROVIDER_NO_ACTIVE_KEY": "No hay clave de proveedor activa",
+    "PROVIDER_MODEL_NOT_FOUND": "No se encontró ningún modelo disponible en el proveedor {provider_id} (solicitado: {model_id})",
     "PROVIDER_TEST_FAILED": "Error al probar el proveedor",
     "PROVIDER_UPDATE_FAILED": "Error al actualizar el proveedor",
     "PROXY_ADDRESS_NOT_ALLOWED": "Dirección de proxy no permitida",

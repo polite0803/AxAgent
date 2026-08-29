@@ -5,32 +5,13 @@
 //!
 //! 本项目采用「上游基线 + 本地增量」的双层迁移架构：
 //! - [v100_consolidated]：上游所有 DDL（表/索引/触发器/种子数据）的单一基线。
-//! - [v200_axinvest_stock_tables]：AxInvest fork 独有的股票业务表 + 上游
-//!   CHECK 约束扩展。本地独有迁移从 v200 起单调递增，预留 v101–v199 给
-//!   上游未来扩展（详见 project_memory.md）。
-//!
-//! ## 历史
-//!
-//! - 旧版采用 v001–v011 + v101–v103 + v200 多版本迁移，导致：
-//!   - v100 后续追加的 PHASE 在已应用 v100 的旧库上永远不会跑
-//!   - v200 INT4→INT8 ALTER 通道与 v100 pg_ddl() 类型转换重复
-//!   - 多次数据转换逻辑相互覆盖，难以维护
-//! - 现已合并为 v100 单一基线：
-//!   - 旧版 v101–v103 的字段和表全部合并到 v100 PHASE 2/8/9/10
-//!   - v200_pg_int4_to_int8_axinvest 删除（pg_ddl 在 CREATE TABLE 时一次性
-//!     产出正确类型，无需二次 ALTER）
-//!   - 所有 ALTER TABLE 补字段通道删除（字段直接在 CREATE TABLE 中建好）
-//! - AxInvest 独有表（stock_analyses / stock_reflections /
-//!   stock_pipeline_runs / strategy_performance）原散落各处，现统一收纳
-//!   到 v200_axinvest_stock_tables。上游 v100 保持原貌，合并上游无冲突。
+//! - v101–v125：AxAgent 各功能模块的增量迁移与 schema 自愈。
 //!
 //! ## 约定
 //!
 //! - 上游表/字段变更：直接修改 v100_consolidated.rs（与上游保持同步）
-//! - AxInvest 独有表/字段：在 v200_axinvest_stock_tables.rs 中追加，或
-//!   新建 v201/v202/... 递增版本
+//! - AxAgent 独有表/字段：新建递增版本号迁移（v126+）
 //! - 新增索引：跟随所属表的迁移文件
-//! - 上游表需扩展（如 CHECK 约束加值）：在 v200+ 迁移中用 ALTER 语句扩展
 
 use sea_orm::{ConnectionTrait, DbBackend, DbErr, Statement};
 
@@ -59,33 +40,11 @@ pub mod v120_add_trajectory_invalidated;
 pub mod v121_add_trajectory_agent_name;
 pub mod v122_evolution_execution_stats;
 pub mod v123_workflow_tools;
-pub mod v200_axinvest_stock_tables;
-pub mod v201_lesson_application_tracking;
-pub mod v202_stock_analyses_parent_version;
-pub mod v203_price_alerts_align_monitor;
-pub mod v204_paper_portfolio;
-pub mod v205_market_mainline;
-pub mod v206_screenshot_diagnosis;
-pub mod v207_chat_run;
-pub mod v208_backfill_wiki_sync_queue_columns;
-pub mod v209_opc_tables;
-pub mod v210_opc_ext;
-pub mod v211_opc_industries;
-pub mod v212_opc_work_items;
-pub mod v213_opc_orgs;
-pub mod v214_opc_experience;
-pub mod v215_opc_rl_experience;
-pub mod v216_opc_content_assets;
-pub mod v217_opc_publish_schedules;
-pub mod v218_extend_agent_roles;
-pub mod v219_trade_intent_audit;
-pub mod v220_narrative_structure;
-pub mod v221_demand_discovery;
-pub mod v222_demand_lead_evaluation;
-pub mod v223_heal_stale_schema;
+pub mod v124_backfill_wiki_sync_queue_columns;
+pub mod v125_heal_stale_schema;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 223;
+pub const CURRENT_VERSION: i32 = 125;
 
 /// P2-10: Schema 版本追踪表名。
 ///
@@ -239,124 +198,14 @@ const MIGRATIONS: &[Migration] = &[
         up: |db| Box::pin(v123_workflow_tools::up(db)),
     },
     Migration {
-        version: 200,
-        description: "v200_axinvest_stock_tables: AxInvest 独有股票业务表（stock_analyses / stock_reflections / stock_pipeline_runs / strategy_performance）+ agency_experts/agent_profiles 的 category CHECK 约束扩展（加入 stock-analysis）",
-        up: |db| Box::pin(v200_axinvest_stock_tables::up(db)),
+        version: 124,
+        description: "v124_backfill_wiki_sync_queue_columns: 补全 wiki_sync_queue 表缺失的 created_at / processed_at 列（修复存量库 v100 PHASE 3.9 后加列未生效问题）",
+        up: |db| Box::pin(v124_backfill_wiki_sync_queue_columns::up(db)),
     },
     Migration {
-        version: 201,
-        description: "v201_lesson_application_tracking: P2-F15 切入点 3 —— lesson_applications 关联表（记录决策分析引用了哪些 lesson + T+N 验证后回写 outcome，用于精确计算 times_applied/success_count）",
-        up: |db| Box::pin(v201_lesson_application_tracking::up(db)),
-    },
-    Migration {
-        version: 202,
-        description: "v202_stock_analyses_parent_version: stock_analyses 表新增 parent_analysis_id 字段，支持版本化分析（重跑分析保留历史版本而非覆盖）",
-        up: |db| Box::pin(v202_stock_analyses_parent_version::up(db)),
-    },
-    Migration {
-        version: 203,
-        description: "v203_price_alerts_align_monitor: price_alerts 表新增 alert_type/condition_type/threshold 列并与 RealtimeMonitor 6 类告警对齐，回填老 above/below 数据",
-        up: |db| Box::pin(v203_price_alerts_align_monitor::up(db)),
-    },
-    Migration {
-        version: 204,
-        description: "v204_paper_portfolio: G2 模拟观察组合 —— paper_portfolios 主表 + paper_positions 持仓表，承接 DojoAgents 场景 1/2/3 的研究观察列表 / 模拟建仓实体",
-        up: |db| Box::pin(v204_paper_portfolio::up(db)),
-    },
-    Migration {
-        version: 205,
-        description: "v205_market_mainline: G4 市场主线自动提炼 —— market_mainlines 表，承接 daily-market-events 工作流每日自动提炼的市场主题 + 叙述 + 代表标的 + 强度评分 + 持续性",
-        up: |db| Box::pin(v205_market_mainline::up(db)),
-    },
-    Migration {
-        version: 206,
-        description: "v206_screenshot_diagnosis: G6 截图持仓诊断完整闭环 —— screenshot_diagnoses 表，承接 screenshot-portfolio-diagnosis 工作流，含 OCR 文本 / 结构化持仓 / 风险诊断 schema / 建议动作",
-        up: |db| Box::pin(v206_screenshot_diagnosis::up(db)),
-    },
-    Migration {
-        version: 207,
-        description: "v207_chat_run: G8 /api/chat/runs 后台 Run Lifecycle 持久化归档 —— chat_runs 主表 + chat_run_events 事件流表，支持多实例网关共享和历史 run 回放",
-        up: |db| Box::pin(v207_chat_run::up(db)),
-    },
-    Migration {
-        version: 208,
-        description: "v208_backfill_wiki_sync_queue_columns: 补全 wiki_sync_queue 表缺失的 created_at / processed_at 列（修复存量库 v100 PHASE 3.9 后加列未生效问题）",
-        up: |db| Box::pin(v208_backfill_wiki_sync_queue_columns::up(db)),
-    },
-    Migration {
-        version: 209,
-        description: "v209_opc_tables: OPC 业务领域表（opc_invoices / opc_customers / opc_projects + 索引），来自 AxOPC v200 改号",
-        up: |db| Box::pin(v209_opc_tables::up(db)),
-    },
-    Migration {
-        version: 210,
-        description: "v210_opc_ext: OPC 扩展表（opc_landing_pages / opc_contact_submissions / opc_blog_posts / opc_kpi_records / opc_revenue_records），来自 AxOPC v201 改号",
-        up: |db| Box::pin(v210_opc_ext::up(db)),
-    },
-    Migration {
-        version: 211,
-        description: "v211_opc_industries: OPC 行业注册表（opc_industries）——Industry Pack 扫描/启用/禁用/版本追踪",
-        up: |db| Box::pin(v211_opc_industries::up(db)),
-    },
-    Migration {
-        version: 212,
-        description: "v212_opc_work_items: OPC 工作项表（opc_work_items）——Self-Run 状态机持久层（P3）",
-        up: |db| Box::pin(v212_opc_work_items::up(db)),
-    },
-    Migration {
-        version: 213,
-        description: "v213_opc_orgs: OPC 组织抽象表（opc_orgs / opc_org_roles / opc_org_employees / opc_talent_templates）——Self-Built（P3）",
-        up: |db| Box::pin(v213_opc_orgs::up(db)),
-    },
-    Migration {
-        version: 214,
-        description: "v214_opc_experience: OPC 经验闭环表（opc_experience_records / opc_playbooks）——Self-Grown（P3）",
-        up: |db| Box::pin(v214_opc_experience::up(db)),
-    },
-    Migration {
-        version: 215,
-        description: "v215_opc_rl_experience: OPC 强化学习经验持久化表（opc_rl_experiences / opc_rl_training_stats）——RL 闭环",
-        up: |db| Box::pin(v215_opc_rl_experience::up(db)),
-    },
-    Migration {
-        version: 216,
-        description: "v216_opc_content_assets: OPC 内容资产表（opc_content_assets）——支持文章/视频/图片等内容资产管理",
-        up: |db| Box::pin(v216_opc_content_assets::up(db)),
-    },
-    Migration {
-        version: 217,
-        description: "v217_opc_publish_schedules: OPC 发布计划表（opc_publish_schedules）——支持定时发布博客/内容资产",
-        up: |db| Box::pin(v217_opc_publish_schedules::up(db)),
-    },
-    Migration {
-        version: 218,
-        description: "v218: agent_roles 扩展 8 个字段（responsibilities/decision_authority/reports_to 等）",
-        up: |db| Box::pin(v218_extend_agent_roles::up(db)),
-    },
-    Migration {
-        version: 219,
-        description: "v219_trade_intent_audit: stock_analyses 表扩展交易意图审核状态流转字段（status/source/reviewed/关联交易）",
-        up: |db| Box::pin(v219_trade_intent_audit::up(db)),
-    },
-    Migration {
-        version: 220,
-        description: "v220_narrative_structure: 新增 narrative_structures 表，支持叙事结构的跨会话保存与恢复",
-        up: |db| Box::pin(v220_narrative_structure::up(db)),
-    },
-    Migration {
-        version: 221,
-        description: "v221_demand_discovery: 新增 OPC 需求发现相关表（opc_demand_lead / opc_delivery / opc_market_platform / opc_capability_gap）",
-        up: |db| Box::pin(v221_demand_discovery::up(db)),
-    },
-    Migration {
-        version: 222,
-        description: "v222_demand_lead_evaluation: 为 opc_demand_lead 表添加需求价值评估字段",
-        up: |db| Box::pin(v222_demand_lead_evaluation::up(db)),
-    },
-    Migration {
-        version: 223,
-        description: "v223_heal_stale_schema: 自愈迁移——补 trajectory_trajectories.agent_name 列 + 重新断言 agency_experts/agent_profiles 的 category CHECK 约束（含 opc-industry/opc-domain），修复 repair_schema 强制写版本号导致的存量库 schema 缺失",
-        up: |db| Box::pin(v223_heal_stale_schema::up(db)),
+        version: 125,
+        description: "v125_heal_stale_schema: 自愈迁移——补 trajectory_trajectories.agent_name 列，修复 repair_schema 强制写版本号导致的存量库 schema 缺失",
+        up: |db| Box::pin(v125_heal_stale_schema::up(db)),
     },
 ];
 
@@ -502,35 +351,11 @@ pub async fn repair_schema(db: &sea_orm::DatabaseConnection) -> Result<(usize, u
     ))
     .await?;
 
-    // 修复时间戳列类型：从 INTEGER(INT4) 改为 BIGINT(INT8)
-    // 修复 SeaORM 实体 i64 与数据库 INT4 类型不匹配的问题
-    let fix_timestamp_columns = [
-        "ALTER TABLE opc_market_platform ALTER COLUMN created_at TYPE BIGINT",
-        "ALTER TABLE opc_market_platform ALTER COLUMN updated_at TYPE BIGINT",
-        "ALTER TABLE opc_market_platform ALTER COLUMN last_sync_at TYPE BIGINT",
-        "ALTER TABLE opc_demand_lead ALTER COLUMN created_at TYPE BIGINT",
-        "ALTER TABLE opc_demand_lead ALTER COLUMN updated_at TYPE BIGINT",
-        "ALTER TABLE opc_demand_lead ALTER COLUMN expires_at TYPE BIGINT",
-        "ALTER TABLE opc_delivery ALTER COLUMN created_at TYPE BIGINT",
-        "ALTER TABLE opc_delivery ALTER COLUMN updated_at TYPE BIGINT",
-        "ALTER TABLE opc_delivery ALTER COLUMN started_at TYPE BIGINT",
-        "ALTER TABLE opc_delivery ALTER COLUMN completed_at TYPE BIGINT",
-        "ALTER TABLE opc_capability_gap ALTER COLUMN created_at TYPE BIGINT",
-        "ALTER TABLE opc_capability_gap ALTER COLUMN updated_at TYPE BIGINT",
-        "ALTER TABLE opc_capability_gap ALTER COLUMN closed_at TYPE BIGINT",
-    ];
-
-    for sql in &fix_timestamp_columns {
-        if let Err(e) = db.execute_unprepared(sql).await {
-            tracing::debug!("[repair_schema] 时间戳列类型修复（可忽略）: {}", e);
-        }
-    }
-
     let mut fixed = 0usize;
     let total = MIGRATIONS.len();
     // 记录是否有迁移失败：只要有失败，就不得强制写入 CURRENT_VERSION，
     // 否则版本表会显示"已追平"，下次 run_migrations 将永久跳过失败的迁移
-    // （这正是 v223 背景中「存量库 schema 缺失」的根因）。
+    // （这正是 v125 背景中「存量库 schema 缺失」的根因）。
     let mut all_ok = true;
 
     for m in MIGRATIONS {
@@ -579,11 +404,11 @@ pub async fn repair_schema(db: &sea_orm::DatabaseConnection) -> Result<(usize, u
 }
 
 /// 安全网：确保 agency_experts / agent_profiles 的 category CHECK 约束
-/// 包含所有业务值（opc-company / opc-experts / stock-analysis 等）。
+/// 包含所有 AxAgent 通用业务值。
 ///
-/// 背景：v200 迁移曾错误地在重写 CHECK 约束时遗漏 `opc-company`，
-/// 导致已应用 v200 的存量库在 OPC 种子化时触发约束违反。
-/// 本函数可在启动种子化前调用，作为独立于迁移框架的安全保障。
+/// 背景：v200 曾错误地在重写 CHECK 约束时引入了下游 AxInvest 专用值
+/// （opc-* / stock-analysis）。清理下游后，本函数只保留通用值，
+/// 并可在启动种子化前调用作为独立于迁移框架的安全保障。
 pub async fn ensure_category_check_constraints(
     db: &sea_orm::DatabaseConnection,
 ) -> Result<(), DbErr> {
@@ -594,8 +419,7 @@ pub async fn ensure_category_check_constraints(
 
     let backend = db.get_database_backend();
     let categories = "'general','development','security','data','finance',\
-        'devops','design','writing','business','opc-company','opc-experts',\
-        'opc-industry','opc-domain','stock-analysis'";
+        'devops','design','writing','business'";
 
     // agency_experts
     let _ = db

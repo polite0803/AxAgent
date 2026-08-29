@@ -360,6 +360,7 @@ fn serialize_steps(steps: &[ProcedureStep]) -> String {
     content
 }
 
+#[cfg(test)]
 /// 多维度启发式技能质量评估函数。
 /// 在没有 LLM 时作为后备方案，从结构完整性、代码质量、可读性等维度评分。
 fn evaluate_skill_quality_heuristic(content: &str) -> f64 {
@@ -433,8 +434,10 @@ fn evaluate_skill_quality_heuristic(content: &str) -> f64 {
     score.clamp(0.0, 1.0)
 }
 
+#[cfg(test)]
 pub(crate) struct DefaultLlmEvolutionProvider;
 
+#[cfg(test)]
 impl LlmEvolutionProvider for DefaultLlmEvolutionProvider {
     fn generate_mutation(&self, request: &LlmMutationRequest) -> LlmMutationFuture<'_> {
         let steps = request.current_steps.clone();
