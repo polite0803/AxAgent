@@ -25,8 +25,7 @@ export function TracerPanel() {
   const fetchTraces = useCallback(async () => {
     try {
       const list = await invoke<TraceSummary[]>("tracer_list_traces", {
-        limit: 10,
-        offset: 0,
+        filter: { limit: 10, offset: 0 },
       });
       if (mountedRef.current) {
         setTraces(list);

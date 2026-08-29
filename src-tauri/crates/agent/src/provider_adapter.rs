@@ -474,16 +474,27 @@ impl ApiClient for AxAgentApiClient {
                 }
             }
 
+            // P0 修复(2026-08-29): 预先 clone model 名用于后续诊断日志
+            // （chat_request 在 execute_llm_stream 中被 move）。
+            let model_name = chat_request.model.clone();
             let mut stream =
                 execute_llm_stream(adapter.as_ref(), &ctx, chat_request, &llm_config, cancel)
                     .await
                     .map_err(RuntimeError::new)?;
             let mut events = Vec::new();
+            // P0 修复(2026-08-29): 流式 chunk 计数器 — 用于诊断"LLM 返回空响应"问题。
+            // 当 content/thinking/tool_calls 全为 0 时打印 warn 日志，帮助定位是
+            // provider 只返回了 usage + done 还是 API 本身返回了空 choice。
+            let mut chunk_total = 0u64;
+            let mut chunk_with_content = 0u64;
+            let mut chunk_with_thinking = 0u64;
+            let mut chunk_with_tool_calls = 0u64;
             // llm/stream 流式观测总线（P2 事件化，缺陷 #3）：拉取一次，逐 chunk 复用。
             let stream_bus = axagent_harness::get_capability_registry().get_event_dispatcher();
             while let Some(result) = stream.next().await {
                 match result {
                     Ok(chunk) => {
+                        chunk_total += 1;
                         // ── llm/stream 流式观测 ──
                         // 订阅者以只读方式实时观测每个流式 chunk（emit 广播）。
                         // 用 would_dispatch 廉价短路：无匹配订阅者时跳过序列化，
@@ -508,6 +519,7 @@ impl ApiClient for AxAgentApiClient {
                         if let Some(ref text) = chunk.content
                             && !text.is_empty()
                         {
+                            chunk_with_content += 1;
                             let event = AssistantEvent::TextDelta(text.clone());
                             if let Some(ref cb) = on_event {
                                 cb(&event);
@@ -518,6 +530,7 @@ impl ApiClient for AxAgentApiClient {
                         if let Some(ref thinking) = chunk.thinking
                             && !thinking.is_empty()
                         {
+                            chunk_with_thinking += 1;
                             let event = AssistantEvent::ThinkingDelta(thinking.clone());
                             if let Some(ref cb) = on_event {
                                 cb(&event);
@@ -526,6 +539,7 @@ impl ApiClient for AxAgentApiClient {
                         }
 
                         if let Some(ref tool_calls) = chunk.tool_calls {
+                            chunk_with_tool_calls += 1;
                             for tool_call in tool_calls {
                                 let tool_use = Self::convert_tool_call(tool_call);
                                 if let ContentBlock::ToolUse { id, name, input } = tool_use {
@@ -575,6 +589,31 @@ impl ApiClient for AxAgentApiClient {
                         return Err(RuntimeError::new(e));
                     },
                 }
+            }
+
+            // P0 修复(2026-08-29): 流式空响应拦截 — 当 LLM 流结束后既没有文本、
+            // 也没有 thinking、更没有 tool_calls 时，说明 provider 返回了空响应
+            // （空 choice / 内容被过滤 / 推理预算耗尽），此时返回可恢复错误而非
+            // 空 events。上层 ConversationRuntime 的 RecoveryCoordinator 会把
+            // "empty response" 分类为瞬时错误并自动重试，而非直接报
+            // "assistant stream produced no content" 杀死 Agent 循环。
+            //
+            // 注意:thinking-only(thinking>0) 场景不在此列，走 build_assistant_message
+            // 的 fallback 注入，不上溯重试。
+            if chunk_with_content == 0 && chunk_with_thinking == 0 && chunk_with_tool_calls == 0 {
+                tracing::warn!(
+                    target: "axagent.reliability",
+                    model = %model_name,
+                    total_chunks = chunk_total,
+                    "LLM stream produced no visible content / thinking / tool_calls — \
+                     treating as empty response (recoverable)",
+                );
+                let msg = format!(
+                    "LLM 流式空响应: 流未产生任何内容(文本/推理/工具调用)，模型={}，chunk={} (empty response)",
+                    model_name, chunk_total,
+                );
+                let detail = format!("LLM 流式调用失败: {msg}");
+                return Err(RuntimeError::new(detail));
             }
 
             Ok(events)

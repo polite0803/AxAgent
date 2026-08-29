@@ -10,13 +10,7 @@ import { type NavItem, navItemsByDomain } from "@/lib/navRegistry";
 import { BUILTIN_PAGE_PATH } from "@/lib/pageRegistry";
 import { formatShortcutForDisplay, getShortcutBinding } from "@/lib/shortcuts";
 import type { ShortcutAction } from "@/lib/shortcuts";
-import {
-  useAgentPanelStore,
-  useOnboardingStore,
-  useSettingsStore,
-  useUIStore,
-  useUserProfileStore,
-} from "@/stores";
+import { useAgentPanelStore, useOnboardingStore, useSettingsStore, useUIStore, useUserProfileStore } from "@/stores";
 import type { AppSettings, PageKey } from "@/types";
 import { MenuFoldOutlined, MenuUnfoldOutlined } from "@ant-design/icons";
 import { Avatar } from "antd";

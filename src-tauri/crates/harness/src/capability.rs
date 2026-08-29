@@ -29,6 +29,10 @@ pub enum CapabilityKind {
     Agent,
     /// 技能（Skill）
     Skill,
+    /// 工具链（固定顺序的工具组合，线性串接、无业务分支逻辑）
+    Toolchain,
+    /// 模板（含占位符参数，命中后不直接执行，仅提示"可实例化为具体 Skill"）
+    Template,
 }
 
 impl CapabilityKind {
@@ -39,6 +43,8 @@ impl CapabilityKind {
             CapabilityKind::KnowledgeBase => "knowledge_base",
             CapabilityKind::Agent => "agent",
             CapabilityKind::Skill => "skill",
+            CapabilityKind::Toolchain => "toolchain",
+            CapabilityKind::Template => "template",
         }
     }
 }
@@ -515,6 +521,56 @@ pub struct CapabilityStats {
     pub circuit_state: String,
 }
 
+// ── 暴露模式（暴露层架构：被动自动暴露 vs 主动按需注入） ──────────
+
+/// 能力暴露模式 —— 与 kind/domain 正交，决定能力如何暴露给 LLM。
+///
+/// 背景：项目此前未区分「能力发现/认知编排」与「工具/技能自动暴露」两条链路的
+/// 差异 —— 被动模式（直连 agent）按功能域全量塞工具，主动模式（认知编排执行）
+/// 工具列表为空（注释承诺"由能力发现路径注入"但未实现）。本枚举显式化暴露策略：
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CapabilityExposure {
+    /// 被动对话全量暴露 + 主动模式命中即注入（轻量 built-in 工具、常用技能）
+    #[default]
+    Auto,
+    /// 仅能力发现命中时按需注入（重型工具、Tauri 命令桥等上下文昂贵的能力）
+    OnDemand,
+    /// 永不自动暴露，仅参与路由/编排（system_* 元能力）
+    Managed,
+}
+
+/// 护照到真实工具定义的引用 —— 主动模式按需注入闭环的关键。
+///
+/// 护照是元数据快照，命中后需凭此引用从 UnifiedToolRegistry 反查真实 ChatTool
+/// 定义（schema）注入 LLM 上下文，否则"发现的能力执行不了"。
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CapabilityToolRef {
+    /// 注册表中的工具名（ChatTool.function.name / UnifiedToolRegistry 键名）
+    pub tool_name: String,
+    /// 注册表来源：builtin / mcp / skill / tauri_command
+    #[serde(default)]
+    pub registry: String,
+}
+
+/// 模板占位符定义 —— 模板能力（`Template`）的参数占位（如 `{{target_ip}}` / `{{date_range}}`）。
+///
+/// 模板命中后不直接执行，认知编排仅收到"可实例化为具体 Skill"的提示；
+/// 占位符类型用于匹配用户输入中的实体（如 IP、日期区间）。
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlaceholderDef {
+    /// 占位符名（不含双花括号，如 `target_ip`）
+    pub name: String,
+    /// 期望类型：string / ip / date_range / number / enum
+    #[serde(default)]
+    pub placeholder_type: String,
+    /// 占位符说明（供认知编排理解如何填充）
+    #[serde(default)]
+    pub description: String,
+}
+
 // ── 能力数字护照 trait ─────────────────────────────
 
 /// 能力护照 — 所有可被发现的能力的统一元数据接口
@@ -692,6 +748,13 @@ pub trait CapabilityPassport: Send + Sync {
             level: CapabilityLevel::L1,
             stats: self.stats(),
             enabled: self.is_enabled(),
+            exposure: CapabilityExposure::Auto,
+            tool_ref: None,
+            aliases: Vec::new(),
+            steps: Vec::new(),
+            placeholders: Vec::new(),
+            upstream: Vec::new(),
+            downstream: Vec::new(),
         };
         dto.level = CapabilityLevel::derive(&dto);
         dto
@@ -753,6 +816,27 @@ pub struct CapabilityPassportDto {
     /// 能力可进化性（决定进化引擎分发边界）
     #[serde(default)]
     pub evolvable: CapabilityEvolvability,
+    /// 暴露模式（Auto=被动全量+主动命中注入；OnDemand=仅命中注入；Managed=仅路由）
+    #[serde(default)]
+    pub exposure: CapabilityExposure,
+    /// 真实工具定义引用（主动模式命中后凭此注入 chat_tools，解决"发现的能力执行不了"）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_ref: Option<CapabilityToolRef>,
+    /// 别名列表（用户口语→能力 ID 的映射，检索时命中别名直接进候选；如 "发邮件"→mail_send）
+    #[serde(default)]
+    pub aliases: Vec<String>,
+    /// 工具链步骤（仅 `Toolchain` 类型有效：按序排列的 capability_id 列表，线性串接、失败短路）
+    #[serde(default)]
+    pub steps: Vec<String>,
+    /// 模板占位符（仅 `Template` 类型有效：命中后提示"可实例化"，不直接执行）
+    #[serde(default)]
+    pub placeholders: Vec<PlaceholderDef>,
+    /// 上游依赖能力 ID 列表（关联扩展：检索命中后一跳向上扩展）
+    #[serde(default)]
+    pub upstream: Vec<String>,
+    /// 下游依赖能力 ID 列表（关联扩展：检索命中后一跳向下扩展）
+    #[serde(default)]
+    pub downstream: Vec<String>,
 }
 
 impl Default for CapabilityPassportDto {
@@ -783,6 +867,13 @@ impl Default for CapabilityPassportDto {
             level: CapabilityLevel::L1,
             stats: CapabilityStats::default(),
             enabled: true,
+            exposure: CapabilityExposure::Auto,
+            tool_ref: None,
+            aliases: Vec::new(),
+            steps: Vec::new(),
+            placeholders: Vec::new(),
+            upstream: Vec::new(),
+            downstream: Vec::new(),
         }
     }
 }

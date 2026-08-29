@@ -16,20 +16,29 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::pin::Pin;
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::time::Duration;
 
+/// 子工作流启动句柄 —— 回调在同步阶段即确定子执行 ID 与取消能力。
+///
+/// 旧实现仅返回 `Future<Output=(child_execution_id, output)>`，父执行在
+/// `tokio::time::timeout` 触发时直接把该 future drop 掉。但子执行运行在
+/// `spawn_blocking` + thread-local runtime 中，drop future 无法中止 blocking
+/// 任务，导致子工作流成为「孤儿执行」继续占用 CPU / 写库。改为同步返回句柄后，
+/// 超时路径仍能拿到子执行 ID 并主动 `engine.cancel(child_execution_id)` 回收。
+pub struct SubWorkflowLaunch {
+    /// 子执行的 execution_id（调用回调时即已确定，无需等待 output future）
+    pub child_execution_id: String,
+    /// 子执行输出 future，成功返回 `(child_execution_id, output)`，失败返回错误串
+    pub output: Pin<Box<dyn std::future::Future<Output = Result<(String, Value), String>> + Send>>,
+    /// 主动取消子执行（若仍在运行）。System capability 等同步回调可返回空取消。
+    pub cancel: Pin<Box<dyn std::future::Future<Output = ()> + Send>>,
+}
+
 /// 子工作流引擎回调 — 接收 (sub_workflow_id, parent_execution_id, input)，
-/// 返回 (child_execution_id, output)。内部由 WorkEngine.run_workflow 实现。
-pub type SubWorkflowCallback = Arc<
-    dyn Fn(
-            String,
-            String,
-            HashMap<String, Value>,
-        )
-            -> Pin<Box<dyn std::future::Future<Output = Result<(String, Value), String>> + Send>>
-        + Send
-        + Sync,
->;
+/// 返回启动句柄（含子执行 ID 与取消能力）。内部由 WorkEngine.run_workflow 实现。
+pub type SubWorkflowCallback =
+    Arc<dyn Fn(String, String, HashMap<String, Value>) -> SubWorkflowLaunch + Send + Sync>;
 
 #[derive(Debug, Clone)]
 pub struct SubWorkflowExecutorConfig {
@@ -82,35 +91,48 @@ impl SubWorkflowExecutor {
         input: HashMap<String, Value>,
         max_retries: u32,
         cancel_token: Option<&tokio_util::sync::CancellationToken>,
+        timeout: Duration,
+        child_tracker: &Option<Arc<Mutex<std::collections::HashSet<String>>>>,
     ) -> Result<(String, Value), NodeError> {
         let mut last_error = None;
+        // 总子执行预算：合并所有重试，自首次调用起计（兼容旧语义：父级 300s
+        // 上限对「所有重试的累计运行时长」生效），避免无限重试越过上限。
+        let deadline = tokio::time::Instant::now() + timeout;
         for attempt in 1..=max_retries + 1 {
-            // P1-12: 超时后调 engine.cancel 子执行（如果 cancel_token 存在）；
-            // 当前 cb 是黑盒无法访问 engine，所以我们仅记录 intent，由调用方
-            // 配合 engine.cancel(child_execution_id) 实现真正的取消。
-            match cb(sub_workflow_id.to_string(), parent_execution_id.to_string(), input.clone())
-                .await
-            {
-                Ok(result) => return Ok(result),
-                Err(e) => {
+            // 同步从回调拿到启动句柄（含子执行 ID 与取消能力），
+            // 使超时路径仍能主动取消孤儿子执行，而非 drop future 后无人回收。
+            let launch =
+                cb(sub_workflow_id.to_string(), parent_execution_id.to_string(), input.clone());
+            let child_eid = launch.child_execution_id;
+            // 登记到共享跟踪器：若本节点级超时导致整个 dispatch future 被丢弃，
+            // 引擎仍能通过跟踪器定位并 cancel 该孤儿子执行（真正的回收兜底）。
+            if let Some(tr) = child_tracker {
+                tr.lock().unwrap().insert(child_eid.clone());
+            }
+            let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+            if remaining.is_zero() {
+                // 预算已耗尽且仍未成功 —— 以最后一次错误退出
+                if let Some(tr) = child_tracker {
+                    tr.lock().unwrap().remove(&child_eid);
+                }
+                break;
+            }
+            match tokio::time::timeout(remaining, launch.output).await {
+                Ok(Ok(result)) => {
+                    if let Some(tr) = child_tracker {
+                        tr.lock().unwrap().remove(&child_eid);
+                    }
+                    return Ok(result);
+                },
+                Ok(Err(e)) => {
+                    if let Some(tr) = child_tracker {
+                        tr.lock().unwrap().remove(&child_eid);
+                    }
                     let err_msg = e.clone();
                     last_error = Some(e);
                     if attempt > max_retries {
                         break;
                     }
-                    // P1-12: 指数退避 + jitter —— 避免多个子工作流同时重试造成雪崩
-                    // base = 100ms * 2^(attempt-1); cap = 30s
-                    let base_ms = (100u64).saturating_mul(1u64 << (attempt - 1).min(8));
-                    let capped_ms = base_ms.min(30_000);
-                    let jitter_ms = rand::random::<u64>() % (capped_ms / 2).max(1);
-                    let delay = Duration::from_millis(capped_ms + jitter_ms);
-                    tracing::warn!(
-                        sub_workflow_id = %sub_workflow_id,
-                        attempt,
-                        delay_ms = delay.as_millis() as u64,
-                        error = %err_msg,
-                        "Sub-workflow 失败，指数退避+jitter 后重试"
-                    );
                     if let Some(token) = cancel_token
                         && token.is_cancelled()
                     {
@@ -119,7 +141,37 @@ impl SubWorkflowExecutor {
                             "Parent cancelled - abort retry".to_string(),
                         ));
                     }
+                    // P1-12: 指数退避 + jitter —— 避免多个子工作流同时重试造成雪崩
+                    // base = 100ms * 2^(attempt-1); cap = 30s；退避不得越过总预算
+                    let base_ms = (100u64).saturating_mul(1u64 << (attempt - 1).min(8));
+                    let capped_ms = base_ms.min(30_000);
+                    let jitter_ms = rand::random::<u64>() % (capped_ms / 2).max(1);
+                    let delay = Duration::from_millis(capped_ms + jitter_ms).min(remaining);
+                    tracing::warn!(
+                        sub_workflow_id = %sub_workflow_id,
+                        attempt,
+                        delay_ms = delay.as_millis() as u64,
+                        error = %err_msg,
+                        "Sub-workflow 失败，指数退避+jitter 后重试"
+                    );
                     tokio::time::sleep(delay).await;
+                },
+                Err(_) => {
+                    // 父执行超时（预算耗尽）：子执行在 spawn_blocking +
+                    // thread-local runtime 中仍可能运行，主动取消避免孤儿执行。
+                    tracing::warn!(
+                        sub_workflow_id = %sub_workflow_id,
+                        child_execution_id = %child_eid,
+                        "Sub-workflow 父执行超时，主动取消孤儿子执行"
+                    );
+                    launch.cancel.await;
+                    if let Some(tr) = child_tracker {
+                        tr.lock().unwrap().remove(&child_eid);
+                    }
+                    return Err(NodeError::timed_out(
+                        error_code::SUBWORKFLOW_FAILED,
+                        format!("Sub-workflow timeout({}s)", timeout.as_secs()),
+                    ));
                 },
             }
         }
@@ -217,26 +269,20 @@ impl NodeExecutorTrait for SubWorkflowExecutor {
         let mapped_input = Self::map_inputs(sub_node, context)?;
 
         let timeout = Duration::from_secs(self.config.timeout_secs);
-        let result = tokio::time::timeout(
+        // 超时预算已下沉到 execute_with_retry（对其所有重试的累计时长生效），
+        // 超时触发时会在内部主动 cancel 孤儿子执行，无需在此再包一层 timeout。
+        let (child_execution_id, output) = Self::execute_with_retry(
+            &cb,
+            &sub_node.config.sub_workflow_id,
+            &context.execution_id,
+            mapped_input,
+            self.config.max_retries,
+            context.cancel_token.as_ref(),
             timeout,
-            Self::execute_with_retry(
-                &cb,
-                &sub_node.config.sub_workflow_id,
-                &context.execution_id,
-                mapped_input,
-                self.config.max_retries,
-                context.cancel_token.as_ref(),
-            ),
+            &context.child_executions,
         )
-        .await
-        .map_err(|_| {
-            NodeError::timed_out(
-                error_code::SUBWORKFLOW_FAILED,
-                format!("Sub-workflow timeout({}s)", self.config.timeout_secs),
-            )
-        })??;
+        .await?;
 
-        let (child_execution_id, output) = result;
         let child_eid_value = serde_json::Value::String(child_execution_id.clone());
 
         // dry_run 已在前面短路，此处不会到达；移除原 dry_run 后处理逻辑。

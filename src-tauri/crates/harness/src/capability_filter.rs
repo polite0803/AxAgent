@@ -141,6 +141,8 @@ pub enum FilterDimension {
     PlanningComplexity,
     /// 维度八：实验/灰度（分组过滤）
     ExperimentGroup,
+    /// 维度九：可注册策略裁剪（Phase 3 策略对象化：capability_policies 排除规则）
+    Policy,
 }
 
 impl FilterDimension {
@@ -155,6 +157,7 @@ impl FilterDimension {
             FilterDimension::Interaction => "interaction",
             FilterDimension::PlanningComplexity => "planning_complexity",
             FilterDimension::ExperimentGroup => "experiment_group",
+            FilterDimension::Policy => "policy",
         }
     }
 }

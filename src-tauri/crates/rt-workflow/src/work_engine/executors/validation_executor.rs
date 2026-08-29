@@ -59,10 +59,7 @@ impl NodeExecutorTrait for ValidationExecutor {
         for assertion in &validation_node.config.assertions {
             let passed = match assertion.assertion_type.as_str() {
                 "expression" => {
-                    let expr = assertion
-                        .expression
-                        .as_deref()
-                        .unwrap_or("true");
+                    let expr = assertion.expression.as_deref().unwrap_or("true");
                     match Self::eval_rhai_bool(&rhai_engine, &mut rhai_scope, expr) {
                         Ok(b) => b,
                         Err(e) => {
@@ -249,12 +246,9 @@ impl ValidationExecutor {
         scope: &mut Scope<'static>,
         expr: &str,
     ) -> Result<bool, String> {
-        let ast = engine
-            .compile_expression(expr)
-            .map_err(|e| format!("编译失败: {e}"))?;
-        let result: Dynamic = engine
-            .eval_ast_with_scope(scope, &ast)
-            .map_err(|e| format!("执行失败: {e}"))?;
+        let ast = engine.compile_expression(expr).map_err(|e| format!("编译失败: {e}"))?;
+        let result: Dynamic =
+            engine.eval_ast_with_scope(scope, &ast).map_err(|e| format!("执行失败: {e}"))?;
         Ok(Self::dynamic_to_bool(result))
     }
 }

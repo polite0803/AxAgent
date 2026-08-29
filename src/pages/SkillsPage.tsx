@@ -603,7 +603,7 @@ export function SkillsPage() {
           hermes_json: string;
           skill_name: string;
           version: string;
-        }>("skills_hub_export", { skill_name: name });
+        }>("skills_hub_export", { skillName: name });
         // 下载为 JSON 文件
         const blob = new Blob([result.hermes_json], {
           type: "application/json",

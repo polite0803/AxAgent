@@ -93,9 +93,39 @@ pub fn should_compact(
     };
     let compactable = &session.messages[start..];
 
-    compactable.len() > config.preserve_recent_messages
-        && compactable.iter().map(estimate_message_tokens).sum::<usize>()
-            >= config.max_estimated_tokens
+    let total_tokens: usize = compactable.iter().map(estimate_message_tokens).sum();
+    let msg_count = compactable.len();
+    let should =
+        msg_count > config.preserve_recent_messages || total_tokens >= config.max_estimated_tokens;
+
+    // P0 DIAG: 压缩判定 — 为什么触发或没触发
+    tracing::info!(
+        target: "axagent.compact",
+        "[COMPACT] should_compact check: msg_count={}/{} total_tokens={}/{} should={} start={} total_messages={}",
+        msg_count, config.preserve_recent_messages,
+        total_tokens, config.max_estimated_tokens,
+        should, start, session.messages.len()
+    );
+    // 逐条打印每条消息的估算 tokens
+    for (i, m) in compactable.iter().enumerate() {
+        let tk = estimate_message_tokens(m);
+        let total_text_bytes: usize = m
+            .blocks
+            .iter()
+            .map(|b| match b {
+                ContentBlock::Text { text } => text.len(),
+                ContentBlock::ToolUse { input, .. } => input.len(),
+                ContentBlock::ToolResult { output, .. } => output.len(),
+            })
+            .sum();
+        tracing::info!(
+            target: "axagent.compact",
+            "  [compactable#{}] role={:?} est_tokens={} total_text_bytes={}",
+            i, m.role, tk, total_text_bytes
+        );
+    }
+
+    should
 }
 
 fn has_compacted_summary(message: &ConversationMessage, provider: &dyn PromptProvider) -> bool {

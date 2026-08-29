@@ -118,10 +118,8 @@ impl WorkEngine {
         // 它们剩余的 Direct 边可能来自互斥路径（如 fallback 分支），不应阻塞。
         let mut selected_targets: HashSet<&str> = HashSet::new();
         for edge in &workflow.edges {
-            let is_conditional = matches!(
-                edge.edge_type,
-                EdgeType::ConditionTrue | EdgeType::ConditionFalse
-            );
+            let is_conditional =
+                matches!(edge.edge_type, EdgeType::ConditionTrue | EdgeType::ConditionFalse);
             let is_switch = workflow
                 .nodes
                 .iter()
@@ -185,10 +183,7 @@ impl WorkEngine {
                 // Direct 边（如 l1_fallback_normalize → call_l2）不应再阻塞。
                 let target_id = edge.target.as_str();
                 if selected_targets.contains(target_id)
-                    && !matches!(
-                        edge.edge_type,
-                        EdgeType::ConditionTrue | EdgeType::ConditionFalse
-                    )
+                    && !matches!(edge.edge_type, EdgeType::ConditionTrue | EdgeType::ConditionFalse)
                 {
                     tracing::info!(
                         "[compute_ready] 互斥短路: {} → {} (target 已被控制边选中)",
@@ -373,10 +368,8 @@ impl WorkEngine {
         // ====== 第一遍扫描：标记"被激活控制边选中的 target" ======
         let mut selected_targets: HashSet<&str> = HashSet::new();
         for edge in &workflow.edges {
-            let is_conditional = matches!(
-                edge.edge_type,
-                EdgeType::ConditionTrue | EdgeType::ConditionFalse
-            );
+            let is_conditional =
+                matches!(edge.edge_type, EdgeType::ConditionTrue | EdgeType::ConditionFalse);
             let is_switch = workflow
                 .nodes
                 .iter()
@@ -427,10 +420,7 @@ impl WorkEngine {
                 // 互斥路径短路：target 已被激活的控制边选中 → 来自互斥分支的 Direct 边不再阻塞
                 let target_id = edge.target.as_str();
                 if selected_targets.contains(target_id)
-                    && !matches!(
-                        edge.edge_type,
-                        EdgeType::ConditionTrue | EdgeType::ConditionFalse
-                    )
+                    && !matches!(edge.edge_type, EdgeType::ConditionTrue | EdgeType::ConditionFalse)
                 {
                     continue;
                 }
@@ -738,16 +728,13 @@ pub(crate) fn skip_disabled_branch_nodes(
 
     // ── 阶段 3：统一应用 Skipped（仅 Pending/Ready，不覆盖 terminal 状态）──
     for node_id in skip_set {
-        let state = workflow
-            .node_states
-            .entry(node_id)
-            .or_insert_with(|| NodeRuntimeState {
-                status: NodeStatus::Skipped,
-                attempts: 0,
-                error: None,
-                started_at: None,
-                completed_at: Some(current_timestamp() as i64),
-            });
+        let state = workflow.node_states.entry(node_id).or_insert_with(|| NodeRuntimeState {
+            status: NodeStatus::Skipped,
+            attempts: 0,
+            error: None,
+            started_at: None,
+            completed_at: Some(current_timestamp() as i64),
+        });
         if matches!(state.status, NodeStatus::Pending | NodeStatus::Ready) {
             state.status = NodeStatus::Skipped;
             state.completed_at = Some(current_timestamp() as i64);

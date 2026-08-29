@@ -175,7 +175,7 @@ export const AgentPropertyPanel: React.FC<AgentPropertyPanelProps> = ({
       } else {
         await invoke("update_agent_role", {
           id: promptEditor.id,
-          system_prompt: promptEditor.prompt,
+          systemPrompt: promptEditor.prompt,
         });
       }
       message.success(t("workflow.props.promptSaved"));

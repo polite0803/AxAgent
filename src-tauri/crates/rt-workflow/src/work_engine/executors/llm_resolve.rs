@@ -39,6 +39,18 @@ pub(crate) async fn resolve_provider_and_adapter(
         .await
         .map_err(|e| NodeError::exec_failed(error_code::UNSUPPORTED_PROVIDER, e))?;
 
+    tracing::info!(
+        target: "axagent.llm_resolve",
+        executor = %executor_label,
+        provider_id = %prov.id,
+        provider_name = %prov.name,
+        provider_type = ?prov.provider_type,
+        api_host = %prov.api_host,
+        model = %model,
+        key_id = %key.id,
+        "[LLM-RESOLVE] 选中 provider"
+    );
+
     let api_key =
         axagent_crypto::crypto::decrypt_key(&key.key_encrypted, master_key).map_err(|e| {
             NodeError::exec_failed(

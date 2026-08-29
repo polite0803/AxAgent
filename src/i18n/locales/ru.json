@@ -5216,6 +5216,8 @@
       "addChunk": "Добавить чанк",
       "addChunkPlaceholder": "Введите содержимое чанка...",
       "addDocument": "Добавить документ",
+      "addDocumentsSuccess": "Добавлено документов: {{count}}",
+      "addDocumentsPartial": "Успешно: {{ok}}, ошибок: {{fail}}",
       "changeEmbeddingTitle": "Изменить модель эмбеддинга",
       "changeEmbeddingWarning": "Изменение модели эмбеддинга автоматически переиндексирует все документы в этой базе знаний. Это нельзя отменить. Продолжить?",
       "chars": "символов",
@@ -8538,6 +8540,8 @@
       "reExecute": "Перезапустить",
       "secret": "Секрет",
       "required": "Обязательно",
+      "cancelExecution": "Отменить выполнение",
+      "invalidField": "Неверный формат для «{{name}}»",
       "requiredField": "Введите {{name}}"
     },
     "existingSkill": "Существующий навык",
@@ -10122,7 +10126,8 @@
     "reject": "Отклонить",
     "approve": "Одобрить",
     "expandDetails": "Развернуть исходные детали",
-    "collapseDetails": "Свернуть исходные детали"
+    "collapseDetails": "Свернуть исходные детали",
+    "noPending": "Нет ожидающих предложений по эволюции"
   },
   "planApprovalModal": {
     "title": "Утверждение плана",

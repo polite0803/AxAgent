@@ -3,7 +3,7 @@
 
 import type { JsonSchemaProperty, Variable, WorkflowTemplateResponse } from "@/components/workflow/types";
 import { WorkflowLogPanel } from "@/components/workflow/WorkflowLogPanel";
-import { useWorkflowStore } from "@/stores/feature/workflowStore";
+import { useWorkflowStore, WORKFLOW_EXEC_CANCELLED } from "@/stores/feature/workflowStore";
 import type { WorkflowDefinition, WorkflowExecution } from "@/types";
 import {
   App,
@@ -23,7 +23,7 @@ import {
   Tag,
   Typography,
 } from "antd";
-import { Play, RotateCcw } from "lucide-react";
+import { Play, RotateCcw, Square } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -195,6 +195,7 @@ export function WorkflowExecutor({ workflow, open, onClose }: WorkflowExecutorPr
   const [execution, setExecution] = useState<WorkflowExecution | null>(null);
   const isExecuting = useWorkflowStore((s) => s.isExecuting);
   const executeWorkflow = useWorkflowStore((s) => s.executeWorkflow);
+  const cancelExecution = useWorkflowStore((s) => s.cancelExecution);
 
   const statusLabel: Record<string, string> = useMemo(() => ({
     waiting: t("rl.status.idle"),
@@ -252,11 +253,23 @@ export function WorkflowExecutor({ workflow, open, onClose }: WorkflowExecutorPr
   const handleExecute = useCallback(async () => {
     try {
       const raw = form.getFieldsValue();
-      // 类型归一化：number/integer → number；boolean → boolean；object 尝试 JSON.parse；空值忽略
+      // 类型归一化：number/integer → number；boolean → boolean；object/array 尝试 JSON.parse
       const inputs: Record<string, unknown> = {};
       for (const f of fields) {
         const val = raw[f.name];
-        if (val === undefined || val === null || val === "") { continue; }
+        if (val === undefined || val === null || val === "") {
+          continue;
+        }
+        // 用户配置类型错误时显式报错并中止执行，而非静默传脏数据到下游
+        if ((f.type === "number" || f.type === "integer") && typeof val === "string") {
+          const num = Number(val);
+          if (Number.isNaN(num)) {
+            message.error(t("workflow.executor.invalidField", { name: f.label }));
+            return;
+          }
+          inputs[f.name] = num;
+          continue;
+        }
         if (f.type === "number" || f.type === "integer") {
           inputs[f.name] = typeof val === "number" ? val : Number(val);
         } else if (f.type === "boolean") {
@@ -265,11 +278,14 @@ export function WorkflowExecutor({ workflow, open, onClose }: WorkflowExecutorPr
           try {
             inputs[f.name] = JSON.parse(val);
           } catch {
-            inputs[f.name] = val;
+            message.error(t("workflow.executor.invalidField", { name: f.label }));
+            return;
           }
         } else if (f.type === "array" && Array.isArray(val)) {
           inputs[f.name] = val.map((x) => {
-            if (typeof x !== "string") { return x; }
+            if (typeof x !== "string") {
+              return x;
+            }
             try {
               return JSON.parse(x);
             } catch {
@@ -283,9 +299,18 @@ export function WorkflowExecutor({ workflow, open, onClose }: WorkflowExecutorPr
       const exec = await executeWorkflow(workflow.id, inputs);
       setExecution(exec);
     } catch (e) {
+      // 用户主动取消：走提示而非红字错误
+      if (e instanceof Error && e.message === WORKFLOW_EXEC_CANCELLED) {
+        message.info(t("workflow.executor.cancelled"));
+        return;
+      }
       message.error(String(e));
     }
-  }, [form, workflow.id, executeWorkflow, fields, message]);
+  }, [form, workflow.id, executeWorkflow, fields, message, t]);
+
+  const handleCancel = useCallback(() => {
+    void cancelExecution();
+  }, [cancelExecution]);
 
   const handleClose = useCallback(() => {
     setExecution(null);
@@ -389,6 +414,14 @@ export function WorkflowExecutor({ workflow, open, onClose }: WorkflowExecutorPr
                 </Tag>
               ))}
             </div>
+            <Button
+              danger
+              icon={<Square size={14} />}
+              onClick={handleCancel}
+              style={{ marginTop: 16 }}
+            >
+              {t("workflow.executor.cancelExecution")}
+            </Button>
           </div>
         )}
 

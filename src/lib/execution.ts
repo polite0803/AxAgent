@@ -33,11 +33,11 @@ export const EXECUTION_EVENTS = {
  */
 export async function submitSignal(params: SubmitSignalParams): Promise<string> {
   return invoke<string>("execution_submit_signal", {
-    signal_code: params.signalCode,
-    signal_action: params.signalAction,
-    signal_reason: params.signalReason,
-    stock_name: params.stockName,
-    current_price: params.currentPrice,
+    signalCode: params.signalCode,
+    signalAction: params.signalAction,
+    signalReason: params.signalReason,
+    stockName: params.stockName,
+    currentPrice: params.currentPrice,
   });
 }
 
@@ -48,7 +48,7 @@ export async function confirmPending(
   params: ConfirmPendingParams,
 ): Promise<string> {
   return invoke<string>("execution_confirm", {
-    pending_id: params.pendingId,
+    pendingId: params.pendingId,
     quantity: params.quantity,
   });
 }
@@ -58,7 +58,7 @@ export async function confirmPending(
  */
 export async function rejectPending(params: RejectPendingParams): Promise<void> {
   return invoke<void>("execution_reject", {
-    pending_id: params.pendingId,
+    pendingId: params.pendingId,
     reason: params.reason,
   });
 }

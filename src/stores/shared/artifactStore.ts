@@ -40,7 +40,7 @@ export const useArtifactStore = create<ArtifactState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const artifacts = await invoke<Artifact[]>("list_artifacts", {
-        conversation_id: conversationId,
+        conversationId: conversationId,
       });
       set({ artifacts, loading: false });
     } catch (e) {

@@ -759,11 +759,13 @@ function QuickBarResult({
       }
       const safeTitle = `QuickBar - ${new Date().toLocaleString()}`;
       await invoke("llm_wiki_ingest", {
-        wikiId: selectedWikiId,
-        sourceType: "markdown",
-        path: `quickbar/${safeTitle.replace(/[/\\:*?"<>|]/g, "_")}.md`,
-        title: safeTitle,
-        content: result,
+        input: {
+          wikiId: selectedWikiId,
+          sourceType: "markdown",
+          path: `quickbar/${safeTitle.replace(/[/\\:*?"<>|]/g, "_")}.md`,
+          title: safeTitle,
+          content: result,
+        },
       });
       setResult(
         (p) => p + `\n\n✅ ${t("quickbar.result.savedWiki")}`,
@@ -1206,11 +1208,20 @@ export function QuickBarPage() {
     setLoading(true);
     setResult("");
     try {
+      // search_knowledge_base 需要 baseId（后端签名 base_id + query + top_k?）。
+      // QuickBar 无知识库选择器，取第一个知识库；无知识库时直接提示。
+      const bases = await invoke<Array<{ id: string }>>("list_knowledge_bases");
+      if (!bases || bases.length === 0) {
+        setResult(t("quickbar.result.noKnowledge"));
+        setLoading(false);
+        return;
+      }
       const results = await invoke<
         Array<{ content: string; score: number; title: string }>
       >("search_knowledge_base", {
+        baseId: bases[0].id,
         query: body,
-        limit: 5,
+        topK: 5,
       });
       if (!results || results.length === 0) {
         setResult(t("quickbar.result.noKnowledge"));
@@ -1234,17 +1245,20 @@ export function QuickBarPage() {
     setLoading(true);
     setResult("");
     try {
-      const results = await invoke<
-        Array<{ content: string; score: number; title: string }>
-      >("search_knowledge_base", {
-        query: body,
-        limit: 5,
-      });
-      if (!results || results.length === 0) {
+      // 同 runSearch：后端要求 baseId，取第一个知识库。
+      const bases = await invoke<Array<{ id: string }>>("list_knowledge_bases");
+      if (!bases || bases.length === 0) {
         setResult(t("quickbar.result.noMemory"));
         setLoading(false);
         return;
       }
+      const results = await invoke<
+        Array<{ content: string; score: number; title: string }>
+      >("search_knowledge_base", {
+        baseId: bases[0].id,
+        query: body,
+        topK: 5,
+      });
       setResult(
         results
           .map(
@@ -1272,11 +1286,13 @@ export function QuickBarPage() {
       }
       const safeTitle = `QuickBar - ${new Date().toLocaleString()}`;
       await invoke("llm_wiki_ingest", {
-        wikiId: selectedWikiId,
-        sourceType: "markdown",
-        path: `quickbar/${safeTitle.replace(/[/\\:*?"<>|]/g, "_")}.md`,
-        title: safeTitle,
-        content: body,
+        input: {
+          wikiId: selectedWikiId,
+          sourceType: "markdown",
+          path: `quickbar/${safeTitle.replace(/[/\\:*?"<>|]/g, "_")}.md`,
+          title: safeTitle,
+          content: body,
+        },
       });
       setResult(`✅ ${t("quickbar.result.savedWiki")}`);
     } catch (e) {

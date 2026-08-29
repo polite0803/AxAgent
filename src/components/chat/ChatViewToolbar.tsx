@@ -31,6 +31,7 @@ import type { ConversationStats } from "@/types";
 import { type DropdownItem, DropdownMenu } from "@/components/layout/DropdownMenu";
 import { Tooltip } from "@/components/layout/Tooltip";
 import { formatDuration, formatSpeed, formatTokenCount } from "../gateway/tokenFormat";
+import { EvolutionConsentModal } from "./EvolutionConsentModal";
 import { ModelSelector } from "./ModelSelector";
 
 function StatsPopoverContent({
@@ -411,6 +412,8 @@ export function ChatViewToolbar({
                 disabled={!activeConversationId}
               />
             </Tooltip>
+            {/* 能力补齐提醒徽章（内联，避免绝对定位浮层覆盖右侧工具栏图标） */}
+            <EvolutionConsentModal />
           </>
         )
         : (

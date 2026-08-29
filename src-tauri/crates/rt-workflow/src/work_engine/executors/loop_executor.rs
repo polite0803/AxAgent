@@ -445,7 +445,36 @@ impl NodeExecutorTrait for LoopExecutor {
                     iter_index,
                     "[Loop] interrupt_after_each 触发，挂起"
                 );
-                sig.notified().await;
+                // 与 interrupt 分支保持一致：等待 resume 加 24h 超时，
+                // 防止 resume 信号永不触发时该节点在 join_set 中无限挂起。
+                match tokio::time::timeout(
+                    std::time::Duration::from_secs(24 * 3600),
+                    sig.notified(),
+                )
+                .await
+                {
+                    Ok(()) => {
+                        tracing::info!(
+                            execution_id = %exec_id,
+                            node_id = %node_id,
+                            iter_index,
+                            "[Loop] interrupt_after_each resume 信号收到，继续迭代"
+                        );
+                    },
+                    Err(_) => {
+                        tracing::error!(
+                            execution_id = %exec_id,
+                            node_id = %node_id,
+                            iter_index,
+                            "[Loop] interrupt_after_each 等待 resume 超时（24h），强制终止执行"
+                        );
+                        return Err(NodeError::exec_failed(
+                            error_code::TIMEOUT,
+                            "Loop interrupt_after_each wait timeout (24h) - resume signal never arrived"
+                                .to_string(),
+                        ));
+                    },
+                }
                 // resume 后读最新 cursor
                 if let Some(checkpoint_ops) =
                     context.callbacks.as_ref().and_then(|cb| cb.loop_checkpoint.clone())

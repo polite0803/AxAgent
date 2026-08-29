@@ -21,7 +21,7 @@ export async function editUIFromNL(
     const result = await invoke<{ schema: string; description: string }>(
       "edit_dynamic_ui_schema_nl",
       {
-        existing_schema: JSON.stringify(existingSchema),
+        existingSchema: JSON.stringify(existingSchema),
         prompt,
       },
     );

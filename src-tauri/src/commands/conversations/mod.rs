@@ -2943,7 +2943,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         test_indexer_trait,
     ));
     let test_capability_router =
-        Arc::new(axagent_tools::capability_router_impl::build_default_router(test_retriever));
+        Arc::new(axagent_tools::capability_router_impl::build_default_router(test_retriever, None));
     let test_domain_router: Arc<dyn axagent_harness::DomainRouter> =
         Arc::new(axagent_harness::DomainRouterImpl::new());
     let test_cluster_router: Arc<dyn axagent_harness::ClusterRouter> =

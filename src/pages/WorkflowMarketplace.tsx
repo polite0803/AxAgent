@@ -304,7 +304,7 @@ export function WorkflowMarketplace() {
   const handleImportSubmit = async (jsonData: string) => {
     return await invoke<{ id: string; warnings: string[]; errors: string[] }>(
       "import_workflow_template",
-      { json_data: jsonData },
+      { jsonData: jsonData },
     );
   };
 

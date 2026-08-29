@@ -47,7 +47,6 @@ import { ClarifyCard } from "./ClarifyCard";
 import { CodeBlockPreviewModal } from "./CodeBlockPreviewModal";
 import { ContextBar, estimateConversationTokens } from "./ContextBar";
 import { ContextGraphPanel } from "./ContextGraphPanel";
-import { EvolutionConsentModal } from "./EvolutionConsentModal";
 import { ExtractMemoriesModal } from "./ExtractMemoriesModal";
 import { InputArea } from "./InputArea";
 import { PermissionModal } from "./PermissionModal";
@@ -350,11 +349,6 @@ function ChatViewInner({
         streamingMessageId={streamingMessageId}
         token={token}
       />
-
-      {/* 能力缺口通知徽章（非阻塞式，用户手动处理） */}
-      <div style={{ position: "absolute", top: 8, right: 16, zIndex: 100 }}>
-        <EvolutionConsentModal />
-      </div>
 
       <BreadcrumbBar
         conversations={conversations}

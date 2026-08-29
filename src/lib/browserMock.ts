@@ -8,6 +8,7 @@ import i18n from "@/i18n";
  * Provides CRUD operations for providers, conversations, apps, settings, and gateway.
  */
 
+import type { CreateNarrativeRequest, NarrativeStructureRecord } from "@/lib/narrativeStructure";
 import type {
   Conversation,
   ConversationBranch,
@@ -586,6 +587,13 @@ function mockPassport(
     enabled: true,
     source,
     evolvable,
+    exposure: "auto",
+    toolRef: null,
+    aliases: [],
+    steps: [],
+    placeholders: [],
+    upstream: [],
+    downstream: [],
   };
 }
 
@@ -1573,11 +1581,83 @@ async function executeCommand<T>(
       }
       return undefined as T;
     }
-    case "add_provider_key": {
-      const { providerId, rawKey } = args as {
-        providerId?: string;
-        rawKey?: string;
+    case "list_narrative_structures": {
+      const { isTemplate, genre } = args as { isTemplate?: boolean; genre?: string };
+      const all = getStore<NarrativeStructureRecord[]>("narrative_structures", []);
+      return all.filter((n) =>
+        (isTemplate === undefined || n.isTemplate === isTemplate)
+        && (genre === undefined || n.genre === genre)
+      ) as T;
+    }
+    case "get_narrative_structure": {
+      const { id } = args as { id?: string };
+      const found = getStore<NarrativeStructureRecord[]>("narrative_structures", []).find((n) => n.id === id) ?? null;
+      return found as T;
+    }
+    case "create_narrative_structure": {
+      const input = (args as { input?: CreateNarrativeRequest }).input ?? {} as CreateNarrativeRequest;
+      const now = nowTs();
+      const rec: NarrativeStructureRecord = {
+        id: input.id || genId(),
+        name: input.name,
+        description: input.description,
+        genre: input.genre,
+        structure: input.structure,
+        isTemplate: input.isTemplate ?? false,
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
       };
+      const all = getStore<NarrativeStructureRecord[]>("narrative_structures", []);
+      all.push(rec);
+      setStore("narrative_structures", all);
+      return rec as T;
+    }
+    case "update_narrative_structure": {
+      const input = (args as { input?: Partial<NarrativeStructureRecord> }).input ?? {};
+      const all = getStore<NarrativeStructureRecord[]>("narrative_structures", []);
+      const idx = all.findIndex((n) => n.id === input.id);
+      if (idx !== -1) {
+        all[idx] = {
+          ...all[idx],
+          ...input,
+          version: (all[idx].version ?? 1) + 1,
+          updatedAt: nowTs(),
+        };
+        setStore("narrative_structures", all);
+        return all[idx] as T;
+      }
+      throw new Error("NarrativeStructure not found");
+    }
+    case "delete_narrative_structure": {
+      const { id } = args as { id?: string };
+      const all = getStore<NarrativeStructureRecord[]>("narrative_structures", []);
+      setStore(
+        "narrative_structures",
+        all.filter((n) => n.id !== id),
+      );
+      return undefined as T;
+    }
+    case "save_skill_workflow_from_llm": {
+      // 浏览器 mock：直接保存成功，不模拟相似审查
+      return {
+        needsReview: false,
+        workflowId: genId(),
+        similarWorkflows: [],
+      } as T;
+    }
+    case "add_provider_key": {
+      // 命令参数名：Tauri 侧为原生 snake_case（provider_id / raw_key），
+      // 部分调用方写 camelCase。mock 分支两种都接受，否则取到 undefined
+      // 会导致 key 被静默丢弃（找不到目标 provider，函数仍正常返回）。
+      const rawArgs = args as {
+        providerId?: string;
+        provider_id?: string;
+        rawKey?: string;
+        raw_key?: string;
+      };
+      const providerId = rawArgs.providerId ?? rawArgs.provider_id ?? "";
+      const rawKey = rawArgs.rawKey ?? rawArgs.raw_key ?? "";
       // SECURITY (S5): 浏览器 mock 模式下，对 API Key 进行 base64 编码存储，防止明文泄露
       const encodedKey = rawKey ? btoa(rawKey) : "";
       console.warn(

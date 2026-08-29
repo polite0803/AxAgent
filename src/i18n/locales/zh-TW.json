@@ -5216,6 +5216,8 @@
       "addChunk": "新增分段",
       "addChunkPlaceholder": "請輸入分段內容...",
       "addDocument": "新增文件",
+      "addDocumentsSuccess": "已新增 {{count}} 個文件",
+      "addDocumentsPartial": "成功新增 {{ok}} 個，失敗 {{fail}} 個",
       "changeEmbeddingTitle": "更換向量模型",
       "changeEmbeddingWarning": "更換向量模型後，該知識庫下所有文件將自動重新進行向量索引。此操作不可撤銷，是否繼續？",
       "chars": "字元",
@@ -8538,6 +8540,8 @@
       "reExecute": "重新執行",
       "secret": "機密",
       "required": "必填",
+      "cancelExecution": "取消執行",
+      "invalidField": "「{{name}}」格式不正確",
       "requiredField": "請輸入 {{name}}"
     },
     "existingSkill": "現有技能",
@@ -10122,7 +10126,8 @@
     "reject": "拒絕",
     "approve": "同意補齊",
     "expandDetails": "展開原始詳情",
-    "collapseDetails": "收起原始詳情"
+    "collapseDetails": "收起原始詳情",
+    "noPending": "沒有待處理的進化提議"
   },
   "planApprovalModal": {
     "title": "計劃確認",

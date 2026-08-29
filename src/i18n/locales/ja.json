@@ -5216,6 +5216,8 @@
       "addChunk": "チャンクを追加",
       "addChunkPlaceholder": "チャンクコンテンツを入力...",
       "addDocument": "ドキュメントを追加",
+      "addDocumentsSuccess": "{{count}} 件のドキュメントを追加しました",
+      "addDocumentsPartial": "{{ok}} 件成功、{{fail}} 件失敗",
       "changeEmbeddingTitle": "埋め込みモデルを変更",
       "changeEmbeddingWarning": "埋め込みモデルを変更すると、このナレッジベース内のすべてのドキュメントが自動的に再インデックスされます。元に戻せません。続行しますか？",
       "chars": "文字",
@@ -8538,6 +8540,8 @@
       "reExecute": "再実行",
       "secret": "機密",
       "required": "必須",
+      "cancelExecution": "実行をキャンセル",
+      "invalidField": "「{{name}}」の形式が正しくありません",
       "requiredField": "{{name}} を入力してください"
     },
     "existingSkill": "既存スキル",
@@ -10122,7 +10126,8 @@
     "reject": "拒否",
     "approve": "承認して補完",
     "expandDetails": "生の詳細を展開",
-    "collapseDetails": "生の詳細を折りたたむ"
+    "collapseDetails": "生の詳細を折りたたむ",
+    "noPending": "保留中の進化提案はありません"
   },
   "planApprovalModal": {
     "title": "計画承認",

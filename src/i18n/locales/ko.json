@@ -5216,6 +5216,8 @@
       "addChunk": "청크 추가",
       "addChunkPlaceholder": "청크 내용을 입력하세요...",
       "addDocument": "문서 추가",
+      "addDocumentsSuccess": "문서 {{count}}개를 추가했습니다",
+      "addDocumentsPartial": "성공 {{ok}}개, 실패 {{fail}}개",
       "changeEmbeddingTitle": "임베딩 모델 변경",
       "changeEmbeddingWarning": "임베딩 모델을 변경하면 이 지식 베이스의 모든 문서가 자동으로 다시 인덱싱됩니다. 취소할 수 없습니다. 계속하시겠습니까?",
       "chars": "자",
@@ -8538,6 +8540,8 @@
       "reExecute": "다시 실행",
       "secret": "비밀",
       "required": "필수",
+      "cancelExecution": "실행 취소",
+      "invalidField": "「{{name}}」형식이 올바르지 않습니다",
       "requiredField": "{{name}}을(를) 입력하세요"
     },
     "existingSkill": "기존 스킬",
@@ -10122,7 +10126,8 @@
     "reject": "거부",
     "approve": "동의 후 보완",
     "expandDetails": "원시 세부 정보 펼치기",
-    "collapseDetails": "원시 세부 정보 접기"
+    "collapseDetails": "원시 세부 정보 접기",
+    "noPending": "대기 중인 진화 제안 없음"
   },
   "planApprovalModal": {
     "title": "계획 승인",

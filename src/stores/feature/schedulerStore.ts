@@ -37,7 +37,7 @@ export const useSchedulerStore = create<SchedulerStore>((set) => ({
     set({ loading: true, error: null });
     try {
       const budget = await invoke<BudgetState>("set_budget", {
-        max_budget: maxBudget,
+        maxBudget: maxBudget,
       });
       set({ budget, loading: false });
       return budget;
@@ -48,7 +48,7 @@ export const useSchedulerStore = create<SchedulerStore>((set) => ({
   },
 
   getTaskReport: async (taskId) => {
-    return invoke<TaskReport>("get_task_report", { task_id: taskId });
+    return invoke<TaskReport>("get_task_report", { taskId: taskId });
   },
 
   restorePendingTasks: async () => {

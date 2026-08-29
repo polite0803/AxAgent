@@ -5216,6 +5216,8 @@
       "addChunk": "चंक जोड़ें",
       "addChunkPlaceholder": "चंक सामग्री दर्ज करें...",
       "addDocument": "दस्तावेज़ जोड़ें",
+      "addDocumentsSuccess": "{{count}} दस्तावेज़ जोड़े गए",
+      "addDocumentsPartial": "{{ok}} सफल, {{fail}} विफल",
       "changeEmbeddingTitle": "एम्बेडिंग मॉडल बदलें",
       "changeEmbeddingWarning": "एम्बेडिंग मॉडल बदलने से इस ज्ञान आधार के सभी दस्तावेज़ स्वतः पुनः इंडेक्स होंगे। यह पूर्ववत नहीं किया जा सकता। जारी रखें?",
       "chars": "अक्षर",
@@ -8538,6 +8540,8 @@
       "reExecute": "फिर से चलाएँ",
       "secret": "गुप्त",
       "required": "आवश्यक",
+      "cancelExecution": "निष्पादन रद्द करें",
+      "invalidField": "«{{name}}» के लिए अमान्य प्रारूप",
       "requiredField": "कृपया {{name}} दर्ज करें"
     },
     "existingSkill": "मौजूदा स्किल",
@@ -10122,7 +10126,8 @@
     "reject": "अस्वीकार",
     "approve": "स्वीकृत",
     "expandDetails": "कच्चा विवरण विस्तृत करें",
-    "collapseDetails": "कच्चा विवरण संक्षिप्त करें"
+    "collapseDetails": "कच्चा विवरण संक्षिप्त करें",
+    "noPending": "कोई लंबित विकास प्रस्ताव नहीं"
   },
   "planApprovalModal": {
     "title": "योजना अनुमोदन",

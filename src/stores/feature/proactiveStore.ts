@@ -372,11 +372,13 @@ export const useProactiveStore = create<ProactiveState>((set, get) => ({
     set({ isAdding: true, error: null });
     try {
       const reminder = await invoke<Reminder>("reminder_create", {
-        title: input.title,
-        description: input.description || null,
-        scheduledAt: input.scheduledAt,
-        recurrenceFrequency: input.recurrence?.frequency ?? null,
-        recurrenceInterval: input.recurrence?.interval ?? null,
+        input: {
+          title: input.title,
+          description: input.description || null,
+          scheduledAt: input.scheduledAt,
+          recurrenceFrequency: input.recurrence?.frequency ?? null,
+          recurrenceInterval: input.recurrence?.interval ?? null,
+        },
       });
       set((state) => ({
         reminders: [...state.reminders, reminder],

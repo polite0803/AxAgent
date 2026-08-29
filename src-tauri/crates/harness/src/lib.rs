@@ -659,10 +659,11 @@ pub use indexer::{ChunkProvider, DocumentChunk, DocumentIndexer, IndexConfig, In
 // ── 能力发现契约（Capability Discovery Pipeline） ──
 pub mod capability;
 pub use capability::{
-    CallerPermissions, CapabilityDomain, CapabilityEvolvability, CapabilityKind, CapabilityLevel,
-    CapabilityPassport, CapabilityPassportDto, CapabilitySource, CapabilityStats, DiscoveryWeights,
-    InputModality, ModalitySupport, OutputCapabilities, PlanningComplexity, SecurityLevel,
-    SessionBudget, Visibility,
+    CallerPermissions, CapabilityDomain, CapabilityEvolvability, CapabilityExposure,
+    CapabilityKind, CapabilityLevel, CapabilityPassport, CapabilityPassportDto, CapabilitySource,
+    CapabilityStats, CapabilityToolRef, DiscoveryWeights, InputModality, ModalitySupport,
+    OutputCapabilities, PlaceholderDef, PlanningComplexity, SecurityLevel, SessionBudget,
+    Visibility,
 };
 pub mod capability_indexer;
 pub use capability_indexer::{

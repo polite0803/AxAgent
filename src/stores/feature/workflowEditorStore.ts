@@ -1770,10 +1770,10 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           "save_skill_workflow_from_llm",
           {
             request: {
-              skill_id: pendingDecompositionSource.market,
-              skill_name: pendingDecompositionSource.repo
+              skillId: pendingDecompositionSource.market,
+              skillName: pendingDecompositionSource.repo
                 || pendingDecompositionSource.market,
-              workflow_name: workflowName,
+              workflowName,
               description: workflowDescription,
               nodes,
               edges,
@@ -1859,8 +1859,8 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           explanation?: string;
         }>("generate_workflow_from_prompt", {
           prompt,
-          current_nodes: nodes.length > 0 ? nodes : undefined,
-          current_edges: edges.length > 0 ? edges : undefined,
+          currentNodes: nodes.length > 0 ? nodes : undefined,
+          currentEdges: edges.length > 0 ? edges : undefined,
         });
         if (result) {
           set((state) => {
@@ -1947,7 +1947,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
           }>
         >("recommend_nodes", {
           context,
-          current_node_types: currentNodeTypes.length > 0 ? currentNodeTypes : undefined,
+          currentNodeTypes: currentNodeTypes.length > 0 ? currentNodeTypes : undefined,
         });
         set((state) => {
           state.isLoading = false;

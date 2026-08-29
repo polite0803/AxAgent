@@ -195,9 +195,8 @@ impl NodeExecutorTrait for DataTransformerExecutor {
         // 使用 eval_with_scope（script mode）替代 eval_expression_with_scope（expression mode）。
         // expression mode 仅支持单行表达式，不支持 `let` 多行语句块；
         // script mode 兼容多行脚本（let + 末尾表达式）和单行表达式两种写法。
-        let result: rhai::Dynamic = engine
-            .eval_with_scope::<rhai::Dynamic>(&mut scope, &c.expression)
-            .map_err(|e| {
+        let result: rhai::Dynamic =
+            engine.eval_with_scope::<rhai::Dynamic>(&mut scope, &c.expression).map_err(|e| {
                 NodeError::exec_failed(
                     "TRANSFORM_EVAL_FAILED",
                     format!("Rhai evaluation error: {e}"),

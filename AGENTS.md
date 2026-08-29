@@ -129,7 +129,7 @@ __TAURI_WORKSPACE__=true cargo test -p axagent --lib commands::knowledge_source
 - **后端 Rust 结构体字段保持 snake_case（Rust / rustfmt / clippy 惯例）**，通过 `#[serde(rename_all = "camelCase")]` 注解在序列化输出 camelCase。**禁止**直接改 Rust 字段为 camelCase —— 会触发 clippy `non_camel_case_types` / `non_snake_case` 警告，违反 `cargo clippy -- -D warnings` 铁律
 - **前端 TS 类型字段消费 camelCase**，与后端序列化输出对齐（如 `session_id`→`sessionId`、`duration_ms`→`durationMs`、`timestamp_ms`→`timestampMs`、`tool_calls`→`toolCalls`）。**禁止**在 TS 类型/消费处写 snake_case
 - **新增/修改 DTO 两步必须同步**：① 后端结构体加 `#[serde(rename_all = "camelCase")]`；② 前端 `src/types/` 类型改 camelCase 并同步所有消费方（组件 / store）
-- **命令参数（invoke 传参）例外**：Tauri 命令参数名是 Rust 原生 snake_case（不经过 serde rename），前端 `invoke()` 传参键名**必须用 snake_case 与后端参数名一致**（如 `session_id`、`trajectory_id`），不要套用 DTO 的 camelCase。DTO 字段名与命令参数名是两套体系，禁止混用
+- **命令参数（invoke 传参）同样用 camelCase**：Tauri v2 的 `#[tauri::command]` 宏默认 `rename_all = "camelCase"`，会把 Rust 参数名 `session_id` 校验为 JS 侧键名 `sessionId`，传 snake_case 会直接报 `missing required key sessionId`（IPC 层拒绝，不会进 handler）。因此前端 `invoke()` 传参键名**必须用 camelCase**（如 `sessionId`、`trajectoryId`）。注意：参数名带前导下划线时（`_url`）前导下划线被忽略（JS 侧传 `url`）。DTO 字段名与命令参数名实际是同一套 camelCase 规则。新增 invoke 调用后建议跑 `.workbuddy/tmp/scan_ipc_args.py` 做前后端参数名一致性扫描
 
 ## 后端错误码 i18n 规范（强制）
 

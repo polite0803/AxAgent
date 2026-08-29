@@ -519,7 +519,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
     try {
       const providers = useProviderStore.getState().providers;
-      const keyword = modelKeyword.toLowerCase();
+      const keyword = modelKeyword.trim().toLowerCase();
+      if (!keyword) {
+        // 空关键词不触发切换：否则子串匹配 includes("") 恒真，会命中全部 enabled 模型并覆盖会话模型
+        return;
+      }
 
       // 优先精确匹配，其次同 provider 子串匹配，最后跨 provider 子串匹配
       let bestProviderId: string | null = null;

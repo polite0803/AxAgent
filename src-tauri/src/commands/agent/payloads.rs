@@ -202,6 +202,18 @@ pub struct AgentQueryRequest {
     /// `None` 表示未启用 flag 或直连 agent 调用。
     #[serde(rename = "taskShape", default, skip_serializing_if = "Option::is_none")]
     pub task_shape: Option<axagent_harness::TaskShapeDecision>,
+    /// 认知编排按需注入的工具名列表（Phase 1.5 暴露闭环）：
+    /// 主动模式（execution_mode=Some）下，命中能力的真实工具定义凭此注入 chat_tools，
+    /// 解决此前"主动模式工具列表为空、发现的能力执行不了"的执行断链。
+    #[serde(rename = "extraTools", default, skip_serializing_if = "Option::is_none")]
+    pub extra_tools: Option<Vec<String>>,
+    /// 认知编排按需加载的技能名列表（遗留边界①补充）：
+    /// 主动模式（execution_mode=Some）下，命中 Skill 护照时按名加载该技能
+    /// （skill_tools 工具定义 + 注册执行 handler），解决"主动模式技能不可用"。
+    /// 与 extra_tools 的区别：技能需注册 handler（load_skill_tools + register_skill_tool），
+    /// 不能仅注入 schema（否则 LLM 调用 skill_xxx 会 404）。
+    #[serde(rename = "extraSkills", default, skip_serializing_if = "Option::is_none")]
+    pub extra_skills: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

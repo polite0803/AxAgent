@@ -79,6 +79,7 @@ pub mod messages;
 pub mod migration;
 pub mod multi_agent;
 pub mod multi_agent_setup;
+pub mod narrative;
 pub mod nl_to_cron;
 pub mod onboarding;
 pub mod orchestrator;
@@ -112,6 +113,7 @@ pub mod scheduled_task;
 pub mod screen_vision;
 pub mod search;
 pub mod session_share;
+pub mod skill_workflow;
 // G18: 会话多格式导出（messages.jsonl / openai_dataset_jsonl / markdown / manifest_json）
 pub mod sessions_export;
 pub mod settings;

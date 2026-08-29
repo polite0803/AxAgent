@@ -5,6 +5,7 @@
 
 /* eslint-disable react-refresh/only-export-components */
 import { DropdownMenu } from "@/components/layout/DropdownMenu";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import {
   addNotification,
   clearAllNotifications,
@@ -14,8 +15,8 @@ import {
 } from "@/lib/notification";
 import { BellOutlined } from "@ant-design/icons";
 import { Badge, Empty, theme, Typography } from "antd";
-import { CheckCheck, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { Check, CheckCheck, Copy, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
@@ -33,6 +34,9 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const { t, i18n } = useTranslation();
   const { token } = theme.useToken();
+  const { copy } = useCopyToClipboard();
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // 监听 CustomEvent 实时更新
   const handleNotificationEvent = useCallback(() => {
@@ -54,6 +58,32 @@ export function NotificationBell() {
 
   const handleClearAll = useCallback(() => {
     setNotifications(clearAllNotifications());
+  }, []);
+
+  const handleCopy = useCallback(
+    async (n: Notification) => {
+      const text = [n.title, n.message].filter(Boolean).join("\n");
+      const ok = await copy(text);
+      if (!ok) {
+        return;
+      }
+      setCopiedId(n.id);
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current);
+      }
+      copyTimerRef.current = setTimeout(() => {
+        setCopiedId((cur) => (cur === n.id ? null : cur));
+      }, 1500);
+    },
+    [copy],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current);
+      }
+    };
   }, []);
 
   const actionItems = notifications.length === 0 ? [] : [
@@ -90,24 +120,64 @@ export function NotificationBell() {
     : notifications.slice(0, 20).map((n) => ({
       key: n.id,
       label: (
-        <div style={{ maxWidth: 320, padding: "4px 0" }}>
-          <Text
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 8,
+            maxWidth: 320,
+            padding: "4px 0",
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <Text
+              style={{
+                fontSize: 12,
+                color: n.type === "error"
+                  ? token.colorError
+                  : n.type === "warning"
+                  ? token.colorWarning
+                  : token.colorSuccess,
+              }}
+            >
+              {n.type === "error" ? "❌" : n.type === "warning" ? "⚠️" : "✅"} {n.title}
+            </Text>
+            <div>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {new Date(n.timestamp).toLocaleTimeString(i18n.language)}
+              </Text>
+            </div>
+          </div>
+          <span
+            role="button"
+            tabIndex={0}
+            aria-label={t("common.copy")}
+            title={t("common.copy")}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              void handleCopy(n);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.stopPropagation();
+                e.preventDefault();
+                void handleCopy(n);
+              }
+            }}
             style={{
-              fontSize: 12,
-              color: n.type === "error"
-                ? token.colorError
-                : n.type === "warning"
-                ? token.colorWarning
-                : token.colorSuccess,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              flexShrink: 0,
+              marginTop: 2,
+              color: copiedId === n.id
+                ? token.colorSuccess
+                : token.colorTextQuaternary,
             }}
           >
-            {n.type === "error" ? "❌" : n.type === "warning" ? "⚠️" : "✅"} {n.title}
-          </Text>
-          <div>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              {new Date(n.timestamp).toLocaleTimeString(i18n.language)}
-            </Text>
-          </div>
+            {copiedId === n.id ? <Check size={13} /> : <Copy size={13} />}
+          </span>
         </div>
       ),
     }));

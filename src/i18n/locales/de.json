@@ -5216,6 +5216,8 @@
       "addChunk": "Abschnitt hinzufügen",
       "addChunkPlaceholder": "Abschnittsinhalt eingeben…",
       "addDocument": "Dokument hinzufügen",
+      "addDocumentsSuccess": "{{count}} Dokument(e) hinzugefügt",
+      "addDocumentsPartial": "{{ok}} hinzugefügt, {{fail}} fehlgeschlagen",
       "changeEmbeddingTitle": "Embedding-Modell ändern",
       "changeEmbeddingWarning": "Die Änderung des Embedding-Modells indiziert automatisch alle Dokumente in dieser Wissensdatenbank neu. Dies kann nicht rückgängig gemacht werden. Fortfahren?",
       "chars": "Zeichen",
@@ -8538,6 +8540,8 @@
       "reExecute": "Erneut ausführen",
       "secret": "Geheim",
       "required": "Erforderlich",
+      "cancelExecution": "Ausführung abbrechen",
+      "invalidField": "Ungültiges Format für «{{name}}»",
       "requiredField": "Bitte {{name}} eingeben"
     },
     "existingSkill": "Vorhandener Skill",
@@ -10122,7 +10126,8 @@
     "reject": "Ablehnen",
     "approve": "Zustimmen",
     "expandDetails": "Rohdetails erweitern",
-    "collapseDetails": "Rohdetails einklappen"
+    "collapseDetails": "Rohdetails einklappen",
+    "noPending": "Keine ausstehenden Evolutionsvorschläge"
   },
   "planApprovalModal": {
     "title": "Planfreigabe",

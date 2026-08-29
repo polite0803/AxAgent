@@ -606,24 +606,23 @@ pub(crate) fn build_stream_chunk_response_body(
         delta.insert("reasoning_content".to_string(), json!(reasoning));
     }
 
-    if delta.is_empty() && dojo_events.is_empty() {
-        None
-    } else {
-        let mut body = json!({
-            "id": "chatcmpl-gateway",
-            "object": "chat.completion.chunk",
-            "model": model,
-            "choices": [{
-                "index": 0,
-                "delta": delta,
-                "finish_reason": null,
-            }]
-        });
-        if !dojo_events.is_empty() {
-            body["dojo_event"] = json!(dojo_events);
-        }
-        Some(body)
+    // P0: 不再丢弃 delta 为空的 chunk。初始 role chunk、usage 更新 chunk
+    // 等都可能 content/thinking 为空，但对客户端建立会话和跟踪流状态至关重要。
+    // 即使 delta 和 dojo_events 都为空也返回带空 delta 的 chunk，保证 SSE 流心跳连续。
+    let mut body = json!({
+        "id": "chatcmpl-gateway",
+        "object": "chat.completion.chunk",
+        "model": model,
+        "choices": [{
+            "index": 0,
+            "delta": delta,
+            "finish_reason": null,
+        }]
+    });
+    if !dojo_events.is_empty() {
+        body["dojo_event"] = json!(dojo_events);
     }
+    Some(body)
 }
 
 pub(crate) fn build_stream_final_response_body(

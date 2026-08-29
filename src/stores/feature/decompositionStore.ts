@@ -73,8 +73,8 @@ export const useDecompositionStore = create<DecompositionState>((set, get) => ({
         {
           name,
           description,
-          input_schema: inputSchema,
-          output_schema: outputSchema,
+          inputSchema: inputSchema,
+          outputSchema: outputSchema,
         },
       );
       return result.success;

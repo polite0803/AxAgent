@@ -113,7 +113,7 @@ export function ToolSemanticCheck() {
           "check_tool_semantic_matches",
           {
             request: { tools: toolsToCheck },
-            min_similarity: 0.6,
+            minSimilarity: 0.6,
           },
         );
 

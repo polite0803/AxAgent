@@ -234,6 +234,90 @@ impl CapabilityRetrieverImpl {
         }
     }
 
+    /// 别名硬匹配（Phase 2）：用户输入命中护照 `aliases` 时直接提升语义分。
+    ///
+    /// 规则：trim + 小写后精确匹配 → 语义分保底 0.85；双向包含匹配 → 保底 0.6。
+    /// 别名是"用户口语 → 能力 ID"的映射（如 "发邮件" → mail_send），
+    /// 语义向量对口语/缩写不敏感，别名提供确定性兜底。
+    fn apply_alias_boost(candidates: &mut [ScoredCandidate], user_input: &str) {
+        let input = user_input.trim().to_lowercase();
+        if input.is_empty() {
+            return;
+        }
+        for candidate in candidates.iter_mut() {
+            if candidate.passport.aliases.is_empty() {
+                continue;
+            }
+            for alias in &candidate.passport.aliases {
+                let alias_lower = alias.trim().to_lowercase();
+                if alias_lower.is_empty() {
+                    continue;
+                }
+                let boost = if alias_lower == input {
+                    0.85
+                } else if input.contains(&alias_lower) || alias_lower.contains(&input) {
+                    0.6
+                } else {
+                    continue;
+                };
+                if boost > candidate.semantic_score {
+                    candidate.semantic_score = boost;
+                }
+                break;
+            }
+        }
+    }
+
+    /// 关联扩展（Phase 3）：一跳上下游依赖能力加入候选。
+    ///
+    /// 遍历命中候选的 `upstream` / `downstream`，索引中存在的依赖能力以
+    /// 语义分保底 0.4（综合分 0.24）追加到候选尾部，供认知编排做组合路径选择；
+    /// 已在候选中的跳过；未在索引中的（外部/未注册）跳过。
+    fn expand_dependencies(
+        final_candidates: &mut Vec<CapabilityCandidate>,
+        all_passports: &[axagent_harness::CapabilityPassportDto],
+    ) {
+        if final_candidates.is_empty() || all_passports.is_empty() {
+            return;
+        }
+        let by_id: std::collections::HashMap<&str, &axagent_harness::CapabilityPassportDto> =
+            all_passports.iter().map(|p| (p.capability_id.as_str(), p)).collect();
+
+        let mut existing: std::collections::HashSet<String> =
+            final_candidates.iter().map(|c| c.capability_id.clone()).collect();
+        let mut expanded: Vec<CapabilityCandidate> = Vec::new();
+
+        for candidate in final_candidates.iter() {
+            for dep_id in candidate.passport.upstream.iter().chain(&candidate.passport.downstream) {
+                if !existing.insert(dep_id.clone()) {
+                    continue;
+                }
+                if let Some(dep) = by_id.get(dep_id.as_str()).copied() {
+                    // 依赖能力同样受可见性约束（不可发现的系统能力不扩展）
+                    if !dep.visibility.is_discoverable() || !dep.enabled {
+                        continue;
+                    }
+                    expanded.push(CapabilityCandidate {
+                        capability_id: dep.capability_id.clone(),
+                        name: dep.name.clone(),
+                        kind: dep.kind,
+                        domain: dep.domain,
+                        // 依赖扩展项：低语义分保底，排在实际命中之后
+                        semantic_score: 0.4,
+                        keyword_score: 0.0,
+                        tag_score: 0.0,
+                        retrieval_score: 0.24,
+                        matched_tags: Vec::new(),
+                        negative_hit: false,
+                        passport: dep.clone(),
+                    });
+                }
+            }
+        }
+
+        final_candidates.extend(expanded);
+    }
+
     /// 将 FTS 关键词检索结果合并到候选列表的 keyword_score
     ///
     /// FTS 的 score 语义为"越小越匹配"（bm25 返回负数，PG 取负 ts_rank），
@@ -310,6 +394,10 @@ impl CapabilityRetriever for CapabilityRetrieverImpl {
             self.negative_search_with_embedding(&query_embedding, candidates.len()).await?;
         Self::mark_negative_hits(&mut candidates, &negative_results, NEGATIVE_HIT_THRESHOLD);
 
+        // 6b. 别名硬匹配（Phase 2）：用户输入命中护照别名时直接加权，等价于高置信标签命中。
+        //     精确匹配（大小写不敏感）→ 语义分保底 0.85；包含匹配 → 保底 0.6。
+        Self::apply_alias_boost(&mut candidates, &query.user_input);
+
         // 7. 计算综合分并过滤负面命中
         //    综合分公式：语义 0.6 + 关键词 0.2 + 标签 0.2（Bug 3：修正原公式中 semantic 重复计算）
         let mut final_candidates: Vec<CapabilityCandidate> = candidates
@@ -338,6 +426,11 @@ impl CapabilityRetriever for CapabilityRetrieverImpl {
         final_candidates.sort_by(|a, b| {
             b.retrieval_score.partial_cmp(&a.retrieval_score).unwrap_or(std::cmp::Ordering::Equal)
         });
+
+        // 8b. 关联扩展（Phase 3）：对命中的候选做一跳上下游扩展。
+        //     候选中护照声明了 upstream/downstream 依赖时，把索引中存在的依赖能力
+        //     也加入候选（语义分保底 0.4，排在实际命中之后），供认知编排组组合路径。
+        Self::expand_dependencies(&mut final_candidates, &self.indexer.list_passports().await);
 
         // 9. 截断到 top_k
         final_candidates.truncate(top_k);

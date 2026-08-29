@@ -140,9 +140,9 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
 
   pinSchema: async (params) => {
     const record = await invoke<DynamicUIPinRecord>("pin_dynamic_ui_schema", {
-      schema_id: params.schemaId,
+      schemaId: params.schemaId,
       title: params.title,
-      group_name: params.groupName,
+      groupName: params.groupName,
       position: params.position ?? null,
     });
     set((state) => {
@@ -171,9 +171,9 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
       position: params.position ?? existing.position,
     };
     const record = await invoke<DynamicUIPinRecord>("pin_dynamic_ui_schema", {
-      schema_id: merged.schemaId,
+      schemaId: merged.schemaId,
       title: merged.title,
-      group_name: merged.groupName,
+      groupName: merged.groupName,
       position: merged.position,
     });
     set((state) => {
@@ -207,8 +207,8 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
       return cached;
     }
     const record = await invoke<DynamicUIFormDataRecord | null>("get_dynamic_ui_form_data", {
-      schema_id: schemaId,
-      instance_key: instanceKey || null,
+      schemaId: schemaId,
+      instanceKey: instanceKey || null,
     });
     if (!record) {
       return null;
@@ -228,8 +228,8 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
 
   clearFormData: async (schemaId, instanceKey) => {
     await invoke<void>("delete_dynamic_ui_form_data", {
-      schema_id: schemaId,
-      instance_key: instanceKey || null,
+      schemaId: schemaId,
+      instanceKey: instanceKey || null,
     });
     const cacheKey = formCacheKey(schemaId, instanceKey);
     set((state) => {
@@ -247,7 +247,7 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
     set({ versionLoading: true });
     try {
       const result = await invoke<ListVersionsResponse>("list_dynamic_ui_schema_versions", {
-        schema_id: schemaId,
+        schemaId: schemaId,
       });
       set({ versionList: result.versions, versionLoading: false });
       return result.versions;
@@ -262,7 +262,7 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
   getVersion: async (versionId) => {
     try {
       return await invoke<DynamicUISchemaVersion>("get_dynamic_ui_schema_version", {
-        version_id: versionId,
+        versionId: versionId,
       });
     } catch (e) {
       console.error("getVersion failed:", e);
@@ -273,8 +273,8 @@ export const useDynamicUIStore = create<DynamicUIState>((set, get) => ({
   restoreVersion: async (schemaId, versionId) => {
     try {
       const updated = await invoke<DynamicUISchemaRecord>("restore_dynamic_ui_schema_version", {
-        schema_id: schemaId,
-        version_id: versionId,
+        schemaId: schemaId,
+        versionId: versionId,
       });
       set((state) => ({
         schemas: state.schemas.map((s) => (s.id === schemaId ? updated : s)),

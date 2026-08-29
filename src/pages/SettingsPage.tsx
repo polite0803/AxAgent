@@ -400,10 +400,12 @@ function CronManagerWrapper() {
     }) => {
       try {
         await invoke("create_scheduled_task", {
-          name: job.name,
-          description: job.prompt,
-          cronExpression: job.schedule,
-          taskType: job.platform ?? "general",
+          input: {
+            name: job.name,
+            description: job.prompt,
+            cronExpression: job.schedule,
+            taskType: job.platform ?? "general",
+          },
         });
         message.success(t("common.success"));
         loadJobs();

@@ -91,10 +91,12 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
         : "markdown";
 
       await invoke<string>("write_base64_to_file", {
-        wikiId,
-        fileName: file.name,
-        base64Content: base64,
-        sourceType,
+        input: {
+          wikiId,
+          fileName: file.name,
+          base64Content: base64,
+          sourceType,
+        },
       });
 
       form.setFieldsValue({ path: file.name });

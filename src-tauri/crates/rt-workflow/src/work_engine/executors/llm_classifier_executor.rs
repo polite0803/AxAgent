@@ -161,7 +161,10 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
             }],
             stream: false,
             temperature: Some(0.0),
-            max_tokens: Some(64),
+            // P0 FIX: 从 64 → 512
+            // 64 tokens 会导致模型思维链还没输出 JSON 就被截断 (finish_reason=length)
+            // 512 足够模型输出思维链 + {"label":"xxx", "confidence": 0.95} JSON
+            max_tokens: Some(512),
             top_p: None,
             tools: None,
             thinking_budget: None,
@@ -186,6 +189,65 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
                 )
             })?;
 
+        // ── P0 FIX: 内容归一化 ──
+        // 1. 剥掉 ```json ``` markdown fence
+        // 2. content 为空时从 thinking 提取
+        let strip_fence = |s: &str| -> String {
+            let t = s.trim();
+            // 匹配开头的 ```json / ```JSON / ``` 等
+            let t = if let Some(after_open) = t.strip_prefix("```json") {
+                after_open.trim_start_matches(|c: char| c == '`' || c.is_whitespace()).to_string()
+            } else if let Some(after_open) = t.strip_prefix("```JSON") {
+                after_open.trim_start_matches(|c: char| c == '`' || c.is_whitespace()).to_string()
+            } else if let Some(after_open) = t.strip_prefix("```") {
+                after_open.trim_start_matches(|c: char| c == '`' || c.is_whitespace()).to_string()
+            } else {
+                t.to_string()
+            };
+            // 匹配结尾的 ```
+            let t = if let Some(before_close) = t.strip_suffix("```") {
+                before_close.trim_end().to_string()
+            } else {
+                t
+            };
+            t.trim().to_string()
+        };
+
+        let normalized_content = {
+            let raw = response.response.content.trim().to_string();
+            let stripped = strip_fence(&raw);
+            if !stripped.is_empty() {
+                stripped
+            } else {
+                // content 剥了 fence 还是空，从 thinking 提取
+                if let Some(ref thinking) = response.response.thinking {
+                    let t = thinking.trim();
+                    // 尝试从 thinking 末尾提取 JSON {...}
+                    if let Some(json_start) = t.rfind('{') {
+                        let tail = &t[json_start..];
+                        if let Some(json_end) = tail.rfind('}') {
+                            let candidate = &tail[..json_end + 1];
+                            if serde_json::from_str::<serde_json::Value>(candidate).is_ok() {
+                                tracing::info!(
+                                    "[LlmClassifier] content 为空，从 thinking 提取 JSON: {}",
+                                    &candidate[..candidate.len().min(200)]
+                                );
+                                candidate.to_string()
+                            } else {
+                                extract_category_from_thinking(t, &categories)
+                            }
+                        } else {
+                            extract_category_from_thinking(t, &categories)
+                        }
+                    } else {
+                        extract_category_from_thinking(t, &categories)
+                    }
+                } else {
+                    stripped
+                }
+            }
+        };
+
         // ── 结果一致性检查 ──
         if let Some(ref cc_config) = c.consistency_check
             && cc_config.enabled
@@ -204,7 +266,7 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
             let secondary_response = adapter.chat(&req_ctx, secondary_request.into()).await;
             if let Ok(sec_resp) = secondary_response {
                 use axagent_harness::consistency_check::check_consistency;
-                let primary_val = serde_json::json!(response.response.content);
+                let primary_val = serde_json::json!(normalized_content);
                 let secondary_val = serde_json::json!(sec_resp.content);
                 let cc_result =
                     check_consistency(&primary_val, &secondary_val, cc_config.deviation_threshold);
@@ -227,13 +289,13 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
         // 供 L3 执行模式决策与主 DAG 消费。
         let (raw_category, resolved_confidence, resolved_execution_mode) =
             if let Some(threshold) = c.confidence_threshold {
-                let parsed: serde_json::Value =
-                    serde_json::from_str(response.response.content.trim()).map_err(|e| {
+                let parsed: serde_json::Value = serde_json::from_str(normalized_content.trim())
+                    .map_err(|e| {
                         NodeError::exec_failed(
                             error_code::VALIDATION_FAILED,
                             format!(
                                 "LlmClassifier: 无法解析 LLM JSON 响应: {e}, raw: {}",
-                                response.response.content.trim()
+                                normalized_content.trim()
                             ),
                         )
                     })?;
@@ -258,7 +320,7 @@ impl NodeExecutorTrait for LlmClassifierExecutor {
                     (label, Some(confidence), execution_mode)
                 }
             } else {
-                (response.response.content.trim().to_string(), None, None)
+                (normalized_content.trim().to_string(), None, None)
             };
 
         let matched = categories
@@ -401,6 +463,65 @@ fn render_template(template: &str, context: &ExecutionState) -> String {
         }
     })
     .into_owned()
+}
+
+// ── P0 FIX 辅助：从 thinking 思维链中提取最匹配的分类名 ──
+// 推理模型（如 Agnes）把分类结论藏在 reasoning_content/thinking 里，
+// content 字段为空时需要从思维链里捞最终答案。
+fn extract_category_from_thinking(thinking: &str, categories: &[String]) -> String {
+    // 策略 1：thinking 末尾行直接包含某个 category 名
+    for line in thinking.lines().rev() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        for cat in categories {
+            if trimmed.to_lowercase().contains(&cat.to_lowercase())
+                || cat.to_lowercase().contains(&trimmed.to_lowercase())
+            {
+                tracing::info!(
+                    "[LlmClassifier] 从 thinking 提取分类: category={cat} line={trimmed}"
+                );
+                return cat.clone();
+            }
+        }
+    }
+    // 策略 2：全 thinking 扫描所有 category，取最后出现的那个
+    let mut last_match = String::new();
+    for cat in categories {
+        if let Some(pos) = thinking.to_lowercase().rfind(&cat.to_lowercase()) {
+            if pos >= last_match.len() {
+                last_match = cat.clone();
+            }
+        }
+    }
+    if !last_match.is_empty() {
+        tracing::info!("[LlmClassifier] 从 thinking 全量扫描提取分类: category={last_match}");
+        return last_match;
+    }
+    // 策略 3：尝试提取 "最匹配的类别: xxx" / "结论: xxx" 等格式
+    for line in thinking.lines().rev() {
+        let trimmed = line.trim();
+        if let Some(idx) = trimmed
+            .rfind("最匹配的类别")
+            .or_else(|| trimmed.rfind("结论"))
+            .or_else(|| trimmed.rfind("最终分类"))
+            .or_else(|| trimmed.rfind("因此"))
+            .or_else(|| trimmed.rfind("所以"))
+        {
+            let after = trimmed[idx..].trim_start_matches(|c: char| {
+                !c.is_alphanumeric() && c != '：' && c != ':' && c != ' '
+            });
+            for cat in categories {
+                if after.to_lowercase().contains(&cat.to_lowercase()) {
+                    return cat.clone();
+                }
+            }
+        }
+    }
+    // 策略 4：实在不行返回空（上层会报 JSON 解析失败，但至少 max_tokens 够了时不会走到这）
+    tracing::warn!("[LlmClassifier] 无法从 thinking 提取分类，thinking_len={}", thinking.len());
+    String::new()
 }
 
 #[cfg(test)]

@@ -5216,6 +5216,8 @@
       "addChunk": "إضافة قطعة",
       "addChunkPlaceholder": "أدخل محتوى القطعة...",
       "addDocument": "إضافة مستند",
+      "addDocumentsSuccess": "تمت إضافة {{count}} مستند",
+      "addDocumentsPartial": "نجح {{ok}}، فشل {{fail}}",
       "changeEmbeddingTitle": "تغيير نموذج التضمين",
       "changeEmbeddingWarning": "سيؤدي تغيير نموذج التضمين إلى إعادة فهرسة جميع المستندات تلقائياً. لا يمكن التراجع. هل تريد المتابعة؟",
       "chars": "حرف",
@@ -8538,6 +8540,8 @@
       "reExecute": "إعادة تشغيل",
       "secret": "سرّي",
       "required": "مطلوب",
+      "cancelExecution": "إلغاء التنفيذ",
+      "invalidField": "تنسيق غير صالح لـ {{name}}",
       "requiredField": "يرجى إدخال {{name}}"
     },
     "existingSkill": "المهارة الموجودة",
@@ -10122,7 +10126,8 @@
     "reject": "رفض",
     "approve": "موافقة",
     "expandDetails": "توسيع التفاصيل الخام",
-    "collapseDetails": "طي التفاصيل الخام"
+    "collapseDetails": "طي التفاصيل الخام",
+    "noPending": "لا توجد مقترحات تطوير قيد الانتظار"
   },
   "planApprovalModal": {
     "title": "الموافقة على الخطة",

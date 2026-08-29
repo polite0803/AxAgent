@@ -2,7 +2,6 @@ use crate::app_state::AppState;
 use crate::commands::agent::agent_err;
 use crate::commands::agent::payloads::AgentContextPayload;
 use crate::commands::error::ErrorResponse;
-use crate::commands::skills;
 use crate::commands::spawn_guard::catch_unwind_logged;
 use axagent_harness::types::settings_chat::ChatTool;
 use axagent_providers::ProviderAdapter;
@@ -77,12 +76,45 @@ pub(super) async fn load_enabled_skill_contents(
             continue;
         };
 
+        // 只收根目录的 SKILL.md（或 README.md），不递归子目录 — 子目录里的辅助文档/参考资料/示例不进 system prompt
+        // 加 32KB/skill 硬上限 — 防止 AxAgent 自己的 skill SKILL.md 巨无霸（之前发现 4MB+ 的）
+        const SKILL_MAX_SIZE: usize = 32 * 1024;
         let mut contents = String::new();
-        if let Ok(entries) = skills::collect_markdown_files(root, 0) {
-            for md_path in entries {
+        if let Ok(entries) = std::fs::read_dir(root) {
+            let mut root_files: Vec<_> = entries
+                .filter_map(|e| e.ok())
+                .filter(|e| e.path().extension().is_some_and(|ext| ext.eq_ignore_ascii_case("md")))
+                .map(|e| e.path())
+                .collect();
+            // 优先 SKILL.md，然后 README.md，其他 md 排在最后
+            root_files.sort_by(|a, b| {
+                let pa = a.file_name().and_then(|s| s.to_str()).unwrap_or("");
+                let pb = b.file_name().and_then(|s| s.to_str()).unwrap_or("");
+                let rank = |name: &str| -> u8 {
+                    let lower = name.to_lowercase();
+                    if lower.starts_with("skill") {
+                        0
+                    } else if lower.starts_with("readme") {
+                        1
+                    } else {
+                        2
+                    }
+                };
+                rank(pa).cmp(&rank(pb))
+            });
+            for md_path in root_files {
                 if let Ok(text) = std::fs::read_to_string(&md_path) {
                     if !contents.is_empty() {
                         contents.push_str("\n\n---\n\n");
+                    }
+                    // 截断：单 skill 超过上限时，保留开头（指令部分通常在前）
+                    if contents.len() + text.len() > SKILL_MAX_SIZE {
+                        let remaining = SKILL_MAX_SIZE.saturating_sub(contents.len());
+                        if remaining > 100 {
+                            contents.push_str(&text[..remaining]);
+                            contents.push_str("\n\n... [truncated]");
+                        }
+                        break;
                     }
                     contents.push_str(&text);
                 }
@@ -90,6 +122,12 @@ pub(super) async fn load_enabled_skill_contents(
         }
 
         if !contents.is_empty() {
+            tracing::info!(
+                target: "axagent.skills",
+                "load skill_content: name={} bytes={}",
+                plugin.metadata.name,
+                contents.len()
+            );
             results.push((plugin.metadata.name.clone(), contents));
         }
     }
@@ -400,6 +438,7 @@ pub(super) async fn execute_skill_async(
     input: &str,
     ctx: &SkillExecutionContext,
 ) -> Result<String, String> {
+    let started = std::time::Instant::now();
     let skill_input = parse_skill_input(input)?;
     let task = &skill_input.input.task;
     let context = &skill_input.input.context;
@@ -541,6 +580,20 @@ pub(super) async fn execute_skill_async(
                     }
                 },
             ));
+        }
+    }
+
+    // Phase 1 反馈闭环：技能被调用即记一次执行（content 模式返回 Ok 视为成功）。
+    // capability_id 对齐启动注册格式 `skill:{name}`；失败仅告警不阻塞技能结果。
+    {
+        let db = ctx.sea_db.clone();
+        let cap_id = format!("skill:{skill_name}");
+        let duration_ms = started.elapsed().as_millis() as u64;
+        if let Err(e) =
+            axagent_dao::repo::capability_stats::record_execution(&db, &cap_id, true, duration_ms)
+                .await
+        {
+            tracing::warn!("[capability_stats] 技能执行统计回写失败: {e}");
         }
     }
 

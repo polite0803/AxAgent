@@ -203,7 +203,7 @@ export function SkillSandboxContainer({
       // SK-P0-3: 后端期望参数名 name/file_name,而非 skillName/path
       const htmlContent = await invoke<string>("skill_read_asset", {
         name: skillName,
-        file_name: entry,
+        fileName: entry,
       });
 
       if (!htmlContent || htmlContent.trim().length === 0) {

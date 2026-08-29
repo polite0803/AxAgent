@@ -10,6 +10,7 @@ use axagent_harness::{
     CapabilityDiscoveryRequest, CapabilityDiscoveryResult, CapabilityRouter,
     DefaultCapabilityRouter,
 };
+use sea_orm::DatabaseConnection;
 
 use crate::capability_filter_impl::CapabilityFilterImpl;
 use crate::capability_ranker_impl::CapabilityRankerImpl;
@@ -35,8 +36,16 @@ pub fn build_router(
 /// 使用默认配置构建完整能力路由器的便捷方法
 ///
 /// 从 AppState 的各个组件组装完整路由管线。
-pub fn build_default_router(retriever: Arc<CapabilityRetrieverImpl>) -> DefaultCapabilityRouter {
-    let filter = Arc::new(CapabilityFilterImpl::new());
+/// `db` 注入后启用可注册策略裁剪（Phase 3 策略对象化）；测试/降级场景传 None。
+pub fn build_default_router(
+    retriever: Arc<CapabilityRetrieverImpl>,
+    db: Option<DatabaseConnection>,
+) -> DefaultCapabilityRouter {
+    let mut filter = CapabilityFilterImpl::new();
+    if let Some(db) = db {
+        filter = filter.with_db(db);
+    }
+    let filter = Arc::new(filter);
     let ranker = Arc::new(CapabilityRankerImpl::default());
 
     DefaultCapabilityRouter::new(retriever, filter, ranker)

@@ -1570,6 +1570,24 @@ fn build_assistant_message(
         }
     }
 
+    // P0 修复(2026-08-29): 兜底注入 — 当 blocks 仍为空但 thinking 有内容时
+    // （典型场景：推理模型只输出 reasoning 不输出正文，或 thought_chain_enabled=false
+    // 导致 thinking 未被注入），将 thinking 作为 fallback content 注入 blocks。
+    // 此前这种情况会直接报 "assistant stream produced no content"，导致 Agent 循环
+    // 中断；兜底注入让循环能继续推进（如触发重试或向前端展示已有的推理过程）。
+    if blocks.is_empty() && !thinking.is_empty() {
+        tracing::warn!(
+            target: "axagent.reliability",
+            thinking_len = thinking.len(),
+            thought_chain_enabled = show_thought_chain,
+            "LLM stream produced no text content but has thinking — \
+             injecting thinking as fallback to avoid empty-blocks error",
+        );
+        blocks.push(ContentBlock::Text {
+            text: format!("[模型仅返回推理过程，未产出可见回答]\n\n{}", thinking),
+        });
+    }
+
     if !finished {
         // Stream interrupted — if we have partial content, return it with
         // a recovery marker so the agent loop can continue rather than
@@ -1682,6 +1700,9 @@ fn classify_recovery_error(err: &str) -> RecoveryErrorType {
         || lower.contains("429")
         || lower.contains("rate")
         || lower.contains("temporarily")
+        // P0 修复(2026-08-29): provider 空响应分类为瞬时错误,自动重试
+        // 而非杀死 Agent 循环(见 provider_adapter.rs 空响应拦截)
+        || lower.contains("empty response")
     {
         return RecoveryErrorType::Transient;
     }
@@ -3112,6 +3133,10 @@ mod tests {
         assert_eq!(classify_recovery_error("network unreachable"), RecoveryErrorType::Transient);
         assert_eq!(
             classify_recovery_error("connection reset by peer"),
+            RecoveryErrorType::Transient
+        );
+        assert_eq!(
+            classify_recovery_error("LLM 流式调用失败: LLM 流式空响应 ... (empty response)"),
             RecoveryErrorType::Transient
         );
         assert_eq!(classify_recovery_error("service unavailable"), RecoveryErrorType::Transient);

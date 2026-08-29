@@ -734,6 +734,39 @@ impl ProviderAdapter for OpenAIAdapter {
         let url = Self::chat_url(ctx);
         let body = build_request(ctx, &request, &request.messages, false);
 
+        let body_size = serde_json::to_string(&body).ok().map(|s| s.len()).unwrap_or(0);
+        // P0 DIAG: body 组成分析 — 定位 5.4MB/140万 tokens 到底来自 messages 还是 tools
+        let messages_size =
+            serde_json::to_string(&body.messages).ok().map(|s| s.len()).unwrap_or(0);
+        let tools_size = body
+            .tools
+            .as_ref()
+            .and_then(|t| serde_json::to_string(t).ok())
+            .map(|s| s.len())
+            .unwrap_or(0);
+        let messages_content_chars: usize = body
+            .messages
+            .iter()
+            .map(|m| match &m.content {
+                Some(c) => c.as_str().map(|s| s.len()).unwrap_or(0),
+                None => 0,
+            })
+            .sum();
+        tracing::info!(
+            target: "axagent.providers.req",
+            url = %url,
+            provider_id = %ctx.provider_id,
+            model = %body.model,
+            stream = body.stream,
+            tools_count = body.tools.as_ref().map(|t| t.len()).unwrap_or(0),
+            messages_count = body.messages.len(),
+            body_size_bytes = body_size,
+            messages_size_bytes = messages_size,
+            messages_content_chars = messages_content_chars,
+            tools_size_bytes = tools_size,
+            "[PROVIDER.chat] 即将发送请求"
+        );
+
         let resp = crate::apply_request_headers(
             self.get_client(ctx)?
                 .post(&url)
@@ -751,8 +784,20 @@ impl ProviderAdapter for OpenAIAdapter {
             return Err(AxAgentError::Provider(format!("OpenAI API error {status}: {text}")));
         }
 
-        let oai: OpenAIResponse =
-            resp.json().await.map_err(|e| AxAgentError::Provider(format!("Parse error: {e}")))?;
+        let raw_text = resp.text().await.unwrap_or_default();
+        // P0 DIAG: 字符级截断（避免 UTF-8 边界 panic）
+        let preview: String = raw_text.chars().take(500).collect();
+        tracing::info!(
+            target: "axagent.providers.resp",
+            provider_id = %ctx.provider_id,
+            model = %body.model,
+            raw_len = raw_text.len(),
+            raw_preview = %preview,
+            "📨 [RAW] chat 响应原始 body"
+        );
+
+        let oai: OpenAIResponse = serde_json::from_str(&raw_text)
+            .map_err(|e| AxAgentError::Provider(format!("Parse error: {e}")))?;
 
         let choice = oai
             .choices
@@ -762,6 +807,16 @@ impl ProviderAdapter for OpenAIAdapter {
             .message
             .as_ref()
             .ok_or_else(|| AxAgentError::Provider("No message in choice".into()))?;
+
+        tracing::info!(
+            target: "axagent.providers.resp",
+            provider_id = %ctx.provider_id,
+            model = %body.model,
+            content_len = msg.content.as_deref().map(|c| c.len()).unwrap_or(0),
+            has_thinking = msg.thinking.is_some(),
+            tool_calls_count = msg.tool_calls.as_ref().map(|t| t.len()).unwrap_or(0),
+            "[PROVIDER.chat] 收到响应"
+        );
 
         let usage = oai.usage.map(|u| u.to_token_usage()).unwrap_or_default();
 
@@ -811,6 +866,72 @@ impl ProviderAdapter for OpenAIAdapter {
         let custom_headers = ctx.custom_headers.clone();
         let url = Self::chat_url(ctx);
         let body = build_request(ctx, &request, &request.messages, true);
+        let provider_id = ctx.provider_id.clone();
+
+        let body_size = serde_json::to_string(&body).ok().map(|s| s.len()).unwrap_or(0);
+        // P0 DIAG: body 组成分析 — 定位 5.4MB/140万 tokens 到底来自 messages 还是 tools
+        let messages_size =
+            serde_json::to_string(&body.messages).ok().map(|s| s.len()).unwrap_or(0);
+        let tools_size = body
+            .tools
+            .as_ref()
+            .and_then(|t| serde_json::to_string(t).ok())
+            .map(|s| s.len())
+            .unwrap_or(0);
+        let messages_content_chars: usize = body
+            .messages
+            .iter()
+            .map(|m| match &m.content {
+                Some(c) => c.as_str().map(|s| s.len()).unwrap_or(0),
+                None => 0,
+            })
+            .sum();
+        // P0 DIAG: 逐条消息分析 — 定位哪条消息撑爆了 context
+        tracing::info!(
+            target: "axagent.providers.req",
+            "[PROVIDER.chat_stream] 逐条消息分析 (共 {} 条):",
+            body.messages.len()
+        );
+        for (i, m) in body.messages.iter().enumerate() {
+            let chars = match &m.content {
+                Some(c) => c.as_str().map(|s| s.len()).unwrap_or(0),
+                None => 0,
+            };
+            let preview = match &m.content {
+                Some(c) => c
+                    .as_str()
+                    .map(|s| {
+                        let trimmed = s.chars().take(80).collect::<String>();
+                        if s.chars().count() > 80 {
+                            format!("{}...(+{} chars)", trimmed, s.len() - 80)
+                        } else {
+                            trimmed
+                        }
+                    })
+                    .unwrap_or_default(),
+                None => String::from("(无内容)"),
+            };
+            let tool_calls = m.tool_calls.as_ref().map(|tcs| tcs.len()).unwrap_or(0);
+            tracing::info!(
+                target: "axagent.providers.req",
+                "  [msg#{}] role={} chars={} tool_calls={} preview=\"{}\"",
+                i, m.role, chars, tool_calls, preview
+            );
+        }
+        tracing::info!(
+            target: "axagent.providers.req",
+            url = %url,
+            provider_id = %provider_id,
+            model = %body.model,
+            stream = body.stream,
+            tools_count = body.tools.as_ref().map(|t| t.len()).unwrap_or(0),
+            messages_count = body.messages.len(),
+            body_size_bytes = body_size,
+            messages_size_bytes = messages_size,
+            messages_content_chars = messages_content_chars,
+            tools_size_bytes = tools_size,
+            "[PROVIDER.chat_stream] 即将发送请求"
+        );
 
         let (mut tx, rx) = futures::channel::mpsc::channel(256);
 
@@ -825,7 +946,24 @@ impl ProviderAdapter for OpenAIAdapter {
             .send()
             .await
             {
-                Ok(r) if r.status().is_success() => r,
+                Ok(r) if r.status().is_success() => {
+                    let ct = r
+                        .headers()
+                        .get("content-type")
+                        .and_then(|v| v.to_str().ok())
+                        .unwrap_or("unknown");
+                    tracing::info!(
+                        target: "axagent.providers.sse",
+                        status = r.status().as_u16(),
+                        content_type = ct,
+                        url = %url,
+                        provider_id = %provider_id,
+                        model = %body.model,
+                        body_preview = %serde_json::to_string(&body).ok().map(|s| s[..s.len().min(500)].to_string()).unwrap_or_default(),
+                        "[SSE-DIAG] HTTP 响应成功"
+                    );
+                    r
+                },
                 Ok(r) => {
                     let s = r.status();
                     let t = r.text().await.unwrap_or_default();
@@ -849,8 +987,15 @@ impl ProviderAdapter for OpenAIAdapter {
             let mut pending_tool_calls: Vec<(String, String, String, String)> = Vec::new();
             let mut event_data_lines: Vec<String> = Vec::new();
             let mut last_usage: Option<axagent_harness::types::TokenUsage> = None;
+            let mut total_bytes_received: usize = 0;
+            let mut total_data_events: usize = 0;
 
             let mut process_event = |data: &str| -> bool {
+                tracing::info!(
+                    target: "axagent.providers.sse",
+                    raw = %data[..data.len().min(300)].replace('\n', " "),
+                    "[SSE-DIAG] 收到 data 事件"
+                );
                 if data.trim() == "[DONE]" {
                     let tool_calls = if pending_tool_calls.is_empty() {
                         None
@@ -981,16 +1126,26 @@ impl ProviderAdapter for OpenAIAdapter {
                             })
                         });
 
-                    if content.is_some() || thinking.is_some() {
-                        let _ = tx.try_send(Ok(ChatStreamChunk {
-                            content,
-                            thinking,
-                            done: false,
-                            is_final: None,
-                            usage: None,
-                            tool_calls: None,
-                        }));
-                    }
+                    tracing::info!(
+                        target: "axagent.providers.sse",
+                        has_content = content.is_some(),
+                        has_thinking = thinking.is_some(),
+                        has_tool_calls_parsed = !pending_tool_calls.is_empty(),
+                        content_preview = content.as_deref().map(|s| &s[..s.len().min(80)]).unwrap_or(""),
+                        thinking_preview = thinking.as_deref().map(|s| &s[..s.len().min(80)]).unwrap_or(""),
+                        "[SSE-DIAG] choice 解析结果"
+                    );
+                    // P0: 去掉 content/thinking 空 chunk 过滤 — 初始 role chunk、usage 更新
+                    // chunk 等都需要透传给下游。即使 content/thinking 都为空也发送（心跳），
+                    // 保证 agent runtime 能感知连接活跃。
+                    let _ = tx.try_send(Ok(ChatStreamChunk {
+                        content,
+                        thinking,
+                        done: false,
+                        is_final: None,
+                        usage: None,
+                        tool_calls: None,
+                    }));
                     return false;
                 }
 
@@ -1015,6 +1170,7 @@ impl ProviderAdapter for OpenAIAdapter {
                 }
                 match chunk {
                     Ok(bytes) => {
+                        total_bytes_received += bytes.len();
                         buf.push_str(&String::from_utf8_lossy(&bytes));
                         while let Some(pos) = buf.find('\n') {
                             let line = buf[..pos].trim_end_matches('\r').to_string();
@@ -1026,6 +1182,7 @@ impl ProviderAdapter for OpenAIAdapter {
                                 }
                                 let data = event_data_lines.join("\n");
                                 event_data_lines.clear();
+                                total_data_events += 1;
                                 if process_event(&data) {
                                     return;
                                 }
@@ -1061,10 +1218,22 @@ impl ProviderAdapter for OpenAIAdapter {
 
             if !event_data_lines.is_empty() {
                 let data = event_data_lines.join("\n");
+                total_data_events += 1;
                 if process_event(&data) {
                     return;
                 }
             }
+
+            // 流结束统计
+            tracing::info!(
+                target: "axagent.providers.sse",
+                total_bytes_received,
+                total_data_events,
+                pending_tool_calls = pending_tool_calls.len(),
+                has_last_usage = last_usage.is_some(),
+                trailing_data = !buf.is_empty(),
+                "[SSE-DIAG] 流结束统计"
+            );
 
             // Stream ended without explicit [DONE]
             // 即使流异常结束,也要把已累计的 usage 透出,便于上层统计 token 消耗

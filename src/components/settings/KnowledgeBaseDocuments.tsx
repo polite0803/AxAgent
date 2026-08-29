@@ -425,8 +425,9 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
   }, [base.id, loadDocuments]);
 
   const handleAddDocuments = useCallback(async () => {
+    let selected: string | string[] | null;
     try {
-      const selected = await open({
+      selected = await open({
         multiple: true,
         filters: [
           {
@@ -445,23 +446,35 @@ export function KnowledgeBaseDocuments({ base }: { base: KnowledgeBase }) {
           },
         ],
       });
-      if (!selected) {
-        return;
-      }
-      const paths = Array.isArray(selected) ? selected : [selected];
-      await Promise.all(
-        paths.map(async (filePath) => {
-          const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
-          const mimeType = MIME_MAP[ext] ?? "application/octet-stream";
-          const fileName = filePath.split(/[/\\]/).pop() ?? filePath;
-          await addDocument(base.id, fileName, filePath, mimeType);
-        }),
-      );
-      loadDocuments(base.id);
     } catch {
-      // user cancelled or error
+      return; // 用户取消选择
     }
-  }, [base.id, addDocument, loadDocuments, t]);
+    if (!selected) {
+      return;
+    }
+    const paths = Array.isArray(selected) ? selected : [selected];
+    // 逐文件独立处理：任一文件失败不影响其余文件，避免整体抛错导致列表不刷新、失败无反馈
+    const results = await Promise.allSettled(
+      paths.map(async (filePath) => {
+        const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
+        const mimeType = MIME_MAP[ext] ?? "application/octet-stream";
+        const fileName = filePath.split(/[/\\]/).pop() ?? filePath;
+        await addDocument(base.id, fileName, filePath, mimeType);
+      }),
+    );
+    await loadDocuments(base.id);
+    const ok = results.filter((r) => r.status === "fulfilled").length;
+    const fail = results.length - ok;
+    if (fail > 0) {
+      messageApi.warning(
+        t("settings.knowledge.addDocumentsPartial", { ok, fail }),
+      );
+    } else {
+      messageApi.success(
+        t("settings.knowledge.addDocumentsSuccess", { count: ok }),
+      );
+    }
+  }, [base.id, addDocument, loadDocuments, messageApi, t]);
 
   const handleOpenImportDir = useCallback(() => {
     setImportResult(null);

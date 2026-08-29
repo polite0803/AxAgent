@@ -151,11 +151,11 @@ pub async fn add_provider_key(
                 crate::commands::error::ErrorCategory::Unrecoverable,
             ))
         })?;
-    let prefix = if raw_key.len() >= 8 {
-        format!("{}...", &raw_key[..8])
-    } else {
-        raw_key.clone()
-    };
+    // SECURITY: 与 update_provider_key 保持一致，使用 SHA-256 哈希前 8 字符作为不可逆标识。
+    // 旧实现用 `&raw_key[..8]` 按字节切片：key 含多字节 UTF-8 字符时若第 8 字节不是字符边界会
+    // panic（Tauri 命令 panic 会被转成 IPC 错误，前端表现为无信息的「保存失败」），
+    // 同时会把明文 key 前 8 位落库。改用哈希后两者同时消除。
+    let prefix = format!("{}...", &axagent_crypto::sha256_hash(&raw_key)[..8]);
     axagent_dao::repo::provider::add_provider_key(state.harness.db(), &real_id, &encrypted, &prefix)
         .await
         .map_err(|e| {

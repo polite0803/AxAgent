@@ -23,6 +23,19 @@ import type {
 import { create } from "zustand";
 
 // ============================================================
+// 执行取消支持
+// ============================================================
+
+/** 用户主动取消执行时的 sentinel 错误消息，供调用方识别后走"已取消"提示而非失败 */
+export const WORKFLOW_EXEC_CANCELLED = "__WF_EXEC_CANCELLED__";
+
+/** 当前正在等待中的执行句柄（供 cancelExecution 触发前端等待结束）。一次只保留一个活跃执行。 */
+let _activeExecutionRef: {
+  executionId: string;
+  requestCancel: () => void;
+} | null = null;
+
+// ============================================================
 // 后端 DTO 类型（snake_case，与 Rust serde 输出一致）
 // ============================================================
 
@@ -395,6 +408,7 @@ interface WorkflowStoreState {
   // 执行
   executeWorkflow: (id: string, inputs: Record<string, unknown>) => Promise<WorkflowExecution>;
   getExecutionStatus: (executionId: string) => Promise<WorkflowExecution | null>;
+  cancelExecution: () => Promise<void>;
 
   // 版本管理
   getVersionHistory: (workflowId: string) => Promise<WorkflowVersion[]>;
@@ -445,7 +459,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
     try {
       const templates = await invoke<BackendTemplateResponse[]>(
         "list_workflow_templates",
-        { is_preset: false },
+        { isPreset: false },
       );
       const workflows = templates.map(templateResponseToWorkflowDefinition);
       set({ workflows });
@@ -636,7 +650,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
     try {
       const templates = await invoke<BackendTemplateResponse[]>(
         "list_workflow_templates",
-        { is_preset: true },
+        { isPreset: true },
       );
       set({ templates: templates.map(templateResponseToWorkflowTemplate) });
     } catch (e) {
@@ -677,7 +691,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
     try {
       // 调用后端启动执行（P0-2 单一入口：workflow_execute 统一承载执行+事件+学习钩子）
       const executionId = await invoke<string>("workflow_execute", {
-        workflow_id: id,
+        workflowId: id,
         input: inputs,
       });
 
@@ -687,11 +701,27 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
         const timeoutMs = 5 * 60 * 1000; // 5 分钟超时
         const startTime = Date.now();
 
+        // 注册可取消句柄，供 cancelExecution 触发前端等待立即结束
+        _activeExecutionRef = {
+          executionId,
+          requestCancel: () => {
+            if (!resolved) {
+              resolved = true;
+              cleanup();
+              reject(new Error(WORKFLOW_EXEC_CANCELLED));
+            }
+          },
+        };
+
         // 超时保护
         const timeoutHandle = setTimeout(() => {
           if (!resolved) {
             resolved = true;
             cleanup();
+            // 前端超时也真正终止后端执行，避免 UI 已判失败但后台工作流仍在运行
+            void invoke("cancel_workflow_execution", { executionId }).catch((e) =>
+              logIpcError("executeWorkflow: cancel on timeout")(e)
+            );
             reject(new Error(`execution timed out (${timeoutMs / 1000}s)`));
           }
         }, timeoutMs);
@@ -772,6 +802,10 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
           clearTimeout(timeoutHandle);
           clearInterval(pollInterval);
           unlisten?.();
+          // 仅清理属于自己的句柄，避免误清除并发执行的其他句柄
+          if (_activeExecutionRef?.executionId === executionId) {
+            _activeExecutionRef = null;
+          }
         }
       });
     } catch (e) {
@@ -797,6 +831,20 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
     } finally {
       set({ isExecuting: false });
     }
+  },
+
+  cancelExecution: async () => {
+    const act = _activeExecutionRef;
+    if (!act) {
+      return;
+    }
+    // 先通知后端真正终止执行：即使失败也结束前端等待，避免取消后前端仍卡住
+    try {
+      await invoke("cancel_workflow_execution", { executionId: act.executionId });
+    } catch (e) {
+      logIpcError("cancelExecution")(e);
+    }
+    act.requestCancel();
   },
 
   getExecutionStatus: async (executionId: string) => {

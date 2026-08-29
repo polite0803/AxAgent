@@ -41,7 +41,12 @@ use axagent_harness::{
     PromptAttackCategory, PromptGuard, PromptRejection, RouteStageRecord, RoutingDecisionV2,
     TaskShapeDecision,
 };
-use axagent_runtime::work_engine::{RunOptions, SubWorkflowCallback, unwrap_end_envelope};
+// 遗留边界③：任务拆解（RuleBasedDecomposer，纯规则无 LLM，不违反 orchestrator 运行时边界）
+use axagent_orchestrator::OrchestrationStrategy;
+use axagent_orchestrator::decomposer::{MissionDecomposer, RuleBasedDecomposer};
+use axagent_runtime::work_engine::{
+    RunOptions, SubWorkflowCallback, SubWorkflowLaunch, unwrap_end_envelope,
+};
 use sea_orm::EntityTrait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -717,6 +722,10 @@ async fn cognitive_query_inner(
                     execution_mode: Some(execution_mode.clone()),
                     // Clarify 二次执行：task_shape 已在前一次主调用中产出，此处不重复分类
                     task_shape: None,
+                    // Clarify 二次执行：按命中能力注入工具由调用方决定，此处不自动注入
+                    extra_tools: None,
+                    // Clarify 二次执行：技能按需加载由调用方决定，此处不自动注入
+                    extra_skills: None,
                 };
                 let agent_resp =
                     crate::commands::agent::agent_query(app.clone(), state.clone(), agent_request)
@@ -838,11 +847,18 @@ async fn cognitive_query_inner(
               _parent_execution_id: String,
               cap_input: HashMap<String, serde_json::Value>| {
             let cognitive_router = cognitive_router.clone();
-            Box::pin(async move {
-                let result =
-                    cognitive_router.execute_system_capability(&capability_id, cap_input).await?;
-                Ok((String::new(), result))
-            })
+            // System capability 为同步回调（无 spawn_blocking / thread-local runtime
+            // 后台任务），drop future 即中止，无孤儿执行，故取消为空操作。
+            SubWorkflowLaunch {
+                child_execution_id: String::new(),
+                output: Box::pin(async move {
+                    let result = cognitive_router
+                        .execute_system_capability(&capability_id, cap_input)
+                        .await?;
+                    Ok((String::new(), result))
+                }),
+                cancel: Box::pin(async {}),
+            }
         },
     ));
 
@@ -892,6 +908,59 @@ async fn cognitive_query_inner(
         "🚦 [DIAG] DAG results keys & output keys"
     );
 
+    // ── 降级路径也要构建路由观测数据 ────────────────────────────────────
+    // 认知编排的降级分支（general 域 Ask、能力补齐兜底、缺失字段降级）都是合法的路由
+    // 路径，前端路由观测面板应该能看到完整的三层阶段，而不是一片空白。
+    //
+    // 构建策略：
+    // 1. L1Domain 必有 — l1_pre 在主 DAG 前就已算出（规则匹配，零 LLM 成本）
+    // 2. L2Cluster / L3* — 尝试从 workflow.results 中已完成的子工作流输出提取
+    //    （results 同时以 node_id 和 output_var 为 key，直接用 results["l2_result"]
+    //     / results["l3_result"] 就能拿到子工作流的 EndNode 信封）
+    let fallback_stage_records: Vec<RouteStageRecord> = {
+        let mut records: Vec<RouteStageRecord> = Vec::new();
+
+        // L1 域路由：必有（预路由规则匹配）
+        records.push(RouteStageRecord {
+            stage: axagent_harness::RouteStage::L1Domain,
+            success: true,
+            confidence: 0.95, // 规则匹配置信度
+            elapsed_ms: 0,
+            summary: format!("L1 预路由判定: {}", l1_pre.as_str()),
+        });
+
+        // L2 簇路由：如果 l2_result 在 results 里，从里面提取 category/confidence
+        if let Some(l2_raw) = workflow.results.get("l2_result") {
+            let l2_obj = unwrap_end_envelope(l2_raw);
+            if let Some(l2_cat) = l2_obj.get("category").and_then(|v| v.as_str()) {
+                let conf = l2_obj.get("confidence").and_then(|v| v.as_f64()).unwrap_or(0.5);
+                records.push(RouteStageRecord {
+                    stage: axagent_harness::RouteStage::L2Cluster,
+                    success: true,
+                    confidence: conf,
+                    elapsed_ms: 0,
+                    summary: format!("L2 簇路由: {} (置信度 {:.2})", l2_cat, conf),
+                });
+            }
+        }
+
+        // L3 阶段：如果 l3_result 在 results 里且含 stage_records，直接透传
+        if let Some(l3_raw) = workflow.results.get("l3_result") {
+            let l3_obj = unwrap_end_envelope(l3_raw);
+            if let Some(arr) = l3_obj.get("stage_records").and_then(|v| v.as_array()) {
+                for item in arr {
+                    if let Ok(rec) = serde_json::from_value::<RouteStageRecord>(item.clone()) {
+                        records.push(rec);
+                    }
+                }
+            }
+        }
+
+        records
+    };
+    let fallback_stage_views: Vec<RouteStageView> =
+        fallback_stage_records.iter().map(RouteStageView::from).collect();
+
     // 4. 解析 l3_result（主 DAG EndNode 输出）
     // 主 DAG 无产出时：
     // - 若 L1 预路由判定为 general 域 → 构造合成 l3_result 降级为 Ask 模式
@@ -923,7 +992,14 @@ async fn cognitive_query_inner(
                 let proposal = build_capability_gap_proposal(None, &input);
                 store_capability_gap(app, &state, &proposal).await?;
                 tracing::info!("🧭 主 DAG 无产出，能力缺口已存储，降级为 Ask 模式回答用户");
-                return execute_general_ask(app, state, request, &input).await;
+                return execute_general_ask(
+                    app,
+                    state,
+                    request,
+                    &input,
+                    fallback_stage_views.clone(),
+                )
+                .await;
             }
         },
     };
@@ -953,12 +1029,14 @@ async fn cognitive_query_inner(
         );
         if l1_pre == CapabilityDomain::General {
             tracing::info!("🧭 字段缺失但 L1=general，降级为 Ask 模式（通用问答）");
-            return execute_general_ask(app, state, request, &input).await;
+            return execute_general_ask(app, state, request, &input, fallback_stage_views.clone())
+                .await;
         }
         let proposal = build_capability_gap_proposal(None, &input);
         store_capability_gap(app, &state, &proposal).await?;
         tracing::info!("🧭 字段缺失，能力缺口已存储，降级为 Ask 模式回答用户");
-        return execute_general_ask(app, state, request, &input).await;
+        return execute_general_ask(app, state, request, &input, fallback_stage_views.clone())
+            .await;
     }
 
     let get_str = |key: &str, default: &str| {
@@ -1037,13 +1115,21 @@ async fn cognitive_query_inner(
                     reason = %circuit_break_reason_str,
                     "🧭 熔断无候选但 domain=general，降级为 Ask 模式"
                 );
-                return execute_general_ask(app, state, request, &input).await;
+                return execute_general_ask(
+                    app,
+                    state,
+                    request,
+                    &input,
+                    fallback_stage_views.clone(),
+                )
+                .await;
             }
             let proposal = build_capability_gap_proposal(None, &input);
             store_capability_gap(app, &state, &proposal).await?;
             tracing::info!(reason = %circuit_break_reason_str,
                 "🧭 熔断无候选，能力缺口已存储，降级为 Ask 模式回答用户");
-            return execute_general_ask(app, state, request, &input).await;
+            return execute_general_ask(app, state, request, &input, fallback_stage_views.clone())
+                .await;
         }
 
         let mut params = HashMap::new();
@@ -1081,21 +1167,9 @@ async fn cognitive_query_inner(
         "🚦 [DIAG] 路由决策完成"
     );
 
-    let stage_records: Vec<RouteStageView> = l3
-        .get("stage_records")
-        .and_then(|v| v.as_array())
-        .map(|arr| {
-            arr.iter()
-                .map(|r| RouteStageView {
-                    stage: r.get("stage").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                    success: r.get("success").and_then(|v| v.as_bool()).unwrap_or(false),
-                    confidence: r.get("confidence").and_then(|v| v.as_f64()).unwrap_or(0.0),
-                    elapsed_ms: r.get("elapsed_ms").and_then(|v| v.as_u64()).unwrap_or(0),
-                    summary: r.get("summary").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-                })
-                .collect()
-        })
-        .unwrap_or_default();
+    // 路由观测阶段记录：复用 fallback_stage_records（已包含 L1Domain + L2Cluster + L3Graph）。
+    // 不直接取 l3.stage_records — 那里只有 L3Graph，会漏掉 L1/L2 阶段。
+    let stage_records = fallback_stage_views.clone();
 
     // 选中工作流的可读名称：优先取候选摘要中的 name，否则尝试从能力护照解析
     let selected_workflow_name =
@@ -1140,12 +1214,14 @@ async fn cognitive_query_inner(
     if mode == ExecutionMode::Clarify && response.candidate_details.is_empty() {
         if response.domain == "general" {
             tracing::info!("🧭 Clarify 空候选但 domain=general，降级为 Ask 模式");
-            return execute_general_ask(app, state, request, &input).await;
+            return execute_general_ask(app, state, request, &input, fallback_stage_views.clone())
+                .await;
         }
         let proposal = build_capability_gap_proposal(None, &input);
         store_capability_gap(app, &state, &proposal).await?;
         tracing::info!("🧭 Clarify 空候选，能力缺口已存储，降级为 Ask 模式回答用户");
-        return execute_general_ask(app, state, request, &input).await;
+        return execute_general_ask(app, state, request, &input, fallback_stage_views.clone())
+            .await;
     }
 
     response.execution = Some(match mode {
@@ -1186,7 +1262,14 @@ async fn cognitive_query_inner(
                     );
                     let proposal = build_capability_gap_proposal(None, &input);
                     store_capability_gap(app, &state, &proposal).await?;
-                    return execute_general_ask(app, state, request, &input).await;
+                    return execute_general_ask(
+                        app,
+                        state,
+                        request,
+                        &input,
+                        fallback_stage_views.clone(),
+                    )
+                    .await;
                 },
             }
         },
@@ -1217,7 +1300,14 @@ async fn cognitive_query_inner(
                     );
                     let proposal = build_capability_gap_proposal(None, &input);
                     store_capability_gap(app, &state, &proposal).await?;
-                    return execute_general_ask(app, state, request, &input).await;
+                    return execute_general_ask(
+                        app,
+                        state,
+                        request,
+                        &input,
+                        fallback_stage_views.clone(),
+                    )
+                    .await;
                 },
             }
         },
@@ -1247,7 +1337,14 @@ async fn cognitive_query_inner(
                     );
                     let proposal = build_capability_gap_proposal(None, &input);
                     store_capability_gap(app, &state, &proposal).await?;
-                    return execute_general_ask(app, state, request, &input).await;
+                    return execute_general_ask(
+                        app,
+                        state,
+                        request,
+                        &input,
+                        fallback_stage_views.clone(),
+                    )
+                    .await;
                 },
             }
         },
@@ -1373,6 +1470,57 @@ async fn cognitive_query_inner(
                 dynamic_expert_id
             };
 
+            // 暴露闭环：命中能力按需注入（Phase 1.5 + 遗留边界①/②）。
+            // - Tool：tool_ref 单数 → extra_tools
+            // - Toolchain：steps 展开为各步骤真实工具 → extra_tools（遗留②：agent 拿到组合按序编排）
+            // - Skill：按名加载 → extra_skills（遗留①：需注册 handler 才能执行，不能只注 schema）
+            // Managed 暴露模式不注入，避免元能力回灌。
+            let (orchestration_tools, orchestration_skills): (
+                Option<Vec<String>>,
+                Option<Vec<String>>,
+            ) = if !response.capability_id.is_empty() {
+                let passport = state.capability_indexer.get_passport(&response.capability_id).await;
+                match passport {
+                    Some(p)
+                        if !matches!(p.exposure, axagent_harness::CapabilityExposure::Managed) =>
+                    {
+                        match p.kind {
+                            axagent_harness::CapabilityKind::Skill => {
+                                let name = p
+                                    .capability_id
+                                    .strip_prefix("skill:")
+                                    .unwrap_or(&p.capability_id)
+                                    .to_string();
+                                (None, Some(vec![name]))
+                            },
+                            axagent_harness::CapabilityKind::Toolchain => {
+                                let mut tools = Vec::new();
+                                for step in &p.steps {
+                                    if let Some(step_p) =
+                                        state.capability_indexer.get_passport(step).await
+                                        && let Some(tr) = step_p.tool_ref
+                                    {
+                                        tools.push(tr.tool_name);
+                                    }
+                                }
+                                if tools.is_empty() {
+                                    (None, None)
+                                } else {
+                                    (Some(tools), None)
+                                }
+                            },
+                            _ => {
+                                let tools = p.tool_ref.map(|r| vec![r.tool_name]);
+                                (tools, None)
+                            },
+                        }
+                    },
+                    _ => (None, None),
+                }
+            } else {
+                (None, None)
+            };
+
             let agent_request = AgentQueryRequest {
                 conversation_id,
                 input: input.clone(),
@@ -1395,6 +1543,10 @@ async fn cognitive_query_inner(
                 execution_mode: Some(mode.as_str().to_string()),
                 // P1: 透传任务形态决策（原则三标尺），运行时按任务而非按会话覆盖权限初值
                 task_shape: task_shape_decision.clone(),
+                // Phase 1.5 暴露闭环：命中能力的真实工具按需注入（tool_ref → chat_tools）
+                extra_tools: orchestration_tools,
+                // 遗留边界①：命中 Skill 时按名加载（skill_tools + handler 注册）
+                extra_skills: orchestration_skills,
             };
 
             tracing::info!(
@@ -1406,6 +1558,8 @@ async fn cognitive_query_inner(
             );
 
             // Agent 执行失败 → 存缺口 + 降级 LLM 回答（分支 5）
+            // 先提取执行载体 ID（agent_request 随后被 move 进 agent_query，无法再借用）
+            let executed_agent_profile_id = agent_request.agent_profile_id.clone();
             let agent_resp = match crate::commands::agent::agent_query(
                 app.clone(),
                 state.clone(),
@@ -1422,7 +1576,14 @@ async fn cognitive_query_inner(
                     );
                     let proposal = build_capability_gap_proposal(None, &input);
                     store_capability_gap(app, &state, &proposal).await?;
-                    return execute_general_ask(app, state, request, &input).await;
+                    return execute_general_ask(
+                        app,
+                        state,
+                        request,
+                        &input,
+                        fallback_stage_views.clone(),
+                    )
+                    .await;
                 },
             };
 
@@ -1431,6 +1592,19 @@ async fn cognitive_query_inner(
                 status = ?agent_resp.status,
                 "🚦 [DIAG] agent_query 完成返回"
             );
+
+            // Phase 1 反馈闭环：Agent 能力执行统计回写（排序器 β 历史成功率数据源）。
+            // capability_id = `agent:{profile_id}`（对齐 state.rs 专家护照注册格式）；
+            // profile_id 缺失时无法定位护照，跳过；失败仅告警不阻塞主响应。
+            if let Some(pid) = executed_agent_profile_id.as_deref() {
+                let _ = axagent_dao::repo::capability_stats::record_execution(
+                    state.harness.db(),
+                    &format!("agent:{pid}"),
+                    true, // agent_query 返回 Ok 即视为调用成功
+                    0,    // 耗时由 agent 执行细节承载，此处不重复统计
+                )
+                .await;
+            }
 
             persist_decision_to_message(
                 state.harness.db(),
@@ -1504,17 +1678,24 @@ pub async fn cognitive_list_execution_modes() -> Result<Vec<&'static str>, Comma
 
 // ── 双通道闭环：能力补齐（T0.6 / T0.7）────────────────
 
-/// 通用问答降级执行器：当 L1 预路由判定为 general 域但三层路由无法产出有效决策时，
-/// 直接以 Ask 模式委派 agent 执行，避免触发不必要的能力补齐弹窗。
+/// 通用问答降级执行器：当三层路由无法产出有效决策时，直接以 Ask 模式委派 agent 执行。
 ///
-/// 适用场景：用户询问通用知识（如「什么是量子力学」），业务域判定为 general，
-/// 但 general 域内无对应业务工作流/Agent 可路由——这不是「能力缺失」，
-/// 而是「通用问答」的正确降级路径。
+/// 适用场景：
+/// 1. L1 预路由判定为 general 域但三层路由无产出——这不是「能力缺失」，
+///    而是「通用问答」的正确降级路径。
+/// 2. L1/L2/L3 部分路由阶段完成但最终 l3_result 缺关键字段或触发熔断——
+///    兜底降级 Ask 模式继续执行，避免中断用户请求。
+///
+/// # 参数
+/// - `stage_records`: 降级路径的路由观测记录。由调用方从已执行的路由阶段
+///   （L1 预路由必有 + 从 workflow.results 提取的 L2/L3）构建，保证前端
+///   路由观测面板能看到完整的三层路由轨迹，即使最终走了降级分支。
 async fn execute_general_ask(
     app: &tauri::AppHandle,
     state: State<'_, AppState>,
     request: &CognitiveQueryRequest,
     input: &str,
+    stage_records: Vec<RouteStageView>,
 ) -> Result<CognitiveQueryResponse, CommandError> {
     let conversation_id = request.conversation_id.clone().ok_or_else(|| {
         CommandError::new(axagent_harness::error_codes::cognitive::ROUTE_FAILED)
@@ -1543,6 +1724,9 @@ async fn execute_general_ask(
         agent_context: request.agent_context.clone(),
         execution_mode: Some(ExecutionMode::Ask.as_str().to_string()),
         task_shape: None,
+        // 通用问答降级：无能力命中，不注入工具/技能（Ask 模式本就以问答为主）
+        extra_tools: None,
+        extra_skills: None,
     };
 
     let agent_resp = crate::commands::agent::agent_query(app.clone(), state.clone(), agent_request)
@@ -1565,7 +1749,7 @@ async fn execute_general_ask(
         execution_mode: ExecutionMode::Ask.as_str().to_string(),
         selected_workflow_name: None,
         selected_agent_profile: None,
-        stage_records: Vec::new(),
+        stage_records,
         total_elapsed_ms: 0,
         execution: Some(CognitiveExecutionView::Agent {
             conversation_id: agent_resp.conversation_id,
@@ -2109,6 +2293,112 @@ pub async fn respond_task_shape_approval(
         );
         Ok(()) // 不报错，避免前端报异常
     }
+}
+
+// ── 遗留边界③：任务拆解 → 逐项能力发现 ────────────────────────
+
+/// 任务拆解 + 逐项发现的请求
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DecomposeTaskRequest {
+    /// 用户原始任务
+    pub input: String,
+    /// 每个子目标的能力发现候选数（缺省 5）
+    #[serde(default)]
+    pub top_k: Option<usize>,
+}
+
+/// 单个子目标 + 其能力发现结果
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SubGoalDiscoveryDto {
+    pub sub_task_id: String,
+    pub name: String,
+    pub description: String,
+    /// 前置子任务 ID（依赖拓扑）
+    #[serde(default)]
+    pub dependencies: Vec<String>,
+    /// 该子目标的能力发现结果（primary_match + alternatives + 各阶段耗时）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub discovery: Option<axagent_harness::CapabilityDiscoveryResult>,
+}
+
+/// 任务拆解 → 逐项能力发现（遗留边界③：子目标级逐项发现）。
+///
+/// 用 `RuleBasedDecomposer`（纯规则关键词匹配，无 LLM 调用，不违反 orchestrator
+/// 运行时边界）把大目标拆成子目标 DAG，再对每个子目标执行完整能力发现管线
+/// （`CapabilityRouter::discover`），输出「子目标 → 候选能力」映射。
+///
+/// 设计定位：这是交互边界扩展，不侵入 `cognitive_query` 主链路；前端可将其作为
+/// 复杂任务的预分析步骤（展示子目标 + 每项候选），或由编排层逐项执行。
+#[agent_command(domain = cognitive, safety = Safe, call_mode = StateInput, description = "任务拆解与逐项能力发现")]
+#[tauri::command]
+pub async fn cognitive_decompose_task(
+    state: State<'_, AppState>,
+    request: DecomposeTaskRequest,
+) -> Result<Vec<SubGoalDiscoveryDto>, CommandError> {
+    let input = request.input.trim().to_string();
+    if input.is_empty() {
+        return Err(CommandError::new(axagent_harness::error_codes::cognitive::EMPTY_INPUT)
+            .with_category(ErrorCategory::Validation));
+    }
+
+    // 1. 规则拆解（RuleBasedDecomposer 不返回 Err，default 分支兜底为三段式 DAG）
+    let decomposer = RuleBasedDecomposer::new();
+    let plan = decomposer.decompose(&input, OrchestrationStrategy::Ordered).map_err(|e| {
+        CommandError::new(axagent_harness::error_codes::cognitive::ROUTE_FAILED)
+            .with_category(ErrorCategory::Unrecoverable)
+            .with_detail(format!("任务拆解失败: {e}"))
+    })?;
+
+    if plan.sub_tasks.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    // 2. 逐项发现：每个子目标跑一次完整能力发现管线
+    let top_k = request.top_k.unwrap_or(5).clamp(1, 20);
+    let mut results = Vec::with_capacity(plan.sub_tasks.len());
+    for st in &plan.sub_tasks {
+        // 子目标检索文本 = 任务名 + 描述，聚焦该子目标意图
+        let goal_text = if st.description.trim().is_empty() {
+            st.name.clone()
+        } else {
+            format!("{} — {}", st.name, st.description)
+        };
+        let discovery_request = axagent_harness::CapabilityDiscoveryRequest {
+            user_input: goal_text.clone(),
+            query: axagent_harness::CapabilityQuery {
+                user_input: goal_text,
+                top_k,
+                ..Default::default()
+            },
+            enable_completion: false,
+            enable_circuit_breaker: false,
+            ..Default::default()
+        };
+        let discovery = axagent_harness::CapabilityRouter::discover(
+            state.capability_router.as_ref(),
+            &discovery_request,
+        )
+        .await
+        .ok();
+
+        tracing::debug!(
+            sub_task = %st.id,
+            capability_hit = discovery.as_ref().and_then(|d| d.primary_match.as_ref().map(|m| m.passport.capability_id.as_str())).unwrap_or("none"),
+            "🧩 子目标能力发现完成"
+        );
+
+        results.push(SubGoalDiscoveryDto {
+            sub_task_id: st.id.clone(),
+            name: st.name.clone(),
+            description: st.description.clone(),
+            dependencies: st.dependencies.clone(),
+            discovery,
+        });
+    }
+
+    Ok(results)
 }
 
 // ── 阶段三 T3.5：决策标签流 → 贝叶斯后验 的集成测试 ─────────────

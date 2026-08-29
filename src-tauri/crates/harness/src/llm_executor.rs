@@ -539,7 +539,22 @@ impl Stream for ExecuteLlmStream {
                         // inner 提前结束（无 done），进入后置阶段
                         this.phase = StreamPhase::Post;
                     },
-                    Poll::Ready(Some(Err(e))) => return Poll::Ready(Some(Err(e))),
+                    // P0 修复(2026-08-29): 流式运行期 provider 错误补 tracing::error + 审计
+                    // 此前直接透传，运行日志里完全搜不到网络中断 / chunk 解析失败的详细信息
+                    Poll::Ready(Some(Err(e))) => {
+                        let detail = format!("LLM 流式运行期错误: {e}");
+                        tracing::error!(
+                            target: "axagent.providers",
+                            model = %this.prepared.request.model,
+                            elapsed_ms = this.start.elapsed().as_millis() as u64,
+                            content_bytes = this.content.len(),
+                            thinking_bytes = this.thinking.len(),
+                            "[execute_llm_stream] {}",
+                            &detail
+                        );
+                        record_failure_audit(&this.config, &detail, this.start);
+                        return Poll::Ready(Some(Err(e)));
+                    },
                     Poll::Ready(Some(Ok(chunk))) => {
                         if let Some(c) = &chunk.content {
                             this.content.push_str(c);

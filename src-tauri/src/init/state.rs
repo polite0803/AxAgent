@@ -1075,10 +1075,14 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         .await;
 
     // 创建能力索引器（具体实现）
-    let capability_indexer_impl = Arc::new(axagent_tools::CapabilityIndexerImpl::new(
-        vector_store_arc.clone(),
-        embedding_provider.clone(),
-    ));
+    // Phase 1 反馈闭环：注入 DB 连接，护照读取时自动合并 capability_stats 执行统计
+    let capability_indexer_impl = Arc::new(
+        axagent_tools::CapabilityIndexerImpl::new(
+            vector_store_arc.clone(),
+            embedding_provider.clone(),
+        )
+        .with_db(sea_db.clone()),
+    );
 
     // P0-OPT: 元数据恢复 + 护照批量注册移到后台异步，加速首帧显示
     tracing::debug!(
@@ -1095,6 +1099,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     ));
     let capability_router = Arc::new(axagent_tools::capability_router_impl::build_default_router(
         capability_retriever.clone(),
+        Some(sea_db.clone()),
     ));
     let capability_indexer = capability_indexer_impl;
 
@@ -1377,7 +1382,14 @@ async fn register_all_capabilities(
     {
         let registry = tool_registry.lock().await;
         for tool_info in registry.tools.list_all() {
-            passports.push(tool_info.to_passport_dto());
+            let mut passport = tool_info.to_passport_dto();
+            // Phase 1.5 暴露闭环：工具护照绑定真实工具定义引用，
+            // 主动模式（认知编排执行）命中该能力后凭 tool_ref 注入 chat_tools
+            passport.tool_ref = Some(axagent_harness::CapabilityToolRef {
+                tool_name: tool_info.name.clone(),
+                registry: "builtin".to_string(),
+            });
+            passports.push(passport);
         }
     }
 
@@ -1459,6 +1471,13 @@ async fn register_all_capabilities(
                     stats: Default::default(),
                     level: axagent_harness::CapabilityLevel::L1,
                     enabled: true,
+                    exposure: axagent_harness::CapabilityExposure::Auto,
+                    tool_ref: None,
+                    aliases: Vec::new(),
+                    steps: Vec::new(),
+                    placeholders: Vec::new(),
+                    upstream: Vec::new(),
+                    downstream: Vec::new(),
                 });
             }
         }
@@ -1539,6 +1558,13 @@ async fn register_all_capabilities(
                     source: axagent_harness::CapabilitySource::Builtin,
                     evolvable: axagent_harness::CapabilityEvolvability::Local,
                     enabled: true,
+                    exposure: axagent_harness::CapabilityExposure::Auto,
+                    tool_ref: None,
+                    aliases: Vec::new(),
+                    steps: Vec::new(),
+                    placeholders: Vec::new(),
+                    upstream: Vec::new(),
+                    downstream: Vec::new(),
                 });
             }
         },
@@ -1632,6 +1658,13 @@ async fn register_all_capabilities(
                     source: axagent_harness::CapabilitySource::Builtin,
                     evolvable: axagent_harness::CapabilityEvolvability::Local,
                     enabled: true,
+                    exposure: axagent_harness::CapabilityExposure::Auto,
+                    tool_ref: None,
+                    aliases: Vec::new(),
+                    steps: Vec::new(),
+                    placeholders: Vec::new(),
+                    upstream: Vec::new(),
+                    downstream: Vec::new(),
                 });
             }
         },
@@ -1752,6 +1785,13 @@ async fn register_system_capabilities(indexer: &Arc<axagent_tools::CapabilityInd
             stats: Default::default(),
             level: axagent_harness::CapabilityLevel::L1,
             enabled: true,
+            exposure: axagent_harness::CapabilityExposure::Auto,
+            tool_ref: None,
+            aliases: Vec::new(),
+            steps: Vec::new(),
+            placeholders: Vec::new(),
+            upstream: Vec::new(),
+            downstream: Vec::new(),
             source: CapabilitySource::Builtin,
             evolvable: CapabilityEvolvability::Local,
         },
@@ -1786,6 +1826,13 @@ async fn register_system_capabilities(indexer: &Arc<axagent_tools::CapabilityInd
             stats: Default::default(),
             level: axagent_harness::CapabilityLevel::L1,
             enabled: true,
+            exposure: axagent_harness::CapabilityExposure::Auto,
+            tool_ref: None,
+            aliases: Vec::new(),
+            steps: Vec::new(),
+            placeholders: Vec::new(),
+            upstream: Vec::new(),
+            downstream: Vec::new(),
             source: CapabilitySource::Builtin,
             evolvable: CapabilityEvolvability::Local,
         },
@@ -1834,6 +1881,13 @@ async fn register_system_capabilities(indexer: &Arc<axagent_tools::CapabilityInd
             source: axagent_harness::CapabilitySource::Builtin,
             evolvable: axagent_harness::CapabilityEvolvability::None,
             enabled: true,
+            exposure: axagent_harness::CapabilityExposure::Auto,
+            tool_ref: None,
+            aliases: Vec::new(),
+            steps: Vec::new(),
+            placeholders: Vec::new(),
+            upstream: Vec::new(),
+            downstream: Vec::new(),
         });
     }
 

@@ -255,6 +255,11 @@ pub struct ExecutionState {
     /// 通过 `notify_waiters()` 唤醒。
     #[serde(skip, default)]
     pub interrupt_signal: Option<std::sync::Arc<tokio::sync::Notify>>,
+    /// 当前运行中的子工作流 execution_id 集合（供引擎在节点级超时/取消时回收
+    /// 孤儿子执行）。std::sync::Mutex 仅在同步临界区使用（无跨 await），安全。
+    #[serde(skip, default)]
+    pub child_executions:
+        Option<std::sync::Arc<std::sync::Mutex<std::collections::HashSet<String>>>>,
     pub execution_id: String,
     pub workflow_id: String,
     pub status: ExecutionStatus,
@@ -301,6 +306,9 @@ impl ExecutionState {
             tool_registry: None,
             partial_result_tx: None,
             interrupt_signal: None,
+            child_executions: Some(std::sync::Arc::new(std::sync::Mutex::new(
+                std::collections::HashSet::new(),
+            ))),
             credential_manager: None,
             database_query_service: None,
             node_outputs: std::collections::HashMap::new(),
@@ -338,6 +346,9 @@ impl ExecutionState {
             tool_registry: None,
             partial_result_tx: None,
             interrupt_signal: None,
+            child_executions: Some(std::sync::Arc::new(std::sync::Mutex::new(
+                std::collections::HashSet::new(),
+            ))),
             credential_manager: None,
             database_query_service: None,
             node_outputs: snapshot.node_outputs,

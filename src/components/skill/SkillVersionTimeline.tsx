@@ -154,8 +154,8 @@ export function SkillVersionTimeline({ skillId }: SkillVersionTimelineProps) {
           try {
             // SK-P0: 实际调用 rollback_skill 后端命令,而非空操作
             await invoke<string>("rollback_skill", {
-              skill_name: skillId,
-              target_version: String(rollbackConfirm),
+              skillName: skillId,
+              targetVersion: String(rollbackConfirm),
             });
             message.success(
               t("skill.evolution.rollbackSuccess", { version: rollbackConfirm }),

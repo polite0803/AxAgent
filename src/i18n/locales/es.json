@@ -5216,6 +5216,8 @@
       "addChunk": "Añadir fragmento",
       "addChunkPlaceholder": "Introduzca el contenido del fragmento...",
       "addDocument": "Añadir documento",
+      "addDocumentsSuccess": "Se añadieron {{count}} documento(s)",
+      "addDocumentsPartial": "{{ok}} añadidos, {{fail}} fallos",
       "changeEmbeddingTitle": "Cambiar modelo de incrustación",
       "changeEmbeddingWarning": "Cambiar el modelo de incrustación reindexará automáticamente todos los documentos de esta base de conocimientos. Esta acción no se puede deshacer. ¿Continuar?",
       "chars": "caracteres",
@@ -8538,6 +8540,8 @@
       "reExecute": "Re-ejecutar",
       "secret": "Secreto",
       "required": "Requerido",
+      "cancelExecution": "Cancelar ejecución",
+      "invalidField": "Formato no válido para «{{name}}»",
       "requiredField": "Ingrese {{name}}"
     },
     "existingSkill": "Habilidad existente",
@@ -10122,7 +10126,8 @@
     "reject": "Rechazar",
     "approve": "Aprobar",
     "expandDetails": "Expandir detalles brutos",
-    "collapseDetails": "Contraer detalles brutos"
+    "collapseDetails": "Contraer detalles brutos",
+    "noPending": "No hay propuestas de evolución pendientes"
   },
   "planApprovalModal": {
     "title": "Aprobación del plan",

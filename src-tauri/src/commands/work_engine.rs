@@ -470,8 +470,6 @@ pub async fn debug_run_workflow(
         engine.set_breakpoints(bp_set).await;
     }
 
-    engine.clear_node_breakers().await;
-
     let app_clone = app.clone();
     let wid_for_progress = workflow_id.clone();
     let eid_for_progress = execution_id.clone();

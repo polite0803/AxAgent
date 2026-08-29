@@ -42,9 +42,12 @@ pub mod v122_evolution_execution_stats;
 pub mod v123_workflow_tools;
 pub mod v124_backfill_wiki_sync_queue_columns;
 pub mod v125_heal_stale_schema;
+pub mod v126_create_narrative_structures;
+pub mod v127_capability_stats;
+pub mod v128_capability_policies;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 125;
+pub const CURRENT_VERSION: i32 = 128;
 
 /// P2-10: Schema 版本追踪表名。
 ///
@@ -206,6 +209,21 @@ const MIGRATIONS: &[Migration] = &[
         version: 125,
         description: "v125_heal_stale_schema: 自愈迁移——补 trajectory_trajectories.agent_name 列，修复 repair_schema 强制写版本号导致的存量库 schema 缺失",
         up: |db| Box::pin(v125_heal_stale_schema::up(db)),
+    },
+    Migration {
+        version: 126,
+        description: "v126_create_narrative_structures: 创建叙事结构表（弧线/交汇点/伏笔持久化），支撑叙事面板与文学创作工作流",
+        up: |db| Box::pin(v126_create_narrative_structures::up(db)),
+    },
+    Migration {
+        version: 127,
+        description: "v127_capability_stats: 创建能力护照执行统计表，修复能力发现排序器 β 历史成功率/探索提权数据源恒为 0 的反馈闭环断裂（Phase 1）",
+        up: |db| Box::pin(v127_capability_stats::up(db)),
+    },
+    Migration {
+        version: 128,
+        description: "v128_capability_policies: 创建能力发现策略表（排除型规则 JSON），策略对象化——策略从硬编码 8 维闸门扩展为可注册规则（Phase 3）",
+        up: |db| Box::pin(v128_capability_policies::up(db)),
     },
 ];
 

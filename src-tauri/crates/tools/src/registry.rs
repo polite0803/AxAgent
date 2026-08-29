@@ -720,7 +720,6 @@ impl UnifiedToolRegistry {
         out
     }
 
-    /// 按功能域获取 ChatTool 列表（支持可选的 PermissionMode 过滤）
     pub fn get_chat_tools_for_domains(
         &self,
         domains: &std::collections::HashSet<ToolDomain>,

@@ -935,8 +935,32 @@ pub async fn agent_query(
         }
     };
 
+    // ── DIAG 快照：认知编排 vs 直连的全链路诊断 ──
+    let di_execution_mode = request.execution_mode.clone();
+    let di_mcp_count = request.enabled_mcp_server_ids.as_ref().map(|v| v.len()).unwrap_or(0);
+    let di_profile_id = request.agent_profile_id.clone();
+    let di_disabled_tools_count = request
+        .options
+        .as_ref()
+        .and_then(|o| o.disabled_tools.as_ref())
+        .map(|v| v.len())
+        .unwrap_or(0);
+    tracing::info!(
+        "[agent_query] 🧩 DIAG SNAPSHOT: execution_mode={:?} mcp_ids={} profile_id={:?} dis_tools={}",
+        di_execution_mode,
+        di_mcp_count,
+        di_profile_id,
+        di_disabled_tools_count,
+    );
+
     // Load MCP tools for enabled servers (same logic as Q&A mode)
-    let mcp_ids = request.enabled_mcp_server_ids.clone().unwrap_or_default();
+    // 认知编排执行阶段（execution_mode=Some）跳过 MCP 加载 — 与 built-in/skill/tauri 逻辑一致
+    let mcp_ids: Vec<String> = if request.execution_mode.is_some() {
+        info!("[agent] execution_mode={:?} — 跳过 MCP server 工具加载", request.execution_mode);
+        Vec::new()
+    } else {
+        request.enabled_mcp_server_ids.clone().unwrap_or_default()
+    };
     let mut tool_registry = UnifiedToolRegistry::new();
     let mut chat_tools: Vec<ChatTool> = Vec::new();
 
@@ -1066,11 +1090,23 @@ pub async fn agent_query(
         d
     };
 
-    let unified_chat_tools: Vec<ChatTool> = tool_registry
-        .get_chat_tools_for_domains(&active_domains, None)
-        .into_iter()
-        .filter(|t| !disabled_set.contains(&t.function.name))
-        .collect();
+    // 认知编排决策后的执行（execution_mode=Ask/Act/Delegate/Plan）：
+    // 跳过全量 built-in tools 收集 — tool 调用应由能力发现路径按需注入
+    // 只有直连 agent（execution_mode=None）才全量塞工具
+    let unified_chat_tools: Vec<ChatTool> = if request.execution_mode.is_some() {
+        info!(
+            "[agent] execution_mode={:?} — 认知编排执行阶段跳过 built-in tools 收集 ({} domains)",
+            request.execution_mode,
+            active_domains.len()
+        );
+        Vec::new()
+    } else {
+        tool_registry
+            .get_chat_tools_for_domains(&active_domains, None)
+            .into_iter()
+            .filter(|t| !disabled_set.contains(&t.function.name))
+            .collect()
+    };
     // 同步注册表的屏蔽列表
     if !disabled_set.is_empty() {
         tool_registry = tool_registry.with_blocked_tools(disabled_set.into_iter().collect());
@@ -1097,16 +1133,40 @@ pub async fn agent_query(
     }
 
     // Load enabled skills content for system prompt injection
-    let skill_contents = load_enabled_skill_contents(
-        &app_state,
-        conversation_scenario.as_deref(),
-        &enabled_skill_ids,
-    )
-    .await;
+    // 认知编排执行阶段（execution_mode=Some）跳过 — skills 注入 system prompt 会撑爆 context（曾导致 5MB+）
+    // 认知编排的能力发现走路由层，不走 skills 注入
+    let skill_contents: Vec<(String, String)> = if request.execution_mode.is_some() {
+        info!(
+            "[agent] execution_mode={:?} — 认知编排执行阶段跳过 skill_contents 加载 (system prompt 注入)",
+            request.execution_mode
+        );
+        Vec::new()
+    } else {
+        load_enabled_skill_contents(
+            &app_state,
+            conversation_scenario.as_deref(),
+            &enabled_skill_ids,
+        )
+        .await
+    };
 
     // Convert enabled skills to ChatTool definitions for Agent to call
-    let (skill_tools, skill_map) =
-        load_skill_tools(&app_state, conversation_scenario.as_deref(), &enabled_skill_ids).await;
+    // 被动模式（execution_mode=None）：按会话启用技能加载（全量）
+    // 主动模式（execution_mode=Some）：仅按认知编排命中的技能（extra_skills）按需加载，
+    // 解决"主动模式技能不可用"的遗留边界①——技能需注册 handler 才能执行，
+    // 不能仅注入 schema（否则 LLM 调用 skill_xxx 会 404）。
+    let extra_skills: Vec<String> = request.extra_skills.clone().unwrap_or_default();
+    let (skill_tools, skill_map) = if request.execution_mode.is_some() {
+        if extra_skills.is_empty() {
+            (Vec::new(), Default::default())
+        } else {
+            // load_skill_tools 的 enabled_skill_ids 语义即"指定技能名集合"，
+            // 主动模式传技能名列表即可按名精确加载（scenario=None 不做场景过滤）
+            load_skill_tools(&app_state, None, &extra_skills).await
+        }
+    } else {
+        load_skill_tools(&app_state, conversation_scenario.as_deref(), &enabled_skill_ids).await
+    };
     let skill_tools_count = skill_tools.len();
     if !skill_tools.is_empty() {
         let existing_names: std::collections::HashSet<String> =
@@ -1264,7 +1324,8 @@ pub async fn agent_query(
     }
 
     // ── Tauri 命令桥接器：将现有 Tauri 命令注册为 Agent 可调用的工具 ──
-    {
+    // 认知编排执行阶段（execution_mode=Some）同样跳过 — tool 调用应由能力发现路径注入
+    if request.execution_mode.is_none() {
         let tauri_tools = build_tauri_command_chat_tools();
         let tauri_tool_count = tauri_tools.len();
         chat_tools.extend(tauri_tools);
@@ -1276,6 +1337,8 @@ pub async fn agent_query(
         }
         info!("[agent] Added {} Tauri command tools to chat_tools", tauri_tool_count);
         info!("[agent] Registered {} Tauri command handlers", handler_count);
+    } else {
+        info!("[agent] execution_mode={:?} — 跳过 Tauri 命令桥接工具", request.execution_mode);
     }
 
     // Create API client with tool definitions, model ID and parameters
@@ -1413,9 +1476,17 @@ pub async fn agent_query(
         })?;
 
     // ── 工具微调：extra_tools / blocked_tools ──
-    // 来源：AgentProfile.recommended_tools（额外追加） + disallowed_tools（排除）
-    if !profile_recommended_tools.is_empty() || !profile_disallowed_tools.is_empty() {
-        let extra_names: HashSet<String> = profile_recommended_tools.into_iter().collect();
+    // 来源：AgentProfile.recommended_tools（额外追加）+ disallowed_tools（排除）
+    //      + 认知编排按需注入的 extra_tools（Phase 1.5 暴露闭环：
+    //        主动模式 execution_mode=Some 下，命中能力的真实工具定义凭此注入，
+    //        解决此前"主动模式工具列表为空、发现的能力执行不了"的执行断链）
+    let orchestration_tools: Vec<String> = request.extra_tools.clone().unwrap_or_default();
+    if !profile_recommended_tools.is_empty()
+        || !profile_disallowed_tools.is_empty()
+        || !orchestration_tools.is_empty()
+    {
+        let mut extra_names: HashSet<String> = profile_recommended_tools.into_iter().collect();
+        extra_names.extend(orchestration_tools);
         let blocked_names: HashSet<String> = profile_disallowed_tools.into_iter().collect();
         // blocked: 从 domain 结果中移除
         chat_tools.retain(|t| !blocked_names.contains(&t.function.name));
@@ -1759,8 +1830,17 @@ pub async fn agent_query(
     );
 
     // 将命令索引追加到系统提示中
+    // 认知编排执行阶段跳过 — 已跳过 Tauri 命令桥接 tools（见 1305 行），命令索引无意义且撑爆 context
     let mut system_prompt = system_prompt;
-    system_prompt.push(format!("<tauri-command-index>\n{}\n</tauri-command-index>", command_index));
+    if request.execution_mode.is_none() {
+        system_prompt
+            .push(format!("<tauri-command-index>\n{}\n</tauri-command-index>", command_index));
+    } else {
+        info!(
+            "[agent] execution_mode={:?} — 跳过 tauri-command-index 注入 (认知编排模式下无 Tauri tools)",
+            request.execution_mode
+        );
+    }
 
     // ── 注入认知编排模式（可选）──
     // 当 agent 由认知编排器（Ask/Act/Delegate）触发时，透传当前编排模式使 agent 运行时

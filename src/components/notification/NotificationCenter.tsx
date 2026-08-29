@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import {
   addNotification,
   clearAllNotifications,
@@ -10,8 +11,8 @@ import {
   type Notification,
 } from "@/lib/notification";
 import { Badge, Button, Empty, Popover, Space, Typography } from "antd";
-import { AlertTriangle, Bell, Check, CheckCheck, Info, Trash2, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { AlertTriangle, Bell, Check, CheckCheck, Copy, Info, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text, Title } = Typography;
@@ -25,6 +26,9 @@ export function NotificationCenter({ trigger }: NotificationCenterProps) {
   const [notifications, setNotifications] = useState<Notification[]>(getNotifications);
   const [visible, setVisible] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const { copy } = useCopyToClipboard();
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // 监听 CustomEvent，实时更新通知列表
   const handleNotificationEvent = useCallback(() => {
@@ -61,6 +65,34 @@ export function NotificationCenter({ trigger }: NotificationCenterProps) {
   const handleClearAll = () => {
     setNotifications(clearAllNotifications());
   };
+
+  const handleCopy = useCallback(
+    async (notification: Notification) => {
+      const text = [notification.title, notification.message]
+        .filter(Boolean)
+        .join("\n");
+      const ok = await copy(text);
+      if (!ok) {
+        return;
+      }
+      setCopiedId(notification.id);
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current);
+      }
+      copyTimerRef.current = setTimeout(() => {
+        setCopiedId((cur) => (cur === notification.id ? null : cur));
+      }, 1500);
+    },
+    [copy],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current);
+      }
+    };
+  }, []);
 
   const getIcon = (type: Notification["type"]) => {
     switch (type) {
@@ -191,12 +223,31 @@ export function NotificationCenter({ trigger }: NotificationCenterProps) {
                     <Button
                       type="text"
                       size="small"
+                      icon={copiedId === notification.id
+                        ? <Check size={12} />
+                        : <Copy size={12} />}
+                      aria-label={t("common.copy")}
+                      title={t("common.copy")}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleCopy(notification);
+                      }}
+                      style={{
+                        marginLeft: 4,
+                        color: copiedId === notification.id
+                          ? "var(--ant-color-success)"
+                          : undefined,
+                      }}
+                    />
+                    <Button
+                      type="text"
+                      size="small"
                       icon={<X size={12} />}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDismiss(notification.id);
                       }}
-                      style={{ marginLeft: 8 }}
+                      style={{ marginLeft: 4 }}
                     />
                   </div>
                   <div

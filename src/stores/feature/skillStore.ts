@@ -229,7 +229,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
         source: currentSource,
         sort: currentSort,
         page,
-        per_page: 20,
+        perPage: 20,
       });
       set((state) => ({
         marketplaceSkills: page === 1 ? results : [...state.marketplaceSkills, ...results],

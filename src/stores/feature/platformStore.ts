@@ -157,9 +157,11 @@ export const usePlatformStore = create<PlatformState>((set, get) => ({
   },
 
   createSession: async (platform: string, chatId: string) => {
+    // 后端 create_platform_session(platform, user_id, username?)：
+    // chatId 即平台侧用户/会话标识，映射到 user_id。
     const session = await invoke<PlatformSession>("create_platform_session", {
       platform,
-      chatId,
+      userId: chatId,
     });
     set((s) => ({ sessions: [...s.sessions, session] }));
     return session;

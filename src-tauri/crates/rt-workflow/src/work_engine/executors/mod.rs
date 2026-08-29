@@ -67,7 +67,7 @@ pub use loop_executor::LoopExecutor;
 pub use merge_executor::MergeExecutor;
 pub use multi_agent_executor::MultiAgentExecutor;
 pub use parallel_executor::ParallelExecutor;
-pub use subworkflow_executor::{SubWorkflowCallback, SubWorkflowExecutor};
+pub use subworkflow_executor::{SubWorkflowCallback, SubWorkflowExecutor, SubWorkflowLaunch};
 pub use swarm_executor::SwarmExecutor;
 pub use tool_executor::{ToolCallback, ToolExecutor};
 pub use trigger_executor::TriggerExecutor;

@@ -7,6 +7,7 @@ import { Tooltip } from "@/components/layout/Tooltip";
 import { LocalModelPanel } from "@/components/settings/LocalModelPanel";
 import { DynamicLobeIcon } from "@/components/shared/DynamicLobeIcon";
 import { IconEditor } from "@/components/shared/IconEditor";
+import { showBackendError } from "@/lib/errorI18n";
 import { invoke, logIpcError } from "@/lib/invoke";
 import {
   getEditableCapabilities,
@@ -505,8 +506,8 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
           message.error(t("error.keyValidationFailed") + ": " + String(e));
         }
       }
-    } catch {
-      message.error(t("error.saveFailed"));
+    } catch (e) {
+      showBackendError(message, e, { context: "ProviderDetail.addKey" });
     }
   }, [keyValue, providerId, addProviderKey, validateProviderKey, message, t]);
 
@@ -626,8 +627,8 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
           t("settings.modelsAdded", { count: selectedModels.length }),
         );
       }
-    } catch {
-      message.error(t("error.saveFailed"));
+    } catch (e) {
+      showBackendError(message, e, { context: "ProviderDetail.savePickedModels" });
     }
     setPickerOpen(false);
   }, [
@@ -738,8 +739,8 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       setAddModelName("");
       setAddModelGroupName("");
       setAddModelType("Chat");
-    } catch {
-      message.error(t("error.saveFailed"));
+    } catch (e) {
+      showBackendError(message, e, { context: "ProviderDetail.addModel" });
     }
   }, [
     addModelGroupName,
@@ -817,8 +818,8 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       await saveModels(providerId, updatedModels);
       setSettingsModalOpen(false);
       setEditingModel(null);
-    } catch {
-      message.error(t("error.saveFailed"));
+    } catch (e) {
+      showBackendError(message, e, { context: "ProviderDetail.saveModelSettings" });
     }
   }, [
     editingModel,
@@ -921,8 +922,8 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       message.success(
         t("settings.batchEnableSuccess", { count: batchSelected.size }),
       );
-    } catch {
-      message.error(t("error.saveFailed"));
+    } catch (e) {
+      showBackendError(message, e, { context: "ProviderDetail.batchEnable" });
     }
   }, [batchSelected, provider?.models, providerId, saveModels, message, t]);
 
@@ -938,8 +939,8 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       message.success(
         t("settings.batchDisableSuccess", { count: batchSelected.size }),
       );
-    } catch {
-      message.error(t("error.saveFailed"));
+    } catch (e) {
+      showBackendError(message, e, { context: "ProviderDetail.batchDisable" });
     }
   }, [batchSelected, provider?.models, providerId, saveModels, message, t]);
 
@@ -956,8 +957,8 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
         t("settings.batchDeleteSuccess", { count: batchSelected.size }),
       );
       setBatchSelected(new Set());
-    } catch {
-      message.error(t("error.saveFailed"));
+    } catch (e) {
+      showBackendError(message, e, { context: "ProviderDetail.batchDelete" });
     }
   }, [batchSelected, provider?.models, providerId, saveModels, message, t]);
 
@@ -1049,8 +1050,8 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
         t("settings.batchEditSuccess", { count: batchSelected.size }),
       );
       setBatchEditModalOpen(false);
-    } catch {
-      message.error(t("error.saveFailed"));
+    } catch (e) {
+      showBackendError(message, e, { context: "ProviderDetail.batchEditSave" });
     }
   }, [
     batchSelected,
@@ -1177,8 +1178,8 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
       );
       try {
         await saveModels(providerId, updatedModels);
-      } catch {
-        message.error(t("error.saveFailed"));
+      } catch (e) {
+        showBackendError(message, e, { context: "ProviderDetail.removeModel" });
       }
     },
     [provider?.models, providerId, saveModels, message, t],
@@ -1893,8 +1894,8 @@ export function ProviderDetail({ providerId }: ProviderDetailProps) {
                               ).filter((m) => !modelIds.has(m.modelId));
                               try {
                                 await saveModels(providerId, updatedModels);
-                              } catch {
-                                message.error(t("error.saveFailed"));
+                              } catch (e) {
+                                showBackendError(message, e, { context: "ProviderDetail.deleteModelGroup" });
                               }
                             }}
                             okText={t("common.confirm")}

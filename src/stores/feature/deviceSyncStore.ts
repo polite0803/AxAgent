@@ -320,7 +320,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
         name,
         hostname,
         os,
-        app_version: appVersion,
+        appVersion: appVersion,
       });
       set({ localDevice: device, loading: false });
       return device;
@@ -396,7 +396,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
     try {
       const response = await invoke<PairingResponse>("accept_pairing", {
         request,
-        trust_level: trustLevel,
+        trustLevel: trustLevel,
       });
       if (response.success) {
         const devices = await invoke<DeviceInfo[]>("list_devices");
@@ -422,7 +422,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
     set({ isSyncing: true, error: null });
     try {
       const result = await invoke<SyncResult>("full_sync", {
-        device_id: deviceId,
+        deviceId: deviceId,
       });
       set({ isSyncing: false });
       if (!result.success) {
@@ -440,7 +440,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
     set({ isSyncing: true, error: null });
     try {
       const result = await invoke<SyncResult>("incremental_sync", {
-        device_id: deviceId,
+        deviceId: deviceId,
       });
       set({ isSyncing: false });
       if (!result.success) {
@@ -462,7 +462,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
     }
     try {
       const conflicts = await invoke<ConflictInfo[]>("push_changes", {
-        device_id: deviceId,
+        deviceId: deviceId,
         changes,
       });
       if (conflicts.length > 0) {
@@ -486,8 +486,8 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
     }
     try {
       const changes = await invoke<ChangeLogEntry[]>("pull_changes", {
-        device_id: deviceId,
-        since_timestamp: sinceTimestamp,
+        deviceId: deviceId,
+        sinceTimestamp: sinceTimestamp,
       });
       return changes;
     } catch (e) {
@@ -505,8 +505,8 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
     }
     try {
       await invoke<void>("resolve_conflict", {
-        device_id: deviceId,
-        conflict_id: conflictId,
+        deviceId: deviceId,
+        conflictId: conflictId,
         strategy,
       });
       set((state) => ({
@@ -529,7 +529,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
     }
     try {
       const status = await invoke<DeviceSyncStatus>("get_sync_status", {
-        device_id: deviceId,
+        deviceId: deviceId,
       });
       set({ syncStatus: status });
       return status;
@@ -542,8 +542,8 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
   recordChange: async (entityType, entityId, operation, data) => {
     try {
       await invoke<void>("record_change", {
-        entity_type: entityType,
-        entity_id: entityId,
+        entityType: entityType,
+        entityId: entityId,
         operation,
         data,
       });
@@ -644,7 +644,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
   loadDevicePermissions: async (deviceId) => {
     try {
       const perms = await invoke<DevicePermissions>("get_device_permissions", {
-        device_id: deviceId,
+        deviceId: deviceId,
       });
       set((state) => {
         const newMap = new Map(state.devicePermissions);
@@ -661,7 +661,7 @@ export const useDeviceSyncStore = create<DeviceSyncState>((set, get) => ({
   updateDevicePermissions: async (deviceId, update) => {
     try {
       const perms = await invoke<DevicePermissions>("update_device_permissions", {
-        device_id: deviceId,
+        deviceId: deviceId,
         update,
       });
       set((state) => {

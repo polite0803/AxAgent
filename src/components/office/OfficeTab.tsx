@@ -355,7 +355,7 @@ export function OfficeTab() {
               sceneTemplateSlug={activeFleet?.sceneTemplateSlug}
               members={sceneMembers}
               roomLabels={roomLabels}
-              onAgentClick={() => { /* TODO: 占位——原 DM 面板已移除 */ }}
+              onAgentClick={() => {/* TODO: 占位——原 DM 面板已移除 */}}
             />
           )}
         </div>

@@ -19,7 +19,9 @@ export type CapabilityKind =
   | "workflow"
   | "knowledge_base"
   | "agent"
-  | "skill";
+  | "skill"
+  | "toolchain"
+  | "template";
 
 /** 能力所属业务域（对应后端 CapabilityDomain，snake_case 新值） */
 export type CapabilityDomain =
@@ -120,6 +122,41 @@ export interface CapabilityPassportDto {
   source: CapabilitySource;
   /** 能力可进化性（决定进化引擎分发边界：none / local / derived） */
   evolvable: CapabilityEvolvability;
+  /** 暴露模式（auto=被动全量+主动命中注入；on_demand=仅命中注入；managed=仅路由） */
+  exposure: CapabilityExposure;
+  /** 真实工具定义引用（主动模式命中后凭此注入 chat_tools，解决"发现的能力执行不了"） */
+  toolRef?: CapabilityToolRef | null;
+  /** 别名列表（用户口语→能力 ID，检索时命中别名直接进候选；如 "发邮件"→mail_send） */
+  aliases: string[];
+  /** 工具链步骤（仅 toolchain 类型有效：按序 capability_id 列表，线性串接、失败短路） */
+  steps: string[];
+  /** 模板占位符（仅 template 类型有效：命中后提示"可实例化"，不直接执行） */
+  placeholders: PlaceholderDef[];
+  /** 上游依赖能力 ID 列表（关联扩展：检索命中后一跳向上扩展） */
+  upstream: string[];
+  /** 下游依赖能力 ID 列表（关联扩展：检索命中后一跳向下扩展） */
+  downstream: string[];
+}
+
+/** 模板占位符定义（如 {{target_ip}} / {{date_range}}） */
+export interface PlaceholderDef {
+  /** 占位符名（不含双花括号，如 target_ip） */
+  name: string;
+  /** 期望类型：string / ip / date_range / number / enum */
+  placeholderType: string;
+  /** 占位符说明 */
+  description: string;
+}
+
+/** 能力暴露模式（暴露层架构：被动自动暴露 vs 主动按需注入） */
+export type CapabilityExposure = "auto" | "on_demand" | "managed";
+
+/** 护照到真实工具定义的引用 */
+export interface CapabilityToolRef {
+  /** 注册表中的工具名（ChatTool.function.name / UnifiedToolRegistry 键名） */
+  toolName: string;
+  /** 注册表来源：builtin / mcp / skill / tauri_command */
+  registry: string;
 }
 
 // ── 检索请求/结果 ──────────────────────────────────
@@ -535,4 +572,25 @@ export interface CognitiveQueryResponse {
    * null 表示 flag 未启用或分类失败已回退。
    */
   taskShape?: TaskShapeDecision | null;
+}
+
+// ── 遗留边界③：任务拆解 → 逐项能力发现（cognitive_decompose_task） ──
+
+/** 任务拆解请求（对应后端 DecomposeTaskRequest） */
+export interface DecomposeTaskRequest {
+  /** 用户原始任务 */
+  input: string;
+  /** 每个子目标的能力发现候选数（缺省 5） */
+  topK?: number;
+}
+
+/** 单个子目标 + 其能力发现结果（对应后端 SubGoalDiscoveryDto） */
+export interface SubGoalDiscoveryDto {
+  subTaskId: string;
+  name: string;
+  description: string;
+  /** 前置子任务 ID（依赖拓扑） */
+  dependencies: string[];
+  /** 该子目标的能力发现结果（primaryMatch + alternatives） */
+  discovery?: CapabilityDiscoveryResult | null;
 }

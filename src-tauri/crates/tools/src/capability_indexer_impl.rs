@@ -20,6 +20,7 @@ use axagent_harness::{
     CapabilityPassportDto, IndexResult,
 };
 use axagent_search::vector_store::{EmbeddingRecord, VectorStore};
+use sea_orm::DatabaseConnection;
 use tokio::sync::RwLock;
 
 /// 元数据文档 ID 前缀，用于标识存储完整护照 JSON 的元数据行
@@ -29,6 +30,10 @@ const META_DOC_PREFIX: &str = "__CAPABILITY_META__:";
 ///
 /// 复用现有 `VectorStore`（SQLite vec0 + FTS5）存储向量，
 /// 元数据同时持久化到 VectorStore 元数据表（跨进程恢复）和内存 HashMap（快速访问）。
+///
+/// # 反馈闭环（Phase 1）
+/// 注入 `db` 后，护照读取（`list_passports` / `get_passport`）返回前自动合并
+/// `capability_stats` 表的执行统计到 `passport.stats`（排序器 β/探索提权的数据源）。
 #[derive(Clone)]
 pub struct CapabilityIndexerImpl {
     vector_store: Arc<VectorStore>,
@@ -36,6 +41,8 @@ pub struct CapabilityIndexerImpl {
     /// capability_id → CapabilityPassportDto 的元数据索引
     metadata: Arc<RwLock<HashMap<String, CapabilityPassportDto>>>,
     embedding_dimensions: usize,
+    /// 可选 DB 连接：注入后护照读取时合并 capability_stats 统计（反馈闭环读路径）
+    db: Option<DatabaseConnection>,
 }
 
 impl CapabilityIndexerImpl {
@@ -49,7 +56,14 @@ impl CapabilityIndexerImpl {
             embedding_provider,
             metadata: Arc::new(RwLock::new(HashMap::new())),
             embedding_dimensions: dimensions,
+            db: None,
         }
+    }
+
+    /// 注入 DB 连接，启用护照读取时的执行统计合并（反馈闭环读路径）。
+    pub fn with_db(mut self, db: DatabaseConnection) -> Self {
+        self.db = Some(db);
+        self
     }
 
     /// 从 VectorStore 恢复元数据索引（启动时调用，确保重启后元数据不丢失）
@@ -198,6 +212,23 @@ impl CapabilityIndexerImpl {
     pub async fn list_passports(&self) -> Vec<CapabilityPassportDto> {
         let meta = self.metadata.read().await;
         meta.values().cloned().collect()
+    }
+
+    /// 反馈闭环读路径：把 `capability_stats` 表的执行统计批量合并进护照。
+    ///
+    /// 未注入 db（测试/降级场景）时静默跳过；DB 查询失败仅记 debug 日志不阻塞检索。
+    async fn merge_execution_stats(&self, passports: &mut [CapabilityPassportDto]) {
+        let Some(db) = &self.db else { return };
+        let Ok(all) = axagent_dao::repo::capability_stats::list_all(db).await else {
+            tracing::debug!("[capability] 合并执行统计失败（忽略，护照保持零值语义）");
+            return;
+        };
+        let map: HashMap<String, axagent_harness::CapabilityStats> = all.into_iter().collect();
+        for p in passports.iter_mut() {
+            if let Some(s) = map.get(&p.capability_id) {
+                axagent_dao::repo::capability_stats::merge_stats_into_passport(p, Some(s));
+            }
+        }
     }
 }
 
@@ -423,11 +454,27 @@ impl CapabilityIndexer for CapabilityIndexerImpl {
 
     async fn get_passport(&self, capability_id: &str) -> Option<CapabilityPassportDto> {
         let meta = self.metadata.read().await;
-        meta.get(capability_id).cloned()
+        let mut passport = meta.get(capability_id).cloned()?;
+        drop(meta);
+        // 反馈闭环读路径：合并该能力的执行统计（best-effort）
+        if let Some(db) = &self.db
+            && let Ok(Some(stats)) =
+                axagent_dao::repo::capability_stats::get_stats(db, capability_id).await
+        {
+            axagent_dao::repo::capability_stats::merge_stats_into_passport(
+                &mut passport,
+                Some(&stats),
+            );
+        }
+        Some(passport)
     }
 
     async fn list_passports(&self) -> Vec<CapabilityPassportDto> {
         let meta = self.metadata.read().await;
-        meta.values().cloned().collect()
+        let mut passports: Vec<CapabilityPassportDto> = meta.values().cloned().collect();
+        drop(meta);
+        // 反馈闭环读路径：批量合并执行统计（单次 DB 查询）
+        self.merge_execution_stats(&mut passports).await;
+        passports
     }
 }

@@ -5216,6 +5216,8 @@
       "addChunk": "Ajouter un fragment",
       "addChunkPlaceholder": "Saisir le contenu du fragment…",
       "addDocument": "Ajouter un document",
+      "addDocumentsSuccess": "{{count}} document(s) ajouté(s)",
+      "addDocumentsPartial": "{{ok}} ajouté(s), {{fail}} échec(s)",
       "changeEmbeddingTitle": "Modifier le modèle d'embedding",
       "changeEmbeddingWarning": "La modification du modèle d'embedding réindexera automatiquement tous les documents de cette base de connaissances. Cette action est irréversible. Continuer ?",
       "chars": "caractères",
@@ -8538,6 +8540,8 @@
       "reExecute": "Ré-exécuter",
       "secret": "Secret",
       "required": "Requis",
+      "cancelExecution": "Annuler l'exécution",
+      "invalidField": "Format invalide pour «{{name}}»",
       "requiredField": "Veuillez saisir {{name}}"
     },
     "existingSkill": "Compétence existante",
@@ -10122,7 +10126,8 @@
     "reject": "Refuser",
     "approve": "Approuver",
     "expandDetails": "Déplier les détails bruts",
-    "collapseDetails": "Replier les détails bruts"
+    "collapseDetails": "Replier les détails bruts",
+    "noPending": "Aucune proposition d'évolution en attente"
   },
   "planApprovalModal": {
     "title": "Approbation du plan",

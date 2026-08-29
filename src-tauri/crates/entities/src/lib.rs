@@ -75,6 +75,8 @@ pub mod agent_roles;
 pub mod agent_sessions;
 
 // Wave 3: Atomic Skill & Work Engine entities
+pub mod capability_policies;
+pub mod capability_stats;
 pub mod generated_tools;
 pub mod workflow_approvals;
 pub mod workflow_execution_stats;
@@ -137,5 +139,8 @@ pub mod sync_policy;
 pub mod paper_overviews;
 pub mod reading_list_items;
 pub mod reading_lists;
+
+// 叙事结构（v126）—— 文学创作工作流的弧线/交汇点/伏笔持久化
+pub mod narrative_structures;
 
 pub use sea_orm;
