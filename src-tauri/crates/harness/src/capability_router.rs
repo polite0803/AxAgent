@@ -113,6 +113,11 @@ pub struct CapabilityDiscoveryResult {
     /// RAR 召回结果(若启用且 recaller 已注入)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rar_result: Option<RarRecallResult>,
+    /// 命中的 Template 能力从用户输入提取的实体（P1：语义解析的实体部分）。
+    /// 主能力为 Template 时按 placeholders 提取（如 {{target_ip}} → "192.168.1.5"），
+    /// 供认知层"可实例化提示"；非 Template 命中为空。
+    #[serde(default)]
+    pub extracted_entities: Vec<crate::entity_extractor::CapabilityEntity>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -290,6 +295,18 @@ impl CapabilityRouter for DefaultCapabilityRouter {
         let alternative_paths: Vec<RoutingPath> =
             alternatives.iter().map(|a| derive_routing_path_from_passport(&a.passport)).collect();
 
+        // P1 实体提取：主能力为 Template 时，按 placeholders 从用户输入提取实体，
+        // 供认知层"可实例化提示"（如 {{target_ip}} → "192.168.1.5"）。
+        let extracted_entities = match primary.as_ref() {
+            Some(p) if p.passport.kind == crate::capability::CapabilityKind::Template => {
+                crate::entity_extractor::extract_entities(
+                    &request.user_input,
+                    &p.passport.placeholders,
+                )
+            },
+            _ => Vec::new(),
+        };
+
         // RAR 召回(若启用且 recaller 已注入,失败不阻塞主管线)
         let mut rar_result = None;
         if request.enable_rar
@@ -327,6 +344,7 @@ impl CapabilityRouter for DefaultCapabilityRouter {
             primary_path,
             alternative_paths,
             rar_result,
+            extracted_entities,
         })
     }
 

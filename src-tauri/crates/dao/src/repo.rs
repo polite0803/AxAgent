@@ -7,6 +7,7 @@ pub mod agent_session_repo;
 pub mod artifact;
 pub mod backup;
 pub mod capability_policy;
+pub mod capability_relationship;
 pub mod capability_stats;
 pub mod cli_config;
 pub mod context_source;

@@ -380,6 +380,8 @@ pub mod llm {
 pub mod capability {
     /// 能力嵌入向量生成失败
     pub const EMBEDDING_FAILED: &str = "CAPABILITY_EMBEDDING_FAILED";
+    /// 能力护照未找到
+    pub const NOT_FOUND: &str = "CAPABILITY_NOT_FOUND";
 }
 
 /// 构造携带错误码的结构化错误字符串。
@@ -435,6 +437,8 @@ pub mod cognitive {
     pub const GAP_PROPOSAL_APPLIED: &str = "COGNITIVE_GAP_PROPOSAL_APPLIED";
     /// 能力补齐提议被用户拒绝（保持原拒绝/无候选行为）
     pub const GAP_PROPOSAL_REJECTED: &str = "COGNITIVE_GAP_PROPOSAL_REJECTED";
+    /// 工具链执行失败（P2：固定顺序执行器，步骤缺失/无工具引用/执行报错）
+    pub const TOOLCHAIN_EXEC_FAILED: &str = "COGNITIVE_TOOLCHAIN_EXEC_FAILED";
 }
 
 /// Unity 改造相关错误码

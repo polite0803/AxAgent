@@ -753,6 +753,8 @@
     "converged": "Konvergiert",
     "copied": "Kopiert",
     "copy": "Kopieren",
+    "saveAs": "Speichern unter",
+    "saved": "Gespeichert",
     "copyConversationId": "Konversations-ID kopieren",
     "copyFailed": "Kopieren fehlgeschlagen",
     "copyMarkdown": "Markdown kopieren",

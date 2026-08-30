@@ -753,6 +753,8 @@
     "converged": "収束済み",
     "copied": "コピー済み",
     "copy": "コピー",
+    "saveAs": "名前を付けて保存",
+    "saved": "保存しました",
     "copyConversationId": "会話 ID をコピー",
     "copyFailed": "コピー失敗",
     "copyMarkdown": "Markdown をコピー",

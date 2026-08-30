@@ -920,7 +920,6 @@ mod tests_conversation {
                     ),
                 ),
             ),
-            notification_dispatcher: Arc::new(axagent_notification::NotificationDispatcher::new()),
             user_profile: Arc::new(
                 tokio::sync::RwLock::new(axagent_trajectory::UserProfile::new()),
             ),
@@ -1055,26 +1054,6 @@ mod tests_conversation {
                 crate::database_query_impl::SqlxDatabaseQueryService::new(),
             ),
             session_share_manager: Arc::new(tokio::sync::RwLock::new(
-                std::collections::HashMap::new(),
-            )),
-            astock_client: Arc::new(axagent_astock_data::AStockClient::new()),
-            concept_index: Arc::new(tokio::sync::RwLock::new(
-                axagent_analysis_engine::concept_index::ConceptIndex::new(),
-            )),
-            trading_engine: Arc::new(tokio::sync::RwLock::new(
-                axagent_analysis_engine::trading::TradingEngine::new(
-                    Arc::new(db.clone()),
-                    Arc::new(axagent_astock_data::AStockClient::new()),
-                ),
-            )),
-            stock_adaptive_engine: Arc::new(
-                axagent_analysis_engine::stock_adaptive_engine::StockAdaptiveEngine::new(),
-            ),
-            stock_monitor: std::sync::OnceLock::new(),
-            cross_stock_aggregator: std::sync::OnceLock::new(),
-            quote_watcher: std::sync::OnceLock::new(),
-            stock_workflow_t0_semaphore: Arc::new(tokio::sync::Semaphore::new(5)),
-            stock_workflow_t0_per_stock_locks: Arc::new(tokio::sync::Mutex::new(
                 std::collections::HashMap::new(),
             )),
             // ── Phase 3 P1 Task 3.1: domain sub-states ──
@@ -1256,9 +1235,6 @@ mod tests_conversation {
                     Box::new(axagent_trajectory::DefaultSandboxToolTester),
                 ),
             ))),
-            execution_bridge: crate::commands::execution_bridge::ExecutionBridgeState::new(
-                Arc::new(db.clone()),
-            ),
             memory_write_approval_config: Arc::new(tokio::sync::RwLock::new(
                 axagent_harness::memory::MemoryWriteApprovalConfig::default(),
             )),

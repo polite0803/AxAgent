@@ -87,7 +87,8 @@ impl Tool for ExportWordTool {
 /// 基于 pulldown-cmark 事件流生成专业 docx 文档
 ///
 /// 使用 docx-rs 样式系统、表格边框、列表编号、页码、行内格式等完整能力。
-fn build_docx_from_md(
+/// Markdown 转 Word 文档（公开给 Tauri 命令等外部调用）
+pub fn build_docx_from_md(
     markdown_text: &str,
     title: &str,
     image_max_width_pt: Option<f64>,
@@ -1176,7 +1177,8 @@ impl Tool for ExportPdfTool {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn build_pdf(
+/// Markdown 转 PDF（公开给 Tauri 命令等外部调用）
+pub fn build_pdf(
     doc: &markdown::MdDocument,
     title: &str,
     subtitle: &str,

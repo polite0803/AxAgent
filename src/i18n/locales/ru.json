@@ -753,6 +753,8 @@
     "converged": "Сошлось",
     "copied": "Скопировано",
     "copy": "Копировать",
+    "saveAs": "Сохранить как",
+    "saved": "Сохранено",
     "copyConversationId": "Копировать ID разговора",
     "copyFailed": "Ошибка копирования",
     "copyMarkdown": "Копировать Markdown",

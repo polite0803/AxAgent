@@ -753,6 +753,8 @@
     "converged": "수렴됨",
     "copied": "복사됨",
     "copy": "복사",
+    "saveAs": "다른 이름으로 저장",
+    "saved": "저장됨",
     "copyConversationId": "대화 ID 복사",
     "copyFailed": "복사 실패",
     "copyMarkdown": "Markdown 복사",

@@ -753,6 +753,8 @@
     "converged": "अभिसरित",
     "copied": "कॉपी किया गया",
     "copy": "कॉपी करें",
+    "saveAs": "इस रूप में सहेजें",
+    "saved": "सहेजा गया",
     "copyConversationId": "वार्तालाप ID कॉपी करें",
     "copyFailed": "कॉपी विफल",
     "copyMarkdown": "Markdown कॉपी करें",

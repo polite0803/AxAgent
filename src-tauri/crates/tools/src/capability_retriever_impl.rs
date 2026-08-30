@@ -14,7 +14,7 @@
 //! 5. 在负向 collection 中搜索排除命中
 //! 6. 合成综合分并排序
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -40,6 +40,16 @@ struct ScoredCandidate {
 
 /// 负向场景命中阈值（相似度 >= 阈值即判定为负向命中，剔除候选）
 const NEGATIVE_HIT_THRESHOLD: f64 = 0.6;
+
+/// 分层检索命中阈值（P0）：某层 top1 候选的 retrieval_score ≥ 此值即判定该层命中。
+/// 阈值语义：语义 0.6 权重下，semantic≈0.5 + 少量关键词/标签分即达标，代表"语义明显相关"。
+/// 低于阈值说明该层无强匹配，允许降级到下一层。
+const LAYER_HIT_THRESHOLD: f64 = 0.45;
+
+/// 关联扩展最大跳数（P2）：2 跳 BFS，兼顾组合路径发现与候选噪音控制。
+const DEPENDENCY_MAX_DEPTH: usize = 2;
+/// 关联扩展每跳衰减系数（P2）：第 2 跳语义分 = 第 1 跳 × 0.6。
+const DEPENDENCY_DECAY: f64 = 0.6;
 
 /// 能力检索器实现
 #[derive(Clone)]
@@ -268,11 +278,57 @@ impl CapabilityRetrieverImpl {
         }
     }
 
-    /// 关联扩展（Phase 3）：一跳上下游依赖能力加入候选。
+    /// 分层检索闸门（P0）：应用层 → 任务层 → 原子层逐层判定。
     ///
-    /// 遍历命中候选的 `upstream` / `downstream`，索引中存在的依赖能力以
-    /// 语义分保底 0.4（综合分 0.24）追加到候选尾部，供认知编排做组合路径选择；
-    /// 已在候选中的跳过；未在索引中的（外部/未注册）跳过。
+    /// 输入已按 retrieval_score 排序的候选；按 `layer` 分组后逐层检查：
+    /// - App / Task 层：top1 综合分 ≥ [`LAYER_HIT_THRESHOLD`] 即命中该层，返回层内前
+    ///   `top_k`（不再降级到下层）；
+    /// - Atomic 层：无条件兜底，返回层内前 `top_k`。
+    ///
+    /// 返回值保持 retrieval_score 降序（层内已排序），供下游过滤/排序继续消费。
+    fn apply_layer_gating(
+        mut candidates: Vec<CapabilityCandidate>,
+        top_k: usize,
+    ) -> Vec<CapabilityCandidate> {
+        if candidates.is_empty() {
+            return candidates;
+        }
+
+        // 按层分组（层内已保持原排序，无需重排——调用方已按综合分降序）
+        let mut app: Vec<CapabilityCandidate> = Vec::new();
+        let mut task: Vec<CapabilityCandidate> = Vec::new();
+        let mut atomic: Vec<CapabilityCandidate> = Vec::new();
+        for c in candidates.drain(..) {
+            match c.layer {
+                axagent_harness::CapabilityLayer::App => app.push(c),
+                axagent_harness::CapabilityLayer::Task => task.push(c),
+                axagent_harness::CapabilityLayer::Atomic => atomic.push(c),
+            }
+        }
+
+        // 逐层判定：App → Task → Atomic（原子层兜底）
+        for (idx, layer_candidates) in [app, task, atomic].into_iter().enumerate() {
+            if layer_candidates.is_empty() {
+                continue;
+            }
+            // 层内仍按综合分排序（分组不破坏顺序），取 top1 判定
+            let hit = idx == 2 || layer_candidates[0].retrieval_score >= LAYER_HIT_THRESHOLD;
+            if hit {
+                let mut result = layer_candidates;
+                result.truncate(top_k);
+                return result;
+            }
+        }
+        Vec::new()
+    }
+
+    /// 关联扩展（P2）：多跳 BFS 上下游依赖扩展。
+    ///
+    /// 从命中候选出发，沿护照 `upstream`/`downstream` 做广度优先遍历
+    /// （[`DEPENDENCY_MAX_DEPTH`]=2 跳），每跳语义分按 [`DEPENDENCY_DECAY`]=0.6 衰减：
+    /// 第 1 跳保底 0.4（综合分 0.24），第 2 跳 0.24（综合分 0.144）。
+    /// 已在候选/已访问的跳过；未在索引中的（外部/未注册）跳过；
+    /// 不可发现的系统能力不扩展。
     fn expand_dependencies(
         final_candidates: &mut Vec<CapabilityCandidate>,
         all_passports: &[axagent_harness::CapabilityPassportDto],
@@ -287,8 +343,20 @@ impl CapabilityRetrieverImpl {
             final_candidates.iter().map(|c| c.capability_id.clone()).collect();
         let mut expanded: Vec<CapabilityCandidate> = Vec::new();
 
-        for candidate in final_candidates.iter() {
-            for dep_id in candidate.passport.upstream.iter().chain(&candidate.passport.downstream) {
+        // BFS 队列：(能力ID, 深度)。起点候选深度 1（第 1 跳即原一跳行为，向后兼容）。
+        let mut queue: VecDeque<(String, usize)> =
+            final_candidates.iter().map(|c| (c.capability_id.clone(), 1usize)).collect();
+
+        while let Some((current_id, depth)) = queue.pop_front() {
+            if depth > DEPENDENCY_MAX_DEPTH {
+                continue;
+            }
+            let Some(current) = by_id.get(current_id.as_str()).copied() else {
+                continue;
+            };
+            // 本跳语义分衰减：第 1 跳 0.4，第 2 跳 0.4×0.6=0.24
+            let hop_score = 0.4 * DEPENDENCY_DECAY.powi(depth as i32 - 1);
+            for dep_id in current.upstream.iter().chain(&current.downstream) {
                 if !existing.insert(dep_id.clone()) {
                     continue;
                 }
@@ -302,20 +370,112 @@ impl CapabilityRetrieverImpl {
                         name: dep.name.clone(),
                         kind: dep.kind,
                         domain: dep.domain,
-                        // 依赖扩展项：低语义分保底，排在实际命中之后
-                        semantic_score: 0.4,
+                        layer: axagent_harness::CapabilityLayer::from_kind(dep.kind),
+                        // 依赖扩展项：低语义分保底（随跳数衰减），排在实际命中之后
+                        semantic_score: hop_score,
                         keyword_score: 0.0,
                         tag_score: 0.0,
-                        retrieval_score: 0.24,
+                        retrieval_score: hop_score * 0.6,
                         matched_tags: Vec::new(),
                         negative_hit: false,
                         passport: dep.clone(),
                     });
+                    // 任务①：按护照声明解析执行分派模式（Sync/Async/Streaming），
+                    // 记录于发现边界；dispatcher 据此消费 `passport.execution_mode`
+                    // （当前默认 Sync，故不改变既有行为）。
+                    let _resolved_mode = axagent_harness::capability::resolve_execution_mode(
+                        dep.execution_mode,
+                        dep.kind,
+                    );
+                    tracing::debug!(
+                        capability_id = %dep.capability_id,
+                        declared = ?dep.execution_mode,
+                        resolved = ?_resolved_mode,
+                        "🧩 护照执行模式解析（任务①）"
+                    );
+                    queue.push_back((dep.capability_id.clone(), depth + 1));
                 }
             }
         }
 
         final_candidates.extend(expanded);
+
+        // 任务②：上下游契约静态校验（触发条件：编排前校验「下游入参=上游输出」）。
+        // 仅当 schema 实际就绪（非 None 且为对象型 JSON Schema）时才产生告警，
+        // 当前绝大多数护照 schema 未填充，故此调用为 no-op，不改变既有行为。
+        for m in Self::validate_dependency_chain_compatibility(all_passports) {
+            tracing::warn!(
+                downstream = %m.downstream_id,
+                upstream = %m.upstream_id,
+                missing = ?m.missing_properties,
+                "🧩 上下游契约不兼容：下游必填入参未被上游输出覆盖"
+            );
+        }
+    }
+
+    /// 检查单条上下游边的契约兼容性（任务②核心实现）。
+    ///
+    /// 当下游 `input_schema` 声明了 `required` 属性，而上游 `output_schema` 的
+    /// `properties` 未提供同名属性时，记为不兼容。
+    /// 任一 schema 为 `None` 或非对象型 JSON Schema 时**跳过**（无操作），
+    /// 故当前 schema 未填充的护照完全不受影响。
+    fn check_edge_compatibility(
+        upstream: &CapabilityPassportDto,
+        downstream: &CapabilityPassportDto,
+    ) -> Option<SchemaMismatch> {
+        let (Some(up_out), Some(down_in)) = (&upstream.output_schema, &downstream.input_schema)
+        else {
+            return None;
+        };
+        let (serde_json::Value::Object(up_obj), serde_json::Value::Object(down_obj)) =
+            (up_out, down_in)
+        else {
+            return None;
+        };
+        let up_props = up_obj.get("properties").and_then(|v| v.as_object());
+        let Some(down_required) = down_obj.get("required").and_then(|v| v.as_array()) else {
+            return None; // 下游未声明必填，无需校验
+        };
+        let mut missing = Vec::new();
+        for req in down_required {
+            if let Some(name) = req.as_str() {
+                let satisfied = up_props.map(|p| p.contains_key(name)).unwrap_or(false);
+                if !satisfied {
+                    missing.push(name.to_string());
+                }
+            }
+        }
+        if missing.is_empty() {
+            None
+        } else {
+            Some(SchemaMismatch {
+                upstream_id: upstream.capability_id.clone(),
+                downstream_id: downstream.capability_id.clone(),
+                missing_properties: missing,
+            })
+        }
+    }
+
+    /// 校验整张护照依赖图的契约兼容性，返回所有不兼容边。
+    ///
+    /// 同时供 `expand_dependencies` 运行时告警与单测复用（任务②）。
+    pub fn validate_dependency_chain_compatibility(
+        passports: &[CapabilityPassportDto],
+    ) -> Vec<SchemaMismatch> {
+        let by_id: HashMap<&str, &CapabilityPassportDto> =
+            passports.iter().map(|p| (p.capability_id.as_str(), p)).collect();
+        let mut mismatches = Vec::new();
+        for p in passports {
+            // p 的 upstream 是 p 的前置提供者：检查「上游输出 → 下游入参」覆盖
+            for up_id in &p.upstream {
+                if let Some(up) = by_id.get(up_id.as_str()).copied() {
+                    if let Some(m) = Self::check_edge_compatibility(up, p) {
+                        mismatches.push(m);
+                    }
+                }
+            }
+        }
+        mismatches
     }
 
     /// 将 FTS 关键词检索结果合并到候选列表的 keyword_score
@@ -334,6 +494,17 @@ impl CapabilityRetrieverImpl {
             }
         }
     }
+}
+
+/// 上下游契约静态校验（任务②）的不兼容记录。
+#[derive(Debug, Clone, PartialEq)]
+pub struct SchemaMismatch {
+    /// 上游能力 ID（应提供输出）
+    pub upstream_id: String,
+    /// 下游能力 ID（消费方，声明必填入参）
+    pub downstream_id: String,
+    /// 下游要求、但上游 `output_schema.properties` 未提供的属性名
+    pub missing_properties: Vec<String>,
 }
 
 #[async_trait]
@@ -406,11 +577,13 @@ impl CapabilityRetriever for CapabilityRetrieverImpl {
             .map(|c| {
                 let retrieval_score =
                     c.semantic_score * 0.6 + c.keyword_score * 0.2 + c.tag_score * 0.2;
+                let layer = axagent_harness::CapabilityLayer::from_kind(c.passport.kind);
                 CapabilityCandidate {
                     capability_id: c.passport.capability_id.clone(),
                     name: c.passport.name.clone(),
                     kind: c.passport.kind,
                     domain: c.passport.domain,
+                    layer,
                     semantic_score: c.semantic_score,
                     keyword_score: c.keyword_score,
                     tag_score: c.tag_score,
@@ -422,10 +595,11 @@ impl CapabilityRetriever for CapabilityRetrieverImpl {
             })
             .collect();
 
-        // 8. 按综合分降序排序
-        final_candidates.sort_by(|a, b| {
-            b.retrieval_score.partial_cmp(&a.retrieval_score).unwrap_or(std::cmp::Ordering::Equal)
-        });
+        // 8. 分层检索闸门（P0）：应用层(Workflow) → 任务层(Skill/Template/Toolchain)
+        //    → 原子层(Tool/Agent/KB) 逐层判定。高层 top1 综合分 ≥ 阈值即命中该层，
+        //    返回该层前 top_k（不再降级）；原子层无条件兜底。
+        //    替代原先的单层全量排序截断 —— 规范"高层命中就不降级"语义落地。
+        final_candidates = Self::apply_layer_gating(final_candidates, top_k);
 
         // 8b. 关联扩展（Phase 3）：对命中的候选做一跳上下游扩展。
         //     候选中护照声明了 upstream/downstream 依赖时，把索引中存在的依赖能力
@@ -484,5 +658,60 @@ impl CapabilityRetriever for CapabilityRetrieverImpl {
 
     async fn refresh_index(&self) -> Result<CapabilityIndexStats, String> {
         self.indexer.get_stats().await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn passport(
+        id: &str,
+        upstream: &[&str],
+        input: Option<serde_json::Value>,
+        output: Option<serde_json::Value>,
+    ) -> CapabilityPassportDto {
+        CapabilityPassportDto {
+            capability_id: id.to_string(),
+            upstream: upstream.iter().map(|s| (*s).to_string()).collect(),
+            input_schema: input,
+            output_schema: output,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn no_mismatch_when_schemas_absent() {
+        let passports =
+            vec![passport("down", &["up"], None, None), passport("up", &[], None, None)];
+        let mismatches =
+            CapabilityRetrieverImpl::validate_dependency_chain_compatibility(&passports);
+        assert!(mismatches.is_empty(), "未填充 schema 时不应产生告警");
+    }
+
+    #[test]
+    fn mismatch_when_upstream_lacks_required_output() {
+        let passports = vec![
+            passport("down", &["up"], Some(json!({"type":"object","required":["ip"]})), None),
+            passport("up", &[], None, Some(json!({"type":"object","properties":{"port":{}}}))),
+        ];
+        let mismatches =
+            CapabilityRetrieverImpl::validate_dependency_chain_compatibility(&passports);
+        assert_eq!(mismatches.len(), 1, "上游缺 ip 输出应被判为不兼容");
+        assert_eq!(mismatches[0].upstream_id, "up");
+        assert_eq!(mismatches[0].downstream_id, "down");
+        assert_eq!(mismatches[0].missing_properties, vec!["ip".to_string()]);
+    }
+
+    #[test]
+    fn no_mismatch_when_upstream_covers_required() {
+        let passports = vec![
+            passport("down", &["up"], Some(json!({"type":"object","required":["ip"]})), None),
+            passport("up", &[], None, Some(json!({"type":"object","properties":{"ip":{}}}))),
+        ];
+        let mismatches =
+            CapabilityRetrieverImpl::validate_dependency_chain_compatibility(&passports);
+        assert!(mismatches.is_empty(), "上游已覆盖下游必填入参时不应告警");
     }
 }

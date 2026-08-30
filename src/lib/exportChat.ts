@@ -409,6 +409,64 @@ export async function exportAsHTML(
   );
 }
 
+// ── 后端命令导出（DOCX / PDF，依赖 Rust 侧纯 Rust 转换） ───────────
+
+/** 导出为 Word 文档（MD→DOCX，走后端 docx-rs 转换） */
+export async function exportAsDocx(
+  messages: Message[],
+  title: string,
+  options?: TranscriptExportOptions,
+): Promise<boolean> {
+  if (!isTauri()) {
+    throw new Error(i18n.t("stockAnalysis.docxDesktopOnly"));
+  }
+  const markdown = buildMarkdownTranscript(messages, title, options);
+  const { save } = await import("@tauri-apps/plugin-dialog");
+  const defaultName = `${title}.docx`;
+  const filePath = await save({
+    defaultPath: defaultName,
+    filters: [{ name: i18n.t("stockAnalysis.docxFilterName"), extensions: ["docx"] }],
+  });
+  if (!filePath) {
+    return false;
+  }
+  await invoke<boolean>("export_content", {
+    markdown,
+    outputPath: filePath,
+    format: "docx",
+    title,
+  });
+  return true;
+}
+
+/** 导出为 PDF（MD→PDF，走后端 lopdf 转换） */
+export async function exportAsPdf(
+  messages: Message[],
+  title: string,
+  options?: TranscriptExportOptions,
+): Promise<boolean> {
+  if (!isTauri()) {
+    throw new Error(i18n.t("chat.exportPdfDesktopOnly"));
+  }
+  const markdown = buildMarkdownTranscript(messages, title, options);
+  const { save } = await import("@tauri-apps/plugin-dialog");
+  const defaultName = `${title}.pdf`;
+  const filePath = await save({
+    defaultPath: defaultName,
+    filters: [{ name: "PDF", extensions: ["pdf"] }],
+  });
+  if (!filePath) {
+    return false;
+  }
+  await invoke<boolean>("export_content", {
+    markdown,
+    outputPath: filePath,
+    format: "pdf",
+    title,
+  });
+  return true;
+}
+
 // ── Worker-accelerated exports (P2) ──
 
 /** Export as Markdown using a Web Worker for large conversations (>50 messages). */

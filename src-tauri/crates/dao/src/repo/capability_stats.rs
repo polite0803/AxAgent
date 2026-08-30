@@ -117,13 +117,13 @@ pub fn merge_stats_into_passport(
     passport: &mut axagent_harness::CapabilityPassportDto,
     stats: Option<&CapabilityStats>,
 ) {
-    if let Some(s) = stats {
-        if s.total_calls > 0 {
-            passport.stats = s.clone();
-            // avg_duration_seconds 与护照顶层字段同步（排序器 γ 维度消费顶层字段）
-            if s.avg_duration_seconds > 0.0 {
-                passport.avg_duration_seconds = Some(s.avg_duration_seconds);
-            }
+    if let Some(s) = stats
+        && s.total_calls > 0
+    {
+        passport.stats = s.clone();
+        // avg_duration_seconds 与护照顶层字段同步（排序器 γ 维度消费顶层字段）
+        if s.avg_duration_seconds > 0.0 {
+            passport.avg_duration_seconds = Some(s.avg_duration_seconds);
         }
     }
 }
@@ -188,8 +188,10 @@ mod tests {
         let db = setup().await;
         record_execution(&db, "tool:read_file", true, 120).await.expect("记录应成功");
         let all = list_all(&db).await.expect("列表应成功");
-        let mut passport = axagent_harness::CapabilityPassportDto::default();
-        passport.capability_id = "tool:read_file".to_string();
+        let mut passport = axagent_harness::CapabilityPassportDto {
+            capability_id: "tool:read_file".to_string(),
+            ..Default::default()
+        };
         merge_stats_into_passport(
             &mut passport,
             all.iter().find(|(id, _)| id == "tool:read_file").map(|(_, s)| s),

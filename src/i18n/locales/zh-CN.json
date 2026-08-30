@@ -753,6 +753,8 @@
     "converged": "已收敛",
     "copied": "已复制",
     "copy": "复制",
+    "saveAs": "保存为",
+    "saved": "已保存",
     "copyConversationId": "复制会话 ID",
     "copyFailed": "复制失败",
     "copyMarkdown": "复制 Markdown",
@@ -1496,7 +1498,8 @@
     "wiki": {
       "title": "知识库"
     },
-    "workspaceLocked": "工作区已锁定"
+    "workspaceLocked": "工作区已锁定",
+    "exportPdfDesktopOnly": "PDF 导出仅在桌面端可用"
   },
   "capabilityDomain": {
     "general": "通用",

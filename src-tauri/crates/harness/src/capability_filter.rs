@@ -39,6 +39,14 @@ pub struct FilterContext {
     /// 实验分组（None = 不区分组）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub experiment_group: Option<String>,
+    /// 已满足的前提条件（P1：Skill 前提条件匹配，第 10 维）。
+    /// 提供条件检查时，护照 `preconditions` 中任一不在本列表的能力被拒绝；
+    /// 未提供检查（`conditions_checked=false`）时放行（环境条件未知不误杀）。
+    #[serde(default)]
+    pub satisfied_conditions: Vec<String>,
+    /// 是否启用前提条件检查（默认 false：环境未提供条件时不误杀带前提的能力）
+    #[serde(default)]
+    pub conditions_checked: bool,
 }
 
 // ── 辅助类型 ──────────────────────────────────────
@@ -143,6 +151,8 @@ pub enum FilterDimension {
     ExperimentGroup,
     /// 维度九：可注册策略裁剪（Phase 3 策略对象化：capability_policies 排除规则）
     Policy,
+    /// 维度十：前提条件匹配（P1：Skill preconditions）
+    Preconditions,
 }
 
 impl FilterDimension {
@@ -158,6 +168,7 @@ impl FilterDimension {
             FilterDimension::PlanningComplexity => "planning_complexity",
             FilterDimension::ExperimentGroup => "experiment_group",
             FilterDimension::Policy => "policy",
+            FilterDimension::Preconditions => "preconditions",
         }
     }
 }
@@ -235,6 +246,12 @@ pub trait CapabilityFilter: Send + Sync {
 
         // 维度八：实验/灰度检查
         match self.check_experiment_group(passport, ctx).await {
+            FilterDecision::Pass => {},
+            decision => return decision,
+        }
+
+        // 维度十：前提条件匹配（P1：Skill preconditions）
+        match self.check_preconditions(passport, ctx).await {
             FilterDecision::Pass => {},
             decision => return decision,
         }
@@ -431,6 +448,31 @@ pub trait CapabilityFilter: Send + Sync {
                 ),
                 dimension: FilterDimension::ExperimentGroup,
             };
+        }
+        FilterDecision::Pass
+    }
+
+    /// 维度十：前提条件匹配（P1：Skill preconditions）。
+    ///
+    /// 规则（防误杀设计）：
+    /// - 未启用条件检查（`ctx.conditions_checked=false`，默认）→ 放行（环境条件未知不误杀）；
+    /// - 启用且护照无 preconditions → 放行；
+    /// - 启用且护照有 preconditions → 任一前置条件不在 `ctx.satisfied_conditions` 中即拒绝。
+    async fn check_preconditions(
+        &self,
+        passport: &CapabilityPassportDto,
+        ctx: &FilterContext,
+    ) -> FilterDecision {
+        if !ctx.conditions_checked || passport.preconditions.is_empty() {
+            return FilterDecision::Pass;
+        }
+        for cond in &passport.preconditions {
+            if !ctx.satisfied_conditions.iter().any(|s| s == cond) {
+                return FilterDecision::Reject {
+                    reason: format!("前置条件未满足: {cond}"),
+                    dimension: FilterDimension::Preconditions,
+                };
+            }
         }
         FilterDecision::Pass
     }

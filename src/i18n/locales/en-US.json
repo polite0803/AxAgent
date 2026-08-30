@@ -753,6 +753,8 @@
     "converged": "Converged",
     "copied": "Copied",
     "copy": "Copy",
+    "saveAs": "Save As",
+    "saved": "Saved",
     "copyConversationId": "Copy Conversation ID",
     "copyFailed": "Copy failed",
     "copyMarkdown": "Copy Markdown",
@@ -1496,7 +1498,8 @@
     "workingDirectory": "工作目录",
     "yes": "是",
     "zoomIn": "放大",
-    "zoomOut": "缩小"
+    "zoomOut": "缩小",
+    "exportPdfDesktopOnly": "PDF export only available on desktop"
   },
   "capabilityDomain": {
     "general": "General",

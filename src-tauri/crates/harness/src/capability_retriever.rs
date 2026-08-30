@@ -43,6 +43,46 @@ fn default_top_k() -> usize {
 
 // ── 检索结果 ──────────────────────────────────────
 
+/// 能力检索层级（P0 分层检索降级）—— 规范的分层架构在检索层的落地。
+///
+/// 检索自上而下逐层尝试：`App`（应用层：工作流）→ `Task`（任务层：技能/模板/工具链）
+/// → `Atomic`（原子层：工具/Agent/知识库）。高层命中（该层 top1 综合分达标）即不降级，
+/// 返回该层候选；高层未命中才落到下一层，原子层无条件兜底。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CapabilityLayer {
+    /// 应用层：Workflow（稳定编排路径，命中即直发，认知层不拆解）
+    App,
+    /// 任务层：Skill / Template / Toolchain（完整执行单元）
+    Task,
+    /// 原子层：Tool / Agent / KnowledgeBase（底层兜底）
+    #[default]
+    Atomic,
+}
+
+impl CapabilityLayer {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            CapabilityLayer::App => "app",
+            CapabilityLayer::Task => "task",
+            CapabilityLayer::Atomic => "atomic",
+        }
+    }
+
+    /// 由能力类型推导所属层级
+    pub fn from_kind(kind: CapabilityKind) -> Self {
+        match kind {
+            CapabilityKind::Workflow => CapabilityLayer::App,
+            CapabilityKind::Skill | CapabilityKind::Template | CapabilityKind::Toolchain => {
+                CapabilityLayer::Task
+            },
+            CapabilityKind::Tool | CapabilityKind::Agent | CapabilityKind::KnowledgeBase => {
+                CapabilityLayer::Atomic
+            },
+        }
+    }
+}
+
 /// 命中的候选能力
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -51,6 +91,9 @@ pub struct CapabilityCandidate {
     pub name: String,
     pub kind: CapabilityKind,
     pub domain: CapabilityDomain,
+    /// 检索层级（App/Task/Atomic，由 kind 推导）
+    #[serde(default)]
+    pub layer: CapabilityLayer,
     /// 语义相似度得分（0.0-1.0）
     pub semantic_score: f64,
     /// BM25/关键词匹配得分（0.0-1.0）

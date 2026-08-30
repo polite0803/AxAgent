@@ -753,6 +753,8 @@
     "converged": "متقارب",
     "copied": "تم النسخ",
     "copy": "نسخ",
+    "saveAs": "حفظ باسم",
+    "saved": "تم الحفظ",
     "copyConversationId": "نسخ معرف المحادثة",
     "copyFailed": "فشل النسخ",
     "copyMarkdown": "نسخ Markdown",

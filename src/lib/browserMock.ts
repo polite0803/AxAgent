@@ -556,10 +556,16 @@ function mockPassport(
     capabilityId: capabilityId,
     name,
     description,
+    version: null,
+    owner: null,
+    createdAt: null,
+    updatedAt: null,
     kind,
     domain,
     subCategory: subCategory,
     inputSchema: null,
+    outputSchema: null,
+    implementation: null,
     tags,
     negativeScenarios: [],
     securityLevel: "public",
@@ -579,6 +585,8 @@ function mockPassport(
     },
     estimatedCostUsd: 0,
     avgDurationSeconds: 0,
+    executionMode: "sync",
+    timeoutMs: null,
     planningComplexity: "simple",
     modelIqRequirement: 60,
     experimentGroup: null,
@@ -591,9 +599,15 @@ function mockPassport(
     toolRef: null,
     aliases: [],
     steps: [],
+    skillSteps: [],
     placeholders: [],
+    templateBody: null,
+    instantiatesTo: null,
+    exampleInstance: null,
     upstream: [],
     downstream: [],
+    preconditions: [],
+    attachedSnippets: [],
   };
 }
 
@@ -757,6 +771,7 @@ function mockDiscover(userInput: string): CapabilityDiscoveryResult {
       { phase: "filter", elapsedMs: 3 },
       { phase: "rank", elapsedMs: 4 },
     ],
+    extractedEntities: [],
   };
 }
 

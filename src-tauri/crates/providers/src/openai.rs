@@ -959,7 +959,7 @@ impl ProviderAdapter for OpenAIAdapter {
                         url = %url,
                         provider_id = %provider_id,
                         model = %body.model,
-                        body_preview = %serde_json::to_string(&body).ok().map(|s| s[..s.len().min(500)].to_string()).unwrap_or_default(),
+                        body_preview = %serde_json::to_string(&body).ok().map(|s| s.chars().take(500).collect::<String>()).unwrap_or_default(),
                         "[SSE-DIAG] HTTP 响应成功"
                     );
                     r

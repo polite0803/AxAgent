@@ -1318,6 +1318,16 @@ mod tests {
             source: crate::capability::CapabilitySource::Builtin,
             evolvable: crate::capability::CapabilityEvolvability::Local,
             enabled: true,
+            exposure: crate::capability::CapabilityExposure::Auto,
+            tool_ref: None,
+            aliases: vec![],
+            steps: vec![],
+            placeholders: vec![],
+            upstream: vec![],
+            downstream: vec![],
+            preconditions: vec![],
+            attached_snippets: vec![],
+            ..Default::default()
         };
 
         // 完全匹配

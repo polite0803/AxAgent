@@ -78,8 +78,21 @@ function Actions({ items, onActionClick }: { items: ActionItem[]; onActionClick?
     </div>
   );
 }
+
+// Popover 内格式按钮的统一样式
+const styleBtn: CSSProperties = {
+  padding: "4px 12px",
+  border: "none",
+  background: "transparent",
+  cursor: "pointer",
+  textAlign: "left",
+  fontSize: 13,
+  borderRadius: 4,
+  color: "inherit",
+};
+
 import { ModelIcon } from "@lobehub/icons";
-import { Alert, App, Avatar, Input, Modal, Popconfirm, Spin, Tag, theme, Typography } from "antd";
+import { Alert, App, Avatar, Input, Modal, Popconfirm, Popover, Spin, Tag, theme, Typography } from "antd";
 import {
   ArrowDown,
   ArrowLeftRight,
@@ -91,6 +104,7 @@ import {
   MessageSquare,
   Pencil,
   RotateCcw,
+  Save,
   Scissors,
   TextCursorInput,
   Trash2,
@@ -107,6 +121,7 @@ import { useResolvedDarkMode } from "@/hooks/useResolvedDarkMode";
 import { type ChatMarkdownNode, parseChatMarkdown, stripAxAgentTags } from "@/lib/chatMarkdown";
 import { hasMultipleModelVersions } from "@/lib/chatMultiModel";
 import { getConvIcon } from "@/lib/convIcon";
+import { invoke, isTauri } from "@/lib/invoke";
 import { parseSearchContent } from "@/lib/searchUtils";
 import {
   useAgentStore,
@@ -364,6 +379,75 @@ function AssistantFooter({
                       messageApi.success(t("chat.copied"));
                     }
                   });
+                },
+              },
+              {
+                key: "save",
+                actionRender: () => {
+                  const handleSaveAs = async (format: "md" | "docx" | "pdf") => {
+                    try {
+                      if (format === "md" || !isTauri()) {
+                        const blob = new Blob([assistantCopyText], {
+                          type: "text/markdown;charset=utf-8",
+                        });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `${(currentConvTitle || "message").slice(0, 40)}.md`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        messageApi.success(t("chat.saved"));
+                        return;
+                      }
+                      const { save } = await import("@tauri-apps/plugin-dialog");
+                      const ext = format === "docx" ? "docx" : "pdf";
+                      const name = `${(currentConvTitle || "message").slice(0, 40)}.${ext}`;
+                      const filePath = await save({
+                        defaultPath: name,
+                        filters: format === "docx"
+                          ? [{ name: t("stockAnalysis.docxFilterName"), extensions: ["docx"] }]
+                          : [{ name: "PDF", extensions: ["pdf"] }],
+                      });
+                      if (!filePath) {
+                        return;
+                      }
+                      await invoke<boolean>("export_content", {
+                        markdown: assistantCopyText,
+                        outputPath: filePath,
+                        format,
+                        title: currentConvTitle || "Message",
+                      });
+                      messageApi.success(t("chat.saved"));
+                    } catch (e) {
+                      messageApi.error(String(e));
+                    }
+                  };
+                  return (
+                    <Popover
+                      trigger="click"
+                      placement="top"
+                      content={
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                          <button style={styleBtn} onClick={() => handleSaveAs("md")}>Markdown (.md)</button>
+                          <button style={styleBtn} onClick={() => handleSaveAs("docx")}>Word (.docx)</button>
+                          <button style={styleBtn} onClick={() => handleSaveAs("pdf")}>PDF (.pdf)</button>
+                        </div>
+                      }
+                    >
+                      <Tooltip title={t("chat.saveAs")}>
+                        <span
+                          className="axagent-action-item"
+                          role="button"
+                          tabIndex={0}
+                          style={{ color: token.colorTextSecondary }}
+                        >
+                          <Save size={14} />
+                        </span>
+                      </Tooltip>
+                    </Popover>
+                  );
                 },
               },
               ...(onQuoteReply
@@ -670,7 +754,9 @@ export function useChatViewMessages({
 
     setCollapsedAiIds((prevMap) => {
       const next = { ...prevMap };
-      if (prev) { next[prev] = true; }
+      // 仅在有新流式开始时折叠旧消息；流式结束（curr→null）不折叠，
+      // 避免刚完成的回复被立刻折叠导致用户还没看就只剩 3 行
+      if (curr && prev && prev !== curr) { next[prev] = true; }
       if (curr) { delete next[curr]; }
       return next;
     });
@@ -1322,6 +1408,77 @@ export function useChatViewMessages({
                       messageApi.success(t("chat.copied"));
                     }
                   });
+                },
+              },
+              {
+                key: "save",
+                actionRender: () => {
+                  const userMd = stripAxAgentTags(String(bubbleData.content ?? ""));
+                  const handleSaveAs = async (format: "md" | "docx" | "pdf") => {
+                    const title = activeConversation?.title || "message";
+                    try {
+                      if (format === "md" || !isTauri()) {
+                        const blob = new Blob([userMd], {
+                          type: "text/markdown;charset=utf-8",
+                        });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `${title.slice(0, 40)}.md`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        messageApi.success(t("chat.saved"));
+                        return;
+                      }
+                      const { save } = await import("@tauri-apps/plugin-dialog");
+                      const ext = format === "docx" ? "docx" : "pdf";
+                      const name = `${title.slice(0, 40)}.${ext}`;
+                      const filePath = await save({
+                        defaultPath: name,
+                        filters: format === "docx"
+                          ? [{ name: t("stockAnalysis.docxFilterName"), extensions: ["docx"] }]
+                          : [{ name: "PDF", extensions: ["pdf"] }],
+                      });
+                      if (!filePath) {
+                        return;
+                      }
+                      await invoke<boolean>("export_content", {
+                        markdown: userMd,
+                        outputPath: filePath,
+                        format,
+                        title,
+                      });
+                      messageApi.success(t("chat.saved"));
+                    } catch (e) {
+                      messageApi.error(String(e));
+                    }
+                  };
+                  return (
+                    <Popover
+                      trigger="click"
+                      placement="top"
+                      content={
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                          <button style={styleBtn} onClick={() => handleSaveAs("md")}>Markdown (.md)</button>
+                          <button style={styleBtn} onClick={() => handleSaveAs("docx")}>Word (.docx)</button>
+                          <button style={styleBtn} onClick={() => handleSaveAs("pdf")}>PDF (.pdf)</button>
+                        </div>
+                      }
+                    >
+                      <Tooltip title={t("chat.saveAs")}>
+                        <span
+                          className="axagent-action-item"
+                          role="button"
+                          tabIndex={0}
+                          style={{ color: token.colorTextSecondary }}
+                        >
+                          <Save size={14} />
+                        </span>
+                      </Tooltip>
+                    </Popover>
+                  );
                 },
               },
               {

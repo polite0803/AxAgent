@@ -1450,6 +1450,10 @@ async fn register_all_capabilities(
                     name: meta.name.clone(),
                     description: meta.description.clone(),
                     kind: CapabilityKind::Skill,
+                    version: None,
+                    owner: None,
+                    created_at: None,
+                    updated_at: None,
                     domain: CapabilityDomain::General,
                     source: CapabilitySource::Builtin,
                     evolvable: CapabilityEvolvability::Local,
@@ -1457,6 +1461,8 @@ async fn register_all_capabilities(
                     visibility: Visibility::Public,
                     caller_permissions: Default::default(),
                     input_schema: None,
+                    output_schema: None,
+                    implementation: None,
                     tags: vec!["skill".to_string(), meta.source.clone()],
                     negative_scenarios: vec![],
                     security_level: SecurityLevel::Public,
@@ -1464,6 +1470,8 @@ async fn register_all_capabilities(
                     output_capabilities: Default::default(),
                     estimated_cost_usd: None,
                     avg_duration_seconds: None,
+                    execution_mode: axagent_harness::capability::ExecutionMode::Sync,
+                    timeout_ms: None,
                     planning_complexity: PlanningComplexity::Simple,
                     model_iq_requirement: 0,
                     experiment_group: None,
@@ -1475,9 +1483,15 @@ async fn register_all_capabilities(
                     tool_ref: None,
                     aliases: Vec::new(),
                     steps: Vec::new(),
+                    skill_steps: Vec::new(),
                     placeholders: Vec::new(),
+                    template_body: None,
+                    instantiates_to: None,
+                    example_instance: None,
                     upstream: Vec::new(),
                     downstream: Vec::new(),
+                    preconditions: Vec::new(),
+                    attached_snippets: Vec::new(),
                 });
             }
         }
@@ -1533,6 +1547,10 @@ async fn register_all_capabilities(
                     name: p.name.clone(),
                     description: p.description.clone().unwrap_or_default(),
                     kind: axagent_harness::CapabilityKind::Agent,
+                    version: None,
+                    owner: None,
+                    created_at: None,
+                    updated_at: None,
                     domain: infer_profile_domain(&p.category, &p.name),
                     sub_category: if p.category.is_empty() {
                         "agent_profile".to_string()
@@ -1542,6 +1560,8 @@ async fn register_all_capabilities(
                     visibility: Visibility::Public,
                     caller_permissions: Default::default(),
                     input_schema: None,
+                    output_schema: None,
+                    implementation: None,
                     tags,
                     negative_scenarios: vec![],
                     security_level: SecurityLevel::Public,
@@ -1549,6 +1569,8 @@ async fn register_all_capabilities(
                     output_capabilities: Default::default(),
                     estimated_cost_usd: None,
                     avg_duration_seconds: None,
+                    execution_mode: axagent_harness::capability::ExecutionMode::Sync,
+                    timeout_ms: None,
                     planning_complexity: PlanningComplexity::Simple,
                     model_iq_requirement: 0,
                     experiment_group: None,
@@ -1562,9 +1584,15 @@ async fn register_all_capabilities(
                     tool_ref: None,
                     aliases: Vec::new(),
                     steps: Vec::new(),
+                    skill_steps: Vec::new(),
                     placeholders: Vec::new(),
+                    template_body: None,
+                    instantiates_to: None,
+                    example_instance: None,
                     upstream: Vec::new(),
                     downstream: Vec::new(),
+                    preconditions: Vec::new(),
+                    attached_snippets: Vec::new(),
                 });
             }
         },
@@ -1637,11 +1665,17 @@ async fn register_all_capabilities(
                     name: r.name.clone(),
                     description: r.description.clone().unwrap_or_default(),
                     kind: axagent_harness::CapabilityKind::Agent,
+                    version: None,
+                    owner: None,
+                    created_at: None,
+                    updated_at: None,
                     domain: infer_role_domain(&r.active_domains),
                     sub_category: "agent_role".to_string(),
                     visibility: Visibility::Public,
                     caller_permissions: Default::default(),
                     input_schema: None,
+                    output_schema: None,
+                    implementation: None,
                     tags,
                     negative_scenarios: vec![],
                     security_level: SecurityLevel::Public,
@@ -1649,6 +1683,8 @@ async fn register_all_capabilities(
                     output_capabilities: Default::default(),
                     estimated_cost_usd: None,
                     avg_duration_seconds: None,
+                    execution_mode: axagent_harness::capability::ExecutionMode::Sync,
+                    timeout_ms: None,
                     planning_complexity: PlanningComplexity::Simple,
                     model_iq_requirement: 0,
                     experiment_group: None,
@@ -1662,9 +1698,15 @@ async fn register_all_capabilities(
                     tool_ref: None,
                     aliases: Vec::new(),
                     steps: Vec::new(),
+                    skill_steps: Vec::new(),
                     placeholders: Vec::new(),
+                    template_body: None,
+                    instantiates_to: None,
+                    example_instance: None,
                     upstream: Vec::new(),
                     downstream: Vec::new(),
+                    preconditions: Vec::new(),
+                    attached_snippets: Vec::new(),
                 });
             }
         },
@@ -1684,7 +1726,24 @@ async fn register_all_capabilities(
     tracing::info!("[capability] 自动注册 {} 个能力护照，成功 {}", total, success);
 
     // 5. 注册系统级能力（CognitiveRouter 编排器等）
-    register_system_capabilities(indexer).await;
+    let system_passports = register_system_capabilities(indexer).await;
+
+    // P2-①：护照声明的 upstream/downstream 关系物化到 capability_relationships 表
+    //（统一能力模型第四层 CapabilityRelationship 的物化镜像，供关系查询/审计）
+    let mut all_passports = passports;
+    all_passports.extend(system_passports);
+    match axagent_dao::repo::capability_relationship::sync_from_passports(db, &all_passports).await
+    {
+        Ok(n) => {
+            tracing::info!("[capability] 物化 {} 条能力关系到 capability_relationships", n);
+        },
+        Err(e) => {
+            tracing::warn!(
+                "[capability] 能力关系物化失败（不影响检索，护照内联一跳仍可用）: {}",
+                e
+            );
+        },
+    }
 }
 
 /// 从字符串推断能力域。优先精确匹配 CapabilityDomain 序列化名，再做领域关键词兜底。
@@ -1746,7 +1805,9 @@ fn infer_role_domain(active_domains: &[String]) -> axagent_harness::CapabilityDo
 /// - visibility 为 SystemOnly，不可被用户发现
 /// - domain 为 System，属于系统域
 /// - 用于内部编排和基础设施服务
-async fn register_system_capabilities(indexer: &Arc<axagent_tools::CapabilityIndexerImpl>) {
+async fn register_system_capabilities(
+    indexer: &Arc<axagent_tools::CapabilityIndexerImpl>,
+) -> Vec<axagent_harness::CapabilityPassportDto> {
     use axagent_harness::{
         CallerPermissions, CapabilityDomain, CapabilityEvolvability, CapabilityIndexer,
         CapabilityKind, CapabilityPassportDto, CapabilitySource, OutputCapabilities,
@@ -1761,11 +1822,17 @@ async fn register_system_capabilities(indexer: &Arc<axagent_tools::CapabilityInd
             description: "三层路由编排器（L1域→L2簇→L3能力），负责将用户查询路由到正确的能力"
                 .to_string(),
             kind: CapabilityKind::Workflow,
+            version: None,
+            owner: None,
+            created_at: None,
+            updated_at: None,
             domain: CapabilityDomain::System,
             sub_category: "cognitive_routing".to_string(),
             visibility: Visibility::SystemOnly,
             caller_permissions: CallerPermissions::new(),
             input_schema: None,
+            output_schema: None,
+            implementation: None,
             tags: vec![
                 "system".to_string(),
                 "router".to_string(),
@@ -1778,6 +1845,8 @@ async fn register_system_capabilities(indexer: &Arc<axagent_tools::CapabilityInd
             output_capabilities: OutputCapabilities::default(),
             estimated_cost_usd: Some(0.0),
             avg_duration_seconds: Some(0.1),
+            execution_mode: axagent_harness::capability::ExecutionMode::Sync,
+            timeout_ms: None,
             planning_complexity: PlanningComplexity::Complex,
             model_iq_requirement: 85,
             experiment_group: None,
@@ -1789,9 +1858,15 @@ async fn register_system_capabilities(indexer: &Arc<axagent_tools::CapabilityInd
             tool_ref: None,
             aliases: Vec::new(),
             steps: Vec::new(),
+            skill_steps: Vec::new(),
             placeholders: Vec::new(),
+            template_body: None,
+            instantiates_to: None,
+            example_instance: None,
             upstream: Vec::new(),
             downstream: Vec::new(),
+            preconditions: Vec::new(),
+            attached_snippets: Vec::new(),
             source: CapabilitySource::Builtin,
             evolvable: CapabilityEvolvability::Local,
         },
@@ -1802,11 +1877,17 @@ async fn register_system_capabilities(indexer: &Arc<axagent_tools::CapabilityInd
             description: "按Domain/Cluster/Capability/Context四层注入Prompt片段，支持Token预算管理"
                 .to_string(),
             kind: CapabilityKind::Tool,
+            version: None,
+            owner: None,
+            created_at: None,
+            updated_at: None,
             domain: CapabilityDomain::System,
             sub_category: "prompt_engine".to_string(),
             visibility: Visibility::SystemOnly,
             caller_permissions: CallerPermissions::new(),
             input_schema: None,
+            output_schema: None,
+            implementation: None,
             tags: vec![
                 "system".to_string(),
                 "prompt".to_string(),
@@ -1819,6 +1900,8 @@ async fn register_system_capabilities(indexer: &Arc<axagent_tools::CapabilityInd
             output_capabilities: OutputCapabilities::default(),
             estimated_cost_usd: Some(0.0),
             avg_duration_seconds: Some(0.05),
+            execution_mode: axagent_harness::capability::ExecutionMode::Sync,
+            timeout_ms: None,
             planning_complexity: PlanningComplexity::Simple,
             model_iq_requirement: 0,
             experiment_group: None,
@@ -1830,9 +1913,15 @@ async fn register_system_capabilities(indexer: &Arc<axagent_tools::CapabilityInd
             tool_ref: None,
             aliases: Vec::new(),
             steps: Vec::new(),
+            skill_steps: Vec::new(),
             placeholders: Vec::new(),
+            template_body: None,
+            instantiates_to: None,
+            example_instance: None,
             upstream: Vec::new(),
             downstream: Vec::new(),
+            preconditions: Vec::new(),
+            attached_snippets: Vec::new(),
             source: CapabilitySource::Builtin,
             evolvable: CapabilityEvolvability::Local,
         },
@@ -1860,11 +1949,17 @@ async fn register_system_capabilities(indexer: &Arc<axagent_tools::CapabilityInd
             name: name.to_string(),
             description: description.to_string(),
             kind: CapabilityKind::Tool,
+            version: None,
+            owner: None,
+            created_at: None,
+            updated_at: None,
             domain: CapabilityDomain::System,
             sub_category: "self_evolution".to_string(),
             visibility: Visibility::SystemOnly,
             caller_permissions: CallerPermissions::new(),
             input_schema: None,
+            output_schema: None,
+            implementation: None,
             tags: vec!["SYSTEM_ONLY".to_string(), "META".to_string(), "self_evolution".to_string()],
             negative_scenarios: vec![],
             security_level: SecurityLevel::Restricted,
@@ -1872,6 +1967,8 @@ async fn register_system_capabilities(indexer: &Arc<axagent_tools::CapabilityInd
             output_capabilities: OutputCapabilities::default(),
             estimated_cost_usd: Some(0.0),
             avg_duration_seconds: Some(0.01),
+            execution_mode: axagent_harness::capability::ExecutionMode::Sync,
+            timeout_ms: None,
             planning_complexity: PlanningComplexity::Simple,
             model_iq_requirement: 0,
             experiment_group: None,
@@ -1885,9 +1982,15 @@ async fn register_system_capabilities(indexer: &Arc<axagent_tools::CapabilityInd
             tool_ref: None,
             aliases: Vec::new(),
             steps: Vec::new(),
+            skill_steps: Vec::new(),
             placeholders: Vec::new(),
+            template_body: None,
+            instantiates_to: None,
+            example_instance: None,
             upstream: Vec::new(),
             downstream: Vec::new(),
+            preconditions: Vec::new(),
+            attached_snippets: Vec::new(),
         });
     }
 
@@ -1898,6 +2001,7 @@ async fn register_system_capabilities(indexer: &Arc<axagent_tools::CapabilityInd
         system_passports.len(),
         success
     );
+    system_passports
 }
 
 async fn create_sync_engine(

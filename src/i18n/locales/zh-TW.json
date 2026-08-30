@@ -753,6 +753,8 @@
     "converged": "已收斂",
     "copied": "已複製",
     "copy": "複製",
+    "saveAs": "另存為",
+    "saved": "已儲存",
     "copyConversationId": "複製會話 ID",
     "copyFailed": "複製失敗",
     "copyMarkdown": "複製 Markdown",

@@ -48,6 +48,75 @@ export type InputModality = "text" | "image" | "audio" | "video" | "file";
 /** 规划复杂度（对应后端 PlanningComplexity） */
 export type PlanningComplexity = "simple" | "moderate" | "complex";
 
+/** 执行模式（对应后端 ExecutionMode，snake_case）— 编排器据此决策执行路径 */
+export type ExecutionMode = "sync" | "async" | "streaming";
+
+/** Tool 实现载体类型（对应后端 ImplementationType，snake_case） */
+export type ImplementationType =
+  | "local_function"
+  | "rest_api"
+  | "grpc"
+  | "shell_script"
+  | "mcp"
+  | "tauri_command";
+
+/** Tool 实现契约（对应后端 ToolImplementation，camelCase）— 描述"如何调用" */
+export interface ToolImplementation {
+  /** 实现类型 */
+  implType: ImplementationType;
+  /** 端点（REST/gRPC：URL；本地：模块路径） */
+  endpoint?: string | null;
+  /** HTTP 方法（GET/POST 等，仅 rest_api） */
+  method?: string | null;
+  /** 鉴权方式描述（bearer / api_key / oauth / none） */
+  auth?: string | null;
+  /** 请求体模板（含占位符） */
+  requestTemplate?: string | null;
+  /** 响应解析规则（JSONPath / 正则 / 提取表达式） */
+  responseParser?: string | null;
+}
+
+/** Skill 结构化执行步骤（对应后端 SkillStep，camelCase） */
+export interface SkillStep {
+  /** 步骤 ID（列表内唯一；为空时按索引隐式编号） */
+  stepId?: string;
+  /** 引用的能力 ID（Tool / Skill / Workflow） */
+  capabilityId: string;
+  /** 步骤级参数映射（可选；不填继承上级参数） */
+  params?: Record<string, unknown> | null;
+  /** 可选执行条件（Rhai 表达式或自然语言） */
+  condition?: string | null;
+  /** 错误处理策略（stop=短路 / skip=跳过继续 / fallback=回退能力ID） */
+  onError?: string | null;
+}
+
+/** 能力关系类型（对应后端 RelationshipType，snake_case） */
+export type RelationshipType =
+  | "depends_on"
+  | "uses"
+  | "alternative_to"
+  | "conflicts_with"
+  | "parent_of"
+  | "precedes"
+  | "follows"
+  | "requires_knowledge";
+
+/** 能力关系（对应后端 CapabilityRelationship，camelCase）— 统一能力模型第四层图边 */
+export interface CapabilityRelationship {
+  /** 源能力 ID（如 tool:read_file） */
+  sourceId: string;
+  /** 目标能力 ID */
+  targetId: string;
+  /** 关系类型 */
+  relationshipType: RelationshipType;
+  /** 关系权重（0.0-1.0，检索排序用；默认 1.0） */
+  weight: number;
+  /** 关系描述上下文 */
+  context?: string | null;
+  /** 扩展元信息 */
+  metadata?: Record<string, unknown> | null;
+}
+
 /** 能力等级（对应后端 CapabilityLevel，snake_case）
  *  由护照多维数据派生（规划复杂度 / IQ 需求 / 成功率 / 耗时 / 成本）；
  *  L1/L2 为低等级，可启用进化提升等级。 */
@@ -99,11 +168,23 @@ export interface CapabilityPassportDto {
   capabilityId: string;
   name: string;
   description: string;
+  /** 能力定义版本（语义化，如 "1.2.3"） */
+  version?: string | null;
+  /** 能力所有者（团队/个人标识） */
+  owner?: string | null;
+  /** 创建时间（unix ms） */
+  createdAt?: number | null;
+  /** 最后更新时间（unix ms） */
+  updatedAt?: number | null;
   kind: CapabilityKind;
   domain: CapabilityDomain;
   /** L2 子分类（集群 ID）。kind=agent 时用于区分专家(agent_profile)与角色(agent_role) */
   subCategory?: string;
   inputSchema?: Record<string, unknown> | null;
+  /** 输出结构的 JSON Schema（None = 无固定输出结构） */
+  outputSchema?: Record<string, unknown> | null;
+  /** Tool 实现契约（仅 tool 类能力有效：REST/gRPC/本地函数如何调用） */
+  implementation?: ToolImplementation | null;
   tags: string[];
   negativeScenarios: string[];
   securityLevel: SecurityLevel;
@@ -111,6 +192,10 @@ export interface CapabilityPassportDto {
   outputCapabilities: OutputCapabilities;
   estimatedCostUsd?: number | null;
   avgDurationSeconds?: number | null;
+  /** 执行模式（sync / async / streaming），默认 sync */
+  executionMode: ExecutionMode;
+  /** 单次执行最大超时（毫秒）。null = 未声明（使用引擎默认） */
+  timeoutMs?: number | null;
   planningComplexity: PlanningComplexity;
   modelIqRequirement: number;
   experimentGroup?: string | null;
@@ -130,12 +215,32 @@ export interface CapabilityPassportDto {
   aliases: string[];
   /** 工具链步骤（仅 toolchain 类型有效：按序 capability_id 列表，线性串接、失败短路） */
   steps: string[];
+  /** Skill 结构化执行步骤（仅 skill 类型有效：步骤级参数/条件/错误处理） */
+  skillSteps: SkillStep[];
   /** 模板占位符（仅 template 类型有效：命中后提示"可实例化"，不直接执行） */
   placeholders: PlaceholderDef[];
+  /** 模板正文（仅 template 类型有效：含占位符的模板内容） */
+  templateBody?: string | null;
+  /** 实例化目标类型（仅 template 类型有效：skill / workflow） */
+  instantiatesTo?: CapabilityKind | null;
+  /** 示例实例（仅 template 类型有效：能力 ID 或内联定义，供 LLM 参考） */
+  exampleInstance?: string | null;
   /** 上游依赖能力 ID 列表（关联扩展：检索命中后一跳向上扩展） */
   upstream: string[];
   /** 下游依赖能力 ID 列表（关联扩展：检索命中后一跳向下扩展） */
   downstream: string[];
+  /** 前置条件（P1：Skill preconditions，如 "network_available"；条件检查启用时未满足即过滤） */
+  preconditions: string[];
+  /** 附带知识片段（P2：能力与信息分离，随能力描述注入上下文，不单独执行） */
+  attachedSnippets: KnowledgeSnippet[];
+}
+
+/** 随能力附带的知识片段（P2：如"漏洞扫描"Skill 附带"当前支持的 CVE 编号范围"） */
+export interface KnowledgeSnippet {
+  /** 片段键（如 supported_cve_range） */
+  key: string;
+  /** 片段内容 */
+  content: string;
 }
 
 /** 模板占位符定义（如 {{target_ip}} / {{date_range}}） */
@@ -172,12 +277,17 @@ export interface CapabilityQuery {
   excludeIds: string[];
 }
 
+/** 检索层级（对应后端 CapabilityLayer）：应用层/任务层/原子层（P0 分层检索） */
+export type CapabilityLayer = "app" | "task" | "atomic";
+
 /** 命中的候选能力（对应后端 CapabilityCandidate） */
 export interface CapabilityCandidate {
   capabilityId: string;
   name: string;
   kind: CapabilityKind;
   domain: CapabilityDomain;
+  /** 检索层级（App/Task/Atomic，由 kind 推导） */
+  layer: CapabilityLayer;
   /** 语义相似度得分（0.0-1.0） */
   semanticScore: number;
   /** BM25/关键词匹配得分（0.0-1.0） */
@@ -289,6 +399,20 @@ export interface CapabilityDiscoveryResult {
   circuitInfo?: string | null;
   totalElapsedMs: number;
   phaseTimings: PhaseTiming[];
+  /** 命中的 Template 能力从用户输入提取的实体（P1：语义解析的实体部分） */
+  extractedEntities: CapabilityEntity[];
+}
+
+/** 提取出的能力实体（P1：Template placeholders 从输入提取的值） */
+export interface CapabilityEntity {
+  /** 占位符名（对应 PlaceholderDef.name） */
+  name: string;
+  /** 从输入中提取到的值 */
+  value: string;
+  /** 实体类型（ip / date_range / number / email / url / id） */
+  entityType: string;
+  /** 该占位符的说明 */
+  description?: string;
 }
 
 /** 阶段耗时（对应后端 PhaseTiming） */

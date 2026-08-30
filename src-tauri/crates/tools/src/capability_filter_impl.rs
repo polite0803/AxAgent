@@ -150,6 +150,13 @@ impl CapabilityFilter for CapabilityFilterImpl {
             return FilterDecision::Reject { reason, dimension };
         }
 
+        // 维度十：前提条件匹配（P1：Skill preconditions）
+        if let FilterDecision::Reject { reason, dimension } =
+            self.check_preconditions(passport, ctx).await
+        {
+            return FilterDecision::Reject { reason, dimension };
+        }
+
         FilterDecision::Pass
     }
 }

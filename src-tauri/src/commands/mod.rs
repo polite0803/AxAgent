@@ -38,6 +38,7 @@ pub mod db_config;
 #[cfg(not(mobile))]
 pub mod desktop;
 pub mod device_sync;
+pub mod document_export;
 pub mod dojo_sdk;
 pub mod dream;
 pub mod dynamic_ui;

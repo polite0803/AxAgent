@@ -45,9 +45,10 @@ pub mod v125_heal_stale_schema;
 pub mod v126_create_narrative_structures;
 pub mod v127_capability_stats;
 pub mod v128_capability_policies;
+pub mod v129_capability_relationships;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 128;
+pub const CURRENT_VERSION: i32 = 129;
 
 /// P2-10: Schema 版本追踪表名。
 ///
@@ -224,6 +225,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 128,
         description: "v128_capability_policies: 创建能力发现策略表（排除型规则 JSON），策略对象化——策略从硬编码 8 维闸门扩展为可注册规则（Phase 3）",
         up: |db| Box::pin(v128_capability_policies::up(db)),
+    },
+    Migration {
+        version: 129,
+        description: "v129_capability_relationships: 创建能力关系图谱表（复合主键 source_id+target_id+relationship_type），统一能力模型第四层 CapabilityRelationship 的物化镜像 + 关系元信息载体（P2）",
+        up: |db| Box::pin(v129_capability_relationships::up(db)),
     },
 ];
 

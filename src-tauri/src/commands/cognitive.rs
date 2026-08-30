@@ -47,13 +47,43 @@ use axagent_orchestrator::decomposer::{MissionDecomposer, RuleBasedDecomposer};
 use axagent_runtime::work_engine::{
     RunOptions, SubWorkflowCallback, SubWorkflowLaunch, unwrap_end_envelope,
 };
+use dashmap::DashMap;
 use sea_orm::EntityTrait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::time::Duration;
+use std::sync::LazyLock;
+use std::time::{Duration, Instant};
 use tauri::Emitter;
 use tauri::State;
+
+// ── 多轮短路缓存 ────────────────────────────────────────
+// 首轮完整三层路由，后续轮次复用上一轮的 capability_id + execution_mode，跳过路由。
+// key = conversation_id，value = 上一次成功路由的决策快照。
+// 注意：缓存仅内存（进程生命周期），重启后自然失效。
+#[derive(Clone)]
+struct LastRouteDecision {
+    capability_id: String,
+    execution_mode: String,
+    route_path: String,
+    domain: String,
+    cluster: String,
+    /// 决策时的会话消息数，用于检测用户是否清过会话
+    msg_count: u64,
+    /// 决策时间戳，超时（>10min）自动失效
+    timestamp: Instant,
+}
+
+/// 多轮短路缓存：conversation_id → 上一次路由决策
+static ROUTE_SHORT_CIRCUIT: LazyLock<DashMap<String, LastRouteDecision>> =
+    LazyLock::new(|| DashMap::new());
+
+/// 短路缓存有效期（10 分钟），超过此时间强制重新路由
+const SHORT_CIRCUIT_TTL: Duration = Duration::from_secs(10 * 60);
+
+/// 会话消息数变化阈值：会话消息数与缓存记录差异超过此值时强制重新路由
+/// （用户清空/删除过消息后，上下文已变，不能沿用旧决策）
+const MSG_COUNT_TOLERANCE: u64 = 2;
 
 // ── P1: 任务形态分类器（原则三标尺） ──────────────────────────
 //
@@ -495,9 +525,77 @@ pub async fn cognitive_query(
     let mut retry_count = 0;
     const MAX_RETRIES: usize = MAX_CAPABILITY_GAP_RETRIES;
 
+    // ── 多轮短路前置：在调用 inner 之前检查缓存 ──
+    // 命中条件：mode_hint=auto + 有缓存 + TTL 内 + 消息数未剧变 → 注入 forced_capability_id
+    // 同时保存缓存值，拿到 response 后覆盖 domain/cluster/route_path/execution_mode（forced 路径会把这些
+    // 字段设为空/推断值，不是真实路由决策值）。
+    let mut request = request; // 可变，短路命中时注入 forced_capability_id
+    let shortcut_override: Option<LastRouteDecision> = if request
+        .mode_hint
+        .as_deref()
+        .map_or(true, |m| m.eq_ignore_ascii_case("auto"))
+        && request.forced_capability_id.is_none()
+        && request.conversation_id.is_some()
+    {
+        let conv_id = request.conversation_id.clone().unwrap_or_default();
+        if let Some(cached) = ROUTE_SHORT_CIRCUIT.get(&conv_id) {
+            if cached.timestamp.elapsed() < SHORT_CIRCUIT_TTL && !cached.capability_id.is_empty() {
+                let current_msg_count = axagent_dao::repo::message::get_conversation_stats(
+                    state.harness.db(),
+                    &conv_id,
+                )
+                .await
+                .map(|s| s.total_messages)
+                .unwrap_or(0);
+
+                let msg_diff = (current_msg_count as i64 - cached.msg_count as i64).unsigned_abs();
+                if msg_diff <= MSG_COUNT_TOLERANCE {
+                    tracing::info!(
+                        target: "axagent.cognitive.shortcut",
+                        "⚡ 多轮短路命中 conv_id={} capability_id={} exec_mode={} route_path={} domain={} cluster={} cached_msgs={} current_msgs={} elapsed_ms={}",
+                        conv_id,
+                        cached.capability_id,
+                        cached.execution_mode,
+                        cached.route_path,
+                        cached.domain,
+                        cached.cluster,
+                        cached.msg_count,
+                        current_msg_count,
+                        cached.timestamp.elapsed().as_millis()
+                    );
+                    request.forced_capability_id = Some(cached.capability_id.clone());
+                    Some(cached.clone())
+                } else {
+                    tracing::info!(
+                        target: "axagent.cognitive.shortcut",
+                        "⏭️ 短路跳过（消息数变化 {} > 阈值 {}）conv_id={}",
+                        msg_diff, MSG_COUNT_TOLERANCE, conv_id
+                    );
+                    None
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
     loop {
         match cognitive_query_inner(&app, state.clone(), &request, retry_count).await {
-            Ok(response) => return Ok(response),
+            Ok(mut response) => {
+                // 短路命中后，用缓存的真实路由值覆盖 forced 路径的占位值
+                if let Some(ovr) = &shortcut_override {
+                    response.route_path = ovr.route_path.clone();
+                    response.domain = ovr.domain.clone();
+                    response.cluster = ovr.cluster.clone();
+                    response.execution_mode = ovr.execution_mode.clone();
+                    // confidence 保持 1.0（forced 路径的值，合理）
+                }
+                return Ok(response);
+            },
             Err(e) => {
                 if e.code == axagent_harness::error_codes::cognitive::GAP_PROPOSAL_APPLIED
                     && retry_count < MAX_RETRIES
@@ -1200,6 +1298,39 @@ async fn cognitive_query_inner(
         execution: None,
         task_shape: task_shape_decision.clone(),
     };
+
+    // ── 缓存路由决策（供多轮短路复用）──
+    // 只在有效路由完成时写入：非 Clarify、非 general_ask 降级、有 capability_id
+    if !response.capability_id.is_empty()
+        && mode != ExecutionMode::Clarify
+        && request.conversation_id.is_some()
+    {
+        let conv_id = request.conversation_id.clone().unwrap_or_default();
+        // 查消息数写入缓存
+        let current_msg_count =
+            axagent_dao::repo::message::get_conversation_stats(state.harness.db(), &conv_id)
+                .await
+                .map(|s| s.total_messages)
+                .unwrap_or(0);
+
+        ROUTE_SHORT_CIRCUIT.insert(
+            conv_id.clone(),
+            LastRouteDecision {
+                capability_id: response.capability_id.clone(),
+                execution_mode: mode.as_str().to_string(),
+                route_path: response.route_path.clone(),
+                domain: response.domain.clone(),
+                cluster: response.cluster.clone(),
+                msg_count: current_msg_count,
+                timestamp: Instant::now(),
+            },
+        );
+        tracing::info!(
+            target: "axagent.cognitive.shortcut",
+            "📝 缓存路由决策 conv_id={} capability_id={} exec_mode={} route_path={} msg_count={}",
+            conv_id, response.capability_id, mode.as_str(), response.route_path, current_msg_count
+        );
+    }
 
     // ── 分支执行：按执行模式复用既有执行器 ──
     // 决策标签：为该轮执行生成，Workflow 分支透传给 workflow_execute 持久化，
@@ -2396,6 +2527,132 @@ pub async fn cognitive_decompose_task(
             dependencies: st.dependencies.clone(),
             discovery,
         });
+    }
+
+    Ok(results)
+}
+
+// ── P2：工具链确定性执行器（固定顺序、失败短路） ────────────────
+
+/// 工具链执行的请求
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecuteToolchainRequest {
+    /// Toolchain 能力护照 ID（如 `toolchain:data_pipeline`）
+    pub capability_id: String,
+    /// 每步工具的输入（首步使用；后续步骤透传上一步输出）
+    pub input: String,
+}
+
+/// 单步执行结果
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolchainStepResult {
+    /// 步骤序号（0-based）
+    pub step_index: usize,
+    /// 该步对应的能力 ID
+    pub capability_id: String,
+    /// 该步对应的真实工具名
+    pub tool_name: String,
+    pub success: bool,
+    /// 输出预览（截断前 500 字符）
+    pub output_preview: String,
+}
+
+/// 工具链确定性执行器（P2：固定顺序、失败短路）。
+///
+/// 按护照 `steps` 顺序调用各步骤对应的真实工具（经步骤护照 `tool_ref` →
+/// `UnifiedToolRegistry::execute`，集成权限/Hook/沙箱），步骤间透传输出；
+/// 任一步失败立即短路返回（携带失败步骤与错误），与"Toolchain 线性串接"语义一致。
+#[agent_command(domain = cognitive, safety = Caution, call_mode = StateInput, description = "执行工具链（固定顺序、失败短路）")]
+#[tauri::command]
+pub async fn cognitive_execute_toolchain(
+    state: State<'_, AppState>,
+    request: ExecuteToolchainRequest,
+) -> Result<Vec<ToolchainStepResult>, CommandError> {
+    let toolchain_err = |e: String| {
+        CommandError::new(axagent_harness::error_codes::cognitive::TOOLCHAIN_EXEC_FAILED)
+            .with_category(ErrorCategory::Unrecoverable)
+            .with_detail(e)
+    };
+
+    // 1. 定位护照并校验类型
+    let passport =
+        state.capability_indexer.get_passport(&request.capability_id).await.ok_or_else(|| {
+            CommandError::new(axagent_harness::error_codes::capability::NOT_FOUND)
+                .with_category(ErrorCategory::Unrecoverable)
+                .with_detail(format!("capability '{}' not found", request.capability_id))
+        })?;
+    if passport.kind != CapabilityKind::Toolchain {
+        return Err(toolchain_err(format!(
+            "能力 '{}' 不是 Toolchain 类型（kind={}）",
+            request.capability_id,
+            passport.kind.as_str()
+        )));
+    }
+    if passport.steps.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    // 2. 顺序执行，失败短路；步骤间透传输出
+    let registry = state.local_tool_registry.lock().await;
+    let mut results: Vec<ToolchainStepResult> = Vec::with_capacity(passport.steps.len());
+    let mut current_input = request.input.clone();
+
+    for (idx, step) in passport.steps.iter().enumerate() {
+        let step_passport = state.capability_indexer.get_passport(step).await;
+        let Some(sp) = step_passport else {
+            let preview = format!("步骤 {idx} 能力 '{step}' 未注册");
+            results.push(ToolchainStepResult {
+                step_index: idx,
+                capability_id: step.clone(),
+                tool_name: String::new(),
+                success: false,
+                output_preview: preview.clone(),
+            });
+            return Err(toolchain_err(preview));
+        };
+        let Some(tool_ref) = sp.tool_ref else {
+            let preview = format!("步骤 {idx} 能力 '{step}' 无工具引用（tool_ref）");
+            results.push(ToolchainStepResult {
+                step_index: idx,
+                capability_id: step.clone(),
+                tool_name: String::new(),
+                success: false,
+                output_preview: preview.clone(),
+            });
+            return Err(toolchain_err(preview));
+        };
+
+        match registry.execute(&tool_ref.tool_name, &current_input).await {
+            Ok(res) => {
+                let success = !res.is_error;
+                let output = res.content.clone();
+                results.push(ToolchainStepResult {
+                    step_index: idx,
+                    capability_id: step.clone(),
+                    tool_name: tool_ref.tool_name.clone(),
+                    success,
+                    output_preview: output.chars().take(500).collect(),
+                });
+                if !success {
+                    // 失败短路：记录后终止，返回已执行步骤 + 失败步骤
+                    return Ok(results);
+                }
+                current_input = output;
+            },
+            Err(e) => {
+                let msg = format!("步骤 {idx} 工具 '{}' 执行失败: {e}", tool_ref.tool_name);
+                results.push(ToolchainStepResult {
+                    step_index: idx,
+                    capability_id: step.clone(),
+                    tool_name: tool_ref.tool_name.clone(),
+                    success: false,
+                    output_preview: msg.clone(),
+                });
+                return Err(toolchain_err(msg));
+            },
+        }
     }
 
     Ok(results)

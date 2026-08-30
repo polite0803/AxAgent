@@ -661,10 +661,13 @@ pub mod capability;
 pub use capability::{
     CallerPermissions, CapabilityDomain, CapabilityEvolvability, CapabilityExposure,
     CapabilityKind, CapabilityLevel, CapabilityPassport, CapabilityPassportDto, CapabilitySource,
-    CapabilityStats, CapabilityToolRef, DiscoveryWeights, InputModality, ModalitySupport,
-    OutputCapabilities, PlaceholderDef, PlanningComplexity, SecurityLevel, SessionBudget,
-    Visibility,
+    CapabilityStats, CapabilityToolRef, DiscoveryWeights, InputModality, KnowledgeSnippet,
+    ModalitySupport, OutputCapabilities, PlaceholderDef, PlanningComplexity, SecurityLevel,
+    SessionBudget, Visibility,
 };
+/// 轻量实体抽取器（P1：语义解析的实体部分，无 LLM）
+pub mod entity_extractor;
+pub use entity_extractor::CapabilityEntity;
 pub mod capability_indexer;
 pub use capability_indexer::{
     CAPABILITY_COLLECTION, CAPABILITY_NEGATIVE_COLLECTION, CapabilityIndexStats, CapabilityIndexer,
@@ -672,7 +675,8 @@ pub use capability_indexer::{
 };
 pub mod capability_retriever;
 pub use capability_retriever::{
-    CapabilityCandidate, CapabilityQuery, CapabilityRetrievalResult, CapabilityRetriever,
+    CapabilityCandidate, CapabilityLayer, CapabilityQuery, CapabilityRetrievalResult,
+    CapabilityRetriever,
 };
 pub mod capability_filter;
 pub use capability_filter::{

@@ -76,6 +76,7 @@ pub mod agent_sessions;
 
 // Wave 3: Atomic Skill & Work Engine entities
 pub mod capability_policies;
+pub mod capability_relationships;
 pub mod capability_stats;
 pub mod generated_tools;
 pub mod workflow_approvals;
