@@ -331,13 +331,22 @@ impl Skill {
         self.updated_at = Utc::now();
     }
 
+    /// 技能转 ChatTool 定义。
+    ///
+    /// 描述后附一句展开指引：工具定义只带 frontmatter 一句话，完整 SOP 在 `content` 里 ——
+    /// 不告诉 LLM 怎么看到正文，它就只能凭一句描述盲调（信息黑盒）。
+    /// 指引必须保持一行内：本函数对**每个**技能各调用一次，把 `content` 直接塞进定义会按技能数放大 token。
     pub fn to_tool_definition(&self) -> ChatTool {
         let parameters = self.generate_tool_parameters();
+        let description = format!(
+            "{}（完整步骤未展开；先调 SkillView 传 skill=\"{}\" 查看 SOP 再执行）",
+            self.description, self.name
+        );
         ChatTool {
             r#type: "function".to_string(),
             function: ChatToolFunction {
                 name: format!("skill_{}", self.name.replace(' ', "_").to_lowercase()),
-                description: Some(self.description.clone()),
+                description: Some(description),
                 parameters: Some(parameters),
             },
         }

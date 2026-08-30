@@ -1092,6 +1092,9 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     // 转为 trait 对象供 Retriever 使用
     let capability_indexer_trait: Arc<dyn axagent_harness::CapabilityIndexer> =
         capability_indexer_impl.clone();
+    // 注入 CapabilityView（渐进式披露 L1 定义层）— 必须在索引器构造之后，
+    // 早期 init_extensions 调用点（本文件上方）索引器尚不存在。
+    axagent_tools::tools::capability_view::set_capability_indexer(capability_indexer_trait.clone());
     let capability_retriever = Arc::new(axagent_tools::CapabilityRetrieverImpl::new(
         vector_store_arc.clone(),
         embedding_provider.clone(),
@@ -1449,6 +1452,7 @@ async fn register_all_capabilities(
                     capability_id: format!("skill:{}", meta.name),
                     name: meta.name.clone(),
                     description: meta.description.clone(),
+                    summary: None,
                     kind: CapabilityKind::Skill,
                     version: None,
                     owner: None,
@@ -1546,6 +1550,7 @@ async fn register_all_capabilities(
                     capability_id: format!("agent:{}", p.id),
                     name: p.name.clone(),
                     description: p.description.clone().unwrap_or_default(),
+                    summary: None,
                     kind: axagent_harness::CapabilityKind::Agent,
                     version: None,
                     owner: None,
@@ -1664,6 +1669,7 @@ async fn register_all_capabilities(
                     capability_id: format!("agent_role:{}", r.id),
                     name: r.name.clone(),
                     description: r.description.clone().unwrap_or_default(),
+                    summary: None,
                     kind: axagent_harness::CapabilityKind::Agent,
                     version: None,
                     owner: None,
@@ -1821,6 +1827,7 @@ async fn register_system_capabilities(
             name: "认知路由编排器".to_string(),
             description: "三层路由编排器（L1域→L2簇→L3能力），负责将用户查询路由到正确的能力"
                 .to_string(),
+            summary: None,
             kind: CapabilityKind::Workflow,
             version: None,
             owner: None,
@@ -1876,6 +1883,7 @@ async fn register_system_capabilities(
             name: "分层Prompt引擎".to_string(),
             description: "按Domain/Cluster/Capability/Context四层注入Prompt片段，支持Token预算管理"
                 .to_string(),
+            summary: None,
             kind: CapabilityKind::Tool,
             version: None,
             owner: None,
@@ -1948,6 +1956,7 @@ async fn register_system_capabilities(
             capability_id: format!("system:self_evolution:{suffix}"),
             name: name.to_string(),
             description: description.to_string(),
+            summary: None,
             kind: CapabilityKind::Tool,
             version: None,
             owner: None,

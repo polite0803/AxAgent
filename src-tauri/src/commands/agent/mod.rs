@@ -26,7 +26,7 @@ use axagent_runtime_core::execution_progress::AgentExecutionProgressSnapshot;
 use axagent_storage::cloud_workspace::CloudWorkspace;
 use axagent_storage::workspace_uri::WorkspaceUri;
 use axagent_tools::context_keys;
-use axagent_tools::registry::{McpServerConfig, UnifiedToolRegistry};
+use axagent_tools::registry::{DISCLOSURE_TOOLS, McpServerConfig, UnifiedToolRegistry};
 use base64::Engine;
 use dashmap::DashMap;
 use sea_orm::EntityTrait;
@@ -55,6 +55,8 @@ use skill_execution::{
     load_enabled_skill_contents, load_skill_tools,
 };
 
+/// 渐进式披露 L0 索引层：把能力护照渲染成轻量目录注入系统提示
+mod capability_index;
 pub mod command_bridge;
 use command_bridge::{
     CommandCache, CommandRegistry, build_chat_tools as build_tauri_command_chat_tools,
@@ -1095,11 +1097,17 @@ pub async fn agent_query(
     // 只有直连 agent（execution_mode=None）才全量塞工具
     let unified_chat_tools: Vec<ChatTool> = if request.execution_mode.is_some() {
         info!(
-            "[agent] execution_mode={:?} — 认知编排执行阶段跳过 built-in tools 收集 ({} domains)",
+            "[agent] execution_mode={:?} — 认知编排执行阶段仅放行渐进式披露工具 ({} domains)",
             request.execution_mode,
             active_domains.len()
         );
-        Vec::new()
+        // 按名字点名放行，不能按域放行：披露工具挂在 General 域下，
+        // 而该域含 Bash / FileWrite / FileEdit / DeleteFile 等写操作工具。
+        tool_registry
+            .get_chat_tools_by_names(DISCLOSURE_TOOLS.iter().copied())
+            .into_iter()
+            .filter(|t| !disabled_set.contains(&t.function.name))
+            .collect()
     } else {
         tool_registry
             .get_chat_tools_for_domains(&active_domains, None)
@@ -1490,18 +1498,12 @@ pub async fn agent_query(
         let blocked_names: HashSet<String> = profile_disallowed_tools.into_iter().collect();
         // blocked: 从 domain 结果中移除
         chat_tools.retain(|t| !blocked_names.contains(&t.function.name));
-        // extra: 从注册表 ToolInfo 列表匹配并追加完整 schema
-        let all_info = tool_registry.tools.list_all();
-        for info in &all_info {
-            if extra_names.contains(&info.name) && !existing_names.contains(&info.name) {
-                chat_tools.push(ChatTool {
-                    r#type: "function".into(),
-                    function: ChatToolFunction {
-                        name: info.name.clone(),
-                        description: Some(info.description.clone()),
-                        parameters: Some(info.input_schema.clone()),
-                    },
-                });
+        // extra: 按名字从注册表取完整 schema（复用 registry 的统一实现）
+        let extra_schemas =
+            tool_registry.get_chat_tools_by_names(extra_names.iter().map(String::as_str));
+        for t in extra_schemas {
+            if !existing_names.contains(&t.function.name) {
+                chat_tools.push(t);
             }
         }
     }
@@ -1841,6 +1843,25 @@ pub async fn agent_query(
             request.execution_mode
         );
     }
+
+    // ── 注入能力目录（渐进式披露 L0 索引层）──
+    // 主动（认知编排执行）与被动模式口径一致：都只注入「所有可发现能力」的轻量摘要目录，
+    // 完整定义（入参 schema / SOP / 前置条件）由 LLM 自行调 CapabilityView 按需展开。
+    // 改造前主动模式此处完全空白 —— LLM 既看不到目录也无从选择，能力信息全由路由器代劳。
+    let capability_passports = app_state.capability_indexer.list_passports().await;
+    let capability_index = capability_index::build_capability_index_string(
+        &capability_passports,
+        capability_index::CAPABILITY_INDEX_TOKEN_BUDGET,
+    );
+    info!(
+        "[agent] capability-index injected: {} passports, {} tokens (execution_mode: {:?})",
+        capability_passports.len(),
+        axagent_harness::util_fns::estimate_tokens(&capability_index),
+        request.execution_mode
+    );
+    system_prompt.push(format!(
+        "<capability-index data-axagent=\"1\">\n{capability_index}\n</capability-index>"
+    ));
 
     // ── 注入认知编排模式（可选）──
     // 当 agent 由认知编排器（Ask/Act/Delegate）触发时，透传当前编排模式使 agent 运行时

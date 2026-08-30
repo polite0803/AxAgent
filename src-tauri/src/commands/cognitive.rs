@@ -1605,17 +1605,34 @@ async fn cognitive_query_inner(
             // - Tool：tool_ref 单数 → extra_tools
             // - Toolchain：steps 展开为各步骤真实工具 → extra_tools（遗留②：agent 拿到组合按序编排）
             // - Skill：按名加载 → extra_skills（遗留①：需注册 handler 才能执行，不能只注 schema）
-            // Managed 暴露模式不注入，避免元能力回灌。
+            //
+            // `CapabilityExposure` 三态语义（此前只判 Managed，Auto/OnDemand 走同一分支）：
+            // - Auto：路由器命中即把定义注入 —— 编排器替 LLM 做完披露，适合必然要用上的能力。
+            // - OnDemand：不注入。能力已在 <capability-index> 目录里露出摘要，由 LLM 自己
+            //   调 CapabilityView 展开定义后再驱动 —— 披露的主动权交给 LLM，省 schema token。
+            // - Managed：不注入，且属元能力，不得回灌给 LLM 上下文。
             let (orchestration_tools, orchestration_skills): (
                 Option<Vec<String>>,
                 Option<Vec<String>>,
             ) = if !response.capability_id.is_empty() {
                 let passport = state.capability_indexer.get_passport(&response.capability_id).await;
                 match passport {
-                    Some(p)
-                        if !matches!(p.exposure, axagent_harness::CapabilityExposure::Managed) =>
-                    {
-                        match p.kind {
+                    Some(p) => match p.exposure {
+                        axagent_harness::CapabilityExposure::OnDemand => {
+                            tracing::info!(
+                                capability_id = %p.capability_id,
+                                "🧭 [exposure] OnDemand：跳过定义注入，交由 LLM 经 CapabilityView 按需展开"
+                            );
+                            (None, None)
+                        },
+                        axagent_harness::CapabilityExposure::Managed => {
+                            tracing::debug!(
+                                capability_id = %p.capability_id,
+                                "🧭 [exposure] Managed：元能力不回灌，仅保留路由结论"
+                            );
+                            (None, None)
+                        },
+                        axagent_harness::CapabilityExposure::Auto => match p.kind {
                             axagent_harness::CapabilityKind::Skill => {
                                 let name = p
                                     .capability_id
@@ -1644,7 +1661,7 @@ async fn cognitive_query_inner(
                                 let tools = p.tool_ref.map(|r| vec![r.tool_name]);
                                 (tools, None)
                             },
-                        }
+                        },
                     },
                     _ => (None, None),
                 }

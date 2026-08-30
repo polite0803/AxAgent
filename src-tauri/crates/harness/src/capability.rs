@@ -827,6 +827,17 @@ pub trait CapabilityPassport: Send + Sync {
         ""
     }
 
+    /// 一句话摘要（渐进式披露 L0 索引层专用）。
+    ///
+    /// 与 [`Self::description`] 的分工：`description` 面向语义检索，可以写得很长；
+    /// `summary` 面向「注入系统提示的能力目录」，必须一行内。二者分离才不必为了
+    /// 目录而砍检索语料，也不必把长描述整段塞进系统提示。
+    ///
+    /// 返回 `None` = 未声明，索引层回退为截断 `description`。
+    fn summary(&self) -> Option<String> {
+        None
+    }
+
     /// 能力类型
     fn kind(&self) -> CapabilityKind {
         CapabilityKind::Tool
@@ -988,6 +999,7 @@ pub trait CapabilityPassport: Send + Sync {
             capability_id: self.capability_id(),
             name: self.name().to_string(),
             description: self.description().to_string(),
+            summary: self.summary(),
             version: self.version(),
             owner: self.owner(),
             created_at: None,
@@ -1046,6 +1058,9 @@ pub struct CapabilityPassportDto {
     pub capability_id: String,
     pub name: String,
     pub description: String,
+    /// 一句话摘要（渐进式披露 L0 索引层）。None = 未声明，目录回退截断 `description`。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub summary: Option<String>,
     /// 能力定义版本（语义化，如 "1.2.3"）。None = 未声明。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
@@ -1269,6 +1284,7 @@ impl Default for CapabilityPassportDto {
             capability_id: String::new(),
             name: String::new(),
             description: String::new(),
+            summary: None,
             version: None,
             owner: None,
             created_at: None,
@@ -1320,6 +1336,16 @@ impl CapabilityPassportDto {
     /// 是否为系统专用能力（不可被用户发现）
     pub fn is_system_only(&self) -> bool {
         self.visibility.is_system_only() || self.domain.is_system()
+    }
+
+    /// 是否可作为内容交给 LLM 上下文（能力目录与定义层展开共用同一判据）。
+    ///
+    /// 比 [`Self::is_system_only`] 更严：`PrivilegedOnly` / `Hidden` 同样不得进入
+    /// 系统提示 —— 把能力名交给模型属比检索更宽的危险面。
+    /// 索引层（wiring 渲染目录）与定义层（`CapabilityView` 展开）必须共用此方法，
+    /// 否则两处过滤条件会各自漂移，隔离口径被静默放宽。
+    pub fn is_user_visible(&self) -> bool {
+        self.enabled && self.visibility.is_discoverable() && !self.domain.is_system()
     }
 
     /// 是否可被指定角色调用

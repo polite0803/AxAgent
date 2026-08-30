@@ -11,6 +11,7 @@ pub mod arxiv_scanner;
 pub mod bash;
 pub mod batch_missing;
 pub mod browser;
+pub mod capability_view;
 pub mod ci;
 #[cfg(feature = "computer-use")]
 pub mod computer_use;
@@ -114,6 +115,8 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
         std::sync::Arc::new(skill::SkillsListTool),
         std::sync::Arc::new(skill::SkillViewTool),
         std::sync::Arc::new(skill::SkillReferenceTool),
+        // ── 能力渐进式披露 L1：定义层按需展开（面向护照全集，与 SkillView 互补）──
+        std::sync::Arc::new(capability_view::CapabilityViewTool),
         std::sync::Arc::new(skill::SkillBundleListTool),
         std::sync::Arc::new(skill::SkillBundleCreateTool),
         std::sync::Arc::new(skill::SkillBundleLoadTool),

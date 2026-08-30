@@ -168,6 +168,8 @@ export interface CapabilityPassportDto {
   capabilityId: string;
   name: string;
   description: string;
+  /** 一句话摘要（渐进式披露 L0 能力目录）。缺省时目录回退截断 description */
+  summary?: string | null;
   /** 能力定义版本（语义化，如 "1.2.3"） */
   version?: string | null;
   /** 能力所有者（团队/个人标识） */

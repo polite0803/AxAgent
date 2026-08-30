@@ -405,6 +405,17 @@ pub fn tools_to_openai_format(tools: &[ToolInfo]) -> serde_json::Value {
 
 // McpServerConfig / McpToolConfig 已迁移至 mcp_manager 模块
 
+/// 渐进式披露工具白名单（L0 索引层 + L1 定义层）。
+///
+/// 认知编排执行阶段（`execution_mode=Some`）会跳过全量 built-in tools 收集，
+/// 但 LLM 仍需自主完成「查看目录 → 展开定义」的按需披露，故按名字点名放行这几个。
+///
+/// 之所以必须按名放行而非按域放行：这组工具的 `domain` 是 `General`，而 `General`
+/// 域下含 `Bash` / `FileWrite` / `FileEdit` / `DeleteFile` 等写操作工具，
+/// 加域进 `active_domains` 等于把危险操作一并暴露给编排执行阶段。
+pub const DISCLOSURE_TOOLS: [&str; 5] =
+    ["SkillsList", "SkillView", "SkillReference", "DiscoverSkills", "CapabilityView"];
+
 /// 完整的统一工具注册表
 pub struct UnifiedToolRegistry {
     /// Tool trait 实现的工具（原生 + 已迁移旧工具）
@@ -774,6 +785,37 @@ impl UnifiedToolRegistry {
                 });
             }
         }
+        out
+    }
+
+    /// 按名字白名单点名放行工具，返回完整 schema。
+    ///
+    /// 与 `get_chat_tools_for_domains` 的区别：不做领域过滤，只认名字。
+    /// 认知编排执行阶段需要披露工具，但绝不能按 `General` 域放行 ——
+    /// 那会把 `Bash` / `FileWrite` 等写操作一并暴露给编排阶段。
+    ///
+    /// 输出按名字排序，避免 `HashSet` / `HashMap` 迭代顺序导致 system prompt 抖动。
+    pub fn get_chat_tools_by_names<'a, I>(&self, names: I) -> Vec<axagent_harness::types::ChatTool>
+    where
+        I: IntoIterator<Item = &'a str>,
+    {
+        let wanted: HashSet<&str> = names.into_iter().collect();
+        let mut out: Vec<axagent_harness::types::ChatTool> = self
+            .tools
+            .list_all()
+            .into_iter()
+            .filter(|info| wanted.contains(info.name.as_str()))
+            .filter(|info| self.groups.is_tool_enabled(info))
+            .map(|info| axagent_harness::types::ChatTool {
+                r#type: "function".into(),
+                function: axagent_harness::types::ChatToolFunction {
+                    name: info.name.clone(),
+                    description: Some(info.description.clone()),
+                    parameters: Some(info.input_schema.clone()),
+                },
+            })
+            .collect();
+        out.sort_unstable_by(|a, b| a.function.name.cmp(&b.function.name));
         out
     }
 
@@ -1945,6 +1987,48 @@ mod tests {
         assert_eq!(cleaned, 1, "测试：全量清理应返回清理数量");
         assert_eq!(registry.effects_len(), 0);
         assert!(registry.runtime_tool_sources().get(name).is_none());
+    }
+
+    /// 渐进式披露白名单安全护栏：按名放行只得到披露工具，绝不泄露写操作。
+    ///
+    /// 认知编排执行阶段若改用「把 `General` 域加进 active_domains」来放行披露工具，
+    /// 该域下 140+ 个工具（含下列危险写操作）会一并暴露给编排阶段。
+    /// 本测试就是守住这条线的回归闸门。
+    #[test]
+    fn disclosure_tools_whitelist_never_leaks_write_tools() {
+        let registry = UnifiedToolRegistry::new();
+        let tools = registry.get_chat_tools_by_names(DISCLOSURE_TOOLS.iter().copied());
+        let names: HashSet<String> = tools.into_iter().map(|t| t.function.name).collect();
+
+        for wanted in DISCLOSURE_TOOLS {
+            assert!(
+                names.contains(wanted),
+                "测试：白名单工具 {} 应从注册表取到完整 schema，实际取到 {:?}",
+                wanted,
+                names
+            );
+        }
+
+        // 先证明危险工具确实挂在 General 域下 —— 这是「必须按名放行」这一设计的前提。
+        // 若有人改用 get_chat_tools_for_domains 放行披露工具，下面这条按域取到的集合
+        // 会原样暴露给认知编排执行阶段。
+        let general_domains: HashSet<ToolDomain> = [ToolDomain::General].into_iter().collect();
+        let domain_names: HashSet<String> = registry
+            .get_chat_tools_for_domains(&general_domains, None)
+            .into_iter()
+            .map(|t| t.function.name)
+            .collect();
+
+        let dangerous = ["Bash", "FileWrite", "FileEdit", "DeleteFile", "Agent", "DelegateTask"];
+
+        for name in dangerous {
+            assert!(
+                domain_names.contains(name),
+                "测试：{} 应挂在 General 域下（按域放行会泄露它）；若已移出该域，请同步复核本护栏",
+                name
+            );
+            assert!(!names.contains(name), "测试：按名放行不得泄露危险写操作工具 {}", name);
+        }
     }
 }
 
