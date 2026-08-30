@@ -76,7 +76,7 @@ struct LastRouteDecision {
 
 /// 多轮短路缓存：conversation_id → 上一次路由决策
 static ROUTE_SHORT_CIRCUIT: LazyLock<DashMap<String, LastRouteDecision>> =
-    LazyLock::new(|| DashMap::new());
+    LazyLock::new(DashMap::new);
 
 /// 短路缓存有效期（10 分钟），超过此时间强制重新路由
 const SHORT_CIRCUIT_TTL: Duration = Duration::from_secs(10 * 60);
@@ -533,7 +533,7 @@ pub async fn cognitive_query(
     let shortcut_override: Option<LastRouteDecision> = if request
         .mode_hint
         .as_deref()
-        .map_or(true, |m| m.eq_ignore_ascii_case("auto"))
+        .is_none_or(|m| m.eq_ignore_ascii_case("auto"))
         && request.forced_capability_id.is_none()
         && request.conversation_id.is_some()
     {
