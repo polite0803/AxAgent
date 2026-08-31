@@ -260,6 +260,32 @@ pub fn unwrap_end_envelope(value: &serde_json::Value) -> serde_json::Value {
     }
 }
 
+/// 从各轮输出中构建共识结果（取最后一轮各 step 输出作为 entries）。
+pub(crate) fn build_round_consensus(
+    round_outputs: &[std::collections::HashMap<String, serde_json::Value>],
+) -> serde_json::Value {
+    if let Some(last_round) = round_outputs.last() {
+        let entries: Vec<serde_json::Value> = last_round
+            .iter()
+            .map(|(step_id, output)| {
+                serde_json::json!({
+                    "agent": step_id,
+                    "output": output,
+                })
+            })
+            .collect();
+        serde_json::json!({
+            "entries": entries,
+            "total_rounds": round_outputs.len(),
+        })
+    } else {
+        serde_json::json!({
+            "entries": [],
+            "total_rounds": 0,
+        })
+    }
+}
+
 #[cfg(test)]
 mod end_envelope_tests {
     use super::unwrap_end_envelope;
@@ -303,31 +329,5 @@ mod end_envelope_tests {
             "source": "l3_result",
         });
         assert_eq!(unwrap_end_envelope(&envelope), envelope);
-    }
-}
-
-/// 从各轮输出中构建共识结果（取最后一轮各 step 输出作为 entries）。
-pub(crate) fn build_round_consensus(
-    round_outputs: &[std::collections::HashMap<String, serde_json::Value>],
-) -> serde_json::Value {
-    if let Some(last_round) = round_outputs.last() {
-        let entries: Vec<serde_json::Value> = last_round
-            .iter()
-            .map(|(step_id, output)| {
-                serde_json::json!({
-                    "agent": step_id,
-                    "output": output,
-                })
-            })
-            .collect();
-        serde_json::json!({
-            "entries": entries,
-            "total_rounds": round_outputs.len(),
-        })
-    } else {
-        serde_json::json!({
-            "entries": [],
-            "total_rounds": 0,
-        })
     }
 }

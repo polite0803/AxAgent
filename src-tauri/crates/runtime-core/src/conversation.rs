@@ -194,6 +194,13 @@ pub struct ConversationRuntime<C, T> {
     progress: Option<Arc<AgentExecutionProgress>>,
     /// 动态上下文注入器列表（每次 LLM 调用前执行）。
     context_contributors: Vec<Box<dyn ContextContributor>>,
+    /// 前端对话 ID。此前 `ContextRequest.conversation_id` 恒为 `None`，
+    /// 注入器拿不到会话维度，无法读取会话状态 —— 这是注入管线长期空转的原因之一。
+    conversation_id: Option<String>,
+    /// Agent 作用域，透传给注入器以支持多 Agent 隔离（None = 单 Agent 场景）。
+    agent_id: Option<String>,
+    /// 运行时动态工具集（`CapabilityLoad` 激活的工具，每次 LLM 调用前合并进请求）。
+    dynamic_tools: Option<axagent_harness::DynamicToolSet>,
     /// Nudge 上下文行（从 NudgeService 提取，每次 run_turn 前设置）。
     nudge_lines: Vec<String>,
     /// 系统级指令（persona 等），注入到每次 LLM 调用的 system_prompt。
@@ -260,6 +267,9 @@ where
             pause_state: None,
             progress: None,
             context_contributors: Vec::new(),
+            conversation_id: None,
+            agent_id: None,
+            dynamic_tools: None,
             nudge_lines: Vec::new(),
             system_directives: Vec::new(),
             error_recovery_enabled: feature_config.error_recovery_enabled,
@@ -341,6 +351,30 @@ where
         self
     }
 
+    /// 设置前端对话 ID，透传给注入器（会话状态读取的必要维度）。
+    #[must_use]
+    pub fn with_conversation_id(mut self, conversation_id: impl Into<String>) -> Self {
+        self.conversation_id = Some(conversation_id.into());
+        self
+    }
+
+    /// 设置 Agent 作用域，透传给注入器（多 Agent 隔离）。
+    #[must_use]
+    pub fn with_agent_id(mut self, agent_id: impl Into<String>) -> Self {
+        self.agent_id = Some(agent_id.into());
+        self
+    }
+
+    /// 设置运行时动态工具集。
+    ///
+    /// `CapabilityLoad` 在循环内激活的工具定义经此合并进下一次 LLM 请求；
+    /// 不设置则加载只落状态，模型侧看不到新工具。
+    #[must_use]
+    pub fn with_dynamic_tools(mut self, set: axagent_harness::DynamicToolSet) -> Self {
+        self.dynamic_tools = Some(set);
+        self
+    }
+
     /// 设置 PluginHook 链（如 MultiAgentTriggerHook），在 LLM/工具调用前后执行钩子。
     #[must_use]
     pub fn with_hook_chain(mut self, hook_chain: Arc<HookChain>) -> Self {
@@ -361,10 +395,50 @@ where
         self
     }
 
+    /// 取当前已激活的动态工具快照(`CapabilityLoad` 在循环内追加的能力)。
+    ///
+    /// 每次请求前重新取,因此 Agent 在上一轮工具调用里加载的能力,
+    /// 下一次 LLM 调用即可发起 function call —— 无需等到下一轮会话。
+    fn dynamic_tools_snapshot(&self) -> Vec<axagent_harness::types::ChatTool> {
+        self.dynamic_tools.as_ref().map(|s| s.snapshot()).unwrap_or_default()
+    }
+
     /// 准备发送给 LLM 的请求消息:先 L2 Microcompact 去重,再 L1 Snip 截断超长 ToolResult。
     ///
     /// 此方法不修改 session 自身,仅产生请求副本。
     /// 顺序:Microcompact(去重) → Snip(单条截断),避免对占位符做截断。
+    /// 执行全部动态上下文注入器，返回待注入的文本块。
+    ///
+    /// 注入器是 async 的（要读会话状态），而本轮循环是同步的 —— 用
+    /// [`drive_sync`] 原地驱动。注入失败不影响主流程，只跳过该块。
+    fn run_context_contributors(&self) -> Vec<String> {
+        if self.context_contributors.is_empty() {
+            return Vec::new();
+        }
+        let ctx_req = ContextRequest {
+            session_id: &self.session.session_id,
+            conversation_id: self.conversation_id.as_deref(),
+            agent_id: self.agent_id.as_deref(),
+            system_prompt: &self.system_prompt,
+            extras: &Default::default(),
+        };
+        drive_sync(async {
+            let mut blocks = Vec::new();
+            for contributor in &self.context_contributors {
+                match contributor.contribute(&ctx_req).await {
+                    Some(block) => blocks.push(block),
+                    None => {
+                        tracing::debug!(
+                            contributor = contributor.name(),
+                            "动态上下文注入器本轮无内容"
+                        );
+                    },
+                }
+            }
+            blocks
+        })
+    }
+
     fn prepare_request_messages(&self) -> Vec<ConversationMessage> {
         let mc_config = crate::microcompact::MicrocompactConfig::default();
         let snip_config = crate::snip::SnipConfig::default();
@@ -379,12 +453,7 @@ where
     where
         F: std::future::Future<Output = H>,
     {
-        match tokio::runtime::Handle::try_current() {
-            // 生产路径：处于 tokio runtime 上下文，原地阻塞驱动 future（保持既有行为）。
-            Ok(handle) => tokio::task::block_in_place(|| handle.block_on(f)),
-            // 同步测试路径：无 runtime 上下文，直接驱动 future 完成。
-            Err(_) => futures::executor::block_on(f),
-        }
+        drive_sync(f)
     }
 
     fn run_pre_tool_use_hook(
@@ -621,20 +690,7 @@ where
             let mut system_prompt = self.system_prompt.clone();
 
             // 执行动态上下文注入器（先收集后注入，避免借用冲突）
-            let mut extra_blocks: Vec<String> = Vec::new();
-            if !self.context_contributors.is_empty() {
-                let ctx_req = ContextRequest {
-                    session_id: &self.session.session_id,
-                    conversation_id: None,
-                    system_prompt: &self.system_prompt,
-                    extras: &Default::default(),
-                };
-                for contributor in &self.context_contributors {
-                    if let Some(block) = contributor.contribute(&ctx_req) {
-                        extra_blocks.push(block);
-                    }
-                }
-            }
+            let extra_blocks = self.run_context_contributors();
             system_prompt.extend(extra_blocks);
 
             // 注入系统级指令（persona 等）：位于 nudge 之前、用户内容之外。
@@ -668,7 +724,11 @@ where
                 }
             }
 
-            let request = ApiRequest { system_prompt, messages: self.prepare_request_messages() };
+            let request = ApiRequest {
+                system_prompt,
+                messages: self.prepare_request_messages(),
+                extra_tools: self.dynamic_tools_snapshot(),
+            };
             let events = match self.api_client.stream(request) {
                 Ok(events) => events,
                 Err(error) => {
@@ -697,6 +757,7 @@ where
                                 let retry_request = ApiRequest {
                                     system_prompt: self.system_prompt.clone(),
                                     messages: self.prepare_request_messages(),
+                                    extra_tools: self.dynamic_tools_snapshot(),
                                 };
                                 match self.api_client.stream(retry_request) {
                                     Ok(events) => events,
@@ -761,6 +822,7 @@ where
                                     let retry_request = ApiRequest {
                                         system_prompt: self.system_prompt.clone(),
                                         messages: self.prepare_request_messages(),
+                                        extra_tools: self.dynamic_tools_snapshot(),
                                     };
                                     match self.api_client.stream(retry_request) {
                                         Ok(events) => break events,
@@ -1511,6 +1573,23 @@ where
     }
 }
 
+/// 在同步上下文中驱动一个 future 完成。
+///
+/// 本模块的 ReAct 循环是同步的（`ApiClient::stream` / `ToolExecutor::execute`
+/// 均为同步 trait），但部分扩展点是 async 的：HookChain、以及需要读会话状态的
+/// 上下文注入器。统一由本函数桥接，两种运行时形态都覆盖：
+///
+/// - **生产路径**（多线程 runtime）：`block_in_place` 通知 tokio 把其他任务
+///   迁走，再 `block_on` —— 与 `AxAgentApiClient::stream` 的处理一致。
+/// - **同步测试路径**（无 runtime 上下文）：`futures::executor::block_on`
+///   直接驱动，避免 `block_in_place` 在无 runtime 时 panic。
+fn drive_sync<F: std::future::Future>(f: F) -> F::Output {
+    match tokio::runtime::Handle::try_current() {
+        Ok(handle) => tokio::task::block_in_place(|| handle.block_on(f)),
+        Err(_) => futures::executor::block_on(f),
+    }
+}
+
 /// Reads the automatic compaction threshold from the environment.
 #[must_use]
 pub fn auto_compaction_threshold_from_env() -> u32 {
@@ -1879,6 +1958,14 @@ pub struct ConversationRuntimeFactoryArgs {
     pub hook_chain: Option<Arc<HookChain>>,
     pub skill_evolution_hook: Option<Arc<dyn SkillEvolutionHook>>,
     pub pause_state: Option<Arc<PauseState>>,
+    /// 前端对话 ID —— 透传给注入器用于读取会话状态。
+    pub conversation_id: Option<String>,
+    /// Agent 作用域 —— 透传给注入器用于多 Agent 隔离。
+    pub agent_id: Option<String>,
+    /// 运行时动态工具集 —— `CapabilityLoad` 激活的工具经此进入每轮请求。
+    pub dynamic_tools: Option<axagent_harness::DynamicToolSet>,
+    /// 动态上下文注入器 —— 每次 LLM 调用前执行，产出待注入文本块。
+    pub context_contributors: Vec<Box<dyn ContextContributor>>,
 }
 
 impl ConversationRuntimeFactoryArgs {
@@ -1903,6 +1990,10 @@ impl ConversationRuntimeFactoryArgs {
             hook_chain: None,
             skill_evolution_hook: None,
             pause_state: None,
+            conversation_id: None,
+            agent_id: None,
+            dynamic_tools: None,
+            context_contributors: Vec::new(),
         }
     }
 
@@ -1932,6 +2023,30 @@ impl ConversationRuntimeFactoryArgs {
         self.pause_state = Some(pause_state);
         self
     }
+
+    #[must_use]
+    pub fn with_conversation_id(mut self, conversation_id: impl Into<String>) -> Self {
+        self.conversation_id = Some(conversation_id.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_agent_id(mut self, agent_id: impl Into<String>) -> Self {
+        self.agent_id = Some(agent_id.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_dynamic_tools(mut self, set: axagent_harness::DynamicToolSet) -> Self {
+        self.dynamic_tools = Some(set);
+        self
+    }
+
+    #[must_use]
+    pub fn with_context_contributor(mut self, contributor: Box<dyn ContextContributor>) -> Self {
+        self.context_contributors.push(contributor);
+        self
+    }
 }
 
 /// 构造一个 ConversationRuntime 并返回 Box<dyn ConversationRuntimeHost>。
@@ -1955,6 +2070,18 @@ pub fn create_conversation_runtime(
     }
     if let Some(ps) = args.pause_state {
         rt = rt.with_pause_state(ps);
+    }
+    if let Some(cid) = args.conversation_id {
+        rt = rt.with_conversation_id(cid);
+    }
+    if let Some(aid) = args.agent_id {
+        rt = rt.with_agent_id(aid);
+    }
+    if let Some(dt) = args.dynamic_tools {
+        rt = rt.with_dynamic_tools(dt);
+    }
+    for contributor in args.context_contributors {
+        rt = rt.with_context_contributor(contributor);
     }
     Box::new(rt)
 }

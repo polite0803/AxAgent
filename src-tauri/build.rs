@@ -30,6 +30,10 @@ fn main() {
     let ws_val = env::var("__TAURI_WORKSPACE__").unwrap_or_default();
     let manifest_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("common-controls.manifest");
     println!("cargo:rerun-if-changed={}", manifest_path.display());
+    // 必须显式声明：本脚本按该变量决定走「嵌入 manifest」还是「tauri_build::build()」分支，
+    // 只监听 manifest 文件的话，cargo build 与 cargo test 来回切换会复用上一次的产物，
+    // 测试 exe 因此拿不到 Common Controls v6，启动即 STATUS_ENTRYPOINT_NOT_FOUND。
+    println!("cargo:rerun-if-env-changed=__TAURI_WORKSPACE__");
     eprintln!("[build.rs] __TAURI_WORKSPACE__ = '{}'", ws_val);
     eprintln!("[build.rs] manifest_path = {}", manifest_path.display());
     eprintln!("[build.rs] manifest exists = {}", manifest_path.exists());

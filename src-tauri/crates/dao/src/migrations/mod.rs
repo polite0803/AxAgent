@@ -46,9 +46,10 @@ pub mod v126_create_narrative_structures;
 pub mod v127_capability_stats;
 pub mod v128_capability_policies;
 pub mod v129_capability_relationships;
+pub mod v130_session_states;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 129;
+pub const CURRENT_VERSION: i32 = 130;
 
 /// P2-10: Schema 版本追踪表名。
 ///
@@ -230,6 +231,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 129,
         description: "v129_capability_relationships: 创建能力关系图谱表（复合主键 source_id+target_id+relationship_type），统一能力模型第四层 CapabilityRelationship 的物化镜像 + 关系元信息载体（P2）",
         up: |db| Box::pin(v129_capability_relationships::up(db)),
+    },
+    Migration {
+        version: 130,
+        description: "v130_session_states: 创建会话状态表（自然主键 state_key + 冗余 conversation_id/agent_id 双索引），能力按需加载闭环 P0-1——承载 CapabilityLoad 写入、下轮注入读取的解耦点",
+        up: |db| Box::pin(v130_session_states::up(db)),
     },
 ];
 

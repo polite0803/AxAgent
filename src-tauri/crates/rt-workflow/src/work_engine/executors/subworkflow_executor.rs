@@ -13,11 +13,14 @@ use crate::work_engine::node_executor_trait::{
 use async_trait::async_trait;
 use axagent_harness::workflow_types::{SubWorkflowNode, WorkflowNode};
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::pin::Pin;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
+/// 子执行输出 future 类型：成功返回 `(child_execution_id, output)`，失败返回错误串
+pub type SubWorkflowOutputFuture =
+    Pin<Box<dyn std::future::Future<Output = Result<(String, Value), String>> + Send>>;
 
 /// 子工作流启动句柄 —— 回调在同步阶段即确定子执行 ID 与取消能力。
 ///
@@ -30,7 +33,7 @@ pub struct SubWorkflowLaunch {
     /// 子执行的 execution_id（调用回调时即已确定，无需等待 output future）
     pub child_execution_id: String,
     /// 子执行输出 future，成功返回 `(child_execution_id, output)`，失败返回错误串
-    pub output: Pin<Box<dyn std::future::Future<Output = Result<(String, Value), String>> + Send>>,
+    pub output: SubWorkflowOutputFuture,
     /// 主动取消子执行（若仍在运行）。System capability 等同步回调可返回空取消。
     pub cancel: Pin<Box<dyn std::future::Future<Output = ()> + Send>>,
 }
@@ -56,6 +59,18 @@ impl Default for SubWorkflowExecutorConfig {
 #[derive(Clone)]
 pub struct SubWorkflowExecutor {
     config: SubWorkflowExecutorConfig,
+}
+
+/// [`SubWorkflowExecutor::execute_with_retry`] 的运行参数（收敛 8 个散参，clippy `too_many_arguments`）
+struct RetryParams<'a> {
+    cb: &'a SubWorkflowCallback,
+    sub_workflow_id: String,
+    parent_execution_id: String,
+    input: HashMap<String, Value>,
+    max_retries: u32,
+    cancel_token: Option<&'a tokio_util::sync::CancellationToken>,
+    timeout: Duration,
+    child_tracker: &'a Option<Arc<Mutex<HashSet<String>>>>,
 }
 
 impl SubWorkflowExecutor {
@@ -84,16 +99,17 @@ impl SubWorkflowExecutor {
         Ok(mapped)
     }
 
-    async fn execute_with_retry(
-        cb: &SubWorkflowCallback,
-        sub_workflow_id: &str,
-        parent_execution_id: &str,
-        input: HashMap<String, Value>,
-        max_retries: u32,
-        cancel_token: Option<&tokio_util::sync::CancellationToken>,
-        timeout: Duration,
-        child_tracker: &Option<Arc<Mutex<std::collections::HashSet<String>>>>,
-    ) -> Result<(String, Value), NodeError> {
+    async fn execute_with_retry(p: RetryParams<'_>) -> Result<(String, Value), NodeError> {
+        let RetryParams {
+            cb,
+            sub_workflow_id,
+            parent_execution_id,
+            input,
+            max_retries,
+            cancel_token,
+            timeout,
+            child_tracker,
+        } = p;
         let mut last_error = None;
         // 总子执行预算：合并所有重试，自首次调用起计（兼容旧语义：父级 300s
         // 上限对「所有重试的累计运行时长」生效），避免无限重试越过上限。
@@ -101,8 +117,7 @@ impl SubWorkflowExecutor {
         for attempt in 1..=max_retries + 1 {
             // 同步从回调拿到启动句柄（含子执行 ID 与取消能力），
             // 使超时路径仍能主动取消孤儿子执行，而非 drop future 后无人回收。
-            let launch =
-                cb(sub_workflow_id.to_string(), parent_execution_id.to_string(), input.clone());
+            let launch = cb(sub_workflow_id.clone(), parent_execution_id.clone(), input.clone());
             let child_eid = launch.child_execution_id;
             // 登记到共享跟踪器：若本节点级超时导致整个 dispatch future 被丢弃，
             // 引擎仍能通过跟踪器定位并 cancel 该孤儿子执行（真正的回收兜底）。
@@ -271,16 +286,16 @@ impl NodeExecutorTrait for SubWorkflowExecutor {
         let timeout = Duration::from_secs(self.config.timeout_secs);
         // 超时预算已下沉到 execute_with_retry（对其所有重试的累计时长生效），
         // 超时触发时会在内部主动 cancel 孤儿子执行，无需在此再包一层 timeout。
-        let (child_execution_id, output) = Self::execute_with_retry(
-            &cb,
-            &sub_node.config.sub_workflow_id,
-            &context.execution_id,
-            mapped_input,
-            self.config.max_retries,
-            context.cancel_token.as_ref(),
+        let (child_execution_id, output) = Self::execute_with_retry(RetryParams {
+            cb: &cb,
+            sub_workflow_id: sub_node.config.sub_workflow_id.clone(),
+            parent_execution_id: context.execution_id.clone(),
+            input: mapped_input,
+            max_retries: self.config.max_retries,
+            cancel_token: context.cancel_token.as_ref(),
             timeout,
-            &context.child_executions,
-        )
+            child_tracker: &context.child_executions,
+        })
         .await?;
 
         let child_eid_value = serde_json::Value::String(child_execution_id.clone());

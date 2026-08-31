@@ -419,6 +419,7 @@ fn build_streaming_api_client(
     adapter: Arc<dyn ProviderAdapter>,
     ctx: ProviderRequestContext,
     chat_tools: Vec<ChatTool>,
+    dynamic_tools: axagent_harness::DynamicToolSet,
     model_id: &str,
     effective_temperature: Option<f64>,
     effective_top_p: Option<f64>,
@@ -440,6 +441,9 @@ fn build_streaming_api_client(
     } else {
         AxAgentApiClient::with_tools(adapter, ctx, chat_tools)
     };
+
+    // 1.5 绑定运行时动态工具集：CapabilityLoad 在循环内激活的工具经此下发
+    client = client.with_dynamic_tools(dynamic_tools);
 
     // 2. 通用参数链（9 项）
     client = client
@@ -937,6 +941,20 @@ pub async fn agent_query(
         }
     };
 
+    // ── Agent 作用域标识（能力加载状态的多 Agent 隔离维度）──
+    // 画像 + 专家共同决定「这是哪个 Agent」：同一会话里不同执行载体加载的能力
+    // 必须分开记账，否则子 Agent 加载的技能会串进主 Agent 的上下文。
+    // 二者皆空时回落为 harness 的 DEFAULT_AGENT_ID（单 Agent 场景）。
+    let agent_scope_id: String = match (
+        request.agent_profile_id.as_deref().filter(|s| !s.trim().is_empty()),
+        request.expert_id.as_deref().filter(|s| !s.trim().is_empty()),
+    ) {
+        (Some(profile), Some(expert)) => format!("{profile}/{expert}"),
+        (Some(profile), None) => profile.to_string(),
+        (None, Some(expert)) => expert.to_string(),
+        (None, None) => axagent_harness::DEFAULT_AGENT_ID.to_string(),
+    };
+
     // ── DIAG 快照：认知编排 vs 直连的全链路诊断 ──
     let di_execution_mode = request.execution_mode.clone();
     let di_mcp_count = request.enabled_mcp_server_ids.as_ref().map(|v| v.len()).unwrap_or(0);
@@ -1368,10 +1386,17 @@ pub async fn agent_query(
     let tot_adapter = adapter.clone();
     let tot_ctx = ctx.clone();
 
+    // ── 运行时动态工具集（能力按需加载闭环 P0-4）──
+    // 三方共享同一份：tool_registry 透传给 CapabilityLoad 写入、
+    // api_client 每次请求前合并下发、runtime 每轮取快照放进 ApiRequest。
+    // 每会话一份，会话结束随 Arc 释放，不存在跨会话串扰。
+    let dynamic_tools = axagent_harness::DynamicToolSet::new();
+
     let api_client = build_streaming_api_client(
         adapter,
         ctx,
         chat_tools.clone(),
+        dynamic_tools.clone(),
         &request.model_id,
         effective_temperature,
         effective_top_p,
@@ -2076,6 +2101,22 @@ pub async fn agent_query(
             constitution: app_state.constitution.clone(),
         });
 
+    // 会话状态闭环：tool_registry 拿到动态工具集后透传给 ToolContext，
+    // CapabilityLoad 才能把工具定义写进去；agent_id 同理，用于状态按 Agent 分键。
+    let tool_registry = tool_registry
+        .with_dynamic_tools(dynamic_tools.clone())
+        .with_agent_id(agent_scope_id.clone());
+
+    // 上下文注入器：每轮 LLM 调用前读会话状态，把已加载能力的完整定义注入系统提示。
+    // 这是「写入（CapabilityLoad）→ 读取（本注入器）」的读取侧，两者经 SessionState 解耦。
+    let capability_indexer_trait: Arc<dyn axagent_harness::CapabilityIndexer> =
+        app_state.capability_indexer.clone();
+    let loaded_capability_contributor =
+        axagent_agent::context_contributors::LoadedCapabilityContributor::new(
+            app_state.session_state_store.clone(),
+            capability_indexer_trait,
+        );
+
     let mut runtime = create_conversation_runtime(
         ConversationRuntimeFactoryArgs::new(
             session.session().clone(),
@@ -2091,7 +2132,11 @@ pub async fn agent_query(
         )
         .with_hook_chain_option(crate::commands::multi_agent::get_global_hook_chain())
         .with_pause_state(pause_state)
-        .with_skill_evolution_hook(skill_evolution_hook),
+        .with_skill_evolution_hook(skill_evolution_hook)
+        .with_dynamic_tools(dynamic_tools)
+        .with_conversation_id(conversation_id.clone())
+        .with_agent_id(agent_scope_id.clone())
+        .with_context_contributor(Box::new(loaded_capability_contributor)),
     );
 
     // 将 nudge 注入到运行时级 system_prompt（通过 <memory_context> 块在每次 LLM 调用前注入）

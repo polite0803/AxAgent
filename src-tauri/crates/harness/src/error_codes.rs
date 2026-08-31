@@ -382,6 +382,12 @@ pub mod capability {
     pub const EMBEDDING_FAILED: &str = "CAPABILITY_EMBEDDING_FAILED";
     /// 能力护照未找到
     pub const NOT_FOUND: &str = "CAPABILITY_NOT_FOUND";
+    /// 能力加载失败（写入会话状态或激活工具阶段出错）
+    pub const LOAD_FAILED: &str = "CAPABILITY_LOAD_FAILED";
+    /// 缺少会话上下文（conversation_id 为空），无法定位会话状态
+    pub const LOAD_NO_CONTEXT: &str = "CAPABILITY_LOAD_NO_CONTEXT";
+    /// 会话状态存储未注入（wiring 层未完成初始化）
+    pub const LOAD_NO_STORE: &str = "CAPABILITY_LOAD_NO_STORE";
 }
 
 /// 构造携带错误码的结构化错误字符串。

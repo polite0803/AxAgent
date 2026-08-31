@@ -12,10 +12,19 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
 /// 完整请求负载。
-#[derive(Debug, Clone, PartialEq, Eq)]
+///
+/// `Eq` 未派生：`extra_tools` 内含 `serde_json::Value`（可表示 f64），
+/// 而 `Value` 只实现 `PartialEq`。请求负载不做哈希/去重，无 `Eq` 需求。
+#[derive(Debug, Clone, PartialEq)]
 pub struct ApiRequest {
     pub system_prompt: Vec<String>,
     pub messages: Vec<ConversationMessage>,
+    /// 本轮请求**额外**下发给模型的工具定义（`CapabilityLoad` 在循环内激活的能力）。
+    ///
+    /// 与 `ApiClient` 构建期持有的工具列表是**并集**关系，不是替换 ——
+    /// 客户端自己那一份是会话级的白名单，运行时这份是按需增量。
+    /// 为空表示本轮无新增，客户端维持原有列表。
+    pub extra_tools: Vec<crate::types::ChatTool>,
 }
 
 /// 流式助手事件。

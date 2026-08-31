@@ -353,7 +353,10 @@ mod tests {
         assert!(trend.unwrap().contains("翻译"));
     }
 
+    /// 真实调用 huggingface.co 的冒烟测试：外部网络不可控（离线/受限网络必挂），
+    /// 按 mcp_stdio / plugins 的既有惯例标记 ignore，本地验证时手动跑。
     #[tokio::test]
+    #[ignore = "依赖 huggingface.co 真实网络，离线/受限网络必挂"]
     async fn test_search_without_token() {
         let scanner = HuggingFaceScanner::new();
         let result = scanner.search("llm").await;

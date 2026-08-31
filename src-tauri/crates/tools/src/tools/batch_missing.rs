@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 //! 批量缺失工具实现
-//! Sleep, ToolSearch, Brief, Config, ReviewArtifact, TerminalCapture,
+//! Sleep, Brief, Config, ReviewArtifact, TerminalCapture,
 //! SendUserFile, SubscribePR, Workflow
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
@@ -31,71 +31,6 @@ impl Tool for SleepTool {
         let secs = i["seconds"].as_f64().unwrap_or(1.0) as u64;
         tokio::time::sleep(std::time::Duration::from_secs(secs)).await;
         Ok(ToolResult::success(format!("⏰ 已睡眠 {} 秒", secs)))
-    }
-}
-
-// ── ToolSearch ──
-pub struct ToolSearchTool;
-#[async_trait]
-impl Tool for ToolSearchTool {
-    fn name(&self) -> &str {
-        "ToolSearch"
-    }
-    fn description(&self) -> &str {
-        "搜索已注册的工具。输入工具名或关键字查找匹配的工具，返回名称、描述和类别。select: 前缀可直接选择工具。"
-    }
-    fn input_schema(&self) -> Value {
-        serde_json::json!({"type":"object","properties":{"query":{"type":"string","description":"搜索词或 select:tool_name"}},"required":["query"]})
-    }
-    fn category(&self) -> ToolCategory {
-        ToolCategory::System
-    }
-    fn is_concurrency_safe(&self) -> bool {
-        true
-    }
-
-    async fn call(&self, i: Value, _c: &ToolContext) -> Result<ToolResult, ToolError> {
-        let q = i["query"].as_str().unwrap_or("").to_lowercase();
-        // 加载所有已注册工具信息
-        let skill_dirs = axagent_kit::skill_dirs::skill_dirs();
-        let mut skills = Vec::new();
-        for (_kind, dir) in &skill_dirs {
-            if let Ok(entries) = std::fs::read_dir(dir) {
-                for entry in entries.filter_map(|e| e.ok()) {
-                    let name = entry.file_name().to_string_lossy().to_string();
-                    let md = entry.path().join("SKILL.md");
-                    if md.exists() {
-                        if let Ok(content) = std::fs::read_to_string(&md) {
-                            let first_line = content.lines().next().unwrap_or(&name);
-                            skills.push((name.clone(), first_line.to_string()));
-                        } else {
-                            skills.push((name.clone(), String::new()));
-                        }
-                    }
-                }
-            }
-        }
-
-        // 过滤匹配
-        let matched: Vec<_> = skills
-            .iter()
-            .filter(|(n, d)| n.to_lowercase().contains(&q) || d.to_lowercase().contains(&q))
-            .take(20)
-            .collect();
-
-        if matched.is_empty() {
-            Ok(ToolResult::success(format!(
-                "未找到匹配 '{}' 的工具或 Skill。使用 select:tool_name 直接加载。",
-                q
-            )))
-        } else {
-            let mut out = format!("## 搜索结果: '{}'\n\n", q);
-            for (n, d) in &matched {
-                out.push_str(&format!("- **select:{}** — {}\n", n, d));
-            }
-            out.push_str(&format!("\n共 {} 条结果。使用 select:name 加载。", matched.len()));
-            Ok(ToolResult::success(out))
-        }
     }
 }
 

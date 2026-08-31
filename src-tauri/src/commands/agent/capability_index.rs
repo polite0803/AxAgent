@@ -45,8 +45,9 @@ pub fn build_capability_index_string(passports: &[CapabilityPassportDto], budget
 
     let body_budget = budget.saturating_sub(FOOTER_TOKEN_RESERVE);
     let mut used = estimate_tokens(HEADER);
-    // 域 → 已渲染条目行；BTreeMap 保证分组顺序稳定
-    let mut groups: BTreeMap<&'static str, Vec<String>> = BTreeMap::new();
+    // 两级分组：域 → 集群。BTreeMap 保证分组顺序稳定（避免 system prompt 逐轮抖动）。
+    // Agent 可借目录层级用 CapabilityBrowse 逐层下钻，不必一次吞下全量列表。
+    let mut groups: BTreeMap<&'static str, BTreeMap<String, Vec<String>>> = BTreeMap::new();
     let mut omitted = 0usize;
 
     for p in &candidates {
@@ -62,7 +63,12 @@ pub fn build_capability_index_string(passports: &[CapabilityPassportDto], budget
             continue;
         }
         used += cost;
-        groups.entry(p.domain.as_str()).or_default().push(line);
+        groups
+            .entry(p.domain.as_str())
+            .or_default()
+            .entry(p.cluster_label().to_string())
+            .or_default()
+            .push(line);
     }
 
     let mut index = String::from(HEADER);
@@ -71,10 +77,13 @@ pub fn build_capability_index_string(passports: &[CapabilityPassportDto], budget
         return index;
     }
 
-    for (domain, lines) in &groups {
+    for (domain, clusters) in &groups {
         index.push_str(&format!("\n[{domain}]\n"));
-        for line in lines {
-            index.push_str(line);
+        for (cluster, lines) in clusters {
+            index.push_str(&format!("  <{cluster}>\n"));
+            for line in lines {
+                index.push_str(line);
+            }
         }
     }
 

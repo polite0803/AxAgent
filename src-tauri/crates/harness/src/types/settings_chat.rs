@@ -398,13 +398,13 @@ pub struct ChatRequest {
     pub response_format: Option<ResponseFormat>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ChatTool {
     pub r#type: String,
     pub function: ChatToolFunction,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ChatToolFunction {
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]

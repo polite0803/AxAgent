@@ -14,17 +14,10 @@
 
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolErrorKind, ToolResult};
 use async_trait::async_trait;
-use axagent_harness::CapabilityIndexer;
 use axagent_harness::error_codes::capability::NOT_FOUND as CAPABILITY_NOT_FOUND;
 use serde_json::{Value, json};
-use std::sync::{Arc, OnceLock};
 
-pub(crate) static CAPABILITY_INDEXER: OnceLock<Arc<dyn CapabilityIndexer>> = OnceLock::new();
-
-/// 注入 `CapabilityIndexer` trait object（wiring 层初始化时调用一次）
-pub fn set_capability_indexer(indexer: Arc<dyn CapabilityIndexer>) {
-    let _ = CAPABILITY_INDEXER.set(indexer);
-}
+use super::capability_shared::capability_indexer;
 
 pub struct CapabilityViewTool;
 
@@ -66,7 +59,7 @@ impl Tool for CapabilityViewTool {
             return Err(ToolError::invalid_input_for("CapabilityView", "capability_id 为必填参数"));
         }
 
-        let Some(indexer) = CAPABILITY_INDEXER.get() else {
+        let Some(indexer) = capability_indexer() else {
             return Err(not_found(format!("能力索引器尚未初始化，无法展开 {capability_id}")));
         };
 

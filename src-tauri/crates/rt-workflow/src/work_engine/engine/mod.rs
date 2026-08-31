@@ -289,6 +289,24 @@ impl RunOptions {
 
 // ── WorkEngine ──
 
+/// [`WorkEngine::apply_error_branch_handling`] 的参数集合。
+///
+/// 将 12 个散参收敛为一个结构体（clippy `too_many_arguments`），字段含义与
+/// 原位置参数一一对应。
+struct ErrorBranchParams {
+    execution_id: String,
+    workflow_id: String,
+    node_id: String,
+    node_title: String,
+    node_type: String,
+    input_snapshot: serde_json::Value,
+    elapsed_ms: u64,
+    started_at: i64,
+    sub_workflow_id: Option<String>,
+    continue_on_fail: bool,
+    err_msg: String,
+}
+
 #[derive(Clone)]
 
 pub struct WorkEngine {
@@ -1325,20 +1343,23 @@ impl WorkEngine {
     /// 由「真实失败」与「超时」两条节点执行分支共用，保证套用 continue_on_fail / Error 边 /
     /// error_workflow 时的行为完全一致（BE-D1）。原先这段逻辑内联在真实失败分支，
     /// 超时分支完全缺失，导致配置了 continue_on_fail 的工作流在节点超时后停摆。
-    async fn apply_error_branch_handling(
-        &self,
-        execution_id: &str,
-        workflow_id: &str,
-        node_id: &str,
-        node_title: String,
-        node_type: String,
-        input_snapshot: serde_json::Value,
-        elapsed_ms: u64,
-        started_at: i64,
-        sub_workflow_id: Option<String>,
-        continue_on_fail: bool,
-        err_msg: String,
-    ) {
+    async fn apply_error_branch_handling(&self, p: ErrorBranchParams) {
+        let ErrorBranchParams {
+            execution_id,
+            workflow_id,
+            node_id,
+            node_title,
+            node_type,
+            input_snapshot,
+            elapsed_ms,
+            started_at,
+            sub_workflow_id,
+            continue_on_fail,
+            err_msg,
+        } = p;
+        let execution_id = execution_id.as_str();
+        let workflow_id = workflow_id.as_str();
+        let node_id = node_id.as_str();
         // 构建 ErrorContext 并注入 ExecutionState，
         // 检查 continue_on_fail、Error 边、error_workflow。
         let error_ctx = ErrorContext::new(
@@ -2812,23 +2833,23 @@ impl WorkEngine {
                     // 同样走统一错误分支（Error 边激活 / continue_on_fail 恢复 /
                     // error_workflow / 失败反思），避免配置了 continue_on_fail 的
                     // 工作流在下游被静默 skip、error_workflow 永不触发。
-                    self.apply_error_branch_handling(
-                        &execution_id,
-                        workflow_id,
-                        node_id,
-                        node.base_title().to_string(),
-                        node_type_name(&node).to_string(),
-                        serde_json::json!({}),
-                        0,
-                        Utc::now().timestamp_millis(),
-                        if let WorkflowNode::SubWorkflow(sw) = &node {
+                    self.apply_error_branch_handling(ErrorBranchParams {
+                        execution_id: execution_id.clone(),
+                        workflow_id: workflow_id.to_string(),
+                        node_id: node_id.to_string(),
+                        node_title: node.base_title().to_string(),
+                        node_type: node_type_name(&node).to_string(),
+                        input_snapshot: serde_json::json!({}),
+                        elapsed_ms: 0,
+                        started_at: Utc::now().timestamp_millis(),
+                        sub_workflow_id: if let WorkflowNode::SubWorkflow(sw) = &node {
                             Some(sw.config.sub_workflow_id.clone())
                         } else {
                             None
                         },
-                        node.base().continue_on_fail,
+                        continue_on_fail: node.base().continue_on_fail,
                         err_msg,
-                    )
+                    })
                     .await;
                     continue;
                 }
@@ -3849,23 +3870,23 @@ impl WorkEngine {
                         // ── 统一错误处理（真实失败 / 超时共用）──
                         // 注入 ErrorContext、触发失败反思、激活 Error 边、
                         // 按 continue_on_fail 恢复/终止工作流（BE-D1）。
-                        self.apply_error_branch_handling(
-                            &execution_id,
-                            workflow_id,
-                            &nr.node_id,
-                            nr.node.base_title().to_string(),
-                            node_type_name(&nr.node).to_string(),
-                            nr.input_snapshot.clone(),
-                            nr.elapsed_ms,
-                            nr.started_at,
-                            if let WorkflowNode::SubWorkflow(sw) = &nr.node {
+                        self.apply_error_branch_handling(ErrorBranchParams {
+                            execution_id: execution_id.clone(),
+                            workflow_id: workflow_id.to_string(),
+                            node_id: nr.node_id.clone(),
+                            node_title: nr.node.base_title().to_string(),
+                            node_type: node_type_name(&nr.node).to_string(),
+                            input_snapshot: nr.input_snapshot.clone(),
+                            elapsed_ms: nr.elapsed_ms,
+                            started_at: nr.started_at,
+                            sub_workflow_id: if let WorkflowNode::SubWorkflow(sw) = &nr.node {
                                 Some(sw.config.sub_workflow_id.clone())
                             } else {
                                 None
                             },
-                            nr.node.base().continue_on_fail,
-                            err_msg.clone(),
-                        )
+                            continue_on_fail: nr.node.base().continue_on_fail,
+                            err_msg: err_msg.clone(),
+                        })
                         .await;
                     },
                     Err(_) => {
@@ -3974,23 +3995,25 @@ impl WorkEngine {
                                     // error_workflow / 失败反思 处理，与真实失败分支行为一致，
                                     // 避免配置了 continue_on_fail 的工作流在节点超时后停摆。
                                     let continue_on_fail = nr.node.base().continue_on_fail;
-                                    self.apply_error_branch_handling(
-                                        &execution_id,
-                                        workflow_id,
-                                        &nr.node_id,
-                                        nr.node.base_title().to_string(),
-                                        node_type_name(&nr.node).to_string(),
-                                        nr.input_snapshot.clone(),
-                                        nr.elapsed_ms,
-                                        nr.started_at,
-                                        if let WorkflowNode::SubWorkflow(sw) = &nr.node {
+                                    self.apply_error_branch_handling(ErrorBranchParams {
+                                        execution_id: execution_id.clone(),
+                                        workflow_id: workflow_id.to_string(),
+                                        node_id: nr.node_id.clone(),
+                                        node_title: nr.node.base_title().to_string(),
+                                        node_type: node_type_name(&nr.node).to_string(),
+                                        input_snapshot: nr.input_snapshot.clone(),
+                                        elapsed_ms: nr.elapsed_ms,
+                                        started_at: nr.started_at,
+                                        sub_workflow_id: if let WorkflowNode::SubWorkflow(sw) =
+                                            &nr.node
+                                        {
                                             Some(sw.config.sub_workflow_id.clone())
                                         } else {
                                             None
                                         },
                                         continue_on_fail,
-                                        err_msg.clone(),
-                                    )
+                                        err_msg: err_msg.clone(),
+                                    })
                                     .await;
                                 },
                             }

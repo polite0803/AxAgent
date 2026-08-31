@@ -27,6 +27,11 @@ pub struct AxAgentApiClient {
     ctx: ProviderRequestContext,
     /// Tool definitions to include in every ChatRequest so the LLM knows what tools are available.
     tools: Option<Vec<ChatTool>>,
+    /// 运行时动态工具集（`CapabilityLoad` 在循环内激活的工具）。
+    ///
+    /// 每次 `stream` 取快照与 `tools` 合并，使 Agent 上一轮加载的能力
+    /// 下一次 LLM 调用即可发起 function call。
+    dynamic_tools: Option<axagent_harness::DynamicToolSet>,
     /// Model ID to include in each ChatRequest.
     model: String,
     /// Temperature parameter.
@@ -74,6 +79,7 @@ impl AxAgentApiClient {
             adapter,
             ctx,
             tools: None,
+            dynamic_tools: None,
             model: String::new(),
             temperature: None,
             top_p: None,
@@ -101,6 +107,7 @@ impl AxAgentApiClient {
             adapter,
             ctx,
             tools: if tools.is_empty() { None } else { Some(tools) },
+            dynamic_tools: None,
             model: String::new(),
             temperature: None,
             top_p: None,
@@ -115,6 +122,46 @@ impl AxAgentApiClient {
             enable_cache_breakpoints: false,
             system_prompt_cache_hash: None,
             llm_config: LlmCallConfig::default(),
+        }
+    }
+
+    /// 绑定运行时动态工具集 —— 能力按需加载的执行闭环出口。
+    ///
+    /// 绑定后每次 `stream` 会把它与构建期 `tools` 合并下发。工具本体已在
+    /// `UnifiedToolRegistry` 注册，这里补的只是「对模型可见」。
+    pub fn with_dynamic_tools(mut self, set: axagent_harness::DynamicToolSet) -> Self {
+        self.dynamic_tools = Some(set);
+        self
+    }
+
+    /// 构建本轮实际下发的工具列表：构建期白名单 + 运行时激活 + 请求级增量。
+    ///
+    /// 三者是并集且去重（按工具名，先到先得）：构建期白名单优先，
+    /// 运行时/请求级增量只补充模型此前看不到的能力。
+    fn resolve_tools(&self, extra: &[ChatTool]) -> Option<Vec<ChatTool>> {
+        let mut merged: Vec<ChatTool> = self.tools.clone().unwrap_or_default();
+        let mut seen: std::collections::HashSet<String> =
+            merged.iter().map(|t| t.function.name.clone()).collect();
+
+        let mut push_new = |tool: ChatTool| {
+            if seen.insert(tool.function.name.clone()) {
+                merged.push(tool);
+            }
+        };
+
+        if let Some(set) = &self.dynamic_tools {
+            for t in set.snapshot() {
+                push_new(t);
+            }
+        }
+        for t in extra {
+            push_new(t.clone());
+        }
+
+        if merged.is_empty() {
+            None
+        } else {
+            Some(merged)
         }
     }
 
@@ -429,7 +476,7 @@ impl ApiClient for AxAgentApiClient {
             top_p: self.top_p,
             max_tokens: self.max_tokens,
             stream: true,
-            tools: self.tools.clone(),
+            tools: self.resolve_tools(&request.extra_tools),
             thinking_budget: self.thinking_budget,
             use_max_completion_tokens: self.use_max_completion_tokens,
             thinking_param_style: self.thinking_param_style.clone(),

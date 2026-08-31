@@ -296,22 +296,33 @@ pub async fn execute_llm_stream(
     }
 
     // ── 缓存命中短路：合成一个 content + done 流 ──
+    //
+    // 合成流必须与真实流**语义等价**，否则缓存会静默改变 Agent 行为：
+    // - `tool_calls` 必须透传。消费方（`AxAgentApiClient::stream_to_events`）在任意
+    //   chunk 上读 `chunk.tool_calls` 并转成 `ToolUse` 事件；此处若写死 `None`，
+    //   命中缓存的那一轮工具调用会被整体吞掉，ReAct 循环误判为"模型只输出了文本"
+    //   而提前收尾 —— 同一请求命中/未命中缓存产生两种不同行为。
+    // - `thinking` 同理透传，否则思维链在命中缓存时凭空消失。
     if let Some(ref cache) = config.cache
         && let Some(ref key) = prepared.cache_key
         && let Some(cached) = cache.get(key).await
     {
         let cached_response: ChatResponse =
             serde_json::from_value(cached.clone()).unwrap_or_default();
-        tracing::info!("[execute_llm_stream] 缓存命中: model={}", prepared.request.model);
+        tracing::info!(
+            "[execute_llm_stream] 缓存命中: model={}, tool_calls={}",
+            prepared.request.model,
+            cached_response.tool_calls.as_ref().map_or(0, Vec::len),
+        );
         let usage = cached_response.usage;
         let chunks: Vec<Result<ChatStreamChunk, String>> = vec![
             Ok(ChatStreamChunk {
                 content: Some(cached_response.content),
-                thinking: None,
+                thinking: cached_response.thinking,
                 done: false,
                 is_final: None,
                 usage: None,
-                tool_calls: None,
+                tool_calls: cached_response.tool_calls,
             }),
             Ok(ChatStreamChunk {
                 content: None,
@@ -728,11 +739,33 @@ fn record_success_audit(
 }
 
 /// 从 ChatRequest 构建缓存键
+///
+/// # 为什么必须把工具集纳入哈希
+///
+/// 可用工具集是模型决策的输入之一：同一段对话在「未加载能力」与「已加载能力」
+/// 两种工具集下，正确回答完全不同（前者应回答"我没有这个能力"，后者应发起
+/// 工具调用）。动态工具集（`DynamicToolSet`，能力加载后即时注册）使这种情形
+/// 成为常态 —— 若缓存键只覆盖 messages，加载能力后的第一次提问会命中加载前的
+/// 旧缓存，模型"看不见"新工具，能力加载闭环被缓存静默击穿。
+///
+/// 只哈希工具**名称**而非完整 schema：名称集合决定模型的可选动作空间，
+/// 而 description / 参数文案的微调不应作废缓存。名称先排序，消除注册顺序抖动。
 fn build_cache_key(request: &ChatRequest) -> LlmCacheKey {
     use std::hash::{Hash, Hasher};
     let messages_json = serde_json::to_string(&request.messages).unwrap_or_default();
+
+    let mut tool_names: Vec<&str> = request
+        .tools
+        .as_deref()
+        .unwrap_or_default()
+        .iter()
+        .map(|t| t.function.name.as_str())
+        .collect();
+    tool_names.sort_unstable();
+
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     messages_json.hash(&mut hasher);
+    tool_names.hash(&mut hasher);
     let messages_hash = format!("{:x}", hasher.finish());
     LlmCacheKey { model: request.model.clone(), messages_hash, temperature: request.temperature }
 }
@@ -743,4 +776,69 @@ fn sha256(input: &str) -> String {
     let mut hasher = sha2::Sha256::new();
     hasher.update(input.as_bytes());
     hex::encode(hasher.finalize())
+}
+
+#[cfg(test)]
+mod cache_key_tests {
+    use super::*;
+    use crate::types::{ChatContent, ChatMessage, ChatTool, ChatToolFunction};
+
+    fn tool(name: &str) -> ChatTool {
+        ChatTool {
+            r#type: "function".to_string(),
+            function: ChatToolFunction {
+                name: name.to_string(),
+                description: Some(format!("{name} 的描述")),
+                parameters: None,
+            },
+        }
+    }
+
+    fn request_with_tools(tools: Option<Vec<ChatTool>>) -> ChatRequest {
+        ChatRequest {
+            model: "test-model".to_string(),
+            messages: vec![ChatMessage {
+                role: "user".to_string(),
+                content: ChatContent::Text("帮我算一下".to_string()),
+                tool_calls: None,
+                tool_call_id: None,
+                thinking: None,
+            }],
+            stream: true,
+            temperature: Some(0.7),
+            tools,
+            ..Default::default()
+        }
+    }
+
+    /// 消息相同但工具集不同 → 必须是不同缓存键。
+    ///
+    /// 这是能力加载闭环的正确性底线：能力加载后工具集变大，
+    /// 若仍命中加载前的缓存，模型看不见新工具，加载等于无效。
+    #[test]
+    fn tool_set_change_invalidates_cache_key() {
+        let before = build_cache_key(&request_with_tools(Some(vec![tool("Read")])));
+        let after =
+            build_cache_key(&request_with_tools(Some(vec![tool("Read"), tool("StockAnalyze")])));
+        assert_ne!(
+            before.messages_hash, after.messages_hash,
+            "工具集变化必须换缓存键，否则能力加载被缓存击穿"
+        );
+    }
+
+    /// 工具注册顺序不同但集合相同 → 必须是同一缓存键（排序消除抖动）。
+    #[test]
+    fn tool_order_does_not_affect_cache_key() {
+        let a = build_cache_key(&request_with_tools(Some(vec![tool("Read"), tool("Write")])));
+        let b = build_cache_key(&request_with_tools(Some(vec![tool("Write"), tool("Read")])));
+        assert_eq!(a.messages_hash, b.messages_hash, "注册顺序不应影响缓存键");
+    }
+
+    /// 无工具与空工具列表应等价，避免 `Some(vec![])` / `None` 制造两份缓存。
+    #[test]
+    fn empty_tools_equals_no_tools() {
+        let none = build_cache_key(&request_with_tools(None));
+        let empty = build_cache_key(&request_with_tools(Some(vec![])));
+        assert_eq!(none.messages_hash, empty.messages_hash);
+    }
 }

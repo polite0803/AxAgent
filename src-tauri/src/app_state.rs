@@ -404,6 +404,8 @@ pub struct AppState {
     pub capability_router: Arc<DefaultCapabilityRouter>,
     /// 能力索引器（用于注册/删除/查询能力护照）
     pub capability_indexer: Arc<CapabilityIndexerImpl>,
+    /// 会话状态存储（CapabilityLoad 写入 / 下轮注入器读取的解耦点）
+    pub session_state_store: Arc<dyn axagent_harness::SessionStateStore>,
     /// 认知编排器（三层路由树协调器，全局用户消息唯一入口）
     pub cognitive_router: Arc<dyn axagent_harness::CognitiveRouter>,
     /// 动态防护规则管理器（运行时注入，GuardRule/ExemptAuthorize 动态注入的入口）

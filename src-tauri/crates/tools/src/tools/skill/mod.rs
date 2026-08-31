@@ -830,7 +830,117 @@ impl Tool for SkillReferenceTool {
     }
 }
 
-// ── DiscoverSkills (enhanced) ──
+// ── DiscoverSkills（统一能力检索引擎）──
+//
+// 此前只查文件系统 SKILL_INDEX，且是全量子串扫描、无打分、无 top-k（命中多少
+// 返回多少）—— 与能力护照索引互不相通，Tool/Toolchain/Template 搜不到。
+// 现在同时检索两套目录、统一打分排序、top-k 截断。
+
+/// 单条检索命中（来源统一抽象，屏蔽护照 / 文件系统技能的差异）。
+struct DiscoverHit {
+    /// 展示名（护照用 capability_id，技能用目录名）
+    name: String,
+    description: String,
+    /// 类别 / 域标签（仅展示用）
+    category: String,
+    version: String,
+    /// 相关性得分（越高越相关）
+    score: f64,
+    /// 来源目录：`capability`（护照全集）或 `skill`（文件系统 SKILL.md）
+    source: &'static str,
+}
+
+/// 对一段候选文本打分：query 按空白分词，逐词匹配加权求和。
+///
+/// 权重设计：名称命中 > 标签命中 > 描述命中；前缀命中额外加权。
+/// 任一词都未命中则 0 分（视为不匹配，直接淘汰）。
+fn score_text(query_terms: &[String], name: &str, tags: &[String], description: &str) -> f64 {
+    let name_lower = name.to_lowercase();
+    let desc_lower = description.to_lowercase();
+    let tags_lower: Vec<String> = tags.iter().map(|t| t.to_lowercase()).collect();
+
+    let mut total = 0.0;
+    for term in query_terms {
+        let mut term_score = 0.0;
+        if name_lower.contains(term) {
+            term_score += 5.0;
+            if name_lower.starts_with(term) {
+                term_score += 3.0;
+            }
+        }
+        if tags_lower.iter().any(|t| t.contains(term)) {
+            term_score += 3.0;
+        }
+        if desc_lower.contains(term) {
+            term_score += 2.0;
+        }
+        if term_score == 0.0 {
+            // 任一词完全无命中 → 整体不匹配（AND 语义，避免弱相关噪音挤占 top-k）
+            return 0.0;
+        }
+        total += term_score;
+    }
+    total
+}
+
+fn split_query_terms(query: &str) -> Vec<String> {
+    query.split_whitespace().map(str::to_lowercase).collect()
+}
+
+/// 检索护照全集（Tool / Toolchain / Template / Skill / KnowledgeBase）。
+async fn discover_from_passports(
+    terms: &[String],
+    domain_filter: Option<&str>,
+) -> Vec<DiscoverHit> {
+    let Some(indexer) = super::capability_shared::capability_indexer() else {
+        return Vec::new();
+    };
+    let passports = indexer.list_passports().await;
+
+    passports
+        .into_iter()
+        .filter(|p| p.is_user_visible())
+        .filter(|p| domain_filter.is_none_or(|d| p.domain.as_str() == d))
+        .filter_map(|p| {
+            let summary = p.summary.as_deref().unwrap_or(&p.description);
+            let mut score = score_text(terms, &p.name, &p.tags, summary);
+            if score > 0.0 && p.sub_category.to_lowercase().contains(&terms.join(" ")) {
+                score += 1.0;
+            }
+            (score > 0.0).then(|| DiscoverHit {
+                name: p.capability_id.clone(),
+                description: summary.to_string(),
+                category: p.domain.as_str().to_string(),
+                version: p.version.clone().unwrap_or_default(),
+                score,
+                source: "capability",
+            })
+        })
+        .collect()
+}
+
+/// 检索文件系统技能（SKILL.md 目录 —— 护照未覆盖的部分）。
+fn discover_from_skill_index(terms: &[String], domain_filter: Option<&str>) -> Vec<DiscoverHit> {
+    let mut index = SKILL_INDEX.lock();
+    index.ensure_built();
+
+    index
+        .entries
+        .iter()
+        .filter(|e| domain_filter.is_none_or(|d| e.domain.as_str() == d))
+        .filter_map(|e| {
+            let score = score_text(terms, &e.name, &e.tags, &e.description);
+            (score > 0.0).then(|| DiscoverHit {
+                name: e.name.clone(),
+                description: e.description.clone(),
+                category: e.category.clone(),
+                version: e.version.clone(),
+                score,
+                source: "skill",
+            })
+        })
+        .collect()
+}
 
 pub struct DiscoverSkillsTool;
 
@@ -840,8 +950,10 @@ impl Tool for DiscoverSkillsTool {
         "DiscoverSkills"
     }
     fn description(&self) -> &str {
-        "通过名称/描述/标签关键词搜索已安装的 Skill（Level 0 增强）。\
-         扫描技能索引，返回匹配的技能摘要。确定目标后用 SkillView 加载完整内容。"
+        "按关键词统一检索全部可发现能力（Level 0 — 统一检索引擎）。\
+         覆盖能力护照全集（Tool/Toolchain/Template/Skill/KnowledgeBase）与文件系统技能，\
+         多词 AND 匹配 + 相关性打分 + top-k 截断。\
+         确定目标后：护照能力用 CapabilityView 展开定义，文件系统技能用 SkillView 加载正文。"
     }
     fn input_schema(&self) -> Value {
         serde_json::json!({
@@ -849,7 +961,15 @@ impl Tool for DiscoverSkillsTool {
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "搜索关键词"
+                    "description": "搜索关键词（多词为 AND 语义）"
+                },
+                "top_k": {
+                    "type": "integer",
+                    "description": "返回条数上限，缺省 10，最大 50"
+                },
+                "domain": {
+                    "type": "string",
+                    "description": "按域过滤（可选，如 general / invest / opc）"
                 }
             },
             "required": ["query"]
@@ -868,43 +988,48 @@ impl Tool for DiscoverSkillsTool {
     }
 
     async fn call(&self, input: Value, _ctx: &ToolContext) -> Result<ToolResult, ToolError> {
-        let q = input["query"].as_str().unwrap_or("").to_lowercase();
-        if q.is_empty() {
+        let query = input["query"].as_str().unwrap_or("").trim().to_string();
+        if query.is_empty() {
             return Err(ToolError::invalid_input("Query is required"));
         }
+        let top_k = input["top_k"].as_u64().unwrap_or(10).clamp(1, 50) as usize;
+        let domain_filter = input["domain"].as_str().filter(|d| !d.trim().is_empty());
+        let terms = split_query_terms(&query);
 
-        let mut index = SKILL_INDEX.lock();
-        index.ensure_built();
+        let mut hits = discover_from_passports(&terms, domain_filter).await;
+        hits.extend(discover_from_skill_index(&terms, domain_filter));
+        hits.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
 
-        let results: Vec<&SkillIndexEntry> = index
-            .entries
-            .iter()
-            .filter(|e| {
-                e.name.to_lowercase().contains(&q)
-                    || e.description.to_lowercase().contains(&q)
-                    || e.tags.iter().any(|t| t.to_lowercase().contains(&q))
-                    || e.category.to_lowercase().contains(&q)
-            })
-            .collect();
+        let total_matches = hits.len();
+        let shown: Vec<DiscoverHit> = hits.into_iter().take(top_k).collect();
 
-        if results.is_empty() {
-            return Ok(ToolResult::success(format!("未找到匹配 '{}' 的 Skill", q)));
+        if shown.is_empty() {
+            return Ok(ToolResult::success(format!("未找到匹配 '{query}' 的能力或技能")));
         }
 
-        let mut out = format!("## 技能搜索: '{}'\n\n", q);
-        for e in &results {
+        let mut out = format!("## 能力检索: '{query}'（按相关性排序）\n\n");
+        for (rank, hit) in shown.iter().enumerate() {
+            let version_note = if hit.version.is_empty() {
+                String::new()
+            } else {
+                format!(" (v{})", hit.version)
+            };
             out.push_str(&format!(
-                "- **{}** (v{}): {} [{}] [域:{}]\n",
-                e.name,
-                e.version,
-                e.description,
-                e.category,
-                e.domain.as_str()
+                "{}. **{}**{} [{} 分] [{}|来源:{}]: {}\n",
+                rank + 1,
+                hit.name,
+                version_note,
+                hit.score as u64,
+                hit.category,
+                hit.source,
+                hit.description
             ));
         }
         out.push_str(&format!(
-            "\n共 {} 个匹配。使用 SkillView 加载完整内容，使用 SkillReference 查看引用文件。",
-            results.len()
+            "\n共 {total_matches} 个匹配，显示前 {} 条。\
+             护照能力（来源 capability）用 CapabilityView 展开、CapabilityLoad 加载；\
+             文件系统技能（来源 skill）用 SkillView 加载正文。",
+            shown.len()
         ));
 
         Ok(ToolResult {
@@ -913,12 +1038,48 @@ impl Tool for DiscoverSkillsTool {
             truncated: false,
             metadata: Some(serde_json::json!({
                 "level": 0,
-                "query": q,
-                "total_matches": results.len(),
+                "query": query,
+                "total_matches": total_matches,
+                "returned": shown.len(),
+                "top_k": top_k,
+                "domain_filter": domain_filter,
             })),
             duration_ms: None,
             progress: Vec::new(),
         })
+    }
+}
+
+#[cfg(test)]
+mod discover_tests {
+    use super::{score_text, split_query_terms};
+
+    #[test]
+    fn multi_word_query_is_and_semantics() {
+        let terms = split_query_terms("stock analysis");
+        assert_eq!(score_text(&terms, "stock-analyzer", &[], "does analysis"), 0.0);
+    }
+
+    #[test]
+    fn name_match_outranks_description_match() {
+        let terms = split_query_terms("scan");
+        let by_name = score_text(&terms, "port-scanner", &[], "unrelated");
+        let by_desc = score_text(&terms, "unrelated", &[], "can scan ports");
+        assert!(by_name > by_desc);
+    }
+
+    #[test]
+    fn prefix_hit_scores_higher() {
+        let terms = split_query_terms("port");
+        let prefix = score_text(&terms, "port-scanner", &[], "");
+        let contains = score_text(&terms, "report-scanner", &[], "");
+        assert!(prefix > contains);
+    }
+
+    #[test]
+    fn case_insensitive_matching() {
+        let terms = split_query_terms("SCAN");
+        assert!(score_text(&terms, "port-scanner", &[], "") > 0.0);
     }
 }
 

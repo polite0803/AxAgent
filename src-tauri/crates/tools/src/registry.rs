@@ -413,8 +413,15 @@ pub fn tools_to_openai_format(tools: &[ToolInfo]) -> serde_json::Value {
 /// 之所以必须按名放行而非按域放行：这组工具的 `domain` 是 `General`，而 `General`
 /// 域下含 `Bash` / `FileWrite` / `FileEdit` / `DeleteFile` 等写操作工具，
 /// 加域进 `active_domains` 等于把危险操作一并暴露给编排执行阶段。
-pub const DISCLOSURE_TOOLS: [&str; 5] =
-    ["SkillsList", "SkillView", "SkillReference", "DiscoverSkills", "CapabilityView"];
+pub const DISCLOSURE_TOOLS: [&str; 7] = [
+    "SkillsList",
+    "SkillView",
+    "SkillReference",
+    "DiscoverSkills",
+    "CapabilityView",
+    "CapabilityLoad",
+    "CapabilityBrowse",
+];
 
 /// 完整的统一工具注册表
 pub struct UnifiedToolRegistry {
@@ -455,6 +462,12 @@ pub struct UnifiedToolRegistry {
     pub skill_handlers: HashMap<String, SkillToolHandler>,
     /// 用户提问桥接器（AskUserQuestion 工具阻塞等待用户输入）
     pub ask_user_bridge: Option<Arc<dyn axagent_harness::AskUserBridge>>,
+    /// Agent 作用域标识 —— 透传进 `ToolContext.agent_id`，供会话状态的
+    /// 多 Agent 隔离使用（能力加载状态按 agent 分键）。
+    pub agent_id: Option<String>,
+    /// 运行时动态工具集 —— 透传进 `ToolContext.dynamic_tools`，是
+    /// `CapabilityLoad` 把工具定义追加进下一轮 LLM 请求的唯一出口。
+    pub dynamic_tools: Option<axagent_harness::DynamicToolSet>,
 
     /// RL 策略工具排名器（可选），在 `get_chat_tools()` 返回前重排工具列表。
     /// 高权重工具排前面，间接影响 LLM 的工具选择偏好。
@@ -494,6 +507,8 @@ impl Clone for UnifiedToolRegistry {
             tool_extra: self.tool_extra.clone(),
             skill_handlers: HashMap::new(), // handlers 不可 Clone，clone 时重置为空
             ask_user_bridge: self.ask_user_bridge.clone(),
+            agent_id: self.agent_id.clone(),
+            dynamic_tools: self.dynamic_tools.clone(),
             tool_ranker: self.tool_ranker.clone(),
             runtime_tool_sources: self.runtime_tool_sources.clone(),
             effects: Vec::new(), // Disposer 不可 Clone，克隆体不携带副作用
@@ -578,6 +593,8 @@ impl UnifiedToolRegistry {
             tool_extra: HashMap::new(),
             skill_handlers: HashMap::new(),
             ask_user_bridge: None,
+            agent_id: None,
+            dynamic_tools: None,
             tool_ranker: None,
             runtime_tool_sources: HashMap::new(),
             effects: Vec::new(),
@@ -828,6 +845,21 @@ impl UnifiedToolRegistry {
     pub fn with_execution_context(mut self, conv_id: String, msg_id: Option<String>) -> Self {
         self.conversation_id = Some(conv_id);
         self.message_id = msg_id;
+        self
+    }
+
+    /// 设置 Agent 作用域（多 Agent 隔离），透传进 `ToolContext.agent_id`。
+    pub fn with_agent_id(mut self, agent_id: impl Into<String>) -> Self {
+        self.agent_id = Some(agent_id.into());
+        self
+    }
+
+    /// 设置运行时动态工具集，透传进 `ToolContext.dynamic_tools`。
+    ///
+    /// `CapabilityLoad` 依赖它把按需加载的能力变成 LLM 可调用的 function；
+    /// 不注入时加载只能落状态，执行闭环不生效。
+    pub fn with_dynamic_tools(mut self, set: axagent_harness::DynamicToolSet) -> Self {
+        self.dynamic_tools = Some(set);
         self
     }
 
@@ -1302,6 +1334,8 @@ impl UnifiedToolRegistry {
                 output_sanitizer: None,
                 ask_user_bridge: self.ask_user_bridge.clone(),
                 rollback_stack: None,
+                agent_id: self.agent_id.clone(),
+                dynamic_tools: self.dynamic_tools.clone(),
             };
 
             // ── 运行时 Schema 校验（M-05） ──

@@ -1933,3 +1933,84 @@ pub fn register_noop_role_and_expert_repos() {
     set_agent_role_repository(Arc::new(NoopAgentRoleRepository));
     set_agency_expert_repository(Arc::new(NoopAgencyExpertRepository));
 }
+
+// ── 会话状态存储测试替身 ──────────────────────────────
+
+/// 内存版 `SessionStateStore` —— 让不碰数据库的测试也能构造完整依赖。
+///
+/// TTL 在读取侧生效（与生产实现同口径）：过期条目读为 `None`，
+/// 但不会自行从 map 里移除，直到 `purge_expired` 被调用。
+#[derive(Debug, Default)]
+pub struct MemorySessionStateStore {
+    entries: std::sync::RwLock<HashMap<String, (String, Option<i64>)>>,
+}
+
+impl MemorySessionStateStore {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+#[async_trait]
+impl crate::SessionStateStore for MemorySessionStateStore {
+    async fn set(
+        &self,
+        key: &str,
+        value: &str,
+        ttl_ms: Option<i64>,
+    ) -> std::result::Result<(), String> {
+        let expires_at_ms = ttl_ms.map(|ttl| crate::util_fns::now_ms().saturating_add(ttl));
+        self.entries
+            .write()
+            .map_err(|e| format!("会话状态写锁中毒: {e}"))?
+            .insert(key.to_string(), (value.to_string(), expires_at_ms));
+        Ok(())
+    }
+
+    async fn get(&self, key: &str) -> std::result::Result<Option<String>, String> {
+        let guard = self.entries.read().map_err(|e| format!("会话状态读锁中毒: {e}"))?;
+        let Some((value, expires_at_ms)) = guard.get(key) else {
+            return Ok(None);
+        };
+        let now = crate::util_fns::now_ms();
+        if expires_at_ms.is_some_and(|exp| exp <= now) {
+            return Ok(None);
+        }
+        Ok(Some(value.clone()))
+    }
+
+    async fn delete(&self, key: &str) -> std::result::Result<(), String> {
+        self.entries.write().map_err(|e| format!("会话状态写锁中毒: {e}"))?.remove(key);
+        Ok(())
+    }
+
+    async fn list_by_prefix(
+        &self,
+        prefix: &str,
+    ) -> std::result::Result<Vec<crate::SessionStateEntry>, String> {
+        let now = crate::util_fns::now_ms();
+        let guard = self.entries.read().map_err(|e| format!("会话状态读锁中毒: {e}"))?;
+        Ok(guard
+            .iter()
+            .filter(|(k, _)| k.starts_with(prefix))
+            .filter(|(_, (_, exp))| !exp.is_some_and(|e| e <= now))
+            .map(|(k, (v, exp))| crate::SessionStateEntry {
+                key: k.clone(),
+                value: v.clone(),
+                scope: k.split(':').next().unwrap_or("temp").to_string(),
+                conversation_id: None,
+                agent_id: None,
+                updated_at_ms: now,
+                expires_at_ms: *exp,
+            })
+            .collect())
+    }
+
+    async fn purge_expired(&self) -> std::result::Result<usize, String> {
+        let now = crate::util_fns::now_ms();
+        let mut guard = self.entries.write().map_err(|e| format!("会话状态写锁中毒: {e}"))?;
+        let before = guard.len();
+        guard.retain(|_, (_, exp)| !exp.is_some_and(|e| e <= now));
+        Ok(before - guard.len())
+    }
+}

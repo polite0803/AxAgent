@@ -45,6 +45,15 @@ pub use super::pg_ddl::exec_ddl;
 pub const ADDITIONAL_COLUMNS: &[(&str, &str, &str)] = &[
     // ── 旧库（v001–v011 时期的表） ──
     ("agent_roles", "active_domains", "TEXT"),
+    // ── agent_roles 岗位治理字段（entity 已有，建表 DDL 漏带，由 PHASE 3.9 兜底补列） ──
+    ("agent_roles", "responsibilities", "TEXT"),
+    ("agent_roles", "decision_authority", "TEXT"),
+    ("agent_roles", "reports_to", "TEXT"),
+    ("agent_roles", "managed_expert_ids", "TEXT"),
+    ("agent_roles", "required_certifications", "TEXT"),
+    ("agent_roles", "icon", "TEXT"),
+    ("agent_roles", "color", "TEXT"),
+    ("agent_roles", "is_enabled", "INTEGER NOT NULL DEFAULT 1"),
     ("agency_experts", "recommended_workflows", "TEXT"),
     ("agency_experts", "recommended_tools", "TEXT"),
     ("agency_experts", "active_domains", "TEXT"),
@@ -477,7 +486,9 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             timeout_seconds BIGINT NOT NULL DEFAULT 600, \
             source TEXT NOT NULL DEFAULT 'builtin', sort_order INTEGER NOT NULL DEFAULT 0, \
             created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL, \
-            active_domains TEXT)",
+            active_domains TEXT, responsibilities TEXT, decision_authority TEXT, \
+            reports_to TEXT, managed_expert_ids TEXT, required_certifications TEXT, \
+            icon TEXT, color TEXT, is_enabled INTEGER NOT NULL DEFAULT 1)",
         // semantic_cache
         "CREATE TABLE IF NOT EXISTS semantic_cache (\
             id TEXT NOT NULL PRIMARY KEY, prompt_hash TEXT NOT NULL, response TEXT NOT NULL, \

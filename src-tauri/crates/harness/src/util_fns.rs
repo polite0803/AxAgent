@@ -14,6 +14,14 @@ pub fn now_ts() -> i64 {
     chrono::Utc::now().timestamp()
 }
 
+/// 获取当前 Unix 时间戳（毫秒）
+///
+/// 毫秒是运行时侧（TTL 过期、能力统计、会话状态）的统一时间单位；
+/// 秒级 `now_ts` 只用于 DB TEXT 时间列与跨天计算，两者不要混用。
+pub fn now_ms() -> i64 {
+    chrono::Utc::now().timestamp_millis()
+}
+
 /// 返回当前 UTC 时间的 `"YYYY-MM-DD HH:MM:SS"` 格式字符串。
 ///
 /// 这是数据库 TEXT 类型时间列的统一写入格式，与 SQLite `datetime('now')`

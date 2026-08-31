@@ -25,6 +25,13 @@ pub struct DbConfig {
     pub pg_password_enc: Option<String>,
     pub pg_schema: Option<String>,
     pub use_ssl: Option<bool>,
+    /// Postgres 不可达时是否降级到本地 SQLite（默认 true）。
+    /// 设为 false 时失败直接 panic / 启动终止，便于生产环境强制 PG。
+    /// 也可被环境变量 `AXAGENT_DB_FALLBACK_TO_SQLITE=0` / `=1` 临时覆盖。
+    /// 降级事件会写入 `{app_dir}/db_fallback_active.json`，UI 可在下次启动时提示用户。
+    /// PG 数据**不会**自动迁移到 SQLite，因为 schema 通常不同；用户需自行导出。
+    #[serde(default)]
+    pub fallback_to_sqlite: Option<bool>,
 }
 
 impl Default for DbConfig {
@@ -40,6 +47,8 @@ impl Default for DbConfig {
             pg_password_enc: None,
             pg_schema: None,
             use_ssl: Some(false),
+            // 默认允许降级：开发期 PG 偶发不可用不应该阻断启动
+            fallback_to_sqlite: Some(true),
         }
     }
 }

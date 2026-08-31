@@ -150,6 +150,37 @@ pub async fn init_database_with_dir(app_dir: PathBuf) -> Result<DatabaseInitResu
     // 解析数据库连接配置（DB 外持久化于 {app_dir}/db_config.json）
     let (db_url, is_sqlite) = resolve_db_url(&app_dir, &master_key)?;
 
+    // ── Postgres 可用性探测 + 降级 ──
+    // 当 db_type=postgres 但连不上时（如服务宕机 / 密码错 / 网络不通），
+    // 默认降级到本地 SQLite 以保住启动可用性。
+    // 通过 `AXAGENT_DB_FALLBACK_TO_SQLITE=0` / db_config.fallback_to_sqlite=false 可关闭降级，
+    // 关闭时连接失败直接报错回上层窗口。
+    let pg_failure = if !is_sqlite {
+        pg_unreachable(&db_url).await
+    } else {
+        None
+    };
+    let (db_url, is_sqlite) = if let Some(reason) = pg_failure {
+        if !fallback_enabled(&app_dir) {
+            return Err(format!(
+                "Postgres 不可达且降级被禁用: {}（如需启用降级，请在 db_config.json 设 \
+                 \"fallback_to_sqlite\": true，或设置环境变量 AXAGENT_DB_FALLBACK_TO_SQLITE=1）",
+                reason
+            ));
+        }
+        tracing::error!(
+            target: "startup",
+            "⚠️ Postgres 不可达，降级到本地 SQLite。原因: {} | 原 URL: {}",
+            reason,
+            redact_pg_password(&db_url)
+        );
+        write_fallback_marker(&app_dir, "pg_unreachable", &reason).ok();
+        let sqlite_url = format!("sqlite:{}/axagent.db?mode=rwc", app_dir.display());
+        (sqlite_url, true)
+    } else {
+        (db_url, is_sqlite)
+    };
+
     // 仅 SQLite 注册 sqlite-vec 扩展。在 Android 上默认跳过（见 vector_store.rs），
     // 在桌面平台用 catch_unwind 防止 FFI 异常 panic。
     if is_sqlite {
@@ -176,6 +207,42 @@ pub async fn init_database_with_dir(app_dir: PathBuf) -> Result<DatabaseInitResu
     let db_handle = axagent_dao::db::create_pool(&db_url)
         .await
         .map_err(|e| format!("database initialization failed: {}", e))?;
+
+    // ── Schema 自愈：适配用户选择的任意数据库 ─────────────────────────
+    // 用户可在 UI（设置 → 数据库）中选择任何 PostgreSQL/SQLite 库，程序必须
+    // 适配所选库，而不是要求库适配代码。
+    //
+    // 场景：连接的是下游 fork 库（如 AxInvest 的 axinvest 库），其迁移版本号
+    // 体系与主线不同（fork 用 v200+ 编号），`applied_max` 恒大于主线
+    // `CURRENT_VERSION`。`run_migrations` 按版本号判断会误判"已最新"，
+    // 导致主线新增迁移（如 v127–v130 的能力关系/统计/策略/会话状态表）
+    // 在 fork 库上从未执行 → 运行时"关系不存在"。
+    //
+    // 这里检测版本超前场景，自动触发 `repair_schema`（无条件重跑所有已注册
+    // 迁移，全部 `IF NOT EXISTS` 幂等，自动补全缺失表/列，不碰存量数据），
+    // 无需用户手动点击"修复 Schema"按钮。
+    if let Ok(status) = axagent_dao::migrations::get_schema_status(&db_handle.conn).await {
+        if status.applied_version > status.latest_version {
+            tracing::warn!(
+                "[DB] 检测到 schema 版本超前（applied={} > latest={}，疑似下游 fork 库），\
+                 自动执行 repair_schema 补齐缺失表...",
+                status.applied_version,
+                status.latest_version
+            );
+            match axagent_dao::migrations::repair_schema(&db_handle.conn).await {
+                Ok((fixed, total)) => {
+                    tracing::info!(
+                        "[DB] repair_schema 自动自愈完成: {}/{} 迁移已补齐",
+                        fixed,
+                        total
+                    );
+                },
+                Err(e) => {
+                    tracing::warn!("[DB] repair_schema 自动自愈失败（不阻塞启动）: {}", e);
+                },
+            }
+        }
+    }
 
     // MCP 预设服务器播种（依赖 mcp_client，在 core 中）
     if let Err(e) = axagent_dao::repo::mcp_server::ensure_preset_servers(&db_handle.conn).await {
@@ -253,4 +320,87 @@ fn secure_zero(buf: &mut [u8]) {
     }
     // SECURITY (C8): compiler_fence 防止编译器将上述 volatile 写入视为"死存储"而优化掉。
     std::sync::atomic::compiler_fence(std::sync::atomic::Ordering::SeqCst);
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// Postgres 可用性探测 + 降级 helper（init/database.rs 私有）
+// ──────────────────────────────────────────────────────────────────────
+
+/// 探测 Postgres 连接是否可用。
+///
+/// 用 3 秒超时做 TCP 探测——`tokio::net::TcpStream::connect` 不进入 postgres 协议层，
+/// 因此不依赖服务端 lc_messages 编码、不会触发 sqlx 的 UTF-8 解析 panic。
+/// 返回 `Some(原因)` 表示不可达且应降级；返回 `None` 表示连得通（后续让 create_pool 走完整握手）。
+async fn pg_unreachable(url: &str) -> Option<String> {
+    // 解析 host:port
+    let rest = url.strip_prefix("postgres://").or_else(|| url.strip_prefix("postgresql://"))?;
+    // 跳过 user:pass@
+    let after_auth = rest.splitn(2, '@').nth(1)?;
+    let host_port = after_auth.split('/').next()?;
+    let (host, port) = match host_port.split_once(':') {
+        Some((h, p)) => (h, p.parse::<u16>().unwrap_or(5432)),
+        None => (host_port, 5432),
+    };
+    match tokio::time::timeout(
+        std::time::Duration::from_secs(3),
+        tokio::net::TcpStream::connect((host, port)),
+    )
+    .await
+    {
+        Ok(Ok(_stream)) => None,
+        Ok(Err(e)) => Some(format!("TCP 连接失败: {}", e)),
+        Err(_) => Some("连接超时（3s）".to_string()),
+    }
+}
+
+/// 读取 db_config.fallback_to_sqlite 与 AXAGENT_DB_FALLBACK_TO_SQLITE 环境变量。
+/// env 优先于配置文件；配置文件缺省为 true（即允许降级）。
+fn fallback_enabled(app_dir: &Path) -> bool {
+    if let Ok(v) = std::env::var("AXAGENT_DB_FALLBACK_TO_SQLITE") {
+        match v.trim().to_ascii_lowercase().as_str() {
+            "0" | "false" | "no" | "off" => return false,
+            "1" | "true" | "yes" | "on" => return true,
+            _ => {},
+        }
+    }
+    let cfg_path = app_dir.join("db_config.json");
+    if let Ok(content) = std::fs::read_to_string(&cfg_path) {
+        if let Ok(cfg) = serde_json::from_str::<axagent_dao::config::DbConfig>(&content) {
+            return cfg.fallback_to_sqlite.unwrap_or(true);
+        }
+    }
+    true
+}
+
+/// 将 Postgres URL 中的 `:password@` 段替换成 `:***@`，避免密钥进日志。
+/// 已经过 percent-encode（`%40`、`%3A` 等）的密码无法可靠区分，跳过。
+fn redact_pg_password(url: &str) -> String {
+    if let Some(at_idx) = url.find('@') {
+        if let Some(scheme_end) = url.find("://") {
+            let auth_start = scheme_end + 3;
+            if at_idx > auth_start {
+                let user_end = url[auth_start..at_idx].find(':').map(|i| auth_start + i);
+                if let Some(colon) = user_end {
+                    return format!("{}:***{}", &url[..colon], &url[at_idx..]);
+                }
+            }
+        }
+    }
+    url.to_string()
+}
+
+/// 写一个伴生标记文件，UI 重连 PG 时可读取提示用户。
+/// 文件格式：`{"reason": "...", "details": "...", "ts": 1234567890}`。
+fn write_fallback_marker(app_dir: &Path, reason: &str, details: &str) -> std::io::Result<()> {
+    let marker_path = app_dir.join("db_fallback_active.json");
+    let body = serde_json::json!({
+        "reason": reason,
+        "details": details,
+        "ts": std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0),
+        "version": 1,
+    });
+    std::fs::write(marker_path, serde_json::to_vec_pretty(&body).unwrap_or_default())
 }

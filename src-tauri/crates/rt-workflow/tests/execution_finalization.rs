@@ -11,7 +11,6 @@
 //!     total_time_ms = (completed_at - created_at) * 1000 计算出天文数字。修复后统一为秒。
 
 use std::sync::Arc;
-use std::sync::Mutex;
 
 use axagent_harness::registry::ProviderRegistry;
 use axagent_harness::repo_dtos::WorkflowExecutionData;
@@ -25,16 +24,20 @@ use axagent_harness::workflow_types::{
 };
 
 use axagent_rt_workflow::work_engine::{RunOptions, WorkEngine};
+use tokio::sync::Mutex;
 
 // ── 记录型 WorkflowExecutionRepository ───────────────────────────────
 //
 // 记录每次 create_workflow_execution / update_workflow_execution_status 调用，
 // 便于断言 DB 是否收到终态与总耗时（total_time_ms）。
 
+/// 记录型 repo 的 update 日志：`(exec_id, status, total_time_ms)`
+type UpdateLog = Arc<Mutex<Vec<(String, String, Option<i32>)>>>;
+
 #[derive(Clone)]
 struct RecordingWorkflowExecutionRepo {
     /// (exec_id, status, total_time_ms)
-    updates: Arc<Mutex<Vec<(String, String, Option<i32>)>>>,
+    updates: UpdateLog,
 }
 
 #[async_trait::async_trait]
@@ -55,7 +58,7 @@ impl WorkflowExecutionRepository for RecordingWorkflowExecutionRepo {
         _node_executions: Option<&str>,
         total_time_ms: Option<i32>,
     ) -> Result<bool, String> {
-        self.updates.lock().unwrap().push((id.to_string(), status.to_string(), total_time_ms));
+        self.updates.lock().await.push((id.to_string(), status.to_string(), total_time_ms));
         Ok(true)
     }
     async fn list_workflow_executions(
@@ -168,7 +171,7 @@ async fn sub_workflow_and_partial_finalize_persist_terminal_status() {
 
     // 断言子工作流的 DB 收尾确实写入终态（而非停留在初始 running → 无 update 记录）。
     let mut sub_seen_final = false;
-    for (_, status, total_time) in updates.lock().unwrap().iter() {
+    for (_, status, total_time) in updates.lock().await.iter() {
         if status == "completed" {
             let t = total_time.expect("completed 收尾必须写入 total_time_ms");
             assert!((0..3_600_000).contains(&t), "total_time_ms 应为合理毫秒值，实际: {t}");
@@ -205,7 +208,7 @@ async fn sub_workflow_and_partial_finalize_persist_terminal_status() {
 
     // 断言 PartiallyCompleted 的 DB 收尾 total_time_ms 合理（非天文数字，即非毫秒×秒混算）。
     let mut partial_seen_final = false;
-    for (_, status, total_time) in updates.lock().unwrap().iter() {
+    for (_, status, total_time) in updates.lock().await.iter() {
         if status == "partially_completed" {
             let t = total_time.expect("partially_completed 收尾必须写入 total_time_ms");
             assert!(

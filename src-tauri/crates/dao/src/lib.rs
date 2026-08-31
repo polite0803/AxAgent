@@ -30,6 +30,8 @@ pub mod sync_storage_impl;
 pub use sync_storage_impl::SyncStorageDb;
 pub mod repo;
 pub mod search_sources_impl;
+pub mod session_state_store;
+pub use session_state_store::DaoSessionStateStore;
 pub mod settings_repository;
 pub mod stored_file_repository;
 pub mod tool_execution_repository;

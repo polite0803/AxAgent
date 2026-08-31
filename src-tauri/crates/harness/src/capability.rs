@@ -1215,11 +1215,11 @@ pub fn instantiate_template(
         match serde_json::from_str::<serde_json::Value>(example) {
             Ok(serde_json::Value::Object(map)) => {
                 for (k, v) in map {
-                    values.insert(k, v.to_string());
+                    values.insert(k, fill_value_string(&v));
                 }
             },
             Ok(v) => {
-                values.insert("example".to_string(), v.to_string());
+                values.insert("example".to_string(), fill_value_string(&v));
             },
             Err(_) => {
                 values.insert("example".to_string(), example.clone());
@@ -1236,6 +1236,19 @@ pub fn instantiate_template(
         skill_steps: passport.skill_steps.clone(),
         unresolved_placeholders: unresolved,
     })
+}
+
+/// 把 JSON 标量值转为占位符填充文本 —— **填原始值，不填 JSON 字面量**。
+///
+/// `template_body` 是给人/LLM 读的指令（`扫描 {{target_ip}} 的 {{port_range}}`），
+/// 填 `"10.0.0.1"`（带引号）是序列化产物而非调用方意图。
+/// 仅字符串需要剥引号：数字 / bool / null 的 `to_string()` 本就无引号；
+/// 数组 / 对象保留 JSON 形式（没有更合理的标量表示）。
+fn fill_value_string(v: &serde_json::Value) -> String {
+    match v {
+        serde_json::Value::String(s) => s.clone(),
+        other => other.to_string(),
+    }
 }
 
 /// 手写占位符替换（避免引入 regex 依赖）：把 `{{key}}` 用 `values` 填充，
@@ -1336,6 +1349,15 @@ impl CapabilityPassportDto {
     /// 是否为系统专用能力（不可被用户发现）
     pub fn is_system_only(&self) -> bool {
         self.visibility.is_system_only() || self.domain.is_system()
+    }
+
+    /// L2 集群标签 —— 能力目录两级分组与 `CapabilityBrowse` 逐层下钻共用的分组依据。
+    ///
+    /// 空缺回落 `"general"`，保证任何护照都能归入一个集群；权威定义在 harness，
+    /// 目录渲染（wiring 层）与下钻工具（tools 层）必须共用，否则两处分组漂移。
+    pub fn cluster_label(&self) -> &str {
+        let sub = self.sub_category.trim();
+        if sub.is_empty() { "general" } else { sub }
     }
 
     /// 是否可作为内容交给 LLM 上下文（能力目录与定义层展开共用同一判据）。
@@ -1462,7 +1484,8 @@ mod tests {
         };
 
         let inst = instantiate_template(&p).expect("实例化应成功");
-        assert_eq!(inst.filled_body, "探测 {{missing}} 与 \"single-sample\"");
+        // 标量分支与对象分支同语义：填原始值，剥掉 JSON 字面量引号
+        assert_eq!(inst.filled_body, "探测 {{missing}} 与 single-sample");
         assert_eq!(inst.unresolved_placeholders, vec!["missing".to_string()]);
     }
 

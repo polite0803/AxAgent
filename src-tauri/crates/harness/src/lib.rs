@@ -182,12 +182,6 @@ pub use business_rules::{
 pub mod context_builder;
 pub mod context_contributor;
 pub use context_contributor::{ContextContributor, ContextRequest};
-pub mod context_engine;
-pub use context_engine::{
-    CompactionConfigSnapshot, CompactionContext, CompactionRecord, CompactionResultSummary,
-    CompactionTrigger, ContextEngine, MemoryType, SessionLineage, SkillInfo, SkillReinjector,
-    StructuredMemory,
-};
 pub mod delegation;
 pub use delegation::{
     ApprovalCallback, ApprovalRequest, ApprovalResponse, ApprovalStrategy, DELEGATE_BLOCKED_TOOLS,
@@ -678,6 +672,13 @@ pub use capability_retriever::{
     CapabilityCandidate, CapabilityLayer, CapabilityQuery, CapabilityRetrievalResult,
     CapabilityRetriever,
 };
+pub mod session_state;
+pub use session_state::{
+    DEFAULT_AGENT_ID, NS_SKILL_LOADED, SessionStateEntry, SessionStateStore, StateScope,
+    namespace_prefix, scoped_key,
+};
+pub mod dynamic_tools;
+pub use dynamic_tools::DynamicToolSet;
 pub mod capability_filter;
 pub use capability_filter::{
     CapabilityFilter, FilterContext, FilterDecision, FilterDimension, FilteredCandidates,

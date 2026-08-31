@@ -166,6 +166,16 @@ pub struct ToolContext {
     pub ask_user_bridge: Option<Arc<dyn AskUserBridge>>,
     /// 回滚栈（可选）。设置后 `ToolRegistry::execute_tool` 会在 call 成功后自动创建回滚记录。
     pub rollback_stack: Option<Arc<Mutex<Vec<RollbackRecord>>>>,
+    /// Agent 作用域标识（多 Agent 隔离的载体）。
+    ///
+    /// `None` 表示单 Agent 场景，写入会话状态时回落为 [`crate::DEFAULT_AGENT_ID`]。
+    /// 由 wiring 层从 `AgentSession` 的 agent_profile / expert 派生后注入。
+    pub agent_id: Option<String>,
+    /// 运行时动态工具集（可选，`CapabilityLoad` 的执行闭环出口）。
+    ///
+    /// 由 `UnifiedToolRegistry` 透传；`None` 时 `CapabilityLoad` 只能写状态、
+    /// 不能把工具定义追加进下一轮请求，加载将停留在「看得见调不动」。
+    pub dynamic_tools: Option<crate::DynamicToolSet>,
 }
 
 impl ToolContext {
@@ -183,7 +193,21 @@ impl ToolContext {
             output_sanitizer: None,
             ask_user_bridge: None,
             rollback_stack: None,
+            agent_id: None,
+            dynamic_tools: None,
         }
+    }
+
+    /// 设置 Agent 作用域（链式调用）
+    pub fn with_agent_id(mut self, id: impl Into<String>) -> Self {
+        self.agent_id = Some(id.into());
+        self
+    }
+
+    /// 设置运行时动态工具集（链式调用）
+    pub fn with_dynamic_tools(mut self, set: crate::DynamicToolSet) -> Self {
+        self.dynamic_tools = Some(set);
+        self
     }
 
     /// 设置会话 ID（链式调用）

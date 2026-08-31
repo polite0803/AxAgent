@@ -61,6 +61,10 @@ pub struct PriceRange {
 }
 
 /// 需求价值评估结果
+///
+/// `opportunity_level` 不落字段：等级由 `commercial_value_score` 推导
+/// （见同名方法），存两份必然漂移 —— 曾经字段/方法重名导致方法被字段
+/// 遮蔽，`opportunity_level()` 恒返回空串。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DemandEvaluation {
@@ -69,7 +73,6 @@ pub struct DemandEvaluation {
     existing_solutions: u32,
     market_gap_score: f64,
     commercial_value_score: f64,
-    opportunity_level: String,
     confidence: f64,
     demand_type: DemandType,
     extracted_price_range: Option<PriceRange>,
@@ -118,7 +121,6 @@ fn evaluate_demand_value(
         existing_solutions: 0,
         market_gap_score,
         commercial_value_score,
-        opportunity_level: String::new(),
         confidence: 0.3,
         demand_type: DemandType::Unknown,
         extracted_price_range: None,
@@ -205,7 +207,7 @@ impl EvaluatedDemandLead {
     }
 
     pub fn opportunity_level(&self) -> String {
-        self.evaluation.opportunity_level.clone()
+        self.evaluation.opportunity_level().to_string()
     }
 }
 

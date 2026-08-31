@@ -945,11 +945,30 @@ mod tests {
             ConversationMessage::assistant(vec![ContentBlock::Text { text: "recent".to_string() }]),
         ];
 
+        // 意图：摘要自身不计入判定（start=1），剩余 2 条 ≤ preserve_recent → 不再压缩。
+        // token 阈值必须取不会误触发的值 —— should_compact 是「条数或 token 任一超限即压缩」，
+        // 之前这里写 max=1，"tiny"+"recent" 共约 4 token 必然触发，测的根本不是本意。
         assert!(!should_compact(
             &session,
             CompactionConfig {
                 preserve_recent_messages: 2,
-                max_estimated_tokens: 1,
+                max_estimated_tokens: 10_000,
+                ..Default::default()
+            },
+            NP,
+        ));
+
+        // 反向锚定：同配置下若把摘要也算进判定（模拟实现退化），消息数 3 > 2 必然触发 ——
+        // 保证本测试真的能捕获「摘要未被忽略」的回归，而非恒假通过。
+        let mut no_summary = Session::new();
+        no_summary.messages = session.messages[1..].to_vec();
+        no_summary.messages.insert(0, ConversationMessage::user_text("older"));
+        no_summary.messages.insert(1, ConversationMessage::user_text("older2"));
+        assert!(should_compact(
+            &no_summary,
+            CompactionConfig {
+                preserve_recent_messages: 2,
+                max_estimated_tokens: 10_000,
                 ..Default::default()
             },
             NP,

@@ -47,6 +47,11 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     // 这些组件后续在 Step 5/6 也会迁到 harness 内部。
     let sea_db = db_handle.conn.clone();
 
+    // 会话状态存储（能力按需加载闭环 P0-1）：CapabilityLoad 写、下轮注入器读。
+    // 贯穿整条链路，故在此处最先构造，后续注入 AppState 与 CapabilityLoad。
+    let session_state_store: Arc<dyn axagent_harness::SessionStateStore> =
+        Arc::new(axagent_dao::DaoSessionStateStore::new(Arc::new(sea_db.clone())));
+
     let vector_store = axagent_search::vector_store::VectorStore::new(sea_db.clone());
     let vector_store_arc = Arc::new(vector_store);
 
@@ -1094,7 +1099,13 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         capability_indexer_impl.clone();
     // 注入 CapabilityView（渐进式披露 L1 定义层）— 必须在索引器构造之后，
     // 早期 init_extensions 调用点（本文件上方）索引器尚不存在。
-    axagent_tools::tools::capability_view::set_capability_indexer(capability_indexer_trait.clone());
+    // 注入共享能力索引器 —— CapabilityView / CapabilityLoad / DiscoverSkills /
+    // CapabilityBrowse 四个披露工具共用同一份（收敛前 view/load 各持一个 OnceLock）。
+    axagent_tools::tools::capability_shared::set_capability_indexer(
+        capability_indexer_trait.clone(),
+    );
+    // 注入 CapabilityLoad 的会话状态存储：加载动作依赖它落盘，供下轮 Processor 读回注入。
+    axagent_tools::tools::capability_load::set_session_state_store(session_state_store.clone());
     let capability_retriever = Arc::new(axagent_tools::CapabilityRetrieverImpl::new(
         vector_store_arc.clone(),
         embedding_provider.clone(),
@@ -1336,6 +1347,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         // 能力发现系统
         capability_router,
         capability_indexer,
+        session_state_store,
         // 认知编排器
         cognitive_router,
         // 动态防护规则管理器

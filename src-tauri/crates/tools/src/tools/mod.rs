@@ -11,6 +11,9 @@ pub mod arxiv_scanner;
 pub mod bash;
 pub mod batch_missing;
 pub mod browser;
+pub mod capability_browse;
+pub mod capability_load;
+pub mod capability_shared;
 pub mod capability_view;
 pub mod ci;
 #[cfg(feature = "computer-use")]
@@ -117,6 +120,10 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
         std::sync::Arc::new(skill::SkillReferenceTool),
         // ── 能力渐进式披露 L1：定义层按需展开（面向护照全集，与 SkillView 互补）──
         std::sync::Arc::new(capability_view::CapabilityViewTool),
+        // ── 能力渐进式披露 L1.5：加载层（写会话状态 + 激活工具，有副作用）──
+        std::sync::Arc::new(capability_load::CapabilityLoadTool),
+        // ── 能力渐进式披露 L0：导航层（能力树逐层下钻）──
+        std::sync::Arc::new(capability_browse::CapabilityBrowseTool),
         std::sync::Arc::new(skill::SkillBundleListTool),
         std::sync::Arc::new(skill::SkillBundleCreateTool),
         std::sync::Arc::new(skill::SkillBundleLoadTool),
@@ -157,7 +164,6 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
         std::sync::Arc::new(worktree::ExitWorktreeTool),
         // ── 系统工具 ──
         std::sync::Arc::new(batch_missing::SleepTool),
-        std::sync::Arc::new(batch_missing::ToolSearchTool),
         std::sync::Arc::new(batch_missing::ConfigTool),
         std::sync::Arc::new(batch_missing::ReviewArtifactTool),
         std::sync::Arc::new(batch_missing::TerminalCaptureTool),

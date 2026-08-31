@@ -468,10 +468,10 @@ impl CapabilityRetrieverImpl {
         for p in passports {
             // p 的 upstream 是 p 的前置提供者：检查「上游输出 → 下游入参」覆盖
             for up_id in &p.upstream {
-                if let Some(up) = by_id.get(up_id.as_str()).copied() {
-                    if let Some(m) = Self::check_edge_compatibility(up, p) {
-                        mismatches.push(m);
-                    }
+                if let Some(up) = by_id.get(up_id.as_str()).copied()
+                    && let Some(m) = Self::check_edge_compatibility(up, p)
+                {
+                    mismatches.push(m);
                 }
             }
         }

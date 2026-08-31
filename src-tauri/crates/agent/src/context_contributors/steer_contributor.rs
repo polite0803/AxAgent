@@ -20,12 +20,12 @@ impl SteerContributor {
     }
 }
 
+#[async_trait::async_trait]
 impl ContextContributor for SteerContributor {
-    fn contribute(&self, _ctx: &ContextRequest) -> Option<String> {
-        // 在当前线程 block_on 取 steer 指令是安全的（drain_pending 是轻量操作）
-        let instructions = tokio::task::block_in_place(|| {
-            tokio::runtime::Handle::current().block_on(self.steer_manager.drain_pending())
-        });
+    async fn contribute(&self, _ctx: &ContextRequest<'_>) -> Option<String> {
+        // 直接 await：`drain_pending` 是异步的，trait 改异步后不再需要
+        // `block_in_place` 绕路（那会在多线程运行时下阻塞整个 worker）。
+        let instructions = self.steer_manager.drain_pending().await;
         if instructions.is_empty() {
             return None;
         }

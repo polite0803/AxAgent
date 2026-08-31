@@ -43,6 +43,7 @@ pub mod reading_list_items;
 pub mod reading_lists;
 pub mod retrieval_hit;
 pub mod search_provider;
+pub mod session_state;
 pub mod settings;
 pub mod skill;
 pub mod stored_file;
