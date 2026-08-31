@@ -1498,7 +1498,8 @@
     "conversationNotFound": "Conversation not found",
     "agentInitTransient": "Agent session initialization failed due to a temporary connection issue. You can try again in a moment.",
     "switchAgentModeNoConversationInfo": "Switched to Agent mode. Send a message to create an Agent conversation.",
-    "clearHistoryDone": "Conversation cleared"
+    "clearHistoryDone": "Conversation cleared",
+    "exportPdfDesktopOnly": "PDF 내보내기는 데스크톱에서만 사용 가능"
   },
   "capabilityDomain": {
     "general": "일반",

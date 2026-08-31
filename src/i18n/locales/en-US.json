@@ -9956,11 +9956,7 @@
       "code": "Implementation",
       "codePlaceholder": "Rhai script source / DAG JSON / LLM function definition",
       "inputSchema": "Input Schema",
-      "status": {
-        "active": "Active",
-        "disabled": "Disabled",
-        "pending": "Pending"
-      },
+      "status": "Status",
       "source": "Source",
       "status.pending": "Pending",
       "status.active": "Active",

@@ -9956,11 +9956,7 @@
       "code": "实现代码",
       "codePlaceholder": "输入 Rhai 脚本源码 / DAG JSON / LLM 函数定义",
       "inputSchema": "输入 Schema",
-      "status": {
-        "active": "激活",
-        "disabled": "已禁用",
-        "pending": "待配置"
-      },
+      "status": "状态",
       "source": "来源",
       "status.pending": "待确认",
       "status.active": "已启用",

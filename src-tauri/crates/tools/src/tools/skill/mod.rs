@@ -1056,8 +1056,14 @@ mod discover_tests {
 
     #[test]
     fn multi_word_query_is_and_semantics() {
+        // 多词查询为 AND 语义：每个词都必须命中，否则整体为 0（淘汰弱相关噪音）
         let terms = split_query_terms("stock analysis");
-        assert_eq!(score_text(&terms, "stock-analyzer", &[], "does analysis"), 0.0);
+        // 两词均命中（stock 在 name、analysis 在 desc）→ 应 > 0
+        assert!(score_text(&terms, "stock-analyzer", &[], "does analysis") > 0.0);
+
+        // 仅命中部分词（"quantum" 完全无命中）→ AND 语义下应被淘汰为 0
+        let partial = split_query_terms("stock quantum");
+        assert_eq!(score_text(&partial, "stock-analyzer", &[], "does analysis"), 0.0);
     }
 
     #[test]

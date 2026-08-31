@@ -50,6 +50,7 @@ pub async fn start_background_services(
     start_obsidian_vaults_registration(state);
     start_knowledge_consolidation_tick(state);
     start_trajectory_cleanup(state);
+    start_session_state_cleanup_tick(state);
     start_index_job_service(app, state);
     start_plugins(state);
 
@@ -2229,6 +2230,53 @@ fn start_trajectory_cleanup(state: &AppState) {
         config_for_log.max_age_days,
         config_for_log.max_trajectories
     );
+}
+
+/// 会话状态（SessionStateStore）过期条目周期清理。
+///
+/// SessionStateStore 中的条目（已加载能力、工具激活状态、临时中间数据）
+/// 全部带 TTL，过期后读取侧视为不存在，但不会自动从数据库删除。
+/// 本任务每 6 小时调用一次 `purge_expired`，防止 `session_states` 表持续膨胀。
+fn start_session_state_cleanup_tick(state: &AppState) {
+    let store = state.session_state_store.clone();
+    let shutdown_token = state.shutdown_token.clone();
+
+    tauri::async_runtime::spawn(async move {
+        // 延迟 60 秒，确保数据库初始化完成且首轮对话正常运行
+        tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+
+        let mut tick = tokio::time::interval(std::time::Duration::from_secs(6 * 3600));
+        tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+
+        loop {
+            tokio::select! {
+                _ = tick.tick() => {
+                    match store.purge_expired().await {
+                        Ok(count) if count > 0 => {
+                            tracing::info!(
+                                "[session_state_cleanup] 清理 {} 条过期会话状态条目",
+                                count
+                            );
+                        },
+                        Ok(_) => {},
+                        Err(e) => {
+                            tracing::warn!(
+                                "[session_state_cleanup] purge_expired 失败: {}",
+                                e
+                            );
+                        },
+                    }
+                },
+                _ = shutdown_token.cancelled() => {
+                    tracing::info!(
+                        "[session_state_cleanup] 收到关闭信号，停止清理任务"
+                    );
+                    break;
+                },
+            }
+        }
+    });
+    tracing::info!("[session_state_cleanup] 已启动，间隔 6 小时");
 }
 
 fn start_index_job_service(app: &tauri::AppHandle, state: &AppState) {

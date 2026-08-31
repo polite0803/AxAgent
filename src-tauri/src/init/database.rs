@@ -335,7 +335,7 @@ async fn pg_unreachable(url: &str) -> Option<String> {
     // 解析 host:port
     let rest = url.strip_prefix("postgres://").or_else(|| url.strip_prefix("postgresql://"))?;
     // 跳过 user:pass@
-    let after_auth = rest.splitn(2, '@').nth(1)?;
+    let after_auth = rest.split_once('@')?.1;
     let host_port = after_auth.split('/').next()?;
     let (host, port) = match host_port.split_once(':') {
         Some((h, p)) => (h, p.parse::<u16>().unwrap_or(5432)),

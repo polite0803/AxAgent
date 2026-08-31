@@ -853,6 +853,18 @@ pub async fn delete_conversation(
             ))
         })?;
 
+    // 4b. 删除会话状态（CapabilityLoad 写入的已加载能力状态等）
+    axagent_entities::session_states::Entity::delete_many()
+        .filter(axagent_entities::session_states::Column::ConversationId.eq(&id))
+        .exec(&txn)
+        .await
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+
     // 5. 删除主对话
     let result = axagent_entities::conversations::Entity::delete_by_id(&id)
         .exec(&txn)
