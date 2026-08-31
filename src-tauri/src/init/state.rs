@@ -1106,6 +1106,8 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     );
     // 注入 CapabilityLoad 的会话状态存储：加载动作依赖它落盘，供下轮 Processor 读回注入。
     axagent_tools::tools::capability_load::set_session_state_store(session_state_store.clone());
+    // 注入 SaveAsWorkflow 的会话状态存储：持久化动作需要从这里读取已加载能力列表。
+    axagent_tools::tools::save_as_workflow::set_session_state_store(session_state_store.clone());
     let capability_retriever = Arc::new(axagent_tools::CapabilityRetrieverImpl::new(
         vector_store_arc.clone(),
         embedding_provider.clone(),
@@ -1460,10 +1462,22 @@ async fn register_all_capabilities(
                 if meta.kind != axagent_plugins::PluginKind::Builtin {
                     continue;
                 }
+                // 从 plugin manager 取带 prompt_body 的 Skill 护照（读 SKILL.md 文件）
+                let mut skill_prompt_body = None;
+                let mut skill_description = meta.description.clone();
+                for pp in plugin_manager.passports_for_plugin(&meta.id) {
+                    if pp.kind == CapabilityKind::Skill && pp.name == meta.name {
+                        skill_prompt_body = pp.prompt_body.clone();
+                        if !pp.description.is_empty() {
+                            skill_description = pp.description.clone();
+                        }
+                        break;
+                    }
+                }
                 passports.push(CapabilityPassportDto {
                     capability_id: format!("skill:{}", meta.name),
                     name: meta.name.clone(),
-                    description: meta.description.clone(),
+                    description: skill_description,
                     summary: None,
                     kind: CapabilityKind::Skill,
                     version: None,
@@ -1501,6 +1515,7 @@ async fn register_all_capabilities(
                     steps: Vec::new(),
                     skill_steps: Vec::new(),
                     placeholders: Vec::new(),
+                    prompt_body: skill_prompt_body,
                     template_body: None,
                     instantiates_to: None,
                     example_instance: None,
@@ -1603,6 +1618,7 @@ async fn register_all_capabilities(
                     steps: Vec::new(),
                     skill_steps: Vec::new(),
                     placeholders: Vec::new(),
+                    prompt_body: None,
                     template_body: None,
                     instantiates_to: None,
                     example_instance: None,
@@ -1718,6 +1734,7 @@ async fn register_all_capabilities(
                     steps: Vec::new(),
                     skill_steps: Vec::new(),
                     placeholders: Vec::new(),
+                    prompt_body: None,
                     template_body: None,
                     instantiates_to: None,
                     example_instance: None,
@@ -1879,6 +1896,7 @@ async fn register_system_capabilities(
             steps: Vec::new(),
             skill_steps: Vec::new(),
             placeholders: Vec::new(),
+            prompt_body: None,
             template_body: None,
             instantiates_to: None,
             example_instance: None,
@@ -1935,6 +1953,7 @@ async fn register_system_capabilities(
             steps: Vec::new(),
             skill_steps: Vec::new(),
             placeholders: Vec::new(),
+            prompt_body: None,
             template_body: None,
             instantiates_to: None,
             example_instance: None,
@@ -2005,6 +2024,7 @@ async fn register_system_capabilities(
             steps: Vec::new(),
             skill_steps: Vec::new(),
             placeholders: Vec::new(),
+            prompt_body: None,
             template_body: None,
             instantiates_to: None,
             example_instance: None,
@@ -2315,6 +2335,26 @@ pub async fn run_deferred_init(app_state: &crate::app_state::AppState) {
         let mut registry = app_state.local_tool_registry.lock().await;
         registry.load_enabled_state(&app_state.harness.db()).await;
         tracing::info!("[startup] 工具注册表启用状态加载完成 ({}ms)", t_reg.elapsed().as_millis());
+    }
+
+    // ── 12. WorkflowEvolutionTick 后台定时优化 ──
+    {
+        let db_arc: std::sync::Arc<axagent_harness::DatabaseConnection> =
+            std::sync::Arc::new(app_state.harness.db().clone());
+        let storage =
+            std::sync::Arc::new(axagent_trajectory::TrajectoryStorage::new(db_arc.clone()));
+        let optimizer: std::sync::Arc<dyn axagent_harness::WorkflowOptimizer> =
+            std::sync::Arc::new(axagent_trajectory::WorkflowOptimizerImpl::new());
+        let template_repo: std::sync::Arc<dyn axagent_harness::WorkflowTemplateRepo> =
+            std::sync::Arc::new(axagent_dao::DaoWorkflowTemplateRepository { db: db_arc.clone() });
+
+        axagent_trajectory::start_workflow_evolution_tick(
+            storage,
+            optimizer,
+            Some(template_repo),
+            axagent_trajectory::EvolutionTickConfig::default(),
+        );
+        tracing::info!("[startup] WorkflowEvolutionTick 已启动（默认 6h 间隔）");
     }
 
     tracing::info!(

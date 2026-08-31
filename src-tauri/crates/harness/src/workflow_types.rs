@@ -1738,6 +1738,25 @@ impl WorkflowTemplateData {
     pub fn is_system_template(&self) -> bool {
         self.route_path.as_deref().map(|p| p.starts_with("/system/")).unwrap_or(false)
     }
+
+    /// 转换为护照派生的统一参数（口径见 [`WorkflowTemplatePassportParams`]）。
+    ///
+    /// 护照本身由 [`workflow_template_passport`] 派生，此处只负责把结构化的
+    /// 模板字段降维成 DTO 无关的参数，避免本文件与 `repo_dtos` 版各自推导
+    /// 造成增量索引 / 启动期全量重建不一致。
+    pub fn passport_params(&self) -> WorkflowTemplatePassportParams {
+        WorkflowTemplatePassportParams {
+            id: self.id.clone(),
+            name: self.name.clone(),
+            description: self.description.clone().unwrap_or_default(),
+            tags: self.tags.clone(),
+            cluster_id: self.cluster_id.clone(),
+            route_path: self.route_path.clone(),
+            node_count: self.nodes.len(),
+            visibility: self.visibility,
+            input_schema: self.input_schema.as_ref().and_then(|s| serde_json::to_value(s).ok()),
+        }
+    }
 }
 
 // ── 工作流运行时执行态 DTO(阶段 2 从 rt-workflow 上移)──
@@ -2074,6 +2093,148 @@ impl ReviewEvidenceIdentity {
     }
 }
 
+// ── 工作流模板护照：唯一权威派生口径 ────────────────────
+
+/// 工作流模板护照的 DTO 无关参数。
+///
+/// # 为什么需要这一层
+/// 工作流模板在项目里存在两套内存表示：
+/// - [`WorkflowTemplateData`]（本文件）：`nodes: Vec<WorkflowNode>`、`tags: Vec<String>`、
+///   带 `visibility` 列，命令层与 mission 编译使用。
+/// - [`crate::repo_dtos::WorkflowTemplateData`]：全部为 DB 字符串列、
+///   无 `visibility`，SaveAsWorkflow 等运行时工具使用。
+///
+/// 护照的 `capability_id` / `domain` / `sub_category` / `visibility` /
+/// `planning_complexity` 全部依赖上述字段。若两套表示各自推导，运行时增量
+/// 索引与启动期全量重建会产生漂移，表现为「重启前后同一模板路由行为不一致」。
+/// 故统一收敛到本结构体 + [`workflow_template_passport`]。
+#[derive(Debug, Clone)]
+pub struct WorkflowTemplatePassportParams {
+    /// 模板 ID（不含 `workflow:` 前缀）
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub tags: Vec<String>,
+    /// L2 集群 ID，优先于 `route_path` 的 L2 段
+    pub cluster_id: Option<String>,
+    /// 三层路由路径（格式 `/{domain}/{cluster}/{capability}`）
+    pub route_path: Option<String>,
+    /// 节点数量，用于 `planning_complexity` 分档
+    pub node_count: usize,
+    /// 模板声明的可见性；`route_path` L1 段为 `system` 时被强制为 SystemOnly
+    pub visibility: crate::capability::Visibility,
+    /// 输入参数 JSON Schema
+    pub input_schema: Option<serde_json::Value>,
+}
+
+impl WorkflowTemplatePassportParams {
+    /// 从 `route_path` 拆解 L1 domain 段。无 route_path 或解析失败时降级 General，与旧模板兼容。
+    pub fn derived_domain(&self) -> crate::capability::CapabilityDomain {
+        self.route_path
+            .as_deref()
+            .and_then(|p| {
+                let trimmed = p.trim_start_matches('/');
+                trimmed.split('/').next().and_then(crate::routing_path::parse_domain)
+            })
+            .unwrap_or(crate::capability::CapabilityDomain::General)
+    }
+
+    /// 优先用显式 cluster_id；否则从 route_path 拆解 L2 cluster 段。
+    pub fn derived_sub_category(&self) -> String {
+        if let Some(ref c) = self.cluster_id {
+            return c.clone();
+        }
+        self.route_path
+            .as_deref()
+            .and_then(|p| {
+                let trimmed = p.trim_start_matches('/');
+                let mut segs = trimmed.split('/');
+                segs.next()?;
+                segs.next().map(|s| s.to_string())
+            })
+            .unwrap_or_default()
+    }
+
+    /// 系统预置路由模板（认知编排器等）运行时推导为 SystemOnly：
+    /// workflow_templates 表未持久化 visibility 列，模板从 DB 读出时字段
+    /// 会回到默认 Public，此处用 route_path L1 段为 "system" 兜底，
+    /// 保证其护照永远不被注册进业务能力注册表。
+    pub fn derived_visibility(&self) -> crate::capability::Visibility {
+        if self.route_path.as_deref().is_some_and(|p| p.starts_with("/system/")) {
+            crate::capability::Visibility::SystemOnly
+        } else {
+            self.visibility
+        }
+    }
+
+    /// <=3 Simple，4-10 Moderate，>10 Complex
+    pub fn derived_planning_complexity(&self) -> crate::capability::PlanningComplexity {
+        match self.node_count {
+            0..=3 => crate::capability::PlanningComplexity::Simple,
+            4..=10 => crate::capability::PlanningComplexity::Moderate,
+            _ => crate::capability::PlanningComplexity::Complex,
+        }
+    }
+}
+
+impl crate::capability::CapabilityPassport for WorkflowTemplatePassportParams {
+    fn capability_id(&self) -> String {
+        format!("workflow:{}", self.id)
+    }
+
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn description(&self) -> &str {
+        &self.description
+    }
+
+    fn kind(&self) -> crate::capability::CapabilityKind {
+        crate::capability::CapabilityKind::Workflow
+    }
+
+    fn domain(&self) -> crate::capability::CapabilityDomain {
+        self.derived_domain()
+    }
+
+    fn sub_category(&self) -> String {
+        self.derived_sub_category()
+    }
+
+    fn input_schema(&self) -> Option<serde_json::Value> {
+        self.input_schema.clone()
+    }
+
+    fn tags(&self) -> Vec<String> {
+        self.tags.clone()
+    }
+
+    fn visibility(&self) -> crate::capability::Visibility {
+        self.derived_visibility()
+    }
+
+    fn planning_complexity(&self) -> crate::capability::PlanningComplexity {
+        self.derived_planning_complexity()
+    }
+
+    fn is_enabled(&self) -> bool {
+        true
+    }
+}
+
+/// 工作流模板 → 能力护照的唯一权威入口。
+///
+/// 调用方必须全部走这里，否则运行时增量索引与启动期全量重建会漂移：
+/// - [`WorkflowTemplateData::to_passport_dto`]（本文件，启动期全量 + 命令层）
+/// - [`crate::repo_dtos::WorkflowTemplateData::to_capability_passport`]（运行时增量）
+pub fn workflow_template_passport(
+    params: WorkflowTemplatePassportParams,
+) -> crate::capability::CapabilityPassportDto {
+    use crate::capability::CapabilityPassport;
+    params.to_passport_dto()
+}
+
 // ── WorkflowTemplateData: CapabilityPassport 实现 ──────
 
 impl crate::capability::CapabilityPassport for WorkflowTemplateData {
@@ -2094,31 +2255,11 @@ impl crate::capability::CapabilityPassport for WorkflowTemplateData {
     }
 
     fn domain(&self) -> crate::capability::CapabilityDomain {
-        // 从 route_path 拆解 L1 domain 段（格式 `/{domain}/{cluster}/{capability}`）。
-        // 无 route_path 或解析失败时降级为 General，与旧模板兼容。
-        self.route_path
-            .as_deref()
-            .and_then(|p| {
-                let trimmed = p.trim_start_matches('/');
-                trimmed.split('/').next().and_then(crate::routing_path::parse_domain)
-            })
-            .unwrap_or(crate::capability::CapabilityDomain::General)
+        self.passport_params().derived_domain()
     }
 
     fn sub_category(&self) -> String {
-        // 优先用显式 cluster_id；否则从 route_path 拆解 L2 cluster 段。
-        if let Some(ref c) = self.cluster_id {
-            return c.clone();
-        }
-        self.route_path
-            .as_deref()
-            .and_then(|p| {
-                let trimmed = p.trim_start_matches('/');
-                let mut segs = trimmed.split('/');
-                segs.next()?;
-                segs.next().map(|s| s.to_string())
-            })
-            .unwrap_or_default()
+        self.passport_params().derived_sub_category()
     }
 
     fn input_schema(&self) -> Option<serde_json::Value> {
@@ -2130,28 +2271,20 @@ impl crate::capability::CapabilityPassport for WorkflowTemplateData {
     }
 
     fn visibility(&self) -> crate::capability::Visibility {
-        // 系统预置路由模板（认知编排器等）运行时推导为 SystemOnly：
-        // workflow_templates 表未持久化 visibility 列，模板从 DB 读出时字段
-        // 会回到默认 Public，此处用 route_path L1 段为 "system" 兜底，
-        // 保证其护照永远不被注册进业务能力注册表。
-        if self.is_system_template() {
-            crate::capability::Visibility::SystemOnly
-        } else {
-            self.visibility
-        }
+        self.passport_params().derived_visibility()
     }
 
     fn planning_complexity(&self) -> crate::capability::PlanningComplexity {
-        // 根据节点数量判断：<=3 Simple，4-10 Moderate，>10 Complex
-        match self.nodes.len() {
-            0..=3 => crate::capability::PlanningComplexity::Simple,
-            4..=10 => crate::capability::PlanningComplexity::Moderate,
-            _ => crate::capability::PlanningComplexity::Complex,
-        }
+        self.passport_params().derived_planning_complexity()
     }
 
     fn is_enabled(&self) -> bool {
         true
+    }
+
+    /// 走 [`workflow_template_passport`] 统一口径，保证与运行时增量索引一致。
+    fn to_passport_dto(&self) -> crate::capability::CapabilityPassportDto {
+        workflow_template_passport(self.passport_params())
     }
 }
 
@@ -2652,5 +2785,145 @@ mod tests {
         assert!(!NodeStatus::Pending.is_terminal());
         assert!(!NodeStatus::Ready.is_terminal());
         assert!(!NodeStatus::Running.is_terminal());
+    }
+
+    // ── workflow_template_passport 权威派生（F1 口径防线）────────────────
+    // 运行时增量索引（repo_dtos 版 to_capability_passport）与启动期全量重建
+    // （workflow_types 版 to_passport_dto）必须逐字段一致，否则同一模板
+    // 呈现「会话内与重启后路由行为不同」。以下测试锁死权威口径。
+
+    fn sample_params() -> WorkflowTemplatePassportParams {
+        WorkflowTemplatePassportParams {
+            id: "wt_123".to_string(),
+            name: "股票分析".to_string(),
+            description: "三力指标分析模板".to_string(),
+            tags: vec!["capability-assembly".to_string(), "auto-saved".to_string()],
+            cluster_id: None,
+            route_path: Some("/finance/stock/analysis".to_string()),
+            node_count: 5,
+            visibility: crate::capability::Visibility::Public,
+            input_schema: None,
+        }
+    }
+
+    #[test]
+    fn test_passport_derives_capability_id_and_kind() {
+        let p = workflow_template_passport(sample_params());
+        assert_eq!(p.capability_id, "workflow:wt_123");
+        assert_eq!(p.kind, crate::capability::CapabilityKind::Workflow);
+    }
+
+    #[test]
+    fn test_passport_derives_domain_and_sub_category_from_route_path() {
+        let p = workflow_template_passport(sample_params());
+        assert_eq!(p.domain, crate::capability::CapabilityDomain::Finance);
+        assert_eq!(p.sub_category, "stock");
+    }
+
+    #[test]
+    fn test_passport_derives_planning_complexity_by_node_count() {
+        let mut simple = sample_params();
+        simple.node_count = 3;
+        assert_eq!(
+            workflow_template_passport(simple).planning_complexity,
+            crate::capability::PlanningComplexity::Simple
+        );
+        let mut moderate = sample_params();
+        moderate.node_count = 10;
+        assert_eq!(
+            workflow_template_passport(moderate).planning_complexity,
+            crate::capability::PlanningComplexity::Moderate
+        );
+        let mut complex = sample_params();
+        complex.node_count = 11;
+        assert_eq!(
+            workflow_template_passport(complex).planning_complexity,
+            crate::capability::PlanningComplexity::Complex
+        );
+    }
+
+    #[test]
+    fn test_passport_system_route_path_forced_system_only() {
+        let mut params = sample_params();
+        params.route_path = Some("/system/cognitive_router/main".to_string());
+        let p = workflow_template_passport(params);
+        assert_eq!(p.visibility, crate::capability::Visibility::SystemOnly);
+    }
+
+    #[test]
+    fn test_passport_cluster_id_overrides_route_path_sub_category() {
+        let mut params = sample_params();
+        params.cluster_id = Some("explicit_cluster".to_string());
+        let p = workflow_template_passport(params);
+        assert_eq!(p.sub_category, "explicit_cluster");
+        // domain 仍走 route_path L1
+        assert_eq!(p.domain, crate::capability::CapabilityDomain::Finance);
+    }
+
+    #[test]
+    fn test_passport_missing_route_path_falls_back_general() {
+        let mut params = sample_params();
+        params.route_path = None;
+        let p = workflow_template_passport(params);
+        assert_eq!(p.domain, crate::capability::CapabilityDomain::General);
+        assert_eq!(p.sub_category, "");
+        assert_eq!(p.visibility, crate::capability::Visibility::Public);
+    }
+
+    #[test]
+    fn test_repo_dtos_and_workflow_types_passport_agree() {
+        // 双 DTO 口径一致性：同一模板的业务字段在 repo_dtos 版（运行时增量）
+        // 与 workflow_types 版（启动期全量）下派生出的护照必须逐字段一致。
+        let mut workflow_types_params = sample_params();
+        workflow_types_params.tags =
+            vec!["capability-assembly".to_string(), "auto-saved".to_string()];
+
+        let wt_passport = workflow_template_passport(workflow_types_params);
+
+        // repo_dtos 版：nodes 是 JSON 数组字符串，tags 是 JSON 数组字符串
+        let repo_dto = crate::repo_dtos::WorkflowTemplateData {
+            id: "wt_123".to_string(),
+            name: "股票分析".to_string(),
+            description: Some("三力指标分析模板".to_string()),
+            icon: "🧩".to_string(),
+            tags: Some(
+                serde_json::to_string(&vec![
+                    "capability-assembly".to_string(),
+                    "auto-saved".to_string(),
+                ])
+                .unwrap(),
+            ),
+            version: 1,
+            is_preset: false,
+            is_editable: true,
+            is_public: false,
+            trigger_config: None,
+            nodes: serde_json::to_string(&vec![
+                serde_json::json!({"id": "n1"}),
+                serde_json::json!({"id": "n2"}),
+                serde_json::json!({"id": "n3"}),
+                serde_json::json!({"id": "n4"}),
+                serde_json::json!({"id": "n5"}),
+            ])
+            .unwrap(),
+            edges: "[]".to_string(),
+            input_schema: None,
+            output_schema: None,
+            variables: None,
+            error_config: None,
+            cluster_id: None,
+            route_path: Some("/finance/stock/analysis".to_string()),
+        };
+        let repo_passport = repo_dto.to_capability_passport();
+
+        assert_eq!(repo_passport.capability_id, wt_passport.capability_id);
+        assert_eq!(repo_passport.name, wt_passport.name);
+        assert_eq!(repo_passport.description, wt_passport.description);
+        assert_eq!(repo_passport.kind, wt_passport.kind);
+        assert_eq!(repo_passport.domain, wt_passport.domain);
+        assert_eq!(repo_passport.sub_category, wt_passport.sub_category);
+        assert_eq!(repo_passport.visibility, wt_passport.visibility);
+        assert_eq!(repo_passport.planning_complexity, wt_passport.planning_complexity);
+        assert_eq!(repo_passport.tags, wt_passport.tags);
     }
 }

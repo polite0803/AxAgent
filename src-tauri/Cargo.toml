@@ -41,7 +41,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "2.9.8"
+version = "2.9.9"
 edition = "2024"
 license = "AGPL-3.0-only"
 
@@ -93,7 +93,7 @@ module_name_repetitions = "allow"
 
 [package]
 name = "axagent"
-version = "2.9.8"
+version = "2.9.9"
 authors = ["刘小平 <polite0803@outlook.com>"]
 default-run = "axagent"
 edition = "2024"
@@ -260,7 +260,14 @@ opt-level = 0
 # 代价：调试器里看不到局部变量值；
 #       需要完整调试时执行 `CARGO_PROFILE_DEV_DEBUG=true cargo build` 覆盖。
 debug = "line-tables-only"
-incremental = true
+# Windows 本机关闭增量编译（2026-08-31 实测）：
+# rustc 的增量会话目录 target/debug/incremental/* 在本机受文件占用（EDR/监视器）影响，
+# 每次构建恒定报 `failed to garbage collect ... 拒绝访问。(os error 5)`，
+# 且 GC 失败 → 僵尸会话只增不减，实测累积 **55G / 415 个目录**，缓存复用率极低
+# （415 个会话 = 反复失效重建，未起到增量收益）。
+# 已有 sccache + build-override 提供缓存层，关闭后重编耗时无明显劣化。
+# 需临时开启调试：CARGO_INCREMENTAL=1 cargo build（env 优先级高于此处配置）。
+incremental = false
 # Windows MSVC 关键优化：split-debuginfo="unpacked" 将 PDB 拆分到 .pdb 文件，
 # 避免链接器把 debug info 打包进 .dll/.exe，每次链接减少数分钟
 split-debuginfo = "unpacked"
@@ -273,7 +280,8 @@ split-debuginfo = "unpacked"
 opt-level = 0
 codegen-units = 16
 debug = false
-incremental = true
+# 同 [profile.dev]：build script 的增量会话目录同样 GC 不掉，一并关闭
+incremental = false
 
 [dev-dependencies]
 anyhow = { workspace = true }

@@ -1036,6 +1036,7 @@ pub trait CapabilityPassport: Send + Sync {
             steps: Vec::new(),
             skill_steps: self.skill_steps(),
             placeholders: Vec::new(),
+            prompt_body: None,
             template_body: None,
             instantiates_to: None,
             example_instance: None,
@@ -1149,6 +1150,12 @@ pub struct CapabilityPassportDto {
     /// 模板占位符（仅 `Template` 类型有效：命中后提示"可实例化"，不直接执行）
     #[serde(default)]
     pub placeholders: Vec<PlaceholderDef>,
+    /// Skill 原始 prompt 正文（仅 `Skill` 类型有效：SKILL.md 完整 markdown 正文）。
+    /// 与 `description`（frontmatter 描述 + 摘要）区分——prompt_body 是完整 markdown，
+    /// 包含详细的多步指令、约束条件、错误处理策略等，用于 AgentNode.system_prompt。
+    /// 来源：插件 manager 读 SKILL.md 文件 → 注入；预置 Skill 在 kit 注册时硬编码。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prompt_body: Option<String>,
     /// 模板正文（仅 `Template` 类型有效：含占位符的模板内容，如 "扫描 {{target_ip}} 的 {{port_range}}"）
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub template_body: Option<String>,
@@ -1334,6 +1341,7 @@ impl Default for CapabilityPassportDto {
             steps: Vec::new(),
             skill_steps: Vec::new(),
             placeholders: Vec::new(),
+            prompt_body: None,
             template_body: None,
             instantiates_to: None,
             example_instance: None,

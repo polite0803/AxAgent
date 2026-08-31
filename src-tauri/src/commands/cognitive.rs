@@ -588,11 +588,7 @@ pub async fn cognitive_query(
             Ok(mut response) => {
                 // 短路命中后，用缓存的真实路由值覆盖 forced 路径的占位值
                 if let Some(ovr) = &shortcut_override {
-                    response.route_path = ovr.route_path.clone();
-                    response.domain = ovr.domain.clone();
-                    response.cluster = ovr.cluster.clone();
-                    response.execution_mode = ovr.execution_mode.clone();
-                    // confidence 保持 1.0（forced 路径的值，合理）
+                    apply_shortcut_override(&mut response, ovr);
                 }
                 return Ok(response);
             },
@@ -611,6 +607,130 @@ pub async fn cognitive_query(
             },
         }
     }
+}
+
+/// 短路命中后，用缓存的真实路由值覆盖 forced 路径的占位响应（F2）。
+///
+/// 短路缓存里存的 `execution_mode` 是上一轮主 DAG 按 confidence 分档的结果，
+/// 而短路后实际走 forced 路径（按能力 kind 分派，见 `cognitive_query_inner`：
+/// Workflow kind → WorkEngine，Agent kind → agent_query）。两者口径不同——
+/// 缓存 mode=plan 而能力是 Workflow kind 时，若不覆盖，响应会报 plan 但实际
+/// 跑了工作流，前端按 `execution.kind` 分发与 `executionMode` 标签就会打架。
+///
+/// 覆盖规则：
+/// - `route_path` / `domain` / `cluster` 取缓存真实路由值（forced 路径的占位值不含这些）
+/// - `execution_mode` 不取缓存值，统一以实际执行视图反推（`derive_mode_from_execution_view`），
+///   保证响应字段 / decision 标签 / execution 视图三者一致
+/// - `confidence` 保持 1.0（forced 路径的值，合理，不覆盖）
+fn apply_shortcut_override(response: &mut CognitiveQueryResponse, ovr: &LastRouteDecision) {
+    response.route_path = ovr.route_path.clone();
+    response.domain = ovr.domain.clone();
+    response.cluster = ovr.cluster.clone();
+    response.execution_mode = derive_mode_from_execution_view(&response.execution).to_string();
+}
+
+/// 按实际执行视图反推 `execution_mode`（F2：短路缓存口径统一）。
+///
+/// 视图只有 4 种执行结果，对应 4 个真实分派目标，反推是确定性映射：
+/// - Workflow 视图 → workflow（WorkEngine 执行）
+/// - Plan 视图 → plan（plan_generate 执行）
+/// - Clarify 视图 → clarify（候选卡片交用户选择）
+/// - Agent 视图（含 execution 为 None 的极端情形）→ delegate（agent_query 执行）
+fn derive_mode_from_execution_view(view: &Option<CognitiveExecutionView>) -> &'static str {
+    match view {
+        Some(CognitiveExecutionView::Workflow { .. }) => ExecutionMode::Workflow.as_str(),
+        Some(CognitiveExecutionView::Plan { .. }) => ExecutionMode::Plan.as_str(),
+        Some(CognitiveExecutionView::Clarify { .. }) => ExecutionMode::Clarify.as_str(),
+        Some(CognitiveExecutionView::Agent { .. }) | None => ExecutionMode::Delegate.as_str(),
+    }
+}
+
+/// 按能力护照的 exposure / kind 解析要注入 chat_tools 的工具与技能。
+///
+/// 原为通配分支内联逻辑，抽出后供三处复用：
+/// - 通配分支（Ask/Act/Delegate）路由命中能力
+/// - Clarify 二次执行（forced_capability_id，F4）
+/// - 会话已加载能力集合（F3：合并注入，避免"已加载的能力组合"被路由丢下）
+///
+/// `CapabilityExposure` 三态语义（此前只判 Managed，Auto/OnDemand 走同一分支）：
+/// - Auto：命中即把定义注入 —— 编排器替 LLM 做完披露，适合必然要用上的能力。
+/// - OnDemand：不注入。能力已在 `<capability-index>` 目录里露出摘要，由 LLM 自己
+///   调 CapabilityView 展开定义后再驱动 —— 披露的主动权交给 LLM，省 schema token。
+/// - Managed：不注入，且属元能力，不得回灌给 LLM 上下文。
+async fn resolve_exposure_injection(
+    state: &AppState,
+    capability_ids: &[String],
+) -> (Option<Vec<String>>, Option<Vec<String>>) {
+    let mut tools: Vec<String> = Vec::new();
+    let mut skills: Vec<String> = Vec::new();
+    for cid in capability_ids {
+        let Some(p) = state.capability_indexer.get_passport(cid).await else {
+            continue;
+        };
+        match p.exposure {
+            axagent_harness::CapabilityExposure::OnDemand => {
+                tracing::info!(
+                    capability_id = %p.capability_id,
+                    "🧭 [exposure] OnDemand：跳过定义注入，交由 LLM 经 CapabilityView 按需展开"
+                );
+            },
+            axagent_harness::CapabilityExposure::Managed => {
+                tracing::debug!(
+                    capability_id = %p.capability_id,
+                    "🧭 [exposure] Managed：元能力不回灌，仅保留路由结论"
+                );
+            },
+            axagent_harness::CapabilityExposure::Auto => match p.kind {
+                axagent_harness::CapabilityKind::Skill => {
+                    let name = p
+                        .capability_id
+                        .strip_prefix("skill:")
+                        .unwrap_or(&p.capability_id)
+                        .to_string();
+                    skills.push(name);
+                },
+                axagent_harness::CapabilityKind::Toolchain => {
+                    for step in &p.steps {
+                        if let Some(step_p) = state.capability_indexer.get_passport(step).await
+                            && let Some(tr) = step_p.tool_ref
+                        {
+                            tools.push(tr.tool_name);
+                        }
+                    }
+                },
+                _ => {
+                    if let Some(tr) = p.tool_ref {
+                        tools.push(tr.tool_name);
+                    }
+                },
+            },
+        }
+    }
+    ((!tools.is_empty()).then_some(tools), (!skills.is_empty()).then_some(skills))
+}
+
+/// 合并两组注入结果：主列表优先，次列表去重追加（F3 已加载能力合并用）。
+fn merge_injection(
+    primary: (Option<Vec<String>>, Option<Vec<String>>),
+    secondary: (Option<Vec<String>>, Option<Vec<String>>),
+) -> (Option<Vec<String>>, Option<Vec<String>>) {
+    let merge = |mut p: Vec<String>, s: Vec<String>| {
+        for t in s {
+            if !p.contains(&t) {
+                p.push(t);
+            }
+        }
+        p
+    };
+    let tools = match (primary.0, secondary.0) {
+        (Some(p), Some(s)) => Some(merge(p, s)),
+        (p, s) => p.or(s),
+    };
+    let skills = match (primary.1, secondary.1) {
+        (Some(p), Some(s)) => Some(merge(p, s)),
+        (p, s) => p.or(s),
+    };
+    (tools, skills)
 }
 
 /// 认知编排查询内部实现，被 `cognitive_query` 循环包装器调用以支持自动重试。
@@ -655,6 +775,43 @@ async fn cognitive_query_inner(
             )));
         },
     };
+
+    // ── 前置 2.5：会话已加载能力感知（F3 软档）──
+    // 本会话已通过 CapabilityLoad 加载过能力时，用户意图大概率是"用这些已加载能力组合做事"，
+    // 不应被路由命中的现成工作流模板抢走执行权 —— 命中 domain 交集时转 agent 路径，
+    // 让 LLM 在已加载能力上下文中编排（注入 extra_tools / extra_skills）。
+    // 读不到会话状态或解析失败 → 视为未加载（不阻断路由）。
+    let loaded_capability_ids: Vec<String> = match request.conversation_id.as_deref() {
+        Some(cid) if !cid.trim().is_empty() => {
+            let prefix = axagent_harness::session_state::namespace_prefix(
+                axagent_harness::session_state::StateScope::Temp,
+                axagent_harness::session_state::NS_SKILL_LOADED,
+                cid,
+                None,
+            );
+            state
+                .session_state_store
+                .list_by_prefix(&prefix)
+                .await
+                .unwrap_or_default()
+                .iter()
+                .filter_map(|e| {
+                    serde_json::from_str::<serde_json::Value>(&e.value)
+                        .ok()
+                        .and_then(|v| v["capabilityId"].as_str().map(str::to_string))
+                })
+                .collect()
+        },
+        _ => Vec::new(),
+    };
+    if !loaded_capability_ids.is_empty() {
+        tracing::info!(
+            conversation_id = %request.conversation_id.clone().unwrap_or_default(),
+            loaded = ?loaded_capability_ids,
+            "🧭 会话已加载 {} 个能力，路由命中模板时按 domain 交集决定是否转 agent 路径",
+            loaded_capability_ids.len()
+        );
+    }
 
     // ── 前置 2：结构化 JSON 检测（参数自带完整 → 跳过路由模型，直发参数抽取）──
     // 用户输入包含完整 JSON 对象且携带目标工作流/能力 ID（workflow_id / capability_id）时，
@@ -796,6 +953,10 @@ async fn cognitive_query_inner(
                     forced_profile_id.as_deref(),
                 )
                 .await;
+                // F4：Clarify 二次执行把选中能力的定义按 exposure/kind 注入 chat_tools，
+                // 免去 LLM 先调 CapabilityView 展开再多一轮往返（schema 已由目录摘要提供）。
+                let (forced_tools, forced_skills) =
+                    resolve_exposure_injection(&state, std::slice::from_ref(&forced_id)).await;
                 let agent_request = AgentQueryRequest {
                     conversation_id,
                     input,
@@ -820,10 +981,10 @@ async fn cognitive_query_inner(
                     execution_mode: Some(execution_mode.clone()),
                     // Clarify 二次执行：task_shape 已在前一次主调用中产出，此处不重复分类
                     task_shape: None,
-                    // Clarify 二次执行：按命中能力注入工具由调用方决定，此处不自动注入
-                    extra_tools: None,
-                    // Clarify 二次执行：技能按需加载由调用方决定，此处不自动注入
-                    extra_skills: None,
+                    // Clarify 二次执行（F4）：命中能力的定义按 exposure/kind 注入，
+                    // 免去 LLM 先 CapabilityView 展开再多一轮往返；无 tool_ref 时与旧行为一致。
+                    extra_tools: forced_tools,
+                    extra_skills: forced_skills,
                 };
                 let agent_resp =
                     crate::commands::agent::agent_query(app.clone(), state.clone(), agent_request)
@@ -1337,6 +1498,53 @@ async fn cognitive_query_inner(
     // Agent 分支在此处直接写入 assistant 消息。
     let decision = decision_from_response(&response);
 
+    // ── F3 闸：会话已加载能力优先（软档：domain 交集）──
+    // 已加载能力的 domain 与路由命中能力的 domain 有交集时（相等或任一方 General），
+    // 不让现成模板直发执行——用户意图大概率是"用已加载的能力组合做事"，
+    // 转 agent 路径让 LLM 在已加载能力上下文中编排（注入 extra_tools / extra_skills）。
+    // 无交集（如加载了股票能力却问天气）仍走模板直发，避免无关请求多耗一轮 LLM。
+    let defer_to_agent = if !loaded_capability_ids.is_empty() && !response.capability_id.is_empty()
+    {
+        match state.capability_indexer.get_passport(&response.capability_id).await {
+            Some(hit) => {
+                let mut overlap = false;
+                for cid in &loaded_capability_ids {
+                    if state.capability_indexer.get_passport(cid).await.is_some_and(|p| {
+                        p.domain == hit.domain
+                            || p.domain == CapabilityDomain::General
+                            || hit.domain == CapabilityDomain::General
+                    }) {
+                        overlap = true;
+                        break;
+                    }
+                }
+                overlap
+            },
+            None => false,
+        }
+    } else {
+        false
+    };
+    if defer_to_agent {
+        tracing::info!(
+            capability_id = %response.capability_id,
+            execution_mode = ?mode,
+            "🧭 F3：会话已加载能力与命中模板 domain 交集，转 agent 路径（不直发模板）"
+        );
+        // ── 一致性修正：mode 与响应字段须反映真实分派 ──
+        // 守卫只让 Workflow/Direct 落到本函数的通配分支（实际由 agent_query 执行），
+        // 但 mode 本身仍是 Workflow，会连带两处不一致（与 F2 短路缓存问题同类）：
+        //   ① response.execution_mode = "workflow" 却返回 Agent 执行视图
+        //      → 前端展示标签撒谎；落库决策标签也记成 workflow，污染进化证据统计；
+        //   ② 下方通配分支把 mode 透传给 agent_query 的 execution_mode 参数
+        //      → agent 运行时被错误告知"workflow 模式"。
+        // 统一改为 Delegate（委派给 agent 执行），与实际分派路径对齐。
+        // 注：decision（上方 decision_from_response 生成）只在 Workflow 分支
+        // 传给 workflow_execute，defer 路径不使用，无需重算。
+        mode = ExecutionMode::Delegate;
+        response.execution_mode = ExecutionMode::Delegate.as_str().to_string();
+    }
+
     // ── Clarify 兜底无候选 → 能力补齐提议通道（T0.5）──
     // 主 DAG 决策为 Clarify（置信度模糊）但候选为空（RAR/图谱兜底无命中）时，
     // 不进入空候选展示，而是生成 capability_missing 提议征求用户同意；
@@ -1358,7 +1566,9 @@ async fn cognitive_query_inner(
     response.execution = Some(match mode {
         // Workflow / Direct：capability_id 即工作流模板 ID，交给 WorkEngine 执行
         // 执行失败 → 存缺口 + 降级 LLM 回答（分支 1）
-        ExecutionMode::Workflow | ExecutionMode::Direct => {
+        // 守卫：会话已加载能力与命中模板 domain 交集时（F3），不直发模板，
+        // 落到下方通配分支转 agent 路径（LLM 在已加载能力上下文中编排）。
+        ExecutionMode::Workflow | ExecutionMode::Direct if !defer_to_agent => {
             let workflow_id = response.capability_id.clone();
             match crate::commands::workflows::workflow_execute(
                 app.clone(),
@@ -1404,44 +1614,8 @@ async fn cognitive_query_inner(
                 },
             }
         },
-        // ParameterExtract：精准命中（置信度 > 0.90），跳过澄清直接执行目标工作流
-        // 执行失败 → 存缺口 + 降级 LLM 回答（分支 2）
-        ExecutionMode::ParameterExtract => {
-            let workflow_id = response.capability_id.clone();
-            match crate::commands::workflows::workflow_execute(
-                app.clone(),
-                state.clone(),
-                workflow_id.clone(),
-                request.model_id.clone(),
-                request.provider_id.clone(),
-                None,
-                request.max_concurrent,
-                request.conversation_id.clone(),
-                Some(serde_json::Value::String(input.clone())),
-                Some(decision),
-            )
-            .await
-            {
-                Ok(execution_id) => CognitiveExecutionView::Workflow { workflow_id, execution_id },
-                Err(e) => {
-                    tracing::warn!(
-                        workflow_id = %workflow_id,
-                        error = %e,
-                        "🧭 参数抽取工作流执行失败，存储能力缺口并降级为 LLM 回答"
-                    );
-                    let proposal = build_capability_gap_proposal(None, &input);
-                    store_capability_gap(app, &state, &proposal).await?;
-                    return execute_general_ask(
-                        app,
-                        state,
-                        request,
-                        &input,
-                        fallback_stage_views.clone(),
-                    )
-                    .await;
-                },
-            }
-        },
+        // ParameterExtract 无主流程分支：该值仅由 JSON 快速通道（前置 2）直接 return 产出，
+        // 主 match 的 `_` 通配 arm 会接住任何意外出现的该值（实际不可达）。
         // Plan：域明确但无具体工作流命中，触发 plan_generate 拆解任务
         // 执行失败 → 存缺口 + 降级 LLM 回答（分支 3）
         ExecutionMode::Plan => {
@@ -1606,67 +1780,24 @@ async fn cognitive_query_inner(
             // - Toolchain：steps 展开为各步骤真实工具 → extra_tools（遗留②：agent 拿到组合按序编排）
             // - Skill：按名加载 → extra_skills（遗留①：需注册 handler 才能执行，不能只注 schema）
             //
-            // `CapabilityExposure` 三态语义（此前只判 Managed，Auto/OnDemand 走同一分支）：
-            // - Auto：路由器命中即把定义注入 —— 编排器替 LLM 做完披露，适合必然要用上的能力。
-            // - OnDemand：不注入。能力已在 <capability-index> 目录里露出摘要，由 LLM 自己
-            //   调 CapabilityView 展开定义后再驱动 —— 披露的主动权交给 LLM，省 schema token。
-            // - Managed：不注入，且属元能力，不得回灌给 LLM 上下文。
-            let (orchestration_tools, orchestration_skills): (
-                Option<Vec<String>>,
-                Option<Vec<String>>,
-            ) = if !response.capability_id.is_empty() {
-                let passport = state.capability_indexer.get_passport(&response.capability_id).await;
-                match passport {
-                    Some(p) => match p.exposure {
-                        axagent_harness::CapabilityExposure::OnDemand => {
-                            tracing::info!(
-                                capability_id = %p.capability_id,
-                                "🧭 [exposure] OnDemand：跳过定义注入，交由 LLM 经 CapabilityView 按需展开"
-                            );
-                            (None, None)
-                        },
-                        axagent_harness::CapabilityExposure::Managed => {
-                            tracing::debug!(
-                                capability_id = %p.capability_id,
-                                "🧭 [exposure] Managed：元能力不回灌，仅保留路由结论"
-                            );
-                            (None, None)
-                        },
-                        axagent_harness::CapabilityExposure::Auto => match p.kind {
-                            axagent_harness::CapabilityKind::Skill => {
-                                let name = p
-                                    .capability_id
-                                    .strip_prefix("skill:")
-                                    .unwrap_or(&p.capability_id)
-                                    .to_string();
-                                (None, Some(vec![name]))
-                            },
-                            axagent_harness::CapabilityKind::Toolchain => {
-                                let mut tools = Vec::new();
-                                for step in &p.steps {
-                                    if let Some(step_p) =
-                                        state.capability_indexer.get_passport(step).await
-                                        && let Some(tr) = step_p.tool_ref
-                                    {
-                                        tools.push(tr.tool_name);
-                                    }
-                                }
-                                if tools.is_empty() {
-                                    (None, None)
-                                } else {
-                                    (Some(tools), None)
-                                }
-                            },
-                            _ => {
-                                let tools = p.tool_ref.map(|r| vec![r.tool_name]);
-                                (tools, None)
-                            },
-                        },
-                    },
-                    _ => (None, None),
-                }
+            // 抽取为 resolve_exposure_injection 后，此处还合并 F3 会话已加载能力的注入：
+            // 用户已通过 CapabilityLoad 叠加的能力组合，同样按 exposure/kind 注入，
+            // 让 LLM 在"路由命中能力 + 已加载能力"的完整上下文中编排。
+            let (route_tools, route_skills) = resolve_exposure_injection(
+                &state,
+                if response.capability_id.is_empty() {
+                    &[]
+                } else {
+                    std::slice::from_ref(&response.capability_id)
+                },
+            )
+            .await;
+            let (orchestration_tools, orchestration_skills) = if !loaded_capability_ids.is_empty() {
+                let (loaded_tools, loaded_skills) =
+                    resolve_exposure_injection(&state, &loaded_capability_ids).await;
+                merge_injection((route_tools, route_skills), (loaded_tools, loaded_skills))
             } else {
-                (None, None)
+                (route_tools, route_skills)
             };
 
             let agent_request = AgentQueryRequest {
@@ -2894,5 +3025,105 @@ mod tests {
         assert_eq!(view.execution_feedback.details.len(), 1);
         assert_eq!(view.execution_feedback.details[0].tool_id, "tool-a");
         assert_eq!(view.execution_feedback.details[0].failures, 3);
+    }
+
+    /// F2-1：执行视图 → execution_mode 反推是确定性映射。
+    ///
+    /// 短路命中后 `execution_mode` 以实际执行视图反推（而非缓存值），
+    /// 四种视图 + execution 为 None 的极端情形都必须映射到真实分派目标。
+    #[test]
+    fn derive_mode_from_execution_view_maps_all_views() {
+        let cases: Vec<(Option<CognitiveExecutionView>, &str)> = vec![
+            (
+                Some(CognitiveExecutionView::Workflow {
+                    workflow_id: "wf-1".into(),
+                    execution_id: "ex-1".into(),
+                }),
+                "workflow",
+            ),
+            (
+                Some(CognitiveExecutionView::Plan {
+                    conversation_id: "c-1".into(),
+                    plan_id: "p-1".into(),
+                }),
+                "plan",
+            ),
+            (Some(CognitiveExecutionView::Clarify { candidates: vec![] }), "clarify"),
+            (
+                Some(CognitiveExecutionView::Agent {
+                    conversation_id: "c-1".into(),
+                    assistant_message_id: "m-1".into(),
+                    status: None,
+                }),
+                "delegate",
+            ),
+            // 极端情形：execution 为 None（响应构造异常）也应落到 agent 执行路径
+            (None, "delegate"),
+        ];
+        for (view, expected) in cases {
+            assert_eq!(
+                derive_mode_from_execution_view(&view),
+                expected,
+                "视图 {:?} 反推应得到 {}",
+                view,
+                expected
+            );
+        }
+    }
+
+    /// F2-2：短路缓存口径统一 — 缓存 mode=plan 而能力是 Workflow kind 时，
+    /// 覆盖后响应必须报 workflow（与 execution 视图一致），不得沿袭缓存撒谎值。
+    ///
+    /// 复刻方案文档第七节场景：`shortcut_override { execution_mode: "plan" }`
+    /// + forced 路径实际产出 Workflow 视图 → 断言最终 `execution_mode == "workflow"`。
+    #[test]
+    fn apply_shortcut_override_overwrites_stale_cached_mode() {
+        // forced 路径（Workflow kind 能力）实际产出的响应：execution 已是 Workflow 视图，
+        // 但 execution_mode 还是占位值（此处故意填 plan，模拟上一轮 confidence 分档的缓存值）
+        let mut response = CognitiveQueryResponse {
+            route_path: "/__forced__".into(),
+            domain: "__forced__".into(),
+            cluster: "__forced__".into(),
+            capability_id: "wf-refund-auto".into(),
+            confidence: 1.0,
+            is_llm_fallback: false,
+            circuit_broken: false,
+            circuit_break_reason: None,
+            fallback_path: None,
+            candidates: vec![],
+            candidate_details: vec![],
+            filtered_count: 0,
+            execution_mode: ExecutionMode::Plan.as_str().to_string(),
+            selected_workflow_name: Some("refund-auto".into()),
+            selected_agent_profile: None,
+            stage_records: vec![],
+            total_elapsed_ms: 0,
+            execution: Some(CognitiveExecutionView::Workflow {
+                workflow_id: "wf-refund-auto".into(),
+                execution_id: "ex-1".into(),
+            }),
+            task_shape: None,
+        };
+        // 上一轮缓存：mode=plan（按 confidence 分档的结果，与本次 forced 分派口径不同）
+        let ovr = LastRouteDecision {
+            capability_id: "wf-refund-auto".into(),
+            execution_mode: ExecutionMode::Plan.as_str().to_string(),
+            route_path: "/trade/refund/auto".into(),
+            domain: "trade".into(),
+            cluster: "refund".into(),
+            msg_count: 3,
+            timestamp: Instant::now(),
+        };
+
+        apply_shortcut_override(&mut response, &ovr);
+
+        // 真实路由字段来自缓存
+        assert_eq!(response.route_path, "/trade/refund/auto");
+        assert_eq!(response.domain, "trade");
+        assert_eq!(response.cluster, "refund");
+        // execution_mode 反推自实际执行视图，不沿袭缓存的 plan 撒谎值
+        assert_eq!(response.execution_mode, "workflow");
+        // confidence 保持 forced 路径的 1.0（不覆盖）
+        assert_eq!(response.confidence, 1.0);
     }
 }

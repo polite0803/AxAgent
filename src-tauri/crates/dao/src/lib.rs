@@ -39,3 +39,4 @@ pub mod trajectory_repository;
 pub mod workflow_conversions;
 pub mod workflow_execution_repository;
 pub mod workflow_template_repository;
+pub use workflow_template_repository::DaoWorkflowTemplateRepository;

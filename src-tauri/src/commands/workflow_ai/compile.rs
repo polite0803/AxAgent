@@ -274,6 +274,11 @@ pub async fn compile_mission_to_template(
         ))
     })?;
 
+    // 回灌能力索引：mission 编译产物是新模板，不索引则本会话内不可路由。
+    // 编译结果带 mission_hash，下回同 hash 会走缓存命中，但若索引缺失，
+    // 路由阶段根本候选不到它，缓存形同虚设。
+    crate::commands::workflow_template::sync_template_passport(&state, &template).await;
+
     // 5. 预编译 Rhai 工具（虽然 mission 编译目前不带 tool_defs，保留调用以兼容未来扩展）
     state.work_engine.precompile_tool_defs(&template_id, &[]).await;
 

@@ -3,23 +3,12 @@ import type { ModelCapability } from "./ModelCapability";
 import type { ModelParamOverrides } from "./ModelParamOverrides";
 import type { ModelType } from "./ModelType";
 
-export type Model = {
-  providerId: string;
-  modelId: string;
-  name: string;
-  groupName: string | null;
-  modelType: ModelType;
-  capabilities: Array<ModelCapability>;
-  maxTokens: number | null;
-  maxOutputTokens: number | null;
-  enabled: boolean;
-  paramOverrides: ModelParamOverrides | null;
-  /**
-   * Input price per million tokens (USD). When set, used for accurate cost calculation.
-   */
-  inputPricePerMtok?: number | null;
-  /**
-   * Output price per million tokens (USD). When set, used for accurate cost calculation.
-   */
-  outputPricePerMtok?: number | null;
-};
+export type Model = { providerId: string, modelId: string, name: string, groupName: string | null, modelType: ModelType, capabilities: Array<ModelCapability>, maxTokens: number | null, maxOutputTokens: number | null, enabled: boolean, paramOverrides: ModelParamOverrides | null, 
+/**
+ * Input price per million tokens (USD). When set, used for accurate cost calculation.
+ */
+inputPricePerMtok?: number | null, 
+/**
+ * Output price per million tokens (USD). When set, used for accurate cost calculation.
+ */
+outputPricePerMtok?: number | null, };

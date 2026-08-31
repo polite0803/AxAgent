@@ -31,6 +31,11 @@ pub(crate) async fn generate_gap_workflow_template(
             .with_detail(format!("工作流模板创建失败: {e}"))
     })?;
 
+    // 回灌能力索引：能力补齐闭环的最后一环。
+    // 不回灌，刚生成的工作流在本会话内不可路由——用户同意补齐后立刻重试，
+    // 编排器仍会判定「能力缺失」再走一遍补齐流程，闭环永远走不通。
+    crate::commands::workflow_template::sync_template_passport(state, &template).await;
+
     Ok(template)
 }
 

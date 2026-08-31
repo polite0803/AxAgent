@@ -64,6 +64,7 @@ mod trajectory;
 mod trajectory_impl;
 mod user_profile;
 mod workflow_adapters;
+mod workflow_evolution_tick;
 // ── Fleet 持久化实现 ──
 mod fleet_repository;
 
@@ -230,4 +231,8 @@ pub use trajectory_impl::{ReplayContextExt, RewardCategoryExt, TrajectoryBuilder
 
 pub use workflow_adapters::{
     ReflectorConfig, WorkflowEvolverImpl, WorkflowOptimizerImpl, WorkflowReflectorImpl,
+};
+pub use workflow_evolution_tick::{
+    EvolutionTickConfig, EvolutionTickReport, run_tick_for_template, start_workflow_evolution_tick,
+    tick_once,
 };

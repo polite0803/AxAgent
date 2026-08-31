@@ -6,6 +6,8 @@ use crate::commands::error_code::workflow as workflow_err;
 use axagent_agent_macro::agent_command;
 use axagent_dao::repo::workflow_template as db_repo;
 use axagent_dao::workflow_conversions::workflow_template_response_from_model;
+use axagent_harness::CapabilityIndexer;
+use axagent_harness::capability::CapabilityPassport;
 use axagent_harness::workflow_types::*;
 use axagent_runtime::work_engine::node_executor_trait::node_type_name;
 use sea_orm::{ConnectionTrait, DatabaseConnection, EntityTrait, Set, TransactionTrait};
@@ -69,6 +71,61 @@ fn model_to_active_model(
         route_path: Set(template.route_path.clone()),
         created_at: Set(template.created_at),
         updated_at: Set(now),
+    }
+}
+
+/// 把模板护照同步进能力索引（模板写入口的统一收口）。
+///
+/// 能力护照只在启动时由 `register_all_capabilities` 从 `workflow_templates` 表
+/// 全量重建一次；运行期新增/改名的模板若不回灌索引，本会话内路由候选集里
+/// 就没有它——固化的动态工作流会变成「孤儿」，要等重启才可路由。
+///
+/// 索引依赖本地 embedding 服务，失败仅 warn：模板已落库，重启后会被重建。
+pub(crate) async fn sync_template_passport(state: &AppState, template: &WorkflowTemplateData) {
+    let passport = template.to_passport_dto();
+    if let Err(e) = state.capability_indexer.index_passport(&passport).await {
+        tracing::warn!(
+            target: "axagent.capability.index",
+            capability_id = %passport.capability_id,
+            error = %e,
+            "工作流模板已落库但能力索引失败（重启后自动重建）"
+        );
+    }
+}
+
+/// 按模板 ID 从库里读回最新模型，再回灌能力索引。
+///
+/// 适用于调用方手上只有 entity `ActiveModel`、拿不到完整 `WorkflowTemplateData`
+/// 的写入口（技能转工作流、技能分解、AI 应用类修改等）。统一走读回再派生，
+/// 避免因调用方只填了部分字段而把残缺护照写进索引。
+pub(crate) async fn sync_template_index_by_id(state: &AppState, template_id: &str) {
+    let db = state.harness.db();
+    match db_repo::get_workflow_template(db, template_id).await {
+        Ok(Some(model)) => {
+            sync_template_passport(state, &db_repo::template_model_to_data(&model)).await;
+        },
+        Ok(None) => {},
+        Err(e) => {
+            tracing::warn!(
+                target: "axagent.capability.index",
+                template_id = %template_id,
+                error = %e,
+                "读回模板失败，能力索引未同步（重启后自动重建）"
+            );
+        },
+    }
+}
+
+/// 从能力索引中移除模板护照（删除模板时调用，避免脏护照残留到重启）。
+async fn remove_template_passport(state: &AppState, template_id: &str) {
+    let capability_id = format!("workflow:{template_id}");
+    if let Err(e) = state.capability_indexer.remove_index(&capability_id).await {
+        tracing::warn!(
+            target: "axagent.capability.index",
+            capability_id = %capability_id,
+            error = %e,
+            "删除工作流模板后清理能力索引失败（重启后自动重建）"
+        );
     }
 }
 
@@ -225,6 +282,9 @@ pub async fn create_workflow_template(
 
     state.work_engine.precompile_tool_defs(&template.id, &template.tool_defs).await;
 
+    // 回灌能力索引：否则新建的模板在本会话内不可路由（护照只在启动时全量重建）
+    sync_template_passport(&state, &template).await;
+
     // 2.7 P1:同步运行时触发器 — DB 已持久化 trigger_config,此处把同一份配置
     // 注册到 TriggerManager,使 Schedule/Webhook/Event 触发器立即生效。
     // 失败仅 warn 日志,不阻断命令返回(下次启动恢复时会重新注册)。
@@ -301,6 +361,12 @@ pub async fn update_workflow_template(
     )
     .await;
 
+    // 索引同步：update 只接收部分字段（tool_defs/trigger_config 已被 take），
+    // 直接从 DB 读回最新模型再派生护照，避免漏字段造成索引与库不一致。
+    if let Ok(Some(model)) = db_repo::get_workflow_template(db, &id).await {
+        sync_template_passport(&state, &db_repo::template_model_to_data(&model)).await;
+    }
+
     Ok(updated)
 }
 
@@ -341,6 +407,9 @@ pub async fn delete_workflow_template(
         &id,
     )
     .await;
+
+    // 清理能力索引：不清理则脏护照会残留到下次启动，路由仍会命中已删除的模板
+    remove_template_passport(&state, &id).await;
 
     Ok(deleted)
 }
@@ -410,6 +479,9 @@ pub async fn duplicate_workflow_template(
         ))
     })?;
 
+    // 回灌能力索引：副本是新模板（新 ID），不索引同样本会话内不可路由
+    sync_template_passport(&state, &new_template).await;
+
     Ok(new_template.id)
 }
 
@@ -432,12 +504,19 @@ pub async fn seed_preset_templates(state: State<'_, AppState>) -> Result<usize, 
         items.push(template);
     }
 
+    // 索引回灌需要保留一份副本：items 会被 db 层消费掉。
+    // 手动 seed 发生在运行期（启动期的全量重建已过），不回灌则本会话内不可路由。
+    let index_items = items.clone();
     db_repo::seed_preset_templates(db, items).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
             e,
             crate::commands::error::ErrorCategory::Unrecoverable,
         ))
     })?;
+
+    for template in &index_items {
+        sync_template_passport(&state, template).await;
+    }
 
     Ok(presets.len())
 }
@@ -2417,6 +2496,7 @@ async fn convert_n8n_to_axagent<C: ConnectionTrait>(
 }
 
 async fn do_import_workflow(
+    state: &AppState,
     db: &DatabaseConnection,
     json_data: String,
 ) -> Result<serde_json::Value, String> {
@@ -2510,6 +2590,10 @@ async fn do_import_workflow(
         })?;
     }
 
+    // 回灌能力索引：导入生成的是全新模板（新 ID），不索引则本会话内不可路由。
+    // 两个分支（事务提交 / 直接插入）都在此汇合，放分支外保证不漏。
+    sync_template_passport(state, &new_template).await;
+
     let mut errors: Vec<String> = Vec::new();
 
     if new_template.nodes.is_empty() {
@@ -2558,7 +2642,7 @@ pub async fn import_workflow_template(
     state: State<'_, AppState>,
     json_data: String,
 ) -> Result<serde_json::Value, String> {
-    do_import_workflow(state.harness.db(), json_data).await
+    do_import_workflow(&state, state.harness.db(), json_data).await
 }
 
 /// 批量导入 n8n 目录中的所有工作流 JSON 文件
@@ -2642,6 +2726,9 @@ pub async fn import_n8n_directory(
                 if let Err(e) = db_repo::insert_workflow_template(db, am).await {
                     errors.push(format!("{}: save error: {}", file_path.display(), e));
                 } else {
+                    // 回灌能力索引：批量导入的模板都是新 ID，不索引则本会话内不可路由。
+                    // 必须在 push 前调用——push 会移动 template.name。
+                    sync_template_passport(&state, &template).await;
                     imported.push(template.name);
                 }
             },
@@ -2697,7 +2784,7 @@ pub async fn import_workflow_directory(
             continue;
         }
 
-        match do_import_workflow(db, content).await {
+        match do_import_workflow(&state, db, content).await {
             Ok(val) => {
                 if let Some(id) = val.get("id").and_then(|v| v.as_str()) {
                     imported.push(id.to_string());
@@ -2716,6 +2803,156 @@ pub async fn import_workflow_directory(
     }))
 }
 
+// ── P1-1: 从会话状态自动组装并持久化工作流 ────────────────────────────────────
+//
+// 前端/外部触发入口：用户在对话界面点"保存为工作流"按钮时调用。
+// 与 SaveAsWorkflow Tool（Agent 自驱动）的区别：
+// - 本命令由前端直接调用，传入 conversation_id + 可选 capability_ids
+// - SaveAsWorkflow Tool 由 Agent 在会话中通过 LLM 间接调用
+// 二者共享同一套 AssemblyBuilder 组装逻辑 + WorkflowTemplateRepository 持久化链路。
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveDynamicWorkflowInput {
+    pub conversation_id: String,
+    pub name: String,
+    #[serde(default)]
+    pub capability_ids: Option<Vec<String>>,
+    #[serde(default)]
+    pub icon: Option<String>,
+    #[serde(default)]
+    pub tags: Option<Vec<String>>,
+}
+
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveDynamicWorkflowResult {
+    pub template_id: String,
+    pub node_count: usize,
+    pub edge_count: usize,
+    pub capability_count: usize,
+}
+
+#[tauri::command]
+pub async fn save_dynamic_workflow(
+    state: State<'_, AppState>,
+    input: SaveDynamicWorkflowInput,
+) -> Result<SaveDynamicWorkflowResult, String> {
+    use axagent_harness::assembly_builder::{AssemblyBuilder, DefaultAssemblyBuilder};
+    use axagent_harness::session_state::{NS_SKILL_LOADED, StateScope, namespace_prefix};
+
+    let name = input.name.trim();
+    if name.is_empty() {
+        return Err("name 为必填参数且不可为空".to_string());
+    }
+
+    let store = &state.session_state_store;
+    let indexer = &state.capability_indexer;
+
+    // 1. 确定 capability_ids
+    let capability_ids: Vec<String> = match input.capability_ids {
+        Some(ids) if !ids.is_empty() => ids,
+        _ => {
+            let prefix =
+                namespace_prefix(StateScope::Temp, NS_SKILL_LOADED, &input.conversation_id, None);
+            let entries = store
+                .list_by_prefix(&prefix)
+                .await
+                .map_err(|e| format!("读取会话状态失败: {e}"))?;
+
+            if entries.is_empty() {
+                return Err("本会话没有已加载的能力，请先通过能力加载工具加载能力。".to_string());
+            }
+
+            entries
+                .iter()
+                .filter_map(|e| {
+                    serde_json::from_str::<serde_json::Value>(&e.value)
+                        .ok()
+                        .and_then(|v| v["capabilityId"].as_str().map(str::to_string))
+                })
+                .collect()
+        },
+    };
+
+    if capability_ids.is_empty() {
+        return Err("没有有效的 capability_id".to_string());
+    }
+
+    // 2. 逐个取护照
+    let mut passports = Vec::new();
+    for cap_id in &capability_ids {
+        if let Some(passport) = indexer.get_passport(cap_id).await {
+            passports.push(passport);
+        }
+    }
+
+    if passports.is_empty() {
+        return Err("所有 capability_id 均未找到对应能力".to_string());
+    }
+
+    // 3. 组装
+    let builder = DefaultAssemblyBuilder::new().with_prefix("auto");
+    let result = builder.assemble_linear(&passports);
+
+    if result.nodes.is_empty() {
+        return Err("选定的能力无法生成工作流节点".to_string());
+    }
+
+    // 4. 构造模板并持久化（复用 create_workflow_template 的数据库链路）
+    let now = chrono::Utc::now().timestamp_millis();
+    let template_id = uuid::Uuid::new_v4().to_string();
+
+    let template = WorkflowTemplateData {
+        id: template_id.clone(),
+        name: name.to_string(),
+        description: Some(format!(
+            "由 save_dynamic_workflow 自动组装，包含 {} 个能力",
+            passports.len()
+        )),
+        icon: input.icon.unwrap_or_else(|| "🧩".to_string()),
+        tags: input
+            .tags
+            .unwrap_or_else(|| vec!["capability-assembly".to_string(), "auto-saved".to_string()]),
+        cluster_id: None,
+        route_path: None,
+        version: 1,
+        is_preset: false,
+        is_editable: true,
+        is_public: false,
+        visibility: axagent_harness::capability::Visibility::Public,
+        trigger_config: None,
+        nodes: result.nodes.clone(),
+        edges: result.edges.clone(),
+        input_schema: None,
+        output_schema: None,
+        variables: Vec::new(),
+        error_config: None,
+        tool_defs: Vec::new(),
+        error_workflow_id: None,
+        mission_hash: None,
+        created_at: now,
+        updated_at: now,
+    };
+
+    let active_model = model_to_active_model(&template);
+    let db = state.harness.db();
+    db_repo::insert_workflow_template(db, active_model).await.map_err(|e| e.to_string())?;
+
+    state.work_engine.precompile_tool_defs(&template.id, &template.tool_defs).await;
+
+    // 回灌能力索引：这是整条「能力组装 → 固化为动态工作流」闭环的落点。
+    // 若不同步，固化产物在本会话内不可路由，用户固化完立刻问同样的问题，
+    // 编排器仍会走原路径重新组装一遍——固化等于白做，要等重启才见效。
+    sync_template_passport(&state, &template).await;
+
+    Ok(SaveDynamicWorkflowResult {
+        template_id,
+        node_count: result.nodes.len(),
+        edge_count: result.edges.len(),
+        capability_count: passports.len(),
+    })
+}
 #[cfg(test)]
 mod tests {
     use super::*;

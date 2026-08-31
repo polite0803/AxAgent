@@ -152,6 +152,10 @@ pub async fn save_skill_workflow_from_llm(
         .await
         .map_err(err)?;
 
+    // 回灌能力索引：技能转工作流产物是新模板，不索引则本会话内不可路由。
+    // 此处手上是 entity ActiveModel，故按 ID 从库里读回完整模型再派生护照。
+    crate::commands::workflow_template::sync_template_index_by_id(&state, &id).await;
+
     tracing::info!(
         "[save_skill_workflow] 已保存技能工作流: id={id} skill={} name={}",
         request.skill_id,

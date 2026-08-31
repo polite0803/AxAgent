@@ -19,6 +19,7 @@
 //! 协议层 ChatAction 的 `data` 字段在这里展开。
 
 use crate::AppState;
+use crate::commands::workflow_template::sync_template_index_by_id;
 use axagent_agent_macro::agent_command;
 use axagent_dao::repo::workflow_template as db_repo;
 use axagent_dao::workflow_conversions::workflow_template_response_from_model;
@@ -77,7 +78,7 @@ pub async fn apply_update_variable(
         return Err(format!("variable '{var_name}' not found in template '{template_id}'"));
     }
 
-    persist_template(&db, &template_id, &template_to_input(&template)).await?;
+    persist_template(&state, &db, &template_id, &template_to_input(&template)).await?;
     Ok(template)
 }
 
@@ -202,6 +203,10 @@ pub async fn apply_rollback_to_version(
         return Err(format!("failed to update template '{template_id}'"));
     }
 
+    // 回滚后模板内容回到历史版本，索引里却还是当前版本的护照，
+    // 必须回灌一次，否则路由候选集与实际内容脱节（要等重启才一致）。
+    sync_persisted_template(&state, &template_id).await;
+
     load_template(&db, &template_id).await
 }
 
@@ -265,7 +270,7 @@ pub async fn apply_update_input_mapping(
     }
 
     // 3. 写回
-    persist_template(&db, &template.id, &template_to_input(&template)).await?;
+    persist_template(&state, &db, &template.id, &template_to_input(&template)).await?;
     Ok(template)
 }
 
@@ -713,7 +718,7 @@ async fn restore_snapshot(state: &State<'_, AppState>, snap: &Snapshot) -> Resul
     match snap {
         Snapshot::TemplateSnapshot(template) => {
             let input = template_to_input(template);
-            persist_template(state.harness.db(), &template.id, &input).await
+            persist_template(state, state.harness.db(), &template.id, &input).await
         },
         Snapshot::AssetFileSnapshot { path, before } => {
             if path.as_os_str().is_empty() {
@@ -793,6 +798,7 @@ async fn load_template(
 }
 
 async fn persist_template(
+    state: &AppState,
     db: &DatabaseConnection,
     id: &str,
     input: &WorkflowTemplateInput,
@@ -823,7 +829,18 @@ async fn persist_template(
     if !updated {
         return Err(format!("failed to persist template '{id}'"));
     }
+    sync_persisted_template(state, id).await;
     Ok(())
+}
+
+/// 把刚落库的模板护照回灌能力索引。
+///
+/// AI 应用类修改（插/删/改节点、改变量、回滚快照）都走 `persist_template`，
+/// 直接调 dao 层 update，绕开了 commands 层 `update_workflow_template` 的索引同步。
+/// 漏掉这一步，改名/改描述后的模板在索引里仍是旧护照——路由候选集与实际内容脱节，
+/// 要等重启才一致。
+async fn sync_persisted_template(state: &AppState, id: &str) {
+    sync_template_index_by_id(state, id).await;
 }
 
 fn template_to_input(template: &WorkflowTemplateResponse) -> WorkflowTemplateInput {

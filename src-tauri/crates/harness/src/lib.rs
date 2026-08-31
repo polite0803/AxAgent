@@ -56,6 +56,7 @@ pub mod plan_compiler;
 pub mod plan_types;
 pub mod platform_config;
 pub mod rag_config;
+pub mod template_patch;
 pub mod types;
 pub mod url_utils;
 pub mod util_fns;
@@ -597,6 +598,9 @@ pub use self_improving_loop::{
 };
 
 // ── 工作流反思/进化/优化三层 trait 契约 ──
+pub mod workflow_template_repo;
+pub use workflow_template_repo::WorkflowTemplateRepo;
+
 pub mod workflow_reflection;
 pub use workflow_reflection::{
     BottleneckNode, BottleneckReason, FailureCategory, NodeExecutionSnapshot, NodeFailureAnalysis,
@@ -741,6 +745,10 @@ pub use workflow_graph::{
     EdgeType, GraphRouteResult, RouteLevel, WorkflowGraph, WorkflowGraphEdge, WorkflowGraphNode,
     WorkflowGraphRouter, WorkflowGraphSync,
 };
+
+// ── 能力组装器（CapabilityPassport → WorkflowNode/Edge 桥接层） ──
+pub mod assembly_builder;
+pub use assembly_builder::{AssemblyBuilder, AssemblyResult, DefaultAssemblyBuilder};
 
 // ── 认知路由器（三层路由树协调器 · Phase 4 集成层） ──
 pub mod cognitive_router;

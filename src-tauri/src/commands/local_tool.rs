@@ -142,17 +142,21 @@ pub async fn get_tool_count(
     let chat_tools = registry.get_chat_tools_for_domains(&active_domains, None);
     let mut names: HashSet<String> = chat_tools.iter().map(|t| t.function.name.clone()).collect();
 
-    // 应用 disallowed_tools 黑名单
-    for name in &ctx.disallowed_tools {
-        names.remove(name);
+    // 应用 recommended_tools 白名单：追加缺失的推荐工具。
+    // 走 `get_chat_tools_by_names` 而非 `registry.tools.list_all()` —— 后者**不过滤**
+    // registry 层的 disable()，会把用户在设置里关掉的工具也计数进来，导致展示的
+    // 数量与实际传给 LLM 的不一致；前者复用 registry 统一的启用/禁用过滤。
+    let extra = registry.get_chat_tools_by_names(ctx.recommended_tools.iter().map(String::as_str));
+    for t in extra {
+        names.insert(t.function.name);
     }
 
-    // 应用 recommended_tools 白名单：从全量工具列表中追加缺失的推荐工具
-    let all_info = registry.tools.list_all();
-    for info in &all_info {
-        if ctx.recommended_tools.contains(&info.name) {
-            names.insert(info.name.clone());
-        }
+    // 应用 disallowed_tools 黑名单。必须放在推荐追加**之后**作最终兜底：
+    // 原顺序（先 remove 黑名单、再 insert 推荐）会让「同时出现在 recommended_tools
+    // 里的禁用工具」被重新注回，等于绕过 profile 禁用策略。此处与 `agent_query`
+    // 保持严格一致的筛选顺序（禁区 12：禁止语义漂移）。
+    for name in &ctx.disallowed_tools {
+        names.remove(name);
     }
 
     Ok(names.len() as u32)

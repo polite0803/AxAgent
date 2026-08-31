@@ -585,7 +585,7 @@ impl PluginManager {
         manifest: &crate::types::PluginManifest,
         kind: PluginKind,
     ) -> usize {
-        let passports = self.collect_plugin_passports(plugin_id, manifest, kind);
+        let passports = self.collect_plugin_passports(plugin_id, manifest, kind, None);
         let ids: Vec<String> = passports.iter().map(|p| p.capability_id.clone()).collect();
         if !ids.is_empty() {
             self.active_passport_ids.insert(plugin_id.to_string(), ids);
@@ -615,17 +615,22 @@ impl PluginManager {
         let Ok(manifest) = load_plugin_from_directory(root) else {
             return Vec::new();
         };
-        self.collect_plugin_passports(plugin_id, &manifest, meta.kind)
+        self.collect_plugin_passports(plugin_id, &manifest, meta.kind, Some(root))
     }
 
     /// 同步构造某插件的全部能力护照（技能 + Agent + 声明的能力）。
     ///
-    /// 纯函数：同一 manifest 输出稳定，注册与回滚共用同一套 ID 推导。
+    /// `plugin_root` 是插件安装目录——用于读取 Skill 引用的 SKILL.md 文件，
+    /// 把 markdown 正文填入 `prompt_body`（运行时 AgentNode.system_prompt）。
+    /// 传 `None` 时跳过文件读取，description 用占位文本（保持向后兼容）。
+    ///
+    /// 同一 manifest + 同一 root 输出稳定；同一 manifest + None root 也稳定。
     fn collect_plugin_passports(
         &self,
         plugin_id: &str,
         manifest: &crate::types::PluginManifest,
         kind: PluginKind,
+        plugin_root: Option<&Path>,
     ) -> Vec<CapabilityPassportDto> {
         use axagent_harness::{
             CapabilityDomain, CapabilityEvolvability, CapabilityKind, CapabilityPassportDto,
@@ -634,10 +639,30 @@ impl PluginManager {
         let mut passports = Vec::new();
         // 技能（本地 SKILL.md，本地可写 → Local 进化）
         for skill in &manifest.skills {
+            // 读 SKILL.md 文件 → 提取 description + prompt_body
+            let (skill_desc, skill_prompt_body) = match plugin_root {
+                Some(root) => {
+                    let skill_path = root.join(&skill.path);
+                    match fs::read_to_string(&skill_path) {
+                        Ok(content) => parse_skill_md(&content),
+                        Err(e) => {
+                            tracing::debug!(
+                                plugin_id,
+                                skill_name = %skill.name,
+                                path = %skill_path.display(),
+                                error = %e,
+                                "读取 SKILL.md 失败，使用占位 description"
+                            );
+                            (format!("插件 `{plugin_id}` 提供的技能 {}", skill.name), None)
+                        },
+                    }
+                },
+                None => (format!("插件 `{plugin_id}` 提供的技能 {}", skill.name), None),
+            };
             passports.push(CapabilityPassportDto {
                 capability_id: format!("plugin:{plugin_id}:skill:{}", skill.name),
                 name: skill.name.clone(),
-                description: format!("插件 `{plugin_id}` 提供的技能 {}", skill.name),
+                description: skill_desc,
                 kind: CapabilityKind::Skill,
                 domain: CapabilityDomain::General,
                 source: CapabilitySource::Plugin,
@@ -645,6 +670,7 @@ impl PluginManager {
                 sub_category: "plugin_skill".to_string(),
                 visibility: Visibility::Public,
                 tags: vec!["plugin".to_string(), plugin_id.to_string(), "skill".to_string()],
+                prompt_body: skill_prompt_body,
                 ..Default::default()
             });
         }
@@ -1426,6 +1452,40 @@ fn load_manifest_from_skill_md(
         capabilities: Vec::new(),
     };
     Ok(manifest)
+}
+
+/// 解析 SKILL.md 内容 → (description, prompt_body)
+///
+/// - 有 YAML frontmatter（首尾 `---` 分隔）：
+///   * `description` 取自 frontmatter 的 `description:` 字段
+///   * `prompt_body` 为 frontmatter 之后的 markdown 正文（运行时 AgentNode.system_prompt）
+/// - 无 frontmatter：
+///   * `description` 为空串（由调用方用占位文本兜底）
+///   * `prompt_body` 为整个文件内容
+fn parse_skill_md(content: &str) -> (String, Option<String>) {
+    let lines: Vec<&str> = content.lines().collect();
+    if lines.first().map(|l| l.trim()) == Some("---")
+        && let Some(end_idx) =
+            lines.iter().enumerate().skip(1).find(|(_, l)| l.trim() == "---").map(|(i, _)| i)
+    {
+        let frontmatter = lines[1..end_idx].join("\n");
+        let body_start = end_idx + 1;
+        let body = lines[body_start..].join("\n").trim().to_string();
+        let parsed = parse_yaml_frontmatter(&frontmatter);
+        let description =
+            parsed.get("description").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+        let prompt_body = if body.is_empty() { None } else { Some(body) };
+        return (description, prompt_body);
+    }
+    let trimmed = content.trim().to_string();
+    (
+        "".to_string(),
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed)
+        },
+    )
 }
 
 fn extract_yaml_frontmatter(contents: &str) -> Option<String> {
@@ -2619,8 +2679,12 @@ mod tests {
         let manager = PluginManager::new(config);
         let manifest = manifest_with_passport_sources();
 
-        let passports =
-            manager.collect_plugin_passports("external:demo", &manifest, PluginKind::External);
+        let passports = manager.collect_plugin_passports(
+            "external:demo",
+            &manifest,
+            PluginKind::External,
+            None,
+        );
         // 1 技能 + 1 Agent + 1 可发现声明能力（hidden.seam 被跳过）
         assert_eq!(passports.len(), 3, "护照应跳过 discoverable=false 的声明能力");
 

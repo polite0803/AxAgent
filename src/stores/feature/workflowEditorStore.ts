@@ -811,9 +811,9 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
         const filter = get().filter;
         const isPreset = filter.isPreset;
         const params: Record<string, unknown> = {};
-        if (isPreset !== undefined) { params.is_preset = isPreset; }
+        if (isPreset !== undefined) { params.isPreset = isPreset; }
         // includeSystem=true（系统模板页）时返回认知编排器等系统模板
-        if (includeSystem) { params.include_system = includeSystem; }
+        if (includeSystem) { params.includeSystem = includeSystem; }
         const templates = await invoke<WorkflowTemplateResponse[]>(
           "list_workflow_templates",
           params,
@@ -844,7 +844,7 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>()(
       try {
         const params: Record<string, unknown> = { id };
         // includeSystem=true（系统模板页）时允许读取系统模板
-        if (includeSystem) { params.include_system = includeSystem; }
+        if (includeSystem) { params.includeSystem = includeSystem; }
         const template = await invoke<WorkflowTemplateResponse>(
           "get_workflow_template",
           params,

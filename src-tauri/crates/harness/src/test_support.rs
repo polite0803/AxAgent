@@ -1759,6 +1759,20 @@ impl WorkflowTemplateRepository for EmptyWorkflowTemplateRepository {
     ) -> std::result::Result<Option<WorkflowTemplateData>, String> {
         Ok(None)
     }
+
+    async fn create_workflow_template(
+        &self,
+        template: WorkflowTemplateData,
+    ) -> std::result::Result<String, String> {
+        Ok(template.id)
+    }
+
+    async fn update_workflow_template(
+        &self,
+        _template: WorkflowTemplateData,
+    ) -> std::result::Result<(), String> {
+        Ok(())
+    }
 }
 
 pub fn empty_workflow_template_repo() -> Arc<dyn WorkflowTemplateRepository> {

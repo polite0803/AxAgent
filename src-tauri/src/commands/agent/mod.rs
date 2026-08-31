@@ -1521,8 +1521,6 @@ pub async fn agent_query(
         let mut extra_names: HashSet<String> = profile_recommended_tools.into_iter().collect();
         extra_names.extend(orchestration_tools);
         let blocked_names: HashSet<String> = profile_disallowed_tools.into_iter().collect();
-        // blocked: 从 domain 结果中移除
-        chat_tools.retain(|t| !blocked_names.contains(&t.function.name));
         // extra: 按名字从注册表取完整 schema（复用 registry 的统一实现）
         let extra_schemas =
             tool_registry.get_chat_tools_by_names(extra_names.iter().map(String::as_str));
@@ -1531,6 +1529,12 @@ pub async fn agent_query(
                 chat_tools.push(t);
             }
         }
+        // blocked: 放在 extra 注入**之后**，作为最终安全兜底。顺序不可颠倒——
+        // `get_chat_tools_by_names` 只过滤 registry 层的 disable()，不看 profile 的
+        // disallowed_tools。若先 retain 再注入，认知编排按需注入的 extra_tools
+        // （取自能力护照的 tool_ref）会把刚被 profile 禁用的工具重新注回，
+        // 等于绕过禁用策略。F4 把该路径扩展到 Clarify 二次执行后，绕过面更大。
+        chat_tools.retain(|t| !blocked_names.contains(&t.function.name));
     }
 
     // RAG retrieval: search enabled knowledge bases and memory namespaces

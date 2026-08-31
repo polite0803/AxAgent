@@ -93,9 +93,9 @@ describe("approvalStore", () => {
       const result = await useApprovalStore.getState().resumeApproval("exec-1", "approval-1", "approved");
 
       expect(invokeMock).toHaveBeenCalledWith("resume_approval", {
-        approval_id: "approval-1",
+        approvalId: "approval-1",
         decision: "approved",
-        decided_by: "frontend",
+        decidedBy: "frontend",
         note: null,
       });
       expect(result).toBe(true);
@@ -115,9 +115,9 @@ describe("approvalStore", () => {
       );
 
       expect(invokeMock).toHaveBeenCalledWith("resume_approval", {
-        approval_id: "approval-1",
+        approvalId: "approval-1",
         decision: "rejected",
-        decided_by: "user-1",
+        decidedBy: "user-1",
         note: "Not needed",
       });
       expect(result).toBe(true);
@@ -140,7 +140,7 @@ describe("approvalStore", () => {
 
       const result = await useApprovalStore.getState().cancelApproval("exec-1", "approval-1");
 
-      expect(invokeMock).toHaveBeenCalledWith("cancel_approval", { approval_id: "approval-1" });
+      expect(invokeMock).toHaveBeenCalledWith("cancel_approval", { approvalId: "approval-1" });
       expect(result).toBe(true);
     });
 

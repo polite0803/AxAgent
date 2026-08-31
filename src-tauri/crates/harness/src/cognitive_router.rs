@@ -227,6 +227,10 @@ pub enum ExecutionMode {
     /// 委派给 agent 执行指定能力（命中 tool/技能/知识库/Agent）
     Delegate,
     /// 精准命中（置信度 > 0.90）：跳过澄清，直接参数抽取后执行目标能力
+    ///
+    /// 注意：本变体不会由 `execution_mode_from_confidence` 产出，
+    /// 仅用于 JSON 快速通道（`cognitive_query` 前置 2 直接 return 的路径）
+    /// 与 trajectory 进化证据判定。认知编排主 match 无对应分支（`_` 通配接住）。
     ParameterExtract,
     /// 模糊命中（置信度 0.60 ~ 0.90）：触发澄清分支，Top2 候选交用户选择
     Clarify,
@@ -814,6 +818,11 @@ impl DefaultCognitiveRouter {
     /// - ≥ 0.40 → `Plan`（域明确但无高置信工作流，先规划再执行）
     /// - ≥ 0.20 → `Act`（行动模式，交给 agent 执行）
     /// - 其余   → `Delegate`（委派给 agent 处理）
+    ///
+    /// **值域契约**：产出集合恒为上表 6 项，不含 `ParameterExtract`（该值仅由
+    /// `cognitive_query` 的 JSON 快速通道产出并直接 return，不进主 DAG 推模式）。
+    /// 下游 `clamp_mode_for_kind` 依赖此契约——若此处新增档位，须同步确认那里的
+    /// P5 降级覆盖仍然完整。
     fn execution_mode_from_confidence(confidence: f64) -> ExecutionMode {
         if confidence > 0.90 {
             ExecutionMode::Workflow
@@ -835,6 +844,12 @@ impl DefaultCognitiveRouter {
     /// 防止被误当工作流模板直发 `workflow_execute`（触发 WORKFLOW_NOT_FOUND）。
     ///
     /// `kind` 缺失或为空串（如簇级兜底路径无选中候选）时视为 Workflow，保持原行为。
+    ///
+    /// `mode` 入参：两个调用点（L3 图谱路由 `:958`、`route_with_hint` `:1267`）都取自
+    /// `execution_mode_from_confidence`，因此当前值域不含 `ParameterExtract`。
+    /// 此处仍保留该分支，属**语义穷举**而非冗余：`ParameterExtract` 与 Workflow/Direct
+    /// 同属「直发执行」类，一旦未来某条路径把它送进来，漏掉就会绕过 P5 降级保护。
+    /// 代价是一个永假的模式匹配，收益是安全穷举完整性——故不按死代码删。
     fn clamp_mode_for_kind(mode: ExecutionMode, kind: &str) -> ExecutionMode {
         if kind.is_empty() || kind == "workflow" {
             return mode;

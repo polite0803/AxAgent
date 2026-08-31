@@ -71,6 +71,46 @@ pub struct WorkflowTemplateData {
     pub route_path: Option<String>,
 }
 
+impl WorkflowTemplateData {
+    /// 派生能力护照。
+    ///
+    /// 与 [`crate::workflow_types::WorkflowTemplateData`] 共用
+    /// [`crate::workflow_types::workflow_template_passport`] 口径——
+    /// 运行时新增的模板（SaveAsWorkflow / save_dynamic_workflow）必须与启动期
+    /// 全量重建出的护照逐字段一致，否则同一模板会表现出「会话内与重启后
+    /// 路由行为不同」。
+    ///
+    /// # 字段降维说明
+    /// - `tags`：DB 列是 JSON 数组字符串（见 dao 层 `serde_json::to_string(&tags)`）；
+    ///   解析失败降级为空数组，与 dao 层读模型时的口径一致。
+    /// - `visibility`：本 DTO 无该列（表未持久化），按 `route_path` L1 段是否为
+    ///   `system` 推导 SystemOnly / Public，与 workflow_types 版同口径。
+    pub fn to_capability_passport(&self) -> crate::capability::CapabilityPassportDto {
+        crate::workflow_types::workflow_template_passport(
+            crate::workflow_types::WorkflowTemplatePassportParams {
+                id: self.id.clone(),
+                name: self.name.clone(),
+                description: self.description.clone().unwrap_or_default(),
+                tags: self
+                    .tags
+                    .as_deref()
+                    .and_then(|s| serde_json::from_str::<Vec<String>>(s).ok())
+                    .unwrap_or_default(),
+                cluster_id: self.cluster_id.clone(),
+                route_path: self.route_path.clone(),
+                node_count: serde_json::from_str::<Vec<serde_json::Value>>(&self.nodes)
+                    .map(|v| v.len())
+                    .unwrap_or(0),
+                visibility: crate::capability::Visibility::Public,
+                input_schema: self
+                    .input_schema
+                    .as_deref()
+                    .and_then(|s| serde_json::from_str::<serde_json::Value>(s).ok()),
+            },
+        )
+    }
+}
+
 // ── BackgroundTask 系列 ─────────────────────
 
 /// 后台任务 DTO
