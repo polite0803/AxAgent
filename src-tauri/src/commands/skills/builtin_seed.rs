@@ -3,7 +3,7 @@
 //!
 //! 将项目内 `agency_experts/skills/<name>/SKILL.md` 4 个内置 skill 同步到
 //! 用户目录 `~/.axagent/skills/<name>/SKILL.md`，使内置 skill 在首次启动时
-//! 即可被 SkillIndex / SkillPromptCache 识别。
+//! 即可被 SkillIndex（元数据索引，TTL 300s 自动重建）识别。
 //!
 //! 同步策略：仅在目标 SKILL.md 不存在时写入（不覆盖用户修改）。
 
@@ -30,7 +30,7 @@ fn user_skills_dir() -> Option<PathBuf> {
 ///
 /// - 仅在目标文件不存在时写入（不覆盖用户修改）
 /// - 创建中间目录（如 ~/.axagent/skills/stock-pick/）
-/// - 同步后调用 `SkillPromptCache::invalidate()` 失效缓存
+/// - SkillIndex 有 TTL 自动重建，无需手动失效
 pub fn seed_builtin_skills() {
     let Some(skills_dir) = user_skills_dir() else {
         tracing::warn!("[skills] 无法定位用户目录，跳过内置 SKILL 种子化");
@@ -64,8 +64,6 @@ pub fn seed_builtin_skills() {
     }
 
     if synced_count > 0 {
-        // 失效 SkillPromptCache，让其下次访问时重建
-        axagent_tools::tools::skill::SkillPromptCache::invalidate();
-        tracing::info!("[skills] 内置 SKILL 同步完成（{synced_count} 个），缓存已失效");
+        tracing::info!("[skills] 内置 SKILL 同步完成（{synced_count} 个）");
     }
 }

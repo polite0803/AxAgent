@@ -498,6 +498,42 @@ fn decision_from_response(response: &CognitiveQueryResponse) -> serde_json::Valu
     )
 }
 
+/// 把路由选中的能力信息合并进 agent_context 的 `routing_hint` 字段。
+///
+/// 渐进式披露（P1-4）：认知编排器已用三层路由完成能力精化，委派 agent_query 时
+/// 必须把精化结果（capability_id / 名称 / 描述 / 类型）随行传递，作为
+/// `<routing-hint>` slot 注入系统提示，agent 无需重新走索引层发现。
+/// 按 `CapabilityKind` 附加对应的定义层加载指引。
+fn merge_routing_hint(
+    agent_context: Option<AgentContextPayload>,
+    capability_id: &str,
+    name: &str,
+    description: &str,
+    kind: &str,
+) -> AgentContextPayload {
+    let mut ctx = agent_context.unwrap_or_default();
+    let mut hint = format!(
+        "The cognitive orchestrator routed this request to capability `{}` (kind: {}).",
+        capability_id, kind
+    );
+    if !name.is_empty() {
+        hint.push_str(&format!("\n- Name: {}", name));
+    }
+    if !description.is_empty() {
+        hint.push_str(&format!("\n- Description: {}", description));
+    }
+    hint.push_str(match kind {
+        // 技能：定义层按需加载（SkillView 按 skill 名取 SKILL.md，SkillReference 取 references/）
+        "skill" => "\nLoad this skill's full instructions with the \"SkillView\" tool (try the capability name as \"skill\") before executing the task.",
+        "tool" => "\nLocate and call the matching tool to execute the task.",
+        "knowledge_base" => "\nRetrieve relevant material from the matching knowledge base when answering.",
+        "agent" => "\nFollow the recommended expert profile for this task.",
+        _ => "",
+    });
+    ctx.routing_hint = Some(hint);
+    ctx
+}
+
 /// 将决策标签持久化到指定 assistant 消息；失败仅告警不阻断主流程。
 async fn persist_decision_to_message(
     db: &sea_orm::DatabaseConnection,
@@ -975,7 +1011,14 @@ async fn cognitive_query_inner(
                     // Tool/知识库/技能无推荐专家时落回默认专家
                     agent_profile_id: forced_profile_id,
                     expert_id: dynamic_expert_id,
-                    agent_context: request.agent_context.clone(),
+                    // P1-4: Clarify 精选结果随行（passport 名称/描述/kind）
+                    agent_context: Some(merge_routing_hint(
+                        request.agent_context.clone(),
+                        &forced_id,
+                        forced_passport.as_ref().map(|p| p.name.as_str()).unwrap_or(""),
+                        forced_passport.as_ref().map(|p| p.description.as_str()).unwrap_or(""),
+                        forced_kind.as_str(),
+                    )),
                     // 透传认知编排决策模式：Clarify 二次执行按能力类型定性（Agent→delegate，
                     // 其余→workflow），让 agent 运行时感知当前编排模式
                     execution_mode: Some(execution_mode.clone()),
@@ -1817,7 +1860,20 @@ async fn cognitive_query_inner(
                 // 认知编排选专家：显式指定优先，路由自动推导兜底；角色命中时动态补专家
                 agent_profile_id: selected_agent_profile,
                 expert_id: effective_expert_id,
-                agent_context: request.agent_context.clone(),
+                // P1-4: 路由精化结果随行（capability_id/名称/描述/kind），agent 直接加载定义
+                agent_context: {
+                    let selected = response
+                        .candidate_details
+                        .iter()
+                        .find(|c| c.capability_id == response.capability_id);
+                    Some(merge_routing_hint(
+                        request.agent_context.clone(),
+                        &response.capability_id,
+                        selected.map(|c| c.name.as_str()).unwrap_or(""),
+                        selected.map(|c| c.description.as_str()).unwrap_or(""),
+                        selected.map(|c| c.kind.as_str()).unwrap_or("workflow"),
+                    ))
+                },
                 // 透传认知编排决策模式（Ask/Act/Delegate），让 agent 运行时感知当前编排模式
                 execution_mode: Some(mode.as_str().to_string()),
                 // P1: 透传任务形态决策（原则三标尺），运行时按任务而非按会话覆盖权限初值

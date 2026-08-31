@@ -259,7 +259,48 @@ pub(crate) fn builtin_tool_group_id(tool_name: &str) -> Option<&'static str> {
         // builtin-system-tools
         "TaskCreate" | "TaskList" | "TaskUpdate" | "TodoWrite" => Some("builtin-system-tools"),
         // builtin-agent
-        "Skill" | "DiscoverSkills" | "Agent" | "EnterPlanMode" => Some("builtin-agent"),
+        "Skill" | "DiscoverSkills" | "SkillView" | "SkillReference" | "SkillsList" | "Agent"
+        | "EnterPlanMode" => Some("builtin-agent"),
+        _ => None,
+    }
+}
+
+/// 内置工具的 JSON Schema（LLM-facing tools 参数）。
+///
+/// P1-3 修复：此前 streaming 注入的 builtin 工具 `parameters` 恒为空对象
+/// `{"type":"object","properties":{}}`，LLM 不知道 `Skill`/`DiscoverSkills` 的必填
+/// 参数导致调用失败。未列出的工具返回 `None`，调用方沿用空的默认 schema。
+pub(crate) fn builtin_tool_parameters(tool_name: &str) -> Option<serde_json::Value> {
+    match tool_name {
+        "Skill" | "SkillView" => Some(serde_json::json!({
+            "type": "object",
+            "properties": {
+                "skill": {"type": "string", "description": "要加载的技能名称"},
+                "args": {"type": "string", "description": "传递给技能的参数（可选）"}
+            },
+            "required": ["skill"]
+        })),
+        "SkillReference" => Some(serde_json::json!({
+            "type": "object",
+            "properties": {
+                "skill": {"type": "string", "description": "技能名称"},
+                "path": {"type": "string", "description": "引用文件路径（相对于技能 references/ 目录）"}
+            },
+            "required": ["skill", "path"]
+        })),
+        "DiscoverSkills" => Some(serde_json::json!({
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "搜索关键词（匹配技能名称/描述/标签）"}
+            },
+            "required": ["query"]
+        })),
+        "SkillsList" => Some(serde_json::json!({
+            "type": "object",
+            "properties": {
+                "category": {"type": "string", "description": "按类别过滤（可选）"}
+            }
+        })),
         _ => None,
     }
 }

@@ -8,11 +8,9 @@ use crate::{Tool, ToolCategory, ToolContext, ToolDomain, ToolError, ToolResult};
 use async_trait::async_trait;
 
 pub mod env_config;
-pub mod prompt_cache;
 use axagent_kit::secure_store::SecureStore;
 pub use env_config::{SkillConfigTool, SkillEnvCheckTool};
 use parking_lot::Mutex;
-pub use prompt_cache::SkillPromptCache;
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;

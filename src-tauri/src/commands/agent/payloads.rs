@@ -19,6 +19,13 @@ pub struct AgentContextPayload {
     /// 页面数据快照
     #[serde(default)]
     pub data: Option<Value>,
+    /// 认知编排路由提示（后端填充，前端不发送）。
+    ///
+    /// 认知编排器路由命中能力后委派 agent_query 时，把选中的 capability_id +
+    /// 名称/描述/执行模式写入此字段，作为独立 `<routing-hint>` slot 注入系统提示，
+    /// 让 agent 直接加载该能力的定义（渐进式披露：路由精化 → 定义层），无需重新发现。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub routing_hint: Option<String>,
 }
 
 /// 前端快捷操作定义

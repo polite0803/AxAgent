@@ -1235,6 +1235,11 @@ pub async fn send_message(
         let builtin_local_tools: &[(&str, &str)] = &[
             ("Skill", "加载预注册的 Skill。skill: Skill名称, args: 可选参数。"),
             ("DiscoverSkills", "搜索已安装的 Skill。query: 名称/描述关键词。"),
+            ("SkillsList", "列出所有已安装技能的摘要（Level 0 索引）。category: 可选类别过滤。"),
+            (
+                "SkillReference",
+                "读取技能 references/ 目录下的引用文件（Level 2）。skill: 技能名, path: 相对路径。",
+            ),
             ("FileRead", "读取文件。file_path: 路径, offset: 起始行, limit: 行数。"),
             ("FileWrite", "创建/覆盖文件。file_path: 路径, content: 内容。"),
             ("FileEdit", "精确编辑文件。file_path: 路径, old_string: 旧文本, new_string: 新文本。"),
@@ -1262,10 +1267,10 @@ pub async fn send_message(
                 function: ChatToolFunction {
                     name: (*name).to_owned(),
                     description: Some((*desc).to_owned()),
-                    parameters: Some(serde_json::json!({
-                        "type": "object",
-                        "properties": {},
-                    })),
+                    // P1-3: 有 schema 定义的工具用真 schema，其余沿用空默认
+                    parameters: Some(super::builtin_tool_parameters(name).unwrap_or_else(
+                        || serde_json::json!({"type": "object", "properties": {}}),
+                    )),
                 },
             });
         }
@@ -1674,6 +1679,11 @@ pub async fn regenerate_message(
         let builtin_local_tools: &[(&str, &str)] = &[
             ("Skill", "加载预注册的 Skill。skill: Skill名称, args: 可选参数。"),
             ("DiscoverSkills", "搜索已安装的 Skill。query: 名称/描述关键词。"),
+            ("SkillsList", "列出所有已安装技能的摘要（Level 0 索引）。category: 可选类别过滤。"),
+            (
+                "SkillReference",
+                "读取技能 references/ 目录下的引用文件（Level 2）。skill: 技能名, path: 相对路径。",
+            ),
             ("FileRead", "读取文件。file_path: 路径, offset: 起始行, limit: 行数。"),
             ("FileWrite", "创建/覆盖文件。file_path: 路径, content: 内容。"),
             ("FileEdit", "精确编辑文件。file_path: 路径, old_string: 旧文本, new_string: 新文本。"),
@@ -1701,10 +1711,10 @@ pub async fn regenerate_message(
                 function: ChatToolFunction {
                     name: (*name).to_owned(),
                     description: Some((*desc).to_owned()),
-                    parameters: Some(serde_json::json!({
-                        "type": "object",
-                        "properties": {},
-                    })),
+                    // P1-3: 有 schema 定义的工具用真 schema，其余沿用空默认
+                    parameters: Some(super::builtin_tool_parameters(name).unwrap_or_else(
+                        || serde_json::json!({"type": "object", "properties": {}}),
+                    )),
                 },
             });
         }
@@ -2118,6 +2128,11 @@ pub async fn regenerate_with_model(
         let builtin_local_tools: &[(&str, &str)] = &[
             ("Skill", "加载预注册的 Skill。skill: Skill名称, args: 可选参数。"),
             ("DiscoverSkills", "搜索已安装的 Skill。query: 名称/描述关键词。"),
+            ("SkillsList", "列出所有已安装技能的摘要（Level 0 索引）。category: 可选类别过滤。"),
+            (
+                "SkillReference",
+                "读取技能 references/ 目录下的引用文件（Level 2）。skill: 技能名, path: 相对路径。",
+            ),
             ("FileRead", "读取文件。file_path: 路径, offset: 起始行, limit: 行数。"),
             ("FileWrite", "创建/覆盖文件。file_path: 路径, content: 内容。"),
             ("FileEdit", "精确编辑文件。file_path: 路径, old_string: 旧文本, new_string: 新文本。"),
@@ -2145,10 +2160,10 @@ pub async fn regenerate_with_model(
                 function: ChatToolFunction {
                     name: (*name).to_owned(),
                     description: Some((*desc).to_owned()),
-                    parameters: Some(serde_json::json!({
-                        "type": "object",
-                        "properties": {},
-                    })),
+                    // P1-3: 有 schema 定义的工具用真 schema，其余沿用空默认
+                    parameters: Some(super::builtin_tool_parameters(name).unwrap_or_else(
+                        || serde_json::json!({"type": "object", "properties": {}}),
+                    )),
                 },
             });
         }

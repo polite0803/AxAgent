@@ -127,8 +127,6 @@ pub use memory_providers::entity::{Entity, EntityType, Relationship, Relationshi
 pub use memory_providers::service::{
     AddMemoryRequest, MemoryNature, MemoryProvenance, MemoryService, MemoryTier,
 };
-// G21: Skill 摘要 MemoryProvider
-pub use memory_providers::skill_summary_provider::SkillSummaryProvider;
 // G21: MemoryHookProvider — 会话生命周期记忆同步 Hook
 pub use memory_providers::memory_hook_provider::{MemoryHookConfig, MemoryHookProvider};
 

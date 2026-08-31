@@ -194,6 +194,38 @@ async fn fetch_url_content(url: &str) -> Result<String, String> {
     }
 }
 
+/// 从 SKILL.md 提取一句话摘要（索引层）。
+///
+/// P2-6 修复：此前恒取首行，首行为 `# 标题` 时摘要质量差。现优先解析 YAML
+/// frontmatter 的 `description:` 字段，无 frontmatter / 缺 description 时回退
+/// 到首个非空行，再回退到技能名。
+fn extract_skill_summary(md_content: &str, fallback: &str) -> String {
+    let mut lines = md_content.lines();
+    // YAML frontmatter：优先取 description 字段
+    if lines.next().is_some_and(|l| l.trim() == "---") {
+        for line in lines.by_ref() {
+            let trimmed = line.trim();
+            if trimmed == "---" {
+                break;
+            }
+            if let Some(rest) = trimmed.strip_prefix("description:") {
+                let desc = rest.trim().trim_matches('"').trim_matches('\'');
+                if !desc.is_empty() {
+                    return desc.to_string();
+                }
+            }
+        }
+    }
+    // 回退：首个非空行
+    for line in lines {
+        let trimmed = line.trim();
+        if !trimmed.is_empty() {
+            return trimmed.to_string();
+        }
+    }
+    fallback.to_string()
+}
+
 fn resolve_skill_references(content: &str, skill_dirs: &dyn KitSkillDirs) -> String {
     let re = regex::Regex::new(r"@skill:([a-zA-Z0-9_-]+)").expect("正则表达式：@skill 模式");
     let dirs = skill_dirs.skill_dirs();
@@ -205,8 +237,7 @@ fn resolve_skill_references(content: &str, skill_dirs: &dyn KitSkillDirs) -> Str
             if skill_md.exists()
                 && let Ok(md_content) = std::fs::read_to_string(&skill_md)
             {
-                let first_line = md_content.lines().next().unwrap_or(skill_name);
-                return first_line.to_string();
+                return extract_skill_summary(&md_content, skill_name);
             }
         }
         format!("[Skill '{}' not found]", skill_name)
@@ -517,6 +548,35 @@ mod tests {
         let content = "@skill:nonexistent-skill-xyz";
         let result = resolve_skill_references(content, &crate::noop_kit::NoopSkillDirs);
         assert!(result.contains("[Skill 'nonexistent-skill-xyz' not found]"));
+    }
+
+    #[test]
+    fn test_extract_skill_summary_frontmatter_description() {
+        let md = "---\nname: foo\ndescription: 一句话描述技能用途\n---\n\n# 标题\n正文";
+        assert_eq!(extract_skill_summary(md, "foo"), "一句话描述技能用途");
+    }
+
+    #[test]
+    fn test_extract_skill_summary_frontmatter_quoted() {
+        let md = "---\ndescription: \"带引号的描述\"\n---\n正文";
+        assert_eq!(extract_skill_summary(md, "x"), "带引号的描述");
+    }
+
+    #[test]
+    fn test_extract_skill_summary_no_description_falls_back_to_body() {
+        let md = "---\nname: foo\n---\n\n# 标题\n正文";
+        assert_eq!(extract_skill_summary(md, "foo"), "# 标题");
+    }
+
+    #[test]
+    fn test_extract_skill_summary_no_frontmatter() {
+        let md = "\n# 首个非空行\n正文";
+        assert_eq!(extract_skill_summary(md, "x"), "# 首个非空行");
+    }
+
+    #[test]
+    fn test_extract_skill_summary_empty_falls_back() {
+        assert_eq!(extract_skill_summary("", "skill-name"), "skill-name");
     }
 
     #[test]
