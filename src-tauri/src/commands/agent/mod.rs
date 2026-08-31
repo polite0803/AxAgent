@@ -519,6 +519,34 @@ fn build_streaming_api_client(
     }))
 }
 
+/// 应用 AgentProfile 的工具策略：先追加 extra，再统一剔除 blocked。
+///
+/// **顺序不可颠倒 —— blocked 必须是最后一道闸。** 上游 `extra_schemas` 由
+/// `UnifiedToolRegistry::get_chat_tools_by_names` 取得，该方法只过滤 registry 层的
+/// `disable()`，**不看 profile 的 `disallowed_tools`**。若先 retain 再注入，认知编排
+/// 按需注入的 extra_tools（取自能力护照的 `tool_ref`）会把刚被 profile 禁用的工具
+/// 重新注回，等于绕过禁用策略——F4 把该路径扩展到 Clarify 二次执行后，绕过面更大。
+///
+/// `extra_schemas` 中与已有工具同名的项会被丢弃（保留先出现者），避免 LLM 侧
+/// "Tool names must be unique" 报错。
+///
+/// 纯函数：不碰注册表、不 await，便于单测锁定顺序语义（见本文件末尾 `tests` 模块）。
+fn apply_tool_policy(
+    mut chat_tools: Vec<ChatTool>,
+    extra_schemas: Vec<ChatTool>,
+    blocked_names: &HashSet<String>,
+) -> Vec<ChatTool> {
+    let mut existing_names: HashSet<String> =
+        chat_tools.iter().map(|t| t.function.name.clone()).collect();
+    for t in extra_schemas {
+        if existing_names.insert(t.function.name.clone()) {
+            chat_tools.push(t);
+        }
+    }
+    chat_tools.retain(|t| !blocked_names.contains(&t.function.name));
+    chat_tools
+}
+
 #[agent_command(domain = agent, safety = Caution, call_mode = StateInput, description = "执行智能体查询")]
 #[tauri::command]
 pub async fn agent_query(
@@ -1392,6 +1420,33 @@ pub async fn agent_query(
     // 每会话一份，会话结束随 Arc 释放，不存在跨会话串扰。
     let dynamic_tools = axagent_harness::DynamicToolSet::new();
 
+    // ── 工具微调：extra_tools / blocked_tools ──
+    // 来源：AgentProfile.recommended_tools（额外追加）+ disallowed_tools（排除）
+    //      + 认知编排按需注入的 extra_tools（Phase 1.5 暴露闭环：
+    //        主动模式 execution_mode=Some 下，命中能力的真实工具定义凭此注入，
+    //        解决此前"主动模式工具列表为空、发现的能力执行不了"的执行断链）
+    //
+    // ⚠️ 位置强约束：必须位于 `build_streaming_api_client` **之前**。
+    // 该函数按值接收 `chat_tools.clone()` 作为快照，此后对 `chat_tools` 的任何
+    // 增删都不会反映到下发 LLM 的工具列表里——本块曾放在持久化附件之后（约 1556 行），
+    // 导致整块策略（profile 禁用 / 推荐 + 编排注入）静默失效，且因用的是
+    // `push`/`retain` 而非赋值，`unused_assignments` 也报不出来。改成本函数返回新
+    // Vec 的写法后，编译器立刻暴露了该问题。挪动此处前请先看这条注释。
+    let orchestration_tools: Vec<String> = request.extra_tools.clone().unwrap_or_default();
+    if !profile_recommended_tools.is_empty()
+        || !profile_disallowed_tools.is_empty()
+        || !orchestration_tools.is_empty()
+    {
+        let mut extra_names: HashSet<String> = profile_recommended_tools.into_iter().collect();
+        extra_names.extend(orchestration_tools);
+        let blocked_names: HashSet<String> = profile_disallowed_tools.into_iter().collect();
+        // extra: 按名字从注册表取完整 schema（复用 registry 的统一实现）
+        let extra_schemas =
+            tool_registry.get_chat_tools_by_names(extra_names.iter().map(String::as_str));
+        // 顺序语义（先追加后剔除）封装在 `apply_tool_policy` 内，勿在此处拆开改写。
+        chat_tools = apply_tool_policy(chat_tools, extra_schemas, &blocked_names);
+    }
+
     let api_client = build_streaming_api_client(
         adapter,
         ctx,
@@ -1507,35 +1562,6 @@ pub async fn agent_query(
                 crate::commands::error::ErrorCategory::Unrecoverable,
             ))
         })?;
-
-    // ── 工具微调：extra_tools / blocked_tools ──
-    // 来源：AgentProfile.recommended_tools（额外追加）+ disallowed_tools（排除）
-    //      + 认知编排按需注入的 extra_tools（Phase 1.5 暴露闭环：
-    //        主动模式 execution_mode=Some 下，命中能力的真实工具定义凭此注入，
-    //        解决此前"主动模式工具列表为空、发现的能力执行不了"的执行断链）
-    let orchestration_tools: Vec<String> = request.extra_tools.clone().unwrap_or_default();
-    if !profile_recommended_tools.is_empty()
-        || !profile_disallowed_tools.is_empty()
-        || !orchestration_tools.is_empty()
-    {
-        let mut extra_names: HashSet<String> = profile_recommended_tools.into_iter().collect();
-        extra_names.extend(orchestration_tools);
-        let blocked_names: HashSet<String> = profile_disallowed_tools.into_iter().collect();
-        // extra: 按名字从注册表取完整 schema（复用 registry 的统一实现）
-        let extra_schemas =
-            tool_registry.get_chat_tools_by_names(extra_names.iter().map(String::as_str));
-        for t in extra_schemas {
-            if !existing_names.contains(&t.function.name) {
-                chat_tools.push(t);
-            }
-        }
-        // blocked: 放在 extra 注入**之后**，作为最终安全兜底。顺序不可颠倒——
-        // `get_chat_tools_by_names` 只过滤 registry 层的 disable()，不看 profile 的
-        // disallowed_tools。若先 retain 再注入，认知编排按需注入的 extra_tools
-        // （取自能力护照的 tool_ref）会把刚被 profile 禁用的工具重新注回，
-        // 等于绕过禁用策略。F4 把该路径扩展到 Clarify 二次执行后，绕过面更大。
-        chat_tools.retain(|t| !blocked_names.contains(&t.function.name));
-    }
 
     // RAG retrieval: search enabled knowledge bases and memory namespaces
     let kb_ids = request.enabled_knowledge_base_ids.clone().unwrap_or_default();
@@ -3657,4 +3683,105 @@ pub async fn simple_chat_completion(
         ))
     })?;
     Ok(response.content)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 构造一个最小可用的 ChatTool（只需名字参与策略运算）
+    fn tool(name: &str) -> ChatTool {
+        ChatTool {
+            r#type: "function".to_string(),
+            function: ChatToolFunction {
+                name: name.to_string(),
+                description: None,
+                parameters: None,
+            },
+        }
+    }
+
+    fn names(tools: &[ChatTool]) -> Vec<String> {
+        tools.iter().map(|t| t.function.name.clone()).collect()
+    }
+
+    fn blocked(set: &[&str]) -> HashSet<String> {
+        set.iter().map(|s| s.to_string()).collect()
+    }
+
+    /// R3 回归：工具同时出现在 extra 与 blocked 时，**必须被移除**。
+    /// 这是「先 retain 后注入」旧顺序下的安全绕过路径——注入会复活被禁工具。
+    #[test]
+    fn apply_tool_policy_blocks_tool_injected_by_extra() {
+        let out = apply_tool_policy(
+            vec![tool("read_file")],
+            vec![tool("browser_use"), tool("shell_exec")],
+            &blocked(&["shell_exec"]),
+        );
+        assert_eq!(names(&out), vec!["read_file", "browser_use"]);
+    }
+
+    /// blocked 必须能剔除列表里**原本就有**的工具，而不只是 extra 注入的那些。
+    #[test]
+    fn apply_tool_policy_blocks_preexisting_tool() {
+        let out = apply_tool_policy(
+            vec![tool("read_file"), tool("shell_exec"), tool("write_file")],
+            Vec::new(),
+            &blocked(&["shell_exec"]),
+        );
+        assert_eq!(names(&out), vec!["read_file", "write_file"]);
+    }
+
+    /// 多个禁用项一次性剔除，且保留项的相对顺序不变。
+    #[test]
+    fn apply_tool_policy_blocks_multiple_and_preserves_order() {
+        let out = apply_tool_policy(
+            vec![tool("a"), tool("b"), tool("c"), tool("d")],
+            vec![tool("e")],
+            &blocked(&["b", "d"]),
+        );
+        assert_eq!(names(&out), vec!["a", "c", "e"]);
+    }
+
+    /// extra 里与已有工具同名的项应被丢弃，不能产生重名（LLM 侧会报
+    /// "Tool names must be unique"）。
+    #[test]
+    fn apply_tool_policy_extra_does_not_duplicate_existing() {
+        let out = apply_tool_policy(
+            vec![tool("read_file")],
+            vec![tool("read_file"), tool("browser_use")],
+            &blocked(&[]),
+        );
+        assert_eq!(names(&out), vec!["read_file", "browser_use"]);
+    }
+
+    /// extra 内部自身重名时同样去重（保留先出现者）。
+    #[test]
+    fn apply_tool_policy_dedups_within_extra() {
+        let out = apply_tool_policy(
+            Vec::new(),
+            vec![tool("dup"), tool("dup"), tool("other")],
+            &blocked(&[]),
+        );
+        assert_eq!(names(&out), vec!["dup", "other"]);
+    }
+
+    /// 无 extra 无 blocked 时是恒等变换（调用点靠外层 if 跳过整块，此处锁定
+    /// 函数本身在空策略下的行为，便于将来去掉外层 if 时仍然安全）。
+    #[test]
+    fn apply_tool_policy_empty_policy_is_identity() {
+        let out = apply_tool_policy(
+            vec![tool("read_file"), tool("write_file")],
+            Vec::new(),
+            &blocked(&[]),
+        );
+        assert_eq!(names(&out), vec!["read_file", "write_file"]);
+    }
+
+    /// 空输入 + 只禁用：结果必须为空，不能 panic。
+    #[test]
+    fn apply_tool_policy_handles_empty_input() {
+        let out = apply_tool_policy(Vec::new(), vec![tool("x")], &blocked(&["x"]));
+        assert!(names(&out).is_empty());
+    }
 }

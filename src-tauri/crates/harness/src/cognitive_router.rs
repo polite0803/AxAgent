@@ -821,8 +821,9 @@ impl DefaultCognitiveRouter {
     ///
     /// **值域契约**：产出集合恒为上表 6 项，不含 `ParameterExtract`（该值仅由
     /// `cognitive_query` 的 JSON 快速通道产出并直接 return，不进主 DAG 推模式）。
-    /// 下游 `clamp_mode_for_kind` 依赖此契约——若此处新增档位，须同步确认那里的
-    /// P5 降级覆盖仍然完整。
+    /// 下游 `clamp_mode_for_kind` **强依赖此契约** —— 它只覆盖 Workflow / Direct
+    /// 两档，不处理 `ParameterExtract`。若此处新增档位或改其来源，必须同步确认
+    /// 那里的 P5 降级覆盖仍然完整，否则会静默绕过委派保护。
     fn execution_mode_from_confidence(confidence: f64) -> ExecutionMode {
         if confidence > 0.90 {
             ExecutionMode::Workflow
@@ -845,19 +846,20 @@ impl DefaultCognitiveRouter {
     ///
     /// `kind` 缺失或为空串（如簇级兜底路径无选中候选）时视为 Workflow，保持原行为。
     ///
-    /// `mode` 入参：两个调用点（L3 图谱路由 `:958`、`route_with_hint` `:1267`）都取自
-    /// `execution_mode_from_confidence`，因此当前值域不含 `ParameterExtract`。
-    /// 此处仍保留该分支，属**语义穷举**而非冗余：`ParameterExtract` 与 Workflow/Direct
-    /// 同属「直发执行」类，一旦未来某条路径把它送进来，漏掉就会绕过 P5 降级保护。
-    /// 代价是一个永假的模式匹配，收益是安全穷举完整性——故不按死代码删。
+    /// `mode` 入参值域：仅取自 `execution_mode_from_confidence`（见其**值域契约**
+    /// 注释），产出集合恒为 6 项，**不含 `ParameterExtract`** —— 后者仅由
+    /// `cognitive_query` 的 JSON 快速通道产出并直接 return，不进主 DAG 推模式。
+    /// 因此本函数只需覆盖 Workflow / Direct 两档「直发执行」，不为其它的留分支
+    /// （永假的模式匹配按死代码处理）。
+    ///
+    /// ⚠️ 若将来新增调用点且其值域可能含 `ParameterExtract`，必须同步在此补上该
+    /// 档位——漏掉即绕过 P5 降级保护，会把参数抽取类能力误当工作流模板直发。
     fn clamp_mode_for_kind(mode: ExecutionMode, kind: &str) -> ExecutionMode {
         if kind.is_empty() || kind == "workflow" {
             return mode;
         }
         match mode {
-            ExecutionMode::Workflow | ExecutionMode::Direct | ExecutionMode::ParameterExtract => {
-                ExecutionMode::Delegate
-            },
+            ExecutionMode::Workflow | ExecutionMode::Direct => ExecutionMode::Delegate,
             other => other,
         }
     }
@@ -1891,5 +1893,71 @@ mod tests {
     fn test_decision_build_path() {
         let path = RoutingDecisionV2::build_path("finance", "stock", "tech");
         assert_eq!(path, "finance/stock/tech");
+    }
+
+    // ── P5 降级保护（`clamp_mode_for_kind`）────────────────────────────
+    //
+    // 该函数只覆盖 Workflow / Direct 两档，其安全性依赖 `execution_mode_from_confidence`
+    // 的**值域契约**（产出恒为 6 项、不含 `ParameterExtract`）。原先靠多写一个永假分支
+    // 兜底，现已删除——保证改为由这里的可执行断言 + 两处文档注释共同承担。
+    // 若将来值域变化或新增调用点，请同步补分支并在此补断言。
+
+    /// kind 为 workflow 或缺失时，任何模式都原样放行（含不降级的高置信档）。
+    #[test]
+    fn clamp_keeps_mode_when_kind_is_workflow_or_empty() {
+        for kind in ["", "workflow"] {
+            assert_eq!(
+                DefaultCognitiveRouter::clamp_mode_for_kind(ExecutionMode::Workflow, kind),
+                ExecutionMode::Workflow
+            );
+            assert_eq!(
+                DefaultCognitiveRouter::clamp_mode_for_kind(ExecutionMode::Direct, kind),
+                ExecutionMode::Direct
+            );
+        }
+    }
+
+    /// P5 核心：非 Workflow 能力即使命中高置信档，也必须降级为 Delegate，
+    /// 防止被误当工作流模板直发 `workflow_execute`（WORKFLOW_NOT_FOUND）。
+    #[test]
+    fn clamp_delegates_high_confidence_modes_for_non_workflow_kind() {
+        for kind in ["agent", "tool", "knowledge", "skill"] {
+            assert_eq!(
+                DefaultCognitiveRouter::clamp_mode_for_kind(ExecutionMode::Workflow, kind),
+                ExecutionMode::Delegate
+            );
+            assert_eq!(
+                DefaultCognitiveRouter::clamp_mode_for_kind(ExecutionMode::Direct, kind),
+                ExecutionMode::Delegate
+            );
+        }
+    }
+
+    /// 低置信档（Clarify / Plan / Act / Delegate）本就不直发工作流，不受 P5 影响。
+    #[test]
+    fn clamp_leaves_low_confidence_modes_untouched() {
+        for mode in [
+            ExecutionMode::Clarify,
+            ExecutionMode::Plan,
+            ExecutionMode::Act,
+            ExecutionMode::Delegate,
+            ExecutionMode::Ask,
+        ] {
+            assert_eq!(DefaultCognitiveRouter::clamp_mode_for_kind(mode, "agent"), mode);
+        }
+    }
+
+    /// 锁定值域契约本身：`execution_mode_from_confidence` 不得产出 `ParameterExtract`
+    /// （该值仅由 `cognitive_query` 的 JSON 快速通道产出并直接 return）。
+    /// 一旦有人在分档里新增该变体，本断言会失败，提醒同步补 `clamp_mode_for_kind`。
+    #[test]
+    fn confidence_ladder_never_yields_parameter_extract() {
+        for c in [0.0, 0.1, 0.2, 0.39, 0.4, 0.59, 0.6, 0.74, 0.75, 0.9, 0.91, 1.0] {
+            assert_ne!(
+                DefaultCognitiveRouter::execution_mode_from_confidence(c),
+                ExecutionMode::ParameterExtract,
+                "confidence={c} 不应产出 ParameterExtract"
+            );
+        }
     }
 }

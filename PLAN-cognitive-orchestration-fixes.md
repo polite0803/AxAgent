@@ -37,21 +37,112 @@
 
 F4 把 `extra_tools` 首次带进 Clarify 二次执行后，第一处的绕过面从通配分支扩大到两条路径。
 
-> **未做的取舍**：这两处逻辑都嵌在 async 函数里（需 `AppState` / DB / registry），无法低成本单测。
-> 抽公共纯函数需要同时兼容 `Vec<ChatTool>`（带 schema）与 `HashSet<String>` 两种形状，
-> 改动面与收益不匹配，故改为在两处注释中互相标注「顺序必须一致」作为契约。
-> 若后续要上测试，建议先把 `agent/mod.rs` 的过滤块抽成 `fn apply_tool_policy(..) -> Vec<ChatTool>`。
+> **后记（2026-09-01）**：该取舍已被用户指示推翻——已抽出 `fn apply_tool_policy(..) -> Vec<ChatTool>`
+> 并补 7 个单测（见下方 R4）。**正是这次抽取暴露了 R4 这个 P0**，证明「因为不好测所以不测」
+> 这个理由本身就是风险来源：不可测的代码通常也意味着没人真正验证过它生效。
 
-### F5 复查的边界判断（保留而非删除）
+### 🔴 R4 · 工具策略块是死代码，整块从未生效（P0，抽取 `apply_tool_policy` 时暴露）
 
-`clamp_mode_for_kind`（`cognitive_router.rs:842`）的 `ParameterExtract` 分支当前**不可达**——
+**现象**：把 `push`/`retain` 的原地改写换成 `chat_tools = apply_tool_policy(...)` 返回新 Vec 后，
+编译器立刻报 `unused_assignments: value assigned to chat_tools is never read`。
+
+**根因**：`build_streaming_api_client` 在 `:1426` 按值接收 `chat_tools.clone()` 作为**快照**，
+而工具策略块位于 `:1556` —— 在快照之后。此后对 `chat_tools` 的任何增删都不会进入下发 LLM
+的工具列表。原写法用 `push`/`retain`（可变借用，非赋值）绕开了 `unused_assignments` 的检测，
+所以这个缺陷一直潜在。
+
+**影响面**（`request.extra_tools` 全文件仅此 1 个消费点）：
+
+| 受影响项                                        | 后果                                                                                                 |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `profile.disallowed_tools`                      | **完全失效** —— 被 profile 禁用的工具照常出现在 LLM 可见列表                                         |
+| `profile.recommended_tools`                     | **完全失效** —— 推荐工具从未被追加                                                                   |
+| F4 的 `extra_tools` 注入（能力护照 `tool_ref`） | **完全失效** —— 主动模式下 LLM 只拿到 7 个 `DISCLOSURE_TOOLS` 元工具，命中能力的真实工具定义从未下发 |
+
+对照：`extra_skills` 在 `:1219` 消费、`:1230` 进 `chat_tools`，**早于** 1426 快照 → F4 的
+**技能半边是生效的，工具半边一直没生效**。这解释了为什么「主动模式发现的能力执行不了」这个
+症状被反复记录却始终没被修好。
+
+**修法**：把策略块整体前移到 `build_streaming_api_client` **之前**，并在该处留下「位置强约束」
+注释（写明快照机制与踩坑史，防止后人再挪回去）。前移后必须仍在所有基础工具装配之后
+（MCP `:1087` / 统一工具 `:1185` / 技能 `:1230` / 去重 `:1236` / Tauri 命令工具 `:1385`），
+当前落点满足。
+
+**R3 与 R4 的关系**：R3 修的是策略块**内部**的顺序（先追加后剔除），R4 修的是策略块**整体**
+的位置。两者都必要——R4 之前，R3 修的顺序对了一个从不执行的代码块，属于「修了个寂寞」。
+
+> **方法论**：改造为纯函数不只是为了可测，更是为了**让编译器能看见**。原地 `push`/`retain`
+> 的副作用式写法对 lint 天然免疫；改成返回新值后，数据流断点立刻变成编译警告。
+
+**残余观察（不修，记录备查）**：`request.options.disabled_tools`（`disabled_set`）只在两处生效：
+`:1155`/`:1161` 过滤统一工具，以及 `:1166` 写入 `tool_registry` 的 `blocked_tools`（后者在
+`registry.rs:543` `check_tool_enabled` **执行期**拦截）。因此：
+
+- MCP / 技能 / Tauri 命令工具的 schema 本就不受 `disabled_set` 过滤，被禁工具的 schema 仍会出现在
+  LLM 可见列表里，只是调用会被 `permission_denied` 拒掉。
+- 策略块走 `get_chat_tools_by_names`（只查 `groups.is_tool_enabled`，不看 `blocked_tools`），
+  同样不拦 `disabled_set`。
+
+→ **不是安全绕过**（执行期有闸），只是「看得见但调不动」的既有 UX。前移策略块没有改变这一点。
+若要收紧，把 `disabled_set` 并入 `blocked_names` 一起传给 `apply_tool_policy` 即可一行解决，
+但会改变非统一工具的既有可见性行为，超出本轮范围，留给后续决定。
+
+**端到端链路核查（前移后补做）** —— 生产 → 传输 → 消费三段连起来查：
+
+| 段   | 位置                  | 内容                                                                                  | 判定                |
+| ---- | --------------------- | ------------------------------------------------------------------------------------- | ------------------- |
+| 生产 | `cognitive.rs`        | `resolve_exposure_injection` 产出 `forced_tools` / `orchestration_tools`              | ✅                  |
+| 传输 | `cognitive.rs:1029`   | forced 路径（Clarify 二次执行）：`extra_tools: forced_tools` → 直调 `agent_query`     | ✅                  |
+| 传输 | `cognitive.rs:1882`   | 编排路径（Ask/Act/Delegate）：`extra_tools: orchestration_tools` → 直调 `agent_query` | ✅                  |
+| 传输 | `cognitive.rs:2063`   | 通用问答降级（Ask、无能力命中）：`extra_tools: None`                                  | ✅ 预期，注释已说明 |
+| 消费 | `agent/mod.rs` 策略块 | 前移到快照之前（即本修复）                                                            | ✅                  |
+
+**回归风险排查**（前移让策略块首次真正生效，需确认不误伤）：主动模式下基础工具列表只有
+7 个 `DISCLOSURE_TOOLS`（`registry.rs:416`：SkillsList / SkillView / SkillReference /
+DiscoverSkills / CapabilityView / CapabilityLoad / CapabilityBrowse），若某 profile 的
+`disallowed_tools` 命中它们，会打断能力发现闭环。
+
+- `config/` 与 `data/` 全仓 grep：**无任何** YAML/JSON 预置 `disallowedTools`；取值只来自 DB
+  `agent_profiles` 表或 `agent_def_loader.rs:205` 的 YAML 键。
+- `agent/src/verification_agent.rs:42` 的 `disallowed_tools() = ["FileWrite","FileEdit"]` 是另一个
+  agent 的自有常量，不属 profile 的 `disallowed_tools`。
+- → **无预置 profile 禁用披露工具，无回归。** 用户显式禁用属预期语义。
+
+> **建议（未做，待用户拍板）**：可考虑让 `DISCLOSURE_TOOLS` 对 profile 黑名单免疫。它们是能力
+> 发现闭环的元工具，被静默禁用会让编排器「发现不了任何能力」且极难归因。属防御性改进，
+> 前提是确认是否允许管理员限制这类元工具。
+
+### F5 复查的边界判断（先保留，后按用户指示改删）
+
+`clamp_mode_for_kind`（`cognitive_router.rs:842`）的 `ParameterExtract` 分支**不可达**——
 两个调用点传入的 mode 都取自 `execution_mode_from_confidence`，值域恒为 6 项，不含该变体
 （`ParameterExtract` 仅由 JSON 快速通道产出后直接 return）。
 
-**判断：保留，不按死代码删。** 与 F5 删的那 36 行 arm 性质不同——这里是 P5 安全降级机制的
-语义穷举，`ParameterExtract` 与 Workflow/Direct 同属「直发执行」类，漏掉就会绕过 P5 保护。
-已改为**显式契约**：在 `execution_mode_from_confidence` 与 `clamp_mode_for_kind` 的文档注释中
-写明值域约束，让隐式依赖变成可审计的契约（未来新增档位时须同步确认降级覆盖）。
+**初判：保留**（理由是它属 P5 安全降级机制的语义穷举，漏掉会绕过保护）。
+
+**用户指示改删（2026-09-01）** → 已删。最终形态：
+
+```rust
+match mode {
+    ExecutionMode::Workflow | ExecutionMode::Direct => ExecutionMode::Delegate,
+    other => other,
+}
+```
+
+删除后，原先靠「多写一个永假分支」换取的安全感改由**文档契约**承担，两处注释已同步：
+
+| 位置                             | 契约内容                                                                                                                                    |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `execution_mode_from_confidence` | 标注「**值域契约**」：产出恒为 6 项、不含 `ParameterExtract`；下游 `clamp_mode_for_kind` **强依赖**此契约，此处新增档位必须同步确认下游覆盖 |
+| `clamp_mode_for_kind`            | 写明入参值域来源与不含项，并加 ⚠️：若将来新增调用点且值域可能含 `ParameterExtract`，**必须同步补上该档位**，否则静默绕过委派保护             |
+
+**注**：枚举变体 `ExecutionMode::ParameterExtract` 本身保留（JSON 快速通道响应、前端模式列表、
+trajectory 进化证据判定 3 处真实使用），删的只是 `clamp_mode_for_kind` 里这一个永假的匹配分支。
+
+> **事后复盘**：保留派与删除派的分歧点在于「永假分支算不算安全网」。保留派的收益是未来改值域时
+> 自动生效；代价是这段分支**永远不会被任何测试覆盖**，且读者会误以为 `ParameterExtract` 真会走到
+> 这里。删除派把保证从「代码」移到「注释」——更弱，但更诚实。用户选了后者，属于**显式指令优先于
+> AI 判断**（P0 冲突规则），已执行。
 
 ---
 
