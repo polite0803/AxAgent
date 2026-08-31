@@ -2937,7 +2937,12 @@ pub async fn save_dynamic_workflow(
 
     let active_model = model_to_active_model(&template);
     let db = state.harness.db();
-    db_repo::insert_workflow_template(db, active_model).await.map_err(|e| e.to_string())?;
+    db_repo::insert_workflow_template(db, active_model).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
 
     state.work_engine.precompile_tool_defs(&template.id, &template.tool_defs).await;
 
