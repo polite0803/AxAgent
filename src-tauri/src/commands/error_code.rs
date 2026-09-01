@@ -386,6 +386,8 @@ pub mod workflow_reflection {
     pub const SUGGEST_FAILED: &str = "WORKFLOW_REFLECTION_SUGGEST_FAILED";
     /// 优化建议应用失败(模板修改冲突)
     pub const APPLY_FAILED: &str = "WORKFLOW_REFLECTION_APPLY_FAILED";
+    /// 能力接缝未注册(反思器 / 进化器 / 优化器未在启动时注册进能力注册表)
+    pub const SEAM_NOT_READY: &str = "WORKFLOW_REFLECTION_SEAM_NOT_READY";
 }
 
 /// 平台集成相关错误码

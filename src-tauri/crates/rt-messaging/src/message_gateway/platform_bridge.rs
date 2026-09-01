@@ -27,7 +27,6 @@ async fn persist_session_route(
 pub struct PlatformBridge {
     master_key: [u8; 32],
     platform_manager: Arc<PlatformManager>,
-    webhook_dispatcher: Option<Arc<dyn crate::webhook_subscription::WebhookDispatch>>,
     /// 由 Harness 注入的 Provider 注册表（不为空时跳过本地 create_default）
     provider_registry: Option<Arc<dyn axagent_harness::registry::ProviderRegistry>>,
 }
@@ -38,15 +37,16 @@ impl PlatformBridge {
         master_key: [u8; 32],
         platform_manager: Arc<PlatformManager>,
     ) -> Self {
-        Self { master_key, platform_manager, webhook_dispatcher: None, provider_registry: None }
+        Self { master_key, platform_manager, provider_registry: None }
     }
 
-    /// 设置 Webhook 派发器，用于在收到平台消息时触发 webhook 事件
-    pub fn set_webhook_dispatcher(
-        &mut self,
-        dispatcher: Arc<dyn crate::webhook_subscription::WebhookDispatch>,
-    ) {
-        self.webhook_dispatcher = Some(dispatcher);
+    /// 取 webhook 派发器 —— 统一经 webhook.dispatch 能力接缝获取。
+    ///
+    /// wiring 层在启动时把派发器注册进能力注册表；外部插件可经
+    /// `register_external_webhook_dispatch` 替换同一接缝（内置与插件平权）。
+    /// 此前本结构持有独立的注入副本（平行通道），已收敛删除。
+    fn webhook_dispatcher(&self) -> Option<Arc<dyn crate::webhook_subscription::WebhookDispatch>> {
+        axagent_harness::get_capability_registry().get_webhook_dispatch()
     }
 
     async fn call_llm(
@@ -126,7 +126,7 @@ impl PlatformMessageCallback for PlatformBridge {
         text: &str,
     ) -> Option<String> {
         // 派发 message_received webhook 事件
-        if let Some(ref dispatcher) = self.webhook_dispatcher {
+        if let Some(dispatcher) = self.webhook_dispatcher() {
             let mut data = std::collections::HashMap::new();
             data.insert("platform".to_string(), serde_json::Value::String(platform.to_string()));
             data.insert("user_id".to_string(), serde_json::Value::String(user_id.to_string()));
@@ -163,7 +163,7 @@ impl PlatformMessageCallback for PlatformBridge {
                     (cleaned, attachments)
                 });
 
-                if let Some(ref dispatcher) = self.webhook_dispatcher {
+                if let Some(dispatcher) = self.webhook_dispatcher() {
                     let mut data = std::collections::HashMap::new();
                     data.insert(
                         "platform".to_string(),

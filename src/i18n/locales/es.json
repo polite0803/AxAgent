@@ -2748,6 +2748,7 @@
     "WORKFLOW_PLAN_NOT_FOUND": "Plan de flujo de trabajo no encontrado",
     "WORKFLOW_REFLECTION_APPLY_FAILED": "Error al aplicar la reflexión del flujo de trabajo",
     "WORKFLOW_REFLECTION_EVOLVE_FAILED": "Error en la evolución de la reflexión del flujo de trabajo",
+    "WORKFLOW_REFLECTION_SEAM_NOT_READY": "Seam de capacidad de flujo de trabajo no registrado (reflexión/evolución/optimizador no disponibles)",
     "WORKFLOW_REFLECTION_RECORD_INVALID": "Registro de reflexión de flujo de trabajo no válido",
     "WORKFLOW_REFLECTION_REFLECT_FAILED": "Error en la reflexión del flujo de trabajo",
     "WORKFLOW_REFLECTION_SUGGEST_FAILED": "Error en la sugerencia de reflexión del flujo de trabajo",

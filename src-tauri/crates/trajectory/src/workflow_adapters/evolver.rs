@@ -483,8 +483,15 @@ impl WorkflowEvolver for WorkflowEvolverImpl {
                 }
             }
 
-            // 3. 沙箱验证(若注入)
-            let validation = if let Some(sandbox) = self.sandbox.read().await.as_ref() {
+            // 3. 沙箱验证(若可用)
+            // 沙箱来源单一化：显式注入（set_sandbox，插件契约保留）优先，
+            // 否则读 workflow.sandbox 能力接缝（wiring 层注册的 DryRun 沙箱 / 插件替换）。
+            let sandbox_opt = if let Some(s) = self.sandbox.read().await.as_ref() {
+                Some(s.clone())
+            } else {
+                axagent_harness::get_capability_registry().get_sandbox()
+            };
+            let validation = if let Some(sandbox) = sandbox_opt {
                 sandbox.execute(&best_genome, &serde_json::json!({})).await.unwrap_or_default()
             } else {
                 SandboxValidationResult {

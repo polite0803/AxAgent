@@ -2748,6 +2748,7 @@
     "WORKFLOW_PLAN_NOT_FOUND": "워크플로우 계획을 찾을 수 없습니다",
     "WORKFLOW_REFLECTION_APPLY_FAILED": "워크플로우 반영 적용에 실패했습니다",
     "WORKFLOW_REFLECTION_EVOLVE_FAILED": "워크플로우 반영 진화에 실패했습니다",
+    "WORKFLOW_REFLECTION_SEAM_NOT_READY": "워크플로 기능 시임이 등록되지 않았습니다(리플렉션/진화/옵티마이저 사용 불가)",
     "WORKFLOW_REFLECTION_RECORD_INVALID": "유효하지 않은 워크플로우 반영 기록입니다",
     "WORKFLOW_REFLECTION_REFLECT_FAILED": "워크플로우 반영에 실패했습니다",
     "WORKFLOW_REFLECTION_SUGGEST_FAILED": "워크플로우 반영 제안에 실패했습니다",

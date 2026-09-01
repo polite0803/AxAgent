@@ -19,7 +19,6 @@
 #![allow(clippy::disallowed_types)]
 
 use crate::agent_turn_runner::AgentTurnRunner;
-use crate::provider::ProviderAdapter;
 use crate::reversible_effect::{EffectHandle, EffectScope};
 use parking_lot::RwLock;
 use std::collections::HashMap;
@@ -56,16 +55,6 @@ impl ServiceDefinition {
         }
     }
 
-    /// 预置 model-provider 接缝（LLM 适配器）。
-    pub fn model_provider() -> Self {
-        Self::new(
-            "model.provider",
-            "1.0",
-            "axagent_harness::ProviderAdapter",
-            "LLM 模型适配器：实现 ProviderAdapter，提供 chat/stream/embed 等模型能力",
-        )
-    }
-
     /// 预置 agent-loop 接缝（Agent 主循环）。
     pub fn agent_loop() -> Self {
         Self::new(
@@ -83,16 +72,6 @@ impl ServiceDefinition {
             "1.0",
             "axagent_harness::ToolRegistry",
             "工具集：实现 ToolRegistry，提供工具查找与统一执行",
-        )
-    }
-
-    /// 预置 storage 接缝（对象存储后端）。
-    pub fn storage() -> Self {
-        Self::new(
-            "storage.backend",
-            "1.0",
-            "axagent_harness::StorageBackend",
-            "对象存储后端：实现 StorageBackend，提供 get/put/delete/list 等存储能力",
         )
     }
 
@@ -286,15 +265,10 @@ struct CapabilityRegistration {
 #[derive(Clone)]
 pub struct CapabilityRegistry {
     inner: Arc<RwLock<HashMap<String, CapabilityRegistration>>>,
-    /// ProviderAdapter 特化存储 — 用于支持 trait object（`Arc<dyn ProviderAdapter>`）检索。
-    ///
-    /// `Arc<dyn Any>` 无法向下转型回 `dyn ProviderAdapter`（`Arc::downcast` 要求 `Sized`），
-    /// 因此对 LLM 适配器这类需要以 trait object 取回的能力做类型化旁路存储。
-    model_providers: Arc<RwLock<HashMap<String, Arc<dyn ProviderAdapter>>>>,
     /// AgentTurnRunner 特化存储 — 用于支持 agent-loop 接缝以 trait object 检索。
     ///
-    /// 与 `model_providers` 同理，`Arc<dyn AgentTurnRunner>` 无法经 `Arc::downcast`
-    /// 从类型擦除存储还原，故对 Agent 主循环做类型化旁路存储。
+    /// `Arc<dyn Any>` 无法经 `Arc::downcast` 从类型擦除存储还原（`Arc::downcast`
+    /// 要求 `Sized`），故对 Agent 主循环做类型化旁路存储。
     agent_turn_runners: Arc<RwLock<HashMap<String, Arc<dyn AgentTurnRunner>>>>,
     /// WorkflowReflector 特化存储 — 用于支持 workflow-reflector 接缝以 trait object 检索。
     workflow_reflectors: Arc<RwLock<HashMap<String, Arc<dyn crate::WorkflowReflector>>>>,
@@ -313,8 +287,6 @@ pub struct CapabilityRegistry {
     /// MessagePlatformAdapter 特化存储 — 用于支持 platform.adapter 接缝以 trait object 检索。
     /// 键 = 完整注册 ID（`platform.adapter.{name}`），与通用存储一致，便于回滚清理。
     platform_adapters: Arc<RwLock<HashMap<String, Arc<dyn crate::MessagePlatformAdapter>>>>,
-    /// StorageBackend 特化存储 — 用于支持 storage 接缝以 trait object 检索。
-    storage_backends: Arc<RwLock<HashMap<String, Arc<dyn crate::StorageBackend>>>>,
     /// WorkflowSandbox 特化存储 — 用于支持 sandbox 接缝以 trait object 检索。
     sandboxes: Arc<RwLock<HashMap<String, Arc<dyn crate::WorkflowSandbox>>>>,
     /// SessionLogInvariant 特化存储 — 用于支持 session.log.invariant 接缝（单例）。
@@ -330,7 +302,6 @@ impl CapabilityRegistry {
     pub fn new() -> Self {
         Self {
             inner: Arc::new(RwLock::new(HashMap::new())),
-            model_providers: Arc::new(RwLock::new(HashMap::new())),
             agent_turn_runners: Arc::new(RwLock::new(HashMap::new())),
             workflow_reflectors: Arc::new(RwLock::new(HashMap::new())),
             workflow_evolvers: Arc::new(RwLock::new(HashMap::new())),
@@ -340,7 +311,6 @@ impl CapabilityRegistry {
             webhook_dispatchers: Arc::new(RwLock::new(HashMap::new())),
             event_dispatchers: Arc::new(RwLock::new(HashMap::new())),
             platform_adapters: Arc::new(RwLock::new(HashMap::new())),
-            storage_backends: Arc::new(RwLock::new(HashMap::new())),
             sandboxes: Arc::new(RwLock::new(HashMap::new())),
             session_logs: Arc::new(RwLock::new(HashMap::new())),
             builtin_handles: Arc::new(RwLock::new(HashMap::new())),
@@ -405,116 +375,6 @@ impl CapabilityRegistry {
         Ok(handle)
     }
 
-    /// 注册一个内置 LLM 模型适配器（P1 试点接缝）。
-    ///
-    /// 以内置来源注册到 `"model.provider"` 接缝，consumers 可通过
-    /// [`CapabilityRegistry::get_provider_adapter`] 取回。
-    pub fn register_model_provider(
-        &self,
-        provider: Arc<dyn ProviderAdapter>,
-    ) -> Result<EffectHandle, CapabilityError> {
-        self.register_model_provider_impl(
-            ServiceDefinition::model_provider(),
-            CapabilityOrigin::BuiltIn,
-            provider,
-            false,
-        )
-    }
-
-    /// 注册一个外部插件提供的 LLM 模型适配器。
-    pub fn register_external_model_provider(
-        &self,
-        provider: Arc<dyn ProviderAdapter>,
-    ) -> Result<EffectHandle, CapabilityError> {
-        self.register_model_provider_impl(
-            ServiceDefinition::model_provider(),
-            CapabilityOrigin::ExternalPlugin,
-            provider,
-            false,
-        )
-    }
-
-    /// 模型提供商注册的共享实现：同时写入通用 Any 存储与 ProviderAdapter 特化存储。
-    ///
-    /// `idempotent` 为 true 时（内置按类型注册路径），同键且同为 BuiltIn 的重复
-    /// 注册静默跳过（返回空句柄），避免 `create_default` 被多处调用时重复注入告警
-    /// （缺陷 #10：副作用式全局注入收敛为幂等注册）。
-    fn register_model_provider_impl(
-        &self,
-        definition: ServiceDefinition,
-        origin: CapabilityOrigin,
-        provider: Arc<dyn ProviderAdapter>,
-        idempotent: bool,
-    ) -> Result<EffectHandle, CapabilityError> {
-        let id = definition.id.clone();
-        if idempotent && origin == CapabilityOrigin::BuiltIn {
-            let is_dup_builtin =
-                self.inner.read().get(&id).is_some_and(|r| r.origin == CapabilityOrigin::BuiltIn);
-            if is_dup_builtin {
-                // 同键内置适配器已注册：幂等跳过，撤销亦为空操作。
-                return Ok(self
-                    .effects
-                    .register(format!("capability:{id}:model-provider:noop"), || {}));
-            }
-        }
-        // 通用侧（检视 / contains / len 用）
-        {
-            self.prepare_registration(&id, origin)?;
-            let mut slot = self.inner.write();
-            slot.insert(
-                id.clone(),
-                CapabilityRegistration { definition, origin, provider: provider.clone() },
-            );
-        }
-        // 特化侧（trait object 检索用）
-        self.model_providers.write().insert(id.clone(), provider);
-
-        // 合并可逆效果：撤销时同时清理两处存储。
-        let undo_inner = self.inner.clone();
-        let undo_mp = self.model_providers.clone();
-        let undo_id = id.clone();
-        let handle = self.effects.register(format!("capability:{id}:model-provider"), move || {
-            undo_inner.write().remove(&undo_id);
-            undo_mp.write().remove(&undo_id);
-        });
-        if origin == CapabilityOrigin::BuiltIn {
-            self.note_builtin_handle(&id, handle.clone());
-        }
-        Ok(handle)
-    }
-
-    /// 注册一个按类型索引的内置 LLM 模型适配器（`model.provider.{provider_type}`）。
-    ///
-    /// 与 [`CapabilityRegistry::register_model_provider`]（默认单键接缝）不同，
-    /// 此方法以内置来源把适配器注册到 `model.provider.{provider_type}` 特化键，
-    /// 供 [`CapabilityRegistry::get_provider_adapter_for`] 检索。内置 provider 注册
-    /// 走此路径，使「注册」与「消费」落在同一张特化 map，避免「注册即检索失败」。
-    /// 幂等：同键内置重复注册静默跳过（缺陷 #10），外部调用或多次 create_default
-    /// 均不会产生 Duplicate 告警。
-    pub fn register_model_provider_for_type(
-        &self,
-        provider_type: &str,
-        provider: Arc<dyn ProviderAdapter>,
-    ) -> Result<EffectHandle, CapabilityError> {
-        let id = format!("model.provider.{provider_type}");
-        let def = ServiceDefinition::new(
-            &id,
-            "1.0",
-            "axagent_harness::ProviderAdapter",
-            format!("内置 LLM 提供商适配器：{provider_type}"),
-        );
-        self.register_model_provider_impl(def, CapabilityOrigin::BuiltIn, provider, true)
-    }
-
-    /// 取回按类型索引的 LLM 模型适配器（`model.provider.{provider_type}`）。
-    pub fn get_provider_adapter_for(
-        &self,
-        provider_type: &str,
-    ) -> Option<Arc<dyn ProviderAdapter>> {
-        let id = format!("model.provider.{provider_type}");
-        self.model_providers.read().get(&id).cloned()
-    }
-
     pub fn register_plugin_capability(
         &self,
         descriptor: PluginCapabilityDescriptor,
@@ -534,7 +394,6 @@ impl CapabilityRegistry {
         if slot.remove(id).is_none() {
             return Err(CapabilityError::NotFound { id: id.to_string() });
         }
-        self.model_providers.write().remove(id);
         self.agent_turn_runners.write().remove(id);
         self.workflow_reflectors.write().remove(id);
         self.workflow_evolvers.write().remove(id);
@@ -544,7 +403,6 @@ impl CapabilityRegistry {
         self.webhook_dispatchers.write().remove(id);
         self.event_dispatchers.write().remove(id);
         self.platform_adapters.write().remove(id);
-        self.storage_backends.write().remove(id);
         self.sandboxes.write().remove(id);
         Ok(())
     }
@@ -556,16 +414,10 @@ impl CapabilityRegistry {
 
     /// 按 ID + 类型约束向下转型取回 Provider（Consumer 入口）。
     ///
-    /// `T` 必须是具体类型（`Sized`），如 `Arc<String>`；需要取回 trait 对象
-    /// （如 `dyn ProviderAdapter`）时，请使用对应的特化入口
-    /// [`CapabilityRegistry::get_provider_adapter`]。
+    /// `T` 必须是具体类型（`Sized`），如 `Arc<String>`；需要取回 trait 对象时，
+    /// 请使用对应的特化入口（如 [`CapabilityRegistry::get_agent_turn_runner`]）。
     pub fn get_typed<T: std::any::Any + Send + Sync>(&self, id: &str) -> Option<Arc<T>> {
         self.get(id)?.downcast::<T>().ok()
-    }
-
-    /// 取回 model-provider 接缝上的 LLM 适配器（若已注册）。
-    pub fn get_provider_adapter(&self) -> Option<Arc<dyn ProviderAdapter>> {
-        self.model_providers.read().get("model.provider").cloned()
     }
 
     /// 注册一个内置 Agent 主循环（P1 试点接缝 `agent.loop`）。
@@ -631,63 +483,6 @@ impl CapabilityRegistry {
     /// 取回 agent-loop 接缝上的 Agent 主循环（若已注册）。
     pub fn get_agent_turn_runner(&self) -> Option<Arc<dyn AgentTurnRunner>> {
         self.agent_turn_runners.read().get("agent.loop").cloned()
-    }
-
-    // ── storage 接缝 ────────────────────────────────────────────────────────
-
-    /// 注册一个内置 StorageBackend（P1 storage 接缝）。
-    pub fn register_storage(
-        &self,
-        backend: Arc<dyn crate::StorageBackend>,
-    ) -> Result<EffectHandle, CapabilityError> {
-        self.register_storage_impl(ServiceDefinition::storage(), CapabilityOrigin::BuiltIn, backend)
-    }
-
-    /// 注册一个外部插件提供的 StorageBackend。
-    pub fn register_external_storage(
-        &self,
-        backend: Arc<dyn crate::StorageBackend>,
-    ) -> Result<EffectHandle, CapabilityError> {
-        self.register_storage_impl(
-            ServiceDefinition::storage(),
-            CapabilityOrigin::ExternalPlugin,
-            backend,
-        )
-    }
-
-    fn register_storage_impl(
-        &self,
-        definition: ServiceDefinition,
-        origin: CapabilityOrigin,
-        backend: Arc<dyn crate::StorageBackend>,
-    ) -> Result<EffectHandle, CapabilityError> {
-        let id = definition.id.clone();
-        {
-            self.prepare_registration(&id, origin)?;
-            let mut slot = self.inner.write();
-            slot.insert(
-                id.clone(),
-                CapabilityRegistration { definition, origin, provider: backend.clone() },
-            );
-        }
-        self.storage_backends.write().insert(id.clone(), backend);
-
-        let undo_inner = self.inner.clone();
-        let undo_storage = self.storage_backends.clone();
-        let undo_id = id.clone();
-        let handle = self.effects.register(format!("capability:{id}:storage"), move || {
-            undo_inner.write().remove(&undo_id);
-            undo_storage.write().remove(&undo_id);
-        });
-        if origin == CapabilityOrigin::BuiltIn {
-            self.note_builtin_handle(&id, handle.clone());
-        }
-        Ok(handle)
-    }
-
-    /// 取回 storage 接缝上的对象存储后端（若已注册）。
-    pub fn get_storage(&self) -> Option<Arc<dyn crate::StorageBackend>> {
-        self.storage_backends.read().get("storage.backend").cloned()
     }
 
     // ── sandbox 接缝 ────────────────────────────────────────────────────────
@@ -1355,93 +1150,19 @@ pub fn get_capability_registry() -> &'static CapabilityRegistry {
 mod tests {
     use super::*;
     use crate::agent_turn_runner::{AgentTurnRequest, AgentTurnResult};
-    use crate::core_error::{AxAgentError, Result};
-    use crate::provider::ProviderRequestContext;
-    use crate::types::{
-        ChatRequest, ChatResponse, ChatStreamChunk, EmbedRequest, EmbedResponse, Model, TokenUsage,
-    };
+    use crate::core_error::Result;
+    use crate::types::TokenUsage;
     use async_trait::async_trait;
-    use futures::Stream;
-    use std::pin::Pin;
     use std::sync::Arc;
-
-    /// 最小 ProviderAdapter 测试替身 — 仅实现 4 个必需方法。
-    struct TestProvider;
-
-    #[async_trait]
-    impl ProviderAdapter for TestProvider {
-        async fn chat(
-            &self,
-            _ctx: &ProviderRequestContext,
-            _request: Arc<ChatRequest>,
-        ) -> Result<ChatResponse> {
-            Err(AxAgentError::Provider("test-only".to_string()))
-        }
-
-        fn chat_stream(
-            &self,
-            _ctx: &ProviderRequestContext,
-            _request: ChatRequest,
-            _cancel_token: Option<Arc<std::sync::atomic::AtomicBool>>,
-        ) -> Pin<Box<dyn Stream<Item = Result<ChatStreamChunk>> + Send>> {
-            Box::pin(futures::stream::empty())
-        }
-
-        async fn list_models(&self, _ctx: &ProviderRequestContext) -> Result<Vec<Model>> {
-            Ok(Vec::new())
-        }
-
-        async fn embed(
-            &self,
-            _ctx: &ProviderRequestContext,
-            _request: EmbedRequest,
-        ) -> Result<EmbedResponse> {
-            Err(AxAgentError::Provider("test-only".to_string()))
-        }
-    }
-
-    #[test]
-    fn register_and_retrieve_model_provider() {
-        let registry = CapabilityRegistry::new();
-        let adapter: Arc<dyn ProviderAdapter> = Arc::new(TestProvider);
-        let _handle = registry.register_model_provider(adapter.clone()).unwrap();
-
-        assert!(registry.contains("model.provider"));
-        let got = registry.get_provider_adapter().unwrap();
-        // 类型向下转型成功即证明 Provider 可被 Consumer 取回
-        assert!(Arc::ptr_eq(&adapter, &got));
-    }
-
-    #[test]
-    fn duplicate_registration_is_rejected() {
-        let registry = CapabilityRegistry::new();
-        let adapter: Arc<dyn ProviderAdapter> = Arc::new(TestProvider);
-        registry.register_model_provider(adapter.clone()).unwrap();
-        let err = registry.register_model_provider(adapter).unwrap_err();
-        assert!(matches!(err, CapabilityError::Duplicate { .. }));
-    }
-
-    #[test]
-    fn unregister_removes_capability() {
-        let registry = CapabilityRegistry::new();
-        let adapter: Arc<dyn ProviderAdapter> = Arc::new(TestProvider);
-        let handle = registry.register_model_provider(adapter).unwrap();
-        assert_eq!(registry.len(), 1);
-
-        handle.undo();
-        assert!(registry.is_empty());
-        assert!(!registry.contains("model.provider"));
-    }
 
     #[test]
     fn rollback_all_clears_registry() {
         let registry = CapabilityRegistry::new();
-        let adapter: Arc<dyn ProviderAdapter> = Arc::new(TestProvider);
-        registry.register_model_provider(adapter.clone()).unwrap();
+        registry.register_agent_loop(Arc::new(StubLoop) as Arc<dyn AgentTurnRunner>).unwrap();
         let _ = registry.register(
-            ServiceDefinition::agent_loop(),
-            CapabilityOrigin::BuiltIn,
-            Arc::new(TestProvider),
+            ServiceDefinition::tool_set(),
+            CapabilityOrigin::ExternalPlugin,
+            Arc::new(String::from("tool")),
         );
         assert_eq!(registry.len(), 2);
 
@@ -1524,64 +1245,6 @@ mod tests {
         assert!(registry.get_agent_turn_runner().is_none());
     }
 
-    #[test]
-    fn registered_by_type_provider_is_retrievable_by_type() {
-        let registry = CapabilityRegistry::new();
-        let adapter: Arc<dyn ProviderAdapter> = Arc::new(TestProvider);
-        let _handle = registry.register_model_provider_for_type("openai", adapter.clone()).unwrap();
-
-        // 特化检索路径：按类型可取回同一适配器（修复「注册即检索失败」）
-        let got = registry.get_provider_adapter_for("openai").unwrap();
-        assert!(Arc::ptr_eq(&adapter, &got));
-        // 未注册的类型返回 None
-        assert!(registry.get_provider_adapter_for("nonexistent").is_none());
-        // 通用检视路径同样可见
-        assert!(registry.contains("model.provider.openai"));
-    }
-
-    #[test]
-    fn builtin_by_type_reregistration_is_idempotent() {
-        // 缺陷 #10：内置按类型注册幂等——同键内置重复注册静默跳过，
-        // 不产生 Duplicate，且不覆盖已注册的适配器、不新增能力条目。
-        let registry = CapabilityRegistry::new();
-        let adapter: Arc<dyn ProviderAdapter> = Arc::new(TestProvider);
-        let _h1 = registry.register_model_provider_for_type("openai", adapter.clone()).unwrap();
-        assert_eq!(registry.len(), 1);
-
-        // 同键再次注册：幂等跳过，返回 Ok，能力条目仍为 1（不重复注入、不产生 Duplicate）。
-        let h2 = registry.register_model_provider_for_type("openai", adapter.clone()).unwrap();
-        assert_eq!(registry.len(), 1);
-        // 检索仍命中首次注册的适配器
-        let got = registry.get_provider_adapter_for("openai").unwrap();
-        assert!(Arc::ptr_eq(&adapter, &got));
-
-        // 幂等后撤销空句柄：不应移除首次注册。
-        h2.undo();
-        assert_eq!(registry.len(), 1);
-        assert!(registry.get_provider_adapter_for("openai").is_some());
-    }
-
-    #[test]
-    fn builtin_by_type_does_not_override_external() {
-        // 平权语义：同为 `model.provider.openai` 键，外部插件先注册后，
-        // 内置按类型注册应报 Duplicate（不得幂等跳过、也不得覆盖外部注册）。
-        let registry = CapabilityRegistry::new();
-        let external: Arc<dyn std::any::Any + Send + Sync> = Arc::new(TestProvider);
-        let def = ServiceDefinition::new(
-            "model.provider.openai",
-            "1.0",
-            "axagent_harness::ProviderAdapter",
-            "外部测试适配器",
-        );
-        registry.register(def, CapabilityOrigin::ExternalPlugin, external).unwrap();
-        // 外部注册占据通用 map 的同键，内置按类型注册必须报 Duplicate，不得覆盖。
-        assert!(registry.contains("model.provider.openai"));
-
-        let builtin: Arc<dyn ProviderAdapter> = Arc::new(TestProvider);
-        let err = registry.register_model_provider_for_type("openai", builtin).unwrap_err();
-        assert!(matches!(err, CapabilityError::Duplicate { .. }));
-    }
-
     /// 内置接缝端到端闭环（缺陷 #11）：全部内置接缝经注册表注册后，
     /// 能被真实 consumer 检索 API 取回同一实例（`Arc::ptr_eq`），证明
     /// 「内置核心平权」链路是闭环——注册与消费落在同一存储，且对象可被消费方使用。
@@ -1589,54 +1252,44 @@ mod tests {
     fn builtin_seams_end_to_end_register_and_consumable() {
         let registry = CapabilityRegistry::new();
 
-        // 1) model.provider.{type}：注册 → 按 type 取回
-        let adapter: Arc<dyn ProviderAdapter> = Arc::new(TestProvider);
-        registry.register_model_provider_for_type("openai", adapter.clone()).unwrap();
-        assert!(Arc::ptr_eq(&adapter, &registry.get_provider_adapter_for("openai").unwrap()));
-
-        // 2) agent.loop：注册 → 消费侧 get_agent_turn_runner 取回
+        // 1) agent.loop：注册 → 消费侧 get_agent_turn_runner 取回
         let loop_runner: Arc<dyn AgentTurnRunner> = Arc::new(StubLoop);
         registry.register_agent_loop(loop_runner.clone()).unwrap();
         assert!(Arc::ptr_eq(&loop_runner, &registry.get_agent_turn_runner().unwrap()));
 
-        // 3) storage：注册 → get_storage 取回
-        let storage: Arc<dyn crate::StorageBackend> = Arc::new(StubStorage);
-        registry.register_storage(storage.clone()).unwrap();
-        assert!(Arc::ptr_eq(&storage, &registry.get_storage().unwrap()));
-
-        // 4) sandbox：注册 → get_sandbox 取回
+        // 2) sandbox：注册 → get_sandbox 取回
         let sandbox: Arc<dyn crate::WorkflowSandbox> = Arc::new(StubSandbox);
         registry.register_sandbox(sandbox.clone()).unwrap();
         assert!(Arc::ptr_eq(&sandbox, &registry.get_sandbox().unwrap()));
 
-        // 5) session.log.invariant：注册 → get_session_log_invariant 取回
+        // 3) session.log.invariant：注册 → get_session_log_invariant 取回
         let log: Arc<dyn crate::SessionLogInvariant> = Arc::new(crate::InMemorySessionLog::new());
         registry.register_session_log_invariant(log.clone()).unwrap();
         assert!(Arc::ptr_eq(&log, &registry.get_session_log_invariant().unwrap()));
 
-        // 6) message.callback：注册 → get_message_callback 取回
+        // 4) message.callback：注册 → get_message_callback 取回
         let cb: Arc<dyn crate::PlatformMessageCallback> = Arc::new(StubCallback);
         registry.register_message_callback(cb.clone()).unwrap();
         assert!(Arc::ptr_eq(&cb, &registry.get_message_callback().unwrap()));
 
-        // 7) webhook.dispatch：注册 → get_webhook_dispatch 取回
+        // 5) webhook.dispatch：注册 → get_webhook_dispatch 取回
         let dispatch: Arc<dyn crate::WebhookDispatch> = Arc::new(StubDispatch);
         registry.register_webhook_dispatch(dispatch.clone()).unwrap();
         assert!(Arc::ptr_eq(&dispatch, &registry.get_webhook_dispatch().unwrap()));
 
-        // 8) platform.adapter：注册 → get_platform_adapter 取回
+        // 6) platform.adapter：注册 → get_platform_adapter 取回
         let platform: Arc<dyn crate::MessagePlatformAdapter> =
             Arc::new(StubPlatform { name: "telegram" });
         registry.register_platform_adapter("telegram", platform.clone()).unwrap();
         assert!(Arc::ptr_eq(&platform, &registry.get_platform_adapter("telegram").unwrap()));
 
-        // 9) event.dispatch：注册 → get_event_dispatcher 取回
+        // 7) event.dispatch：注册 → get_event_dispatcher 取回
         let bus = Arc::new(crate::EventDispatchBus::new());
         registry.register_event_dispatcher(bus.clone()).unwrap();
         assert!(Arc::ptr_eq(&bus, &registry.get_event_dispatcher().unwrap()));
 
-        // 9 个内置接缝全部注册成功，且消费检索能取回同一实例（闭环成立）。
-        assert_eq!(registry.len(), 9);
+        // 7 个内置接缝全部注册成功，且消费检索能取回同一实例（闭环成立）。
+        assert_eq!(registry.len(), 7);
     }
 
     /// 最小 PlatformMessageCallback 测试替身。
@@ -1869,73 +1522,6 @@ mod tests {
             ))
             .unwrap_err();
         assert!(matches!(err, CapabilityError::Duplicate { .. }));
-    }
-
-    /// 最小 StorageBackend 测试替身。
-    struct StubStorage;
-
-    #[async_trait]
-    impl crate::StorageBackend for StubStorage {
-        async fn get(&self, key: &str) -> crate::core_error::Result<crate::StorageObject> {
-            Ok(crate::StorageObject {
-                key: key.to_string(),
-                data: vec![],
-                content_type: "application/octet-stream".to_string(),
-                etag: None,
-                last_modified: None,
-                size: 0,
-            })
-        }
-        async fn put(
-            &self,
-            key: &str,
-            _data: &[u8],
-            _content_type: &str,
-        ) -> crate::core_error::Result<crate::StorageObjectMeta> {
-            Ok(crate::StorageObjectMeta {
-                key: key.to_string(),
-                etag: None,
-                last_modified: None,
-                size: 0,
-            })
-        }
-        async fn delete(&self, _key: &str) -> crate::core_error::Result<()> {
-            Ok(())
-        }
-        async fn list(
-            &self,
-            _prefix: &str,
-            _limit: usize,
-            _continuation_token: Option<&str>,
-        ) -> crate::core_error::Result<crate::ListResult> {
-            Ok(crate::ListResult { objects: vec![], is_truncated: false, continuation_token: None })
-        }
-        async fn head(&self, key: &str) -> crate::core_error::Result<crate::StorageObjectMeta> {
-            Ok(crate::StorageObjectMeta {
-                key: key.to_string(),
-                etag: None,
-                last_modified: None,
-                size: 0,
-            })
-        }
-        async fn check_connection(&self) -> crate::core_error::Result<bool> {
-            Ok(true)
-        }
-    }
-
-    #[test]
-    fn register_and_retrieve_storage_with_undo() {
-        let registry = CapabilityRegistry::new();
-        let backend: Arc<dyn crate::StorageBackend> = Arc::new(StubStorage);
-        let handle = registry.register_storage(backend.clone()).unwrap();
-
-        assert!(registry.contains("storage.backend"));
-        let got = registry.get_storage().unwrap();
-        assert!(Arc::ptr_eq(&backend, &got));
-
-        handle.undo();
-        assert!(!registry.contains("storage.backend"));
-        assert!(registry.get_storage().is_none());
     }
 
     /// 最小 WorkflowSandbox 测试替身。

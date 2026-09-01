@@ -230,11 +230,13 @@ pub struct ExecutionState {
     /// 由调用方在创建 ExecutionState 时注入，agent/tool executor 在执行时读取。
     #[serde(skip, default)]
     pub tool_permissions: Option<Arc<axagent_harness::tool::ToolPermissions>>,
-    /// 业务规则引擎（可选，None = 不执行任何业务规则检查）。
+    /// 业务规则评估器（可选，None = 不执行任何业务规则检查）。
     /// 硬约束，在执行层直接拦截违规操作（LLM 无法绕过）。
     /// 与 domain_constraints（软约束，仅作为 LLM prompt 建议）共存。
+    /// 经 workflow.business_rule 能力接缝获取（trait object，支持插件替换实现）。
     #[serde(skip, default)]
-    pub business_rule_engine: Option<Arc<crate::business_rules::BusinessRuleEngine>>,
+    pub business_rule_engine:
+        Option<Arc<dyn axagent_harness::business_rules::BusinessRuleEvaluator>>,
     /// 凭证管理器（可选，None = 不使用凭证）。
     /// 执行器通过它按 credential_id 懒加载并解密 DatabaseConnection / Smtp / ApiKey 等凭证。
     #[serde(skip, default)]

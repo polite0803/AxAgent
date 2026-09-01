@@ -301,14 +301,9 @@ pub struct AppState {
     /// 夜间长时任务的成本门控状态（max_budget / spent / tripped）。
     /// 内存态，重启后由运维经 `set_budget` 重新配置；供 Scheduler gate 判定。
     pub scheduler_budget: Arc<tokio::sync::RwLock<crate::scheduler::gate::BudgetState>>,
-    /// 工作流反思器(阶段 5 注入):同一实例同时挂载到 WorkEngine 与此字段,
-    /// 供命令层手动触发整体 / 节点级反思。None = 反思未启用(理论上 wiring 层必注入)。
-    pub workflow_reflector: Arc<dyn axagent_harness::WorkflowReflector>,
-    /// 工作流进化器(阶段 5 注入):同一实例同时挂载到 WorkEngine 与此字段,
-    /// 供命令层手动触发模板进化、查询是否应自动进化等。
-    pub workflow_evolver: Arc<dyn axagent_harness::WorkflowEvolver>,
-    /// 工作流优化器(阶段 5 注入):无状态,命令层可基于历史反思生成 / 应用建议。
-    pub workflow_optimizer: Arc<dyn axagent_harness::WorkflowOptimizer>,
+    // 工作流反思器 / 进化器 / 优化器已不作为 AppState 字段持有 —— 命令层经
+    // workflow.reflector / workflow.evolver / workflow.optimizer 能力接缝获取
+    // （`axagent_harness::get_capability_registry().get_*()`），与 WorkEngine 同源。
     pub skill_decomposer: Arc<tokio::sync::RwLock<axagent_trajectory::SkillDecomposer>>,
     pub proactive_service: Arc<tokio::sync::RwLock<ProactiveService>>,
     pub dashboard_registry: Option<Arc<DashboardRegistry>>,

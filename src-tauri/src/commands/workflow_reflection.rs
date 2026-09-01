@@ -85,6 +85,33 @@ fn wrap_err<T, E: std::fmt::Display>(
     })
 }
 
+/// 经能力接缝取工作流优化器（wiring 层启动时注册，与 WorkEngine 同源）。
+///
+/// 反思器 / 进化器 / 优化器不再挂载在 `AppState` 字段（平行通道已收敛删除），
+/// 全部消费方统一读 workflow.optimizer / workflow.evolver 能力接缝。
+fn seam_optimizer() -> Result<std::sync::Arc<dyn axagent_harness::WorkflowOptimizer>, String> {
+    axagent_harness::get_capability_registry().get_workflow_optimizer().ok_or_else(|| {
+        ErrorResponse::from_error_with_code(
+            wf_reflect_err::SEAM_NOT_READY,
+            "workflow.optimizer 接缝未注册",
+            ErrorCategory::Unrecoverable,
+        )
+        .to_string()
+    })
+}
+
+/// 经能力接缝取工作流进化器（wiring 层启动时注册，与 WorkEngine 同源）。
+fn seam_evolver() -> Result<std::sync::Arc<dyn axagent_harness::WorkflowEvolver>, String> {
+    axagent_harness::get_capability_registry().get_workflow_evolver().ok_or_else(|| {
+        ErrorResponse::from_error_with_code(
+            wf_reflect_err::SEAM_NOT_READY,
+            "workflow.evolver 接缝未注册",
+            ErrorCategory::Unrecoverable,
+        )
+        .to_string()
+    })
+}
+
 // ── 命令实现 ──
 
 /// 基于单次反思生成工作流优化建议。
@@ -97,8 +124,10 @@ pub async fn workflow_optimize_suggest(
     state: State<'_, AppState>,
     request: WorkflowOptimizeSuggestRequest,
 ) -> Result<Vec<WorkflowSuggestion>, String> {
+    let _ = state;
+    let optimizer = seam_optimizer()?;
     wrap_err(
-        state.workflow_optimizer.suggest(&request.template, &request.reflection).await,
+        optimizer.suggest(&request.template, &request.reflection).await,
         wf_reflect_err::SUGGEST_FAILED,
     )
 }
@@ -113,8 +142,10 @@ pub async fn workflow_optimize_apply(
     state: State<'_, AppState>,
     request: WorkflowOptimizeApplyRequest,
 ) -> Result<WorkflowTemplateData, String> {
+    let _ = state;
+    let optimizer = seam_optimizer()?;
     wrap_err(
-        state.workflow_optimizer.apply_suggestions(&request.template, &request.suggestions).await,
+        optimizer.apply_suggestions(&request.template, &request.suggestions).await,
         wf_reflect_err::APPLY_FAILED,
     )
 }
@@ -132,8 +163,9 @@ pub async fn workflow_suggestion_confirm(
     request: WorkflowSuggestionConfirmRequest,
 ) -> Result<WorkflowTemplateData, String> {
     // 1. 应用建议得到新模板（纯内存，不修改原模板）
+    let optimizer = seam_optimizer()?;
     let new_template = wrap_err(
-        state.workflow_optimizer.apply_suggestions(&request.template, &request.suggestions).await,
+        optimizer.apply_suggestions(&request.template, &request.suggestions).await,
         wf_reflect_err::APPLY_FAILED,
     )?;
 
@@ -188,8 +220,10 @@ pub async fn workflow_evolve_template(
     state: State<'_, AppState>,
     request: WorkflowEvolveRequest,
 ) -> Result<WorkflowModification, String> {
+    let _ = state;
+    let evolver = seam_evolver()?;
     wrap_err(
-        state.workflow_evolver.run(&request.template_id, &request.reflections).await,
+        evolver.run(&request.template_id, &request.reflections).await,
         wf_reflect_err::EVOLVE_FAILED,
     )
 }
@@ -200,14 +234,18 @@ pub async fn workflow_evolve_template(
 pub async fn workflow_evolution_stats(
     state: State<'_, AppState>,
 ) -> Result<EvolutionStats, String> {
-    wrap_err(state.workflow_evolver.get_stats().await, wf_reflect_err::EVOLVE_FAILED)
+    let _ = state;
+    let evolver = seam_evolver()?;
+    wrap_err(evolver.get_stats().await, wf_reflect_err::EVOLVE_FAILED)
 }
 
 /// 查询进化器是否正在执行(用于前端防重入)。
 #[agent_command(domain = workflow, safety = Safe, call_mode = StateOnly, description = "查询进化器是否运行中")]
 #[tauri::command]
 pub async fn workflow_evolution_is_running(state: State<'_, AppState>) -> Result<bool, String> {
-    wrap_err(state.workflow_evolver.is_running().await, wf_reflect_err::EVOLVE_FAILED)
+    let _ = state;
+    let evolver = seam_evolver()?;
+    wrap_err(evolver.is_running().await, wf_reflect_err::EVOLVE_FAILED)
 }
 
 /// 查询是否应自动触发进化(基于近期失败率与使用次数,阈值由 `EvolutionConfig` 配置)。
@@ -221,10 +259,9 @@ pub async fn workflow_should_auto_evolve(
     state: State<'_, AppState>,
     template_id: String,
 ) -> Result<bool, String> {
-    wrap_err(
-        state.workflow_evolver.should_auto_evolve(&template_id).await,
-        wf_reflect_err::EVOLVE_FAILED,
-    )
+    let _ = state;
+    let evolver = seam_evolver()?;
+    wrap_err(evolver.should_auto_evolve(&template_id).await, wf_reflect_err::EVOLVE_FAILED)
 }
 
 // ── 单元测试 ──

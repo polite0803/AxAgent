@@ -2748,6 +2748,7 @@
     "WORKFLOW_PLAN_NOT_FOUND": "خطة سير العمل غير موجودة",
     "WORKFLOW_REFLECTION_APPLY_FAILED": "فشل تطبيق انعكاس سير العمل",
     "WORKFLOW_REFLECTION_EVOLVE_FAILED": "فشل تطور انعكاس سير العمل",
+    "WORKFLOW_REFLECTION_SEAM_NOT_READY": "لم يتم تسجيل وصل قدرة سير العمل (الانعكاس/التطور/المحسّن غير متاحة)",
     "WORKFLOW_REFLECTION_RECORD_INVALID": "سجل انعكاس سير عمل غير صالح",
     "WORKFLOW_REFLECTION_REFLECT_FAILED": "فشل انعكاس سير العمل",
     "WORKFLOW_REFLECTION_SUGGEST_FAILED": "فشل اقتراح انعكاس سير العمل",

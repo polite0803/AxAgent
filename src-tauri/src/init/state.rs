@@ -202,9 +202,6 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
 
     // ── 初始化 Harness 容器（统一管理核心基础设施注入） ──
     let provider_registry = axagent_providers::registry::ProviderRegistry::create_default();
-    // Director 注册：把内置适配器一次性注册进全局能力注册表（幂等，缺陷 #10）。
-    // create_default 为纯构造，不再自带全局副作用，注册统一收敛到此处。
-    provider_registry.register_builtins_into_capability_registry();
     let harness =
         axagent_runtime::harness::RuntimeHarness::new(axagent_runtime::harness::HarnessDeps {
             persistence: Arc::new(db_handle) as axagent_harness::SharedPersistence,
@@ -255,10 +252,10 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
             Arc::new(emitter) as Arc<dyn axagent_harness::WebhookEventSink>
         });
 
-    let platform_bridge =
-        harness.build_platform_bridge(platform_manager.clone(), webhook_dispatch_trait.clone());
-
-    platform_manager.set_message_callback(platform_bridge.clone()).await;
+    // PlatformBridge 经 message.callback / webhook.dispatch 能力接缝取依赖：
+    // 回调与派发器由下方注册进能力注册表，桥在收发消息时读接缝（外部插件可
+    // 经 register_external_* 替换同一接缝，内置与插件平权）。
+    let platform_bridge = harness.build_platform_bridge(platform_manager.clone());
 
     // ── P2 rt-messaging 接缝：接入能力注册表 ──────────────────────────────
     // message.callback（PlatformMessageCallback）与 webhook.dispatch（WebhookDispatch）
@@ -556,7 +553,8 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         Arc::new(tokio::sync::Mutex::new(registry))
     };
     // ── 阶段 5:工作流反思 / 进化 / 优化三层 trait 实现 ──
-    // 同一份 Arc 实例同时挂载到 WorkEngine(用于自动触发钩子)与 AppState 字段(供命令层手动调用)。
+    // 同一份 Arc 实例注册进能力接缝（workflow.reflector / workflow.evolver /
+    // workflow.optimizer），WorkEngine 与命令层均经接缝取用（单一权威来源）。
     // 启动即用,纯启发式;真正的 LLM 变异 / 沙箱验证由 wiring 层后续通过 setter 注入(此处 MVP 不注入)。
     //
     // 优化 3:反思器注入 `shared_trajectory_storage`,每次 reflect()/reflect_node()
@@ -584,16 +582,11 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     // P2-8:注入带有限试运行的沙箱(静态校验 + 模拟执行,始终注入)
     // 比 ReachabilityWorkflowSandbox 更强:额外做节点级配置合理性、累积超时上限、
     // 环检测,并用 tokio::time::timeout 做硬超时保护(5 秒)。
-    // P1 平权:同一实例同时注册进能力注册表(workflow.sandbox 接缝,BuiltIn),
-    // 供外部插件经 register_external_sandbox 可逆替换。
+    // 沙箱统一经 workflow.sandbox 能力接缝分发：此处注册后，进化器在验证时读接缝
+    // （外部插件可经 register_external_sandbox 可逆替换）。
     {
         let dry_run_sandbox: std::sync::Arc<dyn axagent_harness::WorkflowSandbox> =
             std::sync::Arc::new(super::workflow_injections::DryRunWorkflowSandbox::new());
-        if let Err(e) = workflow_evolver.set_sandbox(dry_run_sandbox.clone()).await {
-            tracing::warn!("[Evolver] set_sandbox failed: {e}");
-        } else {
-            tracing::info!("[Evolver] DryRun sandbox injected (static + simulate + hard timeout)");
-        }
         match axagent_harness::get_capability_registry().register_sandbox(dry_run_sandbox) {
             Ok(_) => tracing::info!("workflow.sandbox 接缝已注册 (BuiltIn)"),
             Err(e) => tracing::warn!("workflow.sandbox 注册失败: {e}"),
@@ -617,16 +610,12 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
 
     let work_engine: Arc<axagent_runtime::work_engine::WorkEngine> =
         {
-            let engine = Arc::new(
-                axagent_runtime::work_engine::WorkEngine::new(
-                    master_key,
-                    harness_registry.clone(),
-                )
-                // 阶段 5:注入反思 / 进化 / 优化三层实现,WorkEngine 在工作流整体完成与节点级失败时自动触发反思。
-                .with_workflow_reflector(workflow_reflector.clone())
-                .with_workflow_evolver(workflow_evolver.clone())
-                .with_workflow_optimizer(workflow_optimizer.clone()),
-            );
+            // 反思 / 进化 / 优化 / 业务规则统一经能力接缝分发（下方注册），
+            // WorkEngine 在消费点读接缝，不再注入副本。
+            let engine = Arc::new(axagent_runtime::work_engine::WorkEngine::new(
+                master_key,
+                harness_registry.clone(),
+            ));
             // Plan 模式：AgentExecutor 注入 engine 引用以创建/执行临时工作流
             engine.inject_into_agent_executor(engine.clone()).await;
             // 注册领域约束：所有角色走通用 DomainConstraints::by_role
@@ -703,10 +692,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
             Arc::new(axagent_rt_workflow::business_rules::BusinessRuleEngine::new(Vec::new()));
         let br_engine_dyn: Arc<dyn axagent_harness::BusinessRuleEvaluator> = br_engine.clone();
         match capability_registry.register_business_rule(br_engine_dyn) {
-            Ok(_) => {
-                tracing::info!("workflow.business_rule 接缝已注册 (BuiltIn)");
-                work_engine.set_business_rule_engine(br_engine).await;
-            },
+            Ok(_) => tracing::info!("workflow.business_rule 接缝已注册 (BuiltIn)"),
             Err(e) => tracing::warn!("workflow.business_rule 注册失败: {e}"),
         }
     }
@@ -1304,9 +1290,6 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         scheduler_budget: Arc::new(tokio::sync::RwLock::new(
             crate::scheduler::gate::BudgetState::default(),
         )),
-        workflow_reflector,
-        workflow_evolver,
-        workflow_optimizer,
         skill_decomposer,
         proactive_service,
         dashboard_registry,
@@ -2228,25 +2211,22 @@ pub async fn run_deferred_init(app_state: &crate::app_state::AppState) {
         .await
         {
             let mutator = super::workflow_injections::ProviderWorkflowLlmMutator::new(bridge);
-            if let Err(e) = app_state
-                .workflow_evolver
-                .set_llm_provider(std::sync::Arc::new(mutator)
-                    as std::sync::Arc<dyn axagent_harness::WorkflowLlmMutator>)
-                .await
+            // 进化器经 workflow.evolver 能力接缝获取（与 WorkEngine / 命令层同一 Arc）
+            if let Some(evolver) = axagent_harness::get_capability_registry().get_workflow_evolver()
             {
-                tracing::warn!("[startup] WorkflowEvolver LLM 注入失败: {e}");
+                if let Err(e) = evolver
+                    .set_llm_provider(std::sync::Arc::new(mutator)
+                        as std::sync::Arc<dyn axagent_harness::WorkflowLlmMutator>)
+                    .await
+                {
+                    tracing::warn!("[startup] WorkflowEvolver LLM 注入失败: {e}");
+                } else {
+                    tracing::info!("[startup] WorkflowEvolver LLM 注入完成");
+                }
             } else {
-                tracing::info!("[startup] WorkflowEvolver LLM 注入完成");
+                tracing::warn!("[startup] workflow.evolver 接缝未注册，跳过 LLM 变异器注入");
             }
         }
-
-        // 5b. 沙箱注入
-        let dry_run_sandbox: std::sync::Arc<dyn axagent_harness::WorkflowSandbox> =
-            std::sync::Arc::new(super::workflow_injections::DryRunWorkflowSandbox::new());
-        if let Err(e) = app_state.workflow_evolver.set_sandbox(dry_run_sandbox.clone()).await {
-            tracing::warn!("[startup] WorkflowEvolver 沙箱注入失败: {e}");
-        }
-        let _ = axagent_harness::get_capability_registry().register_sandbox(dry_run_sandbox);
     }
 
     // 注意：认知编排器模板初始化 + 主 DAG 加载已提升到 create_app_state 同步阶段

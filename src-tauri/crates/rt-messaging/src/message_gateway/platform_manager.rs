@@ -116,14 +116,6 @@ impl PlatformManager {
         adapters.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
     }
 
-    pub async fn set_message_callback(&self, callback: Arc<dyn PlatformMessageCallback>) {
-        // 单一来源：`platforms` 模块的全局 `OnceLock<MESSAGE_CALLBACK>`。
-        // 各 platform adapter（telegram/discord/feishu/...）通过
-        // `crate::message_gateway::platforms::get_message_callback()` 读取。
-        // PlatformManager 不再持有自己的副本，避免"双写"不一致。
-        crate::message_gateway::platforms::set_message_callback(callback);
-    }
-
     pub async fn get_message_callback(&self) -> Option<Arc<dyn PlatformMessageCallback>> {
         crate::message_gateway::platforms::get_message_callback()
     }

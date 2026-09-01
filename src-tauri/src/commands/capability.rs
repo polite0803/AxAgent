@@ -315,11 +315,12 @@ pub async fn capability_evolve(
         CapabilityKind::Workflow => {
             let template_id =
                 request.capability_id.strip_prefix("workflow:").unwrap_or(&request.capability_id);
-            let modification = state
-                .workflow_evolver
-                .run(template_id, &request.reflections)
-                .await
-                .map_err(evolve_err)?;
+            // 进化器经 workflow.evolver 能力接缝获取（与 WorkEngine / 命令层同源）
+            let evolver = axagent_harness::get_capability_registry()
+                .get_workflow_evolver()
+                .ok_or_else(|| evolve_err("workflow.evolver 接缝未注册".to_string()))?;
+            let modification =
+                evolver.run(template_id, &request.reflections).await.map_err(evolve_err)?;
             let improved = !modification.changes.is_empty() && modification.fitness_delta > 0.0;
             let detail = serde_json::json!({
                 "generation": modification.generation,

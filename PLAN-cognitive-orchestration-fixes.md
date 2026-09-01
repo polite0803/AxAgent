@@ -844,3 +844,56 @@ grep -rn "ParameterExtract" src/ crates/ | grep -v target
 - **A（建议）保持现状**：接缝是插件平权（OpenClaw 插件战略）的正式设计预留，删除收益仅内存与整洁；将本表作为插件接入时的核对基线。
 - B 裁剪：删 9 个零读接缝 + 2 组纯死 API（register+get 成对删），保留 3 个活接缝；插件需要时再加回。
 - C 统一：消费方改走 registry（把 WorkEngine 直注等平行通道收敛到接缝），动作最大。
+
+---
+
+## 十一、R10：平行通道收敛实施（2026-09-01，用户拍板方案 C）
+
+> R9 遗留的「注册副本冗余」按方案 C 收敛：**能力注册表 = 单一权威来源**，消费方改读接缝，删除平行注入通道。
+
+### 收敛明细
+
+| 接缝                                     | 删除的平行通道                                                                                        | 接缝消费方（改造后）                                                                                                                                                     |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| workflow.reflector / evolver / optimizer | `WorkEngine.with_workflow_*` 3 个 builder + 3 个 Mutex 字段；`AppState.workflow_*` 3 个字段           | WorkEngine 反思钩子（:5041/:5109/:5113/:5194）、命令层 workflow_reflection.rs（seam_optimizer/seam_evolver 辅助）、capability.rs 进化分发、deferred_init LLM 注入        |
+| workflow.business_rule                   | `WorkEngine.set_business_rule_engine` + 字段 + getter                                                 | 6 个执行路径消费点统一走 `seam_business_rule()`；`ExecutionState.business_rule_engine` 放宽为 `Arc<dyn BusinessRuleEvaluator>`（dispatcher 仅调 trait 方法，无能力损失） |
+| message.callback                         | rt-messaging `OnceLock<MESSAGE_CALLBACK>` 静态副本 + `PlatformManager.set_message_callback`           | `platforms::get_message_callback()` 薄委托 → 注册表；9 个平台适配器消费点零改动                                                                                          |
+| webhook.dispatch                         | `PlatformBridge.webhook_dispatcher` 字段 + `set_webhook_dispatcher`；`build_platform_bridge` 第二参数 | 桥内两处派发点读 `webhook_dispatcher()` → 注册表                                                                                                                         |
+| workflow.sandbox                         | `state.rs` 两处 `workflow_evolver.set_sandbox` 调用（注册保留）                                       | 进化器验证点：显式注入（`set_sandbox`，插件契约保留）优先 → 注册表 fallback                                                                                              |
+
+### 未收敛（有意保留）
+
+- **platform.adapter**：PlatformManager 是适配器的 owner（reconcile / 生命周期管理），注册表是插件查询镜像，无第二消费通道可收敛。
+- **sandbox 显式注入通道**：`WorkflowEvolver::set_sandbox` 是 harness trait 插件契约，保留为优先级高于接缝的覆盖入口。
+
+### 行为变更
+
+- 外部插件经 `register_external_*` 替换 message.callback / webhook.dispatch / business_rule / reflector / evolver / optimizer / sandbox 接缝后**立即对消费方生效**（此前替换只改注册表副本，消费方读不到——这正是 R9 发现的缺陷）。
+- 命令层新增错误码 `WORKFLOW_REFLECTION_SEAM_NOT_READY`（接缝未注册，理论仅在初始化竞态下出现），11 语言翻译已同步。
+
+### 门禁
+
+cargo fmt --check 零差异 · clippy --workspace --all-targets 零警告 · rt-workflow 209 / rt-messaging 25 / runtime 406(+22 ignored 既有) / trajectory 338 / axagent 252 测试全过 · dprint 11 locale 文件通过。
+
+## 十二、R11：storage 与 model_provider 纯死接缝删除（2026-09-01）
+
+> R9 审计确认的两组「生产 0 消费」接缝 API，按用户既定裁剪方向整组删除。
+
+### 删除明细
+
+| 层                             | 删除项                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| harness/capability_registry.rs | `ServiceDefinition::model_provider()` / `storage()` 预置；`register_model_provider` / `register_external_model_provider` / `register_model_provider_impl` / `register_model_provider_for_type` / `get_provider_adapter` / `get_provider_adapter_for` / `register_storage` / `register_external_storage` / `register_storage_impl` / `get_storage` 共 10 个方法；`model_providers` / `storage_backends` 两个特化字段（含 new()/unregister() 对应行）；顶层 `use crate::provider::ProviderAdapter` import                           |
+| providers/registry.rs          | `register_builtins_into_capability_registry()`（唯一生产调用是只写注册 `register_model_provider_for_type`，无任何读取方，随接缝一起删除）；`create_default` 文档同步精简                                                                                                                                                                                                                                                                                                                                                          |
+| src/init/state.rs              | Director 注册调用行（:205-207）删除                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| 测试                           | 删 `register_and_retrieve_model_provider` / `duplicate_registration_is_rejected` / `unregister_removes_capability` / `registered_by_type_provider_is_retrievable_by_type` / `builtin_by_type_reregistration_is_idempotent` / `builtin_by_type_does_not_override_external` / `register_and_retrieve_storage_with_undo` 7 个测试 + `TestProvider` / `StubStorage` 两个替身；`rollback_all_clears_registry` 改用 `register_agent_loop` + 通用 register 重写；e2e 闭环测试从 9 接缝改为 7 接缝（去 model.provider / storage.backend） |
+
+### 保留澄清
+
+- `StorageBackend` trait 本体**保留**：`crates/storage`（S3/WebDAV/CloudWorkspace）大量生产实现，死的只是注册表接缝通道。
+- `register_plugin_capability` / `unregister` / `rollback_all` / 其余 7 个特化接缝全部保留（生产消费方已由 R10 收敛接线）。
+- 附带效果：缺陷 #10 的幂等注册实现（仅存在于 `register_model_provider_impl`）随死代码一并消失；通用 `prepare_registration` 的 Duplicate 防护对所有活接缝仍然生效。
+
+### 门禁
+
+cargo fmt --check 零差异 · clippy --workspace --all-targets -D warnings 零警告（首跑遇 plugin_lifecycle_test 陈旧 dep-info 解析失败，清工件重跑通过）· axagent-harness 518 / axagent-providers 测试全过。

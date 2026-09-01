@@ -307,6 +307,14 @@ struct ErrorBranchParams {
     err_msg: String,
 }
 
+/// 从 workflow.business_rule 能力接缝取业务规则评估器。
+///
+/// 接缝由 wiring 层注册（内置）或外部插件经 `register_external_business_rule` 替换；
+/// None = 未注册，不做任何规则检查（与"无规则"语义等价）。
+fn seam_business_rule() -> Option<Arc<dyn axagent_harness::BusinessRuleEvaluator>> {
+    axagent_harness::get_capability_registry().get_business_rule()
+}
+
 #[derive(Clone)]
 
 pub struct WorkEngine {
@@ -337,8 +345,7 @@ pub struct WorkEngine {
     //    tool_handlers / breakpoints / loop_* 等）→ 一律使用 `tokio::sync::{Mutex,RwLock}`，
     //    可在 async 上下文安全 await。
     // 2. 同步注入态（setup/init 阶段同步写入、读取频率极低或读取时先 clone Arc
-    //    再释放锁的字段，如 domain_constraints / business_rule_engine /
-    //    workflow_reflector / workflow_evolver / workflow_optimizer / tool_registry /
+    //    再释放锁的字段，如 domain_constraints / tool_registry /
     //    audit_recorder / db / event_bus / agent_turn_runner 等）→ 使用
     //    `std::sync::{Mutex,RwLock}`，避免无谓的 async 锁开销。
     // 3. 铁律：std guard 一律不得跨 `.await` 持有 —— `parking_lot::RwLock` guard 跨
@@ -369,11 +376,6 @@ pub struct WorkEngine {
     ///   无需 async 锁；后续 `domain_constraints()` getter 在 agent 节点执行
     ///   时取 Arc clone，持有时间极短。
     domain_constraints: Arc<parking_lot::Mutex<Option<DomainConstraintsFn>>>,
-    /// 业务规则引擎（可选，None = 不执行任何业务规则检查）。
-    /// 硬约束，在执行层直接拦截违规操作。
-    /// 通过 `set_business_rule_engine` 注入。
-    business_rule_engine:
-        Arc<parking_lot::Mutex<Option<Arc<crate::business_rules::BusinessRuleEngine>>>>,
     /// Agent executor 共享缓存（跨节点复用，每次 run_workflow 开始时清空）
     agent_provider_cache: Arc<tokio::sync::Mutex<ProviderCache>>,
     agent_profile_cache: Arc<tokio::sync::Mutex<ProfileCache>>,
@@ -396,22 +398,10 @@ pub struct WorkEngine {
     pub trigger_manager: Arc<crate::trigger::TriggerManager>,
     /// 审计记录器（可选，None = 不记录审计日志）
     pub audit_recorder: Arc<parking_lot::Mutex<Option<Arc<dyn axagent_harness::AuditRecorder>>>>,
-    /// 工作流反思器(可选,None = 不反思)。
-    ///
-    /// 阶段 3 注入:在工作流整体执行完成或节点级失败时触发 `reflect`/`reflect_node`,
-    /// 异步 spawn 后台执行,不阻塞主流程。
-    pub workflow_reflector:
-        Arc<parking_lot::Mutex<Option<Arc<dyn axagent_harness::WorkflowReflector>>>>,
-    /// 工作流模板进化器(可选,None = 不进化)。
-    ///
-    /// 阶段 3 注入:在反思质量分过低时异步触发 `should_auto_evolve` + `run`。
-    pub workflow_evolver:
-        Arc<parking_lot::Mutex<Option<Arc<dyn axagent_harness::WorkflowEvolver>>>>,
-    /// 工作流优化器(可选,None = 不生成优化建议)。
-    ///
-    /// 阶段 3 注入:基于反思结果生成 `WorkflowSuggestion`,不修改模板。
-    pub workflow_optimizer:
-        Arc<parking_lot::Mutex<Option<Arc<dyn axagent_harness::WorkflowOptimizer>>>>,
+    // 反思器 / 进化器 / 优化器已不作为字段持有 —— 三者统一经 workflow.reflector /
+    // workflow.evolver / workflow.optimizer 能力接缝获取
+    // （`axagent_harness::get_capability_registry().get_*()`），由 wiring 层注册，
+    // 消费点在读时取接缝，不再各自持有一份注入副本。
     /// 工具注册表（可选，设置后 tool_executor 优先通过 ToolRegistry.execute_tool() 执行工具）
     tool_registry: Arc<parking_lot::Mutex<Option<Arc<dyn axagent_harness::ToolRegistry>>>>,
     /// per-execution partial_result 广播器。LoopExecutor 通过 ExecutionState.partial_result_tx
@@ -663,41 +653,10 @@ impl WorkEngine {
         self
     }
 
-    /// 注入工作流反思器(阶段 3)。
-    ///
-    /// 注入后,工作流执行完成与节点级失败时将异步触发反思。
-    #[must_use]
-    pub fn with_workflow_reflector(
-        self,
-        reflector: Arc<dyn axagent_harness::WorkflowReflector>,
-    ) -> Self {
-        *self.workflow_reflector.lock() = Some(reflector);
-
-        self
-    }
-
-    /// 注入工作流模板进化器(阶段 3)。
-    ///
-    /// 注入后,当反思质量分过低且 `should_auto_evolve` 返回 true 时,异步触发进化。
-    #[must_use]
-    pub fn with_workflow_evolver(self, evolver: Arc<dyn axagent_harness::WorkflowEvolver>) -> Self {
-        *self.workflow_evolver.lock() = Some(evolver);
-
-        self
-    }
-
-    /// 注入工作流优化器(阶段 3)。
-    ///
-    /// 注入后,基于反思结果生成 `WorkflowSuggestion`,不修改模板。
-    #[must_use]
-    pub fn with_workflow_optimizer(
-        self,
-        optimizer: Arc<dyn axagent_harness::WorkflowOptimizer>,
-    ) -> Self {
-        *self.workflow_optimizer.lock() = Some(optimizer);
-
-        self
-    }
+    // 反思器 / 进化器 / 优化器 / 业务规则引擎的注入方法已删除 —— 四者统一经
+    // workflow.reflector / workflow.evolver / workflow.optimizer / workflow.business_rule
+    // 能力接缝获取（`axagent_harness::get_capability_registry().get_*()`），
+    // 由 wiring 层注册，消费点在读时取接缝，不再各自持有一份注入副本。
 
     pub async fn execute_node(
         &self,
@@ -804,24 +763,6 @@ impl WorkEngine {
         self.domain_constraints.lock().clone()
     }
 
-    /// 注册业务规则引擎。
-    ///
-    /// 注入后，在执行 agent / tool / httpRequest 等节点时，
-    /// 会在 dispatch 之前自动进行规则评估。
-    ///
-    /// 多次调用：后者覆盖前者（标准 setter 语义）。
-    pub async fn set_business_rule_engine(
-        &self,
-        engine: Arc<crate::business_rules::BusinessRuleEngine>,
-    ) {
-        *self.business_rule_engine.lock() = Some(engine);
-    }
-
-    /// 取出当前注册的业务规则引擎（用于在执行节点时注入到 ExecutionState）。
-    fn business_rule_engine(&self) -> Option<Arc<crate::business_rules::BusinessRuleEngine>> {
-        self.business_rule_engine.lock().clone()
-    }
-
     /// 注册工具注册表（可选，设置后 tool_executor 优先走 ToolRegistry 中心化路径）
     pub async fn set_tool_registry(&self, registry: Arc<dyn axagent_harness::ToolRegistry>) {
         *self.tool_registry.lock() = Some(registry);
@@ -894,7 +835,6 @@ impl WorkEngine {
             tool_resolver: Arc::new(Mutex::new(None)),
             rag_callback: Arc::new(Mutex::new(None)),
             domain_constraints: Arc::new(parking_lot::Mutex::new(None)),
-            business_rule_engine: Arc::new(parking_lot::Mutex::new(None)),
             agent_provider_cache,
             agent_profile_cache,
             breakpoints: Arc::new(Mutex::new(HashSet::new())),
@@ -902,9 +842,6 @@ impl WorkEngine {
             pending_dispatcher_registrations,
             trigger_manager: Arc::new(crate::trigger::TriggerManager::new()),
             audit_recorder: Arc::new(parking_lot::Mutex::new(None)),
-            workflow_reflector: Arc::new(parking_lot::Mutex::new(None)),
-            workflow_evolver: Arc::new(parking_lot::Mutex::new(None)),
-            workflow_optimizer: Arc::new(parking_lot::Mutex::new(None)),
             tool_registry: Arc::new(parking_lot::Mutex::new(None)),
             loop_partial_txs: Arc::new(Mutex::new(HashMap::new())),
             loop_interrupt_signals: Arc::new(Mutex::new(HashMap::new())),
@@ -3009,7 +2946,7 @@ impl WorkEngine {
                     exec_ctx.breakpoints = bp.clone();
                 }
                 // 注入业务规则引擎（可选），在执行节点前进行硬约束检查
-                exec_ctx.business_rule_engine = self.business_rule_engine();
+                exec_ctx.business_rule_engine = seam_business_rule();
                 // 注入工具注册表（可选），tool_executor 优先走中心化路径
                 exec_ctx.tool_registry = self.tool_registry();
                 // 注入真实工作流 execution_id，供容器执行器（debate/swarm）内部
@@ -4221,7 +4158,7 @@ impl WorkEngine {
                         exec_ctx.tool_registry = self.tool_registry();
                         exec_ctx.cancel_token = Some(cancel_token.clone());
                         exec_ctx.dry_run = options.dry_run;
-                        exec_ctx.business_rule_engine = self.business_rule_engine();
+                        exec_ctx.business_rule_engine = seam_business_rule();
                         {
                             let bp = self.breakpoints.lock().await;
                             exec_ctx.breakpoints = bp.clone();
@@ -4669,7 +4606,7 @@ impl WorkEngine {
         let execution_id = preset_execution_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
         let mut state =
             ExecutionState::new(execution_id.clone(), workflow_id.to_string(), input.clone());
-        state.business_rule_engine = self.business_rule_engine();
+        state.business_rule_engine = seam_business_rule();
         state.tool_registry = self.tool_registry();
         let input_params = serde_json::to_string(&input).ok();
         workflow_execution_repository()
@@ -4898,7 +4835,7 @@ impl WorkEngine {
         state.status = ExecutionStatus::Paused;
 
         // 重新初始化运行时组件
-        state.business_rule_engine = self.business_rule_engine();
+        state.business_rule_engine = seam_business_rule();
         state.tool_registry = self.tool_registry();
 
         // 重新创建广播器和中断信号
@@ -5104,12 +5041,10 @@ impl WorkEngine {
             }
         }
 
-        let reflector = {
-            let guard = self.workflow_reflector.lock();
-            match guard.clone() {
-                Some(r) => r,
-                None => return,
-            }
+        // 反思器经 workflow.reflector 能力接缝获取（wiring 层注册）
+        let reflector = match axagent_harness::get_capability_registry().get_workflow_reflector() {
+            Some(r) => r,
+            None => return,
         };
 
         // 聚合节点快照
@@ -5171,15 +5106,10 @@ impl WorkEngine {
             error_context: None,
         };
 
-        // 克隆所需句柄,在 spawn 中使用
-        let evolver = {
-            let guard = self.workflow_evolver.lock();
-            guard.clone()
-        };
-        let optimizer = {
-            let guard = self.workflow_optimizer.lock();
-            guard.clone()
-        };
+        // 克隆所需句柄,在 spawn 中使用（进化器 / 优化器经能力接缝获取）
+        let registry = axagent_harness::get_capability_registry();
+        let evolver = registry.get_workflow_evolver();
+        let optimizer = registry.get_workflow_optimizer();
         let template_id_owned = template_id.map(|s| s.to_string());
 
         tokio::spawn(async move {
@@ -5257,12 +5187,10 @@ impl WorkEngine {
         error_ctx: &ErrorContext,
         failed_node_snapshot: &axagent_harness::NodeExecutionSnapshot,
     ) {
-        let reflector = {
-            let guard = self.workflow_reflector.lock();
-            match guard.clone() {
-                Some(r) => r,
-                None => return,
-            }
+        // 反思器经 workflow.reflector 能力接缝获取（wiring 层注册）
+        let reflector = match axagent_harness::get_capability_registry().get_workflow_reflector() {
+            Some(r) => r,
+            None => return,
         };
 
         // 构造精简的 WorkflowExecutionRecord(只含失败节点)
@@ -5506,7 +5434,7 @@ pub fn build_loop_body_dispatch(
             }
 
             // 确保关键引擎引用已注入
-            ctx.business_rule_engine = engine.business_rule_engine();
+            ctx.business_rule_engine = seam_business_rule();
             ctx.tool_registry = engine.tool_registry();
             {
                 let compiled = engine.compiled_prompts.read().await;
@@ -5699,7 +5627,7 @@ pub fn build_debate_body_dispatch(
             }
 
             // 确保关键引擎引用已注入
-            ctx.business_rule_engine = engine.business_rule_engine();
+            ctx.business_rule_engine = seam_business_rule();
             ctx.tool_registry = engine.tool_registry();
             {
                 let compiled = engine.compiled_prompts.read().await;
