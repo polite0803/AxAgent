@@ -200,7 +200,7 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
         );
       })
       .catch((e) => {
-        console.error("[WikiEditorPage] 加载 monaco-editor 失败:", e);
+        console.error("[WikiEditorPage] Failed to load monaco-editor:", e);
       });
 
     return () => {
