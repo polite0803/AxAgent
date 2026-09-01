@@ -183,13 +183,6 @@ pub use business_rules::{
 pub mod context_builder;
 pub mod context_contributor;
 pub use context_contributor::{ContextContributor, ContextRequest};
-pub mod delegation;
-pub use delegation::{
-    ApprovalCallback, ApprovalRequest, ApprovalResponse, ApprovalStrategy, DELEGATE_BLOCKED_TOOLS,
-    DelegationConfig, RiskLevel, SubAgentLifecycleManager, SubAgentLifecycleState,
-    ToolFilterConfig, clear_approval_callback, execute_approval, get_approval_callback,
-    set_approval_callback,
-};
 pub mod cron_blueprint;
 pub use cron_blueprint::{
     BlueprintCronJobData, BlueprintParam, BlueprintParamType, BlueprintRiskLevel, CronBlueprint,

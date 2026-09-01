@@ -26,7 +26,10 @@ use axagent_runtime_core::execution_progress::AgentExecutionProgressSnapshot;
 use axagent_storage::cloud_workspace::CloudWorkspace;
 use axagent_storage::workspace_uri::WorkspaceUri;
 use axagent_tools::context_keys;
-use axagent_tools::registry::{DISCLOSURE_TOOLS, McpServerConfig, UnifiedToolRegistry};
+use axagent_tools::registry::{
+    DISCLOSURE_TOOLS, McpServerConfig, SCREEN_PERCEPTION_TOOL, UnifiedToolRegistry,
+    is_disclosure_immune,
+};
 use base64::Engine;
 use dashmap::DashMap;
 use sea_orm::EntityTrait;
@@ -530,6 +533,10 @@ fn build_streaming_api_client(
 /// `extra_schemas` 中与已有工具同名的项会被丢弃（保留先出现者），避免 LLM 侧
 /// "Tool names must be unique" 报错。
 ///
+/// **最后一个例外**：`DISCLOSURE_TOOLS`（能力/技能发现闭环的元工具）对 profile 黑名单
+/// 免疫——它们被禁用会让编排器「发现不了任何能力」且极难归因到具体 profile 配置。
+/// 判定统一走 `is_disclosure_immune`，勿在此处另写一份名单（与 `get_tool_count` 共享）。
+///
 /// 纯函数：不碰注册表、不 await，便于单测锁定顺序语义（见本文件末尾 `tests` 模块）。
 fn apply_tool_policy(
     mut chat_tools: Vec<ChatTool>,
@@ -543,7 +550,9 @@ fn apply_tool_policy(
             chat_tools.push(t);
         }
     }
-    chat_tools.retain(|t| !blocked_names.contains(&t.function.name));
+    chat_tools.retain(|t| {
+        !blocked_names.contains(&t.function.name) || is_disclosure_immune(&t.function.name)
+    });
     chat_tools
 }
 
@@ -1433,13 +1442,22 @@ pub async fn agent_query(
     // `push`/`retain` 而非赋值，`unused_assignments` 也报不出来。改成本函数返回新
     // Vec 的写法后，编译器立刻暴露了该问题。挪动此处前请先看这条注释。
     let orchestration_tools: Vec<String> = request.extra_tools.clone().unwrap_or_default();
+    // 屏幕感知门控（可见性侧）：关闭时不把 ComputerUse 的 schema 下发给 LLM。
+    // 仅靠后段 `tool_registry.tools.disable(..)` 的执行期拦截是不够的 —— LLM 仍会在工具列表
+    // 里看到它并尝试调用，每次都撞上 disabled 而失败，白耗一轮 tool call。
+    // 执行期拦截保留，两侧不可互相替代：可见性挡的是「看到」，执行期挡的是「调成」。
+    let screen_perception_off = !settings.screen_perception_enabled;
     if !profile_recommended_tools.is_empty()
         || !profile_disallowed_tools.is_empty()
         || !orchestration_tools.is_empty()
+        || screen_perception_off
     {
         let mut extra_names: HashSet<String> = profile_recommended_tools.into_iter().collect();
         extra_names.extend(orchestration_tools);
-        let blocked_names: HashSet<String> = profile_disallowed_tools.into_iter().collect();
+        let mut blocked_names: HashSet<String> = profile_disallowed_tools.into_iter().collect();
+        if screen_perception_off {
+            blocked_names.insert(SCREEN_PERCEPTION_TOOL.to_string());
+        }
         // extra: 按名字从注册表取完整 schema（复用 registry 的统一实现）
         let extra_schemas =
             tool_registry.get_chat_tools_by_names(extra_names.iter().map(String::as_str));
@@ -2073,8 +2091,13 @@ pub async fn agent_query(
     // 关闭时禁用该工具，用户无法触发桌面控制 / 截图能力。
     // 注意：UnifiedToolRegistry::clone 不复制 disabled 集合，故必须在最终传入
     // runtime 之前（create_conversation_runtime 之前）禁用，避免被后续 clone 清空。
+    //
+    // ⚠️ 本处是**执行期**拦截，管不到「已下发给 LLM 的工具列表」——那个列表在
+    // `build_streaming_api_client` 处就已按值快照（约 1458 行），早于此处。故可见性侧的
+    // 过滤放在前段工具策略块（并入 blocked_names），两处共用 `SCREEN_PERCEPTION_TOOL`。
+    // 只保留本处会导致「LLM 看得到却调不动」，只保留前段则挡不住手工构造的调用。
     if !settings.screen_perception_enabled {
-        tool_registry.tools.disable("ComputerUse");
+        tool_registry.tools.disable(SCREEN_PERCEPTION_TOOL);
     }
 
     // Tree of Thoughts 多路径推理预处理：仅当用户开启时生效。
@@ -3783,5 +3806,48 @@ mod tests {
     fn apply_tool_policy_handles_empty_input() {
         let out = apply_tool_policy(Vec::new(), vec![tool("x")], &blocked(&["x"]));
         assert!(names(&out).is_empty());
+    }
+
+    /// 披露工具对 profile 黑名单免疫：被禁用也必须保留，否则编排器「发现不了任何能力」。
+    /// 豁免名单统一取自 `is_disclosure_immune`，此处逐个锁定 7 个元工具。
+    #[test]
+    fn apply_tool_policy_disclosure_tools_immune_to_blocklist() {
+        let all: Vec<ChatTool> = DISCLOSURE_TOOLS.iter().copied().map(tool).collect();
+        let expected: Vec<String> = DISCLOSURE_TOOLS.iter().copied().map(String::from).collect();
+        let blocked_all = blocked(&DISCLOSURE_TOOLS);
+
+        // 既有的（非 extra 注入）披露工具不被移除，且顺序不变
+        assert_eq!(names(&apply_tool_policy(all.clone(), Vec::new(), &blocked_all)), expected);
+        // extra 注入的披露工具同样免疫（豁免不能只覆盖既有那份）
+        assert_eq!(names(&apply_tool_policy(Vec::new(), all, &blocked_all)), expected);
+    }
+
+    /// 屏幕感知工具**不享受**披露工具豁免：被并入 blocked 时必须移除，且不能通过
+    /// recommended 追加复活。
+    ///
+    /// 与上一条 `apply_tool_policy_disclosure_tools_immune_to_blocklist` 互为对照——
+    /// 两者走同一个 `blocked_names`，结果相反。这两个测试一起锁定了「哪些名字免疫、
+    /// 哪些不免疫」的边界。
+    #[test]
+    fn apply_tool_policy_screen_perception_tool_is_blockable() {
+        let out = apply_tool_policy(
+            vec![tool(SCREEN_PERCEPTION_TOOL), tool("read_file")],
+            // 即使通过 recommended/extra 追加也不能复活
+            vec![tool(SCREEN_PERCEPTION_TOOL)],
+            &blocked(&[SCREEN_PERCEPTION_TOOL]),
+        );
+        assert_eq!(names(&out), vec!["read_file"]);
+    }
+
+    /// 免疫范围不得外溢：同一个 blocked 里，非披露工具照常被移除，只有披露工具留下。
+    #[test]
+    fn apply_tool_policy_immunity_does_not_leak_to_other_tools() {
+        let out = apply_tool_policy(
+            vec![tool("CapabilityView"), tool("shell_exec"), tool("read_file")],
+            vec![tool("CapabilityLoad")],
+            &blocked(&["CapabilityView", "CapabilityLoad", "shell_exec"]),
+        );
+        // shell_exec 被移除；两个披露工具（一个既有、一个 extra 注入）都留着
+        assert_eq!(names(&out), vec!["CapabilityView", "read_file", "CapabilityLoad"]);
     }
 }

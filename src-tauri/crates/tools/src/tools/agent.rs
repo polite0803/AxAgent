@@ -2,17 +2,19 @@
 
 //! AgentTool - 子 Agent 创建和生命周期管理
 //! 内置 6 个 Agent 类型 + 支持从 `.axagent/agents/*.md` 动态加载自定义 agent
+//! 经 `agent.loop` 接缝（`CapabilityRegistry::get_agent_turn_runner`）真执行子任务
 
 #![allow(clippy::disallowed_types)]
 
 use crate::agent_def_loader::load_all_agents;
 use crate::agent_def_types::{AgentDefSource, AgentDefinition};
+use crate::registry::UnifiedToolRegistry;
 use crate::{Tool, ToolCategory, ToolContext, ToolError, ToolResult};
 use async_trait::async_trait;
 use axagent_harness::PluginAgentProvider;
 use axagent_harness::feature_flag_provider::SharedFeatureFlagProvider;
 use axagent_harness::tool_service::HookEventFirer;
-use parking_lot::{Mutex, RwLock};
+use parking_lot::RwLock;
 use serde_json::{Value, json};
 use std::sync::{Arc, LazyLock, OnceLock};
 
@@ -39,20 +41,6 @@ fn plugin_provider() -> &'static Arc<dyn PluginAgentProvider> {
     PLUGIN_PROVIDER
         .get()
         .expect("PluginAgentProvider not initialized; call set_plugin_agent_provider() at startup")
-}
-
-/// 待处理子 Agent 卡片: (child_conversation_id, agent_type, description)
-type PendingSubAgentCard = (String, String, String);
-static PENDING_SUB_AGENT_CARDS: LazyLock<
-    Mutex<std::collections::HashMap<String, PendingSubAgentCard>>,
-> = LazyLock::new(|| Mutex::new(std::collections::HashMap::new()));
-
-fn store_pending_card(parent_id: &str, child_id: &str, agent_type: &str, description: &str) {
-    let mut m = PENDING_SUB_AGENT_CARDS.lock();
-    m.insert(
-        parent_id.to_string(),
-        (child_id.to_string(), agent_type.to_string(), description.to_string()),
-    );
 }
 
 /// 触发 HookEvent（best-effort，失败不影响主流程）
@@ -263,18 +251,29 @@ impl Tool for AgentTool {
         }
 
         // 查找 Agent 定义
-        let agent_def = if agent_type.is_empty() {
-            // 如启用 FORK_SUBAGENT，则隐式 fork
-            if FEATURE_FLAG.get().is_some_and(|f| f.is_enabled("fork_subagent")) {
-                return handle_fork_subagent(description, prompt, ctx).await;
-            }
+        let is_fork = agent_type.is_empty()
+            && FEATURE_FLAG.get().is_some_and(|f| f.is_enabled("fork_subagent"));
+        let agent_def = if is_fork {
+            // fork 模式：无独立定义，system prompt 由 fork 指令生成
+            None
+        } else if agent_type.is_empty() {
             // 默认使用 general-purpose
             find_agent("general-purpose")
         } else {
             find_agent(agent_type)
         };
 
-        let emoji = match agent_type {
+        let resolved_type: String = if is_fork {
+            "fork".to_string()
+        } else {
+            agent_def
+                .as_ref()
+                .map(|a| a.agent_type.clone())
+                .unwrap_or_else(|| agent_type.to_string())
+        };
+
+        let emoji = match resolved_type.as_str() {
+            "fork" => "\u{1F500}",
             "Explore" => "\u{1F50D}",
             "Plan" => "\u{1F4D0}",
             "Verification" => "\u{2705}",
@@ -283,15 +282,13 @@ impl Tool for AgentTool {
             _ => "\u{1F916}",
         };
 
-        let resolved_type = agent_def.as_ref().map(|a| a.agent_type.as_str()).unwrap_or(agent_type);
-
         let mut output = format!("## {} 子 Agent 已创建\n\n", emoji);
         output.push_str(&format!("**名称**: {}\n", description));
         output.push_str(&format!("**类型**: {}\n", resolved_type));
         output.push_str(&format!(
             "**后台**: {}\n",
             if background {
-                "是（120s 超时自动转后台）"
+                "请求后台（当前同步等待执行完成）"
             } else {
                 "否"
             }
@@ -324,10 +321,81 @@ impl Tool for AgentTool {
         }
 
         output.push_str(&format!("\n---\n**任务**:\n```\n{}\n```\n\n", prompt));
-        output.push_str("\u{1F3AF} 子 Agent 已启动，执行完成后将返回结果摘要。\n");
 
-        if let Some(conv_id) = &ctx.conversation_id {
-            store_pending_card(conv_id, conv_id, resolved_type, description);
+        // ── 真执行（R6 接线）：经 agent.loop 接缝委托统一 Agent 主循环 ──
+        let runner =
+            axagent_harness::get_capability_registry().get_agent_turn_runner().ok_or_else(
+                || ToolError::new("子代理执行器未接线（agent.loop 接缝未注册），无法执行子 Agent"),
+            )?;
+
+        // system prompt：fork 用 fork 指令；具名子代理用角色描述；兜底通用指令
+        let system_prompt = if is_fork {
+            build_fork_child_prompt(prompt)
+        } else {
+            match &agent_def {
+                Some(d) => {
+                    let mut p = format!("你是 {} 子 Agent：{}\n", d.agent_type, d.description);
+                    if !d.when_to_use.is_empty() {
+                        p.push_str(&format!("适用场景：{}\n", d.when_to_use));
+                    }
+                    p.push_str("完成任务后直接返回最终结果，不继续对话，不递归创建子 Agent。");
+                    p
+                },
+                None => "你是通用子 Agent，完成用户交代的任务后直接返回最终结果，\
+                         不继续对话，不递归创建子 Agent。"
+                    .to_string(),
+            }
+        };
+
+        // 工具名单装配：白名单 ∩ 全量 − 黑名单 − 递归工具（Agent/RemoteTrigger）
+        let (allowlist, disallowlist, def_model) = match &agent_def {
+            Some(d) => (d.tools.clone(), d.disallowed_tools.clone(), d.model.clone()),
+            None => (Vec::new(), Vec::new(), None),
+        };
+        let mut schema_registry = UnifiedToolRegistry::new();
+        schema_registry.init_all();
+        let names = subagent_tool_names(schema_registry.list_tools(), &allowlist, &disallowlist);
+        let chat_tools = schema_registry.get_chat_tools_by_names(names.iter().map(String::as_str));
+
+        // 子代理独立会话 ID：不复用父会话，避免污染父历史
+        let child_conversation_id =
+            format!("subagent-{}-{}", resolved_type, chrono::Utc::now().timestamp_millis());
+
+        let request = axagent_harness::agent_turn_runner::AgentTurnRequest {
+            execution_id: child_conversation_id,
+            node_id: format!("subagent:{resolved_type}"),
+            role_id: None,
+            system_prompt,
+            user_input: prompt.to_string(),
+            history: Vec::new(),
+            tools: chat_tools,
+            tool_permissions: None,
+            model: def_model.unwrap_or_default(),
+            provider_id: None,
+            temperature: None,
+            max_tokens: None,
+            max_tool_rounds: None,
+            workspace_dir: Some(ctx.working_dir.clone()),
+        };
+
+        let result = runner
+            .run_turn(request)
+            .await
+            .map_err(|e| ToolError::new(format!("子 Agent 执行失败: {e}")))?;
+
+        output.push_str("---\n**执行结果**:\n\n");
+        if result.content.is_empty() {
+            output.push_str("（子 Agent 未返回文本内容）\n");
+        } else {
+            output.push_str(&result.content);
+            output.push('\n');
+        }
+        if !result.tool_calls.is_empty() {
+            output.push_str(&format!("\n**工具调用**: {} 次\n", result.tool_calls.len()));
+            for tc in &result.tool_calls {
+                let status = if tc.is_error { "\u{274C}" } else { "\u{2705}" };
+                output.push_str(&format!("- {} `{}`\n", status, tc.tool_name));
+            }
         }
 
         // 触发 SubagentStart hook (best-effort)
@@ -339,6 +407,7 @@ impl Tool for AgentTool {
                 "background": background,
                 "isolation": isolation,
                 "conversation_id": ctx.conversation_id,
+                "tool_calls": result.tool_calls.len(),
             }),
         );
 
@@ -346,61 +415,40 @@ impl Tool for AgentTool {
     }
 }
 
-/// Fork 子 agent 处理 — 当 FORK_SUBAGENT feature flag 启用且未指定 subagent_type 时触发
+/// 子代理工具名单装配（纯函数，便于单测）。
 ///
-/// 存储 fork 上下文使子 agent 可继承父 agent 的对话历史，最大化 prompt cache 命中。
-async fn handle_fork_subagent(
-    description: &str,
-    prompt: &str,
-    ctx: &ToolContext,
-) -> Result<ToolResult, ToolError> {
-    let parent_id = ctx.conversation_id.as_deref().unwrap_or("unknown");
+/// 规则：`allowlist` 空 = 全量可用；非空 = 只保留白名单内的工具。
+/// 任何情况下排除 `disallowlist` 黑名单与递归工具（Agent / RemoteTrigger）。
+fn subagent_tool_names(
+    all: Vec<String>,
+    allowlist: &[String],
+    disallowlist: &[String],
+) -> Vec<String> {
+    all.into_iter()
+        .filter(|n| {
+            (allowlist.is_empty() || allowlist.contains(n))
+                && !disallowlist.contains(n)
+                && n != "Agent"
+                && n != "RemoteTrigger"
+        })
+        .collect()
+}
 
-    // 存储 fork 上下文 — 子 agent 启动时读取以继承父 agent 消息历史
-    // ForkSessionData 在 runtime::fork_bridge 中，父 agent 填入 session 数据后子 agent 可加载
-    axagent_harness::runtime_types::fork_bridge::store_fork_session(
-        axagent_harness::runtime_types::fork_bridge::ForkSessionData {
-            parent_conversation_id: parent_id.to_string(),
-            description: description.to_string(),
-            prompt: prompt.to_string(),
-            created_at: chrono::Utc::now().to_rfc3339(),
-            parent_system_prompt: Vec::new(),
-            parent_messages_json: String::new(),
-            child_system_prompt: Some(
-                axagent_harness::runtime_types::fork_bridge::build_fork_child_prompt(prompt),
-            ),
-        },
-    );
-    store_pending_card(parent_id, parent_id, "fork", description);
-
-    let output = format!(
-        "## \u{1F500} Fork 子 Agent 已创建\n\n\
-         **名称**: {description}\n\
-         **模式**: Fork（继承父 agent 上下文，共享 prompt cache）\n\
-         **父会话**: {parent_id}\n\
-         **缓存策略**: 子 agent 复用父 agent 消息前缀\n\n\
-         ---\n\
-         **任务**:\n```\n{}\n```\n\n\
-         \u{26A0}\u{FE0F} Fork 规则：\n\
+/// 生成 fork 子 agent 的 system prompt（fork 语义：继承父 agent 上下文执行任务）。
+///
+/// 注：fork 当前以独立子会话执行（无父消息历史注入），prompt cache 继承
+/// 待 conversation runtime 支持历史前缀共享后补齐。
+fn build_fork_child_prompt(task: &str) -> String {
+    format!(
+        "## Fork 子 Agent 指令\n\n\
+         你是父 Agent 的 fork 子进程。请完成以下任务：\n\n{}\n\n\
+         ## Fork 规则\n\
          - 不使用 EnterPlanMode/ExitPlanMode\n\
-         - 不递归 fork 子 agent\n\
-         - 完成后直接返回结果\n\
-         - 只读操作优先\n\n\
-         \u{1F3AF} Fork 子 Agent 已启动...\n",
-        prompt
-    );
-
-    // 触发 SubagentStart hook — fork 类型 (best-effort)
-    fire_hook(
-        "SubagentStart",
-        &json!({
-            "agent_type": "fork",
-            "description": description,
-            "conversation_id": ctx.conversation_id,
-        }),
-    );
-
-    Ok(ToolResult::success(output))
+         - 不递归创建子 Agent\n\
+         - 完成后直接返回结果，不继续对话\n\
+         - 只读操作优先于写入操作",
+        task
+    )
 }
 
 // ── RemoteTrigger ──
@@ -491,5 +539,45 @@ impl Tool for SuggestBackgroundPRTool {
             "## PR 分析: {} 分支\n\n```\n{}\n```\n\n💡 建议: 检查变更是否包含测试，提交信息是否遵循规范。",
             branch, diff_info
         )))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn names(v: &[&str]) -> Vec<String> {
+        v.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn subagent_tool_names_empty_allowlist_means_all_except_blacklist_and_recursive() {
+        let all = names(&["FileRead", "Grep", "Agent", "RemoteTrigger", "Bash"]);
+        let got = subagent_tool_names(all, &[], &[]);
+        assert_eq!(got, names(&["FileRead", "Grep", "Bash"]));
+    }
+
+    #[test]
+    fn subagent_tool_names_allowlist_intersect_and_disallow_wins() {
+        let all = names(&["FileRead", "Grep", "FileWrite", "Bash"]);
+        let allow = names(&["FileRead", "Grep", "Bash"]);
+        let disallow = names(&["Bash"]);
+        let got = subagent_tool_names(all, &allow, &disallow);
+        assert_eq!(got, names(&["FileRead", "Grep"]));
+    }
+
+    #[test]
+    fn subagent_tool_names_recursive_tools_blocked_even_if_allowlisted() {
+        let all = names(&["Agent", "RemoteTrigger", "FileRead"]);
+        let allow = names(&["Agent", "RemoteTrigger", "FileRead"]);
+        let got = subagent_tool_names(all, &allow, &[]);
+        assert_eq!(got, names(&["FileRead"]));
+    }
+
+    #[test]
+    fn fork_child_prompt_contains_task_and_rules() {
+        let p = build_fork_child_prompt("搜索所有 TODO 注释");
+        assert!(p.contains("搜索所有 TODO 注释"));
+        assert!(p.contains("不递归创建子 Agent"));
     }
 }

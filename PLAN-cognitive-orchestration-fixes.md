@@ -87,6 +87,55 @@ F4 把 `extra_tools` 首次带进 Clarify 二次执行后，第一处的绕过�
 若要收紧，把 `disabled_set` 并入 `blocked_names` 一起传给 `apply_tool_policy` 即可一行解决，
 但会改变非统一工具的既有可见性行为，超出本轮范围，留给后续决定。
 
+### 🔴 R5 · 屏幕感知开关只生效一半：ComputerUse 默认仍下发给 LLM
+
+**发现路径**：R4 的模式（快照点之后修改数据）在 `agent_query` 里穷举了一遍，第二个命中点。
+
+**事实链**：
+
+| 环节           | 位置                        | 事实                                                                                  |
+| -------------- | --------------------------- | ------------------------------------------------------------------------------------- |
+| 工具 domain    | `harness/src/tool.rs:449`   | `Tool::domain()` 默认返回 `General`，`ComputerUseTool` 未 override                    |
+| 域必含 General | `agent/mod.rs:1141`/`:1146` | `active_domains` 分支 ②③ 都 `insert(ToolDomain::General)`                             |
+| 提取方式       | `agent/mod.rs:1167`         | `get_chat_tools_for_domains` **只查 `groups.is_tool_enabled`，不看 `disable()` 集合** |
+| 进 chat_tools  | `agent/mod.rs:1193`         | `unified_chat_tools` push 进 `chat_tools`                                             |
+| 快照           | `agent/mod.rs:1458`         | `build_streaming_api_client` 按值收 `chat_tools.clone()`                              |
+| 执行期禁用     | `agent/mod.rs:2085`         | `tool_registry.tools.disable("ComputerUse")` —— **晚于快照 627 行**                   |
+
+→ 关闭 `screen_perception_enabled` 后，ComputerUse 的 schema **仍会下发给 LLM**；LLM 调用它时
+才在执行期被 disabled 拦截。**看得到、调不动**。
+
+**为什么这是默认路径缺陷而非边界 case**：`settings_chat.rs:321` 的 Default impl 是
+`screen_perception_enabled: false`（默认关闭）。即**默认每次普通对话都在给 LLM 下发一个
+注定调用失败的 ComputerUse schema** —— 白耗 token，且模型可能重试。
+
+**修法（可见性侧 + 执行期侧并存，不可互相替代）**：
+
+- 抽出共享常量 `SCREEN_PERCEPTION_TOOL`（`crates/tools/src/registry.rs`），消除两处硬编码字面量
+  （禁区 12）。一致性由新增测试 `screen_perception_tool_matches_registered_name` 锁定：
+  将来有人改 `ComputerUseTool::name()` 而漏改常量，测试会红。
+- **可见性侧**：策略块内 `if screen_perception_off { blocked_names.insert(..) }`，
+  并把该条件并入整块的 if 判断（否则 profile 无配置时整块被跳过）。
+- **执行期侧**：2085 保留原 `disable(..)` 不动，仅改用常量 + 补注释说明两侧关系。
+
+**⚠️ 修完差点又漏一处 —— 可见性侧其实有两个消费点。** 第一版只改了 `agent_query`，忘了
+`get_tool_count`（`local_tool.rs`，前端 `useChatViewActions.tsx:115` 消费）—— 它的文档自称
+「筛选语义与 `agent_query` 一致」，不同步就会出现「UI 显示 N 个、LLM 实际拿到 N-1 个」的新漂移。
+这正是上一轮 DISCLOSURE_TOOLS 免疫时特意避免、还写进技能的错误模式，结果在 R5 上又犯了一次。
+
+补齐方式：新增 `async fn screen_perception_tool_hidden(&AppState) -> bool`（读 settings，
+避免三条返回路径重复取），`get_tool_count` 的**三条路径全部**加门控（`agent_profile_id`
+为 None、profile 解析失败、主路径），且主路径放在**最后一道**（recommended 追加之后），
+防止被追加回来。
+
+**行为变更（需知情）**：默认路径下发给 LLM 的工具列表**少了 ComputerUse**，UI 的工具计数
+同步减一。方向正确（移除一个注定失败的调用），但确实改变了默认行为。
+
+**同一轮穷举的其余结论（均正常）**：`system_prompt` 最后修改 `:1934` < 消费 `:2168` ✅；
+`tool_registry` 修改 `:2085` < 包装 `:2144` < 消费 `:2162` ✅；`dynamic_tools` 走 Arc 共享，
+后期 `CapabilityLoad` 写入可见 ✅；`nudge` 的 `set_nudge_lines` `:2197` < `run_turn_with_tools`
+`:2206` ✅；`effective_temperature/top_p/max_tokens` 定义 `:897-906` < 消费 `:1464-1466` ✅。
+
 **端到端链路核查（前移后补做）** —— 生产 → 传输 → 消费三段连起来查：
 
 | 段   | 位置                  | 内容                                                                                  | 判定                |
@@ -108,9 +157,34 @@ DiscoverSkills / CapabilityView / CapabilityLoad / CapabilityBrowse），若某 
   agent 的自有常量，不属 profile 的 `disallowed_tools`。
 - → **无预置 profile 禁用披露工具，无回归。** 用户显式禁用属预期语义。
 
-> **建议（未做，待用户拍板）**：可考虑让 `DISCLOSURE_TOOLS` 对 profile 黑名单免疫。它们是能力
-> 发现闭环的元工具，被静默禁用会让编排器「发现不了任何能力」且极难归因。属防御性改进，
-> 前提是确认是否允许管理员限制这类元工具。
+### 后续项：DISCLOSURE_TOOLS 对 profile 黑名单免疫（已按用户指示实施）
+
+排查确认「当前无预置 profile 禁用披露工具」，但这只说明**现在没踩坑**，不说明**将来不会**。
+用户拍板做掉，落地方式：
+
+**① 单一判据放在名单定义处** —— `crates/tools/src/registry.rs` 新增
+`pub fn is_disclosure_immune(name: &str) -> bool`，紧邻 `DISCLOSURE_TOOLS` 常量。
+放这里的理由：名单与「谁享受豁免」必须是同一处，否则加名单的人不知道要同步豁免。
+
+**② 两个消费点共用该函数**（禁区 12：禁止语义漂移）：
+
+| 消费点                                      | 作用                        | 改动                                            |
+| ------------------------------------------- | --------------------------- | ----------------------------------------------- |
+| `commands/agent/mod.rs` `apply_tool_policy` | 构造真正发给 LLM 的工具列表 | `retain` 追加 `\|\| is_disclosure_immune(name)` |
+| `commands/local_tool.rs` `get_tool_count`   | UI 展示的可用工具数         | `remove` 前加 `if !is_disclosure_immune(name)`  |
+
+**为什么第二处也必须改**：只改 `apply_tool_policy` 会得到「工具在 LLM 列表里、但 UI 计数算掉它」
+的新不一致 —— 这正是本轮 R3/R4 反复出现的同一类缺陷（一处改、另一处漏）。
+
+**③ 免疫的边界**（写入函数文档注释，防止后人误解为「完全不可禁用」）：
+
+- registry 层的 `disable()`（用户在设置里关掉）**照常生效**，不在豁免范围；
+- 执行期安全由 registry 的 `blocked_tools` 与各工具自身权限模型兜底 ——
+  **可见性过滤从来不是安全边界**，豁免它不构成安全绕过；
+- `request.options.disabled_tools` 走的是另一条链路（registry `blocked_tools`），不受本次改动影响。
+
+**④ 测试**：`axagent-tools` 1 个（名单内外双向锁定 + 空串 + 大小写敏感）；
+`axagent` 2 个（既有与 extra 注入两个来源都免疫、免疫不外溢到普通工具）。
 
 ### F5 复查的边界判断（先保留，后按用户指示改删）
 
@@ -685,3 +759,88 @@ grep -rn "ParameterExtract" src/ crates/ | grep -v target
 | 2 | `index_passport` 在 embedding 服务不可用时的失败模式                                    | ✅ **内置降级，无需异步化**。`capability_indexer_impl.rs:260-270`：embedding 失败仍 `store_metadata` 并返回 `Ok(success:false)`，不传播 Err、不阻塞。同步调用 + warn 降级已足够，**不需要 `tokio::spawn`**。                                               |
 | 3 | 前端是否消费 `response.execution_mode` 做分支渲染                                       | ✅ **仅展示，无分支渲染**。前端分发以 `conversationStoreSend.ts:795` 的 `cognitiveResult.execution.kind` 为准；`executionMode` 只用于 `CognitiveRoutePanel.tsx:78-80` / `CognitiveDecisionCard.tsx:48` 展示标签。F2 修复后标签与实际执行一致，无兼容风险。 |
 | 4 | 模板 update/delete 是否已有其它索引同步路径                                             | ✅ **无其它路径**。`workflow_template.rs` 全文无 `capability_indexer` 引用（F6 前），无触发器/事件监听触碰能力索引；唯一重建路径是启动期 `register_all_capabilities`。F6 不重复。                                                                          |
+
+---
+
+## 九、R6：子代理链路死代码审计（2026-09-01）
+
+> 起因：`is_tool_allowed`（`agent_def_types.rs:156`）零调用点调查，顺藤摸瓜发现整条子代理链路断头。
+
+### 事实链（grep 全仓穷举，均排除 target/）
+
+| # | 断点                                                                                                                                                                      | 证据                                      |
+| - | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| 1 | `AgentTool::call`（tools/agent.rs）是**假执行**：只拼 Markdown 文本 + fire hook，从未启动子代理                                                                           | `crates/tools/src/tools/agent.rs:249-346` |
+| 2 | `PENDING_SUB_AGENT_CARDS` 静态 HashMap **只写不读**                                                                                                                       | 唯一写入 `store_pending_card`，全仓零读取 |
+| 3 | `fork_bridge::take_fork_session` **零调用**，`store_fork_session` 写入的数据无人消费                                                                                      | `fork_bridge.rs:40` 定义，无调用方        |
+| 4 | `AgentDefinition.tools`/`disallowed_tools` 仅用于描述文本展示，**从未约束真实工具集**                                                                                     | `agent.rs:305-324` 只拼 output 字符串     |
+| 5 | `agent_def_types.rs` 7 个 builder/判定方法（with_tools/with_disallowed_tools/with_model/with_background/with_when_to_use/has_tool_allowlist/is_tool_allowed）**全零调用** | 本轮已删除                                |
+| 6 | `harness/delegation.rs::ToolFilterConfig`（is_tool_allowed/filter_tools/block_tool/unblock_tool + DELEGATE_BLOCKED_TOOLS）除自测外无外部消费                              | grep 仅 lib.rs re-export                  |
+
+### 已执行删除（零引用、无行为变更）
+
+- `agent_def_types.rs`：删 7 个死方法，`impl AgentDefinition` 仅留 `builtin()`（struct update 语法在用）
+- `tools/agent.rs`：删 `PENDING_SUB_AGENT_CARDS` + `PendingSubAgentCard` + `store_pending_card` + 2 调用点 + 残留 `Mutex` import
+
+### 真接线实施（2026-09-01，用户批准方案 A）
+
+| 改动                 | 文件                              | 内容                                                                                                                                                               |
+| -------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| AgentTool 真执行     | `crates/tools/src/tools/agent.rs` | 经 `agent.loop` 接缝取 `AgentTurnRunner` 真执行；工具名单 = 白名单∩全量−黑名单−Agent/RemoteTrigger；独立子会话 ID `subagent-<type>-<ts>`；fork 分支内联真执行      |
+| 带工具委托           | `src/init/agent_turn_adapter.rs`  | `run_turn` 非空 tools 不再 Err：装配独立 `UnifiedToolRegistry`（名单外禁用 + 禁 Agent/RemoteTrigger 防递归）；权限 WorkspaceWrite（无人工通道），纯推理维持 Prompt |
+| 临时禁用 API         | `crates/tools/src/registry.rs`    | 新增 `disable_tool()`（仅内存，与 `toggle_tool` 的 DB 持久化语义区分）                                                                                             |
+| fork_bridge 死链删除 | harness/runtime-core              | `fork_bridge.rs` 整模块删除（store 无消费者、take 零调用），fork 指令生成本地化为 `build_fork_child_prompt`                                                        |
+
+**行为变更**：① LLM 调用 Agent 工具从假文本变为真实子代理执行（独立会话、继承 workspace_dir、结果回传）；② 工作流"简单带工具 Agent 节点"从 inline ReAct fallback 切到 SessionManager 统一路径（原 Err fallback 契约取消，`agent_executor.rs` 无需改动——Err 分支自然不再触发）；③ fork 分支真执行但无父历史注入（待 runtime 支持前缀共享后补齐）。
+
+**测试**：`subagent_tool_names` 3 条 + fork prompt 1 条（tools crate 301 passed）。
+
+### delegation.rs 断链审计完成（2026-09-01，整文件删除）
+
+`crates/harness/src/delegation.rs`（461 行 + 7 自测）全部 15 个 pub 符号外部消费为 0（同名命中均属其他模块：rt-workflow 自有 ApprovalRequest、gateway_operations 自有 LifecycleEvent、权限系统自有 RiskLevel）。三个子系统的判定：
+
+| 子系统                                          | 死因     | 活的替代者                                                  |
+| ----------------------------------------------- | -------- | ----------------------------------------------------------- |
+| ToolFilterConfig 工具过滤                       | 无接线   | `UnifiedToolRegistry` 黑白名单 + blocked_tools              |
+| TLS 审批回调（thread_local + execute_approval） | 无接线   | `PermissionPrompter` / `AskUserBridge` / `PermissionPolicy` |
+| SubAgentLifecycleManager                        | 从未实现 | 无（真子代理经 agent.loop 接缝，无独立生命周期记录需求）    |
+
+处置：整文件删除 + lib.rs 删除 `pub mod delegation` 与 re-export 块。R6/R7 全部闭环。
+
+### 教训（延续"消费点穷举"）
+
+「工单登记器」形态的假执行（写个 static、返回成功文本）比幽灵开关更隐蔽——它有完整的注册、schema、测试，唯独没有执行。判断工具真假的唯一标准：**trace 执行路径到产生真实副作用的那一行**。
+
+---
+
+## 十、R9：CapabilityRegistry 接缝消费审计（2026-09-01）
+
+> 方法：对 capability_registry 全部 `register_*`/`get_*` 接缝做两侧消费穷举（排除定义文件自身，同名命中核对定义归属）。
+
+### 消费状态总表
+
+| 接缝                                                             | register（生产）            | get（生产）                                     | 判定                                                                           |
+| ---------------------------------------------------------------- | --------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------ |
+| agent.loop                                                       | ✅ state.rs:672             | ✅ agent.rs（R7 刚接线）+ agent_executor.rs:396 | **活**                                                                         |
+| event_dispatcher                                                 | ✅                          | ✅ 2 处                                         | **活**                                                                         |
+| session_log_invariant                                            | ✅                          | ✅ 1 处                                         | **活**                                                                         |
+| workflow.reflector / evolver / optimizer                         | ✅ state.rs:690-698         | ❌ 0                                            | **注册副本冗余**（能力经 WorkEngine 直注 / AppState 字段 / commands 直调活着） |
+| workflow.business_rule                                           | ✅ state.rs:705             | ❌ 0                                            | 同上（WorkEngine.set_business_rule_engine 是活通道）                           |
+| message_callback / webhook_dispatch / platform_adapter           | ✅ state.rs:272-315         | ❌ 0                                            | 同上（消息网关另有直连通道）                                                   |
+| sandbox                                                          | ✅ state.rs:597             | ❌ 0                                            | 同上                                                                           |
+| storage                                                          | ❌ 0                        | ❌ 0                                            | 纯死 API（两侧均无生产调用）                                                   |
+| model.provider（register_model_provider + get_provider_adapter） | ❌ 0                        | ❌ 0                                            | 纯死 API                                                                       |
+| model.provider for_type                                          | ✅ providers/registry.rs:90 | ❌ 0                                            | 注册副本冗余（解析走 harness.get_adapter_for_provider）                        |
+
+### 关键旁证
+
+- `register_external_*` 插件替换入口**全仓零调用**——「内置与插件平权」的替换语义从未被行使。
+- `get_*` 命中全部位于 capability_registry.rs 自身测试与文档注释。
+
+### 性质判定与处置建议（待拍板）
+
+与 R6/R8 死代码不同：注册对象是活实例的 Arc 引用副本，**能力本身活着**，死的只是注册表这份副本。三选：
+
+- **A（建议）保持现状**：接缝是插件平权（OpenClaw 插件战略）的正式设计预留，删除收益仅内存与整洁；将本表作为插件接入时的核对基线。
+- B 裁剪：删 9 个零读接缝 + 2 组纯死 API（register+get 成对删），保留 3 个活接缝；插件需要时再加回。
+- C 统一：消费方改走 registry（把 WorkEngine 直注等平行通道收敛到接缝），动作最大。

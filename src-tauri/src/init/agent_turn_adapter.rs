@@ -15,13 +15,14 @@
 //!
 //! ## 设计边界
 //!
-//! - **无工具委托**：`AgentTurnRequest.tools` 为空时走纯推理（空工具注册表）；
-//!   非空时本轮返回 `Err`，由 `AgentExecutor` fallback 到 inline ReAct（向后兼容）。
+//! - **工具委托**：`AgentTurnRequest.tools` 非空时按名单装配独立
+//!   `UnifiedToolRegistry`（名单外禁用 + 禁 Agent/RemoteTrigger 防递归），
+//!   执行带工具的 ReAct 循环；空 tools 时走纯推理（空工具注册表）。
 //! - **provider 解析**：优先 `request.provider_id` 命中的提供商，否则取第一个
 //!   启用且含可用 key 的提供商；`request.model` 为空时用 provider 默认模型。
 //! - **会话**：以 `request.execution_id` 作为 conversation_id 创建/复用 Session。
-//! - **不注入 AskUser 桥接**：与 fleet 一致，`PermissionMode::Prompt`，超出默认
-//!   权限的工具调用会失败并记录（不阻塞等待用户确认）。
+//! - **不注入 AskUser 桥接**：带工具委托用 `PermissionMode::WorkspaceWrite`
+//!   （无人工介入通道，危险操作按权限策略拒绝），纯推理维持 `PermissionMode::Prompt`。
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -117,11 +118,24 @@ impl WorkflowAgentTurnRunner {
 #[async_trait]
 impl AgentTurnRunner for WorkflowAgentTurnRunner {
     async fn run_turn(&self, mut request: AgentTurnRequest) -> Result<AgentTurnResult> {
-        // 无工具委托边界：带工具定义的工作流 Agent 节点走 inline ReAct（向后兼容）。
-        if !request.tools.is_empty() {
-            return Err(AxAgentError::agent(
-                "AgentTurnRunner 仅支持无工具委托，带工具节点请走 inline ReAct",
-            ));
+        // 工具委托（R6 真接线）：非空 tools = 按名单装配独立工具注册表执行
+        // ReAct 循环；空 tools = 纯推理（原行为）。
+        // 独立实例而非复用主 registry：工具执行链上可能持有主 registry 的
+        // tokio Mutex，子代理再取同一把锁会死锁；且名单/禁用约束互不污染。
+        let allow_names: std::collections::HashSet<String> =
+            request.tools.iter().map(|t| t.function.name.clone()).collect();
+        let mut tool_registry = UnifiedToolRegistry::new();
+        if !allow_names.is_empty() {
+            tool_registry.init_all();
+            // 白名单约束：名单外的全部禁用
+            for name in tool_registry.list_tools() {
+                if !allow_names.contains(&name) {
+                    tool_registry.disable_tool(&name);
+                }
+            }
+            // 防递归：子代理不得再创建子代理或远程触发会话
+            tool_registry.disable_tool("Agent");
+            tool_registry.disable_tool("RemoteTrigger");
         }
 
         let (prov, adapter, ctx) = self.resolve_provider(request.provider_id.as_deref()).await?;
@@ -141,18 +155,26 @@ impl AgentTurnRunner for WorkflowAgentTurnRunner {
             .map_err(|e| AxAgentError::agent(e.to_string()))?;
         let session_id = session.session().session_id.clone();
 
-        // 最小 ApiClient + 空工具注册表（纯推理）。
+        // ApiClient + 工具注册表（空名单 = 空注册表纯推理）。
         let api_client: Box<dyn ApiClient + Send> =
             Box::new(AxAgentApiClient::new(adapter.clone(), ctx.clone()).with_model(model.clone()));
         let tool_executor: Box<
             dyn axagent_harness::runtime_types::conversation::ToolExecutor + Send,
-        > = Box::new(UnifiedToolRegistry::new());
+        > = Box::new(tool_registry);
+
+        // 权限：带工具委托无人工介入通道，用 WorkspaceWrite（危险操作按策略拒绝）；
+        // 纯推理维持 Prompt（原行为）。
+        let permission_mode = if allow_names.is_empty() {
+            PermissionMode::Prompt
+        } else {
+            PermissionMode::WorkspaceWrite
+        };
 
         let runtime = create_conversation_runtime(ConversationRuntimeFactoryArgs::new(
             session.session().clone(),
             api_client,
             tool_executor,
-            PermissionPolicy::new(PermissionMode::Prompt),
+            PermissionPolicy::new(permission_mode),
             vec![request.system_prompt.clone()],
             RuntimeFeatureConfig::default(),
         ));

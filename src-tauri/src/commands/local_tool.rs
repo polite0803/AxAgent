@@ -4,6 +4,7 @@ use crate::AppState;
 use crate::commands::agent::resolve_profile_tool_context;
 use axagent_agent_macro::agent_command;
 use axagent_harness::ToolDomain;
+use axagent_tools::registry::{SCREEN_PERCEPTION_TOOL, is_disclosure_immune};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use tauri::State;
@@ -97,6 +98,21 @@ fn to_local_group(
 // 否则返回全局已启用工具数（兼容旧调用方）。
 // 筛选语义与 `agent_query` 一致（共享 `resolve_profile_tool_context`）。
 
+/// 屏幕感知工具是否应被排除在可见工具集之外（**可见性侧**）。
+///
+/// **必须与 `agent_query` 工具策略块的判定同步**：本函数的语义契约是
+/// 「显示的数量 = 实际传给 LLM 的数量」，而 `agent_query` 在
+/// `settings.screen_perception_enabled` 关闭时会把 `SCREEN_PERCEPTION_TOOL` 并入
+/// blocked 不下发。此处不同步就会出现「UI 多算一个 LLM 根本拿不到的工具」的漂移。
+///
+/// 只管**可见性**；执行期拦截在 `agent_query` 的 `tool_registry.tools.disable(..)`，
+/// 两侧不可互相替代（前者挡「看到」，后者挡「调成」）。
+async fn screen_perception_tool_hidden(state: &AppState) -> bool {
+    let settings =
+        axagent_dao::repo::settings::get_settings(state.harness.db()).await.unwrap_or_default();
+    !settings.screen_perception_enabled
+}
+
 #[agent_command(domain = tool, safety = Safe, call_mode = StateInput, description = "获取已启用工具数量")]
 #[tauri::command]
 pub async fn get_tool_count(
@@ -112,7 +128,11 @@ pub async fn get_tool_count(
         let mut domains = HashSet::new();
         domains.insert(ToolDomain::General);
         let chat_tools = registry.get_chat_tools_for_domains(&domains, None);
-        let names: HashSet<String> = chat_tools.iter().map(|t| t.function.name.clone()).collect();
+        let mut names: HashSet<String> =
+            chat_tools.iter().map(|t| t.function.name.clone()).collect();
+        if screen_perception_tool_hidden(&state).await {
+            names.remove(SCREEN_PERCEPTION_TOOL);
+        }
         return Ok(names.len() as u32);
     };
 
@@ -123,7 +143,11 @@ pub async fn get_tool_count(
         let mut domains = HashSet::new();
         domains.insert(ToolDomain::General);
         let chat_tools = registry.get_chat_tools_for_domains(&domains, None);
-        let names: HashSet<String> = chat_tools.iter().map(|t| t.function.name.clone()).collect();
+        let mut names: HashSet<String> =
+            chat_tools.iter().map(|t| t.function.name.clone()).collect();
+        if screen_perception_tool_hidden(&state).await {
+            names.remove(SCREEN_PERCEPTION_TOOL);
+        }
         return Ok(names.len() as u32);
     };
 
@@ -155,8 +179,19 @@ pub async fn get_tool_count(
     // 原顺序（先 remove 黑名单、再 insert 推荐）会让「同时出现在 recommended_tools
     // 里的禁用工具」被重新注回，等于绕过 profile 禁用策略。此处与 `agent_query`
     // 保持严格一致的筛选顺序（禁区 12：禁止语义漂移）。
+    //
+    // 豁免 `DISCLOSURE_TOOLS`：与 `apply_tool_policy` 共用 `is_disclosure_immune` 判定。
+    // 两侧必须一致——若这里算掉而 LLM 列表里仍在，UI 计数就会与实际工具数对不上。
     for name in &ctx.disallowed_tools {
-        names.remove(name);
+        if !is_disclosure_immune(name) {
+            names.remove(name);
+        }
+    }
+
+    // 屏幕感知门控（可见性侧）：与 `agent_query` 策略块同步。放在**最后一道**，
+    // 确保 recommended 追加之后不会把该工具又算回来。
+    if screen_perception_tool_hidden(&state).await {
+        names.remove(SCREEN_PERCEPTION_TOOL);
     }
 
     Ok(names.len() as u32)

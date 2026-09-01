@@ -423,6 +423,39 @@ pub const DISCLOSURE_TOOLS: [&str; 7] = [
     "CapabilityBrowse",
 ];
 
+/// 屏幕感知能力的承载工具名（`settings.screen_perception_enabled` 的落点）。
+///
+/// **两个消费点必须共用本常量**（禁区 12：禁止重复字面量）：
+/// - 可见性侧：`commands/agent/mod.rs` 工具策略块把它并入 blocked，使 schema 不下发 LLM
+/// - 执行期侧：同文件 `tool_registry.tools.disable(SCREEN_PERCEPTION_TOOL)`
+///
+/// 两侧缺一不可 —— 只做执行期会让 LLM「看得到却调不动」（每次调用都注定失败），
+/// 只做可见性则挡不住手工构造的调用。
+///
+/// 常量与真实注册名的一致性由测试 `screen_perception_tool_matches_registered_name` 锁定：
+/// 若有人改了 `ComputerUseTool::name()` 而漏改此常量，该测试会红。
+pub const SCREEN_PERCEPTION_TOOL: &str = "ComputerUse";
+
+/// 判断工具名是否对 **profile 黑名单**（`AgentProfile.disallowed_tools`）免疫。
+///
+/// **为什么需要豁免**：`DISCLOSURE_TOOLS` 是编排器「发现能力 / 展开定义」的唯一入口。
+/// 它们被某个 profile 静默禁用后，外在表现是「编排器发现不了任何能力」，且极难归因到
+/// 「原来是某个 profile 的配置」——故障现象与根因相隔两层。故让它们对 profile 黑名单
+/// 免疫，把这类元工具的可见性从普通配置中摘出来。
+///
+/// **免疫不等于无约束**：① registry 层的 `disable()`（用户在设置里关掉）照常生效，
+/// 不在此豁免范围；② 执行期安全由 registry 的 `blocked_tools`（`tools.rs` 中拦截）
+/// 与各工具自身的权限模型兜底，可见性过滤从来不是安全边界。
+///
+/// **两侧必须共用本函数**（禁区 12：禁止语义漂移）：
+/// - `commands/agent/mod.rs` 的 `apply_tool_policy` —— 构造真正发给 LLM 的工具列表
+/// - `commands/local_tool.rs` 的 `get_tool_count` —— UI 展示的可用工具数
+///
+/// 若只在前者豁免，会出现「工具在列表里但计数不计」；只在后者豁免则相反。
+pub fn is_disclosure_immune(name: &str) -> bool {
+    DISCLOSURE_TOOLS.contains(&name)
+}
+
 /// 完整的统一工具注册表
 pub struct UnifiedToolRegistry {
     /// Tool trait 实现的工具（原生 + 已迁移旧工具）
@@ -530,6 +563,15 @@ impl UnifiedToolRegistry {
     /// 配置安全沙箱
     pub fn configure_sandbox(&mut self, config: crate::SandboxConfig) {
         self.sandbox = Arc::new(crate::AccessPolicyValidator::new(config));
+    }
+
+    /// 临时禁用单个工具（仅内存，不持久化到 DB）。
+    ///
+    /// 与 `toggle_tool`（UI 设置持久化）不同，本方法用于子代理等临时场景：
+    /// 工具名单隔离、防递归等，注册表实例销毁后状态即消失。
+    pub fn disable_tool(&mut self, name: &str) {
+        self.groups.disabled_tools.insert(name.to_string());
+        self.tools.disable(name);
     }
 
     /// 将 UnifiedToolRegistry 的 disabled_tools 同步到内层 ToolRegistry
@@ -2063,6 +2105,75 @@ mod tests {
             );
             assert!(!names.contains(name), "测试：按名放行不得泄露危险写操作工具 {}", name);
         }
+    }
+
+    /// `is_disclosure_immune` 必须与 `DISCLOSURE_TOOLS` 名单严格一致。
+    ///
+    /// 两个方向都要锁：名单里的每个工具都要免疫（漏一个就留下「能力发现闭环被
+    /// profile 静默掐断」的隐患），名单外的工具不能免疫（否则豁免范围外溢，
+    /// profile 的 `disallowed_tools` 会对普通工具失效）。
+    #[test]
+    fn is_disclosure_immune_matches_whitelist_exactly() {
+        for name in DISCLOSURE_TOOLS {
+            assert!(
+                is_disclosure_immune(name),
+                "测试：披露工具 {} 必须对 profile 黑名单免疫",
+                name
+            );
+        }
+        for name in ["Bash", "FileWrite", "FileEdit", "DeleteFile", "Agent", "ShellExec"] {
+            assert!(
+                !is_disclosure_immune(name),
+                "测试：普通工具 {} 不得享受黑名单豁免，否则 profile 禁用策略失效",
+                name
+            );
+        }
+        assert!(!is_disclosure_immune(""));
+        // 大小写敏感：名单一律 PascalCase，避免误豁免
+        assert!(!is_disclosure_immune("capabilityview"));
+    }
+
+    /// `SCREEN_PERCEPTION_TOOL` **不得**落在 `DISCLOSURE_TOOLS` 豁免名单里。
+    ///
+    /// 两个名单若发生交集，屏幕感知的黑名单门控会被「披露工具免疫」逻辑吃掉，
+    /// 形成「用户在设置里关掉屏幕感知、工具却照样下发给 LLM」的**静默失效**——
+    /// 而且两侧代码各自看起来都正确。这条断言守住两个名单的互斥边界。
+    #[test]
+    fn screen_perception_tool_is_not_disclosure_immune() {
+        assert!(
+            !is_disclosure_immune(SCREEN_PERCEPTION_TOOL),
+            "测试：{} 不得享受披露工具豁免，否则屏幕感知门控会被免疫逻辑绕过",
+            SCREEN_PERCEPTION_TOOL
+        );
+        // 顺带锁定披露名单本身不含大小写变体（避免将来加名单时手滑）
+        for name in DISCLOSURE_TOOLS {
+            assert!(
+                name.chars().next().is_some_and(char::is_uppercase),
+                "测试：披露工具名 {} 应为 PascalCase",
+                name
+            );
+        }
+    }
+
+    /// `SCREEN_PERCEPTION_TOOL` 常量必须与真实注册的工具名一致。
+    ///
+    /// 该常量在两处被消费（可见性过滤 + 执行期 disable）。若有人改了
+    /// `ComputerUseTool::name()` 而漏改常量，两道门控会**静默失效** —— 工具照常暴露给
+    /// LLM，而故障现象（屏幕感知关不掉）很难归因到「常量对不上」。本测试把这条
+    /// 一致性从人肉约定变成可执行断言。
+    #[test]
+    fn screen_perception_tool_matches_registered_name() {
+        let registry = UnifiedToolRegistry::new();
+        let tools = registry.get_chat_tools_by_names([SCREEN_PERCEPTION_TOOL]);
+        assert_eq!(
+            tools.len(),
+            1,
+            "测试：常量 SCREEN_PERCEPTION_TOOL({}) 应取到唯一一个已注册工具，实际 {} 个。\
+             若工具已改名，请同步更新该常量与其两处消费点",
+            SCREEN_PERCEPTION_TOOL,
+            tools.len()
+        );
+        assert_eq!(tools[0].function.name, SCREEN_PERCEPTION_TOOL);
     }
 }
 

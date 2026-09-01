@@ -10,7 +10,6 @@ pub mod capability_gap;
 pub mod compact;
 pub mod conversation;
 pub mod execution_progress;
-pub mod fork_bridge;
 pub mod hooks;
 pub mod permission_enforcer;
 pub mod permissions;
