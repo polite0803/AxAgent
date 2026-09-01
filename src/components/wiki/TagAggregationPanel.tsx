@@ -48,6 +48,8 @@ function extractTagsFromFrontmatter(content: string): string[] {
   return tags;
 }
 
+// 提取笔记标签（frontmatter tags + 正文 #标签）。文件底部统一导出，
+// 供列表按标签过滤复用，保证标签云统计与过滤行为一致（禁止重复定义）。
 function extractTagsFromContent(content: string): string[] {
   const tags: string[] = [];
   const fmTags = extractTagsFromFrontmatter(content);

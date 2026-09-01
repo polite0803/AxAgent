@@ -44,6 +44,9 @@ pub trait MemorySource: Send + Sync {
 pub trait WikiSource: Send + Sync {
     async fn get_wiki(&self, id: &str) -> Result<Wiki>;
     async fn get_note_backlinks_by_vault(&self, vault_id: &str) -> Result<Vec<NoteLink>>;
+    /// 批量查询笔记标题（R7：wiki 检索命中项的 citation document_name 回填）。
+    /// 返回 note_id → title 映射；查不到的 id 不出现在结果中。
+    async fn get_note_titles(&self, note_ids: &[String]) -> Result<HashMap<String, String>>;
 }
 
 /// 系统设置的访问入口。

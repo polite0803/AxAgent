@@ -7767,6 +7767,8 @@
       "importError": "Import failed",
       "ingestError": "Import failed",
       "ingestSuccess": "Imported successfully",
+      "indexingProgress": "Indexing {{indexed}}/{{total}}",
+      "stageIngest": "Ingesting content and generating notes…",
       "previewError": "Preview failed",
       "uploadError": "Upload failed",
       "failedCount": "{{count}} failed",

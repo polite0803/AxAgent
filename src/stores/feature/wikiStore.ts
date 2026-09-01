@@ -28,6 +28,8 @@ interface WikiState {
 
   setSelectedVaultId: (vaultId: string | null) => void;
   loadNotes: (vaultId: string) => Promise<void>;
+  /** F7：后端侧变更（ingest / 导入）后按需刷新 notes；仅当该 wiki 正是当前选中 vault 时重拉 */
+  refreshNotes: (wikiId: string) => Promise<void>;
   getNote: (id: string) => Promise<Note | null>;
   getNoteByPath: (vaultId: string, filePath: string) => Promise<Note | null>;
   createNote: (input: CreateNoteInput) => Promise<Note | null>;
@@ -79,7 +81,7 @@ interface WikiState {
   exportNoteHtml: (noteId: string, outputPath: string) => Promise<string | null>;
 }
 
-export const useWikiStore = create<WikiState>((set) => ({
+export const useWikiStore = create<WikiState>((set, get) => ({
   notes: [],
   selectedNoteId: null,
   selectedVaultId: null,
@@ -103,6 +105,14 @@ export const useWikiStore = create<WikiState>((set) => ({
       set({ notes, loading: false });
     } catch (e) {
       set({ error: translateBackendError(e), loading: false });
+    }
+  },
+
+  // F7：ingest / 导入等后端侧变更后刷新列表。只在该 wiki 正是当前选中 vault 时重拉，
+  // 否则当前视图根本不展示它，下次 setSelectedVaultId 切换会清空重拉，无需预刷新。
+  refreshNotes: async (wikiId) => {
+    if (get().selectedVaultId === wikiId) {
+      await get().loadNotes(wikiId);
     }
   },
 
@@ -322,6 +332,8 @@ export const useWikiStore = create<WikiState>((set) => ({
         vaultPath,
       });
       set({ error: null });
+      // F7：导入写入后端后刷新当前视图的笔记列表
+      await get().refreshNotes(wikiId);
       return stats;
     } catch (e) {
       set({ error: translateBackendError(e) });
@@ -336,6 +348,8 @@ export const useWikiStore = create<WikiState>((set) => ({
         filePath: filePath ?? null,
       });
       set({ error: null });
+      // F7：导入写入后端后刷新当前视图的笔记列表
+      await get().refreshNotes(wikiId);
       return stats;
     } catch (e) {
       set({ error: translateBackendError(e) });

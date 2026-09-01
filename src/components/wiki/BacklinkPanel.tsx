@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { highlightWikilink } from "@/components/wiki/wikilinkHighlight";
 import { useWikiStore } from "@/stores/feature/wikiStore";
 import type { BacklinkInfo } from "@/types";
 import { Empty, Spin, theme, Typography } from "antd";
@@ -12,37 +13,6 @@ const { Text, Paragraph } = Typography;
 interface BacklinkPanelProps {
   noteId: string;
   onNavigateToNote: (noteId: string) => void;
-}
-
-function highlightWikilink(snippet: string, linkText: string, token: ReturnType<typeof theme.useToken>["token"]) {
-  const linkPattern = `[[${linkText}]]`;
-  const parts = snippet.split(linkPattern);
-  if (parts.length === 1) {
-    return <span>{snippet}</span>;
-  }
-
-  return (
-    <span>
-      {parts.map((part, i) => (
-        // 静态文本分割列表，基于索引的 key 安全
-        <span key={i}>
-          {part}
-          {i < parts.length - 1 && (
-            <Text
-              strong
-              style={{
-                backgroundColor: `${token.colorPrimary}1F`,
-                borderRadius: 3,
-                padding: "0 2px",
-              }}
-            >
-              {linkPattern}
-            </Text>
-          )}
-        </span>
-      ))}
-    </span>
-  );
 }
 
 export function BacklinkPanel({

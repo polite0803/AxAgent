@@ -295,6 +295,34 @@ pub async fn mark_job_failed(db: &DatabaseConnection, id: &str, error: &str) -> 
     Ok(model_to_job(updated))
 }
 
+/// 标记任务为终态失败且不重试。
+///
+/// 用于确定性配置错误（如 embedding provider 未配置，R9）：这类错误重试
+/// max_retries 次结果必然相同，直接进入 failed 终态避免指数退避空转。
+pub async fn mark_job_failed_no_retry(
+    db: &DatabaseConnection,
+    id: &str,
+    error: &str,
+) -> Result<IndexJob> {
+    let model = index_jobs::Entity::find_by_id(id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AxAgentError::NotFound(format!("IndexJob {}", id)))?;
+
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0);
+
+    let mut am: index_jobs::ActiveModel = model.into();
+    am.status = Set(INDEX_JOB_STATUS_FAILED.to_string());
+    am.completed_at = Set(Some(now));
+    am.current_stage = Set(None);
+    am.error_message = Set(Some(error.to_string()));
+    let updated = am.update(db).await?;
+    Ok(model_to_job(updated))
+}
+
 pub async fn reset_job_for_retry(db: &DatabaseConnection, id: &str) -> Result<()> {
     let model = index_jobs::Entity::find_by_id(id)
         .one(db)

@@ -359,6 +359,7 @@ pub async fn generate_research_report(
 #[agent_command(domain = research, safety = Caution, call_mode = StateInput, description = "多轮深度研究，通过Web搜索和差距分析进行调研")]
 #[tauri::command]
 pub async fn deep_research_topic(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
     topic: String,
     provider_id: Option<String>,
@@ -443,6 +444,20 @@ pub async fn deep_research_topic(
         .research("_deep_research", &topic, None, llm_adapter, llm_ctx, llm_model.as_deref())
         .await
         .map_err(|e| format!("深度研究失败: {}", e))?;
+
+    // R2 修复：研究生成的 wiki 页面补入 RAG 索引（此前只落库不入索引）
+    if !result.pages_created.is_empty() {
+        crate::indexing::spawn_wiki_note_batch_indexing(crate::indexing::WikiBatchIndexingTask {
+            app,
+            db: state.harness.db().clone(),
+            master_key: state.harness.master_key_owned(),
+            vector_store: state.vector_store.clone(),
+            wiki_id: "_deep_research".to_string(),
+            note_ids: result.pages_created.clone(),
+            log_label: "deep_research.indexing",
+            completion_event: None,
+        });
+    }
 
     // 7. 序列化返回
     let json = serde_json::to_value(&result).map_err(|e| format!("序列化结果失败: {}", e))?;

@@ -7764,6 +7764,8 @@
       "fileUploaded": "تم رفع الملف",
       "ingestError": "فشل الاستيراد",
       "ingestSuccess": "تم الاستيراد بنجاح",
+      "indexingProgress": "جارٍ الفهرسة {{indexed}}/{{total}}",
+      "stageIngest": "جارٍ استيعاب المحتوى وإنشاء الملاحظات…",
       "uploadError": "فشل الرفع",
       "importError": "فشل الاستيراد",
       "previewError": "فشل المعاينة",

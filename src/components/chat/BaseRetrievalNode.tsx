@@ -8,6 +8,7 @@
  */
 
 import { CITE_JUMP_EVENT, CiteItemsContext } from "@/components/chat/citeContext";
+import { translateBackendError } from "@/lib/errorI18n";
 import { invoke } from "@/lib/invoke";
 import type { MemoryRetrievedItem, MemorySourceResult } from "@/lib/memoryUtils";
 import { App, theme } from "antd";
@@ -147,7 +148,7 @@ export function createRetrievalNode(config: RetrievalNodeConfig) {
             );
           }
         } catch (e) {
-          messageApi.error(String(e));
+          messageApi.error(translateBackendError(e));
         } finally {
           setSubmittingKeys((prev) => {
             const next = new Set(prev);

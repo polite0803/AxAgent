@@ -63,89 +63,84 @@ export function WikiFilePanel({
     return keys;
   }, []);
 
-  // 按路径构建树形结构
+  // 按目录路径构建树形结构（F5：原骨架构建 / 笔记填充 / 二次重建三段重复逻辑收敛为 dirMap + 递归构建，
+  // 并修复单层目录笔记（如 docs/note.md）被遗漏的 bug）
   const treeData = useMemo(() => {
     if (!notes || notes.length === 0) {
       return [];
     }
 
-    const root: Record<
-      string,
-      { name: string; children: Record<string, unknown>; notes: Note[] }
-    > = {};
-
+    // 目录完整路径 → 直接位于该目录的笔记（根目录路径为 ""）
+    const dirMap = new Map<string, Note[]>();
     notes.forEach((note) => {
       const parts = note.filePath.split("/").filter(Boolean);
-      let current = root;
-      for (let i = 0; i < parts.length - 1; i++) {
-        const part = parts[i];
-        if (!current[part]) {
-          current[part] = { name: part, children: {}, notes: [] };
-        }
-        current = current[part].children as typeof root;
+      const dirPath = parts.slice(0, -1).join("/");
+      const bucket = dirMap.get(dirPath);
+      if (bucket) {
+        bucket.push(note);
+      } else {
+        dirMap.set(dirPath, [note]);
       }
     });
 
-    notes.forEach((note) => {
-      const parts = note.filePath.split("/").filter(Boolean);
-      let current = root;
-      for (let i = 0; i < parts.length - 1; i++) {
-        current = current[parts[i]].children as typeof root;
-      }
-      const lastDir = parts.length > 1 ? parts[parts.length - 2] : null;
-      if (lastDir && current[lastDir]) {
-        current[lastDir].notes.push(note);
-      }
+    const renderNoteNode = (note: Note) => ({
+      key: note.id,
+      title: (
+        <div className="flex items-center gap-1">
+          <FileText size={11} />
+          <span className="truncate text-sm">{note.title}</span>
+          {note.author === "llm" && (
+            <span
+              className="text-[9px] px-1 py-px rounded-full font-medium"
+              style={{
+                backgroundColor: `${token.colorPrimary}18`,
+                color: token.colorPrimary,
+              }}
+            >
+              AI
+            </span>
+          )}
+        </div>
+      ),
+      isLeaf: true,
+      selectable: true,
     });
 
-    const buildTreeNode = (dirs: typeof root, depth: number): DataNode[] => {
-      return Object.entries(dirs).map(([key, val]) => ({
-        key: `dir:${key}`,
-        title: (
-          <Space size={4}>
-            <FolderTree size={12} style={{ color: token.colorWarning }} />
-            <Text style={{ fontSize: 13 }}>{key}</Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              ({val.notes.length})
-            </Text>
-          </Space>
-        ),
-        selectable: false,
-        children: [
-          ...buildTreeNode(val.children as typeof root, depth + 1),
-          ...val.notes.map((note) => ({
-            key: note.id,
-            title: (
-              <div className="flex items-center gap-1">
-                <FileText size={11} />
-                <span className="truncate text-sm">{note.title}</span>
-                {note.author === "llm" && (
-                  <span
-                    className="text-[9px] px-1 py-px rounded-full font-medium"
-                    style={{
-                      backgroundColor: `${token.colorPrimary}18`,
-                      color: token.colorPrimary,
-                    }}
-                  >
-                    AI
-                  </span>
-                )}
-              </div>
-            ),
-            isLeaf: true,
-            selectable: true,
-          })),
-        ],
-      }));
+    // 递归构建目录节点：key 用完整目录路径，避免不同父目录下同名子目录 key 冲突
+    const buildDirNodes = (parent: string): DataNode[] => {
+      const prefix = parent === "" ? "" : `${parent}/`;
+      const childDirs = [...dirMap.keys()]
+        .filter(
+          (d) =>
+            d !== ""
+            && d.startsWith(prefix)
+            && !d.slice(prefix.length).includes("/"),
+        )
+        .sort();
+      return childDirs.map((dirPath) => {
+        const dirNotes = dirMap.get(dirPath) ?? [];
+        return {
+          key: `dir:${dirPath}`,
+          title: (
+            <Space size={4}>
+              <FolderTree size={12} style={{ color: token.colorWarning }} />
+              <Text style={{ fontSize: 13 }}>{dirPath.slice(prefix.length)}</Text>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                ({dirNotes.length})
+              </Text>
+            </Space>
+          ),
+          selectable: false,
+          children: [
+            ...buildDirNodes(dirPath),
+            ...dirNotes.map(renderNoteNode),
+          ],
+        };
+      });
     };
 
-    // 收集根目录的直接笔记
-    const rootNotes = notes.filter(
-      (n) =>
-        !n.filePath.includes("/")
-        || n.filePath.split("/").filter(Boolean).length === 1,
-    );
-
+    // 根目录直接笔记收纳在 "/" 节点下
+    const rootNotes = dirMap.get("") ?? [];
     return [
       ...(rootNotes.length > 0
         ? [
@@ -161,46 +156,11 @@ export function WikiFilePanel({
               </Space>
             ),
             selectable: false,
-            children: rootNotes.map((note) => ({
-              key: note.id,
-              title: (
-                <div className="flex items-center gap-1">
-                  <FileText size={11} />
-                  <span className="truncate text-sm">{note.title}</span>
-                </div>
-              ),
-              isLeaf: true,
-            })),
+            children: rootNotes.map(renderNoteNode),
           },
         ]
         : []),
-      ...buildTreeNode(
-        (() => {
-          const dirs: typeof root = {};
-          notes.forEach((note) => {
-            const parts = note.filePath.split("/").filter(Boolean);
-            if (parts.length <= 1) {
-              return;
-            }
-            const dirName = parts[0];
-            if (!dirs[dirName]) {
-              dirs[dirName] = { name: dirName, children: {}, notes: [] };
-            }
-            // Recurse for nested dirs
-            let current = root;
-            for (let i = 0; i < parts.length - 1; i++) {
-              const p = parts[i];
-              if (!current[p]) {
-                current[p] = { name: p, children: {}, notes: [] };
-              }
-              current = current[p].children as typeof root;
-            }
-            current[parts[parts.length - 2]]?.notes.push(note);
-          });
-          return dirs;
-        })(),
-        0,
-      ),
+      ...buildDirNodes(""),
     ];
   }, [notes, token]);
 

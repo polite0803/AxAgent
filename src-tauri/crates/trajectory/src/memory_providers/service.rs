@@ -714,41 +714,47 @@ impl MemoryService {
 
     // ── Dedup & Merge ────────────────────────────────────────────────────────
 
+    /// 字符级 bigram Jaccard 相似度。
+    /// 词级 split_whitespace 对中文无效（中文无空格分词，整句会退化成单个"词"），
+    /// 统一使用字符 2-gram：中英文都能工作，与 `add_memory_with_dedup` 的既有逻辑一致。
+    fn bigram_jaccard(a: &str, b: &str) -> f64 {
+        let bigrams = |s: &str| -> std::collections::HashSet<String> {
+            s.to_lowercase()
+                .chars()
+                .collect::<Vec<char>>()
+                .windows(2)
+                .map(|w| w.iter().collect())
+                .collect()
+        };
+        let a_set = bigrams(a);
+        let b_set = bigrams(b);
+        if a_set.is_empty() || b_set.is_empty() {
+            return 0.0;
+        }
+        let intersection = a_set.intersection(&b_set).count();
+        let union = a_set.union(&b_set).count();
+        if union > 0 {
+            intersection as f64 / union as f64
+        } else {
+            0.0
+        }
+    }
+
     async fn check_dedup(&self, content: &str) -> Option<MemoryActionResult> {
         let mem = self.working_memory.read().await;
 
-        let content_lower = content.to_lowercase();
-        let content_words: Vec<&str> =
-            content_lower.split_whitespace().filter(|w| w.len() > 2).collect();
-
-        if content_words.is_empty() {
-            return None;
-        }
-
         for entry in mem.entries.values() {
-            let entry_lower = entry.content.to_lowercase();
-            let entry_words: Vec<&str> =
-                entry_lower.split_whitespace().filter(|w| w.len() > 2).collect();
-
-            if entry_words.is_empty() {
-                continue;
-            }
-
-            let intersection = content_words.iter().filter(|w| entry_words.contains(w)).count();
-            let union = content_words.len() + entry_words.len() - intersection;
-            let similarity = if union > 0 {
-                intersection as f64 / union as f64
-            } else {
-                0.0
-            };
+            let similarity = Self::bigram_jaccard(content, &entry.content);
 
             if similarity >= self.config.dedup_similarity_threshold {
+                // 按字符截断，避免切在 UTF-8 字符边界上导致 panic
+                let preview: String = entry.content.chars().take(50).collect();
                 return Some(MemoryActionResult {
                     success: false,
                     message: format!(
                         "检测到相似记忆（相似度 {:.0}%），已跳过重复添加: \"{}\"",
                         similarity * 100.0,
-                        &entry.content[..entry.content.len().min(50)]
+                        preview
                     ),
                     new_usage: None,
                 });
@@ -761,45 +767,23 @@ impl MemoryService {
     pub async fn add_memory_with_dedup(&self, target: &str, content: &str) -> MemoryActionResult {
         let mem = self.working_memory.read().await;
 
-        let content_chars: Vec<char> = content.to_lowercase().chars().collect();
-        let content_bigrams: std::collections::HashSet<String> =
-            content_chars.windows(2).map(|w| w.iter().collect::<String>()).collect();
-
         let mut best_match: Option<(String, f64, String)> = None;
 
-        if !content_bigrams.is_empty() {
-            for entry in mem.entries.values() {
-                if entry.memory_type != target {
-                    continue;
-                }
-                let entry_chars: Vec<char> = entry.content.to_lowercase().chars().collect();
-                let entry_bigrams: std::collections::HashSet<String> =
-                    entry_chars.windows(2).map(|w| w.iter().collect::<String>()).collect();
+        for entry in mem.entries.values() {
+            if entry.memory_type != target {
+                continue;
+            }
 
-                if entry_bigrams.is_empty() {
-                    continue;
-                }
-
-                let intersection = content_bigrams.intersection(&entry_bigrams).count();
-                let union = content_bigrams.union(&entry_bigrams).count();
-                let similarity = if union > 0 {
-                    intersection as f64 / union as f64
-                } else {
-                    0.0
-                };
-
-                if similarity >= self.config.dedup_similarity_threshold {
-                    match &best_match {
-                        Some((_, best_sim, _)) if similarity > *best_sim => {
-                            best_match =
-                                Some((entry.id.clone(), similarity, entry.content.clone()));
-                        },
-                        None => {
-                            best_match =
-                                Some((entry.id.clone(), similarity, entry.content.clone()));
-                        },
-                        _ => {},
-                    }
+            let similarity = Self::bigram_jaccard(content, &entry.content);
+            if similarity >= self.config.dedup_similarity_threshold {
+                match &best_match {
+                    Some((_, best_sim, _)) if similarity > *best_sim => {
+                        best_match = Some((entry.id.clone(), similarity, entry.content.clone()));
+                    },
+                    None => {
+                        best_match = Some((entry.id.clone(), similarity, entry.content.clone()));
+                    },
+                    _ => {},
                 }
             }
         }
@@ -832,6 +816,21 @@ impl MemoryService {
         format!("{}; {}", existing, new)
     }
 
+    /// 估算 LLM token 数：ASCII 按 4 字符 ≈ 1 token，非 ASCII（中文等）按 1 字符 ≈ 1 token。
+    /// 旧实现 content.len()/4 按字节数计，UTF-8 中文 3 字节/字，估算随中文占比失真。
+    fn estimate_tokens(s: &str) -> usize {
+        let mut ascii = 0usize;
+        let mut non_ascii = 0usize;
+        for c in s.chars() {
+            if c.is_ascii() {
+                ascii += 1;
+            } else {
+                non_ascii += 1;
+            }
+        }
+        ascii / 4 + non_ascii
+    }
+
     // ── Retrieval & Prompt Formatting ────────────────────────────────────────
 
     pub async fn get_memory_usage(&self) -> MemoryUsage {
@@ -845,7 +844,8 @@ impl MemoryService {
         let memory_count = mem.entries.values().filter(|e| e.memory_type == "memory").count();
         let user_count = mem.entries.values().filter(|e| e.memory_type == "user").count();
 
-        let total_tokens: usize = mem.entries.values().map(|e| e.content.len() / 4).sum();
+        let total_tokens: usize =
+            mem.entries.values().map(|e| Self::estimate_tokens(&e.content)).sum();
 
         MemoryUsage { memory_count, user_count, total_tokens, tier_counts }
     }
@@ -877,7 +877,7 @@ impl MemoryService {
                 continue;
             }
 
-            if token_count + entry.content.len() / 4 > self.config.token_limit {
+            if token_count + Self::estimate_tokens(&entry.content) > self.config.token_limit {
                 break;
             }
 
@@ -911,7 +911,7 @@ impl MemoryService {
                 }
             };
             sections.push(format!("- {}{}{}", entry.content, nature_tag, time_age));
-            token_count += entry.content.len() / 4;
+            token_count += Self::estimate_tokens(&entry.content);
         }
         drop(mem);
 
@@ -922,31 +922,31 @@ impl MemoryService {
                 .take(15)
                 .collect();
             if !top_entities.is_empty() && token_count < self.config.token_limit {
+                // 一次性拉全量关系 + 实体 id→名称映射，避免逐实体的 N+1 查询
+                let all_rels = self.storage.get_all_relationships().await.unwrap_or_default();
+                let name_by_id: HashMap<&str, &str> =
+                    entities.iter().map(|e| (e.id.as_str(), e.name.as_str())).collect();
                 sections.push(String::new());
                 sections.push("## Known Entities\n".to_string());
                 for entity in top_entities {
                     if token_count >= self.config.token_limit {
                         break;
                     }
-                    let rels = self
-                        .storage
-                        .get_relationships_by_entity(&entity.id)
-                        .await
-                        .unwrap_or_default();
-                    let rel_summary: Vec<String> = {
-                        let mut buf = Vec::new();
-                        for r in rels.iter().take(3) {
+                    let rel_summary: Vec<String> = all_rels
+                        .iter()
+                        .filter(|r| r.source_id == entity.id || r.target_id == entity.id)
+                        .take(3)
+                        .filter_map(|r| {
                             let other_id = if r.source_id == entity.id {
                                 &r.target_id
                             } else {
                                 &r.source_id
                             };
-                            if let Ok(Some(e)) = self.storage.get_entity(other_id).await {
-                                buf.push(format!("{} {} {}", entity.name, r.relation_type, e.name));
-                            }
-                        }
-                        buf
-                    };
+                            name_by_id
+                                .get(other_id.as_str())
+                                .map(|n| format!("{} {} {}", entity.name, r.relation_type, n))
+                        })
+                        .collect();
                     if rel_summary.is_empty() {
                         sections.push(format!(
                             "- {} ({}: mentioned {}x)",
@@ -1218,11 +1218,25 @@ impl MemoryService {
         base_results
             .into_iter()
             .map(|entry| {
-                let entity_boost = entity_contents.len() as f64 * 0.05;
+                // graph_boost 必须按条目区分：仅当条目内容确实提到命中实体（名称或别名）时才加成，
+                // 幅度随实体 mention_count / confidence 增长并封顶。
+                // 旧实现 = 实体数×0.05，是每次查询的常数，对所有条目加同样的分，无排序区分度。
+                let content_lower = entry.content.to_lowercase();
+                let graph_boost: f64 = entities
+                    .iter()
+                    .filter(|e| {
+                        content_lower.contains(&e.name.to_lowercase())
+                            || e.aliases.iter().any(|a| {
+                                !a.trim().is_empty() && content_lower.contains(&a.to_lowercase())
+                            })
+                    })
+                    .map(|e| 0.1 + (e.mention_count.min(20) as f64) * 0.005 + e.confidence * 0.05)
+                    .sum::<f64>()
+                    .min(0.5);
                 GraphEnhancedResult {
                     entry,
                     related_entities: entity_contents.clone(),
-                    graph_boost: entity_boost,
+                    graph_boost,
                 }
             })
             .collect()
@@ -1237,63 +1251,81 @@ impl MemoryService {
         };
 
         let total = entities.len();
-        let mut merged = 0;
-        let mut processed = std::collections::HashSet::new();
 
+        // 并查集分组：同一「规范化名称/别名 + 实体类型」的实体归为一组。
+        // 复杂度 O(n·α) ≈ O(n)，替代旧实现的 O(n²) 全量两两对比。
+        let mut parent: Vec<usize> = (0..entities.len()).collect();
+        fn find(parent: &mut [usize], mut x: usize) -> usize {
+            while parent[x] != x {
+                parent[x] = parent[parent[x]]; // 路径压缩
+                x = parent[x];
+            }
+            x
+        }
+
+        let mut key_map: HashMap<String, usize> = HashMap::new();
+        for (i, e) in entities.iter().enumerate() {
+            let mut keys: Vec<String> = vec![e.name.to_lowercase().trim().to_string()];
+            keys.extend(e.aliases.iter().map(|a| a.to_lowercase().trim().to_string()));
+            for key in keys.into_iter().filter(|k| !k.is_empty()) {
+                // EntityType 未派生 Hash，用 Debug 字符串组成复合键
+                let group_key = format!("{}|{:?}", key, e.entity_type);
+                match key_map.get(&group_key) {
+                    Some(&j) => {
+                        let ri = find(&mut parent, i);
+                        let rj = find(&mut parent, j);
+                        if ri != rj {
+                            parent[ri] = rj;
+                        }
+                    },
+                    None => {
+                        key_map.insert(group_key, i);
+                    },
+                }
+            }
+        }
+
+        // 组内按 mention_count 选保留者
+        let mut groups: HashMap<usize, Vec<usize>> = HashMap::new();
         for i in 0..entities.len() {
-            if processed.contains(&entities[i].id) {
+            let root = find(&mut parent, i);
+            groups.entry(root).or_default().push(i);
+        }
+
+        let mut merged = 0;
+        for members in groups.into_values() {
+            if members.len() < 2 {
                 continue;
             }
-            for j in (i + 1)..entities.len() {
-                if processed.contains(&entities[j].id) {
+            let keep = members
+                .iter()
+                .copied()
+                .max_by_key(|&i| (entities[i].mention_count, i))
+                .expect("members 非空");
+            for &rm in &members {
+                if rm == keep {
                     continue;
                 }
-
-                let name_a = entities[i].name.to_lowercase().trim().to_string();
-                let name_b = entities[j].name.to_lowercase().trim().to_string();
-
-                let is_same = name_a == name_b
-                    || entities[i].aliases.iter().any(|a| a.to_lowercase() == name_b)
-                    || entities[j].aliases.iter().any(|a| a.to_lowercase() == name_a);
-
-                if is_same && entities[i].entity_type == entities[j].entity_type {
-                    let keep_id = if entities[i].mention_count >= entities[j].mention_count {
-                        &entities[i]
-                    } else {
-                        &entities[j]
-                    };
-                    let remove_id = if entities[i].mention_count >= entities[j].mention_count {
-                        &entities[j]
-                    } else {
-                        &entities[i]
-                    };
-
-                    if let Ok(rels) = self.storage.get_relationships_by_entity(&remove_id.id).await
-                    {
-                        for rel in &rels {
-                            let new_source = if rel.source_id == remove_id.id {
-                                keep_id.id.clone()
-                            } else {
-                                rel.source_id.clone()
-                            };
-                            let new_target = if rel.target_id == remove_id.id {
-                                keep_id.id.clone()
-                            } else {
-                                rel.target_id.clone()
-                            };
-
-                            let mut new_rel = rel.clone();
-                            new_rel.source_id = new_source;
-                            new_rel.target_id = new_target;
-                            new_rel.weight = (new_rel.weight + rel.weight) / 2.0;
-                            let _ = self.storage.save_relationship(&new_rel).await;
+                if let Ok(rels) = self.storage.get_relationships_by_entity(&entities[rm].id).await {
+                    for rel in &rels {
+                        let mut new_rel = rel.clone();
+                        if new_rel.source_id == entities[rm].id {
+                            new_rel.source_id = entities[keep].id.clone();
                         }
+                        if new_rel.target_id == entities[rm].id {
+                            new_rel.target_id = entities[keep].id.clone();
+                        }
+                        if new_rel.source_id == new_rel.target_id {
+                            // 合并后指向自身的自环关系直接删除
+                            let _ = self.storage.delete_relationship(&rel.id).await;
+                            continue;
+                        }
+                        let _ = self.storage.save_relationship(&new_rel).await;
                     }
-
-                    let _ = self.storage.delete_entity(&remove_id.id).await;
-                    processed.insert(remove_id.id.clone());
-                    merged += 1;
                 }
+
+                let _ = self.storage.delete_entity(&entities[rm].id).await;
+                merged += 1;
             }
         }
 

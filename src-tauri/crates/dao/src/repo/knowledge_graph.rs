@@ -808,9 +808,15 @@ fn merge_aliases(existing: &str, new_aliases: &[String]) -> String {
 /// 用于 LLM 抽取后的写入：对每个 [`ExtractedEntity`]，先按 (kb_id, name) 查询，
 /// 存在则 mention_count += 1 并合并 aliases；不存在则新建。
 /// 关系同理：按 (kb_id, source_entity_id, target_entity_id, relation_type) 去重。
+///
+/// `source_type` / `source_id` 落 v113 统一图谱字段，标识实体/关系的来源体系
+/// （如 KB 抽取传 `("knowledge_base", "")`，Wiki 抽取传 `("wiki", wiki_id)`），
+/// 避免 Wiki 实体被误标为 knowledge_base 而混入 KB 图谱。
 pub async fn batch_upsert_entities_and_relations(
     db: &DatabaseConnection,
     kb_id: &str,
+    source_type: &str,
+    source_id: &str,
     entities: Vec<axagent_harness::ExtractedEntity>,
     relations: Vec<axagent_harness::ExtractedRelation>,
 ) -> Result<axagent_harness::ExtractEntitiesResult> {
@@ -890,8 +896,8 @@ pub async fn batch_upsert_entities_and_relations(
                 confidence: Set(0.5),
                 first_seen_at: Set(None),
                 last_seen_at: Set(None),
-                source_type: Set(String::from("knowledge_base")),
-                source_id: Set(String::new()),
+                source_type: Set(source_type.to_string()),
+                source_id: Set(source_id.to_string()),
                 node_type: Set(String::from("entity")),
                 external_id: Set(None),
             };
@@ -904,7 +910,7 @@ pub async fn batch_upsert_entities_and_relations(
 
     // 2. 关系 upsert：按 (kb_id, source_entity_id, target_entity_id, relation_type) 去重
     for rel in relations {
-        let source_id = match name_to_id.get(&rel.source) {
+        let rel_source_id = match name_to_id.get(&rel.source) {
             Some(id) => id.clone(),
             None => continue,
         };
@@ -912,7 +918,7 @@ pub async fn batch_upsert_entities_and_relations(
             Some(id) => id.clone(),
             None => continue,
         };
-        if source_id == target_id {
+        if rel_source_id == target_id {
             continue;
         }
         // 查询是否已存在相同关系
@@ -920,7 +926,7 @@ pub async fn batch_upsert_entities_and_relations(
             .filter(
                 knowledge_relations::Column::KnowledgeBaseId
                     .eq(kb_id)
-                    .and(knowledge_relations::Column::SourceEntityId.eq(&source_id))
+                    .and(knowledge_relations::Column::SourceEntityId.eq(&rel_source_id))
                     .and(knowledge_relations::Column::TargetEntityId.eq(&target_id))
                     .and(knowledge_relations::Column::RelationType.eq(&rel.relation_type)),
             )
@@ -933,7 +939,7 @@ pub async fn batch_upsert_entities_and_relations(
         let am = knowledge_relations::ActiveModel {
             id: Set(rel_id.clone()),
             knowledge_base_id: Set(kb_id.to_string()),
-            source_entity_id: Set(source_id),
+            source_entity_id: Set(rel_source_id),
             target_entity_id: Set(target_id),
             relation_type: Set(rel.relation_type),
             description: Set(None),
@@ -942,8 +948,8 @@ pub async fn batch_upsert_entities_and_relations(
             created_at: Set(now),
             updated_at: Set(now),
             weight: Set(1.0),
-            source_type: Set(String::from("knowledge_base")),
-            source_id: Set(String::new()),
+            source_type: Set(source_type.to_string()),
+            source_id: Set(source_id.to_string()),
         };
         let model = am.insert(&txn).await?;
         new_relations.push(model_to_relation(model));

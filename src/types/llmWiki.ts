@@ -39,6 +39,8 @@ export interface IngestResult {
   sourceId: string;
   rawPath: string;
   title: string;
+  /** 后台批量索引的笔记总数，结合 wiki-note-indexed 事件计算真实进度 */
+  generatedNoteCount: number;
 }
 
 export interface QueryResult {

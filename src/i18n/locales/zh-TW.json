@@ -7764,6 +7764,8 @@
       "fileUploaded": "文件已上傳",
       "ingestError": "導入失敗",
       "ingestSuccess": "導入成功",
+      "indexingProgress": "索引中 {{indexed}}/{{total}}",
+      "stageIngest": "正在擷取內容並產生筆記…",
       "uploadError": "上傳失敗",
       "importError": "導入失敗",
       "previewError": "預覽失敗",

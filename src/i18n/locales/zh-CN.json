@@ -7767,6 +7767,8 @@
       "importError": "导入失败",
       "ingestError": "导入失败",
       "ingestSuccess": "导入成功",
+      "indexingProgress": "索引中 {{indexed}}/{{total}}",
+      "stageIngest": "正在摄取内容并生成笔记…",
       "previewError": "预览失败",
       "uploadError": "上传失败",
       "failedCount": "失败 {{count}}",

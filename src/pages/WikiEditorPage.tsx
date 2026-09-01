@@ -5,9 +5,10 @@ import { MonacoEditor } from "@/components/shared/MonacoEditor";
 import { BacklinkPanel } from "@/components/wiki/BacklinkPanel";
 import { LintReport } from "@/components/wiki/LintReport";
 import { OperationTimeline } from "@/components/wiki/OperationTimeline";
-import { TagAggregationPanel } from "@/components/wiki/TagAggregationPanel";
+import { extractTagsFromContent, TagAggregationPanel } from "@/components/wiki/TagAggregationPanel";
 import { VersionHistoryPanel } from "@/components/wiki/VersionHistoryPanel";
 import { WikiSidebar } from "@/components/wiki/WikiSidebar";
+import { useWikiAutoSave } from "@/hooks/useWikiAutoSave";
 import { showBackendError } from "@/lib/errorI18n";
 import { loadMonaco } from "@/lib/monaco";
 import { message } from "@/lib/toast";
@@ -35,7 +36,7 @@ import {
   PanelRightClose,
   PanelRightOpen,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
@@ -81,9 +82,16 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [lintOpen, setLintOpen] = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
-  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // F4: 标签聚合面板点击过滤（再点一次取消）
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const filteredNotes = useMemo(
+    () =>
+      activeTag
+        ? notes.filter((n) => extractTagsFromContent(n.content).includes(activeTag))
+        : notes,
+    [notes, activeTag],
+  );
   const lastSavedRef = useRef<string>("");
-
   const loadNote = useCallback(async () => {
     setLoading(true);
     const loaded = await getNote(noteId);
@@ -131,49 +139,13 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
     }
   }, [content, title, note, setHasChanges]);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-        e.preventDefault();
-        handleSave();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+  // Ctrl+S 立即保存 + 3 秒空闲自动保存（F5：共享 hook，与详情面板行为一致）
+  useWikiAutoSave({
+    content,
+    title,
+    autoSaveEnabled: hasChanges && !saving,
+    handleSave,
   });
-
-  const hasChangesRef = useRef(hasChanges);
-  const savingRef = useRef(saving);
-  const handleSaveRef = useRef(handleSave);
-
-  useEffect(() => {
-    hasChangesRef.current = hasChanges;
-  }, [hasChanges]);
-
-  useEffect(() => {
-    savingRef.current = saving;
-  }, [saving]);
-
-  useEffect(() => {
-    handleSaveRef.current = handleSave;
-  }, [handleSave]);
-
-  useEffect(() => {
-    if (!hasChangesRef.current || savingRef.current) {
-      return;
-    }
-    if (autoSaveTimerRef.current) {
-      clearTimeout(autoSaveTimerRef.current);
-    }
-    autoSaveTimerRef.current = setTimeout(() => {
-      handleSaveRef.current();
-    }, 3000);
-    return () => {
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current);
-      }
-    };
-  }, [content, title]);
 
   useEffect(() => {
     let disposed = false;
@@ -422,9 +394,14 @@ export function WikiEditorPage({ noteId, onBack }: WikiEditorPageProps) {
       <div className="flex-1 overflow-hidden flex">
         {leftSidebarOpen && (
           <div className="w-52 shrink-0 overflow-auto border-r" style={{ borderColor: token.colorBorderSecondary }}>
-            <TagAggregationPanel notes={notes} onTagClick={() => {}} activeTag={null} />
-            <WikiSidebar
+            <TagAggregationPanel
               notes={notes}
+              onTagClick={(tag) =>
+                setActiveTag((prev) => (prev === tag ? null : tag))}
+              activeTag={activeTag}
+            />
+            <WikiSidebar
+              notes={filteredNotes}
               selectedNoteId={noteId}
               onSelectNote={(id) => {
                 if (id !== noteId && note?.vaultId) {

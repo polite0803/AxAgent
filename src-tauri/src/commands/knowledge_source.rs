@@ -216,6 +216,10 @@ async fn upsert_note(
             axagent_dao::repo::note::update_note_from_pipeline(db, &existing.id, title, content)
                 .await
                 .map_err(err_str)?;
+        // R8: 抓取更新路径同步失效图谱缓存，避免图谱显示旧数据直到下次命令触发
+        if let Err(e) = axagent_dao::repo::wiki_graph_cache::invalidate_cache(db, vault_id).await {
+            tracing::warn!("[knowledge-source] 失效图谱缓存失败: {e}");
+        }
         enqueue_wiki_sync(db, vault_id, "note_updated", &updated.id);
         enqueue_index(state, app, db, vault_id, &updated.id);
         return Ok((updated.id, "updated".to_string()));
@@ -235,6 +239,11 @@ async fn upsert_note(
     )
     .await
     .map_err(err_str)?;
+
+    // R8: 新建笔记同样失效图谱缓存（与更新路径保持一致）
+    if let Err(e) = axagent_dao::repo::wiki_graph_cache::invalidate_cache(db, vault_id).await {
+        tracing::warn!("[knowledge-source] 失效图谱缓存失败: {e}");
+    }
 
     enqueue_wiki_sync(db, vault_id, "note_created", &note.id);
     enqueue_index(state, app, db, vault_id, &note.id);

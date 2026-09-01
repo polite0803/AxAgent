@@ -894,8 +894,116 @@ pub async fn index_wiki_note(
     )
     .await?;
 
+    // 先删除该笔记的全部旧向量，再写入新 chunk。
+    // 分块按 {note_id}_{chunkIndex} upsert，编辑后块数变少时旧高序号 chunk 会永久残留，
+    // 导致检索命中已删除内容 —— 必须在写入前整体清理（R1 修复）。
+    // 顺序放在 embedding 生成成功之后：失败时保留旧向量（任务会重试），避免笔记瞬间失去全部检索能力。
+    let collection = rag::collection_id("wiki", wiki_id);
+    let _ = vector_store.delete_document_embeddings(&collection, note_id).await;
+
     rag::index(vector_store, "wiki", wiki_id, note_id, content, embed_response.embeddings, chunks)
         .await
+}
+
+/// 后台批量索引任务参数（避免 8 参数函数触发 clippy::too_many_arguments）。
+pub struct WikiBatchIndexingTask {
+    pub app: tauri::AppHandle,
+    pub db: DatabaseConnection,
+    pub master_key: [u8; 32],
+    pub vector_store: std::sync::Arc<VectorStore>,
+    pub wiki_id: String,
+    pub note_ids: Vec<String>,
+    pub log_label: &'static str,
+    /// 传入时在全部索引完成后额外发一次完成事件（文件夹导入用），payload 含 wikiId/importedCount
+    pub completion_event: Option<&'static str>,
+}
+
+/// 后台批量索引 wiki 笔记：删旧向量 → index_source → 逐条 emit "wiki-note-indexed"。
+///
+/// 供 `llm_wiki_ingest` / `llm_wiki_import_folder` / `write_base64_to_file` /
+/// `deep_research_topic` 复用，保证所有 LLM 生成页与导入页都进入 RAG 索引（R2 修复）。
+/// wiki 未配置 embedding_provider 或查询失败时记录日志并跳过（与旧调用点行为一致）。
+pub fn spawn_wiki_note_batch_indexing(
+    WikiBatchIndexingTask {
+        app,
+        db,
+        master_key,
+        vector_store,
+        wiki_id,
+        note_ids,
+        log_label,
+        completion_event,
+    }: WikiBatchIndexingTask,
+) {
+    use tauri::Emitter;
+
+    if note_ids.is_empty() {
+        return;
+    }
+
+    tokio::spawn(crate::commands::spawn_guard::catch_unwind_logged(log_label, async move {
+        let wiki = match axagent_dao::repo::wiki::get_wiki(&db, &wiki_id).await {
+            Ok(w) => w,
+            Err(e) => {
+                tracing::warn!("[{log_label}] 获取 wiki {wiki_id} 失败，跳过索引: {e}");
+                return;
+            },
+        };
+        if wiki.embedding_provider.is_none() {
+            tracing::info!("[{log_label}] wiki {wiki_id} 未配置 embedding_provider，跳过索引");
+            return;
+        }
+        let container = rag::KnowledgeContainer::from_wiki(&wiki);
+        for note_id in &note_ids {
+            let note = match axagent_dao::repo::note::get_note(&db, note_id).await {
+                Ok(n) => n,
+                Err(e) => {
+                    tracing::warn!("[{log_label}] 获取笔记 {note_id} 失败，跳过索引: {e}");
+                    continue;
+                },
+            };
+            let collection = rag::collection_id("wiki", &wiki_id);
+            let _ = vector_store.delete_document_embeddings(&collection, note_id).await;
+
+            let index_result = index_source(
+                &db,
+                &master_key,
+                &vector_store,
+                &container,
+                note_id,
+                &note.content,
+                None,
+                None,
+            )
+            .await;
+
+            let (success, error_msg) = match &index_result {
+                Ok(_) => (true, None),
+                Err(e) => {
+                    tracing::error!("[{log_label}] wiki 笔记 {note_id} 索引失败: {e}");
+                    (false, Some(e.to_string()))
+                },
+            };
+            let _ = app.emit(
+                "wiki-note-indexed",
+                serde_json::json!({
+                    "noteId": note_id,
+                    "success": success,
+                    "error": error_msg,
+                }),
+            );
+        }
+
+        if let Some(event) = completion_event {
+            let _ = app.emit(
+                event,
+                serde_json::json!({
+                    "wikiId": wiki_id,
+                    "importedCount": note_ids.len(),
+                }),
+            );
+        }
+    }));
 }
 
 #[allow(clippy::too_many_arguments)]

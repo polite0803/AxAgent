@@ -128,15 +128,21 @@ impl RAGSource for WikiVaultRAG {
 }
 
 /// 当容器未显式配置 embedding_provider 时，回退到系统默认 provider。
+///
+/// 错误消息带 `ERR_NO_EMBEDDING_PROVIDER` 前缀：index_queue worker 据此把
+/// 这类确定性配置错误直接置为终态 failed，不做无意义的 max_retries 重试（R9）。
+pub const ERR_NO_EMBEDDING_PROVIDER: &str = "EMBEDDING_PROVIDER_NOT_CONFIGURED";
+
 async fn resolve_default_embedding_provider(_db: &DatabaseConnection) -> Result<String> {
     let settings = sources::settings()
         .get_settings()
         .await
         .map_err(|e| AxAgentError::Provider(format!("Failed to load settings: {}", e)))?;
     settings.default_provider_id.ok_or_else(|| {
-        AxAgentError::Provider(
-            "No embedding provider configured and no default provider found".to_string(),
-        )
+        AxAgentError::Provider(format!(
+            "{}: No embedding provider configured and no default provider found",
+            ERR_NO_EMBEDDING_PROVIDER
+        ))
     })
 }
 
@@ -393,9 +399,27 @@ pub async fn search_hybrid_with_filter<S: RAGSource + ?Sized>(
     options: HybridSearchOptions,
     doc_ids: Option<&[String]>,
 ) -> Result<Vec<HybridSearchResult>> {
-    let embedding_provider = source.resolve_embedding_provider(db, container_id).await?;
-    let cid = collection_id(source.collection_prefix(), container_id);
+    let embedding_provider = match source.resolve_embedding_provider(db, container_id).await {
+        Ok(p) => p,
+        // R9 遗留：embedding 未配置（容器与系统默认都没有）是确定性配置错误。
+        // 会话 RAG 兜底场景下此前直接 Err → 调用方跳过该源 → 用户"静默无结果"。
+        // 降级为纯 FTS（BM25）检索：主链路（已配置 provider）零影响，且至少能命中关键词。
+        Err(e) if e.to_string().contains(ERR_NO_EMBEDDING_PROVIDER) => {
+            tracing::warn!(
+                "[RAG] embedding 未配置，{} {} 降级为纯 FTS 检索: {}",
+                source.collection_prefix(),
+                container_id,
+                e
+            );
+            let cid = collection_id(source.collection_prefix(), container_id);
+            let searcher = HybridSearcher::new(db.clone());
+            let _ = searcher.ensure_fts5_index(&cid).await;
+            return searcher.fts_only_search_with_filter(&cid, query, options, doc_ids).await;
+        },
+        Err(e) => return Err(e),
+    };
 
+    let cid = collection_id(source.collection_prefix(), container_id);
     let embed_response = embed_fn
         .generate(db, master_key, &embedding_provider, vec![query.to_string()], dimensions)
         .await?;
@@ -1361,31 +1385,8 @@ async fn collect_rag_context_from_refs(
     // 填充 container_name（KB / memory namespace / wiki 名称）
     fill_container_names(db, &mut source_results).await;
 
-    // Batch-lookup document titles for knowledge sources
-    {
-        let kb_doc_ids: Vec<String> = source_results
-            .iter()
-            .filter(|s| s.source_type == "knowledge")
-            .flat_map(|s| s.items.iter().map(|it| it.document_id.clone()))
-            .collect::<std::collections::HashSet<_>>()
-            .into_iter()
-            .collect();
-
-        if !kb_doc_ids.is_empty() {
-            match sources::knowledge().get_document_titles(&kb_doc_ids).await {
-                Ok(titles) => {
-                    for src in source_results.iter_mut().filter(|s| s.source_type == "knowledge") {
-                        for item in &mut src.items {
-                            item.document_name = titles.get(&item.document_id).cloned();
-                        }
-                    }
-                },
-                Err(e) => {
-                    tracing::warn!("Failed to lookup document titles: {e}");
-                },
-            }
-        }
-    }
+    // 引用可读性：回填检索命中项的 document_name（knowledge 文档标题 + wiki 笔记标题）
+    fill_document_names(&mut source_results).await;
 
     let kg_context = collect_cross_source_graph_context(db, kb_ids, wiki_ids, query, top_k).await;
 
@@ -1461,6 +1462,61 @@ async fn fill_container_names(db: &DatabaseConnection, source_results: &mut [Rag
             },
         };
         src.container_name = name;
+    }
+}
+
+/// 引用可读性：批量回填检索命中项的 `document_name`（R7）。
+///
+/// knowledge 源回填 KB 文档标题；wiki 源此前恒为 `None`（前端 citation chip
+/// 只能显示裸 note_id），现同样批量回填笔记标题。两条检索管线
+/// （向量检索 / rag_pipeline）共用本函数，消除重复块。
+async fn fill_document_names(source_results: &mut [RagSourceResult]) {
+    // knowledge 源：KB 文档标题
+    let kb_doc_ids: Vec<String> = source_results
+        .iter()
+        .filter(|s| s.source_type == "knowledge")
+        .flat_map(|s| s.items.iter().map(|it| it.document_id.clone()))
+        .collect::<std::collections::HashSet<_>>()
+        .into_iter()
+        .collect();
+
+    if !kb_doc_ids.is_empty() {
+        match sources::knowledge().get_document_titles(&kb_doc_ids).await {
+            Ok(titles) => {
+                for src in source_results.iter_mut().filter(|s| s.source_type == "knowledge") {
+                    for item in &mut src.items {
+                        item.document_name = titles.get(&item.document_id).cloned();
+                    }
+                }
+            },
+            Err(e) => {
+                tracing::warn!("Failed to lookup document titles: {e}");
+            },
+        }
+    }
+
+    // wiki 源：笔记标题（document_id 即 note_id）
+    let wiki_note_ids: Vec<String> = source_results
+        .iter()
+        .filter(|s| s.source_type == "wiki")
+        .flat_map(|s| s.items.iter().map(|it| it.document_id.clone()))
+        .collect::<std::collections::HashSet<_>>()
+        .into_iter()
+        .collect();
+
+    if !wiki_note_ids.is_empty() {
+        match sources::wiki().get_note_titles(&wiki_note_ids).await {
+            Ok(titles) => {
+                for src in source_results.iter_mut().filter(|s| s.source_type == "wiki") {
+                    for item in &mut src.items {
+                        item.document_name = titles.get(&item.document_id).cloned();
+                    }
+                }
+            },
+            Err(e) => {
+                tracing::warn!("Failed to lookup wiki note titles: {e}");
+            },
+        }
     }
 }
 
@@ -2133,31 +2189,8 @@ pub async fn collect_rag_context_with_pipeline_from_refs(
     // 引用追溯：填充 container_name（KB / memory namespace / wiki 名称）
     fill_container_names(db, &mut source_results).await;
 
-    // Batch-lookup document titles for knowledge sources
-    {
-        let kb_doc_ids: Vec<String> = source_results
-            .iter()
-            .filter(|s| s.source_type == "knowledge")
-            .flat_map(|s| s.items.iter().map(|it| it.document_id.clone()))
-            .collect::<std::collections::HashSet<_>>()
-            .into_iter()
-            .collect();
-
-        if !kb_doc_ids.is_empty() {
-            match sources::knowledge().get_document_titles(&kb_doc_ids).await {
-                Ok(titles) => {
-                    for src in source_results.iter_mut().filter(|s| s.source_type == "knowledge") {
-                        for item in &mut src.items {
-                            item.document_name = titles.get(&item.document_id).cloned();
-                        }
-                    }
-                },
-                Err(e) => {
-                    tracing::warn!("Failed to lookup document titles: {e}");
-                },
-            }
-        }
-    }
+    // 引用可读性：回填检索命中项的 document_name（knowledge 文档标题 + wiki 笔记标题）
+    fill_document_names(&mut source_results).await;
 
     let kg_context =
         collect_cross_source_graph_context(db, kb_ids, wiki_ids, effective_query, top_k).await;

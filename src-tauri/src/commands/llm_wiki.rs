@@ -306,14 +306,17 @@ pub struct IngestSourceInput {
     pub content: Option<String>,
 }
 
-// 注意：输出结构刻意保持 snake_case（无 rename_all）。前端 `src/types/llmWiki.ts`
-// 的 IngestResult/QueryResult/PageResult 依赖 snake_case 字段名，请勿添加
-// `#[serde(rename_all = "camelCase")]`，否则会破坏前后端契约。
+// 输出结构遵循全站 camelCase 标准（AGENTS.md 规范 #13）。此前注释声称前端
+// 依赖 snake_case 字段名与事实不符：IngestPanel 消费 item.rawPath /
+// result.sourceId（camelCase），真机下曾因缺 rename_all 得到 undefined。
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct IngestResultOutput {
     pub source_id: String,
     pub raw_path: String,
     pub title: String,
+    /// 后台批量索引的笔记总数，供前端结合 wiki-note-indexed 事件计算真实进度
+    pub generated_note_count: usize,
 }
 
 #[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "摄取 Wiki 文件内容")]
@@ -350,74 +353,43 @@ pub async fn llm_wiki_ingest(
 
     let result = pipeline.ingest(&input.wiki_id, source).await?;
 
-    if !result.generated_note_ids.is_empty() {
-        let wiki = axagent_dao::repo::wiki::get_wiki(state.harness.db(), &input.wiki_id)
-            .await
-            .map_err(|e| {
-                String::from(crate::commands::error::ErrorResponse::from_error(
-                    e,
-                    crate::commands::error::ErrorCategory::Unrecoverable,
-                ))
-            })?;
+    // 后台批量索引生成的笔记（R2：所有 LLM 生成页统一入 RAG）
+    crate::indexing::spawn_wiki_note_batch_indexing(crate::indexing::WikiBatchIndexingTask {
+        app,
+        db: state.harness.db().clone(),
+        master_key: state.harness.master_key_owned(),
+        vector_store: state.vector_store.clone(),
+        wiki_id: input.wiki_id.clone(),
+        note_ids: result.generated_note_ids.clone(),
+        log_label: "llm_wiki.ingest",
+        completion_event: None,
+    });
 
-        if wiki.embedding_provider.is_some() {
-            let container = axagent_search::rag::KnowledgeContainer::from_wiki(&wiki);
-            let db = state.harness.db().clone();
-            let master_key = state.harness.master_key_owned();
-            let vector_store = state.vector_store.clone();
-            let wiki_id = input.wiki_id.clone();
-            let note_ids = result.generated_note_ids.clone();
-            let app_for_emit = app.clone();
-
-            tokio::spawn(catch_unwind_logged("llm_wiki.ingest", async move {
-                for note_id in &note_ids {
-                    let note_result = axagent_dao::repo::note::get_note(&db, note_id).await;
-                    if let Ok(note) = note_result {
-                        let collection_id = format!("wiki_{}", wiki_id);
-                        let _ =
-                            vector_store.delete_document_embeddings(&collection_id, note_id).await;
-
-                        let index_result = crate::indexing::index_source(
-                            &db,
-                            &master_key,
-                            &vector_store,
-                            &container,
-                            note_id,
-                            &note.content,
-                            None,
-                            None,
-                        )
-                        .await;
-
-                        let (success, error_msg) = match &index_result {
-                            Ok(_) => (true, None),
-                            Err(e) => {
-                                tracing::error!(
-                                    "Wiki ingest indexing failed for {}: {}",
-                                    note_id,
-                                    e
-                                );
-                                (false, Some(e.to_string()))
-                            },
-                        };
-                        let _ = app_for_emit.emit(
-                            "wiki-note-indexed",
-                            serde_json::json!({
-                                "noteId": note_id,
-                                "success": success,
-                                "error": error_msg,
-                            }),
-                        );
-                    }
-                }
-            }));
-        }
+    // 操作历史：ingest 成功落一条审计记录（失败仅告警，不打断主流程）
+    if let Err(e) = wiki::log_wiki_operation(
+        state.harness.db(),
+        wiki::WikiOperationEntry {
+            wiki_id: input.wiki_id.clone(),
+            operation_type: "ingest".to_string(),
+            target_type: "source".to_string(),
+            target_id: result.source_id.clone(),
+            status: "completed".to_string(),
+            details: Some(serde_json::json!({
+                "generatedNotes": result.generated_note_ids.len()
+            })),
+            error_message: None,
+        },
+    )
+    .await
+    {
+        tracing::warn!("[llm_wiki] 记录 ingest 操作历史失败: {e}");
     }
 
     Ok(IngestResultOutput {
         source_id: result.source_id,
         raw_path: result.raw_path,
         title: result.title,
+        generated_note_count: result.generated_note_ids.len(),
     })
 }
 
@@ -841,10 +813,36 @@ impl query_engine::VectorSearch for WikiVectorSearchAdapter {
     }
 }
 
+/// 记录单笔记 lint 操作历史（best-effort：查 note 拿 vault_id 作为 wiki_id）。
+async fn log_lint_history(
+    db: &sea_orm::DatabaseConnection,
+    result: &lint_checker::LintResult,
+) -> Result<(), String> {
+    let note =
+        axagent_dao::repo::note::get_note(db, &result.note_id).await.map_err(|e| e.to_string())?;
+    wiki::log_wiki_operation(
+        db,
+        wiki::WikiOperationEntry {
+            wiki_id: note.vault_id,
+            operation_type: "lint".to_string(),
+            target_type: "note".to_string(),
+            target_id: result.note_id.clone(),
+            status: "completed".to_string(),
+            details: Some(serde_json::json!({
+                "issueCount": result.issues.len(),
+                "score": result.score,
+            })),
+            error_message: None,
+        },
+    )
+    .await
+    .map_err(|e| e.to_string())
+}
+
 #[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "对 Wiki 笔记执行 lint 检查")]
 #[tauri::command]
 pub async fn llm_wiki_lint(
-    _state: State<'_, AppState>,
+    state: State<'_, AppState>,
     note_id: String,
 ) -> Result<lint_checker::LintResult, String> {
     let parser: Box<dyn KitMarkdownParser> =
@@ -856,7 +854,14 @@ pub async fn llm_wiki_lint(
         repositories::note_backlink_repository(),
         parser,
     );
-    checker.lint_note(&note_id).await
+    let result = checker.lint_note(&note_id).await?;
+
+    // 操作历史：lint 结果落一条审计记录（失败仅告警，不打断主流程）
+    if let Err(e) = log_lint_history(state.harness.db(), &result).await {
+        tracing::warn!("[llm_wiki] 记录 lint 操作历史失败: {e}");
+    }
+
+    Ok(result)
 }
 
 #[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "更新 Wiki 笔记质量评分")]
@@ -1021,7 +1026,7 @@ pub async fn llm_wiki_delete_schema(
 #[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "对 Wiki 库执行 lint 检查")]
 #[tauri::command]
 pub async fn llm_wiki_lint_vault(
-    _state: State<'_, AppState>,
+    state: State<'_, AppState>,
     wiki_id: String,
 ) -> Result<Vec<lint_checker::LintResult>, String> {
     let parser: Box<dyn KitMarkdownParser> =
@@ -1033,13 +1038,42 @@ pub async fn llm_wiki_lint_vault(
         repositories::note_backlink_repository(),
         parser,
     );
-    checker.lint_vault(&wiki_id).await
+    let results = checker.lint_vault(&wiki_id).await?;
+
+    // 操作历史：聚合一条 vault 级 lint 记录（失败仅告警，不打断主流程）
+    let note_count = results.len();
+    let avg_score = if results.is_empty() {
+        0.0
+    } else {
+        results.iter().map(|r| r.score).sum::<f64>() / note_count as f64
+    };
+    if let Err(e) = wiki::log_wiki_operation(
+        state.harness.db(),
+        wiki::WikiOperationEntry {
+            wiki_id: wiki_id.clone(),
+            operation_type: "lint_vault".to_string(),
+            target_type: "wiki".to_string(),
+            target_id: wiki_id.clone(),
+            status: "completed".to_string(),
+            details: Some(serde_json::json!({
+                "noteCount": note_count,
+                "avgScore": avg_score
+            })),
+            error_message: None,
+        },
+    )
+    .await
+    {
+        tracing::warn!("[llm_wiki] 记录 lint_vault 操作历史失败: {e}");
+    }
+
+    Ok(results)
 }
 
 #[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "自动修复 Wiki lint 问题")]
 #[tauri::command]
 pub async fn llm_wiki_auto_fix(
-    _state: State<'_, AppState>,
+    state: State<'_, AppState>,
     wiki_id: String,
     note_id: Option<String>,
 ) -> Result<Vec<String>, String> {
@@ -1052,7 +1086,27 @@ pub async fn llm_wiki_auto_fix(
         repositories::note_backlink_repository(),
         parser,
     );
-    checker.auto_fix(&wiki_id, note_id.as_deref()).await
+    let fixed = checker.auto_fix(&wiki_id, note_id.as_deref()).await?;
+
+    // 操作历史：auto_fix 结果落一条审计记录（失败仅告警，不打断主流程）
+    if let Err(e) = wiki::log_wiki_operation(
+        state.harness.db(),
+        wiki::WikiOperationEntry {
+            wiki_id: wiki_id.clone(),
+            operation_type: "auto_fix".to_string(),
+            target_type: "wiki".to_string(),
+            target_id: note_id.clone().unwrap_or_else(|| wiki_id.clone()),
+            status: "completed".to_string(),
+            details: Some(serde_json::json!({ "fixedCount": fixed.len() })),
+            error_message: None,
+        },
+    )
+    .await
+    {
+        tracing::warn!("[llm_wiki] 记录 auto_fix 操作历史失败: {e}");
+    }
+
+    Ok(fixed)
 }
 
 #[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "向 Wiki 提问并获取回答")]
@@ -1104,6 +1158,7 @@ pub struct WriteBase64Input {
 #[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "将 Base64 内容写入 Wiki 文件")]
 #[tauri::command]
 pub async fn write_base64_to_file(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
     input: WriteBase64Input,
 ) -> Result<String, String> {
@@ -1169,6 +1224,18 @@ pub async fn write_base64_to_file(
     };
 
     let result = pipeline.ingest(&input.wiki_id, source).await?;
+
+    // R2 修复：生成页补入 RAG 索引（此前 write_base64_to_file 只落库不入索引）
+    crate::indexing::spawn_wiki_note_batch_indexing(crate::indexing::WikiBatchIndexingTask {
+        app,
+        db: state.harness.db().clone(),
+        master_key: state.harness.master_key_owned(),
+        vector_store: state.vector_store.clone(),
+        wiki_id: input.wiki_id.clone(),
+        note_ids: result.generated_note_ids.clone(),
+        log_label: "llm_wiki.write_base64",
+        completion_event: None,
+    });
 
     Ok(result.source_id)
 }
@@ -1382,12 +1449,31 @@ pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Res
                     e
                 );
             }
+
+            // 操作历史：sync 事件处理结果落审计记录（失败仅告警，不打断主流程）
+            if let Err(e) = wiki::log_wiki_operation(
+                state.harness.db(),
+                wiki::WikiOperationEntry {
+                    wiki_id: model_clone.wiki_id.clone(),
+                    operation_type: "sync".to_string(),
+                    target_type: model_clone.target_type.clone(),
+                    target_id: model_clone.target_id.clone(),
+                    status: "completed".to_string(),
+                    details: Some(serde_json::json!({ "eventType": model_clone.event_type })),
+                    error_message: None,
+                },
+            )
+            .await
+            {
+                tracing::warn!("[wiki-sync] 记录 sync 操作历史失败: {e}");
+            }
             Ok(())
         },
         Err(e) => {
+            let err_detail = e.to_string();
             let mut am = model_clone.clone().into_active_model();
             am.status = Set("failed".to_string());
-            am.error_message = Set(Some(e.to_string()));
+            am.error_message = Set(Some(err_detail.clone()));
             am.retry_count = Set(model_clone.retry_count + 1);
             if let Err(update_err) = am.update(state.harness.db()).await {
                 tracing::error!(
@@ -1396,6 +1482,25 @@ pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Res
                     update_err
                 );
             }
+
+            // 操作历史：sync 失败也落审计记录（失败仅告警）
+            if let Err(log_err) = wiki::log_wiki_operation(
+                state.harness.db(),
+                wiki::WikiOperationEntry {
+                    wiki_id: model_clone.wiki_id.clone(),
+                    operation_type: "sync".to_string(),
+                    target_type: model_clone.target_type.clone(),
+                    target_id: model_clone.target_id.clone(),
+                    status: "failed".to_string(),
+                    details: Some(serde_json::json!({ "eventType": model_clone.event_type })),
+                    error_message: Some(err_detail),
+                },
+            )
+            .await
+            {
+                tracing::warn!("[wiki-sync] 记录 sync 失败操作历史失败: {log_err}");
+            }
+
             // C-3: 迁移到 ErrorResponse，保留原始错误信息用于调试
             Err(crate::commands::error::ErrorResponse::from_error(
                 e,
@@ -1406,72 +1511,31 @@ pub async fn wiki_sync_process(state: State<'_, AppState>, queue_id: i64) -> Res
     }
 }
 
+/// 处理单条 `wiki_sync_queue` 事件。
+///
+/// R3/R4 收敛：`wiki_sync_queue` 定位为**观测/审计通道**（供前端同步中心展示与重试），
+/// 向量索引的唯一执行链是 `index_jobs` 队列（enqueue_index → run_indexing → index_source）。
+/// 此前 note_created/note_updated 在此重复执行 index_source，与 index_jobs 双跑一次 embedding；
+/// note_deleted/wiki_deleted 无任何生产者（wiki_notes_delete / delete_wiki 已直接清向量）。
+/// 因此这里不再执行副作用，仅记录事件日志，由 wiki_sync_process_pending 标记状态。
 async fn process_sync_event(
-    db: &sea_orm::DatabaseConnection,
-    master_key: &[u8; 32],
-    vector_store: &axagent_search::vector_store::VectorStore,
+    _db: &sea_orm::DatabaseConnection,
+    _master_key: &[u8; 32],
+    _vector_store: &axagent_search::vector_store::VectorStore,
     model: &wiki_sync_queue::Model,
 ) -> Result<(), axagent_harness::core_error::AxAgentError> {
     match model.event_type.as_str() {
         "note_created" | "note_updated" => {
-            let note = axagent_dao::repo::note::get_note(db, &model.target_id).await?;
-
-            let wiki = axagent_dao::repo::wiki::get_wiki(db, &model.wiki_id).await?;
-            let container = axagent_search::rag::KnowledgeContainer::from_wiki(&wiki);
-            match &container.embedding_provider {
-                Some(_) => {
-                    tracing::info!(
-                        "Sync: indexing note '{}' to vector store for wiki {}",
-                        note.title,
-                        model.wiki_id
-                    );
-                    crate::indexing::index_source(
-                        db,
-                        master_key,
-                        vector_store,
-                        &container,
-                        &model.target_id,
-                        &note.content,
-                        None,
-                        None,
-                    )
-                    .await
-                },
-                None => {
-                    tracing::info!(
-                        "Sync: skipping vector indexing for note '{}' in wiki {} (no embedding_provider configured)",
-                        note.title,
-                        model.wiki_id
-                    );
-                    Ok(())
-                },
-            }
-        },
-        "note_deleted" => {
-            let collection_id = axagent_search::rag::collection_id("wiki", &model.wiki_id);
-            tracing::info!(
-                "Sync: removing note {} from vector store for wiki {}",
+            tracing::debug!(
+                "Sync: note {} {}（向量索引由 index_jobs 链负责，此处仅审计）",
                 model.target_id,
-                model.wiki_id
+                model.event_type
             );
-            vector_store.delete_document_embeddings(&collection_id, &model.target_id).await
-        },
-        "source_ingested" => {
-            tracing::info!("Sync: source {} ingested for wiki {}", model.target_id, model.wiki_id);
             Ok(())
         },
-        "schema_updated" => {
-            tracing::info!("Sync: schema updated for wiki {}", model.wiki_id);
+        "note_deleted" | "source_ingested" | "schema_updated" | "wiki_created" | "wiki_deleted" => {
+            tracing::debug!("Sync: 事件 {}（无副作用，仅审计记录）", model.event_type);
             Ok(())
-        },
-        "wiki_created" => {
-            tracing::info!("Sync: wiki {} created", model.wiki_id);
-            Ok(())
-        },
-        "wiki_deleted" => {
-            tracing::info!("Sync: wiki {} deleted, cleaning up", model.wiki_id);
-            let collection_id = axagent_search::rag::collection_id("wiki", &model.wiki_id);
-            vector_store.delete_collection(&collection_id).await
         },
         _ => {
             tracing::warn!("Sync: unknown event type '{}'", model.event_type);
@@ -1634,74 +1698,17 @@ pub async fn llm_wiki_import_folder(
         }
     }
 
-    // 为已导入的文件触发向量索引
-    if !all_note_ids.is_empty() {
-        if let Ok(wiki) =
-            axagent_dao::repo::wiki::get_wiki(state.harness.db(), &input.wiki_id).await
-        {
-            if wiki.embedding_provider.is_some() {
-                let container = axagent_search::rag::KnowledgeContainer::from_wiki(&wiki);
-                let db = state.harness.db().clone();
-                let master_key = state.harness.master_key_owned();
-                let vector_store = state.vector_store.clone();
-                let wiki_id = input.wiki_id.clone();
-                let app_for_emit = app.clone();
-                let note_ids = all_note_ids.clone();
-
-                tokio::spawn(catch_unwind_logged("llm_wiki.import_folder_indexing", async move {
-                    for note_id in &note_ids {
-                        let note_result = axagent_dao::repo::note::get_note(&db, note_id).await;
-                        if let Ok(note) = note_result {
-                            let collection_id = format!("wiki_{}", wiki_id);
-                            let _ = vector_store
-                                .delete_document_embeddings(&collection_id, note_id)
-                                .await;
-
-                            let index_result = crate::indexing::index_source(
-                                &db,
-                                &master_key,
-                                &vector_store,
-                                &container,
-                                note_id,
-                                &note.content,
-                                None,
-                                None,
-                            )
-                            .await;
-
-                            let (success, error_msg) = match &index_result {
-                                Ok(_) => (true, None),
-                                Err(e) => {
-                                    tracing::error!(
-                                        "Wiki folder import indexing failed for {}: {}",
-                                        note_id,
-                                        e
-                                    );
-                                    (false, Some(e.to_string()))
-                                },
-                            };
-                            let _ = app_for_emit.emit(
-                                "wiki-note-indexed",
-                                serde_json::json!({
-                                    "noteId": note_id,
-                                    "success": success,
-                                    "error": error_msg,
-                                }),
-                            );
-                        }
-                    }
-
-                    let _ = app_for_emit.emit(
-                        "wiki-folder-import-complete",
-                        serde_json::json!({
-                            "wikiId": wiki_id,
-                            "importedCount": note_ids.len(),
-                        }),
-                    );
-                }));
-            }
-        }
-    }
+    // 为已导入的文件触发向量索引（R2：统一走公共批量索引 helper）
+    crate::indexing::spawn_wiki_note_batch_indexing(crate::indexing::WikiBatchIndexingTask {
+        app,
+        db: state.harness.db().clone(),
+        master_key: state.harness.master_key_owned(),
+        vector_store: state.vector_store.clone(),
+        wiki_id: input.wiki_id.clone(),
+        note_ids: all_note_ids,
+        log_label: "llm_wiki.import_folder_indexing",
+        completion_event: Some("wiki-folder-import-complete"),
+    });
 
     let _ = total; // 避免未使用警告
     Ok(FolderImportResultOutput { task_ids, imported_count, failed_files })

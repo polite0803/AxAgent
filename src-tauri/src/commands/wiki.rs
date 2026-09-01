@@ -6,7 +6,9 @@ use axagent_agent_macro::agent_command;
 use axagent_dao::repo::index_jobs as jobs;
 use axagent_dao::repo::louvain;
 use axagent_dao::repo::note::{CreateNoteInput, GraphData, Note, NoteLink, UpdateNoteInput};
-use axagent_dao::repo::wiki::{self, CreateWikiTemplateInput, NoteVersion, WikiTemplate};
+use axagent_dao::repo::wiki::{
+    self, CreateWikiTemplateInput, NoteVersion, UpdateWikiTemplateInput, WikiTemplate,
+};
 use axagent_harness::graph_dtos::{GraphEdge, LinkGraph};
 use axagent_harness::louvain_dtos::LouvainResult;
 use axagent_harness::types::NoteSearchResult;
@@ -795,7 +797,7 @@ async fn wiki_notes_search_keyword(
         db.query_all_raw(sea_orm::Statement::from_sql_and_values(
             sea_orm::DbBackend::Postgres,
             "SELECT n.id, n.vault_id, n.title, n.file_path, n.content, n.content_hash, \
-                    n.author, n.page_type, n.source_refs, n.related_pages, n.quality_score, \
+                    n.author, n.page_type, n.tags, n.source_refs, n.related_pages, n.quality_score, \
                     n.last_linted_at, n.last_compiled_at, n.compiled_source_hash, \
                     n.user_edited, n.user_edited_at, n.created_at, n.updated_at, n.is_deleted, \
                     ts_rank(n.tsv, plainto_tsquery('simple', $1)) AS rank \
@@ -811,7 +813,7 @@ async fn wiki_notes_search_keyword(
         db.query_all_raw(sea_orm::Statement::from_sql_and_values(
             sea_orm::DbBackend::Sqlite,
             "SELECT n.id, n.vault_id, n.title, n.file_path, n.content, n.content_hash, \
-                    n.author, n.page_type, n.source_refs, n.related_pages, n.quality_score, \
+                    n.author, n.page_type, n.tags, n.source_refs, n.related_pages, n.quality_score, \
                     n.last_linted_at, n.last_compiled_at, n.compiled_source_hash, \
                     n.user_edited, n.user_edited_at, n.created_at, n.updated_at, n.is_deleted, \
                     bm25(notes_fts) AS rank \
@@ -1468,6 +1470,24 @@ pub async fn wiki_note_restore_version(
 
     enqueue_wiki_note_indexing(&state, &app, &updated.vault_id, &updated.id);
 
+    // 操作历史：restore 成功落一条审计记录（失败仅告警，不打断主流程）
+    if let Err(e) = wiki::log_wiki_operation(
+        state.harness.db(),
+        wiki::WikiOperationEntry {
+            wiki_id: updated.vault_id.clone(),
+            operation_type: "restore".to_string(),
+            target_type: "note".to_string(),
+            target_id: updated.id.clone(),
+            status: "completed".to_string(),
+            details: Some(serde_json::json!({ "versionId": version_id })),
+            error_message: None,
+        },
+    )
+    .await
+    {
+        tracing::warn!("[wiki] 记录 restore 操作历史失败: {e}");
+    }
+
     Ok(updated)
 }
 
@@ -1492,6 +1512,20 @@ pub async fn wiki_template_create(
     input: CreateWikiTemplateInput,
 ) -> Result<WikiTemplate, String> {
     wiki::create_wiki_template(state.harness.db(), input).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
+}
+
+#[agent_command(domain = wiki, safety = Caution, call_mode = StateInput, description = "更新 Wiki 模板")]
+#[tauri::command]
+pub async fn wiki_template_update(
+    state: State<'_, AppState>,
+    input: UpdateWikiTemplateInput,
+) -> Result<WikiTemplate, String> {
+    wiki::update_wiki_template(state.harness.db(), input).await.map_err(|e| {
         String::from(crate::commands::error::ErrorResponse::from_error(
             e,
             crate::commands::error::ErrorCategory::Unrecoverable,

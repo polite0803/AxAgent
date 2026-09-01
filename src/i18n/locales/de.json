@@ -7766,6 +7766,8 @@
       "fileUploaded": "Datei hochgeladen",
       "ingestError": "Import fehlgeschlagen",
       "ingestSuccess": "Erfolgreich importiert",
+      "indexingProgress": "Indizierung {{indexed}}/{{total}}",
+      "stageIngest": "Inhalte werden aufgenommen und Notizen erstellt…",
       "uploadError": "Hochladen fehlgeschlagen",
       "importError": "Import fehlgeschlagen",
       "previewError": "Vorschau fehlgeschlagen",

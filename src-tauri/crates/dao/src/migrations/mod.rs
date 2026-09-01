@@ -47,9 +47,10 @@ pub mod v127_capability_stats;
 pub mod v128_capability_policies;
 pub mod v129_capability_relationships;
 pub mod v130_session_states;
+pub mod v131_backfill_wiki_graph_source;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 130;
+pub const CURRENT_VERSION: i32 = 131;
 
 /// P2-10: Schema 版本追踪表名。
 ///
@@ -236,6 +237,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 130,
         description: "v130_session_states: 创建会话状态表（自然主键 state_key + 冗余 conversation_id/agent_id 双索引），能力按需加载闭环 P0-1——承载 CapabilityLoad 写入、下轮注入读取的解耦点",
         up: |db| Box::pin(v130_session_states::up(db)),
+    },
+    Migration {
+        version: 131,
+        description: "v131_backfill_wiki_graph_source: 回填 Wiki 实体/关系的 v113 多源来源字段（kb_id 命中 wikis 表的存量行 source_type 纠正为 wiki、source_id=wiki_id），消除 Wiki 实体与真实 KB 实体混标（R5）",
+        up: |db| Box::pin(v131_backfill_wiki_graph_source::up(db)),
     },
 ];
 

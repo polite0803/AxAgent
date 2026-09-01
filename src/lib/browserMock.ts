@@ -20,11 +20,14 @@ import type {
   MemoryItem,
   MemoryNamespace,
   Message,
+  Note,
+  NoteSearchResult,
   PlatformConfig,
   PlatformSession,
   ProgramPolicy,
   SaveProgramPolicyInput,
   SearchProvider,
+  WikiTemplate,
 } from "@/types";
 import type { Artifact } from "@/types";
 import type { BackupManifest } from "@/types";
@@ -525,6 +528,58 @@ function setStore<T>(key: string, value: T): void {
   } catch (e) {
     console.warn(`Failed to write localStorage key: axagent_${key}`, e);
   }
+}
+
+// ── Wiki 笔记 mock（浏览器模式最小数据集，localStorage 持久化）──────
+
+function getWikiNotes(): Note[] {
+  return getStore<Note[]>("mock.wikiNotes", []);
+}
+
+function setWikiNotes(notes: Note[]): void {
+  setStore("mock.wikiNotes", notes);
+}
+
+function mockWikiNote(vaultId: string, title: string, content: string, tags: string[]): Note {
+  const ts = nowTs();
+  return {
+    id: genId(),
+    vaultId,
+    title,
+    filePath: `${title}.md`,
+    content,
+    contentHash: "",
+    author: "mock",
+    tags,
+    userEdited: false,
+    createdAt: ts,
+    updatedAt: ts,
+    isDeleted: false,
+  };
+}
+
+// 按 vault 播种演示笔记（仅首次），返回该 vault 的笔记列表。
+function seedWikiNotes(vaultId: string): Note[] {
+  const existing = getWikiNotes().filter((n) => n.vaultId === vaultId);
+  if (existing.length > 0) { return existing; }
+  const seeded = [
+    mockWikiNote(vaultId, "概览", "# 概览\n\n这是一个浏览器模式演示 Wiki。\n\n数据保存在 localStorage。", [
+      "overview",
+    ]),
+    mockWikiNote(vaultId, "快速上手", "# 快速上手\n\n从左侧面板创建笔记开始，编辑内容会自动保存到浏览器本地。", [
+      "guide",
+    ]),
+    mockWikiNote(
+      vaultId,
+      "常见问题",
+      "# 常见问题\n\nQ: 浏览器模式下数据可靠吗？\nA: 数据仅存于当前浏览器的 localStorage，清除站点数据会丢失。",
+      [
+        "faq",
+      ],
+    ),
+  ];
+  setWikiNotes([...getWikiNotes(), ...seeded]);
+  return seeded;
 }
 
 // ── Capability System (能力发现系统) ──────────────────────────────
@@ -6787,6 +6842,128 @@ async function executeCommand<T>(
     // ── LLM Wiki (知识库) ───────────────────────────────────────────
     case "llm_wiki_list":
       return [] as T;
+    case "wiki_notes_list": {
+      const vaultId = String(args?.vault_id ?? "");
+      return seedWikiNotes(vaultId) as unknown as T;
+    }
+    case "wiki_notes_get": {
+      const id = String(args?.id ?? "");
+      const note = getWikiNotes().find((n) => n.id === id);
+      if (!note) { throw new Error(`Note ${id} not found`); }
+      return note as unknown as T;
+    }
+    case "wiki_notes_get_by_path": {
+      const vaultId = String(args?.vault_id ?? "");
+      const filePath = String(args?.file_path ?? "");
+      const note = getWikiNotes().find(
+        (n) => n.vaultId === vaultId && n.filePath === filePath,
+      );
+      if (!note) { throw new Error(`Note ${filePath} not found`); }
+      return note as unknown as T;
+    }
+    case "wiki_notes_search": {
+      const vaultId = String(args?.vault_id ?? "");
+      const query = String(args?.query ?? "").toLowerCase();
+      const results: NoteSearchResult[] = seedWikiNotes(vaultId)
+        .filter(
+          (n) =>
+            !query
+            || n.title.toLowerCase().includes(query)
+            || n.content.toLowerCase().includes(query),
+        )
+        .map((n) => ({
+          note: n,
+          snippet: n.content.slice(0, 120),
+          score: 1,
+        }));
+      return results as unknown as T;
+    }
+    case "wiki_notes_create": {
+      const input = (args?.input ?? {}) as Record<string, unknown>;
+      const title = String(input.title ?? "未命名");
+      const ts = nowTs();
+      const note: Note = {
+        id: genId(),
+        vaultId: String(input.vault_id ?? ""),
+        title,
+        filePath: String(input.file_path ?? `${title}.md`),
+        content: String(input.content ?? ""),
+        contentHash: "",
+        author: String(input.author ?? "user"),
+        pageType: input.page_type !== undefined ? String(input.page_type) : undefined,
+        sourceRefs: Array.isArray(input.source_refs)
+          ? (input.source_refs as string[])
+          : undefined,
+        userEdited: true,
+        createdAt: ts,
+        updatedAt: ts,
+        isDeleted: false,
+      };
+      setWikiNotes([...getWikiNotes(), note]);
+      return note as unknown as T;
+    }
+    case "wiki_notes_update": {
+      const id = String(args?.id ?? "");
+      const input = (args?.input ?? {}) as Record<string, unknown>;
+      const notes = getWikiNotes();
+      const idx = notes.findIndex((n) => n.id === id);
+      if (idx < 0) { throw new Error(`Note ${id} not found`); }
+      const updated: Note = {
+        ...notes[idx],
+        title: input.title !== undefined ? String(input.title) : notes[idx].title,
+        content: input.content !== undefined ? String(input.content) : notes[idx].content,
+        pageType: input.page_type !== undefined
+          ? String(input.page_type)
+          : notes[idx].pageType,
+        relatedPages: Array.isArray(input.related_pages)
+          ? (input.related_pages as string[])
+          : notes[idx].relatedPages,
+        userEdited: true,
+        userEditedAt: nowTs(),
+        updatedAt: nowTs(),
+      };
+      const next = [...notes];
+      next[idx] = updated;
+      setWikiNotes(next);
+      return updated as unknown as T;
+    }
+    case "wiki_notes_delete": {
+      const id = String(args?.id ?? "");
+      setWikiNotes(getWikiNotes().filter((n) => n.id !== id));
+      return undefined as T;
+    }
+    case "wiki_note_create_from_template":
+    case "wiki_create_daily_note": {
+      const vaultId = String(args?.vault_id ?? "");
+      const isDaily = cmd === "wiki_create_daily_note";
+      const title = isDaily
+        ? new Date().toISOString().slice(0, 10)
+        : String(args?.title ?? "新笔记");
+      const note = mockWikiNote(
+        vaultId,
+        title,
+        isDaily ? `# ${title}\n\n` : "# 新笔记\n\n",
+        [],
+      );
+      setWikiNotes([...getWikiNotes(), note]);
+      return note as unknown as T;
+    }
+    case "wiki_template_create": {
+      const input = (args?.input ?? {}) as Record<string, unknown>;
+      const ts = nowTs();
+      const tpl: WikiTemplate = {
+        id: genId(),
+        wikiId: String(input.wiki_id ?? ""),
+        name: String(input.name ?? "模板"),
+        description: input.description !== undefined ? String(input.description) : undefined,
+        content: String(input.content ?? ""),
+        pageType: input.page_type !== undefined ? String(input.page_type) : undefined,
+        isBuiltin: Boolean(input.is_builtin),
+        createdAt: ts,
+        updatedAt: ts,
+      };
+      return tpl as unknown as T;
+    }
 
     // ── Prompt Cache (提示缓存) ────────────────────────────────────
     case "get_prompt_cache_state":

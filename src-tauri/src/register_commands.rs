@@ -1103,6 +1103,7 @@ macro_rules! register_all_commands {
             commands::wiki::wiki_template_create,
             commands::wiki::wiki_template_delete,
             commands::wiki::wiki_template_list,
+            commands::wiki::wiki_template_update,
             commands::work_engine::cancel_all_paused_workflow_executions,
             commands::work_engine::cancel_approval,
             commands::work_engine::cancel_workflow_execution,

@@ -7764,6 +7764,8 @@
       "fileUploaded": "फ़ाइल अपलोड की गई",
       "ingestError": "आयात विफल",
       "ingestSuccess": "सफलतापूर्वक आयात किया गया",
+      "indexingProgress": "इंडेक्सिंग {{indexed}}/{{total}}",
+      "stageIngest": "सामग्री अंतर्ग्रहण और नोट्स बनाए जा रहे हैं…",
       "uploadError": "अपलोड विफल",
       "importError": "इम्पोर्ट विफल",
       "previewError": "पूर्वावलोकन विफल",

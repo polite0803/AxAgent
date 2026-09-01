@@ -87,6 +87,8 @@ pub async fn batch_upsert_entities_and_relations(
     axagent_dao::repo::knowledge_graph::batch_upsert_entities_and_relations(
         state.harness.db(),
         &knowledge_base_id,
+        "knowledge_base",
+        "",
         entities,
         relations,
     )
@@ -230,6 +232,8 @@ pub async fn extract_entities_from_documents(
     let result = axagent_dao::repo::knowledge_graph::batch_upsert_entities_and_relations(
         db,
         &knowledge_base_id,
+        "knowledge_base",
+        "",
         entities,
         relations,
     )
@@ -348,17 +352,20 @@ struct RelationPayload {
 /// P1-1: Wiki note 实体抽取 — 将指定 vault 的所有 notes 纳入知识图谱抽取
 ///
 /// 流程：
-/// 1. 从 vault 加载所有 notes（按标题排序，过滤已删除）
-/// 2. 逐个拼接 note 内容，截断到 16k 字节防止 context 爆炸
+/// 1. 从 vault 加载 notes（可指定 note_ids 增量抽取，否则全量）
+/// 2. 逐笔记拼接内容，按 16KB 分批防止 context 爆炸（单笔记多字节安全截断）
 /// 3. 加载已有实体列表（用于去重）
-/// 4. 构建 LLM Bridge 并调用实体抽取
+/// 4. 构建 LLM Bridge 并按批调用实体抽取
 /// 5. 解析 JSON 响应
-/// 6. 写入知识库图谱（使用 vault_id 作为 knowledge_base_id）
+/// 6. 写入知识图谱，落 v113 来源字段 `("wiki", vault_id)`，与真实 KB 实体可区分
 ///
 /// 与 `extract_entities_from_documents` 的区别：
 /// - 输入是 vault_id 而非 knowledge_base_id
-/// - 数据源是 notes 表而非 vector_store chunks
-/// - 输出写入到 vault 对应的知识图谱
+/// - 数据源是笔记表而非 vector_store chunks
+/// - 输出写入到 vault 对应的知识图谱（来源标记 source_type="wiki"）
+///
+/// 核心逻辑与索引队列 worker 共用 `run_wiki_entity_extraction_core`（R6：
+/// 笔记索引完成后自动入队抽取，本命令为手动触发入口）。
 #[agent_command(domain = knowledge, safety = Caution, call_mode = StateInput, description = "从Wiki笔记抽取实体")]
 #[tauri::command]
 pub async fn extract_entities_from_wiki(
@@ -366,138 +373,18 @@ pub async fn extract_entities_from_wiki(
     vault_id: String,
     note_ids: Option<Vec<String>>,
 ) -> Result<ExtractEntitiesResult, String> {
-    let started = std::time::Instant::now();
-    let db = state.harness.db();
+    // 串行限流：与 extract_entities_for_kb 共用，并发实体抽取会占满共享连接池
+    // （曾触发 Connection pool timed out）。拿不到 permit 时排队等待，不拒绝。
+    let _permit = manual_extract_permit().await?;
 
-    // 1. 加载 notes
-    let notes = if let Some(ids) = note_ids {
-        // 指定 note IDs
-        if ids.is_empty() {
-            return Ok(ExtractEntitiesResult {
-                new_entities: Vec::new(),
-                updated_entities: Vec::new(),
-                new_relations: Vec::new(),
-                skipped_chunks: 0,
-                elapsed_ms: 0,
-            });
-        }
-        if ids.len() > MAX_DOCUMENTS_PER_CALL {
-            return Err(ErrorResponse::from_error(
-                format!(
-                    "note_ids 数量超限：{} > {}，请分批调用",
-                    ids.len(),
-                    MAX_DOCUMENTS_PER_CALL
-                ),
-                ErrorCategory::Unrecoverable,
-            )
-            .to_string());
-        }
-        axagent_dao::repo::note::get_notes_by_ids(db, &ids)
-            .await
-            .map_err(|e| err_to_string(AxAgentError::internal(e.to_string())))?
-    } else {
-        // 加载整个 vault 的所有 notes
-        axagent_dao::repo::note::list_notes(db, &vault_id)
-            .await
-            .map_err(|e| err_to_string(AxAgentError::internal(e.to_string())))?
-    };
-
-    if notes.is_empty() {
-        return Ok(ExtractEntitiesResult {
-            new_entities: Vec::new(),
-            updated_entities: Vec::new(),
-            new_relations: Vec::new(),
-            skipped_chunks: 0,
-            elapsed_ms: started.elapsed().as_millis() as u64,
-        });
-    }
-
-    // 2. 拼接所有 note 内容
-    let mut all_text = String::new();
-    for note in &notes {
-        // 添加标题作为上下文
-        all_text.push_str(&format!("# {}\n\n", note.title));
-        all_text.push_str(&note.content);
-        all_text.push_str("\n\n---\n\n");
-        if all_text.len() >= MAX_EXTRACT_TEXT_BYTES {
-            let truncated = truncate_to_char_boundary(&all_text, MAX_EXTRACT_TEXT_BYTES);
-            all_text = truncated.to_string();
-            break;
-        }
-    }
-
-    if all_text.trim().is_empty() {
-        return Ok(ExtractEntitiesResult {
-            new_entities: Vec::new(),
-            updated_entities: Vec::new(),
-            new_relations: Vec::new(),
-            skipped_chunks: 0,
-            elapsed_ms: started.elapsed().as_millis() as u64,
-        });
-    }
-
-    // 3. 加载已有实体列表（用于去重）
-    let existing_entities =
-        axagent_dao::repo::knowledge_graph::get_all_entities_by_kb(db, &vault_id)
-            .await
-            .map_err(err_to_string)?;
-    let existing_names: Vec<String> =
-        existing_entities.iter().take(50).map(|e| e.name.clone()).collect();
-
-    // 4. 构建提示词
-    let system_prompt = axagent_kit::prompts::PromptRegistry::get(
-        "entity_extraction.system_prompt",
-        PromptLang::ZhCN,
-    );
-    let user_template = axagent_kit::prompts::PromptRegistry::get(
-        "entity_extraction.user_template",
-        PromptLang::ZhCN,
-    );
-    let existing_hint = if existing_names.is_empty() {
-        String::new()
-    } else {
-        format!(
-            "\n\n[已存在的实体名称（请勿重复抽取，可在关系中引用）]\n{}",
-            existing_names.join(", ")
-        )
-    };
-    let user_prompt = user_template.replace("{0}", &format!("{}{}", all_text, existing_hint));
-
-    // 5. 构建 LLM Bridge
-    let bridge = axagent_runtime::llm_bridge::build_llm_bridge_from_db(state.harness.master_key())
-        .await
-        .ok_or_else(|| {
-            ErrorResponse::from_error(
-                "未找到启用的 LLM Provider，无法执行实体抽取",
-                ErrorCategory::Unrecoverable,
-            )
-        })?;
-
-    // 6. 调用 LLM
-    let llm_response = bridge.call_llm(system_prompt, &user_prompt).await.map_err(|e| {
-        ErrorResponse::from_error(
-            format!("LLM Wiki 实体抽取调用失败：{}", e),
-            ErrorCategory::Unrecoverable,
-        )
-    })?;
-
-    // 7. 解析 JSON
-    let (entities, relations) = parse_entity_extraction_response(&llm_response)?;
-
-    // 8. 写入 DB（使用 vault_id 作为 knowledge_base_id）
-    let result = axagent_dao::repo::knowledge_graph::batch_upsert_entities_and_relations(
-        db, &vault_id, entities, relations,
+    crate::index_queue::run_wiki_entity_extraction_core(
+        state.harness.db(),
+        state.harness.master_key(),
+        &vault_id,
+        note_ids,
     )
     .await
-    .map_err(err_to_string)?;
-
-    Ok(ExtractEntitiesResult {
-        new_entities: result.new_entities,
-        updated_entities: result.updated_entities,
-        new_relations: result.new_relations,
-        skipped_chunks: result.skipped_chunks,
-        elapsed_ms: started.elapsed().as_millis() as u64,
-    })
+    .map_err(|e| ErrorResponse::from_error(e, ErrorCategory::Unrecoverable).to_string())
 }
 
 /// 手动触发知识库实体抽取（同步执行，返回抽取计数供前端展示）

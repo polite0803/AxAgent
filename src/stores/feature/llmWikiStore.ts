@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { translateBackendError } from "@/lib/errorI18n";
 import { invoke } from "@/lib/invoke";
 import type {
   CompiledPage,
@@ -121,7 +122,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
       const wikis = await invoke<Wiki[]>("llm_wiki_list", {});
       set({ wikis: Array.isArray(wikis) ? wikis : [], loading: false });
     } catch (e) {
-      set({ error: String(e), loading: false });
+      set({ error: translateBackendError(e), loading: false });
     }
   },
 
@@ -141,7 +142,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
       set((s) => ({ wikis: [...s.wikis, wiki] }));
       return wiki;
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -154,7 +155,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
         selectedWikiId: s.selectedWikiId === wikiId ? null : s.selectedWikiId,
       }));
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
     }
   },
 
@@ -171,7 +172,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
       });
       return result;
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -182,7 +183,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
       set((s) => ({ sources: s.sources.filter((src) => src.id !== sourceId) }));
       return true;
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return false;
     }
   },
@@ -197,7 +198,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
       });
       return result;
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -214,7 +215,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
       });
       return result;
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -223,7 +224,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
     try {
       return await invoke<LintResult>("llm_wiki_lint", { noteId });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -232,7 +233,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
     try {
       return await invoke<number>("llm_wiki_lint_update_score", { noteId });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -241,7 +242,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
     try {
       return await invoke<string>("llm_wiki_get_schema", { wikiId });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -255,7 +256,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
         },
       });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -268,7 +269,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
         description,
       });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -281,7 +282,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
       );
       set({ operations });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
     }
   },
 
@@ -289,7 +290,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
     try {
       await invoke("llm_wiki_update_schema", { input: { wikiId, content } });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
     }
   },
 
@@ -297,7 +298,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
     try {
       await invoke("llm_wiki_delete_schema", { wikiId });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
     }
   },
 
@@ -305,7 +306,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
     try {
       return await invoke<LintResult[]>("llm_wiki_lint_vault", { wikiId });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -314,7 +315,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
     try {
       return await invoke<string[]>("llm_wiki_auto_fix", { wikiId, noteId });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -323,7 +324,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
     try {
       return await invoke<string>("llm_wiki_ask", { wikiId, question });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -332,7 +333,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
     try {
       return await invoke<number>("wiki_sync_process_pending", { wikiId });
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },
@@ -345,7 +346,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
       );
       return items;
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return [];
     }
   },
@@ -358,7 +359,7 @@ export const useLlmWikiStore = create<LlmWikiState>((set) => ({
       );
       return result;
     } catch (e) {
-      set({ error: String(e) });
+      set({ error: translateBackendError(e) });
       return null;
     }
   },

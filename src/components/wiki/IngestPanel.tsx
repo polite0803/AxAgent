@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { invoke } from "@/lib/invoke";
+import { translateBackendError } from "@/lib/errorI18n";
+import { invoke, listen, type UnlistenFn } from "@/lib/invoke";
 import { message } from "@/lib/toast";
 import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
+import { useWikiStore } from "@/stores/feature/wikiStore";
 import type { FolderImportPreviewItem, FolderImportResult, IngestResult } from "@/types";
 import { DeleteOutlined, FileTextOutlined, FolderOutlined, LinkOutlined, UploadOutlined } from "@ant-design/icons";
 import { Button, Card, Form, Input, Progress, Select, Space, Table, Tag, Typography, Upload } from "antd";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
@@ -30,6 +32,19 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<FolderImportResult | null>(null);
 
+  // F6: 摄取进度阶段 — "ingest" 等待后端生成笔记（无细粒度事件），
+  // "indexing" 由 wiki-note-indexed 事件按 generatedNoteCount 逐条推进。
+  const [stage, setStage] = useState<"idle" | "ingest" | "indexing">("idle");
+  const [indexProgress, setIndexProgress] = useState({ indexed: 0, total: 0 });
+  const unlistenRef = useRef<UnlistenFn | null>(null);
+
+  useEffect(() => {
+    return () => {
+      unlistenRef.current?.();
+      unlistenRef.current = null;
+    };
+  }, []);
+
   const handleIngest = async (values: {
     sourceType: string;
     url?: string;
@@ -38,12 +53,51 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
   }) => {
     setUploading(true);
     setProgress(0);
+    setStage("ingest");
+    setIndexProgress({ indexed: 0, total: 0 });
+
+    // 事件驱动真实进度：订阅须早于 invoke —— 后台批量索引在命令返回前就可能开始发事件
+    const indexedIds = new Set<string>();
+    let totalCount = 0;
+    let finished = false;
+    let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const cleanup = () => {
+      unlistenRef.current?.();
+      unlistenRef.current = null;
+      if (fallbackTimer) {
+        clearTimeout(fallbackTimer);
+        fallbackTimer = null;
+      }
+    };
+    const finish = () => {
+      if (finished) { return; }
+      finished = true;
+      cleanup();
+      setProgress(100);
+      setStage("idle");
+      setUploading(false);
+      onClose?.();
+    };
+
+    unlistenRef.current = await listen<{ noteId: string }>("wiki-note-indexed", (ev) => {
+      if (finished || totalCount === 0) { return; }
+      const noteId = ev.payload?.noteId;
+      if (!noteId || indexedIds.has(noteId)) { return; }
+      indexedIds.add(noteId);
+      setIndexProgress({ indexed: indexedIds.size, total: totalCount });
+      setProgress(Math.min(99, Math.round((indexedIds.size / totalCount) * 100)));
+      // 每条事件重置兜底计时器：仅当事件流真正停摆 30s 才强制收尾
+      if (fallbackTimer) {
+        clearTimeout(fallbackTimer);
+      }
+      fallbackTimer = setTimeout(finish, 30_000);
+      if (indexedIds.size >= totalCount) {
+        finish();
+      }
+    });
 
     try {
-      const interval = setInterval(() => {
-        setProgress((p) => Math.min(p + 10, 90));
-      }, 200);
-
       const result = await ingestSource(
         wikiId,
         values.sourceType,
@@ -52,19 +106,41 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
         values.title,
       );
 
-      clearInterval(interval);
-      setProgress(100);
-
-      if (result) {
-        setResults((prev) => [...prev, result]);
-        message.success(t("wiki.llm.ingestSuccess", { title: result.title }));
-        form.resetFields();
-        onClose?.();
+      if (!result) {
+        // store 已记录错误详情
+        finished = true;
+        cleanup();
+        setStage("idle");
+        setUploading(false);
+        return;
       }
+
+      setResults((prev) => [...prev, result]);
+      message.success(t("wiki.llm.ingestSuccess", { title: result.title }));
+      form.resetFields();
+
+      // F7：ingest 生成的笔记已入库，刷新 wikiStore 当前视图的笔记列表
+      void useWikiStore.getState().refreshNotes(wikiId);
+
+      totalCount = result.generatedNoteCount;
+      setIndexProgress({ indexed: indexedIds.size, total: totalCount });
+
+      if (totalCount === 0 || indexedIds.size >= totalCount) {
+        // 无后台笔记或索引已随命令同步完成
+        finish();
+        return;
+      }
+
+      setStage("indexing");
+      setProgress(Math.min(99, Math.round((indexedIds.size / totalCount) * 100)));
+      // 兜底：事件丢失（如浏览器 mock）时 30s 后强制收尾，索引在后台继续
+      fallbackTimer = setTimeout(finish, 30_000);
     } catch (e) {
-      message.error(t("wiki.llm.ingestError", { error: String(e) }));
-    } finally {
+      finished = true;
+      cleanup();
+      setStage("idle");
       setUploading(false);
+      message.error(t("wiki.llm.ingestError", { error: translateBackendError(e) }));
     }
   };
 
@@ -102,7 +178,7 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
       form.setFieldsValue({ path: file.name });
       message.success(t("wiki.llm.fileUploaded", { name: file.name }));
     } catch (e) {
-      message.error(t("wiki.llm.uploadError", { error: String(e) }));
+      message.error(t("wiki.llm.uploadError", { error: translateBackendError(e) }));
     }
     return false;
   };
@@ -127,7 +203,7 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
         message.success(t("wiki.llm.previewFound", { count: items.length }));
       }
     } catch (e) {
-      message.error(t("wiki.llm.previewError", { error: String(e) }));
+      message.error(t("wiki.llm.previewError", { error: translateBackendError(e) }));
     } finally {
       setPreviewLoading(false);
     }
@@ -155,7 +231,7 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
         }
       }
     } catch (e) {
-      message.error(t("wiki.llm.importError", { error: String(e) }));
+      message.error(t("wiki.llm.importError", { error: translateBackendError(e) }));
     } finally {
       setImporting(false);
     }
@@ -378,7 +454,19 @@ export function IngestPanel({ wikiId, onClose }: IngestPanelProps) {
           </Form.Item>
         )}
 
-        {uploading && <Progress percent={progress} status="active" />}
+        {uploading && (
+          <Progress
+            percent={progress}
+            status="active"
+            format={() =>
+              stage === "indexing"
+                ? t("wiki.llm.indexingProgress", {
+                  indexed: indexProgress.indexed,
+                  total: indexProgress.total,
+                })
+                : t("wiki.llm.stageIngest")}
+          />
+        )}
 
         {ingestType !== "folder" && (
           <Button

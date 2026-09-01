@@ -7764,6 +7764,8 @@
       "fileUploaded": "Fichier téléchargé",
       "ingestError": "Échec de l'importation",
       "ingestSuccess": "Importé avec succès",
+      "indexingProgress": "Indexation {{indexed}}/{{total}}",
+      "stageIngest": "Ingestion du contenu et génération des notes…",
       "uploadError": "Échec du téléversement",
       "importError": "Importation échouée",
       "previewError": "Aperçu échoué",

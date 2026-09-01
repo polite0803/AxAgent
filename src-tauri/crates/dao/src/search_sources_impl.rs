@@ -75,6 +75,11 @@ impl WikiSource for DefaultWikiSource {
     async fn get_note_backlinks_by_vault(&self, vault_id: &str) -> Result<Vec<NoteLink>> {
         repo::note::get_note_backlinks_by_vault(&self.db, vault_id).await
     }
+
+    async fn get_note_titles(&self, note_ids: &[String]) -> Result<HashMap<String, String>> {
+        let notes = repo::note::get_notes_by_ids(&self.db, note_ids).await?;
+        Ok(notes.into_iter().map(|n| (n.id, n.title)).collect())
+    }
 }
 
 // ── SettingsSource ──

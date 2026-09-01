@@ -202,6 +202,43 @@ impl HybridSearcher {
         Ok(filtered)
     }
 
+    /// 纯 FTS（BM25）检索：embedding 未配置时的降级路径（R9 遗留）。
+    /// 不生成 query embedding、不做向量召回与融合，直接返回 BM25 命中，
+    /// 收尾语义（min_score 过滤 / 降序 / top_k 截断）与 `hybrid_search_with_filter` 保持一致，
+    /// 调用方无需区分结果来源。
+    pub async fn fts_only_search_with_filter(
+        &self,
+        collection_id: &str,
+        query: &str,
+        options: HybridSearchOptions,
+        doc_ids: Option<&[String]>,
+    ) -> Result<Vec<HybridSearchResult>> {
+        let bm25_results =
+            self.bm25_search_with_filter(collection_id, query, options.top_k, doc_ids).await?;
+
+        let mut filtered: Vec<HybridSearchResult> = bm25_results
+            .into_iter()
+            .map(|br| HybridSearchResult {
+                id: br.id,
+                document_id: br.document_id,
+                chunk_index: br.chunk_index,
+                content: br.content,
+                vector_score: None,
+                bm25_score: Some(br.bm25_score),
+                sparse_score: None,
+                combined_score: br.bm25_score,
+            })
+            .filter(|r| options.min_score.is_some_and(|min| r.combined_score >= min))
+            .collect();
+
+        filtered.sort_by(|a, b| {
+            b.combined_score.partial_cmp(&a.combined_score).unwrap_or(std::cmp::Ordering::Equal)
+        });
+        filtered.truncate(options.top_k);
+
+        Ok(filtered)
+    }
+
     /// BM25 keyword search with optional `document_id` list filter.
     /// Filters apply identically to the FTS5 (SQLite) and tsvector (PG) paths.
     async fn bm25_search_with_filter(

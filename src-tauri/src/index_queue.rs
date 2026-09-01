@@ -189,6 +189,31 @@ impl IndexJobService {
             },
             Err(e) => {
                 let err_msg = e.to_string();
+
+                // R9: embedding provider 未配置属确定性配置错误，重试结果必然相同，
+                // 直接进入 failed 终态，避免指数退避空转 max_retries 次。
+                if err_msg.contains(axagent_search::rag::ERR_NO_EMBEDDING_PROVIDER) {
+                    match jobs::mark_job_failed_no_retry(&self.db, &job.id, &err_msg).await {
+                        Ok(_) => {
+                            self.emit_failed(&job, &err_msg).await;
+                            self.mark_item_error(&job, &err_msg).await;
+                            tracing::error!(
+                                job_id = %job.id,
+                                error = %err_msg,
+                                "[index_queue] embedding 未配置，任务不重试直接失败"
+                            );
+                        },
+                        Err(e2) => {
+                            tracing::error!(
+                                job_id = %job.id,
+                                error = %e2,
+                                "[index_queue] 标记任务终态失败时出错"
+                            );
+                        },
+                    }
+                    return Ok(());
+                }
+
                 match jobs::mark_job_failed(&self.db, &job.id, &err_msg).await {
                     Ok(updated) => {
                         if updated.status == jobs::INDEX_JOB_STATUS_RETRYING {
@@ -272,24 +297,42 @@ impl IndexJobService {
 
         self.mark_item_ready(&container_type, job).await?;
 
-        // 知识库文档索引完成后自动触发实体抽取
-        if matches!(container_type, rag::ContainerType::KnowledgeBase) {
+        // 知识库文档 / Wiki 笔记索引完成后自动触发实体抽取
+        // （R6：Wiki 此前无自动抽取，编辑后图谱长期陈旧；enqueue_job 按
+        //   container_type+item_id 活跃去重，同一 vault 只有一个进行中的抽取任务）
+        if matches!(
+            container_type,
+            rag::ContainerType::KnowledgeBase | rag::ContainerType::WikiVault
+        ) {
             self.enqueue_entity_extraction(job).await;
         }
 
         Ok(())
     }
 
-    /// 执行实体抽取任务：加载 KB 下所有文档，分批调用 LLM 抽取实体/关系后写入 DB
+    /// 执行实体抽取任务：按容器类型分发 —— KB 从向量库 chunks 抽取，
+    /// Wiki 从笔记表抽取（写入各带来源标记）。
     async fn run_entity_extraction(&self, job: &jobs::IndexJob) -> Result<(), String> {
         jobs::update_job_progress(&self.db, &job.id, Some(jobs::STAGE_EXTRACTING), 5)
             .await
             .map_err(|e| e.to_string())?;
         self.emit_progress(job, jobs::STAGE_EXTRACTING, 5).await;
 
-        let kb_id = &job.container_id;
-        let result =
-            run_entity_extraction_core(&self.db, &self.vector_store, &self.master_key, kb_id).await;
+        let result = match job.container_type.as_str() {
+            "wiki" => {
+                run_wiki_entity_extraction_core(&self.db, &self.master_key, &job.container_id, None)
+                    .await
+            },
+            _ => {
+                run_entity_extraction_core(
+                    &self.db,
+                    &self.vector_store,
+                    &self.master_key,
+                    &job.container_id,
+                )
+                .await
+            },
+        };
 
         jobs::update_job_progress(&self.db, &job.id, Some(jobs::STAGE_EXTRACTING), 100)
             .await
@@ -550,13 +593,67 @@ pub(crate) async fn run_entity_extraction_core(
         });
     }
 
-    // 2. 分批处理
+    // 2. 分批组装文本（每批 BATCH_SIZE 个文档，16KB 截断防 context 爆炸）
     const MAX_EXTRACT_TEXT_BYTES: usize = 16_000;
     const BATCH_SIZE: usize = 20;
 
-    let existing_entities = axagent_dao::repo::knowledge_graph::get_all_entities_by_kb(db, kb_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let mut batch_texts: Vec<String> = Vec::new();
+    for doc_batch in ready_docs.chunks(BATCH_SIZE) {
+        let mut all_text = String::new();
+        'doc_batch: for doc in doc_batch {
+            let chunks = vector_store
+                .list_document_chunks(&collection_id, &doc.id)
+                .await
+                .map_err(|e| format!("加载 chunks 失败: {}", e))?;
+            for chunk in &chunks {
+                all_text.push_str(&chunk.content);
+                all_text.push_str("\n\n");
+                if all_text.len() >= MAX_EXTRACT_TEXT_BYTES {
+                    let truncated = truncate_to_char_boundary(&all_text, MAX_EXTRACT_TEXT_BYTES);
+                    all_text = truncated.to_string();
+                    break 'doc_batch;
+                }
+            }
+        }
+        batch_texts.push(all_text);
+    }
+
+    // 3. 共享执行器：LLM 抽取 + 写入（KB 来源）
+    run_entity_extraction_batches(db, master_key, kb_id, "knowledge_base", "", batch_texts).await
+}
+
+/// 实体抽取共享执行器：对预组装的文本批次逐批调用 LLM 抽取实体/关系并写入 DB。
+///
+/// KB 抽取（`run_entity_extraction_core`，文本来自向量库 chunks）与
+/// Wiki 抽取（`run_wiki_entity_extraction_core`，文本来自笔记表）共用，
+/// 写入时通过 `source_type` / `source_id` 落 v113 统一图谱来源字段
+/// （KB 传 `("knowledge_base", "")`，Wiki 传 `("wiki", wiki_id)`），
+/// 避免 Wiki 实体被误标为 knowledge_base 而混入 KB 图谱。
+async fn run_entity_extraction_batches(
+    db: &DatabaseConnection,
+    master_key: &[u8; 32],
+    graph_kb_id: &str,
+    source_type: &str,
+    source_id: &str,
+    batch_texts: Vec<String>,
+) -> Result<ExtractEntitiesResult, String> {
+    let started = std::time::Instant::now();
+    let mut aggregate = ExtractEntitiesResult {
+        new_entities: Vec::new(),
+        updated_entities: Vec::new(),
+        new_relations: Vec::new(),
+        skipped_chunks: 0,
+        elapsed_ms: 0,
+    };
+
+    if batch_texts.is_empty() {
+        return Ok(aggregate);
+    }
+
+    let existing_entities =
+        axagent_dao::repo::knowledge_graph::get_all_entities_by_kb(db, graph_kb_id)
+            .await
+            .map_err(|e| e.to_string())?;
     let existing_names: Vec<String> =
         existing_entities.iter().take(50).map(|e| e.name.clone()).collect();
 
@@ -578,42 +675,13 @@ pub(crate) async fn run_entity_extraction_core(
         .await
         .ok_or_else(|| "未找到启用的 LLM Provider，无法执行实体抽取".to_string())?;
 
-    let started = std::time::Instant::now();
-    let mut aggregate = ExtractEntitiesResult {
-        new_entities: Vec::new(),
-        updated_entities: Vec::new(),
-        new_relations: Vec::new(),
-        skipped_chunks: 0,
-        elapsed_ms: 0,
-    };
-
-    for doc_batch in ready_docs.chunks(BATCH_SIZE) {
-        let mut all_text = String::new();
-        for doc in doc_batch {
-            let chunks = vector_store
-                .list_document_chunks(&collection_id, &doc.id)
-                .await
-                .map_err(|e| format!("加载 chunks 失败: {}", e))?;
-            for chunk in &chunks {
-                all_text.push_str(&chunk.content);
-                all_text.push_str("\n\n");
-                if all_text.len() >= MAX_EXTRACT_TEXT_BYTES {
-                    let truncated = truncate_to_char_boundary(&all_text, MAX_EXTRACT_TEXT_BYTES);
-                    all_text = truncated.to_string();
-                    break;
-                }
-            }
-            if all_text.len() >= MAX_EXTRACT_TEXT_BYTES {
-                break;
-            }
-        }
-
-        if all_text.trim().is_empty() {
+    for batch_text in batch_texts {
+        if batch_text.trim().is_empty() {
             continue;
         }
 
-        let user_prompt =
-            user_template.replace("{document_content}", &format!("{}{}", all_text, existing_hint));
+        let user_prompt = user_template
+            .replace("{document_content}", &format!("{}{}", batch_text, existing_hint));
         let llm_response = bridge
             .call_llm(system_prompt, &user_prompt)
             .await
@@ -625,7 +693,12 @@ pub(crate) async fn run_entity_extraction_core(
         if !entities.is_empty() || !relations.is_empty() {
             let batch_result =
                 axagent_dao::repo::knowledge_graph::batch_upsert_entities_and_relations(
-                    db, kb_id, entities, relations,
+                    db,
+                    graph_kb_id,
+                    source_type,
+                    source_id,
+                    entities,
+                    relations,
                 )
                 .await
                 .map_err(|e| format!("批量写入实体/关系失败: {}", e))?;
@@ -638,6 +711,63 @@ pub(crate) async fn run_entity_extraction_core(
 
     aggregate.elapsed_ms = started.elapsed().as_millis() as u64;
     Ok(aggregate)
+}
+
+/// Wiki 实体抽取核心逻辑：加载 vault 笔记，分批调用 LLM 抽取实体/关系并写入 DB。
+///
+/// 手动触发命令（`extract_entities_from_wiki`）与索引队列 worker 共用。
+/// 与 KB 抽取的差异：文本来自笔记表（非向量库 chunks），写入带 `("wiki", wiki_id)`
+/// 来源标记（v113 统一图谱字段），与真实 KB 实体可区分。
+pub(crate) async fn run_wiki_entity_extraction_core(
+    db: &DatabaseConnection,
+    master_key: &[u8; 32],
+    wiki_id: &str,
+    note_ids: Option<Vec<String>>,
+) -> Result<ExtractEntitiesResult, String> {
+    const MAX_EXTRACT_TEXT_BYTES: usize = 16_000;
+
+    // 1. 加载 notes（指定 ids 或整个 vault）
+    let notes = match note_ids {
+        Some(ids) if ids.is_empty() => Vec::new(),
+        Some(ids) => axagent_dao::repo::note::get_notes_by_ids(db, &ids)
+            .await
+            .map_err(|e| format!("加载笔记失败: {}", e))?,
+        None => axagent_dao::repo::note::list_notes(db, wiki_id)
+            .await
+            .map_err(|e| format!("加载笔记列表失败: {}", e))?,
+    };
+
+    if notes.is_empty() {
+        tracing::info!(wiki_id = %wiki_id, "[index_queue] 没有可抽取的 Wiki 笔记");
+        return Ok(ExtractEntitiesResult {
+            new_entities: Vec::new(),
+            updated_entities: Vec::new(),
+            new_relations: Vec::new(),
+            skipped_chunks: 0,
+            elapsed_ms: 0,
+        });
+    }
+
+    // 2. 组装批次文本：逐笔记拼接（标题作上下文），单笔记超限多字节安全截断，16KB 一批
+    let mut batch_texts: Vec<String> = Vec::new();
+    let mut current = String::new();
+    for note in &notes {
+        let mut piece = format!("# {}\n\n{}\n\n---\n\n", note.title, note.content);
+        if piece.len() >= MAX_EXTRACT_TEXT_BYTES {
+            let truncated = truncate_to_char_boundary(&piece, MAX_EXTRACT_TEXT_BYTES);
+            piece = truncated.to_string();
+        }
+        if !current.is_empty() && current.len() + piece.len() >= MAX_EXTRACT_TEXT_BYTES {
+            batch_texts.push(std::mem::take(&mut current));
+        }
+        current.push_str(&piece);
+    }
+    if !current.trim().is_empty() {
+        batch_texts.push(current);
+    }
+
+    // 3. 共享执行器：LLM 抽取 + 写入（Wiki 来源）
+    run_entity_extraction_batches(db, master_key, wiki_id, "wiki", wiki_id, batch_texts).await
 }
 
 #[allow(clippy::too_many_arguments)]

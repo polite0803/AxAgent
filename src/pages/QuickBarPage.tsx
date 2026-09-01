@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Tooltip } from "@/components/layout/Tooltip";
+import { translateBackendError } from "@/lib/errorI18n";
 import { invoke, isTauri, listen, type UnlistenFn } from "@/lib/invoke";
 import { useProviderStore, useSettingsStore } from "@/stores";
 import { useLlmWikiStore } from "@/stores/feature/llmWikiStore";
+import { useWikiStore } from "@/stores/feature/wikiStore";
 import type { Model } from "@/types";
 import { ModelRef } from "@/types";
 import { ModelIcon } from "@lobehub/icons";
@@ -323,6 +325,20 @@ function pushRecent(query: string) {
   const items = loadRecent().filter((i) => i !== query);
   items.unshift(query);
   saveRecent(items);
+}
+
+/** F5 去重：把文本以 markdown 源形式 ingest 到指定 wiki（QuickBarResult 与主页面各持一份，收敛于此；调用方负责 selectedWikiId 校验与结果展示） */
+async function ingestToWiki(selectedWikiId: string, body: string): Promise<void> {
+  const safeTitle = `QuickBar - ${new Date().toLocaleString()}`;
+  await invoke("llm_wiki_ingest", {
+    input: {
+      wikiId: selectedWikiId,
+      sourceType: "markdown",
+      path: `quickbar/${safeTitle.replace(/[/\\:*?"<>|]/g, "_")}.md`,
+      title: safeTitle,
+      content: body,
+    },
+  });
 }
 
 /* ── Component ────────────────────────────────────────────────────── */
@@ -749,29 +765,22 @@ function QuickBarResult({
       return;
     }
     setLoading(true);
+    if (!selectedWikiId) {
+      setResult(
+        (p) => p + "\n\n❌ " + t("quickbar.result.noWikiSelected"),
+      );
+      setLoading(false);
+      return;
+    }
     try {
-      if (!selectedWikiId) {
-        setResult(
-          (p) => p + "\n\n❌ " + t("quickbar.result.noWikiSelected"),
-        );
-        setLoading(false);
-        return;
-      }
-      const safeTitle = `QuickBar - ${new Date().toLocaleString()}`;
-      await invoke("llm_wiki_ingest", {
-        input: {
-          wikiId: selectedWikiId,
-          sourceType: "markdown",
-          path: `quickbar/${safeTitle.replace(/[/\\:*?"<>|]/g, "_")}.md`,
-          title: safeTitle,
-          content: result,
-        },
-      });
+      await ingestToWiki(selectedWikiId, result);
       setResult(
         (p) => p + `\n\n✅ ${t("quickbar.result.savedWiki")}`,
       );
+      // F7：若 wiki 页面正打开同一 vault，刷新其笔记列表
+      void useWikiStore.getState().refreshNotes(selectedWikiId);
     } catch (e) {
-      setResult((p) => p + `\n\n❌ ${String(e)}`);
+      setResult((p) => p + `\n\n❌ ${translateBackendError(e)}`);
     }
     setLoading(false);
   }, [result, selectedWikiId, setLoading, setResult, t]);
@@ -1109,7 +1118,7 @@ export function QuickBarPage() {
         ]);
         unlistenRef.current = [u1, u2, u3];
       } catch (e) {
-        setResult(`${t("quickbar.result.error")}: ${String(e)}`);
+        setResult(`${t("quickbar.result.error")}: ${translateBackendError(e)}`);
         setLoading(false);
       }
     },
@@ -1236,7 +1245,7 @@ export function QuickBarPage() {
           .join("\n\n---\n\n"),
       );
     } catch (e) {
-      setResult(`${t("quickbar.result.searchFailed")}: ${String(e)}`);
+      setResult(`${t("quickbar.result.searchFailed")}: ${translateBackendError(e)}`);
     }
     setLoading(false);
   }, [t]);
@@ -1267,7 +1276,7 @@ export function QuickBarPage() {
           .join("\n\n---\n\n"),
       );
     } catch (e) {
-      setResult(`${t("quickbar.result.searchFailed")}: ${String(e)}`);
+      setResult(`${t("quickbar.result.searchFailed")}: ${translateBackendError(e)}`);
     }
     setLoading(false);
   }, [t]);
@@ -1278,25 +1287,18 @@ export function QuickBarPage() {
     }
     setLoading(true);
     setResult("");
+    if (!selectedWikiId) {
+      setResult(t("quickbar.result.noWikiSelected"));
+      setLoading(false);
+      return;
+    }
     try {
-      if (!selectedWikiId) {
-        setResult(t("quickbar.result.noWikiSelected"));
-        setLoading(false);
-        return;
-      }
-      const safeTitle = `QuickBar - ${new Date().toLocaleString()}`;
-      await invoke("llm_wiki_ingest", {
-        input: {
-          wikiId: selectedWikiId,
-          sourceType: "markdown",
-          path: `quickbar/${safeTitle.replace(/[/\\:*?"<>|]/g, "_")}.md`,
-          title: safeTitle,
-          content: body,
-        },
-      });
+      await ingestToWiki(selectedWikiId, body);
       setResult(`✅ ${t("quickbar.result.savedWiki")}`);
+      // F7：若 wiki 页面正打开同一 vault，刷新其笔记列表
+      void useWikiStore.getState().refreshNotes(selectedWikiId);
     } catch (e) {
-      setResult(`${t("quickbar.result.saveWikiFailed")}: ${String(e)}`);
+      setResult(`${t("quickbar.result.saveWikiFailed")}: ${translateBackendError(e)}`);
     }
     setLoading(false);
   }, [t, selectedWikiId]);
@@ -1432,7 +1434,7 @@ export function QuickBarPage() {
       setResult(`✅ ${t("quickbar.result.newConversation")}`);
       setActiveCommand(null);
     } catch (e) {
-      setResult(`${t("quickbar.result.createFailed")}: ${String(e)}`);
+      setResult(`${t("quickbar.result.createFailed")}: ${translateBackendError(e)}`);
     }
     setLoading(false);
   }, [t]);

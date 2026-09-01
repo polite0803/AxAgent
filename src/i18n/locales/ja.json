@@ -7766,6 +7766,8 @@
       "fileUploaded": "ファイルがアップロードされました",
       "ingestError": "インポート失敗",
       "ingestSuccess": "インポート成功",
+      "indexingProgress": "インデックス中 {{indexed}}/{{total}}",
+      "stageIngest": "コンテンツを取り込みノートを生成中…",
       "uploadError": "アップロード失敗",
       "importError": "インポートに失敗しました",
       "previewError": "プレビューに失敗しました",

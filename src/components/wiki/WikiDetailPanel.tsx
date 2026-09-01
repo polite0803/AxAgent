@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { MonacoEditor } from "@/components/shared/MonacoEditor";
 import type { GraphData, GraphNode } from "@/components/wiki/GraphView";
+import { highlightWikilink } from "@/components/wiki/wikilinkHighlight";
+import { useWikiAutoSave } from "@/hooks/useWikiAutoSave";
 import { invoke } from "@/lib/invoke";
 import { message } from "@/lib/toast";
 import { useKnowledgeStore } from "@/stores";
@@ -50,7 +53,6 @@ export function WikiDetailPanel({
   const [backlinks, setBacklinks] = useState<BacklinkInfo[]>([]);
   const [linksLoading, setLinksLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<DetailTab>("edit");
-  const autoSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isSavingRef = useRef(false);
   const [syncModalOpen, setSyncModalOpen] = useState(false);
   const [selectedKbId, setSelectedKbId] = useState<string | null>(null);
@@ -143,33 +145,13 @@ export function WikiDetailPanel({
     }
   }, [content, title, note]);
 
-  // Ctrl+S 保存
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-        e.preventDefault();
-        handleSave();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [handleSave]);
-
-  // 自动保存（3 秒空闲）
-  useEffect(() => {
-    if (!hasChanges || saving || isSavingRef.current) {
-      return;
-    }
-    if (autoSaveRef.current) {
-      clearTimeout(autoSaveRef.current);
-    }
-    autoSaveRef.current = setTimeout(() => handleSave(), 3000);
-    return () => {
-      if (autoSaveRef.current) {
-        clearTimeout(autoSaveRef.current);
-      }
-    };
-  }, [content, title, hasChanges, saving, handleSave]);
+  // Ctrl+S 立即保存 + 3 秒空闲自动保存（F5：共享 hook，与全页编辑器行为一致）
+  useWikiAutoSave({
+    content,
+    title,
+    autoSaveEnabled: hasChanges && !saving && !isSavingRef.current,
+    handleSave,
+  });
 
   const handleDelete = async () => {
     if (!note) {
@@ -443,13 +425,12 @@ export function WikiDetailPanel({
                     boxShadow: `0 1px 2px ${token.colorBgLayout}40`,
                   }}
                 >
-                  <textarea
+                  {/* F3: 复用共享 MonacoEditor（loadMonaco 懒加载）替换裸 textarea，提供 markdown 高亮 */}
+                  <MonacoEditor
                     value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    className="w-full h-full p-4 resize-none outline-none bg-transparent text-sm leading-relaxed font-mono placeholder:opacity-30"
-                    style={{ color: token.colorText }}
-                    placeholder={t("wiki.contentPlaceholder")}
-                    spellCheck={false}
+                    language="markdown"
+                    onChange={(v) => setContent(v)}
+                    height="100%"
                   />
                 </div>
                 {/* 快速操作 */}
@@ -580,37 +561,6 @@ export function WikiDetailPanel({
         </div>
       </Modal>
     </div>
-  );
-}
-
-function highlightWikilink(snippet: string, linkText: string, token: ReturnType<typeof theme.useToken>["token"]) {
-  const linkPattern = `[[${linkText}]]`;
-  const parts = snippet.split(linkPattern);
-  if (parts.length === 1) {
-    return <span>{snippet}</span>;
-  }
-
-  return (
-    <span>
-      {parts.map((part, i) => (
-        // 静态文本分割列表，基于索引的 key 安全
-        <span key={i}>
-          {part}
-          {i < parts.length - 1 && (
-            <Text
-              strong
-              style={{
-                backgroundColor: `${token.colorPrimary}1F`,
-                borderRadius: 3,
-                padding: "0 2px",
-              }}
-            >
-              {linkPattern}
-            </Text>
-          )}
-        </span>
-      ))}
-    </span>
   );
 }
 

@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! Auto Memory Extractor - Extracts structured memories from agent trajectories using LLM
+//! Auto Memory Extractor - 规则式启发提取器（非 LLM）
 //!
-//! This module analyzes completed trajectories and extracts:
-//! - User preferences and habits
-//! - Key facts about user's projects, environment, and workflow
-//! - Important patterns that should be remembered
-//! - Cross-session context that enables continuity
+//! 从已完成的轨迹中按启发规则提取结构化记忆：
+//! - 用户偏好与习惯
+//! - 用户项目、环境、工作流的关键事实
+//! - 值得记住的重要模式
+//! - 支持跨会话连续性的上下文
+//!
+//! 模板跟随会话语言：检测到中文会话时输出中文记忆，避免「中文对话里混入英文模板」。
 
 use crate::insight::{InsightCategory, LearningInsight};
 use crate::memory::MemoryService;
@@ -21,6 +23,19 @@ use std::sync::Arc;
 const MEMORY_EXTRACTION_MIN_STEPS: usize = 4;
 const MAX_MEMORY_ENTRIES_PER_TRAJECTORY: usize = 5;
 const _MEMORY_DECAY_DAYS: i64 = 30;
+
+/// CJK 字符（含扩展 A 区）占非空白字符比例 ≥ 15% 判为中文文本
+fn is_cjk_text(s: &str) -> bool {
+    let total = s.chars().filter(|c| !c.is_whitespace()).count();
+    if total == 0 {
+        return false;
+    }
+    let cjk = s
+        .chars()
+        .filter(|c| matches!(c, '\u{4E00}'..='\u{9FFF}' | '\u{3400}'..='\u{4DBF}'))
+        .count();
+    cjk as f64 / total as f64 >= 0.15
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtractedMemory {
@@ -129,21 +144,33 @@ impl AutoMemoryExtractor {
             .filter(|s| matches!(s.role, crate::trajectory::MessageRole::Assistant))
             .collect();
 
+        // 跟随会话语言：以首条用户消息判定中英文，输出对应语言的记忆模板
+        let zh = user_messages.first().map(|m| is_cjk_text(&m.content)).unwrap_or(false);
+
         if let Some(first_user) = user_messages.first() {
             let content_lower = first_user.content.to_lowercase();
-            if !content_lower.contains("hello")
-                && !content_lower.contains("hi ")
-                && !content_lower.contains("hey")
-            {
+            let is_greeting = content_lower.contains("hello")
+                || content_lower.contains("hi ")
+                || content_lower.contains("hey")
+                || content_lower.contains("你好")
+                || content_lower.contains("您好");
+            if !is_greeting {
+                let snippet: String = first_user.content.chars().take(200).collect();
+                let content = if zh {
+                    format!("用户正在处理：{snippet}")
+                } else {
+                    format!("User is working on: {snippet}")
+                };
                 memories.push(ExtractedMemory {
                     memory_type: MemoryType::Context,
-                    content: format!(
-                        "User is working on: {}",
-                        first_user.content.chars().take(200).collect::<String>()
-                    ),
+                    content,
                     confidence: 0.7,
                     source_trajectory: trajectory.id.clone(),
-                    extraction_reason: "First user message indicates task context".to_string(),
+                    extraction_reason: if zh {
+                        "首条用户消息指示任务上下文".to_string()
+                    } else {
+                        "First user message indicates task context".to_string()
+                    },
                     created_at: Utc::now().timestamp_millis(),
                 });
                 *seen_content.entry(first_user.content.clone()).or_insert(0) += 1;
@@ -169,15 +196,24 @@ impl AutoMemoryExtractor {
                     *count += 1;
 
                     if *count >= 2 {
-                        memories.push(ExtractedMemory {
-                            memory_type: MemoryType::Pattern,
-                            content: format!(
+                        let content = if zh {
+                            format!("用户经常组合使用工具：{}", unique_tools.join(" -> "))
+                        } else {
+                            format!(
                                 "User frequently uses tools together: {}",
                                 unique_tools.join(" -> ")
-                            ),
+                            )
+                        };
+                        memories.push(ExtractedMemory {
+                            memory_type: MemoryType::Pattern,
+                            content,
                             confidence: 0.8,
                             source_trajectory: trajectory.id.clone(),
-                            extraction_reason: "Repeated tool combination detected".to_string(),
+                            extraction_reason: if zh {
+                                "检测到重复的工具组合".to_string()
+                            } else {
+                                "Repeated tool combination detected".to_string()
+                            },
                             created_at: Utc::now().timestamp_millis(),
                         });
                     }
@@ -193,15 +229,24 @@ impl AutoMemoryExtractor {
                 *count += 1;
 
                 if *count >= 2 {
-                    memories.push(ExtractedMemory {
-                        memory_type: MemoryType::Preference,
-                        content:
+                    let (content, reason) = if zh {
+                        (
+                            "用户偏好详细的推理与逐步分析".to_string(),
+                            "多次观察到详细的推理链".to_string(),
+                        )
+                    } else {
+                        (
                             "User appreciates detailed reasoning and step-by-step problem solving"
                                 .to_string(),
+                            "Multiple detailed reasoning chains observed".to_string(),
+                        )
+                    };
+                    memories.push(ExtractedMemory {
+                        memory_type: MemoryType::Preference,
+                        content,
                         confidence: 0.75,
                         source_trajectory: trajectory.id.clone(),
-                        extraction_reason: "Multiple detailed reasoning chains observed"
-                            .to_string(),
+                        extraction_reason: reason,
                         created_at: Utc::now().timestamp_millis(),
                     });
                 }
@@ -210,12 +255,20 @@ impl AutoMemoryExtractor {
 
         match trajectory.outcome {
             TrajectoryOutcome::Success => {
+                let (content, reason) = if zh {
+                    (format!("任务「{}」已完成", trajectory.topic), "任务成功完成".to_string())
+                } else {
+                    (
+                        format!("Task '{}' was completed successfully", trajectory.topic),
+                        "Successful task completion".to_string(),
+                    )
+                };
                 memories.push(ExtractedMemory {
                     memory_type: MemoryType::Fact,
-                    content: format!("Task '{}' was completed successfully", trajectory.topic),
+                    content,
                     confidence: 0.9,
                     source_trajectory: trajectory.id.clone(),
-                    extraction_reason: "Successful task completion".to_string(),
+                    extraction_reason: reason,
                     created_at: Utc::now().timestamp_millis(),
                 });
             },
@@ -233,29 +286,51 @@ impl AutoMemoryExtractor {
                     .count();
 
                 if error_tools > 0 {
+                    let (content, reason) = if zh {
+                        (
+                            format!("任务「{}」失败，可能需要排查", trajectory.topic),
+                            "失败任务且存在错误指标".to_string(),
+                        )
+                    } else {
+                        (
+                            format!(
+                                "Task '{}' failed - may need troubleshooting approach",
+                                trajectory.topic
+                            ),
+                            "Failed task with error indicators".to_string(),
+                        )
+                    };
                     memories.push(ExtractedMemory {
                         memory_type: MemoryType::Context,
-                        content: format!(
-                            "Task '{}' failed - may need troubleshooting approach",
-                            trajectory.topic
-                        ),
+                        content,
                         confidence: 0.6,
                         source_trajectory: trajectory.id.clone(),
-                        extraction_reason: "Failed task with error indicators".to_string(),
+                        extraction_reason: reason,
                         created_at: Utc::now().timestamp_millis(),
                     });
                 }
             },
             TrajectoryOutcome::Partial => {
+                let (content, reason) = if zh {
+                    (
+                        format!("任务「{}」部分完成，可能需要跟进", trajectory.topic),
+                        "任务部分完成".to_string(),
+                    )
+                } else {
+                    (
+                        format!(
+                            "Task '{}' partially completed - follow-up may be needed",
+                            trajectory.topic
+                        ),
+                        "Partial task completion".to_string(),
+                    )
+                };
                 memories.push(ExtractedMemory {
                     memory_type: MemoryType::Context,
-                    content: format!(
-                        "Task '{}' partially completed - follow-up may be needed",
-                        trajectory.topic
-                    ),
+                    content,
                     confidence: 0.65,
                     source_trajectory: trajectory.id.clone(),
-                    extraction_reason: "Partial task completion".to_string(),
+                    extraction_reason: reason,
                     created_at: Utc::now().timestamp_millis(),
                 });
             },
@@ -290,19 +365,29 @@ impl AutoMemoryExtractor {
 
         for memory in memories {
             if memory.confidence >= 0.7 && memory.memory_type == MemoryType::Pattern {
+                let zh = is_cjk_text(&memory.content);
+                let (title, action) = if zh {
+                    (
+                        format!("检测到：{}", memory.content.chars().take(40).collect::<String>()),
+                        Some("考虑将此模式加入用户画像".to_string()),
+                    )
+                } else {
+                    (
+                        format!(
+                            "Detected: {}",
+                            memory.content.chars().take(40).collect::<String>()
+                        ),
+                        Some("Consider adding this pattern to user profile".to_string()),
+                    )
+                };
                 insights.push(LearningInsight {
                     id: format!("insight_{}_{}", trajectory.id, memory.memory_type.as_str()),
                     category: InsightCategory::Pattern,
-                    title: format!(
-                        "Detected: {}",
-                        memory.content.chars().take(40).collect::<String>()
-                    ),
+                    title,
                     description: memory.extraction_reason.clone(),
                     confidence: memory.confidence,
                     evidence: vec![memory.source_trajectory.clone()],
-                    suggested_action: Some(
-                        "Consider adding this pattern to user profile".to_string(),
-                    ),
+                    suggested_action: action,
                     created_at: chrono::Utc::now().timestamp_millis(),
                 });
             }

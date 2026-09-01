@@ -4,6 +4,19 @@ import path from "path";
 import monacoEditorPluginModule from "vite-plugin-monaco-editor";
 import { defineConfig, type Plugin } from "vitest/config";
 
+// Windows 盘符大小写规范化（必须在任何路径解析前执行）：
+// node ESM 按字面 URL 缓存模块，cwd 盘符为小写（如 d:/）时，vite 与 node 各自
+// 解析出的模块 URL 盘符大小写不一致，会把 @vitest/runner 加载成两个独立实例
+// （worker 收集器与测试文件各持一份），表现为所有测试收集阶段失败：
+// "TypeError: Cannot read properties of undefined (reading 'config')"。
+// 此处统一把 cwd 盘符转为大写，确保 worker 子进程继承一致的模块 URL。
+if (process.platform === "win32") {
+  const cwd = process.cwd();
+  if (/^[a-z]:/.test(cwd)) {
+    process.chdir(cwd[0].toUpperCase() + cwd.slice(1));
+  }
+}
+
 interface MonacoEditorPluginModule {
   default?: Plugin;
   [key: string]: unknown;

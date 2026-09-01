@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::repo::note::calculate_content_hash;
 use axagent_entities::{
-    note_backlinks, note_links, notes, wiki_page_versions, wiki_pages, wiki_sources,
-    wiki_templates, wikis,
+    note_backlinks, note_links, notes, wiki_operations, wiki_page_versions, wiki_pages,
+    wiki_sources, wiki_templates, wikis,
 };
 use axagent_harness::core_error::{AxAgentError, Result};
 use axagent_harness::util_fns::gen_id;
@@ -125,6 +125,7 @@ pub async fn update_wiki(
 
 pub async fn delete_wiki(db: &DatabaseConnection, id: &str) -> Result<()> {
     // 物理删除该 Wiki 下的所有索引任务，容器已不存在，保留 CANCELLED job 无意义
+    // （该函数只接受 &DatabaseConnection，无法进事务，作为 best-effort 前置清理）
     if let Err(e) = crate::repo::index_jobs::delete_jobs_by_container(db, "wiki", id).await {
         tracing::warn!(
             wiki_id = id,
@@ -134,55 +135,80 @@ pub async fn delete_wiki(db: &DatabaseConnection, id: &str) -> Result<()> {
     }
 
     // 级联删除子表（wikis 关联表多，SQLite 启用了 PRAGMA foreign_keys=ON，
-    // 未级联清理会触发外键约束失败）
-    wiki_sources::Entity::delete_many()
-        .filter(wiki_sources::Column::WikiId.eq(id))
-        .exec(db)
-        .await?;
-    wiki_page_versions::Entity::delete_many()
-        .filter(wiki_page_versions::Column::WikiId.eq(id))
-        .exec(db)
-        .await?;
-    wiki_pages::Entity::delete_many().filter(wiki_pages::Column::WikiId.eq(id)).exec(db).await?;
-    note_links::Entity::delete_many().filter(note_links::Column::VaultId.eq(id)).exec(db).await?;
-    note_backlinks::Entity::delete_many()
-        .filter(note_backlinks::Column::VaultId.eq(id))
-        .exec(db)
-        .await?;
-    notes::Entity::delete_many().filter(notes::Column::VaultId.eq(id)).exec(db).await?;
+    // 未级联清理会触发外键约束失败）。
+    // 事务包裹：中途任一步失败整体回滚，避免留下半删状态（R 修复批次 2）。
+    // 闭包要求 'static，id 需要拷贝为 owned String。
+    let wiki_id = id.to_string();
+    db.transaction::<_, _, AxAgentError>(move |txn| {
+        let wiki_id = wiki_id.clone();
+        Box::pin(async move {
+            let id = wiki_id.as_str();
+            wiki_sources::Entity::delete_many()
+                .filter(wiki_sources::Column::WikiId.eq(id))
+                .exec(txn)
+                .await?;
+            wiki_page_versions::Entity::delete_many()
+                .filter(wiki_page_versions::Column::WikiId.eq(id))
+                .exec(txn)
+                .await?;
+            wiki_pages::Entity::delete_many()
+                .filter(wiki_pages::Column::WikiId.eq(id))
+                .exec(txn)
+                .await?;
+            note_links::Entity::delete_many()
+                .filter(note_links::Column::VaultId.eq(id))
+                .exec(txn)
+                .await?;
+            note_backlinks::Entity::delete_many()
+                .filter(note_backlinks::Column::VaultId.eq(id))
+                .exec(txn)
+                .await?;
+            notes::Entity::delete_many().filter(notes::Column::VaultId.eq(id)).exec(txn).await?;
 
-    let result = wikis::Entity::delete_by_id(id).exec(db).await?;
+            let result = wikis::Entity::delete_by_id(id).exec(txn).await?;
+            if result.rows_affected == 0 {
+                return Err(AxAgentError::NotFound(format!("Wiki {} not found", id)));
+            }
+            Ok(())
+        })
+    })
+    .await
+    .map_err(|e| match e {
+        sea_orm::TransactionError::Connection(err) => AxAgentError::from(err),
+        sea_orm::TransactionError::Transaction(err) => err,
+    })
+}
+
+pub async fn increment_note_count(db: &DatabaseConnection, wiki_id: &str) -> Result<()> {
+    // 原子自增：避免读-改-写在并发下丢计数
+    let result = wikis::Entity::update_many()
+        .col_expr(wikis::Column::NoteCount, sea_query::Expr::col(wikis::Column::NoteCount).add(1))
+        .col_expr(wikis::Column::UpdatedAt, sea_query::Expr::value(chrono::Utc::now().timestamp()))
+        .filter(wikis::Column::Id.eq(wiki_id))
+        .exec(db)
+        .await?;
+
     if result.rows_affected == 0 {
-        return Err(AxAgentError::NotFound(format!("Wiki {} not found", id)));
+        return Err(AxAgentError::NotFound(format!("Wiki {} not found", wiki_id)));
     }
     Ok(())
 }
 
-pub async fn increment_note_count(db: &DatabaseConnection, wiki_id: &str) -> Result<()> {
-    let model = wikis::Entity::find_by_id(wiki_id)
-        .one(db)
-        .await?
-        .ok_or_else(|| AxAgentError::NotFound(format!("Wiki {} not found", wiki_id)))?;
-
-    let mut am = model.clone().into_active_model();
-    am.note_count = Set(model.note_count + 1);
-    am.updated_at = Set(chrono::Utc::now().timestamp());
-    am.update(db).await?;
-
-    Ok(())
-}
-
 pub async fn increment_source_count(db: &DatabaseConnection, wiki_id: &str) -> Result<()> {
-    let model = wikis::Entity::find_by_id(wiki_id)
-        .one(db)
-        .await?
-        .ok_or_else(|| AxAgentError::NotFound(format!("Wiki {} not found", wiki_id)))?;
+    // 原子自增：避免读-改-写在并发下丢计数
+    let result = wikis::Entity::update_many()
+        .col_expr(
+            wikis::Column::SourceCount,
+            sea_query::Expr::col(wikis::Column::SourceCount).add(1),
+        )
+        .col_expr(wikis::Column::UpdatedAt, sea_query::Expr::value(chrono::Utc::now().timestamp()))
+        .filter(wikis::Column::Id.eq(wiki_id))
+        .exec(db)
+        .await?;
 
-    let mut am = model.clone().into_active_model();
-    am.source_count = Set(model.source_count + 1);
-    am.updated_at = Set(chrono::Utc::now().timestamp());
-    am.update(db).await?;
-
+    if result.rows_affected == 0 {
+        return Err(AxAgentError::NotFound(format!("Wiki {} not found", wiki_id)));
+    }
     Ok(())
 }
 
@@ -298,6 +324,17 @@ pub struct CreateWikiTemplateInput {
     pub is_builtin: bool,
 }
 
+/// 更新 Wiki 模板的输入（部分更新，None 字段不覆盖）。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateWikiTemplateInput {
+    pub id: String,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub content: Option<String>,
+    pub page_type: Option<String>,
+}
+
 fn model_to_template(m: wiki_templates::Model) -> WikiTemplate {
     WikiTemplate {
         id: m.id,
@@ -358,8 +395,87 @@ pub async fn get_wiki_template(db: &DatabaseConnection, id: &str) -> Result<Wiki
     Ok(model_to_template(model))
 }
 
+/// 更新 Wiki 模板（部分更新：只覆盖传入的字段）。
+///
+/// `is_builtin` 不在输入中 —— 内置标记不允许经 update 翻转；
+/// 删除保护见 [`delete_wiki_template`]。
+pub async fn update_wiki_template(
+    db: &DatabaseConnection,
+    input: UpdateWikiTemplateInput,
+) -> Result<WikiTemplate> {
+    let existing = wiki_templates::Entity::find_by_id(&input.id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AxAgentError::NotFound(format!("WikiTemplate {} not found", input.id)))?;
+
+    let mut am: wiki_templates::ActiveModel = existing.into();
+    if let Some(name) = input.name {
+        am.name = Set(name);
+    }
+    if let Some(description) = input.description {
+        am.description = Set(Some(description));
+    }
+    if let Some(content) = input.content {
+        am.content = Set(content);
+    }
+    if let Some(page_type) = input.page_type {
+        am.page_type = Set(Some(page_type));
+    }
+    am.updated_at = Set(chrono::Utc::now().timestamp());
+    am.update(db).await?;
+
+    get_wiki_template(db, &input.id).await
+}
+
 pub async fn delete_wiki_template(db: &DatabaseConnection, id: &str) -> Result<()> {
+    // is_builtin 保护：内置模板（每日笔记等系统依赖）不可删除
+    let existing = wiki_templates::Entity::find_by_id(id)
+        .one(db)
+        .await?
+        .ok_or_else(|| AxAgentError::NotFound(format!("WikiTemplate {} not found", id)))?;
+    if existing.is_builtin {
+        return Err(AxAgentError::Validation(format!("内置模板不可删除: {}", existing.name)));
+    }
+
     wiki_templates::Entity::delete_by_id(id).exec(db).await?;
+
+    Ok(())
+}
+
+/// Wiki 操作历史条目。参数打包为结构体，避免 `log_wiki_operation`
+/// 参数过多触发 clippy::too_many_arguments。
+pub struct WikiOperationEntry {
+    pub wiki_id: String,
+    pub operation_type: String,
+    pub target_type: String,
+    pub target_id: String,
+    pub status: String,
+    pub details: Option<serde_json::Value>,
+    pub error_message: Option<String>,
+}
+
+/// 记录一条 Wiki 操作历史。
+///
+/// 操作历史全覆盖：此前唯一写入点是 compile（target_id 用随机 id 无意义），
+/// ingest / lint / sync / restore 等路径统一走本函数，target_id 传真实对象 ID
+/// （note_id / source_id），操作时间线才可追溯。失败由调用方 best-effort 处理
+/// （记日志不打断主流程）。
+pub async fn log_wiki_operation(db: &DatabaseConnection, entry: WikiOperationEntry) -> Result<()> {
+    let now = chrono::Utc::now().timestamp();
+    wiki_operations::ActiveModel {
+        wiki_id: Set(entry.wiki_id),
+        operation_type: Set(entry.operation_type),
+        target_type: Set(entry.target_type),
+        target_id: Set(entry.target_id),
+        status: Set(entry.status),
+        details_json: Set(entry.details),
+        error_message: Set(entry.error_message),
+        created_at: Set(now),
+        completed_at: Set(Some(now)),
+        ..Default::default()
+    }
+    .insert(db)
+    .await?;
 
     Ok(())
 }
