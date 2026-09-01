@@ -818,8 +818,12 @@ async fn log_lint_history(
     db: &sea_orm::DatabaseConnection,
     result: &lint_checker::LintResult,
 ) -> Result<(), String> {
-    let note =
-        axagent_dao::repo::note::get_note(db, &result.note_id).await.map_err(|e| e.to_string())?;
+    let note = axagent_dao::repo::note::get_note(db, &result.note_id).await.map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })?;
     wiki::log_wiki_operation(
         db,
         wiki::WikiOperationEntry {
@@ -836,7 +840,12 @@ async fn log_lint_history(
         },
     )
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| {
+        String::from(crate::commands::error::ErrorResponse::from_error(
+            e,
+            crate::commands::error::ErrorCategory::Unrecoverable,
+        ))
+    })
 }
 
 #[agent_command(domain = wiki, safety = Safe, call_mode = StateInput, description = "对 Wiki 笔记执行 lint 检查")]
