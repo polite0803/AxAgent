@@ -93,9 +93,10 @@ impl HybridSearcher {
             .map(|r| r.is_some())
             .unwrap_or(false);
 
+        // FTS 表已存在时直接返回。内容变更后的索引维护由写入路径的
+        // `rebuild_fts_index`（fire-and-forget）负责，查询路径不再每次全量
+        // 'rebuild'——此前每次搜索都全量重建 FTS，在大知识库上是主要性能瓶颈。
         if table_exists {
-            let rebuild_sql = format!("INSERT INTO {fts_table}({fts_table}) VALUES('rebuild')");
-            let _ = self.db.execute_unprepared(&rebuild_sql).await;
             return Ok(());
         }
 
@@ -264,14 +265,23 @@ impl HybridSearcher {
             return self.bm25_search_pg_with_filter(collection_id, query, top_k, doc_ids).await;
         }
 
-        let sanitized = sanitize_fts5_query(query);
-        if sanitized.is_empty() {
-            return Ok(vec![]);
-        }
-
         let safe_name = sanitize_name_for_table(collection_id);
         let meta_table = format!("vec_{safe_name}_meta");
         let fts_table = format!("{meta_table}_fts");
+
+        // 提取查询 token：fts_tokens（字符数 ≥3）供 FTS5 trigram MATCH；
+        // all_tokens 全量保留，FTS 无命中时供 LIKE 降级（中文两字词、AI/PE 等短 token
+        // 无法被 trigram MATCH，必须走降级路径才能命中）。
+        let (fts_tokens, all_tokens) = extract_query_tokens(query);
+        let sanitized = fts_tokens.join(" OR ");
+        if sanitized.is_empty() {
+            if all_tokens.is_empty() {
+                return Ok(vec![]);
+            }
+            return self
+                .bm25_search_fallback_with_filter(&meta_table, &all_tokens, top_k, doc_ids)
+                .await;
+        }
 
         let (fts_sql, mut params) = match doc_ids {
             Some(ids) if !ids.is_empty() => {
@@ -339,10 +349,12 @@ impl HybridSearcher {
                     return Ok(results);
                 }
 
-                self.bm25_search_fallback_with_filter(&meta_table, &sanitized, top_k, doc_ids).await
+                self.bm25_search_fallback_with_filter(&meta_table, &all_tokens, top_k, doc_ids)
+                    .await
             },
             _ => {
-                self.bm25_search_fallback_with_filter(&meta_table, &sanitized, top_k, doc_ids).await
+                self.bm25_search_fallback_with_filter(&meta_table, &all_tokens, top_k, doc_ids)
+                    .await
             },
         }
     }
@@ -415,10 +427,14 @@ impl HybridSearcher {
                 if !results.is_empty() {
                     return Ok(results);
                 }
-                self.bm25_search_fallback_pg_with_filter(&meta_table, trimmed, top_k, doc_ids).await
+                let (_, pg_tokens) = extract_query_tokens(trimmed);
+                self.bm25_search_fallback_pg_with_filter(&meta_table, &pg_tokens, top_k, doc_ids)
+                    .await
             },
             _ => {
-                self.bm25_search_fallback_pg_with_filter(&meta_table, trimmed, top_k, doc_ids).await
+                let (_, pg_tokens) = extract_query_tokens(trimmed);
+                self.bm25_search_fallback_pg_with_filter(&meta_table, &pg_tokens, top_k, doc_ids)
+                    .await
             },
         }
     }
@@ -426,17 +442,17 @@ impl HybridSearcher {
     async fn bm25_search_fallback_with_filter(
         &self,
         meta_table: &str,
-        query: &str,
+        tokens: &[String],
         top_k: usize,
         doc_ids: Option<&[String]>,
     ) -> Result<Vec<Bm25Result>> {
         if self.db.get_database_backend() == DbBackend::Postgres {
             return self
-                .bm25_search_fallback_pg_with_filter(meta_table, query, top_k, doc_ids)
+                .bm25_search_fallback_pg_with_filter(meta_table, tokens, top_k, doc_ids)
                 .await;
         }
 
-        let words: Vec<&str> = query.split_whitespace().take(8).collect();
+        let words: Vec<&str> = tokens.iter().map(|s| s.as_str()).take(8).collect();
         if words.is_empty() {
             return Ok(vec![]);
         }
@@ -503,11 +519,11 @@ impl HybridSearcher {
     async fn bm25_search_fallback_pg_with_filter(
         &self,
         meta_table: &str,
-        query: &str,
+        tokens: &[String],
         top_k: usize,
         doc_ids: Option<&[String]>,
     ) -> Result<Vec<Bm25Result>> {
-        let words: Vec<&str> = query.split_whitespace().take(8).collect();
+        let words: Vec<&str> = tokens.iter().map(|s| s.as_str()).take(8).collect();
         if words.is_empty() {
             return Ok(vec![]);
         }
@@ -710,34 +726,40 @@ fn sanitize_name_for_table(collection_id: &str) -> String {
     collection_id.chars().map(|c| if c == '-' { '_' } else { c }).collect()
 }
 
-fn sanitize_fts5_query(query: &str) -> String {
+/// 从查询中提取 token（按 Unicode 字符计数，修复此前按字节计数导致中文 token 被误删的问题）。
+///
+/// 返回 `(fts_tokens, all_tokens)`：
+/// - `fts_tokens`：字符数 ≥3 的 token，可被 FTS5 trigram tokenizer MATCH
+///   （trigram 的硬性限制：少于 3 个字符的查询词无法命中任何行）；
+/// - `all_tokens`：全部有效 token（字符数 ≥1），供 LIKE 降级路径使用，
+///   保证中文两字词（如"茅台"）和英文短词（如 AI、PE）仍可通过子串匹配命中。
+fn extract_query_tokens(query: &str) -> (Vec<String>, Vec<String>) {
     let trimmed = query.trim();
     if trimmed.is_empty() {
-        return String::new();
+        return (Vec::new(), Vec::new());
     }
 
-    let mut tokens: Vec<String> = Vec::new();
+    let mut all_tokens: Vec<String> = Vec::new();
     let mut current = String::new();
 
     for c in trimmed.chars() {
-        if c.is_alphanumeric() || c == '-' || c == '_' || (c > '\u{4e00}' && c < '\u{9fff}') {
+        if c.is_alphanumeric() || c == '-' || c == '_' || ('\u{4e00}'..='\u{9fff}').contains(&c) {
             current.push(c);
         } else if !current.is_empty() {
-            if current.len() >= 3 {
-                tokens.push(current.replace('\'', "''"));
-            }
-            current = String::new();
+            all_tokens.push(std::mem::take(&mut current));
         }
     }
-    if !current.is_empty() && current.len() >= 3 {
-        tokens.push(current.replace('\'', "''"));
+    if !current.is_empty() {
+        all_tokens.push(current);
     }
 
-    if tokens.is_empty() {
-        return String::new();
-    }
+    let fts_tokens: Vec<String> = all_tokens
+        .iter()
+        .filter(|t| t.chars().count() >= 3)
+        .map(|t| t.replace('\'', "''"))
+        .collect();
 
-    tokens.join(" OR ")
+    (fts_tokens, all_tokens)
 }
 
 #[cfg(test)]

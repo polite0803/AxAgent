@@ -851,13 +851,17 @@ pub async fn batch_upsert_entities_and_relations(
             .await?;
 
         if let Some(m) = existing {
-            // 存在：mention_count += 1，合并 aliases
+            // 存在：mention_count += 1，合并 aliases，刷新 last_seen_at，
+            // confidence 随 mention_count 单调上升（多次被抽到的实体更可信）
             let existing_desc_is_none = m.description.is_none();
             let merged_aliases = merge_aliases(&m.aliases, &ent.aliases);
             let new_mention_count = m.mention_count + 1;
+            let new_confidence = mention_based_confidence(new_mention_count);
             let mut am: knowledge_entities::ActiveModel = m.into();
             am.aliases = Set(merged_aliases);
             am.mention_count = Set(new_mention_count);
+            am.confidence = Set(new_confidence);
+            am.last_seen_at = Set(Some(rfc3339_now()));
             am.updated_at = Set(now);
             // 若新抽取提供了 description 且原描述为空，则补上
             if existing_desc_is_none && !ent.description.is_empty() {
@@ -877,6 +881,7 @@ pub async fn batch_upsert_entities_and_relations(
             } else {
                 Some(ent.description.clone())
             };
+            let seen_at = Some(rfc3339_now());
             let am = knowledge_entities::ActiveModel {
                 id: Set(id.clone()),
                 knowledge_base_id: Set(kb_id.to_string()),
@@ -893,9 +898,9 @@ pub async fn batch_upsert_entities_and_relations(
                 updated_at: Set(now),
                 aliases: Set(aliases_str),
                 mention_count: Set(1),
-                confidence: Set(0.5),
-                first_seen_at: Set(None),
-                last_seen_at: Set(None),
+                confidence: Set(mention_based_confidence(1)),
+                first_seen_at: Set(seen_at.clone()),
+                last_seen_at: Set(seen_at),
                 source_type: Set(source_type.to_string()),
                 source_id: Set(source_id.to_string()),
                 node_type: Set(String::from("entity")),
@@ -965,6 +970,17 @@ pub async fn batch_upsert_entities_and_relations(
         skipped_chunks,
         elapsed_ms,
     })
+}
+
+/// 基于被提及次数的实体置信度：1 次提及 0.58，5 次及以上封顶 0.9。
+/// 多次被独立抽取命中的实体更可信，confidence 不再恒为 0.5。
+fn mention_based_confidence(mention_count: i32) -> f64 {
+    0.5 + 0.4 * (mention_count.clamp(1, 5) as f64) / 5.0
+}
+
+/// 当前时间的 RFC3339 表示（first_seen_at / last_seen_at 为 TEXT 列）。
+fn rfc3339_now() -> String {
+    chrono::Utc::now().to_rfc3339()
 }
 
 /// P1-3: 跨源实体合并 — 按 name+entity_type 在所有知识图谱中查找重复实体并合并

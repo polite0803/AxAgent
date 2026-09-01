@@ -2013,6 +2013,15 @@ pub async fn sync_project_knowledge_sources(
     })?;
     let has_embedding = kb.embedding_provider.is_some();
 
+    // 文档 id → 源文件 mtime（add_document 写入；旧数据为 0，退化为仅 size 比对）
+    let doc_mtimes =
+        axagent_dao::repo::knowledge::get_document_mtime_map(db, &base_id).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+
     for path in &disk_files {
         let abs = path.to_string_lossy().to_string();
         let key = abs.to_ascii_lowercase();
@@ -2025,7 +2034,27 @@ pub async fn sync_project_knowledge_sources(
         matched_keys.insert(key.clone());
 
         if let Some(existing) = doc_by_path.get(&key) {
-            // 文件已存在 → 删旧 + 加新（保证磁盘内容与 KB 一致）
+            // 增量比对：size + mtime 均未变化 → 跳过，避免每次同步对全部已存在
+            // 文件删旧重加（大知识库会触发全量重索引）。
+            // 旧数据 updated_at 为 0（未记录 mtime），此时退化为仅 size 比对。
+            let fmeta = std::fs::metadata(path).ok();
+            let fsize = fmeta.as_ref().map(|m| m.len() as i64).unwrap_or(-1);
+            let fmtime = fmeta
+                .as_ref()
+                .and_then(|m| m.modified().ok())
+                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|d| d.as_secs() as i64)
+                .unwrap_or(0);
+            let size_unchanged = existing.size_bytes == fsize;
+            let doc_mtime = doc_mtimes.get(&existing.id).copied().unwrap_or(0);
+            let mtime_unchanged = doc_mtime > 0 && fmtime > 0 && fmtime <= doc_mtime;
+            if size_unchanged && mtime_unchanged {
+                result.skipped_count += 1;
+                result.skipped.push(abs);
+                continue;
+            }
+
+            // 文件已存在且发生变化 → 删旧 + 加新（保证磁盘内容与 KB 一致）
             let doc_id = existing.id.clone();
             let collection_id = format!("kb_{}", base_id);
             let _ = state.vector_store.delete_document_embeddings(&collection_id, &doc_id).await;
@@ -2156,44 +2185,27 @@ pub async fn sync_project_knowledge_sources(
 /// `note_links` / `note_backlinks` 表。用于修复历史导入过程中可能
 /// 遗漏的双向链接记录，确保图谱节点正确关联。
 ///
-/// 返回值：成功修复的笔记数量。
+/// 实现委托 `resync_vault_note_links`（一次性构建全 vault 映射 + 批量写入）。
+/// 旧实现逐篇调用 `sync_note_links_from_content`（每篇全量加载 vault，O(N²)），
+/// 2 万篇笔记场景下不可用；且逐篇同步无法修复批量导入时被丢弃的前向引用。
+///
+/// 返回值：处理的笔记数量。
 async fn repair_wiki_note_links(db: &sea_orm::DatabaseConnection, wiki_id: &str) -> usize {
-    let notes = match axagent_dao::repo::note::list_notes(db, wiki_id).await {
-        Ok(n) => n,
-        Err(e) => {
-            tracing::warn!("[repair_links] 获取 Wiki 笔记列表失败: {e}");
-            return 0;
+    match axagent_dao::repo::note::resync_vault_note_links(db, wiki_id).await {
+        Ok((notes, links)) => {
+            tracing::info!(
+                "[repair_links] Wiki {} 链接重建完成: {} 篇笔记, {} 条链接",
+                wiki_id,
+                notes,
+                links
+            );
+            notes
         },
-    };
-
-    let mut repaired = 0usize;
-    for note in &notes {
-        match axagent_dao::repo::note::sync_note_links_from_content(
-            db,
-            wiki_id,
-            &note.id,
-            &note.content,
-        )
-        .await
-        {
-            Ok(()) => {
-                repaired += 1;
-            },
-            Err(e) => {
-                tracing::warn!("[repair_links] 笔记 {} 链接同步失败: {e}", note.title);
-            },
-        }
+        Err(e) => {
+            tracing::warn!("[repair_links] Wiki {} 链接重建失败: {e}", wiki_id);
+            0
+        },
     }
-
-    if repaired > 0 {
-        tracing::info!(
-            "[repair_links] Wiki {} 链接修复完成: {} / {} 篇笔记已处理",
-            wiki_id,
-            repaired,
-            notes.len()
-        );
-    }
-    repaired
 }
 
 /// 将知识图谱的实体/关系桥接到 Wiki vault 中：为每个实体创建一篇笔记，
@@ -2289,19 +2301,10 @@ async fn bridge_graph_to_wiki(
 
         let created_note = axagent_dao::repo::note::create_note(db, input).await;
         match created_note {
-            Ok(note) => {
-                // 关键修复：在创建笔记后，立即解析并同步 [[wikilink]]，
-                // 确保 note_links 和 note_backlinks 表中有正确的关联记录。
-                if let Err(e) = axagent_dao::repo::note::sync_note_links_from_content(
-                    db,
-                    &wiki_id,
-                    &note.id,
-                    &note.content,
-                )
-                .await
-                {
-                    tracing::warn!("[graph_to_wiki] 笔记 {} 链接同步失败: {}", entity.name, e);
-                }
+            Ok(_) => {
+                // 链接同步不再逐篇执行：create_note 内部的同步只含「已导入」笔记映射，
+                // 前向引用会被丢弃；且此处逐篇调用是 O(N²)。统一由导入流程末尾的
+                // resync_vault_note_links（全量映射 + 批量写入）完成。
                 created += 1;
             },
             Err(e) => {
@@ -2644,17 +2647,9 @@ pub async fn import_project_knowledge_sources(
     let (bridged_notes, bridged_skipped) =
         bridge_graph_to_wiki(state.harness.db(), &kb_id, &wiki_id).await;
 
-    // 5.5) 修复步骤：遍历所有笔记，重新解析 [[wikilink]]（update 模式下尤其重要）
-    // 由于历史原因，部分笔记可能包含 [[wikilink]] 但 note_links 表中没有对应记录。
-    // 此步骤确保所有笔记的双向链接关系正确建立。
-    let repaired_links = repair_wiki_note_links(state.harness.db(), &wiki_id).await;
-    if repaired_links > 0 {
-        tracing::info!(
-            "[import_project] 修复了 Wiki {} 中 {} 条笔记的 wikilink 关联",
-            wiki_id,
-            repaired_links
-        );
-    }
+    // 5.5) 链接修复已移至 Wiki 导入（步骤 6）之后执行：
+    // wiki_import_obsidian_vault 才是笔记量最大的导入源，在其之前修复只会
+    // 处理到部分笔记，且此时构建的映射不完整（前向引用仍会丢失）。
 
     // 5.6) 失效 Wiki 图谱缓存，确保下次加载时获取最新的图谱数据
     let _ =
@@ -2699,6 +2694,9 @@ pub async fn import_project_knowledge_sources(
     }
 
     // ── Wiki markdown 导入（state 被移入但不需再使用）──
+    // 先克隆 db 句柄（DatabaseConnection 是 Arc 包装，克隆廉价），
+    // state 移入导入函数后仍需用它做链接重建与缓存失效。
+    let db_after_import = state.harness.db().clone();
     let wiki_result = crate::commands::wiki::wiki_import_obsidian_vault(
         app.clone(),
         state,
@@ -2707,6 +2705,21 @@ pub async fn import_project_knowledge_sources(
     )
     .await
     .map_err(|e| format!("导入 Wiki 笔记失败: {e}"))?;
+
+    // 7) 全量重建链接表：必须在所有笔记导入完成之后执行。
+    // 逐篇导入时的链接同步只含「已导入」笔记的映射，指向后续导入笔记的
+    // 前向引用被静默丢弃 —— 这是图谱 0 边、无聚类的根因。
+    let repaired_links = repair_wiki_note_links(&db_after_import, &wiki_id).await;
+    if repaired_links > 0 {
+        tracing::info!(
+            "[import_project] 重建 Wiki {} 链接表完成（{} 篇笔记）",
+            wiki_id,
+            repaired_links
+        );
+    }
+
+    // 8) 失效图谱缓存（链接表已全量变化）
+    let _ = axagent_dao::repo::wiki_graph_cache::invalidate_cache(&db_after_import, &wiki_id).await;
 
     let result = ProjectKnowledgeImportResult {
         wiki_id,

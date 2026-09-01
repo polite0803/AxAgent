@@ -7,6 +7,10 @@ use serde::{Deserialize, Serialize};
 /// SelfRagConfig 定义在 axagent-harness::rag_config
 pub use axagent_harness::rag_config::SelfRagConfig;
 
+/// Partial 档的相关比例下限（Good ≥ quality_threshold，Partial ≥ 此值，低于判 Poor）。
+/// 暂不进 Settings 配置面（self-rag 仅 Ollama 路径在用），先以常量收敛硬编码。
+const PARTIAL_QUALITY_RATIO: f32 = 0.3;
+
 // ── 判断结果 ───────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -55,7 +59,7 @@ impl SelfRagGate {
 
         let client = reqwest::Client::new();
 
-        let judgments: Vec<RelevanceJudgment> =
+        let judged: Vec<axagent_harness::core_error::Result<RelevanceJudgment>> =
             futures::future::join_all(chunks.iter().map(|(id, content)| {
                 let query = query.to_string();
                 let content = content.clone();
@@ -63,22 +67,25 @@ impl SelfRagGate {
                 let client = client.clone();
                 async move { judge_single(&client, &config, id, &query, &content).await }
             }))
-            .await
-            .into_iter()
-            .map(|r| {
+            .await;
+
+        // judge 失败按 fail-open 保留该 chunk（宁可多注入上下文），
+        // 并保留真实 chunk_id（此前回退值写死 "unknown"）。
+        Ok(chunks
+            .iter()
+            .zip(judged)
+            .map(|((id, _), r)| {
                 r.unwrap_or_else(|e| {
-                    tracing::warn!("Judge failed for chunk: {}", e);
+                    tracing::warn!("Self-RAG judge 失败，chunk {id} 按 fail-open 保留: {e}");
                     RelevanceJudgment {
-                        chunk_id: "unknown".to_string(),
+                        chunk_id: id.clone(),
                         relevant: true,
                         score: 0.5,
-                        reason: format!("judge error: {}", e),
+                        reason: format!("judge error: {e}"),
                     }
                 })
             })
-            .collect();
-
-        Ok(judgments)
+            .collect())
     }
 
     /// 评估整体检索质量
@@ -92,7 +99,7 @@ impl SelfRagGate {
 
         if ratio >= self.config.quality_threshold {
             RetrievalQuality::Good(judgments.to_vec())
-        } else if ratio >= 0.3 {
+        } else if ratio >= PARTIAL_QUALITY_RATIO {
             RetrievalQuality::Partial(judgments.to_vec())
         } else {
             let avg_score = judgments.iter().map(|j| j.score).sum::<f32>() / judgments.len() as f32;
@@ -181,6 +188,10 @@ async fn judge_single(
 
     let response_text = data["response"].as_str().unwrap_or("{}");
     let parsed: serde_json::Value = serde_json::from_str(response_text).unwrap_or_default();
+    if parsed.is_null() {
+        // 解析失败按 fail-open 保留 chunk，但必须留痕，避免静默吞掉 judge 异常
+        tracing::warn!("Self-RAG judge 响应解析失败，chunk {chunk_id} 按 fail-open 保留");
+    }
 
     Ok(RelevanceJudgment {
         chunk_id: chunk_id.to_string(),

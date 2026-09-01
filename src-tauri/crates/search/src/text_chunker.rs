@@ -17,32 +17,6 @@ pub const CODE_CHUNK_SIZE: usize = 120;
 /// Code-specific overlap in characters (~12% overlap).
 pub const CODE_OVERLAP: usize = 12;
 
-/// Find the nearest char boundary at or before the given byte position.
-fn floor_char_boundary(s: &str, index: usize) -> usize {
-    if index >= s.len() {
-        s.len()
-    } else {
-        let mut i = index;
-        while i > 0 && !s.is_char_boundary(i) {
-            i -= 1;
-        }
-        i
-    }
-}
-
-/// Find the nearest char boundary at or after the given byte position.
-fn ceil_char_boundary(s: &str, index: usize) -> usize {
-    if index >= s.len() {
-        s.len()
-    } else {
-        let mut i = index;
-        while i < s.len() && !s.is_char_boundary(i) {
-            i += 1;
-        }
-        i
-    }
-}
-
 /// Split text into overlapping chunks, breaking at paragraph/sentence boundaries.
 pub fn chunk_text(text: &str, chunk_size: usize, overlap: usize) -> Vec<TextChunk> {
     chunk_text_with_separator(text, chunk_size, overlap, None)
@@ -78,7 +52,8 @@ pub fn chunk_text_with_separator_and_markdown(
     if text.is_empty() {
         return vec![];
     }
-    if text.len() <= chunk_size {
+    // chunk_size 语义为「字符数」（见常量文档），中文等多字节字符按字符计数
+    if text.chars().count() <= chunk_size {
         return vec![TextChunk { index: 0, content: text.to_string() }];
     }
 
@@ -139,7 +114,8 @@ fn chunk_by_markdown_headings(text: &str, chunk_size: usize, overlap: usize) -> 
     let mut current_len = 0usize;
 
     for section in &sections {
-        let sec_len = section.len();
+        // 按字符计数（chunk_size 语义为字符数）
+        let sec_len = section.chars().count();
         let newline_len = if current_parts.is_empty() { 0 } else { 1 };
 
         // If a single section exceeds chunk_size, split it further with smart chunking
@@ -199,11 +175,12 @@ fn chunk_by_separator(text: &str, chunk_size: usize, overlap: usize, sep: &str) 
     let mut current_len = 0usize;
 
     for segment in &segments {
-        let seg_len = segment.len();
+        // 按字符计数（chunk_size 语义为字符数）
+        let seg_len = segment.chars().count();
         let sep_len = if current_parts.is_empty() {
             0
         } else {
-            sep.len()
+            sep.chars().count()
         };
 
         // If a single segment exceeds chunk_size, split it further with smart chunking
@@ -250,48 +227,68 @@ fn chunk_by_separator(text: &str, chunk_size: usize, overlap: usize, sep: &str) 
     chunks
 }
 
+/// 字符索引 → 字节偏移对照表（含末尾哨兵 text.len()，长度 = 字符数 + 1）。
+fn char_byte_offsets(text: &str) -> Vec<usize> {
+    text.char_indices().map(|(i, _)| i).chain(std::iter::once(text.len())).collect()
+}
+
+/// 将 `find_break_point` 系列返回的字节偏移换算为字符索引。
+///
+/// 返回值均落在字符边界上；理论上应精确命中对照表，兜底向下取整并保证
+/// 至少前进 1 个字符（避免死循环）。
+fn byte_offset_to_char_index(offsets: &[usize], byte_pos: usize, min: usize) -> usize {
+    let idx = match offsets.binary_search(&byte_pos) {
+        Ok(i) => i,
+        // 非边界兜底：向下取整（保证不超过切分目标）
+        Err(i) => i.saturating_sub(1),
+    };
+    idx.max(min + 1).min(offsets.len() - 1)
+}
+
 /// Core smart chunking implementation (no separator).
+///
+/// `chunk_size` / `overlap` 单位为字符（非字节），中文等多字节文本不再被压缩成
+/// 1/3 长度；内部仍以字节偏移做切片，通过对照表换算。
 fn chunk_text_impl(text: &str, chunk_size: usize, overlap: usize) -> Vec<TextChunk> {
     let text = text.trim();
     if text.is_empty() {
         return vec![];
     }
-    if text.len() <= chunk_size {
+    let total_chars = text.chars().count();
+    if total_chars <= chunk_size {
         return vec![TextChunk { index: 0, content: text.to_string() }];
     }
 
+    let offsets = char_byte_offsets(text);
     let mut chunks = Vec::new();
-    let mut start = 0;
+    let mut start = 0usize; // 字符索引
 
-    while start < text.len() {
-        // Snap to char boundary to avoid slicing inside multi-byte chars (e.g. CJK)
-        let end = floor_char_boundary(text, (start + chunk_size).min(text.len()));
+    while start < total_chars {
+        let end = (start + chunk_size).min(total_chars);
 
-        // Find a good break point near `end`
-        let actual_end = if end >= text.len() {
-            text.len()
+        let actual_end = if end >= total_chars {
+            total_chars
         } else {
-            find_break_point(text, start, end)
+            let bp = find_break_point(text, offsets[start], offsets[end]);
+            byte_offset_to_char_index(&offsets, bp, start)
         };
 
-        let chunk_content = text[start..actual_end].trim();
+        let chunk_content = text[offsets[start]..offsets[actual_end]].trim();
         if !chunk_content.is_empty() {
             chunks
                 .push(TextChunk { index: chunks.len() as i32, content: chunk_content.to_string() });
         }
 
-        // Move start forward by (chunk_size - overlap), but at least 1 char
+        // Move start forward by (chunk_size - overlap) chars, but at least 1 char
         let advance = if actual_end - start > overlap {
             actual_end - start - overlap
         } else {
             actual_end - start
         };
-
-        // Snap new start to a char boundary
-        start = ceil_char_boundary(text, start + advance.max(1));
+        start += advance.max(1);
 
         // If remaining text is tiny, it's already covered by the last chunk's overlap
-        if start >= text.len() || text.len() - start < overlap {
+        if start >= total_chars || total_chars - start < overlap {
             break;
         }
     }
@@ -425,23 +422,26 @@ pub fn chunk_for_code(
     if text.is_empty() {
         return vec![];
     }
-    if text.len() <= chunk_size {
+    let total_chars = text.chars().count();
+    if total_chars <= chunk_size {
         return vec![TextChunk { index: 0, content: text.to_string() }];
     }
 
+    let offsets = char_byte_offsets(text);
     let mut chunks = Vec::new();
-    let mut start = 0;
+    let mut start = 0usize; // 字符索引
 
-    while start < text.len() {
-        let end = floor_char_boundary(text, (start + chunk_size).min(text.len()));
+    while start < total_chars {
+        let end = (start + chunk_size).min(total_chars);
 
-        let actual_end = if end >= text.len() {
-            text.len()
+        let actual_end = if end >= total_chars {
+            total_chars
         } else {
-            find_code_break_point(text, start, end)
+            let bp = find_code_break_point(text, offsets[start], offsets[end]);
+            byte_offset_to_char_index(&offsets, bp, start)
         };
 
-        let chunk_content = text[start..actual_end].trim();
+        let chunk_content = text[offsets[start]..offsets[actual_end]].trim();
         if !chunk_content.is_empty() {
             chunks
                 .push(TextChunk { index: chunks.len() as i32, content: chunk_content.to_string() });
@@ -452,10 +452,9 @@ pub fn chunk_for_code(
         } else {
             actual_end - start
         };
+        start += advance.max(1);
 
-        start = ceil_char_boundary(text, start + advance.max(1));
-
-        if start >= text.len() || text.len() - start < overlap {
+        if start >= total_chars || total_chars - start < overlap {
             break;
         }
     }
@@ -550,6 +549,35 @@ mod tests {
         assert!(chunks.len() > 1);
         for chunk in &chunks {
             // Every chunk must be valid UTF-8 (no partial chars)
+            assert!(chunk.content.is_char_boundary(0));
+            assert!(chunk.content.is_char_boundary(chunk.content.len()));
+        }
+    }
+
+    #[test]
+    fn test_chunk_size_counts_chars_not_bytes() {
+        // 5000 个汉字 ≈ 15000 字节：chunk_size=2000（字符）应只产生 ~3 块；
+        // 旧的字节计数实现会产生 ~8 块（每块 ~667 字）。
+        let text = "中".repeat(5000);
+        let chunks = chunk_text(&text, 2000, 200);
+        assert!(
+            chunks.len() <= 4,
+            "字符计数下 5000 字 / 2000 应为 ~3 块，实际 {} 块",
+            chunks.len()
+        );
+        for chunk in &chunks {
+            assert!(chunk.content.chars().count() <= 2000);
+        }
+    }
+
+    #[test]
+    fn test_mixed_cjk_ascii_char_semantics() {
+        // 中英混合：每个片段 ~10 字节汉字 + 10 字节 ASCII，保证无 panic 且内容无损
+        let text = "中文内容abc def。".repeat(300);
+        let chunks = chunk_text(&text, 500, 50);
+        assert!(!chunks.is_empty());
+        for chunk in &chunks {
+            assert!(chunk.content.chars().count() <= 500);
             assert!(chunk.content.is_char_boundary(0));
             assert!(chunk.content.is_char_boundary(chunk.content.len()));
         }

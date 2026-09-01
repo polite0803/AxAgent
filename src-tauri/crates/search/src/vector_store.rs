@@ -1107,6 +1107,14 @@ impl VectorStore {
             .await
             .map_err(Self::wrap)?;
 
+        // meta 直写不经 upsert_embeddings，FTS 不会自动感知，需显式触发重建，
+        // 否则该 chunk 在关键词检索中永远不可见。
+        let cid = collection_id.to_string();
+        let db = self.clone();
+        tokio::spawn(async move {
+            db.rebuild_fts_index(&cid).await;
+        });
+
         Ok(())
     }
 
@@ -1416,9 +1424,10 @@ impl VectorStore {
             .map(|r| r.is_some())
             .unwrap_or(false);
 
+        // FTS 表已存在时直接返回。内容变更后的索引维护由各写入路径的
+        // `rebuild_fts_index`（fire-and-forget）负责，这里不再每次全量 'rebuild'——
+        // 该方法在 ensure_collection / 每次检索前都会被调用，全量重建是纯浪费。
         if table_exists {
-            let rebuild_sql = format!("INSERT INTO {fts_table}({fts_table}) VALUES('rebuild')");
-            let _ = self.exec(&rebuild_sql).await;
             return Ok(());
         }
 

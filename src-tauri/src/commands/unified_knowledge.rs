@@ -33,13 +33,23 @@ pub struct UnifiedSearchRequest {
     pub top_k: Option<usize>,
 }
 
+/// 源权重（显式优先级：Knowledge(4) > Wiki(3) > Memory(2)，Obsidian 与 Wiki 同级）。
+/// 源内归一化后乘以该权重，保证跨源分数可比。
+fn source_weight(t: &KnowledgeSourceType) -> f64 {
+    match t {
+        KnowledgeSourceType::KnowledgeBase => 1.0,
+        KnowledgeSourceType::Wiki | KnowledgeSourceType::ObsidianVault => 0.75,
+        KnowledgeSourceType::Memory => 0.5,
+    }
+}
+
 /// 统一搜索 Tauri 命令
 ///
 /// 遍历所有已注册的统一知识源，按条件搜索并聚合结果。
 #[agent_command(domain = knowledge, safety = Safe, call_mode = StateInput, description = "统一知识源搜索")]
 #[tauri::command]
 pub async fn unified_knowledge_search(
-    _state: State<'_, AppState>,
+    state: State<'_, AppState>,
     request: UnifiedSearchRequest,
 ) -> Result<Vec<SearchResult>, String> {
     let top_k = request.top_k.unwrap_or(10);
@@ -84,6 +94,78 @@ pub async fn unified_knowledge_search(
                 );
             },
         }
+
+        // RAG 知识库源补走真实的向量+BM25 检索（源实现的 search 只做实体关键词匹配，
+        // 检索不到文档 chunk 内容）。embedding 未配置时内部自动降级纯 BM25。
+        if source.source_type() == KnowledgeSourceType::KnowledgeBase && !source_id.is_empty() {
+            match crate::indexing::search_knowledge(
+                state.harness.db(),
+                state.harness.master_key(),
+                &state.vector_store,
+                source_id,
+                &request.query,
+                per_source,
+            )
+            .await
+            {
+                Ok(chunks) => {
+                    let doc_ids: Vec<String> = {
+                        let mut seen = std::collections::HashSet::new();
+                        chunks
+                            .iter()
+                            .filter(|c| seen.insert(c.document_id.clone()))
+                            .map(|c| c.document_id.clone())
+                            .collect()
+                    };
+                    let titles = axagent_dao::repo::knowledge::get_document_titles(
+                        state.harness.db(),
+                        &doc_ids,
+                    )
+                    .await
+                    .unwrap_or_default();
+                    for c in chunks {
+                        // score 为距离（越小越相似），映射到 (0,1] 的相似度语义
+                        let similarity = 1.0 / (1.0 + c.score.max(0.0) as f64);
+                        all_results.push(SearchResult {
+                            source_type: KnowledgeSourceType::KnowledgeBase,
+                            source_id: source_id.to_string(),
+                            content_id: c.document_id.clone(),
+                            title: titles
+                                .get(&c.document_id)
+                                .cloned()
+                                .unwrap_or_else(|| c.document_id.clone()),
+                            snippet: c.content.chars().take(300).collect(),
+                            score: similarity,
+                            content_type: "document_chunk".to_string(),
+                        });
+                    }
+                },
+                Err(e) => {
+                    tracing::warn!(
+                        "[unified_knowledge_search] 知识库 {} 向量检索失败: {}",
+                        source_id,
+                        e
+                    );
+                },
+            }
+        }
+    }
+
+    // 分数归一化 + 源权重：三源原始 score 语义不可比（KB=confidence / Wiki=关键词命中 /
+    // Memory=importance 加权），先在源类型内按最大值归一化到 [0,1]，再乘源权重，
+    // 最后全局排序截断。
+    let mut max_by_type: std::collections::HashMap<KnowledgeSourceType, f64> =
+        std::collections::HashMap::new();
+    for r in &all_results {
+        let entry = max_by_type.entry(r.source_type.clone()).or_insert(0.0);
+        if r.score > *entry {
+            *entry = r.score;
+        }
+    }
+    for r in &mut all_results {
+        let max = max_by_type.get(&r.source_type).copied().unwrap_or(0.0);
+        let normalized = if max > 0.0 { r.score / max } else { 0.0 };
+        r.score = normalized * source_weight(&r.source_type);
     }
 
     // 全局排序 + 截断

@@ -1194,8 +1194,22 @@ pub async fn wiki_graph_communities_cached(
         ))
     })?;
 
-    let link_graph = LinkGraph::from_graph_data(graph_data.clone());
-    let result = louvain::detect_communities(link_graph);
+    // B1 修复：Louvain 为 CPU 密集型同步计算（大图数秒），必须放到阻塞线程池，
+    // 与上方 L996/L1167 两处保持一致，避免占死 tokio worker
+    let result = {
+        let graph_for_louvain = graph_data.clone();
+        tokio::task::spawn_blocking(move || {
+            let link_graph = LinkGraph::from_graph_data(graph_for_louvain);
+            louvain::detect_communities(link_graph)
+        })
+        .await
+        .map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?
+    };
 
     axagent_dao::repo::wiki_graph_cache::save_cached_graph(
         db,
@@ -2788,32 +2802,23 @@ pub async fn repair_wiki_graph(
         }
     }
 
-    // 3. 修复 wikilink：遍历所有笔记，重新解析 [[wikilink]]
-    let notes = axagent_dao::repo::note::list_notes(db, &wiki_id).await.map_err(|e| {
-        String::from(crate::commands::error::ErrorResponse::from_error(
-            e,
-            crate::commands::error::ErrorCategory::Unrecoverable,
-        ))
-    })?;
-
-    let mut repaired_notes = 0usize;
-    for note in &notes {
-        match axagent_dao::repo::note::sync_note_links_from_content(
-            db,
-            &wiki_id,
-            &note.id,
-            &note.content,
-        )
-        .await
-        {
-            Ok(()) => {
-                repaired_notes += 1;
-            },
-            Err(e) => {
-                tracing::warn!("[repair_graph] 笔记 {} 链接同步失败: {}", note.title, e);
-            },
-        }
-    }
+    // 3. 修复 wikilink：批量重建全 vault 链接表
+    //    旧实现逐篇调用 sync_note_links_from_content（每篇全量加载 vault 笔记，O(N²)），
+    //    2 万篇笔记永远跑不完；且与导入顺序无关的全量映射才能修复批量导入时
+    //    被丢弃的前向引用（指向尚未导入笔记的 [[wikilink]]）。
+    let (repaired_notes, link_count) =
+        axagent_dao::repo::note::resync_vault_note_links(db, &wiki_id).await.map_err(|e| {
+            String::from(crate::commands::error::ErrorResponse::from_error(
+                e,
+                crate::commands::error::ErrorCategory::Unrecoverable,
+            ))
+        })?;
+    tracing::info!(
+        "[repair_graph] 批量重建链接完成: {} 篇笔记, {} 条链接 (wiki={})",
+        repaired_notes,
+        link_count,
+        wiki_id
+    );
 
     // 4. 失效图谱缓存
     let _ = axagent_dao::repo::wiki_graph_cache::invalidate_cache(db, &wiki_id).await;

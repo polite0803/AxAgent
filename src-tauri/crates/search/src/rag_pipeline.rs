@@ -70,11 +70,16 @@ impl RAGPipeline {
             embed_fn,
             rerank_config,
             None,
+            None,
         )
         .await
     }
 
     /// `execute` 的多文档协同变体：透传 `doc_ids` 过滤到底层检索。
+    ///
+    /// `precomputed_embedding`：调用方已为 `query` 计算好的 query embedding
+    /// （须与该源 resolve 出的 embedding provider / dims 一致），
+    /// 传 `Some` 时跳过检索阶段的重复 embed 调用。
     #[allow(clippy::too_many_arguments)]
     pub async fn execute_with_filter<S: rag::RAGSource + ?Sized>(
         &self,
@@ -89,6 +94,7 @@ impl RAGPipeline {
         embed_fn: impl AsyncEmbedFn,
         rerank_config: &reranker::RerankConfig,
         doc_ids: Option<&[String]>,
+        precomputed_embedding: Option<Vec<f32>>,
     ) -> Result<PipelineOutput> {
         // 阶段 1：检索（使用 rag::search_with_filter 透传 doc_ids）
         let raw_results = rag::search_with_filter(
@@ -102,6 +108,7 @@ impl RAGPipeline {
             dimensions,
             embed_fn,
             doc_ids,
+            precomputed_embedding,
         )
         .await?;
 

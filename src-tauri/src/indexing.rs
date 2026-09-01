@@ -1133,6 +1133,7 @@ pub async fn search_knowledge_with_doc_filter(
         None,
         ProviderEmbedFn,
         doc_ids,
+        None,
     )
     .await
 }

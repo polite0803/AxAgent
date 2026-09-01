@@ -213,7 +213,34 @@ pub async fn search_items(
         .all(db)
         .await?;
 
+    // 检索回写访问统计：access_count +1、刷新 last_accessed，
+    // 供衰减 tick 的 hours_since_last_access 与晋升阈值消费。
+    // 批量单条 UPDATE，best-effort 不影响搜索主路径。
+    let ids: Vec<String> = models.iter().map(|m| m.id.clone()).collect();
+    record_access_batch(db, &ids).await;
+
     Ok(models.into_iter().map(model_to_item).collect())
+}
+
+/// 批量记录访问：access_count +1、last_accessed 刷新为当前时间。
+/// 不做自动晋升（晋升走显式的 `record_access_and_maybe_promote`）。
+async fn record_access_batch(db: &DatabaseConnection, ids: &[String]) {
+    if ids.is_empty() {
+        return;
+    }
+    let now_ms = chrono::Utc::now().timestamp_millis();
+    let result = memory_items::Entity::update_many()
+        .col_expr(
+            memory_items::Column::AccessCount,
+            Expr::col(memory_items::Column::AccessCount).add(1),
+        )
+        .col_expr(memory_items::Column::LastAccessed, Expr::value(now_ms))
+        .filter(memory_items::Column::Id.is_in(ids.iter().map(|s| s.as_str())))
+        .exec(db)
+        .await;
+    if let Err(e) = result {
+        tracing::debug!("[memory] 批量回写访问统计失败（非致命）: {}", e);
+    }
 }
 
 pub async fn get_item(db: &DatabaseConnection, id: &str) -> Result<MemoryItem> {
@@ -550,33 +577,45 @@ pub async fn apply_decay_tick(db: &DatabaseConnection) -> Result<(u64, u64, u64)
         .await?
         .rows_affected;
 
-    // 2. 衰减 + 3. 低分淘汰
-    let all_items = memory_items::Entity::find()
+    // 2. 衰减 + 3. 低分淘汰（直接 DB 层删除，无需先全量载入再按 id 删）
+    let low_score_deleted = memory_items::Entity::delete_many()
         .filter(memory_items::Column::Importance.lt(0.05))
-        .all(db)
-        .await?;
-    let low_score_deleted = all_items.len() as u64;
-    if !all_items.is_empty() {
-        let ids: Vec<String> = all_items.into_iter().map(|m| m.id).collect();
-        memory_items::Entity::delete_many()
-            .filter(memory_items::Column::Id.is_in(ids))
-            .exec(db)
-            .await?;
-    }
+        .exec(db)
+        .await?
+        .rows_affected;
 
     // 对剩余 item 应用衰减：importance *= exp(-decay_rate * hours_since_last_access)
-    // last_accessed 为 NULL 时不衰减（视为新条目）
-    let remaining = memory_items::Entity::find().all(db).await?;
-    for m in remaining {
-        if let Some(last) = m.last_accessed {
+    // last_accessed 为 NULL 时不衰减（视为新条目）。
+    // 指数衰减必须逐行计算（SQLite/PG 未必启用 exp() 数学函数），
+    // 但更新改为分批 CASE 语句，避免逐行 UPDATE 的 N 次往返。
+    let remaining = memory_items::Entity::find()
+        .filter(memory_items::Column::LastAccessed.is_not_null())
+        .all(db)
+        .await?;
+    let updates: Vec<(String, f64)> = remaining
+        .iter()
+        .filter_map(|m| {
+            let last = m.last_accessed?;
             let hours = ((now_ms - last) as f64 / 3_600_000.0).max(0.0);
             let factor = (-m.decay_rate * hours).exp().max(0.01);
             let new_importance = (m.importance * factor).min(1.0);
             if (new_importance - m.importance).abs() > 1e-6 {
-                let mut am: memory_items::ActiveModel = m.into();
-                am.importance = Set(new_importance);
-                am.update(db).await?;
+                Some((m.id.clone(), new_importance))
+            } else {
+                None
             }
+        })
+        .collect();
+
+    for chunk in updates.chunks(200) {
+        let mut case_sql = String::from("UPDATE memory_items SET importance = CASE id");
+        for (id, imp) in chunk {
+            let safe_id = id.replace('\'', "''");
+            case_sql.push_str(&format!(" WHEN '{safe_id}' THEN {imp:.6}"));
+        }
+        case_sql.push_str(" END");
+        if let Err(e) = db.execute_unprepared(&case_sql).await {
+            tracing::warn!("[memory_decay] 批量衰减更新失败（{} 条）: {}", chunk.len(), e);
         }
     }
 
@@ -686,7 +725,8 @@ pub async fn deposit_tool_results_from_recent_messages(
     }
 
     let mut deposited = 0usize;
-    let existing_contents = load_existing_memory_contents(db).await;
+    let existing_hashes = load_existing_memory_content_hashes(db).await;
+    ensure_tool_results_namespace(db).await;
 
     for row in &rows {
         let msg_id: String = row.try_get("", "id").unwrap_or_default();
@@ -695,9 +735,9 @@ pub async fn deposit_tool_results_from_recent_messages(
             continue;
         }
 
-        // 检查是否已沉积过
+        // 检查是否已沉积过（按内容 hash 去重）
         let content_hash = simple_hash(&content);
-        if existing_contents.contains(&content_hash) {
+        if existing_hashes.contains(&content_hash) {
             continue;
         }
 
@@ -711,13 +751,26 @@ pub async fn deposit_tool_results_from_recent_messages(
         let item_id =
             format!("tool_{}_{}", msg_id, content_hash.chars().take(8).collect::<String>());
 
-        // 插入 Memory 条目
-        let insert_sql = r#"
+        // 插入 Memory 条目（SQLite 用 INSERT OR IGNORE，PG 用 ON CONFLICT DO NOTHING）
+        let insert_sql = match db.get_database_backend() {
+            sea_orm::DbBackend::Postgres => {
+                r#"
+            INSERT INTO memory_items
+                (id, namespace_id, title, content, tier, importance, decay_rate,
+                 access_count, confirmed, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 0, $8, $8)
+            ON CONFLICT (id) DO NOTHING
+        "#
+            },
+            _ => {
+                r#"
             INSERT OR IGNORE INTO memory_items
                 (id, namespace_id, title, content, tier, importance, decay_rate,
                  access_count, confirmed, created_at, updated_at)
             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0, 0, ?8, ?8)
-        "#;
+        "#
+            },
+        };
         let values: Vec<sea_orm::Value> = vec![
             item_id.as_str().into(),
             "agent_tool_results".into(),
@@ -762,10 +815,10 @@ pub async fn deposit_tool_results_from_recent_messages(
 }
 
 /// 加载已有 Memory 条目的内容 hash，用于去重。
-async fn load_existing_memory_contents(
+async fn load_existing_memory_content_hashes(
     db: &DatabaseConnection,
 ) -> std::collections::HashSet<String> {
-    let sql = "SELECT id FROM memory_items WHERE namespace_id = 'agent_tool_results'";
+    let sql = "SELECT content FROM memory_items WHERE namespace_id = 'agent_tool_results'";
     let rows = match db
         .query_all_raw(Statement::from_sql_and_values(db.get_database_backend(), sql, vec![]))
         .await
@@ -774,7 +827,29 @@ async fn load_existing_memory_contents(
         Err(_) => return std::collections::HashSet::new(),
     };
 
-    rows.into_iter().filter_map(|row| row.try_get::<String>("", "id").ok()).collect()
+    rows.into_iter()
+        .filter_map(|row| row.try_get::<String>("", "content").ok())
+        .map(|content| simple_hash(&content))
+        .collect()
+}
+
+/// 确保 `agent_tool_results` 命名空间存在（无 FK 约束，缺失不影响插入，
+/// 但缺失会导致沉淀条目在命名空间列表 UI 中不可见）。
+async fn ensure_tool_results_namespace(db: &DatabaseConnection) {
+    let sql = match db.get_database_backend() {
+        sea_orm::DbBackend::Postgres => {
+            "INSERT INTO memory_namespaces (id, name, scope) VALUES ($1, $2, $3) \
+             ON CONFLICT (id) DO NOTHING"
+        },
+        _ => "INSERT OR IGNORE INTO memory_namespaces (id, name, scope) VALUES (?1, ?2, ?3)",
+    };
+    let values: Vec<sea_orm::Value> =
+        vec!["agent_tool_results".into(), "Agent 工具结果".into(), "global".into()];
+    if let Err(e) =
+        db.execute_raw(Statement::from_sql_and_values(db.get_database_backend(), sql, values)).await
+    {
+        tracing::debug!("[tool_deposit] 确保命名空间存在失败（非致命）: {}", e);
+    }
 }
 
 /// 简单的字符串 hash（FNV-1a 64 位），用于去重。

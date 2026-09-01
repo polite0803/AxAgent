@@ -306,6 +306,7 @@ pub async fn search<S: RAGSource + ?Sized>(
         dimensions,
         embed_fn,
         None,
+        None,
     )
     .await
 }
@@ -325,6 +326,7 @@ pub async fn search_with_filter<S: RAGSource + ?Sized>(
     dimensions: Option<usize>,
     embed_fn: impl AsyncEmbedFn,
     doc_ids: Option<&[String]>,
+    precomputed_embedding: Option<Vec<f32>>,
 ) -> Result<Vec<VectorSearchResult>> {
     let hybrid_opts = HybridSearchOptions { top_k, ..Default::default() };
     // 多引擎 RAG：保留原始 bm25_score 明细，避免下游 rerank 丢失分数信息
@@ -339,6 +341,7 @@ pub async fn search_with_filter<S: RAGSource + ?Sized>(
         embed_fn,
         hybrid_opts,
         doc_ids,
+        precomputed_embedding,
     )
     .await?;
 
@@ -381,11 +384,16 @@ pub async fn search_hybrid<S: RAGSource + ?Sized>(
         embed_fn,
         options,
         None,
+        None,
     )
     .await
 }
 
 /// `search_hybrid` with optional `doc_ids` filter (multi-document collaboration).
+///
+/// `precomputed_embedding`：调用方已为 `query` 计算好的 query embedding（须与
+/// 该源 resolve 出的 embedding provider / dims 一致）。传 `Some` 时跳过重复
+/// embed 调用（消除同一查询在同一次检索流程中的双算）。
 #[allow(clippy::too_many_arguments)]
 pub async fn search_hybrid_with_filter<S: RAGSource + ?Sized>(
     source: &S,
@@ -398,6 +406,7 @@ pub async fn search_hybrid_with_filter<S: RAGSource + ?Sized>(
     embed_fn: impl AsyncEmbedFn,
     options: HybridSearchOptions,
     doc_ids: Option<&[String]>,
+    precomputed_embedding: Option<Vec<f32>>,
 ) -> Result<Vec<HybridSearchResult>> {
     let embedding_provider = match source.resolve_embedding_provider(db, container_id).await {
         Ok(p) => p,
@@ -420,15 +429,19 @@ pub async fn search_hybrid_with_filter<S: RAGSource + ?Sized>(
     };
 
     let cid = collection_id(source.collection_prefix(), container_id);
-    let embed_response = embed_fn
-        .generate(db, master_key, &embedding_provider, vec![query.to_string()], dimensions)
-        .await?;
-
-    let query_embedding = embed_response
-        .embeddings
-        .into_iter()
-        .next()
-        .ok_or_else(|| AxAgentError::Provider("No query embedding returned".into()))?;
+    let query_embedding = match precomputed_embedding {
+        Some(e) => e,
+        None => {
+            let embed_response = embed_fn
+                .generate(db, master_key, &embedding_provider, vec![query.to_string()], dimensions)
+                .await?;
+            embed_response
+                .embeddings
+                .into_iter()
+                .next()
+                .ok_or_else(|| AxAgentError::Provider("No query embedding returned".into()))?
+        },
+    };
 
     let searcher = HybridSearcher::new(db.clone());
     let _ = searcher.ensure_fts5_index(&cid).await;
@@ -643,6 +656,7 @@ pub async fn collect_cross_source_graph_context(
 // ── Context collection ───────────────────────────────────────────────────────
 
 /// A typed RAG source reference for context collection.
+#[derive(Clone)]
 pub struct RAGSourceRef {
     pub source_type: RAGSourceType,
     pub container_id: String,
@@ -652,7 +666,7 @@ pub struct RAGSourceRef {
 }
 
 /// The type of RAG source.
-#[derive(PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum RAGSourceType {
     Knowledge,
     Memory,
@@ -1285,6 +1299,7 @@ async fn collect_rag_context_from_refs(
             dims,
             embed_fn.clone(),
             doc_ids_opt,
+            None,
         )
         .await;
 
@@ -1957,6 +1972,92 @@ pub type LlmCallFn = std::sync::Arc<
         + Sync,
 >;
 
+/// 多路召回：单次检索最多使用的增强查询数（原始查询 + 增强查询）。
+const MULTI_QUERY_LIMIT: usize = 3;
+
+/// 多路召回 RRF 融合常数 k（与 HybridSearchOptions 默认值对齐）。
+const MULTI_QUERY_RRF_K: f32 = 60.0;
+
+/// 多路召回融合：按 chunk id 去重，分数 = Σ 1/(k + rank + 1)，其他字段取首次出现值。
+fn fuse_retrieved_items_by_rrf(
+    runs: Vec<Vec<RagRetrievedItem>>,
+    rrf_k: f32,
+) -> Vec<RagRetrievedItem> {
+    use std::collections::hash_map::Entry;
+
+    let mut map: std::collections::HashMap<String, (f32, RagRetrievedItem)> =
+        std::collections::HashMap::new();
+    for run in &runs {
+        for (rank, item) in run.iter().enumerate() {
+            let contribution = 1.0 / (rrf_k + rank as f32 + 1.0);
+            match map.entry(item.id.clone()) {
+                Entry::Occupied(mut e) => e.get_mut().0 += contribution,
+                Entry::Vacant(e) => {
+                    e.insert((contribution, item.clone()));
+                },
+            }
+        }
+    }
+
+    let mut fused: Vec<(f32, RagRetrievedItem)> = map.into_values().collect();
+    fused.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
+    fused.into_iter().map(|(_, item)| item).collect()
+}
+
+/// 多路召回的结果级融合：合并多次 `collect_rag_context_with_filters` 的返回值。
+/// context_parts 按 source_type 重建（与单路路径的 `[label]\n...` 格式一致）。
+fn fuse_rag_context_results(runs: Vec<RagContextResult>, rrf_k: f32) -> RagContextResult {
+    use std::collections::hash_map::Entry;
+
+    let mut order: Vec<(String, String)> = Vec::new();
+    let mut groups: std::collections::HashMap<(String, String), Vec<Vec<RagRetrievedItem>>> =
+        std::collections::HashMap::new();
+    let mut container_names: std::collections::HashMap<(String, String), Option<String>> =
+        std::collections::HashMap::new();
+
+    for run in &runs {
+        for sr in &run.source_results {
+            let key = (sr.source_type.clone(), sr.container_id.clone());
+            if !groups.contains_key(&key) {
+                order.push(key.clone());
+                container_names.insert(key.clone(), sr.container_name.clone());
+            }
+            match groups.entry(key) {
+                Entry::Occupied(mut e) => e.get_mut().push(sr.items.clone()),
+                Entry::Vacant(e) => {
+                    e.insert(vec![sr.items.clone()]);
+                },
+            }
+        }
+    }
+
+    let mut source_results = Vec::new();
+    let mut context_parts = Vec::new();
+    for key in order {
+        let items_runs = groups.remove(&key).unwrap_or_default();
+        let items = fuse_retrieved_items_by_rrf(items_runs, rrf_k);
+        if items.is_empty() {
+            continue;
+        }
+        let container_name = container_names.remove(&key).unwrap_or(None);
+        let label = match key.0.as_str() {
+            "memory" => "Memory Reference",
+            "wiki" => "Wiki Reference",
+            _ => "Knowledge Base Reference",
+        };
+        let snippets: Vec<String> = items.iter().map(|it| it.content.clone()).collect();
+        context_parts.push(format!("[{}]\n{}", label, snippets.join("\n---\n")));
+        source_results.push(RagSourceResult {
+            source_type: key.0,
+            container_id: key.1,
+            items,
+            container_name,
+        });
+    }
+
+    RagContextResult { context_parts, source_results, graph_context: None }
+}
+
 /// 带管线增强的上下文收集（新入口）
 ///
 /// 相比 collect_rag_context 增加了查询增强、重排序和质检阶段。
@@ -2040,6 +2141,29 @@ pub async fn collect_rag_context_with_pipeline_from_refs(
 
     // 如果没有启用 pipeline，直接走原有逻辑
     if !pipeline_config.rerank.enabled && !pipeline_config.self_rag.enabled {
+        // 多路召回：查询增强产出多个查询时，逐查询检索后按 RRF 融合，
+        // 而非只取第一个增强查询（此前多路召回实际未生效）。
+        if queries.len() > 1 {
+            let mut runs: Vec<RagContextResult> = Vec::new();
+            for fq in queries.iter().take(MULTI_QUERY_LIMIT) {
+                runs.push(
+                    collect_rag_context_with_filters(
+                        db,
+                        master_key,
+                        vector_store,
+                        sources.clone(),
+                        fq,
+                        top_k,
+                        embed_fn.clone(),
+                        kb_ids,
+                        wiki_ids,
+                    )
+                    .await,
+                );
+            }
+            return fuse_rag_context_results(runs, MULTI_QUERY_RRF_K);
+        }
+
         return collect_rag_context_with_filters(
             db,
             master_key,
@@ -2055,8 +2179,6 @@ pub async fn collect_rag_context_with_pipeline_from_refs(
     }
 
     let engine: Arc<dyn InferenceEngine> = crate::inference::global_engine();
-    let pipeline =
-        crate::rag_pipeline::RAGPipeline::new(pipeline_config, Some(engine), api_key, None);
 
     if sources.is_empty() {
         return RagContextResult {
@@ -2066,15 +2188,10 @@ pub async fn collect_rag_context_with_pipeline_from_refs(
         };
     }
 
-    // P2-2: 预计算 query embedding 用于后续的语义匹配
-    let query_embedding = {
-        let q_emb_result =
-            embed_fn.generate(db, master_key, "default", vec![query.to_string()], None).await;
-        match q_emb_result {
-            Ok(resp) if !resp.embeddings.is_empty() => Some(resp.embeddings[0].clone()),
-            _ => None,
-        }
-    };
+    // P2-2 修正：Memory 源语义匹配所需的 query embedding 改为按源真实 provider
+    // 懒计算（此前写死 "default" provider 预计算，与容器实际 provider 可能不一致），
+    // 且当首个查询就是原始 query 时复用给检索阶段，消除同一次流程内的双算。
+    let mut memory_query_embedding: Option<Vec<f32>> = None;
 
     let mut context_parts = Vec::new();
     let mut source_results = Vec::new();
@@ -2094,96 +2211,168 @@ pub async fn collect_rag_context_with_pipeline_from_refs(
             Some(src_ref.doc_ids.as_slice())
         };
 
-        let result = pipeline
-            .execute_with_filter(
-                source.as_ref(),
-                db,
-                master_key,
-                vector_store,
-                &src_ref.container_id,
-                effective_query,
-                source_top_k,
-                dims,
-                embed_fn.clone(),
-                &pipeline_config.rerank,
-                doc_ids_opt,
-            )
-            .await;
-
-        match result {
-            Ok(output) if !output.results.is_empty() => {
-                let source_type_str = match src_ref.source_type {
-                    RAGSourceType::Knowledge => "knowledge",
-                    RAGSourceType::Memory => "memory",
-                    RAGSourceType::Wiki => "wiki",
+        // Memory 源：按容器真实 provider 解析并计算原始 query 的 embedding，
+        // 供 tier 加权的语义匹配回退使用；enhancement 关闭时（首查询即原始
+        // query）同时复用给检索阶段，避免同文本同 provider 重复 embed。
+        let mut source_precomputed: Option<Vec<f32>> = None;
+        if matches!(src_ref.source_type, RAGSourceType::Memory) {
+            if memory_query_embedding.is_none() {
+                memory_query_embedding = match source
+                    .resolve_embedding_provider(db, &src_ref.container_id)
+                    .await
+                {
+                    Ok(provider) => {
+                        match embed_fn
+                            .generate(db, master_key, &provider, vec![query.to_string()], dims)
+                            .await
+                        {
+                            Ok(resp) => resp.embeddings.into_iter().next(),
+                            Err(e) => {
+                                tracing::warn!(
+                                    "[RAG] Memory query embedding 计算失败（语义匹配回退停用）: {}",
+                                    e
+                                );
+                                None
+                            },
+                        }
+                    },
+                    Err(e) => {
+                        tracing::warn!(
+                            "[RAG] Memory embedding provider 解析失败（语义匹配回退停用）: {}",
+                            e
+                        );
+                        None
+                    },
                 };
-
-                let mut items: Vec<RagRetrievedItem> = output
-                    .results
-                    .iter()
-                    .map(|r| RagRetrievedItem {
-                        content: r.content.clone(),
-                        score: r.score,
-                        document_id: r.document_id.clone(),
-                        id: r.id.clone(),
-                        document_name: None,
-                        chunk_index: Some(r.chunk_index),
-                    })
-                    .collect();
-
-                // 三层记忆系统：针对 Memory 知识源，按 tier / importance 加权重排序
-                // v108: 同时按 applicability_tags 过滤适用范围
-                // P2-2: 传入 query_embedding 用于语义相似度匹配
-                if matches!(src_ref.source_type, RAGSourceType::Memory) {
-                    apply_memory_tier_weight(db, &mut items, query, query_embedding.as_deref())
-                        .await;
-
-                    // P0-2: 反馈闭环 — 检索命中后自动提升 importance 和访问统计
-                    let hit_ids: Vec<String> = items.iter().map(|it| it.id.clone()).collect();
-                    apply_memory_hit_feedback(db, &hit_ids).await;
-                }
-
-                // v110: 跨源反馈权重调整 — 根据 retrieval_hits 中的历史反馈数据调整排序
-                // 正反馈文档加分，负反馈文档减分，形成"用户反馈→检索质量提升"闭环
-                apply_feedback_weight_adjustment(db, &mut items, source_type_str).await;
-
-                let label = source.context_label();
-                // snippets 顺序跟随 items（tier 加权后的顺序），保证 context 与引用追溯一致
-                let snippets: Vec<String> = items.iter().map(|it| it.content.clone()).collect();
-                context_parts.push(format!("[{}]\n{}", label, snippets.join("\n---\n")));
-
-                if let RetrievalQuality::Poor(ref diag) = output.quality {
-                    tracing::warn!(
-                        "Poor RAG quality for {} {}: {}",
-                        source_type_str,
-                        src_ref.container_id,
-                        diag
-                    );
-                }
-
-                source_results.push(RagSourceResult {
-                    source_type: source_type_str.to_string(),
-                    container_id: src_ref.container_id.clone(),
-                    items,
-                    container_name: None,
-                });
-            },
-            Ok(_) => {
-                tracing::warn!(
-                    "Pipeline returned no results for {} {}",
-                    source.collection_prefix(),
-                    src_ref.container_id
-                );
-            },
-            Err(e) => {
-                tracing::warn!(
-                    "Pipeline failed for {} {}: {}",
-                    source.collection_prefix(),
-                    src_ref.container_id,
-                    e
-                );
-            },
+            }
+            // 仅当首个查询就是原始 query 时，检索阶段才能安全复用该 embedding
+            if queries.first().is_some_and(|fq| fq == query) {
+                source_precomputed = memory_query_embedding.clone();
+            }
         }
+
+        // 多路召回：对每个增强查询分别走管线，按 RRF 融合；
+        // self-rag 质检仅在首个查询执行，避免成本随查询数线性放大。
+        let mut item_runs: Vec<Vec<RagRetrievedItem>> = Vec::new();
+        let mut first_quality: Option<RetrievalQuality> = None;
+        for (qi, fq) in queries.iter().take(MULTI_QUERY_LIMIT).enumerate() {
+            let cfg = if qi == 0 {
+                pipeline_config.clone()
+            } else {
+                let mut c = pipeline_config.clone();
+                c.self_rag.enabled = false;
+                c
+            };
+            let pipeline = crate::rag_pipeline::RAGPipeline::new(
+                &cfg,
+                Some(engine.clone()),
+                api_key.clone(),
+                None,
+            );
+            let result = pipeline
+                .execute_with_filter(
+                    source.as_ref(),
+                    db,
+                    master_key,
+                    vector_store,
+                    &src_ref.container_id,
+                    fq,
+                    source_top_k,
+                    dims,
+                    embed_fn.clone(),
+                    &cfg.rerank,
+                    doc_ids_opt,
+                    source_precomputed.clone(),
+                )
+                .await;
+
+            match result {
+                Ok(output) if !output.results.is_empty() => {
+                    if first_quality.is_none() {
+                        first_quality = Some(output.quality);
+                    }
+                    item_runs.push(
+                        output
+                            .results
+                            .iter()
+                            .map(|r| RagRetrievedItem {
+                                content: r.content.clone(),
+                                score: r.score,
+                                document_id: r.document_id.clone(),
+                                id: r.id.clone(),
+                                document_name: None,
+                                chunk_index: Some(r.chunk_index),
+                            })
+                            .collect(),
+                    );
+                },
+                Ok(_) => {},
+                Err(e) => {
+                    tracing::warn!(
+                        "Pipeline failed for {} {} (query #{:?}): {}",
+                        source.collection_prefix(),
+                        src_ref.container_id,
+                        fq,
+                        e
+                    );
+                },
+            }
+        }
+
+        if item_runs.is_empty() {
+            tracing::warn!(
+                "Pipeline returned no results for {} {}",
+                source.collection_prefix(),
+                src_ref.container_id
+            );
+            continue;
+        }
+
+        let source_type_str = match src_ref.source_type {
+            RAGSourceType::Knowledge => "knowledge",
+            RAGSourceType::Memory => "memory",
+            RAGSourceType::Wiki => "wiki",
+        };
+
+        let mut items: Vec<RagRetrievedItem> =
+            fuse_retrieved_items_by_rrf(item_runs, MULTI_QUERY_RRF_K);
+
+        // 三层记忆系统：针对 Memory 知识源，按 tier / importance 加权重排序
+        // v108: 同时按 applicability_tags 过滤适用范围
+        // P2-2: 传入按源真实 provider 计算的 query_embedding 用于语义相似度匹配
+        if matches!(src_ref.source_type, RAGSourceType::Memory) {
+            apply_memory_tier_weight(db, &mut items, query, memory_query_embedding.as_deref())
+                .await;
+
+            // P0-2: 反馈闭环 — 检索命中后自动提升 importance 和访问统计
+            let hit_ids: Vec<String> = items.iter().map(|it| it.id.clone()).collect();
+            apply_memory_hit_feedback(db, &hit_ids).await;
+        }
+
+        // v110: 跨源反馈权重调整 — 根据 retrieval_hits 中的历史反馈数据调整排序
+        // 正反馈文档加分，负反馈文档减分，形成"用户反馈→检索质量提升"闭环
+        apply_feedback_weight_adjustment(db, &mut items, source_type_str).await;
+
+        let label = source.context_label();
+        // snippets 顺序跟随 items（tier 加权后的顺序），保证 context 与引用追溯一致
+        let snippets: Vec<String> = items.iter().map(|it| it.content.clone()).collect();
+        context_parts.push(format!("[{}]\n{}", label, snippets.join("\n---\n")));
+
+        if let Some(RetrievalQuality::Poor(ref diag)) = first_quality {
+            tracing::warn!(
+                "Poor RAG quality for {} {}: {}",
+                source_type_str,
+                src_ref.container_id,
+                diag
+            );
+        }
+
+        source_results.push(RagSourceResult {
+            source_type: source_type_str.to_string(),
+            container_id: src_ref.container_id.clone(),
+            items,
+            container_name: None,
+        });
     }
 
     // 引用追溯：填充 container_name（KB / memory namespace / wiki 名称）

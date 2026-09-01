@@ -16,7 +16,7 @@ use crate::commands::error::{ErrorCategory, ErrorResponse};
 use crate::commands::error_code::knowledge_source as ks_err;
 use axagent_agent_macro::agent_command;
 use axagent_dao::repo::index_jobs as jobs;
-use axagent_dao::repo::note::{CreateNoteInput, list_notes};
+use axagent_dao::repo::note::CreateNoteInput;
 use axagent_dao::repo::wiki::{
     delete_source_by_id, get_source_by_id, list_all_sources, update_source_fetch_meta,
     update_source_fields,
@@ -155,29 +155,30 @@ async fn fetch_url_content(url: &str) -> Result<(String, String), String> {
 }
 
 /// 在当前 vault 中按标题（大小写不敏感）查已存在的笔记。
+///
+/// 委托 repo 层 DB 级查询（原实现 list_notes 全量加载后内存过滤，
+/// N 篇导入时 O(N²)）。
 async fn find_note_by_title(
     db: &sea_orm::DatabaseConnection,
     vault_id: &str,
     title: &str,
 ) -> Result<Option<axagent_dao::repo::note::Note>, String> {
-    let target = title.to_lowercase();
-    let notes = list_notes(db, vault_id).await.map_err(err_str)?;
-    Ok(notes.into_iter().find(|n| n.title.to_lowercase() == target))
+    axagent_dao::repo::note::find_note_by_title_ci(db, vault_id, title).await.map_err(err_str)
 }
 
 /// 在当前 vault 中按 source_ref 精确匹配已存在的笔记。
 ///
 /// 修复「不同 URL 同标题页面互相覆盖」：同源（同 URL/feed/GitHub 路径）的内容
 /// 应回到同一笔记做增量更新，而不是被别的同标题页面顶掉。
+/// 委托 repo 层 DB 级查询（原实现 list_notes 全量加载后内存过滤）。
 async fn find_note_by_source_ref(
     db: &sea_orm::DatabaseConnection,
     vault_id: &str,
     source_ref: &str,
 ) -> Result<Option<axagent_dao::repo::note::Note>, String> {
-    let notes = list_notes(db, vault_id).await.map_err(err_str)?;
-    Ok(notes
-        .into_iter()
-        .find(|n| n.source_refs.as_ref().is_some_and(|refs| refs.iter().any(|r| r == source_ref))))
+    axagent_dao::repo::note::find_note_by_source_ref(db, vault_id, source_ref)
+        .await
+        .map_err(err_str)
 }
 
 /// 创建/更新 Wiki 笔记并触发 RAG 索引 + wiki_sync_queue 事件。
@@ -710,7 +711,8 @@ async fn fetch_url_source(
     })
 }
 
-/// rss 型源：解析 feed → 每篇文章建一个 wiki note（按标题去重）。
+/// rss 型源：解析 feed → 每篇文章建一个 wiki note（按条目链接独立 source_ref 去重）。
+/// 存量数据不迁移：旧 feed 本就只剩最后一条，重新 fetch 后按新 ref 自然补全。
 async fn fetch_rss_source(
     state: Option<&State<'_, AppState>>,
     app: Option<&AppHandle>,
@@ -756,6 +758,15 @@ async fn fetch_rss_source(
         );
         let file_path = format!("rss/{}.md", slugify(&entry_title));
 
+        // 每条目独立 source_ref：此前所有条目共用 rss:{feed_url}，而查重优先级
+        // source_ref > 标题，导致整份 feed 只剩一条笔记（后续条目互相覆盖）。
+        // 有链接用链接；链接缺失（回退为 feed_url）时用内容指纹保证唯一。
+        let entry_source_ref = if entry_link == feed_url {
+            format!("rss:{}#{}", feed_url, content_fingerprint(&format!("{entry_title}:{summary}")))
+        } else {
+            format!("rss:{entry_link}")
+        };
+
         match upsert_note(
             state,
             app,
@@ -764,7 +775,7 @@ async fn fetch_rss_source(
             &entry_title,
             &file_path,
             &md,
-            &format!("rss:{feed_url}"),
+            &entry_source_ref,
         )
         .await
         {

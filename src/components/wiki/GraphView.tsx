@@ -225,6 +225,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
   // 追踪已处理的 Worker tick：只有 Worker 返回新结果时才更新节点/重建网格，
   // 避免每帧都用旧结果重算 O(N) 网格索引（大图下每秒 60 次 × 20k 节点 = 灾难性）
   const lastProcessedTickRef = useRef(-1);
+  // L2/L3 修复：收敛期重型重建（gridIndex / 聚类几何 / 位图缓存）限流计数器，
+  // 按收到的 Worker result 步数计数
+  const workerStepCounterRef = useRef(0);
 
   // 物理节点和边（在 ref 中持久化，不触发 React 重渲染）
   const physNodesRef = useRef<PhysicsNode[]>([]);
@@ -384,6 +387,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
   // 渲染缓存：posMap 和预计算的邻居集合，避免每帧重建 O(N)/O(E)
   const posMapRef = useRef<Map<string, PhysicsNode>>(new Map());
+  // N6 修复：统计弹窗 Zoom 值的 DOM 引用，渲染循环中直接写 textContent 实时刷新
+  const statsZoomTextRef = useRef<HTMLSpanElement | null>(null);
   const neighborsRef = useRef<Map<string, Set<string>>>(new Map());
 
   const [fisheyeEnabled, setFisheyeEnabled] = useState(false);
@@ -631,10 +636,6 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     // 清空 minimap 包围盒缓存（节点集已变化，旧缓存失效）
     minimapBBoxRef.current = null;
 
-    const colorCache = buildNodeColorCache(data.nodes, communities, tokenRef.current);
-    nodeColorRef.current = colorCache;
-    buildNodeSpriteCache();
-
     // 构建物理节点
     const pNodes: PhysicsNode[] = data.nodes.map((n, i) => ({
       id: n.id,
@@ -832,6 +833,15 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       // 小图直接使用原始 communities
       effectiveCommunitiesRef.current = effectiveCommunities;
     }
+
+    // ── 节点颜色缓存 ──
+    // N5 修复：颜色缓存构建必须放在 effectiveCommunities 计算之后——
+    // force-cluster 哈希合并模式下按"虚拟聚类 ID"染色，与聚合彩球/气泡
+    // （communityPalette[cid]）取色一致，否则展开社区后内部节点颜色与彩球不对应。
+    // 普通模式下 effectiveCommunitiesRef.current 即原始 communities，行为不变。
+    const colorCommunities = effectiveCommunitiesRef.current ?? communities;
+    nodeColorRef.current = buildNodeColorCache(data.nodes, colorCommunities, tokenRef.current);
+    buildNodeSpriteCache();
 
     // ── 初始化物理 Worker ──
     // 销毁旧 Worker
@@ -1031,7 +1041,13 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     if (!d || d.nodes.length === 0) { return; }
 
     // 节点颜色（社区色 palette 为常量，类型色随主题更新）
-    nodeColorRef.current = buildNodeColorCache(d.nodes, rawCommunitiesRef.current ?? undefined, token);
+    // N5 修复：优先使用 effectiveCommunities（force-cluster 哈希合并后的虚拟聚类），
+    // 与聚合彩球颜色保持一致；未启用聚类时即原始 communities
+    nodeColorRef.current = buildNodeColorCache(
+      d.nodes,
+      effectiveCommunitiesRef.current ?? rawCommunitiesRef.current ?? undefined,
+      token,
+    );
 
     // 边样式颜色/宽度
     const edgeStyles = getEdgeTypeStylesMap(token);
@@ -1500,32 +1516,47 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
               }
             }
 
-            // 同步重建 gridIndex：Worker 返回新位置后立即更新网格索引
-            // 2万节点下 gridIndex 重建约 10-30ms，可接受
-            const gridIndex = new Map<string, string[]>();
-            for (const n2 of nodes) {
-              const gx = Math.floor(n2.x / GRID_CELL_SIZE);
-              const gy = Math.floor(n2.y / GRID_CELL_SIZE);
-              const key = `${gx},${gy}`;
-              const bucket = gridIndex.get(key);
-              if (bucket) {
-                bucket.push(n2.id);
-              } else {
-                gridIndex.set(key, [n2.id]);
+            // 同步重建 gridIndex：Worker 返回新位置后更新网格索引。
+            // L2 修复：收敛期不再每步全量重建（2 万节点下单次 10-30ms，收敛期
+            // 每步都做会持续占死主线程），改为每 5 步一次，stable 后重建最终版。
+            // 间隔内命中检测使用上一次索引，位置滞后 ≤5 步，物理模拟下可接受。
+            workerStepCounterRef.current++;
+            if (result.stable || workerStepCounterRef.current % 5 === 0) {
+              const gridIndex = new Map<string, string[]>();
+              for (const n2 of nodes) {
+                const gx = Math.floor(n2.x / GRID_CELL_SIZE);
+                const gy = Math.floor(n2.y / GRID_CELL_SIZE);
+                const key = `${gx},${gy}`;
+                const bucket = gridIndex.get(key);
+                if (bucket) {
+                  bucket.push(n2.id);
+                } else {
+                  gridIndex.set(key, [n2.id]);
+                }
               }
+              gridIndexRef.current = gridIndex;
             }
-            gridIndexRef.current = gridIndex;
 
             // 如果处于聚类模式且 Worker ready，更新聚类几何
             // 仅在非聚合物理模式下（aggActive 下由聚合物理节点回写）
-            if (clusterModeRef.current && !aggActive) {
+            // L2 修复：与 gridIndex 同门限流，收敛期避免每步都排 O(N) 的 idle 任务
+            if (
+              clusterModeRef.current && !aggActive
+              && (result.stable || workerStepCounterRef.current % 5 === 0)
+            ) {
               requestIdleCallback(() => {
                 refreshClusterGeom();
               }, { timeout: 200 });
             }
 
             // 大图位图缓存：异步重建
-            if (nodes.length > FORCE_BITMAP_THRESHOLD && !hasInteraction) {
+            // L3 修复：不再每次 result 都重建（O(N+E) 绘制 + 巨型 canvas 分配，
+            // 收敛期被 idle 回调频繁触发反而抵消位图模式收益），改为收敛期每 30 步
+            // 一次、stable 后重建最终版
+            if (
+              nodes.length > FORCE_BITMAP_THRESHOLD && !hasInteraction
+              && (result.stable || workerStepCounterRef.current % 30 === 0)
+            ) {
               requestIdleCallback(() => {
                 spriteCacheRef.current = buildBigGraphSpriteCache(nodes);
               }, { timeout: 1000 });
@@ -1734,15 +1765,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
                 ctx.lineWidth = aggDynamicWidth;
                 ctx.globalAlpha = aggAlpha;
                 const aggBatchPaths = new Map<string, Path2D>();
-                const aggHashSeed = 77777;
                 const aggSampleRate = zoom < 0.3 ? 0.3 : zoom < 0.5 ? 0.6 : 1.0;
 
                 for (let i = 0; i < aggPhysLocal.edges.length; i++) {
-                  // 确定性降采样
-                  if (aggSampleRate < 1.0) {
-                    const hash = ((i * aggHashSeed) % 1000) / 1000;
-                    if (hash > aggSampleRate) { continue; }
-                  }
                   const e = aggPhysLocal.edges[i];
                   const sNode = aggPhysLocal.nodes[e.sourceIdx];
                   const tNode = aggPhysLocal.nodes[e.targetIdx];
@@ -1750,6 +1775,12 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
                   if (
                     !isInView(sNode.x, sNode.y, viewWorld, 30) || !isInView(tNode.x, tNode.y, viewWorld, 30)
                   ) { continue; }
+                  // 确定性降采样：N4 修复——用 source+target 稳定散列替代索引等差
+                  // （(i * 77777) % 1000 与边序号线性相关，低采样率时保留边呈周期条纹）
+                  if (aggSampleRate < 1.0) {
+                    const hash = (Math.abs(hashStringToInt(e.source + e.target)) % 1000) / 1000;
+                    if (hash > aggSampleRate) { continue; }
+                  }
                   // 聚合边统一用一种颜色和宽度
                   let path = aggBatchPaths.get("default");
                   if (!path) {
@@ -1852,7 +1883,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
           } else {
             // ── 部分展开：绘制展开社区的节点和边 ──
             if (activeCommunities) {
-              drawExpandedCommunity(ctx, nodes, viewWorld, activeCommunities, isLargeGraph);
+              // N1 修复：接收实际绘制节点数，供下方安全阀判断（此前返回值被丢弃，
+              // expandedNodesDrawn 恒为 -1，兜底条件永不触发）
+              expandedNodesDrawn = drawExpandedCommunity(ctx, nodes, viewWorld, activeCommunities, isLargeGraph);
             } else {
               // ── Fallback：无社区数据时退回非聚类渲染路径。
               // 临时清除 collapsed 集，避免因 clusterModeRef.current 为 true
@@ -1940,6 +1973,11 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         } else {
           tooltipRef.current.style.display = "none";
         }
+      }
+
+      // N6 修复：统计弹窗 Zoom 值实时刷新（每 15 帧直接写 DOM，不走 React 重渲染）
+      if (statsZoomTextRef.current && frameCounterRef.current % 15 === 0) {
+        statsZoomTextRef.current.textContent = `${cameraRef.current.zoom.toFixed(2)}×`;
       }
 
       if (showMinimap && minimapOpen && minimapRef.current && frameCounterRef.current % MINIMAP_REDRAW_INTERVAL === 0) {
@@ -2088,7 +2126,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       const centroid = centroids.get(cid);
       if (centroid && centroid.count >= 2) {
         ctx.globalAlpha = 0.5;
-        ctx.font = "bold 11px Inter, system-ui, sans-serif";
+        // N3 修复：字号处于世界坐标系，除以 zoom 保证任何缩放级别下屏幕字号恒定（11px）
+        const labelFontSize = 11 / (cameraRef.current.zoom || 1);
+        ctx.font = `bold ${labelFontSize.toFixed(1)}px Inter, system-ui, sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillStyle = communityPalette[cid % communityPalette.length];
@@ -2145,8 +2185,18 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     const worldH = maxY - minY;
 
     // 限制离屏 Canvas 最大尺寸，防止内存溢出
+    // L1 修复：原逻辑只限单边 16384，不限面积——大世界下 16384²×4 ≈ 1GB RGBA，
+    // 浏览器可能分配失败导致位图模式黑屏。增加面积上限 4096²（≈64MB RGBA），
+    // 取三个约束的最小缩放比。
     const MAX_CANVAS = 16384;
-    const scale = Math.min(1, MAX_CANVAS / Math.max(worldW, worldH));
+    const MAX_SPRITE_AREA = 4096 * 4096;
+    let scale = Math.min(
+      1,
+      MAX_CANVAS / Math.max(worldW, worldH),
+      Math.sqrt(MAX_SPRITE_AREA / Math.max(1, worldW * worldH)),
+    );
+    // 保底分辨率：极端分散布局下 sprite 最大边不低于 512px（保底后面积 ≤512²，仍在面积上限内）
+    scale = Math.max(scale, 512 / Math.max(worldW, worldH));
     const cw = Math.max(1, Math.ceil(worldW * scale));
     const ch = Math.max(1, Math.ceil(worldH * scale));
 
@@ -2345,12 +2395,19 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       // 标签与节点的间距同样换算为世界坐标
       const labelOffset = 3 / zoom;
       ctx.font = `${fontSize.toFixed(1)}px Inter, system-ui, sans-serif`;
-      for (const node of visibleNodes) {
+      // 标签数量上限：全量画白字标签在万级节点下重叠成白色浓雾。
+      // 只画 size（度数代理）最大的 top-N，其余不标。
+      const cap = visibleNodes.length > 4000 ? 120 : visibleNodes.length > 1500 ? 250 : 500;
+      let labelNodes = visibleNodes;
+      if (visibleNodes.length > cap) {
+        labelNodes = [...visibleNodes].sort((a, b) => b.size - a.size).slice(0, cap);
+      }
+      ctx.fillStyle = token.colorText;
+      ctx.globalAlpha = 0.85;
+      for (const node of labelNodes) {
         const meta = nodeMetaRef.current.get(node.id);
         if (!meta) { continue; }
         const title = meta.title.length > 18 ? meta.title.slice(0, 16) + "…" : meta.title;
-        ctx.globalAlpha = 0.85;
-        ctx.fillStyle = token.colorText;
         ctx.fillText(title, node.x, node.y + node.size + labelOffset);
       }
       ctx.globalAlpha = 1;
@@ -2359,9 +2416,17 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
     // 绘制边（只连接展开社区的节点）
     // Obsidian 风格：更细的线宽、更柔和的透明度、动态降采样
+    // N2 修复：与 drawEdgesOptimized 对齐——补充边类型筛选、社区筛选、
+    // hover/selected 相关边高亮，以及交互时普通边减淡
     if (edgeMeta.length > 0 && visibleNodes.length > 1) {
       const idSet = new Set(visibleNodes.map(n => n.id));
       const zoom = cameraRef.current.zoom;
+      const hovered = hoverNodeRef.current;
+      const selected = selectedNodeIdRef.current;
+      const visibleTypes = visibleEdgeTypesRef.current;
+      const hasCommunityFilter = hasCommunityFilterRef.current;
+      const visibleCommunitiesSet = visibleCommunitiesRef.current;
+      const hasActiveInteraction = !!hovered || !!selected;
 
       // 动态采样率
       let edgeSampleRate = 1.0;
@@ -2370,6 +2435,8 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       } else {
         edgeSampleRate = zoom < 0.3 ? 0.3 : zoom < 0.5 ? 0.6 : 1.0;
       }
+      // 交互状态下不降采样，保证相关边完整呈现（与 drawEdgesOptimized 一致）
+      if (hasActiveInteraction) { edgeSampleRate = 1.0; }
 
       // 动态线宽
       const baseWidth = 0.3;
@@ -2378,15 +2445,22 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
       ctx.save();
       const batchPaths = new Map<string, { path: Path2D; color: string; width: number }>();
+      const relevantPaths = new Map<string, { path: Path2D; color: string; width: number }>();
 
       for (let i = 0; i < edgeMeta.length; i++) {
         const em = edgeMeta[i];
         if (!idSet.has(em.source) || !idSet.has(em.target)) { continue; }
 
-        // 确定性降采样：P11 用 source+target 稳定散列替代索引等差，避免保留边呈周期条纹
-        if (edgeSampleRate < 1.0) {
-          const hash = (Math.abs(hashStringToInt(em.source + em.target)) % 1000) / 1000;
-          if (hash > edgeSampleRate) { continue; }
+        // 边类型筛选：用户关闭的类型不绘制
+        if (!visibleTypes.has(em.type)) { continue; }
+
+        // 社区筛选：开启过滤后，只画两端社区都可见的边
+        if (hasCommunityFilter) {
+          const sCid = getCommunityId(em.source);
+          const tCid = getCommunityId(em.target);
+          const sVisible = sCid === undefined || visibleCommunitiesSet.has(sCid);
+          const tVisible = tCid === undefined || visibleCommunitiesSet.has(tCid);
+          if (!sVisible || !tVisible) { continue; }
         }
 
         const sNode = posMap.get(em.source);
@@ -2394,24 +2468,46 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         if (!sNode || !tNode) { continue; }
         if (!isInView(sNode.x, sNode.y, viewWorld, 10) && !isInView(tNode.x, tNode.y, viewWorld, 10)) { continue; }
 
-        const width = dynamicWidth * (em.width / 0.4);
+        // hover/selected 相关边：单独收集，高亮绘制
+        const isRelevant = (hovered && (em.source === hovered || em.target === hovered))
+          || (selected && (em.source === selected || em.target === selected));
+
+        // 确定性降采样：P11 用 source+target 稳定散列替代索引等差，避免保留边呈周期条纹
+        if (!isRelevant && edgeSampleRate < 1.0) {
+          const hash = (Math.abs(hashStringToInt(em.source + em.target)) % 1000) / 1000;
+          if (hash > edgeSampleRate) { continue; }
+        }
+
+        const width = isRelevant
+          ? Math.max(0.5, dynamicWidth * 2) * (em.width / 0.4)
+          : dynamicWidth * (em.width / 0.4);
         const key = `${em.color}|${width.toFixed(2)}`;
-        let entry = batchPaths.get(key);
+        const store = isRelevant ? relevantPaths : batchPaths;
+        let entry = store.get(key);
         if (!entry) {
           entry = { path: new Path2D(), color: em.color, width };
-          batchPaths.set(key, entry);
+          store.set(key, entry);
         }
         entry.path.moveTo(sNode.x, sNode.y);
         entry.path.lineTo(tNode.x, tNode.y);
       }
 
-      // Obsidian 风格透明度
+      // Obsidian 风格透明度；交互时普通边减淡，突出相关边
       const normalAlpha = zoom < 0.3 ? 0.12 : zoom < 0.5 ? 0.2 : 0.3;
-      ctx.globalAlpha = normalAlpha;
+      ctx.globalAlpha = hasActiveInteraction ? 0.08 : normalAlpha;
       for (const entry of batchPaths.values()) {
         ctx.strokeStyle = entry.color;
         ctx.lineWidth = entry.width;
         ctx.stroke(entry.path);
+      }
+      // 相关边高亮：更宽、更不透明
+      if (relevantPaths.size > 0) {
+        ctx.globalAlpha = 0.85;
+        for (const entry of relevantPaths.values()) {
+          ctx.strokeStyle = entry.color;
+          ctx.lineWidth = entry.width;
+          ctx.stroke(entry.path);
+        }
       }
       ctx.globalAlpha = 1;
       ctx.restore();
@@ -2688,6 +2784,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     }
 
     // 只绘制视口内的节点
+    // 交互外标签（showAllLabels）延后收集：万级节点全量画白字标签会重叠成
+    // 一团白色浓雾（截图实锤），且每帧上万次 fillText 是性能黑洞。
+    const deferredLabels: { id: string; x: number; y: number; size: number; alpha: number }[] = [];
     for (const nodeId of visibleNodeIds) {
       const node = nodeMap.get(nodeId);
       if (!node) { continue; }
@@ -2791,12 +2890,14 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         ctx.globalAlpha = 1;
       }
 
-      if (showLabel || showAllLabels) {
+      if (showLabel) {
         const meta = nodeMetaRef.current.get(node.id);
         if (meta) {
           ctx.save();
           ctx.globalAlpha = alpha * 0.9;
-          ctx.font = `${Math.round(12 * feScale)}px Inter, system-ui, sans-serif`;
+          // N3 修复：字号处于世界坐标系，必须除以 zoom 换算（feScale 为鱼眼放大系数，保留）。
+          // 修复前 zoom=0.35 时屏幕字号仅 ~4px 不可读，zoom=5 时 60px 巨大
+          ctx.font = `${Math.round((12 * feScale) / zoom)}px Inter, system-ui, sans-serif`;
           ctx.textAlign = "center";
           ctx.textBaseline = "top";
           const label = meta.title.length > 15 ? meta.title.slice(0, 13) + "…" : meta.title;
@@ -2804,7 +2905,33 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
           ctx.fillText(label, node.x, node.y + finalSize + 4);
           ctx.restore();
         }
+      } else if (showAllLabels) {
+        // 交互外标签延后绘制（见 deferredLabels 声明处的说明）
+        deferredLabels.push({ id: node.id, x: node.x, y: node.y, size: finalSize, alpha });
       }
+    }
+
+    // 非交互标签：按节点大小（度数代理）排序后只画 top-N，避免标签浓雾
+    if (deferredLabels.length > 0) {
+      const cap = deferredLabels.length > 4000 ? 120 : deferredLabels.length > 1500 ? 250 : 500;
+      if (deferredLabels.length > cap) {
+        deferredLabels.sort((a, b) => b.size - a.size);
+        deferredLabels.length = cap;
+      }
+      ctx.save();
+      ctx.font = `${Math.round(12 / zoom)}px Inter, system-ui, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillStyle = token.colorText;
+      ctx.globalAlpha = 0.9;
+      for (const d of deferredLabels) {
+        const meta = nodeMetaRef.current.get(d.id);
+        if (!meta) { continue; }
+        const label = meta.title.length > 15 ? meta.title.slice(0, 13) + "…" : meta.title;
+        ctx.fillText(label, d.x, d.y + d.size + 4);
+      }
+      ctx.globalAlpha = 1;
+      ctx.restore();
     }
     ctx.globalAlpha = 1;
 
@@ -3549,6 +3676,17 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
     camY?: number;
   }>({});
 
+  // N7 修复：移动端长按 500ms 触发上下文菜单（等价桌面端右键 onContextMenu）
+  const longPressTimerRef = useRef<number | null>(null);
+  const cancelLongPress = useCallback(() => {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+  // 组件卸载时清理未触发的长按定时器
+  useEffect(() => cancelLongPress, [cancelLongPress]);
+
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
     if (e.touches.length === 1) {
       const touch = e.touches[0];
@@ -3580,8 +3718,34 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       touchStateRef.current.startY = touch.clientY;
       touchStateRef.current.camX = cameraRef.current.x;
       touchStateRef.current.camY = cameraRef.current.y;
+
+      // 长按 500ms 后在起始位置检测节点并呼出上下文菜单；
+      // 期间移动超过阈值或抬起/第二根手指按下都会取消（见 move/end 处理）
+      cancelLongPress();
+      longPressTimerRef.current = window.setTimeout(() => {
+        longPressTimerRef.current = null;
+        const st = touchStateRef.current;
+        if (st.startX === undefined || st.startY === undefined) { return; }
+        const lpRect = canvasRef.current?.getBoundingClientRect();
+        if (!lpRect) { return; }
+        const lpNodeId = findNodeAt(st.startX - lpRect.left, st.startY - lpRect.top);
+        if (!lpNodeId) { return; }
+        suppressAutoFocusRef.current = true;
+        // 长按呼出菜单后结束按住拖拽状态，避免节点悬挂在 fixed 状态
+        if (dragRef.current) {
+          const dragNode = posMapRef.current.get(dragRef.current.nodeId);
+          if (dragNode) {
+            dragNode.fixed = false;
+            dragNode.fx = 0;
+            dragNode.fy = 0;
+          }
+          dragRef.current = null;
+        }
+        onContextMenu?.(lpNodeId, { x: st.startX, y: st.startY });
+      }, 500);
     } else if (e.touches.length === 2) {
       // 双指缩放
+      cancelLongPress();
       const t1 = e.touches[0];
       const t2 = e.touches[1];
       const dx = t1.clientX - t2.clientX;
@@ -3590,7 +3754,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       dragRef.current = null;
       panRef.current = null;
     }
-  }, [findNodeAt, onNodeClick, onDeselect]);
+  }, [findNodeAt, onNodeClick, onDeselect, onContextMenu, cancelLongPress]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
     // 注意：React 的 onTouchMove 是 passive 事件，不能调用 preventDefault
@@ -3604,6 +3768,12 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
       mouseScreenRef.current = { x: sx, y: sy, active: true };
 
+      // 移动超过阈值取消长按（视为拖拽/平移手势）
+      if (touchStateRef.current.startX !== undefined) {
+        const movedX = Math.abs(touch.clientX - touchStateRef.current.startX);
+        const movedY = Math.abs(touch.clientY - (touchStateRef.current.startY ?? 0));
+        if (movedX > 10 || movedY > 10) { cancelLongPress(); }
+      }
       if (dragRef.current) {
         const world = getScreenToWorld(sx, sy);
         const node = posMapRef.current.get(dragRef.current!.nodeId);
@@ -3621,6 +3791,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
       }
     } else if (e.touches.length === 2) {
       // 双指缩放
+      cancelLongPress();
       const t1 = e.touches[0];
       const t2 = e.touches[1];
       const dx = t1.clientX - t2.clientX;
@@ -3645,9 +3816,10 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
 
       touchStateRef.current.lastDist = dist;
     }
-  }, []);
+  }, [cancelLongPress]);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    cancelLongPress();
     if (dragRef.current) {
       const node = posMapRef.current.get(dragRef.current!.nodeId);
       if (node) {
@@ -3674,7 +3846,7 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
         // 这是一次点击，已在 touchstart 中处理
       }
     }
-  }, []);
+  }, [cancelLongPress]);
 
   // 键盘导航 + 删除（带确认）
   const pendingDeleteRef = useRef<string | null>(null);
@@ -4281,7 +4453,9 @@ const GraphViewInner = forwardRef<GraphViewHandle, GraphViewProps>(({
               <Typography.Text type="secondary" style={{ fontSize: 11 }}>{t("wiki.graph.stats")}</Typography.Text>
               <span>{t("wiki.graph.nodes")}: {nodeCount}</span>
               <span>{t("wiki.graph.edges")}: {edgeCount}</span>
-              <span>Zoom: {cameraRef.current.zoom.toFixed(2)}×</span>
+              <span>
+                Zoom: <span ref={statsZoomTextRef}>{cameraRef.current.zoom.toFixed(2)}×</span>
+              </span>
             </div>
           }
         >

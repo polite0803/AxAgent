@@ -84,6 +84,70 @@ pub async fn list_notes(db: &DatabaseConnection, vault_id: &str) -> Result<Vec<N
     Ok(models.into_iter().map(model_to_note).collect())
 }
 
+/// 按 source_ref 精确查笔记（DB 级预过滤 + Rust 侧精确比对）。
+///
+/// 供知识源导入管道（RSS/GitHub/网页抓取）去重使用，替代旧的
+/// `list_notes` 全量加载后内存过滤——N 篇导入时 O(N²) → O(N)。
+///
+/// `source_refs` 列为 JSON 数组：SQLite 存 TEXT、PG 存 json，
+/// 统一 cast 成 TEXT 后做 `%"ref"%` LIKE 预过滤，Rust 侧再精确比对剔除误报。
+pub async fn find_note_by_source_ref(
+    db: &DatabaseConnection,
+    vault_id: &str,
+    source_ref: &str,
+) -> Result<Option<Note>> {
+    if source_ref.is_empty() {
+        return Ok(None);
+    }
+    let pattern = format!("%\"{}\"%", source_ref.replace('"', ""));
+    let cast_text = sea_orm::sea_query::Expr::cast_as(
+        sea_orm::sea_query::Expr::col(notes::Column::SourceRefs),
+        sea_orm::sea_query::Alias::new("TEXT"),
+    );
+    let models = notes::Entity::find()
+        .filter(notes::Column::VaultId.eq(vault_id))
+        .filter(notes::Column::IsDeleted.eq(0))
+        .filter(cast_text.like(pattern.as_str()))
+        .all(db)
+        .await?;
+
+    Ok(models
+        .into_iter()
+        .map(model_to_note)
+        .find(|n| n.source_refs.as_ref().is_some_and(|refs| refs.iter().any(|r| r == source_ref))))
+}
+
+/// 按标题（大小写不敏感）查笔记（DB 级预过滤 + Rust 侧精确比对）。
+///
+/// 先精确命中（CJK 等大小写无关场景绝大多数直接命中），
+/// 未命中再用 LIKE 预过滤取候选，Rust 侧 `to_lowercase` 精确比对兜底
+/// ASCII 大小写变体。替代 `list_notes` 全量加载。
+pub async fn find_note_by_title_ci(
+    db: &DatabaseConnection,
+    vault_id: &str,
+    title: &str,
+) -> Result<Option<Note>> {
+    let target = title.to_lowercase();
+
+    let mut models = notes::Entity::find()
+        .filter(notes::Column::VaultId.eq(vault_id))
+        .filter(notes::Column::IsDeleted.eq(0))
+        .filter(notes::Column::Title.eq(title))
+        .all(db)
+        .await?;
+
+    if models.is_empty() {
+        models = notes::Entity::find()
+            .filter(notes::Column::VaultId.eq(vault_id))
+            .filter(notes::Column::IsDeleted.eq(0))
+            .filter(notes::Column::Title.like(format!("%{title}%")))
+            .all(db)
+            .await?;
+    }
+
+    Ok(models.into_iter().map(model_to_note).find(|n| n.title.to_lowercase() == target))
+}
+
 /// 在数据库层面执行 Wiki 笔记搜索，带 WHERE 过滤和 LIMIT。
 ///
 /// 避免 `list_notes` 全表加载后在内存中过滤，
@@ -554,6 +618,105 @@ fn extract_wikilink_targets(content: &str) -> Vec<String> {
         i += 1;
     }
     names
+}
+
+/// 全库批量重建 [[wikilink]] 链接表（`note_links` + `note_backlinks`）。
+///
+/// 背景：`create_note` / `update_note` 在单篇笔记创建时同步链接，此刻构建的
+/// name→id 映射只包含「已导入」的笔记 —— 批量导入场景下所有指向尚未导入
+/// 笔记的**前向引用**被静默丢弃且永不补同步，导致图谱 0 边、社区检测退化为
+/// 单节点社区（前端表现为：无边、无分组、随机配色）。
+///
+/// 本方法一次性加载全 vault 笔记构建完整映射后统一重建，与导入顺序无关。
+/// 复杂度 O(N)：2 次全量删除 + 分块批量插入（每块 500 条），替代
+/// `repair_wiki_graph` 逐篇调用 `sync_note_links_from_content` 的 O(N²) 实现。
+///
+/// 返回 (处理的笔记数, 写入的链接数)。
+pub async fn resync_vault_note_links(
+    db: &DatabaseConnection,
+    vault_id: &str,
+) -> Result<(usize, usize)> {
+    // 1. 一次性加载全 vault 笔记的 id/title/file_path/content（不加载无关列）
+    let rows = notes::Entity::find()
+        .filter(notes::Column::VaultId.eq(vault_id))
+        .filter(notes::Column::IsDeleted.eq(0))
+        .select_only()
+        .column(notes::Column::Id)
+        .column(notes::Column::Title)
+        .column(notes::Column::FilePath)
+        .column(notes::Column::Content)
+        .into_tuple::<(String, String, String, String)>()
+        .all(db)
+        .await?;
+
+    if rows.is_empty() {
+        return Ok((0, 0));
+    }
+
+    // 2. 构建完整 name→id 映射（title + file_stem，大小写不敏感，与单篇同步规则一致）
+    let mut name_to_id: std::collections::HashMap<String, String> =
+        std::collections::HashMap::with_capacity(rows.len() * 2);
+    for (id, title, file_path, _) in &rows {
+        if !title.is_empty() {
+            name_to_id.entry(title.to_lowercase()).or_insert_with(|| id.clone());
+        }
+        if let Some(stem) = std::path::Path::new(file_path).file_stem().and_then(|s| s.to_str())
+            && !stem.is_empty()
+        {
+            name_to_id.entry(stem.to_lowercase()).or_insert_with(|| id.clone());
+        }
+    }
+
+    // 3. 逐篇提取 wikilink 并解析（跳过自环）
+    let now = chrono::Utc::now().timestamp();
+    let mut link_rows: Vec<note_links::ActiveModel> = Vec::new();
+    let mut backlink_rows: Vec<note_backlinks::ActiveModel> = Vec::new();
+    for (id, _, _, content) in &rows {
+        for target_name in extract_wikilink_targets(content) {
+            if let Some(target_id) = name_to_id.get(&target_name.to_lowercase())
+                && target_id != id
+            {
+                link_rows.push(note_links::ActiveModel {
+                    vault_id: Set(vault_id.to_string()),
+                    source_note_id: Set(id.clone()),
+                    target_note_id: Set(target_id.clone()),
+                    link_text: Set(target_name.clone()),
+                    link_type: Set("wikilink".to_string()),
+                    created_at: Set(now),
+                    ..Default::default()
+                });
+                backlink_rows.push(note_backlinks::ActiveModel {
+                    vault_id: Set(vault_id.to_string()),
+                    source_note_id: Set(id.clone()),
+                    target_note_id: Set(target_id.clone()),
+                    link_text: Set(target_name.clone()),
+                    link_type: Set("wikilink".to_string()),
+                    created_at: Set(now),
+                    ..Default::default()
+                });
+            }
+        }
+    }
+
+    // 4. 全量替换该 vault 的链接表（先删后插，块大小 500）
+    note_links::Entity::delete_many()
+        .filter(note_links::Column::VaultId.eq(vault_id))
+        .exec(db)
+        .await?;
+    note_backlinks::Entity::delete_many()
+        .filter(note_backlinks::Column::VaultId.eq(vault_id))
+        .exec(db)
+        .await?;
+
+    const CHUNK: usize = 500;
+    for chunk in link_rows.chunks(CHUNK) {
+        note_links::Entity::insert_many(chunk.iter().cloned()).exec(db).await?;
+    }
+    for chunk in backlink_rows.chunks(CHUNK) {
+        note_backlinks::Entity::insert_many(chunk.iter().cloned()).exec(db).await?;
+    }
+
+    Ok((rows.len(), link_rows.len()))
 }
 
 /// 解析笔记内容中的 `[[wikilink]]` 并同步 note_links + note_backlinks 表。

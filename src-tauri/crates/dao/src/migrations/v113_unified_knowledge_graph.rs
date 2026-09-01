@@ -93,7 +93,6 @@ async fn column_exists(
 
 pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
     let is_pg = db.get_database_backend() == DbBackend::Postgres;
-    let backend = db.get_database_backend();
 
     tracing::info!("[v113] 开始扩展知识图谱支持多源节点 (is_pg={})", is_pg);
 
@@ -129,7 +128,9 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             "CREATE INDEX IF NOT EXISTS idx_entities_external_id ON knowledge_entities(external_id)",
         ];
         for sql in &index_sqls {
-            let _ = db.execute_raw(Statement::from_string(backend, sql.to_string())).await;
+            if let Err(e) = db.execute_unprepared(sql).await {
+                tracing::warn!("[v113] 建索引失败（不阻塞）: {} — {}", sql, e);
+            }
         }
     }
 
@@ -163,7 +164,9 @@ pub async fn up(db: sea_orm::DatabaseConnection) -> Result<(), DbErr> {
             "CREATE INDEX IF NOT EXISTS idx_relations_source_id ON knowledge_relations(source_id)",
         ];
         for sql in &index_sqls {
-            let _ = db.execute_raw(Statement::from_string(backend, sql.to_string())).await;
+            if let Err(e) = db.execute_unprepared(sql).await {
+                tracing::warn!("[v113] 建索引失败（不阻塞）: {} — {}", sql, e);
+            }
         }
     }
 

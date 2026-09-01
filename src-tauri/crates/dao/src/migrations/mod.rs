@@ -48,9 +48,10 @@ pub mod v128_capability_policies;
 pub mod v129_capability_relationships;
 pub mod v130_session_states;
 pub mod v131_backfill_wiki_graph_source;
+pub mod v132_memory_access_indexes;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 131;
+pub const CURRENT_VERSION: i32 = 132;
 
 /// P2-10: Schema 版本追踪表名。
 ///
@@ -242,6 +243,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 131,
         description: "v131_backfill_wiki_graph_source: 回填 Wiki 实体/关系的 v113 多源来源字段（kb_id 命中 wikis 表的存量行 source_type 纠正为 wiki、source_id=wiki_id），消除 Wiki 实体与真实 KB 实体混标（R5）",
         up: |db| Box::pin(v131_backfill_wiki_graph_source::up(db)),
+    },
+    Migration {
+        version: 132,
+        description: "v132_memory_access_indexes: 为 memory_items 补衰减/淘汰路径索引（expires_at / last_accessed / importance / namespace_id+tier），消除衰减 tick 全表扫描",
+        up: |db| Box::pin(v132_memory_access_indexes::up(db)),
     },
 ];
 

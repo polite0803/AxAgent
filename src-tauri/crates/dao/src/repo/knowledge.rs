@@ -281,6 +281,21 @@ pub async fn list_documents(
     Ok(models.into_iter().map(model_to_doc).collect())
 }
 
+/// 批量获取 KB 内文档的 `updated_at`（add_document 写入的源文件 mtime，epoch 秒）。
+///
+/// DTO（`KnowledgeDocument`）不含时间戳字段，同步命令做增量比对时由此取值；
+/// 旧数据该列为 0，同步侧回退到 size 比对。
+pub async fn get_document_mtime_map(
+    db: &DatabaseConnection,
+    base_id: &str,
+) -> Result<std::collections::HashMap<String, i64>> {
+    let models = knowledge_documents::Entity::find()
+        .filter(knowledge_documents::Column::KnowledgeBaseId.eq(base_id))
+        .all(db)
+        .await?;
+    Ok(models.into_iter().map(|m| (m.id, m.updated_at)).collect())
+}
+
 pub async fn add_document(
     db: &DatabaseConnection,
     knowledge_base_id: &str,
@@ -292,7 +307,17 @@ pub async fn add_document(
     let id = gen_id();
 
     // Read actual file size from disk
-    let file_size = std::fs::metadata(source_path).map(|m| m.len() as i64).unwrap_or(0);
+    let (file_size, file_mtime_secs) = std::fs::metadata(source_path)
+        .map(|m| {
+            let mtime = m
+                .modified()
+                .ok()
+                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|d| d.as_secs() as i64)
+                .unwrap_or(0);
+            (m.len() as i64, mtime)
+        })
+        .unwrap_or((0, 0));
 
     let am = knowledge_documents::ActiveModel {
         id: Set(id.clone()),
@@ -302,6 +327,9 @@ pub async fn add_document(
         mime_type: Set(mime_type.to_string()),
         size_bytes: Set(file_size),
         doc_type: Set(doc_type.unwrap_or("file").to_string()),
+        // 记录源文件 mtime（epoch 秒），供 sync_project_knowledge_sources 做增量比对，
+        // 避免每次同步对全部已存在文件删旧重加。旧数据该列为 0，同步侧回退到 size 比对。
+        updated_at: Set(file_mtime_secs),
         ..Default::default()
     };
 
