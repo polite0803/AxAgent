@@ -151,7 +151,7 @@ function ChatViewInner({
   useEffect(() => {
     if (codeBlockThemes.length > 0) {
       registerHighlight({
-        themes: codeBlockThemes as import("@shikijs/types").ThemeInput[],
+        themes: [...codeBlockThemes] as import("@shikijs/types").ThemeInput[],
       }).catch(logIpcError("preload_highlight_themes"));
     }
   }, [codeBlockThemes, codeBlockDarkTheme, codeBlockLightTheme, isDarkMode]);

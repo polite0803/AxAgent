@@ -532,24 +532,29 @@ describe("LoopPropertyPanel legacy data handling", () => {
     },
   };
 
-  it("renders without crashing when config.bodySteps is missing (legacy schema)", async () => {
-    const { LoopPropertyPanel } = await import(
-      "@/components/workflow/Panels/PropertyPanels/LoopPropertyPanel"
-    );
-    const legacyNode = {
-      ...baseNode,
-      config: { loopType: "count", maxIterations: 5 },
-    };
-    expect(() =>
-      render(
-        <LoopPropertyPanel
-          node={legacyNode as never}
-          onUpdate={vi.fn()}
-          onDelete={vi.fn()}
-        />,
-      )
-    ).not.toThrow();
-  });
+  // jsdom 30 下该测试全量并行时接近 5s 默认上限，放宽到 15s
+  it(
+    "renders without crashing when config.bodySteps is missing (legacy schema)",
+    async () => {
+      const { LoopPropertyPanel } = await import(
+        "@/components/workflow/Panels/PropertyPanels/LoopPropertyPanel"
+      );
+      const legacyNode = {
+        ...baseNode,
+        config: { loopType: "count", maxIterations: 5 },
+      };
+      expect(() =>
+        render(
+          <LoopPropertyPanel
+            node={legacyNode as never}
+            onUpdate={vi.fn()}
+            onDelete={vi.fn()}
+          />,
+        )
+      ).not.toThrow();
+    },
+    15_000,
+  );
 
   it("renders without crashing when config is missing entirely", async () => {
     const { LoopPropertyPanel } = await import(

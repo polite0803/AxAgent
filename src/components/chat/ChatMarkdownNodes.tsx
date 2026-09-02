@@ -121,10 +121,8 @@ function getChatCodeThemes(
 ) {
   const darkTheme = normalizeCodeTheme(selectedDarkTheme) || DEFAULT_DARK_CODE_BLOCK_THEME;
   const lightTheme = normalizeCodeTheme(selectedLightTheme) || DEFAULT_LIGHT_CODE_BLOCK_THEME;
-  const themes = [lightTheme, darkTheme];
-  if (lightTheme !== darkTheme) {
-    themes.push(darkTheme);
-  }
+  // markstream-react v2 起要求 themes 为 readonly [dark, light] 二元组
+  const themes = [darkTheme, lightTheme] as const;
   return {
     darkTheme,
     lightTheme,
@@ -447,7 +445,7 @@ function ThinkNode(
     () => getChatCodeBlockProps(darkTheme, lightTheme),
     [darkTheme, lightTheme],
   );
-  const codeBlockMonacoOptions = useMemo(
+  const codeBlockOptions = useMemo(
     () => (codeFontFamily ? { fontFamily: codeFontFamily } : undefined),
     [codeFontFamily],
   );
@@ -509,7 +507,7 @@ function ThinkNode(
                 codeBlockLightTheme={lightTheme}
                 codeBlockDarkTheme={darkTheme}
                 codeBlockProps={codeBlockProps}
-                codeBlockMonacoOptions={codeBlockMonacoOptions}
+                codeBlockOptions={codeBlockOptions}
                 customHtmlTags={customHtmlTags}
                 mermaidProps={CHAT_MERMAID_PROPS}
                 infographicProps={CHAT_INFOGRAPHIC_PROPS}
@@ -1382,7 +1380,7 @@ const AssistantMarkdown = React.memo(
     isStreaming: boolean;
     codeBlockDarkTheme: string;
     codeBlockLightTheme: string;
-    codeBlockThemes: string[];
+    codeBlockThemes: readonly [string, string];
     codeFontFamily?: string;
     /** 当前消息 ID，传递给检索结果节点用于 RAG 反馈闭环 */
     messageId?: string | null;
@@ -1435,7 +1433,7 @@ const AssistantMarkdown = React.memo(
       () => getChatCodeBlockProps(codeBlockDarkTheme, codeBlockLightTheme),
       [codeBlockDarkTheme, codeBlockLightTheme],
     );
-    const codeBlockMonacoOptions = useMemo(
+    const codeBlockOptions = useMemo(
       () => (codeFontFamily ? { fontFamily: codeFontFamily } : undefined),
       [codeFontFamily],
     );
@@ -1604,7 +1602,7 @@ const AssistantMarkdown = React.memo(
                         codeBlockLightTheme={codeBlockLightTheme}
                         codeBlockDarkTheme={codeBlockDarkTheme}
                         codeBlockProps={codeBlockProps}
-                        codeBlockMonacoOptions={codeBlockMonacoOptions}
+                        codeBlockOptions={codeBlockOptions}
                         mermaidProps={CHAT_MERMAID_PROPS}
                         infographicProps={CHAT_INFOGRAPHIC_PROPS}
                         {...CHAT_RENDER_BATCH_PROPS}
@@ -1625,7 +1623,7 @@ const AssistantMarkdown = React.memo(
                       codeBlockLightTheme={codeBlockLightTheme}
                       codeBlockDarkTheme={codeBlockDarkTheme}
                       codeBlockProps={codeBlockProps}
-                      codeBlockMonacoOptions={codeBlockMonacoOptions}
+                      codeBlockOptions={codeBlockOptions}
                       mermaidProps={CHAT_MERMAID_PROPS}
                       infographicProps={CHAT_INFOGRAPHIC_PROPS}
                       {...CHAT_RENDER_BATCH_PROPS}
@@ -1644,7 +1642,7 @@ const AssistantMarkdown = React.memo(
                       codeBlockLightTheme={codeBlockLightTheme}
                       codeBlockDarkTheme={codeBlockDarkTheme}
                       codeBlockProps={codeBlockProps}
-                      codeBlockMonacoOptions={codeBlockMonacoOptions}
+                      codeBlockOptions={codeBlockOptions}
                       mermaidProps={CHAT_MERMAID_PROPS}
                       infographicProps={CHAT_INFOGRAPHIC_PROPS}
                       {...CHAT_RENDER_BATCH_PROPS}

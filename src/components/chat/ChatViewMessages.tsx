@@ -187,7 +187,7 @@ function AssistantFooter({
   isDarkMode: boolean;
   codeBlockDarkTheme: string;
   codeBlockLightTheme: string;
-  codeBlockThemes: string[];
+  codeBlockThemes: readonly [string, string];
   codeFontFamily?: string;
 }) {
   const { token } = theme.useToken();
