@@ -116,7 +116,7 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({ width }) => {
 
   const groupedNodeTypes = NODE_CATEGORIES.flatMap((category) => {
     const items = filteredNodeTypes.filter(
-      ([_, info]) => info.category === category.id,
+      ([, info]) => info.category === category.id,
     );
     return items.length > 0 ? [{ ...category, items }] : [];
   });

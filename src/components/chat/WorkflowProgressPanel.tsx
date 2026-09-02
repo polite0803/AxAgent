@@ -1031,10 +1031,10 @@ export const WorkflowProgressPanel: React.FC<WorkflowProgressPanelProps> = ({
 
   // 收集超时警告
   const criticalWarnings = Array.from(warningData.entries())
-    .filter(([_, v]) => v.level === "critical")
+    .filter(([, v]) => v.level === "critical")
     .map(([nodeId]) => nodeId);
   const warningWarnings = Array.from(warningData.entries())
-    .filter(([_, v]) => v.level === "warning")
+    .filter(([, v]) => v.level === "warning")
     .map(([nodeId]) => nodeId);
 
   return (
