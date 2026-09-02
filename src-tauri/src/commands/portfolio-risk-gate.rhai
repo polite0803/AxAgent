@@ -75,7 +75,7 @@ fn join_reasons(arr) {
 }
 
 // ── 防御性兜底：任何 Rhai 运行时错误都返回可解析的保守决策 ──
-let __gate_result = #{
+let gate_result = #{
     "action": "观望",
     "positionPct": 0.0,
     "confidence": 50.0,
@@ -88,7 +88,7 @@ try {
 // 1. 读取 portfolio-mgr 结果
 if !present(pm_result) || type_of(pm_result) != "map" {
     // portfolio-mgr 无输出 — 保守降级
-    __gate_result = #{
+    gate_result = #{
         "action": "观望",
         "positionPct": 0.0,
         "confidence": 50.0,
@@ -127,8 +127,8 @@ let gate = json_parse(gate_json);
 
 if type_of(gate) != "map" {
     // 解析失败 — 透传 portfolio-mgr 结果，追加错误标记
-    __gate_result = pm_result;
-    __gate_result["risk_gate"] = #{
+    gate_result = pm_result;
+    gate_result["risk_gate"] = #{
         "adjusted": false,
         "originalAction": orig_action,
         "originalPositionPct": orig_position_pct,
@@ -147,22 +147,22 @@ if type_of(gate) != "map" {
     let reasons = gate["reasons"];
 
     // 3. 输出：保留 portfolio-mgr 的所有字段，覆盖被调整的字段，追加 risk_gate 元数据
-    //    Rhai 的 map 赋值是值拷贝，修改 __gate_result 不影响 pm_result
-    __gate_result = pm_result;
-    __gate_result["action"] = final_action;
-    __gate_result["positionPct"] = (final_position_pct * 10.0).round() / 10.0;
-    __gate_result["positionPctNormalized"] = (final_position_pct * 10.0).round() / 10.0;
+    //    Rhai 的 map 赋值是值拷贝，修改 gate_result 不影响 pm_result
+    gate_result = pm_result;
+    gate_result["action"] = final_action;
+    gate_result["positionPct"] = (final_position_pct * 10.0).round() / 10.0;
+    gate_result["positionPctNormalized"] = (final_position_pct * 10.0).round() / 10.0;
 
     // 如果风控门调整了决策，追加 reasoning 说明
     if adjusted {
         let reasons_text = join_reasons(reasons);
         let orig_reasoning = safe_str(pm_result["reasoning"]);
         if reasons_text != "" {
-            __gate_result["reasoning"] = `${orig_reasoning} | [风控门] ${reasons_text}`;
+            gate_result["reasoning"] = `${orig_reasoning} | [风控门] ${reasons_text}`;
         }
     }
 
-    __gate_result["risk_gate"] = #{
+    gate_result["risk_gate"] = #{
         "adjusted": adjusted,
         "originalAction": safe_str(gate["originalAction"]),
         "originalPositionPct": safe_f64(gate["originalPositionPct"], 0.0),
@@ -179,8 +179,8 @@ if type_of(gate) != "map" {
 catch (err) {
     // 异常兜底：如果 pm_result 存在则透传，否则返回保守决策
     if present(pm_result) && type_of(pm_result) == "map" {
-        __gate_result = pm_result;
-        __gate_result["risk_gate"] = #{
+        gate_result = pm_result;
+        gate_result["risk_gate"] = #{
             "adjusted": false,
             "originalAction": "",
             "originalPositionPct": 0.0,
@@ -190,7 +190,7 @@ catch (err) {
             "maxSectorPct": 0.0,
         };
     } else {
-        __gate_result = #{
+        gate_result = #{
             "action": "观望",
             "positionPct": 0.0,
             "confidence": 50.0,
@@ -209,4 +209,4 @@ catch (err) {
     }
 }
 
-__gate_result
+gate_result

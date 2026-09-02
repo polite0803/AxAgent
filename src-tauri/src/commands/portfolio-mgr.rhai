@@ -61,7 +61,7 @@ fn has_negation(text, kw, negs) {
 }
 
 // ── 防御性兜底：任何 Rhai 运行时错误都返回可解析的保守决策，避免节点无输出 ──
-let __pm_result = ();
+let pm_result = ();
 
 try {
 // ── 可配置参数（修复 D7/D8：通过 input_mapping 覆盖，默认值为 V56 校准 A 股参数）──
@@ -1374,7 +1374,7 @@ let disagreement_note = if present(risk_disagreement) && risk_disagreement > 50 
 } else { "" };
 
 // ── 输出 ──
-	__pm_result = #{
+	pm_result = #{
     "action": final_action,
     "positionPct": (position_pct * 10.0).round() / 10.0,
     "positionPctNormalized": (position_pct * 10.0).round() / 10.0,  // P0-2: 组合归一化前的原始仓位权重
@@ -1466,7 +1466,7 @@ let disagreement_note = if present(risk_disagreement) && risk_disagreement > 50 
 
 // ── 错误兜底：Rhai 运行时异常时返回保守决策，确保节点始终输出可解析结果 ──
 catch (err) {
-    __pm_result = #{
+    pm_result = #{
         "action": "观望",
         "positionPct": 0.0,
         "confidence": 50.0,
@@ -1491,4 +1491,4 @@ catch (err) {
     };
 }
 
-__pm_result
+pm_result
