@@ -26,6 +26,7 @@ macro_rules! register_all_commands {
             commands::agent::agent_respond_ask,
             commands::agent::agent_restore_sdk_context_from_backup,
             commands::agent::agent_resume,
+            commands::agent::agent_resume_from_events,
             commands::agent::agent_runtime_stats,
             commands::agent::agent_steer,
             commands::agent::agent_update_session,

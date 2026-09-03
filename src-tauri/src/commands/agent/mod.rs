@@ -32,7 +32,7 @@ use axagent_tools::registry::{
 };
 use base64::Engine;
 use dashmap::DashMap;
-use sea_orm::EntityTrait;
+use sea_orm::{ConnectionTrait, EntityTrait};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashSet;
@@ -3168,6 +3168,99 @@ pub async fn agent_resume(
     );
 
     Ok(())
+}
+
+/// 从 session_events 事件流诊断跨进程中断的会话（PLAN-codex-parity P0-3e）。
+///
+/// 只读诊断命令：读取 `session_events` 表，按 seq 排序后判断最后一个
+/// TurnStarted 是否有配对的 TurnEnded。返回 JSON 含事件摘要 + 是否可恢复。
+///
+/// 注：实际恢复逻辑（重建 ThoughtChain + 续跑 run_turn）在 SessionManager
+/// 内部实现，此命令是前端诊断入口。
+#[tauri::command]
+pub async fn agent_resume_from_events(
+    app_state: State<'_, AppState>,
+    conversation_id: String,
+) -> Result<serde_json::Value, String> {
+    let db = app_state.harness.persistence().connection();
+
+    // 1. 读 session_events
+    let sql = format!(
+        "SELECT seq, event_type, payload, created_at FROM session_events \
+         WHERE session_id = '{conversation_id}' ORDER BY seq ASC"
+    );
+    let rows = db
+        .query_all_raw(sea_orm::Statement::from_string(sea_orm::DbBackend::Sqlite, sql))
+        .await
+        .map_err(|e| format!("query session_events failed: {e}"))?;
+
+    if rows.is_empty() {
+        return Ok(serde_json::json!({
+            "conversationId": conversation_id,
+            "hasEvents": false,
+            "canResume": false,
+            "reason": "no_events",
+            "eventCount": 0,
+        }));
+    }
+
+    // 2. 解析事件流
+    let mut events: Vec<serde_json::Value> = Vec::new();
+    for row in &rows {
+        let seq: i64 = row.try_get("", "seq").unwrap_or(0);
+        let event_type: String = row.try_get("", "event_type").unwrap_or_default();
+        let payload: Option<String> = row.try_get("", "payload").ok();
+        let created_at: String = row.try_get("", "created_at").unwrap_or_default();
+
+        let payload_json: serde_json::Value = payload
+            .as_ref()
+            .and_then(|p| serde_json::from_str(p).ok())
+            .unwrap_or(serde_json::Value::Null);
+
+        events.push(serde_json::json!({
+            "seq": seq,
+            "eventType": event_type,
+            "payload": payload_json,
+            "createdAt": created_at,
+        }));
+    }
+
+    // 3. 判断是否需要恢复
+    let last_event = events.last().unwrap();
+    let last_type = last_event.get("eventType").and_then(|v| v.as_str()).unwrap_or("");
+    let total_turn_started = events
+        .iter()
+        .filter(|e| e.get("eventType").and_then(|v| v.as_str()) == Some("turn_started"))
+        .count();
+    let total_turn_ended = events
+        .iter()
+        .filter(|e| e.get("eventType").and_then(|v| v.as_str()) == Some("turn_ended"))
+        .count();
+
+    let can_resume = total_turn_started > total_turn_ended;
+    let reason = if can_resume {
+        match last_type {
+            "turn_started" => "turn_started_no_ended",
+            "tool_call" | "tool_result" => "tool_execution_interrupted",
+            "compacted" => "compacted_no_ended",
+            _ => "incomplete_turn",
+        }
+    } else {
+        "all_turns_completed"
+    };
+
+    Ok(serde_json::json!({
+        "conversationId": conversation_id,
+        "hasEvents": true,
+        "canResume": can_resume,
+        "reason": reason,
+        "eventCount": events.len(),
+        "turnStartedCount": total_turn_started,
+        "turnEndedCount": total_turn_ended,
+        "lastEventType": last_type,
+        "lastEventSeq": last_event.get("seq").cloned(),
+        "events": events,
+    }))
 }
 
 /// Check if an agent is paused. An agent is only considered paused if it is
