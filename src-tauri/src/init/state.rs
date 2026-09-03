@@ -752,8 +752,10 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     // McpAgentServer 构造在 create_app_state 同步阶段完成，不阻塞首帧渲染。
     let mcp_agent_server: Arc<axagent_mcp::McpAgentServer> = Arc::new(
         axagent_mcp::McpAgentServer::new(
-            Some(Arc::new(axagent_agent::harness_adapter::HarnessAgentAdapter::new("default"))
-                as Arc<dyn axagent_harness::Agent>),
+            Some(Arc::new(
+                axagent_agent::harness_adapter::HarnessAgentAdapter::new("default")
+                    .with_runtime(Arc::clone(&agent_session_manager)),
+            ) as Arc<dyn axagent_harness::Agent>),
             Some(Arc::clone(&agent_session_manager) as Arc<dyn axagent_harness::AgentSessionBroker>),
         ),
     );
