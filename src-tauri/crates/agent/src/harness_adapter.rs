@@ -69,6 +69,9 @@ impl Agent for HarnessAgentAdapter {
             output: result.final_response,
             success: result.success,
             steps_taken: result.iterations as u32,
+            // 独立 ReActEngine::run 无会话管理，暂返回 None。
+            // 真正的会话化接入需要 SessionManager + conversation_id 桥接。
+            session_id: None,
         })
     }
 

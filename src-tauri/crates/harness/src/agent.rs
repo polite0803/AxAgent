@@ -30,6 +30,10 @@ pub struct AgentResult {
     pub success: bool,
     #[serde(alias = "steps_taken")]
     pub steps_taken: u32,
+    /// 执行过程中创建的会话 ID（如果有持久化会话）。
+    /// 用于 MCP `agent_run` 返回后，调用方可通过 `agent_status` / `agent_cancel` 跟踪。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]

@@ -120,7 +120,13 @@ impl McpAgentServer {
             .await?;
 
         let status = if result.success { "success" } else { "failed" };
-        Ok(format!("[{status}] steps_taken={}: {}", result.steps_taken, result.output))
+        let session_tag =
+            result.session_id.as_ref().map(|sid| format!(" sessionId={sid}")).unwrap_or_default();
+        Ok(format!(
+            "[{status}] steps_taken={steps}{session_tag}\n{output}",
+            steps = result.steps_taken,
+            output = result.output,
+        ))
     }
 
     #[tool(

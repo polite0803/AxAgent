@@ -745,6 +745,19 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     let self_improvement_flags =
         crate::commands::app_config::read_self_improvement_flags(&sea_db).await;
     agent_session_manager.set_self_improvement_flags(self_improvement_flags).await;
+
+    // P2 集成: McpAgentServer wiring。
+    // - Agent trait 由 HarnessAgentAdapter 提供 (agent crate)
+    // - AgentSessionBroker trait 由 SessionManager 提供 (Arc cast 到 dyn)
+    // McpAgentServer 构造在 create_app_state 同步阶段完成，不阻塞首帧渲染。
+    let mcp_agent_server: Arc<axagent_mcp::McpAgentServer> = Arc::new(
+        axagent_mcp::McpAgentServer::new(
+            Some(Arc::new(axagent_agent::harness_adapter::HarnessAgentAdapter::new("default"))
+                as Arc<dyn axagent_harness::Agent>),
+            Some(Arc::clone(&agent_session_manager) as Arc<dyn axagent_harness::AgentSessionBroker>),
+        ),
+    );
+
     work_engine.set_event_bus(Arc::clone(&event_bus));
     let skill_decomposer: Arc<tokio::sync::RwLock<axagent_trajectory::SkillDecomposer>> =
         Arc::new(tokio::sync::RwLock::new(axagent_trajectory::SkillDecomposer::new()));
@@ -1292,6 +1305,7 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         running_agents,
         steer_queue,
         reflector,
+        mcp_agent_server,
         shared_memory,
         sub_agent_registry,
         memory_service: memory_service.clone(),

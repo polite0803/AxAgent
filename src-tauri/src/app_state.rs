@@ -257,6 +257,9 @@ pub struct AppState {
     /// 前端 SteerInput 指令队列。conversationId → Vec<instruction>
     pub steer_queue: Arc<tokio::sync::Mutex<std::collections::HashMap<String, Vec<String>>>>,
     pub reflector: Arc<axagent_agent::Reflector>,
+    /// P2 集成: MCP stdio server 实例。wiring 层在 create_app_state 构造并注入。
+    /// 可通过 xagent-mcp-serve binary 或直接启动 stdio transport 对外暴露。
+    pub mcp_agent_server: Arc<axagent_mcp::McpAgentServer>,
     // 以下字段从 parking_lot::RwLock 改为 tokio::sync::RwLock
     // 原因：parking_lot::RwLock 的 guard 是 !Send，在异步上下文中跨 await 持有会导致未定义行为
     // 且 parking_lot::RwLock 在 panic 时会毒化，后续所有 .unwrap() 都会崩溃

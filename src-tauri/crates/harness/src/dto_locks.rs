@@ -70,7 +70,7 @@ mod size_locks_64 {
     static_assertions::assert_eq_size!(crate::agent::AgentExecuteRequest, [u8; 56]);
 
     // AgentResult: output(String) + success(bool) + steps_taken(u32)
-    static_assertions::assert_eq_size!(crate::agent::AgentResult, [u8; 32]);
+    static_assertions::assert_eq_size!(crate::agent::AgentResult, [u8; 56]); // +Option<String> session_id
 
     // PlanStep: description(String) + agent(Option<String>)
     static_assertions::assert_eq_size!(crate::agent::PlanStep, [u8; 48]);
