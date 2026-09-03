@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 pub mod agent;
 pub mod agent_memory;
+pub mod apply_patch;
 pub mod arxiv_scanner;
 pub mod bash;
 pub mod batch_missing;
@@ -218,6 +219,8 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
         std::sync::Arc::new(git::GitLogTool),
         std::sync::Arc::new(git::GitBranchTool),
         std::sync::Arc::new(git::GitReviewTool),
+        // ── 原子补丁 ──
+        std::sync::Arc::new(apply_patch::ApplyPatchTool),
         // ── OCR ──
         std::sync::Arc::new(ocr::OcrImageTool),
         std::sync::Arc::new(ocr::OcrDetectLangsTool),
