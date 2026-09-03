@@ -8,3 +8,4 @@ pub mod client_service_impl;
 pub mod mcp_client;
 pub mod mcp_health;
 pub mod mcp_oauth;
+pub mod server;
