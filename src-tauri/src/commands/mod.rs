@@ -12,6 +12,7 @@ pub mod agent_insight;
 pub mod agent_nudge;
 pub mod agent_profile;
 pub mod agent_role;
+pub mod agent_session;
 pub mod analyst_evolution;
 pub mod app_config;
 pub mod artifacts;

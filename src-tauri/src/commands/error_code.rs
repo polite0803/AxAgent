@@ -76,6 +76,10 @@ pub mod mcp {
     pub const TIMEOUT: &str = "MCP_TIMEOUT";
     /// MCP工具发现超时
     pub const TOOL_DISCOVERY_TIMEOUT: &str = "MCP_TOOL_DISCOVERY_TIMEOUT";
+    /// Agent 会话未找到
+    pub const AGENT_SESSION_NOT_FOUND: &str = "MCP_AGENT_SESSION_NOT_FOUND";
+    /// Agent 会话取消失败
+    pub const AGENT_SESSION_CANCEL_FAILED: &str = "MCP_AGENT_SESSION_CANCEL_FAILED";
 }
 
 /// 浏览器相关错误码
