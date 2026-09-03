@@ -67,6 +67,20 @@ pub enum KitTokenBudgetDecision {
         turn_tokens: u64,
         budget: u64,
     },
+    /// 建议执行自动 compact（压缩早期步骤释放上下文空间）。
+    ///
+    /// 触发阈值（在 kit 实现侧配置）：典型为 budget 的 75%，
+    /// 留出 compact 本身的开销后，剩余空间仍能容纳若干轮迭代。
+    Compact {
+        /// 触发 compact 时发给模型的提示（解释即将做什么、为什么）
+        nudge_message: String,
+        /// 建议保留最近 N 步不压缩（通常 4-6 步保证局部连续性）
+        preserve_recent_steps: usize,
+        /// 当前已用百分比（0-100）
+        pct_used: u32,
+        /// 预算上限
+        budget: u64,
+    },
     Stop {
         completion_event: Option<KitBudgetCompletionEvent>,
     },

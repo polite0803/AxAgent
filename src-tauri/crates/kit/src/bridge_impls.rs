@@ -74,6 +74,17 @@ impl KitTokenBudgetTracker for crate::token_budget::TokenBudgetTracker {
                 turn_tokens,
                 budget,
             },
+            crate::token_budget::TokenBudgetDecision::Compact {
+                nudge_message,
+                preserve_recent_steps,
+                pct_used,
+                budget,
+            } => KitTokenBudgetDecision::Compact {
+                nudge_message,
+                preserve_recent_steps,
+                pct_used,
+                budget,
+            },
             crate::token_budget::TokenBudgetDecision::Stop { completion_event } => {
                 KitTokenBudgetDecision::Stop {
                     completion_event: completion_event.map(|e| {

@@ -763,6 +763,22 @@ impl ReActEngine {
                                     chain.add_step(step);
                                 }
                             },
+                            KitTokenBudgetDecision::Compact {
+                                nudge_message,
+                                preserve_recent_steps,
+                                pct_used,
+                                budget,
+                            } => {
+                                let drained = chain.compact_keep_recent(preserve_recent_steps);
+                                tracing::info!(
+                                    "[token_budget] compact triggered: {drained} steps drained, kept {preserve_recent_steps} recent, {pct_used}% of {budget} tokens"
+                                );
+                                self.emit(ThoughtEvent::CompactionSuggested {
+                                    compacted_steps: drained,
+                                    keep_recent: preserve_recent_steps,
+                                    nudge_message,
+                                });
+                            },
                             KitTokenBudgetDecision::Stop { completion_event } => {
                                 if let Some(event) = completion_event {
                                     let reason = if event.diminishing_returns {

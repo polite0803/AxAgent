@@ -7,6 +7,9 @@
 
 use std::time::Instant;
 
+/// 建议 compact 阈值：当消耗达到预算的 75% 时建议 compact（留出 compact 自身开销后仍有空间）
+const COMPACT_THRESHOLD: f64 = 0.75;
+
 /// 完成阈值：当消耗达到预算的 90% 时触发终止
 const COMPLETION_THRESHOLD: f64 = 0.9;
 
@@ -77,6 +80,17 @@ pub enum TokenBudgetDecision {
         /// 预算上限
         budget: u64,
     },
+    /// 建议执行自动 compact（压缩早期步骤释放上下文空间）。
+    Compact {
+        /// 触发 compact 时发给模型的提示（解释即将做什么、为什么）
+        nudge_message: String,
+        /// 建议保留最近 N 步不压缩（通常 4-6 步保证局部连续性）
+        preserve_recent_steps: usize,
+        /// 当前已用百分比（0-100）
+        pct_used: u32,
+        /// 预算上限
+        budget: u64,
+    },
     /// 停止循环；可选附带完成事件
     Stop { completion_event: Option<BudgetCompletionEvent> },
 }
@@ -124,8 +138,24 @@ impl TokenBudgetTracker {
             && delta < DIMINISHING_DELTA_THRESHOLD
             && self.last_delta_tokens < DIMINISHING_DELTA_THRESHOLD;
 
-        // 未达到阈值且非递减 → 继续
-        if !is_diminishing && (turn_tokens as f64) < budget as f64 * COMPLETION_THRESHOLD {
+        let compact_pct = budget as f64 * COMPACT_THRESHOLD;
+        let completion_pct = budget as f64 * COMPLETION_THRESHOLD;
+
+        // 达到 compact 阈值但还没到完成阈值 → 建议 compact（只触发一次/每轮独立判断）
+        if !is_diminishing
+            && (turn_tokens as f64) >= compact_pct
+            && (turn_tokens as f64) < completion_pct
+        {
+            return TokenBudgetDecision::Compact {
+                nudge_message: build_compact_nudge_message(pct, turn_tokens, budget),
+                preserve_recent_steps: 6,
+                pct_used: pct,
+                budget,
+            };
+        }
+
+        // 未达到 compact 阈值且非递减 → 继续
+        if !is_diminishing && (turn_tokens as f64) < compact_pct {
             self.continuation_count += 1;
             self.last_delta_tokens = delta;
             self.last_global_turn_tokens = global_turn_tokens;
@@ -163,6 +193,20 @@ fn build_nudge_message(pct_used: u32, turn_tokens: u64, budget: u64) -> String {
     format!(
         "Token usage: {pct_used}% of budget used ({turn_tokens}/{budget} tokens). \
          {remaining} tokens remaining. Continue efficiently or wrap up soon.",
+        pct_used = pct_used,
+        turn_tokens = turn_tokens,
+        budget = budget,
+        remaining = remaining,
+    )
+}
+
+/// 构建 compact 触发时的提示消息。
+fn build_compact_nudge_message(pct_used: u32, turn_tokens: u64, budget: u64) -> String {
+    let remaining = budget.saturating_sub(turn_tokens);
+    format!(
+        "Token usage: {pct_used}% of budget used ({turn_tokens}/{budget} tokens). \
+         Remaining {remaining}. Context window approaching capacity — \
+         compressing early steps to free space and keep going.",
         pct_used = pct_used,
         turn_tokens = turn_tokens,
         budget = budget,

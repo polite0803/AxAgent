@@ -161,6 +161,34 @@ impl ThoughtChain {
             steps: self.steps.clone(),
         }
     }
+
+    /// 压缩早期步骤：保留最近 `keep_recent` 步，前面的步骤被一个
+    /// 摘要 `ThoughtStep::new(ReasoningState::Thinking, "...N steps compacted...")` 替换。
+    ///
+    /// 当 chain 长度 <= keep_recent + 1 时不做任何事（没必要压缩）。
+    ///
+    /// 返回被压缩掉的步骤数量。
+    pub fn compact_keep_recent(&mut self, keep_recent: usize) -> usize {
+        let total = self.steps.len();
+        if total <= keep_recent + 1 {
+            return 0;
+        }
+        let drained = total - keep_recent;
+        let old_steps: Vec<_> = self.steps.drain(..drained).collect();
+
+        let summary = format!(
+            "[Compacted {drained} earlier steps: {} Thinking / {} ToolCall / {} ToolResult]",
+            old_steps.iter().filter(|s| matches!(s.state, ReasoningState::Thinking)).count(),
+            old_steps
+                .iter()
+                .filter(|s| s.action.as_ref().and_then(|a| a.tool_name.as_ref()).is_some())
+                .count(),
+            old_steps.iter().filter(|s| s.observation.is_some()).count(),
+        );
+        let summary_step = ThoughtStep::new(ReasoningState::Thinking, summary);
+        self.steps.insert(0, summary_step);
+        drained
+    }
 }
 
 impl Default for ThoughtChain {
@@ -184,6 +212,12 @@ pub enum ThoughtEvent {
     StateChanged(ReasoningState),
     IterationComplete(usize),
     ChainComplete(ChainSummary),
+    /// TokenBudget 触发自动 compact 时发出，携带被压缩的步骤数 + 提示消息
+    CompactionSuggested {
+        compacted_steps: usize,
+        keep_recent: usize,
+        nudge_message: String,
+    },
     Error(String),
 }
 
