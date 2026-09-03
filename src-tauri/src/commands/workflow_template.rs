@@ -1944,7 +1944,7 @@ async fn check_workflow_duplicate(
             0.0
         };
 
-        if similarity >= 0.6 {
+        if similarity >= 0.95 {
             return Ok(Some(tmpl.name.clone()));
         }
     }
@@ -2175,6 +2175,14 @@ fn extract_config_from_n8n(n8n_node: &serde_json::Value, node_id: &str) -> Agent
     }
 }
 
+/// 生成 n8n 导入占位工具的 Rhai 脚本：纯字符串返回，保证可通过 Rhai 编译；
+/// 运行时若被调用，显式提示"待配置"，而非静默失败或报"工具未注册"。
+fn n8n_placeholder_tool_script(tool_name: &str, node_name: &str) -> String {
+    format!(
+        "// 占位工具 {tool_name}（来源 n8n 节点 {node_name}）\n\"工具待配置：由 n8n 工作流导入生成，请在工具面板补全实现并启用后使用\""
+    )
+}
+
 /// 将 n8n JSON 转换为 AxAgent Workflow — 两阶段：先 DB 准备，再组装
 async fn convert_n8n_to_axagent<C: ConnectionTrait>(
     db: &C,
@@ -2195,6 +2203,12 @@ async fn convert_n8n_to_axagent<C: ConnectionTrait>(
     let mut ax_nodes: Vec<WorkflowNode> = Vec::new();
     let mut ax_edges: Vec<WorkflowEdge> = Vec::new();
     let mut edge_id_counter = 0u32;
+    // 降级 Agent 节点声明的工具 → 占位 RhaiToolDef（补全 tool_defs，避免运行时"工具未注册"）
+    let mut tool_defs: Vec<RhaiToolDef> = Vec::new();
+    let mut tool_def_name_seen: std::collections::HashSet<String> =
+        std::collections::HashSet::new();
+    // 降级 Agent 节点在 ax_nodes 中的下标（edges 定型后回填 context_sources）
+    let mut agent_node_indices: Vec<usize> = Vec::new();
     let mut name_to_id: std::collections::HashMap<String, String> =
         std::collections::HashMap::new();
     // 节点 id → 端口语义（供 edges 的 source_handle 映射）
@@ -2294,7 +2308,19 @@ async fn convert_n8n_to_axagent<C: ConnectionTrait>(
         // 从 n8n 节点提取配置（system_prompt、tools、model 等）
         let mut agent_config = extract_config_from_n8n(n8n_node, &node_id);
         agent_config.agent_profile_id = Some(agent_profile_id.to_string());
-        agent_config.context_sources = Vec::new(); // 暂不自动关联上游节点
+        // context_sources 在 edges 定型后统一回填，此处保持空
+        agent_config.context_sources = Vec::new();
+
+        // 为降级 Agent 声明的工具生成占位 RhaiToolDef，保证运行时能命中 handler
+        for tool in &agent_config.tools {
+            if tool_def_name_seen.insert(tool.name.clone()) {
+                tool_defs.push(RhaiToolDef {
+                    tool_name: tool.name.clone(),
+                    description: tool.description.clone(),
+                    code: n8n_placeholder_tool_script(&tool.name, &node_name),
+                });
+            }
+        }
 
         let base = WorkflowNodeBase {
             continue_on_fail: false,
@@ -2312,6 +2338,7 @@ async fn convert_n8n_to_axagent<C: ConnectionTrait>(
         let agent_node = WorkflowNode::Agent(AgentNode { base, config: agent_config });
 
         node_kinds.insert(node_id.clone(), N8nNodeKind::Other);
+        agent_node_indices.push(ax_nodes.len());
         ax_nodes.push(agent_node);
     }
 
@@ -2466,6 +2493,21 @@ async fn convert_n8n_to_axagent<C: ConnectionTrait>(
         }
     }
 
+    // 回填降级 Agent 节点的 context_sources：按最终 edges 反推其直接上游节点 id，
+    // 运行时按 id 从 workflow.results 取值注入（见 engine::get_context_source_results）。
+    for idx in &agent_node_indices {
+        let target_id = ax_nodes[*idx].base_id().to_string();
+        let mut sources: Vec<String> = Vec::new();
+        for e in &ax_edges {
+            if e.target == target_id && e.source != target_id && !sources.contains(&e.source) {
+                sources.push(e.source.clone());
+            }
+        }
+        if let WorkflowNode::Agent(a) = &mut ax_nodes[*idx] {
+            a.config.context_sources = sources;
+        }
+    }
+
     let now = chrono::Utc::now().timestamp_millis();
     Ok(WorkflowTemplateData {
         id: uuid::Uuid::new_v4().to_string(),
@@ -2487,7 +2529,7 @@ async fn convert_n8n_to_axagent<C: ConnectionTrait>(
         output_schema: None,
         variables: Vec::new(),
         error_config: None,
-        tool_defs: vec![],
+        tool_defs,
         error_workflow_id: None,
         mission_hash: None,
         created_at: now,
@@ -2590,6 +2632,9 @@ async fn do_import_workflow(
         })?;
     }
 
+    // 预编译导入模板的 tool_defs：保证降级 Agent 节点声明的工具本会话内即可命中 handler
+    state.work_engine.precompile_tool_defs(&new_template.id, &new_template.tool_defs).await;
+
     // 回灌能力索引：导入生成的是全新模板（新 ID），不索引则本会话内不可路由。
     // 两个分支（事务提交 / 直接插入）都在此汇合，放分支外保证不漏。
     sync_template_passport(state, &new_template).await;
@@ -2629,11 +2674,101 @@ async fn do_import_workflow(
         tracing::warn!("Import validation errors for {}: {:?}", new_template.id, errors);
     }
 
+    // 能力补全管线：为降级 Agent 声明的工具写入 workflow_tools（pending 待确认），
+    // 并把关联的 Expert/Profile 登记为 Agent 能力护照，实现"导入即能力发现"。幂等。
+    let capability_notes = complete_imported_capabilities(state, &new_template).await;
+    warnings.extend(capability_notes);
+
     Ok(serde_json::json!({
         "id": new_template.id,
         "warnings": warnings,
         "errors": errors,
     }))
+}
+
+/// 能力补全管线（导入尾端）：把导入工作流中降级 Agent 节点声明的工具按 pending
+/// 写入 `workflow_tools` 表（待人工确认启用），并把关联的 Expert/Profile 作为
+/// `CapabilityKind::Agent` 护照登记进能力索引，实现"导入即能力发现"闭环。
+///
+/// 幂等约束：工具以 `(workflow_id, tool_name)` 为业务键先查后写（`upsert`），
+/// 护照以 `capability_id` 去重，重复导入不会产生重复记录。
+async fn complete_imported_capabilities(
+    state: &AppState,
+    template: &WorkflowTemplateData,
+) -> Vec<String> {
+    use axagent_harness::capability::{CapabilityDomain, CapabilityKind, CapabilityPassportDto};
+    let db = state.harness.db();
+    let now = chrono::Utc::now().timestamp_millis();
+    let mut notes: Vec<String> = Vec::new();
+    let mut tool_seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let mut profile_seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let mut passports: Vec<CapabilityPassportDto> = Vec::new();
+
+    for node in &template.nodes {
+        let WorkflowNode::Agent(a) = node else { continue };
+
+        // 1) 工具按 pending 落入 workflow_tools，供前端确认后启用（安全红线：不自动 active）
+        for tool in &a.config.tools {
+            if !tool_seen.insert(tool.name.clone()) {
+                continue;
+            }
+            let exists =
+                axagent_dao::repo::workflow_tool::get_by_name(db, &template.id, &tool.name)
+                    .await
+                    .ok()
+                    .flatten()
+                    .is_some();
+            if exists {
+                continue;
+            }
+            let ok = axagent_dao::repo::workflow_tool::upsert(
+                db,
+                &uuid::Uuid::new_v4().to_string(),
+                &template.id,
+                &tool.name,
+                axagent_dao::repo::workflow_tool::TYPE_RHAI_SCRIPT,
+                tool.description.as_deref(),
+                Some(&n8n_placeholder_tool_script(&tool.name, &template.name)),
+                None,
+                "n8n-import",
+                axagent_dao::repo::workflow_tool::STATUS_PENDING,
+                now,
+            )
+            .await
+            .is_ok();
+            if ok {
+                notes.push(format!("工具待配置（pending，需确认启用）：{}", tool.name));
+            }
+        }
+
+        // 2) 关联的 Expert/Profile → Agent 能力护照，使 capability_discover 可检索
+        if let Some(pid) = &a.config.agent_profile_id {
+            if profile_seen.insert(pid.clone()) {
+                let cap_id = format!("agent:{pid}");
+                passports.push(CapabilityPassportDto {
+                    capability_id: cap_id.clone(),
+                    name: format!("n8n 导入专家：{pid}"),
+                    description: format!(
+                        "由 n8n 工作流 {} 导入自动注册的专家/角色能力",
+                        template.name
+                    ),
+                    kind: CapabilityKind::Agent,
+                    domain: CapabilityDomain::General,
+                    created_at: Some(now),
+                    updated_at: Some(now),
+                    agent_profile_id: Some(pid.clone()),
+                    tags: vec!["n8n".to_string(), "imported".to_string()],
+                    ..Default::default()
+                });
+                notes.push(format!("专家能力已登记：{cap_id}"));
+            }
+        }
+    }
+
+    if !passports.is_empty() {
+        state.capability_indexer.index_batch(&passports).await;
+    }
+    notes
 }
 
 #[agent_command(domain = workflow, safety = Caution, call_mode = StateInput, description = "导入工作流模板JSON")]
@@ -2679,6 +2814,7 @@ pub async fn import_n8n_directory(
     let mut imported = Vec::new();
     let mut skipped = Vec::new();
     let mut errors = Vec::new();
+    let mut capability_notes: Vec<String> = Vec::new();
 
     let mut json_files: Vec<std::path::PathBuf> = Vec::new();
     collect_json_files(dir, &mut json_files);
@@ -2726,9 +2862,12 @@ pub async fn import_n8n_directory(
                 if let Err(e) = db_repo::insert_workflow_template(db, am).await {
                     errors.push(format!("{}: save error: {}", file_path.display(), e));
                 } else {
-                    // 回灌能力索引：批量导入的模板都是新 ID，不索引则本会话内不可路由。
-                    // 必须在 push 前调用——push 会移动 template.name。
+                    // 与单文件导入 do_import_workflow 对齐：预编译工具 + 回灌能力索引 + 能力补全。
+                    // 三者均借用 template，必须在 push 前调用——push 会移动 template.name。
+                    state.work_engine.precompile_tool_defs(&template.id, &template.tool_defs).await;
                     sync_template_passport(&state, &template).await;
+                    capability_notes
+                        .extend(complete_imported_capabilities(state.inner(), &template).await);
                     imported.push(template.name);
                 }
             },
@@ -2743,6 +2882,7 @@ pub async fn import_n8n_directory(
         "skipped_reasons": skipped,
         "errors": errors.len(),
         "error_details": errors,
+        "capabilities": capability_notes,
     }))
 }
 
