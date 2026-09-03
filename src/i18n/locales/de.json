@@ -144,7 +144,18 @@
     "thoughtChain": "Gedankenkette anzeigen",
     "errorRecovery": "Automatische Fehlerwiederherstellung",
     "screenPerception": "Bildschirmwahrnehmung (Desktop-Steuerung)",
-    "tot": "Tree of Thoughts (ToT, teuer)"
+    "tot": "Tree of Thoughts (ToT, teuer)",
+    "sandboxMode": "OS-Sandbox-Modus",
+    "sandboxModeHint": "Shell-Befehle werden in einem eingeschränkten Unterprozess ausgeführt. Nur lesen = keine Schreibvorgänge + kein Netz; Arbeitsbereich schreiben = nur im Arbeitsbereich; Voller Zugriff = Sandbox deaktiviert.",
+    "sandboxReadOnly": "Nur lesen",
+    "sandboxWorkspaceWrite": "Arbeitsbereich schreiben",
+    "sandboxDangerFullAccess": "Voller Zugriff",
+    "approvalPolicy": "Genehmigungsrichtlinie",
+    "approvalPolicyHint": "Wann vor der Ausführung sensibler Befehle die Genehmigung des Benutzers eingeholt wird. Gilt für Ausführungswerkzeuge wie Bash; gefährliche Befehle werden unter jeder Richtlinie abgelehnt.",
+    "approvalUntrusted": "Am strengsten: vor jedem Befehl fragen",
+    "approvalOnFailure": "Nach Sandbox-Fehlschlag fragen, bevor außerhalb der Sandbox wiederholt wird",
+    "approvalOnRequest": "Vor sensiblen Operationen fragen (Standard)",
+    "approvalNever": "Nie fragen, direkt ausführen"
   },
   "agent": {
     "answerSubmitted": "Antwort eingereicht",

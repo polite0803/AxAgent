@@ -176,6 +176,16 @@ pub struct ToolContext {
     /// 由 `UnifiedToolRegistry` 透传；`None` 时 `CapabilityLoad` 只能写状态、
     /// 不能把工具定义追加进下一轮请求，加载将停留在「看得见调不动」。
     pub dynamic_tools: Option<crate::DynamicToolSet>,
+    /// 沙箱策略（可选，`None` 表示沿用旧有行为：直接 spawn 不受沙箱限制）。
+    ///
+    /// 由 wiring 层从 Settings（`sandbox_mode` feature flag）注入；
+    /// Shell 类工具（Bash 等）消费此字段决定是否在受限子进程中执行。
+    pub sandbox: Option<Arc<crate::sandbox_policy::SandboxPolicy>>,
+    /// 审批策略（可选，`None` 表示沿用默认 `on-request` 行为）。
+    ///
+    /// 由 wiring 层从 Settings（`approval_policy` feature flag）注入；
+    /// Shell 类工具（Bash 等）消费此字段决定敏感操作是跑、问用户还是拒绝。
+    pub approval_policy: Option<Arc<crate::approval_policy::ApprovalPolicy>>,
 }
 
 impl ToolContext {
@@ -195,6 +205,8 @@ impl ToolContext {
             rollback_stack: None,
             agent_id: None,
             dynamic_tools: None,
+            sandbox: None,
+            approval_policy: None,
         }
     }
 
@@ -213,6 +225,12 @@ impl ToolContext {
     /// 设置会话 ID（链式调用）
     pub fn with_conversation(mut self, id: impl Into<String>) -> Self {
         self.conversation_id = Some(id.into());
+        self
+    }
+
+    /// 设置沙箱策略（链式调用）
+    pub fn with_sandbox(mut self, policy: crate::sandbox_policy::SandboxPolicy) -> Self {
+        self.sandbox = Some(Arc::new(policy));
         self
     }
 }

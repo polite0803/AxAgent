@@ -613,6 +613,16 @@ export interface AppSettings {
   errorRecoveryEnabled?: boolean;
   /** Enable Tree of Thoughts multi-path reasoning (expensive) */
   totEnabled?: boolean;
+  /**
+   * OS 级沙箱模式 — "read-only" | "workspace-write" | "danger-full-access"。
+   * 对应后端 SandboxMode（kebab-case）；默认 "danger-full-access" 不启用受限子进程。
+   */
+  sandboxMode?: "read-only" | "workspace-write" | "danger-full-access";
+  /**
+   * 审批策略 — "untrusted" | "on-failure" | "on-request" | "never"。
+   * 对应后端 ApprovalPolicy（kebab-case）；默认 "on-request"。
+   */
+  approvalPolicy?: "untrusted" | "on-failure" | "on-request" | "never";
   /** Show the developer tools section (Trace/Benchmark/Fine-Tune/RL) in the sidebar */
   showDeveloperTools?: boolean;
   /** Cloud workspace URI (supports s3://, webdav://, local://) */

@@ -144,7 +144,18 @@
     "thoughtChain": "Visualización de cadena de pensamiento",
     "errorRecovery": "Recuperación automática de errores",
     "screenPerception": "Percepción de pantalla (control de escritorio)",
-    "tot": "Árbol de pensamientos (ToT, costoso)"
+    "tot": "Árbol de pensamientos (ToT, costoso)",
+    "sandboxMode": "Modo sandbox del SO",
+    "sandboxModeHint": "Ejecuta comandos de shell en un subproceso restringido. Solo lectura = sin escritura ni red; Escritura de espacio de trabajo = solo en el espacio de trabajo; Acceso total = sandbox desactivado.",
+    "sandboxReadOnly": "Solo lectura",
+    "sandboxWorkspaceWrite": "Escritura de espacio de trabajo",
+    "sandboxDangerFullAccess": "Acceso total",
+    "approvalPolicy": "Política de aprobación",
+    "approvalPolicyHint": "Cuándo pedir la aprobación del usuario antes de ejecutar comandos sensibles. Se aplica a herramientas de ejecución como Bash; los comandos peligrosos se rechazan bajo cualquier política.",
+    "approvalUntrusted": "La más estricta: preguntar antes de cada comando",
+    "approvalOnFailure": "Preguntar tras un fallo en el sandbox, antes de reintentar fuera del sandbox",
+    "approvalOnRequest": "Preguntar antes de operaciones sensibles (predeterminado)",
+    "approvalNever": "Nunca preguntar, ejecutar directamente"
   },
   "agent": {
     "answerSubmitted": "Respuesta enviada",

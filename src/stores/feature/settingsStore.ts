@@ -118,6 +118,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   thoughtChainEnabled: true,
   errorRecoveryEnabled: true,
   totEnabled: false,
+  sandboxMode: "danger-full-access" as "read-only" | "workspace-write" | "danger-full-access",
+  approvalPolicy: "on-request" as "untrusted" | "on-failure" | "on-request" | "never",
   showDeveloperTools: true,
   // Cloud workspace settings
   workspaceUri: null,

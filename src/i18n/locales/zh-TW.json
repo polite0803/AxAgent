@@ -144,7 +144,18 @@
     "thoughtChain": "思維鏈視覺化（<think> 區塊）",
     "errorRecovery": "錯誤自動恢復",
     "screenPerception": "螢幕感知（桌面控制工具）",
-    "tot": "思維樹多路徑推理（ToT，開銷大）"
+    "tot": "思維樹多路徑推理（ToT，開銷大）",
+    "sandboxMode": "OS 沙箱模式",
+    "sandboxModeHint": "以受限子程序執行 Shell 命令。唯讀=禁寫+斷網；工作區可寫=僅工作區可寫；完全存取=不啟用沙箱。",
+    "sandboxReadOnly": "唯讀",
+    "sandboxWorkspaceWrite": "工作區可寫",
+    "sandboxDangerFullAccess": "完全存取",
+    "approvalPolicy": "審批策略",
+    "approvalPolicyHint": "敏感命令執行前詢問使用者的時機。僅在 Bash 等執行類工具生效，危險操作任何策略下都會拒絕。",
+    "approvalUntrusted": "最嚴格：所有命令預設先詢問",
+    "approvalOnFailure": "沙箱內執行失敗後再詢問是否沙箱外重試",
+    "approvalOnRequest": "敏感操作執行前詢問（預設）",
+    "approvalNever": "從不詢問，直接執行"
   },
   "agent": {
     "answerSubmitted": "答案已提交",

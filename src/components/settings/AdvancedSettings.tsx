@@ -817,6 +817,54 @@ function AgentBehaviorSection() {
         />
       </div>
       <Divider style={{ margin: "4px 0" }} />
+      <div style={{ padding: "4px 0" }} data-search-key="advanced:sandboxMode">
+        <div className="flex items-center justify-between">
+          <span>{t("advancedSettings.sandboxMode")}</span>
+          <Select
+            style={{ width: 180 }}
+            value={settings.sandboxMode ?? "danger-full-access"}
+            onChange={(v) =>
+              saveSettings({
+                sandboxMode: v as "read-only" | "workspace-write" | "danger-full-access",
+              })}
+            options={[
+              { value: "read-only", label: t("advancedSettings.sandboxReadOnly") },
+              { value: "workspace-write", label: t("advancedSettings.sandboxWorkspaceWrite") },
+              {
+                value: "danger-full-access",
+                label: t("advancedSettings.sandboxDangerFullAccess"),
+              },
+            ]}
+          />
+        </div>
+        <div style={{ marginTop: 2, fontSize: 12, opacity: 0.6 }}>
+          {t("advancedSettings.sandboxModeHint")}
+        </div>
+      </div>
+      <Divider style={{ margin: "4px 0" }} />
+      <div style={{ padding: "4px 0" }} data-search-key="advanced:approvalPolicy">
+        <div className="flex items-center justify-between">
+          <span>{t("advancedSettings.approvalPolicy")}</span>
+          <Select
+            style={{ width: 180 }}
+            value={settings.approvalPolicy ?? "on-request"}
+            onChange={(v) =>
+              saveSettings({
+                approvalPolicy: v as "untrusted" | "on-failure" | "on-request" | "never",
+              })}
+            options={[
+              { value: "untrusted", label: t("advancedSettings.approvalUntrusted") },
+              { value: "on-failure", label: t("advancedSettings.approvalOnFailure") },
+              { value: "on-request", label: t("advancedSettings.approvalOnRequest") },
+              { value: "never", label: t("advancedSettings.approvalNever") },
+            ]}
+          />
+        </div>
+        <div style={{ marginTop: 2, fontSize: 12, opacity: 0.6 }}>
+          {t("advancedSettings.approvalPolicyHint")}
+        </div>
+      </div>
+      <Divider style={{ margin: "4px 0" }} />
       <div
         className="flex items-center justify-between"
         style={{ padding: "4px 0" }}

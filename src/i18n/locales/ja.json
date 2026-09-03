@@ -144,7 +144,18 @@
     "thoughtChain": "思考チェーンの可視化",
     "errorRecovery": "エラー自動復旧",
     "screenPerception": "画面認識（デスクトップ操作ツール）",
-    "tot": "思考の木（ToT、高コスト）"
+    "tot": "思考の木（ToT、高コスト）",
+    "sandboxMode": "OS サンドボックスモード",
+    "sandboxModeHint": "シェルコマンドを制限付きサブプロセスで実行します。読み取り専用=書き込み禁止+ネットワーク遮断。ワークスペース書き込み可=ワークスペースのみ書き込み可。フルアクセス=サンドボックス無効。",
+    "sandboxReadOnly": "読み取り専用",
+    "sandboxWorkspaceWrite": "ワークスペース書き込み可",
+    "sandboxDangerFullAccess": "フルアクセス",
+    "approvalPolicy": "承認ポリシー",
+    "approvalPolicyHint": "機密性の高いコマンド実行前にユーザーの承認を求めるタイミング。Bash など実行系ツールに適用され、危険なコマンドはどのポリシーでも拒否されます。",
+    "approvalUntrusted": "最も厳格：すべてのコマンドで事前確認",
+    "approvalOnFailure": "サンドボックス内で失敗した後、サンドボックス外での再試行前に確認",
+    "approvalOnRequest": "機密操作の実行前に確認（デフォルト）",
+    "approvalNever": "確認せず直接実行"
   },
   "agent": {
     "answerSubmitted": "回答が送信されました",

@@ -144,7 +144,18 @@
     "thoughtChain": "Thought chain visualization (<think> blocks)",
     "errorRecovery": "Automatic error recovery",
     "screenPerception": "Screen perception (desktop control tools)",
-    "tot": "Tree of Thoughts (ToT, expensive)"
+    "tot": "Tree of Thoughts (ToT, expensive)",
+    "sandboxMode": "OS Sandbox Mode",
+    "sandboxModeHint": "Run shell commands in a restricted subprocess. Read-only = no writes + no network; Workspace write = writes limited to the workspace; Full access = sandbox disabled.",
+    "sandboxReadOnly": "Read-only",
+    "sandboxWorkspaceWrite": "Workspace write",
+    "sandboxDangerFullAccess": "Full access",
+    "approvalPolicy": "Approval policy",
+    "approvalPolicyHint": "When to ask for user approval before running sensitive commands. Applies to execution tools like Bash; dangerous commands are denied under every policy.",
+    "approvalUntrusted": "Strictest: ask before every command",
+    "approvalOnFailure": "Ask after sandboxed execution fails, before retrying outside sandbox",
+    "approvalOnRequest": "Ask before sensitive operations (default)",
+    "approvalNever": "Never ask, run directly"
   },
   "agent": {
     "answerSubmitted": "Answer submitted",

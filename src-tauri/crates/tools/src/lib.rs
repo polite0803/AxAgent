@@ -6,6 +6,7 @@
 
 pub mod agent_def_loader;
 pub mod agent_def_types;
+pub mod approval;
 pub mod audit;
 pub mod bash;
 pub mod capability_filter_impl;
@@ -21,6 +22,8 @@ pub mod group_manager;
 pub mod hooks;
 pub mod job_object;
 pub mod knowledge_callback;
+#[cfg(target_os = "linux")]
+pub mod linux_sandbox;
 pub mod markdown;
 pub mod math;
 pub mod mcp;
@@ -41,6 +44,8 @@ pub mod streaming;
 pub mod templates;
 pub mod tools;
 pub mod utils;
+#[cfg(windows)]
+pub mod win_sandbox;
 
 pub use capability_filter_impl::CapabilityFilterImpl;
 pub use capability_indexer_impl::CapabilityIndexerImpl;

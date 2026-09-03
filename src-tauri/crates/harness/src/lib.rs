@@ -126,10 +126,14 @@ pub mod json_schema;
 pub mod serialization;
 
 // ── 工具系统模块 ──
+pub mod approval_policy;
 pub mod output_sanitizer;
+pub mod sandbox_policy;
 pub mod tool;
 pub mod tool_permissions;
 pub mod tool_validation;
+pub use approval_policy::ApprovalPolicy;
+pub use sandbox_policy::{SandboxMode, SandboxPolicy};
 
 // ── Agent 单轮 ReAct 执行器契约(2.5 P1)──
 // trait 定义在 foundation 层,由 wiring 把 SessionManager 适配器注入到 WorkEngine,

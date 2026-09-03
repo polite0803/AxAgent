@@ -80,6 +80,26 @@ pub async fn save_settings(
         *guard = new_level;
     }
 
+    // ── OS 级沙箱策略（PLAN-codex-parity P0-1c）──
+    // sandbox_mode 变更后立即更新全局策略，下一次工具调用即生效（无需重启）。
+    {
+        let workspace =
+            settings.default_workspace_dir.as_ref().map(std::path::PathBuf::from).unwrap_or_else(
+                || std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from(".")),
+            );
+        axagent_tools::registry::set_global_sandbox_policy(
+            axagent_harness::SandboxPolicy::from_mode_str(&settings.sandbox_mode, workspace),
+        );
+        axagent_tools::registry::set_global_approval_policy(
+            axagent_harness::ApprovalPolicy::from_policy_str(&settings.approval_policy),
+        );
+        tracing::info!(
+            "[save_settings] 沙箱/审批策略已更新: sandbox_mode={} approval_policy={}",
+            settings.sandbox_mode,
+            settings.approval_policy
+        );
+    }
+
     #[cfg(not(mobile))]
     {
         crate::tray::sync_tray_language(&app, &settings.language).map_err(|e| {

@@ -152,6 +152,18 @@ pub struct AppSettings {
     pub error_recovery_enabled: bool,
     /// Enable Tree of Thoughts multi-path reasoning (expensive: multiple LLM calls per query).
     pub tot_enabled: bool,
+    /// OS 级沙箱模式（PLAN-codex-parity P0-1）— "read-only" | "workspace-write" | "danger-full-access"。
+    ///
+    /// 取值对应 [`crate::sandbox_policy::SandboxMode`]（kebab-case 序列化一致）。
+    /// 默认 `danger-full-access`：不启用受限子进程，行为与沙箱功能引入前一致（零回归）。
+    /// `save_settings` 与启动初始化会把它转成 `SandboxPolicy` 注入工具注册表。
+    pub sandbox_mode: String,
+    /// 审批策略（PLAN-codex-parity P0-2）— "untrusted" | "on-failure" | "on-request" | "never"。
+    ///
+    /// 取值对应 [`crate::approval_policy::ApprovalPolicy`]（kebab-case 序列化一致）。
+    /// 默认 `on-request`：敏感操作先问用户（与沙箱功能引入前行为等价：Bash 只在启发式
+    /// 分类报 Warning 时问）。`save_settings` 与启动初始化会转成 `ApprovalPolicy` 注入。
+    pub approval_policy: String,
     /// Show the developer tools section (Trace/Benchmark/Fine-Tune/RL) in the sidebar.
     pub show_developer_tools: bool,
     /// Cloud workspace URI (supports s3://, webdav://, local://)
@@ -325,6 +337,8 @@ impl Default for AppSettings {
             thought_chain_enabled: true,
             error_recovery_enabled: true,
             tot_enabled: false,
+            sandbox_mode: "danger-full-access".to_string(),
+            approval_policy: "on-request".to_string(),
             show_developer_tools: true,
             workspace_uri: None,
             rag_pipeline_config: serde_json::Value::Null,

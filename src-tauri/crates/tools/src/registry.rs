@@ -30,6 +30,46 @@ use std::time::Instant;
 
 pub type SkillToolHandler = Box<dyn Fn(&str) -> Result<String, crate::ToolError> + Send + Sync>;
 
+// ── 全局沙箱策略（PLAN-codex-parity P0-1c） ──
+//
+// Settings 的 `sandbox_mode` 在启动初始化 / `save_settings` 时写入这里；
+// 所有 `UnifiedToolRegistry`（含每次请求临时 `new()` 的实例）构建 ToolContext
+// 时自动回退读取，无需逐站点注入。registry 实例上显式设置的
+// `sandbox_policy`（测试 / 特殊会话）优先于全局值。
+//
+// 锁说明：parking_lot RwLock，临界区只有 Arc 克隆，无 await，同步安全。
+static GLOBAL_SANDBOX_POLICY: parking_lot::RwLock<Option<Arc<axagent_harness::SandboxPolicy>>> =
+    parking_lot::RwLock::new(None);
+
+/// 设置全局沙箱策略（启动初始化 / Settings 变更时调用）。
+pub fn set_global_sandbox_policy(policy: axagent_harness::SandboxPolicy) {
+    *GLOBAL_SANDBOX_POLICY.write() = Some(Arc::new(policy));
+}
+
+/// 读取全局沙箱策略快照（未设置时为 `None`）。
+#[must_use]
+pub fn global_sandbox_policy() -> Option<Arc<axagent_harness::SandboxPolicy>> {
+    GLOBAL_SANDBOX_POLICY.read().clone()
+}
+
+// ── 全局审批策略（PLAN-codex-parity P0-2） ──
+//
+// 与沙箱策略同款模式：Settings 的 `approval_policy` 在启动初始化 /
+// `save_settings` 时写入；ToolContext 构建时回退读取。实例显式设置优先。
+static GLOBAL_APPROVAL_POLICY: parking_lot::RwLock<Option<Arc<axagent_harness::ApprovalPolicy>>> =
+    parking_lot::RwLock::new(None);
+
+/// 设置全局审批策略（启动初始化 / Settings 变更时调用）。
+pub fn set_global_approval_policy(policy: axagent_harness::ApprovalPolicy) {
+    *GLOBAL_APPROVAL_POLICY.write() = Some(Arc::new(policy));
+}
+
+/// 读取全局审批策略快照（未设置时为 `None`，消费方回退默认 `OnRequest`）。
+#[must_use]
+pub fn global_approval_policy() -> Option<Arc<axagent_harness::ApprovalPolicy>> {
+    GLOBAL_APPROVAL_POLICY.read().clone()
+}
+
 /// 工具组摘要信息（替代 agent::LocalToolGroup）
 #[derive(Debug, Clone)]
 pub struct ToolGroupInfo {
@@ -509,6 +549,12 @@ pub struct UnifiedToolRegistry {
     /// 仅存在于 `runtime_tool_sources` 中的工具才允许被 `unregister_runtime_tool` 卸载，
     /// 原生内置工具与 MCP 工具不受影响。
     pub runtime_tool_sources: HashMap<String, String>,
+    /// OS 级沙箱策略（PLAN-codex-parity P0-1）—— 透传进 `ToolContext.sandbox`，
+    /// Shell 类工具据此决定是否在受限子进程中执行。`None` 保持旧行为。
+    pub sandbox_policy: Option<Arc<axagent_harness::SandboxPolicy>>,
+    /// 审批策略（PLAN-codex-parity P0-2）—— 透传进 `ToolContext.approval_policy`，
+    /// Shell 类工具据此决定敏感操作是跑、问用户还是拒绝。`None` 走全局/默认 `on-request`。
+    pub approval_policy: Option<Arc<axagent_harness::ApprovalPolicy>>,
     /// 副作用栈：记录所有动态注册/修改操作，卸载时自动回滚（后进先出）。
     ///
     /// 每个 `register_runtime_tool` 会登记一个 `Disposer`；`unregister_runtime_tool`
@@ -544,6 +590,8 @@ impl Clone for UnifiedToolRegistry {
             dynamic_tools: self.dynamic_tools.clone(),
             tool_ranker: self.tool_ranker.clone(),
             runtime_tool_sources: self.runtime_tool_sources.clone(),
+            sandbox_policy: self.sandbox_policy.clone(),
+            approval_policy: self.approval_policy.clone(),
             effects: Vec::new(), // Disposer 不可 Clone，克隆体不携带副作用
         }
     }
@@ -563,6 +611,19 @@ impl UnifiedToolRegistry {
     /// 配置安全沙箱
     pub fn configure_sandbox(&mut self, config: crate::SandboxConfig) {
         self.sandbox = Arc::new(crate::AccessPolicyValidator::new(config));
+    }
+
+    /// 设置 OS 级沙箱策略（PLAN-codex-parity P0-1）。
+    ///
+    /// 与 [`Self::configure_sandbox`]（路径/命令白名单校验器）互补：
+    /// 本策略由 Shell 类工具消费，决定子进程是否在受限 token 下执行。
+    pub fn set_sandbox_policy(&mut self, policy: axagent_harness::SandboxPolicy) {
+        self.sandbox_policy = Some(Arc::new(policy));
+    }
+
+    /// 设置审批策略（PLAN-codex-parity P0-2），透传进 `ToolContext.approval_policy`。
+    pub fn set_approval_policy(&mut self, policy: axagent_harness::ApprovalPolicy) {
+        self.approval_policy = Some(Arc::new(policy));
     }
 
     /// 临时禁用单个工具（仅内存，不持久化到 DB）。
@@ -626,6 +687,8 @@ impl UnifiedToolRegistry {
             hook_registry: HookRegistry::new(),
             auditor: Arc::new(ToolAuditor::default()),
             sandbox: Self::default_sandbox(&working_dir),
+            sandbox_policy: None,
+            approval_policy: None,
             allowed_tools: HashSet::new(),
             blocked_tools: HashSet::new(),
             strict_mode: false,
@@ -1378,6 +1441,9 @@ impl UnifiedToolRegistry {
                 rollback_stack: None,
                 agent_id: self.agent_id.clone(),
                 dynamic_tools: self.dynamic_tools.clone(),
+                // P0-1c/P0-2：实例级显式策略优先，否则回退全局 Settings 策略。
+                sandbox: self.sandbox_policy.clone().or_else(global_sandbox_policy),
+                approval_policy: self.approval_policy.clone().or_else(global_approval_policy),
             };
 
             // ── 运行时 Schema 校验（M-05） ──

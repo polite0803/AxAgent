@@ -534,6 +534,31 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
         } else {
             None
         };
+        // ── OS 级沙箱策略（PLAN-codex-parity P0-1c）──
+        // 从 Settings 的 sandbox_mode 构造全局策略：此后所有 ToolRegistry（含
+        // 每次请求临时 new() 的实例）构建 ToolContext 时自动回退读取。
+        // 默认 "danger-full-access" → 受限子进程不启用，行为与既往一致。
+        let sandbox_workspace = app_settings
+            .default_workspace_dir
+            .as_ref()
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|| {
+                std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."))
+            });
+        axagent_tools::registry::set_global_sandbox_policy(
+            axagent_harness::SandboxPolicy::from_mode_str(
+                &app_settings.sandbox_mode,
+                sandbox_workspace,
+            ),
+        );
+        axagent_tools::registry::set_global_approval_policy(
+            axagent_harness::ApprovalPolicy::from_policy_str(&app_settings.approval_policy),
+        );
+        tracing::info!(
+            "[startup] 沙箱/审批策略已注入: sandbox_mode={} approval_policy={}",
+            app_settings.sandbox_mode,
+            app_settings.approval_policy
+        );
         // ── 阶段二 T2.3：注册自指工具（system_evolution_*）──
         // 自指工具走 system_* 系统能力回调通道：不暴露给 LLM（注册后默认禁用，
         // 仅系统内部按名回调执行），动态部署/卸载等高权限操作不被 Agent 直接触发。

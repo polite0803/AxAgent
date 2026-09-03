@@ -23,9 +23,15 @@ pub mod windows_impl {
     unsafe impl Sync for JobObject {}
 
     impl JobObject {
-        /// 创建一个新的 Job Object，并关联到子进程。
+        /// 创建 Job Object 并关联到给定进程原始句柄。
         /// 设置 `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` 标志。
-        pub fn new(child: &Child) -> Result<Self, String> {
+        ///
+        /// # Safety
+        /// 调用方必须保证 `process_handle` 是有效的进程句柄（如 CreateProcess
+        /// 返回的 hProcess），且在本次调用期间未被关闭。
+        pub unsafe fn new_raw(
+            process_handle: windows_sys::Win32::Foundation::HANDLE,
+        ) -> Result<Self, String> {
             use windows_sys::Win32::Foundation::CloseHandle;
             use windows_sys::Win32::Security::SECURITY_ATTRIBUTES;
             use windows_sys::Win32::System::JobObjects::{
@@ -65,11 +71,9 @@ pub mod windows_impl {
                 return Err("SetInformationJobObject 失败".to_string());
             }
 
-            // raw_handle() 返回 Option<*mut c_void>
-            let raw_handle = child.raw_handle().ok_or_else(|| "子进程句柄为空".to_string())?;
-            // SAFETY: handle 为 Job Object 句柄（已 null-check）；raw_handle 为子进程句柄，
-            // 已通过 ok_or_else 确保非 null；失败时 assign_ret==0 下方处理。
-            let assign_ret = unsafe { AssignProcessToJobObject(handle, raw_handle) };
+            // SAFETY: handle 为 Job Object 句柄（已 null-check）；process_handle 由调用方
+            // 保证为有效进程句柄；失败时 assign_ret==0 下方处理。
+            let assign_ret = unsafe { AssignProcessToJobObject(handle, process_handle) };
 
             if assign_ret == 0 {
                 // SAFETY: handle 有效；此错误路径关闭句柄，进程未关联到 Job，
@@ -86,6 +90,14 @@ pub mod windows_impl {
                     .ok_or_else(|| "Invalid Job Object handle".to_string())?,
                 released: std::sync::atomic::AtomicBool::new(false),
             })
+        }
+
+        /// 创建一个新的 Job Object，并关联到子进程。
+        /// 设置 `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` 标志。
+        pub fn new(child: &Child) -> Result<Self, String> {
+            let raw_handle = child.raw_handle().ok_or_else(|| "子进程句柄为空".to_string())?;
+            // SAFETY: tokio Child 的 raw_handle 是有效的进程句柄（进程存活期间）。
+            unsafe { Self::new_raw(raw_handle as _) }
         }
     }
 
@@ -115,6 +127,27 @@ pub fn assign_job(child: &tokio::process::Child) -> Result<JobHandle, String> {
     #[cfg(windows)]
     {
         let job = windows_impl::JobObject::new(child)?;
+        Ok(JobHandle { _inner: Some(std::sync::Arc::new(job)) })
+    }
+    #[cfg(not(windows))]
+    {
+        Ok(JobHandle { _inner: None })
+    }
+}
+
+/// 将进程原始句柄关联到 Job Object（供 CreateProcessAsUserW 等手动创建
+/// 的进程使用，见 `win_sandbox`）。非 Windows 平台空操作。
+///
+/// # Safety
+/// 调用方必须保证 `process_handle` 是有效的进程句柄，且在本次调用期间未被关闭。
+#[cfg_attr(not(windows), allow(unused_variables))]
+pub unsafe fn assign_job_raw(
+    process_handle: windows_sys::Win32::Foundation::HANDLE,
+) -> Result<JobHandle, String> {
+    #[cfg(windows)]
+    {
+        // SAFETY: 调用方保证 process_handle 有效（unsafe 契约见函数文档）。
+        let job = unsafe { windows_impl::JobObject::new_raw(process_handle)? };
         Ok(JobHandle { _inner: Some(std::sync::Arc::new(job)) })
     }
     #[cfg(not(windows))]

@@ -144,7 +144,18 @@
     "thoughtChain": "사고 체인 시각화",
     "errorRecovery": "오류 자동 복구",
     "screenPerception": "화면 인식 (데스크톱 제어)",
-    "tot": "생각의 나무 (ToT, 비용 높음)"
+    "tot": "생각의 나무 (ToT, 비용 높음)",
+    "sandboxMode": "OS 샌드박스 모드",
+    "sandboxModeHint": "셸 명령을 제한된 하위 프로세스로 실행합니다. 읽기 전용=쓰기 금지+네트워크 차단, 워크스페이스 쓰기=워크스페이스만 쓰기 허용, 전체 허용=샌드박스 비활성화.",
+    "sandboxReadOnly": "읽기 전용",
+    "sandboxWorkspaceWrite": "워크스페이스 쓰기",
+    "sandboxDangerFullAccess": "전체 허용",
+    "approvalPolicy": "승인 정책",
+    "approvalPolicyHint": "민감한 명령 실행 전 사용자 승인을 요청하는 시점. Bash 등 실행 도구에 적용되며, 위험한 명령은 어떤 정책에서도 거부됩니다.",
+    "approvalUntrusted": "가장 엄격: 모든 명령 실행 전 확인",
+    "approvalOnFailure": "샌드박스 실행 실패 후 샌드박스 외부 재시도 전 확인",
+    "approvalOnRequest": "민감한 작업 실행 전 확인(기본값)",
+    "approvalNever": "확인 없이 바로 실행"
   },
   "agent": {
     "answerSubmitted": "답변이 제출되었습니다",
