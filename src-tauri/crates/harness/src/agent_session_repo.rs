@@ -61,4 +61,13 @@ pub trait AgentSessionRepository: Send + Sync {
 
     /// 按 conversation_id 清空 sdk_context_json。
     async fn clear_sdk_context_by_conversation_id(&self, conversation_id: &str) -> Result<()>;
+
+    /// 按主键查询 AgentSession（DB 回退用，内存未命中时查 DB）。
+    async fn get_by_id(&self, id: &str) -> Result<Option<AgentSession>>;
+
+    /// 按 conversation_id 查询 AgentSession（DB 回退用，内存未命中时查 DB）。
+    async fn get_by_conversation_id(
+        &self,
+        conversation_id: &str,
+    ) -> Result<Option<AgentSession>>;
 }

@@ -1861,6 +1861,15 @@ impl AgentSessionRepository for EmptyAgentSessionRepository {
     async fn clear_sdk_context_by_conversation_id(&self, _conversation_id: &str) -> Result<()> {
         Ok(())
     }
+    async fn get_by_id(&self, _id: &str) -> Result<Option<AgentSession>> {
+        Ok(None)
+    }
+    async fn get_by_conversation_id(
+        &self,
+        _conversation_id: &str,
+    ) -> Result<Option<AgentSession>> {
+        Ok(None)
+    }
 }
 
 /// 工厂：构造一个 `Arc<dyn AgentSessionRepository>` 测试替身（所有写方法返回 Ok(())，

@@ -159,4 +159,22 @@ impl AgentSessionRepository for DaoAgentSessionRepository {
         }
         Ok(())
     }
+
+    async fn get_by_id(&self, id: &str) -> Result<Option<AgentSession>> {
+        let model = agent_sessions::Entity::find_by_id(id)
+            .one(self.db.as_ref())
+            .await?;
+        Ok(model.map(model_to_agent_session))
+    }
+
+    async fn get_by_conversation_id(
+        &self,
+        conversation_id: &str,
+    ) -> Result<Option<AgentSession>> {
+        let model = agent_sessions::Entity::find()
+            .filter(agent_sessions::Column::ConversationId.eq(conversation_id))
+            .one(self.db.as_ref())
+            .await?;
+        Ok(model.map(model_to_agent_session))
+    }
 }
