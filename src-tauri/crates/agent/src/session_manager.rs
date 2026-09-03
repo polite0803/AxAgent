@@ -1498,6 +1498,94 @@ impl HookProgressReporter for TauriHookProgressReporter {
     }
 }
 
+// ── AgentSessionBroker 实现（供 MCP / CLI 查询 agent 会话状态） ──────────
+
+impl std::fmt::Debug for SessionManager {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // 同步 Debug impl 禁止 .await，parking_lot::Mutex::try_lock 可用
+        let session_count = self.sessions.try_lock().map(|g| g.len()).unwrap_or(0);
+        f.debug_struct("SessionManager").field("sessions", &session_count).finish()
+    }
+}
+
+#[async_trait::async_trait]
+impl axagent_harness::AgentSessionBroker for SessionManager {
+    /// 查询会话状态：仅查内存 HashMap（活跃会话）。
+    ///
+    /// 注：AgentSessionRepository 无 get 查询方法，持久化会话暂不支持。
+    ///     未来可扩展 get_agent_session_by_conversation 接口后补齐。
+    async fn get_session_status(
+        &self,
+        session_id: &str,
+    ) -> Result<axagent_harness::AgentSessionStatusView, String> {
+        let agent_session = self
+            .get_session(session_id)
+            .await
+            .ok_or_else(|| format!("session_not_found: {session_id}"))?;
+
+        // 简化语义：内存中有会话 = Running；空 messages = Initializing
+        let status = if agent_session.session.messages.is_empty() {
+            axagent_harness::types::session_state::SessionStatus::Initializing
+        } else {
+            axagent_harness::types::session_state::SessionStatus::Running
+        };
+        let is_active = status.is_active();
+
+        let turn_count = (agent_session.session.messages.len() / 2) as u32;
+        let last_access = self.session_last_access.lock().await;
+
+        Ok(axagent_harness::AgentSessionStatusView {
+            session_id: session_id.to_string(),
+            status,
+            provider_id: agent_session.provider_id.clone(),
+            conversation_id: Some(agent_session.conversation_id.clone()),
+            turn_count: Some(turn_count),
+            is_active,
+            last_access_ms: last_access.get(session_id).copied(),
+            last_error: None,
+        })
+    }
+
+    /// 取消会话：幂等处理。
+    ///
+    /// - 不存在 → Err(session_not_found)
+    /// - 非活跃 terminal 状态 → Ok（no-op）
+    /// - 活跃会话 → 从 sessions HashMap 和 conversation_index 清理
+    async fn cancel_session(&self, session_id: &str) -> Result<(), String> {
+        let view = self.get_session_status(session_id).await?;
+
+        // 幂等：非活跃态直接返回
+        if !view.is_active {
+            return Ok(());
+        }
+
+        // 从内存 HashMap 移除
+        {
+            let mut sessions = self.sessions.lock().await;
+            sessions.remove(session_id);
+        }
+
+        // 从 conversation_index 清理反向索引
+        {
+            let mut conv_index = self.conversation_index.lock().await;
+            conv_index.retain(|_, sid| sid != session_id);
+        }
+
+        // 从 session_last_access 清理
+        {
+            let mut last_access = self.session_last_access.lock().await;
+            last_access.remove(session_id);
+        }
+
+        Ok(())
+    }
+
+    async fn list_session_ids(&self) -> Result<Vec<String>, String> {
+        let sessions = self.sessions.lock().await;
+        Ok(sessions.keys().cloned().collect())
+    }
+}
+
 #[cfg(test)]
 #[allow(clippy::disallowed_types)]
 // SAFETY: 测试模块使用 parking_lot::Mutex 保护测试桩数据，仅在同步测试场景中使用，无跨 await 风险。

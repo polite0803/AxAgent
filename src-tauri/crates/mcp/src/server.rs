@@ -3,16 +3,19 @@
 //! McpAgentServer — 把 AxAgent 的 agent 能力暴露为 MCP stdio server。
 //!
 //! 外部 MCP 宿主（Claude Desktop、Cline、VSCode MCP 扩展等）可直接调用：
-//! - `agent_run` — 给一个 goal，让 agent 自主执行并返回结果
-//! - `agent_status` — 查询指定会话状态（占位实现，后续接入 SessionManager）
-//! - `agent_cancel` — 取消指定会话（占位实现）
+//! - gent_run — 给一个 goal，让 agent 自主执行并返回结果
+//! - gent_status — 查询指定会话状态（接 SessionManager via AgentSessionBroker）
+//! - gent_cancel — 取消指定会话（接 SessionManager via AgentSessionBroker）
 //!
 //! 传输层 stdio（MCP 标准 stdio transport）。
 //!
-//! 分层：此 crate 通过 `axagent-harness::Agent` trait 与 agent 实现解耦，
-//! wiring 层在 runtime/src/init/state.rs 里把真实 Agent 注入。
+//! 分层：此 crate 通过 harness trait 与 agent 实现解耦：
+//! - Arc<dyn Agent>（execute / plan）
+//! - Arc<dyn AgentSessionBroker>（status / cancel）
+//!
+//! wiring 层在 runtime/src/init/state.rs 里注入真实实例。
 
-use axagent_harness::{Agent, AgentExecuteRequest};
+use axagent_harness::{Agent, AgentExecuteRequest, AgentSessionBroker};
 use rmcp::{
     ServerHandler, ServiceExt,
     handler::server::wrapper::Parameters,
@@ -49,20 +52,46 @@ pub struct AgentCancelRequest {
 
 // ── Server 本体 ────────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 #[allow(dead_code)]
 pub struct McpAgentServer {
     agent: Option<Arc<dyn Agent>>,
+    session_broker: Option<Arc<dyn AgentSessionBroker>>,
+}
+
+impl std::fmt::Debug for McpAgentServer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("McpAgentServer")
+            .field("agent", &self.agent.is_some())
+            .field("session_broker", &self.session_broker.is_some())
+            .finish()
+    }
 }
 
 impl McpAgentServer {
-    pub fn new(agent: Option<Arc<dyn Agent>>) -> Self {
-        Self { agent }
+    pub fn new(
+        agent: Option<Arc<dyn Agent>>,
+        session_broker: Option<Arc<dyn AgentSessionBroker>>,
+    ) -> Self {
+        Self { agent, session_broker }
     }
 
-    /// 无依赖构造：占位 server，所有 tool 返回 "not configured" 占位。
+    /// 无依赖构造：所有 tool 返回 "not configured" 占位。
+    /// 用于独立测试或尚未 wiring 注入的场景。
     pub fn stub() -> Self {
-        Self { agent: None }
+        Self { agent: None, session_broker: None }
+    }
+
+    /// 注入 agent 实例（wiring 层调用）。
+    pub fn with_agent(mut self, agent: Arc<dyn Agent>) -> Self {
+        self.agent = Some(agent);
+        self
+    }
+
+    /// 注入 session broker（wiring 层调用）。
+    pub fn with_session_broker(mut self, broker: Arc<dyn AgentSessionBroker>) -> Self {
+        self.session_broker = Some(broker);
+        self
     }
 }
 
@@ -94,26 +123,35 @@ impl McpAgentServer {
         Ok(format!("[{status}] steps_taken={}: {}", result.steps_taken, result.output))
     }
 
-    #[tool(description = "查询指定 agent 会话的当前执行状态。当前为占位实现，返回 not_tracked。")]
+    #[tool(
+        description = "查询指定 agent 会话的当前状态。返回 sessionStatus、isActive、turnCount 等字段。"
+    )]
     async fn agent_status(
         &self,
         Parameters(req): Parameters<AgentStatusRequest>,
     ) -> Result<String, String> {
-        Ok(format!(
-            "session_id={} status=not_tracked（McpAgentServer 暂未接入 SessionManager）",
-            req.session_id
-        ))
+        let broker = self
+            .session_broker
+            .as_ref()
+            .ok_or_else(|| "McpAgentServer 未配置 session broker（stub 模式）".to_string())?;
+
+        let view = broker.get_session_status(&req.session_id).await?;
+        let json = serde_json::to_string_pretty(&view).map_err(|e| format!("序列化错误: {e}"))?;
+        Ok(json)
     }
 
-    #[tool(description = "尝试取消指定 agent 会话的执行。当前为占位实现。")]
+    #[tool(description = "尝试取消指定 agent 会话的执行。幂等：terminal 状态会话直接返回 ok。")]
     async fn agent_cancel(
         &self,
         Parameters(req): Parameters<AgentCancelRequest>,
     ) -> Result<String, String> {
-        Ok(format!(
-            "session_id={} cancel=not_supported（McpAgentServer 暂未接入 SessionManager）",
-            req.session_id
-        ))
+        let broker = self
+            .session_broker
+            .as_ref()
+            .ok_or_else(|| "McpAgentServer 未配置 session broker（stub 模式）".to_string())?;
+
+        broker.cancel_session(&req.session_id).await?;
+        Ok(format!("cancelled: {}", req.session_id))
     }
 }
 
@@ -127,7 +165,7 @@ impl ServerHandler for McpAgentServer {
             .with_instructions(
                 "AxAgent MCP Server — 把 agent 能力暴露为 MCP tools。\
                  agent_run 接收自然语言 goal，agent 会自主规划并执行；\
-                 agent_status / agent_cancel 当前为占位，后续接入 SessionManager。",
+                 agent_status 查询会话状态，agent_cancel 取消运行中会话。",
             )
     }
 }
@@ -166,6 +204,15 @@ mod tests {
                 context: None,
                 max_steps: None,
             }))
+            .await;
+        assert!(result.is_err(), "stub mode should return err");
+    }
+
+    #[tokio::test]
+    async fn test_agent_status_stub_returns_error() {
+        let server = McpAgentServer::stub();
+        let result = server
+            .agent_status(Parameters(AgentStatusRequest { session_id: "any".to_string() }))
             .await;
         assert!(result.is_err(), "stub mode should return err");
     }

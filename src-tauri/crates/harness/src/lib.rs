@@ -495,6 +495,8 @@ pub use prompt_provider::{PromptLang, PromptProvider, StaticPromptProvider};
 // ── AgentSession 持久化契约（让 agent 不依赖 dao） ──
 pub mod agent_session_repo;
 pub use agent_session_repo::AgentSessionRepository;
+pub mod agent_session_broker;
+pub use agent_session_broker::{AgentSessionBroker, AgentSessionStatusView};
 
 pub mod runtime_types;
 
