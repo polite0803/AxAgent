@@ -79,6 +79,7 @@ pub mod capability_policies;
 pub mod capability_relationships;
 pub mod capability_stats;
 pub mod generated_tools;
+pub mod session_events;
 pub mod session_states;
 pub mod workflow_approvals;
 pub mod workflow_execution_stats;

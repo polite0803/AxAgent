@@ -130,11 +130,15 @@ pub mod serialization;
 pub mod approval_policy;
 pub mod output_sanitizer;
 pub mod sandbox_policy;
+pub mod session_events;
 pub mod tool;
 pub mod tool_permissions;
 pub mod tool_validation;
 pub use approval_policy::ApprovalPolicy;
 pub use sandbox_policy::{SandboxMode, SandboxPolicy};
+pub use session_events::{
+    NullSessionEventSink, SessionEvent, SessionEventPayload, SessionEventSink, SessionEventType,
+};
 
 // ── Agent 单轮 ReAct 执行器契约(2.5 P1)──
 // trait 定义在 foundation 层,由 wiring 把 SessionManager 适配器注入到 WorkEngine,

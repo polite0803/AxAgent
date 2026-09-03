@@ -251,6 +251,12 @@ pub struct SessionManager {
     /// 未注入时保持原有行为,不影响现有功能。
     /// 用 RwLock 包裹以支持在 `Arc<SessionManager>` 上运行时注入。
     event_bus: tokio::sync::RwLock<Option<Arc<dyn axagent_harness::EventBus>>>,
+    /// session_events 事件持久化 sink（PLAN-codex-parity P0-3）。
+    ///
+    /// 注入后,SessionManager 在 turn 开始 / 结束时同时发事件到 session_events 表,
+    /// 为 agent_resume_from_events 提供事件流。未注入时保持零开销。
+    /// 由 wiring 层(src/init/state.rs)构造 DbSessionEventSink 后注入。
+    session_event_sink: tokio::sync::RwLock<Option<Arc<dyn axagent_harness::SessionEventSink>>>,
     /// 可选反思器。注入后每个 turn 完成时自动 spawn 复盘任务(不阻塞主流程)。
     ///
     /// 未注入时保持原行为(零调用 Reflector::reflect())。
@@ -297,6 +303,7 @@ impl SessionManager {
             trajectory: None,
             agent_session_repo,
             event_bus: tokio::sync::RwLock::new(None),
+            session_event_sink: tokio::sync::RwLock::new(None),
             reflector: tokio::sync::RwLock::new(None),
             self_improvement_flags: tokio::sync::RwLock::new(SelfImprovementFlags::default()),
         }
@@ -310,6 +317,15 @@ impl SessionManager {
     pub async fn set_event_bus(&self, bus: Arc<dyn axagent_harness::EventBus>) {
         let mut guard = self.event_bus.write().await;
         *guard = Some(bus);
+    }
+
+    /// 注入 session_events 事件持久化 sink（P0-3）。
+    ///
+    /// 注入后,SessionManager 在 TurnStarted/TurnCompleted 时同时发事件到
+    /// session_events 表,供 agent_resume_from_events 读取。
+    pub async fn set_session_event_sink(&self, sink: Arc<dyn axagent_harness::SessionEventSink>) {
+        let mut guard = self.session_event_sink.write().await;
+        *guard = Some(sink);
     }
 
     /// 注入反思器。启用后每个 turn 完成时自动 spawn 复盘任务(不阻塞主流程)。
@@ -333,9 +349,9 @@ impl SessionManager {
         *guard = flags;
     }
 
-    /// 发布一个 agent 领域事件到统一总线(若已注入)。
+    /// 发布一个 agent 领域事件到统一总线(若已注入),同时落 session_events 表(若已注入)。
     ///
-    /// 未注入 event_bus 时静默返回,不影响原有逻辑。
+    /// 未注入时静默返回,不影响原有逻辑。
     /// `kind` 对应 `AgentEventType::to_string()`(如 `"TurnStarted"`)。
     async fn publish_agent_event(&self, kind: &str, payload: serde_json::Value) {
         let bus_clone = {
@@ -346,10 +362,29 @@ impl SessionManager {
             let event = axagent_harness::DomainEvent::new(
                 axagent_harness::EventCategory::Agent,
                 kind,
-                payload,
+                payload.clone(),
                 "agent",
             );
             bus.publish(event).await;
+        }
+
+        // P0-3: 同时落 session_events 事件表（若已注入 sink）。
+        // 映射: "TurnStarted" → SessionEventType::TurnStarted
+        //       "TurnCompleted" → SessionEventType::TurnEnded
+        if let Some(sink) = self.session_event_sink.read().await.as_ref().map(Arc::clone) {
+            let mapped = match kind {
+                "TurnStarted" => axagent_harness::SessionEventType::TurnStarted,
+                "TurnCompleted" | "TurnEnded" => axagent_harness::SessionEventType::TurnEnded,
+                _ => return,
+            };
+            // 从 payload 里取 conversationId 作为 session_id
+            let session_id = payload
+                .get("conversationId")
+                .and_then(|v| v.as_str())
+                .or_else(|| payload.get("sessionId").and_then(|v| v.as_str()))
+                .unwrap_or("")
+                .to_string();
+            sink.emit(&session_id, mapped, Some(payload)).await;
         }
     }
 

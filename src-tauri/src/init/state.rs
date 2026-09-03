@@ -733,6 +733,11 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     // (解决 experience_pipeline.rs:243 注释的 "Reflector::reflect() 目前零调用" 问题)
     agent_session_manager.set_reflector(reflector.clone()).await;
 
+    // P0-3: 注入 session_events 持久化 sink
+    let session_event_sink: Arc<dyn axagent_harness::SessionEventSink> =
+        Arc::new(DbSessionEventSink::new(sea_db.clone()));
+    agent_session_manager.set_session_event_sink(session_event_sink).await;
+
     // 缺陷1修复:从 DB 读取前端 FeatureFlag,注入 SessionManager,
     // 使 finalOutputReflection / selfImprovingLoop 开关真正影响后端复盘行为:
     // - finalOutputReflection=true:turn 完成后同步等待 Reflector 评估
@@ -2366,4 +2371,74 @@ pub async fn run_deferred_init(app_state: &crate::app_state::AppState) {
         elapsed = %t0.elapsed().as_millis(),
         "[startup] 后台延迟初始化全部完成"
     );
+}
+
+// ── P0-3: DbSessionEventSink ──────────────────────────────────────────────
+
+use async_trait::async_trait;
+use sea_orm::ConnectionTrait;
+
+struct DbSessionEventSink {
+    db: sea_orm::DatabaseConnection,
+}
+
+impl DbSessionEventSink {
+    fn new(db: sea_orm::DatabaseConnection) -> Self {
+        Self { db }
+    }
+
+    /// 查询某 session 当前最大 seq，返回 +1。
+    async fn next_seq(&self, session_id: &str) -> i64 {
+        let row = self.db
+            .query_one_raw(sea_orm::Statement::from_string(
+                sea_orm::DbBackend::Sqlite,
+                format!(
+                    "SELECT COALESCE(MAX(seq), 0) + 1 AS next_seq FROM session_events WHERE session_id = '{session_id}'"
+                ),
+            ))
+            .await;
+        match row.ok().flatten() {
+            Some(r) => r.try_get::<i64>("", "next_seq").unwrap_or(1),
+            None => 1,
+        }
+    }
+}
+
+#[async_trait]
+impl axagent_harness::SessionEventSink for DbSessionEventSink {
+    async fn emit(
+        &self,
+        session_id: &str,
+        event_type: axagent_harness::SessionEventType,
+        payload: Option<serde_json::Value>,
+    ) {
+        let seq = self.next_seq(session_id).await;
+        let payload_str = payload
+            .as_ref()
+            .and_then(|v| serde_json::to_string(v).ok())
+            .unwrap_or_else(|| "NULL".to_string());
+        let now = chrono::Utc::now();
+        let ts = now.to_rfc3339();
+
+        let sql = format!(
+            "INSERT INTO session_events (session_id, seq, event_type, payload, created_at) \
+             VALUES ('{session_id}', {seq}, '{evt_type}', {payload_str}, '{ts}')",
+            evt_type = event_type.as_str(),
+        );
+
+        match self.db.execute_unprepared(&sql).await {
+            Ok(_) => {},
+            Err(e) => {
+                tracing::warn!(
+                    "[session_events] emit failed session_id={session_id} type={:?}: {e}",
+                    event_type
+                );
+            },
+        }
+    }
+
+    async fn clear(&self, session_id: &str) {
+        let sql = format!("DELETE FROM session_events WHERE session_id = '{session_id}'");
+        let _ = self.db.execute_unprepared(&sql).await;
+    }
 }
