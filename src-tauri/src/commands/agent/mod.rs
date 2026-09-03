@@ -1581,6 +1581,46 @@ pub async fn agent_query(
             ))
         })?;
 
+    // P0-3 跨进程上下文重建：进程重启 / Session 被 LRU 驱逐后内存会话为空，
+    // 从 DB 消息历史回灌（含已完成 turn 的 tool_use / tool_result 观察块）。
+    // 仅对全新空会话生效（seed 内部幂等）；尾部 user 行由 seed 截断，
+    // 避免本 turn 的输入（上方 L1533 已落库）被计入两次。
+    {
+        const SEED_HISTORY_MAX_MESSAGES: usize = 40;
+        let history_rows =
+            axagent_dao::repo::message::list_messages(app_state.harness.db(), &conversation_id)
+                .await
+                .unwrap_or_default();
+        let mut history: Vec<axagent_harness::ConversationMessage> = history_rows
+            .iter()
+            .flat_map(|m| {
+                axagent_harness::conversation_model::history_to_conversation_messages(
+                    m.role,
+                    &m.content,
+                    m.parts.as_deref(),
+                )
+            })
+            .collect();
+        let total = history.len();
+        if total > SEED_HISTORY_MAX_MESSAGES {
+            history.drain(..total - SEED_HISTORY_MAX_MESSAGES);
+            // 截断不能留下孤立的 tool 观察行（配对的 tool_use 已在前段被丢弃）
+            while matches!(
+                history.first().map(|m| m.role),
+                Some(axagent_harness::conversation_model::MessageRole::Tool)
+            ) {
+                history.remove(0);
+            }
+        }
+        let seeded = session_manager.seed_session_history(&conversation_id, history).await;
+        if seeded {
+            info!(
+                "[agent_query] Restored cross-process session context for conversation: {}",
+                conversation_id
+            );
+        }
+    }
+
     // RAG retrieval: search enabled knowledge bases and memory namespaces
     let kb_ids = request.enabled_knowledge_base_ids.clone().unwrap_or_default();
     // Auto-inherit memory namespace IDs from conversation settings if not explicitly provided
@@ -2267,22 +2307,23 @@ pub async fn agent_query(
             }
 
             // Serialize structured content blocks as parts JSON
+            // 统一经 `types::ContentBlock`（tagged，camelCase 字段）序列化，
+            // 保证 DB parts 可被 `history_to_conversation_messages` 原样解析回。
+            // assistant(tool_use) 与 tool(tool_result) 观察都落库——
+            // P0-3 跨进程上下文重建依赖观察数据。
             let parts_json = {
                 let all_blocks: Vec<serde_json::Value> = summary
                     .assistant_messages
                     .iter()
+                    .chain(summary.tool_results.iter())
                     .flat_map(|msg| &msg.blocks)
-                    .map(|block| match block {
-                        axagent_runtime::ContentBlock::Text { text } => {
-                            serde_json::json!({ "type": "text", "text": text })
-                        }
-                        axagent_runtime::ContentBlock::ToolUse { id, name, input } => {
-                            serde_json::json!({ "type": "tool_use", "id": id, "name": name, "input": input })
-                        }
-                        axagent_runtime::ContentBlock::ToolResult { tool_use_id, tool_name, output, is_error } => {
-                            serde_json::json!({ "type": "tool_result", "toolUseId": tool_use_id, "toolName": tool_name, "output": output, "isError": is_error })
-                        }
+                    .map(|block| {
+                        serde_json::to_value(axagent_harness::types::ContentBlock::from(
+                            block.clone(),
+                        ))
+                        .unwrap_or(serde_json::Value::Null)
                     })
+                    .filter(|value| !value.is_null())
                     .collect();
                 if all_blocks.is_empty() {
                     None

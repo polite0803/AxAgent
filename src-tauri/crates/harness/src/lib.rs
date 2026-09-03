@@ -27,6 +27,7 @@ pub use cache_interceptor::{HarnessCache, LlmCacheKey};
 pub mod confidence;
 pub use confidence::{ConfidenceAction, ConfidenceConfig, ConfidenceOutput};
 pub mod channel_adapter;
+pub mod ir_renderer;
 pub mod notification_channel;
 pub use notification_channel::{
     AlertPayload, AlertSeverity, NotificationChannel, NotificationDispatchResult,

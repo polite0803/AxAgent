@@ -855,12 +855,11 @@ impl NodeExecutorTrait for AgentExecutor {
                 }
             }
         } else {
-            // 向后兼容：无 context_sources 时包含所有非 __ 前缀变量
-            // （但 input/user_message 已在上方注入，过滤避免重复）
-            for (k, v) in &context.variables {
-                if k.starts_with("__") {
-                    continue;
-                }
+            // 向后兼容：无 context_sources 时只注入"数据变量"（节点输出 + 已知用户输入），
+            // 通过 var_filter::collect_data_vars 过滤掉 100+ 模板变量（scoring_trend /
+            // fscore_roe_min 等），避免把它们全部硬灌到 LLM user_prompt 里。
+            // （input/user_message 已在上方注入，过滤避免重复）
+            for (k, v) in super::var_filter::collect_data_vars(&context.variables) {
                 if k == super::USER_INPUT_VAR || k == super::USER_MESSAGE_VAR {
                     continue;
                 }

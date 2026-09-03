@@ -63,6 +63,8 @@ pub mod sandbox;
 pub mod session;
 pub mod session_control;
 pub mod session_memory_compact;
+pub mod text_clean;
+pub use text_clean::clean_output;
 pub mod session_token_ledger;
 pub mod snip;
 pub mod usage;

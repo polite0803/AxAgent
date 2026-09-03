@@ -29,16 +29,21 @@ pub mod benchmarks;
 mod bootstrap;
 pub mod branch_lock;
 pub mod buddy;
+pub mod checkpoint;
 pub mod collaboration;
+pub mod connection_pool;
 pub mod cron;
 pub mod dashboard_plugin;
 pub mod dashboard_registry;
+pub mod domain;
 pub mod error_recovery;
 mod file_ops;
+pub mod gateway_metrics;
 mod git_context;
 pub mod git_tools;
 pub mod green_contract;
 pub mod harness;
+pub mod health_check;
 pub mod hook_config;
 pub mod lan_transfer;
 mod lane_events;
@@ -62,6 +67,7 @@ mod oauth;
 ///
 /// 跨进程持久化重试调度器,失败后保存 session → 等待冷却 → 自动加载恢复 → 继续执行。
 /// 由 src-tauri/src/init/ 的后台守护进程定时唤醒检查 pending session。
+pub mod persistent_queue;
 pub mod persistent_runner;
 pub mod plugin_lifecycle;
 mod policy_engine;
@@ -83,6 +89,7 @@ pub mod stale_base;
 pub mod stale_branch;
 pub mod subtask_dispatcher;
 pub mod summary_compression;
+pub mod swarm;
 pub mod task_manager;
 pub mod task_packet;
 pub mod task_registry;

@@ -39,6 +39,7 @@ pub mod platform_config;
 pub mod program_policy;
 pub mod prompt_template;
 pub mod provider;
+pub mod provider_key;
 pub mod reading_list_items;
 pub mod reading_lists;
 pub mod retrieval_hit;

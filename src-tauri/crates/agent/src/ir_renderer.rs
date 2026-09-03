@@ -32,12 +32,7 @@ impl IrRenderer for DefaultIrRenderer {
                 ContentBlock::ToolUse { .. } => {
                     // 工具调用本身不暴露给用户
                 },
-                ContentBlock::ToolResult {
-                    tool_name,
-                    output,
-                    is_error,
-                    ..
-                } => {
+                ContentBlock::ToolResult { tool_name, output, is_error, .. } => {
                     let translated = translate_tool_result(tool_name, output, *is_error);
                     parts.push(translated);
                 },
@@ -99,11 +94,8 @@ fn json_to_natural(val: &serde_json::Value) -> String {
             items.join("，")
         },
         serde_json::Value::Array(arr) => {
-            let items: Vec<String> = arr
-                .iter()
-                .map(json_to_natural)
-                .filter(|s| !s.is_empty())
-                .collect();
+            let items: Vec<String> =
+                arr.iter().map(json_to_natural).filter(|s| !s.is_empty()).collect();
             items.join("；")
         },
         serde_json::Value::String(s) => s.clone(),
@@ -125,9 +117,7 @@ mod tests {
     #[tokio::test]
     async fn renders_plain_text() {
         let renderer = DefaultIrRenderer;
-        let blocks = vec![ContentBlock::Text {
-            text: "你好，世界！".to_string(),
-        }];
+        let blocks = vec![ContentBlock::Text { text: "你好，世界！".to_string() }];
         let output = renderer.render(&blocks).await;
         assert_eq!(output, "你好，世界！");
     }
@@ -136,17 +126,13 @@ mod tests {
     async fn skips_tool_use() {
         let renderer = DefaultIrRenderer;
         let blocks = vec![
-            ContentBlock::Text {
-                text: "我来查天气。".to_string(),
-            },
+            ContentBlock::Text { text: "我来查天气。".to_string() },
             ContentBlock::ToolUse {
                 id: "call_1".to_string(),
                 name: "get_weather".to_string(),
                 input: "{\"city\": \"北京\"}".to_string(),
             },
-            ContentBlock::Text {
-                text: "完成。".to_string(),
-            },
+            ContentBlock::Text { text: "完成。".to_string() },
         ];
         let output = renderer.render(&blocks).await;
         assert_eq!(output, "我来查天气。\n\n完成。");
@@ -157,9 +143,7 @@ mod tests {
     async fn translates_tool_result_json() {
         let renderer = DefaultIrRenderer;
         let blocks = vec![
-            ContentBlock::Text {
-                text: "查询结果：".to_string(),
-            },
+            ContentBlock::Text { text: "查询结果：".to_string() },
             ContentBlock::ToolResult {
                 tool_use_id: "call_1".to_string(),
                 tool_name: "get_weather".to_string(),
@@ -190,9 +174,7 @@ mod tests {
     #[tokio::test]
     async fn cleans_special_placeholders() {
         let renderer = DefaultIrRenderer;
-        let blocks = vec![ContentBlock::Text {
-            text: "你好<|endoftext|>世界".to_string(),
-        }];
+        let blocks = vec![ContentBlock::Text { text: "你好<|endoftext|>世界".to_string() }];
         let output = renderer.render(&blocks).await;
         assert_eq!(output, "你好世界");
     }
@@ -200,9 +182,7 @@ mod tests {
     #[tokio::test]
     async fn consolidates_repeated_blank_lines() {
         let renderer = DefaultIrRenderer;
-        let blocks = vec![ContentBlock::Text {
-            text: "段落1\n\n\n\n\n段落2".to_string(),
-        }];
+        let blocks = vec![ContentBlock::Text { text: "段落1\n\n\n\n\n段落2".to_string() }];
         let output = renderer.render(&blocks).await;
         assert_eq!(output, "段落1\n\n段落2");
     }

@@ -25,11 +25,7 @@ pub struct ProcessBackend {
 impl ProcessBackend {
     /// 创建新的进程后端（不启动进程）
     pub fn new(agent_name: &str, team_name: &str) -> Self {
-        Self {
-            child: None,
-            agent_name: agent_name.to_string(),
-            team_name: team_name.to_string(),
-        }
+        Self { child: None, agent_name: agent_name.to_string(), team_name: team_name.to_string() }
     }
 
     /// 设置子进程句柄（由 spawn_utils 启动后赋值）

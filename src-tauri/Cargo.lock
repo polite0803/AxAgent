@@ -865,6 +865,7 @@ version = "2.9.9"
 dependencies = [
  "async-trait",
  "axagent-harness",
+ "axagent-runtime-core",
  "backon",
  "base64 0.22.1",
  "chrono",
@@ -1450,6 +1451,7 @@ dependencies = [
  "hex",
  "insta",
  "parking_lot",
+ "regex",
  "reqwest",
  "sea-orm",
  "serde",

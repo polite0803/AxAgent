@@ -365,7 +365,7 @@ pub fn teammate_id(name: &str, team_name: &str) -> String {
 ///
 /// 通过全局 FeatureFlags 中的 SWARM_MODE 标志判断。
 pub fn is_swarm_enabled() -> bool {
-    crate::feature_flags::global_feature_flags().swarm_mode_sync()
+    axagent_runtime_core::feature_flags::global_feature_flags().swarm_mode_sync()
 }
 
 // ── 测试 ──
@@ -447,10 +447,8 @@ mod tests {
 
     #[test]
     fn test_serialize_teammate_message() {
-        let msg = TeammateMessage::Heartbeat {
-            from: "Alice@T".into(),
-            status: TeammateStatus::Idle,
-        };
+        let msg =
+            TeammateMessage::Heartbeat { from: "Alice@T".into(), status: TeammateStatus::Idle };
         let json = serde_json::to_string(&msg).expect("测试：JSON序列化应成功");
         assert!(json.contains("heartbeat"));
         assert!(json.contains("Alice@T"));
@@ -474,10 +472,7 @@ mod tests {
 
         // 验证两条任务都在
         assert_eq!(team.tasks.len(), 2);
-        assert!(team
-            .tasks
-            .iter()
-            .all(|t| matches!(t.status, SwarmTaskStatus::InProgress)));
+        assert!(team.tasks.iter().all(|t| matches!(t.status, SwarmTaskStatus::InProgress)));
 
         // 手动制造一个 Assigned 状态的任务（模拟 assign_task 修复前
         // 的遗留场景或外部代码直接 push 的 Assigned 任务）
@@ -495,24 +490,24 @@ mod tests {
         // 任务列表仍保留 3 条任务（用于审计）
         assert_eq!(team.tasks.len(), 3);
 
-        // 验证：Alice 名下所有 Assigned 状态的任务都已转为 Failed
+        // 验证：Alice 名下 Assigned 状态的遗留任务已转为 Failed（"队友已离线"）；
+        // InProgress 任务不在 cancel_tasks_for_teammate 的处理范围（见实现契约：
+        // 执行中任务的取消由队友自身上报 TaskResult 完成），应保持 InProgress。
         for task in &team.tasks {
             if task.assigned_to.as_deref() == Some("Alice@T") {
                 match &task.status {
                     SwarmTaskStatus::Failed(reason) => {
                         assert_eq!(reason, "队友已离线");
-                    }
-                    other => panic!("Alice 的遗留任务应为 Failed，实际为 {:?}", other),
+                    },
+                    SwarmTaskStatus::InProgress => {},
+                    other => panic!("Alice 的任务出现意外状态: {:?}", other),
                 }
             }
         }
 
         // Bob 的任务（包括 InProgress 状态）不应被 cancel_tasks_for_teammate 清理
-        let bob_tasks: Vec<_> = team
-            .tasks
-            .iter()
-            .filter(|t| t.assigned_to.as_deref() == Some("Bob@T"))
-            .collect();
+        let bob_tasks: Vec<_> =
+            team.tasks.iter().filter(|t| t.assigned_to.as_deref() == Some("Bob@T")).collect();
         assert_eq!(bob_tasks.len(), 1);
         assert!(matches!(bob_tasks[0].status, SwarmTaskStatus::InProgress));
     }

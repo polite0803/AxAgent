@@ -38,10 +38,7 @@ pub fn spawn_teammate_process(
         },
         BackendType::InProcess => {
             // 同进程模式由 InProcessTeammateTask 处理
-            Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "InProcess 队友应在当前进程中创建",
-            ))
+            Err(std::io::Error::other("InProcess 队友应在当前进程中创建"))
         },
         BackendType::Tmux => {
             // tmux 仅 Unix 支持
@@ -66,10 +63,7 @@ pub fn spawn_teammate_process(
             }
             #[cfg(not(unix))]
             {
-                Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    "tmux 后端在 Windows 上不可用，请使用 SubProcess",
-                ))
+                Err(std::io::Error::other("tmux 后端在 Windows 上不可用，请使用 SubProcess"))
             }
         },
     }
@@ -84,7 +78,7 @@ pub fn send_message(process: &mut Child, message: &TeammateMessage) -> std::io::
         let json = serde_json::to_string(message)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
         stdin.write_all(json.as_bytes())?;
-        stdin.write_all(&[b'\n'])?; // JSON 行分隔符
+        stdin.write_all(b"\n")?; // JSON 行分隔符
         stdin.flush()?;
     }
     Ok(())
@@ -128,10 +122,8 @@ mod tests {
     #[test]
     fn test_send_message_serialization() {
         // 验证消息可以正常序列化（不需要真实的子进程）
-        let msg = TeammateMessage::Heartbeat {
-            from: "test@team".into(),
-            status: TeammateStatus::Idle,
-        };
+        let msg =
+            TeammateMessage::Heartbeat { from: "test@team".into(), status: TeammateStatus::Idle };
         let json = serde_json::to_string(&msg).expect("测试：JSON序列化应成功");
         assert!(json.contains("heartbeat"));
         assert!(json.contains("test@team"));
@@ -155,12 +147,7 @@ mod tests {
         let json = r#"{"type":"task_result","task_id":"t1","success":true,"content":"完成","from":"Bob@T"}"#;
         let msg: TeammateMessage = serde_json::from_str(json).expect("测试：JSON反序列化应成功");
         match msg {
-            TeammateMessage::TaskResult {
-                task_id,
-                success,
-                content,
-                from,
-            } => {
+            TeammateMessage::TaskResult { task_id, success, content, from } => {
                 assert_eq!(task_id, "t1");
                 assert!(success);
                 assert_eq!(content, "完成");

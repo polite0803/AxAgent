@@ -80,7 +80,6 @@ pub fn collect_data_vars(variables: &HashMap<String, Value>) -> Vec<(&String, &V
 /// 3. 直接尝试解析整个文本
 ///
 /// 如果 LLM 输出为纯文本（无 JSON 结构），返回 `None`。
-#[cfg(test)]
 pub fn extract_json_params(text: &str) -> Option<Value> {
     // 策略 1：查找 ```json ... ``` 代码块
     for marker in &["```json\n", "```json\r\n", "```\n", "```\r\n"] {
@@ -128,6 +127,9 @@ pub fn extract_json_params(text: &str) -> Option<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    // resolve_var_path 定义在 executors/mod.rs（crate 内共享实现），测试验证
+    // 本文件 doc 注释所述的路径导航语义与共享实现一致。
+    use super::super::resolve_var_path;
     use serde_json::json;
 
     #[test]

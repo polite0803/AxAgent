@@ -21,7 +21,6 @@
 //! ```
 
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use tokio::sync::broadcast;
 
 /// 全局引擎事件的统一 payload
@@ -58,7 +57,7 @@ impl GlobalEventBus {
     pub fn emit(
         &self,
         event: GlobalEngineEvent,
-    ) -> Result<usize, broadcast::SendError<GlobalEngineEvent>> {
+    ) -> Result<usize, tokio::sync::broadcast::error::SendError<GlobalEngineEvent>> {
         self.tx.send(event)
     }
 
@@ -77,10 +76,7 @@ pub struct EngineEventSubscription {
 impl EngineEventSubscription {
     /// 创建新的订阅句柄
     pub fn new(rx: broadcast::Receiver<GlobalEngineEvent>) -> Self {
-        Self {
-            source_filter: None,
-            receiver: rx,
-        }
+        Self { source_filter: None, receiver: rx }
     }
 
     /// 按来源过滤

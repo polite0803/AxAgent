@@ -9,12 +9,12 @@
 //! - Auto-cleanup of old checkpoints
 
 use chrono::{DateTime, Utc};
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::{Arc};
-use parking_lot::{RwLock};
+use std::sync::Arc;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Checkpoint {
@@ -102,10 +102,7 @@ impl CheckpointManager {
         };
 
         {
-            let mut checkpoints = self
-                .checkpoints
-                .write()
-                ;
+            let mut checkpoints = self.checkpoints.write();
             checkpoints.insert(checkpoint_id, checkpoint.clone());
         }
 
@@ -117,14 +114,8 @@ impl CheckpointManager {
     }
 
     pub fn get_checkpoint(&self, id: &str) -> Result<Checkpoint, CheckpointError> {
-        let checkpoints = self
-            .checkpoints
-            .read()
-            ;
-        checkpoints
-            .get(id)
-            .cloned()
-            .ok_or_else(|| CheckpointError::NotFound(id.to_string()))
+        let checkpoints = self.checkpoints.read();
+        checkpoints.get(id).cloned().ok_or_else(|| CheckpointError::NotFound(id.to_string()))
     }
 
     pub fn load_checkpoint_data(&self, id: &str) -> Result<Vec<u8>, CheckpointError> {
@@ -133,12 +124,9 @@ impl CheckpointManager {
     }
 
     pub fn list_checkpoints(&self) -> Result<Vec<Checkpoint>, CheckpointError> {
-        let checkpoints = self
-            .checkpoints
-            .read()
-            ;
+        let checkpoints = self.checkpoints.read();
         let mut list: Vec<Checkpoint> = checkpoints.values().cloned().collect();
-        list.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        list.sort_by_key(|cp| std::cmp::Reverse(cp.created_at));
         Ok(list)
     }
 
@@ -150,43 +138,32 @@ impl CheckpointManager {
                 .map_err(|e| CheckpointError::IoError(e.to_string()))?;
         }
 
-        let mut checkpoints = self
-            .checkpoints
-            .write()
-            ;
+        let mut checkpoints = self.checkpoints.write();
         checkpoints.remove(id);
 
         Ok(())
     }
 
     pub fn cleanup_old_checkpoints(&self) -> Result<usize, CheckpointError> {
-        let mut checkpoints = self
-            .checkpoints
-            .write()
-            ;
+        let mut checkpoints = self.checkpoints.write();
 
         if checkpoints.len() <= self.max_checkpoints {
             return Ok(0);
         }
 
-        let mut list: Vec<(String, DateTime<Utc>)> = checkpoints
-            .iter()
-            .map(|(id, cp)| (id.clone(), cp.created_at))
-            .collect();
+        let mut list: Vec<(String, DateTime<Utc>)> =
+            checkpoints.iter().map(|(id, cp)| (id.clone(), cp.created_at)).collect();
 
-        list.sort_by(|a, b| b.1.cmp(&a.1));
+        list.sort_by_key(|(_, created_at)| std::cmp::Reverse(*created_at));
 
-        let to_remove: Vec<String> = list
-            .into_iter()
-            .skip(self.max_checkpoints)
-            .map(|(id, _)| id)
-            .collect();
+        let to_remove: Vec<String> =
+            list.into_iter().skip(self.max_checkpoints).map(|(id, _)| id).collect();
 
         for id in &to_remove {
-            if let Some(cp) = checkpoints.get(id) {
-                if cp.path.exists() {
-                    let _ = fs::remove_file(&cp.path);
-                }
+            if let Some(cp) = checkpoints.get(id)
+                && cp.path.exists()
+            {
+                let _ = fs::remove_file(&cp.path);
             }
             checkpoints.remove(id);
         }
@@ -198,16 +175,13 @@ impl CheckpointManager {
         &self,
         session_id: &str,
     ) -> Result<Vec<Checkpoint>, CheckpointError> {
-        let checkpoints = self
-            .checkpoints
-            .read()
-            ;
+        let checkpoints = self.checkpoints.read();
         let mut result: Vec<Checkpoint> = checkpoints
             .values()
             .filter(|cp| cp.metadata.session_id == session_id)
             .cloned()
             .collect();
-        result.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        result.sort_by_key(|cp| std::cmp::Reverse(cp.created_at));
         Ok(result)
     }
 
@@ -215,17 +189,11 @@ impl CheckpointManager {
         &self,
         session_id: &str,
     ) -> Result<Option<Checkpoint>, CheckpointError> {
-        Ok(self
-            .get_checkpoints_for_session(session_id)?
-            .into_iter()
-            .next())
+        Ok(self.get_checkpoints_for_session(session_id)?.into_iter().next())
     }
 
     pub fn total_size(&self) -> Result<u64, CheckpointError> {
-        let checkpoints = self
-            .checkpoints
-            .read()
-            ;
+        let checkpoints = self.checkpoints.read();
         Ok(checkpoints.values().map(|cp| cp.size_bytes).sum())
     }
 
@@ -293,10 +261,7 @@ impl CheckpointManager {
         };
 
         {
-            let mut checkpoints = self
-                .checkpoints
-                .write()
-                ;
+            let mut checkpoints = self.checkpoints.write();
             checkpoints.insert(incremental_id, checkpoint.clone());
         }
 
@@ -316,11 +281,8 @@ impl CheckpointManager {
     pub fn import_checkpoint(&mut self, path: PathBuf) -> Result<Checkpoint, CheckpointError> {
         let data = fs::read(&path).map_err(|e| CheckpointError::IoError(e.to_string()))?;
 
-        let filename = path
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("imported.bin")
-            .to_string();
+        let filename =
+            path.file_name().and_then(|n| n.to_str()).unwrap_or("imported.bin").to_string();
 
         let new_path = self.storage_dir.join(&filename);
         fs::copy(&path, &new_path).map_err(|e| CheckpointError::IoError(e.to_string()))?;
@@ -342,10 +304,7 @@ impl CheckpointManager {
             },
         };
 
-        let mut checkpoints = self
-            .checkpoints
-            .write()
-            ;
+        let mut checkpoints = self.checkpoints.write();
         checkpoints.insert(checkpoint.id.clone(), checkpoint.clone());
 
         Ok(checkpoint)
@@ -384,9 +343,7 @@ impl std::error::Error for CheckpointError {}
 
 fn uuid_simple() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default();
+    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default();
     format!("{:x}{:x}", now.as_secs(), now.subsec_nanos())
 }
 
@@ -442,9 +399,8 @@ mod tests {
     #[test]
     fn test_auto_cleanup() {
         let temp_path = std::env::temp_dir().join("checkpoint_test3");
-        let manager = CheckpointManager::new(temp_path)
-            .with_max_checkpoints(3)
-            .with_auto_cleanup(true);
+        let manager =
+            CheckpointManager::new(temp_path).with_max_checkpoints(3).with_auto_cleanup(true);
 
         let metadata = CheckpointMetadata {
             session_id: "session_1".to_string(),
@@ -456,10 +412,7 @@ mod tests {
         };
 
         for i in 0..5 {
-            let m = CheckpointMetadata {
-                session_id: format!("session_{}", i),
-                ..metadata.clone()
-            };
+            let m = CheckpointMetadata { session_id: format!("session_{}", i), ..metadata.clone() };
             let _ =
                 manager.create_checkpoint(&format!("cp_{}", i), CheckpointType::Full, b"data", m);
         }

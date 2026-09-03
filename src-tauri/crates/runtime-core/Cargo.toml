@@ -12,6 +12,7 @@ chrono = { workspace = true }
 futures = "0.3"
 hex = { workspace = true }
 parking_lot = "0.12"
+regex = "1"
 reqwest = { workspace = true }
 sea-orm = { workspace = true }
 serde = { workspace = true }

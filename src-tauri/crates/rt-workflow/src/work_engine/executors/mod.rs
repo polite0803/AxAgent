@@ -30,6 +30,7 @@ pub mod switch_executor;
 mod tool_executor;
 mod trigger_executor;
 mod validation_executor;
+pub mod var_filter;
 mod vector_retrieve_executor;
 pub mod webhook_send_executor;
 pub use aggregator_executor::AggregatorExecutor;
@@ -116,6 +117,12 @@ pub(crate) fn resolve_var_path(
     // / a-catalyst.content.catalyst_level / debate-convergence.content.consensus_score
     // / t-risk.result.stockRiskProfile.peTTM 等此前因字符串无法被 .get 导航而全部取不到）。
     if let Some(root) = variables.get(parts[0]) {
+        // 单段平键（无点号）：直接返回原值，保持旧行为——不做 JSON 自动解析，
+        // 避免 stock_code="600036" 这类纯数字字符串被误转为 Number 破坏下游
+        // 字符串参数期望。auto_parse 仅服务于多段导航穿透 result/content 包裹。
+        if parts.len() == 1 {
+            return Some(root.clone());
+        }
         let mut current = auto_parse_value(root.clone());
         let mut navigated = true;
         for part in &parts[1..] {
@@ -142,8 +149,11 @@ pub(crate) fn resolve_var_path(
             return Some(auto_parse_value(current));
         }
     }
-    // fallback：整路径作为模板变量名直查（向后兼容）
-    variables.get(path).cloned().map(auto_parse_value)
+    // fallback：整路径作为模板变量名直查（向后兼容）。
+    // 注意：此处不做 auto_parse——平键值如 stock_code="600036" 必须原样返回
+    // 字符串，auto_parse 会把纯数字/布尔字面量字符串误转为 Number/Bool，
+    // 破坏下游对字符串参数的期望。自动解析仅属于上方节点路径导航分支。
+    variables.get(path).cloned()
 }
 
 /// 若值是合法 JSON 字符串，解析为对应的 `serde_json::Value`；否则原样返回。

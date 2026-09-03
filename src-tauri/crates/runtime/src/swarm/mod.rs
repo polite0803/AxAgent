@@ -11,12 +11,12 @@
 //!
 //! ## 模块结构
 //!
-//! - [`constants`]: 团队配置常量
-//! - [`team_helpers`]: 团队核心数据结构（Team, Teammate, TeamTask 等）
-//! - [`spawn_utils`]: 队友进程启动与 JSON 消息收发
-//! - [`permission_sync`]: leader 权限桥接到队友
-//! - [`reconnection`]: 队友断开后自动重连
-//! - [`backends`]: 后端实现（process_backend 等）
+//! - `constants`: 团队配置常量
+//! - `team_helpers`: 团队核心数据结构（Team, Teammate, TeamTask 等）
+//! - `spawn_utils`: 队友进程启动与 JSON 消息收发
+//! - `permission_sync`: leader 权限桥接到队友
+//! - `reconnection`: 队友断开后自动重连
+//! - `backends`: 后端实现（process_backend 等）
 //!
 //! ## 快速开始
 //!

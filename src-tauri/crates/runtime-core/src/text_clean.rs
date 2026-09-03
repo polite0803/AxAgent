@@ -25,11 +25,8 @@ pub fn clean_output(text: &str) -> String {
     let cleaned = re_repeated_punct.replace_all(&cleaned, "$1");
 
     // 4. 行首行尾空白
-    let cleaned: String = cleaned
-        .lines()
-        .map(|line| line.trim().to_string())
-        .collect::<Vec<_>>()
-        .join("\n");
+    let cleaned: String =
+        cleaned.lines().map(|line| line.trim().to_string()).collect::<Vec<_>>().join("\n");
 
     cleaned.trim().to_string()
 }

@@ -410,6 +410,53 @@ impl SessionManager {
         self.create_session(provider_id, conversation_id).await
     }
 
+    /// 跨进程上下文重建（PLAN-codex-parity P0-3）。
+    ///
+    /// 进程重启或 Session 被 LRU 驱逐后内存会话为空，用 DB 消息历史回灌
+    /// `Session.messages`（含已完成 turn 的 tool_use / tool_result 观察块），
+    /// 使下一次 `agent_query` 携带完整对话上下文。
+    ///
+    /// 幂等：仅当目标 Session 是全新空会话（`messages` 为空）时才填充。
+    /// 尾部截断保护：seed 时当前 turn 的用户输入行已落库（agent_query 先写
+    /// 消息再建 Session），`run_turn` 会再次追加，故去掉结尾的 user 行防止
+    /// 当前输入被计入两次。
+    ///
+    /// 返回是否实际填充。
+    pub async fn seed_session_history(
+        &self,
+        conversation_id: &str,
+        mut history: Vec<ConversationMessage>,
+    ) -> bool {
+        let mut sessions = self.sessions.lock().await;
+        let conv_index = self.conversation_index.lock().await;
+        let Some(session_id) = conv_index.get(conversation_id) else {
+            return false;
+        };
+        let Some(agent_session) = sessions.get_mut(session_id) else {
+            return false;
+        };
+        if !agent_session.session().messages.is_empty() {
+            return false;
+        }
+        while matches!(
+            history.last().map(|m| m.role),
+            Some(axagent_harness::conversation_model::MessageRole::User)
+        ) {
+            history.pop();
+        }
+        if history.is_empty() {
+            return false;
+        }
+        let count = history.len();
+        agent_session.session_mut().messages = history;
+        agent_session.session_mut().touch();
+        info!(
+            "[session_manager] Seeded {} historical messages into session {} (conversation {})",
+            count, session_id, conversation_id
+        );
+        true
+    }
+
     pub async fn create_session(
         &self,
         provider_id: String,
@@ -1777,6 +1824,108 @@ mod tests {
         assert_eq!(session.conversation_id(), "conv-1");
         assert!(session.axagent_session_id().is_some());
         assert_eq!(mgr.session_count().await, 1);
+    }
+
+    #[tokio::test]
+    async fn test_seed_session_history_fills_empty_session() {
+        use axagent_harness::conversation_model::ContentBlock;
+
+        let mgr =
+            SessionManager::new_for_test(axagent_harness::test_support::empty_agent_session_repo());
+        mgr.create_session("provider-1".to_string(), "conv-1".to_string())
+            .await
+            .expect("测试：异步操作应成功");
+
+        let history = vec![
+            axagent_harness::ConversationMessage {
+                role: axagent_harness::conversation_model::MessageRole::User,
+                blocks: vec![ContentBlock::Text { text: "你好".to_string() }],
+                usage: None,
+            },
+            axagent_harness::ConversationMessage {
+                role: axagent_harness::conversation_model::MessageRole::Assistant,
+                blocks: vec![ContentBlock::Text { text: "答复".to_string() }],
+                usage: None,
+            },
+            // 尾部 user 行应被截断（模拟当前 turn 输入已落库的场景）
+            axagent_harness::ConversationMessage {
+                role: axagent_harness::conversation_model::MessageRole::User,
+                blocks: vec![ContentBlock::Text { text: "当前输入".to_string() }],
+                usage: None,
+            },
+        ];
+
+        assert!(mgr.seed_session_history("conv-1", history).await);
+
+        let session = mgr
+            .get_or_create_session("provider-1".to_string(), "conv-1".to_string())
+            .await
+            .expect("测试：异步操作应成功");
+        // 尾部 user 行被截掉，只保留前两条
+        assert_eq!(session.session().messages.len(), 2);
+        assert_eq!(
+            session.session().messages[0].blocks,
+            vec![ContentBlock::Text { text: "你好".to_string() }]
+        );
+    }
+
+    #[tokio::test]
+    async fn test_seed_session_history_skips_non_empty_session() {
+        use axagent_harness::conversation_model::ContentBlock;
+
+        let mgr =
+            SessionManager::new_for_test(axagent_harness::test_support::empty_agent_session_repo());
+        mgr.create_session("provider-1".to_string(), "conv-1".to_string())
+            .await
+            .expect("测试：异步操作应成功");
+        // 先 seed 一次
+        assert!(
+            mgr.seed_session_history(
+                "conv-1",
+                vec![axagent_harness::ConversationMessage {
+                    role: axagent_harness::conversation_model::MessageRole::User,
+                    blocks: vec![ContentBlock::Text { text: "第一轮".to_string() }],
+                    usage: None,
+                }],
+            )
+            .await
+        );
+        // 第二次 seed 应幂等跳过（会话已有上下文）
+        assert!(
+            !mgr.seed_session_history(
+                "conv-1",
+                vec![axagent_harness::ConversationMessage {
+                    role: axagent_harness::conversation_model::MessageRole::User,
+                    blocks: vec![ContentBlock::Text { text: "第二轮".to_string() }],
+                    usage: None,
+                }],
+            )
+            .await
+        );
+        let session = mgr
+            .get_or_create_session("provider-1".to_string(), "conv-1".to_string())
+            .await
+            .expect("测试：异步操作应成功");
+        assert_eq!(session.session().messages.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_seed_session_history_unknown_conversation() {
+        let mgr =
+            SessionManager::new_for_test(axagent_harness::test_support::empty_agent_session_repo());
+        assert!(
+            !mgr.seed_session_history(
+                "conv-missing",
+                vec![axagent_harness::ConversationMessage {
+                    role: axagent_harness::conversation_model::MessageRole::User,
+                    blocks: vec![axagent_harness::conversation_model::ContentBlock::Text {
+                        text: "孤儿".to_string()
+                    }],
+                    usage: None,
+                }],
+            )
+            .await
+        );
     }
 
     #[tokio::test]

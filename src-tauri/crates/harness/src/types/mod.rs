@@ -6,6 +6,7 @@ pub mod gateway;
 pub mod paper_reading;
 pub mod provider_model;
 pub mod rag_voice_etc;
+pub mod search;
 pub mod session_state;
 pub mod settings_chat;
 

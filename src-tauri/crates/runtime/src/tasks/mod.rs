@@ -8,7 +8,7 @@
 
 pub mod coevolution_task;
 pub mod dream_task;
+pub mod in_process_teammate_task;
 pub mod insight_task;
-// pub mod in_process_teammate_task;
 pub mod pattern_task;
-// pub mod remote_agent_task;
+pub mod remote_agent_task;

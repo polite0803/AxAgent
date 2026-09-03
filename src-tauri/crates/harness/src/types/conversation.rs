@@ -133,8 +133,36 @@ pub enum ContentBlock {
     Text { text: String },
     #[serde(rename = "tool_use")]
     ToolUse { id: String, name: String, input: String },
+    /// 字段 camelCase（与前端 `src/types` ContentBlock 及 agent_query 落库的
+    /// parts JSON 对齐）；snake_case 保留为 alias 兼容潜在旧数据。
     #[serde(rename = "tool_result")]
-    ToolResult { tool_use_id: String, tool_name: String, output: String, is_error: bool },
+    #[serde(rename_all = "camelCase")]
+    ToolResult {
+        #[serde(alias = "tool_use_id")]
+        tool_use_id: String,
+        #[serde(alias = "tool_name")]
+        tool_name: String,
+        output: String,
+        #[serde(alias = "is_error")]
+        is_error: bool,
+    },
+}
+
+impl From<crate::conversation_model::ContentBlock> for ContentBlock {
+    fn from(block: crate::conversation_model::ContentBlock) -> Self {
+        match block {
+            crate::conversation_model::ContentBlock::Text { text } => ContentBlock::Text { text },
+            crate::conversation_model::ContentBlock::ToolUse { id, name, input } => {
+                ContentBlock::ToolUse { id, name, input }
+            },
+            crate::conversation_model::ContentBlock::ToolResult {
+                tool_use_id,
+                tool_name,
+                output,
+                is_error,
+            } => ContentBlock::ToolResult { tool_use_id, tool_name, output, is_error },
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

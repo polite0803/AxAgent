@@ -6,7 +6,6 @@ use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
-use tokio::time::interval;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HealthStatus {
@@ -81,11 +80,7 @@ pub struct HealthCheckRegistry {
 
 impl HealthCheckRegistry {
     pub fn new(version: String) -> Self {
-        Self {
-            checks: Arc::new(RwLock::new(HashMap::new())),
-            start_time: Instant::now(),
-            version,
-        }
+        Self { checks: Arc::new(RwLock::new(HashMap::new())), start_time: Instant::now(), version }
     }
 
     pub async fn register<C>(&self, check: C)
@@ -140,9 +135,7 @@ pub struct LivenessCheck {
 
 impl LivenessCheck {
     pub fn new() -> Self {
-        Self {
-            last_ping: Arc::new(RwLock::new(Instant::now())),
-        }
+        Self { last_ping: Arc::new(RwLock::new(Instant::now())) }
     }
 
     pub async fn ping(&self) {
@@ -168,9 +161,7 @@ pub struct ReadinessCheck {
 
 impl ReadinessCheck {
     pub fn new() -> Self {
-        Self {
-            last_ready: Arc::new(RwLock::new(false)),
-        }
+        Self { last_ready: Arc::new(RwLock::new(false)) }
     }
 
     pub async fn set_ready(&self, ready: bool) {
@@ -199,6 +190,9 @@ impl HealthCheck for ReadinessCheck {
 }
 
 pub struct DatabaseHealthCheck {
+    /// 预留字段：真实 DB 探活（TcpStream/sqlx 连接测试）需 DB 驱动依赖，
+    /// runtime crate 未引入；当前 check() 返回恒定健康态，接入驱动后消费。
+    #[allow(dead_code)]
     db_url: String,
 }
 
@@ -226,9 +220,7 @@ pub struct GatewayHealthCheck {
 
 impl GatewayHealthCheck {
     pub fn new() -> Self {
-        Self {
-            gateway_links: Arc::new(RwLock::new(Vec::new())),
-        }
+        Self { gateway_links: Arc::new(RwLock::new(Vec::new())) }
     }
 
     pub async fn add_link(&self, link_id: String) {
@@ -265,11 +257,7 @@ pub struct HealthCheckServer {
 
 impl HealthCheckServer {
     pub fn new(registry: Arc<HealthCheckRegistry>, bind_addr: String, bind_port: u16) -> Self {
-        Self {
-            registry,
-            bind_addr,
-            bind_port,
-        }
+        Self { registry, bind_addr, bind_port }
     }
 
     pub async fn start(self) -> Result<(), std::io::Error> {
@@ -277,6 +265,7 @@ impl HealthCheckServer {
         use tower_http::cors::{Any, CorsLayer};
 
         let registry = self.registry.clone();
+        let registry_ready = registry.clone();
 
         let app = Router::new()
             .route(
@@ -285,7 +274,10 @@ impl HealthCheckServer {
                     let status = registry.get_status().await;
                     let json = serde_json::to_string(&status)
                         .unwrap_or_else(|_| r#"{"error":"serialization failed"}"#.to_string());
-                    axum::response::Json(serde_json::from_str(&json).unwrap_or(serde_json::json!({"error":"serialization failed"})))
+                    axum::response::Json(
+                        serde_json::from_str(&json)
+                            .unwrap_or(serde_json::json!({"error":"serialization failed"})),
+                    )
                 }),
             )
             .route(
@@ -296,11 +288,14 @@ impl HealthCheckServer {
             )
             .route(
                 "/health/ready",
-                get(move || async move {
-                    let status = registry.get_status().await;
-                    let ready = status.status == HealthState::Healthy
-                        || status.status == HealthState::Degraded;
-                    axum::response::Json(serde_json::json!({ "ready": ready }))
+                get({
+                    let registry = registry_ready;
+                    move || async move {
+                        let status = registry.get_status().await;
+                        let ready = status.status == HealthState::Healthy
+                            || status.status == HealthState::Degraded;
+                        axum::response::Json(serde_json::json!({ "ready": ready }))
+                    }
                 }),
             )
             .layer(CorsLayer::new().allow_origin(Any));
@@ -323,10 +318,7 @@ pub struct HealthMonitor {
 
 impl HealthMonitor {
     pub fn new(registry: Arc<HealthCheckRegistry>, check_interval: Duration) -> Self {
-        Self {
-            registry,
-            check_interval,
-        }
+        Self { registry, check_interval }
     }
 
     pub async fn start(&self) {
@@ -334,7 +326,7 @@ impl HealthMonitor {
         let interval = self.check_interval;
 
         tokio::spawn(async move {
-            let mut ticker = interval(interval);
+            let mut ticker = tokio::time::interval(interval);
             loop {
                 ticker.tick().await;
                 let status = registry.get_status().await;

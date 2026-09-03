@@ -12,6 +12,7 @@ testing = []
 [dependencies]
 async-trait = "0.1"
 axagent-harness = { path = "../harness" }
+axagent-runtime-core = { path = "../runtime-core" }
 parking_lot = "0.12"
 
 backon = "1.6"
