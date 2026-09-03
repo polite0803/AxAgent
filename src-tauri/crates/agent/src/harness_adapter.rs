@@ -135,6 +135,11 @@ impl Agent for HarnessAgentAdapter {
         // 2. 执行推理循环（带取消检查钩子）
         let result = {
             let mut engine = self.engine.lock().await;
+            // 如果注入了取消信号，每次 execute 前重置并传给 ReActEngine
+            if let Some(ref flag) = self.cancellation_flag {
+                flag.store(false, std::sync::atomic::Ordering::SeqCst);
+                engine.set_cancel_flag(Arc::clone(flag));
+            }
             engine.run(&req.goal).await
         };
 

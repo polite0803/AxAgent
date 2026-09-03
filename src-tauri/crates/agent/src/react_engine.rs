@@ -13,6 +13,7 @@ use axagent_harness::types::{ChatContent, ChatMessage, ChatRequest};
 use axagent_harness::util_fns::{estimate_tokens, truncate_to_char_boundary};
 use axagent_harness::{ProviderAdapter, ProviderRequestContext};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use tokio::sync::broadcast;
 
@@ -557,6 +558,9 @@ pub struct ReActEngine {
     /// 与本字段同时为 true 时才生效。本字段由 `with_self_improvement()` 设置，
     /// 配置字段由前端 FeatureFlag 驱动，二者解耦便于单元测试。
     enable_self_improvement: bool,
+    /// 运行时取消信号。置 true 后 while 循环在下一次迭代开头立即退出，
+    /// 返回 failure 结果（error = "Cancelled by user"）。
+    cancel_flag: Option<Arc<AtomicBool>>,
 }
 
 // SAFETY: 此处 parking_lot::Mutex 不跨 await 使用，goal_evaluator 的 lock 不跨 await。
@@ -582,7 +586,18 @@ impl ReActEngine {
             goal_evaluator: None,
             reflector: None,
             enable_self_improvement: false,
+            cancel_flag: None,
         }
+    }
+
+    pub fn with_cancel_flag(mut self, flag: Arc<AtomicBool>) -> Self {
+        self.cancel_flag = Some(flag);
+        self
+    }
+
+    /// 运行时注入/替换取消信号（不消费 self，供已构造好的 engine 在每次 run 前重置）。
+    pub fn set_cancel_flag(&mut self, flag: Arc<AtomicBool>) {
+        self.cancel_flag = Some(flag);
     }
 
     pub fn with_config(mut self, config: ReActConfig) -> Self {
@@ -688,6 +703,23 @@ impl ReActEngine {
 
         while !state.is_terminal() {
             context.increment_iteration();
+
+            // 运行时取消检查（每次迭代开头）
+            if let Some(ref flag) = self.cancel_flag
+                && flag.load(Ordering::SeqCst)
+            {
+                tracing::info!(
+                    "[ReActEngine] iteration {} cancelled by user",
+                    context.iteration
+                );
+                return ReActResult::failure(
+                    "Cancelled by user".to_string(),
+                    chain.to_summary(),
+                    context.iteration,
+                    start.elapsed(),
+                    context,
+                );
+            }
 
             if context.iteration >= self.config.max_iterations {
                 return ReActResult::failure(
@@ -1010,6 +1042,23 @@ impl ReActEngine {
 
         while !state.is_terminal() {
             context.increment_iteration();
+
+            // 运行时取消检查（每次迭代开头）
+            if let Some(ref flag) = self.cancel_flag
+                && flag.load(Ordering::SeqCst)
+            {
+                tracing::info!(
+                    "[ReActEngine] iteration {} cancelled by user",
+                    context.iteration
+                );
+                return ReActResult::failure(
+                    "Cancelled by user".to_string(),
+                    chain.to_summary(),
+                    context.iteration,
+                    start.elapsed(),
+                    context,
+                );
+            }
 
             if context.iteration >= self.config.max_iterations {
                 return ReActResult::failure(
