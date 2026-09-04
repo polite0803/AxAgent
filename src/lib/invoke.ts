@@ -802,3 +802,24 @@ export function workflowEvolutionIsRunning(): Promise<boolean> {
 export function workflowShouldAutoEvolve(templateId: string): Promise<boolean> {
   return invoke<boolean>("workflow_should_auto_evolve", { templateId });
 }
+
+// ============================================================================
+// Agent Session Broker (MCP / 前端会话管理面板)
+// ============================================================================
+
+import type { AgentSessionStatusView } from '@/types';
+
+/** 查询指定 agent 会话的当前状态。 */
+export function agentSessionStatus(sessionId: string): Promise<AgentSessionStatusView> {
+  return invoke<AgentSessionStatusView>('agent_session_status', { sessionId });
+}
+
+/** 取消指定 agent 会话的执行 (底层会给 ReActEngine 发取消信号)。 */
+export function agentSessionCancel(sessionId: string): Promise<void> {
+  return invoke<void>('agent_session_cancel', { sessionId });
+}
+
+/** 列出所有已知 agent 会话 ID (含 DB 中已完成的历史会话)。 */
+export function agentSessionList(): Promise<string[]> {
+  return invoke<string[]>('agent_session_list');
+}

@@ -505,3 +505,39 @@ export interface PatternMatchResult {
   matchedKeywords: string[];
   reasoning: string;
 }
+
+
+// ============================================================================
+// AgentSessionBroker DTOs (后端 harness AgentSessionStatusView 镜像, camelCase 对齐)
+// ============================================================================
+
+/** Agent 会话状态枚举 (后端 SessionStatus snake_case 序列化值) */
+export type AgentSessionStatus =
+  | 'idle'
+  | 'initializing'
+  | 'running'
+  | 'waiting_approval'
+  | 'paused'
+  | 'completed'
+  | 'failed'
+  | 'cancelled';
+
+/** Agent 会话状态视图 (后端 harness AgentSessionBroker::get_session_status 返回值) */
+export interface AgentSessionStatusView {
+  /** 会话唯一 ID */
+  sessionId: string;
+  /** 当前状态 (8 态状态机) */
+  status: AgentSessionStatus;
+  /** 关联的 LLM provider 标识 */
+  providerId: string;
+  /** 关联的 conversation_id (可能为空) */
+  conversationId?: string;
+  /** 已完成的 turn 数 */
+  turnCount?: number;
+  /** 是否活跃 (idle/initializing/running/waiting_approval/paused) */
+  isActive: boolean;
+  /** 最近访问时间戳 epoch ms */
+  lastAccessMs?: number;
+  /** 最近错误信息 */
+  lastError?: string;
+}
