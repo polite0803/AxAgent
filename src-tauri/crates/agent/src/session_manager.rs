@@ -29,6 +29,7 @@ const NP: &NoopPromptProvider = &NoopPromptProvider;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{AppHandle, Emitter};
 use tokio::sync::{Mutex, RwLock};
 use tracing::info;
@@ -272,6 +273,12 @@ pub struct SessionManager {
     ///
     /// 未注入时保持原行为(异步 fire-and-forget 复盘)。
     self_improvement_flags: tokio::sync::RwLock<SelfImprovementFlags>,
+    /// Per-session 运行时取消信号。
+    ///
+    /// 每个 session 在 create_session 时注册一个独立 Arc<AtomicBool>，
+    /// HarnessAgentAdapter.execute → ReActEngine::run 检查这个 flag。
+    /// cancel_session(id) 先 store(true) 唤醒 run 循环，再清理内存 HashMap。
+    cancel_tokens: Mutex<std::collections::HashMap<String, Arc<AtomicBool>>>,
 }
 
 /// 自改进循环相关开关(对应前端 FeatureFlag)。
@@ -306,6 +313,7 @@ impl SessionManager {
             session_event_sink: tokio::sync::RwLock::new(None),
             reflector: tokio::sync::RwLock::new(None),
             self_improvement_flags: tokio::sync::RwLock::new(SelfImprovementFlags::default()),
+            cancel_tokens: Mutex::new(std::collections::HashMap::new()),
         }
     }
 
@@ -544,9 +552,23 @@ impl SessionManager {
         }
 
         let mut conv_index = self.conversation_index.lock().await;
-        conv_index.insert(conversation_id, session_id);
+        conv_index.insert(conversation_id, session_id.clone());
+
+        // 注册 per-session 运行时取消 token（初始 false）
+        {
+            let mut tokens = self.cancel_tokens.lock().await;
+            tokens.insert(session_id.clone(), Arc::new(AtomicBool::new(false)));
+        }
 
         Ok(session)
+    }
+
+    /// 获取指定 session 的运行时取消 token（create_session 时注册）。
+    ///
+    /// 供 HarnessAgentAdapter.execute → ReActEngine::run 检查取消信号。
+    pub async fn get_cancel_token(&self, session_id: &str) -> Option<Arc<AtomicBool>> {
+        let tokens = self.cancel_tokens.lock().await;
+        tokens.get(session_id).cloned()
     }
 
     /// Update the session in memory after a turn completes, preserving conversation history.
@@ -1510,40 +1532,74 @@ impl std::fmt::Debug for SessionManager {
 
 #[async_trait::async_trait]
 impl axagent_harness::AgentSessionBroker for SessionManager {
-    /// 查询会话状态：仅查内存 HashMap（活跃会话）。
+    /// 查询会话状态：两级查找。
     ///
-    /// 注：AgentSessionRepository 无 get 查询方法，持久化会话暂不支持。
-    ///     未来可扩展 get_agent_session_by_conversation 接口后补齐。
+    /// 1. 优先查内存 HashMap（活跃运行中的会话）
+    /// 2. 内存未命中时，用 conversation_index 反查 conversation_id →
+    ///    AgentSessionRepository::get_by_conversation_id 查 DB（进程重启后仍可查询）
     async fn get_session_status(
         &self,
         session_id: &str,
     ) -> Result<axagent_harness::AgentSessionStatusView, String> {
-        let agent_session = self
-            .get_session(session_id)
-            .await
-            .ok_or_else(|| format!("session_not_found: {session_id}"))?;
+        // ── 第一级：内存 HashMap ──────────────────────────────────────
+        if let Some(agent_session) = self.get_session(session_id).await {
+            // 简化语义：内存中有会话 = Running；空 messages = Initializing
+            let status = if agent_session.session.messages.is_empty() {
+                axagent_harness::types::session_state::SessionStatus::Initializing
+            } else {
+                axagent_harness::types::session_state::SessionStatus::Running
+            };
+            let is_active = status.is_active();
 
-        // 简化语义：内存中有会话 = Running；空 messages = Initializing
-        let status = if agent_session.session.messages.is_empty() {
-            axagent_harness::types::session_state::SessionStatus::Initializing
-        } else {
-            axagent_harness::types::session_state::SessionStatus::Running
+            let turn_count = (agent_session.session.messages.len() / 2) as u32;
+            let last_access = self.session_last_access.lock().await;
+
+            return Ok(axagent_harness::AgentSessionStatusView {
+                session_id: session_id.to_string(),
+                status,
+                provider_id: agent_session.provider_id.clone(),
+                conversation_id: Some(agent_session.conversation_id.clone()),
+                turn_count: Some(turn_count),
+                is_active,
+                last_access_ms: last_access.get(session_id).copied(),
+                last_error: None,
+            });
+        }
+
+        // ── 第二级：DB 回退（进程重启后会话仍可查）────────────────────
+        // 尝试用 conversation_index 反查 conversation_id
+        let conversation_id_opt = {
+            let conv_index = self.conversation_index.lock().await;
+            conv_index
+                .iter()
+                .find(|(_, sid)| sid.as_str() == session_id)
+                .map(|(cid, _)| cid.clone())
         };
-        let is_active = status.is_active();
 
-        let turn_count = (agent_session.session.messages.len() / 2) as u32;
-        let last_access = self.session_last_access.lock().await;
+        if let Some(conv_id) = conversation_id_opt
+            && let Ok(Some(db_session)) =
+                self.agent_session_repo.get_by_conversation_id(&conv_id).await
+        {
+            // 从 runtime_status 字符串解析状态；解析失败回退 Idle
+            let status = db_session
+                .runtime_status
+                .parse::<axagent_harness::types::session_state::SessionStatus>()
+                .unwrap_or(axagent_harness::types::session_state::SessionStatus::Idle);
+            let is_active = status.is_active();
 
-        Ok(axagent_harness::AgentSessionStatusView {
-            session_id: session_id.to_string(),
-            status,
-            provider_id: agent_session.provider_id.clone(),
-            conversation_id: Some(agent_session.conversation_id.clone()),
-            turn_count: Some(turn_count),
-            is_active,
-            last_access_ms: last_access.get(session_id).copied(),
-            last_error: None,
-        })
+            return Ok(axagent_harness::AgentSessionStatusView {
+                session_id: session_id.to_string(),
+                status,
+                provider_id: "unknown".to_string(),
+                conversation_id: Some(db_session.conversation_id),
+                turn_count: None,
+                is_active,
+                last_access_ms: Some(db_session.updated_at as u64),
+                last_error: None,
+            });
+        }
+
+        Err(format!("session_not_found: {session_id}"))
     }
 
     /// 取消会话：幂等处理。
@@ -1557,6 +1613,21 @@ impl axagent_harness::AgentSessionBroker for SessionManager {
         // 幂等：非活跃态直接返回
         if !view.is_active {
             return Ok(());
+        }
+
+        // 先唤醒 per-session 取消 token：让正在 run 的 ReActEngine 在下一次
+        // 迭代开头立即退出，返回 ReActResult::failure("Cancelled by user")。
+        // 此处先 store(true) 再清理 HashMap，保证 run 循环能看到 token 为 true。
+        {
+            let mut tokens = self.cancel_tokens.lock().await;
+            if let Some(token) = tokens.get(session_id) {
+                token.store(true, Ordering::SeqCst);
+                tracing::info!(
+                    "[SessionManager] cancel_token set for session {session_id}"
+                );
+            }
+            // 清理 token（即使无注册也尝试 remove，幂等）
+            tokens.remove(session_id);
         }
 
         // 从内存 HashMap 移除

@@ -132,13 +132,25 @@ impl Agent for HarnessAgentAdapter {
             None
         };
 
-        // 2. 执行推理循环（带取消检查钩子）
+        // 2. 获取本次执行对应的取消 token（优先 per-session，回退全局）
+        let cancel_token: Option<Arc<AtomicBool>> = if let (Some(sm), Some(sid)) =
+            (&self.session_manager, &session_id)
+        {
+            // per-session token：SessionManager.create_session 时注册
+            sm.get_cancel_token(sid).await
+        } else if let Some(ref flag) = self.cancellation_flag {
+            // 回退全局 flag（无 SessionManager 场景）
+            flag.store(false, std::sync::atomic::Ordering::SeqCst);
+            Some(Arc::clone(flag))
+        } else {
+            None
+        };
+
+        // 3. 执行推理循环（带取消检查钩子）
         let result = {
             let mut engine = self.engine.lock().await;
-            // 如果注入了取消信号，每次 execute 前重置并传给 ReActEngine
-            if let Some(ref flag) = self.cancellation_flag {
-                flag.store(false, std::sync::atomic::Ordering::SeqCst);
-                engine.set_cancel_flag(Arc::clone(flag));
+            if let Some(token) = cancel_token {
+                engine.set_cancel_flag(token);
             }
             engine.run(&req.goal).await
         };
