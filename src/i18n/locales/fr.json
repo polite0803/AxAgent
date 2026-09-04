@@ -2612,6 +2612,10 @@
     "GATEWAY_SSL_NO_CERT": "Certificat SSL manquant",
     "GATEWAY_SSL_NO_KEY": "Clé SSL manquante",
     "GATEWAY_TEMPLATE_NOT_FOUND": "Modèle de passerelle introuvable",
+    "MCP_AGENT_SESSION_NOT_FOUND": "Session agent introuvable : {{sessionId}}",
+
+    "MCP_AGENT_SESSION_CANCEL_FAILED": "Échec de l'annulation de la session agent : {{error}}",
+
     "MCP_CONNECT_FAILED": "Échec de la connexion MCP : {{error}}",
     "MCP_SERVER_CONFIG_FAILED": "Échec de la configuration du serveur MCP",
     "MCP_SERVER_CREATE_FAILED": "Échec de la création du serveur MCP",

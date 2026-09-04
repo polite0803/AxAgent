@@ -2612,6 +2612,10 @@
     "GATEWAY_SSL_NO_CERT": "缺少 SSL 证书",
     "GATEWAY_SSL_NO_KEY": "缺少 SSL 密钥",
     "GATEWAY_TEMPLATE_NOT_FOUND": "网关模板未找到",
+    "MCP_AGENT_SESSION_NOT_FOUND": "Agent 会话不存在：{{sessionId}}",
+
+    "MCP_AGENT_SESSION_CANCEL_FAILED": "Agent 会话取消失败：{{error}}",
+
     "MCP_CONNECT_FAILED": "MCP 连接失败：{{error}}",
     "MCP_SERVER_CONFIG_FAILED": "MCP 服务器配置失败",
     "MCP_SERVER_CREATE_FAILED": "创建 MCP 服务器失败",

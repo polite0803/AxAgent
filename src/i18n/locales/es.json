@@ -2612,6 +2612,10 @@
     "GATEWAY_SSL_NO_CERT": "Falta el certificado SSL",
     "GATEWAY_SSL_NO_KEY": "Falta la clave SSL",
     "GATEWAY_TEMPLATE_NOT_FOUND": "Plantilla de puerta de enlace no encontrada",
+    "MCP_AGENT_SESSION_NOT_FOUND": "Sesión de agente no encontrada: {{sessionId}}",
+
+    "MCP_AGENT_SESSION_CANCEL_FAILED": "Error al cancelar la sesión de agente: {{error}}",
+
     "MCP_CONNECT_FAILED": "Error de conexión MCP: {{error}}",
     "MCP_SERVER_CONFIG_FAILED": "Error en la configuración del servidor MCP",
     "MCP_SERVER_CREATE_FAILED": "Error al crear el servidor MCP",

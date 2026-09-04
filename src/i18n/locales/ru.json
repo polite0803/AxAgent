@@ -2612,6 +2612,10 @@
     "GATEWAY_SSL_NO_CERT": "Отсутствует SSL сертификат",
     "GATEWAY_SSL_NO_KEY": "Отсутствует SSL ключ",
     "GATEWAY_TEMPLATE_NOT_FOUND": "Шаблон шлюза не найден",
+    "MCP_AGENT_SESSION_NOT_FOUND": "Сессия агента не найдена: {{sessionId}}",
+
+    "MCP_AGENT_SESSION_CANCEL_FAILED": "Не удалось отменить сессию агента: {{error}}",
+
     "MCP_CONNECT_FAILED": "Ошибка подключения MCP: {{error}}",
     "MCP_SERVER_CONFIG_FAILED": "Не удалось настроить MCP сервер",
     "MCP_SERVER_CREATE_FAILED": "Не удалось создать MCP сервер",

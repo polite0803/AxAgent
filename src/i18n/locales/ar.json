@@ -2612,6 +2612,10 @@
     "GATEWAY_SSL_NO_CERT": "شهادة SSL مفقودة",
     "GATEWAY_SSL_NO_KEY": "مفتاح SSL مفقود",
     "GATEWAY_TEMPLATE_NOT_FOUND": "قالب البوابة غير موجود",
+    "MCP_AGENT_SESSION_NOT_FOUND": "لم يتم العثور على جلسة الوكيل: {{sessionId}}",
+
+    "MCP_AGENT_SESSION_CANCEL_FAILED": "فشل إلغاء جلسة الوكيل: {{error}}",
+
     "MCP_CONNECT_FAILED": "فشل اتصال MCP: {{error}}",
     "MCP_SERVER_CONFIG_FAILED": "فشل تكوين خادم MCP",
     "MCP_SERVER_CREATE_FAILED": "فشل إنشاء خادم MCP",

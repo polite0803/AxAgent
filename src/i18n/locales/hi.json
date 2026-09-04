@@ -2612,6 +2612,10 @@
     "GATEWAY_SSL_NO_CERT": "SSL प्रमाणपत्र गायब",
     "GATEWAY_SSL_NO_KEY": "SSL कुंजी गायब",
     "GATEWAY_TEMPLATE_NOT_FOUND": "गेटवे टेम्पलेट नहीं मिला",
+    "MCP_AGENT_SESSION_NOT_FOUND": "एजेंट सत्र नहीं मिला: {{sessionId}}",
+
+    "MCP_AGENT_SESSION_CANCEL_FAILED": "एजेंट सत्र रद्द करने में विफल: {{error}}",
+
     "MCP_CONNECT_FAILED": "MCP कनेक्शन विफल: {{error}}",
     "MCP_SERVER_CONFIG_FAILED": "MCP सर्वर कॉन्फ़िगरेशन विफल",
     "MCP_SERVER_CREATE_FAILED": "MCP सर्वर बनाने में विफल",
