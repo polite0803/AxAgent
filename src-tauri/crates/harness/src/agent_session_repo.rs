@@ -70,4 +70,7 @@ pub trait AgentSessionRepository: Send + Sync {
         &self,
         conversation_id: &str,
     ) -> Result<Option<AgentSession>>;
+
+    /// 列出全部持久化 AgentSession（会话管理面板 / 历史列表用）。
+    async fn list_all(&self) -> Result<Vec<AgentSession>>;
 }

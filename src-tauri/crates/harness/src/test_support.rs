@@ -1870,6 +1870,9 @@ impl AgentSessionRepository for EmptyAgentSessionRepository {
     ) -> Result<Option<AgentSession>> {
         Ok(None)
     }
+    async fn list_all(&self) -> Result<Vec<AgentSession>> {
+        Ok(Vec::new())
+    }
 }
 
 /// 工厂：构造一个 `Arc<dyn AgentSessionRepository>` 测试替身（所有写方法返回 Ok(())，

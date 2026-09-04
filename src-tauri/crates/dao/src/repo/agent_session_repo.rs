@@ -177,4 +177,11 @@ impl AgentSessionRepository for DaoAgentSessionRepository {
             .await?;
         Ok(model.map(model_to_agent_session))
     }
+
+    async fn list_all(&self) -> Result<Vec<AgentSession>> {
+        let models = agent_sessions::Entity::find()
+            .all(self.db.as_ref())
+            .await?;
+        Ok(models.into_iter().map(model_to_agent_session).collect())
+    }
 }

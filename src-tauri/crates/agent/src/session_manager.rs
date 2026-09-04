@@ -1652,8 +1652,43 @@ impl axagent_harness::AgentSessionBroker for SessionManager {
     }
 
     async fn list_session_ids(&self) -> Result<Vec<String>, String> {
-        let sessions = self.sessions.lock().await;
-        Ok(sessions.keys().cloned().collect())
+        use std::collections::HashSet;
+
+        let mut ids = HashSet::new();
+
+        // 第一级：内存活跃会话
+        {
+            let sessions = self.sessions.lock().await;
+            ids.extend(sessions.keys().cloned());
+        }
+
+        // 第二级：DB 回退（含已完成的历史会话）
+        // conversation_index 反查 conversation_id → 有没有对应的 runtime session_id
+        let conv_to_session = {
+            let conv_index = self.conversation_index.lock().await;
+            conv_index.clone()
+        };
+
+        match self.agent_session_repo.list_all().await {
+            Ok(db_sessions) => {
+                for db in db_sessions {
+                    // 优先用 conversation_index 反查出 runtime session_id
+                    if let Some(sid) = conv_to_session.get(&db.conversation_id) {
+                        ids.insert(sid.clone());
+                    } else {
+                        // 内存已淘汰但 DB 还在：用 conversation_id 作为 fallback id
+                        ids.insert(db.conversation_id);
+                    }
+                }
+            }
+            Err(e) => {
+                tracing::warn!(
+                    "[SessionManager] list_all DB fallback failed: {e}, returning only memory sessions"
+                );
+            }
+        }
+
+        Ok(ids.into_iter().collect())
     }
 }
 
