@@ -24,7 +24,7 @@ use axagent_harness::{SandboxMode, SandboxPolicy};
 /// 沙箱化子进程：RAII 兜底——Drop 时 `kill_on_drop` 终止进程，保证
 /// 超时/取消不残留进程（tokio `kill_on_drop(true)` + 显式 `start_kill` 加速）。
 pub struct SandboxedChild {
-    child: tokio::process::Child,
+    child: std::mem::ManuallyDrop<tokio::process::Child>,
 }
 
 /// 与 Windows 侧 `win_sandbox::SandboxedOutput` 字段完全对齐，
@@ -42,9 +42,12 @@ impl SandboxedChild {
     }
 
     /// 等待进程退出并收集全部输出。
-    pub async fn wait_with_output(mut self) -> Result<SandboxedOutput, String> {
+    ///
+    /// 使用 `ManuallyDrop::into_inner` 取出 Child，避免 Drop impl 的冲突。
+    pub async fn wait_with_output(self) -> Result<SandboxedOutput, String> {
+        let mut child = std::mem::ManuallyDrop::into_inner(self.child);
         let output =
-            self.child.wait_with_output().await.map_err(|e| format!("沙箱命令执行异常: {e}"))?;
+            child.wait_with_output().await.map_err(|e| format!("沙箱命令执行异常: {e}"))?;
         Ok(SandboxedOutput {
             exit_code: output.status.code().unwrap_or(-1),
             stdout: output.stdout,
@@ -58,6 +61,11 @@ impl Drop for SandboxedChild {
         // kill_on_drop(true) 已兜底；显式 start_kill 让超时路径立即终止
         // 而不是等到 Drop 完成后再由 runtime 回收。
         let _ = self.child.start_kill();
+        // 手动释放 ManuallyDrop 内部 Child（否则 pipe 句柄泄漏）
+        // SAFETY: self.child 在 drop 期间未被 move，是有效的 ManuallyDrop
+        unsafe {
+            std::mem::ManuallyDrop::drop(&mut self.child);
+        }
     }
 }
 
@@ -115,5 +123,5 @@ fn spawn_namespaced(
         }
     })?;
 
-    Ok(SandboxedChild { child })
+    Ok(SandboxedChild { child: std::mem::ManuallyDrop::new(child) })
 }

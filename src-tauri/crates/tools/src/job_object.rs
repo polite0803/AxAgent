@@ -140,20 +140,18 @@ pub fn assign_job(child: &tokio::process::Child) -> Result<JobHandle, String> {
 ///
 /// # Safety
 /// 调用方必须保证 `process_handle` 是有效的进程句柄，且在本次调用期间未被关闭。
-#[cfg_attr(not(windows), allow(unused_variables))]
+#[cfg(windows)]
 pub unsafe fn assign_job_raw(
     process_handle: windows_sys::Win32::Foundation::HANDLE,
 ) -> Result<JobHandle, String> {
-    #[cfg(windows)]
-    {
-        // SAFETY: 调用方保证 process_handle 有效（unsafe 契约见函数文档）。
-        let job = unsafe { windows_impl::JobObject::new_raw(process_handle)? };
-        Ok(JobHandle { _inner: Some(std::sync::Arc::new(job)) })
-    }
-    #[cfg(not(windows))]
-    {
-        Ok(JobHandle { _inner: None })
-    }
+    // SAFETY: 调用方保证 process_handle 有效（unsafe 契约见函数文档）。
+    let job = unsafe { windows_impl::JobObject::new_raw(process_handle)? };
+    Ok(JobHandle { _inner: Some(std::sync::Arc::new(job)) })
+}
+
+#[cfg(not(windows))]
+pub unsafe fn assign_job_raw(_process_handle: isize) -> Result<JobHandle, String> {
+    Ok(JobHandle { _inner: None })
 }
 
 /// Job Object 句柄——持有它直到子进程执行完毕，Drop 时自动清理进程树。
