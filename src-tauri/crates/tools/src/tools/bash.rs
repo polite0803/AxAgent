@@ -625,7 +625,7 @@ mod tests {
     /// P0-1 沙箱路径端到端（Windows）：ctx.sandbox 设置后 Bash 走受限令牌，
     /// 只读命令可用、写系统目录被拒（P0-1b 实测：SAFER NormalUser 保留用户
     /// Profile 写权限，deny 断言必须落在系统目录，与 win_sandbox 测试一致）。
-    /// 非 Windows 平台应显式报错（不静默降级）。
+    /// 非 Windows 非 Linux 平台应显式报错（不静默降级）。
     #[tokio::test]
     async fn bash_sandboxed_path_end_to_end() {
         let tool = BashTool;
@@ -635,7 +635,7 @@ mod tests {
         // 会先走 AskUser，无桥时保守拒绝，到不了沙箱执行）。
         ctx.approval_policy = Some(std::sync::Arc::new(axagent_harness::ApprovalPolicy::Never));
 
-        // 1. 只读命令可用（Windows）/ 非 Windows 显式报错
+        // 1. 只读命令
         let result = tool
             .call(
                 serde_json::json!({
@@ -649,8 +649,15 @@ mod tests {
             let r = result.expect("沙箱内 echo 应成功");
             assert!(r.content.contains("sandbox_ok"), "stdout 应含回显: {}", r.content);
             assert!(r.content.contains("退出码: 0"), "退出码应为 0: {}", r.content);
+        } else if cfg!(target_os = "linux") {
+            // Linux 沙箱使用 unshare user namespace 实现。
+            // spawn 成功（unshare 二进制存在）→ 返回 Ok(ToolResult)。
+            // 命令执行结果取决于宿主机是否允许 user namespace（容器可能限制
+            // /proc/self/uid_map 写入），不做硬性成功断言——只验证走了沙箱路径。
+            let _r = result.expect("Linux 沙箱应返回 Ok(ToolResult)，spawn 失败则 ToolError");
         } else {
-            let err = result.expect_err("非 Windows 沙箱应显式报错");
+            // macOS / BSD 等无沙箱实现的平台
+            let err = result.expect_err("非 Windows 非 Linux 沙箱应显式报错");
             assert!(err.message.contains("Windows"), "应提示平台限制: {}", err.message);
         }
 
