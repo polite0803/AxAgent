@@ -706,7 +706,7 @@ impl SessionManager {
     /// - Session state persistence and DB updates
     ///
     /// The caller is responsible for:
-    /// - Creating the base runtime via `axagent_runtime_core::create_conversation_runtime`
+    /// - Creating the base runtime via platform runtime builder
     /// - Persisting user/assistant messages to the DB
     /// - Emitting Tauri events
     #[allow(clippy::too_many_arguments)]

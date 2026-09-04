@@ -105,9 +105,9 @@ fn json_to_natural(val: &serde_json::Value) -> String {
     }
 }
 
-/// 最终文本清理：剔除多余空行、特殊占位符、重复标点（委托到 runtime-core）。
+/// 最终文本清理：剔除多余空行、特殊占位符、重复标点（委托到 harness）。
 pub fn clean_output(text: &str) -> String {
-    axagent_runtime_core::clean_output(text)
+    axagent_harness::clean_output(text)
 }
 
 #[cfg(test)]

@@ -908,5 +908,9 @@ pub use execution_trace::{
     TraceErrorSummary, TraceStatistics, TraceStatus,
 };
 
+// ── 纯文本后处理（LLM 输出清理，上移自 runtime-core，供所有 consumer 共享）──
+pub mod text_clean;
+pub use text_clean::clean_output;
+
 // ── 类型驱动设计：DTO 尺寸锁定（编译时断言） ──
 pub mod dto_locks;
