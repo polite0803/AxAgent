@@ -52,7 +52,7 @@ impl SandboxedChild {
         let child_man_drop = unsafe {
             std::ptr::read(&self.child as *const std::mem::ManuallyDrop<tokio::process::Child>)
         };
-        let mut child = child_man_drop.into_inner();
+        let mut child = std::mem::ManuallyDrop::into_inner(child_man_drop);
         std::mem::forget(self);
 
         let output =
