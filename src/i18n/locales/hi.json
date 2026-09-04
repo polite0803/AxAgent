@@ -17254,6 +17254,29 @@
     "read": "读取",
     "write": "写入"
   },
+  "awareness": {
+    "title": "सिस्टम जागरूकता",
+    "noData": "कोई डेटा नहीं",
+    "arousal": "सक्रियता",
+    "cognitiveLoad": "संज्ञानात्मक भार",
+    "selfEfficacy": "आत्म-क्षमता",
+    "dominantFocus": "प्रमुख फ़ोकस",
+    "calibration": "विश्वास अंशांकन",
+    "bias": "औसत पूर्वाग्रह",
+    "overconfident": "अति-विश्वास",
+    "calibrated": "अंशांकित",
+    "underconfident": "अल्प-विश्वास",
+    "lastBroadcast": "हालिया प्रसारण",
+    "loadFailed": "लोड विफल"
+  },
+  "suggestion": {
+    "accept": "स्वीकार करें",
+    "causalInsight": "कारण विश्लेषण",
+    "dismiss": "खारिज करें",
+    "noSuggestions": "कोई सुझाव नहीं",
+    "snooze": "बाद में",
+    "title": "सक्रिय सुझाव"
+  },
   "ui": {
     "getLocale": "获取语言",
     "getTheme": "获取主题",

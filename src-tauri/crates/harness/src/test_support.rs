@@ -1864,10 +1864,7 @@ impl AgentSessionRepository for EmptyAgentSessionRepository {
     async fn get_by_id(&self, _id: &str) -> Result<Option<AgentSession>> {
         Ok(None)
     }
-    async fn get_by_conversation_id(
-        &self,
-        _conversation_id: &str,
-    ) -> Result<Option<AgentSession>> {
+    async fn get_by_conversation_id(&self, _conversation_id: &str) -> Result<Option<AgentSession>> {
         Ok(None)
     }
     async fn list_all(&self) -> Result<Vec<AgentSession>> {

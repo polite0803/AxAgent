@@ -31,6 +31,8 @@ use uuid::Uuid;
 pub struct TrajectoryStorage {
     db: Arc<DatabaseConnection>,
     fts_searcher: Option<FTS5Search>,
+    /// 保存轨迹时是否抽取因果观测（默认关闭，见 [`TrajectoryStorage::set_causal_enabled`]）
+    causal_enabled: bool,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -47,14 +49,68 @@ impl Default for TrajectoryCleanupConfig {
 
 impl TrajectoryStorage {
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
-        Self { db, fts_searcher: None }
+        Self { db, fts_searcher: None, causal_enabled: false }
+    }
+
+    /// 底层数据库连接（供因果边/校准等跨表查询复用同一连接）
+    pub fn db(&self) -> &DatabaseConnection {
+        &self.db
     }
 
     pub fn with_fts(
         db: Arc<DatabaseConnection>,
         fts_conn: Arc<Mutex<rusqlite::Connection>>,
     ) -> Self {
-        Self { db, fts_searcher: Some(FTS5Search::new(fts_conn, FTS5Config::default())) }
+        Self {
+            db,
+            fts_searcher: Some(FTS5Search::new(fts_conn, FTS5Config::default())),
+            causal_enabled: false,
+        }
+    }
+
+    /// 开启/关闭轨迹保存时的因果观测抽取。
+    ///
+    /// 关闭时 `save_trajectory` 的行为与启用前完全一致。
+    pub fn set_causal_enabled(&mut self, enabled: bool) {
+        self.causal_enabled = enabled;
+    }
+
+    /// 因果观测是否已开启
+    pub fn is_causal_enabled(&self) -> bool {
+        self.causal_enabled
+    }
+
+    /// 记录一次意图转移观测 `intent:A → intent:B`。
+    ///
+    /// 开关关闭时为空操作；失败只记日志，不影响调用方。
+    pub async fn observe_intent_transition(&self, from: &str, to: &str, delay_ms: Option<i64>) {
+        if !self.causal_enabled || from == to {
+            return;
+        }
+        if let Err(e) = crate::causal::observe_edge(
+            self.db.as_ref(),
+            from,
+            to,
+            true,
+            delay_ms,
+            "intent_transition",
+        )
+        .await
+        {
+            tracing::warn!("causal: intent transition observation failed: {e:#}");
+        }
+    }
+
+    /// 依据因果边为当前预测生成可解释建议。开关关闭时返回空表。
+    pub async fn causal_suggestions(
+        &self,
+        prediction: &crate::proactive_assistant::ContextPrediction,
+        max: usize,
+    ) -> Vec<crate::proactive_assistant::ProactiveSuggestion> {
+        if !self.causal_enabled {
+            return Vec::new();
+        }
+        crate::causal::causal_suggestions_for_intent(self.db.as_ref(), prediction, max).await
     }
 
     /// 从数据库文件路径创建带 FTS5 全文搜索的存储实例。
@@ -72,7 +128,7 @@ impl TrajectoryStorage {
         let conn = Arc::new(Mutex::new(conn));
         let fts = FTS5Search::new(conn, FTS5Config::default());
         fts.create_fts_tables().await?;
-        Ok(Self { db, fts_searcher: Some(fts) })
+        Ok(Self { db, fts_searcher: Some(fts), causal_enabled: false })
     }
 
     // ── Trajectories ──
@@ -182,6 +238,20 @@ impl TrajectoryStorage {
 
         // FTS 索引在事务外执行
         let _ = self.index_trajectory_fts(t).await;
+
+        // 因果观测同样在事务外执行。失败仅告警——因果边是增强特性，
+        // 不得因观测失败影响已经落库的轨迹。
+        if self.causal_enabled {
+            match crate::causal::observe_from_trajectory(self.db.as_ref(), t).await {
+                Ok(count) => {
+                    tracing::debug!("causal: observed {count} edges from trajectory {}", t.id)
+                },
+                Err(e) => {
+                    tracing::warn!("causal: observation failed for trajectory {}: {:#}", t.id, e)
+                },
+            }
+        }
+
         Ok(())
     }
 

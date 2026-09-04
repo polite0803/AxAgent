@@ -62,6 +62,8 @@ impl Default for PrefetchResults {
 pub struct TaskPrefetcher {
     config: PrefetcherConfig,
     cache: HashMap<String, PrefetchResult>,
+    /// 因果层观测到的真实延迟提示，key 为实体 ID（如 `intent:search`）
+    delay_hints: HashMap<String, i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -72,6 +74,10 @@ pub struct PrefetcherConfig {
     pub cache_ttl_seconds: i64,
     pub parallel_prefetch: bool,
     pub prioritize_critical_path: bool,
+    /// 是否用因果层观测到的真实延迟覆盖硬编码准备耗时估算。
+    /// 需配合 [`TaskPrefetcher::set_causal_delay_hints`] 注入提示表。
+    #[serde(default)]
+    pub use_causal_hints: bool,
 }
 
 impl Default for PrefetcherConfig {
@@ -82,6 +88,7 @@ impl Default for PrefetcherConfig {
             cache_ttl_seconds: 300,
             parallel_prefetch: true,
             prioritize_critical_path: true,
+            use_causal_hints: false,
         }
     }
 }
@@ -94,11 +101,33 @@ impl Default for TaskPrefetcher {
 
 impl TaskPrefetcher {
     pub fn new() -> Self {
-        Self { config: PrefetcherConfig::default(), cache: HashMap::new() }
+        Self {
+            config: PrefetcherConfig::default(),
+            cache: HashMap::new(),
+            delay_hints: HashMap::new(),
+        }
     }
 
     pub fn with_config(config: PrefetcherConfig) -> Self {
-        Self { config, cache: HashMap::new() }
+        Self { config, cache: HashMap::new(), delay_hints: HashMap::new() }
+    }
+
+    /// 注入因果层观测到的真实延迟提示。
+    ///
+    /// key 为实体 ID（见 [`crate::causal::build_delay_hints`] 的返回），
+    /// value 为毫秒。命中时覆盖硬编码的准备耗时估算。
+    pub fn set_causal_delay_hints(&mut self, hints: HashMap<String, i64>) {
+        self.delay_hints = hints;
+    }
+
+    /// 清空延迟提示，回退到硬编码估算
+    pub fn clear_causal_delay_hints(&mut self) {
+        self.delay_hints.clear();
+    }
+
+    /// 当前生效的延迟提示条数
+    pub fn causal_delay_hint_count(&self) -> usize {
+        self.delay_hints.len()
     }
 
     pub fn get_config(&self) -> &PrefetcherConfig {
@@ -131,7 +160,7 @@ impl TaskPrefetcher {
     }
 
     fn prefetch_for_prediction(&self, prediction: &ContextPrediction) -> Option<PrefetchResult> {
-        match &prediction.predicted_intent {
+        let mut result = match &prediction.predicted_intent {
             PredictedIntent::CodeCompletion { language, context } => {
                 self.prefetch_code_context(language, context)
             },
@@ -141,7 +170,18 @@ impl TaskPrefetcher {
             PredictedIntent::TestGeneration { target } => self.prefetch_test_context(target),
             PredictedIntent::Debug { error } => self.prefetch_debug_context(error),
             PredictedIntent::Unknown => None,
+        }?;
+
+        // 因果层观测到的真实延迟优先于硬编码估算
+        if self.config.use_causal_hints {
+            let key = crate::causal::prediction_intent_entity(&prediction.predicted_intent);
+            if let Some(&observed) = self.delay_hints.get(&key) {
+                result.estimated_prepare_time_ms =
+                    u32::try_from(observed.max(0)).unwrap_or(u32::MAX);
+            }
         }
+
+        Some(result)
     }
 
     fn prefetch_code_context(&self, language: &str, context: &str) -> Option<PrefetchResult> {
@@ -299,5 +339,126 @@ impl TaskPrefetcher {
             result.ready = true;
         }
         self.cache.get(resource_id)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::proactive_assistant::{ContextWindow, SuggestedAction};
+    use chrono::Utc;
+
+    fn prediction(intent: PredictedIntent) -> ContextPrediction {
+        ContextPrediction {
+            predicted_intent: intent,
+            confidence: 0.9,
+            reasoning: String::new(),
+            suggested_actions: vec![SuggestedAction {
+                action_type: "prefetch".to_string(),
+                title: "t".to_string(),
+                description: "d".to_string(),
+                priority: crate::proactive_assistant::Priority::Medium,
+            }],
+            context_window: ContextWindow {
+                files: Vec::new(),
+                recent_actions: Vec::new(),
+                current_language: None,
+                project_type: None,
+            },
+            created_at: Utc::now(),
+        }
+    }
+
+    fn search_prediction() -> ContextPrediction {
+        prediction(PredictedIntent::Search { query_type: "symbol".to_string() })
+    }
+
+    #[test]
+    fn hint_key_maps_every_intent_variant() {
+        assert_eq!(
+            crate::causal::prediction_intent_entity(&PredictedIntent::CodeCompletion {
+                language: "rust".to_string(),
+                context: String::new(),
+            }),
+            "intent:code_completion"
+        );
+        assert_eq!(
+            crate::causal::prediction_intent_entity(&PredictedIntent::Search {
+                query_type: "x".to_string()
+            }),
+            "intent:search"
+        );
+        assert_eq!(crate::causal::prediction_intent_entity(&PredictedIntent::Unknown), "");
+    }
+
+    #[test]
+    fn delay_hint_overrides_hardcoded_estimate() {
+        let mut p = TaskPrefetcher::new();
+        let mut config = p.get_config().clone();
+        config.use_causal_hints = true;
+        p.update_config(config);
+
+        let mut hints = HashMap::new();
+        hints.insert("intent:search".to_string(), 1_800_i64);
+        p.set_causal_delay_hints(hints);
+        assert_eq!(p.causal_delay_hint_count(), 1);
+
+        let results = p.prefetch(&[search_prediction()]);
+        assert_eq!(results.results.len(), 1);
+        // 硬编码值为 200，注入提示后应采用观测到的 1800
+        assert_eq!(results.results[0].estimated_prepare_time_ms, 1_800);
+    }
+
+    #[test]
+    fn delay_hint_ignored_when_config_disabled() {
+        let mut p = TaskPrefetcher::new();
+        assert!(!p.get_config().use_causal_hints, "默认必须关闭");
+
+        let mut hints = HashMap::new();
+        hints.insert("intent:search".to_string(), 1_800_i64);
+        p.set_causal_delay_hints(hints);
+
+        let results = p.prefetch(&[search_prediction()]);
+        assert_eq!(results.results[0].estimated_prepare_time_ms, 200, "关闭时回退到硬编码值");
+    }
+
+    #[test]
+    fn delay_hint_ignored_on_unknown_intent() {
+        let mut p = TaskPrefetcher::new();
+        let mut config = p.get_config().clone();
+        config.use_causal_hints = true;
+        p.update_config(config);
+        p.set_causal_delay_hints(HashMap::from([("intent:search".to_string(), 1_800_i64)]));
+
+        // Unknown 不产生任何预取结果，且空 key 不会误命中
+        let results = p.prefetch(&[prediction(PredictedIntent::Unknown)]);
+        assert!(results.results.is_empty());
+    }
+
+    #[test]
+    fn negative_delay_clamps_to_zero() {
+        let mut p = TaskPrefetcher::new();
+        let mut config = p.get_config().clone();
+        config.use_causal_hints = true;
+        p.update_config(config);
+        p.set_causal_delay_hints(HashMap::from([("intent:search".to_string(), -500_i64)]));
+
+        let results = p.prefetch(&[search_prediction()]);
+        assert_eq!(results.results[0].estimated_prepare_time_ms, 0);
+    }
+
+    #[test]
+    fn clear_hints_restores_hardcoded_estimate() {
+        let mut p = TaskPrefetcher::new();
+        let mut config = p.get_config().clone();
+        config.use_causal_hints = true;
+        p.update_config(config);
+        p.set_causal_delay_hints(HashMap::from([("intent:search".to_string(), 1_800_i64)]));
+
+        p.clear_causal_delay_hints();
+        assert_eq!(p.causal_delay_hint_count(), 0);
+
+        let results = p.prefetch(&[search_prediction()]);
+        assert_eq!(results.results[0].estimated_prepare_time_ms, 200);
     }
 }

@@ -17254,6 +17254,29 @@
     "read": "读取",
     "write": "写入"
   },
+  "awareness": {
+    "title": "Осознанность системы",
+    "noData": "Нет данных",
+    "arousal": "Активация",
+    "cognitiveLoad": "Когнитивная нагрузка",
+    "selfEfficacy": "Самоэффективность",
+    "dominantFocus": "Доминирующий фокус",
+    "calibration": "Калибровка уверенности",
+    "bias": "Среднее смещение",
+    "overconfident": "Самоуверенность",
+    "calibrated": "Откалибровано",
+    "underconfident": "Недооценка",
+    "lastBroadcast": "Последняя трансляция",
+    "loadFailed": "Ошибка загрузки"
+  },
+  "suggestion": {
+    "accept": "Принять",
+    "causalInsight": "Причинный анализ",
+    "dismiss": "Отклонить",
+    "noSuggestions": "Нет предложений",
+    "snooze": "Позже",
+    "title": "Проактивные предложения"
+  },
   "ui": {
     "getLocale": "获取语言",
     "getTheme": "获取主题",

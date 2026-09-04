@@ -17254,6 +17254,29 @@
     "read": "读取",
     "write": "写入"
   },
+  "awareness": {
+    "title": "Conciencia del sistema",
+    "noData": "Sin datos",
+    "arousal": "Activación",
+    "cognitiveLoad": "Carga cognitiva",
+    "selfEfficacy": "Autoeficacia",
+    "dominantFocus": "Foco dominante",
+    "calibration": "Calibración de confianza",
+    "bias": "Sesgo medio",
+    "overconfident": "Sobreconfianza",
+    "calibrated": "Calibrado",
+    "underconfident": "Infraconfianza",
+    "lastBroadcast": "Última difusión",
+    "loadFailed": "Error al cargar"
+  },
+  "suggestion": {
+    "accept": "Aceptar",
+    "causalInsight": "Análisis causal",
+    "dismiss": "Descartar",
+    "noSuggestions": "Sin sugerencias",
+    "snooze": "Más tarde",
+    "title": "Sugerencias proactivas"
+  },
   "ui": {
     "getLocale": "获取语言",
     "getTheme": "获取主题",

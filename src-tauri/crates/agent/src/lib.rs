@@ -10,20 +10,15 @@
 
 // ── 模块声明 (internal / external as noted) ────────────────────────────
 
-pub mod ab_testing;
 pub mod academic_search;
 pub mod action_executor;
-pub mod agent_adapter;
-pub mod agent_config;
 pub mod agent_round_adapter;
-pub mod agent_runtime;
 pub mod checkpoint;
 pub mod citation_tracker;
 pub mod content_synthesizer;
 pub mod context_contributors;
 pub mod context_files;
 pub mod context_window;
-pub mod coordinator;
 pub mod credibility_evaluator;
 pub mod cycle_detector;
 pub mod deep_research;
@@ -60,14 +55,12 @@ pub mod noop_kit;
 pub mod outline_builder;
 pub mod personality;
 pub mod pre_validator;
-pub mod proactive_mode;
 pub mod project_memory;
 pub mod provider_adapter;
 pub mod provider_fallback;
 pub mod purpose_manager;
 pub mod query_engine;
 pub mod react_engine;
-pub mod reasoning_router;
 pub mod reasoning_state;
 pub mod recovery_strategies;
 pub mod reference_builder;
@@ -86,7 +79,6 @@ pub mod self_improvement_executor;
 pub mod self_verifier;
 pub mod session_manager;
 pub mod shadow_fs;
-pub mod slash_command;
 pub mod source_classifier;
 pub mod source_validator;
 pub mod steer_manager;
@@ -193,18 +185,9 @@ pub use deep_research::{
     ResearchQuery, ResearchRound,
 };
 
-// agent_runtime — 内部引用：agent_adapter
-pub use agent_runtime::{AgentOutput, AgentRuntimeError};
-
 // provider_fallback — 外部引用：runtime/llm_bridge, commands/provider
 pub use provider_fallback::{
     FallbackConfig, ProviderEntry, ProviderFallbackManager, ProviderHealthSummary, ProviderTier,
-};
-
-// reasoning_router — 外部引用：runtime/agent_runtime, commands/agent
-pub use reasoning_router::{
-    FEATURE_ANALYSIS_PROMPT, ReasoningEngine, TaskFeatures, auto_select_engine,
-    route_reasoning_engine, select_with_llm_hint,
 };
 
 // multi_agent_hook — 外部引用：init/services 注册 PluginHook
@@ -213,12 +196,12 @@ pub use multi_agent_hook::{
     create_multi_agent_trigger_hook_with_config,
 };
 
-// guardrails — 外部引用：agent_runtime / runtime-core 调用护栏
+// guardrails — 外部引用：runtime-core 调用护栏
 pub use guardrails::{
     GuardrailDecision, GuardrailThresholds, ToolCallGuardrailController, ToolStatsSnapshot,
 };
 
-// think_scrubber — 外部引用：gateway / agent_runtime 清理思考链
+// think_scrubber — 外部引用：gateway 清理思考链
 pub use think_scrubber::{ScrubberConfig, ThinkScrubber};
 
 // 模块级引用 — 外部引用：commands/llm_wiki（模块已是 pub mod，无需重复 pub use）
@@ -228,7 +211,7 @@ pub use tree_of_thoughts::{
     DefaultToTReasoningProvider, LlmReasoningProvider, TreeOfThoughtsEngine,
 };
 
-// self_improvement_executor — 外部引用：coordinator 内嵌自改进循环
+// self_improvement_executor — 外部引用：agent_round_adapter / reasoning_state / harness 自改进循环
 pub use self_improvement_executor::{FinalOutput, SelfImprovementConfig, SelfImprovementExecutor};
 
 // agent_round_adapter — 外部引用：wiring 层包装 ReActEngine 进入自改进循环

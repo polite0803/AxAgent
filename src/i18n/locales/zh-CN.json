@@ -17250,6 +17250,29 @@
     "read": "读取",
     "write": "写入"
   },
+  "awareness": {
+    "title": "系统觉知",
+    "noData": "暂无数据",
+    "arousal": "激活度",
+    "cognitiveLoad": "认知负荷",
+    "selfEfficacy": "效能感",
+    "dominantFocus": "主导关注点",
+    "calibration": "置信度校准",
+    "bias": "平均偏差",
+    "overconfident": "过度自信",
+    "calibrated": "校准良好",
+    "underconfident": "信心不足",
+    "lastBroadcast": "最近广播",
+    "loadFailed": "加载失败"
+  },
+  "suggestion": {
+    "accept": "接受",
+    "causalInsight": "因果洞察",
+    "dismiss": "忽略",
+    "noSuggestions": "暂无建议",
+    "snooze": "稍后",
+    "title": "主动建议"
+  },
   "ui": {
     "getLocale": "获取语言",
     "getTheme": "获取主题",

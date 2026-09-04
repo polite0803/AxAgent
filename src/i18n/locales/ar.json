@@ -17254,6 +17254,29 @@
     "read": "读取",
     "write": "写入"
   },
+  "awareness": {
+    "title": "وعي النظام",
+    "noData": "لا توجد بيانات",
+    "arousal": "الإثارة",
+    "cognitiveLoad": "الحمل المعرفي",
+    "selfEfficacy": "الكفاءة الذاتية",
+    "dominantFocus": "التركيز المهيمن",
+    "calibration": "معايرة الثقة",
+    "bias": "متوسط التحيز",
+    "overconfident": "ثقة زائدة",
+    "calibrated": "معايَر",
+    "underconfident": "ثقة ناقصة",
+    "lastBroadcast": "آخر بث",
+    "loadFailed": "فشل التحميل"
+  },
+  "suggestion": {
+    "accept": "قبول",
+    "causalInsight": "تحليل سببي",
+    "dismiss": "تجاهل",
+    "noSuggestions": "لا توجد اقتراحات",
+    "snooze": "لاحقًا",
+    "title": "اقتراحات استباقية"
+  },
   "ui": {
     "getLocale": "获取语言",
     "getTheme": "获取主题",

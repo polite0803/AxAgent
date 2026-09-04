@@ -4,9 +4,8 @@
 //! 当 wiring 层未注入真实实现时，agent 以降级模式运行。
 
 use axagent_harness::kit_bridge::{
-    KitHtmlCleaner, KitMarkdownParser, KitSkillDirs, KitSlashCommandProcessor,
-    KitTokenBudgetDecision, KitTokenBudgetTracker, MdParsedFrontmatter, MdParsedNote,
-    SlashCommandAction,
+    KitHtmlCleaner, KitMarkdownParser, KitSkillDirs, KitTokenBudgetDecision, KitTokenBudgetTracker,
+    MdParsedFrontmatter, MdParsedNote,
 };
 
 // ── NoopTokenBudgetTracker ────────────────────────────────────
@@ -96,22 +95,6 @@ impl KitHtmlCleaner for NoopHtmlCleaner {
         } else {
             "en"
         }
-    }
-}
-
-// ── NoopSlashCommandProcessor ─────────────────────────────────
-
-pub struct NoopSlashCommandProcessor;
-
-impl KitSlashCommandProcessor for NoopSlashCommandProcessor {
-    fn process(&self, _text: &str) -> Option<SlashCommandAction> {
-        None
-    }
-    fn load_bundle_content(&self, _name: &str, _args: &str) -> Option<String> {
-        None
-    }
-    fn load_skill_content(&self, _name: &str, _args: &str) -> Option<String> {
-        None
     }
 }
 

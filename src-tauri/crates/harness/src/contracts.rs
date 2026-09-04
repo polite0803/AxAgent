@@ -11,8 +11,8 @@ use crate::ToolError;
 /// 工具执行器 — 依赖反转后的 harness 级别契约。
 ///
 /// `axagent-runtime-core` 的 `ToolExecutor` trait 实现此 trait，
-/// `axagent-agent::AgentRuntime` 可接受 `Arc<dyn HarnessToolExecutor>`
-/// 而不必绑定到具体实现。
+/// 对话运行时（`create_conversation_runtime` → `run_turn_with_tools`）
+/// 通过该契约接受工具实现，而不必绑定到具体类型。
 pub trait HarnessToolExecutor: Send {
     /// 同步执行单个工具调用。
     fn execute(&mut self, tool_name: &str, input: &str) -> Result<String, ToolError>;

@@ -745,10 +745,7 @@ impl ReActEngine {
             if let Some(ref flag) = self.cancel_flag
                 && flag.load(Ordering::SeqCst)
             {
-                tracing::info!(
-                    "[ReActEngine] iteration {} cancelled by user",
-                    context.iteration
-                );
+                tracing::info!("[ReActEngine] iteration {} cancelled by user", context.iteration);
                 return ReActResult::failure(
                     "Cancelled by user".to_string(),
                     chain.to_summary(),
@@ -1084,10 +1081,7 @@ impl ReActEngine {
             if let Some(ref flag) = self.cancel_flag
                 && flag.load(Ordering::SeqCst)
             {
-                tracing::info!(
-                    "[ReActEngine] iteration {} cancelled by user",
-                    context.iteration
-                );
+                tracing::info!("[ReActEngine] iteration {} cancelled by user", context.iteration);
                 return ReActResult::failure(
                     "Cancelled by user".to_string(),
                     chain.to_summary(),

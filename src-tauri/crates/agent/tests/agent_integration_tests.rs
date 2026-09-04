@@ -3,10 +3,6 @@
 use async_trait::async_trait;
 use axagent_agent::action_executor::{ActionError, ActionResult};
 use axagent_agent::checkpoint::{Checkpoint, CheckpointBuilder, CheckpointManager};
-use axagent_agent::coordinator::{
-    AgentConfig, AgentCoordinator, AgentError, AgentImpl, AgentInput, AgentStatus,
-    CoordinatorOutput,
-};
 use axagent_agent::error_recovery_engine::{ErrorRecoveryEngine, RecoveryConfig, RecoveryContext};
 use axagent_agent::hierarchical_planner::{
     ActionType as PlannerActionType, HierarchicalPlanner, PlanBuilder, ReplanAction, ReplanReason,
@@ -237,98 +233,6 @@ impl ToTLlmReasoningProvider for MockToTProvider {
             .get(idx % self.evaluate_responses.len())
             .cloned()
             .unwrap_or_else(|| "0.5".to_string()))
-    }
-}
-
-// ============================================================================
-// Mock Agent for Coordinator tests
-// ============================================================================
-
-struct MockCoordinatorAgent {
-    status: AgentStatus,
-    fail_on_execute: bool,
-    pause_count: usize,
-    resume_count: usize,
-    /// execute 期间的挂起时长；用于让协调器可靠停留在 Running 态以测试 cancel/pause。
-    execute_delay: Duration,
-}
-
-impl MockCoordinatorAgent {
-    fn new() -> Self {
-        Self {
-            status: AgentStatus::Idle,
-            fail_on_execute: false,
-            pause_count: 0,
-            resume_count: 0,
-            execute_delay: Duration::ZERO,
-        }
-    }
-
-    fn with_failure() -> Self {
-        Self {
-            status: AgentStatus::Idle,
-            fail_on_execute: true,
-            pause_count: 0,
-            resume_count: 0,
-            execute_delay: Duration::ZERO,
-        }
-    }
-
-    /// 构造一个 execute 会挂起 `delay` 的 mock，使协调器在此期间保持 Running 态。
-    fn with_execute_delay(delay: Duration) -> Self {
-        Self {
-            status: AgentStatus::Idle,
-            fail_on_execute: false,
-            pause_count: 0,
-            resume_count: 0,
-            execute_delay: delay,
-        }
-    }
-}
-
-#[async_trait]
-impl AgentImpl for MockCoordinatorAgent {
-    async fn initialize(&mut self, _config: AgentConfig) -> Result<(), AgentError> {
-        self.status = AgentStatus::Idle;
-        Ok(())
-    }
-
-    async fn execute(&mut self, input: AgentInput) -> Result<CoordinatorOutput, AgentError> {
-        if self.fail_on_execute {
-            return Err(AgentError::ExecutionFailed("simulated failure".to_string()));
-        }
-        self.status = AgentStatus::Running;
-        // 可选挂起：让协调器在 execute 期间稳定停留在 Running 态，
-        // 供 cancel/pause 等并发测试可靠命中该状态（默认 0 不影响其他用例）。
-        if !self.execute_delay.is_zero() {
-            tokio::time::sleep(self.execute_delay).await;
-        }
-        Ok(CoordinatorOutput::success(input.content, 1))
-    }
-
-    async fn pause(&mut self) -> Result<(), AgentError> {
-        self.pause_count += 1;
-        self.status = AgentStatus::Paused;
-        Ok(())
-    }
-
-    async fn resume(&mut self) -> Result<(), AgentError> {
-        self.resume_count += 1;
-        self.status = AgentStatus::Running;
-        Ok(())
-    }
-
-    async fn cancel(&mut self) -> Result<(), AgentError> {
-        self.status = AgentStatus::Idle;
-        Ok(())
-    }
-
-    fn status(&self) -> AgentStatus {
-        self.status.clone()
-    }
-
-    fn agent_type(&self) -> &'static str {
-        "mock"
     }
 }
 
@@ -1394,330 +1298,142 @@ mod test_error_recovery_with_context {
     }
 }
 
-// ============================================================================
-// Test Module 5: test_agent_coordinator_lifecycle
-// ============================================================================
+#[tokio::test]
+async fn test_checkpoint_save_and_restore() {
+    let temp_dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
+    let manager =
+        CheckpointManager::new(temp_dir.path().to_str().expect("测试：路径转字符串应成功"));
 
-#[cfg(test)]
-mod test_agent_coordinator_lifecycle {
-    use super::*;
-    use async_trait::async_trait;
-    use axagent_harness::cache_service::{CacheService, SharedCacheService};
-    use axagent_harness::hook_service::{HookService, SharedHookService};
-    use axagent_harness::plugin_hook::{HookDecision, SharedHook, ToolCallContext, ToolCallResult};
+    let checkpoint = CheckpointBuilder::new("plan-test-1", 0)
+        .with_completed_tasks(vec!["task-1".to_string(), "task-2".to_string()])
+        .with_state(serde_json::json!({
+            "progress": 0.4,
+            "phase": "setup"
+        }))
+        .with_label("After setup completion")
+        .build();
 
-    struct NoopCacheService;
-    #[async_trait]
-    impl CacheService for NoopCacheService {
-        async fn is_cache_valid(&self) -> bool {
-            true
-        }
-        async fn has_pending_changes(&self) -> bool {
-            false
-        }
-        async fn invalidate(&self, _reason: &str) {}
-        async fn invalidate_for_new_session(&self) {}
-        async fn set_force_immediate(&self, _force: bool) {}
-    }
+    let save_result = manager.save(&checkpoint).await;
+    assert!(save_result.is_ok());
 
-    struct NoopHookService;
-    #[async_trait]
-    impl HookService for NoopHookService {
-        async fn register(&self, _hook: SharedHook) {}
-        async fn unregister(&self, _name: &str) {}
-        async fn list(&self) -> Vec<String> {
-            vec![]
-        }
-        async fn execute_pre_tool_call(&self, _ctx: &ToolCallContext) -> Option<HookDecision> {
-            None
-        }
-        async fn execute_post_tool_call(&self, _ctx: &ToolCallContext, _result: &ToolCallResult) {}
-        async fn execute_pre_api_request(
-            &self,
-            _ctx: &axagent_harness::plugin_hook::ApiCallContext,
-        ) -> Option<HookDecision> {
-            None
-        }
-        async fn execute_post_api_request(
-            &self,
-            _ctx: &axagent_harness::plugin_hook::ApiCallContext,
-            _result: &axagent_harness::plugin_hook::ApiCallResult,
-        ) {
-        }
-        async fn execute_pre_llm_call(
-            &self,
-            _ctx: &axagent_harness::plugin_hook::LlmCallContext,
-        ) -> Option<HookDecision> {
-            None
-        }
-        async fn execute_post_llm_call(
-            &self,
-            _ctx: &axagent_harness::plugin_hook::LlmCallContext,
-            _result: &axagent_harness::plugin_hook::LlmCallResult,
-        ) {
-        }
-    }
+    let loaded = manager.load(&checkpoint.id).await.expect("测试：异步操作应成功");
+    assert_eq!(loaded.plan_id, checkpoint.plan_id);
+    assert_eq!(loaded.phase_index, checkpoint.phase_index);
+    assert_eq!(loaded.completed_task_ids.len(), 2);
+    assert_eq!(loaded.label, checkpoint.label);
 
-    fn noop_cache() -> SharedCacheService {
-        std::sync::Arc::new(NoopCacheService)
-    }
-    fn noop_hook() -> SharedHookService {
-        std::sync::Arc::new(NoopHookService)
-    }
+    assert_eq!(loaded.state["progress"], serde_json::json!(0.4));
+}
 
-    #[tokio::test]
-    async fn test_coordinator_init_to_done_lifecycle() {
-        let agent = Arc::new(tokio::sync::Mutex::new(MockCoordinatorAgent::new()));
-        let coordinator = AgentCoordinator::new(agent, None, noop_cache(), noop_hook());
+#[tokio::test]
+async fn test_checkpoint_list_and_delete() {
+    let temp_dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
+    let manager =
+        CheckpointManager::new(temp_dir.path().to_str().expect("测试：路径转字符串应成功"));
 
-        assert_eq!(coordinator.get_status().await, AgentStatus::Idle);
+    let cp1 =
+        CheckpointBuilder::new("plan-list", 0).with_state(serde_json::json!({"v": 1})).build();
 
-        let config = AgentConfig::default();
-        let init_result = coordinator.initialize(config).await;
-        assert!(init_result.is_ok());
-        assert_eq!(coordinator.get_status().await, AgentStatus::Idle);
+    tokio::time::sleep(Duration::from_millis(10)).await;
 
-        let input = AgentInput { content: "Hello, coordinator!".to_string(), context: None };
-        let exec_result = coordinator.execute(input).await;
-        assert!(exec_result.is_ok());
+    let cp2 =
+        CheckpointBuilder::new("plan-list", 1).with_state(serde_json::json!({"v": 2})).build();
 
-        let output = exec_result.expect("测试：集成测试操作应成功");
-        assert_eq!(output.status, AgentStatus::Completed);
-        assert_eq!(output.content, "Hello, coordinator!");
-    }
+    tokio::time::sleep(Duration::from_millis(10)).await;
 
-    #[tokio::test]
-    async fn test_coordinator_cannot_execute_while_running() {
-        let agent = Arc::new(tokio::sync::Mutex::new(MockCoordinatorAgent::new()));
-        let coordinator = AgentCoordinator::new(agent, None, noop_cache(), noop_hook());
+    manager.save(&cp1).await.expect("测试：异步操作应成功");
+    manager.save(&cp2).await.expect("测试：异步操作应成功");
 
-        let input1 = AgentInput { content: "first".to_string(), context: None };
-        let _ = coordinator.execute(input1).await;
+    let all = manager.list().await.expect("测试：异步操作应成功");
+    assert!(all.len() >= 2);
 
-        let input2 = AgentInput { content: "second".to_string(), context: None };
-        let result = coordinator.execute(input2).await;
-        assert!(result.is_err());
-    }
+    manager.delete(&cp1.id).await.expect("测试：异步操作应成功");
 
-    #[tokio::test]
-    async fn test_coordinator_execute_triggers_error_recovery() {
-        let agent = Arc::new(tokio::sync::Mutex::new(MockCoordinatorAgent::with_failure()));
-        let coordinator = AgentCoordinator::new(agent, None, noop_cache(), noop_hook());
+    let after_delete = manager.list().await.expect("测试：异步操作应成功");
+    let deleted_exists = after_delete.iter().any(|cp| cp.id == cp1.id);
+    assert!(!deleted_exists);
 
-        let input = AgentInput { content: "test".to_string(), context: None };
+    let delete_nonexistent = manager.delete("nonexistent-id").await;
+    assert!(delete_nonexistent.is_err());
+}
 
-        let result = coordinator.execute(input).await;
-        assert!(result.is_err());
+#[tokio::test]
+async fn test_checkpoint_latest_for_plan() {
+    let temp_dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
+    let manager =
+        CheckpointManager::new(temp_dir.path().to_str().expect("测试：路径转字符串应成功"));
 
-        match result {
-            Err(AgentError::ExecutionFailed(msg)) => {
-                assert!(msg.contains("simulated failure"));
-            },
-            _ => panic!("Expected ExecutionFailed error"),
-        }
+    let cp1 =
+        CheckpointBuilder::new("plan-latest", 0).with_state(serde_json::json!({"v": 1})).build();
 
-        let status = coordinator.get_status().await;
-        assert!(matches!(status, AgentStatus::Failed(_)));
-    }
+    tokio::time::sleep(Duration::from_millis(10)).await;
 
-    #[tokio::test]
-    async fn test_coordinator_cancel_from_running() {
-        // mock execute 挂起 200ms，确保协调器在此期间稳定停留在 Running 态，
-        // 避免瞬时 execute 抢先走到 Completed 导致 cancel 的状态守卫拒绝（竞态）。
-        let agent = Arc::new(tokio::sync::Mutex::new(MockCoordinatorAgent::with_execute_delay(
-            Duration::from_millis(200),
-        )));
-        let coordinator = Arc::new(AgentCoordinator::new(agent, None, noop_cache(), noop_hook()));
+    let cp2 =
+        CheckpointBuilder::new("plan-latest", 1).with_state(serde_json::json!({"v": 2})).build();
 
-        // 在一个独立任务中执行，使其保持 Running 状态
-        let coord = coordinator.clone();
-        let exec_handle = tokio::spawn(async move {
-            let input = AgentInput { content: "start".to_string(), context: None };
-            coord.execute(input).await
-        });
+    manager.save(&cp1).await.expect("测试：异步操作应成功");
+    tokio::time::sleep(Duration::from_millis(20)).await;
+    manager.save(&cp2).await.expect("测试：异步操作应成功");
+    tokio::time::sleep(Duration::from_millis(20)).await;
 
-        // 给 execute 一点时间进入 Running 状态（远小于 200ms 的挂起时长）
-        tokio::time::sleep(Duration::from_millis(10)).await;
+    let latest = manager
+        .get_latest_for_plan("plan-latest")
+        .await
+        .expect("测试：异步操作应成功")
+        .expect("测试：集成测试操作应成功");
 
-        let cancel_result = coordinator.cancel().await;
-        assert!(cancel_result.is_ok(), "cancel should succeed: {:?}", cancel_result);
+    assert!(
+        latest.state["v"] == serde_json::json!(1) || latest.state["v"] == serde_json::json!(2),
+        "Expected v=1 or v=2, got {:?}",
+        latest.state["v"]
+    );
+}
 
-        let status = coordinator.get_status().await;
-        assert_eq!(status, AgentStatus::Idle);
+#[tokio::test]
+async fn test_checkpoint_cleanup_old() {
+    let temp_dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
+    let manager =
+        CheckpointManager::new(temp_dir.path().to_str().expect("测试：路径转字符串应成功"));
 
-        // 等待 execute 任务完成（cancel 会使其提前返回）
-        let _ = exec_handle.await;
-    }
-
-    #[tokio::test]
-    async fn test_coordinator_event_bus_integration() {
-        let agent = Arc::new(tokio::sync::Mutex::new(MockCoordinatorAgent::new()));
-        let coordinator = AgentCoordinator::new(agent, None, noop_cache(), noop_hook());
-
-        let bus = coordinator.event_bus();
-        assert_eq!(bus.name(), "typed_coordinator");
-
-        let mut rx = bus.subscribe("test-sub".to_string(), vec![]);
-
-        let input = AgentInput { content: "event test".to_string(), context: None };
-        let _ = coordinator.execute(input).await;
-
-        let event = rx.try_recv();
-        assert!(event.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_coordinator_force_now_and_prepare_new_session() {
-        let agent = Arc::new(tokio::sync::Mutex::new(MockCoordinatorAgent::new()));
-        let coordinator = AgentCoordinator::new(agent, None, noop_cache(), noop_hook());
-
-        // force_now: invalide cache via cache_service
-        coordinator.force_now().await;
-
-        // prepare_for_new_session: should not error
-        coordinator.prepare_for_new_session().await;
-    }
-
-    #[tokio::test]
-    async fn test_checkpoint_save_and_restore() {
-        let temp_dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
-        let manager =
-            CheckpointManager::new(temp_dir.path().to_str().expect("测试：路径转字符串应成功"));
-
-        let checkpoint = CheckpointBuilder::new("plan-test-1", 0)
-            .with_completed_tasks(vec!["task-1".to_string(), "task-2".to_string()])
-            .with_state(serde_json::json!({
-                "progress": 0.4,
-                "phase": "setup"
-            }))
-            .with_label("After setup completion")
+    for i in 0..5 {
+        let cp = CheckpointBuilder::new("plan-cleanup", i as usize)
+            .with_state(serde_json::json!({"index": i}))
             .build();
-
-        let save_result = manager.save(&checkpoint).await;
-        assert!(save_result.is_ok());
-
-        let loaded = manager.load(&checkpoint.id).await.expect("测试：异步操作应成功");
-        assert_eq!(loaded.plan_id, checkpoint.plan_id);
-        assert_eq!(loaded.phase_index, checkpoint.phase_index);
-        assert_eq!(loaded.completed_task_ids.len(), 2);
-        assert_eq!(loaded.label, checkpoint.label);
-
-        assert_eq!(loaded.state["progress"], serde_json::json!(0.4));
+        manager.save(&cp).await.expect("测试：异步操作应成功");
+        tokio::time::sleep(Duration::from_millis(5)).await;
     }
 
-    #[tokio::test]
-    async fn test_checkpoint_list_and_delete() {
-        let temp_dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
-        let manager =
-            CheckpointManager::new(temp_dir.path().to_str().expect("测试：路径转字符串应成功"));
+    let deleted = manager.cleanup_old(2).await.expect("测试：异步操作应成功");
+    assert_eq!(deleted, 3);
 
-        let cp1 =
-            CheckpointBuilder::new("plan-list", 0).with_state(serde_json::json!({"v": 1})).build();
+    let remaining = manager.list().await.expect("测试：异步操作应成功");
+    assert_eq!(remaining.len(), 2);
+}
 
-        tokio::time::sleep(Duration::from_millis(10)).await;
+#[test]
+fn test_checkpoint_builder_defaults() {
+    let cp = CheckpointBuilder::new("plan-default", 2).build();
 
-        let cp2 =
-            CheckpointBuilder::new("plan-list", 1).with_state(serde_json::json!({"v": 2})).build();
+    assert_eq!(cp.plan_id, "plan-default");
+    assert_eq!(cp.phase_index, 2);
+    assert!(cp.completed_task_ids.is_empty());
+    assert!(cp.label.is_none());
+}
 
-        tokio::time::sleep(Duration::from_millis(10)).await;
+#[test]
+fn test_checkpoint_serialization() {
+    let cp = CheckpointBuilder::new("plan-serial", 1)
+        .with_completed_tasks(vec!["t1".to_string()])
+        .with_state(serde_json::json!({"key": "val"}))
+        .with_label("label")
+        .build();
 
-        manager.save(&cp1).await.expect("测试：异步操作应成功");
-        manager.save(&cp2).await.expect("测试：异步操作应成功");
+    let json = serde_json::to_string(&cp).expect("测试：JSON序列化应成功");
+    let deserialized: Checkpoint = serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
 
-        let all = manager.list().await.expect("测试：异步操作应成功");
-        assert!(all.len() >= 2);
-
-        manager.delete(&cp1.id).await.expect("测试：异步操作应成功");
-
-        let after_delete = manager.list().await.expect("测试：异步操作应成功");
-        let deleted_exists = after_delete.iter().any(|cp| cp.id == cp1.id);
-        assert!(!deleted_exists);
-
-        let delete_nonexistent = manager.delete("nonexistent-id").await;
-        assert!(delete_nonexistent.is_err());
-    }
-
-    #[tokio::test]
-    async fn test_checkpoint_latest_for_plan() {
-        let temp_dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
-        let manager =
-            CheckpointManager::new(temp_dir.path().to_str().expect("测试：路径转字符串应成功"));
-
-        let cp1 = CheckpointBuilder::new("plan-latest", 0)
-            .with_state(serde_json::json!({"v": 1}))
-            .build();
-
-        tokio::time::sleep(Duration::from_millis(10)).await;
-
-        let cp2 = CheckpointBuilder::new("plan-latest", 1)
-            .with_state(serde_json::json!({"v": 2}))
-            .build();
-
-        manager.save(&cp1).await.expect("测试：异步操作应成功");
-        tokio::time::sleep(Duration::from_millis(20)).await;
-        manager.save(&cp2).await.expect("测试：异步操作应成功");
-        tokio::time::sleep(Duration::from_millis(20)).await;
-
-        let latest = manager
-            .get_latest_for_plan("plan-latest")
-            .await
-            .expect("测试：异步操作应成功")
-            .expect("测试：集成测试操作应成功");
-
-        assert!(
-            latest.state["v"] == serde_json::json!(1) || latest.state["v"] == serde_json::json!(2),
-            "Expected v=1 or v=2, got {:?}",
-            latest.state["v"]
-        );
-    }
-
-    #[tokio::test]
-    async fn test_checkpoint_cleanup_old() {
-        let temp_dir = tempfile::tempdir().expect("测试：创建临时目录应成功");
-        let manager =
-            CheckpointManager::new(temp_dir.path().to_str().expect("测试：路径转字符串应成功"));
-
-        for i in 0..5 {
-            let cp = CheckpointBuilder::new("plan-cleanup", i as usize)
-                .with_state(serde_json::json!({"index": i}))
-                .build();
-            manager.save(&cp).await.expect("测试：异步操作应成功");
-            tokio::time::sleep(Duration::from_millis(5)).await;
-        }
-
-        let deleted = manager.cleanup_old(2).await.expect("测试：异步操作应成功");
-        assert_eq!(deleted, 3);
-
-        let remaining = manager.list().await.expect("测试：异步操作应成功");
-        assert_eq!(remaining.len(), 2);
-    }
-
-    #[test]
-    fn test_checkpoint_builder_defaults() {
-        let cp = CheckpointBuilder::new("plan-default", 2).build();
-
-        assert_eq!(cp.plan_id, "plan-default");
-        assert_eq!(cp.phase_index, 2);
-        assert!(cp.completed_task_ids.is_empty());
-        assert!(cp.label.is_none());
-    }
-
-    #[test]
-    fn test_checkpoint_serialization() {
-        let cp = CheckpointBuilder::new("plan-serial", 1)
-            .with_completed_tasks(vec!["t1".to_string()])
-            .with_state(serde_json::json!({"key": "val"}))
-            .with_label("label")
-            .build();
-
-        let json = serde_json::to_string(&cp).expect("测试：JSON序列化应成功");
-        let deserialized: Checkpoint =
-            serde_json::from_str(&json).expect("测试：JSON反序列化应成功");
-
-        assert_eq!(deserialized.plan_id, "plan-serial");
-        assert_eq!(deserialized.phase_index, 1);
-        assert_eq!(deserialized.completed_task_ids, vec!["t1".to_string()]);
-    }
+    assert_eq!(deserialized.plan_id, "plan-serial");
+    assert_eq!(deserialized.phase_index, 1);
+    assert_eq!(deserialized.completed_task_ids, vec!["t1".to_string()]);
 }
 
 // ============================================================================

@@ -6,6 +6,7 @@
 //! dream consolidator, the semantic cache, and the prompt cache.
 
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 use tokio::sync::RwLock as TokioRwLock;
 
 pub struct MemoryState {
@@ -13,6 +14,12 @@ pub struct MemoryState {
     pub sub_agent_registry: Arc<TokioRwLock<axagent_trajectory::SubAgentRegistry>>,
     pub memory_service: Arc<TokioRwLock<axagent_trajectory::MemoryService>>,
     pub nudge_service: Arc<tokio::sync::Mutex<axagent_trajectory::NudgeService>>,
+    /// 统一显著性仲裁器 — 多主动信号源竞争-广播（GWT 骨架）。
+    /// `saliency_enabled=false`（默认）时消费方不得使用，行为与无仲裁器完全一致。
+    pub saliency_arbiter: Arc<tokio::sync::Mutex<axagent_trajectory::SaliencyArbiter>>,
+    pub saliency_enabled: Arc<AtomicBool>,
+    /// 自主觉知监控器 — 内部状态感知与帧缓冲（R2：所有输入取真实运行时数据）。
+    pub awareness_monitor: Arc<tokio::sync::Mutex<axagent_trajectory::AwarenessMonitor>>,
     pub closed_loop_service: Arc<axagent_trajectory::ClosedLoopService>,
     pub trajectory_storage: Arc<axagent_trajectory::TrajectoryStorage>,
     pub insight_system: Arc<TokioRwLock<axagent_trajectory::LearningInsightSystem>>,
@@ -65,6 +72,13 @@ impl MemoryState {
             sub_agent_registry,
             memory_service,
             nudge_service,
+            saliency_arbiter: Arc::new(tokio::sync::Mutex::new(
+                axagent_trajectory::SaliencyArbiter::default(),
+            )),
+            saliency_enabled: Arc::new(AtomicBool::new(false)),
+            awareness_monitor: Arc::new(tokio::sync::Mutex::new(
+                axagent_trajectory::AwarenessMonitor::default(),
+            )),
             closed_loop_service,
             trajectory_storage,
             insight_system,

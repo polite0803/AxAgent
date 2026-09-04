@@ -721,6 +721,8 @@ fn start_closed_loop_service(_app: &tauri::AppHandle, state: &AppState) {
     let db = state.harness.db().clone();
     let closed_loop = state.closed_loop_service.clone();
     let nudge_service = state.nudge_service.clone();
+    let saliency_arbiter = state.memory.saliency_arbiter.clone();
+    let saliency_enabled = state.memory.saliency_enabled.clone();
     tauri::async_runtime::spawn(async move {
         if let Ok(settings) = axagent_dao::repo::settings::get_settings(&db).await {
             if settings.closed_loop_enabled {
@@ -736,7 +738,7 @@ fn start_closed_loop_service(_app: &tauri::AppHandle, state: &AppState) {
                             "[closed_loop] Generated {} periodic nudges",
                             new_nudges.len()
                         );
-                        let candidates: Vec<axagent_trajectory::NudgeCandidate> = new_nudges
+                        let mut candidates: Vec<axagent_trajectory::NudgeCandidate> = new_nudges
                             .iter()
                             .map(|pn| axagent_trajectory::NudgeCandidate {
                                 entity: axagent_trajectory::NudgeEntity {
@@ -760,6 +762,25 @@ fn start_closed_loop_service(_app: &tauri::AppHandle, state: &AppState) {
                                 suggested_action: Some(pn.suggested_action.clone()),
                             })
                             .collect();
+
+                        // 显著性仲裁（默认关闭；开启时仅广播胜者进入 nudge 生成）
+                        if saliency_enabled.load(std::sync::atomic::Ordering::Relaxed) {
+                            let signals = candidates
+                                .iter()
+                                .map(|c| {
+                                    axagent_trajectory::SaliencySignal::new(
+                                        axagent_trajectory::SignalSource::Nudge,
+                                        c.entity.confidence,
+                                        c.entity.id.clone(),
+                                    )
+                                })
+                                .collect();
+                            let packet = saliency_arbiter.lock().await.arbitrate(signals);
+                            let winner_ids: std::collections::HashSet<String> =
+                                packet.winners.iter().map(|w| w.signal.origin_id.clone()).collect();
+                            candidates.retain(|c| winner_ids.contains(&c.entity.id));
+                        }
+
                         let mut ns: tokio::sync::MutexGuard<'_, axagent_trajectory::NudgeService> =
                             nudge_service.lock().await;
                         let ctx = axagent_trajectory::NudgeContext {

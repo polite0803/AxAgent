@@ -858,6 +858,7 @@ mod tests_conversation {
             nudge_service: Arc::new(tokio::sync::Mutex::new(
                 axagent_trajectory::NudgeService::new(),
             )),
+            mcp_agent_server: Arc::new(axagent_mcp::McpAgentServer::stub()),
             closed_loop_service: {
                 let storage =
                     axagent_trajectory::TrajectoryStorage::new(std::sync::Arc::new(db.clone()));

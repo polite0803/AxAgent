@@ -17240,6 +17240,29 @@
     "title": "Cross-Market Quotes",
     "totalMv": "Total Market Cap"
   },
+  "awareness": {
+    "title": "System Awareness",
+    "noData": "No data yet",
+    "arousal": "Arousal",
+    "cognitiveLoad": "Cognitive Load",
+    "selfEfficacy": "Self-Efficacy",
+    "dominantFocus": "Dominant Focus",
+    "calibration": "Confidence Calibration",
+    "bias": "Avg Bias",
+    "overconfident": "Overconfident",
+    "calibrated": "Calibrated",
+    "underconfident": "Underconfident",
+    "lastBroadcast": "Last Broadcast",
+    "loadFailed": "Load failed"
+  },
+  "suggestion": {
+    "accept": "Accept",
+    "causalInsight": "Causal Insight",
+    "dismiss": "Dismiss",
+    "noSuggestions": "No suggestions",
+    "snooze": "Later",
+    "title": "Proactive Suggestions"
+  },
   "ui": {
     "getLocale": "Get Locale",
     "getTheme": "Get Theme",

@@ -17254,6 +17254,29 @@
     "read": "读取",
     "write": "写入"
   },
+  "awareness": {
+    "title": "시스템 인지",
+    "noData": "데이터 없음",
+    "arousal": "각성도",
+    "cognitiveLoad": "인지 부하",
+    "selfEfficacy": "자기 효능감",
+    "dominantFocus": "우세 초점",
+    "calibration": "신뢰도 보정",
+    "bias": "평균 편차",
+    "overconfident": "과신",
+    "calibrated": "보정 양호",
+    "underconfident": "과소 신뢰",
+    "lastBroadcast": "최근 브로드캐스트",
+    "loadFailed": "로드 실패"
+  },
+  "suggestion": {
+    "accept": "수락",
+    "causalInsight": "인과 인사이트",
+    "dismiss": "무시",
+    "noSuggestions": "제안 없음",
+    "snooze": "다음에",
+    "title": "능동적 제안"
+  },
   "ui": {
     "getLocale": "获取语言",
     "getTheme": "获取主题",

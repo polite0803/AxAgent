@@ -3066,6 +3066,7 @@ pub(crate) async fn persist_attachments_registers_stored_files_for_files_page() 
         trajectory_storage: trajectory_storage.clone(),
         memory_service: memory_service.clone(),
         nudge_service: Arc::new(tokio::sync::Mutex::new(axagent_trajectory::NudgeService::new())),
+        mcp_agent_server: Arc::new(axagent_mcp::McpAgentServer::stub()),
         closed_loop_service: {
             let storage =
                 axagent_trajectory::TrajectoryStorage::new(std::sync::Arc::new(db.clone()));

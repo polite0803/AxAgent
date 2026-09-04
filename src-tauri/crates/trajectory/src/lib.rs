@@ -20,7 +20,9 @@
 mod adaptation;
 mod auto_memory;
 mod auto_tool;
+mod awareness;
 mod batch;
+mod causal;
 mod coevolution;
 mod compactor;
 mod constitution;
@@ -45,6 +47,7 @@ mod process_reward;
 mod reminder_manager;
 mod replay;
 mod rl;
+mod saliency;
 mod sandbox_executor;
 mod skill;
 mod skill_decomposition;
@@ -82,9 +85,22 @@ pub use auto_tool::{
     slugify,
 };
 
+pub use awareness::{
+    AWARENESS_NAMESPACE, AwarenessFrame, AwarenessInput, AwarenessMonitor, BiasSummary,
+    CalibrationBucket, CalibrationRecord, ConfidenceCalibrator,
+};
+
 pub use batch::{
     BatchAnalysis, BatchConfig, BatchProcessor, BatchResult, PatternStat, QualityDistribution,
     SamplingStrategy,
+};
+
+pub use causal::{
+    CAUSAL_RELATION_TYPE, CausalChain, CausalEdgeStats, DEFAULT_HINT_MIN_CONFIDENCE,
+    build_delay_hints, causal_suggestions_for_intent, get_edge, intent_entity,
+    list_causal_edge_stats, normalize_topic, observe_edge, observe_from_trajectory, outcome_entity,
+    predict_chain, predict_chain_with_defaults, prediction_intent_entity, tool_entity,
+    topic_entity,
 };
 
 pub use coevolution::{CoevolutionConfig, CoevolutionEnvironment, DifficultyLevel};
@@ -118,7 +134,9 @@ pub use learning_graph::{
     CategoryCount, GraphEdge, GraphNode, GraphStats, LearningGraph, NodeKind, build_learning_graph,
 };
 
-pub use intrinsic_reward::{IntrinsicMotivationConfig, IntrinsicMotivationEngine};
+pub use intrinsic_reward::{
+    IntrinsicMotivationConfig, IntrinsicMotivationEngine, NoveltyEstimator,
+};
 
 pub use memory_providers::closed_loop::{
     AutoAction, ClosedLoopConfig, ClosedLoopService, PeriodicNudge, SkillUpgradeProposal,
@@ -146,12 +164,16 @@ pub use reminder_manager::{
 };
 
 pub use proactive_assistant::{
-    ContextPrediction, PredictedIntent, Priority, ProactiveAssistant, ProactiveConfig,
-    ProactiveSuggestion, RecurrenceFrequency, Reminder, ReminderRecurrence, SuggestionAction,
-    SuggestionType as ProactiveSuggestionType,
+    ContextPrediction, ContextWindow, PredictedIntent, Priority, ProactiveAssistant,
+    ProactiveConfig, ProactiveSuggestion, RecurrenceFrequency, Reminder, ReminderRecurrence,
+    SuggestionAction, SuggestionType as ProactiveSuggestionType,
 };
 
 pub use rl::{RLConfig, RLEngine, RewardNormalizer, RewardWeights};
+
+pub use saliency::{
+    BroadcastPacket, RankedSignal, SaliencyArbiter, SaliencyConfig, SaliencySignal, SignalSource,
+};
 
 pub use sandbox_executor::SkillSandboxExecutor;
 
@@ -205,7 +227,9 @@ pub use sub_agent::{SubAgent, SubAgentMetadata, SubAgentRegistry, SubAgentStatus
 
 pub use suggestion_engine::SuggestionEngine;
 
-pub use task_prefetcher::{PrefetchResult, PrefetchResults, PrefetchType, TaskPrefetcher};
+pub use task_prefetcher::{
+    PrefetchResult, PrefetchResults, PrefetchType, PrefetcherConfig, TaskPrefetcher,
+};
 
 pub use text_grad::{ComputationGraph, ComputationNode, NodeType, TextGradConfig, TextGradEngine};
 

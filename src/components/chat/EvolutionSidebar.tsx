@@ -5,12 +5,14 @@ import { theme } from "antd";
 import { X } from "lucide-react";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { AwarenessPanel } from "./AwarenessPanel";
 import { ClosedLoopPanel } from "./ClosedLoopPanel";
 import { EvolutionPanel } from "./EvolutionPanel";
 import { InsightPanel } from "./InsightPanel";
 import { NudgePanel } from "./NudgePanel";
 import { PatternPanel } from "./PatternPanel";
 import { RLPanel } from "./RLPanel";
+import { SuggestionPanel } from "./SuggestionPanel";
 import { TracerPanel } from "./TracerPanel";
 
 interface EvolutionSidebarProps {
@@ -72,6 +74,8 @@ export function EvolutionSidebar({ onClose }: EvolutionSidebarProps) {
       <PatternPanel />
       <InsightPanel />
       <NudgePanel />
+      <SuggestionPanel />
+      <AwarenessPanel />
       <TracerPanel />
     </div>
   );

@@ -506,21 +506,20 @@ export interface PatternMatchResult {
   reasoning: string;
 }
 
-
 // ============================================================================
 // AgentSessionBroker DTOs (后端 harness AgentSessionStatusView 镜像, camelCase 对齐)
 // ============================================================================
 
 /** Agent 会话状态枚举 (后端 SessionStatus snake_case 序列化值) */
 export type AgentSessionStatus =
-  | 'idle'
-  | 'initializing'
-  | 'running'
-  | 'waiting_approval'
-  | 'paused'
-  | 'completed'
-  | 'failed'
-  | 'cancelled';
+  | "idle"
+  | "initializing"
+  | "running"
+  | "waiting_approval"
+  | "paused"
+  | "completed"
+  | "failed"
+  | "cancelled";
 
 /** Agent 会话状态视图 (后端 harness AgentSessionBroker::get_session_status 返回值) */
 export interface AgentSessionStatusView {

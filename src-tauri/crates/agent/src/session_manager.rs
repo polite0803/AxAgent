@@ -1622,9 +1622,7 @@ impl axagent_harness::AgentSessionBroker for SessionManager {
             let mut tokens = self.cancel_tokens.lock().await;
             if let Some(token) = tokens.get(session_id) {
                 token.store(true, Ordering::SeqCst);
-                tracing::info!(
-                    "[SessionManager] cancel_token set for session {session_id}"
-                );
+                tracing::info!("[SessionManager] cancel_token set for session {session_id}");
             }
             // 清理 token（即使无注册也尝试 remove，幂等）
             tokens.remove(session_id);
@@ -1680,12 +1678,12 @@ impl axagent_harness::AgentSessionBroker for SessionManager {
                         ids.insert(db.conversation_id);
                     }
                 }
-            }
+            },
             Err(e) => {
                 tracing::warn!(
                     "[SessionManager] list_all DB fallback failed: {e}, returning only memory sessions"
                 );
-            }
+            },
         }
 
         Ok(ids.into_iter().collect())
@@ -2107,15 +2105,22 @@ mod tests {
         mgr.create_session("provider-1".to_string(), "conv-1".to_string())
             .await
             .expect("测试：异步操作应成功");
-        // 先 seed 一次
+        // 先 seed 一次（尾部 user 行会被截掉，需带一条 assistant 回复才能入库）
         assert!(
             mgr.seed_session_history(
                 "conv-1",
-                vec![axagent_harness::ConversationMessage {
-                    role: axagent_harness::conversation_model::MessageRole::User,
-                    blocks: vec![ContentBlock::Text { text: "第一轮".to_string() }],
-                    usage: None,
-                }],
+                vec![
+                    axagent_harness::ConversationMessage {
+                        role: axagent_harness::conversation_model::MessageRole::User,
+                        blocks: vec![ContentBlock::Text { text: "第一轮".to_string() }],
+                        usage: None,
+                    },
+                    axagent_harness::ConversationMessage {
+                        role: axagent_harness::conversation_model::MessageRole::Assistant,
+                        blocks: vec![ContentBlock::Text { text: "第一轮回复".to_string() }],
+                        usage: None,
+                    },
+                ],
             )
             .await
         );
@@ -2135,7 +2140,7 @@ mod tests {
             .get_or_create_session("provider-1".to_string(), "conv-1".to_string())
             .await
             .expect("测试：异步操作应成功");
-        assert_eq!(session.session().messages.len(), 1);
+        assert_eq!(session.session().messages.len(), 2);
     }
 
     #[tokio::test]

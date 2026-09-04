@@ -87,17 +87,37 @@ pub enum SuggestionType {
     Optimization,
     Debug,
     Learning,
+    /// 因果边推导的「接下来做什么」建议（见 `causal_suggestions_for_intent`）
+    CausalInsight,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum SuggestionAction {
-    PrefetchCompletion { language: String, context: String },
-    ShowRefactorOptions { target: String },
-    GenerateDocs { topic: String },
-    GenerateTests { target: String },
-    ShowOptimizations { target: String },
-    ShowLearningResources { topic: String },
+    PrefetchCompletion {
+        language: String,
+        context: String,
+    },
+    ShowRefactorOptions {
+        target: String,
+    },
+    GenerateDocs {
+        topic: String,
+    },
+    GenerateTests {
+        target: String,
+    },
+    ShowOptimizations {
+        target: String,
+    },
+    ShowLearningResources {
+        topic: String,
+    },
+    /// 因果边建议：附上证据实体，便于前端展示与归因
+    CausalInsight {
+        from_entity: String,
+        to_entity: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

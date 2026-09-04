@@ -102,13 +102,18 @@ serialization_contract!(
 serialization_contract!(
     test_agent_result_success,
     AgentResult,
-    AgentResult { output: "Hello World".to_string(), success: true, steps_taken: 5 }
+    AgentResult {
+        output: "Hello World".to_string(),
+        success: true,
+        steps_taken: 5,
+        session_id: None
+    }
 );
 
 serialization_contract!(
     test_agent_result_failure,
     AgentResult,
-    AgentResult { output: "".to_string(), success: false, steps_taken: 0 }
+    AgentResult { output: "".to_string(), success: false, steps_taken: 0, session_id: None }
 );
 
 // AgentPlan
@@ -532,6 +537,7 @@ fn test_unicode_characters() {
         output: "你好世界 🌍 مرحبا العالم こんにちは世界".to_string(),
         success: true,
         steps_taken: 1,
+        session_id: None,
     };
     let json = serde_json::to_string(&original).unwrap();
     let restored: AgentResult = serde_json::from_str(&json).unwrap();

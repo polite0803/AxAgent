@@ -104,6 +104,13 @@ pub struct CreateMultiSourceEntityInput {
 
 // ── EntityGraphProvider trait ──────────────────────────────
 
+/// 因果边在 `knowledge_relations.relation_type` 上的保留取值。
+///
+/// 因果边是行为统计（工具序列 / 意图转移），不是文档知识：
+/// RAG 图检索必须排除它，避免污染 `graph_enhanced_search` 结果。
+/// 权威定义在契约层，trajectory（写入方）与 dao（检索方）都引用此处。
+pub const CAUSAL_RELATION_TYPE: &str = "causes";
+
 #[async_trait]
 pub trait EntityGraphProvider: Send + Sync {
     async fn get_entities(&self, kb_id: &str) -> Result<Vec<KnowledgeEntity>, String>;

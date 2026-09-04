@@ -678,12 +678,24 @@ pub async fn graph_enhanced_search(
     }
 
     // 4. 查询所有命中 seed 的关系（双向）
+    //
+    // 分组语义必须是 `(kb_id = kb AND (source IN seeds OR target IN seeds))`。
+    // 不能写成链式 `a.and(b).or(c)` —— 那会变成 `(kb AND source) OR target`，
+    // OR 分支丢掉 kb_id 约束，导致跨知识库关系（含因果边，其 kb_id 为空串）泄露进检索。
+    // 因果边（relation_type = "causes"）是行为统计而非文档知识，显式排除。
     let relations = knowledge_relations::Entity::find()
         .filter(
-            knowledge_relations::Column::KnowledgeBaseId
-                .eq(kb_id)
-                .and(knowledge_relations::Column::SourceEntityId.is_in(seed_ids.clone()))
-                .or(knowledge_relations::Column::TargetEntityId.is_in(seed_ids.clone())),
+            Condition::all()
+                .add(knowledge_relations::Column::KnowledgeBaseId.eq(kb_id))
+                .add(
+                    Condition::any()
+                        .add(knowledge_relations::Column::SourceEntityId.is_in(seed_ids.clone()))
+                        .add(knowledge_relations::Column::TargetEntityId.is_in(seed_ids.clone())),
+                )
+                .add(
+                    knowledge_relations::Column::RelationType
+                        .ne(axagent_harness::knowledge_graph::CAUSAL_RELATION_TYPE),
+                ),
         )
         .all(db)
         .await?;

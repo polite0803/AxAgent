@@ -7,7 +7,6 @@
 //! - MCP McpAgentServer 的 status / cancel 工具（通过 Arc<dyn AgentSessionBroker>）
 //! - 测试 / 调试 AgentSessionBroker 契约
 
-
 use std::sync::Arc;
 
 use crate::AppState;
@@ -25,21 +24,18 @@ pub async fn agent_session_status(
 ) -> Result<AgentSessionStatusView, String> {
     let broker: Arc<dyn axagent_harness::AgentSessionBroker> = state.agent_session_manager.clone();
 
-    broker
-        .get_session_status(&session_id)
-        .await
-        .map_err(|e| {
-            if e.starts_with("session_not_found") {
-                String::from(
-                    ErrorResponse::new(mcp_err::AGENT_SESSION_NOT_FOUND)
-                        .with_category(crate::commands::error::ErrorCategory::Retryable)
-                        .with_detail(e)
-                        .with_param("sessionId", session_id.clone()),
-                )
-            } else {
-                e
-            }
-        })
+    broker.get_session_status(&session_id).await.map_err(|e| {
+        if e.starts_with("session_not_found") {
+            String::from(
+                ErrorResponse::new(mcp_err::AGENT_SESSION_NOT_FOUND)
+                    .with_category(crate::commands::error::ErrorCategory::Retryable)
+                    .with_detail(e)
+                    .with_param("sessionId", session_id.clone()),
+            )
+        } else {
+            e
+        }
+    })
 }
 
 #[agent_command(domain = agent, safety = Caution, call_mode = StateOnly, description = "取消 agent 会话执行")]
@@ -51,31 +47,25 @@ pub async fn agent_session_cancel(
 ) -> Result<(), String> {
     let broker: Arc<dyn axagent_harness::AgentSessionBroker> = state.agent_session_manager.clone();
 
-    broker
-        .cancel_session(&session_id)
-        .await
-        .map_err(|e| {
-            if e.starts_with("session_not_found") {
-                String::from(
-                    ErrorResponse::new(mcp_err::AGENT_SESSION_NOT_FOUND)
-                        .with_category(crate::commands::error::ErrorCategory::Retryable)
-                        .with_detail(e)
-                        .with_param("sessionId", session_id.clone()),
-                )
-            } else {
-                String::from(
-                    ErrorResponse::new(mcp_err::AGENT_SESSION_CANCEL_FAILED)
-                        .with_category(crate::commands::error::ErrorCategory::Retryable)
-                        .with_detail(e)
-                        .with_param("sessionId", session_id.clone()),
-                )
-            }
-        })?;
+    broker.cancel_session(&session_id).await.map_err(|e| {
+        if e.starts_with("session_not_found") {
+            String::from(
+                ErrorResponse::new(mcp_err::AGENT_SESSION_NOT_FOUND)
+                    .with_category(crate::commands::error::ErrorCategory::Retryable)
+                    .with_detail(e)
+                    .with_param("sessionId", session_id.clone()),
+            )
+        } else {
+            String::from(
+                ErrorResponse::new(mcp_err::AGENT_SESSION_CANCEL_FAILED)
+                    .with_category(crate::commands::error::ErrorCategory::Retryable)
+                    .with_detail(e)
+                    .with_param("sessionId", session_id.clone()),
+            )
+        }
+    })?;
 
-    let _ = app.emit(
-        "agent-session-cancelled",
-        serde_json::json!({ "sessionId": session_id }),
-    );
+    let _ = app.emit("agent-session-cancelled", serde_json::json!({ "sessionId": session_id }));
     Ok(())
 }
 

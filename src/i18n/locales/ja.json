@@ -17254,6 +17254,29 @@
     "read": "读取",
     "write": "写入"
   },
+  "awareness": {
+    "title": "システム覚知",
+    "noData": "データなし",
+    "arousal": "覚醒度",
+    "cognitiveLoad": "認知負荷",
+    "selfEfficacy": "自己効力感",
+    "dominantFocus": "支配的な焦点",
+    "calibration": "信頼度校正",
+    "bias": "平均バイアス",
+    "overconfident": "過信",
+    "calibrated": "校正良好",
+    "underconfident": "過小信頼",
+    "lastBroadcast": "直近のブロードキャスト",
+    "loadFailed": "読み込み失敗"
+  },
+  "suggestion": {
+    "accept": "受け入れる",
+    "causalInsight": "因果インサイト",
+    "dismiss": "却下",
+    "noSuggestions": "提案はありません",
+    "snooze": "後で",
+    "title": "プロアクティブ提案"
+  },
   "ui": {
     "getLocale": "获取语言",
     "getTheme": "获取主题",

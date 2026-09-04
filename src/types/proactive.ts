@@ -21,7 +21,8 @@ export type SuggestionType =
   | "Test"
   | "Optimization"
   | "Debug"
-  | "Learning";
+  | "Learning"
+  | "CausalInsight";
 
 export type PredictedIntent =
   | { type: "CodeCompletion"; language: string; context: string }
@@ -133,18 +134,19 @@ export interface ContextFeatures {
 }
 
 export type ActionType =
-  | "FileOpened"
-  | "FileEdited"
-  | "FileSaved"
-  | "CommandExecuted"
-  | "SearchPerformed"
-  | "ToolUsed"
-  | "ErrorEncountered"
-  | "CodeGenerated"
-  | "DocumentationViewed"
-  | "TestRun";
+  | "fileopened"
+  | "fileedited"
+  | "filesaved"
+  | "commandexecuted"
+  | "searchperformed"
+  | "toolused"
+  | "errorencountered"
+  | "codegenerated"
+  | "documentationviewed"
+  | "testrun";
 
-export type ActivityLevel = "Low" | "Medium" | "High";
+/** Backend serializes with serde `rename_all = "lowercase"` */
+export type ActivityLevel = "low" | "medium" | "high";
 
 export interface PatternMatch {
   patternType: string;
@@ -270,4 +272,52 @@ export interface ReminderNotificationItem {
   reminderTitle: string;
   triggeredAt: string;
   acknowledged: boolean;
+}
+
+// ── Awareness / Saliency backend DTO（`proactive_awareness_summary` 返回值）──
+
+export type SignalSource =
+  | "context_prediction"
+  | "novelty"
+  | "causal_insight"
+  | "nudge"
+  | "reminder"
+  | "prefetch";
+
+/** 单帧觉知快照（camelCase，对齐后端 `#[serde(rename_all = "camelCase")]`） */
+export interface AwarenessFrame {
+  arousal: number;
+  cognitiveLoad: number;
+  selfEfficacy: number;
+  dominantSource: SignalSource | null;
+  dominantOriginId: string | null;
+  createdAt: string;
+}
+
+/** 置信度校准偏差摘要 */
+export interface BiasSummary {
+  avgBias: number;
+  overconfidentRate: number;
+  calibratedRate: number;
+  underconfidentRate: number;
+}
+
+/** 仲裁器上一次广播包（camelCase，对齐后端 `#[serde(rename_all = "camelCase")]`） */
+export interface BroadcastPacket {
+  timestamp: string;
+  winners: Array<{
+    signal: {
+      source: SignalSource;
+      salience: number;
+      originId: string;
+      createdAt: string;
+    };
+    effective: number;
+  }>;
+}
+
+export interface AwarenessSummary {
+  frames: AwarenessFrame[];
+  calibration: BiasSummary | null;
+  lastBroadcast: BroadcastPacket | null;
 }

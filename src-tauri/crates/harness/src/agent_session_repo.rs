@@ -66,10 +66,7 @@ pub trait AgentSessionRepository: Send + Sync {
     async fn get_by_id(&self, id: &str) -> Result<Option<AgentSession>>;
 
     /// 按 conversation_id 查询 AgentSession（DB 回退用，内存未命中时查 DB）。
-    async fn get_by_conversation_id(
-        &self,
-        conversation_id: &str,
-    ) -> Result<Option<AgentSession>>;
+    async fn get_by_conversation_id(&self, conversation_id: &str) -> Result<Option<AgentSession>>;
 
     /// 列出全部持久化 AgentSession（会话管理面板 / 历史列表用）。
     async fn list_all(&self) -> Result<Vec<AgentSession>>;

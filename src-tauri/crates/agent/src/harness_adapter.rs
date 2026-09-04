@@ -52,8 +52,7 @@ impl HarnessAgentAdapter {
             name: name.to_string(),
             caps: vec![
                 AgentCapability {
-                    name: "reasoning".into(),
-                    description: "ReAct 推理循环".into(),
+                    name: "reasoning".into(), description: "ReAct 推理循环".into()
                 },
                 AgentCapability {
                     name: "tool_use".into(),
@@ -124,27 +123,28 @@ impl Agent for HarnessAgentAdapter {
             match sm.create_session(provider_id.clone(), conversation_id.clone()).await {
                 Ok(session) => Some(session.session().session_id.clone()),
                 Err(e) => {
-                    tracing::warn!("[HarnessAgentAdapter] create_session failed: {e}, falling back to no-session mode");
+                    tracing::warn!(
+                        "[HarnessAgentAdapter] create_session failed: {e}, falling back to no-session mode"
+                    );
                     None
-                }
+                },
             }
         } else {
             None
         };
 
         // 2. 获取本次执行对应的取消 token（优先 per-session，回退全局）
-        let cancel_token: Option<Arc<AtomicBool>> = if let (Some(sm), Some(sid)) =
-            (&self.session_manager, &session_id)
-        {
-            // per-session token：SessionManager.create_session 时注册
-            sm.get_cancel_token(sid).await
-        } else if let Some(ref flag) = self.cancellation_flag {
-            // 回退全局 flag（无 SessionManager 场景）
-            flag.store(false, std::sync::atomic::Ordering::SeqCst);
-            Some(Arc::clone(flag))
-        } else {
-            None
-        };
+        let cancel_token: Option<Arc<AtomicBool>> =
+            if let (Some(sm), Some(sid)) = (&self.session_manager, &session_id) {
+                // per-session token：SessionManager.create_session 时注册
+                sm.get_cancel_token(sid).await
+            } else if let Some(ref flag) = self.cancellation_flag {
+                // 回退全局 flag（无 SessionManager 场景）
+                flag.store(false, std::sync::atomic::Ordering::SeqCst);
+                Some(Arc::clone(flag))
+            } else {
+                None
+            };
 
         // 3. 执行推理循环（带取消检查钩子）
         let result = {

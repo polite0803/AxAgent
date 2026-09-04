@@ -800,6 +800,7 @@ macro_rules! register_all_commands {
             commands::plugin_profile::plugin_profile_patch,
             commands::proactive::list_insights,
             commands::proactive::proactive_accept_suggestion,
+            commands::proactive::proactive_awareness_summary,
             commands::proactive::proactive_dismiss_suggestion,
             commands::proactive::proactive_list_suggestions,
             commands::proactive::proactive_predict,
