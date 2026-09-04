@@ -149,6 +149,10 @@ pub unsafe fn assign_job_raw(
     Ok(JobHandle { _inner: Some(std::sync::Arc::new(job)) })
 }
 
+/// 非 Windows 平台空操作——直接返回 `JobHandle { _inner: None }`。
+///
+/// # Safety
+/// 本 stub 不执行任何 unsafe 操作，传入参数直接被忽略。
 #[cfg(not(windows))]
 pub unsafe fn assign_job_raw(_process_handle: isize) -> Result<JobHandle, String> {
     Ok(JobHandle { _inner: None })
