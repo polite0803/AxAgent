@@ -43,9 +43,18 @@ impl SandboxedChild {
 
     /// 等待进程退出并收集全部输出。
     ///
-    /// 使用 `ManuallyDrop::into_inner` 取出 Child，避免 Drop impl 的冲突。
+    /// 用 `ptr::read` 绕过 Rust 禁止从 Drop 类型 move 字段的限制（E0509），
+    /// 配合 `mem::forget(self)` 阻止 self 的 Drop 被调用。
     pub async fn wait_with_output(self) -> Result<SandboxedOutput, String> {
-        let mut child = std::mem::ManuallyDrop::into_inner(self.child);
+        // SAFETY: SandboxedChild 实现了 Drop，编译器禁止从 self move 字段。
+        // ptr::read 绕过此限制，ManuallyDrop::into_inner 取出内部 Child，
+        // forget(self) 阻止 self Drop 再次 start_kill + drop ManuallyDrop。
+        let child_man_drop = unsafe {
+            std::ptr::read(&self.child as *const std::mem::ManuallyDrop<tokio::process::Child>)
+        };
+        let mut child = child_man_drop.into_inner();
+        std::mem::forget(self);
+
         let output =
             child.wait_with_output().await.map_err(|e| format!("沙箱命令执行异常: {e}"))?;
         Ok(SandboxedOutput {
