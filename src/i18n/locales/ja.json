@@ -2757,6 +2757,8 @@
     "WIKI_DELETE_FAILED": "Wikiの削除に失敗しました",
     "WIKI_IMPORT_FAILED": "Wikiのインポートに失敗しました",
     "WIKI_EXPORT_FAILED": "Wikiのエクスポートに失敗しました",
+    "WORKFLOW_EXECUTE_FAILED": "ワークフロー実行に失敗しました",
+    "WORKFLOW_EXECUTOR_NOT_SET": "ワークフローエグゼキュータが未注入のため利用できません",
     "WORKFLOW_INVALID_JSON": "無効なワークフローJSONです",
     "WORKFLOW_NODE_NOT_FOUND": "ワークフローノードが見つかりません",
     "WORKFLOW_NOT_FOUND": "ワークフローが見つかりません",

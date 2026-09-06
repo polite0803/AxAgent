@@ -58,6 +58,7 @@ pub mod push_notification;
 pub mod reddit_scanner;
 pub mod repl;
 pub mod rpc;
+pub mod run_workflow;
 pub mod save_as_workflow;
 pub mod skill;
 pub mod stackoverflow_scanner;
@@ -126,6 +127,8 @@ pub fn register_all(registry: &mut crate::registry::ToolRegistry) {
         std::sync::Arc::new(capability_load::CapabilityLoadTool),
         // ── 能力持久化：把已加载能力组装为工作流模板 ──
         std::sync::Arc::new(save_as_workflow::SaveAsWorkflowTool),
+        // ── 工作流执行入口：认知编排命中 Workflow 能力后由 agent 发起执行（T3）──
+        std::sync::Arc::new(run_workflow::RunWorkflowTool),
         // ── 能力渐进式披露 L0：导航层（能力树逐层下钻）──
         std::sync::Arc::new(capability_browse::CapabilityBrowseTool),
         std::sync::Arc::new(skill::SkillBundleListTool),

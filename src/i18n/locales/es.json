@@ -2757,6 +2757,8 @@
     "WIKI_DELETE_FAILED": "Error al eliminar el Wiki",
     "WIKI_IMPORT_FAILED": "Error al importar el Wiki",
     "WIKI_EXPORT_FAILED": "Error al exportar el Wiki",
+    "WORKFLOW_EXECUTE_FAILED": "Error al ejecutar el flujo de trabajo",
+    "WORKFLOW_EXECUTOR_NOT_SET": "Ejecutor de flujo de trabajo no inyectado (función no disponible)",
     "WORKFLOW_INVALID_JSON": "JSON de flujo de trabajo no válido",
     "WORKFLOW_NODE_NOT_FOUND": "Nodo de flujo de trabajo no encontrado",
     "WORKFLOW_NOT_FOUND": "Flujo de trabajo no encontrado",

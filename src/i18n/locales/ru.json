@@ -2757,6 +2757,8 @@
     "WIKI_DELETE_FAILED": "Ошибка удаления Wiki",
     "WIKI_IMPORT_FAILED": "Ошибка импорта Wiki",
     "WIKI_EXPORT_FAILED": "Ошибка экспорта Wiki",
+    "WORKFLOW_EXECUTE_FAILED": "Не удалось выполнить рабочий процесс",
+    "WORKFLOW_EXECUTOR_NOT_SET": "Исполнитель рабочего процесса не внедрён (функция недоступна)",
     "WORKFLOW_INVALID_JSON": "Недопустимый JSON рабочего процесса",
     "WORKFLOW_NODE_NOT_FOUND": "Узел рабочего процесса не найден",
     "WORKFLOW_NOT_FOUND": "Рабочий процесс не найден",

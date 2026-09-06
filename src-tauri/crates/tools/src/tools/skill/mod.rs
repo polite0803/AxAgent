@@ -1002,7 +1002,14 @@ impl Tool for DiscoverSkillsTool {
         let shown: Vec<DiscoverHit> = hits.into_iter().take(top_k).collect();
 
         if shown.is_empty() {
-            return Ok(ToolResult::success(format!("未找到匹配 '{query}' 的能力或技能")));
+            // T5：未命中输出带机器可读标记（循环终止辅助凭此计数）+ 明确引导，
+            // 避免模型无休止换关键词检索（此前返回裸文本无任何行动指引）
+            return Ok(ToolResult::success(format!(
+                "{} 未找到匹配 '{query}' 的能力或技能。\
+                 请停止换关键词检索：可尝试 CapabilityLoad 已加载的能力直接作答，\
+                 或基于已有上下文回答；确实无法完成时，明确向用户声明数据不可得。",
+                axagent_harness::constants::capability_chain::SEARCH_MISS_MARKER
+            )));
         }
 
         let mut out = format!("## 能力检索: '{query}'（按相关性排序）\n\n");

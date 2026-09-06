@@ -2757,6 +2757,8 @@
     "WIKI_DELETE_FAILED": "Échec de la suppression du Wiki",
     "WIKI_IMPORT_FAILED": "Échec de l'importation du Wiki",
     "WIKI_EXPORT_FAILED": "Échec de l'exportation du Wiki",
+    "WORKFLOW_EXECUTE_FAILED": "Échec de l'exécution du workflow",
+    "WORKFLOW_EXECUTOR_NOT_SET": "Exécuteur de workflow non injecté (fonction indisponible)",
     "WORKFLOW_INVALID_JSON": "JSON de workflow invalide",
     "WORKFLOW_NODE_NOT_FOUND": "Nœud de workflow introuvable",
     "WORKFLOW_NOT_FOUND": "Workflow introuvable",

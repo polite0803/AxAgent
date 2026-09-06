@@ -204,9 +204,32 @@ impl Tool for CapabilityLoadTool {
 ///
 /// - `Tool`：护照自带的 `tool_ref.tool_name`
 /// - `Toolchain`：按 `steps` 展开各步骤引用的真实工具
+/// - `Workflow`：激活 `RunWorkflow`（T3 执行链闭环）—— tool_ref 指向执行入口，
+///   入参 schema 在工作流自身 `input_schema` 上补 `workflow_id` 必填项，
+///   描述指明 workflow_id 取护照 capability_id，避免模型空手调用
 /// - 其余类型（Skill / Template / KnowledgeBase）是**指令**而非可调用函数，
 ///   不生成工具定义 —— 它们的正文由下轮注入块承载。
 fn chat_tools_for(passport: &axagent_harness::CapabilityPassportDto) -> Vec<ChatTool> {
+    if passport.kind == axagent_harness::CapabilityKind::Workflow {
+        return passport
+            .tool_ref
+            .as_ref()
+            .map(|r| {
+                vec![ChatTool {
+                    r#type: "function".to_string(),
+                    function: ChatToolFunction {
+                        name: r.tool_name.clone(),
+                        description: Some(format!(
+                            "{}（调用时 workflow_id 固定填 \"{}\"，工作流入参直接作为顶层参数传入）",
+                            passport.description, passport.capability_id
+                        )),
+                        parameters: Some(run_workflow_chat_schema(passport)),
+                    },
+                }]
+            })
+            .unwrap_or_default();
+    }
+
     let names: Vec<String> = if passport.kind == axagent_harness::CapabilityKind::Toolchain {
         // 工具链按步骤顺序展开；护照内只存 ID，工具名在引用里
         passport.steps.iter().filter_map(|s| s.strip_prefix("tool:").map(str::to_string)).collect()
@@ -227,6 +250,37 @@ fn chat_tools_for(passport: &axagent_harness::CapabilityPassportDto) -> Vec<Chat
             },
         })
         .collect()
+}
+
+/// RunWorkflow 的 chat 入参 schema：工作流自身 `input_schema` 透传 + `workflow_id` 必填。
+///
+/// 生成的 schema 形态为扁平调用（`{workflow_id, <工作流入参...>}`），
+/// `RunWorkflowTool::call` 会把除 `workflow_id`/`input` 外的顶层键整体作为执行输入透传。
+fn run_workflow_chat_schema(passport: &axagent_harness::CapabilityPassportDto) -> Value {
+    let mut schema = match passport.input_schema.clone() {
+        Some(Value::Object(map)) => map,
+        _ => serde_json::Map::new(),
+    };
+    if !schema.contains_key("type") {
+        schema.insert("type".to_string(), Value::String("object".to_string()));
+    }
+    let props = schema.entry("properties").or_insert_with(|| json!({}));
+    if let Value::Object(props) = props {
+        props.insert(
+            "workflow_id".to_string(),
+            json!({
+                "type": "string",
+                "description": format!("工作流/能力 ID，固定填 \"{}\"", passport.capability_id)
+            }),
+        );
+    }
+    let mut required: Vec<Value> =
+        schema.get("required").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+    if !required.iter().any(|v| v.as_str() == Some("workflow_id")) {
+        required.insert(0, Value::String("workflow_id".to_string()));
+    }
+    schema.insert("required".to_string(), Value::Array(required));
+    Value::Object(schema)
 }
 
 fn not_found(message: String) -> ToolError {

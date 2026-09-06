@@ -649,6 +649,12 @@ where
         const MAX_IDENTICAL_CALLS: u32 = 3; // Warn after 3 identical calls
         const MAX_IDENTICAL_CALLS_HARD: u32 = 5; // Hard limit: abort after 5
 
+        // ── T5：检索类工具连续未命中计数（换关键词检索也算未命中）──
+        // 防止 agent 退化成无限检索循环（此前 DiscoverSkills 10+ 次未命中仍不停）。
+        let mut consecutive_search_misses: u32 = 0;
+        const SEARCH_MISS_NUDGE_THRESHOLD: u32 = 3; // 连续 3 次未命中 → 注入停止检索提示
+        const SEARCH_MISS_FORCE_THRESHOLD: u32 = 5; // 连续 5 次 → 强制要求直接作答
+
         loop {
             iterations += 1;
 
@@ -897,10 +903,14 @@ where
                 self.exec_sync_hook(hook_chain.execute_post_llm_call(&llm_ctx, &llm_result));
             }
             if !turn_thinking.is_empty() {
-                if !thinking.is_empty() {
-                    thinking.push('\n');
+                // T5：去重追加 —— thinking 未回传模型时，下一轮常复述同段思考，
+                // 无脑累积会把大段重复内容写进正文。与已累积内容重复的段落不再拼接。
+                if !thinking.contains(&turn_thinking) {
+                    if !thinking.is_empty() {
+                        thinking.push('\n');
+                    }
+                    thinking.push_str(&turn_thinking);
                 }
-                thinking.push_str(&turn_thinking);
             }
             if let Some(usage) = usage {
                 self.usage_tracker.record(usage);
@@ -1187,6 +1197,54 @@ where
                                 || post_hook_result.is_failed()
                                 || post_hook_result.is_cancelled(),
                         );
+
+                        // ── T5：检索类工具连续未命中 → 循环终止辅助 ──
+                        // 未命中判定凭 tools crate 写入输出的机器可读标记
+                        // （SEARCH_MISS_MARKER），不同入参也计数 —— 与上方
+                        // "同名工具 + 相同入参" 的重复检测互补。
+                        if matches!(tool_name.as_str(), "DiscoverSkills" | "CapabilityBrowse") {
+                            if output.contains(
+                                axagent_harness::constants::capability_chain::SEARCH_MISS_MARKER,
+                            ) {
+                                consecutive_search_misses += 1;
+                                if consecutive_search_misses == SEARCH_MISS_NUDGE_THRESHOLD {
+                                    tracing::warn!(
+                                        tool = %tool_name,
+                                        misses = %consecutive_search_misses,
+                                        "[T5] 检索类工具连续未命中，注入停止检索提示"
+                                    );
+                                    let nudge = ConversationMessageExt::assistant(vec![
+                                        ContentBlock::Text {
+                                            text: "[System] 工具检索已连续 3 次未命中。请停止继续检索：\
+                                                   基于已加载能力（CapabilityLoad）作答，或基于已有上下文直接回答；\
+                                                   确实无法完成时，明确向用户声明数据不可得。"
+                                                .to_string(),
+                                        },
+                                    ]);
+                                    self.session
+                                        .push_message(nudge)
+                                        .map_err(|error| RuntimeError::new(error.to_string()))?;
+                                } else if consecutive_search_misses >= SEARCH_MISS_FORCE_THRESHOLD {
+                                    tracing::warn!(
+                                        tool = %tool_name,
+                                        misses = %consecutive_search_misses,
+                                        "[T5] 检索类工具连续未命中达上限，强制要求直接作答"
+                                    );
+                                    let force = ConversationMessageExt::assistant(vec![
+                                        ContentBlock::Text {
+                                            text: "[System] 工具检索已连续 5 次未命中。必须停止调用任何检索工具，\
+                                                   立即基于已有信息直接回答用户；缺少的数据如实标注为不可得。"
+                                                .to_string(),
+                                        },
+                                    ]);
+                                    self.session
+                                        .push_message(force)
+                                        .map_err(|error| RuntimeError::new(error.to_string()))?;
+                                }
+                            } else {
+                                consecutive_search_misses = 0;
+                            }
+                        }
 
                         // ── PluginHook: post_tool_call ──
                         if let Some(ref hook_chain) = self.hook_chain {

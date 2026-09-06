@@ -88,6 +88,9 @@ pub mod event_name {
     pub const AGENT_STATUS: &str = "agent-status";
     pub const CHAT_STREAM_ERROR: &str = "chat-stream-error";
     pub const SKILL_FILE_CHANGED: &str = "skill:file-changed";
+    /// 认知编排路由观测事件（T6）：三层路由决策 / 执行分派 / 结束失败三时点 emit，
+    /// 前端 cognitiveRouteStore 订阅后即时渲染，不再依赖同步返回值单通道。
+    pub const COGNITIVE_ROUTE_EVENT: &str = "cognitive-route-event";
 }
 
 /// 传输类型
@@ -281,6 +284,23 @@ pub mod embed {
 /// Agent 执行默认迭代上限。各层（coordinator / agent_runtime / conversation_runtime）
 /// 引用此常量以避免三层默认值不一致。coordinator 层可在 AgentConfig 中覆写。
 pub const DEFAULT_MAX_ITERATIONS: usize = 50;
+
+/// 认知编排执行链共享常量（护照投影 ↔ agent 工具 ↔ 循环终止辅助共用，禁止散落字面量）
+pub mod capability_chain {
+    /// RunWorkflow agent 工具的注册名。
+    ///
+    /// 护照 tool_ref（`workflow_types::WorkflowTemplatePassportParams`）与
+    /// tools crate 的注册名（`tools::tools::run_workflow::RunWorkflowTool`）
+    /// 必须共用此常量，否则「看得到调不动」。
+    pub const RUN_WORKFLOW_TOOL: &str = "RunWorkflow";
+
+    /// 检索类工具「未命中」输出的机器可读标记。
+    ///
+    /// DiscoverSkills / CapabilityBrowse 未命中时写入输出文本，
+    /// runtime-core 的循环终止辅助凭此计数（连续 N 次未命中 → 注入停止检索提示），
+    /// 避免跨 crate 文本匹配魔法字符串。
+    pub const SEARCH_MISS_MARKER: &str = "[capability-search-miss]";
+}
 
 /// 智能路由层级
 pub mod routing_tier {

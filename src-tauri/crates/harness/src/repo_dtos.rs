@@ -86,6 +86,9 @@ impl WorkflowTemplateData {
     /// - `visibility`：本 DTO 无该列（表未持久化），按 `route_path` L1 段是否为
     ///   `system` 推导 SystemOnly / Public，与 workflow_types 版同口径。
     pub fn to_capability_passport(&self) -> crate::capability::CapabilityPassportDto {
+        // 节点 JSON 解析一次：node_count 与 steps 摘要共用（T2 执行链投影）
+        let parsed_nodes: Vec<serde_json::Value> =
+            serde_json::from_str::<Vec<serde_json::Value>>(&self.nodes).unwrap_or_default();
         crate::workflow_types::workflow_template_passport(
             crate::workflow_types::WorkflowTemplatePassportParams {
                 id: self.id.clone(),
@@ -98,14 +101,14 @@ impl WorkflowTemplateData {
                     .unwrap_or_default(),
                 cluster_id: self.cluster_id.clone(),
                 route_path: self.route_path.clone(),
-                node_count: serde_json::from_str::<Vec<serde_json::Value>>(&self.nodes)
-                    .map(|v| v.len())
-                    .unwrap_or(0),
+                node_count: parsed_nodes.len(),
                 visibility: crate::capability::Visibility::Public,
                 input_schema: self
                     .input_schema
                     .as_deref()
                     .and_then(|s| serde_json::from_str::<serde_json::Value>(s).ok()),
+                tool_ref: crate::workflow_types::workflow_passport_tool_ref(),
+                steps: crate::workflow_types::project_node_steps(&parsed_nodes),
             },
         )
     }

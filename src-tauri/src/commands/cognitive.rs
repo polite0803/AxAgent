@@ -626,6 +626,17 @@ pub async fn cognitive_query(
                 if let Some(ovr) = &shortcut_override {
                     apply_shortcut_override(&mut response, ovr);
                 }
+                // ── T6：③ 结束事件（成功路径；降级 general_ask 的 Ok 也在此覆盖）──
+                emit_route_event(
+                    &app,
+                    request.conversation_id.as_deref(),
+                    "completed",
+                    serde_json::json!({
+                        "capabilityId": response.capability_id,
+                        "executionMode": response.execution_mode,
+                        "execution": serde_json::to_value(&response.execution).ok(),
+                    }),
+                );
                 return Ok(response);
             },
             Err(e) => {
@@ -639,6 +650,17 @@ pub async fn cognitive_query(
                     );
                     continue;
                 }
+                // ── T6：③ 失败事件（错误路径观测不再丢失）──
+                emit_route_event(
+                    &app,
+                    request.conversation_id.as_deref(),
+                    "failed",
+                    serde_json::json!({
+                        "errorCode": e.code,
+                        "errorCategory": format!("{:?}", e.category),
+                        "errorDetail": e.detail,
+                    }),
+                );
                 return Err(e);
             },
         }
@@ -678,6 +700,38 @@ fn derive_mode_from_execution_view(view: &Option<CognitiveExecutionView>) -> &'s
         Some(CognitiveExecutionView::Plan { .. }) => ExecutionMode::Plan.as_str(),
         Some(CognitiveExecutionView::Clarify { .. }) => ExecutionMode::Clarify.as_str(),
         Some(CognitiveExecutionView::Agent { .. }) | None => ExecutionMode::Delegate.as_str(),
+    }
+}
+
+/// T6：路由观测事件发射（`cognitive-route-event`）。
+///
+/// 观测数据此前只有 `cognitive_query` 的同步返回值一条通道，而该命令同步阻塞
+/// 等整个 agent/工作流执行完才返回 —— 前端路由观测面板全程无数据，错误路径
+/// （catch 分支）观测永久丢失。改为三时点 emit：
+/// ① `route_decision` 三层路由决策完成（含 stage_records）
+/// ② `dispatch` 执行模式分派
+/// ③ `completed` / `failed` 结束（错误路径也发）
+/// 保留同步返回值通道向后兼容。
+fn emit_route_event(
+    app: &tauri::AppHandle,
+    conversation_id: Option<&str>,
+    phase: &str,
+    payload: serde_json::Value,
+) {
+    let mut body = serde_json::json!({
+        "phase": phase,
+        "emittedAtMs": axagent_harness::util_fns::now_ms(),
+    });
+    if let Some(cid) = conversation_id {
+        body["conversationId"] = serde_json::Value::String(cid.to_string());
+    }
+    if let serde_json::Value::Object(extra) = payload {
+        for (key, value) in extra {
+            body[key] = value;
+        }
+    }
+    if let Err(e) = app.emit(axagent_harness::constants::event_name::COGNITIVE_ROUTE_EVENT, body) {
+        tracing::warn!("[cognitive] 路由观测事件发送失败: {}", e);
     }
 }
 
@@ -735,6 +789,9 @@ async fn resolve_exposure_injection(
                     }
                 },
                 _ => {
+                    // Tool / Workflow 护照：凭 tool_ref 产执行工具。
+                    // T2 后 Workflow 护照的 tool_ref 指向 RunWorkflow（此前全 None，
+                    // 本分支对 Workflow 护照产不出任何工具 → 编排模式"看得到调不动"）。
                     if let Some(tr) = p.tool_ref {
                         tools.push(tr.tool_name);
                     }
@@ -1561,6 +1618,25 @@ async fn cognitive_query_inner(
                         break;
                     }
                 }
+                // ── T1 修正：Workflow 命中且必填参数可从用户输入抽取时不改道 ──
+                // 此前命中即 defer，把本可直执行的 Workflow 模板降级为 agent 路径，
+                // agent 编排模式又只放行披露元工具 → 退化成反复 DiscoverSkills 检索。
+                // 已加载能力是 Workflow/Tool 类可执行能力时（CapabilityLoad 的正常产物），
+                // 只要必填参数可抽取就保持直执行；defer 仅保留给无法补参的场景。
+                if overlap
+                    && hit.kind == axagent_harness::CapabilityKind::Workflow
+                    && crate::commands::workflows::required_params_extractable(
+                        &input,
+                        hit.input_schema.as_ref(),
+                    )
+                {
+                    tracing::info!(
+                        capability_id = %hit.capability_id,
+                        execution_mode = ?mode,
+                        "🧭 F3 修正：Workflow 命中且必填参数可抽取，保持直执行路径（不改道 agent）"
+                    );
+                    overlap = false;
+                }
                 overlap
             },
             None => false,
@@ -1588,6 +1664,24 @@ async fn cognitive_query_inner(
         response.execution_mode = ExecutionMode::Delegate.as_str().to_string();
     }
 
+    // ── T6：① 三层路由决策完成事件（含 stage_records 观测链）──
+    // 此时 F3 改道已定，execution_mode 为最终分派口径
+    emit_route_event(
+        &app,
+        request.conversation_id.as_deref(),
+        "route_decision",
+        serde_json::json!({
+            "capabilityId": response.capability_id,
+            "executionMode": response.execution_mode,
+            "routePath": response.route_path,
+            "domain": response.domain,
+            "cluster": response.cluster,
+            "confidence": response.confidence,
+            "isLlmFallback": response.is_llm_fallback,
+            "stageRecords": serde_json::to_value(&fallback_stage_views).ok(),
+        }),
+    );
+
     // ── Clarify 兜底无候选 → 能力补齐提议通道（T0.5）──
     // 主 DAG 决策为 Clarify（置信度模糊）但候选为空（RAR/图谱兜底无命中）时，
     // 不进入空候选展示，而是生成 capability_missing 提议征求用户同意；
@@ -1606,6 +1700,17 @@ async fn cognitive_query_inner(
             .await;
     }
 
+    // ── T6：② 执行模式分派事件 ──
+    emit_route_event(
+        &app,
+        request.conversation_id.as_deref(),
+        "dispatch",
+        serde_json::json!({
+            "capabilityId": response.capability_id,
+            "executionMode": mode.as_str(),
+        }),
+    );
+
     response.execution = Some(match mode {
         // Workflow / Direct：capability_id 即工作流模板 ID，交给 WorkEngine 执行
         // 执行失败 → 存缺口 + 降级 LLM 回答（分支 1）
@@ -1613,13 +1718,19 @@ async fn cognitive_query_inner(
         // 落到下方通配分支转 agent 路径（LLM 在已加载能力上下文中编排）。
         ExecutionMode::Workflow | ExecutionMode::Direct if !defer_to_agent => {
             let workflow_id = response.capability_id.clone();
+            // ── T1：直执行前把文本可抽取参数（如 stock_code）合并进执行选项 ──
+            // 与 workflow_execute 内部的对话驱动合并逻辑同源（workflows::extract_params_from_text），
+            // 显式透传保证「判据用哪套规则、执行就用哪套规则」。
+            let mut extracted_vars: Vec<axagent_harness::workflow_types::Variable> = Vec::new();
+            crate::commands::workflows::extract_params_from_text(&input, &mut extracted_vars);
+            let extracted = (!extracted_vars.is_empty()).then_some(extracted_vars);
             match crate::commands::workflows::workflow_execute(
                 app.clone(),
                 state.clone(),
                 workflow_id.clone(),
                 request.model_id.clone(),
                 request.provider_id.clone(),
-                None,
+                extracted,
                 request.max_concurrent,
                 request.conversation_id.clone(),
                 Some(serde_json::Value::String(input.clone())),

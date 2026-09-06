@@ -203,6 +203,10 @@ pub mod workflow {
     pub const INVALID_JSON: &str = "WORKFLOW_INVALID_JSON";
     pub const NOT_FOUND: &str = "WORKFLOW_NOT_FOUND";
     pub const PLAN_NOT_FOUND: &str = "WORKFLOW_PLAN_NOT_FOUND";
+    /// RunWorkflow 工具执行器未注入（wiring 缺失，wiring 层须在启动期 set_workflow_executor）
+    pub const EXECUTOR_NOT_SET: &str = "WORKFLOW_EXECUTOR_NOT_SET";
+    /// RunWorkflow 工具执行失败（工作流引擎返回错误）
+    pub const EXECUTE_FAILED: &str = "WORKFLOW_EXECUTE_FAILED";
 }
 
 /// 终端相关错误码

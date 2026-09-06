@@ -569,7 +569,11 @@ pub async fn workflow_execute(
 /// - `genre`: 体裁识别（小说/散文/诗歌等）
 ///
 /// 提取后若 vars 中已有同名变量则覆盖，否则新增。
-fn extract_params_from_text(text: &str, vars: &mut Vec<Variable>) {
+/// 从用户输入文本提取结构化变量（股票代码/字数/章节数/题材/体裁）。
+///
+/// `pub(crate)`：cognitive.rs 的 F3 闸改道判据（required_params_extractable）
+/// 与直执行变量合并共用同一规则，避免两处漂移。
+pub(crate) fn extract_params_from_text(text: &str, vars: &mut Vec<Variable>) {
     // 1. 股票代码：6 位纯数字，独立出现
     if let Ok(re) = Regex::new(r"\b(\d{6})\b") {
         if let Some(caps) = re.captures(text) {
@@ -622,6 +626,68 @@ fn extract_params_from_text(text: &str, vars: &mut Vec<Variable>) {
             }
         }
     }
+}
+
+/// 判断 `input_schema` 的必填参数能否从用户输入中抽取（T1：F3 闸改道判据）。
+///
+/// 无 schema / 无必填参数 → 视为可抽取（直执行无参数障碍）。
+/// 有必填参数时，跑一遍与 `workflow_execute` 相同的文本抽取规则，
+/// 按「精确名 + 语义别名」判定每个必填项是否可抽取：
+/// - 别名：stock/code/symbol → stock_code；word → word_count；chapter → chapter_count；
+///   topic/theme/subject → topic；genre/style → genre
+/// - 自由文本型参数（query/question/prompt/task/text/content/message/input/goal）
+///   直接以整段用户输入充当，恒可抽取
+///
+/// 任一必填项不可抽取 → false（保持 F3 改道 agent 路径，让 LLM 补参）。
+pub(crate) fn required_params_extractable(
+    input_text: &str,
+    input_schema: Option<&serde_json::Value>,
+) -> bool {
+    let Some(schema) = input_schema else { return true };
+    let Some(required) = schema.get("required").and_then(|v| v.as_array()) else { return true };
+    if required.is_empty() {
+        return true;
+    }
+
+    // 与 workflow_execute 执行前同源的抽取规则，保证判据与实际执行一致
+    let mut vars: Vec<Variable> = Vec::new();
+    extract_params_from_text(input_text, &mut vars);
+    let extracted: Vec<&str> = vars.iter().map(|v| v.name.as_str()).collect();
+
+    required.iter().filter_map(|v| v.as_str()).all(|name| {
+        if extracted.contains(&name) {
+            return true;
+        }
+        let lower = name.to_lowercase();
+        if lower.contains("stock") || lower.contains("code") || lower.contains("symbol") {
+            return extracted.contains(&"stock_code");
+        }
+        if lower.contains("word") {
+            return extracted.contains(&"word_count");
+        }
+        if lower.contains("chapter") {
+            return extracted.contains(&"chapter_count");
+        }
+        if lower.contains("topic") || lower.contains("theme") || lower.contains("subject") {
+            return extracted.contains(&"topic");
+        }
+        if lower.contains("genre") || lower.contains("style") {
+            return extracted.contains(&"genre");
+        }
+        // 自由文本型：整段用户输入即可充当
+        matches!(
+            lower.as_str(),
+            "query"
+                | "question"
+                | "prompt"
+                | "task"
+                | "text"
+                | "content"
+                | "message"
+                | "input"
+                | "goal"
+        )
+    })
 }
 
 /// 辅助函数：插入或覆盖变量

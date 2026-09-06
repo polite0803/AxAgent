@@ -2757,6 +2757,8 @@
     "WIKI_DELETE_FAILED": "刪除 Wiki 失敗",
     "WIKI_IMPORT_FAILED": "Wiki 匯入失敗",
     "WIKI_EXPORT_FAILED": "Wiki 匯出失敗",
+    "WORKFLOW_EXECUTE_FAILED": "工作流程執行失敗",
+    "WORKFLOW_EXECUTOR_NOT_SET": "工作流程執行器未注入（功能不可用）",
     "WORKFLOW_INVALID_JSON": "工作流程 JSON 格式無效",
     "WORKFLOW_NODE_NOT_FOUND": "工作流程節點未找到",
     "WORKFLOW_NOT_FOUND": "工作流程未找到",

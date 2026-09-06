@@ -2757,6 +2757,8 @@
     "WIKI_DELETE_FAILED": "Wiki 삭제 실패",
     "WIKI_IMPORT_FAILED": "Wiki 가져오기 실패",
     "WIKI_EXPORT_FAILED": "Wiki 내보내기 실패",
+    "WORKFLOW_EXECUTE_FAILED": "워크플로 실행 실패",
+    "WORKFLOW_EXECUTOR_NOT_SET": "워크플로 실행기가 주입되지 않아 사용할 수 없습니다",
     "WORKFLOW_INVALID_JSON": "유효하지 않은 워크플로우 JSON입니다",
     "WORKFLOW_NODE_NOT_FOUND": "워크플로우 노드를 찾을 수 없습니다",
     "WORKFLOW_NOT_FOUND": "워크플로우를 찾을 수 없습니다",

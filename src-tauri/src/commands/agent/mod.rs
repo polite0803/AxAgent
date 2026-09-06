@@ -1158,11 +1158,26 @@ pub async fn agent_query(
         );
         // 按名字点名放行，不能按域放行：披露工具挂在 General 域下，
         // 而该域含 Bash / FileWrite / FileEdit / DeleteFile 等写操作工具。
-        tool_registry
+        let mut orchestration_tools: Vec<ChatTool> = tool_registry
             .get_chat_tools_by_names(DISCLOSURE_TOOLS.iter().copied())
             .into_iter()
             .filter(|t| !disabled_set.contains(&t.function.name))
-            .collect()
+            .collect();
+        // ── T4：合并注入本轮路由命中能力对应的 extra_tools ──
+        // Tool 护照凭 tool_ref、Workflow 护照凭 RunWorkflow（由 cognitive.rs
+        // resolve_exposure_injection 解析）。没有这一步，编排模式只放行 7 个元工具，
+        // 路由命中的可执行能力"看得到调不动"，agent 只能退化成检索循环。
+        if let Some(extra) = request.extra_tools.as_ref() {
+            for t in tool_registry.get_chat_tools_by_names(extra.iter().map(String::as_str)) {
+                if !disabled_set.contains(&t.function.name)
+                    && !orchestration_tools.iter().any(|e| e.function.name == t.function.name)
+                {
+                    info!("[agent] extra_tools 注入: {}", t.function.name);
+                    orchestration_tools.push(t);
+                }
+            }
+        }
+        orchestration_tools
     } else {
         tool_registry
             .get_chat_tools_for_domains(&active_domains, None)

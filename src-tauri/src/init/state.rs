@@ -1250,6 +1250,57 @@ pub async fn create_app_state(db_result: DatabaseInitResult) -> Result<AppState,
     )
         as std::sync::Arc<dyn axagent_harness::RuntimeMutationAccess>);
 
+    // ── T3：注入 RunWorkflow 执行器（认知编排执行链的执行入口）──
+    // tools crate 不能反向依赖主 crate，按 OnceLock 槽位闭包模式注入
+    // （同 set_capability_indexer / set_mutation_access 惯例）。
+    // 闭包内部与 workflow_execute 命令同一引擎入口：校验模板存在 → RunOptions → run_workflow。
+    // 注意：agent 工具调用结果由 agent 循环自身落库（tool_result 消息），
+    // 此处不做 conversation 事件桥接，conversation_id 参数预留给未来桥接。
+    {
+        let engine_for_run = work_engine.clone();
+        type RunFuture = std::pin::Pin<
+            Box<dyn std::future::Future<Output = Result<serde_json::Value, String>> + Send>,
+        >;
+        axagent_tools::tools::run_workflow::set_workflow_executor(std::sync::Arc::new(
+            move |workflow_id: String,
+                  input: Option<serde_json::Value>,
+                  _conversation_id: Option<String>|
+                  -> RunFuture {
+                let engine = engine_for_run.clone();
+                Box::pin(async move {
+                    // 与 workflow_execute 同口径：模板不存在先显式失败
+                    let exists = engine
+                        .get_workflow(&workflow_id)
+                        .await
+                        .map_err(|e| e.to_string())?
+                        .is_some();
+                    if !exists {
+                        return Err(format!(
+                            "工作流模板 '{workflow_id}' 不存在（RunWorkflow 执行器校验失败）"
+                        ));
+                    }
+                    let opts = axagent_runtime::work_engine::RunOptions {
+                        input,
+                        ..axagent_runtime::work_engine::RunOptions::default()
+                    };
+                    engine
+                        .run_workflow(&workflow_id, opts)
+                        .await
+                        .map(|wf| {
+                            serde_json::json!({
+                                "workflowId": wf.id,
+                                "status": format!("{:?}", wf.status),
+                                "output": wf.output,
+                                "results": wf.results,
+                            })
+                        })
+                        .map_err(|e| e.to_string())
+                })
+            },
+        ));
+        tracing::info!("[capability] RunWorkflow 执行器已注入（认知编排执行链闭环）");
+    }
+
     // ── 关键路径阻塞项：认知编排器模板初始化 ──
     // 必须在 create_app_state 同步阶段完成，不能放 run_deferred_init。
     // 否则 cognitive_query 先于 WorkEngine.load_workflow_template 执行时，

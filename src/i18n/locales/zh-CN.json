@@ -2757,6 +2757,8 @@
     "WIKI_DELETE_FAILED": "删除 Wiki 失败",
     "WIKI_IMPORT_FAILED": "Wiki 导入失败",
     "WIKI_EXPORT_FAILED": "Wiki 导出失败",
+    "WORKFLOW_EXECUTE_FAILED": "工作流执行失败",
+    "WORKFLOW_EXECUTOR_NOT_SET": "工作流执行器未注入（功能不可用）",
     "WORKFLOW_INVALID_JSON": "工作流 JSON 格式无效",
     "WORKFLOW_NODE_NOT_FOUND": "工作流节点未找到",
     "WORKFLOW_NOT_FOUND": "工作流未找到",

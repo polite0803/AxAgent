@@ -2757,6 +2757,8 @@
     "WIKI_DELETE_FAILED": "Wiki हटाना विफल",
     "WIKI_IMPORT_FAILED": "Wiki आयात विफल",
     "WIKI_EXPORT_FAILED": "Wiki निर्यात विफल",
+    "WORKFLOW_EXECUTE_FAILED": "वर्कफ़्लो निष्पादन विफल",
+    "WORKFLOW_EXECUTOR_NOT_SET": "वर्कफ़्लो एक्ज़ीक्यूटर इंजेक्ट नहीं किया गया (सुविधा अनुपलब्ध)",
     "WORKFLOW_INVALID_JSON": "अमान्य वर्कफ़्लो JSON",
     "WORKFLOW_NODE_NOT_FOUND": "वर्कफ़्लो नोड नहीं मिला",
     "WORKFLOW_NOT_FOUND": "वर्कफ़्लो नहीं मिला",

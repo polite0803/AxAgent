@@ -80,7 +80,10 @@ impl Tool for CapabilityBrowseTool {
                 }
 
                 if domains.is_empty() {
-                    return Ok(ToolResult::success("能力树为空（当前无可发现能力）"));
+                    return Ok(ToolResult::success(format!(
+                        "{} 能力树为空（当前无可发现能力）",
+                        axagent_harness::constants::capability_chain::SEARCH_MISS_MARKER
+                    )));
                 }
 
                 let mut out =
@@ -164,7 +167,11 @@ fn text_result(content: String, metadata: Value) -> ToolResult {
 
 fn not_found(message: &str) -> ToolError {
     ToolError {
-        message: message.to_string(),
+        // T5：浏览未命中带机器可读标记，供 runtime-core 循环终止辅助计数
+        message: format!(
+            "{} {message}",
+            axagent_harness::constants::capability_chain::SEARCH_MISS_MARKER
+        ),
         kind: ToolErrorKind::NotFound,
         error_code: CAPABILITY_NOT_FOUND.to_string(),
     }

@@ -1745,6 +1745,9 @@ impl WorkflowTemplateData {
     /// 模板字段降维成 DTO 无关的参数，避免本文件与 `repo_dtos` 版各自推导
     /// 造成增量索引 / 启动期全量重建不一致。
     pub fn passport_params(&self) -> WorkflowTemplatePassportParams {
+        // 节点序列化一次，供 project_node_steps 投影（serde tag = 节点类型）
+        let json_nodes: Vec<serde_json::Value> =
+            self.nodes.iter().filter_map(|n| serde_json::to_value(n).ok()).collect();
         WorkflowTemplatePassportParams {
             id: self.id.clone(),
             name: self.name.clone(),
@@ -1755,6 +1758,8 @@ impl WorkflowTemplateData {
             node_count: self.nodes.len(),
             visibility: self.visibility,
             input_schema: self.input_schema.as_ref().and_then(|s| serde_json::to_value(s).ok()),
+            tool_ref: workflow_passport_tool_ref(),
+            steps: project_node_steps(&json_nodes),
         }
     }
 }
@@ -2125,6 +2130,50 @@ pub struct WorkflowTemplatePassportParams {
     pub visibility: crate::capability::Visibility,
     /// 输入参数 JSON Schema
     pub input_schema: Option<serde_json::Value>,
+    /// 工具引用：指向 [`crate::constants::capability_chain::RUN_WORKFLOW_TOOL`]。
+    ///
+    /// 认知编排执行链的执行入口：Workflow 护照命中后，agent 凭 tool_ref 拿到
+    /// RunWorkflow 的 ChatTool 定义并发起执行（此前全 None → 发现了也执行不了）。
+    pub tool_ref: Option<crate::capability::CapabilityToolRef>,
+    /// 节点摘要（`type:标题`，截断到 [`PASSPORT_STEPS_LIMIT`] 条）。
+    ///
+    /// 只投节点类型 + 标题，不投 JSON body —— 护照是元数据快照，steps
+    /// 服务于 agent 侧的规划提示，不是工作流定义本体。
+    pub steps: Vec<String>,
+}
+
+/// 护照 steps 投影条数上限（节点数可能上百，护照必须轻量）
+pub(crate) const PASSPORT_STEPS_LIMIT: usize = 12;
+
+/// 单条节点摘要的标题截断长度（字符数）
+const PASSPORT_STEP_TITLE_MAX_CHARS: usize = 40;
+
+/// Workflow 护照统一 tool_ref（指向 [`crate::constants::capability_chain::RUN_WORKFLOW_TOOL`]）。
+///
+/// 权威定义：workflow_types 与 repo_dtos 两条护照投影路径共用，避免漂移。
+pub(crate) fn workflow_passport_tool_ref() -> Option<crate::capability::CapabilityToolRef> {
+    Some(crate::capability::CapabilityToolRef {
+        tool_name: crate::constants::capability_chain::RUN_WORKFLOW_TOOL.to_string(),
+        registry: "builtin".to_string(),
+    })
+}
+
+/// 节点摘要投影：`type:标题`，最多 [`PASSPORT_STEPS_LIMIT`] 条，标题截断。
+///
+/// 统一从序列化后的节点 JSON 取值（serde tag 即节点类型），workflow_types
+/// （结构化 nodes）与 repo_dtos（JSON 字符串 nodes）两条投影路径共用同一实现。
+pub(crate) fn project_node_steps(nodes: &[serde_json::Value]) -> Vec<String> {
+    nodes
+        .iter()
+        .take(PASSPORT_STEPS_LIMIT)
+        .filter_map(|n| {
+            let kind = n.get("type")?.as_str()?.to_string();
+            let title = n.get("title").and_then(|v| v.as_str()).unwrap_or_default();
+            let title_truncated: String =
+                title.chars().take(PASSPORT_STEP_TITLE_MAX_CHARS).collect();
+            Some(format!("{kind}:{title_truncated}"))
+        })
+        .collect()
 }
 
 impl WorkflowTemplatePassportParams {
@@ -2232,7 +2281,13 @@ pub fn workflow_template_passport(
     params: WorkflowTemplatePassportParams,
 ) -> crate::capability::CapabilityPassportDto {
     use crate::capability::CapabilityPassport;
-    params.to_passport_dto()
+    let mut dto = params.to_passport_dto();
+    // 执行链投影：tool_ref（RunWorkflow）+ steps（节点摘要）。
+    // trait 无 tool_ref/steps 访问器（DTO 字段由投影层填充），此处是唯一透传点，
+    // 保证启动期全量重建与运行时增量索引两条路径逐字段一致。
+    dto.tool_ref = params.tool_ref;
+    dto.steps = params.steps;
+    dto
 }
 
 // ── WorkflowTemplateData: CapabilityPassport 实现 ──────
@@ -2803,6 +2858,8 @@ mod tests {
             node_count: 5,
             visibility: crate::capability::Visibility::Public,
             input_schema: None,
+            tool_ref: workflow_passport_tool_ref(),
+            steps: vec!["agent:获取行情".to_string(), "llm:三力分析".to_string()],
         }
     }
 
@@ -2811,6 +2868,38 @@ mod tests {
         let p = workflow_template_passport(sample_params());
         assert_eq!(p.capability_id, "workflow:wt_123");
         assert_eq!(p.kind, crate::capability::CapabilityKind::Workflow);
+    }
+
+    #[test]
+    fn test_passport_projects_run_workflow_tool_ref_and_steps() {
+        let p = workflow_template_passport(sample_params());
+        // T2：Workflow 护照必须携带 RunWorkflow 执行入口 + 节点摘要，
+        // 否则认知编排发现了能力也执行不了（execution 链断裂根因之一）
+        let tool_ref = p.tool_ref.expect("Workflow 护照应携带 tool_ref");
+        assert_eq!(tool_ref.tool_name, crate::constants::capability_chain::RUN_WORKFLOW_TOOL);
+        assert_eq!(tool_ref.registry, "builtin");
+        assert_eq!(p.steps, vec!["agent:获取行情".to_string(), "llm:三力分析".to_string()]);
+    }
+
+    #[test]
+    fn test_project_node_steps_truncates_and_caps() {
+        // 超长标题截断 + 条数上限
+        let long_title = "很".repeat(100);
+        let nodes: Vec<serde_json::Value> = (0..20)
+            .map(|i| {
+                serde_json::json!({
+                    "type": if i == 0 { "agent" } else { "tool" },
+                    "title": if i == 0 { long_title.clone() } else { format!("节点{i}") },
+                })
+            })
+            .collect();
+        let steps = project_node_steps(&nodes);
+        assert_eq!(steps.len(), PASSPORT_STEPS_LIMIT);
+        assert!(steps[0].starts_with("agent:"));
+        assert_eq!(steps[0].chars().count(), "agent:".len() + PASSPORT_STEP_TITLE_MAX_CHARS);
+        assert_eq!(steps[1], "tool:节点1");
+        // 非 UTF-8 边界安全：空对象/缺字段跳过而非 panic
+        assert!(project_node_steps(&[serde_json::json!({"title": "无类型"})]).is_empty());
     }
 
     #[test]
