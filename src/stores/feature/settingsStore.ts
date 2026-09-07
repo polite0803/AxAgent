@@ -31,6 +31,10 @@ const DEFAULT_SETTINGS: AppSettings = {
   defaultTopP: null,
   defaultFrequencyPenalty: null,
   defaultContextCount: null,
+  fallbackModel: null,
+  imageModel: null,
+  videoModel: null,
+  voiceModel: null,
 
   titleSummaryModel: null,
   titleSummaryTemperature: null,

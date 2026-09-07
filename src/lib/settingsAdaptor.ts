@@ -35,6 +35,10 @@ const MODEL_FIELD_PAIRS: FieldPair[] = [
   { modelKey: "defaultModel", labelKey: "settings.modelLabels.defaultModel" },
   { modelKey: "titleSummaryModel", labelKey: "settings.modelLabels.titleSummaryModel" },
   { modelKey: "compressionModel", labelKey: "settings.modelLabels.compressionModel" },
+  { modelKey: "fallbackModel", labelKey: "settings.modelLabels.fallbackModel" },
+  { modelKey: "imageModel", labelKey: "settings.modelLabels.imageModel" },
+  { modelKey: "videoModel", labelKey: "settings.modelLabels.videoModel" },
+  { modelKey: "voiceModel", labelKey: "settings.modelLabels.voiceModel" },
 ];
 
 /** 获取模型字段的本地化标签 */

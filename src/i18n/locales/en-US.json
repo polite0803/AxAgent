@@ -4833,7 +4833,11 @@
     "modelLabels": {
       "defaultModel": "Default Conversation Model",
       "titleSummaryModel": "Title Summary Model",
-      "compressionModel": "Compression Model"
+      "compressionModel": "Compression Model",
+      "fallbackModel": "Fallback Model",
+      "imageModel": "Image Model",
+      "videoModel": "Video Model",
+      "voiceModel": "Voice Model"
     },
     "activeProfile": "Active Profile",
     "addKey": "Add Key",
@@ -5011,6 +5015,14 @@
     "codeThemeLight": "Code Theme (Light)",
     "compressionModel": "Context Compression Model",
     "compressionModelDesc": "Model used for context compression. Falls back to the conversation model if not set",
+    "fallbackModel": "Fallback Model",
+    "fallbackModelDesc": "Automatically retries once with this model when the primary model request fails before producing any content; if unset, the error is shown directly",
+    "imageModel": "Image Model",
+    "imageModelDesc": "Default model for image understanding and image generation tasks",
+    "videoModel": "Video Model",
+    "videoModelDesc": "Default model for video understanding tasks",
+    "voiceModel": "Voice Model",
+    "voiceModelDesc": "Default model for speech-to-text and text-to-speech tasks",
     "compressionPromptDefault": "You are a conversation summary assistant. Please compress the following conversation history into a concise summary.\n\nRequirements:\n1. Keep all user-expressed needs, preferences, and decisions\n2. Keep all key technical details (code snippets, configurations, error messages, etc.)\n3. Keep pending tasks and unresolved issues\n4. Organize in concise bullet points\n5. Keep the summary concise, no more than 500 words",
     "compressionPromptPlaceholder": "Compress conversation history into a concise summary...",
     "confirmSelection": "Confirm Selection",

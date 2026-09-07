@@ -46,6 +46,7 @@ fn data_to_active_model(d: WorkflowTemplateData) -> workflow_template::ActiveMod
         mission_hash: Set(None),
         cluster_id: Set(d.cluster_id),
         route_path: Set(d.route_path),
+        hooks_config: Set(d.hooks_config),
         created_at: Set(axagent_harness::util_fns::now_ms()),
         updated_at: Set(axagent_harness::util_fns::now_ms()),
     }
@@ -66,6 +67,7 @@ impl WorkflowTemplateRepository for DaoWorkflowTemplateRepository {
             icon: m.icon,
             cluster_id: None,
             route_path: None,
+            hooks_config: m.hooks_config,
             tags: m.tags,
             version: m.version,
             is_preset: m.is_preset,
@@ -158,6 +160,7 @@ fn model_to_wtd(m: workflow_template::Model) -> Wtd {
         mission_hash: m.mission_hash,
         cluster_id: m.cluster_id,
         route_path: m.route_path,
+        hooks_config: m.hooks_config,
         created_at: m.created_at,
         updated_at: m.updated_at,
     }
@@ -188,6 +191,7 @@ fn wtd_to_active_model(t: Wtd) -> workflow_template::ActiveModel {
         mission_hash: Set(t.mission_hash),
         cluster_id: Set(t.cluster_id),
         route_path: Set(t.route_path),
+        hooks_config: Set(t.hooks_config),
         created_at: Set(t.created_at),
         updated_at: Set(axagent_harness::util_fns::now_ms()),
     }

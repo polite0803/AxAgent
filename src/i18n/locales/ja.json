@@ -4833,7 +4833,11 @@
     "modelLabels": {
       "defaultModel": "デフォルト対話モデル",
       "titleSummaryModel": "タイトル要約モデル",
-      "compressionModel": "圧縮モデル"
+      "compressionModel": "圧縮モデル",
+      "fallbackModel": "フォールバックモデル",
+      "imageModel": "画像モデル",
+      "videoModel": "動画モデル",
+      "voiceModel": "音声モデル"
     },
     "activeProfile": "現在の設定",
     "addKey": "キーを追加",
@@ -5011,6 +5015,14 @@
     "codeThemeLight": "コードテーマ（ライト）",
     "compressionModel": "コンテキスト圧縮モデル",
     "compressionModelDesc": "コンテキスト圧縮に使用するモデル。設定されていない場合は会話モデルにフォールバック",
+    "fallbackModel": "フォールバックモデル",
+    "fallbackModelDesc": "メインモデルのリクエストが失敗し、まだ内容が出力されていない場合、このモデルで自動的に 1 回再試行します。未設定の場合はそのままエラーになります",
+    "imageModel": "画像モデル",
+    "imageModelDesc": "画像理解・画像生成タスクで使用するデフォルトモデル",
+    "videoModel": "動画モデル",
+    "videoModelDesc": "動画理解タスクで使用するデフォルトモデル",
+    "voiceModel": "音声モデル",
+    "voiceModelDesc": "音声認識・音声合成タスクで使用するデフォルトモデル",
     "compressionPromptDefault": "あなたは会話サマリーアシスタントです。以下の会話履歴を簡潔なサマリーに圧縮してください。\n\n要件：\n1. ユーザーが明示的に伝えたニーズ、偏好、決定をすべて保持\n2. すべての重要な技術的詳細（コードスニペット、設定、エラーメッセージなど）を保持\n3. 保留中のタスクと未解決の問題を保持\n4. 簡潔な箇条書き形式で整理\n5. サマリーを簡潔に保ち、500語以内にする",
     "compressionPromptPlaceholder": "会話履歴を簡潔なサマリーに圧縮...",
     "confirmSelection": "選択を確認",

@@ -222,6 +222,7 @@ pub async fn get_template_by_version(
         mission_hash: None,
         cluster_id: None,
         route_path: None,
+        hooks_config: None,
         created_at: v.created_at,
         updated_at: v.created_at,
     }))
@@ -311,6 +312,7 @@ pub fn build_active_model_from_data(
         mission_hash: Set(item.mission_hash.clone()),
         cluster_id: Set(item.cluster_id.clone()),
         route_path: Set(item.route_path.clone()),
+        hooks_config: Set(item.hooks_config.clone()),
         created_at: Set(item.created_at),
         updated_at: Set(item.updated_at),
     }
@@ -355,6 +357,7 @@ pub fn template_model_to_data(
         mission_hash: model.mission_hash.clone(),
         cluster_id: model.cluster_id.clone(),
         route_path: model.route_path.clone(),
+        hooks_config: model.hooks_config.clone(),
     }
 }
 

@@ -191,6 +191,7 @@ mod tests {
                 mission_hash: None,
                 cluster_id: None,
                 route_path: None,
+                hooks_config: None,
             },
             vec![],
         );

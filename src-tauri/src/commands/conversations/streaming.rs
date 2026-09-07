@@ -12,6 +12,81 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use tauri::{Emitter, State};
 
+/// 回退模型重试上下文 — 主模型调用失败且尚未产出内容时，切换到回退模型重试一次
+struct FallbackRetryContext {
+    provider: ProviderConfig,
+    adapter: Arc<dyn axagent_harness::provider::ProviderAdapter>,
+    ctx: ProviderRequestContext,
+    model_id: String,
+    use_max_completion_tokens: Option<bool>,
+    force_max_tokens: Option<bool>,
+    thinking_param_style: Option<String>,
+    request_delay_ms: Option<u64>,
+}
+
+/// 解析设置中的回退模型（fallbackProviderId + fallbackModelId）。
+///
+/// 返回 None 的情况：未配置回退模型、回退模型与当前模型相同、
+/// provider/key/模型信息解析失败、该 provider 类型没有适配器。
+async fn resolve_fallback_retry(
+    db: &sea_orm::DatabaseConnection,
+    master_key: &[u8; 32],
+    harness: &axagent_runtime::harness::RuntimeHarness,
+    settings: &AppSettings,
+    current_provider_id: &str,
+    current_model_id: &str,
+) -> Option<FallbackRetryContext> {
+    let (fb_provider_id, fb_model_id) =
+        match (&settings.fallback_provider_id, &settings.fallback_model_id) {
+            (Some(p), Some(m)) if !p.is_empty() && !m.is_empty() => (p.clone(), m.clone()),
+            _ => return None,
+        };
+    // 回退模型与当前模型相同：重试无意义
+    if fb_provider_id == current_provider_id && fb_model_id == current_model_id {
+        return None;
+    }
+
+    let provider = axagent_dao::repo::provider::get_provider(db, &fb_provider_id).await.ok()?;
+    let key_row = axagent_dao::repo::provider::get_active_key(db, &fb_provider_id).await.ok()?;
+    let decrypted_key = axagent_crypto::decrypt_key(&key_row.key_encrypted, master_key).ok()?;
+    let resolved_model =
+        axagent_dao::repo::provider::get_model(db, &fb_provider_id, &fb_model_id).await.ok();
+    let overrides = resolved_model.as_ref().and_then(|m| m.param_overrides.clone());
+
+    let registry_key =
+        axagent_harness::types::provider_model::provider_registry_key(&provider.provider_type);
+    let adapter = harness.provider_registry().get(registry_key)?;
+    let resolved_proxy = axagent_harness::types::provider_model::resolve_provider_proxy(
+        &provider.proxy_config,
+        settings,
+    );
+
+    let ctx = ProviderRequestContext {
+        api_key: decrypted_key,
+        key_id: key_row.id.clone(),
+        provider_id: provider.id.clone(),
+        base_url: Some(resolve_base_url_for_type(&provider.api_host, &provider.provider_type)),
+        api_path: provider.api_path.clone(),
+        proxy_config: resolved_proxy,
+        custom_headers: provider.custom_headers.as_ref().and_then(|s| serde_json::from_str(s).ok()),
+        api_mode: None,
+        conversation: None,
+        previous_response_id: None,
+        store_response: None,
+    };
+
+    Some(FallbackRetryContext {
+        provider,
+        adapter,
+        ctx,
+        model_id: fb_model_id,
+        use_max_completion_tokens: overrides.as_ref().and_then(|p| p.use_max_completion_tokens),
+        force_max_tokens: overrides.as_ref().and_then(|p| p.force_max_tokens),
+        thinking_param_style: overrides.as_ref().and_then(|p| p.thinking_param_style.clone()),
+        request_delay_ms: overrides.as_ref().and_then(|p| p.request_delay_ms),
+    })
+}
+
 fn spawn_stream_task(
     app: tauri::AppHandle,
     db: sea_orm::DatabaseConnection,
@@ -22,8 +97,8 @@ fn spawn_stream_task(
         conversation_id,
         assistant_message_id,
         conversation,
-        provider,
-        ctx,
+        mut provider,
+        mut ctx,
         chat_messages,
         is_first_message,
         user_content,
@@ -33,10 +108,10 @@ fn spawn_stream_task(
         thinking_budget,
         mcp_server_ids,
         override_created_at,
-        use_max_completion_tokens,
-        force_max_tokens,
-        thinking_param_style,
-        request_delay_ms,
+        mut use_max_completion_tokens,
+        mut force_max_tokens,
+        mut thinking_param_style,
+        mut request_delay_ms,
         settings,
         cancel_flag,
         cancel_flags,
@@ -44,7 +119,7 @@ fn spawn_stream_task(
         create_inactive,
         skip_placeholder_create,
     } = params;
-    let model_id = conversation.model_id.clone();
+    let mut model_id = conversation.model_id.clone();
     let harness = harness.clone();
 
     tokio::spawn(async move {
@@ -66,7 +141,7 @@ fn spawn_stream_task(
             let registry_key = axagent_harness::types::provider_model::provider_registry_key(
                 &provider.provider_type,
             );
-            let adapter = match harness.provider_registry().get(registry_key) {
+            let mut adapter = match harness.provider_registry().get(registry_key) {
                 Some(a) => a,
                 None => {
                     let _ = app.emit(
@@ -130,6 +205,55 @@ fn spawn_stream_task(
                 {
                     tracing::error!("Failed to create placeholder assistant message: {}", e);
                 }
+            }
+
+            // 回退模型状态：仅在主模型失败且尚未产出任何内容时重试一次
+            let initial_chat_messages = chat_messages.clone();
+            let mut fallback_used = false;
+
+            // 回退重试：解析 fallback 设置并交换循环内的 provider/adapter/ctx 等绑定，
+            // 成功则 continue 到下一轮迭代；未配置或解析失败则走原有错误路径。
+            // label 作为参数传入：macro_rules! 对循环 label 是卫生的，无法直接引用外部标签
+            macro_rules! try_fallback {
+                ($err:expr, $label:lifetime) => {
+                    if !fallback_used
+                        && total_content.is_empty()
+                        && !cancel_flag.load(std::sync::atomic::Ordering::SeqCst)
+                    {
+                        if let Some(fb) = resolve_fallback_retry(
+                            &db,
+                            harness.master_key(),
+                            &harness,
+                            &settings,
+                            &provider.id,
+                            &model_id,
+                        )
+                        .await
+                        {
+                            tracing::warn!(
+                                "[spawn_stream_task] 主模型调用失败（{}），切换回退模型 {}/{} 重试",
+                                $err,
+                                fb.provider.id,
+                                fb.model_id
+                            );
+                            provider = fb.provider;
+                            adapter = fb.adapter;
+                            ctx = fb.ctx;
+                            model_id = fb.model_id;
+                            use_max_completion_tokens = fb.use_max_completion_tokens;
+                            force_max_tokens = fb.force_max_tokens;
+                            thinking_param_style = fb.thinking_param_style;
+                            request_delay_ms = fb.request_delay_ms;
+                            chat_messages = initial_chat_messages.clone();
+                            total_usage = None;
+                            final_tool_calls_json = None;
+                            final_tokens_per_second = None;
+                            final_first_token_latency_ms = None;
+                            fallback_used = true;
+                            continue $label;
+                        }
+                    }
+                };
             }
 
             'tool_loop: loop {
@@ -196,6 +320,7 @@ fn spawn_stream_task(
                 {
                     Ok(s) => s,
                     Err(e) => {
+                        try_fallback!(e, 'tool_loop);
                         let _ = app.emit(
                             "chat-stream-error",
                             ChatStreamErrorEvent {
@@ -237,6 +362,12 @@ fn spawn_stream_task(
 
                 // If stream errored, save what we have and break
                 if stream_error.is_some() {
+                    if total_content.is_empty() {
+                        try_fallback!(
+                            stream_error.clone().unwrap_or_else(|| "unknown".to_string()),
+                            'tool_loop
+                        );
+                    }
                     last_stream_error = stream_error;
                     had_stream_error = true;
                     break;

@@ -84,6 +84,10 @@ export function assertModelSelectionConsistency(
     { key: "defaultModel", labelKey: "settings.modelLabels.defaultModel" },
     { key: "titleSummaryModel", labelKey: "settings.modelLabels.titleSummaryModel" },
     { key: "compressionModel", labelKey: "settings.modelLabels.compressionModel" },
+    { key: "fallbackModel", labelKey: "settings.modelLabels.fallbackModel" },
+    { key: "imageModel", labelKey: "settings.modelLabels.imageModel" },
+    { key: "videoModel", labelKey: "settings.modelLabels.videoModel" },
+    { key: "voiceModel", labelKey: "settings.modelLabels.voiceModel" },
   ];
 
   for (const { key, labelKey } of pairs) {

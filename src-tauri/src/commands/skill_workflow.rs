@@ -145,6 +145,7 @@ pub async fn save_skill_workflow_from_llm(
         mission_hash: Set(None),
         cluster_id: Set(None),
         route_path: Set(None),
+        hooks_config: Set(None),
         created_at: Set(now),
         updated_at: Set(now),
     };

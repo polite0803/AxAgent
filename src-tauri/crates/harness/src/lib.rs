@@ -61,9 +61,15 @@ pub mod template_patch;
 pub mod types;
 pub mod url_utils;
 pub mod util_fns;
+pub mod workflow_lifecycle;
 pub mod workflow_node_deserializer;
 pub mod workflow_types;
+
+// ── 工作流模板级生命周期钩子协议（业务中立，实现由业务侧注册）──
 pub use node_output_status::NodeOutputStatus;
+pub use workflow_lifecycle::{
+    HookExecContext, HookOutcome, WorkflowHooksConfig, WorkflowLifecycleHook,
+};
 #[macro_use]
 pub mod reliability;
 pub mod response_normalizer;

@@ -315,6 +315,27 @@ fn seam_business_rule() -> Option<Arc<dyn axagent_harness::BusinessRuleEvaluator
     axagent_harness::get_capability_registry().get_business_rule()
 }
 
+/// 解析模板 `hooks_config` JSON 字符串（DB 列，NULL 合法）。
+///
+/// 解析失败降级为 None 并 warn——钩子声明异常不应阻断模板加载。
+fn parse_hooks_config(
+    raw: &Option<String>,
+    template_id: &str,
+) -> Option<axagent_harness::WorkflowHooksConfig> {
+    let raw = raw.as_deref()?;
+    match serde_json::from_str::<axagent_harness::WorkflowHooksConfig>(raw) {
+        Ok(cfg) if cfg.is_empty() => None,
+        Ok(cfg) => Some(cfg),
+        Err(e) => {
+            tracing::warn!(
+                template_id = %template_id,
+                "[WorkEngine] hooks_config 解析失败，按无钩子处理: {e}"
+            );
+            None
+        },
+    }
+}
+
 #[derive(Clone)]
 
 pub struct WorkEngine {
@@ -441,6 +462,14 @@ pub struct WorkEngine {
     /// 此字段,有则委托 trait(支持 trajectory / 权限询问 / 压缩),
     /// 无则走 inline ReAct(向后兼容,不破坏旧测试)。
     agent_turn_runner: Arc<parking_lot::RwLock<Option<Arc<dyn axagent_harness::AgentTurnRunner>>>>,
+    /// 模板级生命周期钩子注册表：钩子名 → 实现。
+    ///
+    /// 通用层只认协议（`WorkflowLifecycleHook`），不感知业务名；钩子实现由
+    /// 业务侧（下游 fork）运行时经 `register_lifecycle_hook` 注入，WorkEngine
+    /// 按模板 `hooks_config` 声明查表调用。未注册的钩子名 warn 跳过不阻断。
+    /// 使用 tokio RwLock：钩子调用是 async，读路径先 clone Arc 再释放锁。
+    lifecycle_hooks:
+        Arc<tokio::sync::RwLock<HashMap<String, Arc<dyn axagent_harness::WorkflowLifecycleHook>>>>,
 }
 
 /// P1-14: 提取节点的类型字符串（用于白名单校验）。
@@ -849,6 +878,7 @@ impl WorkEngine {
             db: Arc::new(parking_lot::Mutex::new(None)),
             event_bus: Arc::new(parking_lot::RwLock::new(None)),
             agent_turn_runner: Arc::new(parking_lot::RwLock::new(None)),
+            lifecycle_hooks: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
         }
     }
 
@@ -878,6 +908,84 @@ impl WorkEngine {
     /// 用 `parking_lot::RwLock::read()` 同步读取,guard 不跨 await。
     pub fn get_agent_turn_runner(&self) -> Option<Arc<dyn axagent_harness::AgentTurnRunner>> {
         self.agent_turn_runner.read().clone()
+    }
+
+    /// 触发模板声明的 post_exec 生命周期钩子（观测/持久化）。
+    ///
+    /// 按模板 `hooks_config.post_exec` 声明查运行时注册表；未注册的钩子名
+    /// warn 跳过；钩子返回 Err 仅 warn 不阻断（结果已产生，不可回滚）。
+    /// 在主循环到达终态、output 构建完成后的收尾阶段调用（主执行与
+    /// 子工作流收尾捷径均会触发）。
+    async fn run_post_exec_hooks(
+        &self,
+        workflow: &Workflow,
+        workflow_id: &str,
+        execution_id: &str,
+        input: Option<serde_json::Value>,
+    ) {
+        let Some(cfg) = workflow.hooks_config.clone() else {
+            return;
+        };
+        if cfg.post_exec.is_empty() {
+            return;
+        }
+        let status = match workflow.status {
+            WorkflowStatus::Completed => "completed",
+            WorkflowStatus::PartiallyCompleted => "partially_completed",
+            WorkflowStatus::Failed => "failed",
+            WorkflowStatus::Cancelled => "cancelled",
+            _ => "completed",
+        };
+        let resolved: Vec<Arc<dyn axagent_harness::WorkflowLifecycleHook>> = {
+            let registry = self.lifecycle_hooks.read().await;
+            cfg.post_exec
+                .iter()
+                .filter_map(|name| match registry.get(name) {
+                    Some(hook) => Some(hook.clone()),
+                    None => {
+                        tracing::warn!(
+                            template_id = %workflow_id,
+                            execution_id = %execution_id,
+                            hook = %name,
+                            "[WorkEngine] 模板声明的 post_exec 钩子未注册，跳过"
+                        );
+                        None
+                    },
+                })
+                .collect()
+        };
+        if resolved.is_empty() {
+            return;
+        }
+        let outcome = axagent_harness::HookOutcome {
+            status: status.to_string(),
+            output: workflow.output.clone(),
+            results: serde_json::to_value(&workflow.results).unwrap_or(serde_json::json!({})),
+        };
+        for hook in resolved {
+            let ctx = axagent_harness::HookExecContext {
+                template_id: workflow_id.to_string(),
+                execution_id: execution_id.to_string(),
+                input: input.clone(),
+                variables: Vec::new(),
+            };
+            if let Err(e) = hook.post_exec(ctx, &outcome).await {
+                tracing::warn!(
+                    template_id = %workflow_id,
+                    execution_id = %execution_id,
+                    hook = %hook.name(),
+                    error = %e,
+                    "[WorkEngine] post_exec 钩子失败，不阻断（结果已产生）"
+                );
+            } else {
+                tracing::info!(
+                    template_id = %workflow_id,
+                    execution_id = %execution_id,
+                    hook = %hook.name(),
+                    "[WorkEngine] post_exec 钩子完成"
+                );
+            }
+        }
     }
 
     /// 发布一个工作流领域事件到统一总线(若已注入)。
@@ -948,6 +1056,19 @@ impl WorkEngine {
 
     // ── DAG 管理 ──
 
+    /// 注册模板级生命周期钩子（业务侧运行时注入，OnceLock 槽位模式）。
+    ///
+    /// 通用引擎不感知业务语义：只按模板 `hooks_config` 声明的钩子名查此注册表。
+    /// 同名重复注册覆盖旧实现（标准 setter 语义）。
+    pub async fn register_lifecycle_hook(
+        &self,
+        hook: Arc<dyn axagent_harness::WorkflowLifecycleHook>,
+    ) {
+        let name = hook.name().to_string();
+        self.lifecycle_hooks.write().await.insert(name.clone(), hook);
+        tracing::info!("[WorkEngine] 生命周期钩子已注册: {name}");
+    }
+
     /// 创建新工作流 DAG。含重复 ID 检测、依赖校验、Kahn 算法环检测。
     pub async fn create_workflow(
         &self,
@@ -955,8 +1076,19 @@ impl WorkEngine {
         nodes: Vec<WorkflowNode>,
         edges: Vec<WorkflowEdge>,
     ) -> Result<Workflow, WorkflowError> {
+        self.create_workflow_with_hooks(name, nodes, edges, None).await
+    }
+
+    /// 创建新工作流 DAG 并附带模板级生命周期钩子声明（动态工作流路径）。
+    pub async fn create_workflow_with_hooks(
+        &self,
+        name: &str,
+        nodes: Vec<WorkflowNode>,
+        edges: Vec<WorkflowEdge>,
+        hooks_config: Option<axagent_harness::WorkflowHooksConfig>,
+    ) -> Result<Workflow, WorkflowError> {
         let workflow_id = format!("workflow_{}", uuid::Uuid::new_v4());
-        self.create_workflow_inner(&workflow_id, name, nodes, edges).await
+        self.create_workflow_inner(&workflow_id, name, nodes, edges, hooks_config).await
     }
 
     /// 以指定 ID 将工作流模板加载进引擎内存（模板加载路径）。
@@ -977,7 +1109,10 @@ impl WorkEngine {
             .map_err(|e| WorkflowError::SerializationError(format!("节点解析失败: {e}")))?;
         let edges: Vec<WorkflowEdge> = serde_json::from_str(&template.edges)
             .map_err(|e| WorkflowError::SerializationError(format!("边解析失败: {e}")))?;
-        self.create_workflow_inner(template_id, &template.name, nodes, edges).await
+        // 模板声明的生命周期钩子：NULL 合法（旧模板无钩子，行为不变）；
+        // 解析失败降级为 None 并 warn（钩子声明异常不应阻断模板加载）。
+        let hooks_config = parse_hooks_config(&template.hooks_config, template_id);
+        self.create_workflow_inner(template_id, &template.name, nodes, edges, hooks_config).await
     }
 
     async fn create_workflow_inner(
@@ -986,6 +1121,7 @@ impl WorkEngine {
         name: &str,
         nodes: Vec<WorkflowNode>,
         edges: Vec<WorkflowEdge>,
+        hooks_config: Option<axagent_harness::WorkflowHooksConfig>,
     ) -> Result<Workflow, WorkflowError> {
         // 校验：无重复节点 ID
         let mut node_ids: HashSet<&str> = HashSet::new();
@@ -1070,6 +1206,7 @@ impl WorkEngine {
             output: None,
             error_config: None,
             error_workflow_id: None,
+            hooks_config,
         };
 
         let mut workflows = self.workflows.write().await;
@@ -1986,6 +2123,7 @@ impl WorkEngine {
                             output: None,
                             error_config: None,
                             error_workflow_id: None,
+                            hooks_config: parse_hooks_config(&tpl.hooks_config, workflow_id),
                         };
                         // 以模板 ID 为 key 写入注册表（幂等：下次触发直接命中上方 if 分支）
                         self.workflows.write().await.insert(workflow_id.to_string(), wf.clone());
@@ -2002,6 +2140,95 @@ impl WorkEngine {
                     tracing::warn!(
                         "[WorkEngine] run_workflow 模板 {workflow_id} 在内存与 DB 均不存在"
                     );
+                }
+            }
+        }
+
+        // ── pre_exec 生命周期钩子（主循环之前） ──
+        // 按模板 hooks_config 声明查注册表调用；返回的变量覆盖写回执行上下文
+        // （变量增强，如业务侧注入上下文/历史教训）；返回 Err 则阻断本次执行。
+        {
+            let hooks_cfg = {
+                let exec_wfs = self.execution_workflows.read().await;
+                exec_wfs.get(&execution_id).and_then(|wf| wf.hooks_config.clone())
+            };
+            if let Some(cfg) = hooks_cfg
+                && !cfg.pre_exec.is_empty()
+            {
+                let resolved: Vec<Arc<dyn axagent_harness::WorkflowLifecycleHook>> = {
+                    let registry = self.lifecycle_hooks.read().await;
+                    cfg.pre_exec
+                        .iter()
+                        .filter_map(|name| match registry.get(name) {
+                            Some(hook) => Some(hook.clone()),
+                            None => {
+                                tracing::warn!(
+                                    template_id = %workflow_id,
+                                    execution_id = %execution_id,
+                                    hook = %name,
+                                    "[WorkEngine] 模板声明的 pre_exec 钩子未注册，跳过"
+                                );
+                                None
+                            },
+                        })
+                        .collect()
+                };
+                for hook in resolved {
+                    let ctx = axagent_harness::HookExecContext {
+                        template_id: workflow_id.to_string(),
+                        execution_id: execution_id.clone(),
+                        input: options.input.clone(),
+                        variables: options.variables.clone().unwrap_or_default(),
+                    };
+                    match hook.pre_exec(ctx).await {
+                        Ok(enhanced) => {
+                            // 变量以钩子返回值为准：同名覆盖写回执行上下文
+                            let mut executions = self.executions.lock().await;
+                            if let Some(state) = executions.get_mut(&execution_id) {
+                                for var in enhanced {
+                                    state.variables.insert(var.name.clone(), var.value.clone());
+                                }
+                            }
+                            tracing::info!(
+                                template_id = %workflow_id,
+                                execution_id = %execution_id,
+                                hook = %hook.name(),
+                                "[WorkEngine] pre_exec 钩子完成"
+                            );
+                        },
+                        Err(msg) => {
+                            tracing::warn!(
+                                template_id = %workflow_id,
+                                execution_id = %execution_id,
+                                hook = %hook.name(),
+                                error = %msg,
+                                "[WorkEngine] pre_exec 钩子返回 Err，阻断本次执行"
+                            );
+                            // 与 input_schema 校验失败路径一致：持久化失败状态留下审计记录
+                            if let Err(e) = workflow_execution_repository()
+                                .update_workflow_execution_status(
+                                    &execution_id,
+                                    "failed",
+                                    None,
+                                    None,
+                                    None,
+                                )
+                                .await
+                            {
+                                tracing::error!(
+                                    "[rt-workflow] 持久化 pre_exec 阻断状态失败: {e} (execution_id={execution_id})"
+                                );
+                            }
+                            // G12: pre_exec 阻断 → 契约标记失败
+                            if let Some(ref mut contract) = task_contract {
+                                contract.mark_failed(format!("pre_exec hook blocked: {msg}"));
+                            }
+                            return Err(WorkflowError::LifecycleHookFailed {
+                                hook: hook.name().to_string(),
+                                message: msg,
+                            });
+                        },
+                    }
                 }
             }
         }
@@ -4361,6 +4588,12 @@ impl WorkEngine {
                         "子工作流收尾: 持久化终态失败: {e}"
                     );
                 }
+
+                // 触发模板声明的 post_exec 生命周期钩子（观测/持久化，失败仅 warn 不阻断）。
+                // 钩子为 async 调用（tokio RwLock 读注册表），不触碰 parking_lot 锁，
+                // 与本收尾捷径的线程安全约束一致。
+                self.run_post_exec_hooks(wf, workflow_id, &execution_id, options.input.clone())
+                    .await;
             }
             tracing::info!(execution_id = %execution_id, "子工作流收尾捷径: 已构建 output 并收尾 DB 状态, 即将 return");
             // 修复：原 .expect() 在子工作流实例已被并发清理时会导致 panic（子工作流
@@ -4423,6 +4656,9 @@ impl WorkEngine {
             )
             .await;
             tracing::info!(execution_id = %execution_id, "[TRACE] run_workflow break 后: post_execution_reflect 已完成");
+
+            // 触发模板声明的 post_exec 生命周期钩子（观测/持久化，失败仅 warn 不阻断）
+            self.run_post_exec_hooks(wf, workflow_id, &execution_id, options.input.clone()).await;
 
             // 写回 execution_workflows 运行时实例，确保后续查询能读到 output
             // 注意：不写回 self.workflows（模板），避免污染同模板的其他并发执行
@@ -4573,6 +4809,7 @@ impl WorkEngine {
             output: None,
             error_config: None,
             error_workflow_id: None,
+            hooks_config: None,
         }))
     }
 

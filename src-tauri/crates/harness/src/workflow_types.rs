@@ -1721,6 +1721,10 @@ pub struct WorkflowTemplateData {
     /// CapabilityPassport::domain / sub_category 从此字段拆解得到。
     #[serde(default)]
     pub route_path: Option<String>,
+    /// 模板声明的生命周期钩子（JSON 字符串，NULL 合法）：
+    /// `{"pre_exec": ["hook-a"], "post_exec": ["hook-b"]}`
+    #[serde(default)]
+    pub hooks_config: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -1917,6 +1921,12 @@ pub struct Workflow {
     /// 错误工作流 ID(模板级,节点失败时触发独立的错误处理工作流)
     #[serde(default)]
     pub error_workflow_id: Option<String>,
+    /// 模板声明的生命周期钩子（模板级，None = 无钩子，与旧模板行为一致）。
+    ///
+    /// 通用引擎只按声明查运行时注册表（`WorkEngine::register_lifecycle_hook`），
+    /// 未注册的钩子名 warn 跳过。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hooks_config: Option<crate::workflow_lifecycle::WorkflowHooksConfig>,
 }
 
 /// 单个节点的执行记录(用于持久化与前端展示)。
@@ -2498,14 +2508,26 @@ impl WorkflowErrorContext {
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 pub enum WorkflowError {
     DuplicateNodeId(String),
-    InvalidDependency { node_id: String, missing_dep: String },
+    InvalidDependency {
+        node_id: String,
+        missing_dep: String,
+    },
     WorkflowNotFound,
     NodeNotFound,
     CycleDetected,
     SerializationError(String),
-    InputValidationFailed { errors: Vec<String> },
-    OutputValidationFailed { errors: Vec<String> },
+    InputValidationFailed {
+        errors: Vec<String>,
+    },
+    OutputValidationFailed {
+        errors: Vec<String>,
+    },
     InvalidStateTransition(String),
+    /// 模板声明的 pre_exec 生命周期钩子返回 Err，本次执行被阻断。
+    LifecycleHookFailed {
+        hook: String,
+        message: String,
+    },
 }
 
 impl std::fmt::Display for WorkflowError {
@@ -2526,6 +2548,9 @@ impl std::fmt::Display for WorkflowError {
                 write!(f, "Output validation failed: {}", errors.join("; "))
             },
             Self::InvalidStateTransition(msg) => write!(f, "非法状态迁移: {msg}"),
+            Self::LifecycleHookFailed { hook, message } => {
+                write!(f, "生命周期钩子 '{hook}' 阻断执行: {message}")
+            },
         }
     }
 }
@@ -3002,6 +3027,7 @@ mod tests {
             error_config: None,
             cluster_id: None,
             route_path: Some("/finance/stock/analysis".to_string()),
+            hooks_config: None,
         };
         let repo_passport = repo_dto.to_capability_passport();
 

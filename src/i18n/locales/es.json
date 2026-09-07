@@ -4833,7 +4833,11 @@
     "modelLabels": {
       "defaultModel": "Modelo de conversación predeterminado",
       "titleSummaryModel": "Modelo de resumen de título",
-      "compressionModel": "Modelo de compresión"
+      "compressionModel": "Modelo de compresión",
+      "fallbackModel": "Modelo de respaldo",
+      "imageModel": "Modelo de imagen",
+      "videoModel": "Modelo de video",
+      "voiceModel": "Modelo de voz"
     },
     "activeProfile": "Perfil activo",
     "addKey": "Añadir clave",
@@ -5011,6 +5015,14 @@
     "codeThemeLight": "Tema de código (claro)",
     "compressionModel": "Modelo de compresión de contexto",
     "compressionModelDesc": "Modelo usado para la compresión de contexto. Vuelve al modelo de conversación si no se configura",
+    "fallbackModel": "Modelo de respaldo",
+    "fallbackModelDesc": "Reintenta automáticamente una vez con este modelo cuando la solicitud del modelo principal falla antes de producir contenido; si no se configura, se muestra el error directamente",
+    "imageModel": "Modelo de imagen",
+    "imageModelDesc": "Modelo predeterminado para tareas de comprensión y generación de imágenes",
+    "videoModel": "Modelo de video",
+    "videoModelDesc": "Modelo predeterminado para tareas de comprensión de video",
+    "voiceModel": "Modelo de voz",
+    "voiceModelDesc": "Modelo predeterminado para tareas de reconocimiento y síntesis de voz",
     "compressionPromptDefault": "Eres un asistente de resumen de conversación. Por favor, comprime el siguiente historial de conversación en un resumen conciso.\n\nRequisitos:\n1. Mantén todas las necesidades, preferencias y decisiones expresadas explícitamente por el usuario\n2. Mantén todos los detalles técnicos clave (fragmentos de código, configuraciones, mensajes de error, etc.)\n3. Mantén las tareas pendientes y los problemas no resueltos\n4. Organiza en puntos concisos\n5. Mantén el resumen conciso, no más de 500 palabras",
     "compressionPromptPlaceholder": "Comprime el historial de la conversación en un resumen conciso...",
     "confirmSelection": "Confirmar selección",

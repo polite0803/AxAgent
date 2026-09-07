@@ -119,13 +119,13 @@ function ModelParamsModal({
   showPrompt: boolean;
   showContextCount: boolean;
   promptKey?: keyof AppSettings;
-  temperatureKey: keyof AppSettings;
-  topPKey: keyof AppSettings;
-  maxTokensKey: keyof AppSettings;
+  temperatureKey?: keyof AppSettings;
+  topPKey?: keyof AppSettings;
+  maxTokensKey?: keyof AppSettings;
   contextCountKey?: keyof AppSettings;
-  defaultTemperature: number;
-  defaultTopP: number;
-  defaultMaxTokens: number;
+  defaultTemperature?: number;
+  defaultTopP?: number;
+  defaultMaxTokens?: number;
   defaultPrompt?: string;
   promptPlaceholder?: string;
 }) {
@@ -134,11 +134,10 @@ function ModelParamsModal({
   const saveSettings = useSettingsStore((s) => s.saveSettings);
 
   const handleReset = useCallback(() => {
-    const resetValues: Record<string, unknown> = {
-      [temperatureKey]: null,
-      [topPKey]: null,
-      [maxTokensKey]: null,
-    };
+    const resetValues: Record<string, unknown> = {};
+    if (temperatureKey) { resetValues[temperatureKey] = null; }
+    if (topPKey) { resetValues[topPKey] = null; }
+    if (maxTokensKey) { resetValues[maxTokensKey] = null; }
     if (contextCountKey) {
       resetValues[contextCountKey] = null;
     }
@@ -204,28 +203,33 @@ function ModelParamsModal({
 
       <ModelParamSliders
         values={{
-          temperature: (settings[temperatureKey] as number | null) ?? defaultTemperature,
-          topP: (settings[topPKey] as number | null) ?? defaultTopP,
-          maxTokens: (settings[maxTokensKey] as number | null) ?? defaultMaxTokens,
+          temperature: (temperatureKey
+            ? (settings[temperatureKey] as number | null)
+            : null) ?? defaultTemperature ?? 0.7,
+          topP: (topPKey ? (settings[topPKey] as number | null) : null)
+            ?? defaultTopP ?? 1.0,
+          maxTokens: (maxTokensKey
+            ? (settings[maxTokensKey] as number | null)
+            : null) ?? defaultMaxTokens ?? 4096,
           frequencyPenalty: null,
         }}
         onChange={(v) => {
           const patch: Record<string, unknown> = {};
-          if ("temperature" in v) {
+          if (temperatureKey && "temperature" in v) {
             patch[temperatureKey] = v.temperature;
           }
-          if ("topP" in v) {
+          if (topPKey && "topP" in v) {
             patch[topPKey] = v.topP;
           }
-          if ("maxTokens" in v) {
+          if (maxTokensKey && "maxTokens" in v) {
             patch[maxTokensKey] = v.maxTokens;
           }
           saveSettings(patch as Partial<AppSettings>);
         }}
         defaults={{
-          temperature: defaultTemperature,
-          topP: defaultTopP,
-          maxTokens: defaultMaxTokens,
+          temperature: defaultTemperature ?? 0.7,
+          topP: defaultTopP ?? 1.0,
+          maxTokens: defaultMaxTokens ?? 4096,
         }}
         visibleParams={["temperature", "topP", "maxTokens"]}
       />
@@ -271,13 +275,15 @@ function ModelCard({
   showPrompt: boolean;
   showContextCount: boolean;
   promptKey?: keyof AppSettings;
-  temperatureKey: keyof AppSettings;
-  topPKey: keyof AppSettings;
-  maxTokensKey: keyof AppSettings;
+  // 参数键全部可选：不传 temperatureKey 表示该模型卡片不提供参数弹窗
+  // （如回退/图片/视频/语音等扩展模型，暂不需要独立采样参数）
+  temperatureKey?: keyof AppSettings;
+  topPKey?: keyof AppSettings;
+  maxTokensKey?: keyof AppSettings;
   contextCountKey?: keyof AppSettings;
-  defaultTemperature: number;
-  defaultTopP: number;
-  defaultMaxTokens: number;
+  defaultTemperature?: number;
+  defaultTopP?: number;
+  defaultMaxTokens?: number;
   defaultPrompt?: string;
   promptPlaceholder?: string;
 }) {
@@ -285,6 +291,7 @@ function ModelCard({
   const settings = useSettingsStore((s) => s.settings);
   const saveSettings = useSettingsStore((s) => s.saveSettings);
   const [modalOpen, setModalOpen] = useState(false);
+  const hasParams = temperatureKey !== undefined;
 
   // 使用 getModelSelection 获取强类型的模型选择
   // 如果返回 null，说明未设置或设置无效（后者已在数据层被清理）
@@ -333,32 +340,36 @@ function ModelCard({
             onChange={handleChange}
             placeholder={placeholder}
           />
-          <Tooltip title={modalTitle}>
-            <Button
-              icon={<Settings size={16} />}
-              onClick={() => setModalOpen(true)}
-            />
-          </Tooltip>
+          {hasParams && (
+            <Tooltip title={modalTitle}>
+              <Button
+                icon={<Settings size={16} />}
+                onClick={() => setModalOpen(true)}
+              />
+            </Tooltip>
+          )}
         </div>
       </SettingsGroup>
 
-      <ModelParamsModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title={modalTitle}
-        showPrompt={showPrompt}
-        showContextCount={showContextCount}
-        promptKey={promptKey}
-        temperatureKey={temperatureKey}
-        topPKey={topPKey}
-        maxTokensKey={maxTokensKey}
-        contextCountKey={contextCountKey}
-        defaultTemperature={defaultTemperature}
-        defaultTopP={defaultTopP}
-        defaultMaxTokens={defaultMaxTokens}
-        defaultPrompt={defaultPrompt}
-        promptPlaceholder={promptPlaceholder}
-      />
+      {hasParams && (
+        <ModelParamsModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          title={modalTitle}
+          showPrompt={showPrompt}
+          showContextCount={showContextCount}
+          promptKey={promptKey}
+          temperatureKey={temperatureKey}
+          topPKey={topPKey}
+          maxTokensKey={maxTokensKey}
+          contextCountKey={contextCountKey}
+          defaultTemperature={defaultTemperature}
+          defaultTopP={defaultTopP}
+          defaultMaxTokens={defaultMaxTokens}
+          defaultPrompt={defaultPrompt}
+          promptPlaceholder={promptPlaceholder}
+        />
+      )}
     </>
   );
 }
@@ -446,6 +457,46 @@ export function DefaultModelSettings() {
         defaultMaxTokens={1024}
         defaultPrompt={t("settings.compressionPromptDefault")}
         promptPlaceholder={t("settings.compressionPromptPlaceholder")}
+      />
+
+      <ModelCard
+        title={t("settings.fallbackModel")}
+        description={t("settings.fallbackModelDesc")}
+        modelKey="fallbackModel"
+        placeholder={placeholderText}
+        modalTitle={t("settings.fallbackModel")}
+        showPrompt={false}
+        showContextCount={false}
+      />
+
+      <ModelCard
+        title={t("settings.imageModel")}
+        description={t("settings.imageModelDesc")}
+        modelKey="imageModel"
+        placeholder={placeholderText}
+        modalTitle={t("settings.imageModel")}
+        showPrompt={false}
+        showContextCount={false}
+      />
+
+      <ModelCard
+        title={t("settings.videoModel")}
+        description={t("settings.videoModelDesc")}
+        modelKey="videoModel"
+        placeholder={placeholderText}
+        modalTitle={t("settings.videoModel")}
+        showPrompt={false}
+        showContextCount={false}
+      />
+
+      <ModelCard
+        title={t("settings.voiceModel")}
+        description={t("settings.voiceModelDesc")}
+        modelKey="voiceModel"
+        placeholder={placeholderText}
+        modalTitle={t("settings.voiceModel")}
+        showPrompt={false}
+        showContextCount={false}
       />
     </div>
   );

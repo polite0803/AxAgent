@@ -73,6 +73,7 @@ fn make_workflow(id: &str, nodes: Vec<WorkflowNode>, edges: Vec<WorkflowEdge>) -
         output: None,
         error_config: None,
         error_workflow_id: None,
+        hooks_config: None,
     }
 }
 

@@ -4833,7 +4833,11 @@
     "modelLabels": {
       "defaultModel": "Modèle de conversation par défaut",
       "titleSummaryModel": "Modèle de résumé de titre",
-      "compressionModel": "Modèle de compression"
+      "compressionModel": "Modèle de compression",
+      "fallbackModel": "Modèle de secours",
+      "imageModel": "Modèle d'image",
+      "videoModel": "Modèle vidéo",
+      "voiceModel": "Modèle vocal"
     },
     "activeProfile": "Profil actif",
     "addKey": "Ajouter une clé",
@@ -5011,6 +5015,14 @@
     "codeThemeLight": "Thème de code (clair)",
     "compressionModel": "Modèle de compression du contexte",
     "compressionModelDesc": "Modèle utilisé pour la compression du contexte. Utilise le modèle de conversation si non défini",
+    "fallbackModel": "Modèle de secours",
+    "fallbackModelDesc": "Réessaie automatiquement une fois avec ce modèle lorsque la requête du modèle principal échoue avant de produire du contenu ; si non défini, l'erreur est affichée directement",
+    "imageModel": "Modèle d'image",
+    "imageModelDesc": "Modèle par défaut pour la compréhension et la génération d'images",
+    "videoModel": "Modèle vidéo",
+    "videoModelDesc": "Modèle par défaut pour la compréhension vidéo",
+    "voiceModel": "Modèle vocal",
+    "voiceModelDesc": "Modèle par défaut pour la reconnaissance et la synthèse vocale",
     "compressionPromptDefault": "Vous êtes un assistant de résumé de conversation. Veuillez compresser l'historique de conversation suivant en un résumé concis.\n\nExigences:\n1. Conservez tous les besoins, préférences et décisions explicitement exprimés par l'utilisateur\n2. Conservez tous les détails techniques clés (extraits de code, configurations, messages d'erreur, etc.)\n3. Conservez les tâches en attente et les problèmes non résolus\n4. Organisez sous forme de points concis\n5. Gardez le résumé concis, pas plus de 500 mots",
     "compressionPromptPlaceholder": "Compresser l'historique de la conversation en un résumé concis…",
     "confirmSelection": "Confirmer la sélection",

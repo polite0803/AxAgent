@@ -115,6 +115,7 @@ pub fn import_workflow_yaml(
         output: None,
         error_config: None,
         error_workflow_id: None,
+        hooks_config: None,
     };
 
     Ok((workflow, yaml.metadata))
@@ -173,6 +174,7 @@ mod tests {
             output: None,
             error_config: None,
             error_workflow_id: None,
+            hooks_config: None,
         }
     }
 

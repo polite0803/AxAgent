@@ -187,6 +187,7 @@ async fn ensure_template(
         tool_defs: Vec::new(),
         mission_hash: None,
         cluster_id: Some("cognitive_router".to_string()),
+        hooks_config: None,
         route_path: Some(format!("/system/cognitive_router/{id}")),
         created_at: now,
         updated_at: now,

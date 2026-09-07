@@ -4833,7 +4833,11 @@
     "modelLabels": {
       "defaultModel": "기본 대화 모델",
       "titleSummaryModel": "제목 요약 모델",
-      "compressionModel": "압축 모델"
+      "compressionModel": "압축 모델",
+      "fallbackModel": "폴백 모델",
+      "imageModel": "이미지 모델",
+      "videoModel": "비디오 모델",
+      "voiceModel": "음성 모델"
     },
     "activeProfile": "활성 프로필",
     "addKey": "키 추가",
@@ -5011,6 +5015,14 @@
     "codeThemeLight": "코드 테마 (라이트)",
     "compressionModel": "컨텍스트 압축 모델",
     "compressionModelDesc": "컨텍스트 압축에 사용할 모델. 설정되지 않은 경우 대화 모델로 폴백",
+    "fallbackModel": "폴백 모델",
+    "fallbackModelDesc": "기본 모델 요청이 실패하고 아직 내용이 생성되지 않은 경우 이 모델로 자동으로 한 번 재시도합니다. 설정하지 않으면 바로 오류가 표시됩니다",
+    "imageModel": "이미지 모델",
+    "imageModelDesc": "이미지 이해 및 이미지 생성 작업에 사용되는 기본 모델",
+    "videoModel": "비디오 모델",
+    "videoModelDesc": "비디오 이해 작업에 사용되는 기본 모델",
+    "voiceModel": "음성 모델",
+    "voiceModelDesc": "음성 인식 및 음성 합성 작업에 사용되는 기본 모델",
     "compressionPromptDefault": "당신은 대화 요약 어시스턴트입니다. 다음 대화 기록을 간결한 요약으로 압축하세요.\n\n요구사항:\n1. 사용자가 명시적으로 표현한 모든 요구사항, 선호도, 결정사항을 유지하세요\n2. 모든 중요한 기술적 세부사항(코드 스니펫, 설정, 오류 메시지 등)을 유지하세요\n3. 보류 중인 작업과 미해결 문제를 유지하세요\n4. 간결한 글머리 기호 형식으로 구성하세요\n5. 요약을 간결하게 유지하고 500단어 이내로 하세요",
     "compressionPromptPlaceholder": "대화 내역을 간결한 요약으로 압축...",
     "confirmSelection": "선택 확인",

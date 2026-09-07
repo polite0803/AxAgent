@@ -351,6 +351,7 @@ impl Tool for SaveAsWorkflowTool {
             error_config: None,
             cluster_id: None,
             route_path: None,
+            hooks_config: None,
         };
 
         // 5. 写入。护照在 move 之前派生（capability_id 与 template.id 对齐，

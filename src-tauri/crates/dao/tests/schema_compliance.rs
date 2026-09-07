@@ -1483,6 +1483,7 @@ const SCHEMA: &[(&str, &[(&str, &str)])] = &[
             ("mission_hash", "TEXT"),
             ("cluster_id", "TEXT"),
             ("route_path", "TEXT"),
+            ("hooks_config", "TEXT"),
             ("created_at", "BIGINT"),
             ("updated_at", "BIGINT"),
         ],

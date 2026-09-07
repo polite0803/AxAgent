@@ -37,6 +37,10 @@ pub struct Model {
     /// 路由路径（三层路由地址，格式 /{domain}/{cluster}/{capability}）
     #[sea_orm(column_name = "route_path")]
     pub route_path: Option<String>,
+    /// 模板声明的生命周期钩子（JSON 字符串，NULL 合法）：
+    /// `{"pre_exec": ["hook-a"], "post_exec": ["hook-b"]}`
+    #[sea_orm(column_name = "hooks_config")]
+    pub hooks_config: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }

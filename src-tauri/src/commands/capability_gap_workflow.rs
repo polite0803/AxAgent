@@ -169,6 +169,7 @@ fn build_minimal_gap_template(
         mission_hash: None,
         cluster_id: Some("gap_filler".to_string()),
         route_path: Some("/automation/gap_filler".to_string()),
+        hooks_config: None,
         created_at: now,
         updated_at: now,
     }

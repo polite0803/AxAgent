@@ -50,9 +50,10 @@ pub mod v130_session_states;
 pub mod v131_backfill_wiki_graph_source;
 pub mod v132_memory_access_indexes;
 pub mod v133_create_session_events;
+pub mod v134_add_workflow_template_hooks;
 
 /// 当前 schema 版本号。每次新增 migration 时必须累加此常量。
-pub const CURRENT_VERSION: i32 = 133;
+pub const CURRENT_VERSION: i32 = 134;
 
 /// P2-10: Schema 版本追踪表名。
 ///
@@ -254,6 +255,11 @@ const MIGRATIONS: &[Migration] = &[
         version: 133,
         description: "v133_create_session_events: 创建 session_events 表（跨进程 Resume 事件流）—— session_id + seq 唯一索引 + session_id+event_type 查询索引，支撑 agent_resume_from_events 从事件流重放 ThoughtChain + 识别 Interrupted 点",
         up: |db| Box::pin(v133_create_session_events::up(db)),
+    },
+    Migration {
+        version: 134,
+        description: "v134_add_workflow_template_hooks: 为 workflow_templates 添加 hooks_config 列（模板级生命周期钩子声明 JSON，NULL 合法）——通用引擎按声明查运行时注册表，业务侧经 register_lifecycle_hook 注入实现",
+        up: |db| Box::pin(v134_add_workflow_template_hooks::up(db)),
     },
 ];
 

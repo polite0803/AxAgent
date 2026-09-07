@@ -32,6 +32,18 @@ pub struct AppSettings {
     pub default_top_p: Option<f32>,
     pub default_frequency_penalty: Option<f32>,
     pub default_context_count: Option<u32>,
+    /// 回退模型：主模型请求失败且尚未产出任何内容时，自动切换重试一次。
+    pub fallback_provider_id: Option<String>,
+    pub fallback_model_id: Option<String>,
+    /// 图片模型：图像理解 / 图片生成类任务的默认模型。
+    pub image_provider_id: Option<String>,
+    pub image_model_id: Option<String>,
+    /// 视频模型：视频理解类任务的默认模型。
+    pub video_provider_id: Option<String>,
+    pub video_model_id: Option<String>,
+    /// 语音模型：语音转写 / 语音合成类任务的默认模型。
+    pub voice_provider_id: Option<String>,
+    pub voice_model_id: Option<String>,
     pub title_summary_provider_id: Option<String>,
     pub title_summary_model_id: Option<String>,
     pub title_summary_temperature: Option<f32>,
@@ -239,6 +251,14 @@ impl Default for AppSettings {
             default_top_p: None,
             default_frequency_penalty: None,
             default_context_count: None,
+            fallback_provider_id: None,
+            fallback_model_id: None,
+            image_provider_id: None,
+            image_model_id: None,
+            video_provider_id: None,
+            video_model_id: None,
+            voice_provider_id: None,
+            voice_model_id: None,
             title_summary_provider_id: None,
             title_summary_model_id: None,
             title_summary_temperature: None,

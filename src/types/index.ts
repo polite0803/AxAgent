@@ -489,6 +489,15 @@ export interface AppSettings {
   defaultFrequencyPenalty: number | null;
   defaultContextCount: number | null;
 
+  // 回退模型：主模型失败且未产出内容时自动切换重试
+  fallbackModel: NullableModelRef;
+  // 图片模型：图像理解 / 图片生成默认模型
+  imageModel: NullableModelRef;
+  // 视频模型：视频理解默认模型
+  videoModel: NullableModelRef;
+  // 语音模型：语音转写 / 语音合成默认模型
+  voiceModel: NullableModelRef;
+
   titleSummaryModel: NullableModelRef;
   titleSummaryTemperature: number | null;
   titleSummaryMaxTokens: number | null;

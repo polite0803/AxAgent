@@ -69,6 +69,9 @@ pub struct WorkflowTemplateData {
     pub cluster_id: Option<String>,
     /// 三层路由路径（格式 `/{domain}/{cluster}/{capability}`）
     pub route_path: Option<String>,
+    /// 模板声明的生命周期钩子（JSON 字符串，NULL 合法）：
+    /// `{"pre_exec": ["hook-a"], "post_exec": ["hook-b"]}`
+    pub hooks_config: Option<String>,
 }
 
 impl WorkflowTemplateData {

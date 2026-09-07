@@ -4833,7 +4833,11 @@
     "modelLabels": {
       "defaultModel": "預設對話模型",
       "titleSummaryModel": "標題摘要模型",
-      "compressionModel": "壓縮模型"
+      "compressionModel": "壓縮模型",
+      "fallbackModel": "備援模型",
+      "imageModel": "圖片模型",
+      "videoModel": "影片模型",
+      "voiceModel": "語音模型"
     },
     "activeProfile": "當前配置",
     "addKey": "新增金鑰",
@@ -5011,6 +5015,14 @@
     "codeThemeLight": "程式碼主題（亮色）",
     "compressionModel": "上下文壓縮模型",
     "compressionModelDesc": "壓縮對話上下文時所使用的模型，若未設定則使用對話採用的模型",
+    "fallbackModel": "備援模型",
+    "fallbackModelDesc": "主要模型請求失敗且尚未產出內容時，自動切換到該模型重試一次，未設定則直接報錯",
+    "imageModel": "圖片模型",
+    "imageModelDesc": "圖像理解與圖片生成任務使用的預設模型",
+    "videoModel": "影片模型",
+    "videoModelDesc": "影片理解任務使用的預設模型",
+    "voiceModel": "語音模型",
+    "voiceModelDesc": "語音轉寫與語音合成任務使用的預設模型",
     "compressionPromptDefault": "你是一個對話摘要助手。請將以下對話歷史壓縮為簡潔摘要。\n\n要求：\n1. 保留所有用戶明確表達的需求、偏好和決策\n2. 保留關鍵技術細節（代碼片段、配置、錯誤信息等）\n3. 保留待辦事項和未解決的問題\n4. 用簡潔的要點形式組織\n5. 保持摘要簡潔，不超過 500 字",
     "compressionPromptPlaceholder": "請將對話歷史壓縮為簡潔摘要...",
     "confirmSelection": "確認選擇",

@@ -4833,7 +4833,11 @@
     "modelLabels": {
       "defaultModel": "Standard-Konversationsmodell",
       "titleSummaryModel": "Titel-Zusammenfassungsmodell",
-      "compressionModel": "Kompressionsmodell"
+      "compressionModel": "Kompressionsmodell",
+      "fallbackModel": "Fallback-Modell",
+      "imageModel": "Bildmodell",
+      "videoModel": "Videomodell",
+      "voiceModel": "Sprachmodell"
     },
     "activeProfile": "Aktives Profil",
     "addKey": "Schlüssel hinzufügen",
@@ -5011,6 +5015,14 @@
     "codeThemeLight": "Code-Thema (Hell)",
     "compressionModel": "Kontextkomprimierungsmodell",
     "compressionModelDesc": "Modell für die Kontextkomprimierung. Fällt auf das Gesprächsmodell zurück, wenn nicht festgelegt",
+    "fallbackModel": "Fallback-Modell",
+    "fallbackModelDesc": "Wiederholt den Versuch automatisch einmal mit diesem Modell, wenn die Anfrage des Hauptmodells fehlschlägt, bevor Inhalte erzeugt wurden; andernfalls wird der Fehler direkt angezeigt",
+    "imageModel": "Bildmodell",
+    "imageModelDesc": "Standardmodell für Bildverständnis und Bildgenerierung",
+    "videoModel": "Videomodell",
+    "videoModelDesc": "Standardmodell für Videoverständnis",
+    "voiceModel": "Sprachmodell",
+    "voiceModelDesc": "Standardmodell für Spracherkennung und Sprachsynthese",
     "compressionPromptDefault": "Sie sind ein Gesprächszusammenfassungsassistent. Bitte komprimieren Sie den folgenden Gesprächsverlauf in eine prägnante Zusammenfassung.\n\nAnforderungen:\n1. Behalten Sie alle vom Benutzer explizit geäußerten Bedürfnisse, Präferenzen und Entscheidungen\n2. Behalten Sie alle wichtigen technischen Details (Codeschnipsel, Konfigurationen, Fehlermeldungen usw.)\n3. Behalten Sie ausstehende Aufgaben und ungelöste Probleme bei\n4. Organisieren Sie in prägnanten Aufzählungspunkten\n5. Halten Sie die Zusammenfassung prägnant, nicht mehr als 500 Wörter",
     "compressionPromptPlaceholder": "Gesprächsverlauf in eine prägnante Zusammenfassung komprimieren…",
     "confirmSelection": "Auswahl bestätigen",

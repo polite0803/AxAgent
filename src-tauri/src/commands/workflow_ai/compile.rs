@@ -246,6 +246,7 @@ pub async fn compile_mission_to_template(
         icon: "mission".to_string(),
         cluster_id: None,
         route_path: None,
+        hooks_config: None,
         tags: vec!["mission-compiled".to_string()],
         version: 1,
         is_preset: false,
